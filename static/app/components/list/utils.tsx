@@ -1,27 +1,13 @@
-import {css} from '@emotion/core';
+import {css} from '@emotion/react';
 
 import space from 'app/styles/space';
 import {Theme} from 'app/utils/theme';
 
-const commonSymbolStyle = css`
-  & > li {
-    padding-left: ${space(4)};
-    :before {
-      border-radius: 50%;
-      position: absolute;
-    }
-  }
-`;
-
 const bulletStyle = (theme: Theme) => css`
-  ${commonSymbolStyle}
-  & > li:before {
-    content: '';
-    width: 6px;
-    height: 6px;
-    left: 5px;
-    top: 10px;
-    border: 1px solid ${theme.subText};
+  padding-left: ${space(3)};
+  list-style-type: circle;
+  & > li::marker {
+    color: ${theme.subText};
   }
 `;
 
@@ -35,31 +21,35 @@ const numericStyle = (
   theme: Theme,
   {isSolid = false, initialCounterValue = 0}: Options
 ) => css`
-  ${commonSymbolStyle}
-  & > li:before {
-    counter-increment: numberedList;
-    content: counter(numberedList);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    left: 0;
-    ${isSolid
-      ? css`
-          width: 24px;
-          height: 24px;
-          font-weight: 500;
-          font-size: ${theme.fontSizeSmall};
-          background-color: ${theme.yellow300};
-        `
-      : css`
-          top: 3px;
-          width: 18px;
-          height: 18px;
-          font-weight: 600;
-          font-size: 10px;
-          border: 1px solid ${theme.gray500};
-        `}
+  & > li {
+    padding-left: ${space(4)};
+    :before {
+      border-radius: 50%;
+      position: absolute;
+      counter-increment: numberedList;
+      content: counter(numberedList);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      left: 0;
+      ${isSolid
+        ? css`
+            width: 24px;
+            height: 24px;
+            font-weight: 500;
+            font-size: ${theme.fontSizeSmall};
+            background-color: ${theme.yellow300};
+          `
+        : css`
+            top: 3px;
+            width: 18px;
+            height: 18px;
+            font-weight: 600;
+            font-size: 10px;
+            border: 1px solid ${theme.gray500};
+          `}
+    }
   }
   counter-reset: numberedList ${initialCounterValue};
 `;

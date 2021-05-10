@@ -5,8 +5,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import pytz
 
-from sentry.api.event_search import get_filter
 from sentry.api.utils import get_date_range_from_params
+from sentry.search.events.filter import get_filter
 from sentry.utils.dates import parse_stats_period, to_datetime, to_timestamp
 from sentry.utils.snuba import Dataset, raw_query, resolve_condition
 
@@ -93,13 +93,17 @@ class SessionsField:
         if status is None:
             return row["sessions"]
         if status == "healthy":
-            return row["sessions"] - row["sessions_errored"]
+            healthy_sessions = row["sessions"] - row["sessions_errored"]
+            return max(healthy_sessions, 0)
         if status == "abnormal":
             return row["sessions_abnormal"]
         if status == "crashed":
             return row["sessions_crashed"]
         if status == "errored":
-            return row["sessions_errored"]
+            errored_sessions = (
+                row["sessions_errored"] - row["sessions_crashed"] - row["sessions_abnormal"]
+            )
+            return max(errored_sessions, 0)
         return 0
 
 
@@ -116,13 +120,15 @@ class UsersField:
         if status is None:
             return row["users"]
         if status == "healthy":
-            return row["users"] - row["users_errored"]
+            healthy_users = row["users"] - row["users_errored"]
+            return max(healthy_users, 0)
         if status == "abnormal":
             return row["users_abnormal"]
         if status == "crashed":
             return row["users_crashed"]
         if status == "errored":
-            return row["users_errored"]
+            errored_users = row["users_errored"] - row["users_crashed"] - row["users_abnormal"]
+            return max(errored_users, 0)
         return 0
 
 
@@ -291,7 +297,7 @@ class InvalidParams(Exception):
 
 
 def get_constrained_date_range(
-    params, allow_minute_resolution=False
+    params, allow_minute_resolution=False, max_points=MAX_POINTS
 ) -> Tuple[datetime, datetime, int]:
     interval = parse_stats_period(params.get("interval", "1h"))
     interval = int(3600 if interval is None else interval.total_seconds())
@@ -341,7 +347,7 @@ def get_constrained_date_range(
                 "The time-range when using one-minute resolution intervals is restricted to the last 30 days."
             )
 
-    if date_range.total_seconds() / interval > MAX_POINTS:
+    if date_range.total_seconds() / interval > max_points:
         raise InvalidParams(
             "Your interval and date range would create too many results. "
             "Use a larger interval, or a smaller date range."

@@ -1,6 +1,5 @@
-import React from 'react';
 import {Link, RouteComponentProps} from 'react-router';
-import {css} from '@emotion/core';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Button from 'app/components/button';

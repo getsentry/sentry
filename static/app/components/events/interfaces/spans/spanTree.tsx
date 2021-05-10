@@ -1,7 +1,9 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
 import GuideAnchor from 'app/components/assistant/guideAnchor';
+import {MessageRow} from 'app/components/performance/waterfall/messageRow';
+import {pickBarColour} from 'app/components/performance/waterfall/utils';
 import {t, tct} from 'app/locale';
 import {Organization} from 'app/types';
 import {EventTransaction} from 'app/types/event';
@@ -10,7 +12,6 @@ import {TableData} from 'app/utils/discover/discoverQuery';
 import {DragManagerChildrenProps} from './dragManager';
 import {ActiveOperationFilter} from './filter';
 import SpanGroup from './spanGroup';
-import {SpanRowMessage} from './styles';
 import {FilterSpans} from './traceView';
 import {
   GapSpanType,
@@ -30,7 +31,6 @@ import {
   isEventFromBrowserJavaScriptSDK,
   isGapSpan,
   isOrphanSpan,
-  pickSpanBarColour,
   SpanBoundsType,
   SpanGeneratedBoundsType,
 } from './utils';
@@ -117,7 +117,7 @@ class SpanTree extends React.Component<PropType> {
       return null;
     }
 
-    return <SpanRowMessage>{messages}</SpanRowMessage>;
+    return <MessageRow>{messages}</MessageRow>;
   }
 
   generateLimitExceededMessage() {
@@ -128,11 +128,11 @@ class SpanTree extends React.Component<PropType> {
     }
 
     return (
-      <SpanRowMessage>
+      <MessageRow>
         {t(
           'The next spans are unavailable. You may have exceeded the span limit or need to address missing instrumentation.'
         )}
-      </SpanRowMessage>
+      </MessageRow>
     );
   }
 
@@ -184,7 +184,7 @@ class SpanTree extends React.Component<PropType> {
   }): RenderedSpanTree => {
     const {orgId, event, spansWithErrors, organization} = this.props;
 
-    const spanBarColour: string = pickSpanBarColour(getSpanOperation(span));
+    const spanBarColour: string = pickBarColour(getSpanOperation(span));
     const spanChildren: Array<RawSpanType> = childSpans?.[getSpanID(span)] ?? [];
 
     // Mark descendents as being rendered. This is to address potential recursion issues due to malformed data.

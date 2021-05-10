@@ -2,7 +2,7 @@ from collections import namedtuple
 
 import pytest
 from celery import Task
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from requests.exceptions import Timeout
 
 from sentry.api.serializers import serialize

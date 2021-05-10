@@ -1,7 +1,8 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 import {LocationDescriptor} from 'history';
 
+import MenuHeader from 'app/components/actions/menuHeader';
 import ExternalLink from 'app/components/links/externalLink';
 import MenuItem from 'app/components/menuItem';
 import Tag, {Background} from 'app/components/tag';
@@ -11,8 +12,8 @@ import {getDuration} from 'app/utils/formatters';
 import {QuickTraceEvent} from 'app/utils/performance/quickTrace/types';
 import {Theme} from 'app/utils/theme';
 
-export const SectionSubtext = styled('div')<{type?: 'error' | 'default'}>`
-  color: ${p => (p.type === 'error' ? p.theme.error : p.theme.subText)};
+export const SectionSubtext = styled('div')`
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 
@@ -61,9 +62,30 @@ export const TraceConnector = styled('div')`
   border-top: 1px solid ${p => p.theme.textColor};
 `;
 
-const StyledMenuItem = styled(MenuItem)<{first?: boolean; width: 'small' | 'large'}>`
-  border-top: ${p => (!p.first ? `1px solid ${p.theme.innerBorder}` : null)};
+/**
+ * The DropdownLink component is styled directly with less and the way the
+ * elements are laid out within means we can't apply any styles directly
+ * using emotion. Instead, we wrap it all inside a span and indirectly
+ * style it here.
+ */
+export const DropdownContainer = styled('span')`
+  .dropdown-menu {
+    padding: 0;
+  }
+`;
+
+export const DropdownMenuHeader = styled(MenuHeader)<{first?: boolean}>`
+  background: ${p => p.theme.backgroundSecondary};
+  ${p => p.first && 'border-radius: 2px'};
+  padding: ${space(1)} ${space(1.5)};
+`;
+
+const StyledMenuItem = styled(MenuItem)<{width: 'small' | 'large'}>`
   width: ${p => (p.width === 'large' ? '350px' : '200px')};
+
+  &:not(:last-child) {
+    border-bottom: 1px solid ${p => p.theme.innerBorder};
+  }
 `;
 
 const MenuItemContent = styled('div')`
@@ -75,20 +97,25 @@ const MenuItemContent = styled('div')`
 type DropdownItemProps = {
   children: React.ReactNode;
   to?: string | LocationDescriptor;
+  allowDefaultEvent?: boolean;
   onSelect?: (eventKey: any) => void;
-  first?: boolean;
   width?: 'small' | 'large';
 };
 
 export function DropdownItem({
   children,
-  first,
   onSelect,
+  allowDefaultEvent,
   to,
   width = 'large',
 }: DropdownItemProps) {
   return (
-    <StyledMenuItem to={to} onSelect={onSelect} first={first} width={width}>
+    <StyledMenuItem
+      to={to}
+      onSelect={onSelect}
+      width={width}
+      allowDefaultEvent={allowDefaultEvent}
+    >
       <MenuItemContent>{children}</MenuItemContent>
     </StyledMenuItem>
   );
@@ -104,6 +131,7 @@ export const DropdownItemSubContainer = styled('div')`
 `;
 
 export const StyledTruncate = styled(Truncate)`
+  padding-left: ${space(1)};
   white-space: nowrap;
 `;
 

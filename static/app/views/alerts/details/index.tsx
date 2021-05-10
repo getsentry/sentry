@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import {Location} from 'history';
 
@@ -37,7 +37,15 @@ type State = {
   stats?: IncidentStats;
 };
 
-class IncidentDetails extends React.Component<Props, State> {
+export const alertDetailsLink = (organization: Organization, incident: Incident) =>
+  `/organizations/${organization.slug}/alerts/rules/details/${
+    incident?.alertRule.status === AlertRuleStatus.SNAPSHOT &&
+    incident?.alertRule.originalAlertRuleId
+      ? incident?.alertRule.originalAlertRuleId
+      : incident?.alertRule.id
+  }/`;
+
+class IncidentDetails extends Component<Props, State> {
   state: State = {isLoading: false, hasError: false};
 
   componentDidMount() {
@@ -61,6 +69,7 @@ class IncidentDetails extends React.Component<Props, State> {
     const {
       api,
       location,
+      organization,
       params: {orgId, alertId},
     } = this.props;
 
@@ -74,12 +83,7 @@ class IncidentDetails extends React.Component<Props, State> {
           location && location.query && location.query.redirect === 'false';
         if (hasRedesign && !stopRedirect) {
           browserHistory.replace({
-            pathname: `/organizations/${orgId}/alerts/rules/details/${
-              incident.alertRule.status === AlertRuleStatus.SNAPSHOT &&
-              incident.alertRule.originalAlertRuleId
-                ? incident.alertRule.originalAlertRuleId
-                : incident.alertRule.id
-            }/`,
+            pathname: alertDetailsLink(organization, incident),
             query: {alert: incident.identifier},
           });
         }
@@ -169,7 +173,7 @@ class IncidentDetails extends React.Component<Props, State> {
     const project = incident?.projects?.[0];
 
     return (
-      <React.Fragment>
+      <Fragment>
         <SentryDocumentTitle
           title={t('Alert %s', alertId)}
           orgSlug={organization.slug}
@@ -184,7 +188,7 @@ class IncidentDetails extends React.Component<Props, State> {
           onStatusChange={this.handleStatusChange}
         />
         <DetailsBody {...this.props} incident={incident} stats={stats} />
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

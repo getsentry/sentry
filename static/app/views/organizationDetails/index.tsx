@@ -1,4 +1,4 @@
-import React, {Component} from 'react';
+import {Component, Fragment} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 
 import {switchOrganization} from 'app/actionCreators/organizations';
@@ -136,10 +136,10 @@ class OrganizationDetailsBody extends Component {
       }
     }
     return (
-      <React.Fragment>
+      <Fragment>
         <ErrorBoundary>{this.props.children}</ErrorBoundary>
         <Footer />
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

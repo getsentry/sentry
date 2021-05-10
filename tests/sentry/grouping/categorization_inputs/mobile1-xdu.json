@@ -1,0 +1,112 @@
+{
+  "event_id": "7696771fa68c446ea42f9789a9e55f9f",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": {
+            "relevant_address": "0x0000000000000001"
+          },
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": {
+            "mach_exception": {
+              "code": 1,
+              "exception": 1,
+              "name": "EXC_BAD_ACCESS",
+              "subcode": 8
+            },
+            "signal": {
+              "code": 0,
+              "code_name": "SEGV_NOOP",
+              "name": "SIGSEGV",
+              "number": 11
+            }
+          },
+          "synthetic": null,
+          "type": "mach"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "UIApplicationMain",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "-[UIApplication _run]",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "CFRunLoopRunSpecific",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "__CFRunLoopRun",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "__CFRunLoopDoSource1",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "__CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE1_PERFORM_FUNCTION__",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "__CFMachPortPerform",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "IODispatchCalloutFromCFMessage",
+              "package": "IOKit"
+            },
+            {
+              "function": "CA::Display::DisplayLink::dispatch_items",
+              "package": "QuartzCore"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "-[EAGLContext presentRenderbuffer:]",
+              "package": "OpenGLES"
+            },
+            {
+              "function": "gliPresentViewES_Exec",
+              "package": "GLEngine"
+            },
+            {
+              "function": "gldUpdateDispatch",
+              "package": "AGXGLDriver"
+            },
+            {
+              "function": "gpusSubmitDataBuffers",
+              "package": "libGPUSupportMercury.dylib"
+            },
+            {
+              "function": "gldUpdateDispatch",
+              "package": "AGXGLDriver"
+            },
+            {
+              "function": "gpus_ReturnNotPermittedKillClient",
+              "package": "libGPUSupportMercury.dylib"
+            }
+          ]
+        },
+        "type": "EXC_BAD_ACCESS",
+        "value": "Exception 1, Code 1, Subcode 8 >\nAttempted to dereference garbage pointer 0x1."
+      }
+    ]
+  },
+  "platform": "cocoa"
+}

@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
@@ -28,7 +28,7 @@ type State = {
   sourceCodeInput: string;
 };
 
-class StacktraceLinkModal extends React.Component<Props, State> {
+class StacktraceLinkModal extends Component<Props, State> {
   state: State = {
     sourceCodeInput: '',
   };
@@ -108,11 +108,11 @@ class StacktraceLinkModal extends React.Component<Props, State> {
 
   render() {
     const {sourceCodeInput} = this.state;
-    const {Header, Body, Footer, filename, integrations, organization} = this.props;
+    const {Header, Body, filename, integrations, organization} = this.props;
     const baseUrl = `/settings/${organization.slug}/integrations`;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Header closeButton>{t('Link Stack Trace To Source Code')}</Header>
         <Body>
           <ModalContainer>
@@ -172,16 +172,14 @@ class StacktraceLinkModal extends React.Component<Props, State> {
                 </Button>
               ))}
             </ManualSetup>
+            <FeedbackAlert type="info" icon={<IconInfo />}>
+              {tct('Got feedback? Email [email:ecosystem-feedback@sentry.io].', {
+                email: <a href="mailto:ecosystem-feedback@sentry.io" />,
+              })}
+            </FeedbackAlert>
           </ModalContainer>
         </Body>
-        <Footer>
-          <Alert type="info" icon={<IconInfo />}>
-            {tct('Got feedback? Email [email:ecosystem-feedback@sentry.io].', {
-              email: <a href="mailto:ecosystem-feedback@sentry.io" />,
-            })}
-          </Alert>
-        </Footer>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }
@@ -205,6 +203,10 @@ const ModalContainer = styled('div')`
   code {
     word-break: break-word;
   }
+`;
+
+const FeedbackAlert = styled(Alert)`
+  margin: 20px 0px 0px 0px;
 `;
 
 const StyledInputField = styled(InputField)`

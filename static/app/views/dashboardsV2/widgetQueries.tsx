@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import isEqual from 'lodash/isEqual';
 
 import {doEventsRequest} from 'app/actionCreators/events';
@@ -36,7 +36,11 @@ function getWidgetInterval(
 ): string {
   // Bars charts are daily totals to aligned with discover. It also makes them
   // usefully different from line/area charts until we expose the interval control, or remove it.
-  const interval = widget.displayType === 'bar' ? '1d' : widget.interval;
+  let interval = widget.displayType === 'bar' ? '1d' : widget.interval;
+  if (!interval) {
+    // Default to 5 minutes
+    interval = '5m';
+  }
   const desiredPeriod = parsePeriodToHours(interval);
   const selectedRange = getDiffInMinutes(datetimeObj);
 
@@ -190,6 +194,7 @@ class WidgetQueries extends React.Component<Props, State> {
       let url: string = '';
       const params: DiscoverQueryRequestParams = {
         per_page: 5,
+        noPagination: true,
       };
       if (widget.displayType === 'table') {
         url = `/organizations/${organization.slug}/eventsv2/`;

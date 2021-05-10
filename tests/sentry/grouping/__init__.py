@@ -27,10 +27,9 @@ class GroupingInput:
         grouping_input = dict(self.data)
         # Customize grouping config from the _grouping config
         grouping_info = grouping_input.pop("_grouping", None) or {}
-        enhancement_base = grouping_info.get("enhancement_base")
         enhancements = grouping_info.get("enhancements")
-        if enhancement_base or enhancements:
-            enhancement_bases = [enhancement_base] if enhancement_base else []
+        if enhancements:
+            enhancement_bases = Enhancements.loads(grouping_config["enhancements"]).bases
             e = Enhancements.from_config_string(enhancements or "", bases=enhancement_bases)
             grouping_config["enhancements"] = e.dumps()
 

@@ -1,7 +1,7 @@
-import React from 'react';
+import {PureComponent} from 'react';
 
 import Feature from 'app/components/acl/feature';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import {Panel, PanelBody} from 'app/components/panels';
 import SelectMembers from 'app/components/selectMembers';
 import {t} from 'app/locale';
 import {Organization, Project} from 'app/types';
@@ -15,19 +15,18 @@ type Props = {
   userTeamIds: Set<string>;
 };
 
-class RuleNameOwnerForm extends React.PureComponent<Props> {
+class RuleNameOwnerForm extends PureComponent<Props> {
   render() {
     const {disabled, project, organization, userTeamIds} = this.props;
 
     return (
       <Panel>
-        <PanelHeader>{t('Give your rule a name')}</PanelHeader>
         <PanelBody>
           <TextField
             disabled={disabled}
             name="name"
             label={t('Rule Name')}
-            help={t('Give your rule a name so it is easy to manage later')}
+            help={t('Add a name so it’s easy to find later.')}
             placeholder={t('Something really bad happened')}
             required
           />
@@ -35,7 +34,7 @@ class RuleNameOwnerForm extends React.PureComponent<Props> {
             <FormField
               name="owner"
               label={t('Team')}
-              help={t('The team that owns this alert')}
+              help={t('The team that can edit this alert.')}
             >
               {({model}) => {
                 const owner = model.getValue('owner');

@@ -1,7 +1,7 @@
-import React from 'react';
+import * as React from 'react';
 import {InjectedRouter} from 'react-router/lib/Router';
+import {withTheme} from '@emotion/react';
 import {EChartOption} from 'echarts/lib/echarts';
-import {withTheme} from 'emotion-theming';
 import {Query} from 'history';
 import isEqual from 'lodash/isEqual';
 

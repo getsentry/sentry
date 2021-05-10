@@ -11,9 +11,14 @@ class GroupHash(Model):
         UNLOCKED = None
         LOCKED_IN_MIGRATION = 1
 
+        # This hierarchical grouphash should be ignored/skipped for finding the group.
+        SPLIT = 2
+
     project = FlexibleForeignKey("sentry.Project", null=True)
     hash = models.CharField(max_length=32)
     group = FlexibleForeignKey("sentry.Group", null=True)
+
+    # not-null => the event should be discarded
     group_tombstone_id = BoundedPositiveIntegerField(db_index=True, null=True)
     state = BoundedPositiveIntegerField(
         choices=[(State.LOCKED_IN_MIGRATION, _("Locked (Migration in Progress)"))], null=True

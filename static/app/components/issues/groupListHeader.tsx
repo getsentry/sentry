@@ -1,6 +1,4 @@
-import React from 'react';
 import styled from '@emotion/styled';
-import {Box, Flex} from 'reflexbox'; // eslint-disable-line no-restricted-imports
 
 import {PanelHeader} from 'app/components/panels';
 import {t} from 'app/locale';
@@ -12,42 +10,50 @@ type Props = {
 
 const GroupListHeader = ({withChart = true}: Props) => (
   <PanelHeader disablePadding>
-    <Box width={[8 / 12, 8 / 12, 6 / 12]} mx={2} flex="1">
-      {t('Issue')}
-    </Box>
+    <IssueWrapper>{t('Issue')}</IssueWrapper>
     {withChart && (
-      <Flex
-        width={160}
-        mx={2}
-        justifyContent="space-between"
-        className="hidden-xs hidden-sm"
-      >
-        {t('Graph')}
-      </Flex>
+      <ChartWrapper className="hidden-xs hidden-sm">{t('Graph')}</ChartWrapper>
     )}
     <EventUserWrapper>{t('events')}</EventUserWrapper>
     <EventUserWrapper>{t('users')}</EventUserWrapper>
-    <Flex
-      width={80}
-      mx={2}
-      justifyContent="flex-end"
-      className="hidden-xs hidden-sm toolbar-header"
-    >
+    <AssigneeWrapper className="hidden-xs hidden-sm toolbar-header">
       {t('Assignee')}
-    </Flex>
+    </AssigneeWrapper>
   </PanelHeader>
 );
 
 export default GroupListHeader;
 
-const EventUserWrapper = styled('div')`
+const Heading = styled('div')`
   display: flex;
-  justify-content: flex-end;
   align-self: center;
-  width: 60px;
   margin: 0 ${space(2)};
+`;
+
+const IssueWrapper = styled(Heading)`
+  flex: 1;
+  width: 66.66%;
+
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    width: 50%;
+  }
+`;
+
+const EventUserWrapper = styled(Heading)`
+  justify-content: flex-end;
+  width: 60px;
 
   @media (min-width: ${p => p.theme.breakpoints[3]}) {
     width: 80px;
   }
+`;
+
+const ChartWrapper = styled(Heading)`
+  justify-content: space-between;
+  width: 160px;
+`;
+
+const AssigneeWrapper = styled(Heading)`
+  justify-content: flex-end;
+  width: 80px;
 `;

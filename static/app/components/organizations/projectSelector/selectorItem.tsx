@@ -1,5 +1,5 @@
-import React from 'react';
-import {css} from '@emotion/core';
+import * as React from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Feature from 'app/components/acl/feature';
@@ -132,14 +132,12 @@ class ProjectSelectorItem extends React.PureComponent<Props, State> {
             bookmarkHasChanged={bookmarkHasChanged}
             onToggle={this.handleBookmarkToggle}
           />
-          <Feature features={['organizations:project-detail']}>
-            <StyledLink
-              to={`/organizations/${organization.slug}/projects/${project.slug}/?project=${project.id}`}
-              onClick={e => e.stopPropagation()}
-            >
-              <IconOpen />
-            </StyledLink>
-          </Feature>
+          <StyledLink
+            to={`/organizations/${organization.slug}/projects/${project.slug}/?project=${project.id}`}
+            onClick={e => e.stopPropagation()}
+          >
+            <IconOpen />
+          </StyledLink>
 
           <StyledLink
             to={`/settings/${organization.slug}/${project.slug}/`}

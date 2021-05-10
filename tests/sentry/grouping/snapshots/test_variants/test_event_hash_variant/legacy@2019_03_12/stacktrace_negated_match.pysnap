@@ -1,5 +1,5 @@
 ---
-created: '2020-11-12T10:56:55.593842Z'
+created: '2021-04-02T10:31:44.323391Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -12,16 +12,16 @@ app:
           frame (frame considered in-app because no frame is in-app)
             function (function name is not used if module or filename are available)
               "_main"
-          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame (frame considered in-app because no frame is in-app)
             function (function name is not used if module or filename are available)
               "std::rt::lang_start_internal"
           frame (frame considered in-app because no frame is in-app)
             function (function name is not used if module or filename are available)
               "___rust_maybe_catch_panic"
-          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame (frame considered in-app because no frame is in-app)
             function (function name is not used if module or filename are available)
               "std::panicking::try::do_call"
-          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame (frame considered in-app because no frame is in-app)
             function (function name is not used if module or filename are available)
               "std::rt::lang_start::{{closure}}"
           frame (frame considered in-app because no frame is in-app)
@@ -44,16 +44,16 @@ system:
           frame
             function (function name is not used if module or filename are available)
               "_main"
-          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame
             function (function name is not used if module or filename are available)
               "std::rt::lang_start_internal"
           frame
             function (function name is not used if module or filename are available)
               "___rust_maybe_catch_panic"
-          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame
             function (function name is not used if module or filename are available)
               "std::panicking::try::do_call"
-          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+          frame
             function (function name is not used if module or filename are available)
               "std::rt::lang_start::{{closure}}"
           frame

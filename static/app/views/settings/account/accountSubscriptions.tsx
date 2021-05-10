@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 import groupBy from 'lodash/groupBy';
 import moment from 'moment';
@@ -110,7 +110,7 @@ class AccountSubscriptions extends AsyncView<AsyncView['props'], State> {
                     )}
 
                     {subscriptions.map((subscription, index) => (
-                      <PanelItem p={2} alignItems="center" key={subscription.listId}>
+                      <PanelItem center key={subscription.listId}>
                         <SubscriptionDetails>
                           <SubscriptionName>{subscription.listName}</SubscriptionName>
                           {subscription.listDescription && (

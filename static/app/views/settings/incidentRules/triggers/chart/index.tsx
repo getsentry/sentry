@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 import chunk from 'lodash/chunk';
 import maxBy from 'lodash/maxBy';
@@ -7,13 +7,13 @@ import {fetchTotalCount} from 'app/actionCreators/events';
 import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
 import EventsRequest from 'app/components/charts/eventsRequest';
+import OptionSelector from 'app/components/charts/optionSelector';
 import {
   ChartControls,
   InlineContainer,
   SectionHeading,
   SectionValue,
 } from 'app/components/charts/styles';
-import SelectControl from 'app/components/forms/selectControl';
 import LoadingMask from 'app/components/loadingMask';
 import Placeholder from 'app/components/placeholder';
 import {t} from 'app/locale';
@@ -39,7 +39,6 @@ type Props = {
   resolveThreshold: IncidentRule['resolveThreshold'];
   thresholdType: IncidentRule['thresholdType'];
   header?: React.ReactNode;
-  footer?: React.ReactNode;
 };
 
 const TIME_PERIOD_MAP: Record<TimePeriod, string> = {
@@ -151,8 +150,8 @@ class TriggersChart extends React.PureComponent<Props, State> {
     }
   }
 
-  handleStatsPeriodChange = (statsPeriod: {value: TimePeriod; label: string}) => {
-    this.setState({statsPeriod: statsPeriod.value});
+  handleStatsPeriodChange = (timePeriod: string) => {
+    this.setState({statsPeriod: timePeriod as TimePeriod});
   };
 
   getStatsPeriod = () => {
@@ -195,7 +194,6 @@ class TriggersChart extends React.PureComponent<Props, State> {
       thresholdType,
       environment,
       header,
-      footer,
     } = this.props;
     const {statsPeriod, totalEvents} = this.state;
 
@@ -258,58 +256,41 @@ class TriggersChart extends React.PureComponent<Props, State> {
 
                 const chart = (
                   <React.Fragment>
+                    {header}
+                    <TransparentLoadingMask visible={reloading} />
                     {loading || reloading ? (
                       <ChartPlaceholder />
                     ) : (
-                      <React.Fragment>
-                        {header}
-                        <TransparentLoadingMask visible={reloading} />
-                        <ThresholdsChart
-                          period={statsPeriod}
-                          maxValue={maxValue ? maxValue.value : maxValue}
-                          data={timeseriesData}
-                          triggers={triggers}
-                          resolveThreshold={resolveThreshold}
-                          thresholdType={thresholdType}
-                        />
-                      </React.Fragment>
+                      <ThresholdsChart
+                        period={statsPeriod}
+                        maxValue={maxValue ? maxValue.value : maxValue}
+                        data={timeseriesData}
+                        triggers={triggers}
+                        resolveThreshold={resolveThreshold}
+                        thresholdType={thresholdType}
+                      />
                     )}
                     <ChartControls>
                       <InlineContainer>
-                        {footer ? (
-                          footer
-                        ) : (
-                          <React.Fragment>
-                            <SectionHeading>{t('Total Events')}</SectionHeading>
-                            {totalEvents !== null ? (
-                              <SectionValue>{totalEvents.toLocaleString()}</SectionValue>
-                            ) : (
-                              <SectionValue>&mdash;</SectionValue>
-                            )}
-                          </React.Fragment>
-                        )}
+                        <React.Fragment>
+                          <SectionHeading>{t('Total Events')}</SectionHeading>
+                          {totalEvents !== null ? (
+                            <SectionValue>{totalEvents.toLocaleString()}</SectionValue>
+                          ) : (
+                            <SectionValue>&mdash;</SectionValue>
+                          )}
+                        </React.Fragment>
                       </InlineContainer>
                       <InlineContainer>
-                        <SectionHeading>{t('Display')}</SectionHeading>
-                        <PeriodSelectControl
-                          inline={false}
-                          styles={{
-                            control: provided => ({
-                              ...provided,
-                              minHeight: '25px',
-                              height: '25px',
-                            }),
-                          }}
-                          isSearchable={false}
-                          isClearable={false}
-                          disabled={loading || reloading}
-                          name="statsPeriod"
-                          value={period}
-                          choices={statsPeriodOptions.map(timePeriod => [
-                            timePeriod,
-                            TIME_PERIOD_MAP[timePeriod],
-                          ])}
+                        <OptionSelector
+                          options={statsPeriodOptions.map(timePeriod => ({
+                            label: TIME_PERIOD_MAP[timePeriod],
+                            value: timePeriod,
+                            disabled: loading || reloading,
+                          }))}
+                          selected={period}
                           onChange={this.handleStatsPeriodChange}
+                          title={t('Display')}
                         />
                       </InlineContainer>
                     </ChartControls>
@@ -338,13 +319,4 @@ const ChartPlaceholder = styled(Placeholder)`
   /* Height and margin should add up to graph size (200px) */
   margin: 0 0 ${space(2)};
   height: 184px;
-`;
-
-const PeriodSelectControl = styled(SelectControl)`
-  display: inline-block;
-  width: 180px;
-  font-weight: normal;
-  text-transform: none;
-  border: 0;
-  margin-right: ${space(2)};
 `;

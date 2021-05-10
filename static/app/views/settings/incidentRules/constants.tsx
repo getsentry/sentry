@@ -5,7 +5,7 @@ import {
   DATA_SOURCE_TO_SET_AND_EVENT_TYPES,
   getQueryDatasource,
 } from 'app/views/alerts/utils';
-import {WizardRuleTemplate} from 'app/views/alerts/wizard/options';
+import {AlertType, WizardRuleTemplate} from 'app/views/alerts/wizard/options';
 import {
   AlertRuleThresholdType,
   Dataset,
@@ -30,7 +30,7 @@ export const DATASOURCE_EVENT_TYPE_FILTERS = {
   [Datasource.TRANSACTION]: 'event.type:transaction',
 } as const;
 
-type OptionConfig = {
+export type OptionConfig = {
   aggregations: AggregationKey[];
   fields: LooseFieldKey[];
   measurementKeys?: string[];
@@ -44,22 +44,50 @@ export const errorFieldConfig: OptionConfig = {
   fields: ['user'],
 };
 
+const commonAggregations: AggregationKey[] = [
+  'avg',
+  'percentile',
+  'p50',
+  'p75',
+  'p95',
+  'p99',
+  'p100',
+];
+
+const allAggregations: AggregationKey[] = [
+  ...commonAggregations,
+  'failure_rate',
+  'apdex',
+  'count',
+];
+
+export function getWizardAlertFieldConfig(alertType: AlertType): OptionConfig {
+  // If user selected apdex we must include that in the OptionConfig as it has a user specified column
+  const aggregations =
+    alertType === 'apdex' || alertType === 'custom'
+      ? allAggregations
+      : commonAggregations;
+  return {
+    aggregations,
+    fields: ['transaction.duration'],
+    measurementKeys: Object.keys(WEB_VITAL_DETAILS),
+  };
+}
+
+/**
+ * Allowed aggregations for alerts created from wizard
+ */
+export const wizardAlertFieldConfig: OptionConfig = {
+  aggregations: commonAggregations,
+  fields: ['transaction.duration'],
+  measurementKeys: Object.keys(WEB_VITAL_DETAILS),
+};
+
 /**
  * Allowed transaction aggregations for alerts
  */
 export const transactionFieldConfig: OptionConfig = {
-  aggregations: [
-    'avg',
-    'percentile',
-    'failure_rate',
-    'apdex',
-    'count',
-    'p50',
-    'p75',
-    'p95',
-    'p99',
-    'p100',
-  ],
+  aggregations: allAggregations,
   fields: ['transaction.duration'],
   measurementKeys: Object.keys(WEB_VITAL_DETAILS),
 };

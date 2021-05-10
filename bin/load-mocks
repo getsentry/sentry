@@ -66,7 +66,7 @@ from sentry.similarity import features
 from sentry.utils import loremipsum
 from sentry.utils.hashlib import md5_text
 from sentry.utils.samples import create_sample_event as _create_sample_event
-from sentry.utils.samples import generate_user, random_normal
+from sentry.utils.samples import create_trace, generate_user, random_normal
 
 PLATFORMS = itertools.cycle(["ruby", "php", "python", "java", "javascript"])
 
@@ -329,7 +329,10 @@ def create_sample_time_series(event, release=None):
 
 
 def main(num_events=1, extra_events=False, load_trends=False, slow=False):
-    user = User.objects.filter(is_superuser=True)[0]
+    try:
+        user = User.objects.filter(is_superuser=True)[0]
+    except IndexError:
+        raise Exception("No superuser exists (run `make bootstrap`)")
 
     dummy_user, _ = User.objects.get_or_create(
         username="dummy@example.com", defaults={"email": "dummy@example.com"}
@@ -733,221 +736,144 @@ def create_mock_transactions(project_map, load_trends=False, slow=False):
         project_map["Water"],
         project_map["Heart"],
     ]
-
-    print(f"    > Loading transaction data")  # NOQA
-
     for project in project_map.values():
         if not project.flags.has_transactions:
             project.update(flags=F("flags").bitor(Project.flags.has_transactions))
 
-    for day in range(14):
-        for hour in range(24):
-            timestamp = timezone.now() - timedelta(days=day, hours=hour)
-            transaction_user = generate_user()
-            trace_id = uuid4().hex
-
-            frontend_span_id = uuid4().hex[:16]
-            frontend_root_span_id = uuid4().hex[:16]
-            frontend_duration = random_normal(2000 - 50 * day, 250, 1000)
-
-            create_sample_event(
-                project=frontend_project,
-                platform="javascript-transaction",
-                transaction="/plants/:plantId/",
-                event_id=uuid4().hex,
-                user=transaction_user,
-                timestamp=timestamp,
-                # start_timestamp decreases based on day so that there's a trend
-                start_timestamp=timestamp - timedelta(milliseconds=frontend_duration),
-                measurements={
-                    "fp": {"value": random_normal(1250 - 50 * day, 200, 500)},
-                    "fcp": {"value": random_normal(1250 - 50 * day, 200, 500)},
-                    "lcp": {"value": random_normal(2800 - 50 * day, 400, 2000)},
-                    "fid": {"value": random_normal(5 - 0.125 * day, 2, 1)},
-                },
-                # Root
-                parent_span_id=None,
-                span_id=frontend_root_span_id,
-                trace=trace_id,
-                spans=[
-                    {
-                        "same_process_as_parent": True,
-                        "op": "http",
-                        "description": "GET /api/plants/?all_plants=1",
-                        "data": {
-                            "duration": random_normal(
-                                1 - 0.05 * day, 0.25, 0.01, frontend_duration / 1000
-                            ),
-                            "offset": 0.02,
-                        },
-                        "span_id": frontend_span_id,
-                        "trace_id": trace_id,
-                    }
-                ],
-            )
-            create_sample_event(
-                project=frontend_project,
-                platform="javascript",
-                user=transaction_user,
-                transaction="/plants/:plantId/",
-                contexts={
-                    "trace": {
-                        "type": "trace",
-                        "trace_id": trace_id,
-                        "span_id": frontend_root_span_id,
-                    }
-                },
-            )
-            create_sample_event(
-                project=frontend_project,
-                platform="javascript",
-                user=transaction_user,
-                transaction="/plants/:plantId/",
-                contexts={
-                    "trace": {
-                        "type": "trace",
-                        "trace_id": trace_id,
-                        "span_id": frontend_span_id,
-                    }
-                },
-            )
-            # try to give clickhouse some breathing room
-            if slow:
-                time.sleep(0.05)
-
-            backend_span_ids = [
-                (name, uuid4().hex[:16])
-                for name in ["/products/all/", "/analytics/", "tasks.create_invoice"]
-            ]
-            backend_duration = random_normal(1500 + 50 * day, 250, 500)
-
-            create_sample_event(
-                project=backend_project,
-                platform="transaction",
-                transaction="/api/plants/",
-                event_id=uuid4().hex,
-                user=transaction_user,
-                timestamp=timestamp,
-                start_timestamp=timestamp - timedelta(milliseconds=backend_duration),
-                # match the trace from the javascript transaction
-                trace=trace_id,
-                parent_span_id=frontend_root_span_id,
-                spans=[
-                    {
-                        "same_process_as_parent": True,
-                        "op": "http",
-                        "description": name,
-                        "data": {
-                            "duration": random_normal(
-                                0.75 - 0.05 * day, 0.25, 0.01, backend_duration / 1000
-                            ),
-                            "offset": 0.02,
-                        },
-                        "span_id": backend_span_id,
-                        "trace_id": trace_id,
-                    }
-                    for name, backend_span_id in backend_span_ids
-                ],
-            )
-            create_sample_event(
-                project=backend_project,
-                platform="python",
-                user=transaction_user,
-                transaction="/api/plants/",
-                contexts={
-                    "trace": {
-                        "type": "trace",
-                        "trace_id": trace_id,
-                        "span_id": backend_span_ids[0][1],
-                    }
-                },
-            )
-            for service_project, (name, backend_span_id) in zip(service_projects, backend_span_ids):
-                if slow:
-                    time.sleep(0.05)
-
-                service_duration = random_normal(650 + 50 * day, 250, 250)
-
-                # create a flat chain of tasks that after "tasks.create_invoice" only
-                # make sure to skip this when loading trends to avoid
-                should_create_process_tasks = not load_trends and name == "tasks.create_invoice"
-                service_spans = (
-                    None
-                    if not should_create_process_tasks
-                    else [
+    timestamp = timezone.now()
+    print(f"    > Loading a trace")  # NOQA
+    create_trace(
+        slow,
+        timestamp - timedelta(milliseconds=random_normal(4000, 250, 1000)),
+        timestamp,
+        generate_user(),
+        uuid4().hex,
+        None,
+        {
+            "project": frontend_project,
+            "transaction": "/plants/:plantId/",
+            "frontend": True,
+            "errors": 1,
+            "children": [
+                {
+                    "project": backend_project,
+                    "transaction": "/api/plants/",
+                    "children": [
                         {
-                            "same_process_as_parent": True,
-                            "op": "celery.task",
-                            "description": "task.process_invoice",
-                            "data": {
-                                "duration": random_normal(
-                                    0.75 - 0.05 * day, 0.25, 0.01, service_duration / 1000
-                                ),
-                                "offset": 0.02,
-                            },
-                            "span_id": uuid4().hex[:16],
-                            "trace_id": trace_id,
-                        }
-                    ]
-                )
+                            "project": service_projects[0],
+                            "transaction": "/products/all/",
+                            "children": [],
+                        },
+                        {
+                            "project": service_projects[1],
+                            "transaction": "/analytics/",
+                            "children": [],
+                        },
+                        {
+                            "project": service_projects[2],
+                            "transaction": "tasks.create_invoice",
+                            "children": [
+                                {
+                                    "project": service_projects[2],
+                                    "transaction": "tasks.process_invoice",
+                                    "children": [
+                                        {
+                                            "project": service_projects[2],
+                                            "transaction": "tasks.process_invoice",
+                                            "children": [
+                                                {
+                                                    "project": service_projects[2],
+                                                    "transaction": "tasks.process_invoice",
+                                                    "children": [
+                                                        {
+                                                            "project": service_projects[2],
+                                                            "transaction": "tasks.process_invoice",
+                                                            "children": [],
+                                                        },
+                                                    ],
+                                                },
+                                            ],
+                                        },
+                                    ],
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ],
+        },
+    )
+
+    if load_trends:
+        print(f"    > Loading trends data")  # NOQA
+        for day in range(14):
+            for hour in range(24):
+                timestamp = timezone.now() - timedelta(days=day, hours=hour)
+                transaction_user = generate_user()
+                trace_id = uuid4().hex
+
+                frontend_span_id = uuid4().hex[:16]
+                frontend_root_span_id = uuid4().hex[:16]
+                frontend_duration = random_normal(2000 - 50 * day, 250, 1000)
 
                 create_sample_event(
-                    project=service_project,
-                    platform="transaction",
-                    transaction=name,
+                    project=frontend_project,
+                    platform="javascript-transaction",
+                    transaction="/trends/:frontend/",
                     event_id=uuid4().hex,
                     user=transaction_user,
                     timestamp=timestamp,
-                    start_timestamp=timestamp - timedelta(milliseconds=service_duration),
+                    # start_timestamp decreases based on day so that there's a trend
+                    start_timestamp=timestamp - timedelta(milliseconds=frontend_duration),
+                    measurements={
+                        "fp": {"value": random_normal(1250 - 50 * day, 200, 500)},
+                        "fcp": {"value": random_normal(1250 - 50 * day, 200, 500)},
+                        "lcp": {"value": random_normal(2800 - 50 * day, 400, 2000)},
+                        "fid": {"value": random_normal(5 - 0.125 * day, 2, 1)},
+                    },
+                    # Root
+                    parent_span_id=None,
+                    span_id=frontend_root_span_id,
+                    trace=trace_id,
+                    spans=[
+                        {
+                            "same_process_as_parent": True,
+                            "op": "http",
+                            "description": "GET /api/plants/?all_plants=1",
+                            "data": {
+                                "duration": random_normal(
+                                    1 - 0.05 * day, 0.25, 0.01, frontend_duration / 1000
+                                ),
+                                "offset": 0.02,
+                            },
+                            "span_id": frontend_span_id,
+                            "trace_id": trace_id,
+                        }
+                    ],
+                )
+                # try to give clickhouse some breathing room
+                if slow:
+                    time.sleep(0.05)
+
+                backend_duration = random_normal(1500 + 50 * day, 250, 500)
+
+                create_sample_event(
+                    project=backend_project,
+                    platform="transaction",
+                    transaction="/trends/backend/",
+                    event_id=uuid4().hex,
+                    user=transaction_user,
+                    timestamp=timestamp,
+                    start_timestamp=timestamp - timedelta(milliseconds=backend_duration),
                     # match the trace from the javascript transaction
                     trace=trace_id,
-                    parent_span_id=backend_span_id,
-                    spans=service_spans,
+                    parent_span_id=frontend_root_span_id,
+                    spans=[],
                 )
 
-                if service_spans is not None:
-                    depth = 4  # want a trace with >6 layers
-                    previous_spans = service_spans
-                    for i in range(depth):
-                        sub_service_spans = (
-                            None
-                            if i + 1 >= depth  # dont add spans for the last transaction
-                            else [
-                                {
-                                    "same_process_as_parent": True,
-                                    "op": "celery.task",
-                                    "description": "tasks.process_invoice",
-                                    "data": {
-                                        "duration": random_normal(
-                                            0.75 - 0.05 * day, 0.25, 0.01, service_duration / 1000
-                                        ),
-                                        "offset": 0.02,
-                                    },
-                                    "span_id": uuid4().hex[:16],
-                                    "trace_id": trace_id,
-                                }
-                            ]
-                        )
-                        if slow:
-                            time.sleep(0.05)
-                        create_sample_event(
-                            project=service_project,
-                            platform="transaction",
-                            transaction="task.process_invoice",
-                            event_id=uuid4().hex,
-                            user=transaction_user,
-                            timestamp=timestamp,
-                            start_timestamp=timestamp
-                            - timedelta(milliseconds=random_normal(650 + 50 * day, 250, 250)),
-                            trace=trace_id,
-                            parent_span_id=previous_spans[0]["span_id"],
-                            spans=sub_service_spans,
-                        )
-                        previous_spans = sub_service_spans
-
-            # Unless we want to load a 14d trend, 1 trace is enough
-            if not load_trends:
-                return
+                # try to give clickhouse some breathing room
+                if slow:
+                    time.sleep(0.05)
 
 
 if __name__ == "__main__":

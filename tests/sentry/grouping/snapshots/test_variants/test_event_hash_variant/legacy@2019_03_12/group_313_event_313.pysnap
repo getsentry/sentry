@@ -1,0 +1,380 @@
+---
+created: '2021-04-02T09:10:51.516288Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because hash matches system variant)
+        stacktrace*
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "start"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "start"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame* (frame considered in-app because no frame is in-app)
+            filename*
+              "functional"
+            function*
+              "std::__1::function<T>::operator()"
+          frame* (frame considered in-app because no frame is in-app)
+            filename*
+              "functional"
+            function*
+              "std::__1::__function::__value_func<T>::operator()"
+          frame* (frame considered in-app because no frame is in-app)
+            filename*
+              "functional"
+            function*
+              "std::__1::__function::__func<T>::operator()"
+          frame* (frame considered in-app because no frame is in-app)
+            filename*
+              "functional"
+            function*
+              "std::__1::__function::__alloc_func<T>::operator()"
+          frame* (frame considered in-app because no frame is in-app)
+            filename*
+              "__functional_base"
+            function*
+              "std::__1::__invoke_void_return_wrapper<T>::__call<T>"
+          frame* (frame considered in-app because no frame is in-app)
+            filename*
+              "type_traits"
+            function*
+              "std::__1::__invoke<T>"
+          frame* (frame considered in-app because no frame is in-app)
+            filename*
+              "Src/Initialize.cpp"
+            function*
+              "MZ::`anonymous namespace'::lambda::operator()"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "_objc_msgSend_uncached"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "lookUpImpOrForward"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "initializeAndMaybeRelock"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "initializeNonMetaClass"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "CALLING_SOME_+initialize_METHOD"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "dlopen"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "dlopen_internal"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "__report_load"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "__report_load.cold.1"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "abort"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "__abort"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "__pthread_kill"
+        type*
+          "0x00000000 / 0x00000000"
+        value (stacktrace and type take precedence)
+          "Fatal Error: 0x00000000 / 0x00000000"
+--------------------------------------------------------------------------
+system:
+  hash: "19208a8d2bfdfe0f14d6bcc72e7bb54a"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "start"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "start"
+          frame
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame*
+            filename*
+              "functional"
+            function*
+              "std::__1::function<T>::operator()"
+          frame*
+            filename*
+              "functional"
+            function*
+              "std::__1::__function::__value_func<T>::operator()"
+          frame*
+            filename*
+              "functional"
+            function*
+              "std::__1::__function::__func<T>::operator()"
+          frame*
+            filename*
+              "functional"
+            function*
+              "std::__1::__function::__alloc_func<T>::operator()"
+          frame*
+            filename*
+              "__functional_base"
+            function*
+              "std::__1::__invoke_void_return_wrapper<T>::__call<T>"
+          frame*
+            filename*
+              "type_traits"
+            function*
+              "std::__1::__invoke<T>"
+          frame*
+            filename*
+              "Src/Initialize.cpp"
+            function*
+              "MZ::`anonymous namespace'::lambda::operator()"
+          frame
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "_objc_msgSend_uncached"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "lookUpImpOrForward"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "initializeAndMaybeRelock"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "initializeNonMetaClass"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "CALLING_SOME_+initialize_METHOD"
+          frame
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "dlopen"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "dlopen_internal"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "__report_load"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "__report_load.cold.1"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "abort"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "__abort"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "__pthread_kill"
+        type*
+          "0x00000000 / 0x00000000"
+        value (stacktrace and type take precedence)
+          "Fatal Error: 0x00000000 / 0x00000000"

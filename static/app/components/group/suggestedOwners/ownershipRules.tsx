@@ -1,5 +1,5 @@
-import React from 'react';
-import {ClassNames} from '@emotion/core';
+import {Fragment} from 'react';
+import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openCreateOwnershipRule} from 'app/actionCreators/modal';
@@ -27,7 +27,7 @@ const OwnershipRules = ({project, organization, issueId}: Props) => {
   return (
     <SidebarSection
       title={
-        <React.Fragment>
+        <Fragment>
           {t('Ownership Rules')}
           <ClassNames>
             {({css}) => (
@@ -56,7 +56,7 @@ const OwnershipRules = ({project, organization, issueId}: Props) => {
               </Hovercard>
             )}
           </ClassNames>
-        </React.Fragment>
+        </Fragment>
       }
     >
       <GuideAnchor target="owners" position="bottom" offset={space(3)}>

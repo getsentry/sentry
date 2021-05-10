@@ -1,4 +1,5 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import omit from 'lodash/omit';
@@ -7,9 +8,16 @@ import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import DateTime from 'app/components/dateTime';
 import Link from 'app/components/links/link';
+import {
+  ErrorDot,
+  ErrorLevel,
+  ErrorMessageContent,
+  ErrorMessageTitle,
+  ErrorTitle,
+} from 'app/components/performance/waterfall/rowDetails';
 import {generateIssueEventTarget} from 'app/components/quickTrace/utils';
 import {PAGE_URL_PARAM} from 'app/constants/globalSelectionHeader';
-import {IconChevron, IconWarning} from 'app/icons';
+import {IconAnchor, IconChevron, IconWarning} from 'app/icons';
 import {t, tn} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
@@ -20,29 +28,20 @@ import {WEB_VITAL_DETAILS} from 'app/utils/performance/vitals/constants';
 import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
 import {getTransactionDetailsUrl} from 'app/views/performance/utils';
 
-import {
-  ErrorDot,
-  ErrorLevel,
-  ErrorMessageContent,
-  ErrorMessageTitle,
-  ErrorTitle,
-  Row,
-  Tags,
-  TransactionDetails,
-  TransactionDetailsContainer,
-} from './styles';
+import {Row, Tags, TransactionDetails, TransactionDetailsContainer} from './styles';
 
 type Props = {
   location: Location;
   organization: Organization;
   transaction: TraceFullDetailed;
+  scrollToHash: (hash: string) => void;
 };
 
 type State = {
   errorsOpened: boolean;
 };
 
-class TransactionDetail extends React.Component<Props, State> {
+class TransactionDetail extends Component<Props, State> {
   state: State = {
     errorsOpened: false,
   };
@@ -75,7 +74,7 @@ class TransactionDetail extends React.Component<Props, State> {
         {errorsOpened && (
           <ErrorMessageContent>
             {errors.map(error => (
-              <React.Fragment key={error.event_id}>
+              <Fragment key={error.event_id}>
                 <ErrorDot level={error.level} />
                 <ErrorLevel>{error.level}</ErrorLevel>
                 <ErrorTitle>
@@ -83,7 +82,7 @@ class TransactionDetail extends React.Component<Props, State> {
                     {error.title}
                   </Link>
                 </ErrorTitle>
-              </React.Fragment>
+              </Fragment>
             ))}
           </ErrorMessageContent>
         )}
@@ -143,7 +142,7 @@ class TransactionDetail extends React.Component<Props, State> {
     }
 
     return (
-      <React.Fragment>
+      <Fragment>
         {measurementKeys.map(measurement => (
           <Row
             key={measurement}
@@ -152,9 +151,30 @@ class TransactionDetail extends React.Component<Props, State> {
             {`${Number(measurements[measurement].value.toFixed(3)).toLocaleString()}ms`}
           </Row>
         ))}
-      </React.Fragment>
+      </Fragment>
     );
   }
+
+  scrollBarIntoView = (transactionId: string) => (
+    e: React.MouseEvent<HTMLAnchorElement>
+  ) => {
+    // do not use the default anchor behaviour
+    // because it will be hidden behind the minimap
+    e.preventDefault();
+
+    const hash = `#txn-${transactionId}`;
+
+    this.props.scrollToHash(hash);
+
+    // TODO(txiao): This is causing a rerender of the whole page,
+    // which can be slow.
+    //
+    // make sure to update the location
+    browserHistory.push({
+      ...this.props.location,
+      hash,
+    });
+  };
 
   renderTransactionDetail() {
     const {location, organization, transaction} = this.props;
@@ -167,7 +187,17 @@ class TransactionDetail extends React.Component<Props, State> {
       <TransactionDetails>
         <table className="table key-value">
           <tbody>
-            <Row title="Transaction ID" extra={this.renderGoToTransactionButton()}>
+            <Row
+              title={
+                <TransactionIdTitle
+                  onClick={this.scrollBarIntoView(transaction.event_id)}
+                >
+                  Transaction ID
+                  <StyledIconAnchor />
+                </TransactionIdTitle>
+              }
+              extra={this.renderGoToTransactionButton()}
+            >
               {transaction.event_id}
             </Row>
             <Row title="Transaction" extra={this.renderGoToSummaryButton()}>
@@ -180,10 +210,10 @@ class TransactionDetail extends React.Component<Props, State> {
               {getDynamicText({
                 fixed: 'Mar 19, 2021 11:06:27 AM UTC',
                 value: (
-                  <React.Fragment>
+                  <Fragment>
                     <DateTime date={startTimestamp * 1000} />
                     {` (${startTimestamp})`}
-                  </React.Fragment>
+                  </Fragment>
                 ),
               })}
             </Row>
@@ -191,10 +221,10 @@ class TransactionDetail extends React.Component<Props, State> {
               {getDynamicText({
                 fixed: 'Mar 19, 2021 11:06:28 AM UTC',
                 value: (
-                  <React.Fragment>
+                  <Fragment>
                     <DateTime date={endTimestamp * 1000} />
                     {` (${endTimestamp})`}
-                  </React.Fragment>
+                  </Fragment>
                 ),
               })}
             </Row>
@@ -226,6 +256,20 @@ class TransactionDetail extends React.Component<Props, State> {
     );
   }
 }
+
+const TransactionIdTitle = styled('a')`
+  display: flex;
+  color: ${p => p.theme.textColor};
+  :hover {
+    color: ${p => p.theme.textColor};
+  }
+`;
+
+const StyledIconAnchor = styled(IconAnchor)`
+  display: block;
+  color: ${p => p.theme.gray300};
+  margin-left: ${space(1)};
+`;
 
 const StyledButton = styled(Button)`
   position: absolute;

@@ -1,0 +1,150 @@
+{
+  "event_id": "a327f3074d3a4efea4e2ba9818df33c0",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": {
+            "relevant_address": "0x000000001a799acc"
+          },
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": {
+            "mach_exception": {
+              "code": 0,
+              "exception": 10,
+              "name": "EXC_CRASH",
+              "subcode": 0
+            },
+            "signal": {
+              "code": 0,
+              "name": "SIGABRT",
+              "number": 6
+            }
+          },
+          "synthetic": null,
+          "type": "signal"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "UIApplicationMain",
+              "package": "UIKit"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "CFRunLoopRunInMode",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "CFRunLoopRunSpecific",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "__CFRunLoopRun",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "__CFRunLoopDoSources0",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "__CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "__handleHIDEventFetcherDrain",
+              "package": "UIKit"
+            },
+            {
+              "function": "__handleEventQueue",
+              "package": "UIKit"
+            },
+            {
+              "function": "__dispatchPreprocessedEventFromEventQueue",
+              "package": "UIKit"
+            },
+            {
+              "function": "-[UIApplication sendEvent:]",
+              "package": "UIKit"
+            },
+            {
+              "function": "-[UIWindow sendEvent:]",
+              "package": "UIKit"
+            },
+            {
+              "function": "-[UIWindow _sendTouchesForEvent:]",
+              "package": "UIKit"
+            },
+            {
+              "function": "-[UIResponder touchesBegan:withEvent:]",
+              "package": "UIKit"
+            },
+            {
+              "function": "forwardTouchMethod",
+              "package": "UIKit"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "abs_path": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1/vector",
+              "filename": "vector",
+              "function": "std::__1::vector<T>::emplace_back<T>"
+            },
+            {
+              "abs_path": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1/vector",
+              "filename": "vector",
+              "function": "std::__1::vector<T>::__emplace_back_slow_path<T>"
+            },
+            {
+              "abs_path": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1/__split_buffer",
+              "filename": "__split_buffer",
+              "function": "std::__1::__split_buffer<T>::__split_buffer"
+            },
+            {
+              "abs_path": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1/__split_buffer",
+              "filename": "__split_buffer",
+              "function": "std::__1::__split_buffer<T>::__split_buffer"
+            },
+            {
+              "abs_path": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1/memory",
+              "filename": "memory",
+              "function": "std::__1::allocator_traits<T>::allocate"
+            },
+            {
+              "abs_path": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include/c++/v1/memory",
+              "filename": "memory",
+              "function": "std::__1::allocator<T>::allocate"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "abort",
+              "package": "libsystem_c.dylib"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            }
+          ]
+        },
+        "type": "SIGABRT",
+        "value": "DRHT"
+      }
+    ]
+  },
+  "platform": "cocoa"
+}

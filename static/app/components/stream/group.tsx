@@ -1,8 +1,7 @@
-import React from 'react';
-import {css} from '@emotion/core';
+import * as React from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
-import {Box} from 'reflexbox'; // eslint-disable-line no-restricted-imports
 
 import AssigneeSelector from 'app/components/assigneeSelector';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
@@ -66,6 +65,7 @@ const defaultProps = {
   canSelect: true,
   withChart: true,
   useFilteredStats: false,
+  useTintRow: true,
 };
 
 type Props = {
@@ -146,7 +146,7 @@ class StreamGroup extends React.Component<Props, State> {
       return;
     }
 
-    const actionTaken = this.state.data.status === 'unresolved' ? false : true;
+    const actionTaken = this.state.data.status !== 'unresolved';
     const data = GroupStore.get(id) as Group;
     this.setState(state => {
       // When searching is:for_review and the inbox reason is removed
@@ -347,6 +347,7 @@ class StreamGroup extends React.Component<Props, State> {
       displayReprocessingLayout,
       showInboxTime,
       useFilteredStats,
+      useTintRow,
       customStatsPeriod,
     } = this.props;
 
@@ -380,18 +381,14 @@ class StreamGroup extends React.Component<Props, State> {
         hasInbox={hasInbox}
         unresolved={unresolved}
         actionTaken={actionTaken}
+        useTintRow={useTintRow ?? true}
       >
         {canSelect && (
-          <GroupCheckBoxWrapper ml={2}>
+          <GroupCheckBoxWrapper>
             <GroupCheckBox id={data.id} disabled={!!displayReprocessingLayout} />
           </GroupCheckBoxWrapper>
         )}
-        <GroupSummary
-          width={[8 / 12, 8 / 12, 6 / 12]}
-          ml={canSelect ? 1 : 2}
-          mr={1}
-          flex="1"
-        >
+        <GroupSummary canSelect={!!canSelect}>
           <EventOrGroupHeader
             index={index}
             organization={organization}
@@ -576,6 +573,7 @@ const Wrapper = styled(PanelItem)<{
   hasInbox: boolean;
   unresolved: boolean;
   actionTaken: boolean;
+  useTintRow: boolean;
 }>`
   position: relative;
   padding: ${p => (p.hasInbox ? `${space(1.5)} 0` : `${space(1)} 0`)};
@@ -584,6 +582,7 @@ const Wrapper = styled(PanelItem)<{
   ${p => (p.hasInbox ? p.theme.textColor : p.theme.subText)};
 
   ${p =>
+    p.useTintRow &&
     (p.reviewed || !p.unresolved) &&
     !p.actionTaken &&
     css`
@@ -620,12 +619,22 @@ const Wrapper = styled(PanelItem)<{
     `};
 `;
 
-const GroupSummary = styled(Box)`
+const GroupSummary = styled('div')<{canSelect: boolean}>`
   overflow: hidden;
+  margin-left: ${p => space(p.canSelect ? 1 : 2)};
+  margin-right: ${space(1)};
+  flex: 1;
+  width: 66.66%;
+
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    width: 50%;
+  }
 `;
 
-const GroupCheckBoxWrapper = styled(Box)`
+const GroupCheckBoxWrapper = styled('div')`
+  margin-left: ${space(2)};
   align-self: flex-start;
+
   & input[type='checkbox'] {
     margin: 0;
     display: block;
@@ -651,7 +660,11 @@ const StyledDropdownList = styled('ul')`
   z-index: ${p => p.theme.zIndex.hovercard};
 `;
 
-const StyledMenuItem = styled(({to, children, ...p}) => (
+type MenuItemProps = React.HTMLProps<HTMLDivElement> & {
+  to?: React.ComponentProps<typeof Link>['to'];
+};
+
+const StyledMenuItem = styled(({to, children, ...p}: MenuItemProps) => (
   <MenuItem noAnchor>
     {to ? (
       // @ts-expect-error allow target _blank for this link to open in new window

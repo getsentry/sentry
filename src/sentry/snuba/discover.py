@@ -5,16 +5,16 @@ from collections import namedtuple
 import sentry_sdk
 
 from sentry import options
-from sentry.api.event_search import (
+from sentry.models import Group
+from sentry.search.events.fields import (
     FIELD_ALIASES,
     InvalidSearchQuery,
-    get_filter,
     get_function_alias,
     get_json_meta_type,
     is_function,
     resolve_field_list,
 )
-from sentry.models import Group
+from sentry.search.events.filter import get_filter
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
 from sentry.utils.compat import filter
 from sentry.utils.math import nice_int
@@ -40,6 +40,7 @@ __all__ = (
     "PaginationResult",
     "InvalidSearchQuery",
     "query",
+    "prepare_discover_query",
     "timeseries_query",
     "top_events_timeseries",
     "get_facets",
@@ -52,11 +53,9 @@ __all__ = (
 
 logger = logging.getLogger(__name__)
 
+PreparedQuery = namedtuple("query", ["filter", "columns", "fields"])
 PaginationResult = namedtuple("PaginationResult", ["next", "previous", "oldest", "latest"])
 FacetResult = namedtuple("FacetResult", ["key", "value", "count"])
-PerformanceFacetResult = namedtuple(
-    "PerformanceFacetResult", ["key", "value", "performance", "frequency", "comparison", "sumdelta"]
-)
 
 resolve_discover_column = resolve_column(Dataset.Discover)
 
@@ -113,10 +112,8 @@ def zerofill(data, start, end, rollup, orderby):
     return rv
 
 
-def transform_results(
-    results, function_alias_map, translated_columns, snuba_filter, selected_columns=None
-):
-    results = transform_data(results, translated_columns, snuba_filter, selected_columns)
+def transform_results(results, function_alias_map, translated_columns, snuba_filter):
+    results = transform_data(results, translated_columns, snuba_filter)
     results["meta"] = transform_meta(results, function_alias_map)
     return results
 
@@ -136,16 +133,13 @@ def transform_meta(results, function_alias_map):
     return meta
 
 
-def transform_data(result, translated_columns, snuba_filter, selected_columns=None):
+def transform_data(result, translated_columns, snuba_filter):
     """
     Transform internal names back to the public schema ones.
 
     When getting timeseries results via rollup, this function will
     zerofill the output results.
     """
-    if selected_columns is None:
-        selected_columns = []
-
     for col in result["meta"]:
         # Translate back column names that were converted to snuba format
         col["name"] = translated_columns.get(col["name"], col["name"])
@@ -159,8 +153,7 @@ def transform_data(result, translated_columns, snuba_filter, selected_columns=No
 
         return transformed
 
-    if len(translated_columns):
-        result["data"] = [get_row(row) for row in result["data"]]
+    result["data"] = [get_row(row) for row in result["data"]]
 
     rollup = snuba_filter.rollup
     if rollup and rollup > 0:
@@ -219,6 +212,59 @@ def query(
     # We clobber this value throughout this code, so copy the value
     selected_columns = selected_columns[:]
 
+    snuba_query = prepare_discover_query(
+        selected_columns,
+        query,
+        params,
+        orderby,
+        auto_fields,
+        auto_aggregations,
+        use_aggregate_conditions,
+        conditions,
+        functions_acl,
+    )
+    snuba_filter = snuba_query.filter
+
+    with sentry_sdk.start_span(op="discover.discover", description="query.snuba_query"):
+        result = raw_query(
+            start=snuba_filter.start,
+            end=snuba_filter.end,
+            groupby=snuba_filter.groupby,
+            conditions=snuba_filter.conditions,
+            aggregations=snuba_filter.aggregations,
+            selected_columns=snuba_filter.selected_columns,
+            filter_keys=snuba_filter.filter_keys,
+            having=snuba_filter.having,
+            orderby=snuba_filter.orderby,
+            dataset=Dataset.Discover,
+            limit=limit,
+            offset=offset,
+            referrer=referrer,
+        )
+
+    with sentry_sdk.start_span(
+        op="discover.discover", description="query.transform_results"
+    ) as span:
+        span.set_data("result_count", len(result.get("data", [])))
+        return transform_results(
+            result,
+            snuba_query.fields["functions"],
+            snuba_query.columns,
+            snuba_filter,
+        )
+
+
+def prepare_discover_query(
+    selected_columns,
+    query,
+    params,
+    orderby=None,
+    auto_fields=False,
+    auto_aggregations=False,
+    use_aggregate_conditions=False,
+    conditions=None,
+    functions_acl=None,
+):
     with sentry_sdk.start_span(
         op="discover.discover", description="query.filter_transform"
     ) as span:
@@ -230,8 +276,6 @@ def query(
                 not auto_aggregations
             ), "Auto aggregations cannot be used without enabling aggregate conditions"
             snuba_filter.having = []
-
-    function_translations = {}
 
     with sentry_sdk.start_span(op="discover.discover", description="query.field_translations"):
         if orderby is not None:
@@ -249,9 +293,7 @@ def query(
         snuba_filter.update_with(resolved_fields)
 
         # Resolve the public aliases into the discover dataset names.
-        snuba_filter, translated_columns = resolve_discover_aliases(
-            snuba_filter, function_translations
-        )
+        snuba_filter, translated_columns = resolve_discover_aliases(snuba_filter)
 
         # Make sure that any aggregate conditions are also in the selected columns
         for having_clause in snuba_filter.having:
@@ -298,30 +340,7 @@ def query(
         if conditions is not None:
             snuba_filter.conditions.extend(conditions)
 
-    with sentry_sdk.start_span(op="discover.discover", description="query.snuba_query"):
-        result = raw_query(
-            start=snuba_filter.start,
-            end=snuba_filter.end,
-            groupby=snuba_filter.groupby,
-            conditions=snuba_filter.conditions,
-            aggregations=snuba_filter.aggregations,
-            selected_columns=snuba_filter.selected_columns,
-            filter_keys=snuba_filter.filter_keys,
-            having=snuba_filter.having,
-            orderby=snuba_filter.orderby,
-            dataset=Dataset.Discover,
-            limit=limit,
-            offset=offset,
-            referrer=referrer,
-        )
-
-    with sentry_sdk.start_span(
-        op="discover.discover", description="query.transform_results"
-    ) as span:
-        span.set_data("result_count", len(result.get("data", [])))
-        return transform_results(
-            result, resolved_fields["functions"], translated_columns, snuba_filter, selected_columns
-        )
+    return PreparedQuery(snuba_filter, translated_columns, resolved_fields)
 
 
 def get_timeseries_snuba_filter(selected_columns, query, params, rollup, default_count=True):
@@ -530,7 +549,7 @@ def top_events_timeseries(
         op="discover.discover", description="top_events.transform_results"
     ) as span:
         span.set_data("result_count", len(result.get("data", [])))
-        result = transform_data(result, translated_columns, snuba_filter, selected_columns)
+        result = transform_data(result, translated_columns, snuba_filter)
 
         if "project" in selected_columns:
             translated_columns["project_id"] = "project"
@@ -742,138 +761,6 @@ def get_facets(query, params, limit=10, referrer=None):
                     for r in tag_values["data"]
                 ]
             )
-
-    return results
-
-
-def get_performance_facets(
-    query,
-    params,
-    orderby=None,
-    aggregate_column="duration",
-    aggregate_function="avg",
-    limit=20,
-    referrer=None,
-):
-    """
-    High-level API for getting 'facet map' results for performance data
-
-    Performance facets are high frequency tags and the aggregate duration of
-    their most frequent values
-
-    query (str) Filter query string to create conditions from.
-    params (Dict[str, str]) Filtering parameters with start, end, project_id, environment
-    limit (int) The number of records to fetch.
-    referrer (str|None) A referrer string to help locate the origin of this query.
-
-    Returns Sequence[FacetResult]
-    """
-    with sentry_sdk.start_span(
-        op="discover.discover", description="facets.filter_transform"
-    ) as span:
-        span.set_data("query", query)
-        snuba_filter = get_filter(query, params)
-
-        # Resolve the public aliases into the discover dataset names.
-        snuba_filter, translated_columns = resolve_discover_aliases(snuba_filter)
-
-    with sentry_sdk.start_span(op="discover.discover", description="facets.frequent_tags"):
-        # Get the most relevant tag keys
-        key_names = raw_query(
-            aggregations=[
-                [aggregate_function, aggregate_column, "aggregate"],
-                ["count", None, "count"],
-            ],
-            start=snuba_filter.start,
-            end=snuba_filter.end,
-            conditions=snuba_filter.conditions,
-            filter_keys=snuba_filter.filter_keys,
-            orderby=["-count"],
-            dataset=Dataset.Discover,
-            limit=limit,
-            referrer="{}.{}".format(referrer, "all_transactions"),
-        )
-        counts = [r["count"] for r in key_names["data"]]
-        if len(counts) != 1 or counts[0] == 0:
-            return []
-
-    results = []
-    snuba_filter.conditions.append([aggregate_column, "IS NOT NULL", None])
-
-    # Aggregate for transaction
-    transaction_aggregate = key_names["data"][0]["aggregate"]
-
-    # Dynamically sample so at least 10000 transactions are selected
-    transaction_count = key_names["data"][0]["count"]
-    sampling_enabled = transaction_count > 10000
-    # Log growth starting at 10,000
-    target_sample = 10000 * (math.log(transaction_count, 10) - 3)
-
-    dynamic_sample_rate = 0 if transaction_count <= 0 else (target_sample / transaction_count)
-    sample_rate = dynamic_sample_rate if sampling_enabled else None
-
-    excluded_tags = [
-        "tags_key",
-        "NOT IN",
-        ["trace", "trace.ctx", "trace.span", "project", "browser", "celery_task_id"],
-    ]
-
-    with sentry_sdk.start_span(op="discover.discover", description="facets.aggregate_tags"):
-        conditions = snuba_filter.conditions
-        aggregate_comparison = transaction_aggregate * 1.01 if transaction_aggregate else 0
-        having = [excluded_tags]
-        if orderby and orderby in ("sumdelta", "-sumdelta", "aggregate", "-aggregate"):
-            having.append(["aggregate", ">", aggregate_comparison])
-
-        if orderby is None:
-            orderby = []
-        else:
-            orderby = [orderby]
-
-        tag_values = raw_query(
-            selected_columns=[
-                [
-                    "sum",
-                    [
-                        "minus",
-                        [
-                            aggregate_column,
-                            str(transaction_aggregate),
-                        ],
-                    ],
-                    "sumdelta",
-                ],
-            ],
-            aggregations=[
-                [aggregate_function, aggregate_column, "aggregate"],
-                ["count", None, "cnt"],
-            ],
-            conditions=conditions,
-            start=snuba_filter.start,
-            end=snuba_filter.end,
-            filter_keys=snuba_filter.filter_keys,
-            orderby=orderby + ["tags_key"],
-            groupby=["tags_key", "tags_value"],
-            having=having,
-            dataset=Dataset.Discover,
-            referrer="{}.{}".format(referrer, "tag_values"),
-            sample=sample_rate,
-            turbo=sample_rate is not None,
-            limitby=[5, "tags_key"],
-        )
-        results.extend(
-            [
-                PerformanceFacetResult(
-                    key=r["tags_key"],
-                    value=r["tags_value"],
-                    performance=float(r["aggregate"]),
-                    frequency=float(r["cnt"] / transaction_count),
-                    comparison=float(r["aggregate"] / transaction_aggregate),
-                    sumdelta=float(r["sumdelta"]),
-                )
-                for r in tag_values["data"]
-            ]
-        )
 
     return results
 

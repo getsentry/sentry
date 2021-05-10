@@ -39,11 +39,11 @@ class CreateProjectTest(AcceptanceTestCase):
         self.browser.wait_until_not(".loading")
 
         self.browser.click('[data-test-id="create-team"]')
-        self.browser.wait_until(".modal-dialog")
+        self.browser.wait_until("[role='dialog']")
         input = self.browser.element('input[name="slug"]')
         input.send_keys("new-team")
 
-        self.browser.element(".modal-dialog form").submit()
+        self.browser.element("[role='dialog'] form").submit()
 
         # After creating team, should end up in onboarding screen
         self.browser.wait_until(xpath='//span[text()="#new-team"]')

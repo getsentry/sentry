@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
@@ -131,7 +131,7 @@ const LoadingWrapper = styled('div')``;
 const TableEmptyStateWarning = styled(EmptyStateWarning)``;
 
 const Wrapper = styled(Panel, {
-  shouldForwardProp: p => isPropValid(p) && p !== 'columns',
+  shouldForwardProp: p => typeof p === 'string' && isPropValid(p) && p !== 'columns',
 })<WrapperProps>`
   display: grid;
   grid-template-columns: repeat(${p => p.columns}, auto);

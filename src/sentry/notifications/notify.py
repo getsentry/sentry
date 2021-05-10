@@ -1,26 +1,43 @@
-from typing import Any, Optional
+from typing import Any, Callable, Iterable, Mapping, MutableMapping, Optional, Set
 
-from sentry.notifications.types import NotificationSettingTypes
+from sentry.models import User
 from sentry.types.integrations import ExternalProviders
+
+# Shortcut so that types don't explode.
+Notifiable = Callable[
+    [Any, Set[User], Mapping[str, Any], Optional[Mapping[int, Mapping[str, Any]]]], None
+]
+
+# Global notifier registry.
+registry: MutableMapping[ExternalProviders, Notifiable] = {}
+
+
+def notification_providers() -> Iterable[ExternalProviders]:
+    """ Get a set of providers that can call notify. """
+    return registry.keys()
+
+
+def register_notification_provider(
+    provider: ExternalProviders,
+) -> Callable[[Notifiable], Notifiable]:
+    """
+    A wrapper that adds the wrapped function to the send_notification_registry
+    (see above) for the provider.
+    """
+
+    def wrapped(send_notification: Notifiable) -> Notifiable:
+        registry[provider] = send_notification
+        return send_notification
+
+    return wrapped
 
 
 def notify(
     provider: ExternalProviders,
-    type: NotificationSettingTypes,
-    user: Optional[Any] = None,
-    team: Optional[Any] = None,
-    data: Optional[Any] = None,
-) -> bool:
-    """
-    Something noteworthy has happened. Let the targets know about what
-    happened on their own terms. For each target, check their notification
-    preferences and send them a message (or potentially do nothing and
-    return False if this kind of correspondence is muted.)
-    :param provider: ExternalProviders enum
-    :param type: NotificationSettingTypes enum
-    :param user: (optional) User object
-    :param team: (optional) Team object
-    :param data: The payload depends on the notification type.
-    :returns Was a notification sent?
-    """
-    return False
+    notification: Any,
+    users: Set[User],
+    shared_context: Mapping[str, Any],
+    extra_context_by_user_id: Optional[Mapping[int, Mapping[str, Any]]] = None,
+) -> None:
+    """ Send notifications to these users. """
+    registry[provider](notification, users, shared_context, extra_context_by_user_id)

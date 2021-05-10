@@ -115,3 +115,27 @@ describe('decodeList()', function () {
     expect(utils.decodeList('')).toEqual([]);
   });
 });
+
+describe('decodeInteger()', function () {
+  it('handles integer strings', function () {
+    expect(utils.decodeInteger('1')).toEqual(1);
+    expect(utils.decodeInteger('1.2')).toEqual(1);
+    expect(utils.decodeInteger('1.9')).toEqual(1);
+    expect(utils.decodeInteger('foo')).toEqual(undefined);
+    expect(utils.decodeInteger('foo', 2020)).toEqual(2020);
+  });
+
+  it('handles arrays', function () {
+    expect(utils.decodeInteger(['1', 'foo'])).toEqual(1);
+    expect(utils.decodeInteger(['1.2', 'foo'])).toEqual(1);
+    expect(utils.decodeInteger(['1.9', 'foo'])).toEqual(1);
+    expect(utils.decodeInteger(['foo', '1'])).toEqual(undefined);
+    expect(utils.decodeInteger(['foo'], 2020)).toEqual(2020);
+  });
+
+  it('handles falsey values', function () {
+    expect(utils.decodeInteger(undefined, 2020)).toEqual(2020);
+    expect(utils.decodeInteger(false, 2020)).toEqual(2020);
+    expect(utils.decodeInteger('', 2020)).toEqual(2020);
+  });
+});

@@ -1,5 +1,5 @@
-import React from 'react';
-import {ClassNames} from '@emotion/core';
+import * as React from 'react';
+import {ClassNames} from '@emotion/react';
 import assign from 'lodash/assign';
 import flatten from 'lodash/flatten';
 import isEqual from 'lodash/isEqual';

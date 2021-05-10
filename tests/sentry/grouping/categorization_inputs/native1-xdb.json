@@ -1,0 +1,92 @@
+{
+  "event_id": "a67d8e6c003c4e4886ffaa567ef6bd9d",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": null,
+          "synthetic": true,
+          "type": "minidump"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "RtlUserThreadStart",
+              "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "function": "BaseThreadInitThunk",
+              "package": "C:\\WINDOWS\\System32\\KERNEL32.DLL"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "exit",
+              "package": "C:\\WINDOWS\\System32\\ucrtbase.dll"
+            },
+            {
+              "function": "exit",
+              "package": "C:\\WINDOWS\\System32\\ucrtbase.dll"
+            },
+            {
+              "function": "FatalExit",
+              "package": "C:\\WINDOWS\\System32\\KERNEL32.DLL"
+            },
+            {
+              "function": "RtlExitUserProcess",
+              "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "function": "LdrShutdownProcess",
+              "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "function": "LdrpCallInitRoutine",
+              "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
+            },
+            {
+              "function": "_local_stdio_scanf_options",
+              "package": "C:\\Windows\\System32\\WindowManagementAPI.dll"
+            },
+            {
+              "function": "_local_stdio_scanf_options",
+              "package": "C:\\Windows\\System32\\WindowManagementAPI.dll"
+            },
+            {
+              "function": "__crt_state_management::wrapped_invoke<T>",
+              "package": "C:\\WINDOWS\\System32\\ucrtbase.dll"
+            },
+            {
+              "function": "execute_onexit_table",
+              "package": "C:\\WINDOWS\\System32\\ucrtbase.dll"
+            },
+            {
+              "function": "execute_onexit_table",
+              "package": "C:\\WINDOWS\\System32\\ucrtbase.dll"
+            },
+            {
+              "function": "execute_onexit_table",
+              "package": "C:\\WINDOWS\\System32\\ucrtbase.dll"
+            },
+            {
+              "function": "wil::AsyncEventSourceT<T>::~AsyncEventSourceT<T>",
+              "package": "C:\\Windows\\System32\\WindowManagementAPI.dll"
+            },
+            {
+              "function": "RtlpWakeByAddress",
+              "package": "C:\\WINDOWS\\SYSTEM32\\ntdll.dll"
+            }
+          ]
+        },
+        "type": "EXCEPTION_ACCESS_VIOLATION_READ",
+        "value": "Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ"
+      }
+    ]
+  },
+  "platform": "native"
+}

@@ -1,7 +1,7 @@
-import React from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import {removeSentryApp} from 'app/actionCreators/sentryApps';
+import Access from 'app/components/acl/access';
 import AlertLink from 'app/components/alertLink';
 import Button from 'app/components/button';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
@@ -59,20 +59,31 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
 
   renderInternalIntegrations() {
     const {orgId} = this.props.params;
+    const {organization} = this.props;
     const integrations = this.state.applications.filter(
       (app: SentryApp) => app.status === 'internal'
     );
     const isEmpty = integrations.length === 0;
 
+    const permissionTooltipText = t(
+      'Manager or Owner permissions required to add an internal integration.'
+    );
+
     const action = (
-      <Button
-        priority="primary"
-        size="small"
-        to={`/settings/${orgId}/developer-settings/new-internal/`}
-        icon={<IconAdd size="xs" isCircled />}
-      >
-        {t('New Internal Integration')}
-      </Button>
+      <Access organization={organization} access={['org:write']}>
+        {({hasAccess}) => (
+          <Button
+            priority="primary"
+            disabled={!hasAccess}
+            title={!hasAccess ? permissionTooltipText : undefined}
+            size="small"
+            to={`/settings/${orgId}/developer-settings/new-internal/`}
+            icon={<IconAdd size="xs" isCircled />}
+          >
+            {t('New Internal Integration')}
+          </Button>
+        )}
+      </Access>
     );
 
     return (
@@ -96,18 +107,29 @@ class OrganizationDeveloperSettings extends AsyncView<Props, State> {
 
   renderExernalIntegrations() {
     const {orgId} = this.props.params;
+    const {organization} = this.props;
     const integrations = this.state.applications.filter(app => app.status !== 'internal');
     const isEmpty = integrations.length === 0;
 
+    const permissionTooltipText = t(
+      'Manager or Owner permissions required to add a public integration.'
+    );
+
     const action = (
-      <Button
-        priority="primary"
-        size="small"
-        to={`/settings/${orgId}/developer-settings/new-public/`}
-        icon={<IconAdd size="xs" isCircled />}
-      >
-        {t('New Public Integration')}
-      </Button>
+      <Access organization={organization} access={['org:write']}>
+        {({hasAccess}) => (
+          <Button
+            priority="primary"
+            disabled={!hasAccess}
+            title={!hasAccess ? permissionTooltipText : undefined}
+            size="small"
+            to={`/settings/${orgId}/developer-settings/new-public/`}
+            icon={<IconAdd size="xs" isCircled />}
+          >
+            {t('New Public Integration')}
+          </Button>
+        )}
+      </Access>
     );
 
     return (

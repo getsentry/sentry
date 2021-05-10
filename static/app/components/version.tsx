@@ -1,7 +1,7 @@
-import React from 'react';
+import * as React from 'react';
 import {withRouter} from 'react-router';
 import {WithRouterProps} from 'react-router/lib/withRouter';
-import {css} from '@emotion/core';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Clipboard from 'app/components/clipboard';
@@ -190,6 +190,6 @@ const TooltipClipboardIconWrapper = styled('span')`
 
 type PropsWithoutOrg = Omit<Props, 'organization'>;
 
-export default withOrganization(withRouter(Version)) as React.ComponentClass<
-  PropsWithoutOrg
->;
+export default withOrganization(
+  withRouter(Version)
+) as React.ComponentClass<PropsWithoutOrg>;

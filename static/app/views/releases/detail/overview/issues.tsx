@@ -1,9 +1,8 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import pick from 'lodash/pick';
 
-import Feature from 'app/components/acl/feature';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
@@ -19,6 +18,7 @@ import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {GlobalSelection} from 'app/types';
 import {QueryResults, stringifyQueryObject} from 'app/utils/tokenizeSearch';
+import {IssueSortOptions} from 'app/views/issueList/utils';
 
 import EmptyState from '../emptyState';
 
@@ -51,7 +51,7 @@ type State = {
   onCursor?: () => void;
 };
 
-class Issues extends React.Component<Props, State> {
+class Issues extends Component<Props, State> {
   state: State = {
     issuesType: IssuesType.NEW,
   };
@@ -102,7 +102,7 @@ class Issues extends React.Component<Props, State> {
         defaultStatsPeriod,
       }),
       limit: 10,
-      sort: 'new',
+      sort: IssueSortOptions.FREQ,
     };
 
     switch (issuesType) {
@@ -160,7 +160,7 @@ class Issues extends React.Component<Props, State> {
 
     return (
       <EmptyState>
-        <React.Fragment>
+        <Fragment>
           {issuesType === IssuesType.NEW &&
             tct('No new issues for the [timePeriod].', {
               timePeriod: displayedPeriod,
@@ -174,7 +174,7 @@ class Issues extends React.Component<Props, State> {
             tct('No issues for the [timePeriod].', {
               timePeriod: displayedPeriod,
             })}
-        </React.Fragment>
+        </Fragment>
       </EmptyState>
     );
   };
@@ -191,7 +191,7 @@ class Issues extends React.Component<Props, State> {
     ];
 
     return (
-      <React.Fragment>
+      <Fragment>
         <ControlsWrapper>
           <DropdownControl
             button={({isOpen, getActorProps}) => (
@@ -223,21 +223,19 @@ class Issues extends React.Component<Props, State> {
               {t('Open in Issues')}
             </Button>
 
-            <Feature features={['discover-basic']}>
-              <GuideAnchor target="release_issues_open_in_discover">
-                <DiscoverButton
-                  to={this.getDiscoverUrl()}
-                  size="small"
-                  data-test-id="discover-button"
-                >
-                  {t('Open in Discover')}
-                </DiscoverButton>
-              </GuideAnchor>
-            </Feature>
+            <GuideAnchor target="release_issues_open_in_discover">
+              <DiscoverButton
+                to={this.getDiscoverUrl()}
+                size="small"
+                data-test-id="discover-button"
+              >
+                {t('Open in Discover')}
+              </DiscoverButton>
+            </GuideAnchor>
             <StyledPagination pageLinks={pageLinks} onCursor={onCursor} />
           </OpenInButtonBar>
         </ControlsWrapper>
-        <TableWrapper data-test-id="release-wrapper">
+        <div data-test-id="release-wrapper">
           <GroupList
             orgId={orgId}
             endpointPath={path}
@@ -249,8 +247,8 @@ class Issues extends React.Component<Props, State> {
             withPagination={false}
             onFetchSuccess={this.handleFetchSuccess}
           />
-        </TableWrapper>
-      </React.Fragment>
+        </div>
+      </Fragment>
     );
   }
 }
@@ -277,10 +275,6 @@ const StyledDropdownButton = styled(DropdownButton)`
 
 const StyledDropdownItem = styled(DropdownItem)`
   white-space: nowrap;
-`;
-
-const TableWrapper = styled('div')`
-  margin-bottom: ${space(4)};
 `;
 
 const StyledPagination = styled(Pagination)`

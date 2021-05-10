@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {withRouter} from 'react-router';
 import {WithRouterProps} from 'react-router/lib/withRouter';
 import {
@@ -232,7 +232,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
         : undefined;
 
     const mod = await import(
-      /* webpackChunkName: "DebugImageDetails" */ 'app/components/events/interfaces/debugMeta-v2/debugImageDetails'
+      'app/components/events/interfaces/debugMeta-v2/debugImageDetails'
     );
 
     const {default: Modal, modalCss} = mod;
@@ -265,16 +265,6 @@ class DebugMeta extends React.PureComponent<Props, State> {
     }
 
     this.setState({panelTableHeight});
-  }
-
-  getListHeight() {
-    const {panelTableHeight} = this.state;
-
-    if (!panelTableHeight || panelTableHeight > IMAGE_AND_CANDIDATE_LIST_MAX_HEIGHT) {
-      return IMAGE_AND_CANDIDATE_LIST_MAX_HEIGHT;
-    }
-
-    return panelTableHeight;
   }
 
   getRelevantImages() {
@@ -467,7 +457,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
               this.listRef = el;
             }}
             deferredMeasurementCache={cache}
-            height={this.getListHeight()}
+            height={IMAGE_AND_CANDIDATE_LIST_MAX_HEIGHT}
             overscanRowCount={5}
             rowCount={images.length}
             rowHeight={cache.rowHeight}
@@ -624,7 +614,8 @@ const Title = styled('h3')`
   height: 14px;
 `;
 
-const StyledList = styled(List)<{height: number}>`
+// XXX(ts): Emotion11 has some trouble with List's defaultProps
+const StyledList = styled(List as any)<React.ComponentProps<typeof List>>`
   height: auto !important;
   max-height: ${p => p.height}px;
   overflow-y: auto !important;

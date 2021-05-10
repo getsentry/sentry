@@ -1,4 +1,3 @@
-import React from 'react';
 import styled from '@emotion/styled';
 
 import {trackAnalyticsEvent} from 'app/utils/analytics';
@@ -29,7 +28,7 @@ const SettingsNavigationGroup = (props: NavigationGroupProps) => {
           //only call the analytics event if the URL is changing
           if (recordAnalytics && to !== window.location.pathname) {
             trackAnalyticsEvent({
-              organization_id: organization && organization.id,
+              organization_id: organization ? organization.id : null,
               project_id: project && project.id,
               eventName: 'Sidebar Item Clicked',
               eventKey: 'sidebar.item_clicked',

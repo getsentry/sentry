@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
@@ -15,11 +15,11 @@ import RadioField from 'app/views/settings/components/forms/radioField';
 
 const impacts = [
   tct(
-    '[strong:Data glitches.] During reprocessing you may observe temporary data inconsistencies across the entire product. Those inconsistencies disappear the moment reprocessing is complete.',
+    "[strong:Quota applies.] Every event you choose to reprocess counts against your plan's quota. Rate limits and spike protection do not apply.",
     {strong: <strong />}
   ),
   tct(
-    '[strong:Attachment storage needs to be enabled.] If your events come from minidumps or unreal crash reports, you must have [link:attachment storage] enabled.',
+    '[strong:Attachment storage required.] If your events come from minidumps or unreal crash reports, you must have [link:attachment storage] enabled.',
     {
       strong: <strong />,
       link: (
@@ -27,13 +27,8 @@ const impacts = [
       ),
     }
   ),
-  tct(
-    "[strong:Quota applies.] Every event you choose to reprocess will count against your plan's quota a second time. Rate limits and spike protection do not apply.",
-    {strong: <strong />}
-  ),
-  t('Please wait one hour before attempting to reprocess missing debug files.'),
   t(
-    'Reprocessed events will not trigger issue alerts, and reprocessed events are not subject to data forwarding.'
+    'Please wait one hour after upload before attempting to reprocess missing debug files.'
   ),
 ];
 
@@ -53,7 +48,7 @@ type State = {
   maxEvents?: number;
 };
 
-class ReprocessingEventModal extends React.Component<Props, State> {
+class ReprocessingEventModal extends Component<Props, State> {
   state: State = {maxEvents: undefined};
 
   handleSuccess = () => {
@@ -79,14 +74,12 @@ class ReprocessingEventModal extends React.Component<Props, State> {
     const title = t('Reprocess Events');
 
     return (
-      <React.Fragment>
-        <Header closeButton>
-          <span data-test-id="modal-title">{title}</span>
-        </Header>
+      <Fragment>
+        <Header closeButton>{title}</Header>
         <Body>
           <Introduction>
             {t(
-              'Reprocessing applies any new debug files or grouping configuration to an Issue. Before you give it a try, you should probably consider these impacts:'
+              'Reprocessing applies new debug files and grouping enhancements to this Issue. Please consider these impacts:'
             )}
           </Introduction>
           <StyledList symbol="bullet">
@@ -95,14 +88,11 @@ class ReprocessingEventModal extends React.Component<Props, State> {
             ))}
           </StyledList>
           <Introduction>
-            {tct(
-              'For more information please refer to [link:the documentation on reprocessing.]',
-              {
-                link: (
-                  <ExternalLink href="https://docs.sentry.io/product/error-monitoring/reprocessing/" />
-                ),
-              }
-            )}
+            {tct('For more information, please refer to [link:the documentation.]', {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/product/error-monitoring/reprocessing/" />
+              ),
+            })}
           </Introduction>
           <Form
             submitLabel={title}
@@ -133,7 +123,7 @@ class ReprocessingEventModal extends React.Component<Props, State> {
             />
           </Form>
         </Body>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

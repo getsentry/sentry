@@ -1,6 +1,6 @@
-import React from 'react';
+import * as React from 'react';
+import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {withTheme} from 'emotion-theming';
 
 import Access from 'app/components/acl/access';
 import Alert from 'app/components/alert';
@@ -172,7 +172,9 @@ const IntegrationItemBox = styled('div')`
 `;
 
 const IntegrationStatus = withTheme(
-  (props: React.HTMLAttributes<HTMLElement> & {theme: Theme; status: ObjectStatus}) => {
+  (
+    props: React.HTMLAttributes<HTMLDivElement> & {theme: Theme; status: ObjectStatus}
+  ) => {
     const {theme, status, ...p} = props;
     const color = status === 'active' ? theme.success : theme.gray300;
     const titleText =

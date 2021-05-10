@@ -1,8 +1,8 @@
 import logging
 from urllib.parse import urlencode
 
-from django.core.urlresolvers import reverse
 from django.db import transaction
+from django.urls import reverse
 from django.utils import timezone
 
 from sentry.auth.access import from_user

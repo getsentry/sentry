@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {PlainRoute} from 'react-router';
 
 import {openHelpSearchModal, openSudo} from 'app/actionCreators/modal';

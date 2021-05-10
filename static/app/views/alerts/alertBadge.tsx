@@ -1,4 +1,3 @@
-import React from 'react';
 import styled from '@emotion/styled';
 
 import {IconCheckmark, IconFire, IconIssues, IconWarning} from 'app/icons';
@@ -15,7 +14,7 @@ type Props = {
 };
 
 function AlertBadge({status, hideText = false, isIssue}: Props) {
-  let statusText = t('Okay');
+  let statusText = t('Resolved');
   let Icon = IconCheckmark;
   let color: Color = 'green300';
   if (isIssue) {

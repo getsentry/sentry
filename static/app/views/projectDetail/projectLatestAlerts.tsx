@@ -1,6 +1,4 @@
-import React from 'react';
 import styled from '@emotion/styled';
-import {withTheme} from 'emotion-theming';
 import {Location} from 'history';
 import pick from 'lodash/pick';
 
@@ -30,7 +28,6 @@ type Props = AsyncComponent['props'] & {
   organization: Organization;
   projectSlug: string;
   location: Location;
-  theme: Theme;
   isProjectStabilized: boolean;
 };
 
@@ -141,31 +138,28 @@ class ProjectLatestAlerts extends AsyncComponent<Props, State> {
   }
 
   renderAlertRow = (alert: Incident) => {
-    const {organization, theme} = this.props;
+    const {organization} = this.props;
     const {status, id, identifier, title, dateClosed, dateStarted} = alert;
     const isResolved = status === IncidentStatus.CLOSED;
     const isWarning = status === IncidentStatus.WARNING;
 
-    const color = isResolved
-      ? theme.green300
-      : isWarning
-      ? theme.yellow300
-      : theme.red300;
     const Icon = isResolved ? IconCheckmark : isWarning ? IconWarning : IconFire;
+
+    const statusProps = {isResolved, isWarning};
 
     return (
       <AlertRowLink
         to={`/organizations/${organization.slug}/alerts/${identifier}/`}
         key={id}
       >
-        <AlertBadge color={color} icon={Icon}>
+        <AlertBadge {...statusProps} icon={Icon}>
           <AlertIconWrapper>
             <Icon color="white" />
           </AlertIconWrapper>
         </AlertBadge>
         <AlertDetails>
           <AlertTitle>{title}</AlertTitle>
-          <AlertDate color={color}>
+          <AlertDate {...statusProps}>
             {isResolved
               ? tct('Resolved [date]', {
                   date: dateClosed ? <TimeSince date={dateClosed} /> : null,
@@ -243,7 +237,19 @@ const AlertRowLink = styled(Link)`
   }
 `;
 
-const AlertBadge = styled('div')<{color: string; icon: React.ReactNode}>`
+type StatusColorProps = {
+  isResolved: boolean;
+  isWarning: boolean;
+};
+
+const getStatusColor = ({
+  theme,
+  isResolved,
+  isWarning,
+}: {theme: Theme} & StatusColorProps) =>
+  isResolved ? theme.green300 : isWarning ? theme.yellow300 : theme.red300;
+
+const AlertBadge = styled('div')<{icon: React.ReactNode} & StatusColorProps>`
   display: flex;
   align-items: center;
   justify-content: center;
@@ -256,7 +262,7 @@ const AlertBadge = styled('div')<{color: string; icon: React.ReactNode}>`
     width: 30px;
     height: 30px;
     border-radius: ${p => p.theme.borderRadius};
-    background-color: ${p => p.color};
+    background-color: ${p => getStatusColor(p)};
     transform: rotate(45deg);
   }
 `;
@@ -277,8 +283,8 @@ const AlertTitle = styled('div')`
   text-overflow: ellipsis;
 `;
 
-const AlertDate = styled('span')<{color: string}>`
-  color: ${p => p.color};
+const AlertDate = styled('span')<StatusColorProps>`
+  color: ${p => getStatusColor(p)};
 `;
 
 const StyledEmptyStateWarning = styled(EmptyStateWarning)`
@@ -286,4 +292,4 @@ const StyledEmptyStateWarning = styled(EmptyStateWarning)`
   justify-content: center;
 `;
 
-export default withTheme(ProjectLatestAlerts);
+export default ProjectLatestAlerts;

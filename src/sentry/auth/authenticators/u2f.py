@@ -1,7 +1,7 @@
 from time import time
 
 from cryptography.exceptions import InvalidKey, InvalidSignature
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.utils.translation import ugettext_lazy as _
 from u2flib_server import u2f
 from u2flib_server.model import DeviceRegistration

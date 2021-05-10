@@ -1,0 +1,92 @@
+{
+  "platform": "native",
+  "exception": {
+    "values": [
+      {
+        "type": "EXCEPTION_ACCESS_VIOLATION_READ",
+        "value": "Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ",
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "CUseCountedObject<T>::UCDestroy",
+              "raw_function": "CUseCountedObject<class NOutermost::CDeviceChild>::UCDestroy(void)",
+              "symbol": "?UCDestroy@?$CUseCountedObject@VCDeviceChild@NOutermost@@@@UEAAXXZ",
+              "package": "C:\\WINDOWS\\SYSTEM32\\d3d11.dll",
+              "data": {
+                "symbolicator_status": "symbolicated",
+                "orig_in_app": -1
+              },
+              "instruction_addr": "0x7ff8151f7639",
+              "trust": "cfi",
+              "in_app": false
+            },
+            {
+              "function": "CContext::LUCBeginLayerDestruction",
+              "raw_function": "CContext::LUCBeginLayerDestruction(void)",
+              "symbol": "?LUCBeginLayerDestruction@CContext@@QEAAXXZ",
+              "package": "C:\\WINDOWS\\SYSTEM32\\d3d11.dll",
+              "data": {
+                "symbolicator_status": "symbolicated",
+                "orig_in_app": -1
+              },
+              "instruction_addr": "0x7ff8152033b7",
+              "trust": "cfi",
+              "in_app": false
+            },
+            {
+              "function": "NDXGI::CDevice::DestroyDriverInstance",
+              "raw_function": "NDXGI::CDevice::DestroyDriverInstance(void)",
+              "symbol": "?DestroyDriverInstance@CDevice@NDXGI@@UEAAXXZ",
+              "package": "C:\\WINDOWS\\SYSTEM32\\d3d11.dll",
+              "data": {
+                "symbolicator_status": "symbolicated",
+                "orig_in_app": -1
+              },
+              "instruction_addr": "0x7ff815200b7b",
+              "trust": "cfi",
+              "in_app": false
+            },
+            {
+              "function": "OpenAdapter10",
+              "symbol": "OpenAdapter10",
+              "package": "C:\\WINDOWS\\System32\\DriverStore\\FileRepository\\nvblwi.inf_amd64_ce1b980000216c78\\nvwgf2umx.dll",
+              "data": {
+                "symbolicator_status": "symbolicated",
+                "orig_in_app": -1
+              },
+              "instruction_addr": "0x7fff971991ce",
+              "trust": "cfi",
+              "in_app": false
+            },
+            {
+              "package": "C:\\WINDOWS\\System32\\DriverStore\\FileRepository\\nvblwi.inf_amd64_ce1b980000216c78\\nvwgf2umx.dll",
+              "data": {
+                "symbolicator_status": "missing_symbol",
+                "orig_in_app": -1
+              },
+              "instruction_addr": "0x7fff96573450",
+              "trust": "cfi",
+              "in_app": false
+            },
+            {
+              "package": "C:\\WINDOWS\\System32\\DriverStore\\FileRepository\\nvblwi.inf_amd64_ce1b980000216c78\\nvwgf2umx.dll",
+              "data": {
+                "symbolicator_status": "missing_symbol",
+                "orig_in_app": -1
+              },
+              "instruction_addr": "0x7fff9669dea0",
+              "trust": "context",
+              "in_app": false
+            }
+          ]
+        },
+        "thread_id": 3300,
+        "mechanism": {
+          "type": "minidump",
+          "synthetic": true,
+          "handled": false
+        }
+      }
+    ]
+  }
+}

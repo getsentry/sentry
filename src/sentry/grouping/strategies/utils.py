@@ -1,3 +1,6 @@
+from sentry.grouping.variants import HIERARCHICAL_VARIANTS
+
+
 def remove_non_stacktrace_variants(variants):
     """This is a utility function that when given multiple variants will
     mark all variants as non contributing that do not contain any stacktraces
@@ -18,7 +21,7 @@ def remove_non_stacktrace_variants(variants):
         if next(stacktrace_iter, None) is not None:
             any_stacktrace_contributes = True
             stacktrace_variants.add(key)
-        else:
+        elif key not in HIERARCHICAL_VARIANTS:
             non_contributing_components.append(component)
 
     if any_stacktrace_contributes:

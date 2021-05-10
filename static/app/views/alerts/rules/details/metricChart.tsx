@@ -1,37 +1,41 @@
-import React from 'react';
+import * as React from 'react';
 import {withRouter} from 'react-router';
 import {WithRouterProps} from 'react-router/lib/withRouter';
 import styled from '@emotion/styled';
 import color from 'color';
 import moment from 'moment';
+import momentTimezone from 'moment-timezone';
 
 import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
 import Button from 'app/components/button';
+import ChartZoom from 'app/components/charts/chartZoom';
 import Graphic from 'app/components/charts/components/graphic';
 import MarkArea from 'app/components/charts/components/markArea';
 import MarkLine from 'app/components/charts/components/markLine';
 import EventsRequest from 'app/components/charts/eventsRequest';
 import LineChart, {LineChartSeries} from 'app/components/charts/lineChart';
+import {
+  parseStatsPeriod,
+  StatsPeriodType,
+} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {Panel, PanelBody, PanelFooter} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
 import {IconCheckmark, IconFire, IconWarning} from 'app/icons';
 import {t} from 'app/locale';
+import ConfigStore from 'app/stores/configStore';
 import space from 'app/styles/space';
-import {AvatarProject, Organization, Project} from 'app/types';
+import {AvatarProject, DateString, Organization, Project} from 'app/types';
 import {ReactEchartsRef} from 'app/types/echarts';
-import {getFormattedDate, getUtcDateString} from 'app/utils/dates';
+import {getUtcDateString} from 'app/utils/dates';
 import theme from 'app/utils/theme';
+import {alertDetailsLink} from 'app/views/alerts/details';
+import {AlertWizardAlertNames} from 'app/views/alerts/wizard/options';
+import {getAlertTypeFromAggregateDataset} from 'app/views/alerts/wizard/utils';
 import {makeDefaultCta} from 'app/views/settings/incidentRules/incidentRulePresets';
 import {IncidentRule} from 'app/views/settings/incidentRules/types';
 
-import {
-  AlertRuleStatus,
-  Incident,
-  IncidentActivityType,
-  IncidentStatus,
-} from '../../types';
-import {getIncidentRuleMetricPreset} from '../../utils';
+import {Incident, IncidentActivityType, IncidentStatus} from '../../types';
 
 import {TimePeriodType} from './constants';
 
@@ -40,23 +44,30 @@ const VERTICAL_PADDING = 22;
 
 type Props = WithRouterProps & {
   api: Client;
-  rule?: IncidentRule;
+  rule: IncidentRule;
   incidents?: Incident[];
   timePeriod: TimePeriodType;
   selectedIncident?: Incident | null;
   organization: Organization;
   projects: Project[] | AvatarProject[];
-  metricText: React.ReactNode;
   interval: string;
   filter: React.ReactNode;
   query: string;
   orgId: string;
+  handleZoom: (start: DateString, end: DateString) => void;
 };
 
 type State = {
   width: number;
   height: number;
 };
+
+function formatTooltipDate(date: moment.MomentInput, format: string): string {
+  const {
+    options: {timezone},
+  } = ConfigStore.get('user');
+  return momentTimezone.tz(date, timezone).format(format);
+}
 
 function createThresholdSeries(lineColor: string, threshold: number): LineChartSeries {
   return {
@@ -66,6 +77,9 @@ function createThresholdSeries(lineColor: string, threshold: number): LineChartS
       silent: true,
       lineStyle: {color: lineColor, type: 'dashed', width: 1},
       data: [{yAxis: threshold} as any],
+      label: {
+        show: false,
+      },
     }),
     data: [],
   };
@@ -90,7 +104,7 @@ function createStatusAreaSeries(
 
 function createIncidentSeries(
   router: Props['router'],
-  orgSlug: string,
+  organization: Organization,
   lineColor: string,
   incidentTimestamp: number,
   incident: Incident,
@@ -108,12 +122,7 @@ function createIncidentSeries(
           xAxis: incidentTimestamp,
           onClick: () => {
             router.push({
-              pathname: `/organizations/${orgSlug}/alerts/rules/details/${
-                incident.alertRule.status === AlertRuleStatus.SNAPSHOT &&
-                incident.alertRule.originalAlertRuleId
-                  ? incident.alertRule.originalAlertRuleId
-                  : incident.alertRule.id
-              }/`,
+              pathname: alertDetailsLink(organization, incident),
               query: {alert: incident.identifier},
             });
           },
@@ -135,7 +144,7 @@ function createIncidentSeries(
     trigger: 'item',
     alwaysShowContent: true,
     formatter: ({value, marker}) => {
-      const time = getFormattedDate(value, 'MMM D, YYYY LT');
+      const time = formatTooltipDate(moment(value), 'MMM D, YYYY LT');
       return [
         `<div class="tooltip-series"><div>`,
         `<span class="tooltip-label">${marker} <strong>${t('Alert')} #${
@@ -158,11 +167,6 @@ class MetricChart extends React.PureComponent<Props, State> {
   };
 
   ref: null | ReactEchartsRef = null;
-
-  get metricPreset() {
-    const {rule} = this.props;
-    return rule ? getIncidentRuleMetricPreset(rule) : undefined;
-  }
 
   /**
    * Syncs component state with the chart's width/heights
@@ -248,7 +252,6 @@ class MetricChart extends React.PureComponent<Props, State> {
     warningDuration: number
   ) {
     const {rule, orgId, projects, timePeriod} = this.props;
-    const preset = this.metricPreset;
     const ctaOpts = {
       orgSlug: orgId,
       projects: projects as Project[],
@@ -257,9 +260,7 @@ class MetricChart extends React.PureComponent<Props, State> {
       end: timePeriod.end,
     };
 
-    const {buttonText, ...props} = preset
-      ? preset.makeCtaParams(ctaOpts)
-      : makeDefaultCta(ctaOpts);
+    const {buttonText, ...props} = makeDefaultCta(ctaOpts);
 
     const resolvedPercent = (
       (100 * Math.max(totalDuration - criticalDuration - warningDuration, 0)) /
@@ -292,7 +293,7 @@ class MetricChart extends React.PureComponent<Props, State> {
           </SummaryStats>
         </ChartSummary>
         <Feature features={['discover-basic']}>
-          <Button size="small" disabled={!rule} {...props}>
+          <Button size="small" {...props}>
             {buttonText}
           </Button>
         </Feature>
@@ -307,60 +308,87 @@ class MetricChart extends React.PureComponent<Props, State> {
     maxThresholdValue: number,
     maxSeriesValue: number
   ) {
+    const {
+      router,
+      interval,
+      handleZoom,
+      timePeriod: {start, end},
+    } = this.props;
     const {dateModified, timeWindow} = this.props.rule || {};
+
     return (
-      <LineChart
-        isGroupedByDate
-        showTimeInTooltip
-        forwardedRef={this.handleRef}
-        grid={{
-          left: 0,
-          right: 0,
-          top: space(2),
-          bottom: 0,
-        }}
-        yAxis={maxThresholdValue > maxSeriesValue ? {max: maxThresholdValue} : undefined}
-        series={[...series, ...areaSeries]}
-        graphic={Graphic({
-          elements: this.getRuleChangeThresholdElements(data),
-        })}
-        tooltip={{
-          formatter: seriesParams => {
-            // seriesParams can be object instead of array
-            const pointSeries = Array.isArray(seriesParams)
-              ? seriesParams
-              : [seriesParams];
-            const {marker, data: pointData, seriesName} = pointSeries[0];
-            const [pointX, pointY] = pointData as [number, number];
-            const isModified = dateModified && pointX <= new Date(dateModified).getTime();
+      <ChartZoom
+        router={router}
+        start={start}
+        end={end}
+        onZoom={zoomArgs => handleZoom(zoomArgs.start, zoomArgs.end)}
+      >
+        {zoomRenderProps => (
+          <LineChart
+            {...zoomRenderProps}
+            isGroupedByDate
+            showTimeInTooltip
+            forwardedRef={this.handleRef}
+            grid={{
+              left: 0,
+              right: space(2),
+              top: space(2),
+              bottom: 0,
+            }}
+            yAxis={
+              maxThresholdValue > maxSeriesValue ? {max: maxThresholdValue} : undefined
+            }
+            series={[...series, ...areaSeries]}
+            graphic={Graphic({
+              elements: this.getRuleChangeThresholdElements(data),
+            })}
+            tooltip={{
+              formatter: seriesParams => {
+                // seriesParams can be object instead of array
+                const pointSeries = Array.isArray(seriesParams)
+                  ? seriesParams
+                  : [seriesParams];
+                const {marker, data: pointData, seriesName} = pointSeries[0];
+                const [pointX, pointY] = pointData as [number, number];
+                const isModified =
+                  dateModified && pointX <= new Date(dateModified).getTime();
 
-            const startTime = getFormattedDate(new Date(pointX), 'MMM D LT');
-            const endTime = getFormattedDate(
-              moment(new Date(pointX)).add(timeWindow, 'minutes'),
-              'MMM D LT'
-            );
-            const title = isModified
-              ? `<strong>${t('Alert Rule Modified')}</strong>`
-              : `${marker} <strong>${seriesName}</strong>`;
-            const value = isModified
-              ? `${seriesName} ${pointY.toLocaleString()}`
-              : pointY.toLocaleString();
+                const startTime = formatTooltipDate(moment(pointX), 'MMM D LT');
+                const {period, periodLength} = parseStatsPeriod(interval) ?? {
+                  periodLength: 'm',
+                  period: `${timeWindow}`,
+                };
+                const endTime = formatTooltipDate(
+                  moment(pointX).add(
+                    parseInt(period, 10),
+                    periodLength as StatsPeriodType
+                  ),
+                  'MMM D LT'
+                );
+                const title = isModified
+                  ? `<strong>${t('Alert Rule Modified')}</strong>`
+                  : `${marker} <strong>${seriesName}</strong>`;
+                const value = isModified
+                  ? `${seriesName} ${pointY.toLocaleString()}`
+                  : pointY.toLocaleString();
 
-            return [
-              `<div class="tooltip-series"><div>`,
-              `<span class="tooltip-label">${title}</span>${value}`,
-              `</div></div>`,
-              `<div class="tooltip-date">${startTime} &mdash; ${endTime}</div>`,
-              `<div class="tooltip-arrow"></div>`,
-            ].join('');
-          },
-        }}
-        onFinished={() => {
-          // We want to do this whenever the chart finishes re-rendering so that we can update the dimensions of
-          // any graphics related to the triggers (e.g. the threshold areas + boundaries)
-          this.updateDimensions();
-        }}
-      />
+                return [
+                  `<div class="tooltip-series"><div>`,
+                  `<span class="tooltip-label">${title}</span>${value}`,
+                  `</div></div>`,
+                  `<div class="tooltip-date">${startTime} &mdash; ${endTime}</div>`,
+                  `<div class="tooltip-arrow"></div>`,
+                ].join('');
+              },
+            }}
+            onFinished={() => {
+              // We want to do this whenever the chart finishes re-rendering so that we can update the dimensions of
+              // any graphics related to the triggers (e.g. the threshold areas + boundaries)
+              this.updateDimensions();
+            }}
+          />
+        )}
+      </ChartZoom>
     );
   }
 
@@ -384,14 +412,10 @@ class MetricChart extends React.PureComponent<Props, State> {
       selectedIncident,
       projects,
       interval,
-      metricText,
       filter,
       query,
       incidents,
     } = this.props;
-    if (!rule) {
-      return this.renderEmpty();
-    }
 
     const criticalTrigger = rule.triggers.find(({label}) => label === 'critical');
     const warningTrigger = rule.triggers.find(({label}) => label === 'warning');
@@ -405,6 +429,10 @@ class MetricChart extends React.PureComponent<Props, State> {
       )
     );
 
+    const viableEndDate = getUtcDateString(
+      moment.utc(timePeriod.end).add(rule.timeWindow, 'minutes')
+    );
+
     return (
       <EventsRequest
         api={api}
@@ -416,7 +444,7 @@ class MetricChart extends React.PureComponent<Props, State> {
           .map(project => Number(project.id))}
         interval={interval}
         start={viableStartDate}
-        end={timePeriod.end}
+        end={viableEndDate}
         yAxis={rule.aggregate}
         includePrevious={false}
         currentSeriesName={rule.aggregate}
@@ -488,7 +516,7 @@ class MetricChart extends React.PureComponent<Props, State> {
                 series.push(
                   createIncidentSeries(
                     router,
-                    organization.slug,
+                    organization,
                     incidentColor,
                     incidentStartDate,
                     incident,
@@ -507,11 +535,14 @@ class MetricChart extends React.PureComponent<Props, State> {
                   lastPoint
                 );
                 const areaColor = warningTrigger ? theme.yellow300 : theme.red300;
-                series.push(createStatusAreaSeries(areaColor, areaStart, areaEnd));
-                if (areaColor === theme.yellow300) {
-                  warningDuration += areaEnd - areaStart;
-                } else {
-                  criticalDuration += areaEnd - areaStart;
+                if (areaEnd > areaStart) {
+                  series.push(createStatusAreaSeries(areaColor, areaStart, areaEnd));
+
+                  if (areaColor === theme.yellow300) {
+                    warningDuration += Math.abs(areaEnd - areaStart);
+                  } else {
+                    criticalDuration += Math.abs(areaEnd - areaStart);
+                  }
                 }
 
                 statusChanges?.forEach((activity, idx) => {
@@ -530,27 +561,32 @@ class MetricChart extends React.PureComponent<Props, State> {
                     activity.value === `${IncidentStatus.CRITICAL}`
                       ? theme.red300
                       : theme.yellow300;
-                  series.push(
-                    createStatusAreaSeries(
-                      statusAreaColor,
-                      statusAreaStart,
-                      statusAreaEnd
-                    )
-                  );
-                  if (statusAreaColor === theme.yellow300) {
-                    warningDuration += statusAreaEnd - statusAreaStart;
-                  } else {
-                    criticalDuration += statusAreaEnd - statusAreaStart;
+                  if (statusAreaEnd > statusAreaStart) {
+                    series.push(
+                      createStatusAreaSeries(
+                        statusAreaColor,
+                        statusAreaStart,
+                        statusAreaEnd
+                      )
+                    );
+                    if (statusAreaColor === theme.yellow300) {
+                      warningDuration += Math.abs(statusAreaEnd - statusAreaStart);
+                    } else {
+                      criticalDuration += Math.abs(statusAreaEnd - statusAreaStart);
+                    }
                   }
                 });
 
                 if (selectedIncident && incident.id === selectedIncident.id) {
+                  const selectedIncidentColor =
+                    incidentColor === theme.yellow300 ? theme.yellow100 : theme.red100;
+
                   areaSeries.push({
                     type: 'line',
                     markArea: MarkArea({
                       silent: true,
                       itemStyle: {
-                        color: color(incidentColor).alpha(0.42).rgb().string(),
+                        color: color(selectedIncidentColor).alpha(0.42).rgb().string(),
                       },
                       data: [
                         [{xAxis: incidentStartDate}, {xAxis: incidentCloseDate}],
@@ -585,13 +621,10 @@ class MetricChart extends React.PureComponent<Props, State> {
 
           return (
             <ChartPanel>
-              <PanelBody withPadding>
+              <StyledPanelBody withPadding>
                 <ChartHeader>
                   <ChartTitle>
-                    <PresetName>
-                      {this.metricPreset?.name ?? t('Custom metric')}
-                    </PresetName>
-                    {metricText}
+                    {AlertWizardAlertNames[getAlertTypeFromAggregateDataset(rule)]}
                   </ChartTitle>
                   {filter}
                 </ChartHeader>
@@ -602,7 +635,7 @@ class MetricChart extends React.PureComponent<Props, State> {
                   maxThresholdValue,
                   maxSeriesValue
                 )}
-              </PanelBody>
+              </StyledPanelBody>
               {this.renderChartActions(totalDuration, criticalDuration, warningDuration)}
             </ChartPanel>
           );
@@ -625,11 +658,6 @@ const ChartHeader = styled('div')`
 const ChartTitle = styled('header')`
   display: flex;
   flex-direction: row;
-`;
-
-const PresetName = styled('div')`
-  text-transform: capitalize;
-  margin-right: ${space(0.5)};
 `;
 
 const ChartActions = styled(PanelFooter)`
@@ -660,6 +688,11 @@ const StatItem = styled('div')`
   display: flex;
   align-items: center;
   margin: 0 ${space(2)} 0 0;
+`;
+
+/* Override padding to make chart appear centered */
+const StyledPanelBody = styled(PanelBody)`
+  padding-right: 6px;
 `;
 
 const StatCount = styled('span')`

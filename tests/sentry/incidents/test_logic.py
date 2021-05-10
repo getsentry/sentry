@@ -10,7 +10,7 @@ from django.utils import timezone
 from exam import fixture, patcher
 from freezegun import freeze_time
 
-from sentry.api.event_search import InvalidSearchQuery
+from sentry.exceptions import InvalidSearchQuery
 from sentry.incidents.events import (
     IncidentCommentCreatedEvent,
     IncidentCreatedEvent,

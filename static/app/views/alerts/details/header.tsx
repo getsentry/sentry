@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {Params} from 'react-router/lib/Router';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
@@ -203,7 +203,7 @@ const Controls = styled('div')`
 `;
 
 const Details = styled(PageHeader, {
-  shouldForwardProp: p => isPropValid(p) && p !== 'columns',
+  shouldForwardProp: p => typeof p === 'string' && isPropValid(p) && p !== 'columns',
 })<{columns: 3 | 5}>`
   margin-bottom: 0;
   padding: ${space(1.5)} ${space(4)} ${space(2)};
@@ -228,7 +228,7 @@ const StyledLoadingError = styled(LoadingError)`
 `;
 
 const GroupedHeaderItems = styled('div', {
-  shouldForwardProp: p => isPropValid(p) && p !== 'columns',
+  shouldForwardProp: p => typeof p === 'string' && isPropValid(p) && p !== 'columns',
 })<{columns: 3 | 5}>`
   display: grid;
   grid-template-columns: repeat(${p => p.columns}, max-content);
@@ -257,14 +257,14 @@ const ItemValue = styled('div')`
 `;
 
 const IncidentTitle = styled(PageHeading, {
-  shouldForwardProp: p => isPropValid(p) && p !== 'loading',
+  shouldForwardProp: p => typeof p === 'string' && isPropValid(p) && p !== 'loading',
 })<{loading: boolean}>`
   ${p => p.loading && 'opacity: 0'};
   line-height: 1.5;
 `;
 
 const IncidentSubTitle = styled('div', {
-  shouldForwardProp: p => isPropValid(p) && p !== 'loading',
+  shouldForwardProp: p => typeof p === 'string' && isPropValid(p) && p !== 'loading',
 })<{loading: boolean}>`
   ${p => p.loading && 'opacity: 0'};
   font-size: ${p => p.theme.fontSizeLarge};

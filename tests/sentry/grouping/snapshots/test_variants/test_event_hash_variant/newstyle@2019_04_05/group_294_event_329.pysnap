@@ -1,0 +1,310 @@
+---
+created: '2021-04-02T10:31:52.735344Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        stacktrace
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "_dispatch_root_queues_init_once"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "start_wqthread"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "_pthread_wqthread"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "_dispatch_worker_thread2"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "_dispatch_root_queue_drain"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "_dispatch_client_callout"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            filename*
+              "function_template.hpp"
+            function*
+              "boost::function0<T>::operator()"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            filename*
+              "function_template.hpp"
+            function*
+              "boost::function0<T>::operator()"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+            filename*
+              "mac"
+            function*
+              "std::__1::map<T>::~map"
+          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+            filename*
+              "map"
+            function*
+              "std::__1::map<T>::~map"
+          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+            filename*
+              "__tree"
+            function*
+              "std::__1::__tree<T>::~__tree"
+          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+            filename*
+              "__tree"
+            function*
+              "std::__1::__tree<T>::~__tree"
+          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+            filename*
+              "__tree"
+            function*
+              "std::__1::__tree<T>::destroy"
+          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+            filename*
+              "__tree"
+            function*
+              "std::__1::__tree<T>::destroy"
+          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+            filename*
+              "memory"
+            function*
+              "std::__1::allocator_traits<T>::destroy<T>"
+          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+            filename*
+              "memory"
+            function*
+              "std::__1::allocator_traits<T>::__destroy<T>"
+          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+            filename*
+              "mac"
+            function*
+              "std::__1::pair<T>::~pair"
+          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+            filename*
+              "utility"
+            function*
+              "std::__1::pair<T>::~pair"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+            function*
+              "std::terminate"
+          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+            function*
+              "std::__terminate"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "demangling_terminate_handler"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "abort_message"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "abort"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "__abort"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "__pthread_kill"
+        type (ignored because exception is synthetic)
+          "0x00000000 / 0x00000000"
+--------------------------------------------------------------------------
+system:
+  hash: "76e54b047bb34b5d0ec6d210fcd8d995"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "_dispatch_root_queues_init_once"
+          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "start_wqthread"
+          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "_pthread_wqthread"
+          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "_dispatch_worker_thread2"
+          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "_dispatch_root_queue_drain"
+          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "_dispatch_client_callout"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame*
+            filename*
+              "function_template.hpp"
+            function*
+              "boost::function0<T>::operator()"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame*
+            filename*
+              "function_template.hpp"
+            function*
+              "boost::function0<T>::operator()"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+            filename*
+              "mac"
+            function*
+              "std::__1::map<T>::~map"
+          frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+            filename*
+              "map"
+            function*
+              "std::__1::map<T>::~map"
+          frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+            filename*
+              "__tree"
+            function*
+              "std::__1::__tree<T>::~__tree"
+          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+            filename*
+              "__tree"
+            function*
+              "std::__1::__tree<T>::~__tree"
+          frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+            filename*
+              "__tree"
+            function*
+              "std::__1::__tree<T>::destroy"
+          frame (marked out of app by stack trace rule (family:native function:std::* -app))
+            filename*
+              "__tree"
+            function*
+              "std::__1::__tree<T>::destroy"
+          frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+            filename*
+              "memory"
+            function*
+              "std::__1::allocator_traits<T>::destroy<T>"
+          frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+            filename*
+              "memory"
+            function*
+              "std::__1::allocator_traits<T>::__destroy<T>"
+          frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+            filename*
+              "mac"
+            function*
+              "std::__1::pair<T>::~pair"
+          frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+            filename*
+              "utility"
+            function*
+              "std::__1::pair<T>::~pair"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+            function*
+              "std::terminate"
+          frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+            function*
+              "std::__terminate"
+          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "demangling_terminate_handler"
+          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "abort_message"
+          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "abort"
+          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "__abort"
+          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function*
+              "__pthread_kill"
+        type (ignored because exception is synthetic)
+          "0x00000000 / 0x00000000"

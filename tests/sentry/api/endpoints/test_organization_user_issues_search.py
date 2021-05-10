@@ -1,6 +1,6 @@
 from urllib.parse import urlencode
 
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
 from sentry.models import OrganizationMemberTeam
 from sentry.testutils import APITestCase, SnubaTestCase

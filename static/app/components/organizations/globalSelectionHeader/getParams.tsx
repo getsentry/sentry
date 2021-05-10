@@ -4,6 +4,8 @@ import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {IntervalPeriod} from 'app/types';
 import {defined} from 'app/utils';
 
+export type StatsPeriodType = 'h' | 'd' | 's' | 'm' | 'w';
+
 const STATS_PERIOD_PATTERN = '^(\\d+)([hdmsw])?$';
 
 export function parseStatsPeriod(input: string | IntervalPeriod) {
@@ -130,8 +132,10 @@ type ParsedParams = {
 };
 
 type InputParams = {
+  pageStatsPeriod?: ParamValue;
   pageStart?: Date | ParamValue;
   pageEnd?: Date | ParamValue;
+  pageUtc?: boolean | ParamValue;
   start?: Date | ParamValue;
   end?: Date | ParamValue;
   period?: ParamValue;
@@ -156,8 +160,10 @@ export function getParams(
   }: GetParamsOptions = {}
 ): ParsedParams {
   const {
+    pageStatsPeriod,
     pageStart,
     pageEnd,
+    pageUtc,
     start,
     end,
     period,
@@ -167,7 +173,10 @@ export function getParams(
   } = params;
 
   // `statsPeriod` takes precedence for now
-  let coercedPeriod = getStatsPeriodValue(statsPeriod) || getStatsPeriodValue(period);
+  let coercedPeriod =
+    getStatsPeriodValue(pageStatsPeriod) ||
+    getStatsPeriodValue(statsPeriod) ||
+    getStatsPeriodValue(period);
 
   const dateTimeStart = allowAbsoluteDatetime
     ? allowAbsolutePageDatetime
@@ -193,7 +202,7 @@ export function getParams(
       end: coercedPeriod ? null : dateTimeEnd,
       // coerce utc into a string (it can be both: a string representation from router,
       // or a boolean from time range picker)
-      utc: getUtcValue(utc),
+      utc: getUtcValue(pageUtc ?? utc),
       ...otherParams,
     })
       // Filter null values

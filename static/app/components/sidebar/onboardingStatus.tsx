@@ -1,5 +1,5 @@
-import React from 'react';
-import {css} from '@emotion/core';
+import {Component, Fragment} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import OnboardingSidebar from 'app/components/onboardingWizard/sidebar';
@@ -29,7 +29,7 @@ const progressTextCss = () => css`
   font-weight: bold;
 `;
 
-class OnboardingStatus extends React.Component<Props> {
+class OnboardingStatus extends Component<Props> {
   handleShowPanel = () => {
     const {org, onShowPanel} = this.props;
 
@@ -68,7 +68,7 @@ class OnboardingStatus extends React.Component<Props> {
     }
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Container onClick={this.handleShowPanel} isActive={isActive}>
           <ProgressRing
             animateText
@@ -97,7 +97,7 @@ class OnboardingStatus extends React.Component<Props> {
             onClose={hidePanel}
           />
         )}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

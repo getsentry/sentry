@@ -1,0 +1,16 @@
+---
+created: '2021-03-29T22:02:40.586723Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+SIGSEGV:Segfault (thread_id:_, crashed:_)
+                                              stripped_application_code
+                         /system/lib/libc.so  __start_thread category=internals
+                         /system/lib/libc.so  __pthread_start category=threadbase
+                     /system/lib/libutils.so  android::Thread::_threadLoop category=indirection
+               /system/lib/libaudioclient.so  android::AudioTrack::AudioTrackThread::threadLoop category=av
+               /system/lib/libaudioclient.so  android::AudioTrack::processAudioBuffer category=internals
+               /system/lib/libaudioclient.so  android::AudioTrack::obtainBuffer category=internals
+                       /system/lib/liblog.so  __android_log_print category=internals

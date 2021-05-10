@@ -1,12 +1,14 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
+import ErrorPanel from 'app/components/charts/errorPanel';
 import IdBadge from 'app/components/idBadge';
 import Link from 'app/components/links/link';
 import {SettingsIconLink} from 'app/components/organizations/headerItem';
+import {Panel} from 'app/components/panels';
 import PanelTable from 'app/components/panels/panelTable';
-import TextOverflow from 'app/components/textOverflow';
-import {IconSettings} from 'app/icons';
+import {IconSettings, IconWarning} from 'app/icons';
+import space from 'app/styles/space';
 import {DataCategory, Project} from 'app/types';
 import theme from 'app/utils/theme';
 
@@ -15,6 +17,9 @@ import {formatUsageWithUnits} from '../utils';
 type Props = {
   isLoading?: boolean;
   isEmpty?: boolean;
+  isError?: boolean;
+  errors?: Record<string, Error>;
+
   headers: React.ReactNode[];
 
   dataCategory: DataCategory;
@@ -47,14 +52,15 @@ class UsageTable extends React.Component<Props> {
 
     return [
       <CellProject key={0}>
-        <TextOverflow>
+        <Link to={stat.projectLink}>
           <StyledIdBadge
-            project={project}
             avatarSize={16}
+            disableLink
             hideOverflow
-            displayName={<Link to={stat.projectLink}>{project.slug}</Link>}
+            project={project}
+            displayName={project.slug}
           />
-        </TextOverflow>
+        </Link>
         <SettingsIconLink to={stat.projectSettingsLink}>
           <IconSettings size={theme.iconSizes.sm} />
         </SettingsIconLink>
@@ -75,7 +81,21 @@ class UsageTable extends React.Component<Props> {
   }
 
   render() {
-    const {isEmpty, isLoading, headers, usageStats} = this.props;
+    const {isEmpty, isLoading, isError, errors, headers, usageStats} = this.props;
+
+    if (isError) {
+      return (
+        <Panel>
+          <ErrorPanel height="256px">
+            <IconWarning color="gray300" size="lg" />
+            <ErrorMessages>
+              {errors &&
+                Object.keys(errors).map(k => <span key={k}>{errors[k]?.message}</span>)}
+            </ErrorMessages>
+          </ErrorPanel>
+        </Panel>
+      );
+    }
 
     return (
       <StyledPanelTable isLoading={isLoading} isEmpty={isEmpty} headers={headers}>
@@ -88,7 +108,11 @@ class UsageTable extends React.Component<Props> {
 export default UsageTable;
 
 export const StyledPanelTable = styled(PanelTable)`
-  grid-template-columns: auto 100px 100px 100px 100px;
+  grid-template-columns: repeat(5, auto);
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: auto repeat(4, 100px);
+  }
 `;
 export const CellStat = styled('div')`
   flex-shrink: 1;
@@ -110,4 +134,12 @@ const StyledIdBadge = styled(IdBadge)`
   overflow: hidden;
   white-space: nowrap;
   flex-shrink: 1;
+`;
+
+const ErrorMessages = styled('div')`
+  display: flex;
+  flex-direction: column;
+
+  margin-top: ${space(1)};
+  font-size: ${p => p.theme.fontSizeSmall};
 `;

@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
 import congratsRobotsPlaceholder from 'sentry-images/spot/congrats-robots-placeholder.jpg';
@@ -22,9 +22,9 @@ const Message = () => (
   </React.Fragment>
 );
 
-const CongratsRobotsVideo = React.lazy(
-  () => import(/* webpackChunkName: "CongratsRobotsVideo" */ './congratsRobots')
-);
+const CongratsRobotsVideo = React.lazy(() => import('./congratsRobots'));
+
+type State = {hasError: boolean};
 
 /**
  * Error boundary for loading the robots video.
@@ -33,17 +33,14 @@ const CongratsRobotsVideo = React.lazy(
  * Silently ignore the error, this isn't really important enough to
  * capture in Sentry
  */
-class ErrorBoundary extends React.Component<
-  {children: React.ReactNode},
-  {hasError: boolean}
-> {
-  static getDerivedStateFromError() {
+class ErrorBoundary extends React.Component<{children: React.ReactNode}, State> {
+  static getDerivedStateFromError(): State {
     return {
       hasError: true,
     };
   }
 
-  state = {
+  state: State = {
     hasError: false,
   };
 

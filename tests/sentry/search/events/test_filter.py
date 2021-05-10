@@ -1,0 +1,1369 @@
+import datetime
+import re
+import unittest
+
+import pytest
+from django.utils import timezone
+from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
+
+from sentry.search.events.fields import Function, FunctionArg, InvalidSearchQuery, with_default
+from sentry.search.events.filter import get_filter
+from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import before_now
+from sentry.utils.snuba import OPERATOR_TO_FUNCTION
+
+
+# Helper functions to make reading the expected output from the boolean tests easier to read. #
+# a:b
+def _eq(xy):
+    return ["equals", [["ifNull", [xy[0], "''"]], xy[1]]]
+
+
+# a:b but using operators instead of functions
+def _oeq(xy):
+    return [["ifNull", [xy[0], "''"]], "=", xy[1]]
+
+
+# !a:b using operators instead of functions
+def _noeq(xy):
+    return [["ifNull", [xy[0], "''"]], "!=", xy[1]]
+
+
+# message ("foo bar baz")
+def _m(x):
+    return ["notEquals", [["positionCaseInsensitive", ["message", f"'{x}'"]], 0]]
+
+
+# message ("foo bar baz") using operators instead of functions
+def _om(x):
+    return [["positionCaseInsensitive", ["message", f"'{x}'"]], "!=", 0]
+
+
+# x OR y
+def _or(x, y):
+    return ["or", [x, y]]
+
+
+# x AND y
+def _and(x, y):
+    return ["and", [x, y]]
+
+
+# count():>1
+def _c(op, val):
+    return [OPERATOR_TO_FUNCTION[op], ["count", val]]
+
+
+# count():>1 using operators instead of functions
+def _oc(op, val):
+    return ["count", op, val]
+
+
+class ParseBooleanSearchQueryTest(TestCase):
+    def setUp(self):
+        super().setUp()
+        users = ["foo", "bar", "foobar", "hello", "hi"]
+        for u in users:
+            self.__setattr__(u, ["equals", ["user.email", f"{u}@example.com"]])
+            self.__setattr__(f"o{u}", ["user.email", "=", f"{u}@example.com"])
+
+    def test_simple(self):
+        result = get_filter("user.email:foo@example.com OR user.email:bar@example.com")
+        assert result.conditions == [[_or(self.foo, self.bar), "=", 1]]
+
+        result = get_filter("user.email:foo@example.com AND user.email:bar@example.com")
+        assert result.conditions == [self.ofoo, self.obar]
+
+    def test_words_with_boolean_substrings(self):
+        result = get_filter("ORder")
+        assert result.conditions == [_om("ORder")]
+
+        result = get_filter("ANDroid")
+        assert result.conditions == [_om("ANDroid")]
+
+    def test_single_term(self):
+        result = get_filter("user.email:foo@example.com")
+        assert result.conditions == [self.ofoo]
+
+    def test_wildcard_array_field(self):
+        _filter = get_filter("error.value:Deadlock* OR !stack.filename:*.py")
+        assert _filter.conditions == [
+            [
+                _or(
+                    ["like", ["error.value", "Deadlock%"]],
+                    ["notLike", ["stack.filename", "%.py"]],
+                ),
+                "=",
+                1,
+            ]
+        ]
+        assert _filter.filter_keys == {}
+
+    def test_order_of_operations(self):
+        result = get_filter(
+            "user.email:foo@example.com OR user.email:bar@example.com AND user.email:foobar@example.com"
+        )
+        assert result.conditions == [[_or(self.foo, _and(self.bar, self.foobar)), "=", 1]]
+
+        result = get_filter(
+            "user.email:foo@example.com AND user.email:bar@example.com OR user.email:foobar@example.com"
+        )
+        assert result.conditions == [[_or(_and(self.foo, self.bar), self.foobar), "=", 1]]
+
+    def test_multiple_statements(self):
+        result = get_filter(
+            "user.email:foo@example.com OR user.email:bar@example.com OR user.email:foobar@example.com"
+        )
+        assert result.conditions == [[_or(self.foo, _or(self.bar, self.foobar)), "=", 1]]
+
+        result = get_filter(
+            "user.email:foo@example.com AND user.email:bar@example.com AND user.email:foobar@example.com"
+        )
+        assert result.conditions == [self.ofoo, self.obar, self.ofoobar]
+
+        # longer even number of terms
+        result = get_filter(
+            "user.email:foo@example.com AND user.email:bar@example.com OR user.email:foobar@example.com AND user.email:hello@example.com"
+        )
+        assert result.conditions == [
+            [_or(_and(self.foo, self.bar), _and(self.foobar, self.hello)), "=", 1]
+        ]
+
+        # longer odd number of terms
+        result = get_filter(
+            "user.email:foo@example.com AND user.email:bar@example.com OR user.email:foobar@example.com AND user.email:hello@example.com AND user.email:hi@example.com"
+        )
+        assert result.conditions == [
+            [
+                _or(
+                    _and(self.foo, self.bar),
+                    _and(self.foobar, _and(self.hello, self.hi)),
+                ),
+                "=",
+                1,
+            ]
+        ]
+
+        # absurdly long
+        result = get_filter(
+            "user.email:foo@example.com AND user.email:bar@example.com OR user.email:foobar@example.com AND user.email:hello@example.com AND user.email:hi@example.com OR user.email:foo@example.com AND user.email:bar@example.com OR user.email:foobar@example.com AND user.email:hello@example.com AND user.email:hi@example.com"
+        )
+        assert result.conditions == [
+            [
+                _or(
+                    _and(self.foo, self.bar),
+                    _or(
+                        _and(self.foobar, _and(self.hello, self.hi)),
+                        _or(
+                            _and(self.foo, self.bar),
+                            _and(self.foobar, _and(self.hello, self.hi)),
+                        ),
+                    ),
+                ),
+                "=",
+                1,
+            ]
+        ]
+
+    def test_grouping_boolean_filter(self):
+        result = get_filter("(event.type:error) AND (stack.in_app:true)")
+        assert result.conditions == [["event.type", "=", "error"], ["stack.in_app", "=", 1]]
+
+    def test_grouping_simple(self):
+        result = get_filter("(user.email:foo@example.com OR user.email:bar@example.com)")
+        assert result.conditions == [[_or(self.foo, self.bar), "=", 1]]
+
+        result = get_filter(
+            "(user.email:foo@example.com OR user.email:bar@example.com) AND user.email:foobar@example.com"
+        )
+        assert result.conditions == [[_or(self.foo, self.bar), "=", 1], self.ofoobar]
+
+        result = get_filter(
+            "user.email:foo@example.com AND (user.email:bar@example.com OR user.email:foobar@example.com)"
+        )
+        assert result.conditions == [self.ofoo, [_or(self.bar, self.foobar), "=", 1]]
+
+    def test_nested_grouping(self):
+        result = get_filter(
+            "(user.email:foo@example.com OR (user.email:bar@example.com OR user.email:foobar@example.com))"
+        )
+        assert result.conditions == [[_or(self.foo, _or(self.bar, self.foobar)), "=", 1]]
+
+        result = get_filter(
+            "(user.email:foo@example.com OR (user.email:bar@example.com OR (user.email:foobar@example.com AND user.email:hello@example.com OR user.email:hi@example.com)))"
+        )
+        assert result.conditions == [
+            [
+                _or(
+                    self.foo,
+                    _or(self.bar, _or(_and(self.foobar, self.hello), self.hi)),
+                ),
+                "=",
+                1,
+            ]
+        ]
+
+    def test_grouping_without_boolean_terms(self):
+        result = get_filter("undefined is not an object (evaluating 'function.name')")
+        assert result.conditions == [
+            _om("undefined is not an object"),
+            _om("evaluating 'function.name'"),
+        ]
+
+    def test_malformed_groups(self):
+        with pytest.raises(InvalidSearchQuery) as error:
+            get_filter("(user.email:foo@example.com OR user.email:bar@example.com")
+        assert (
+            str(error.value)
+            == "Parse error at '(user.' (column 1). This is commonly caused by unmatched parentheses. Enclose any text in double quotes."
+        )
+        with pytest.raises(InvalidSearchQuery) as error:
+            get_filter(
+                "((user.email:foo@example.com OR user.email:bar@example.com AND  user.email:bar@example.com)"
+            )
+        assert (
+            str(error.value)
+            == "Parse error at '((user' (column 1). This is commonly caused by unmatched parentheses. Enclose any text in double quotes."
+        )
+        with pytest.raises(InvalidSearchQuery) as error:
+            get_filter("user.email:foo@example.com OR user.email:bar@example.com)")
+        assert (
+            str(error.value)
+            == "Parse error at '.com)' (column 57). This is commonly caused by unmatched parentheses. Enclose any text in double quotes."
+        )
+        with pytest.raises(InvalidSearchQuery) as error:
+            get_filter(
+                "(user.email:foo@example.com OR user.email:bar@example.com AND  user.email:bar@example.com))"
+            )
+        assert (
+            str(error.value)
+            == "Parse error at 'com))' (column 91). This is commonly caused by unmatched parentheses. Enclose any text in double quotes."
+        )
+
+    def test_combining_normal_terms_with_boolean(self):
+        tests = [
+            (
+                "foo bar baz OR fizz buzz bizz",
+                [[_or(_m("foo bar baz"), _m("fizz buzz bizz")), "=", 1]],
+            ),
+            (
+                "a:b (c:d OR e:f) g:h i:j OR k:l",
+                [
+                    [
+                        _or(
+                            _and(
+                                _eq("ab"),
+                                _and(
+                                    _or(_eq("cd"), _eq("ef")),
+                                    _and(_eq("gh"), _eq("ij")),
+                                ),
+                            ),
+                            _eq("kl"),
+                        ),
+                        "=",
+                        1,
+                    ]
+                ],
+            ),
+            (
+                "a:b OR c:d e:f g:h (i:j OR k:l)",
+                [
+                    [
+                        _or(
+                            _eq("ab"),
+                            _and(
+                                _eq("cd"),
+                                _and(_eq("ef"), _and(_eq("gh"), _or(_eq("ij"), _eq("kl")))),
+                            ),
+                        ),
+                        "=",
+                        1,
+                    ]
+                ],
+            ),
+            ("(a:b OR c:d) e:f", [[_or(_eq("ab"), _eq("cd")), "=", 1], _oeq("ef")]),
+            (
+                "a:b OR c:d e:f g:h i:j OR k:l",
+                [
+                    [
+                        _or(
+                            _eq("ab"),
+                            _or(
+                                _and(
+                                    _eq("cd"),
+                                    _and(_eq("ef"), _and(_eq("gh"), _eq("ij"))),
+                                ),
+                                _eq("kl"),
+                            ),
+                        ),
+                        "=",
+                        1,
+                    ]
+                ],
+            ),
+            (
+                "(a:b OR c:d) e:f g:h OR i:j k:l",
+                [
+                    [
+                        _or(
+                            _and(
+                                _or(_eq("ab"), _eq("cd")),
+                                _and(_eq("ef"), _eq("gh")),
+                            ),
+                            _and(_eq("ij"), _eq("kl")),
+                        ),
+                        "=",
+                        1,
+                    ]
+                ],
+            ),
+            (
+                "a:b c:d e:f OR g:h i:j",
+                [
+                    [
+                        _or(
+                            _and(_eq("ab"), _and(_eq("cd"), _eq("ef"))),
+                            _and(_eq("gh"), _eq("ij")),
+                        ),
+                        "=",
+                        1,
+                    ]
+                ],
+            ),
+            (
+                "a:b c:d (e:f OR g:h) i:j",
+                [_oeq("ab"), _oeq("cd"), [_or(_eq("ef"), _eq("gh")), "=", 1], _oeq("ij")],
+            ),
+            (
+                "!a:b c:d (e:f OR g:h) i:j",
+                [_noeq("ab"), _oeq("cd"), [_or(_eq("ef"), _eq("gh")), "=", 1], _oeq("ij")],
+            ),
+        ]
+
+        for test in tests:
+            result = get_filter(test[0])
+            assert test[1] == result.conditions, test[0]
+
+    def test_nesting_using_parentheses(self):
+        tests = [
+            (
+                "(a:b OR (c:d AND (e:f OR (g:h AND e:f))))",
+                [
+                    [
+                        _or(
+                            _eq("ab"),
+                            _and(_eq("cd"), _or(_eq("ef"), _and(_eq("gh"), _eq("ef")))),
+                        ),
+                        "=",
+                        1,
+                    ]
+                ],
+            ),
+            (
+                "(a:b OR c:d) AND (e:f g:h)",
+                [[_or(_eq("ab"), _eq("cd")), "=", 1], _oeq("ef"), _oeq("gh")],
+            ),
+        ]
+
+        for test in tests:
+            result = get_filter(test[0])
+            assert test[1] == result.conditions, test[0]
+
+    def test_aggregate_filter_in_conditions(self):
+        tests = [
+            ("count():>1 AND count():<=3", [_oc(">", 1), _oc("<=", 3)]),
+            ("count():>1 OR count():<=3", [[_or(_c(">", 1), _c("<=", 3)), "=", 1]]),
+            (
+                "count():>1 OR count():>5 AND count():<=3",
+                [[_or(_c(">", 1), _and(_c(">", 5), _c("<=", 3))), "=", 1]],
+            ),
+            (
+                "count():>1 AND count():<=3 OR count():>5",
+                [[_or(_and(_c(">", 1), _c("<=", 3)), _c(">", 5)), "=", 1]],
+            ),
+            (
+                "(count():>1 OR count():>2) AND count():<=3",
+                [[_or(_c(">", 1), _c(">", 2)), "=", 1], _oc("<=", 3)],
+            ),
+            (
+                "(count():>1 AND count():>5) OR count():<=3",
+                [[_or(_and(_c(">", 1), _c(">", 5)), _c("<=", 3)), "=", 1]],
+            ),
+        ]
+
+        for test in tests:
+            result = get_filter(test[0])
+            assert test[1] == result.having, test[0]
+
+    def test_aggregate_filter_and_normal_filter_in_condition(self):
+        tests = [
+            ("count():>1 AND a:b", [_oeq("ab")], [_oc(">", 1)]),
+            ("count():>1 AND a:b c:d", [_oeq("ab"), _oeq("cd")], [_oc(">", 1)]),
+            ("(a:b OR c:d) count():>1", [[_or(_eq("ab"), _eq("cd")), "=", 1]], [_oc(">", 1)]),
+            (
+                "(count():<3 OR count():>10) a:b c:d",
+                [_oeq("ab"), _oeq("cd")],
+                [[_or(_c("<", 3), _c(">", 10)), "=", 1]],
+            ),
+        ]
+
+        for test in tests:
+            result = get_filter(test[0])
+            assert test[1] == result.conditions, "cond: " + test[0]
+            assert test[2] == result.having, "having: " + test[0]
+
+    def test_aggregate_filter_and_normal_filter_in_condition_with_or(self):
+        with pytest.raises(InvalidSearchQuery) as error:
+            get_filter("count():>1 OR a:b")
+        assert (
+            str(error.value)
+            == "Having an OR between aggregate filters and normal filters is invalid."
+        )
+        with pytest.raises(InvalidSearchQuery) as error:
+            get_filter("(count():>1 AND a:b) OR a:b")
+        assert (
+            str(error.value)
+            == "Having an OR between aggregate filters and normal filters is invalid."
+        )
+        with pytest.raises(InvalidSearchQuery) as error:
+            get_filter("(count():>1 AND a:b) OR (a:b AND count():>2)")
+        assert (
+            str(error.value)
+            == "Having an OR between aggregate filters and normal filters is invalid."
+        )
+        with pytest.raises(InvalidSearchQuery) as error:
+            get_filter("a:b OR (c:d AND (e:f AND count():>1))")
+        assert (
+            str(error.value)
+            == "Having an OR between aggregate filters and normal filters is invalid."
+        )
+
+    def test_project_in_condition_filters(self):
+        project1 = self.create_project()
+        project2 = self.create_project()
+        tests = [
+            (
+                f"project:{project1.slug} OR project:{project2.slug}",
+                [
+                    [
+                        _or(
+                            ["equals", ["project_id", project1.id]],
+                            ["equals", ["project_id", project2.id]],
+                        ),
+                        "=",
+                        1,
+                    ]
+                ],
+                [project1.id, project2.id],
+            ),
+            (
+                f"(project:{project1.slug} OR project:{project2.slug}) AND a:b",
+                [
+                    [
+                        _or(
+                            ["equals", ["project_id", project1.id]],
+                            ["equals", ["project_id", project2.id]],
+                        ),
+                        "=",
+                        1,
+                    ],
+                    _oeq("ab"),
+                ],
+                [project1.id, project2.id],
+            ),
+            (
+                f"(project:{project1.slug} AND a:b) OR (project:{project1.slug} AND c:d)",
+                [
+                    [
+                        _or(
+                            _and(["equals", ["project_id", project1.id]], _eq("ab")),
+                            _and(["equals", ["project_id", project1.id]], _eq("cd")),
+                        ),
+                        "=",
+                        1,
+                    ]
+                ],
+                [project1.id],
+            ),
+        ]
+
+        for test in tests:
+            result = get_filter(
+                test[0],
+                params={
+                    "organization_id": self.organization.id,
+                    "project_id": [project1.id, project2.id],
+                },
+            )
+            assert test[1] == result.conditions, test[0]
+            assert set(test[2]) == set(result.project_ids), test[0]
+
+    def test_project_in_condition_filters_not_in_project_filter(self):
+        project1 = self.create_project()
+        project2 = self.create_project()
+        project3 = self.create_project()
+        with self.assertRaisesRegexp(
+            InvalidSearchQuery,
+            re.escape(
+                f"Invalid query. Project(s) {str(project3.slug)} do not exist or are not actively selected."
+            ),
+        ):
+            get_filter(
+                f"project:{project1.slug} OR project:{project3.slug}",
+                params={
+                    "organization_id": self.organization.id,
+                    "project_id": [project1.id, project2.id],
+                },
+            )
+
+    def test_issue_id_alias_in_condition_filters(self):
+        def _eq(xy):
+            return ["equals", [["ifNull", [xy[0], "''"]], xy[1]]]
+
+        group1 = self.create_group(project=self.project)
+        group2 = self.create_group(project=self.project)
+        group3 = self.create_group(project=self.project)
+        tests = [
+            (
+                f"issue.id:{group1.id} OR issue.id:{group2.id}",
+                [],
+                [group1.id, group2.id],
+            ),
+            (f"issue.id:{group1.id} AND issue.id:{group1.id}", [], [group1.id]),
+            (
+                f"(issue.id:{group1.id} AND issue.id:{group2.id}) OR issue.id:{group3.id}",
+                [],
+                [group1.id, group2.id, group3.id],
+            ),
+            (f"issue.id:{group1.id} AND a:b", [_oeq("ab")], [group1.id]),
+            # TODO: Using OR with issue.id is broken. These return incorrect results.
+            (f"issue.id:{group1.id} OR a:b", [_oeq("ab")], [group1.id]),
+            (
+                f"(issue.id:{group1.id} AND a:b) OR issue.id:{group2.id}",
+                [_oeq("ab")],
+                [group1.id, group2.id],
+            ),
+            (
+                f"(issue.id:{group1.id} AND a:b) OR c:d",
+                [[_or(_eq("ab"), _eq("cd")), "=", 1]],
+                [group1.id],
+            ),
+        ]
+
+        for test in tests:
+            result = get_filter(
+                test[0],
+                params={"organization_id": self.organization.id, "project_id": [self.project.id]},
+            )
+            assert test[1] == result.conditions, test[0]
+            assert test[2] == result.group_ids, test[0]
+
+    def test_invalid_conditional_filters(self):
+        with self.assertRaisesRegexp(
+            InvalidSearchQuery, "Condition is missing on the left side of 'OR' operator"
+        ):
+            get_filter("OR a:b")
+
+        with self.assertRaisesRegexp(
+            InvalidSearchQuery, "Missing condition in between two condition operators: 'OR AND'"
+        ):
+            get_filter("a:b Or And c:d")
+
+        with self.assertRaisesRegexp(
+            InvalidSearchQuery, "Condition is missing on the right side of 'AND' operator"
+        ):
+            get_filter("a:b AND c:d AND")
+
+        with self.assertRaisesRegexp(
+            InvalidSearchQuery, "Condition is missing on the left side of 'OR' operator"
+        ):
+            get_filter("(OR a:b) AND c:d")
+
+    # TODO (evanh): The situation with the next two tests is not ideal, since we should
+    # be matching the entire query instead of splitting on the brackets. However it's
+    # very difficult to write a regex that can tell the difference between a ParenExpression
+    # and a arbitrary search with parens in it. Once we switch tokenizers we can have something
+    # that can correctly classify these expressions.
+    def test_empty_parens_in_message_not_boolean_search(self):
+        result = get_filter(
+            "failure_rate():>0.003&& users:>10 event.type:transaction",
+            params={"organization_id": self.organization.id, "project_id": [self.project.id]},
+        )
+        assert result.conditions == [
+            _om("failure_rate"),
+            _om(":>0.003&&"),
+            [["ifNull", ["users", "''"]], "=", ">10"],
+            ["event.type", "=", "transaction"],
+        ]
+
+    def test_parens_around_message(self):
+        result = get_filter(
+            "TypeError Anonymous function(app/javascript/utils/transform-object-keys)",
+            params={"organization_id": self.organization.id, "project_id": [self.project.id]},
+        )
+        assert result.conditions == [
+            _om("TypeError Anonymous function"),
+            _om("app/javascript/utils/transform-object-keys"),
+        ]
+
+    def test_or_does_not_match_organization(self):
+        result = get_filter(
+            f"organization.slug:{self.organization.slug}",
+            params={"organization_id": self.organization.id, "project_id": [self.project.id]},
+        )
+        assert result.conditions == [
+            [["ifNull", ["organization.slug", "''"]], "=", f"{self.organization.slug}"]
+        ]
+
+    def test_boolean_with_in_search(self):
+        result = get_filter(
+            'url:["a", "b"] AND release:test',
+            params={"organization_id": self.organization.id, "project_id": [self.project.id]},
+        )
+        assert result.conditions == [
+            [["ifNull", ["url", "''"]], "IN", ["a", "b"]],
+            ["release", "=", "test"],
+        ]
+
+        result = get_filter(
+            'url:["a", "b"] OR release:test',
+            params={"organization_id": self.organization.id, "project_id": [self.project.id]},
+        )
+        assert result.conditions == [
+            [
+                [
+                    "or",
+                    [
+                        [["ifNull", ["url", "''"]], "IN", ["a", "b"]],
+                        ["equals", ["release", "test"]],
+                    ],
+                ],
+                "=",
+                1,
+            ]
+        ]
+
+        result = get_filter(
+            'url:["a", "b"] AND url:["c", "d"] OR url:["e", "f"]',
+            params={"organization_id": self.organization.id, "project_id": [self.project.id]},
+        )
+        assert result.conditions == [
+            [
+                [
+                    "or",
+                    [
+                        [
+                            "and",
+                            [
+                                [["ifNull", ["url", "''"]], "IN", ["a", "b"]],
+                                [["ifNull", ["url", "''"]], "IN", ["c", "d"]],
+                            ],
+                        ],
+                        [["ifNull", ["url", "''"]], "IN", ["e", "f"]],
+                    ],
+                ],
+                "=",
+                1,
+            ]
+        ]
+
+
+class GetSnubaQueryArgsTest(TestCase):
+    def test_simple(self):
+        _filter = get_filter(
+            "user.email:foo@example.com release:1.2.1 fruit:apple hello",
+            {
+                "project_id": [1, 2, 3],
+                "organization_id": 1,
+                "start": datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc),
+                "end": datetime.datetime(2015, 5, 19, 10, 15, 1, tzinfo=timezone.utc),
+            },
+        )
+
+        assert _filter.conditions == [
+            ["user.email", "=", "foo@example.com"],
+            ["release", "=", "1.2.1"],
+            [["ifNull", ["fruit", "''"]], "=", "apple"],
+            [["positionCaseInsensitive", ["message", "'hello'"]], "!=", 0],
+        ]
+        assert _filter.start == datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc)
+        assert _filter.end == datetime.datetime(2015, 5, 19, 10, 15, 1, tzinfo=timezone.utc)
+        assert _filter.filter_keys == {"project_id": [1, 2, 3]}
+        assert _filter.project_ids == [1, 2, 3]
+        assert not _filter.group_ids
+        assert not _filter.event_ids
+
+    def test_negation(self):
+        _filter = get_filter("!user.email:foo@example.com")
+        assert _filter.conditions == [
+            [[["isNull", ["user.email"]], "=", 1], ["user.email", "!=", "foo@example.com"]]
+        ]
+        assert _filter.filter_keys == {}
+
+    def test_implicit_and_explicit_tags(self):
+        assert get_filter("tags[fruit]:apple").conditions == [
+            [["ifNull", ["tags[fruit]", "''"]], "=", "apple"]
+        ]
+
+        assert get_filter("fruit:apple").conditions == [[["ifNull", ["fruit", "''"]], "=", "apple"]]
+
+        assert get_filter("tags[project_id]:123").conditions == [
+            [["ifNull", ["tags[project_id]", "''"]], "=", "123"]
+        ]
+
+    def test_in_syntax(self):
+        project_2 = self.create_project()
+        group = self.create_group(project=self.project, short_id=self.project.next_short_id())
+        group_2 = self.create_group(project=project_2, short_id=self.project.next_short_id())
+        assert (
+            get_filter(
+                f"project.name:[{self.project.slug}, {project_2.slug}]",
+                params={"project_id": [self.project.id, project_2.id]},
+            ).conditions
+            == [["project_id", "IN", [project_2.id, self.project.id]]]
+        )
+        assert (
+            get_filter(
+                f"issue:[{group.qualified_short_id}, {group_2.qualified_short_id}]",
+                params={"organization_id": self.project.organization_id},
+            ).conditions
+            == [["issue.id", "IN", [group.id, group_2.id]]]
+        )
+        assert (
+            get_filter(
+                f"issue:[{group.qualified_short_id}, unknown]",
+                params={"organization_id": self.project.organization_id},
+            ).conditions
+            == [[["coalesce", ["issue.id", 0]], "IN", [0, group.id]]]
+        )
+        assert get_filter("environment:[prod, dev]").conditions == [
+            [["environment", "IN", {"prod", "dev"}]]
+        ]
+        assert get_filter("random_tag:[what, hi]").conditions == [
+            [["ifNull", ["random_tag", "''"]], "IN", ["what", "hi"]]
+        ]
+
+    def test_no_search(self):
+        _filter = get_filter(
+            params={
+                "project_id": [1, 2, 3],
+                "start": datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc),
+                "end": datetime.datetime(2015, 5, 19, 10, 15, 1, tzinfo=timezone.utc),
+            }
+        )
+        assert not _filter.conditions
+        assert _filter.filter_keys == {"project_id": [1, 2, 3]}
+        assert _filter.start == datetime.datetime(2015, 5, 18, 10, 15, 1, tzinfo=timezone.utc)
+        assert _filter.end == datetime.datetime(2015, 5, 19, 10, 15, 1, tzinfo=timezone.utc)
+
+    def test_wildcard(self):
+        _filter = get_filter("release:3.1.* user.email:*@example.com")
+        assert _filter.conditions == [
+            [["match", ["release", "'(?i)^3\\.1\\..*$'"]], "=", 1],
+            [["match", ["user.email", "'(?i)^.*@example\\.com$'"]], "=", 1],
+        ]
+        assert _filter.filter_keys == {}
+
+    def test_wildcard_with_unicode(self):
+        _filter = get_filter(
+            "message:*\u716e\u6211\u66f4\u591a\u7684\u98df\u7269\uff0c\u6211\u9913\u4e86."
+        )
+        assert _filter.conditions == [
+            [
+                [
+                    "match",
+                    [
+                        "message",
+                        "'(?i).*\u716e\u6211\u66f4\u591a\u7684\u98df\u7269\uff0c\u6211\u9913\u4e86\\.'",
+                    ],
+                ],
+                "=",
+                1,
+            ]
+        ]
+        assert _filter.filter_keys == {}
+
+    def test_wildcard_event_id(self):
+        with self.assertRaises(InvalidSearchQuery):
+            get_filter("id:deadbeef*")
+
+    def test_negated_wildcard(self):
+        _filter = get_filter("!release:3.1.* user.email:*@example.com")
+        assert _filter.conditions == [
+            [
+                [["isNull", ["release"]], "=", 1],
+                [["match", ["release", "'(?i)^3\\.1\\..*$'"]], "!=", 1],
+            ],
+            [["match", ["user.email", "'(?i)^.*@example\\.com$'"]], "=", 1],
+        ]
+        assert _filter.filter_keys == {}
+
+    def test_escaped_wildcard(self):
+        assert get_filter("release:3.1.\\* user.email:\\*@example.com").conditions == [
+            [["match", ["release", "'(?i)^3\\.1\\.\\*$'"]], "=", 1],
+            [["match", ["user.email", "'(?i)^\\*@example\\.com$'"]], "=", 1],
+        ]
+        assert get_filter("release:\\\\\\*").conditions == [
+            [["match", ["release", "'(?i)^\\\\\\*$'"]], "=", 1]
+        ]
+        assert get_filter("release:\\\\*").conditions == [
+            [["match", ["release", "'(?i)^\\\\.*$'"]], "=", 1]
+        ]
+        assert get_filter("message:.*?").conditions == [
+            [["match", ["message", r"'(?i)\..*\?'"]], "=", 1]
+        ]
+
+    def test_wildcard_array_field(self):
+        _filter = get_filter(
+            "error.value:Deadlock* stack.filename:*.py stack.abs_path:%APP_DIR%/th_ing*"
+        )
+        assert _filter.conditions == [
+            ["error.value", "LIKE", "Deadlock%"],
+            ["stack.filename", "LIKE", "%.py"],
+            ["stack.abs_path", "LIKE", "\\%APP\\_DIR\\%/th\\_ing%"],
+        ]
+        assert _filter.filter_keys == {}
+
+    def test_existence_array_field(self):
+        _filter = get_filter('has:stack.filename !has:stack.lineno error.value:""')
+        assert _filter.conditions == [
+            [["notEmpty", ["stack.filename"]], "=", 1],
+            [["notEmpty", ["stack.lineno"]], "=", 0],
+            [["notEmpty", ["error.value"]], "=", 0],
+        ]
+
+    def test_wildcard_with_trailing_backslash(self):
+        results = get_filter("title:*misgegaan\\")
+        assert results.conditions == [[["match", ["title", "'(?i)^.*misgegaan\\\\$'"]], "=", 1]]
+
+    def test_has(self):
+        assert get_filter("has:release").conditions == [[["isNull", ["release"]], "!=", 1]]
+
+    def test_not_has(self):
+        assert get_filter("!has:release").conditions == [[["isNull", ["release"]], "=", 1]]
+
+    def test_has_issue(self):
+        has_issue_filter = get_filter("has:issue")
+        assert has_issue_filter.group_ids == []
+        assert has_issue_filter.conditions == [[["coalesce", ["issue.id", 0]], "!=", 0]]
+
+    def test_not_has_issue(self):
+        has_issue_filter = get_filter("!has:issue")
+        assert has_issue_filter.group_ids == []
+        assert has_issue_filter.conditions == [[["coalesce", ["issue.id", 0]], "=", 0]]
+
+    def test_has_issue_id(self):
+        has_issue_filter = get_filter("has:issue.id")
+        assert has_issue_filter.group_ids == []
+        assert has_issue_filter.conditions == [[["coalesce", ["issue.id", 0]], "!=", 0]]
+
+    def test_not_has_issue_id(self):
+        has_issue_filter = get_filter("!has:issue.id")
+        assert has_issue_filter.group_ids == []
+        assert has_issue_filter.conditions == [[["coalesce", ["issue.id", 0]], "=", 0]]
+
+    def test_message_empty(self):
+        assert get_filter("has:message").conditions == [[["equals", ["message", ""]], "!=", 1]]
+        assert get_filter("!has:message").conditions == [[["equals", ["message", ""]], "=", 1]]
+        assert get_filter('message:""').conditions == [[["equals", ["message", ""]], "=", 1]]
+        assert get_filter('!message:""').conditions == [[["equals", ["message", ""]], "!=", 1]]
+
+    def test_message_negative(self):
+        assert get_filter('!message:"post_process.process_error HTTPError 403"').conditions == [
+            [
+                [
+                    "positionCaseInsensitive",
+                    ["message", "'post_process.process_error HTTPError 403'"],
+                ],
+                "=",
+                0,
+            ]
+        ]
+
+    def test_message_with_newlines(self):
+        assert get_filter('message:"nice \n a newline\n"').conditions == [
+            [["positionCaseInsensitive", ["message", "'nice \n a newline\n'"]], "!=", 0]
+        ]
+
+    def test_malformed_groups(self):
+        with pytest.raises(InvalidSearchQuery):
+            get_filter("(user.email:foo@example.com OR user.email:bar@example.com")
+
+    def test_issue_id_filter(self):
+        _filter = get_filter("issue.id:1")
+        assert not _filter.conditions
+        assert _filter.filter_keys == {"group_id": [1]}
+        assert _filter.group_ids == [1]
+
+        _filter = get_filter("issue.id:1 issue.id:2 issue.id:3")
+        assert not _filter.conditions
+        assert _filter.filter_keys == {"group_id": [1, 2, 3]}
+        assert _filter.group_ids == [1, 2, 3]
+
+        _filter = get_filter("issue.id:1 user.email:foo@example.com")
+        assert _filter.conditions == [["user.email", "=", "foo@example.com"]]
+        assert _filter.filter_keys == {"group_id": [1]}
+        assert _filter.group_ids == [1]
+
+    def test_issue_filter_invalid(self):
+        with pytest.raises(InvalidSearchQuery) as err:
+            get_filter("issue:1", {"organization_id": 1})
+        assert "Invalid value '" in str(err)
+        assert "' for 'issue:' filter" in str(err)
+
+    def test_issue_filter(self):
+        group = self.create_group(project=self.project)
+        _filter = get_filter(
+            f"issue:{group.qualified_short_id}", {"organization_id": self.organization.id}
+        )
+        assert _filter.conditions == [["issue.id", "=", group.id]]
+        assert _filter.filter_keys == {}
+        assert _filter.group_ids == []
+
+    def test_negated_issue_filter(self):
+        group = self.create_group(project=self.project)
+        _filter = get_filter(
+            f"!issue:{group.qualified_short_id}", {"organization_id": self.organization.id}
+        )
+        assert _filter.conditions == [["issue.id", "!=", group.id]]
+        assert _filter.filter_keys == {}
+        assert _filter.group_ids == []
+
+    def test_unknown_issue_filter(self):
+        _filter = get_filter("issue:unknown", {"organization_id": self.organization.id})
+        assert _filter.conditions == [[["coalesce", ["issue.id", 0]], "=", 0]]
+        assert _filter.filter_keys == {}
+        assert _filter.group_ids == []
+
+        _filter = get_filter("!issue:unknown", {"organization_id": self.organization.id})
+        assert _filter.conditions == [[["coalesce", ["issue.id", 0]], "!=", 0]]
+        assert _filter.filter_keys == {}
+        assert _filter.group_ids == []
+
+    def test_user_display_filter(self):
+        _filter = get_filter(
+            "user.display:bill@example.com", {"organization_id": self.organization.id}
+        )
+        assert _filter.conditions == [
+            [["coalesce", ["user.email", "user.username", "user.ip"]], "=", "bill@example.com"]
+        ]
+        assert _filter.filter_keys == {}
+        assert _filter.group_ids == []
+
+    def test_user_display_wildcard(self):
+        _filter = get_filter("user.display:jill*", {"organization_id": self.organization.id})
+        assert _filter.conditions == [
+            [
+                [
+                    "match",
+                    [["coalesce", ["user.email", "user.username", "user.ip"]], "'(?i)^jill.*$'"],
+                ],
+                "=",
+                1,
+            ]
+        ]
+        assert _filter.filter_keys == {}
+        assert _filter.group_ids == []
+
+    def test_has_user_display(self):
+        _filter = get_filter("has:user.display", {"organization_id": self.organization.id})
+        assert _filter.conditions == [
+            [["isNull", [["coalesce", ["user.email", "user.username", "user.ip"]]]], "!=", 1]
+        ]
+        assert _filter.filter_keys == {}
+        assert _filter.group_ids == []
+
+    def test_not_has_user_display(self):
+        _filter = get_filter("!has:user.display", {"organization_id": self.organization.id})
+        assert _filter.conditions == [
+            [["isNull", [["coalesce", ["user.email", "user.username", "user.ip"]]]], "=", 1]
+        ]
+        assert _filter.filter_keys == {}
+        assert _filter.group_ids == []
+
+    def test_environment_param(self):
+        params = {"environment": ["", "prod"]}
+        _filter = get_filter("", params)
+        # Should generate OR conditions
+        assert _filter.conditions == [
+            [["environment", "IS NULL", None], ["environment", "=", "prod"]]
+        ]
+        assert _filter.filter_keys == {}
+        assert _filter.group_ids == []
+
+        params = {"environment": ["dev", "prod"]}
+        _filter = get_filter("", params)
+        assert _filter.conditions == [[["environment", "IN", {"dev", "prod"}]]]
+        assert _filter.filter_keys == {}
+        assert _filter.group_ids == []
+
+    def test_environment_condition_string(self):
+        _filter = get_filter("environment:dev")
+        assert _filter.conditions == [[["environment", "=", "dev"]]]
+        assert _filter.filter_keys == {}
+        assert _filter.group_ids == []
+
+        _filter = get_filter("!environment:dev")
+        assert _filter.conditions == [[["environment", "!=", "dev"]]]
+        assert _filter.filter_keys == {}
+        assert _filter.group_ids == []
+
+        _filter = get_filter("environment:dev environment:prod")
+        # Will generate conditions that will never find anything
+        assert _filter.conditions == [[["environment", "=", "dev"]], [["environment", "=", "prod"]]]
+        assert _filter.filter_keys == {}
+        assert _filter.group_ids == []
+
+        _filter = get_filter('environment:""')
+        # The '' environment is Null in snuba
+        assert _filter.conditions == [[["environment", "IS NULL", None]]]
+        assert _filter.filter_keys == {}
+        assert _filter.group_ids == []
+
+    def test_project_name(self):
+        p1 = self.create_project(organization=self.organization)
+        p2 = self.create_project(organization=self.organization)
+
+        params = {"project_id": [p1.id, p2.id]}
+        _filter = get_filter(f"project.name:{p1.slug}", params)
+        assert _filter.conditions == [["project_id", "=", p1.id]]
+        assert _filter.filter_keys == {"project_id": [p1.id]}
+        assert _filter.project_ids == [p1.id]
+
+        params = {"project_id": [p1.id, p2.id]}
+        _filter = get_filter(f"!project.name:{p1.slug}", params)
+        assert _filter.conditions == [
+            [[["isNull", ["project_id"]], "=", 1], ["project_id", "!=", p1.id]]
+        ]
+        assert _filter.filter_keys == {"project_id": [p1.id, p2.id]}
+        assert _filter.project_ids == [p1.id, p2.id]
+
+        with pytest.raises(InvalidSearchQuery) as exc_info:
+            params = {"project_id": []}
+            get_filter(f"project.name:{p1.slug}", params)
+
+        exc = exc_info.value
+        exc_str = f"{exc}"
+        assert (
+            f"Invalid query. Project(s) {p1.slug} do not exist or are not actively selected."
+            in exc_str
+        )
+
+    def test_not_has_project(self):
+        with pytest.raises(InvalidSearchQuery) as err:
+            get_filter("!has:project")
+        assert "Invalid query for 'has' search: 'project' cannot be empty." in str(err)
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            get_filter("!has:project.name")
+        assert "Invalid query for 'has' search: 'project' cannot be empty." in str(err)
+
+    def test_transaction_status(self):
+        for (key, val) in SPAN_STATUS_CODE_TO_NAME.items():
+            result = get_filter(f"transaction.status:{val}")
+            assert result.conditions == [["transaction.status", "=", key]]
+
+    def test_transaction_status_no_wildcard(self):
+        with pytest.raises(InvalidSearchQuery) as exc_info:
+            get_filter("transaction.status:o*")
+        exc = exc_info.value
+        exc_str = f"{exc}"
+        assert "Invalid value" in exc_str
+        assert "cancelled," in exc_str
+
+    def test_transaction_status_invalid(self):
+        with pytest.raises(InvalidSearchQuery) as exc_info:
+            get_filter("transaction.status:lol")
+        exc = exc_info.value
+        exc_str = f"{exc}"
+        assert "Invalid value" in exc_str
+        assert "cancelled," in exc_str
+
+    def test_error_handled(self):
+        result = get_filter("error.handled:true")
+        assert result.conditions == [[["isHandled", []], "=", 1]]
+
+        result = get_filter("error.handled:false")
+        assert result.conditions == [[["notHandled", []], "=", 1]]
+
+        result = get_filter("has:error.handled")
+        assert result.conditions == [[["isHandled", []], "=", 1]]
+
+        result = get_filter("!has:error.handled")
+        assert result.conditions == [[["isHandled", []], "=", 0]]
+
+        result = get_filter("!error.handled:true")
+        assert result.conditions == [[["notHandled", []], "=", 1]]
+
+        result = get_filter("!error.handled:false")
+        assert result.conditions == [[["isHandled", []], "=", 1]]
+
+        result = get_filter("!error.handled:0")
+        assert result.conditions == [[["isHandled", []], "=", 1]]
+
+        with pytest.raises(InvalidSearchQuery):
+            get_filter("error.handled:99")
+
+        with pytest.raises(InvalidSearchQuery):
+            get_filter("error.handled:nope")
+
+    def test_error_unhandled(self):
+        result = get_filter("error.unhandled:true")
+        assert result.conditions == [[["notHandled", []], "=", 1]]
+
+        result = get_filter("error.unhandled:false")
+        assert result.conditions == [[["isHandled", []], "=", 1]]
+
+        result = get_filter("has:error.unhandled")
+        assert result.conditions == [[["isHandled", []], "=", 0]]
+
+        result = get_filter("!has:error.unhandled")
+        assert result.conditions == [[["isHandled", []], "=", 1]]
+
+        result = get_filter("!error.unhandled:true")
+        assert result.conditions == [[["isHandled", []], "=", 1]]
+
+        result = get_filter("!error.unhandled:false")
+        assert result.conditions == [[["notHandled", []], "=", 1]]
+
+        result = get_filter("!error.unhandled:0")
+        assert result.conditions == [[["notHandled", []], "=", 1]]
+
+        with pytest.raises(InvalidSearchQuery):
+            get_filter("error.unhandled:99")
+
+        with pytest.raises(InvalidSearchQuery):
+            get_filter("error.unhandled:nope")
+
+    def test_function_negation(self):
+        result = get_filter("!p95():5s")
+        assert result.having == [["p95", "!=", 5000.0]]
+
+        result = get_filter("!p95():>5s")
+        assert result.having == [["p95", "<=", 5000.0]]
+
+        result = get_filter("!p95():>=5s")
+        assert result.having == [["p95", "<", 5000.0]]
+
+        result = get_filter("!p95():<5s")
+        assert result.having == [["p95", ">=", 5000.0]]
+
+        result = get_filter("!p95():<=5s")
+        assert result.having == [["p95", ">", 5000.0]]
+
+    def test_function_with_default_arguments(self):
+        result = get_filter("epm():>100", {"start": before_now(minutes=5), "end": before_now()})
+        assert result.having == [["epm", ">", 100]]
+
+    def test_function_with_alias(self):
+        result = get_filter("percentile(transaction.duration, 0.95):>100")
+        assert result.having == [["percentile_transaction_duration_0_95", ">", 100]]
+
+    def test_function_arguments(self):
+        result = get_filter("percentile(transaction.duration, 0.75):>100")
+        assert result.having == [["percentile_transaction_duration_0_75", ">", 100]]
+
+    def test_function_arguments_with_spaces(self):
+        result = get_filter("percentile(     transaction.duration,     0.75   ):>100")
+        assert result.having == [["percentile_transaction_duration_0_75", ">", 100]]
+
+        result = get_filter("percentile    (transaction.duration, 0.75):>100")
+        assert result.conditions == [
+            _om("percentile"),
+            _om("transaction.duration, 0.75"),
+            _om(":>100"),
+        ]
+        assert result.having == []
+
+        result = get_filter(
+            "epm(       ):>100", {"start": before_now(minutes=5), "end": before_now()}
+        )
+        assert result.having == [["epm", ">", 100]]
+
+    def test_function_with_float_arguments(self):
+        result = get_filter("apdex(300):>0.5")
+        assert result.having == [["apdex_300", ">", 0.5]]
+
+    def test_function_with_negative_arguments(self):
+        result = get_filter("apdex(300):>-0.5")
+        assert result.having == [["apdex_300", ">", -0.5]]
+
+    def test_function_with_date_arguments(self):
+        result = get_filter("last_seen():2020-04-01T19:34:52+00:00")
+        assert result.having == [["last_seen", "=", 1585769692]]
+
+    def test_function_with_date_negation(self):
+        result = get_filter("!last_seen():2020-04-01T19:34:52+00:00")
+        assert result.having == [["last_seen", "!=", 1585769692]]
+
+        result = get_filter("!last_seen():>2020-04-01T19:34:52+00:00")
+        assert result.having == [["last_seen", "<=", 1585769692]]
+
+        result = get_filter("!last_seen():>=2020-04-01T19:34:52+00:00")
+        assert result.having == [["last_seen", "<", 1585769692]]
+
+        result = get_filter("!last_seen():<2020-04-01T19:34:52+00:00")
+        assert result.having == [["last_seen", ">=", 1585769692]]
+
+        result = get_filter("!last_seen():<=2020-04-01T19:34:52+00:00")
+        assert result.having == [["last_seen", ">", 1585769692]]
+
+    def test_release_latest(self):
+        result = get_filter(
+            "release:latest",
+            params={"organization_id": self.organization.id, "project_id": [self.project.id]},
+        )
+        assert result.conditions == [[["isNull", ["release"]], "=", 1]]
+
+        # When organization id isn't included, project_id should unfortunately be an object
+        result = get_filter("release:latest", params={"project_id": [self.project]})
+        assert result.conditions == [[["isNull", ["release"]], "=", 1]]
+
+        release_2 = self.create_release(self.project)
+
+        result = get_filter("release:[latest]", params={"project_id": [self.project]})
+        assert result.conditions == [["release", "IN", [release_2.version]]]
+        result = get_filter("release:[latest,1]", params={"project_id": [self.project]})
+        assert result.conditions == [["release", "IN", [release_2.version, "1"]]]
+
+    @pytest.mark.xfail(reason="this breaks issue search so needs to be redone")
+    def test_trace_id(self):
+        result = get_filter("trace:a0fa8803753e40fd8124b21eeb2986b5")
+        assert result.conditions == [["trace", "=", "a0fa8803-753e-40fd-8124-b21eeb2986b5"]]
+
+    def test_group_id_query(self):
+        # If a user queries on group_id, make sure it gets turned into a tag not the actual group_id field
+        assert get_filter("group_id:not-a-group-id-but-a-string").conditions == [
+            [["ifNull", ["tags[group_id]", "''"]], "=", "not-a-group-id-but-a-string"]
+        ]
+
+        assert get_filter("group_id:wildcard-string*").conditions == [
+            [
+                ["match", [["ifNull", ["tags[group_id]", "''"]], "'(?i)^wildcard\\-string.*$'"]],
+                "=",
+                1,
+            ]
+        ]
+
+
+def with_type(type, argument):
+    argument.get_type = lambda *_: type
+    return argument
+
+
+class FunctionTest(unittest.TestCase):
+    def setUp(self):
+        self.fn_wo_optionals = Function(
+            "wo_optionals",
+            required_args=[FunctionArg("arg1"), FunctionArg("arg2")],
+            transform="",
+        )
+        self.fn_w_optionals = Function(
+            "w_optionals",
+            required_args=[FunctionArg("arg1")],
+            optional_args=[with_default("default", FunctionArg("arg2"))],
+            transform="",
+        )
+
+    def test_no_optional_valid(self):
+        self.fn_wo_optionals.validate_argument_count("fn_wo_optionals()", ["arg1", "arg2"])
+
+    def test_no_optional_not_enough_arguments(self):
+        with self.assertRaisesRegexp(
+            InvalidSearchQuery, r"fn_wo_optionals\(\): expected 2 argument\(s\)"
+        ):
+            self.fn_wo_optionals.validate_argument_count("fn_wo_optionals()", ["arg1"])
+
+    def test_no_optional_too_may_arguments(self):
+        with self.assertRaisesRegexp(
+            InvalidSearchQuery, r"fn_wo_optionals\(\): expected 2 argument\(s\)"
+        ):
+            self.fn_wo_optionals.validate_argument_count(
+                "fn_wo_optionals()", ["arg1", "arg2", "arg3"]
+            )
+
+    def test_optional_valid(self):
+        self.fn_w_optionals.validate_argument_count("fn_w_optionals()", ["arg1", "arg2"])
+        # because the last argument is optional, we dont need to provide it
+        self.fn_w_optionals.validate_argument_count("fn_w_optionals()", ["arg1"])
+
+    def test_optional_not_enough_arguments(self):
+        with self.assertRaisesRegexp(
+            InvalidSearchQuery, r"fn_w_optionals\(\): expected at least 1 argument\(s\)"
+        ):
+            self.fn_w_optionals.validate_argument_count("fn_w_optionals()", [])
+
+    def test_optional_too_many_arguments(self):
+        with self.assertRaisesRegexp(
+            InvalidSearchQuery, r"fn_w_optionals\(\): expected at most 2 argument\(s\)"
+        ):
+            self.fn_w_optionals.validate_argument_count(
+                "fn_w_optionals()", ["arg1", "arg2", "arg3"]
+            )
+
+    def test_optional_args_have_default(self):
+        with self.assertRaisesRegexp(
+            AssertionError, "test: optional argument at index 0 does not have default"
+        ):
+            Function("test", optional_args=[FunctionArg("arg1")])
+
+    def test_defining_duplicate_args(self):
+        with self.assertRaisesRegexp(
+            AssertionError, "test: argument arg1 specified more than once"
+        ):
+            Function(
+                "test",
+                required_args=[FunctionArg("arg1")],
+                optional_args=[with_default("default", FunctionArg("arg1"))],
+                transform="",
+            )
+
+        with self.assertRaisesRegexp(
+            AssertionError, "test: argument arg1 specified more than once"
+        ):
+            Function(
+                "test",
+                required_args=[FunctionArg("arg1")],
+                calculated_args=[{"name": "arg1", "fn": lambda x: x}],
+                transform="",
+            )
+
+        with self.assertRaisesRegexp(
+            AssertionError, "test: argument arg1 specified more than once"
+        ):
+            Function(
+                "test",
+                optional_args=[with_default("default", FunctionArg("arg1"))],
+                calculated_args=[{"name": "arg1", "fn": lambda x: x}],
+                transform="",
+            )
+
+    def test_default_result_type(self):
+        fn = Function("fn", transform="")
+        assert fn.get_result_type() is None
+
+        fn = Function("fn", transform="", default_result_type="number")
+        assert fn.get_result_type() == "number"
+
+    def test_result_type_fn(self):
+        fn = Function("fn", transform="", result_type_fn=lambda *_: None)
+        assert fn.get_result_type("fn()", []) is None
+
+        fn = Function("fn", transform="", result_type_fn=lambda *_: "number")
+        assert fn.get_result_type("fn()", []) == "number"
+
+        fn = Function(
+            "fn",
+            required_args=[with_type("number", FunctionArg("arg1"))],
+            transform="",
+            result_type_fn=lambda args, columns: args[0].get_type(columns[0]),
+        )
+        assert fn.get_result_type("fn()", ["arg1"]) == "number"
+
+    def test_private_function(self):
+        fn = Function("fn", transform="", result_type_fn=lambda *_: None, private=True)
+        assert fn.is_accessible() is False
+        assert fn.is_accessible(None) is False
+        assert fn.is_accessible([]) is False
+        assert fn.is_accessible(["other_fn"]) is False
+        assert fn.is_accessible(["fn"]) is True

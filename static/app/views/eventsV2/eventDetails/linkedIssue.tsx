@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
 import Alert from 'app/components/alert';
@@ -67,7 +67,14 @@ class LinkedIssue extends AsyncComponent<
             <StyledLink to={issueUrl} data-test-id="linked-issue">
               <StyledShortId
                 shortId={group.shortId}
-                avatar={<ProjectBadge project={group.project} avatarSize={16} hideName />}
+                avatar={
+                  <ProjectBadge
+                    project={group.project}
+                    avatarSize={16}
+                    hideName
+                    disableLink
+                  />
+                }
               />
             </StyledLink>
             <StyledSeenByList seenBy={group.seenBy} maxVisibleAvatars={5} />

@@ -1,5 +1,5 @@
-import React from 'react';
-import {css} from '@emotion/core';
+import {Fragment} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 import sortBy from 'lodash/sortBy';
@@ -82,9 +82,7 @@ class DebugImageDetails extends AsyncComponent<Props, State> {
         `/projects/${organization.slug}/${projectId}/files/dsyms/?debug_id=${debug_id}`,
         {
           query: {
-            file_formats: !!organization.features?.includes('android-mappings')
-              ? ['breakpad', 'macho', 'elf', 'pe', 'pdb', 'sourcebundle']
-              : undefined,
+            file_formats: ['breakpad', 'macho', 'elf', 'pe', 'pdb', 'sourcebundle'],
           },
         },
       ]);
@@ -310,7 +308,7 @@ class DebugImageDetails extends AsyncComponent<Props, State> {
       !!onReprocessEvent;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Header closeButton>
           <Title>
             {t('Image')}
@@ -367,7 +365,7 @@ class DebugImageDetails extends AsyncComponent<Props, State> {
             )}
           </StyledButtonBar>
         </Footer>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }
@@ -399,28 +397,19 @@ const StyledButtonBar = styled(ButtonBar)`
 `;
 
 export const modalCss = css`
-  .modal-content {
+  [role='document'] {
     overflow: initial;
   }
 
   @media (min-width: ${theme.breakpoints[0]}) {
-    .modal-dialog {
-      width: 90%;
-      margin-left: -45%;
-    }
+    width: 90%;
   }
 
   @media (min-width: ${theme.breakpoints[3]}) {
-    .modal-dialog {
-      width: 70%;
-      margin-left: -35%;
-    }
+    width: 70%;
   }
 
   @media (min-width: ${theme.breakpoints[4]}) {
-    .modal-dialog {
-      width: 50%;
-      margin-left: -25%;
-    }
+    width: 50%;
   }
 `;

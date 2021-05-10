@@ -1,18 +1,13 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import {Link} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import moment from 'moment-timezone';
 
 import DateTime from 'app/components/dateTime';
-import ErrorBoundary from 'app/components/errorBoundary';
-import FeatureBadge from 'app/components/featureBadge';
 import FileSize from 'app/components/fileSize';
 import ExternalLink from 'app/components/links/externalLink';
 import NavigationButtonGroup from 'app/components/navigationButtonGroup';
-import Placeholder from 'app/components/placeholder';
-import QuickTrace from 'app/components/quickTrace';
-import {generateTraceTarget} from 'app/components/quickTrace/utils';
 import Tooltip from 'app/components/tooltip';
 import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
@@ -22,7 +17,8 @@ import {Group, Organization} from 'app/types';
 import {Event} from 'app/types/event';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import getDynamicText from 'app/utils/getDynamicText';
-import QuickTraceQuery from 'app/utils/performance/quickTrace/quickTraceQuery';
+
+import QuickTrace from './quickTrace';
 
 const formatDateDelta = (reference: moment.Moment, observed: moment.Moment) => {
   const duration = moment.duration(Math.abs(+observed - +reference));
@@ -52,7 +48,7 @@ type Props = {
   location: Location;
 };
 
-class GroupEventToolbar extends React.Component<Props> {
+class GroupEventToolbar extends Component<Props> {
   shouldComponentUpdate(nextProps: Props) {
     return this.props.event.id !== nextProps.event.id;
   }
@@ -64,47 +60,6 @@ class GroupEventToolbar extends React.Component<Props> {
       organization_id: parseInt(organization.id, 10),
       source: 'issues',
     });
-  }
-
-  renderQuickTrace() {
-    const {event, organization, location} = this.props;
-
-    return (
-      <ErrorBoundary mini>
-        <QuickTraceQuery event={event} location={location} orgSlug={organization.slug}>
-          {results => (
-            <React.Fragment>
-              {!results.isLoading && results.error === null && results.trace !== null && (
-                <LinkContainer>
-                  <Link
-                    to={generateTraceTarget(event, organization)}
-                    onClick={() => this.handleTraceLink(organization)}
-                  >
-                    View Full Trace
-                    <FeatureBadge type="beta" />
-                  </Link>
-                </LinkContainer>
-              )}
-              <QuickTraceWrapper>
-                {results.isLoading ? (
-                  <Placeholder height="24px" />
-                ) : results.error || results.trace === null ? null : (
-                  <QuickTrace
-                    event={event}
-                    quickTrace={results}
-                    location={location}
-                    organization={organization}
-                    anchor="left"
-                    errorDest="issue"
-                    transactionDest="performance"
-                  />
-                )}
-              </QuickTraceWrapper>
-            </React.Fragment>
-          )}
-        </QuickTraceQuery>
-      </ErrorBoundary>
-    );
   }
 
   getDateTooltip() {
@@ -124,7 +79,7 @@ class GroupEventToolbar extends React.Component<Props> {
           {dateCreated.format(format)}
         </dd>
         {dateReceived && (
-          <React.Fragment>
+          <Fragment>
             <dt>Received</dt>
             <dd>
               {dateReceived.format('ll')}
@@ -133,7 +88,7 @@ class GroupEventToolbar extends React.Component<Props> {
             </dd>
             <dt>Latency</dt>
             <dd>{formatDateDelta(dateCreated, dateReceived)}</dd>
-          </React.Fragment>
+          </Fragment>
         )}
       </DescriptionList>
     );
@@ -142,8 +97,8 @@ class GroupEventToolbar extends React.Component<Props> {
   render() {
     const evt = this.props.event;
 
-    const {organization, location} = this.props;
-    const groupId = this.props.group.id;
+    const {group, organization, location} = this.props;
+    const groupId = group.id;
 
     const baseEventsPath = `/organizations/${organization.slug}/issues/${groupId}/events/`;
 
@@ -155,10 +110,6 @@ class GroupEventToolbar extends React.Component<Props> {
     const isOverLatencyThreshold =
       evt.dateReceived &&
       Math.abs(+moment(evt.dateReceived) - +moment(evt.dateCreated)) > latencyThreshold;
-    const hasQuickTraceView =
-      (organization.features.includes('trace-view-summary') ||
-        organization.features.includes('trace-view-quick')) &&
-      evt.contexts?.trace?.trace_id;
 
     return (
       <Wrapper>
@@ -188,7 +139,12 @@ class GroupEventToolbar extends React.Component<Props> {
           />
           {isOverLatencyThreshold && <StyledIconWarning color="yellow300" />}
         </Tooltip>
-        {hasQuickTraceView && this.renderQuickTrace()}
+        <QuickTrace
+          event={evt}
+          group={group}
+          organization={organization}
+          location={location}
+        />
       </Wrapper>
     );
   }
@@ -254,10 +210,6 @@ const DescriptionList = styled('dl')`
   margin: 0;
   min-width: 200px;
   max-width: 250px;
-`;
-
-const QuickTraceWrapper = styled('div')`
-  margin-top: ${space(0.5)};
 `;
 
 export default GroupEventToolbar;

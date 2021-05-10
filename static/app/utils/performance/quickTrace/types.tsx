@@ -26,7 +26,6 @@ export type TraceError = {
   issue_id: number;
   event_id: string;
   span: string;
-  transaction: string;
   project_id: number;
   project_slug: string;
   title: string;
@@ -78,7 +77,7 @@ export type TraceProps = {
 export type TraceRequestProps = DiscoverQueryProps & TraceProps;
 
 export type EmptyQuickTrace = {
-  type: 'empty';
+  type: 'empty' | 'missing';
   trace: QuickTraceEvent[];
 };
 
@@ -99,7 +98,10 @@ export type BaseTraceChildrenProps = Omit<
 
 export type QuickTrace = EmptyQuickTrace | PartialQuickTrace | FullQuickTrace;
 
-export type QuickTraceQueryChildrenProps = BaseTraceChildrenProps & QuickTrace;
+export type QuickTraceQueryChildrenProps = BaseTraceChildrenProps &
+  QuickTrace & {
+    currentEvent: QuickTraceEvent | null;
+  };
 
 export type TraceMeta = {
   projects: number;

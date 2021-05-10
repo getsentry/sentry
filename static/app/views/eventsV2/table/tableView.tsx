@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -400,8 +400,9 @@ class TableView extends React.Component<TableViewProps> {
 
           return;
         }
-        default:
-          updateQuery(query, action, column.name, value);
+        default: {
+          updateQuery(query, action, column, value);
+        }
       }
       nextView.query = stringifyQueryObject(query);
 

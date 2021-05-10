@@ -1,12 +1,13 @@
-import React from 'react';
+import * as React from 'react';
 import DocumentTitle from 'react-document-title';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import {AnimatePresence, motion, useAnimation} from 'framer-motion';
+import {AnimatePresence, motion, MotionProps, useAnimation} from 'framer-motion';
 
 import Button from 'app/components/button';
 import Hook from 'app/components/hook';
-import {IconChevron, IconSentryFull} from 'app/icons';
+import LogoSentry from 'app/components/logoSentry';
+import {IconChevron} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
@@ -250,7 +251,7 @@ const Header = styled('header')`
   justify-content: space-between;
 `;
 
-const LogoSvg = styled(IconSentryFull)`
+const LogoSvg = styled(LogoSentry)`
   width: 130px;
   height: 30px;
   color: ${p => p.theme.textColor};
@@ -308,7 +309,12 @@ ProgressStatus.defaultProps = {
   transition: testableTransition(),
 };
 
-const Back = styled(({className, animate, ...props}) => (
+type BackProps = Omit<React.ComponentProps<typeof Button>, 'icon' | 'priority'> & {
+  animate: MotionProps['animate'];
+  className?: string;
+};
+
+const Back = styled(({className, animate, ...props}: BackProps) => (
   <motion.div
     className={className}
     animate={animate}

@@ -1,5 +1,5 @@
-import React from 'react';
-import {css} from '@emotion/core';
+import * as React from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {ModalRenderProps} from 'app/actionCreators/modal';
@@ -499,14 +499,9 @@ const StatusMessage = styled('div')<{status?: 'success' | 'error'}>`
 `;
 
 export const modalCss = css`
-  padding: 50px;
-
-  .modal-dialog {
-    position: unset;
-    width: 100%;
-    max-width: 800px;
-    margin: 50px auto;
-  }
+  width: 100%;
+  max-width: 800px;
+  margin: 50px auto;
 `;
 
 export default withLatestContext(withTeams(InviteMembersModal));

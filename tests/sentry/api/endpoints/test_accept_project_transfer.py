@@ -1,7 +1,7 @@
 from urllib.parse import urlencode
 from uuid import uuid4
 
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
 from sentry.models import Project
 from sentry.testutils import APITestCase, PermissionTestCase

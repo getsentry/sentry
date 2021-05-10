@@ -4,7 +4,8 @@ from copy import deepcopy
 from datetime import timedelta
 
 import pytest
-from django.core.urlresolvers import reverse
+from django.urls import reverse
+from rest_framework.exceptions import ErrorDetail
 
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -127,7 +128,7 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         response = self.do_request(query)
         assert response.status_code == 400
         assert response.data == {
-            "field": ["This list may not be empty."],
+            "field": [ErrorDetail(string="This field is required.", code="required")],
         }
 
     def test_bad_params_too_many_fields(self):

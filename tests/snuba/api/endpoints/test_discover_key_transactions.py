@@ -1,4 +1,4 @@
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
 from sentry.discover.models import MAX_KEY_TRANSACTIONS, KeyTransaction
 from sentry.testutils import APITestCase, SnubaTestCase

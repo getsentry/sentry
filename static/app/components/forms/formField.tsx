@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 import PropTypes from 'prop-types';
@@ -10,16 +10,19 @@ import {defined} from 'app/utils';
 
 type Value = string | number | boolean;
 
-type FormFieldProps = {
+type DefaultProps = {
+  required?: boolean;
+  disabled?: boolean;
+  hideErrorMessage?: boolean;
+};
+
+type FormFieldProps = DefaultProps & {
   name: string;
   style?: object;
   label?: React.ReactNode;
   defaultValue?: any;
-  disabled?: boolean;
   disabledReason?: string;
   help?: string | React.ReactNode;
-  required?: boolean;
-  hideErrorMessage?: boolean;
   className?: string;
   onChange?: (value: Value) => void;
   error?: string;
@@ -40,13 +43,13 @@ export default class FormField<
     form: PropTypes.object,
   };
 
-  static defaultProps = {
+  static defaultProps: DefaultProps = {
     hideErrorMessage: false,
     disabled: false,
     required: false,
   };
 
-  constructor(props: Props, context: Context) {
+  constructor(props: Props, context?: any) {
     super(props, context);
     this.state = {
       error: null,
@@ -113,8 +116,8 @@ export default class FormField<
       },
       () => {
         const finalValue = this.coerceValue(this.state.value);
-        this.props.onChange && this.props.onChange(finalValue);
-        form && form.onFieldChange(this.props.name, finalValue);
+        this.props.onChange?.(finalValue);
+        form?.onFieldChange(this.props.name, finalValue);
       }
     );
   };

@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import GenericDiscoverQuery, {
   DiscoverQueryProps,
@@ -18,6 +18,7 @@ import {
 import withApi from 'app/utils/withApi';
 
 type AdditionalQueryProps = {
+  eventId?: string;
   detailed?: boolean;
 };
 
@@ -37,10 +38,14 @@ type QueryProps<T> = Omit<TraceRequestProps, 'eventView'> &
 
 function getTraceFullRequestPayload({
   detailed,
+  eventId,
   ...props
 }: DiscoverQueryProps & AdditionalQueryProps) {
   const additionalApiPayload: any = getTraceRequestPayload(props);
   additionalApiPayload.detailed = detailed ? '1' : '0';
+  if (eventId) {
+    additionalApiPayload.event_id = eventId;
+  }
   return additionalApiPayload;
 }
 

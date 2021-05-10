@@ -1,7 +1,6 @@
-import React from 'react';
-import {css} from '@emotion/core';
+import * as React from 'react';
+import {css, withTheme} from '@emotion/react';
 import classNames from 'classnames';
-import {withTheme} from 'emotion-theming';
 
 import DropdownMenu from 'app/components/dropdownMenu';
 import {IconChevron} from 'app/icons';

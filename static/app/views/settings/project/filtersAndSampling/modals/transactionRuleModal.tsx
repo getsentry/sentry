@@ -1,7 +1,5 @@
-import React from 'react';
-import {css} from '@emotion/core';
+import {css, withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {withTheme} from 'emotion-theming';
 import isEqual from 'lodash/isEqual';
 import partition from 'lodash/partition';
 

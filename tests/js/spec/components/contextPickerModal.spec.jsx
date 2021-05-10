@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {selectByValue} from 'sentry-test/select-new';
 
@@ -9,7 +7,7 @@ import OrganizationStore from 'app/stores/organizationStore';
 import ProjectsStore from 'app/stores/projectsStore';
 
 describe('ContextPickerModal', function () {
-  let project, project2, org, org2;
+  let project, project2, project4, org, org2;
   const onFinish = jest.fn();
 
   beforeEach(function () {
@@ -24,6 +22,7 @@ describe('ContextPickerModal', function () {
       slug: 'org2',
       id: '21',
     });
+    project4 = TestStubs.Project({slug: 'project4', isMember: false});
   });
 
   afterEach(async function () {
@@ -121,7 +120,7 @@ describe('ContextPickerModal', function () {
     OrganizationStore.onUpdate(org);
     const fetchProjectsForOrg = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/projects/`,
-      body: [project, project2],
+      body: [project, project2, project4],
     });
     await tick();
 
@@ -141,9 +140,33 @@ describe('ContextPickerModal', function () {
     expect(wrapper.find('StyledSelectControl[name="organization"]').prop('value')).toBe(
       org.slug
     );
+
     expect(wrapper.find('StyledSelectControl[name="project"]').prop('options')).toEqual([
-      {value: project.slug, label: project.slug},
-      {value: project2.slug, label: project2.slug},
+      {
+        label: 'My Projects',
+        options: [
+          {
+            value: project.slug,
+            label: project.slug,
+            isDisabled: false,
+          },
+          {
+            value: project2.slug,
+            label: project2.slug,
+            isDisabled: false,
+          },
+        ],
+      },
+      {
+        label: 'All Projects',
+        options: [
+          {
+            value: project4.slug,
+            label: project4.slug,
+            isDisabled: true,
+          },
+        ],
+      },
     ]);
 
     await tick();
@@ -196,8 +219,25 @@ describe('ContextPickerModal', function () {
     expect(fetchProjectsForOrg).toHaveBeenCalled();
 
     expect(wrapper.find('StyledSelectControl[name="project"]').prop('options')).toEqual([
-      {value: project2.slug, label: project2.slug},
-      {value: 'project3', label: 'project3'},
+      {
+        label: 'My Projects',
+        options: [
+          {
+            value: project2.slug,
+            label: project2.slug,
+            isDisabled: false,
+          },
+          {
+            value: 'project3',
+            label: 'project3',
+            isDisabled: false,
+          },
+        ],
+      },
+      {
+        label: 'All Projects',
+        options: [],
+      },
     ]);
 
     // Select project3

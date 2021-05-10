@@ -1,10 +1,11 @@
-import React from 'react';
+import {Component} from 'react';
 import {Params} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import {getHumanDuration, parseTrace} from 'app/components/events/interfaces/spans/utils';
+import {parseTrace} from 'app/components/events/interfaces/spans/utils';
 import Link from 'app/components/links/link';
+import {getHumanDuration} from 'app/components/performance/waterfall/utils';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
@@ -22,7 +23,7 @@ type Props = {
   regressionEvent: Event;
 };
 
-class TransactionSummary extends React.Component<Props> {
+class TransactionSummary extends Component<Props> {
   render() {
     const {baselineEvent, regressionEvent, organization, location, params} = this.props;
     const {baselineEventSlug, regressionEventSlug} = params;

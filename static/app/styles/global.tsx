@@ -1,5 +1,4 @@
-import React from 'react';
-import {css, Global} from '@emotion/core';
+import {css, Global} from '@emotion/react';
 
 import {IS_ACCEPTANCE_TEST} from 'app/constants';
 import {Theme} from 'app/utils/theme';
@@ -68,19 +67,6 @@ const styles = (theme: Theme, isDark: boolean) => css`
         .loading .loading-indicator {
           border-color: ${theme.background};
           border-left-color: ${theme.purple300};
-        }
-        .modal-content {
-          background: ${theme.background};
-        }
-        .modal-dialog {
-          border-radius: ${theme.borderRadius};
-          border: 1px solid ${theme.border};
-        }
-        .modal .modal-header {
-          border-bottom-color: ${theme.border};
-        }
-        .modal .modal-footer {
-          border-top-color: ${theme.border};
         }
 
         .saved-search-tab {

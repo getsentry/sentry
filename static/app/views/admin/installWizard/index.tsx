@@ -1,6 +1,5 @@
-import React from 'react';
 import DocumentTitle from 'react-document-title';
-import {css} from '@emotion/core';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import sentryPattern from 'sentry-images/pattern/sentry-pattern.png';

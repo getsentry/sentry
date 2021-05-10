@@ -1,0 +1,192 @@
+{
+  "event_id": "e4b62368dfb0466da74880e54e10350c",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": null,
+          "synthetic": true,
+          "type": "minidump"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "start",
+              "package": "/usr/lib/system/libdyld.dylib"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
+            },
+            {
+              "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
+            },
+            {
+              "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
+            },
+            {
+              "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
+            },
+            {
+              "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
+            },
+            {
+              "package": "/System/Library/Frameworks/AppKit.framework/Versions/C/AppKit"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "abs_path": "/releases/abc/artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp",
+              "filename": "../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp",
+              "function": "boost::function0<T>::operator()",
+              "package": "Frontend.framework/Versions/A/Frontend"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "abs_path": "/releases/abc/artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp",
+              "filename": "../../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp",
+              "function": "boost::function0<T>::operator()",
+              "package": "abccore.framework/Versions/A/abccore"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "abs_path": "/releases/abc/artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp",
+              "filename": "../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp",
+              "function": "boost::function0<T>::operator()",
+              "package": "Frontend.framework/Versions/A/Frontend"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "abs_path": "/releases/abc/artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp",
+              "filename": "../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp",
+              "function": "boost::function0<T>::operator()",
+              "package": "Frontend.framework/Versions/A/Frontend"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "__dynamic_cast",
+              "package": "/usr/lib/libc++abi.dylib"
+            }
+          ]
+        },
+        "type": "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS",
+        "value": "Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
+      }
+    ]
+  },
+  "platform": "native"
+}

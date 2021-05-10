@@ -1,7 +1,6 @@
-import React from 'react';
-import {ClassNames, css} from '@emotion/core';
+import {Component} from 'react';
+import {ClassNames, css, withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {withTheme} from 'emotion-theming';
 
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import Search from 'app/components/search';
@@ -15,7 +14,7 @@ type Props = ModalRenderProps & {
   theme: Theme;
 };
 
-class CommandPalette extends React.Component<Props> {
+class CommandPalette extends Component<Props> {
   componentDidMount() {
     analytics('omnisearch.open', {});
   }
@@ -62,7 +61,7 @@ class CommandPalette extends React.Component<Props> {
 export default withTheme(CommandPalette);
 
 export const modalCss = css`
-  .modal-content {
+  [role='document'] {
     padding: 0;
   }
 `;

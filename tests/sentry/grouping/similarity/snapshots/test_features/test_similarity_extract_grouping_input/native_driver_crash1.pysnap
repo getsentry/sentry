@@ -1,0 +1,49 @@
+---
+created: '2021-04-08T09:39:08.807658Z'
+creator: sentry
+source: tests/sentry/grouping/similarity/test_features.py
+---
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","CContext::LUCBeginLayerDestruction"]],[["function","NDXGI::CDevice::DestroyDriverInstance"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","CD3D11LayeredChild<T>::LUCBeginLayerDestruction"]],[["function","CContext::LUCBeginLayerDestruction"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","CUseCountedObject<T>::UCDestroy"]],[["function","destructor'"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","NDXGI::CDevice::DestroyDriverInstance"]],[["function","OpenAdapter10"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","destructor'"]],[["function","CD3D11LayeredChild<T>::LUCBeginLayerDestruction"]]]
+similarity:2020-07-23:value:character-5-shingle: " EXCE"
+similarity:2020-07-23:value:character-5-shingle: " Erro"
+similarity:2020-07-23:value:character-5-shingle: ": EXC"
+similarity:2020-07-23:value:character-5-shingle: "ACCES"
+similarity:2020-07-23:value:character-5-shingle: "ATION"
+similarity:2020-07-23:value:character-5-shingle: "CCESS"
+similarity:2020-07-23:value:character-5-shingle: "CEPTI"
+similarity:2020-07-23:value:character-5-shingle: "CESS_"
+similarity:2020-07-23:value:character-5-shingle: "EPTIO"
+similarity:2020-07-23:value:character-5-shingle: "ESS_V"
+similarity:2020-07-23:value:character-5-shingle: "EXCEP"
+similarity:2020-07-23:value:character-5-shingle: "Error"
+similarity:2020-07-23:value:character-5-shingle: "Fatal"
+similarity:2020-07-23:value:character-5-shingle: "IOLAT"
+similarity:2020-07-23:value:character-5-shingle: "ION_A"
+similarity:2020-07-23:value:character-5-shingle: "ION_R"
+similarity:2020-07-23:value:character-5-shingle: "LATIO"
+similarity:2020-07-23:value:character-5-shingle: "N_ACC"
+similarity:2020-07-23:value:character-5-shingle: "N_REA"
+similarity:2020-07-23:value:character-5-shingle: "OLATI"
+similarity:2020-07-23:value:character-5-shingle: "ON_AC"
+similarity:2020-07-23:value:character-5-shingle: "ON_RE"
+similarity:2020-07-23:value:character-5-shingle: "PTION"
+similarity:2020-07-23:value:character-5-shingle: "SS_VI"
+similarity:2020-07-23:value:character-5-shingle: "S_VIO"
+similarity:2020-07-23:value:character-5-shingle: "TION_"
+similarity:2020-07-23:value:character-5-shingle: "VIOLA"
+similarity:2020-07-23:value:character-5-shingle: "XCEPT"
+similarity:2020-07-23:value:character-5-shingle: "_ACCE"
+similarity:2020-07-23:value:character-5-shingle: "_READ"
+similarity:2020-07-23:value:character-5-shingle: "_VIOL"
+similarity:2020-07-23:value:character-5-shingle: "al Er"
+similarity:2020-07-23:value:character-5-shingle: "atal "
+similarity:2020-07-23:value:character-5-shingle: "l Err"
+similarity:2020-07-23:value:character-5-shingle: "or: E"
+similarity:2020-07-23:value:character-5-shingle: "r: EX"
+similarity:2020-07-23:value:character-5-shingle: "ror: "
+similarity:2020-07-23:value:character-5-shingle: "rror:"
+similarity:2020-07-23:value:character-5-shingle: "tal E"

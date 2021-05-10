@@ -1,4 +1,4 @@
-import {css} from '@emotion/core';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
@@ -84,7 +84,7 @@ const FieldWrapper = styled('div')<Props>`
   ${p =>
     !p.hasControlState &&
     css`
-      .modal-content & {
+      [role='document'] & {
         padding-right: 0;
       }
     `}

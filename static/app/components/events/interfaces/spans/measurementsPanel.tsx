@@ -1,6 +1,7 @@
-import React from 'react';
+import {Component, createRef, PureComponent} from 'react';
 import styled from '@emotion/styled';
 
+import {toPercent} from 'app/components/performance/waterfall/utils';
 import Tooltip from 'app/components/tooltip';
 import {EventTransaction} from 'app/types/event';
 import {defined} from 'app/utils';
@@ -11,7 +12,6 @@ import {
   getMeasurements,
   SpanBoundsType,
   SpanGeneratedBoundsType,
-  toPercent,
 } from './utils';
 
 type Props = {
@@ -19,7 +19,7 @@ type Props = {
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   dividerPosition: number;
 };
-class MeasurementsPanel extends React.PureComponent<Props> {
+class MeasurementsPanel extends PureComponent<Props> {
   render() {
     const {event, generateBounds, dividerPosition} = this.props;
 
@@ -112,7 +112,7 @@ type LabelContainerState = {
   width: number;
 };
 
-class LabelContainer extends React.Component<LabelContainerProps> {
+class LabelContainer extends Component<LabelContainerProps> {
   state: LabelContainerState = {
     width: 1,
   };
@@ -127,7 +127,7 @@ class LabelContainer extends React.Component<LabelContainerProps> {
     }
   }
 
-  elementDOMRef = React.createRef<HTMLDivElement>();
+  elementDOMRef = createRef<HTMLDivElement>();
 
   render() {
     const {left, label, tooltipLabel, failedThreshold} = this.props;

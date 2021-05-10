@@ -1,9 +1,7 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import ReactDOM from 'react-dom';
 import {components, StylesConfig} from 'react-select';
 import styled from '@emotion/styled';
-import createReactClass from 'create-react-class';
-import Reflux from 'reflux';
 
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import SelectControl from 'app/components/forms/selectControl';
@@ -11,6 +9,7 @@ import IdBadge from 'app/components/idBadge';
 import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {t, tct} from 'app/locale';
+import ConfigStore from 'app/stores/configStore';
 import OrganizationsStore from 'app/stores/organizationsStore';
 import OrganizationStore from 'app/stores/organizationStore';
 import space from 'app/styles/space';
@@ -72,9 +71,15 @@ const selectStyles = {
     boxShadow: 'none',
     marginBottom: 0,
   }),
+  option: (provided: StylesConfig, state: any) => ({
+    ...provided,
+    opacity: state.isDisabled ? 0.6 : 1,
+    cursor: state.isDisabled ? 'not-allowed' : 'pointer',
+    pointerEvents: state.isDisabled ? 'none' : 'auto',
+  }),
 };
 
-class ContextPickerModal extends React.Component<Props> {
+class ContextPickerModal extends Component<Props> {
   componentDidMount() {
     const {organization, projects, organizations} = this.props;
 
@@ -193,6 +198,17 @@ class ContextPickerModal extends React.Component<Props> {
     this.navigateIfFinish([{slug: organization}], [{slug: value}]);
   };
 
+  getMemberProjects = () => {
+    const {projects} = this.props;
+    const nonMemberProjects: Project[] = [];
+    const memberProjects: Project[] = [];
+    projects.forEach(project =>
+      project.isMember ? memberProjects.push(project) : nonMemberProjects.push(project)
+    );
+
+    return [memberProjects, nonMemberProjects];
+  };
+
   onProjectMenuOpen = () => {
     const {projects, comingFromProjectId} = this.props;
     // Hacky way to pre-focus to an item with newer versions of react select
@@ -253,6 +269,28 @@ class ContextPickerModal extends React.Component<Props> {
 
   renderProjectSelectOrMessage() {
     const {organization, projects} = this.props;
+    const [memberProjects, nonMemberProjects] = this.getMemberProjects();
+    const {isSuperuser} = ConfigStore.get('user') || {};
+
+    const projectOptions = [
+      {
+        label: t('My Projects'),
+        options: memberProjects.map(p => ({
+          value: p.slug,
+          label: t(`${p.slug}`),
+          isDisabled: false,
+        })),
+      },
+      {
+        label: t('All Projects'),
+        options: nonMemberProjects.map(p => ({
+          value: p.slug,
+          label: t(`${p.slug}`),
+          isDisabled: isSuperuser ? false : true,
+        })),
+      },
+    ];
+
     if (!projects.length) {
       return (
         <div>
@@ -272,7 +310,7 @@ class ContextPickerModal extends React.Component<Props> {
         }}
         placeholder={t('Select a Project to continue')}
         name="project"
-        options={projects.map(({slug}) => ({label: slug, value: slug}))}
+        options={projectOptions}
         onChange={this.handleSelectProject}
         onMenuOpen={this.onProjectMenuOpen}
         components={{Option: this.customOptionProject, DropdownIndicator: null}}
@@ -306,7 +344,7 @@ class ContextPickerModal extends React.Component<Props> {
       .map(({slug}) => ({label: slug, value: slug}));
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Header closeButton>{this.headerText}</Header>
         <Body>
           {loading && <StyledLoadingIndicator overlay />}
@@ -332,7 +370,7 @@ class ContextPickerModal extends React.Component<Props> {
 
           {shouldShowProjectSelector && this.renderProjectSelectOrMessage()}
         </Body>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }
@@ -349,38 +387,54 @@ type ContainerProps = Omit<
 
 type ContainerState = {
   selectedOrganization?: string;
-  organizations?: Organization[];
+  organizations: Organization[];
 };
 
-const ContextPickerModalContainer = createReactClass<ContainerProps, ContainerState>({
-  displayName: 'ContextPickerModalContainer',
-  mixins: [Reflux.connect(OrganizationsStore, 'organizations') as any],
-  getInitialState() {
+class ContextPickerModalContainer extends Component<ContainerProps, ContainerState> {
+  state = this.getInitialState();
+
+  getInitialState(): ContainerState {
     const storeState = OrganizationStore.get();
     return {
+      organizations: OrganizationsStore.getAll(),
       selectedOrganization: storeState.organization?.slug,
     };
-  },
+  }
 
-  handleSelectOrganization(organizationSlug: string) {
+  componentWillUnmount() {
+    this.unlistener?.();
+  }
+
+  unlistener = OrganizationsStore.listen(
+    (organizations: Organization[]) => this.setState({organizations}),
+    undefined
+  );
+
+  handleSelectOrganization = (organizationSlug: string) => {
     this.setState({selectedOrganization: organizationSlug});
-  },
+  };
 
-  renderModal({projects, initiallyLoaded}) {
+  renderModal({
+    projects,
+    initiallyLoaded,
+  }: {
+    projects?: Project[];
+    initiallyLoaded?: boolean;
+  }) {
     return (
       <ContextPickerModal
         {...this.props}
         projects={projects || []}
         loading={!initiallyLoaded}
         organizations={this.state.organizations}
-        organization={this.state.selectedOrganization}
+        organization={this.state.selectedOrganization!}
         onSelectOrganization={this.handleSelectOrganization}
       />
     );
-  },
+  }
 
   render() {
-    const {projectSlugs} = this.props; // eslint-disable-line react/prop-types
+    const {projectSlugs} = this.props;
 
     if (this.state.selectedOrganization) {
       return (
@@ -389,14 +443,16 @@ const ContextPickerModalContainer = createReactClass<ContainerProps, ContainerSt
           allProjects={!projectSlugs?.length}
           slugs={projectSlugs}
         >
-          {renderProps => this.renderModal(renderProps)}
+          {({projects, initiallyLoaded}) =>
+            this.renderModal({projects: projects as Project[], initiallyLoaded})
+          }
         </Projects>
       );
     }
 
     return this.renderModal({});
-  },
-});
+  }
+}
 
 export default ContextPickerModalContainer;
 

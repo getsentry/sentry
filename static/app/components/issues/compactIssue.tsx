@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
@@ -28,7 +28,7 @@ type HeaderProps = {
   eventId?: string;
 };
 
-class CompactIssueHeader extends React.Component<HeaderProps> {
+class CompactIssueHeader extends Component<HeaderProps> {
   render() {
     const {data, organization, projectId, eventId} = this.props;
 
@@ -44,7 +44,7 @@ class CompactIssueHeader extends React.Component<HeaderProps> {
         : 'textColor';
 
     return (
-      <React.Fragment>
+      <Fragment>
         <IssueHeaderMetaWrapper>
           <StyledErrorLevel size="12px" level={data.level} title={data.level} />
           <h3 className="truncate">
@@ -69,7 +69,7 @@ class CompactIssueHeader extends React.Component<HeaderProps> {
           )}
           <span className="culprit">{getMessage(data)}</span>
         </div>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }
@@ -171,12 +171,7 @@ const CompactIssue = createReactClass<Props, State>({
     }
 
     return (
-      <PanelItem
-        className={className}
-        onClick={this.toggleSelect}
-        flexDirection="column"
-        style={{paddingTop: '12px', paddingBottom: '6px'}}
-      >
+      <IssueRow className={className} onClick={this.toggleSelect}>
         <CompactIssueHeader
           data={issue}
           organization={organization}
@@ -189,7 +184,7 @@ const CompactIssue = createReactClass<Props, State>({
           </div>
         )}
         {this.props.children}
-      </PanelItem>
+      </IssueRow>
     );
   },
 });
@@ -211,4 +206,10 @@ const IconLink = styled(Link)`
   & > svg {
     margin-right: ${space(0.5)};
   }
+`;
+
+const IssueRow = styled(PanelItem)`
+  padding-top: ${space(1.5)};
+  padding-bottom: ${space(0.75)};
+  flex-direction: column;
 `;

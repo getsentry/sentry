@@ -22,6 +22,9 @@ targets:
     source: us.gcr.io/sentryio/sentry
     target: getsentry/sentry
     targetFormat: '{{{target}}}:latest'
-
+artifactProvider:
+  name: gcs
+  config:
+    bucket: sentryio-cloudbuild-opensource
 requireNames:
   - /^sentry-.+-py3\d?-none-any.whl$/

@@ -1,7 +1,7 @@
-import React from 'react';
+import * as React from 'react';
 import ReactDOM from 'react-dom';
 import {Manager, Popper, PopperProps, Reference} from 'react-popper';
-import {keyframes} from '@emotion/core';
+import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
@@ -91,7 +91,7 @@ class Hovercard extends React.Component<Props, State> {
     this.scheduleUpdate = null;
   }
 
-  state = {
+  state: State = {
     visible: false,
   };
 

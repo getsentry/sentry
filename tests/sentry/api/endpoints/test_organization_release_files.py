@@ -1,5 +1,5 @@
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
 from sentry.models import File, Release, ReleaseFile
 from sentry.testutils import APITestCase

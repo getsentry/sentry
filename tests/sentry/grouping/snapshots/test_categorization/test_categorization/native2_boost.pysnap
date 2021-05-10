@@ -1,0 +1,63 @@
+---
+created: '2021-03-26T18:36:05.725376Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+EXCEPTION_ACCESS_VIOLATION_READ:Fatal Error: EXCEPTION_ACCESS_VIOLATION_READ (thread_id:_, crashed:_)
+                                    once.hpp  boost::call_once category=std
+               C:\WINDOWS\SYSTEM32\ntdll.dll  LdrpCallInitRoutine category=indirection
+                                              stripped_application_code
+               C:\WINDOWS\SYSTEM32\mscms.dll  DllMain category=indirection
+                                              stripped_application_code
+                       function_template.hpp  boost::function1<T>::operator() category=indirection
+                       function_template.hpp  boost::detail::function::void_function_obj_invoker1<T>::invoke category=std
+                                    bind.hpp  boost::_bi::bind_t<T>::operator() category=indirection
+                                    bind.hpp  boost::_bi::list3<T>::operator() category=indirection
+                                              stripped_application_code
+                                              stripped_application_code
+                           function_base.hpp  boost::detail::function::functor_manager<T>::manage category=indirection
+                           function_base.hpp  boost::detail::function::functor_manager<T>::manager category=indirection
+                           function_base.hpp  boost::detail::function::functor_manager<T>::manager category=indirection
+                                              boost::_bi::list3<T>::list3<T> category=indirection
+                       function_template.hpp  boost::function<T>::{ctor} category=indirection
+                       function_template.hpp  boost::function1<T>::{ctor} category=indirection
+                       function_template.hpp  boost::function1<T>::assign_to_own category=indirection
+                           function_base.hpp  boost::detail::function::functor_manager<T>::manage category=indirection
+                           function_base.hpp  boost::detail::function::functor_manager<T>::manager category=indirection
+                           function_base.hpp  boost::detail::function::functor_manager<T>::manager category=indirection
+                                              boost::_bi::list8<T>::list8<T> category=indirection
+                       function_template.hpp  boost::function<T>::{ctor} category=indirection
+                       function_template.hpp  boost::function6<T>::{ctor} category=indirection
+                       function_template.hpp  boost::function6<T>::assign_to_own category=indirection
+                                              stripped_application_code
+               C:\WINDOWS\SYSTEM32\ntdll.dll  RtlpAllocateHeapInternal category=malloc
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                       function_template.hpp  boost::function3<T>::operator() category=indirection
+                       function_template.hpp  boost::detail::function::function_obj_invoker3<T>::invoke category=std
+                                    bind.hpp  boost::_bi::bind_t<T>::operator() category=indirection
+                                    bind.hpp  boost::_bi::list7<T>::operator() category=indirection
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+               C:\WINDOWS\SYSTEM32\ntdll.dll  RtlpFreeHeapInternal category=indirection
+                                              stripped_application_code
+               C:\WINDOWS\SYSTEM32\ntdll.dll  RtlFreeHeap category=free
+                                              stripped_application_code

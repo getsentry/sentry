@@ -1,72 +1,167 @@
 ---
-created: '2021-03-08T16:39:06.173578Z'
+created: '2021-04-30T12:13:37.603108Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
   component:
-    app (exception of system takes precedence)
+    app (exception of app-depth-1/app-depth-2/app-depth-3/app-depth-4/system takes precedence)
       threads (thread has no stacktrace)
 --------------------------------------------------------------------------
-app-depth-max:
-  hash: null
+app-depth-1:
+  hash: "7b82f61c02dceddacf473738f7827805"
+  tree_label: "`anonymous namespace'::something::nested::Foo<T>::crash"
   component:
-    app-depth-max (exception of system takes precedence)
-      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
-        stacktrace
-          frame (non app frame)
-            filename*
+    app-depth-1*
+      exception*
+        stacktrace*
+          frame*
+            filename (discarded native filename for grouping stability)
+              "main.cpp"
+            function*
+              "`anonymous namespace'::something::nested::Foo<T>::crash"
+            package (ignored because function takes precedence)
+              "crash"
+        type (ignored because exception is synthetic)
+          "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
+--------------------------------------------------------------------------
+app-depth-2:
+  hash: "ecaeb0c00f2962b1e3e3f40313787711"
+  tree_label: "`anonymous namespace'::crash | ..."
+  component:
+    app-depth-2*
+      exception*
+        stacktrace*
+          frame*
+            filename (discarded native filename for grouping stability)
+              "main.cpp"
+            function*
+              "`anonymous namespace'::crash"
+            package (ignored because function takes precedence)
+              "crash"
+          frame*
+            filename (discarded native filename for grouping stability)
+              "main.cpp"
+            function*
+              "`anonymous namespace'::something::nested::Foo<T>::crash"
+            package (ignored because function takes precedence)
+              "crash"
+        type (ignored because exception is synthetic)
+          "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
+--------------------------------------------------------------------------
+app-depth-3:
+  hash: "d64904dcba276f8cad4f718cda9d8690"
+  tree_label: "`anonymous namespace'::start | ..."
+  component:
+    app-depth-3*
+      exception*
+        stacktrace*
+          frame*
+            filename (discarded native filename for grouping stability)
+              "main.cpp"
+            function*
+              "`anonymous namespace'::start"
+            package (ignored because function takes precedence)
+              "crash"
+          frame*
+            filename (discarded native filename for grouping stability)
+              "main.cpp"
+            function*
+              "`anonymous namespace'::crash"
+            package (ignored because function takes precedence)
+              "crash"
+          frame*
+            filename (discarded native filename for grouping stability)
+              "main.cpp"
+            function*
+              "`anonymous namespace'::something::nested::Foo<T>::crash"
+            package (ignored because function takes precedence)
+              "crash"
+        type (ignored because exception is synthetic)
+          "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
+--------------------------------------------------------------------------
+app-depth-4:
+  hash: "a07df792479c5ba46fc056236749b796"
+  tree_label: "main | ..."
+  component:
+    app-depth-4*
+      exception*
+        stacktrace*
+          frame*
+            filename (discarded native filename for grouping stability)
               "main.cpp"
             function*
               "main"
-          frame (non app frame)
-            filename*
+            package (ignored because function takes precedence)
+              "crash"
+          frame*
+            filename (discarded native filename for grouping stability)
               "main.cpp"
             function*
-              "(anonymous namespace)::start"
-          frame (non app frame)
-            filename*
+              "`anonymous namespace'::start"
+            package (ignored because function takes precedence)
+              "crash"
+          frame*
+            filename (discarded native filename for grouping stability)
               "main.cpp"
             function*
-              "(anonymous namespace)::crash"
-          frame (non app frame)
-            filename*
+              "`anonymous namespace'::crash"
+            package (ignored because function takes precedence)
+              "crash"
+          frame*
+            filename (discarded native filename for grouping stability)
               "main.cpp"
             function*
-              "(anonymous namespace)::something::nested::Foo<T>::crash"
+              "`anonymous namespace'::something::nested::Foo<T>::crash"
+            package (ignored because function takes precedence)
+              "crash"
         type (ignored because exception is synthetic)
           "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
-        value*
+        value (ignored because stacktrace takes precedence)
           "Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
 --------------------------------------------------------------------------
 system:
-  hash: "c29439027eafcf7642f641554ab0f0ef"
-  tree_label: "main"
+  hash: "a07df792479c5ba46fc056236749b796"
+  tree_label: "<entire stacktrace>"
   component:
     system*
       exception*
         stacktrace*
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "main.cpp"
             function*
               "main"
+            package (ignored because function takes precedence)
+              "crash"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "main.cpp"
             function*
-              "(anonymous namespace)::start"
+              "`anonymous namespace'::start"
+            package (ignored because function takes precedence)
+              "crash"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "main.cpp"
             function*
-              "(anonymous namespace)::crash"
+              "`anonymous namespace'::crash"
+            package (ignored because function takes precedence)
+              "crash"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "main.cpp"
             function*
-              "(anonymous namespace)::something::nested::Foo<T>::crash"
+              "`anonymous namespace'::something::nested::Foo<T>::crash"
+            package (ignored because function takes precedence)
+              "crash"
         type (ignored because exception is synthetic)
           "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
         value (ignored because stacktrace takes precedence)

@@ -117,6 +117,17 @@ register(
     default={"url": "http://localhost:7901"},
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
 )
+# Leaving these empty will use the same storage driver configured for
+# Filestore
+register(
+    "chart-rendering.storage.backend", default=None, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK
+)
+register(
+    "chart-rendering.storage.options",
+    type=Dict,
+    default=None,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
+)
 
 # Analytics
 register("analytics.backend", default="noop", flags=FLAG_NOSTORE)
@@ -194,6 +205,7 @@ register("snuba.search.max-total-chunk-time-seconds", default=30.0)
 register("snuba.search.hits-sample-size", default=100)
 register("snuba.track-outcomes-sample-rate", default=0.0)
 register("snuba.snql.referrer-rate", default=0.0)
+register("snuba.snql.snql_only", default=0.0)
 
 # The percentage of tagkeys that we want to cache. Set to 1.0 in order to cache everything, <=0.0 to stop caching
 register("snuba.tagstore.cache-tagkeys-rate", default=0.0, flags=FLAG_PRIORITIZE_DISK)

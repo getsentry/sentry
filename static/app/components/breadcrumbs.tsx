@@ -1,5 +1,6 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
+import {LocationDescriptor} from 'history';
 
 import GlobalSelectionLink from 'app/components/globalSelectionLink';
 import Link from 'app/components/links/link';
@@ -7,6 +8,12 @@ import {IconChevron} from 'app/icons';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Theme} from 'app/utils/theme';
+
+const BreadcrumbList = styled('div')`
+  display: flex;
+  align-items: center;
+  padding: ${space(1)} 0;
+`;
 
 export type Crumb = {
   /**
@@ -32,7 +39,7 @@ export type Crumb = {
   key?: string;
 };
 
-type Props = React.HTMLAttributes<HTMLDivElement> & {
+type Props = React.ComponentPropsWithoutRef<typeof BreadcrumbList> & {
   /**
    * Array of crumbs that will be rendered
    */
@@ -96,14 +103,19 @@ const getBreadcrumbListItemStyles = (p: {theme: Theme}) => `
   }
 `;
 
-const BreadcrumbList = styled('div')`
-  display: flex;
-  align-items: center;
-  padding: ${space(1)} 0;
-`;
+type BreadcrumbLinkProps = {
+  to: React.ComponentProps<typeof Link>['to'];
+  preserveGlobalSelection?: boolean;
+  children?: React.ReactNode;
+};
 
-const BreadcrumbLink = styled(({preserveGlobalSelection, ...props}) =>
-  preserveGlobalSelection ? <GlobalSelectionLink {...props} /> : <Link {...props} />
+const BreadcrumbLink = styled(
+  ({preserveGlobalSelection, to, ...props}: BreadcrumbLinkProps) =>
+    preserveGlobalSelection ? (
+      <GlobalSelectionLink to={to as LocationDescriptor} {...props} />
+    ) : (
+      <Link to={to} {...props} />
+    )
 )`
   ${getBreadcrumbListItemStyles}
 
@@ -115,6 +127,7 @@ const BreadcrumbLink = styled(({preserveGlobalSelection, ...props}) =>
 
 const BreadcrumbItem = styled('span')`
   ${getBreadcrumbListItemStyles}
+  max-width: 400px;
 `;
 
 const BreadcrumbDividerIcon = styled(IconChevron)`

@@ -1,7 +1,7 @@
-import React from 'react';
+import * as React from 'react';
 import {Link} from 'react-router';
-import {css} from '@emotion/core';
 import isPropValid from '@emotion/is-prop-valid';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import ExternalLink from 'app/components/links/externalLink';
@@ -254,7 +254,7 @@ const StyledButton = styled(
     shouldForwardProp: prop =>
       prop === 'forwardRef' ||
       prop === 'external' ||
-      (isPropValid(prop) && prop !== 'disabled'),
+      (typeof prop === 'string' && isPropValid(prop) && prop !== 'disabled'),
   }
 )<Props>`
   display: inline-block;
@@ -306,7 +306,8 @@ const buttonLabelPropKeys = ['size', 'priority', 'borderless', 'align'];
 type ButtonLabelProps = Pick<ButtonProps, 'size' | 'priority' | 'borderless' | 'align'>;
 
 const ButtonLabel = styled('span', {
-  shouldForwardProp: prop => isPropValid(prop) && !buttonLabelPropKeys.includes(prop),
+  shouldForwardProp: prop =>
+    typeof prop === 'string' && isPropValid(prop) && !buttonLabelPropKeys.includes(prop),
 })<ButtonLabelProps>`
   display: grid;
   grid-auto-flow: column;

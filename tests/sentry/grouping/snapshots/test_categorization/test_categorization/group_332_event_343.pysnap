@@ -1,0 +1,52 @@
+---
+created: '2021-03-26T18:36:05.031104Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+0x00000000 / 0x00000000:Fatal Error: 0x00000000 / 0x00000000 (thread_id:_, crashed:_)
+               /usr/lib/system/libdyld.dylib  start category=threadbase
+               /usr/lib/system/libdyld.dylib  start category=threadbase
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+  /System/Library/Frameworks/Foundation.fram  -[NSRunLoop(NSRunLoop) runMode:beforeDate:] category=indirection
+  /System/Library/Frameworks/CoreFoundation.  ??? category=internals
+  /System/Library/Frameworks/CoreFoundation.  ??? category=internals
+  /System/Library/Frameworks/CoreFoundation.  ??? category=internals
+  /System/Library/Frameworks/CoreFoundation.  ??? category=internals
+  /System/Library/Frameworks/CoreFoundation.  ??? category=internals
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+  /System/Library/Frameworks/OpenGL.framewor  glDeleteTextures_Exec category=gl
+  /System/Library/Frameworks/OpenGL.framewor  gleUnbindDeleteHashNamesAndObjects category=internals
+  /System/Library/Frameworks/OpenGL.framewor  gleUnbindTextureObject category=internals
+  /System/Library/Extensions/AMDRadeonX5000G  glrATI_Hwl_SubmitPacketsWithToken category=internals
+  /System/Library/PrivateFrameworks/GPUSuppo  gpusSubmitDataBuffers category=driver
+  /System/Library/Extensions/AMDRadeonX5000G  gpusKillClientExt category=telemetry
+  /System/Library/PrivateFrameworks/GPUSuppo  gpusGenerateCrashLog category=telemetry
+  /System/Library/PrivateFrameworks/GPUSuppo  gpusGenerateCrashLog.cold.1 category=indirection
+           /usr/lib/system/libsystem_c.dylib  abort category=throw
+      /usr/lib/system/libsystem_kernel.dylib  __pthread_kill category=internals

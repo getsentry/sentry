@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
 import BadgeDisplayName from 'app/components/idBadge/badgeDisplayName';
@@ -42,11 +42,7 @@ const ProjectBadge = ({
     />
   );
 
-  if (
-    !disableLink &&
-    organization?.features.includes('project-detail') &&
-    organization?.features.includes('project-detail-links')
-  ) {
+  if (!disableLink && organization?.slug) {
     return (
       <StyledLink
         to={`/organizations/${organization.slug}/projects/${slug}/${

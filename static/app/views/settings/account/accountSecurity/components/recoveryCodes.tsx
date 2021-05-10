@@ -1,4 +1,3 @@
-import React from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
@@ -88,7 +87,7 @@ const RecoveryCodes = ({
           <EmptyMessage>{t('You have no more recovery codes to use')}</EmptyMessage>
         )}
       </PanelBody>
-      <iframe name="printable" css={{display: 'none'}} />
+      <iframe name="printable" style={{display: 'none'}} />
     </CodeContainer>
   );
 };

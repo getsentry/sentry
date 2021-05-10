@@ -1,0 +1,68 @@
+---
+created: '2021-04-08T09:39:08.271369Z'
+creator: sentry
+source: tests/sentry/grouping/similarity/test_features.py
+---
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","BaseThreadInitThunk"]],[["function","TppWorkerThread"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","HTTP_ASYNC_OVERLAPPED::OnWorkItem"]],[["function","WEBIO_REQUEST::OnIoComplete"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","HTTP_BASE_OBJECT::Dereference"]],[["function","destructor'"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","HTTP_THREAD_POOL::_StaticWorkItemCallback"]],[["function","HTTP_ASYNC_OVERLAPPED::OnWorkItem"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","HTTP_USER_REQUEST::OnSendRequest"]],[["function","HTTP_BASE_OBJECT::Dereference"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","HTTP_USER_REQUEST::~HTTP_USER_REQUEST"]],[["function","destructor'"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","RtlEnterCriticalSection"]],[["function","RtlpEnterCriticalSectionContended"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","RtlFreeHeap"]],[["function","RtlpFreeHeapInternal"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","RtlFreeHeap"]],[["function","memset"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","RtlUserThreadStart"]],[["function","BaseThreadInitThunk"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","RtlpEnterCriticalSectionContended"]],[["function","RtlpWaitOnCriticalSection"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","RtlpFreeHeap"]],[["function","RtlEnterCriticalSection"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","RtlpFreeHeapInternal"]],[["function","RtlpFreeHeap"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","RtlpFreeUserBlock"]],[["function","RtlpFreeUserBlockToHeap"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","RtlpFreeUserBlockToHeap"]],[["function","RtlFreeHeap"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","RtlpWaitOnAddress"]],[["function","RtlpOptimizeWaitOnAddressWaitList"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","RtlpWaitOnCriticalSection"]],[["function","RtlpWaitOnAddress"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","TppWorkerThread"]],[["function","TppWorkpExecuteCallback"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","TppWorkpExecuteCallback"]],[["function","HTTP_THREAD_POOL::_StaticWorkItemCallback"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","WEBIO_REQUEST::OnIoComplete"]],[["function","HTTP_USER_REQUEST::OnSendRequest"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","destructor'"]],[["function","HTTP_USER_REQUEST::~HTTP_USER_REQUEST"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","destructor'"]],[["function","RtlFreeHeap"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","memset"]],[["function","RtlpFreeUserBlock"]]]
+similarity:2020-07-23:value:character-5-shingle: " EXCE"
+similarity:2020-07-23:value:character-5-shingle: " Erro"
+similarity:2020-07-23:value:character-5-shingle: ": EXC"
+similarity:2020-07-23:value:character-5-shingle: "ACCES"
+similarity:2020-07-23:value:character-5-shingle: "ATION"
+similarity:2020-07-23:value:character-5-shingle: "CCESS"
+similarity:2020-07-23:value:character-5-shingle: "CEPTI"
+similarity:2020-07-23:value:character-5-shingle: "CESS_"
+similarity:2020-07-23:value:character-5-shingle: "EPTIO"
+similarity:2020-07-23:value:character-5-shingle: "ESS_V"
+similarity:2020-07-23:value:character-5-shingle: "EXCEP"
+similarity:2020-07-23:value:character-5-shingle: "Error"
+similarity:2020-07-23:value:character-5-shingle: "Fatal"
+similarity:2020-07-23:value:character-5-shingle: "IOLAT"
+similarity:2020-07-23:value:character-5-shingle: "ION_A"
+similarity:2020-07-23:value:character-5-shingle: "ION_W"
+similarity:2020-07-23:value:character-5-shingle: "LATIO"
+similarity:2020-07-23:value:character-5-shingle: "N_ACC"
+similarity:2020-07-23:value:character-5-shingle: "N_WRI"
+similarity:2020-07-23:value:character-5-shingle: "OLATI"
+similarity:2020-07-23:value:character-5-shingle: "ON_AC"
+similarity:2020-07-23:value:character-5-shingle: "ON_WR"
+similarity:2020-07-23:value:character-5-shingle: "PTION"
+similarity:2020-07-23:value:character-5-shingle: "SS_VI"
+similarity:2020-07-23:value:character-5-shingle: "S_VIO"
+similarity:2020-07-23:value:character-5-shingle: "TION_"
+similarity:2020-07-23:value:character-5-shingle: "VIOLA"
+similarity:2020-07-23:value:character-5-shingle: "WRITE"
+similarity:2020-07-23:value:character-5-shingle: "XCEPT"
+similarity:2020-07-23:value:character-5-shingle: "_ACCE"
+similarity:2020-07-23:value:character-5-shingle: "_VIOL"
+similarity:2020-07-23:value:character-5-shingle: "_WRIT"
+similarity:2020-07-23:value:character-5-shingle: "al Er"
+similarity:2020-07-23:value:character-5-shingle: "atal "
+similarity:2020-07-23:value:character-5-shingle: "l Err"
+similarity:2020-07-23:value:character-5-shingle: "or: E"
+similarity:2020-07-23:value:character-5-shingle: "r: EX"
+similarity:2020-07-23:value:character-5-shingle: "ror: "
+similarity:2020-07-23:value:character-5-shingle: "rror:"
+similarity:2020-07-23:value:character-5-shingle: "tal E"

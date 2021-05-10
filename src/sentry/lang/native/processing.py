@@ -222,7 +222,12 @@ def _merge_full_response(data, response):
         is_requesting = complete_stacktrace.get("is_requesting")
         thread_id = complete_stacktrace.get("thread_id")
 
-        data_thread = {"id": thread_id, "crashed": is_requesting}
+        data_thread = {"id": thread_id}
+        if is_requesting:
+            if response.get("crashed"):
+                data_thread["crashed"] = True
+            else:
+                data_thread["current"] = True
         data_threads.append(data_thread)
 
         if is_requesting:

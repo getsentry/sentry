@@ -1,0 +1,202 @@
+---
+created: '2021-04-02T09:10:50.690678Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because hash matches system variant)
+        stacktrace*
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "_dispatch_root_queues_init_once"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "start_wqthread"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "_pthread_wqthread"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "_dispatch_worker_thread2"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "_dispatch_root_queue_drain"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "_dispatch_client_callout"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame* (frame considered in-app because no frame is in-app)
+            filename*
+              "../../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp"
+            function*
+              "boost::function0<T>::operator()"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame* (frame considered in-app because no frame is in-app)
+            filename*
+              "../../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp"
+            function*
+              "boost::function0<T>::operator()"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (frame considered in-app because no frame is in-app)
+            function (function name is not used if module or filename are available)
+              "_INTERNAL34b3029b::`anonymous namespace'::Convert4444_8uTo4444_32f<T>"
+        type*
+          "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
+        value (stacktrace and type take precedence)
+          "Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
+--------------------------------------------------------------------------
+system:
+  hash: "b02fb88218293d772c2e20c8f6ab387a"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "_dispatch_root_queues_init_once"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "start_wqthread"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "_pthread_wqthread"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "_dispatch_worker_thread2"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "_dispatch_root_queue_drain"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+            function (function name is not used if module or filename are available)
+              "_dispatch_client_callout"
+          frame
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame*
+            filename*
+              "../../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp"
+            function*
+              "boost::function0<T>::operator()"
+          frame
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame*
+            filename*
+              "../../../../../artifacts/boost_source_libraries/1.65.1d/boost_libraries/boost/function/function_template.hpp"
+            function*
+              "boost::function0<T>::operator()"
+          frame
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function (function name is not used if module or filename are available)
+              "stripped_application_code"
+          frame
+            function (function name is not used if module or filename are available)
+              "_INTERNAL34b3029b::`anonymous namespace'::Convert4444_8uTo4444_32f<T>"
+        type*
+          "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
+        value (stacktrace and type take precedence)
+          "Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"

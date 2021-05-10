@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
 import ProjectActions from 'app/actions/projectActions';
@@ -303,7 +303,7 @@ class ProjectFiltersSettings extends AsyncComponent<Props, State> {
                   // Endpoints for these filters expect data to be:
                   // { 'active': [value] }
                   return (
-                    <PanelItem key={filter.id} p={0}>
+                    <PanelItem key={filter.id} noPadding>
                       <NestedForm
                         apiMethod="PUT"
                         apiEndpoint={`${filtersEndpoint}${filter.id}/`}

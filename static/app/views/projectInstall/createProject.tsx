@@ -1,8 +1,7 @@
-import React from 'react';
+import * as React from 'react';
 import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import {withTheme} from 'emotion-theming';
 import {PlatformIcon} from 'platformicons';
 
 import {openCreateTeamModal} from 'app/actionCreators/modal';
@@ -22,7 +21,6 @@ import {Organization, Project, Team} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import getPlatformName from 'app/utils/getPlatformName';
 import slugify from 'app/utils/slugify';
-import {Theme} from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import withTeams from 'app/utils/withTeams';
@@ -41,7 +39,6 @@ type RuleEventData = {
 };
 
 type Props = WithRouterProps & {
-  theme: Theme;
   api: any;
   organization: Organization;
   teams: Team[];
@@ -62,8 +59,8 @@ type State = {
 };
 
 class CreateProject extends React.Component<Props, State> {
-  constructor(props, ...args) {
-    super(props, ...args);
+  constructor(props, context) {
+    super(props, context);
 
     const {query} = props.location;
     const {teams} = props.organization;
@@ -88,7 +85,7 @@ class CreateProject extends React.Component<Props, State> {
   }
 
   renderProjectForm() {
-    const {theme, organization} = this.props;
+    const {organization} = this.props;
     const {projectName, platform, team} = this.state;
 
     const teams = this.props.teams.filter(filterTeam => filterTeam.hasAccess);
@@ -97,7 +94,7 @@ class CreateProject extends React.Component<Props, State> {
       <CreateProjectForm onSubmit={this.createProject}>
         <div>
           <FormLabel>{t('Project name')}</FormLabel>
-          <ProjectNameInput theme={theme}>
+          <ProjectNameInput>
             <StyledPlatformIcon platform={platform ?? ''} />
             <input
               type="text"
@@ -325,7 +322,7 @@ class CreateProject extends React.Component<Props, State> {
   }
 }
 
-export default withApi(withRouter(withOrganization(withTeams(withTheme(CreateProject)))));
+export default withApi(withRouter(withOrganization(withTeams(CreateProject))));
 export {CreateProject};
 
 const CreateProjectForm = styled('form')`
@@ -348,12 +345,13 @@ const StyledPlatformIcon = styled(PlatformIcon)`
 `;
 
 const ProjectNameInput = styled('div')`
-  ${inputStyles};
+  ${p => inputStyles(p)};
   padding: 5px 10px;
   display: flex;
   align-items: center;
 
   input {
+    background: ${p => p.theme.background};
     border: 0;
     outline: 0;
     flex: 1;

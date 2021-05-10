@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {browserHistory} from 'react-router';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
@@ -6,10 +6,8 @@ import isEqual from 'lodash/isEqual';
 import {Client} from 'app/api';
 import AsyncComponent from 'app/components/asyncComponent';
 import NotFound from 'app/components/errors/notFound';
-import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {t} from 'app/locale';
-import {PageContent} from 'app/styles/organization';
 import {Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 
@@ -52,7 +50,7 @@ class OrgDashboards extends AsyncComponent<Props, State> {
   };
 
   componentDidUpdate(prevProps: Props) {
-    if (!isEqual(prevProps.params, this.props.params)) {
+    if (!isEqual(prevProps.params.dashboardId, this.props.params.dashboardId)) {
       this.remountComponent();
     }
   }
@@ -90,7 +88,7 @@ class OrgDashboards extends AsyncComponent<Props, State> {
     // If we don't have a selected dashboard, and one isn't going to arrive
     // we can redirect to the first dashboard in the list.
     const dashboardId = data.length ? data[0].id : 'default-overview';
-    const url = `/organizations/${organization.slug}/dashboards/${dashboardId}/`;
+    const url = `/organizations/${organization.slug}/dashboard/${dashboardId}/`;
     browserHistory.replace({
       pathname: url,
       query: {
@@ -100,21 +98,15 @@ class OrgDashboards extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
-    const {organization, children} = this.props;
+    const {children} = this.props;
     const {selectedDashboard, error} = this.state;
 
-    return (
-      <PageContent>
-        <LightWeightNoProjectMessage organization={organization}>
-          {children({
-            error,
-            dashboard: selectedDashboard,
-            dashboards: this.getDashboards(),
-            reloadData: this.reloadData.bind(this),
-          })}
-        </LightWeightNoProjectMessage>
-      </PageContent>
-    );
+    return children({
+      error,
+      dashboard: selectedDashboard,
+      dashboards: this.getDashboards(),
+      reloadData: this.reloadData.bind(this),
+    });
   }
 
   renderError(error: Error) {

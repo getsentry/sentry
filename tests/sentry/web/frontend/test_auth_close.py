@@ -1,4 +1,4 @@
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.utils.http import urlquote
 from exam import fixture
 
@@ -32,4 +32,4 @@ class AuthClose(TestCase):
         self.login_as(self.user)
 
         resp = self.client.get(self.path)
-        assert resp.context["logged_in"] is True
+        assert resp.context["logged_in"]

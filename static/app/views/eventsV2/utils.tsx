@@ -21,6 +21,7 @@ import {
   FIELDS,
   getAggregateAlias,
   isMeasurement,
+  isSpanOperationBreakdownField,
   measurementType,
   TRACING_FIELDS,
 } from 'app/utils/discover/fields';
@@ -76,6 +77,8 @@ export function decodeColumnOrder(
         column.type = FIELDS[col.field];
       } else if (isMeasurement(col.field)) {
         column.type = measurementType(col.field);
+      } else if (isSpanOperationBreakdownField(col.field)) {
+        column.type = 'duration';
       }
     }
     column.column = col;

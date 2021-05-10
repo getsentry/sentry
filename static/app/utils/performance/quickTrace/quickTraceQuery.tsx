@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import {Event} from 'app/types/event';
 import {DiscoverQueryProps} from 'app/utils/discover/genericDiscoverQuery';
@@ -8,6 +8,7 @@ import {QuickTraceQueryChildrenProps} from 'app/utils/performance/quickTrace/typ
 import {
   flattenRelevantPaths,
   getTraceTimeRangeFromEvent,
+  isCurrentEvent,
 } from 'app/utils/performance/quickTrace/utils';
 
 type QueryProps = Omit<DiscoverQueryProps, 'api' | 'eventView'> & {
@@ -26,6 +27,7 @@ export default function QuickTraceQuery({children, event, ...props}: QueryProps)
           error: null,
           trace: [],
           type: 'empty',
+          currentEvent: null,
         })}
       </React.Fragment>
     );
@@ -42,7 +44,13 @@ export default function QuickTraceQuery({children, event, ...props}: QueryProps)
       {...props}
     >
       {traceLiteResults => (
-        <TraceFullQuery traceId={traceId} start={start} end={end} {...props}>
+        <TraceFullQuery
+          eventId={event.id}
+          traceId={traceId}
+          start={start}
+          end={end}
+          {...props}
+        >
           {traceFullResults => {
             if (
               !traceFullResults.isLoading &&
@@ -55,6 +63,7 @@ export default function QuickTraceQuery({children, event, ...props}: QueryProps)
                   return children({
                     ...traceFullResults,
                     trace,
+                    currentEvent: trace.find(e => isCurrentEvent(e, event)) ?? null,
                   });
                 } catch {
                   // let this fall through and check the next subtrace
@@ -68,14 +77,28 @@ export default function QuickTraceQuery({children, event, ...props}: QueryProps)
               traceLiteResults.error === null &&
               traceLiteResults.trace !== null
             ) {
-              return children(traceLiteResults);
+              const {trace} = traceLiteResults;
+              return children({
+                ...traceLiteResults,
+                currentEvent: trace.find(e => isCurrentEvent(e, event)) ?? null,
+              });
             }
 
             return children({
-              isLoading: traceFullResults.isLoading || traceLiteResults.isLoading,
-              error: traceFullResults.error ?? traceLiteResults.error,
+              // only use the light results loading state if it didn't error
+              // if it did, we should rely on the full results
+              isLoading: traceLiteResults.error
+                ? traceFullResults.isLoading
+                : traceLiteResults.isLoading || traceFullResults.isLoading,
+              // swallow any errors from the light results because we
+              // should rely on the full results in this situations
+              error: traceFullResults.error,
               trace: [],
-              type: 'empty',
+              // if we reach this point but there were some traces in the full results,
+              // that means there were other transactions in the trace, but the current
+              // event could not be found
+              type: traceFullResults.traces?.length ? 'missing' : 'empty',
+              currentEvent: null,
             });
           }}
         </TraceFullQuery>

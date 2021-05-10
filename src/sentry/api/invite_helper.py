@@ -1,6 +1,6 @@
 from urllib.parse import parse_qsl, urlencode
 
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.utils.crypto import constant_time_compare
 
 from sentry.models import (
@@ -146,7 +146,7 @@ class ApiInviteHelper:
 
     @property
     def user_authenticated(self):
-        return self.request.user.is_authenticated()
+        return self.request.user.is_authenticated
 
     @property
     def needs_2fa(self):

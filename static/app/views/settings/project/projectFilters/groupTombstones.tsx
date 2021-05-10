@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
@@ -24,7 +24,7 @@ function GroupTombstoneRow({data, onUndiscard}: RowProps) {
   const actor = data.actor;
 
   return (
-    <PanelItem alignItems="center">
+    <PanelItem center>
       <StyledBox>
         <EventOrGroupHeader
           includeLink={false}
@@ -114,7 +114,7 @@ class GroupTombstones extends AsyncComponent<Props, State> {
     const {tombstones, tombstonesPageLinks} = this.state;
 
     return tombstones.length ? (
-      <React.Fragment>
+      <Fragment>
         <Panel>
           {tombstones.map(data => (
             <GroupTombstoneRow
@@ -125,7 +125,7 @@ class GroupTombstones extends AsyncComponent<Props, State> {
           ))}
         </Panel>
         {tombstonesPageLinks && <Pagination pageLinks={tombstonesPageLinks} />}
-      </React.Fragment>
+      </Fragment>
     ) : (
       this.renderEmpty()
     );

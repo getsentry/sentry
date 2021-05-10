@@ -1,7 +1,7 @@
-import React from 'react';
+import {Component} from 'react';
 import {browserHistory, withRouter} from 'react-router';
 import {WithRouterProps} from 'react-router/lib/withRouter';
-import {withTheme} from 'emotion-theming';
+import {withTheme} from '@emotion/react';
 
 import {Client} from 'app/api';
 import ChartZoom from 'app/components/charts/chartZoom';
@@ -201,7 +201,7 @@ function getIntervalLine(
   return additionalLineSeries;
 }
 
-class Chart extends React.Component<Props> {
+class Chart extends Component<Props> {
   handleLegendSelectChanged = legendChange => {
     const {location, trendChangeType} = this.props;
     const {selected} = legendChange;

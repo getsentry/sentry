@@ -1,73 +1,100 @@
 import inspect
+from typing import Any, Callable, Dict, Iterator, List, Optional, Sequence, Type, Union
+
+import sentry_sdk
 
 from sentry import projectoptions
+from sentry.eventstore.models import Event
+from sentry.grouping.component import GroupingComponent
 from sentry.grouping.enhancer import Enhancements
+from sentry.interfaces.base import Interface
 
-STRATEGIES = {}
-
+STRATEGIES: Dict[str, "Strategy"] = {}
 
 RISK_LEVEL_LOW = 0
 RISK_LEVEL_MEDIUM = 1
 RISK_LEVEL_HIGH = 2
 
+Risk = int  # TODO: make enum or union of literals
+
+# XXX: Want to make ContextDict typeddict but also want to type/overload dict
+# API on GroupingContext
+ContextValue = Any
+ContextDict = Dict[str, ContextValue]
+
 DEFAULT_GROUPING_ENHANCEMENTS_BASE = "common:2019-03-23"
 
+ReturnedVariants = Dict[str, GroupingComponent]
+StrategyFunc = Callable[..., ReturnedVariants]  # TODO
 
-def strategy(id=None, ids=None, interfaces=None, name=None, score=None):
+
+def strategy(
+    id: Optional[str] = None,
+    ids: Optional[Sequence[str]] = None,
+    interfaces: Optional[Sequence[str]] = None,
+    score: Optional[int] = None,
+) -> Callable[[StrategyFunc], "Strategy"]:
     """Registers a strategy"""
-    if interfaces is None:
+
+    if not interfaces:
         raise TypeError("interfaces is required")
 
-    if name is None:
-        if len(interfaces) != 1:
-            raise RuntimeError("%r requires a name" % id)
-        name = interfaces[0]
+    name = interfaces[0]
 
     if id is not None:
         if ids is not None:
             raise TypeError("id and ids given")
         ids = [id]
 
-    def decorator(f):
+    if not ids:
+        raise TypeError("neither id nor ids given")
+
+    def decorator(f: StrategyFunc) -> Strategy:
+        assert interfaces
+        assert ids
+
         for id in ids:
             STRATEGIES[id] = rv = Strategy(
                 id=id, name=name, interfaces=interfaces, score=score, func=f
             )
+
         return rv
 
     return decorator
 
 
 class GroupingContext:
-    def __init__(self, strategy_config):
+    def __init__(self, strategy_config: "StrategyConfiguration"):
         self._stack = [strategy_config.initial_context]
         self.config = strategy_config
         self.push()
         self["variant"] = None
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: str, value: ContextValue) -> None:
         self._stack[-1][key] = value
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str) -> ContextValue:
         for d in reversed(self._stack):
             if key in d:
                 return d[key]
         raise KeyError(key)
 
-    def __enter__(self):
+    def __enter__(self) -> "GroupingContext":
         self.push()
         return self
 
-    def __exit__(self, exc_type, exc_value, tb):
+    def __exit__(self, exc_type: Type[Exception], exc_value: Exception, tb: Any) -> None:
         self.pop()
 
-    def push(self):
+    def push(self) -> None:
         self._stack.append({})
 
-    def pop(self):
+    def pop(self) -> None:
         self._stack.pop()
 
-    def get_grouping_component(self, interface, *args, **kwargs):
+    def get_grouping_component(
+        self, interface: Interface, *args: Any, **kwargs: Any
+    ) -> Union[GroupingComponent, ReturnedVariants]:
         """Invokes a delegate grouping strategy.  If no such delegate is
         configured a fallback grouping component is returned.
         """
@@ -77,7 +104,10 @@ class GroupingContext:
             raise RuntimeError(f"failed to dispatch interface {path} to strategy")
 
         kwargs["context"] = self
-        rv = strategy(interface, *args, **kwargs)
+        with sentry_sdk.start_span(
+            op="sentry.grouping.GroupingContext.get_grouping_component", description=path
+        ):
+            rv = strategy(interface, *args, **kwargs)
         assert isinstance(rv, dict)
 
         if self["variant"] is not None:
@@ -87,7 +117,7 @@ class GroupingContext:
         return rv
 
 
-def lookup_strategy(strategy_id):
+def lookup_strategy(strategy_id: str) -> "Strategy":
     """Looks up a strategy by id."""
     try:
         return STRATEGIES[strategy_id]
@@ -95,48 +125,48 @@ def lookup_strategy(strategy_id):
         raise LookupError("Unknown strategy %r" % strategy_id)
 
 
-def flatten_variants_from_component(component):
-    """Given a component extracts variants from it if that component is
-    a variant provider.  Otherwise this just returns the root component.
-    """
-    if not component.variant_provider:
-        return {component.id: component}
-    return {c.id: c for c in component.values}
-
-
 class Strategy:
     """Baseclass for all strategies."""
 
-    def __init__(self, id, name, interfaces, score, func):
+    def __init__(
+        self,
+        id: str,
+        name: str,
+        interfaces: Sequence[str],
+        score: Optional[int],
+        func: StrategyFunc,
+    ):
         self.id = id
         self.strategy_class = id.split(":", 1)[0]
         self.name = name
         self.interfaces = interfaces
         self.score = score
         self.func = func
-        self.variant_processor_func = None
+        self.variant_processor_func: Optional[StrategyFunc] = None
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<{self.__class__.__name__} id={self.id!r}>"
 
-    def _invoke(self, func, *args, **kwargs):
+    def _invoke(self, func: StrategyFunc, *args: Any, **kwargs: Any) -> ReturnedVariants:
         # We forcefully override strategy here.  This lets a strategy
         # function always access its metadata and directly forward it to
         # subcomponents without having to filter out strategy.
         kwargs["strategy"] = self
         return func(*args, **kwargs)
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args: Any, **kwargs: Any) -> ReturnedVariants:
         return self._invoke(self.func, *args, **kwargs)
 
-    def variant_processor(self, func):
+    def variant_processor(self, func: StrategyFunc) -> StrategyFunc:
         """Registers a variant reducer function that can be used to postprocess
         all variants created from this strategy.
         """
         self.variant_processor_func = func
         return func
 
-    def get_grouping_component(self, event, context, variant=None):
+    def get_grouping_component(
+        self, event: Event, context: GroupingContext, variant: Optional[str] = None
+    ) -> Optional[ReturnedVariants]:
         """Given a specific variant this calculates the grouping component."""
         args = []
         for iface_path in self.interfaces:
@@ -150,7 +180,9 @@ class Strategy:
                 context["variant"] = variant
             return self(event=event, context=context, *args)
 
-    def get_grouping_component_variants(self, event, context):
+    def get_grouping_component_variants(
+        self, event: Event, context: GroupingContext
+    ) -> ReturnedVariants:
         """This returns a dictionary of all components by variant that this
         strategy can produce.
         """
@@ -218,59 +250,59 @@ class Strategy:
 
 
 class StrategyConfiguration:
-    id = None
-    base = None
+    id: Optional[str] = None
+    base: Optional[Type["StrategyConfiguration"]] = None
     config_class = None
-    strategies = {}
-    delegates = {}
-    changelog = None
+    strategies: Dict[str, Strategy] = {}
+    delegates: Dict[str, Strategy] = {}
+    changelog: Optional[str] = None
     hidden = False
     risk = RISK_LEVEL_LOW
-    initial_context = {}
-    enhancements_base: str = DEFAULT_GROUPING_ENHANCEMENTS_BASE
+    initial_context: ContextDict = {}
+    enhancements_base: Optional[str] = DEFAULT_GROUPING_ENHANCEMENTS_BASE
 
-    def __init__(self, enhancements=None, **extra):
+    def __init__(self, enhancements: Optional[str] = None, **extra: Any):
         if enhancements is None:
-            enhancements = Enhancements([])
+            enhancements_instance = Enhancements([])
         else:
-            enhancements = Enhancements.loads(enhancements)
-        self.enhancements = enhancements
+            enhancements_instance = Enhancements.loads(enhancements)
+        self.enhancements = enhancements_instance
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<{self.__class__.__name__} {self.id!r}>"
 
-    def iter_strategies(self):
+    def iter_strategies(self) -> Iterator[Strategy]:
         """Iterates over all strategies by highest score to lowest."""
-        return iter(sorted(self.strategies.values(), key=lambda x: -x.score))
+        return iter(sorted(self.strategies.values(), key=lambda x: x.score and -x.score or 0))
 
     @classmethod
-    def as_dict(self):
+    def as_dict(cls) -> Dict[str, Any]:
         return {
-            "id": self.id,
-            "base": self.base.id if self.base else None,
-            "strategies": sorted(self.strategies),
-            "changelog": self.changelog,
-            "delegates": sorted(x.id for x in self.delegates.values()),
-            "hidden": self.hidden,
-            "risk": self.risk,
+            "id": cls.id,
+            "base": cls.base.id if cls.base else None,
+            "strategies": sorted(cls.strategies),
+            "changelog": cls.changelog,
+            "delegates": sorted(x.id for x in cls.delegates.values()),
+            "hidden": cls.hidden,
+            "risk": cls.risk,
             "latest": projectoptions.lookup_well_known_key("sentry:grouping_config").get_default(
                 epoch=projectoptions.LATEST_EPOCH
             )
-            == self.id,
+            == cls.id,
         }
 
 
 def create_strategy_configuration(
-    id,
-    strategies=None,
-    delegates=None,
-    changelog=None,
-    hidden=False,
-    base=None,
-    risk=None,
-    initial_context=None,
-    enhancements_base=None,
-):
+    id: str,
+    strategies: Optional[Sequence[str]] = None,
+    delegates: Optional[Sequence[str]] = None,
+    changelog: Optional[str] = None,
+    hidden: bool = False,
+    base: Optional[Type[StrategyConfiguration]] = None,
+    risk: Optional[Risk] = None,
+    initial_context: Optional[ContextDict] = None,
+    enhancements_base: Optional[str] = None,
+) -> Type[StrategyConfiguration]:
     """Declares a new strategy configuration.
 
     Values can be inherited from a base configuration.  For strategies if there is
@@ -295,7 +327,7 @@ def create_strategy_configuration(
     NewStrategyConfiguration.risk = risk
     NewStrategyConfiguration.hidden = hidden
 
-    by_class = {}
+    by_class: Dict[str, List[str]] = {}
     for strategy in NewStrategyConfiguration.strategies.values():
         by_class.setdefault(strategy.strategy_class, []).append(strategy.id)
 
@@ -330,7 +362,7 @@ def create_strategy_configuration(
     return NewStrategyConfiguration
 
 
-def produces_variants(variants):
+def produces_variants(variants: Sequence[str]) -> Callable[[StrategyFunc], StrategyFunc]:
     """
     A grouping strategy can either:
 
@@ -360,8 +392,8 @@ def produces_variants(variants):
         @produces_variants(["!system", "app"])
     """
 
-    def decorator(f):
-        def inner(*args, **kwargs):
+    def decorator(f: StrategyFunc) -> StrategyFunc:
+        def inner(*args: Any, **kwargs: Any) -> ReturnedVariants:
             return call_with_variants(f, variants, *args, **kwargs)
 
         return inner
@@ -369,7 +401,9 @@ def produces_variants(variants):
     return decorator
 
 
-def call_with_variants(f, variants, *args, **kwargs):
+def call_with_variants(
+    f: StrategyFunc, variants: Sequence[str], *args: Any, **kwargs: Any
+) -> ReturnedVariants:
     context = kwargs["context"]
     if context["variant"] is not None:
         # For the case where the variant is already determined, we act as a
@@ -385,9 +419,9 @@ def call_with_variants(f, variants, *args, **kwargs):
     for variant in variants:
         with context:
             context["variant"] = variant.lstrip("!")
-            variants = f(*args, **kwargs)
-            assert len(variants) == 1
-            component = variants[variant.lstrip("!")]
+            rv_variants = f(*args, **kwargs)
+            assert len(rv_variants) == 1
+            component = rv_variants[variant.lstrip("!")]
 
         if component is None:
             continue

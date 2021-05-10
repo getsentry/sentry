@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import {RouteComponentProps, withRouter} from 'react-router';
 import styled from '@emotion/styled';
 import QRCode from 'qrcode.react';
@@ -11,6 +11,7 @@ import {
 import {openRecoveryOptions} from 'app/actionCreators/modal';
 import {fetchOrganizationByMember} from 'app/actionCreators/organizations';
 import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
 import CircleIndicator from 'app/components/circleIndicator';
 import {PanelItem} from 'app/components/panels';
 import U2fsign from 'app/components/u2f/u2fsign';
@@ -68,9 +69,9 @@ const getFields = ({
   if (authenticator.id === 'totp') {
     return [
       () => (
-        <PanelItem key="qrcode" justifyContent="center" p={2}>
+        <CodeContainer key="qrcode">
           <StyledQRCode value={authenticator.qrcode} size={228} />
-        </PanelItem>
+        </CodeContainer>
       ),
       () => (
         <Field key="secret" label={t('Authenticator secret')}>
@@ -79,11 +80,11 @@ const getFields = ({
       ),
       ...form,
       () => (
-        <PanelItem key="confirm" justifyContent="flex-end" p={2}>
+        <Actions key="confirm">
           <Button priority="primary" type="submit">
             {t('Confirm')}
           </Button>
-        </PanelItem>
+        </Actions>
       ),
     ];
   }
@@ -96,16 +97,14 @@ const getFields = ({
       {...form[0], disabled: sendingCode || hasSentCode},
       ...(hasSentCode ? [{...form[1], required: true}] : []),
       () => (
-        <PanelItem key="sms-footer" justifyContent="flex-end" p={2} pr="36px">
-          {hasSentCode && (
-            <Button css={{marginRight: 6}} onClick={onSmsReset}>
-              {t('Start Over')}
+        <Actions key="sms-footer">
+          <ButtonBar gap={1}>
+            {hasSentCode && <Button onClick={onSmsReset}>{t('Start Over')}</Button>}
+            <Button priority="primary" type="submit">
+              {hasSentCode ? t('Confirm') : t('Send Code')}
             </Button>
-          )}
-          <Button priority="primary" type="submit">
-            {hasSentCode ? t('Confirm') : t('Send Code')}
-          </Button>
-        </PanelItem>
+          </ButtonBar>
+        </Actions>
       ),
     ];
   }
@@ -380,13 +379,13 @@ class AccountSecurityEnroll extends AsyncView<Props, State> {
       : {};
 
     return (
-      <React.Fragment>
+      <Fragment>
         <SettingsPageHeader
           title={
-            <React.Fragment>
+            <Fragment>
               <span>{authenticator.name}</span>
               <CircleIndicator css={{marginLeft: 6}} enabled={authenticator.isEnrolled} />
-            </React.Fragment>
+            </Fragment>
           }
           action={
             authenticator.isEnrolled &&
@@ -412,10 +411,18 @@ class AccountSecurityEnroll extends AsyncView<Props, State> {
             <JsonForm forms={[{title: 'Configuration', fields: fields ?? []}]} />
           </Form>
         )}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }
+
+const CodeContainer = styled(PanelItem)`
+  justify-content: center;
+`;
+
+const Actions = styled(PanelItem)`
+  justify-content: flex-end;
+`;
 
 const StyledQRCode = styled(QRCode)`
   background: white;

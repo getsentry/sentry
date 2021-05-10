@@ -1,6 +1,5 @@
-from sentry.models import ExternalTeam
+from sentry.models import ExternalActor
 from sentry.testutils import APITestCase
-from sentry.types.integrations import ExternalProviders
 
 
 class ExternalTeamDetailsTest(APITestCase):
@@ -10,21 +9,20 @@ class ExternalTeamDetailsTest(APITestCase):
     def setUp(self):
         super().setUp()
         self.login_as(self.user)
-        self.external_team = ExternalTeam.objects.create(
-            team_id=str(self.team.id),
-            provider=ExternalProviders.GITHUB.value,
-            external_name="@getsentry/ecosystem",
+
+        self.external_team = self.create_external_team(
+            self.team, external_name="@getsentry/ecosystem"
         )
 
     def test_basic_delete(self):
-        with self.feature({"organizations:import-codeowners": True}):
+        with self.feature({"organizations:integrations-codeowners": True}):
             self.get_success_response(
                 self.organization.slug, self.team.slug, self.external_team.id, method="delete"
             )
-        assert not ExternalTeam.objects.filter(id=str(self.external_team.id)).exists()
+        assert not ExternalActor.objects.filter(id=str(self.external_team.id)).exists()
 
     def test_basic_update(self):
-        with self.feature({"organizations:import-codeowners": True}):
+        with self.feature({"organizations:integrations-codeowners": True}):
             data = {"externalName": "@getsentry/growth"}
             response = self.get_success_response(
                 self.organization.slug, self.team.slug, self.external_team.id, **data
@@ -35,7 +33,7 @@ class ExternalTeamDetailsTest(APITestCase):
 
     def test_invalid_provider_update(self):
         data = {"provider": "git"}
-        with self.feature({"organizations:import-codeowners": True}):
+        with self.feature({"organizations:integrations-codeowners": True}):
             response = self.get_error_response(
                 self.organization.slug,
                 self.team.slug,

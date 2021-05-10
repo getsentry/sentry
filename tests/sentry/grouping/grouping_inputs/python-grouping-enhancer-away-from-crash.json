@@ -1,6 +1,5 @@
 {
   "_grouping": {
-    "enhancement_base": "common:2019-03-23",
     "enhancements": "path:**/release_webhook.py v-group"
   },
   "culprit": "/api/hooks/release/{plugin_id}/{project_id}/{signature}/",

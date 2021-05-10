@@ -1,5 +1,5 @@
-import React from 'react';
-import {ClassNames} from '@emotion/core';
+import * as React from 'react';
+import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import GuideAnchor from 'app/components/assistant/guideAnchor';

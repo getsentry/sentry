@@ -1,3 +1,5 @@
+import {AvatarProject} from 'app/types';
+
 const platforms = [
   'dotnet',
   'android',
@@ -39,18 +41,32 @@ function validDocPlatform(platform: any): platform is DocPlatform {
   return platforms.includes(platform);
 }
 
-export function getDocsPlatform(platform: string, performanceOnly: boolean): DocPlatform {
+export function getDocsPlatform(
+  platform: string,
+  performanceOnly: boolean
+): DocPlatform | null {
   // react-native is the only platform that has a dash, and supports performance so we can skip that check
   if (platform === 'react-native') {
     return 'react-native';
   }
-  const prefix = platform.substring(0, platform.indexOf('-'));
+  const index = platform.indexOf('-');
+  const prefix = index >= 0 ? platform.substring(0, index) : platform;
   if (validDocPlatform(prefix)) {
     const validPerformancePrefix = performancePlatforms.includes(prefix);
     if ((performanceOnly && validPerformancePrefix) || !performanceOnly) {
       return prefix;
     }
   }
-  // If all else fails return the most popular platform
-  return 'javascript';
+  // can't find a matching docs platform
+  return null;
+}
+
+export function getConfigureTracingDocsLink(
+  project: AvatarProject | undefined
+): string | null {
+  const platform = project?.platform ?? null;
+  const docsPlatform = platform ? getDocsPlatform(platform, true) : null;
+  return docsPlatform === null
+    ? null // this platform does not support performance
+    : `https://docs.sentry.io/platforms/${docsPlatform}/performance/`;
 }

@@ -1,6 +1,5 @@
-from typing import Any
-
 from rest_framework import status
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
@@ -9,10 +8,10 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.notification_setting import NotificationSettingsSerializer
 from sentry.api.validators.notifications import validate, validate_type_option
-from sentry.models.notificationsetting import NotificationSetting
+from sentry.models import NotificationSetting, User
 
 
-def validate_has_feature(user: Any) -> None:
+def validate_has_feature(user: User) -> None:
     if not any(
         [
             features.has("organizations:notification-platform", organization, actor=user)
@@ -31,7 +30,7 @@ class UserNotificationSettingsDetailsEndpoint(UserEndpoint):
      be able to translate legacy values from UserOptions.
     """
 
-    def get(self, request: Any, user: Any) -> Response:
+    def get(self, request: Request, user: User) -> Response:
         """
         Get the Notification Settings for a given User.
         ````````````````````````````````
@@ -53,7 +52,7 @@ class UserNotificationSettingsDetailsEndpoint(UserEndpoint):
             ),
         )
 
-    def put(self, request: Any, user: Any) -> Response:
+    def put(self, request: Request, user: User) -> Response:
         """
         Update the Notification Settings for a given User.
         ````````````````````````````````
@@ -89,7 +88,8 @@ class UserNotificationSettingsDetailsEndpoint(UserEndpoint):
         :auth required:
         """
         validate_has_feature(user)
-        notification_settings = validate(request.data)
-        NotificationSetting.objects.update_settings_bulk(notification_settings, user=user)
+
+        notification_settings = validate(request.data, user=user)
+        NotificationSetting.objects.update_settings_bulk(notification_settings, user.actor_id)
 
         return Response(status=status.HTTP_204_NO_CONTENT)

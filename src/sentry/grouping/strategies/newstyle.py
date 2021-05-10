@@ -1,7 +1,9 @@
 import re
+from typing import Any, Dict, List
 
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.strategies.base import call_with_variants, strategy
+from sentry.grouping.strategies.hierarchical import get_stacktrace_hierarchy
 from sentry.grouping.strategies.message import trim_message_for_grouping
 from sentry.grouping.strategies.similarity_encoders import ident_encoder, text_shingle_encoder
 from sentry.grouping.strategies.utils import has_url_origin, remove_non_stacktrace_variants
@@ -57,6 +59,17 @@ def is_recursion_v1(frame1, frame2):
             return False
 
     return True
+
+
+def get_package_component(package, platform):
+    if package is None or platform != "native":
+        return GroupingComponent(id="package")
+
+    package = _basename_re.split(package)[-1].lower()
+    package_component = GroupingComponent(
+        id="package", values=[package], similarity_encoder=ident_encoder
+    )
+    return package_component
 
 
 def get_filename_component(abs_path, filename, platform, allow_file_origin=False):
@@ -203,6 +216,14 @@ def get_function_component(
             new_function = trim_function_name(func, platform, normalize_lambdas=False)
             if new_function != func:
                 function_component.update(values=[new_function], hint="isolated function")
+                func = new_function
+
+        if context["native_fuzzing"]:
+            # Normalize macOS/llvm anonymous namespaces to
+            # Windows-like/msvc
+            new_function = func.replace("(anonymous namespace)", "`anonymous namespace'")
+            if new_function != func:
+                function_component.update(values=[new_function])
 
     elif context["javascript_fuzzing"] and behavior_family == "javascript":
         # This changes Object.foo or Foo.foo into foo so that we can
@@ -274,6 +295,38 @@ def frame(frame, event, context, **meta):
     values = [module_component, filename_component, function_component]
     if context_line_component is not None:
         values.append(context_line_component)
+
+    if (
+        context["discard_native_filename"]
+        and get_behavior_family_for_platform(platform) == "native"
+        and function_component.contributes
+        and filename_component.contributes
+    ):
+        # In native, function names usually describe a full namespace. Adding
+        # the filename there just brings extra instability into grouping.
+        filename_component.update(
+            contributes=False, hint="discarded native filename for grouping stability"
+        )
+
+    if context["use_package_fallback"] and frame.package:
+        # If function did not symbolicate properly and we also have no filename, use package as fallback.
+        package_component = get_package_component(package=frame.package, platform=platform)
+        if package_component.contributes:
+            use_package_component = all(not component.contributes for component in values)
+
+            if use_package_component:
+                package_component.update(
+                    hint="used as fallback because function name is not available"
+                )
+            else:
+                package_component.update(
+                    contributes=False, hint="ignored because function takes precedence"
+                )
+
+            if package_component.values and context["hierarchical_grouping"]:
+                package_component.update(tree_label=package_component.values[0])
+
+            values.append(package_component)
 
     rv = GroupingComponent(id="frame", values=values)
 
@@ -348,51 +401,14 @@ def stacktrace(stacktrace, context, **meta):
     assert context["variant"] is None
 
     if context["hierarchical_grouping"]:
-        rv = call_with_variants(
-            _single_stacktrace_variant,
-            # when app hash is equal to system hash, we do not want to stop it
-            # from contributing as it will become a hierarchical hash when
-            # renamed to app-depth-max. Therefore we must not make system a
-            # mandatory variant ('system' instead of '!system')
-            ["system", "app"],
-            stacktrace,
-            context=context,
-            meta=meta,
-        )
-
-        full_stacktrace = rv.pop("app")
-        rv["app-depth-max"] = full_stacktrace
-
-        for max_frames in range(1, 6):
-            stacktrace = full_stacktrace.shallow_copy()
-            new_values = []
-            ignored_frames = 0
-
-            # cannot update contributes here as this copy is shallow.
-            # instead, trim down list
-            for component in reversed(stacktrace.values):
-                if not component.contributes:
-                    continue
-
-                if len(new_values) < max_frames:
-                    new_values.append(component)
-                else:
-                    ignored_frames += 1
-
-            if not new_values or not ignored_frames:
-                break
-
-            new_values.reverse()
-            stacktrace.update(values=new_values)
-
-            rv[f"app-depth-{max_frames}"] = stacktrace
+        with context:
+            context["variant"] = "system"
+            return _single_stacktrace_variant(stacktrace, context=context, meta=meta)
 
     else:
-        rv = call_with_variants(
+        return call_with_variants(
             _single_stacktrace_variant, ["!system", "app"], stacktrace, context=context, meta=meta
         )
-
-    return rv
 
 
 def _single_stacktrace_variant(stacktrace, context, meta):
@@ -407,7 +423,7 @@ def _single_stacktrace_variant(stacktrace, context, meta):
         with context:
             context["is_recursion"] = is_recursion_v1(frame, prev_frame)
             frame_component = context.get_grouping_component(frame, **meta)
-        if variant == "app" and not frame.in_app:
+        if not context["hierarchical_grouping"] and variant == "app" and not frame.in_app:
             frame_component.update(contributes=False, hint="non app frame")
         values.append(frame_component)
         frames_for_filtering.append(frame.get_raw_data())
@@ -426,14 +442,30 @@ def _single_stacktrace_variant(stacktrace, context, meta):
     ):
         values[0].update(contributes=False, hint="ignored single non-URL JavaScript frame")
 
-    return {
-        variant: context.config.enhancements.assemble_stacktrace_component(
-            values,
-            frames_for_filtering,
-            meta["event"].platform,
-            similarity_self_encoder=_stacktrace_encoder,
-        )
-    }
+    main_variant, inverted_hierarchy = context.config.enhancements.assemble_stacktrace_component(
+        values,
+        frames_for_filtering,
+        meta["event"].platform,
+        exception_data=context["exception_data"],
+        similarity_self_encoder=_stacktrace_encoder,
+    )
+
+    if inverted_hierarchy is None:
+        inverted_hierarchy = stacktrace.snapshot
+
+    inverted_hierarchy = bool(inverted_hierarchy)
+
+    if not context["hierarchical_grouping"]:
+        return {variant: main_variant}
+
+    all_variants = get_stacktrace_hierarchy(
+        main_variant, values, frames_for_filtering, inverted_hierarchy
+    )
+
+    # done for backwards compat to find old groups
+    all_variants["system"] = main_variant
+
+    return all_variants
 
 
 @stacktrace.variant_processor
@@ -497,7 +529,9 @@ def single_exception(exception, context, **meta):
             )
 
     if exception.stacktrace is not None:
-        stacktrace_variants = context.get_grouping_component(exception.stacktrace, **meta)
+        with context:
+            context["exception_data"] = exception.to_json()
+            stacktrace_variants = context.get_grouping_component(exception.stacktrace, **meta)
     else:
         stacktrace_variants = {
             "app": GroupingComponent(id="stacktrace"),
@@ -578,17 +612,40 @@ def chained_exception_variant_processor(variants, context, **meta):
 
 @strategy(id="threads:v1", interfaces=["threads"], score=1900)
 def threads(threads_interface, context, **meta):
-    thread_count = len(threads_interface.values)
-    if thread_count != 1:
-        return {
-            "app": GroupingComponent(
-                id="threads",
-                contributes=False,
-                hint="ignored because contains %d threads" % thread_count,
-            )
-        }
+    thread_variants = _filtered_threads(
+        [thread for thread in threads_interface.values if thread.get("crashed")], context, meta
+    )
+    if thread_variants is not None:
+        return thread_variants
 
-    stacktrace = threads_interface.values[0].get("stacktrace")
+    thread_variants = _filtered_threads(
+        [thread for thread in threads_interface.values if thread.get("current")], context, meta
+    )
+    if thread_variants is not None:
+        return thread_variants
+
+    thread_variants = _filtered_threads(threads_interface.values, context, meta)
+    if thread_variants is not None:
+        return thread_variants
+
+    return {
+        "app": GroupingComponent(
+            id="threads",
+            contributes=False,
+            hint=(
+                "ignored because does not contain exactly one crashing, "
+                "one current or just one thread, instead contains %s threads"
+                % len(threads_interface.values)
+            ),
+        )
+    }
+
+
+def _filtered_threads(threads: List[Dict[str, Any]], context, meta):
+    if len(threads) != 1:
+        return None
+
+    stacktrace = threads[0].get("stacktrace")
     if not stacktrace:
         return {
             "app": GroupingComponent(

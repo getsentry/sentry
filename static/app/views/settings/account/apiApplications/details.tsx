@@ -1,4 +1,3 @@
-import React from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
@@ -44,7 +43,7 @@ class ApiApplicationsDetails extends AsyncView<Props, State> {
           initialData={this.state.app}
           onSubmitError={() => addErrorMessage('Unable to save change')}
         >
-          <JsonForm location={this.props.location} forms={apiApplication} />
+          <JsonForm forms={apiApplication} />
 
           <Panel>
             <PanelHeader>{t('Credentials')}</PanelHeader>

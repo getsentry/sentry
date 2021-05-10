@@ -1,7 +1,7 @@
 from hashlib import sha1
 
 from django.core.files.base import ContentFile
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
 from sentry.models import ApiToken, FileBlob, FileBlobOwner
 from sentry.tasks.assemble import ChunkFileState, assemble_artifacts
@@ -55,7 +55,7 @@ class OrganizationReleaseAssembleTest(APITestCase):
         total_checksum = sha1(bundle_file).hexdigest()
 
         blob1 = FileBlob.from_file(ContentFile(bundle_file))
-        FileBlobOwner.objects.get_or_create(organization=self.organization, blob=blob1)
+        FileBlobOwner.objects.get_or_create(organization_id=self.organization.id, blob=blob1)
 
         response = self.client.post(
             self.url,

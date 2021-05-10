@@ -1,9 +1,8 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import Feature from 'app/components/acl/feature';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import SearchBar from 'app/components/events/searchBar';
 import {MAX_QUERY_LENGTH} from 'app/constants';
@@ -52,18 +51,7 @@ type Props = {
 } & WithRouterProps;
 
 type State = {};
-class LandingContent extends React.Component<Props, State> {
-  componentDidMount() {
-    const {organization} = this.props;
-    trackAnalyticsEvent({
-      eventKey: 'performance_views.landingv2.content',
-      eventName: 'Performance Views: Landing V2 Content',
-      organization_id: parseInt(organization.id, 10),
-    });
-  }
-
-  _haveTrackedLandingV2?: boolean;
-
+class LandingContent extends Component<Props, State> {
   getSummaryConditions(query: string) {
     const parsed = tokenizeSearch(query);
     parsed.query = [];
@@ -101,60 +89,6 @@ class LandingContent extends React.Component<Props, State> {
     });
   };
 
-  renderLandingV2() {
-    const {organization, location, eventView, projects, handleSearch} = this.props;
-
-    if (!this._haveTrackedLandingV2) {
-      trackAnalyticsEvent({
-        eventKey: 'performance_views.landingv2.new_landing',
-        eventName: 'Performance Views: Landing V2 New Landing',
-        organization_id: parseInt(organization.id, 10),
-      });
-      this._haveTrackedLandingV2 = true;
-    }
-
-    const currentLandingDisplay = getCurrentLandingDisplay(location, projects, eventView);
-    const filterString = getTransactionSearchQuery(location, eventView.query);
-
-    return (
-      <React.Fragment>
-        <SearchContainer>
-          <StyledSearchBar
-            organization={organization}
-            projectIds={eventView.project}
-            query={filterString}
-            fields={generateAggregateFields(
-              organization,
-              [...eventView.fields, {field: 'tps()'}],
-              ['epm()', 'eps()']
-            )}
-            onSearch={handleSearch}
-            maxQueryLength={MAX_QUERY_LENGTH}
-          />
-          <ProjectTypeDropdown>
-            <DropdownControl
-              buttonProps={{prefix: t('Display')}}
-              label={currentLandingDisplay.label}
-            >
-              {LANDING_DISPLAYS.map(({label, field}) => (
-                <DropdownItem
-                  key={field}
-                  onSelect={this.handleLandingDisplayChange}
-                  eventKey={field}
-                  data-test-id={field}
-                  isActive={field === currentLandingDisplay.field}
-                >
-                  {label}
-                </DropdownItem>
-              ))}
-            </DropdownControl>
-          </ProjectTypeDropdown>
-        </SearchContainer>
-        {this.renderSelectedDisplay(currentLandingDisplay.field)}
-      </React.Fragment>
-    );
-  }
-
   renderSelectedDisplay(display) {
     switch (display) {
       case LandingDisplayField.ALL:
@@ -183,7 +117,7 @@ class LandingContent extends React.Component<Props, State> {
     const {leftAxis, rightAxis} = getDisplayAxes(axisOptions, location);
 
     return (
-      <React.Fragment>
+      <Fragment>
         {isPageload && (
           <FrontendCards
             eventView={eventView}
@@ -209,7 +143,7 @@ class LandingContent extends React.Component<Props, State> {
           summaryConditions={eventView.getQueryWithAdditionalConditions()}
           columnTitles={columnTitles}
         />
-      </React.Fragment>
+      </Fragment>
     );
   };
 
@@ -222,7 +156,7 @@ class LandingContent extends React.Component<Props, State> {
     const columnTitles = BACKEND_COLUMN_TITLES;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <BackendCards
           eventView={eventView}
           organization={organization}
@@ -245,7 +179,7 @@ class LandingContent extends React.Component<Props, State> {
           summaryConditions={eventView.getQueryWithAdditionalConditions()}
           columnTitles={columnTitles}
         />
-      </React.Fragment>
+      </Fragment>
     );
   };
 
@@ -253,7 +187,7 @@ class LandingContent extends React.Component<Props, State> {
     const {organization, location, router, projects, eventView, setError} = this.props;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Charts
           eventView={eventView}
           organization={organization}
@@ -268,76 +202,50 @@ class LandingContent extends React.Component<Props, State> {
           setError={setError}
           summaryConditions={eventView.getQueryWithAdditionalConditions()}
         />
-      </React.Fragment>
-    );
-  };
-
-  renderLandingV1 = () => {
-    const {
-      organization,
-      location,
-      router,
-      projects,
-      eventView,
-      setError,
-      handleSearch,
-    } = this.props;
-
-    const filterString = getTransactionSearchQuery(location, eventView.query);
-    const summaryConditions = this.getSummaryConditions(filterString);
-
-    return (
-      <React.Fragment>
-        <StyledSearchBar
-          organization={organization}
-          projectIds={eventView.project}
-          query={filterString}
-          fields={generateAggregateFields(
-            organization,
-            [...eventView.fields, {field: 'tps()'}],
-            ['epm()', 'eps()']
-          )}
-          onSearch={handleSearch}
-          maxQueryLength={MAX_QUERY_LENGTH}
-        />
-        <Feature features={['performance-vitals-overview']}>
-          <FrontendCards
-            eventView={eventView}
-            organization={organization}
-            location={location}
-            projects={projects}
-            frontendOnly
-          />
-        </Feature>
-        <Charts
-          eventView={eventView}
-          organization={organization}
-          location={location}
-          router={router}
-        />
-        <Table
-          eventView={eventView}
-          projects={projects}
-          organization={organization}
-          location={location}
-          setError={setError}
-          summaryConditions={summaryConditions}
-        />
-      </React.Fragment>
+      </Fragment>
     );
   };
 
   render() {
-    const {organization} = this.props;
+    const {organization, location, eventView, projects, handleSearch} = this.props;
+
+    const currentLandingDisplay = getCurrentLandingDisplay(location, projects, eventView);
+    const filterString = getTransactionSearchQuery(location, eventView.query);
 
     return (
-      <div>
-        <Feature organization={organization} features={['performance-landing-v2']}>
-          {({hasFeature}) =>
-            hasFeature ? this.renderLandingV2() : this.renderLandingV1()
-          }
-        </Feature>
-      </div>
+      <Fragment>
+        <SearchContainer>
+          <SearchBar
+            organization={organization}
+            projectIds={eventView.project}
+            query={filterString}
+            fields={generateAggregateFields(
+              organization,
+              [...eventView.fields, {field: 'tps()'}],
+              ['epm()', 'eps()']
+            )}
+            onSearch={handleSearch}
+            maxQueryLength={MAX_QUERY_LENGTH}
+          />
+          <DropdownControl
+            buttonProps={{prefix: t('Display')}}
+            label={currentLandingDisplay.label}
+          >
+            {LANDING_DISPLAYS.map(({label, field}) => (
+              <DropdownItem
+                key={field}
+                onSelect={this.handleLandingDisplayChange}
+                eventKey={field}
+                data-test-id={field}
+                isActive={field === currentLandingDisplay.field}
+              >
+                {label}
+              </DropdownItem>
+            ))}
+          </DropdownControl>
+        </SearchContainer>
+        {this.renderSelectedDisplay(currentLandingDisplay.field)}
+      </Fragment>
     );
   }
 }
@@ -345,14 +253,7 @@ class LandingContent extends React.Component<Props, State> {
 const SearchContainer = styled('div')`
   display: grid;
   grid-template-columns: 1fr min-content;
-`;
-
-const ProjectTypeDropdown = styled('div')`
-  margin-left: ${space(1)};
-`;
-
-const StyledSearchBar = styled(SearchBar)`
-  flex-grow: 1;
+  grid-gap: ${space(2)};
   margin-bottom: ${space(2)};
 `;
 

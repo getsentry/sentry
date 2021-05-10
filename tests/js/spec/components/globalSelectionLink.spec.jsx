@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import GlobalSelectionLink from 'app/components/globalSelectionLink';
@@ -14,14 +12,9 @@ describe('GlobalSelectionLink', function () {
     };
 
     const wrapper = mountWithTheme(
-      <GlobalSelectionLink to={path}>Go somewhere!</GlobalSelectionLink>,
-      {
-        context: {
-          location: {
-            query,
-          },
-        },
-      }
+      <GlobalSelectionLink location={{query}} to={path}>
+        Go somewhere!
+      </GlobalSelectionLink>
     );
 
     const updatedToProp = wrapper.find('Link').prop('to');
@@ -33,14 +26,9 @@ describe('GlobalSelectionLink', function () {
 
   it('does not have global selection values in query', function () {
     const wrapper = mountWithTheme(
-      <GlobalSelectionLink to={path}>Go somewhere!</GlobalSelectionLink>,
-      {
-        context: {
-          location: {
-            query: {},
-          },
-        },
-      }
+      <GlobalSelectionLink location={{}} to={path}>
+        Go somewhere!
+      </GlobalSelectionLink>
     );
 
     const updatedToProp = wrapper.find('Link').prop('to');
@@ -57,16 +45,9 @@ describe('GlobalSelectionLink', function () {
     };
     const customQuery = {query: 'something'};
     const wrapper = mountWithTheme(
-      <GlobalSelectionLink to={{pathname: path, query: customQuery}}>
+      <GlobalSelectionLink location={{query}} to={{pathname: path, query: customQuery}}>
         Go somewhere!
-      </GlobalSelectionLink>,
-      {
-        context: {
-          location: {
-            query,
-          },
-        },
-      }
+      </GlobalSelectionLink>
     );
 
     const updatedToProp = wrapper.find('Link').prop('to');
@@ -83,14 +64,9 @@ describe('GlobalSelectionLink', function () {
       environment: 'staging',
     };
     const wrapper = mountWithTheme(
-      <GlobalSelectionLink to={{pathname: path}}>Go somewhere!</GlobalSelectionLink>,
-      {
-        context: {
-          location: {
-            query,
-          },
-        },
-      }
+      <GlobalSelectionLink location={{query}} to={{pathname: path}}>
+        Go somewhere!
+      </GlobalSelectionLink>
     );
 
     const updatedToProp = wrapper.find('Link').prop('to');

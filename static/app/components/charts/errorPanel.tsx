@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 
 const ErrorPanel = styled('div')<{height?: string}>`
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
 

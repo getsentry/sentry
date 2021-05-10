@@ -1,39 +1,15 @@
-import React from 'react';
 import styled from '@emotion/styled';
-import {Flex} from 'reflexbox'; // eslint-disable-line no-restricted-imports
 
 import space from 'app/styles/space';
 import textStyles from 'app/styles/text';
 
-type FlexComponentProps = Omit<React.ComponentPropsWithoutRef<typeof Flex>, 'theme'>;
-
-type Props = FlexComponentProps & {
-  flexible?: boolean;
+type BaseProps = {
   withPadding?: boolean;
-  forwardRef?: React.Ref<HTMLDivElement>;
 };
 
-const PanelBody: React.FunctionComponent<Props> = ({
-  flexible,
-  forwardRef,
-  ...props
-}: Props) => (
-  <FlexBox
-    {...props}
-    ref={forwardRef}
-    {...(flexible ? {flexDirection: 'column'} : null)}
-  />
-);
-
-PanelBody.defaultProps = {
-  flexible: false,
-  withPadding: false,
-};
-
-const FlexBox = styled(Flex)<Props>`
-  ${textStyles};
-  ${p => !p.flexible && 'display: block'};
+const PanelBody = styled('div')<BaseProps>`
   ${p => p.withPadding && `padding: ${space(2)}`};
+  ${textStyles};
 `;
 
 export default PanelBody;

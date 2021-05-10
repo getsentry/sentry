@@ -1,14 +1,14 @@
-import React from 'react';
-import {browserHistory} from 'react-router';
+import * as React from 'react';
 import {Location, LocationDescriptor} from 'history';
 
 import DropdownLink from 'app/components/dropdownLink';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
 import {
   ErrorDestination,
-  generateMultiTransactionsTarget,
   generateSingleErrorTarget,
   generateSingleTransactionTarget,
+  generateTraceTarget,
+  isQuickTraceEvent,
   TransactionDestination,
 } from 'app/components/quickTrace/utils';
 import Tooltip from 'app/components/tooltip';
@@ -34,8 +34,10 @@ const FRONTEND_PLATFORMS: string[] = [...frontend, ...mobile];
 const BACKEND_PLATFORMS: string[] = [...backend, ...serverless];
 
 import {
+  DropdownContainer,
   DropdownItem,
   DropdownItemSubContainer,
+  DropdownMenuHeader,
   ErrorNodeContent,
   EventNode,
   ExternalDropdownLink,
@@ -76,7 +78,7 @@ export default function QuickTrace({
 }: QuickTraceProps) {
   let parsedQuickTrace;
   try {
-    parsedQuickTrace = parseQuickTrace(quickTrace, event);
+    parsedQuickTrace = parseQuickTrace(quickTrace, event, organization);
   } catch (error) {
     return <React.Fragment>{'\u2014'}</React.Fragment>;
   }
@@ -93,6 +95,7 @@ export default function QuickTrace({
         location={location}
         organization={organization}
         events={[root]}
+        currentEvent={event}
         text={t('Root')}
         anchor={anchor}
         nodeKey="root"
@@ -110,13 +113,8 @@ export default function QuickTrace({
         location={location}
         organization={organization}
         events={ancestors}
+        currentEvent={event}
         text={tn('%s Ancestor', '%s Ancestors', ancestors.length)}
-        extrasTarget={generateMultiTransactionsTarget(
-          event,
-          ancestors,
-          organization,
-          'Ancestor'
-        )}
         anchor={anchor}
         nodeKey="ancestors"
         errorDest={errorDest}
@@ -133,6 +131,7 @@ export default function QuickTrace({
         location={location}
         organization={organization}
         events={[parent]}
+        currentEvent={event}
         text={t('Parent')}
         anchor={anchor}
         nodeKey="parent"
@@ -210,13 +209,8 @@ export default function QuickTrace({
         location={location}
         organization={organization}
         events={children}
+        currentEvent={event}
         text={tn('%s Child', '%s Children', children.length)}
-        extrasTarget={generateMultiTransactionsTarget(
-          event,
-          children,
-          organization,
-          'Children'
-        )}
         anchor={anchor}
         nodeKey="children"
         errorDest={errorDest}
@@ -233,13 +227,8 @@ export default function QuickTrace({
         location={location}
         organization={organization}
         events={descendants}
+        currentEvent={event}
         text={tn('%s Descendant', '%s Descendants', descendants.length)}
-        extrasTarget={generateMultiTransactionsTarget(
-          event,
-          descendants,
-          organization,
-          'Descendant'
-        )}
         anchor={anchor}
         nodeKey="descendants"
         errorDest={errorDest}
@@ -261,7 +250,6 @@ function handleNode(key: string, organization: OrganizationSummary) {
 }
 
 function handleDropdownItem(
-  target: LocationDescriptor,
   key: string,
   organization: OrganizationSummary,
   extra: boolean
@@ -272,7 +260,6 @@ function handleDropdownItem(
     organization_id: parseInt(organization.id, 10),
     node_key: key,
   });
-  browserHistory.push(target);
 }
 
 type EventNodeSelectorProps = {
@@ -280,8 +267,7 @@ type EventNodeSelectorProps = {
   organization: OrganizationSummary;
   events: QuickTraceEvent[];
   text: React.ReactNode;
-  currentEvent?: Event;
-  extrasTarget?: LocationDescriptor;
+  currentEvent: Event;
   numEvents?: number;
   anchor: 'left' | 'right';
   nodeKey: keyof typeof TOOLTIP_PREFIX;
@@ -295,29 +281,16 @@ function EventNodeSelector({
   events = [],
   text,
   currentEvent,
-  extrasTarget,
   nodeKey,
   anchor,
   errorDest,
   transactionDest,
   numEvents = 5,
 }: EventNodeSelectorProps) {
-  const errors: TraceError[] = [];
-  events.forEach(e => {
-    e?.errors?.forEach(error => {
-      if (!currentEvent || currentEvent.id !== error.event_id) {
-        errors.push({
-          ...error,
-          transaction: e.transaction,
-        });
-      }
-    });
-  });
-  // Filter out the current event so its not in the dropdown
-  events = currentEvent ? events.filter(e => e.event_id !== currentEvent.id) : events;
+  let errors: TraceError[] = events.flatMap(event => event.errors ?? []);
 
   let type: keyof Theme['tag'] = nodeKey === 'current' ? 'black' : 'white';
-  if (errors.length > 0 || (currentEvent && currentEvent?.type !== 'transaction')) {
+  if (errors.length > 0) {
     type = nodeKey === 'current' ? 'error' : 'warning';
     text = (
       <ErrorNodeContent>
@@ -326,6 +299,10 @@ function EventNodeSelector({
       </ErrorNodeContent>
     );
   }
+
+  // make sure to exclude the current event from the dropdown
+  events = events.filter(event => event.event_id !== currentEvent.id);
+  errors = errors.filter(error => error.event_id !== currentEvent.id);
 
   if (events.length + errors.length === 0) {
     return <EventNode type={type}>{text}</EventNode>;
@@ -371,94 +348,108 @@ function EventNodeSelector({
           : 'errors',
     });
     return (
-      <DropdownLink
-        caret={false}
-        title={<StyledEventNode text={text} hoverText={hoverText} type={type} />}
-        anchorRight={anchor === 'right'}
-      >
-        {errors.slice(0, numEvents).map((error, i) => {
-          const target = generateSingleErrorTarget(
-            error,
-            organization,
-            location,
-            errorDest
-          );
-          return (
-            <DropdownNodeItem
-              key={error.event_id}
-              event={error}
-              onSelect={() => handleDropdownItem(target, nodeKey, organization, false)}
-              first={i === 0}
-              organization={organization}
-              subtext="error"
-              subtextType="error"
-              anchor={anchor}
-            />
-          );
-        })}
-        {events.slice(0, numEvents).map((event, i) => {
-          const target = generateSingleTransactionTarget(
-            event,
-            organization,
-            location,
-            transactionDest
-          );
-          return (
-            <DropdownNodeItem
-              key={event.event_id}
-              event={event}
-              onSelect={() => handleDropdownItem(target, nodeKey, organization, false)}
-              first={i === 0 && errors.length === 0}
-              organization={organization}
-              subtext={getDuration(
-                event['transaction.duration'] / 1000,
-                event['transaction.duration'] < 1000 ? 0 : 2,
-                true
-              )}
-              subtextType="default"
-              anchor={anchor}
-            />
-          );
-        })}
-        {events.length > numEvents && hoverText && extrasTarget && (
-          <DropdownItem
-            onSelect={() => handleDropdownItem(extrasTarget, nodeKey, organization, true)}
-          >
-            {hoverText}
-          </DropdownItem>
-        )}
-      </DropdownLink>
+      <DropdownContainer>
+        <DropdownLink
+          caret={false}
+          title={<StyledEventNode text={text} hoverText={hoverText} type={type} />}
+          anchorRight={anchor === 'right'}
+        >
+          {errors.length > 0 && (
+            <DropdownMenuHeader first>
+              {tn('Related Error', 'Related Errors', errors.length)}
+            </DropdownMenuHeader>
+          )}
+          {errors.slice(0, numEvents).map(error => {
+            const target = generateSingleErrorTarget(
+              error,
+              organization,
+              location,
+              errorDest
+            );
+            return (
+              <DropdownNodeItem
+                key={error.event_id}
+                event={error}
+                to={target}
+                allowDefaultEvent
+                onSelect={() => handleDropdownItem(nodeKey, organization, false)}
+                organization={organization}
+                anchor={anchor}
+              />
+            );
+          })}
+          {events.length > 0 && (
+            <DropdownMenuHeader first={errors.length === 0}>
+              {tn('Transaction', 'Transactions', events.length)}
+            </DropdownMenuHeader>
+          )}
+          {events.slice(0, numEvents).map(event => {
+            const target = generateSingleTransactionTarget(
+              event,
+              organization,
+              location,
+              transactionDest
+            );
+            return (
+              <DropdownNodeItem
+                key={event.event_id}
+                event={event}
+                to={target}
+                onSelect={() => handleDropdownItem(nodeKey, organization, false)}
+                allowDefaultEvent
+                organization={organization}
+                subtext={getDuration(
+                  event['transaction.duration'] / 1000,
+                  event['transaction.duration'] < 1000 ? 0 : 2,
+                  true
+                )}
+                anchor={anchor}
+              />
+            );
+          })}
+          {(errors.length > numEvents || events.length > numEvents) && (
+            <DropdownItem
+              to={generateTraceTarget(currentEvent, organization)}
+              allowDefaultEvent
+              onSelect={() => handleDropdownItem(nodeKey, organization, true)}
+            >
+              {t('View all events')}
+            </DropdownItem>
+          )}
+        </DropdownLink>
+      </DropdownContainer>
     );
   }
 }
 
 type DropdownNodeProps = {
   event: TraceError | QuickTraceEvent;
-  onSelect?: (eventKey: any) => void;
-  first: boolean;
   organization: OrganizationSummary;
-  subtext: string;
-  subtextType: 'error' | 'default';
   anchor: 'left' | 'right';
+  allowDefaultEvent?: boolean;
+  onSelect?: (eventKey: any) => void;
+  to?: LocationDescriptor;
+  subtext?: string;
 };
 
 function DropdownNodeItem({
   event,
   onSelect,
-  first,
+  to,
+  allowDefaultEvent,
   organization,
   subtext,
-  subtextType,
   anchor,
 }: DropdownNodeProps) {
   return (
-    <DropdownItem onSelect={onSelect} first={first}>
+    <DropdownItem to={to} onSelect={onSelect} allowDefaultEvent={allowDefaultEvent}>
       <DropdownItemSubContainer>
         <Projects orgId={organization.slug} slugs={[event.project_slug]}>
           {({projects}) => {
             const project = projects.find(p => p.slug === event.project_slug);
             return (
               <ProjectBadge
+                disableLink
                 hideName
                 project={project ? project : {slug: event.project_slug}}
                 avatarSize={16}
@@ -466,16 +457,25 @@ function DropdownNodeItem({
             );
           }}
         </Projects>
-        <StyledTruncate
-          value={event.transaction}
-          // expand in the opposite direction of the anchor
-          expandDirection={anchor === 'left' ? 'right' : 'left'}
-          maxLength={35}
-          leftTrim
-          trimRegex={/\.|\//g}
-        />
+        {isQuickTraceEvent(event) ? (
+          <StyledTruncate
+            value={event.transaction}
+            // expand in the opposite direction of the anchor
+            expandDirection={anchor === 'left' ? 'right' : 'left'}
+            maxLength={35}
+            leftTrim
+            trimRegex={/\.|\//g}
+          />
+        ) : (
+          <StyledTruncate
+            value={event.title}
+            // expand in the opposite direction of the anchor
+            expandDirection={anchor === 'left' ? 'right' : 'left'}
+            maxLength={45}
+          />
+        )}
       </DropdownItemSubContainer>
-      <SectionSubtext type={subtextType}>{subtext}</SectionSubtext>
+      {subtext && <SectionSubtext>{subtext}</SectionSubtext>}
     </DropdownItem>
   );
 }
@@ -563,32 +563,34 @@ class MissingServiceNode extends React.Component<
 
     const docPlatform = getDocsPlatform(platform, true);
     const docsHref =
-      docPlatform !== 'javascript'
-        ? `https://docs.sentry.io/platforms/${docPlatform}/performance#connecting-services`
-        : 'https://docs.sentry.io/platforms/javascript/performance/connect-services/';
+      docPlatform === null || docPlatform === 'javascript'
+        ? 'https://docs.sentry.io/platforms/javascript/performance/connect-services/'
+        : `https://docs.sentry.io/platforms/${docPlatform}/performance#connecting-services`;
     return (
       <React.Fragment>
         {connectorSide === 'left' && <TraceConnector />}
-        <DropdownLink
-          caret={false}
-          title={
-            <StyledEventNode
-              type="white"
-              hoverText={t('No services connected')}
-              text="???"
-            />
-          }
-          anchorRight={anchor === 'right'}
-        >
-          <DropdownItem first width="small">
-            <ExternalDropdownLink href={docsHref} onClick={this.trackExternalLink}>
-              {t('Connect to a service')}
-            </ExternalDropdownLink>
-          </DropdownItem>
-          <DropdownItem onSelect={this.dismissMissingService} width="small">
-            {t('Dismiss')}
-          </DropdownItem>
-        </DropdownLink>
+        <DropdownContainer>
+          <DropdownLink
+            caret={false}
+            title={
+              <StyledEventNode
+                type="white"
+                hoverText={t('No services connected')}
+                text="???"
+              />
+            }
+            anchorRight={anchor === 'right'}
+          >
+            <DropdownItem width="small">
+              <ExternalDropdownLink href={docsHref} onClick={this.trackExternalLink}>
+                {t('Connect to a service')}
+              </ExternalDropdownLink>
+            </DropdownItem>
+            <DropdownItem onSelect={this.dismissMissingService} width="small">
+              {t('Dismiss')}
+            </DropdownItem>
+          </DropdownLink>
+        </DropdownContainer>
         {connectorSide === 'right' && <TraceConnector />}
       </React.Fragment>
     );

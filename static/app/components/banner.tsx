@@ -1,5 +1,5 @@
-import React from 'react';
-import {css} from '@emotion/core';
+import * as React from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {IconClose} from 'app/icons/iconClose';

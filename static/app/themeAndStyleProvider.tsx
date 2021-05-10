@@ -1,7 +1,7 @@
-import React from 'react';
-import {CacheProvider} from '@emotion/core'; // This is needed to set "speedy" = false (for percy)
-import {cache} from 'emotion'; // eslint-disable-line emotion/no-vanilla
-import {ThemeProvider} from 'emotion-theming';
+import {Component} from 'react';
+import ReactDOM from 'react-dom';
+import {cache} from '@emotion/css'; // eslint-disable-line emotion/no-vanilla
+import {CacheProvider, ThemeProvider} from '@emotion/react'; // This is needed to set "speedy" = false (for percy)
 
 import {loadPreferencesState} from 'app/actionCreators/preferences';
 import ConfigStore from 'app/stores/configStore';
@@ -18,9 +18,9 @@ type State = {
   theme: Theme;
 };
 
-class Main extends React.Component<Props, State> {
-  state = {
-    theme: ConfigStore.get('theme') === 'dark' ? darkTheme : lightTheme,
+class Main extends Component<Props, State> {
+  state: State = {
+    theme: this.themeName === 'dark' ? darkTheme : lightTheme,
   };
 
   componentDidMount() {
@@ -37,14 +37,22 @@ class Main extends React.Component<Props, State> {
     }
   }
 
+  get themeName() {
+    return ConfigStore.get('theme');
+  }
+
   render() {
     return (
-      <ThemeProvider<Theme> theme={this.state.theme}>
+      <ThemeProvider theme={this.state.theme}>
         <GlobalStyles
           isDark={this.props.config.theme === 'dark'}
           theme={this.state.theme}
         />
         <CacheProvider value={cache}>{this.props.children}</CacheProvider>
+        {ReactDOM.createPortal(
+          <meta name="color-scheme" content={this.themeName} />,
+          document.head
+        )}
       </ThemeProvider>
     );
   }

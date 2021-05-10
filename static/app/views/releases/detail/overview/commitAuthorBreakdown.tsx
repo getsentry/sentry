@@ -1,4 +1,3 @@
-import React from 'react';
 import styled from '@emotion/styled';
 
 import AsyncComponent from 'app/components/asyncComponent';
@@ -80,12 +79,12 @@ class CommitAuthorBreakdown extends AsyncComponent<Props, State> {
       <Wrapper>
         <SectionHeading>{t('Commit Author Breakdown')}</SectionHeading>
         <Collapsible
-          expandButton={({onExpand, numberOfCollapsedItems}) => (
+          expandButton={({onExpand, numberOfHiddenItems}) => (
             <Button priority="link" onClick={onExpand}>
               {tn(
                 'Show %s collapsed author',
                 'Show %s collapsed authors',
-                numberOfCollapsedItems
+                numberOfHiddenItems
               )}
             </Button>
           )}

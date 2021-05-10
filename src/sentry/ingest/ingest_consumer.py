@@ -106,6 +106,9 @@ def _do_process_event(message, projects):
     remote_addr = message.get("remote_addr")
     attachments = message.get("attachments") or ()
 
+    sentry_sdk.set_extra("event_id", event_id)
+    sentry_sdk.set_extra("len_attachments", len(attachments))
+
     if project_id == settings.SENTRY_PROJECT:
         metrics.incr("internal.captured.ingest_consumer.unparsed")
 
@@ -159,12 +162,13 @@ def _do_process_event(message, projects):
     cache_key = event_processing_store.store(data)
 
     if attachments:
-        attachment_objects = [
-            CachedAttachment(type=attachment.pop("attachment_type"), **attachment)
-            for attachment in attachments
-        ]
+        with sentry_sdk.start_span(op="ingest_consumer.set_attachment_cache"):
+            attachment_objects = [
+                CachedAttachment(type=attachment.pop("attachment_type"), **attachment)
+                for attachment in attachments
+            ]
 
-        attachment_cache.set(cache_key, attachments=attachment_objects, timeout=CACHE_TIMEOUT)
+            attachment_cache.set(cache_key, attachments=attachment_objects, timeout=CACHE_TIMEOUT)
 
     # Preprocess this event, which spawns either process_event or
     # save_event. Pass data explicitly to avoid fetching it again from the

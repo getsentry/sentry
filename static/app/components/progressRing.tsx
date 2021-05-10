@@ -1,5 +1,6 @@
-import React from 'react';
-import styled, {SerializedStyles} from '@emotion/styled';
+import * as React from 'react';
+import {SerializedStyles} from '@emotion/react';
+import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import testableTransition from 'app/utils/testableTransition';

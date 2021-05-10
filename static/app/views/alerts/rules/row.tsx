@@ -1,23 +1,27 @@
-import React from 'react';
-import {css} from '@emotion/core';
+import * as React from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import memoize from 'lodash/memoize';
-import moment from 'moment';
 
 import Access from 'app/components/acl/access';
+import MenuItemActionLink from 'app/components/actions/menuItemActionLink';
 import ActorAvatar from 'app/components/avatar/actorAvatar';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import Confirm from 'app/components/confirm';
+import DateTime from 'app/components/dateTime';
+import DropdownLink from 'app/components/dropdownLink';
 import ErrorBoundary from 'app/components/errorBoundary';
 import IdBadge from 'app/components/idBadge';
 import Link from 'app/components/links/link';
 import TimeSince from 'app/components/timeSince';
-import {IconArrow, IconDelete, IconSettings, IconUser} from 'app/icons';
+import Tooltip from 'app/components/tooltip';
+import {IconArrow, IconDelete, IconEllipsis, IconSettings} from 'app/icons';
 import {t, tct} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Actor, Organization, Project} from 'app/types';
+import getDynamicText from 'app/utils/getDynamicText';
 import {Color} from 'app/utils/theme';
 import {AlertRuleThresholdType} from 'app/views/settings/incidentRules/types';
 
@@ -138,7 +142,6 @@ class RuleListRow extends React.Component<Props, State> {
       onDelete,
       userTeams,
     } = this.props;
-    const dateCreated = moment(rule.dateCreated).format('ll');
     const slug = rule.projects[0];
     const editLink = `/organizations/${orgId}/alerts/${
       isIssueAlert(rule) ? 'rules' : 'metric-rules'
@@ -155,8 +158,17 @@ class RuleListRow extends React.Component<Props, State> {
 
     const canEdit = ownerId ? userTeams.has(ownerId) : true;
     const hasAlertOwnership = organization.features.includes('team-alerts-ownership');
-    const hasAlertList = organization.features.includes('alert-list');
-    const alertLink = <Link to={hasRedesign ? detailsLink : editLink}>{rule.name}</Link>;
+    const hasAlertList = organization.features.includes('alert-details-redesign');
+    const alertLink = (
+      <TitleLink to={hasRedesign ? detailsLink : editLink}>{rule.name}</TitleLink>
+    );
+
+    const IssueStatusText: Record<IncidentStatus, string> = {
+      [IncidentStatus.CRITICAL]: t('Critical'),
+      [IncidentStatus.WARNING]: t('Warning'),
+      [IncidentStatus.CLOSED]: t('Resolved'),
+      [IncidentStatus.OPENED]: t('Resolved'),
+    };
 
     return (
       <ErrorBoundary>
@@ -169,14 +181,24 @@ class RuleListRow extends React.Component<Props, State> {
           <React.Fragment>
             <AlertNameWrapper isIncident={isIssueAlert(rule)}>
               <FlexCenter>
-                <AlertBadge
-                  status={rule?.latestIncident?.status}
-                  isIssue={isIssueAlert(rule)}
-                  hideText
-                />
+                <Tooltip
+                  title={
+                    isIssueAlert(rule)
+                      ? t('Issue Alert')
+                      : IssueStatusText[
+                          rule?.latestIncident?.status ?? IncidentStatus.CLOSED
+                        ]
+                  }
+                >
+                  <AlertBadge
+                    status={rule?.latestIncident?.status}
+                    isIssue={isIssueAlert(rule)}
+                    hideText
+                  />
+                </Tooltip>
               </FlexCenter>
               <AlertNameAndStatus>
-                <div>{alertLink}</div>
+                <AlertName>{alertLink}</AlertName>
                 {!isIssueAlert(rule) && this.renderLastIncidentDate()}
               </AlertNameAndStatus>
             </AlertNameWrapper>
@@ -185,57 +207,106 @@ class RuleListRow extends React.Component<Props, State> {
         )}
 
         <FlexCenter>
-          <ProjectBadge
-            avatarSize={18}
-            project={!projectsLoaded ? {slug} : this.getProject(slug, projects)}
-          />
+          <ProjectBadgeContainer>
+            <ProjectBadge
+              avatarSize={18}
+              project={!projectsLoaded ? {slug} : this.getProject(slug, projects)}
+            />
+          </ProjectBadgeContainer>
         </FlexCenter>
         {hasAlertOwnership && (
           <FlexCenter>
-            {teamActor ? (
-              <ActorAvatar actor={teamActor} size={24} />
-            ) : (
-              <IconUser size="20px" color="gray400" />
-            )}
+            {teamActor ? <ActorAvatar actor={teamActor} size={24} /> : '-'}
           </FlexCenter>
         )}
         {!hasAlertList && <CreatedBy>{rule?.createdBy?.name ?? '-'}</CreatedBy>}
-        <FlexCenter>{dateCreated}</FlexCenter>
-        <RightColumn>
+        <FlexCenter>
+          <DateTime
+            date={getDynamicText({
+              value: rule.dateCreated,
+              fixed: new Date('2021-04-20'),
+            })}
+            format="ll"
+          />
+        </FlexCenter>
+        <ActionsRow>
           <Access access={['alerts:write']}>
             {({hasAccess}) => (
-              <ButtonBar gap={1}>
-                <Confirm
-                  disabled={!hasAccess || !canEdit}
-                  message={tct(
-                    "Are you sure you want to delete [name]? You won't be able to view the history of this alert once it's deleted.",
-                    {
-                      name: rule.name,
+              <React.Fragment>
+                <StyledDropdownLink>
+                  <DropdownLink
+                    anchorRight
+                    caret={false}
+                    title={
+                      <Button
+                        tooltipProps={{
+                          containerDisplayMode: 'flex',
+                        }}
+                        size="small"
+                        type="button"
+                        aria-label={t('Show more')}
+                        icon={<IconEllipsis size="xs" />}
+                      />
                     }
-                  )}
-                  header={t('Delete Alert Rule?')}
-                  priority="danger"
-                  confirmText={t('Delete Rule')}
-                  onConfirm={() => onDelete(slug, rule)}
-                >
-                  <Button
-                    type="button"
-                    icon={<IconDelete />}
-                    size="small"
-                    title={t('Delete')}
-                  />
-                </Confirm>
-                <Button
-                  size="small"
-                  type="button"
-                  icon={<IconSettings />}
-                  title={t('Edit')}
-                  href={editLink}
-                />
-              </ButtonBar>
+                  >
+                    <li>
+                      <Link to={editLink}>{t('Edit')}</Link>
+                    </li>
+                    <Confirm
+                      disabled={!hasAccess || !canEdit}
+                      message={tct(
+                        "Are you sure you want to delete [name]? You won't be able to view the history of this alert once it's deleted.",
+                        {
+                          name: rule.name,
+                        }
+                      )}
+                      header={t('Delete Alert Rule?')}
+                      priority="danger"
+                      confirmText={t('Delete Rule')}
+                      onConfirm={() => onDelete(slug, rule)}
+                    >
+                      <MenuItemActionLink title={t('Delete')}>
+                        {t('Delete')}
+                      </MenuItemActionLink>
+                    </Confirm>
+                  </DropdownLink>
+                </StyledDropdownLink>
+
+                {/* Small screen actions */}
+                <StyledButtonBar gap={1}>
+                  <Confirm
+                    disabled={!hasAccess || !canEdit}
+                    message={tct(
+                      "Are you sure you want to delete [name]? You won't be able to view the history of this alert once it's deleted.",
+                      {
+                        name: rule.name,
+                      }
+                    )}
+                    header={t('Delete Alert Rule?')}
+                    priority="danger"
+                    confirmText={t('Delete Rule')}
+                    onConfirm={() => onDelete(slug, rule)}
+                  >
+                    <Button
+                      type="button"
+                      icon={<IconDelete />}
+                      size="small"
+                      title={t('Delete')}
+                    />
+                  </Confirm>
+                  <Tooltip title={t('Edit')}>
+                    <Button
+                      size="small"
+                      type="button"
+                      icon={<IconSettings />}
+                      to={editLink}
+                    />
+                  </Tooltip>
+                </StyledButtonBar>
+              </React.Fragment>
             )}
           </Access>
-        </RightColumn>
+        </ActionsRow>
       </ErrorBoundary>
     );
   }
@@ -248,13 +319,6 @@ const columnCss = css`
   height: 100%;
 `;
 
-const RightColumn = styled('div')`
-  display: flex;
-  justify-content: flex-start;
-  align-items: center;
-  padding: ${space(1.5)} ${space(2)};
-`;
-
 const RuleType = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: 400;
@@ -264,8 +328,21 @@ const RuleType = styled('div')`
 `;
 
 const Title = styled('div')`
-  ${overflowEllipsis}
   ${columnCss}
+`;
+
+const TitleLink = styled(Link)`
+  ${overflowEllipsis}
+
+  @media (max-width: ${p => p.theme.breakpoints[3]}) {
+    max-width: 300px;
+  }
+  @media (max-width: ${p => p.theme.breakpoints[2]}) {
+    max-width: 165px;
+  }
+  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+    max-width: 100px;
+  }
 `;
 
 const CreatedBy = styled('div')`
@@ -283,7 +360,17 @@ const AlertNameWrapper = styled(FlexCenter)<{isIncident?: boolean}>`
 `;
 
 const AlertNameAndStatus = styled('div')`
+  ${overflowEllipsis}
   margin-left: ${space(1.5)};
+  line-height: 1.35;
+`;
+
+const AlertName = styled('div')`
+  font-size: ${p => p.theme.fontSizeLarge};
+`;
+
+const ProjectBadgeContainer = styled('div')`
+  width: 100%;
 `;
 
 const ProjectBadge = styled(IdBadge)`
@@ -293,6 +380,29 @@ const ProjectBadge = styled(IdBadge)`
 const TriggerText = styled('div')`
   margin-left: ${space(1)};
   white-space: nowrap;
+`;
+
+const StyledButtonBar = styled(ButtonBar)`
+  display: none;
+  justify-content: flex-start;
+  align-items: center;
+
+  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+    display: flex;
+  }
+`;
+
+const StyledDropdownLink = styled('div')`
+  display: none;
+
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    display: block;
+  }
+`;
+
+const ActionsRow = styled(FlexCenter)`
+  justify-content: center;
+  padding: ${space(1)};
 `;
 
 export default RuleListRow;

@@ -1,7 +1,7 @@
 from collections import namedtuple
 from urllib.parse import parse_qs, urlencode, urlparse
 
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from exam import fixture
 
 from sentry.auth.providers.oauth2 import OAuth2Callback, OAuth2Login, OAuth2Provider

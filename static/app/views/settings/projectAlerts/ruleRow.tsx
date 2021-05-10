@@ -1,6 +1,6 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import {Link, RouteComponentProps} from 'react-router';
-import {css} from '@emotion/core';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {t, tct} from 'app/locale';
@@ -33,8 +33,8 @@ type State = {
   error: boolean;
 };
 
-class RuleRow extends React.Component<Props, State> {
-  state = {loading: false, error: false};
+class RuleRow extends Component<Props, State> {
+  state: State = {loading: false, error: false};
 
   renderIssueRule(data: IssueAlertRule) {
     const {params, routes, location, canEdit} = this.props;
@@ -49,7 +49,7 @@ class RuleRow extends React.Component<Props, State> {
       : t('All Environments');
 
     return (
-      <React.Fragment>
+      <Fragment>
         <RuleType>{t('Issue')}</RuleType>
         <div>
           {canEdit ? <RuleName to={editLink}>{data.name}</RuleName> : data.name}
@@ -78,7 +78,7 @@ class RuleRow extends React.Component<Props, State> {
             <Action key={i}>{action.name}</Action>
           ))}
         </Actions>
-      </React.Fragment>
+      </Fragment>
     );
   }
 
@@ -93,7 +93,7 @@ class RuleRow extends React.Component<Props, State> {
     const numberOfTriggers = data.triggers.length;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <RuleType rowSpans={numberOfTriggers}>{t('Metric')}</RuleType>
         <RuleNameAndDescription rowSpans={numberOfTriggers}>
           {canEdit ? <RuleName to={editLink}>{data.name}</RuleName> : data.name}
@@ -104,7 +104,7 @@ class RuleRow extends React.Component<Props, State> {
           data.triggers.map((trigger, i) => {
             const hideBorder = i !== numberOfTriggers - 1;
             return (
-              <React.Fragment key={i}>
+              <Fragment key={i}>
                 <Trigger key={`trigger-${i}`} hideBorder={hideBorder}>
                   <StatusBadge>{trigger.label}</StatusBadge>
                   <TriggerDescription>
@@ -123,10 +123,10 @@ class RuleRow extends React.Component<Props, State> {
                       ))
                     : t('None')}
                 </Actions>
-              </React.Fragment>
+              </Fragment>
             );
           })}
-      </React.Fragment>
+      </Fragment>
     );
   }
 

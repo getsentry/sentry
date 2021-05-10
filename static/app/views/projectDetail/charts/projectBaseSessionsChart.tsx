@@ -1,6 +1,6 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import {InjectedRouter} from 'react-router/lib/Router';
-import {withTheme} from 'emotion-theming';
+import {withTheme} from '@emotion/react';
 import isEqual from 'lodash/isEqual';
 
 import {Client} from 'app/api';
@@ -57,7 +57,7 @@ function ProjectBaseSessionsChart({
   const {start, end, period, utc} = datetime;
 
   return (
-    <React.Fragment>
+    <Fragment>
       {getDynamicText({
         value: (
           <ChartZoom router={router} period={period} start={start} end={end} utc={utc}>
@@ -129,7 +129,7 @@ function ProjectBaseSessionsChart({
         ),
         fixed: `${title} Chart`,
       })}
-    </React.Fragment>
+    </Fragment>
   );
 }
 
@@ -148,7 +148,7 @@ type ChartState = {
   forceUpdate: boolean;
 };
 
-class Chart extends React.Component<ChartProps, ChartState> {
+class Chart extends Component<ChartProps, ChartState> {
   state: ChartState = {
     seriesSelection: {},
     forceUpdate: false,

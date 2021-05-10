@@ -1,13 +1,14 @@
+import django.db.models.deletion
+import django.utils.timezone
+from django.conf import settings
 from django.db import migrations, models
+
+import sentry.db.models.fields.array
 import sentry.db.models.fields.bounded
+import sentry.db.models.fields.encrypted
+import sentry.db.models.fields.foreignkey
 import sentry.db.models.fields.jsonfield
 import sentry.db.models.fields.uuid
-import sentry.db.models.fields.array
-import django.utils.timezone
-import sentry.db.models.fields.foreignkey
-import django.db.models.deletion
-from django.conf import settings
-import sentry.db.models.fields.encrypted
 
 
 class Migration(migrations.Migration):
@@ -846,7 +847,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="incidentsnapshot",
             name="incident",
-            field=models.OneToOneField(to="sentry.Incident"),
+            field=models.OneToOneField(to="sentry.Incident", on_delete=models.CASCADE),
         ),
         migrations.AddField(
             model_name="incidentgroup",

@@ -1,35 +1,61 @@
-import React from 'react';
+import * as React from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location, LocationDescriptor} from 'history';
+import {Location, LocationDescriptorObject, Query} from 'history';
 
-import {TagSegment} from 'app/actionCreators/events';
-import DropdownButton from 'app/components/dropdownButton';
-import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
-import GridEditable from 'app/components/gridEditable';
+import {GuideAnchor} from 'app/components/assistant/guideAnchor';
+import GridEditable, {
+  COL_WIDTH_UNDEFINED,
+  GridColumn,
+  GridColumnOrder,
+} from 'app/components/gridEditable';
+import SortLink from 'app/components/gridEditable/sortLink';
 import Link from 'app/components/links/link';
 import Pagination from 'app/components/pagination';
-import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
-import EventView from 'app/utils/discover/eventView';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
+import EventView, {fromSorts, isFieldSortable} from 'app/utils/discover/eventView';
 import {formatPercentage} from 'app/utils/formatters';
 import SegmentExplorerQuery, {
+  TableData,
   TableDataRow,
-  TagHint,
-  TopValue,
 } from 'app/utils/performance/segmentExplorer/segmentExplorerQuery';
 import {decodeScalar} from 'app/utils/queryString';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
+import CellAction, {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
 import {TableColumn} from 'app/views/eventsV2/table/types';
 
-import {PerformanceDuration} from '../utils';
+import {
+  PerformanceDuration,
+  platformToPerformanceType,
+  PROJECT_PERFORMANCE_TYPE,
+} from '../utils';
 
-const COLUMN_ORDER = [
+import {SpanOperationBreakdownFilter} from './filter';
+
+const TAGS_CURSOR_NAME = 'tags_cursor';
+
+type ColumnKeys =
+  | 'key'
+  | 'tagValue'
+  | 'aggregate'
+  | 'frequency'
+  | 'comparison'
+  | 'sumdelta';
+type TagColumn = GridColumnOrder<ColumnKeys> & {
+  column: {
+    kind: string;
+  };
+  field: string;
+  canSort?: boolean;
+};
+const COLUMN_ORDER: TagColumn[] = [
   {
     key: 'key',
-    name: 'Key',
+    field: 'key',
+    name: 'Tag Key',
     width: -1,
     column: {
       kind: 'field',
@@ -37,6 +63,7 @@ const COLUMN_ORDER = [
   },
   {
     key: 'tagValue',
+    field: 'tagValue',
     name: 'Tag Values',
     width: -1,
     column: {
@@ -44,230 +71,105 @@ const COLUMN_ORDER = [
     },
   },
   {
+    key: 'aggregate',
+    field: 'aggregate',
+    name: 'Avg Duration',
+    width: -1,
+    column: {
+      kind: 'field',
+    },
+    canSort: true,
+  },
+  {
     key: 'frequency',
+    field: 'frequency',
     name: 'Frequency',
     width: -1,
     column: {
       kind: 'field',
     },
+    canSort: true,
   },
   {
     key: 'comparison',
-    name: 'Comparison',
+    field: 'comparison',
+    name: 'Compared To Avg',
     width: -1,
     column: {
       kind: 'field',
     },
+    canSort: true,
   },
   {
-    key: 'otherValues',
-    name: 'Facet Map',
+    key: 'sumdelta',
+    field: 'sumdelta',
+    name: 'Total Time Lost',
     width: -1,
     column: {
       kind: 'field',
     },
+    canSort: true,
   },
 ];
 
-const HEADER_OPTIONS: DropdownOption[] = [
-  {
-    label: 'Suspect Tag Values',
-    value: '-sumdelta',
-  },
-  {
-    label: 'Slowest Tag Values',
-    value: '-aggregate',
-  },
-  {
-    label: 'Fastest Tag Values',
-    value: 'aggregate',
-  },
-];
-
-const DURATION_OPTIONS: DropdownOption[] = [
-  {
-    label: 'transaction.duration',
-    value: 'duration',
-  },
-  {
-    label: 'measurements.lcp',
-    value: 'measurements[lcp]',
-  },
-];
-
-const handleTagValueClick = (location: Location, tagKey: string, tagValue: string) => {
-  const queryString = decodeScalar(location.query.query);
-  const conditions = tokenizeSearch(queryString || '');
-
-  conditions.addTagValues(tagKey, [tagValue]);
-
-  const query = stringifyQueryObject(conditions);
-  browserHistory.push({
-    pathname: location.pathname,
-    query: {
-      ...location.query,
-      query: String(query).trim(),
-    },
-  });
+const filterToField = {
+  [SpanOperationBreakdownFilter.Browser]: 'spans.browser',
+  [SpanOperationBreakdownFilter.Http]: 'spans.http',
+  [SpanOperationBreakdownFilter.Db]: 'spans.db',
+  [SpanOperationBreakdownFilter.Resource]: 'spans.resource',
 };
 
-const renderBodyCell = (
-  parentProps: Props,
-  column: TableColumn<keyof TableDataRow>,
-  dataRow: TableDataRow
-): React.ReactNode => {
-  const value = dataRow[column.key];
-  const {location} = parentProps;
-
-  if (column.key === 'tagValue') {
-    const localValue = dataRow.tagValue;
-    return (
-      <Link
-        to=""
-        onClick={() => handleTagValueClick(location, dataRow.key, localValue.value)}
-      >
-        <TagValue value={localValue} />
-      </Link>
-    );
+const getTransactionField = (
+  currentFilter: SpanOperationBreakdownFilter,
+  projects: Project[],
+  projectIds: readonly number[]
+) => {
+  const fieldFromFilter = filterToField[currentFilter];
+  if (fieldFromFilter) {
+    return fieldFromFilter;
   }
 
-  if (column.key === 'frequency') {
-    const localValue = dataRow.frequency;
-    return formatPercentage(localValue, 0);
+  const performanceType = platformToPerformanceType(projects, projectIds);
+  if (performanceType === PROJECT_PERFORMANCE_TYPE.FRONTEND) {
+    return 'measurements.lcp';
   }
 
-  if (column.key === 'comparison') {
-    const localValue = dataRow.comparison;
+  return 'transaction.duration';
+};
 
-    let text = '';
-    if (localValue > 1) {
-      const pct = formatPercentage(localValue - 1, 0);
-      text = `+${pct} slower`;
-    } else {
-      const pct = formatPercentage(localValue - 1, 0);
-      text = `${pct} faster`;
-    }
+const getColumnsWithReplacedDuration = (
+  currentFilter: SpanOperationBreakdownFilter,
+  projects: Project[],
+  projectIds: readonly number[]
+) => {
+  const columns = COLUMN_ORDER.map(c => ({...c}));
+  const durationColumn = columns.find(c => c.key === 'aggregate');
 
-    return (
-      <Tooltip title={PerformanceDuration({milliseconds: dataRow.aggregate})}>
-        {t(text)}
-      </Tooltip>
-    );
+  if (!durationColumn) {
+    return columns;
   }
 
-  if (column.key === 'otherValues' && Array.isArray(value)) {
-    const converted = dataRow.otherValues;
-    const segments = converted.map(val => {
-      return {
-        count: val.count,
-        name: val.name,
-        key: dataRow.key,
-        value: val.value,
-        isOther: val.isOther,
-        url: '',
-      };
-    });
-
-    return <SegmentVisualization location={location} segments={segments} />;
+  const fieldFromFilter = filterToField[currentFilter];
+  if (fieldFromFilter) {
+    durationColumn.name = 'Avg Span Duration';
+    return columns;
   }
-  return value;
-};
 
-type SegmentValue = {
-  to: LocationDescriptor;
-  onClick: () => void;
-  index: number;
-};
-type SegmentProps = {
-  location: Location;
-  segments: TagSegment[];
-};
-const SegmentVisualization = (props: SegmentProps) => {
-  const {location, segments} = props;
-  return (
-    <SegmentBar>
-      {segments.map((value, index) => {
-        const pct = value.count * 100;
-        const pctLabel = Math.floor(pct);
-        const renderTooltipValue = () => {
-          return value.name || t('n/a');
-        };
+  const performanceType = platformToPerformanceType(projects, projectIds);
+  if (performanceType === PROJECT_PERFORMANCE_TYPE.FRONTEND) {
+    durationColumn.name = 'Avg LCP';
+    return columns;
+  }
 
-        const tooltipHtml = (
-          <React.Fragment>
-            <div className="truncate">{renderTooltipValue()}</div>
-            {pctLabel}%
-          </React.Fragment>
-        );
-
-        const segmentProps: SegmentValue = {
-          index,
-          to: value.url,
-          onClick: () => handleTagValueClick(location, value.key ?? '', value.value),
-        };
-
-        return (
-          <div key={value.value} style={{width: pct + '%'}}>
-            <Tooltip title={tooltipHtml} containerDisplayMode="block">
-              {value.isOther ? <OtherSegment /> : <Segment {...segmentProps} />}
-            </Tooltip>
-          </div>
-        );
-      })}
-    </SegmentBar>
-  );
-};
-
-const SegmentBar = styled('div')`
-  display: flex;
-  overflow: hidden;
-  border-radius: 2px;
-`;
-
-const COLORS = [
-  '#3A3387',
-  '#5F40A3',
-  '#8C4FBD',
-  '#B961D3',
-  '#DE76E4',
-  '#EF91E8',
-  '#F7B2EC',
-  '#FCD8F4',
-  '#FEEBF9',
-];
-
-const OtherSegment = styled('span')`
-  display: block;
-  width: 100%;
-  height: 16px;
-  color: inherit;
-  outline: none;
-  background-color: ${COLORS[COLORS.length - 1]};
-`;
-
-const Segment = styled(Link)<SegmentValue>`
-  display: block;
-  width: 100%;
-  height: 16px;
-  color: inherit;
-  outline: none;
-  background-color: ${p => COLORS[p.index]};
-`;
-
-const renderBodyCellWithData = (parentProps: Props) => {
-  return (
-    column: TableColumn<keyof TableDataRow>,
-    dataRow: TableDataRow
-  ): React.ReactNode => renderBodyCell(parentProps, column, dataRow);
+  return columns;
 };
 
 type TagValueProps = {
-  value: TopValue | TagHint;
+  row: TableDataRow;
 };
 
 function TagValue(props: TagValueProps) {
-  const {value} = props;
-  return <div>{value.name}</div>;
+  return <div className="truncate">{props.row.tags_value}</div>;
 }
 
 type Props = {
@@ -276,79 +178,277 @@ type Props = {
   location: Location;
   projects: Project[];
   transactionName: string;
+  currentFilter: SpanOperationBreakdownFilter;
 };
 
 type State = {
-  tagOrder: string;
-  aggregateColumn: string;
+  widths: number[];
 };
-
-class _TagExplorer extends React.Component<Props, State> {
+class _TagExplorer extends React.Component<Props> {
   state: State = {
-    tagOrder: HEADER_OPTIONS[0].value,
-    aggregateColumn: DURATION_OPTIONS[0].value,
+    widths: [],
   };
 
-  setTagOrder(value: string) {
-    this.setState({
-      tagOrder: value,
+  handleResizeColumn = (columnIndex: number, nextColumn: GridColumn) => {
+    const widths: number[] = [...this.state.widths];
+    widths[columnIndex] = nextColumn.width
+      ? Number(nextColumn.width)
+      : COL_WIDTH_UNDEFINED;
+    this.setState({widths});
+  };
+
+  getColumnOrder = (columns: GridColumnOrder[]) => {
+    const {widths} = this.state;
+    return columns.map((col: GridColumnOrder, i: number) => {
+      if (typeof widths[i] === 'number') {
+        return {...col, width: widths[i]};
+      }
+      return col;
+    });
+  };
+
+  onSortClick(currentSortKind?: string, currentSortField?: string) {
+    const {organization} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.summary.tag_explorer.sort',
+      eventName: 'Performance Views: Tag Explorer Sorted',
+      organization_id: parseInt(organization.id, 10),
+      field: currentSortField,
+      direction: currentSortKind,
     });
   }
 
-  setAggregateColumn(value: string) {
-    this.setState({
-      aggregateColumn: value,
-    });
+  renderHeadCell(
+    sortedEventView: EventView,
+    tableMeta: TableData['meta'],
+    column: TableColumn<ColumnKeys>,
+    columnInfo: TagColumn
+  ): React.ReactNode {
+    const {location} = this.props;
+    const field = {field: column.key, width: column.width};
+
+    function generateSortLink(): LocationDescriptorObject | undefined {
+      if (!tableMeta) {
+        return undefined;
+      }
+
+      const nextEventView = sortedEventView.sortOnField(field, tableMeta);
+      const {sort} = nextEventView.generateQueryStringObject();
+
+      return {
+        ...location,
+        query: {...location.query, [TAGS_CURSOR_NAME]: undefined, tagSort: sort},
+      };
+    }
+    const currentSort = sortedEventView.sortForField(field, tableMeta);
+    const canSort = isFieldSortable(field, tableMeta);
+
+    const currentSortKind = currentSort ? currentSort.kind : undefined;
+    const currentSortField = currentSort ? currentSort.field : undefined;
+
+    return (
+      <SortLink
+        align="left"
+        title={columnInfo.name}
+        direction={currentSortKind}
+        canSort={canSort}
+        generateSortLink={generateSortLink}
+        onClick={() => this.onSortClick(currentSortKind, currentSortField)}
+      />
+    );
   }
+
+  renderHeadCellWithMeta = (
+    sortedEventView: EventView,
+    tableMeta: TableData['meta'],
+    columns: TagColumn[]
+  ) => {
+    return (column: TableColumn<ColumnKeys>, index: number): React.ReactNode =>
+      this.renderHeadCell(sortedEventView, tableMeta, column, columns[index]);
+  };
+
+  handleTagValueClick = (location: Location, tagKey: string, tagValue: string) => {
+    const {organization} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.summary.tag_explorer.tag_value',
+      eventName: 'Performance Views: Tag Explorer Value Clicked',
+      organization_id: parseInt(organization.id, 10),
+    });
+
+    const queryString = decodeScalar(location.query.query);
+    const conditions = tokenizeSearch(queryString || '');
+
+    conditions.addTagValues(tagKey, [tagValue]);
+
+    const query = stringifyQueryObject(conditions);
+    browserHistory.push({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        query: String(query).trim(),
+      },
+    });
+  };
+
+  handleCellAction = (
+    column: TableColumn<ColumnKeys>,
+    tagValue: React.ReactText,
+    actionRow: any
+  ) => {
+    return (action: Actions) => {
+      const {eventView, location, organization} = this.props;
+      trackAnalyticsEvent({
+        eventKey: 'performance_views.summary.tag_explorer.cell_action',
+        eventName: 'Performance Views: Tag Explorer Cell Action Clicked',
+        organization_id: parseInt(organization.id, 10),
+      });
+
+      const searchConditions = tokenizeSearch(eventView.query);
+
+      // remove any event.type queries since it is implied to apply to only transactions
+      searchConditions.removeTag('event.type');
+
+      updateQuery(searchConditions, action, {...column, name: actionRow.id}, tagValue);
+
+      browserHistory.push({
+        pathname: location.pathname,
+        query: {
+          ...location.query,
+          [TAGS_CURSOR_NAME]: undefined,
+          query: stringifyQueryObject(searchConditions),
+        },
+      });
+    };
+  };
+
+  renderBodyCell = (
+    parentProps: Props,
+    column: TableColumn<ColumnKeys>,
+    dataRow: TableDataRow
+  ): React.ReactNode => {
+    const value = dataRow[column.key];
+    const {location} = parentProps;
+
+    if (column.key === 'key') {
+      return dataRow.tags_key;
+    }
+
+    const allowActions = [Actions.ADD, Actions.EXCLUDE];
+
+    if (column.key === 'tagValue') {
+      const actionRow = {...dataRow, id: dataRow.tags_key};
+      return (
+        <CellAction
+          column={column}
+          dataRow={actionRow}
+          handleCellAction={this.handleCellAction(column, dataRow.tags_value, actionRow)}
+          allowActions={allowActions}
+        >
+          <Link
+            to=""
+            onClick={() =>
+              this.handleTagValueClick(location, dataRow.tags_key, dataRow.tags_value)
+            }
+          >
+            <TagValue row={dataRow} />
+          </Link>
+        </CellAction>
+      );
+    }
+
+    if (column.key === 'frequency') {
+      return formatPercentage(dataRow.frequency, 0);
+    }
+
+    if (column.key === 'comparison') {
+      const localValue = dataRow.comparison;
+      const pct = formatPercentage(localValue - 1, 0);
+      return localValue > 1 ? t('+%s slower', pct) : t('%s faster', pct);
+    }
+
+    if (column.key === 'aggregate') {
+      return <PerformanceDuration abbreviation milliseconds={dataRow.aggregate} />;
+    }
+
+    if (column.key === 'sumdelta') {
+      return <PerformanceDuration abbreviation milliseconds={dataRow.sumdelta} />;
+    }
+    return value;
+  };
+
+  renderBodyCellWithData = (parentProps: Props) => {
+    return (column: TableColumn<ColumnKeys>, dataRow: TableDataRow): React.ReactNode =>
+      this.renderBodyCell(parentProps, column, dataRow);
+  };
 
   render() {
-    const {eventView, organization, location} = this.props;
-    const {tagOrder, aggregateColumn} = this.state;
-    const handleCursor = () => {};
+    const {eventView, organization, location, currentFilter, projects} = this.props;
 
-    const sortDropdownOptions = HEADER_OPTIONS;
-    const columnDropdownOptions = DURATION_OPTIONS;
+    const tagSort = decodeScalar(location.query?.tagSort);
+    const cursor = decodeScalar(location.query?.[TAGS_CURSOR_NAME]);
 
-    const selectedSort =
-      sortDropdownOptions.find(o => o.value === tagOrder) || sortDropdownOptions[0];
-    const selectedColumn =
-      columnDropdownOptions.find(o => o.value === aggregateColumn) ||
-      columnDropdownOptions[0];
+    const tagEventView = eventView.clone();
+    tagEventView.fields = COLUMN_ORDER;
+
+    const tagSorts = fromSorts(tagSort);
+
+    const sortedEventView = tagEventView.withSorts(
+      tagSorts.length
+        ? tagSorts
+        : [
+            {
+              field: 'sumdelta',
+              kind: 'desc',
+            },
+          ]
+    );
+
+    const aggregateColumn = getTransactionField(
+      currentFilter,
+      projects,
+      sortedEventView.project
+    );
+
+    const adjustedColumns = getColumnsWithReplacedDuration(
+      currentFilter,
+      projects,
+      sortedEventView.project
+    );
+    const columns = this.getColumnOrder(adjustedColumns);
+
+    const columnSortBy = sortedEventView.getSorts();
 
     return (
       <SegmentExplorerQuery
-        eventView={eventView}
+        eventView={sortedEventView}
         orgSlug={organization.slug}
         location={location}
-        tagOrder={tagOrder}
         aggregateColumn={aggregateColumn}
         limit={5}
+        cursor={cursor}
+        order={tagSort}
       >
         {({isLoading, tableData, pageLinks}) => {
           return (
             <React.Fragment>
-              <TagsHeader
-                selectedSort={selectedSort}
-                sortOptions={sortDropdownOptions}
-                selectedColumn={selectedColumn}
-                columnOptions={columnDropdownOptions}
-                handleSortDropdownChange={(v: string) => this.setTagOrder(v)}
-                handleColumnDropdownChange={(v: string) => this.setAggregateColumn(v)}
-              />
+              <GuideAnchor target="tag_explorer">
+                <TagsHeader organization={organization} pageLinks={pageLinks} />
+              </GuideAnchor>
               <GridEditable
                 isLoading={isLoading}
-                data={tableData ? tableData : []}
-                columnOrder={COLUMN_ORDER}
-                columnSortBy={[]}
+                data={tableData && tableData.data ? tableData.data : []}
+                columnOrder={columns}
+                columnSortBy={columnSortBy}
                 grid={{
-                  renderBodyCell: renderBodyCellWithData(this.props) as any,
+                  renderHeadCell: this.renderHeadCellWithMeta(
+                    sortedEventView,
+                    tableData?.meta || {},
+                    adjustedColumns
+                  ) as any,
+                  renderBodyCell: this.renderBodyCellWithData(this.props) as any,
+                  onResizeColumn: this.handleResizeColumn as any,
                 }}
                 location={location}
-              />
-              <StyledPagination
-                pageLinks={pageLinks}
-                onCursor={handleCursor}
-                size="small"
               />
             </React.Fragment>
           );
@@ -358,95 +458,51 @@ class _TagExplorer extends React.Component<Props, State> {
   }
 }
 
-type DropdownOption = {
-  label: string;
-  value: string;
-};
-
 type HeaderProps = {
-  selectedSort: DropdownOption;
-  sortOptions: DropdownOption[];
-  selectedColumn: DropdownOption;
-  columnOptions: DropdownOption[];
-  handleSortDropdownChange: (k: string) => void;
-  handleColumnDropdownChange: (k: string) => void;
+  organization: Organization;
+  pageLinks: string | null;
 };
 function TagsHeader(props: HeaderProps) {
-  const {
-    selectedSort,
-    sortOptions,
-    selectedColumn,
-    columnOptions,
-    handleSortDropdownChange,
-    handleColumnDropdownChange,
-  } = props;
+  const {pageLinks, organization} = props;
+  const handleCursor = (cursor: string, pathname: string, query: Query) => {
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.summary.tag_explorer.change_page',
+      eventName: 'Performance Views: Tag Explorer Change Page',
+      organization_id: parseInt(organization.id, 10),
+    });
+
+    browserHistory.push({
+      pathname,
+      query: {...query, [TAGS_CURSOR_NAME]: cursor},
+    });
+  };
+
   return (
     <Header>
-      <DropdownControl
-        data-test-id="sort-tag-values"
-        button={({isOpen, getActorProps}) => (
-          <StyledDropdownButton
-            {...getActorProps()}
-            isOpen={isOpen}
-            prefix={t('Sort')}
-            size="small"
-          >
-            {selectedSort.label}
-          </StyledDropdownButton>
-        )}
-      >
-        {sortOptions.map(({value, label}) => (
-          <DropdownItem
-            data-test-id={`option-${value}`}
-            key={value}
-            onSelect={handleSortDropdownChange}
-            eventKey={value}
-            isActive={value === selectedSort.value}
-          >
-            {label}
-          </DropdownItem>
-        ))}
-      </DropdownControl>
-      <DropdownControl
-        data-test-id="tag-column-performance"
-        button={({isOpen, getActorProps}) => (
-          <StyledDropdownButton
-            {...getActorProps()}
-            isOpen={isOpen}
-            prefix={t('Column')}
-            size="small"
-          >
-            {selectedColumn.label}
-          </StyledDropdownButton>
-        )}
-      >
-        {columnOptions.map(({value, label}) => (
-          <DropdownItem
-            data-test-id={`option-${value}`}
-            key={value}
-            onSelect={handleColumnDropdownChange}
-            eventKey={value}
-            isActive={value === selectedColumn.value}
-          >
-            {label}
-          </DropdownItem>
-        ))}
-      </DropdownControl>
+      <SectionHeading>{t('Suspect Tags')}</SectionHeading>
+      <StyledPagination pageLinks={pageLinks} onCursor={handleCursor} size="small" />
     </Header>
   );
 }
 
-const Header = styled('div')`
-  display: flex;
-  justify-content: space-between;
+export const SectionHeading = styled('h4')`
+  display: inline-grid;
+  grid-auto-flow: column;
+  grid-gap: ${space(1)};
   align-items: center;
-  margin: 0 0 ${space(1)} 0;
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeMedium};
+  margin: ${space(1)} 0;
+  line-height: 1.3;
 `;
-const StyledDropdownButton = styled(DropdownButton)`
-  min-width: 145px;
+
+const Header = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  margin-bottom: ${space(1)};
 `;
 const StyledPagination = styled(Pagination)`
-  margin: 0 0 ${space(3)} 0;
+  margin: 0 0 0 ${space(1)};
 `;
 
 export const TagExplorer = _TagExplorer;

@@ -134,6 +134,8 @@ SYMBOLICATOR_CONFIG_DIR = os.path.join(DEVSERVICES_CONFIG_DIR, "symbolicator")
 # here. This directory may not exist until that file is generated.
 CHARTCUTERIE_CONFIG_DIR = os.path.join(DEVSERVICES_CONFIG_DIR, "chartcuterie")
 
+CDC_CONFIG_DIR = os.path.join(DEVSERVICES_CONFIG_DIR, "cdc")
+
 sys.path.insert(0, os.path.normpath(os.path.join(PROJECT_ROOT, os.pardir)))
 
 DATABASES = {
@@ -330,6 +332,7 @@ INSTALLED_APPS = (
     "django.contrib.sites",
     "crispy_forms",
     "rest_framework",
+    "manifest_loader",
     "sentry",
     "sentry.analytics",
     "sentry.incidents.apps.Config",
@@ -367,6 +370,17 @@ SILENCED_SYSTEM_CHECKS = (
 
 STATIC_ROOT = os.path.realpath(os.path.join(PROJECT_ROOT, "static"))
 STATIC_URL = "/_static/{version}/"
+# webpack assets live at a different URL that is unversioned
+# as we configure webpack to include file content based hash in the filename
+STATIC_MANIFEST_URL = "/_static/dist/"
+
+# The webpack output directory, used by django-manifest-loader
+STATICFILES_DIRS = [
+    os.path.join(STATIC_ROOT, "sentry", "dist"),
+]
+
+# django-manifest-loader settings
+MANIFEST_LOADER = {"cache": True}
 
 # various middleware will use this to identify resources which should not access
 # cookies
@@ -397,7 +411,7 @@ CSRF_COOKIE_NAME = "sc"
 
 # Auth configuration
 
-from django.core.urlresolvers import reverse_lazy
+from django.urls import reverse_lazy
 
 LOGIN_REDIRECT_URL = reverse_lazy("sentry-login-redirect")
 LOGIN_URL = reverse_lazy("sentry-login")
@@ -832,8 +846,6 @@ SENTRY_FEATURES = {
     "auth:register": True,
     # Enable advanced search features, like negation and wildcard matching.
     "organizations:advanced-search": True,
-    # Enable android mappings in processing section of settings.
-    "organizations:android-mappings": False,
     # Enable obtaining and using API keys.
     "organizations:api-keys": False,
     # Enable explicit use of AND and OR in search.
@@ -869,6 +881,8 @@ SENTRY_FEATURES = {
     "organizations:trace-view-summary": False,
     # Enable multi project selection
     "organizations:global-views": False,
+    # Enable experimental new version of Merged Issues where sub-hashes are shown
+    "organizations:grouping-tree-ui": False,
     # Lets organizations manage grouping configs
     "organizations:set-grouping-config": False,
     # Lets organizations set a custom title through fingerprinting
@@ -879,6 +893,8 @@ SENTRY_FEATURES = {
     "organizations:incidents": False,
     # Enable the new Metrics page
     "organizations:metrics": False,
+    # Automatically extract metrics during ingestion
+    "organizations:metrics-extraction": False,
     # Enable metric aggregate in metric alert rule builder
     "organizations:metric-alert-builder-aggregate": False,
     # Enable integration functionality to create and link groups to issues on
@@ -907,14 +923,16 @@ SENTRY_FEATURES = {
     "organizations:slack-allow-workspace": False,
     # Enable data forwarding functionality for organizations.
     "organizations:data-forwarding": True,
-    # Enable readonly dashboards (dashboards 2)
-    "organizations:dashboards-basic": False,
-    # Enable custom editable dashboards (dashboards 2)
-    "organizations:dashboards-edit": False,
+    # Enable readonly dashboards
+    "organizations:dashboards-basic": True,
+    # Enable custom editable dashboards
+    "organizations:dashboards-edit": True,
+    # Enable dashboards manager.
+    "organizations:dashboards-manage": False,
     # Enable experimental performance improvements.
     "organizations:enterprise-perf": False,
     # Enable the API to importing CODEOWNERS for a project
-    "organizations:import-codeowners": False,
+    "organizations:integrations-codeowners": False,
     # Special feature flag primarily used on the sentry.io SAAS product for
     # easily enabling features while in early development.
     "organizations:internal-catchall": False,
@@ -927,25 +945,17 @@ SENTRY_FEATURES = {
     # Prefix host with organization ID when giving users DSNs (can be
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
-    # Enable the new Performance Landing page
-    "organizations:performance-landing-v2": False,
-    # Enable the views for performance vitals
-    "organizations:performance-vitals-overview": False,
+    # Display a global dashboard notification for this org
+    "organizations:prompt-dashboards": False,
     # Enable views for ops breakdown
     "organizations:performance-ops-breakdown": False,
     # Enable views for tag explorer
     "organizations:performance-tag-explorer": False,
-    # Enable the new Project Detail page
-    "organizations:project-detail": False,
-    # Enable links to Project Detail page from all over the app
-    "organizations:project-detail-links": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See
     # https://github.com/getsentry/relay.
     "organizations:relay": True,
-    # Enable the new charts on top of the Releases page
-    "organizations:releases-top-charts": False,
     # Enable Session Stats down to a minute resolution
     "organizations:minute-resolution-sessions": False,
     # Enable option to send alert, workflow, and deploy notifications
@@ -964,8 +974,6 @@ SENTRY_FEATURES = {
     "organizations:sso-rippling": False,
     # Enable workaround for migrating IdP instances
     "organizations:sso-migration": False,
-    # Enable stack trace preview card on issue row hover
-    "organizations:stacktrace-hover-preview": False,
     # Enable transaction comparison view for performance.
     "organizations:transaction-comparison": False,
     # Return unhandled information on the issue level
@@ -974,21 +982,15 @@ SENTRY_FEATURES = {
     # attachments
     "organizations:usage-stats-graph": False,
     # Enable inbox support in the issue stream
-    "organizations:inbox": False,
-    # Set default tab to inbox
-    "organizations:inbox-tab-default": False,
-    # Add `assigned_or_suggested:me_or_none` to inbox tab query
-    "organizations:inbox-owners-query": False,
+    "organizations:inbox": True,
     # Enable the new alert details ux design
-    "organizations:alert-details-redesign": False,
+    "organizations:alert-details-redesign": True,
     # Enable the new images loaded design and features
-    "organizations:images-loaded-v2": False,
+    "organizations:images-loaded-v2": True,
     # Enable teams to have ownership of alert rules
     "organizations:team-alerts-ownership": False,
     # Enable the new alert creation wizard
-    "organizations:alert-wizard": False,
-    # Enable new alert rules + incidents view
-    "organizations:alert-list": False,
+    "organizations:alert-wizard": True,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
@@ -1550,6 +1552,9 @@ SENTRY_ATTACHMENT_BLOB_SIZE = 8 * 1024 * 1024  # 8MB
 # store. MUST be a power of two.
 SENTRY_CHUNK_UPLOAD_BLOB_SIZE = 8 * 1024 * 1024  # 8MB
 
+# This flags activates the Change Data Capture backend in the development environment
+SENTRY_USE_CDC_DEV = False
+
 # SENTRY_DEVSERVICES = {
 #     "service-name": {
 #         "image": "image-name:version",
@@ -1567,6 +1572,16 @@ SENTRY_CHUNK_UPLOAD_BLOB_SIZE = 8 * 1024 * 1024  # 8MB
 #         }
 #     }
 # }
+
+POSTGRES_INIT_DB_VOLUME = (
+    {
+        os.path.join(CDC_CONFIG_DIR, "init_hba.sh"): {
+            "bind": "/docker-entrypoint-initdb.d/init_hba.sh"
+        }
+    }
+    if SENTRY_USE_CDC_DEV
+    else {}
+)
 
 SENTRY_DEVSERVICES = {
     "redis": {
@@ -1591,7 +1606,22 @@ SENTRY_DEVSERVICES = {
         "pull": True,
         "ports": {"5432/tcp": 5432},
         "environment": {"POSTGRES_DB": "sentry", "POSTGRES_HOST_AUTH_METHOD": "trust"},
-        "volumes": {"postgres": {"bind": "/var/lib/postgresql/data"}},
+        "volumes": {
+            "postgres": {"bind": "/var/lib/postgresql/data"},
+            "wal2json": {"bind": "/wal2json"},
+            CDC_CONFIG_DIR: {"bind": "/cdc"},
+            **POSTGRES_INIT_DB_VOLUME,
+        },
+        "command": [
+            "postgres",
+            "-c",
+            "wal_level=logical",
+            "-c",
+            "max_replication_slots=1",
+            "-c",
+            "max_wal_senders=1",
+        ],
+        "entrypoint": "/cdc/postgres-entrypoint.sh" if SENTRY_USE_CDC_DEV else None,
         "healthcheck": {
             "test": ["CMD", "pg_isready", "-U", "postgres"],
             "interval": 30000000000,  # Test every 30 seconds (in ns).
@@ -1708,6 +1738,13 @@ SENTRY_DEVSERVICES = {
         },
         "ports": {"9090/tcp": 7901},
         "only_if": lambda settings, options: options.get("chart-rendering.enabled"),
+    },
+    "cdc": {
+        "image": "getsentry/cdc:nightly",
+        "pull": True,
+        "only_if": lambda settings, options: settings.SENTRY_USE_CDC_DEV,
+        "command": ["cdc", "-c", "/etc/cdc/configuration.yaml", "producer"],
+        "volumes": {CDC_CONFIG_DIR: {"bind": "/etc/cdc"}},
     },
 }
 
@@ -1957,7 +1994,7 @@ SENTRY_RELAY_WHITELIST_PK = [
 
 # When open registration is not permitted then only relays in the
 # list of explicitly allowed relays can register.
-SENTRY_RELAY_OPEN_REGISTRATION = False
+SENTRY_RELAY_OPEN_REGISTRATION = True
 
 # GeoIP
 # Used for looking up IP addresses.
@@ -2088,7 +2125,12 @@ SOUTH_MIGRATION_CONVERSIONS = (
 MIGRATIONS_TEST_MIGRATE = os.environ.get("MIGRATIONS_TEST_MIGRATE", "0") == "1"
 # Specifies the list of django apps to include in the lockfile. If Falsey then include
 # all apps with migrations
-MIGRATIONS_LOCKFILE_APP_WHITELIST = ()
+MIGRATIONS_LOCKFILE_APP_WHITELIST = (
+    "jira_ac",
+    "nodestore",
+    "sentry",
+    "social_auth",
+)
 # Where to write the lockfile to.
 MIGRATIONS_LOCKFILE_PATH = os.path.join(PROJECT_ROOT, os.path.pardir, os.path.pardir)
 

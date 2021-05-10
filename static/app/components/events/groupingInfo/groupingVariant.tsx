@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 
@@ -62,7 +62,7 @@ function addFingerprintInfo(data: VariantData, variant: EventGroupVariant) {
 }
 
 class GroupVariant extends React.Component<Props, State> {
-  state = {
+  state: State = {
     showNonContributing: false,
   };
 
@@ -181,7 +181,7 @@ class GroupVariant extends React.Component<Props, State> {
     const {variant} = this.props;
     const isContributing = variant.hash !== null;
 
-    let title;
+    let title: string;
     if (isContributing) {
       title = t('Contributing variant');
     } else {
@@ -271,7 +271,7 @@ const ContributionIcon = styled(({isContributing, ...p}) =>
   isContributing ? (
     <IconCheckmark size="sm" isCircled color="green300" {...p} />
   ) : (
-    <IconClose size="sm" isCircled color="red" {...p} />
+    <IconClose size="sm" isCircled color="red300" {...p} />
   )
 )`
   margin-right: ${space(1)};

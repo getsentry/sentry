@@ -1,11 +1,10 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import PageHeading from 'app/components/pageHeading';
+import * as Layout from 'app/components/layouts/thirds';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {t} from 'app/locale';
-import {PageContent, PageHeader} from 'app/styles/organization';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import BuilderBreadCrumbs from 'app/views/alerts/builder/builderBreadCrumbs';
@@ -29,7 +28,7 @@ type State = {
   ruleName: string;
 };
 
-class ProjectAlertsEditor extends React.Component<Props, State> {
+class ProjectAlertsEditor extends Component<Props, State> {
   state: State = {
     alertType: '',
     ruleName: '',
@@ -41,13 +40,7 @@ class ProjectAlertsEditor extends React.Component<Props, State> {
 
   getTitle() {
     const {ruleName} = this.state;
-    const defaultTitle = t('Edit Alert Rule');
-
-    if (!ruleName) {
-      return defaultTitle;
-    }
-
-    return `${defaultTitle}: ${ruleName}`;
+    return `${ruleName}`;
   }
 
   render() {
@@ -58,43 +51,52 @@ class ProjectAlertsEditor extends React.Component<Props, State> {
       : 'issue';
 
     return (
-      <SentryDocumentTitle
-        title={this.getTitle()}
-        orgSlug={organization.slug}
-        projectSlug={project.slug}
-      >
-        <PageContent>
-          <BuilderBreadCrumbs
-            hasMetricAlerts={hasMetricAlerts}
-            orgSlug={organization.slug}
-            title={this.getTitle()}
-            projectSlug={project.slug}
-          />
-          <StyledPageHeader>
-            <PageHeading>{this.getTitle()}</PageHeading>
-          </StyledPageHeader>
-          {(!hasMetricAlerts || alertType === 'issue') && (
-            <IssueEditor
-              {...this.props}
-              project={project}
-              onChangeTitle={this.handleChangeTitle}
+      <Fragment>
+        <SentryDocumentTitle
+          title={this.getTitle()}
+          orgSlug={organization.slug}
+          projectSlug={project.slug}
+        />
+        <Layout.Header>
+          <Layout.HeaderContent>
+            <BuilderBreadCrumbs
+              hasMetricAlerts={hasMetricAlerts}
+              orgSlug={organization.slug}
+              title={t('Edit Alert Rule')}
+              projectSlug={project.slug}
             />
-          )}
-          {hasMetricAlerts && alertType === 'metric' && (
-            <IncidentRulesDetails
-              {...this.props}
-              project={project}
-              onChangeTitle={this.handleChangeTitle}
-            />
-          )}
-        </PageContent>
-      </SentryDocumentTitle>
+            <Layout.Title>{this.getTitle()}</Layout.Title>
+          </Layout.HeaderContent>
+        </Layout.Header>
+        <EditConditionsBody>
+          <Layout.Main fullWidth>
+            {(!hasMetricAlerts || alertType === 'issue') && (
+              <IssueEditor
+                {...this.props}
+                project={project}
+                onChangeTitle={this.handleChangeTitle}
+              />
+            )}
+            {hasMetricAlerts && alertType === 'metric' && (
+              <IncidentRulesDetails
+                {...this.props}
+                project={project}
+                onChangeTitle={this.handleChangeTitle}
+              />
+            )}
+          </Layout.Main>
+        </EditConditionsBody>
+      </Fragment>
     );
   }
 }
 
-const StyledPageHeader = styled(PageHeader)`
-  margin-bottom: ${space(4)};
+const EditConditionsBody = styled(Layout.Body)`
+  margin-bottom: -${space(3)};
+
+  *:not(img) {
+    max-width: 1000px;
+  }
 `;
 
 export default ProjectAlertsEditor;

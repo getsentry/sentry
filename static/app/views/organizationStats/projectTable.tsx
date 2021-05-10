@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -41,9 +41,7 @@ const ProjectTable = ({projectMap, projectTotals, orgTotal, organization}: Props
         return null;
       }
 
-      const projectLink = organization.features.includes('project-detail')
-        ? `/organizations/${organization.slug}/projects/${project.slug}/?project=${project.id}`
-        : `/organizations/${organization.slug}/issues/?project=${project.id}`;
+      const projectLink = `/organizations/${organization.slug}/projects/${project.slug}/?project=${project.id}`;
 
       return (
         <StyledProjectTableLayout key={index}>

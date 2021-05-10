@@ -1,4 +1,4 @@
-import React from 'react';
+import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import Button from 'app/components/button';
@@ -37,11 +37,11 @@ function PasswordForm() {
         forms={accountPasswordFields}
         additionalFieldProps={{user}}
         renderFooter={() => (
-          <PanelItem justifyContent="flex-end">
+          <Actions>
             <Button type="submit" priority="primary">
               {t('Change password')}
             </Button>
-          </PanelItem>
+          </Actions>
         )}
         renderHeader={() => (
           <PanelAlert type="info">
@@ -52,5 +52,9 @@ function PasswordForm() {
     </Form>
   );
 }
+
+const Actions = styled(PanelItem)`
+  justify-content: flex-end;
+`;
 
 export default PasswordForm;

@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {AutoSizer, List as ReactVirtualizedList, ListRowProps} from 'react-virtualized';
 import styled from '@emotion/styled';
 
@@ -117,6 +117,9 @@ const List = ({
 
 export default List;
 
-const StyledList = styled(ReactVirtualizedList)`
+// XXX(ts): Emotion11 has some trouble with List's defaultProps
+const StyledList = styled(ReactVirtualizedList as any)<
+  React.ComponentProps<typeof ReactVirtualizedList>
+>`
   outline: none;
 `;

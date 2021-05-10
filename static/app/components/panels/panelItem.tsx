@@ -1,16 +1,27 @@
 import styled from '@emotion/styled';
-import {Flex} from 'reflexbox'; // eslint-disable-line no-restricted-imports
 
-const PanelItem = styled(Flex)`
+import space from 'app/styles/space';
+
+type Props = {
+  /**
+   * Disables the default padding
+   */
+  noPadding?: boolean;
+  /**
+   * Align items vertical center (assuming flex-direction isn't changed).
+   */
+  center?: boolean;
+};
+
+const PanelItem = styled('div')<Props>`
+  display: flex;
   border-bottom: 1px solid ${p => p.theme.innerBorder};
+  ${p => p.noPadding || `padding: ${space(2)}`};
+  ${p => p.center && 'align-items: center'};
 
   &:last-child {
     border: 0;
   }
 `;
-
-PanelItem.defaultProps = {
-  p: 2,
-};
 
 export default PanelItem;

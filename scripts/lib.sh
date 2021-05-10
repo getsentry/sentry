@@ -38,8 +38,9 @@ sudo-askpass() {
 # After using homebrew to install docker, we need to do some magic to remove the need to interact with the GUI
 # See: https://github.com/docker/for-mac/issues/2359#issuecomment-607154849 for why we need to do things below
 init-docker() {
-    # Need to start docker if it was freshly installed (docker server is not running)
-    if query-mac && ! require docker && [ -d "/Applications/Docker.app" ]; then
+    # Need to start docker if it was freshly installed or updated
+    # You will know that Docker is ready for devservices when the icon on the menu bar stops flashing
+    if query-mac && [ ! -f /Library/PrivilegedHelperTools/com.docker.vmnetd ]; then
         echo "Making some changes to complete Docker initialization"
         # allow the app to run without confirmation
         xattr -d -r com.apple.quarantine /Applications/Docker.app
@@ -164,7 +165,7 @@ apply-migrations() {
 }
 
 create-user() {
-    if [[ -n "$GITHUB_ACTIONS" ]]; then
+    if [[ -n "${GITHUB_ACTIONS+x}" ]]; then
         sentry createuser --superuser --email foo@tbd.com --no-password
     else
         sentry createuser --superuser
@@ -188,7 +189,7 @@ bootstrap() {
 
 clean() {
     echo "--> Cleaning static cache"
-    rm -rf dist/* static/dist/*
+    rm -rf dist/* src/sentry/static/sentry/dist/*
     echo "--> Cleaning integration docs cache"
     rm -rf src/sentry/integration-docs
     echo "--> Cleaning pyc files"
@@ -212,4 +213,16 @@ reset-db() {
     drop-db
     create-db
     apply-migrations
+}
+
+direnv-help() {
+    cat >&2 <<EOF
+If you're a Sentry employee and you're stuck or have questions, ask in #discuss-dev-tooling.
+If you're not, please file an issue under https://github.com/getsentry/sentry/issues/new/ and mention @getsentry/owners-sentry-dev
+
+You can configure the behaviour of direnv by adding the following variables to a .env file:
+
+- SENTRY_DIRENV_DEBUG=1: This will allow printing debug messages
+- SENTRY_DEVENV_NO_REPORT=1: Do not report development environment errors to Sentry.io
+EOF
 }

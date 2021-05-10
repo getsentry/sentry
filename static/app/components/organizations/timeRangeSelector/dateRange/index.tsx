@@ -1,8 +1,8 @@
-import React from 'react';
+import * as React from 'react';
 import type {OnChangeProps, RangeWithKey} from 'react-date-range';
 import * as ReactRouter from 'react-router';
+import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {withTheme} from 'emotion-theming';
 import moment from 'moment';
 
 import Checkbox from 'app/components/checkbox';
@@ -23,9 +23,7 @@ import {
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 import {Theme} from 'app/utils/theme';
 
-const DateRangePicker = React.lazy(
-  () => import(/* webpackChunkName: "DateRangePicker" */ './dateRangeWrapper')
-);
+const DateRangePicker = React.lazy(() => import('./dateRangeWrapper'));
 
 const getTimeStringFromDate = (date: Date) => moment(date).local().format('HH:mm');
 
@@ -269,6 +267,7 @@ const TimeAndUtcPicker = styled('div')`
 
 const UtcPicker = styled('div')`
   color: ${p => p.theme.gray300};
+  white-space: nowrap;
   display: flex;
   align-items: center;
   justify-content: flex-end;

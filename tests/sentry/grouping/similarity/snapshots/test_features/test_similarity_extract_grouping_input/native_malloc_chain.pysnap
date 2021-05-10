@@ -1,0 +1,54 @@
+---
+created: '2021-04-08T09:39:08.339379Z'
+creator: sentry
+source: tests/sentry/grouping/similarity/test_features.py
+---
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","application_frame"]],[["function","malloc_zone_malloc"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","malloc_zone_malloc"]],[["function","nanov2_malloc"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","nanov2_allocate"]],[["function","nanov2_allocate_from_block"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","nanov2_allocate_from_block"]],[["function","nanov2_allocate_from_block.cold.1"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","nanov2_malloc"]],[["function","nanov2_allocate"]]]
+similarity:2020-07-23:value:character-5-shingle: " / EX"
+similarity:2020-07-23:value:character-5-shingle: " EXC_"
+similarity:2020-07-23:value:character-5-shingle: " Erro"
+similarity:2020-07-23:value:character-5-shingle: "/ EXC"
+similarity:2020-07-23:value:character-5-shingle: "386_I"
+similarity:2020-07-23:value:character-5-shingle: "6_INV"
+similarity:2020-07-23:value:character-5-shingle: "86_IN"
+similarity:2020-07-23:value:character-5-shingle: ": EXC"
+similarity:2020-07-23:value:character-5-shingle: "AD_IN"
+similarity:2020-07-23:value:character-5-shingle: "BAD_I"
+similarity:2020-07-23:value:character-5-shingle: "CTION"
+similarity:2020-07-23:value:character-5-shingle: "C_BAD"
+similarity:2020-07-23:value:character-5-shingle: "C_I38"
+similarity:2020-07-23:value:character-5-shingle: "D_INS"
+similarity:2020-07-23:value:character-5-shingle: "EXC_B"
+similarity:2020-07-23:value:character-5-shingle: "EXC_I"
+similarity:2020-07-23:value:character-5-shingle: "Error"
+similarity:2020-07-23:value:character-5-shingle: "Fatal"
+similarity:2020-07-23:value:character-5-shingle: "I386_"
+similarity:2020-07-23:value:character-5-shingle: "INSTR"
+similarity:2020-07-23:value:character-5-shingle: "INVOP"
+similarity:2020-07-23:value:character-5-shingle: "ION /"
+similarity:2020-07-23:value:character-5-shingle: "N / E"
+similarity:2020-07-23:value:character-5-shingle: "NSTRU"
+similarity:2020-07-23:value:character-5-shingle: "ON / "
+similarity:2020-07-23:value:character-5-shingle: "RUCTI"
+similarity:2020-07-23:value:character-5-shingle: "STRUC"
+similarity:2020-07-23:value:character-5-shingle: "TION "
+similarity:2020-07-23:value:character-5-shingle: "TRUCT"
+similarity:2020-07-23:value:character-5-shingle: "UCTIO"
+similarity:2020-07-23:value:character-5-shingle: "XC_BA"
+similarity:2020-07-23:value:character-5-shingle: "XC_I3"
+similarity:2020-07-23:value:character-5-shingle: "_BAD_"
+similarity:2020-07-23:value:character-5-shingle: "_I386"
+similarity:2020-07-23:value:character-5-shingle: "_INST"
+similarity:2020-07-23:value:character-5-shingle: "_INVO"
+similarity:2020-07-23:value:character-5-shingle: "al Er"
+similarity:2020-07-23:value:character-5-shingle: "atal "
+similarity:2020-07-23:value:character-5-shingle: "l Err"
+similarity:2020-07-23:value:character-5-shingle: "or: E"
+similarity:2020-07-23:value:character-5-shingle: "r: EX"
+similarity:2020-07-23:value:character-5-shingle: "ror: "
+similarity:2020-07-23:value:character-5-shingle: "rror:"
+similarity:2020-07-23:value:character-5-shingle: "tal E"

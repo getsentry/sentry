@@ -1,4 +1,4 @@
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
 from sentry.models import Integration, Repository, RepositoryProjectPathConfig
 from sentry.testutils import APITestCase
@@ -66,7 +66,7 @@ class OrganizationCodeMappingsTest(APITestCase):
             "repoName": self.repo1.name,
             "provider": {
                 "aspects": {},
-                "features": ["commits", "issue-basic", "stacktrace-link"],
+                "features": ["codeowners", "commits", "issue-basic", "stacktrace-link"],
                 "name": "GitHub",
                 "canDisable": False,
                 "key": "github",
@@ -87,7 +87,7 @@ class OrganizationCodeMappingsTest(APITestCase):
             "repoName": self.repo1.name,
             "provider": {
                 "aspects": {},
-                "features": ["commits", "issue-basic", "stacktrace-link"],
+                "features": ["codeowners", "commits", "issue-basic", "stacktrace-link"],
                 "name": "GitHub",
                 "canDisable": False,
                 "key": "github",
@@ -123,7 +123,7 @@ class OrganizationCodeMappingsTest(APITestCase):
             "repoName": self.repo1.name,
             "provider": {
                 "aspects": {},
-                "features": ["commits", "issue-basic", "stacktrace-link"],
+                "features": ["codeowners", "commits", "issue-basic", "stacktrace-link"],
                 "name": "GitHub",
                 "canDisable": False,
                 "key": "github",
@@ -185,7 +185,7 @@ class OrganizationCodeMappingsTest(APITestCase):
             "repoName": self.repo1.name,
             "provider": {
                 "aspects": {},
-                "features": ["commits", "issue-basic", "stacktrace-link"],
+                "features": ["codeowners", "commits", "issue-basic", "stacktrace-link"],
                 "name": "GitHub",
                 "canDisable": False,
                 "key": "github",

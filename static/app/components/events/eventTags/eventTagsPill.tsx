@@ -1,6 +1,5 @@
-import React from 'react';
 import {Link} from 'react-router';
-import {css} from '@emotion/core';
+import {css} from '@emotion/react';
 import {Location, Query} from 'history';
 import * as queryString from 'query-string';
 

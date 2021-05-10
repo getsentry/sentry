@@ -1,5 +1,5 @@
-import React from 'react';
-import {withTheme} from 'emotion-theming';
+import * as React from 'react';
+import {withTheme} from '@emotion/react';
 
 import BaseChart from 'app/components/charts/baseChart';
 import {t} from 'app/locale';

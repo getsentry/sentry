@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {trackAnalyticsEvent} from 'app/utils/analytics';
@@ -11,7 +9,7 @@ jest.mock('app/utils/analytics', () => ({
 }));
 
 const queryCounts = {
-  'is:unresolved is:for_review assigned_or_suggested:me_or_none': {
+  'is:unresolved is:for_review assigned_or_suggested:[me, none]': {
     count: 22,
     hasMore: false,
   },
@@ -30,7 +28,7 @@ const queryCounts = {
 };
 
 const queryCountsMaxed = {
-  'is:unresolved is:for_review assigned_or_suggested:me_or_none': {
+  'is:unresolved is:for_review assigned_or_suggested:[me, none]': {
     count: 321,
     hasMore: false,
   },
@@ -58,7 +56,7 @@ describe('IssueListHeader', () => {
     const wrapper = mountWithTheme(
       <IssueListHeader
         organization={organization}
-        query="is:unresolved is:for_review assigned_or_suggested:me_or_none"
+        query="is:unresolved is:for_review assigned_or_suggested:[me, none]"
         queryCount={0}
         queryCounts={queryCounts}
         projectIds={[]}
@@ -154,7 +152,7 @@ describe('IssueListHeader', () => {
     expect(wrapper.find('Link').at(1).prop('to')).toEqual({
       pathname,
       query: {
-        query: 'is:unresolved is:for_review assigned_or_suggested:me_or_none',
+        query: 'is:unresolved is:for_review assigned_or_suggested:[me, none]',
         sort: 'inbox',
       },
     });
@@ -184,7 +182,7 @@ describe('IssueListHeader', () => {
     expect(wrapper.find('Link').at(1).prop('to')).toEqual({
       pathname,
       query: {
-        query: 'is:unresolved is:for_review assigned_or_suggested:me_or_none',
+        query: 'is:unresolved is:for_review assigned_or_suggested:[me, none]',
         sort: 'inbox',
       },
     });
@@ -209,7 +207,7 @@ describe('IssueListHeader', () => {
     expect(wrapper.find('Link').at(1).prop('to')).toEqual({
       pathname: '/organizations/org-slug/issues/',
       query: {
-        query: 'is:unresolved is:for_review assigned_or_suggested:me_or_none',
+        query: 'is:unresolved is:for_review assigned_or_suggested:[me, none]',
         sort: 'inbox',
       },
     });

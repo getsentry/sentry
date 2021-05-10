@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
@@ -78,8 +78,7 @@ async function createOrganizationResults(
 }
 async function createProjectResults(
   projectsPromise: Promise<Project[]>,
-  orgId: string,
-  orgFeatures?: string[]
+  orgId: string
 ): Promise<ResultItem[]> {
   const projects = (await projectsPromise) || [];
   return flatten(
@@ -95,16 +94,14 @@ async function createProjectResults(
         },
       ];
 
-      if (orgFeatures?.includes('project-detail')) {
-        projectResults.unshift({
-          title: t('%s Dashboard', project.slug),
-          description: t('Project Details'),
-          model: project,
-          sourceType: 'project',
-          resultType: 'route',
-          to: `/organizations/${orgId}/projects/${project.slug}/?project=${project.id}`,
-        });
-      }
+      projectResults.unshift({
+        title: t('%s Dashboard', project.slug),
+        description: t('Project Details'),
+        model: project,
+        sourceType: 'project',
+        resultType: 'route',
+        to: `/organizations/${orgId}/projects/${project.slug}/?project=${project.id}`,
+      });
 
       return projectResults;
     })
@@ -473,7 +470,7 @@ class ApiSource extends React.Component<Props, State> {
     const searchResults = flatten(
       await Promise.all([
         createOrganizationResults(organizations),
-        createProjectResults(projects, orgId, organization?.features),
+        createProjectResults(projects, orgId),
         createTeamResults(teams, orgId),
         createMemberResults(members, orgId),
         createIntegrationResults(integrations, orgId),

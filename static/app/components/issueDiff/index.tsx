@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
@@ -42,7 +42,7 @@ type State = {
   SplitDiffAsync?: typeof SplitDiff;
 };
 
-class IssueDiff extends React.Component<Props, State> {
+class IssueDiff extends Component<Props, State> {
   static defaultProps: DefaultProps = defaultProps;
 
   state: State = {
@@ -65,7 +65,7 @@ class IssueDiff extends React.Component<Props, State> {
 
     // Fetch component and event data
     Promise.all([
-      import(/* webpackChunkName: "splitDiff" */ '../splitDiff'),
+      import('../splitDiff'),
       this.fetchEventData(baseIssueId, baseEventId ?? 'latest'),
       this.fetchEventData(targetIssueId, targetEventId ?? 'latest'),
     ])
@@ -161,7 +161,7 @@ export default withApi(IssueDiff);
 export {IssueDiff};
 
 const StyledIssueDiff = styled('div', {
-  shouldForwardProp: p => isPropValid(p) && p !== 'loading',
+  shouldForwardProp: p => typeof p === 'string' && isPropValid(p) && p !== 'loading',
 })<Pick<State, 'loading'>>`
   background-color: ${p => p.theme.backgroundSecondary};
   overflow: auto;
@@ -175,6 +175,7 @@ const StyledIssueDiff = styled('div', {
     `
         background-color: ${p.theme.background};
         justify-content: center;
+        align-items: center;
       `};
 `;
 

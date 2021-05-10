@@ -1,4 +1,3 @@
-import React from 'react';
 import styled from '@emotion/styled';
 import {ASAP} from 'downsample/methods/ASAP';
 import {Location} from 'history';
@@ -204,7 +203,7 @@ export function modifyTrendView(
       trendParameter.column
     );
   }
-  trendView.query = getLimitTransactionItems(trendView.query, trendsType);
+  trendView.query = getLimitTransactionItems(trendView.query);
 
   trendView.interval = getQueryInterval(location, trendView);
 
@@ -291,7 +290,7 @@ export function movingAverage(data, index, size) {
 /**
  * This function applies defaults for trend and count percentage, and adds the confidence limit to the query
  */
-function getLimitTransactionItems(query: string, trendChangeType: TrendChangeType) {
+function getLimitTransactionItems(query: string) {
   const limitQuery = tokenizeSearch(query);
   if (!limitQuery.hasTag('count_percentage()')) {
     limitQuery.addTagValues('count_percentage()', ['>0.25', '<4']);
@@ -299,14 +298,8 @@ function getLimitTransactionItems(query: string, trendChangeType: TrendChangeTyp
   if (!limitQuery.hasTag('trend_percentage()')) {
     limitQuery.addTagValues('trend_percentage()', ['>0%']);
   }
-  if (!limitQuery.hasTag('t_test()')) {
-    const tagValues: string[] = [];
-    if (trendChangeType === TrendChangeType.REGRESSION) {
-      tagValues.push(`<-6`);
-    } else {
-      tagValues.push(`>6`);
-    }
-    limitQuery.addTagValues('t_test()', tagValues);
+  if (!limitQuery.hasTag('confidence()')) {
+    limitQuery.addTagValues('confidence()', ['>6']);
   }
   return limitQuery.formatString();
 }

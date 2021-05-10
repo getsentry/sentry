@@ -1,4 +1,3 @@
-import React from 'react';
 import styled from '@emotion/styled';
 
 import ActionLink from 'app/components/actions/actionLink';
@@ -10,6 +9,7 @@ import DropdownLink from 'app/components/dropdownLink';
 import Tooltip from 'app/components/tooltip';
 import {IconEllipsis, IconPause, IconPlay} from 'app/icons';
 import {t} from 'app/locale';
+import GroupStore from 'app/stores/groupStore';
 import space from 'app/styles/space';
 import {Organization, Project, ResolutionStatus} from 'app/types';
 import Projects from 'app/utils/projects';
@@ -60,6 +60,10 @@ function ActionSet({
   // merges require a single project to be active in an org context
   // selectedProjectSlug is null when 0 or >1 projects are selected.
   const mergeDisabled = !(multiSelected && selectedProjectSlug);
+
+  const selectedIssues = [...issues].map(GroupStore.get);
+  const canMarkReviewed =
+    anySelected && (allInQuerySelected || selectedIssues.some(issue => !!issue?.inbox));
 
   return (
     <Wrapper hasInbox={hasInbox}>
@@ -117,7 +121,7 @@ function ActionSet({
       {hasInbox && (
         <GuideAnchor target="inbox_guide_review" position="bottom">
           <div className="hidden-sm hidden-xs">
-            <ReviewAction disabled={!anySelected} onUpdate={onUpdate} />
+            <ReviewAction disabled={!canMarkReviewed} onUpdate={onUpdate} />
           </div>
         </GuideAnchor>
       )}
@@ -159,7 +163,7 @@ function ActionSet({
         {hasInbox && (
           <MenuItemActionLink
             className="hidden-md hidden-lg hidden-xl"
-            disabled={!anySelected}
+            disabled={!canMarkReviewed}
             onAction={() => onUpdate({inbox: false})}
             title={t('Mark Reviewed')}
           >

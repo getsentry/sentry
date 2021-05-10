@@ -1,0 +1,22 @@
+---
+created: '2021-03-29T22:02:40.313985Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+EXC_BAD_ACCESS:Exception 1, Code 0, Subcode 8 >
+Attempted to dereference null pointer. (thread_id:_, crashed:_)
+                     libsystem_pthread.dylib  _pthread_wqthread category=threadbase
+                           libdispatch.dylib  _dispatch_workloop_worker_thread category=internals
+                           libdispatch.dylib  _dispatch_lane_invoke$VARIANT$mp category=internals
+                           libdispatch.dylib  _dispatch_lane_serial_drain$VARIANT$mp category=internals
+                           libdispatch.dylib  _dispatch_client_callout category=threadbase
+                           libdispatch.dylib  _dispatch_call_block_and_release category=internals
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                            AudioToolboxCore  AudioConverterSetProperty category=av
+                            AudioToolboxCore  AudioConverterSetProperty category=internals
+                            AudioToolboxCore  SampleRateConverter::SetProperty category=internals

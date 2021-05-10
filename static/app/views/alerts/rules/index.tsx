@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import flatten from 'lodash/flatten';
@@ -49,8 +49,16 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     const {params, location, organization} = this.props;
     const {query} = location;
 
-    if (organization.features.includes('alert-list')) {
+    if (organization.features.includes('alert-details-redesign')) {
       query.expand = ['latestIncident'];
+    }
+
+    if (organization.features.includes('team-alerts-ownership')) {
+      query.team = this.getTeamQuery();
+    }
+
+    if (organization.features.includes('alert-details-redesign') && !query.sort) {
+      query.sort = ['incident_status', 'date_triggered'];
     }
 
     return [
@@ -64,6 +72,25 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     ];
   }
 
+  getTeamQuery(): string[] {
+    const {
+      location: {query},
+    } = this.props;
+    if (query.team === undefined) {
+      return ALERT_LIST_QUERY_DEFAULT_TEAMS;
+    }
+
+    if (query.team === '') {
+      return [];
+    }
+
+    if (Array.isArray(query.team)) {
+      return query.team;
+    }
+
+    return [query.team];
+  }
+
   tryRenderEmpty() {
     const {ruleList} = this.state;
     if (ruleList && ruleList.length > 0) {
@@ -71,7 +98,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     }
 
     return (
-      <React.Fragment>
+      <Fragment>
         <IconWrapper>
           <IconCheckmark isCircled size="48" />
         </IconWrapper>
@@ -82,18 +109,19 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
             link: <ExternalLink href={DOCS_URL} />,
           })}
         </Description>
-      </React.Fragment>
+      </Fragment>
     );
   }
 
   handleChangeFilter = (activeFilters: Set<string>) => {
     const {router, location} = this.props;
     const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
+    const teams = [...activeFilters];
     router.push({
       pathname: location.pathname,
       query: {
         ...currentQuery,
-        team: [...activeFilters],
+        team: teams.length ? teams : '',
       },
     });
   };
@@ -134,9 +162,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
 
   renderFilterBar() {
     const {teams, location} = this.props;
-    const teamQuery = location.query?.team;
-    const filteredTeams: Set<string> =
-      typeof teamQuery === 'string' ? new Set([teamQuery]) : new Set(teamQuery);
+    const filteredTeams = new Set(this.getTeamQuery());
     const additionalOptions = [
       {label: t('My Teams'), value: 'myteams'},
       {label: t('Unassigned'), value: 'unassigned'},
@@ -215,7 +241,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     };
     const {cursor: _cursor, page: _page, ...currentQuery} = query;
     const hasAlertOwnership = organization.features.includes('team-alerts-ownership');
-    const hasAlertList = organization.features.includes('alert-list');
+    const hasAlertList = organization.features.includes('alert-details-redesign');
     const isAlertRuleSort =
       sort.field.includes('incident_status') || sort.field.includes('date_triggered');
     const sortArrow = (
@@ -237,14 +263,26 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
                         pathname: location.pathname,
                         query: {
                           ...currentQuery,
+                          asc: sort.field === 'name' && !sort.asc ? '1' : undefined,
+                          sort: 'name',
+                        },
+                      }}
+                    >
+                      {t('Alert Rule')} {sort.field === 'name' && sortArrow}
+                    </StyledSortLink>,
+                    // eslint-disable-next-line react/jsx-key
+                    <StyledSortLink
+                      to={{
+                        pathname: location.pathname,
+                        query: {
+                          ...currentQuery,
                           asc: isAlertRuleSort && !sort.asc ? '1' : undefined,
                           sort: ['incident_status', 'date_triggered'],
                         },
                       }}
                     >
-                      {t('Alert Rule')} {isAlertRuleSort && sortArrow}
+                      {t('Status')} {isAlertRuleSort && sortArrow}
                     </StyledSortLink>,
-                    t('Status'),
                   ]
                 : [
                     t('Type'),
@@ -330,35 +368,14 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
   }
 }
 
-class AlertRulesListContainer extends React.Component<Props> {
+class AlertRulesListContainer extends Component<Props> {
   componentDidMount() {
-    const {organization, router, location, selection} = this.props;
-    const query: Record<string, string | number | string[] | number[]> = {
-      project: selection.projects,
-      // TODO(workflow): Support environments from global selection header
-      // environment: selection.environments,
-    };
-
-    if (organization.features.includes('team-alerts-ownership')) {
-      query.team = ALERT_LIST_QUERY_DEFAULT_TEAMS;
-    }
-
-    if (organization.features.includes('alert-list') && !query.sort) {
-      query.sort = ['incident_status', 'date_triggered'];
-    }
-
-    router.replace({
-      pathname: location.pathname,
-      query: {
-        ...query,
-        ...location.query,
-      },
-    });
     this.trackView();
   }
 
-  componentDidUpdate(nextProps: Props) {
-    if (nextProps.location.query?.sort !== this.props.location.query?.sort) {
+  componentDidUpdate(prevProps: Props) {
+    const {location} = this.props;
+    if (prevProps.location.query?.sort !== location.query?.sort) {
       this.trackView();
     }
   }
@@ -444,6 +461,11 @@ const StyledPanelTable = styled(PanelTable)<{
   showTeamCol: boolean;
   hasAlertList: boolean;
 }>`
+  overflow: auto;
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    overflow: initial;
+  }
+
   ${PanelTableHeader} {
     padding: ${space(2)};
     line-height: normal;
@@ -458,7 +480,7 @@ const StyledPanelTable = styled(PanelTable)<{
     `svg:not([data-test-id='icon-check-mark']) {
     display: none;`}
   & > * {
-    padding: ${p => (p.hasAlertList ? `${space(1.5)} ${space(2)}` : space(2))};
+    padding: ${p => (p.hasAlertList ? `${space(2)} ${space(2)}` : space(2))};
   }
 `;
 

@@ -1,0 +1,12 @@
+---
+created: '2021-03-29T22:02:37.915098Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+SIGSEGV:Segfault (thread_id:_, crashed:_)
+              /system/framework/arm/boot.oat  oatexec category=system
+                       /system/lib/libart.so  ??? category=gc
+                       /system/lib/libart.so  artAllocArrayFromCodeRosAlloc category=internals
+                       /system/lib/libart.so  art::gc::allocator::RosAlloc::AllocFromRun category=internals

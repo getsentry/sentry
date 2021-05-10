@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import MemberListStore from 'app/stores/memberListStore';
@@ -51,10 +49,10 @@ describe('withIssueTags HoC', function () {
 
     let tagsProp = wrapper.find('MyComponent').prop('tags');
     expect(tagsProp.assigned).toBeTruthy();
-    expect(tagsProp.assigned.values).toEqual(['me', 'me_or_none']);
+    expect(tagsProp.assigned.values).toEqual(['me', '[me, none]']);
 
     expect(tagsProp.assigned_or_suggested).toBeTruthy();
-    expect(tagsProp.assigned_or_suggested.values).toEqual(['me', 'me_or_none']);
+    expect(tagsProp.assigned_or_suggested.values).toEqual(['me', '[me, none]']);
 
     const users = [TestStubs.User(), TestStubs.User({username: 'joe@example.com'})];
     TeamStore.loadInitialData([
@@ -66,14 +64,14 @@ describe('withIssueTags HoC', function () {
     tagsProp = wrapper.find('MyComponent').prop('tags');
     expect(tagsProp.assigned.values).toEqual([
       'me',
-      'me_or_none',
+      '[me, none]',
       'foo@example.com',
       'joe@example.com',
       '#best-team-na',
     ]);
     expect(tagsProp.assigned_or_suggested.values).toEqual([
       'me',
-      'me_or_none',
+      '[me, none]',
       'foo@example.com',
       'joe@example.com',
       '#best-team-na',

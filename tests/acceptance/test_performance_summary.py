@@ -9,14 +9,12 @@ from sentry.utils.samples import load_data
 
 from .page_objects.transaction_summary import TransactionSummaryPage
 
-FEATURE_NAMES = (
-    "organizations:performance-view",
-    "organizations:measurements",
-)
+FEATURE_NAMES = ("organizations:performance-view",)
 
 
 def make_event(event_data):
     event_data["event_id"] = "c" * 32
+    event_data["contexts"]["trace"]["trace_id"] = "a" * 32
     return event_data
 
 
@@ -168,10 +166,8 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
 
             self.browser.snapshot("real user monitoring - exclude outliers")
 
-            self.browser.element(
-                xpath="//button//span[contains(text(), 'Exclude Outliers')]"
-            ).click()
-            self.browser.element(xpath="//li//span[contains(text(), 'View All')]").click()
+            self.browser.element(xpath="//button//span[contains(text(), 'Exclude')]").click()
+            self.browser.element(xpath="//li//span[contains(text(), 'Include')]").click()
             self.page.wait_until_loaded()
 
             self.browser.snapshot("real user monitoring - view all data")

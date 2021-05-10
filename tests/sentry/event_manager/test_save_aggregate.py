@@ -4,17 +4,17 @@ from threading import Thread
 
 import pytest
 
-from sentry.event_manager import _save_aggregate, _save_aggregate2
+from sentry.event_manager import _save_aggregate
 from sentry.eventstore.models import Event
 
 
 @pytest.mark.django_db(transaction=True)
 @pytest.mark.parametrize(
-    "save_aggregate_version",
+    "is_race_free",
     [
-        # New group creation code, which is supposed to not have races
-        "new_save_aggregate",
-        # New group creation code with removed transaction isolation, which is then
+        # regular group creation code, which is supposed to not have races
+        True,
+        # group creation code with removed transaction isolation, which is then
         # supposed to create multiple groups. This variant exists such that we can
         # ensure the test would find race conditions in principle, and does not
         # just always pass because of low parallelism. In a sense this variant
@@ -23,18 +23,13 @@ from sentry.eventstore.models import Event
         # If this variant fails, CONCURRENCY needs to be increased or e.g. thread
         # barriers need to be used to ensure data races. This does not seem to be
         # necessary so far.
-        "new_broken_save_aggregate",
-        # Old group creation code which is "supposed to" have races
-        "old_save_aggregate",
+        False,
     ],
 )
-def test_group_creation_race(monkeypatch, default_project, save_aggregate_version):
+def test_group_creation_race(monkeypatch, default_project, is_race_free):
     CONCURRENCY = 2
 
-    new_variant = save_aggregate_version in ("new_save_aggregate", "new_broken_save_aggregate")
-    is_race_free = save_aggregate_version == "new_save_aggregate"
-
-    if save_aggregate_version == "new_broken_save_aggregate":
+    if not is_race_free:
 
         class FakeTransactionModule:
             @staticmethod
@@ -49,11 +44,6 @@ def test_group_creation_race(monkeypatch, default_project, save_aggregate_versio
         # select_for_update cannot be used outside of transactions
         monkeypatch.setattr("django.db.models.QuerySet.select_for_update", lambda self: self)
 
-    if new_variant:
-        save_aggregate = _save_aggregate2
-    else:
-        save_aggregate = _save_aggregate
-
     return_values = []
 
     def save_event():
@@ -65,7 +55,7 @@ def test_group_creation_race(monkeypatch, default_project, save_aggregate_versio
         )
 
         return_values.append(
-            save_aggregate(
+            _save_aggregate(
                 evt,
                 flat_hashes=["a" * 32, "b" * 32],
                 hierarchical_hashes=[],

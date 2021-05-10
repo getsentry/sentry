@@ -1,33 +1,16 @@
 ---
-created: '2021-03-08T16:39:06.252857Z'
+created: '2021-04-30T12:13:37.757091Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-app-depth-max:
-  hash: null
+app-depth-1:
+  hash: "1d73d06508db5c517ce31b7f7e8ce794"
+  tree_label: "_wrapper"
   component:
-    app-depth-max (exception of system takes precedence)
-      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
-        stacktrace
-          frame (non app frame)
-            module*
-              "django.core.handlers.base"
-            filename (module takes precedence)
-              "base.py"
-            function*
-              "get_response"
-            context-line*
-              "response = wrapped_callback(request, *callback_args, **callback_kwargs)"
-          frame (non app frame)
-            module*
-              "django.views.generic.base"
-            filename (module takes precedence)
-              "base.py"
-            function*
-              "view"
-            context-line*
-              "return self.dispatch(request, *args, **kwargs)"
-          frame (non app frame)
+    app-depth-1*
+      exception*
+        stacktrace*
+          frame*
             module*
               "django.utils.decorators"
             filename (module takes precedence)
@@ -36,77 +19,83 @@ app-depth-max:
               "_wrapper"
             context-line*
               "return bound_func(*args, **kwargs)"
-          frame (non app frame)
-            module*
-              "django.views.decorators.csrf"
-            filename (module takes precedence)
-              "csrf.py"
-            function*
-              "wrapped_view"
-            context-line*
-              "return view_func(*args, **kwargs)"
-          frame (non app frame)
-            module*
-              "django.utils.decorators"
-            filename (module takes precedence)
-              "decorators.py"
-            function*
-              "bound_func"
-            context-line*
-              "return func(self, *args2, **kwargs2)"
-          frame (ignored by stack trace rule (function:wrapped_view ^-group -group))
-            module*
-              "sentry.web.frontend.release_webhook"
-            filename (module takes precedence)
-              "release_webhook.py"
-            function*
-              "dispatch"
-            context-line*
-              "return super(ReleaseWebhookView, self).dispatch(*args, **kwargs)"
-          frame (non app frame)
+        type*
+          "MultiValueDictKeyError"
+        value (ignored because stacktrace takes precedence)
+          "\"'user'\""
+--------------------------------------------------------------------------
+app-depth-2:
+  hash: "fffce8f5341aba04611ac9a2e2b69aec"
+  tree_label: "view | ..."
+  component:
+    app-depth-2*
+      exception*
+        stacktrace*
+          frame*
             module*
               "django.views.generic.base"
             filename (module takes precedence)
               "base.py"
             function*
-              "dispatch"
+              "view"
             context-line*
-              "return handler(request, *args, **kwargs)"
-          frame (ignored by stack trace rule (function:wrapped_view ^-group -group))
+              "return self.dispatch(request, *args, **kwargs)"
+          frame*
             module*
-              "sentry.web.frontend.release_webhook"
+              "django.utils.decorators"
             filename (module takes precedence)
-              "release_webhook.py"
+              "decorators.py"
             function*
-              "post"
+              "_wrapper"
             context-line*
-              "hook.handle(request)"
-          frame (ignored by stack trace rule (function:wrapped_view ^-group -group))
-            module*
-              "sentry_plugins.heroku.plugin"
-            filename (module takes precedence)
-              "plugin.py"
-            function*
-              "handle"
-            context-line*
-              "email = request.POST['user']"
-          frame (non app frame)
-            module*
-              "django.utils.datastructures"
-            filename (module takes precedence)
-              "datastructures.py"
-            function*
-              "__getitem__"
-            context-line*
-              "raise MultiValueDictKeyError(repr(key))"
+              "return bound_func(*args, **kwargs)"
         type*
           "MultiValueDictKeyError"
-        value*
+        value (ignored because stacktrace takes precedence)
+          "\"'user'\""
+--------------------------------------------------------------------------
+app-depth-3:
+  hash: "90888e813b09fa25061af2883c0fb9bd"
+  tree_label: "get_response | ..."
+  component:
+    app-depth-3*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "django.core.handlers.base"
+            filename (module takes precedence)
+              "base.py"
+            function*
+              "get_response"
+            context-line*
+              "response = wrapped_callback(request, *callback_args, **callback_kwargs)"
+          frame*
+            module*
+              "django.views.generic.base"
+            filename (module takes precedence)
+              "base.py"
+            function*
+              "view"
+            context-line*
+              "return self.dispatch(request, *args, **kwargs)"
+          frame*
+            module*
+              "django.utils.decorators"
+            filename (module takes precedence)
+              "decorators.py"
+            function*
+              "_wrapper"
+            context-line*
+              "return bound_func(*args, **kwargs)"
+        type*
+          "MultiValueDictKeyError"
+        value (ignored because stacktrace takes precedence)
           "\"'user'\""
 --------------------------------------------------------------------------
 system:
   hash: "90888e813b09fa25061af2883c0fb9bd"
-  tree_label: "get_response"
+  tree_label: "<entire stacktrace>"
   component:
     system*
       exception*

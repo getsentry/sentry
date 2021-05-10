@@ -1,0 +1,25 @@
+---
+created: '2021-03-29T22:02:39.959008Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+SIGSEGV:Segfault (thread_id:_, crashed:_)
+                                              stripped_application_code
+  /apex/com.android.runtime/lib/bionic/libc.  __start_thread category=internals
+  /apex/com.android.runtime/lib/bionic/libc.  __pthread_start category=threadbase
+                                              std::__ndk1::__thread_proxy<T> category=internals
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              std::__ndk1::__function::__func<T>::operator() category=indirection
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code

@@ -1,12 +1,10 @@
-import React from 'react';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {ApiSource} from 'app/components/search/sources/apiSource';
 
 describe('ApiSource', function () {
   let wrapper;
-  const org = TestStubs.Organization({features: ['project-detail']});
+  const org = TestStubs.Organization();
   let orgsMock;
   let projectsMock;
   let teamsMock;
@@ -346,7 +344,7 @@ describe('ApiSource', function () {
 
     // The return values here are because of fuzzy search matching.
     // There are no members that match
-    expect(mock.mock.calls[1][0].results).toHaveLength(5);
+    expect(mock.mock.calls[1][0].results).toHaveLength(6);
     expect(mock.mock.calls[1][0].results[0].item.model.slug).toBe('foo-org');
 
     mock.mockClear();
@@ -355,7 +353,7 @@ describe('ApiSource', function () {
     wrapper.update();
 
     // Still have 4 results, but is re-ordered
-    expect(mock.mock.calls[0][0].results).toHaveLength(4);
+    expect(mock.mock.calls[0][0].results).toHaveLength(5);
     expect(mock.mock.calls[0][0].results[0].item.model.slug).toBe('foo-team');
   });
 

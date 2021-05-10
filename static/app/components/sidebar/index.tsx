@@ -1,6 +1,6 @@
-import React from 'react';
+import * as React from 'react';
 import {browserHistory} from 'react-router';
-import {css} from '@emotion/core';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import createReactClass from 'create-react-class';
 import {Location} from 'history';
@@ -171,6 +171,8 @@ class Sidebar extends React.Component<Props, State> {
     evt: React.MouseEvent<HTMLAnchorElement>
   ) => {
     const globalSelectionRoutes = [
+      'alerts',
+      'alerts/rules',
       'dashboards',
       'issues',
       'releases',
@@ -314,10 +316,10 @@ class Sidebar extends React.Component<Props, State> {
     );
 
     const alerts = hasOrganization && (
-      <Feature features={['incidents', 'alert-list']} requireAll={false}>
+      <Feature features={['incidents', 'alert-details-redesign']} requireAll={false}>
         {({features}) => {
           const hasIncidents = features.includes('incidents');
-          const hasAlertList = features.includes('alert-list');
+          const hasAlertList = features.includes('alert-details-redesign');
           const alertsPath =
             hasIncidents && !hasAlertList
               ? `/organizations/${organization.slug}/alerts/`

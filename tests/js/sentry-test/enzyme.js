@@ -1,7 +1,6 @@
 import React from 'react';
-import {CacheProvider} from '@emotion/core';
-import {cache} from 'emotion'; // eslint-disable-line emotion/no-vanilla
-import {ThemeProvider} from 'emotion-theming';
+import {cache} from '@emotion/css'; // eslint-disable-line emotion/no-vanilla
+import {CacheProvider, ThemeProvider} from '@emotion/react';
 import {mount, render, shallow} from 'enzyme'; // eslint-disable-line no-restricted-imports
 
 import {lightTheme} from 'app/utils/theme';

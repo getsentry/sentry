@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 import PropTypes from 'prop-types';
@@ -242,7 +242,7 @@ const StyledFooter = styled('div')<{saveOnBlur?: boolean}>`
   }
 
   /* Better padding with form inside of a modal */
-  .modal-content & {
+  [role='document'] & {
     padding-right: 30px;
     margin-left: -30px;
     margin-right: -30px;

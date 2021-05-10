@@ -1,5 +1,5 @@
-import React from 'react';
-import {withTheme} from 'emotion-theming';
+import * as React from 'react';
+import {withTheme} from '@emotion/react';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
@@ -13,6 +13,7 @@ import QuestionTooltip from 'app/components/questionTooltip';
 import {IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
 import {OrganizationSummary} from 'app/types';
+import {defined} from 'app/utils';
 import {axisLabelFormatter} from 'app/utils/discover/charts';
 import EventView from 'app/utils/discover/eventView';
 import {getDuration} from 'app/utils/formatters';
@@ -37,7 +38,6 @@ type ApiResult = {
 
 type Props = AsyncComponent['props'] &
   ViewProps & {
-    theme: Theme;
     organization: OrganizationSummary;
     location: Location;
     currentFilter: SpanOperationBreakdownFilter;
@@ -150,52 +150,17 @@ class DurationPercentileChart extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
-    const {theme, currentFilter} = this.props;
+    const {currentFilter} = this.props;
     const {chartData} = this.state;
-    if (chartData === null) {
+    if (!defined(chartData)) {
       return null;
     }
-    const xAxis = {
-      type: 'category' as const,
-      truncate: true,
-      axisLabel: {
-        showMinLabel: true,
-        showMaxLabel: true,
-      },
-      axisTick: {
-        interval: 0,
-        alignWithLabel: true,
-      },
-    };
-    const yAxis = {
-      type: 'value' as const,
-      axisLabel: {
-        color: theme.chartLabel,
-        // Use p50() to force time formatting.
-        formatter: (value: number) => axisLabelFormatter(value, 'p50()'),
-      },
-    };
-    const tooltip = {
-      valueFormatter(value) {
-        return getDuration(value / 1000, 2);
-      },
-    };
-
-    const colors =
+    const colors = (theme: Theme) =>
       currentFilter === SpanOperationBreakdownFilter.None
         ? theme.charts.getColorPalette(1)
         : [filterToColour(currentFilter)];
 
-    return (
-      <AreaChart
-        grid={{left: '10px', right: '10px', top: '40px', bottom: '0px'}}
-        xAxis={xAxis}
-        yAxis={yAxis}
-        series={transformData(chartData.data)}
-        tooltip={tooltip}
-        colors={[...colors]}
-      />
-    );
+    return <StyledAreaChart series={transformData(chartData.data)} colors={colors} />;
   }
 
   render() {
@@ -225,6 +190,36 @@ class DurationPercentileChart extends AsyncComponent<Props, State> {
     );
   }
 }
+
+type ChartProps = React.ComponentPropsWithoutRef<typeof AreaChart> & {theme: Theme};
+
+const StyledAreaChart = withTheme(({theme, ...props}: ChartProps) => (
+  <AreaChart
+    grid={{left: '10px', right: '10px', top: '40px', bottom: '0px'}}
+    xAxis={{
+      type: 'category' as const,
+      truncate: true,
+      axisLabel: {
+        showMinLabel: true,
+        showMaxLabel: true,
+      },
+      axisTick: {
+        interval: 0,
+        alignWithLabel: true,
+      },
+    }}
+    yAxis={{
+      type: 'value' as const,
+      axisLabel: {
+        color: theme.chartLabel,
+        // Use p50() to force time formatting.
+        formatter: (value: number) => axisLabelFormatter(value, 'p50()'),
+      },
+    }}
+    tooltip={{valueFormatter: value => getDuration(value / 1000, 2)}}
+    {...props}
+  />
+));
 
 const VALUE_EXTRACT_PATTERN = /(\d+)$/;
 /**
@@ -263,4 +258,4 @@ function transformData(data: ApiResult[]) {
   ];
 }
 
-export default withTheme(DurationPercentileChart);
+export default DurationPercentileChart;

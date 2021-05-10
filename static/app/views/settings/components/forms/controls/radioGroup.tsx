@@ -1,9 +1,17 @@
-import React from 'react';
+import * as React from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
 import Radio from 'app/components/radio';
 import space from 'app/styles/space';
+
+const Container = styled('div')<{orientInline?: boolean}>`
+  display: grid;
+  grid-gap: ${p => space(p.orientInline ? 3 : 1)};
+  grid-auto-flow: ${p => (p.orientInline ? 'column' : 'row')};
+  grid-auto-rows: max-content;
+  grid-auto-columns: max-content;
+`;
 
 type RadioGroupProps<C extends string> = {
   label: string;
@@ -21,7 +29,7 @@ type RadioGroupProps<C extends string> = {
 };
 
 type Props<C extends string> = RadioGroupProps<C> &
-  Omit<React.HTMLAttributes<HTMLDivElement>, keyof RadioGroupProps<C>>;
+  Omit<React.ComponentPropsWithoutRef<typeof Container>, keyof RadioGroupProps<C>>;
 
 const RadioGroup = <C extends string>({
   value,
@@ -67,7 +75,8 @@ const RadioGroup = <C extends string>({
   </Container>
 );
 
-const shouldForwardProp = p => !['disabled', 'animate'].includes(p) && isPropValid(p);
+const shouldForwardProp = (p: PropertyKey) =>
+  typeof p === 'string' && !['disabled', 'animate'].includes(p) && isPropValid(p);
 
 export const RadioLineItem = styled('label', {shouldForwardProp})<{
   disabled?: boolean;
@@ -81,14 +90,6 @@ export const RadioLineItem = styled('label', {shouldForwardProp})<{
   outline: none;
   font-weight: normal;
   margin: 0;
-`;
-
-const Container = styled('div')<{orientInline?: boolean}>`
-  display: grid;
-  grid-gap: ${p => space(p.orientInline ? 3 : 1)};
-  grid-auto-flow: ${p => (p.orientInline ? 'column' : 'row')};
-  grid-auto-rows: max-content;
-  grid-auto-columns: max-content;
 `;
 
 const RadioLineText = styled('div', {shouldForwardProp})<{disabled?: boolean}>`

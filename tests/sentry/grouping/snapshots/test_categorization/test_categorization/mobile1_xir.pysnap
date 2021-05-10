@@ -1,0 +1,15 @@
+---
+created: '2021-03-29T22:02:38.102787Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+NullPointerException:Attempt to invoke interface method 'int java.util.List.size()' on a null object reference (thread_id:_, crashed:_)
+                            java.lang.Thread  run category=threadbase
+  java.util.concurrent.ThreadPoolExecutor$Wo  run category=std
+     java.util.concurrent.ThreadPoolExecutor  runWorker category=threadbase
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code

@@ -1,4 +1,3 @@
-import React from 'react';
 import moment from 'moment';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
@@ -16,8 +15,11 @@ describe('EventCauseEmpty', function () {
     platform: 'javascript',
     firstEvent: '2020-01-01T23:54:33.831199Z',
   });
+  const event = TestStubs.Event();
 
   beforeEach(function () {
+    jest.clearAllMocks();
+
     MockApiClient.clearMockResponses();
 
     MockApiClient.addMockResponse({
@@ -37,7 +39,7 @@ describe('EventCauseEmpty', function () {
 
   it('renders', async function () {
     const wrapper = mountWithTheme(
-      <EventCauseEmpty organization={organization} project={project} />,
+      <EventCauseEmpty event={event} organization={organization} project={project} />,
       routerContext
     );
 
@@ -54,9 +56,31 @@ describe('EventCauseEmpty', function () {
     });
   });
 
+  /**
+   * Want to alternate between showing the configure suspect commits prompt and
+   * the show configure distributed tracing prompt.
+   */
+  it('doesnt render when event id starts with even char', async function () {
+    const newEvent = {
+      ...event,
+      id: 'A',
+      eventID: 'ABCDEFABCDEFABCDEFABCDEFABCDEFAB',
+    };
+    const wrapper = mountWithTheme(
+      <EventCauseEmpty event={newEvent} organization={organization} project={project} />,
+      routerContext
+    );
+
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('ExampleCommitPanel').exists()).toBe(false);
+    expect(trackAdhocEvent).not.toHaveBeenCalled();
+  });
+
   it('can be snoozed', async function () {
     const wrapper = mountWithTheme(
-      <EventCauseEmpty organization={organization} project={project} />,
+      <EventCauseEmpty event={event} organization={organization} project={project} />,
       routerContext
     );
 
@@ -102,7 +126,7 @@ describe('EventCauseEmpty', function () {
     });
 
     const wrapper = mountWithTheme(
-      <EventCauseEmpty organization={organization} project={project} />,
+      <EventCauseEmpty event={event} organization={organization} project={project} />,
       routerContext
     );
 
@@ -122,7 +146,7 @@ describe('EventCauseEmpty', function () {
     });
 
     const wrapper = mountWithTheme(
-      <EventCauseEmpty organization={organization} project={project} />,
+      <EventCauseEmpty event={event} organization={organization} project={project} />,
       routerContext
     );
 
@@ -134,7 +158,7 @@ describe('EventCauseEmpty', function () {
 
   it('can be dismissed', async function () {
     const wrapper = mountWithTheme(
-      <EventCauseEmpty organization={organization} project={project} />,
+      <EventCauseEmpty event={event} organization={organization} project={project} />,
       routerContext
     );
 
@@ -178,7 +202,7 @@ describe('EventCauseEmpty', function () {
     });
 
     const wrapper = mountWithTheme(
-      <EventCauseEmpty organization={organization} project={project} />,
+      <EventCauseEmpty event={event} organization={organization} project={project} />,
       routerContext
     );
 
@@ -190,7 +214,7 @@ describe('EventCauseEmpty', function () {
 
   it('can capture analytics on docs click', async function () {
     const wrapper = mountWithTheme(
-      <EventCauseEmpty organization={organization} project={project} />,
+      <EventCauseEmpty event={event} organization={organization} project={project} />,
       routerContext
     );
 

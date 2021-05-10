@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
@@ -50,7 +50,7 @@ function DebugImage({image, onOpenImageDetailsModal, style}: Props) {
               <Tooltip title={code_file}>{codeFilename}</Tooltip>
             </FileName>
           )}
-          {codeFilename !== debugFilename && (
+          {codeFilename !== debugFilename && debugFilename && (
             <CodeFilename>{`(${debugFilename})`}</CodeFilename>
           )}
         </div>

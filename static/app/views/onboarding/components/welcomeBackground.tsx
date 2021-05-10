@@ -1,5 +1,5 @@
-import React from 'react';
-import {keyframes} from '@emotion/core';
+import * as React from 'react';
+import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 import random from 'lodash/random';

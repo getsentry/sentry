@@ -15,9 +15,9 @@
 
   {% script type="text/javascript" %}
   <script>
-    $(function() {
-      setTimeout(function(){
-          $("#id_password").focus();
+    document.addEventListener('DOMContentLoaded', function() {
+      setTimeout(function() {
+          document.querySelector("#id_password").focus();
       }, 0);
     });
   </script>
@@ -46,13 +46,24 @@
                 </div>
 
                 {% if u2f_challenge %}
-                    <div id="u2f-challenge"></div>
+                    <div id="u2f-challenge">
+                      <div class="loading">
+                        <div class="loading-mask"></div>
+                        <div class="loading-indicator"></div>
+                      </div>
+                    </div>
                     {% script %}
                     <script>
-                      ReactDOM.render(React.createElement(SentryApp.U2fSign, {
-                        challengeData: {{ u2f_challenge|to_json|safe }},
-                        displayMode: 'sudo'
-                      }), document.getElementById('u2f-challenge'));
+                      window.__onSentryInit = window.__onSentryInit || [];
+                      window.__onSentryInit.push({
+                        name: 'renderReact',
+                        component: 'U2fSign',
+                        container: '#u2f-challenge',
+                        props: {
+                          challengeData: {{ u2f_challenge|to_json|safe }},
+                          displayMode: 'sudo'
+                        },
+                      });
                     </script>
                     {% endscript %}
                 {% endif %}

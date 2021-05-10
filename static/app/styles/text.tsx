@@ -1,4 +1,4 @@
-import {css} from '@emotion/core';
+import {css} from '@emotion/react';
 
 const textStyles = () => css`
   /* stylelint-disable no-descending-specificity */

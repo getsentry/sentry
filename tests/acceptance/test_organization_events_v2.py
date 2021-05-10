@@ -311,6 +311,13 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
                 "fingerprint": ["group-1"],
             }
         )
+        if "contexts" not in event_data:
+            event_data["contexts"] = {}
+        event_data["contexts"]["trace"] = {
+            "type": "trace",
+            "trace_id": "a" * 32,
+            "span_id": "b" * 16,
+        }
         self.store_event(data=event_data, project_id=self.project.id, assert_no_errors=False)
 
         with self.feature(FEATURE_NAMES):
@@ -339,6 +346,11 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
                 "fingerprint": ["group-1"],
             }
         )
+        event_data["contexts"]["trace"] = {
+            "type": "trace",
+            "trace_id": "a" * 32,
+            "span_id": "b" * 16,
+        }
         self.store_event(data=event_data, project_id=self.project.id)
         self.wait_for_event_count(self.project.id, 1)
 
@@ -452,11 +464,12 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.browser.element('input[name="query_name"]').send_keys(query_name)
             self.browser.element('[aria-label="Save"]').click()
 
-            self.browser.wait_until(f'div[name="discover2-query-name"][value="{query_name}"]')
+            self.browser.wait_until(f'[data-test-id="discover2-query-name-{query_name}"]')
 
             # Page title should update.
-            title_input = self.browser.element('div[name="discover2-query-name"]')
-            assert title_input.get_attribute("value") == query_name
+            editable_text_label = self.browser.element('[data-test-id="editable-text-label"]').text
+
+        assert editable_text_label == query_name
         # Saved query should exist.
         assert DiscoverSavedQuery.objects.filter(name=query_name).exists()
 
@@ -477,16 +490,22 @@ class OrganizationEventsV2Test(AcceptanceTestCase, SnubaTestCase):
             self.browser.element(f'[data-test-id="card-{query.name}"]').click()
             self.wait_until_loaded()
 
-            input = self.browser.element('div[name="discover2-query-name"]')
-            input.click()
-            input.send_keys(Keys.END + "updated!")
+            self.browser.element('[data-test-id="editable-text-label"]').click()
+            self.browser.wait_until('[data-test-id="editable-text-input"]')
+
+            editable_text_input = self.browser.element('[data-test-id="editable-text-input"] input')
+            editable_text_input.click()
+            editable_text_input.send_keys(Keys.END + "updated!")
 
             # Move focus somewhere else to trigger a blur and update the query
             self.browser.element("table").click()
 
+            self.browser.wait_until('[data-test-id="editable-text-label"]')
+
             new_name = "Custom queryupdated!"
-            new_card_selector = f'div[name="discover2-query-name"][value="{new_name}"]'
-            self.browser.wait_until(new_card_selector)
+            # new_card_selector = f'div[name="discover2-query-name"][value="{new_name}"]'
+            # self.browser.wait_until(new_card_selector)
+            self.browser.wait_until(f'[data-test-id="discover2-query-name-{new_name}"]')
 
         # Assert the name was updated.
         assert DiscoverSavedQuery.objects.filter(name=new_name).exists()

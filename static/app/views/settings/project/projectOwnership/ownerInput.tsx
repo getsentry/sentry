@@ -1,7 +1,6 @@
-import React from 'react';
+import * as React from 'react';
 import TextareaAutosize from 'react-autosize-textarea';
 import styled from '@emotion/styled';
-import {withTheme} from 'emotion-theming';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
@@ -12,7 +11,6 @@ import ProjectsStore from 'app/stores/projectsStore';
 import {inputStyles} from 'app/styles/input';
 import {Organization, Project, Team} from 'app/types';
 import {defined} from 'app/utils';
-import {Theme} from 'app/utils/theme';
 
 import RuleBuilder from './ruleBuilder';
 
@@ -23,7 +21,6 @@ const defaultProps = {
 };
 
 type Props = {
-  theme: Theme;
   organization: Organization;
   project: Project;
   initialText: string;
@@ -150,7 +147,7 @@ class OwnerInput extends React.Component<Props, State> {
   };
 
   render() {
-    const {theme, project, organization, disabled, urls, paths, initialText} = this.props;
+    const {project, organization, disabled, urls, paths, initialText} = this.props;
     const {hasChanges, text, error} = this.state;
 
     return (
@@ -185,7 +182,6 @@ class OwnerInput extends React.Component<Props, State> {
             autoComplete="off"
             autoCorrect="off"
             autoCapitalize="off"
-            theme={theme}
           />
           <ActionBar>
             <div>{this.parseError(error)}</div>
@@ -232,7 +228,7 @@ const SaveButton = styled('div')`
 `;
 
 const StyledTextArea = styled(TextareaAutosize)`
-  ${inputStyles};
+  ${p => inputStyles(p)};
   min-height: 140px;
   overflow: auto;
   outline: 0;
@@ -252,4 +248,4 @@ const InvalidOwners = styled('div')`
   margin-top: 12px;
 `;
 
-export default withTheme(OwnerInput);
+export default OwnerInput;

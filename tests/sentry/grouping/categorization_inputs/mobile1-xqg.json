@@ -1,0 +1,74 @@
+{
+  "event_id": "601e7d58f3004ed52deb9bdbf7e8c1b0",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": {
+            "signal": {
+              "name": "SIGTRAP",
+              "number": 5
+            }
+          },
+          "synthetic": true,
+          "type": "signalhandler"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "package": "/apex/com.android.runtime/lib64/bionic/libc.so"
+            },
+            {
+              "package": "/apex/com.android.runtime/lib64/bionic/libc.so"
+            },
+            {
+              "function": "art::ThreadPoolWorker::Callback",
+              "package": "/apex/com.android.runtime/lib64/libart.so"
+            },
+            {
+              "function": "art::ThreadPoolWorker::Run",
+              "package": "/apex/com.android.runtime/lib64/libart.so"
+            },
+            {
+              "package": "/apex/com.android.runtime/lib64/libart.so"
+            },
+            {
+              "function": "art::jit::Jit::CompileMethod",
+              "package": "/apex/com.android.runtime/lib64/libart.so"
+            },
+            {
+              "function": "art::jit::JitCompiler::CompileMethod",
+              "package": "/apex/com.android.runtime/lib64/libart-compiler.so"
+            },
+            {
+              "function": "art::OptimizingCompiler::JitCompile",
+              "package": "/apex/com.android.runtime/lib64/libart-compiler.so"
+            },
+            {
+              "function": "art::OptimizingCompiler::TryCompile",
+              "package": "/apex/com.android.runtime/lib64/libart-compiler.so"
+            },
+            {
+              "function": "art::OptimizingCompiler::RunOptimizations",
+              "package": "/apex/com.android.runtime/lib64/libart-compiler.so"
+            },
+            {
+              "function": "art::LoadStoreAnalysis::Run",
+              "package": "/apex/com.android.runtime/lib64/libart-compiler.so"
+            }
+          ]
+        },
+        "type": "SIGTRAP",
+        "value": "Trap"
+      }
+    ]
+  },
+  "platform": "native"
+}

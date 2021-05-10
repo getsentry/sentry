@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import keydown from 'react-keydown';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
@@ -20,6 +20,13 @@ import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 const PLATFORM_CATEGORIES = [...categoryList, {id: 'all', name: t('All')}] as const;
 
+const PlatformList = styled('div')`
+  display: grid;
+  grid-gap: ${space(1)};
+  grid-template-columns: repeat(auto-fill, 112px);
+  margin-bottom: ${space(2)};
+`;
+
 type Category = typeof PLATFORM_CATEGORIES[number]['id'];
 
 type Props = {
@@ -27,7 +34,7 @@ type Props = {
   platform?: string | null;
   showOther?: boolean;
   listClassName?: string;
-  listProps?: React.HTMLProps<HTMLDivElement>;
+  listProps?: React.ComponentProps<typeof PlatformList>;
   noAutoFilter?: boolean;
   defaultCategory?: Category;
 };
@@ -208,13 +215,6 @@ const CategoryNav = styled(NavTabs)`
   }
 `;
 
-const PlatformList = styled('div')`
-  display: grid;
-  grid-gap: ${space(1)};
-  grid-template-columns: repeat(auto-fill, 112px);
-  margin-bottom: ${space(2)};
-`;
-
 const StyledPlatformIcon = styled(PlatformIcon)`
   margin: ${space(2)};
 `;
@@ -260,10 +260,10 @@ const PlatformCard = styled(({platform, selected, onClear, ...props}) => (
   padding: 0 0 14px;
   border-radius: 4px;
   cursor: pointer;
-  background: ${p => p.selected && '#ecf5fd'};
+  background: ${p => p.selected && p.theme.alert.info.backgroundLight};
 
   &:hover {
-    background: #ebebef;
+    background: ${p => p.theme.alert.muted.backgroundLight};
   }
 
   h3 {
@@ -272,7 +272,7 @@ const PlatformCard = styled(({platform, selected, onClear, ...props}) => (
     align-items: center;
     justify-content: center;
     width: 100%;
-    color: ${p => p.theme.subText};
+    color: ${p => (p.selected ? p.theme.textColor : p.theme.subText)};
     text-align: center;
     font-size: ${p => p.theme.fontSizeExtraSmall};
     text-transform: uppercase;

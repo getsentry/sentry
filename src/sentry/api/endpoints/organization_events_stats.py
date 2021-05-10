@@ -4,10 +4,11 @@ from rest_framework.response import Response
 
 from sentry import eventstore
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
-from sentry.api.event_search import InvalidSearchQuery, resolve_field_list
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
 from sentry.constants import MAX_TOP_EVENTS
 from sentry.discover.utils import transform_aliases_and_query
+from sentry.exceptions import InvalidSearchQuery
+from sentry.search.events.fields import resolve_field_list
 from sentry.snuba import discover
 from sentry.utils import snuba
 from sentry.utils.dates import get_rollup_from_request
@@ -19,6 +20,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             span.set_data("organization", organization)
             if not self.has_feature(organization, request):
                 span.set_data("using_v1_results", True)
+                sentry_sdk.set_tag("stats.using_v1", organization.slug)
                 return self.get_v1_results(request, organization)
 
             top_events = 0

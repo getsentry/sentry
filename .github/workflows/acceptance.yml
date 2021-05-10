@@ -18,6 +18,9 @@ jobs:
     name: frontend tests
     runs-on: ubuntu-20.04
     timeout-minutes: 20
+    strategy:
+      matrix:
+        instance: [0, 1]
 
     env:
       VISUAL_HTML_ENABLE: 1
@@ -48,10 +51,12 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
+      - name: Build CSS
+        run: NODE_ENV=production yarn build-css
+
       - name: jest
         run: |
-          NODE_ENV=production yarn build-css
-          yarn test-ci --forceExit
+          CI_NODE_TOTAL=${{ strategy.job-total }} CI_NODE_INDEX=${{ matrix.instance }} JEST_TESTS=$(yarn -s jest --listTests --json) yarn test-ci --forceExit
 
       - name: Save HTML artifacts
         uses: actions/upload-artifact@v2
@@ -59,11 +64,15 @@ jobs:
           name: jest-html
           path: .artifacts/visual-snapshots/jest
 
+      - name: Get CSS filename
+        id: css-manifest
+        run: echo "::set-output name=sentrycss::$(jq -r '.["sentry.css"]' src/sentry/static/sentry/dist/manifest.json)"
+
       - name: Create Images from HTML
         uses: getsentry/action-html-to-image@main
         with:
           base-path: .artifacts/visual-snapshots/jest
-          css-path: src/sentry/static/sentry/dist/sentry.css
+          css-path: src/sentry/static/sentry/dist/${{ steps.css-manifest.outputs.sentrycss }}
 
       - name: Save snapshots
         if: always()
@@ -98,6 +107,10 @@ jobs:
         run: |
           echo "::set-output name=python-version::$(cat .python-version)"
 
+      - name: Setup webpack cache
+        id: webpack-cache
+        run: echo "::set-output name=path::.webpack_cache"
+
       # Until GH composite actions can use `uses`, we need to setup python here
       - uses: actions/setup-python@v2
         with:
@@ -131,12 +144,21 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-yarn-
 
+      - name: webpack cache
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.webpack-cache.outputs.path }}
+          key: ${{ runner.os }}-webpack-cache-${{ hashFiles('webpack.config.js') }}
+          restore-keys: |
+            ${{ runner.os }}-webpack-cache-
+
       - name: Install Javascript Dependencies
         run: |
           yarn install --frozen-lockfile
 
       - name: webpack
         env:
+          WEBPACK_CACHE_PATH: ${{ steps.webpack-cache.outputs.path }}
           SENTRY_INSTRUMENTATION: 1
           # this is fine to not have for forks, it shouldn't fail
           SENTRY_WEBPACK_WEBHOOK_SECRET: ${{ secrets.SENTRY_WEBPACK_WEBHOOK_SECRET }}

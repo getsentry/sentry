@@ -1,4 +1,3 @@
-import React from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
@@ -127,7 +126,7 @@ const ButtonGroupWrapper = styled('div')`
   > * {
     padding: ${space(0.5)} 0;
   }
-  > * :not(:last-child) {
+  > *:not(:last-child) {
     margin-right: ${space(1)};
   }
 `;

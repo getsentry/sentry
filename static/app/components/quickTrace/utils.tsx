@@ -4,13 +4,24 @@ import {getParams} from 'app/components/organizations/globalSelectionHeader/getP
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {OrganizationSummary} from 'app/types';
 import {Event} from 'app/types/event';
+import {defined} from 'app/utils';
 import EventView from 'app/utils/discover/eventView';
 import {eventDetailsRouteWithEventView, generateEventSlug} from 'app/utils/discover/urls';
-import {EventLite, TraceError} from 'app/utils/performance/quickTrace/types';
+import {
+  EventLite,
+  QuickTraceEvent,
+  TraceError,
+} from 'app/utils/performance/quickTrace/types';
 import {getTraceTimeRangeFromEvent} from 'app/utils/performance/quickTrace/utils';
 import {QueryResults, stringifyQueryObject} from 'app/utils/tokenizeSearch';
 import {getTraceDetailsUrl} from 'app/views/performance/traceDetails/utils';
 import {getTransactionDetailsUrl} from 'app/views/performance/utils';
+
+export function isQuickTraceEvent(
+  event: QuickTraceEvent | TraceError
+): event is QuickTraceEvent {
+  return defined((event as QuickTraceEvent)['transaction.duration']);
+}
 
 export type ErrorDestination = 'discover' | 'issue';
 
@@ -125,18 +136,20 @@ export function generateTraceTarget(
 
   const dateSelection = getParams(getTraceTimeRangeFromEvent(event));
 
-  if (organization.features.includes('trace-view-summary')) {
+  if (organization.features.includes('performance-view')) {
     // TODO(txiao): Should this persist the current query when going to trace view?
     return getTraceDetailsUrl(organization, traceId, dateSelection, {});
   }
 
   const eventView = EventView.fromSavedQuery({
     id: undefined,
-    name: `Transactions with Trace ID ${traceId}`,
-    fields: ['transaction', 'project', 'trace.span', 'transaction.duration', 'timestamp'],
+    name: `Events with Trace ID ${traceId}`,
+    fields: ['title', 'event.type', 'project', 'trace.span', 'timestamp'],
     orderby: '-timestamp',
-    query: `event.type:transaction trace:${traceId}`,
-    projects: [ALL_ACCESS_PROJECTS],
+    query: `trace:${traceId}`,
+    projects: organization.features.includes('global-views')
+      ? [ALL_ACCESS_PROJECTS]
+      : [Number(event.projectID)],
     version: 2,
     ...dateSelection,
   });

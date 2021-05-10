@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
 import {promptsCheck, promptsUpdate} from 'app/actionCreators/prompts';
@@ -45,21 +45,21 @@ const recordAnalyticsSeen = ({organization}: AnalyticsOpts) =>
   trackAnalyticsEvent({
     eventKey: 'sdk_updates.seen',
     eventName: 'SDK Updates: Seen',
-    organizationId: organization.id,
+    organization_id: organization.id,
   });
 
 const recordAnalyticsSnoozed = ({organization}: AnalyticsOpts) =>
   trackAnalyticsEvent({
     eventKey: 'sdk_updates.snoozed',
     eventName: 'SDK Updates: Snoozed',
-    organizationId: organization.id,
+    organization_id: organization.id,
   });
 
 const recordAnalyticsClicked = ({organization}: AnalyticsOpts) =>
   trackAnalyticsEvent({
     eventKey: 'sdk_updates.clicked',
     eventName: 'SDK Updates: Clicked',
-    organizationId: organization.id,
+    organization_id: organization.id,
   });
 
 const flattenSuggestions = (list: ProjectSdkUpdates[]) =>

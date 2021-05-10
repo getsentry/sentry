@@ -1,11 +1,11 @@
-import React from 'react';
+import * as React from 'react';
 
 import ExternalLink from 'app/components/links/externalLink';
 import {t, tct} from 'app/locale';
 import {Organization} from 'app/types';
 
 export enum Query {
-  FOR_REVIEW = 'is:unresolved is:for_review assigned_or_suggested:me_or_none',
+  FOR_REVIEW = 'is:unresolved is:for_review assigned_or_suggested:[me, none]',
   UNRESOLVED = 'is:unresolved',
   IGNORED = 'is:ignored',
   REPROCESSING = 'is:reprocessing',

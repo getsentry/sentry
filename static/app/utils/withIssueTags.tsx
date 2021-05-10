@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import createReactClass from 'create-react-class';
 import assign from 'lodash/assign';
 import Reflux from 'reflux';
@@ -86,7 +86,7 @@ const withIssueTags = <P extends InjectedTagsProps>(
       const teamnames: string[] = teams
         .filter(team => team.isMember)
         .map(team => `#${team.slug}`);
-      const allAssigned = ['me_or_none', ...usernames.concat(teamnames)];
+      const allAssigned = ['[me, none]', ...usernames.concat(teamnames)];
       allAssigned.unshift('me');
       usernames.unshift('me');
 

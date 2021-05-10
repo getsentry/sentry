@@ -1,0 +1,2002 @@
+---
+created: '2021-04-02T09:10:50.905917Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because hash matches system variant)
+        stacktrace*
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "com.android.internal.os.ZygoteInit"
+            filename (module takes precedence)
+              "ZygoteInit.java"
+            function*
+              "main"
+            lineno (function takes precedence)
+              698
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "com.android.internal.os.ZygoteInit$MethodAndArgsCaller"
+            filename (module takes precedence)
+              "ZygoteInit.java"
+            function*
+              "run"
+            lineno (function takes precedence)
+              903
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "java.lang.reflect.Method"
+            filename (module takes precedence)
+              "Method.java"
+            function*
+              "invoke"
+            lineno (function takes precedence)
+              372
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "java.lang.reflect.Method"
+            filename (module takes precedence)
+              "Method.java"
+            function*
+              "invoke"
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.app.ActivityThread"
+            filename (module takes precedence)
+              "ActivityThread.java"
+            function*
+              "main"
+            lineno (function takes precedence)
+              5254
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.os.Looper"
+            filename (module takes precedence)
+              "Looper.java"
+            function*
+              "loop"
+            lineno (function takes precedence)
+              135
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.os.Handler"
+            filename (module takes precedence)
+              "Handler.java"
+            function*
+              "dispatchMessage"
+            lineno (function takes precedence)
+              95
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.os.Handler"
+            filename (module takes precedence)
+              "Handler.java"
+            function*
+              "handleCallback"
+            lineno (function takes precedence)
+              739
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.view.Choreographer$FrameDisplayEventReceiver"
+            filename (module takes precedence)
+              "Choreographer.java"
+            function*
+              "run"
+            lineno (function takes precedence)
+              753
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.view.Choreographer"
+            filename (module takes precedence)
+              "Choreographer.java"
+            function*
+              "doFrame"
+            lineno (function takes precedence)
+              550
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.view.Choreographer"
+            filename (module takes precedence)
+              "Choreographer.java"
+            function*
+              "doCallbacks"
+            lineno (function takes precedence)
+              580
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.view.Choreographer$CallbackRecord"
+            filename (module takes precedence)
+              "Choreographer.java"
+            function*
+              "run"
+            lineno (function takes precedence)
+              767
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.view.ViewRootImpl$TraversalRunnable"
+            filename (module takes precedence)
+              "ViewRootImpl.java"
+            function*
+              "run"
+            lineno (function takes precedence)
+              5891
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.view.ViewRootImpl"
+            filename (module takes precedence)
+              "ViewRootImpl.java"
+            function*
+              "doTraversal"
+            lineno (function takes precedence)
+              1061
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.view.ViewRootImpl"
+            filename (module takes precedence)
+              "ViewRootImpl.java"
+            function*
+              "performTraversals"
+            lineno (function takes precedence)
+              1843
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.view.ViewRootImpl"
+            filename (module takes precedence)
+              "ViewRootImpl.java"
+            function*
+              "performLayout"
+            lineno (function takes precedence)
+              2086
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "ViewGroup.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              5039
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "View.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              15679
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "FrameLayout.java"
+            function*
+              "onLayout"
+            lineno (function takes precedence)
+              514
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "FrameLayout.java"
+            function*
+              "layoutChildren"
+            lineno (function takes precedence)
+              579
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "ViewGroup.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              5039
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "View.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              15679
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.widget.LinearLayout"
+            filename (module takes precedence)
+              "LinearLayout.java"
+            function*
+              "onLayout"
+            lineno (function takes precedence)
+              1466
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.widget.LinearLayout"
+            filename (module takes precedence)
+              "LinearLayout.java"
+            function*
+              "layoutVertical"
+            lineno (function takes precedence)
+              1557
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.widget.LinearLayout"
+            filename (module takes precedence)
+              "LinearLayout.java"
+            function*
+              "setChildFrame"
+            lineno (function takes precedence)
+              1703
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "ViewGroup.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              5039
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "View.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              15679
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "FrameLayout.java"
+            function*
+              "onLayout"
+            lineno (function takes precedence)
+              514
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "FrameLayout.java"
+            function*
+              "layoutChildren"
+            lineno (function takes precedence)
+              579
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "ViewGroup.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              5039
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "View.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              15679
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.widget.LinearLayout"
+            filename (module takes precedence)
+              "LinearLayout.java"
+            function*
+              "onLayout"
+            lineno (function takes precedence)
+              1466
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.widget.LinearLayout"
+            filename (module takes precedence)
+              "LinearLayout.java"
+            function*
+              "layoutVertical"
+            lineno (function takes precedence)
+              1557
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.widget.LinearLayout"
+            filename (module takes precedence)
+              "LinearLayout.java"
+            function*
+              "setChildFrame"
+            lineno (function takes precedence)
+              1703
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "ViewGroup.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              5039
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "View.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              15679
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "FrameLayout.java"
+            function*
+              "onLayout"
+            lineno (function takes precedence)
+              514
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "FrameLayout.java"
+            function*
+              "layoutChildren"
+            lineno (function takes precedence)
+              579
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "ViewGroup.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              5039
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "View.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              15679
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "FrameLayout.java"
+            function*
+              "onLayout"
+            lineno (function takes precedence)
+              514
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "FrameLayout.java"
+            function*
+              "layoutChildren"
+            lineno (function takes precedence)
+              579
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "ViewGroup.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              5039
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "View.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              15679
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "FrameLayout.java"
+            function*
+              "onLayout"
+            lineno (function takes precedence)
+              514
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "FrameLayout.java"
+            function*
+              "layoutChildren"
+            lineno (function takes precedence)
+              579
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "ViewGroup.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              5039
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "View.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              15679
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "FrameLayout.java"
+            function*
+              "onLayout"
+            lineno (function takes precedence)
+              514
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "FrameLayout.java"
+            function*
+              "layoutChildren"
+            lineno (function takes precedence)
+              579
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "ViewGroup.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              5039
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "View.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              15679
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "FrameLayout.java"
+            function*
+              "onLayout"
+            lineno (function takes precedence)
+              514
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "FrameLayout.java"
+            function*
+              "layoutChildren"
+            lineno (function takes precedence)
+              579
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "ViewGroup.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              5039
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "View.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              15679
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "FrameLayout.java"
+            function*
+              "onLayout"
+            lineno (function takes precedence)
+              514
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "FrameLayout.java"
+            function*
+              "layoutChildren"
+            lineno (function takes precedence)
+              579
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "ViewGroup.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              5039
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "View.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              15679
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "FrameLayout.java"
+            function*
+              "onLayout"
+            lineno (function takes precedence)
+              514
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "FrameLayout.java"
+            function*
+              "layoutChildren"
+            lineno (function takes precedence)
+              579
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "ViewGroup.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              5039
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "View.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              15679
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "FrameLayout.java"
+            function*
+              "onLayout"
+            lineno (function takes precedence)
+              514
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "FrameLayout.java"
+            function*
+              "layoutChildren"
+            lineno (function takes precedence)
+              579
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "ViewGroup.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              5039
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "View.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              15679
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.widget.LinearLayout"
+            filename (module takes precedence)
+              "LinearLayout.java"
+            function*
+              "onLayout"
+            lineno (function takes precedence)
+              1466
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.widget.LinearLayout"
+            filename (module takes precedence)
+              "LinearLayout.java"
+            function*
+              "layoutVertical"
+            lineno (function takes precedence)
+              1557
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.widget.LinearLayout"
+            filename (module takes precedence)
+              "LinearLayout.java"
+            function*
+              "setChildFrame"
+            lineno (function takes precedence)
+              1703
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "ViewGroup.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              5039
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "View.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              15679
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "FrameLayout.java"
+            function*
+              "onLayout"
+            lineno (function takes precedence)
+              514
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "FrameLayout.java"
+            function*
+              "layoutChildren"
+            lineno (function takes precedence)
+              579
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "ViewGroup.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              5039
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "View.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              15679
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "FrameLayout.java"
+            function*
+              "onLayout"
+            lineno (function takes precedence)
+              514
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "FrameLayout.java"
+            function*
+              "layoutChildren"
+            lineno (function takes precedence)
+              579
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "ViewGroup.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              5039
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "View.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              15679
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.widget.LinearLayout"
+            filename (module takes precedence)
+              "LinearLayout.java"
+            function*
+              "onLayout"
+            lineno (function takes precedence)
+              1466
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.widget.LinearLayout"
+            filename (module takes precedence)
+              "LinearLayout.java"
+            function*
+              "layoutVertical"
+            lineno (function takes precedence)
+              1557
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.widget.LinearLayout"
+            filename (module takes precedence)
+              "LinearLayout.java"
+            function*
+              "setChildFrame"
+            lineno (function takes precedence)
+              1703
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "ViewGroup.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              5039
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "View.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              15679
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "FrameLayout.java"
+            function*
+              "onLayout"
+            lineno (function takes precedence)
+              514
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "FrameLayout.java"
+            function*
+              "layoutChildren"
+            lineno (function takes precedence)
+              579
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "ViewGroup.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              5039
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "View.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              15679
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.widget.LinearLayout"
+            filename (module takes precedence)
+              "LinearLayout.java"
+            function*
+              "onLayout"
+            lineno (function takes precedence)
+              1466
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.widget.LinearLayout"
+            filename (module takes precedence)
+              "LinearLayout.java"
+            function*
+              "layoutVertical"
+            lineno (function takes precedence)
+              1557
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.widget.LinearLayout"
+            filename (module takes precedence)
+              "LinearLayout.java"
+            function*
+              "setChildFrame"
+            lineno (function takes precedence)
+              1703
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "ViewGroup.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              5039
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "View.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              15679
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "FrameLayout.java"
+            function*
+              "onLayout"
+            lineno (function takes precedence)
+              514
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "FrameLayout.java"
+            function*
+              "layoutChildren"
+            lineno (function takes precedence)
+              579
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "ViewGroup.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              5039
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "View.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              15679
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "androidx.recyclerview.widget.RecyclerView"
+            filename (module takes precedence)
+              "SourceFile"
+            function*
+              "onLayout"
+            lineno (function takes precedence)
+              4410
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "androidx.recyclerview.widget.RecyclerView"
+            filename (module takes precedence)
+              "SourceFile"
+            function*
+              "dispatchLayout"
+            lineno (function takes precedence)
+              3851
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "androidx.recyclerview.widget.RecyclerView"
+            filename (module takes precedence)
+              "SourceFile"
+            function*
+              "dispatchLayoutStep1"
+            lineno (function takes precedence)
+              4041
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "androidx.recyclerview.widget.RecyclerView"
+            filename (module takes precedence)
+              "SourceFile"
+            function*
+              "processAdapterUpdatesAndSetAnimationFlags"
+            lineno (function takes precedence)
+              3797
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "androidx.recyclerview.widget.AdapterHelper"
+            filename (module takes precedence)
+              "SourceFile"
+            function*
+              "consumeUpdatesInOnePass"
+            lineno (function takes precedence)
+              564
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "androidx.recyclerview.widget.RecyclerView$6"
+            filename (module takes precedence)
+              "SourceFile"
+            function*
+              "offsetPositionsForAdd"
+            lineno (function takes precedence)
+              1034
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "androidx.recyclerview.widget.RecyclerView"
+            filename (module takes precedence)
+              "SourceFile"
+            function*
+              "offsetPositionRecordsForInsert"
+            lineno (function takes precedence)
+              4607
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "androidx.recyclerview.widget.ChildHelper"
+            filename (module takes precedence)
+              "SourceFile"
+            function*
+              "getUnfilteredChildAt"
+            lineno (function takes precedence)
+              273
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "androidx.recyclerview.widget.RecyclerView$5"
+            filename (module takes precedence)
+              "SourceFile"
+            function*
+              "getChildAt"
+            lineno (function takes precedence)
+              887
+        type*
+          "ApplicationNotResponding"
+        value (stacktrace and type take precedence)
+          "Application Not Responding for at least 5000 ms."
+      threads (ignored because hash matches system variant)
+        stacktrace*
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "java.lang.Thread"
+            filename (module takes precedence)
+              "Thread.java"
+            function*
+              "getStackTrace"
+            lineno (function takes precedence)
+              580
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "dalvik.system.VMStack"
+            filename (module takes precedence)
+              "VMStack.java"
+            function*
+              "getThreadStackTrace"
+--------------------------------------------------------------------------
+system:
+  hash: "2e41d71bc38b212d73f8d68415389f45"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "com.android.internal.os.ZygoteInit"
+            filename (module takes precedence)
+              "ZygoteInit.java"
+            function*
+              "main"
+            lineno (function takes precedence)
+              698
+          frame*
+            module*
+              "com.android.internal.os.ZygoteInit$MethodAndArgsCaller"
+            filename (module takes precedence)
+              "ZygoteInit.java"
+            function*
+              "run"
+            lineno (function takes precedence)
+              903
+          frame*
+            module*
+              "java.lang.reflect.Method"
+            filename (module takes precedence)
+              "Method.java"
+            function*
+              "invoke"
+            lineno (function takes precedence)
+              372
+          frame*
+            module*
+              "java.lang.reflect.Method"
+            filename (module takes precedence)
+              "Method.java"
+            function*
+              "invoke"
+          frame*
+            module*
+              "android.app.ActivityThread"
+            filename (module takes precedence)
+              "ActivityThread.java"
+            function*
+              "main"
+            lineno (function takes precedence)
+              5254
+          frame*
+            module*
+              "android.os.Looper"
+            filename (module takes precedence)
+              "Looper.java"
+            function*
+              "loop"
+            lineno (function takes precedence)
+              135
+          frame*
+            module*
+              "android.os.Handler"
+            filename (module takes precedence)
+              "Handler.java"
+            function*
+              "dispatchMessage"
+            lineno (function takes precedence)
+              95
+          frame*
+            module*
+              "android.os.Handler"
+            filename (module takes precedence)
+              "Handler.java"
+            function*
+              "handleCallback"
+            lineno (function takes precedence)
+              739
+          frame*
+            module*
+              "android.view.Choreographer$FrameDisplayEventReceiver"
+            filename (module takes precedence)
+              "Choreographer.java"
+            function*
+              "run"
+            lineno (function takes precedence)
+              753
+          frame*
+            module*
+              "android.view.Choreographer"
+            filename (module takes precedence)
+              "Choreographer.java"
+            function*
+              "doFrame"
+            lineno (function takes precedence)
+              550
+          frame*
+            module*
+              "android.view.Choreographer"
+            filename (module takes precedence)
+              "Choreographer.java"
+            function*
+              "doCallbacks"
+            lineno (function takes precedence)
+              580
+          frame*
+            module*
+              "android.view.Choreographer$CallbackRecord"
+            filename (module takes precedence)
+              "Choreographer.java"
+            function*
+              "run"
+            lineno (function takes precedence)
+              767
+          frame*
+            module*
+              "android.view.ViewRootImpl$TraversalRunnable"
+            filename (module takes precedence)
+              "ViewRootImpl.java"
+            function*
+              "run"
+            lineno (function takes precedence)
+              5891
+          frame*
+            module*
+              "android.view.ViewRootImpl"
+            filename (module takes precedence)
+              "ViewRootImpl.java"
+            function*
+              "doTraversal"
+            lineno (function takes precedence)
+              1061
+          frame*
+            module*
+              "android.view.ViewRootImpl"
+            filename (module takes precedence)
+              "ViewRootImpl.java"
+            function*
+              "performTraversals"
+            lineno (function takes precedence)
+              1843
+          frame*
+            module*
+              "android.view.ViewRootImpl"
+            filename (module takes precedence)
+              "ViewRootImpl.java"
+            function*
+              "performLayout"
+            lineno (function takes precedence)
+              2086
+          frame*
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "ViewGroup.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              5039
+          frame*
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "View.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              15679
+          frame*
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "FrameLayout.java"
+            function*
+              "onLayout"
+            lineno (function takes precedence)
+              514
+          frame*
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "FrameLayout.java"
+            function*
+              "layoutChildren"
+            lineno (function takes precedence)
+              579
+          frame*
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "ViewGroup.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              5039
+          frame*
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "View.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              15679
+          frame*
+            module*
+              "android.widget.LinearLayout"
+            filename (module takes precedence)
+              "LinearLayout.java"
+            function*
+              "onLayout"
+            lineno (function takes precedence)
+              1466
+          frame*
+            module*
+              "android.widget.LinearLayout"
+            filename (module takes precedence)
+              "LinearLayout.java"
+            function*
+              "layoutVertical"
+            lineno (function takes precedence)
+              1557
+          frame*
+            module*
+              "android.widget.LinearLayout"
+            filename (module takes precedence)
+              "LinearLayout.java"
+            function*
+              "setChildFrame"
+            lineno (function takes precedence)
+              1703
+          frame*
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "ViewGroup.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              5039
+          frame*
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "View.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              15679
+          frame*
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "FrameLayout.java"
+            function*
+              "onLayout"
+            lineno (function takes precedence)
+              514
+          frame*
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "FrameLayout.java"
+            function*
+              "layoutChildren"
+            lineno (function takes precedence)
+              579
+          frame*
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "ViewGroup.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              5039
+          frame*
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "View.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              15679
+          frame*
+            module*
+              "android.widget.LinearLayout"
+            filename (module takes precedence)
+              "LinearLayout.java"
+            function*
+              "onLayout"
+            lineno (function takes precedence)
+              1466
+          frame*
+            module*
+              "android.widget.LinearLayout"
+            filename (module takes precedence)
+              "LinearLayout.java"
+            function*
+              "layoutVertical"
+            lineno (function takes precedence)
+              1557
+          frame*
+            module*
+              "android.widget.LinearLayout"
+            filename (module takes precedence)
+              "LinearLayout.java"
+            function*
+              "setChildFrame"
+            lineno (function takes precedence)
+              1703
+          frame*
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "ViewGroup.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              5039
+          frame*
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "View.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              15679
+          frame*
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "FrameLayout.java"
+            function*
+              "onLayout"
+            lineno (function takes precedence)
+              514
+          frame*
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "FrameLayout.java"
+            function*
+              "layoutChildren"
+            lineno (function takes precedence)
+              579
+          frame*
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "ViewGroup.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              5039
+          frame*
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "View.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              15679
+          frame*
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "FrameLayout.java"
+            function*
+              "onLayout"
+            lineno (function takes precedence)
+              514
+          frame*
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "FrameLayout.java"
+            function*
+              "layoutChildren"
+            lineno (function takes precedence)
+              579
+          frame*
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "ViewGroup.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              5039
+          frame*
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "View.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              15679
+          frame*
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "FrameLayout.java"
+            function*
+              "onLayout"
+            lineno (function takes precedence)
+              514
+          frame*
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "FrameLayout.java"
+            function*
+              "layoutChildren"
+            lineno (function takes precedence)
+              579
+          frame*
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "ViewGroup.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              5039
+          frame*
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "View.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              15679
+          frame*
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "FrameLayout.java"
+            function*
+              "onLayout"
+            lineno (function takes precedence)
+              514
+          frame*
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "FrameLayout.java"
+            function*
+              "layoutChildren"
+            lineno (function takes precedence)
+              579
+          frame*
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "ViewGroup.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              5039
+          frame*
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "View.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              15679
+          frame*
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "FrameLayout.java"
+            function*
+              "onLayout"
+            lineno (function takes precedence)
+              514
+          frame*
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "FrameLayout.java"
+            function*
+              "layoutChildren"
+            lineno (function takes precedence)
+              579
+          frame*
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "ViewGroup.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              5039
+          frame*
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "View.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              15679
+          frame*
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "FrameLayout.java"
+            function*
+              "onLayout"
+            lineno (function takes precedence)
+              514
+          frame*
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "FrameLayout.java"
+            function*
+              "layoutChildren"
+            lineno (function takes precedence)
+              579
+          frame*
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "ViewGroup.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              5039
+          frame*
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "View.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              15679
+          frame*
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "FrameLayout.java"
+            function*
+              "onLayout"
+            lineno (function takes precedence)
+              514
+          frame*
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "FrameLayout.java"
+            function*
+              "layoutChildren"
+            lineno (function takes precedence)
+              579
+          frame*
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "ViewGroup.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              5039
+          frame*
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "View.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              15679
+          frame*
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "FrameLayout.java"
+            function*
+              "onLayout"
+            lineno (function takes precedence)
+              514
+          frame*
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "FrameLayout.java"
+            function*
+              "layoutChildren"
+            lineno (function takes precedence)
+              579
+          frame*
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "ViewGroup.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              5039
+          frame*
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "View.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              15679
+          frame*
+            module*
+              "android.widget.LinearLayout"
+            filename (module takes precedence)
+              "LinearLayout.java"
+            function*
+              "onLayout"
+            lineno (function takes precedence)
+              1466
+          frame*
+            module*
+              "android.widget.LinearLayout"
+            filename (module takes precedence)
+              "LinearLayout.java"
+            function*
+              "layoutVertical"
+            lineno (function takes precedence)
+              1557
+          frame*
+            module*
+              "android.widget.LinearLayout"
+            filename (module takes precedence)
+              "LinearLayout.java"
+            function*
+              "setChildFrame"
+            lineno (function takes precedence)
+              1703
+          frame*
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "ViewGroup.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              5039
+          frame*
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "View.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              15679
+          frame*
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "FrameLayout.java"
+            function*
+              "onLayout"
+            lineno (function takes precedence)
+              514
+          frame*
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "FrameLayout.java"
+            function*
+              "layoutChildren"
+            lineno (function takes precedence)
+              579
+          frame*
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "ViewGroup.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              5039
+          frame*
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "View.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              15679
+          frame*
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "FrameLayout.java"
+            function*
+              "onLayout"
+            lineno (function takes precedence)
+              514
+          frame*
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "FrameLayout.java"
+            function*
+              "layoutChildren"
+            lineno (function takes precedence)
+              579
+          frame*
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "ViewGroup.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              5039
+          frame*
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "View.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              15679
+          frame*
+            module*
+              "android.widget.LinearLayout"
+            filename (module takes precedence)
+              "LinearLayout.java"
+            function*
+              "onLayout"
+            lineno (function takes precedence)
+              1466
+          frame*
+            module*
+              "android.widget.LinearLayout"
+            filename (module takes precedence)
+              "LinearLayout.java"
+            function*
+              "layoutVertical"
+            lineno (function takes precedence)
+              1557
+          frame*
+            module*
+              "android.widget.LinearLayout"
+            filename (module takes precedence)
+              "LinearLayout.java"
+            function*
+              "setChildFrame"
+            lineno (function takes precedence)
+              1703
+          frame*
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "ViewGroup.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              5039
+          frame*
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "View.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              15679
+          frame*
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "FrameLayout.java"
+            function*
+              "onLayout"
+            lineno (function takes precedence)
+              514
+          frame*
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "FrameLayout.java"
+            function*
+              "layoutChildren"
+            lineno (function takes precedence)
+              579
+          frame*
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "ViewGroup.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              5039
+          frame*
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "View.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              15679
+          frame*
+            module*
+              "android.widget.LinearLayout"
+            filename (module takes precedence)
+              "LinearLayout.java"
+            function*
+              "onLayout"
+            lineno (function takes precedence)
+              1466
+          frame*
+            module*
+              "android.widget.LinearLayout"
+            filename (module takes precedence)
+              "LinearLayout.java"
+            function*
+              "layoutVertical"
+            lineno (function takes precedence)
+              1557
+          frame*
+            module*
+              "android.widget.LinearLayout"
+            filename (module takes precedence)
+              "LinearLayout.java"
+            function*
+              "setChildFrame"
+            lineno (function takes precedence)
+              1703
+          frame*
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "ViewGroup.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              5039
+          frame*
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "View.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              15679
+          frame*
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "FrameLayout.java"
+            function*
+              "onLayout"
+            lineno (function takes precedence)
+              514
+          frame*
+            module*
+              "android.widget.FrameLayout"
+            filename (module takes precedence)
+              "FrameLayout.java"
+            function*
+              "layoutChildren"
+            lineno (function takes precedence)
+              579
+          frame*
+            module*
+              "android.view.ViewGroup"
+            filename (module takes precedence)
+              "ViewGroup.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              5039
+          frame*
+            module*
+              "android.view.View"
+            filename (module takes precedence)
+              "View.java"
+            function*
+              "layout"
+            lineno (function takes precedence)
+              15679
+          frame*
+            module*
+              "androidx.recyclerview.widget.RecyclerView"
+            filename (module takes precedence)
+              "SourceFile"
+            function*
+              "onLayout"
+            lineno (function takes precedence)
+              4410
+          frame*
+            module*
+              "androidx.recyclerview.widget.RecyclerView"
+            filename (module takes precedence)
+              "SourceFile"
+            function*
+              "dispatchLayout"
+            lineno (function takes precedence)
+              3851
+          frame*
+            module*
+              "androidx.recyclerview.widget.RecyclerView"
+            filename (module takes precedence)
+              "SourceFile"
+            function*
+              "dispatchLayoutStep1"
+            lineno (function takes precedence)
+              4041
+          frame*
+            module*
+              "androidx.recyclerview.widget.RecyclerView"
+            filename (module takes precedence)
+              "SourceFile"
+            function*
+              "processAdapterUpdatesAndSetAnimationFlags"
+            lineno (function takes precedence)
+              3797
+          frame*
+            module*
+              "androidx.recyclerview.widget.AdapterHelper"
+            filename (module takes precedence)
+              "SourceFile"
+            function*
+              "consumeUpdatesInOnePass"
+            lineno (function takes precedence)
+              564
+          frame*
+            module*
+              "androidx.recyclerview.widget.RecyclerView$6"
+            filename (module takes precedence)
+              "SourceFile"
+            function*
+              "offsetPositionsForAdd"
+            lineno (function takes precedence)
+              1034
+          frame*
+            module*
+              "androidx.recyclerview.widget.RecyclerView"
+            filename (module takes precedence)
+              "SourceFile"
+            function*
+              "offsetPositionRecordsForInsert"
+            lineno (function takes precedence)
+              4607
+          frame*
+            module*
+              "androidx.recyclerview.widget.ChildHelper"
+            filename (module takes precedence)
+              "SourceFile"
+            function*
+              "getUnfilteredChildAt"
+            lineno (function takes precedence)
+              273
+          frame*
+            module*
+              "androidx.recyclerview.widget.RecyclerView$5"
+            filename (module takes precedence)
+              "SourceFile"
+            function*
+              "getChildAt"
+            lineno (function takes precedence)
+              887
+        type*
+          "ApplicationNotResponding"
+        value (stacktrace and type take precedence)
+          "Application Not Responding for at least 5000 ms."
+      threads (exception of system takes precedence)
+        stacktrace*
+          frame*
+            module*
+              "java.lang.Thread"
+            filename (module takes precedence)
+              "Thread.java"
+            function*
+              "getStackTrace"
+            lineno (function takes precedence)
+              580
+          frame*
+            module*
+              "dalvik.system.VMStack"
+            filename (module takes precedence)
+              "VMStack.java"
+            function*
+              "getThreadStackTrace"

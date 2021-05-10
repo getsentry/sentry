@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -100,7 +100,7 @@ class VitalsContent extends React.Component<Props, State> {
                       onSearch={this.handleSearch}
                     />
                     <DropdownControl
-                      buttonProps={{prefix: t('Filter')}}
+                      buttonProps={{prefix: t('Outliers')}}
                       label={activeFilter.label}
                     >
                       {FILTER_OPTIONS.map(({label, value}) => (

@@ -1,4 +1,4 @@
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
 from sentry.auth.providers.saml2.forms import (
     AttributeMappingForm,

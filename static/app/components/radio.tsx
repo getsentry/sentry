@@ -1,5 +1,5 @@
-import React from 'react';
-import {css} from '@emotion/core';
+import * as React from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {growIn} from 'app/styles/animations';
@@ -7,9 +7,8 @@ import {Theme} from 'app/utils/theme';
 
 type Props = {radioSize?: 'small'};
 
-type CheckedProps = React.HTMLProps<HTMLInputElement> & {
-  theme: Theme;
-} & Props;
+type CheckedProps = Props &
+  Omit<React.HTMLProps<HTMLInputElement>, 'as'> & {theme: Theme};
 
 const checkedCss = (p: CheckedProps) => css`
   display: block;
@@ -21,7 +20,7 @@ const checkedCss = (p: CheckedProps) => css`
   opacity: ${p.disabled ? 0.4 : null};
 `;
 
-const Radio = styled('input')<{radioSize?: 'small'}>`
+const Radio = styled('input')<Props>`
   display: flex;
   padding: 0;
   width: ${p => (p.radioSize === 'small' ? '16px' : '1.5em')};
@@ -47,7 +46,7 @@ const Radio = styled('input')<{radioSize?: 'small'}>`
 
   &:checked:after {
     content: '';
-    ${checkedCss}
+    ${p => checkedCss(p)}
   }
 `;
 

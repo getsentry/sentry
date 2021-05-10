@@ -1,6 +1,6 @@
 from django.conf import settings
-from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect, JsonResponse
+from django.urls import reverse
 
 from sentry.models import OrganizationMember
 from sentry.utils import auth
@@ -9,8 +9,8 @@ prompt_route = reverse("sentry-api-0-prompts-activity")
 org_creation_route = reverse("sentry-api-0-organizations")
 login_route = reverse("sentry-login")
 
-# redirect to the welcome page for Sentry
-login_redirect_route = "https://sentry.io/welcome/"
+# redirect to the sandbox page
+login_redirect_route = "https://sentry.io/demo/sandbox/"
 
 
 class DemoMiddleware:
@@ -57,7 +57,7 @@ class DemoMiddleware:
 
         org_slug = view_kwargs["organization_slug"]
         # if authed, make sure it's the same org
-        if request.user.is_authenticated() and request.user.is_active:
+        if request.user.is_authenticated and request.user.is_active:
             # if already part of org, then quit
             if OrganizationMember.objects.filter(
                 organization__slug=org_slug, user=request.user
@@ -66,7 +66,7 @@ class DemoMiddleware:
 
         # find a member in the target org
         member = OrganizationMember.objects.filter(
-            organization__slug=org_slug, role="member"
+            organization__slug=org_slug, user__demouser__isnull=False, role="member"
         ).first()
         # if no member, can't login
         if not member or not member.user:

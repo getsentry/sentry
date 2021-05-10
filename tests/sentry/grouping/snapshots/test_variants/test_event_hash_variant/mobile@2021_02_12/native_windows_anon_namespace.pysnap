@@ -1,73 +1,103 @@
 ---
-created: '2021-03-08T16:39:07.042502Z'
+created: '2021-04-30T12:13:39.925209Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-app-depth-max:
-  hash: null
+app-depth-1:
+  hash: "f616e8228d88e28dce01fbd04c53487d"
+  tree_label: "`anonymous namespace'::crash"
   component:
-    app-depth-max (exception of system takes precedence)
-      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
-        stacktrace
-          frame (non app frame)
-            filename*
-              "exe_common.inl"
-            function*
-              "__scrt_common_main_seh"
-          frame (non app frame)
-            filename*
-              "exe_common.inl"
-            function*
-              "invoke_main"
-          frame (non app frame)
-            filename*
-              "main.cpp"
-            function*
-              "main"
-          frame (non app frame)
-            filename*
-              "main.cpp"
-            function*
-              "`anonymous namespace'::start"
-          frame (non app frame)
-            filename*
+    app-depth-1*
+      exception*
+        stacktrace*
+          frame*
+            filename (discarded native filename for grouping stability)
               "main.cpp"
             function*
               "`anonymous namespace'::crash"
         type (ignored because exception is synthetic)
           "EXCEPTION_ACCESS_VIOLATION_WRITE"
-        value*
+        value (ignored because stacktrace takes precedence)
           "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
 --------------------------------------------------------------------------
-system:
-  hash: "15d397771f229af8dc42783542f81dd4"
-  tree_label: "__scrt_common_main_seh"
+app-depth-2:
+  hash: "8e1e6add5d343d84489b957df999f941"
+  tree_label: "`anonymous namespace'::start | ..."
   component:
-    system*
+    app-depth-2*
       exception*
         stacktrace*
           frame*
-            filename*
-              "exe_common.inl"
-            function*
-              "__scrt_common_main_seh"
-          frame*
-            filename*
-              "exe_common.inl"
-            function*
-              "invoke_main"
-          frame*
-            filename*
-              "main.cpp"
-            function*
-              "main"
-          frame*
-            filename*
+            filename (discarded native filename for grouping stability)
               "main.cpp"
             function*
               "`anonymous namespace'::start"
           frame*
-            filename*
+            filename (discarded native filename for grouping stability)
+              "main.cpp"
+            function*
+              "`anonymous namespace'::crash"
+        type (ignored because exception is synthetic)
+          "EXCEPTION_ACCESS_VIOLATION_WRITE"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
+--------------------------------------------------------------------------
+app-depth-3:
+  hash: "3df8bc242dfdc7460b42fa529422630f"
+  tree_label: "main | ..."
+  component:
+    app-depth-3*
+      exception*
+        stacktrace*
+          frame*
+            filename (discarded native filename for grouping stability)
+              "main.cpp"
+            function*
+              "main"
+          frame*
+            filename (discarded native filename for grouping stability)
+              "main.cpp"
+            function*
+              "`anonymous namespace'::start"
+          frame*
+            filename (discarded native filename for grouping stability)
+              "main.cpp"
+            function*
+              "`anonymous namespace'::crash"
+        type (ignored because exception is synthetic)
+          "EXCEPTION_ACCESS_VIOLATION_WRITE"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
+--------------------------------------------------------------------------
+system:
+  hash: "3df8bc242dfdc7460b42fa529422630f"
+  tree_label: "<entire stacktrace>"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            filename (discarded native filename for grouping stability)
+              "exe_common.inl"
+            function*
+              "__scrt_common_main_seh"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            filename (discarded native filename for grouping stability)
+              "exe_common.inl"
+            function*
+              "invoke_main"
+          frame*
+            filename (discarded native filename for grouping stability)
+              "main.cpp"
+            function*
+              "main"
+          frame*
+            filename (discarded native filename for grouping stability)
+              "main.cpp"
+            function*
+              "`anonymous namespace'::start"
+          frame*
+            filename (discarded native filename for grouping stability)
               "main.cpp"
             function*
               "`anonymous namespace'::crash"

@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
@@ -27,22 +25,22 @@ describe('Release Issues', function () {
     });
 
     newIssuesEndpoint = MockApiClient.addMockResponse({
-      url: `/organizations/${props.orgId}/issues/?limit=10&query=first-release%3A1.0.0&sort=new&statsPeriod=14d`,
+      url: `/organizations/${props.orgId}/issues/?limit=10&query=first-release%3A1.0.0&sort=freq&statsPeriod=14d`,
       body: [],
     });
     resolvedIssuesEndpoint = MockApiClient.addMockResponse({
       url:
-        '/organizations/org/releases/1.0.0/resolved/?limit=10&query=&sort=new&statsPeriod=14d',
+        '/organizations/org/releases/1.0.0/resolved/?limit=10&query=&sort=freq&statsPeriod=14d',
       body: [],
     });
     unhandledIssuesEndpoint = MockApiClient.addMockResponse({
       url:
-        '/organizations/org/issues/?limit=10&query=release%3A1.0.0%20error.handled%3A0&sort=new&statsPeriod=14d',
+        '/organizations/org/issues/?limit=10&query=release%3A1.0.0%20error.handled%3A0&sort=freq&statsPeriod=14d',
       body: [],
     });
     allIssuesEndpoint = MockApiClient.addMockResponse({
       url:
-        '/organizations/org/issues/?limit=10&query=release%3A1.0.0&sort=new&statsPeriod=14d',
+        '/organizations/org/issues/?limit=10&query=release%3A1.0.0&sort=freq&statsPeriod=14d',
       body: [],
     });
   });
@@ -125,9 +123,9 @@ describe('Release Issues', function () {
       query: {
         id: undefined,
         name: `Release ${props.version}`,
-        field: ['title', 'count()', 'event.type', 'issue', 'last_seen()'],
+        field: ['issue', 'title', 'count()', 'count_unique(user)', 'project'],
         widths: [-1, -1, -1, -1, -1],
-        sort: ['-last_seen'],
+        sort: ['-count'],
         environment: [],
         project: [],
         query: `release:${props.version} !event.type:transaction`,
@@ -147,7 +145,7 @@ describe('Release Issues', function () {
     expect(wrapper.find('Link[data-test-id="issues-button"]').prop('to')).toEqual({
       pathname: '/organizations/org/issues/',
       query: {
-        sort: 'new',
+        sort: 'freq',
         query: 'firstRelease:1.0.0',
         cursor: undefined,
         limit: undefined,
@@ -159,7 +157,7 @@ describe('Release Issues', function () {
     expect(wrapper.find('Link[data-test-id="issues-button"]').prop('to')).toEqual({
       pathname: '/organizations/org/issues/',
       query: {
-        sort: 'new',
+        sort: 'freq',
         query: 'release:1.0.0',
         cursor: undefined,
         limit: undefined,
@@ -171,7 +169,7 @@ describe('Release Issues', function () {
     expect(wrapper.find('Link[data-test-id="issues-button"]').prop('to')).toEqual({
       pathname: '/organizations/org/issues/',
       query: {
-        sort: 'new',
+        sort: 'freq',
         query: 'release:1.0.0 error.handled:0',
         cursor: undefined,
         limit: undefined,
@@ -183,7 +181,7 @@ describe('Release Issues', function () {
     expect(wrapper.find('Link[data-test-id="issues-button"]').prop('to')).toEqual({
       pathname: '/organizations/org/issues/',
       query: {
-        sort: 'new',
+        sort: 'freq',
         query: 'release:1.0.0',
         cursor: undefined,
         limit: undefined,

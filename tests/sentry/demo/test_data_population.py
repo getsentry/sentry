@@ -9,7 +9,7 @@ from sentry.utils.compat.mock import patch
 # significantly decrease event volume
 DEMO_DATA_GEN_PARAMS = DEMO_DATA_GEN_PARAMS.copy()
 DEMO_DATA_GEN_PARAMS["MAX_DAYS"] = 1
-DEMO_DATA_GEN_PARAMS["SCALE_FACTOR"] = 0.1
+DEMO_DATA_GEN_PARAMS["SCALE_FACTOR"] = 0.05
 
 
 @override_settings(DEMO_MODE=True, DEMO_DATA_GEN_PARAMS=DEMO_DATA_GEN_PARAMS)
@@ -18,6 +18,7 @@ class DataPopulationTest(TestCase):
         super().setUp()
         self.react_project = self.create_project(organization=self.organization, platform="react")
         self.python_project = self.create_project(organization=self.organization, platform="python")
+        self.create_member(organization=self.organization, user=self.create_user())
 
     @patch.object(DataPopulation, "send_session")
     def test_basic(self, mock_send_session):

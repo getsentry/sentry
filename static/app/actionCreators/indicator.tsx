@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -116,7 +116,7 @@ const prettyFormString = (val: ChangeValue, model: FormModel, fieldName: string)
     return PRETTY_VALUES.get(val);
   }
 
-  return `${val}`;
+  return typeof val === 'object' ? val : String(val);
 };
 
 // Some fields have objects in them.

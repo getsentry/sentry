@@ -1,6 +1,6 @@
 from urllib.parse import quote
 
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from exam import fixture
 
 from sentry.testutils import TestCase

@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {getOptionByLabel, selectByLabel} from 'sentry-test/select-new';
@@ -36,6 +34,18 @@ async function clickSubmit(wrapper) {
 
 function getDisplayType(wrapper) {
   return wrapper.find('input[name="displayType"]');
+}
+
+async function setSearchConditions(el, query) {
+  el.find('input')
+    .simulate('change', {target: {value: query}})
+    .getDOMNode()
+    .setSelectionRange(query.length, query.length);
+
+  await tick();
+  await el.update();
+
+  el.find('input').simulate('keydown', {key: 'Enter'});
 }
 
 describe('Modals -> AddDashboardWidgetModal', function () {
@@ -154,6 +164,81 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
     expect(widget.queries).toHaveLength(1);
     expect(widget.queries[0].fields).toEqual(['count()', 'p95(transaction.duration)']);
+  });
+
+  it('can add and delete additional queries', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/event.type/values/',
+      body: [{count: 2, name: 'Nvidia 1080ti'}],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+      method: 'POST',
+      body: [],
+    });
+
+    let widget = undefined;
+    const wrapper = mountModal({
+      initialData,
+      onAddWidget: data => (widget = data),
+    });
+
+    // Set first query search conditions
+    await setSearchConditions(
+      wrapper.find('SearchConditionsWrapper StyledSearchBar'),
+      'event.type:transaction'
+    );
+
+    // Set first query legend alias
+    wrapper
+      .find('SearchConditionsWrapper input[placeholder="Legend Alias"]')
+      .simulate('change', {target: {value: 'Transactions'}});
+
+    // Click the "Add Query" button twice
+    const addQuery = wrapper.find('button[aria-label="Add Query"]');
+    addQuery.simulate('click');
+    wrapper.update();
+    addQuery.simulate('click');
+    wrapper.update();
+
+    // Expect three search bars
+    expect(wrapper.find('StyledSearchBar')).toHaveLength(3);
+
+    // Expect "Add Query" button to be hidden since we're limited to at most 3 search conditions
+    expect(wrapper.find('button[aria-label="Add Query"]')).toHaveLength(0);
+
+    // Delete second query
+    expect(wrapper.find('button[aria-label="Remove query"]')).toHaveLength(3);
+    wrapper.find('button[aria-label="Remove query"]').at(1).simulate('click');
+    wrapper.update();
+
+    // Expect "Add Query" button to be shown again
+    expect(wrapper.find('button[aria-label="Add Query"]')).toHaveLength(1);
+
+    // Set second query search conditions
+    const secondSearchBar = wrapper.find('SearchConditionsWrapper StyledSearchBar').at(1);
+    await setSearchConditions(secondSearchBar, 'event.type:error');
+
+    // Set second query legend alias
+    wrapper
+      .find('SearchConditionsWrapper input[placeholder="Legend Alias"]')
+      .at(1)
+      .simulate('change', {target: {value: 'Errors'}});
+
+    // Save widget
+    await clickSubmit(wrapper);
+
+    expect(widget.queries).toHaveLength(2);
+    expect(widget.queries[0]).toMatchObject({
+      name: 'Transactions',
+      conditions: 'event.type:transaction',
+      fields: ['count()'],
+    });
+    expect(widget.queries[1]).toMatchObject({
+      name: 'Errors',
+      conditions: 'event.type:error',
+      fields: ['count()'],
+    });
   });
 
   it('can respond to validation feedback', async function () {

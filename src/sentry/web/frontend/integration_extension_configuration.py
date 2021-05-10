@@ -1,6 +1,6 @@
 from django.core.signing import SignatureExpired
-from django.core.urlresolvers import reverse
 from django.http import HttpResponseRedirect
+from django.urls import reverse
 from django.utils.http import urlencode
 
 from sentry import features, integrations
@@ -30,7 +30,7 @@ class IntegrationExtensionConfigurationView(BaseView):
     auth_required = False
 
     def get(self, request, *args, **kwargs):
-        if not request.user.is_authenticated():
+        if not request.user.is_authenticated:
             configure_uri = "/extensions/{}/configure/?{}".format(
                 self.provider,
                 urlencode(request.GET.dict()),

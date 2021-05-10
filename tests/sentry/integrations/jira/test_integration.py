@@ -2,8 +2,8 @@ import copy
 
 import pytest
 import responses
-from django.core.urlresolvers import reverse
 from django.test.utils import override_settings
+from django.urls import reverse
 from exam import fixture
 
 from sentry.integrations.jira import JiraIntegrationProvider

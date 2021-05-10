@@ -7,6 +7,6 @@ openapi-core @ https://github.com/getsentry/openapi-core/archive/master.zip#egg=
 pytest==6.1.0
 pytest-cov==2.11.1
 pytest-django==3.10.0
-pytest-sentry==0.1.6
+pytest-sentry==0.1.9
 pytest-rerunfailures==9.1.1
 responses==0.10.12

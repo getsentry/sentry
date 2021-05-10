@@ -1,6 +1,6 @@
 from base64 import b64encode
 
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
 from sentry.models import UserAvatar
 from sentry.testutils import APITestCase

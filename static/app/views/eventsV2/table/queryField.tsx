@@ -1,4 +1,5 @@
-import React, {CSSProperties} from 'react';
+import {CSSProperties} from 'react';
+import * as React from 'react';
 import {components, OptionProps, SingleValueProps} from 'react-select';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
@@ -72,6 +73,8 @@ type Props = {
   shouldRenderTag?: boolean;
   onChange: (fieldValue: QueryFieldValue) => void;
   disabled?: boolean;
+  hidePrimarySelector?: boolean;
+  hideParameterSelector?: boolean;
 };
 
 // Type for completing generics in react-select
@@ -311,9 +314,17 @@ class QueryField extends React.Component<Props> {
   }
 
   renderParameterInputs(parameters: ParameterDescription[]): React.ReactNode[] {
-    const {disabled, inFieldLabels, filterAggregateParameters} = this.props;
+    const {
+      disabled,
+      inFieldLabels,
+      filterAggregateParameters,
+      hideParameterSelector,
+    } = this.props;
     const inputs = parameters.map((descriptor: ParameterDescription, index: number) => {
       if (descriptor.kind === 'column' && descriptor.options.length > 0) {
+        if (hideParameterSelector) {
+          return null;
+        }
         const aggregateParameters = filterAggregateParameters
           ? descriptor.options.filter(filterAggregateParameters)
           : descriptor.options;
@@ -432,6 +443,8 @@ class QueryField extends React.Component<Props> {
       filterPrimaryOptions,
       inFieldLabels,
       disabled,
+      hidePrimarySelector,
+      gridColumns,
     } = this.props;
     const {field, fieldOptions, parameterDescriptions} = this.getFieldData();
 
@@ -476,25 +489,30 @@ class QueryField extends React.Component<Props> {
     const parameters = this.renderParameterInputs(parameterDescriptions);
 
     return (
-      <Container className={className} gridColumns={parameters.length + 1}>
-        <SelectControl
-          {...selectProps}
-          styles={!inFieldLabels ? styles : undefined}
-          components={{
-            Option: ({label, data, ...props}: OptionProps<OptionType>) => (
-              <components.Option label={label} data={data} {...props}>
-                <span data-test-id="label">{label}</span>
-                {this.renderTag(data.value.kind)}
-              </components.Option>
-            ),
-            SingleValue: ({data, ...props}: SingleValueProps<OptionType>) => (
-              <components.SingleValue data={data} {...props}>
-                <span data-test-id="label">{data.label}</span>
-                {this.renderTag(data.value.kind)}
-              </components.SingleValue>
-            ),
-          }}
-        />
+      <Container
+        className={className}
+        gridColumns={gridColumns ? gridColumns : parameters.length + 1}
+      >
+        {!hidePrimarySelector && (
+          <SelectControl
+            {...selectProps}
+            styles={!inFieldLabels ? styles : undefined}
+            components={{
+              Option: ({label, data, ...props}: OptionProps<OptionType>) => (
+                <components.Option label={label} data={data} {...props}>
+                  <span data-test-id="label">{label}</span>
+                  {this.renderTag(data.value.kind)}
+                </components.Option>
+              ),
+              SingleValue: ({data, ...props}: SingleValueProps<OptionType>) => (
+                <components.SingleValue data={data} {...props}>
+                  <span data-test-id="label">{data.label}</span>
+                  {this.renderTag(data.value.kind)}
+                </components.SingleValue>
+              ),
+            }}
+          />
+        )}
         {parameters}
       </Container>
     );
@@ -541,7 +559,7 @@ class BufferedInput extends React.Component<InputProps, InputState> {
     this.input = React.createRef();
   }
 
-  state = {
+  state: InputState = {
     value: this.props.value,
   };
 

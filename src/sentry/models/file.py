@@ -12,11 +12,17 @@ from django.conf import settings
 from django.core.files.base import ContentFile
 from django.core.files.base import File as FileObj
 from django.core.files.storage import get_storage_class
-from django.db import IntegrityError, models, transaction
+from django.db import IntegrityError, models, router, transaction
 from django.utils import timezone
 
 from sentry.app import locks
-from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, JSONField, Model
+from sentry.db.models import (
+    BoundedBigIntegerField,
+    BoundedPositiveIntegerField,
+    FlexibleForeignKey,
+    JSONField,
+    Model,
+)
 from sentry.tasks.files import delete_file as delete_file_task
 from sentry.tasks.files import delete_unreferenced_blobs
 from sentry.utils import metrics
@@ -77,11 +83,16 @@ class AssembleChecksumMismatch(Exception):
     pass
 
 
-def get_storage():
-    from sentry import options
+def get_storage(config=None):
 
-    backend = options.get("filestore.backend")
-    options = options.get("filestore.options")
+    if config is not None:
+        backend = config["backend"]
+        options = config["options"]
+    else:
+        from sentry import options as options_store
+
+        backend = options_store.get("filestore.backend")
+        options = options_store.get("filestore.options")
 
     try:
         backend = settings.SENTRY_FILESTORE_ALIASES[backend]
@@ -148,8 +159,8 @@ class FileBlob(Model):
             if organization is None:
                 return
             try:
-                with transaction.atomic():
-                    FileBlobOwner.objects.create(organization=organization, blob=blob)
+                with transaction.atomic(using=router.db_for_write(FileBlobOwner)):
+                    FileBlobOwner.objects.create(organization_id=organization.id, blob=blob)
             except IntegrityError:
                 pass
 
@@ -619,12 +630,12 @@ class FileBlobOwner(Model):
     __core__ = False
 
     blob = FlexibleForeignKey("sentry.FileBlob")
-    organization = FlexibleForeignKey("sentry.Organization")
+    organization_id = BoundedBigIntegerField(db_index=True)
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_fileblobowner"
-        unique_together = (("blob", "organization"),)
+        unique_together = (("blob", "organization_id"),)
 
 
 def clear_cached_files(cache_path):

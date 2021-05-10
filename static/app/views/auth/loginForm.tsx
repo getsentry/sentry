@@ -1,6 +1,6 @@
-import React from 'react';
+import {Component} from 'react';
 import {browserHistory} from 'react-router';
-import {ClassNames} from '@emotion/core';
+import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Client} from 'app/api';
@@ -72,7 +72,7 @@ type State = {
   errors: Record<string, string>;
 };
 
-class LoginForm extends React.Component<Props, State> {
+class LoginForm extends Component<Props, State> {
   state: State = {
     errorMessage: null,
     errors: {},

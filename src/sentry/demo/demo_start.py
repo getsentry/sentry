@@ -1,10 +1,22 @@
 import logging
+from typing import Optional
+from urllib.parse import quote
 
 import sentry_sdk
 from django.conf import settings
 from django.http import Http404
+from sentry_sdk import capture_exception
 
-from sentry.models import OrganizationMember, OrganizationStatus
+from sentry.discover.models import DiscoverSavedQuery
+from sentry.models import (
+    Group,
+    Organization,
+    OrganizationMember,
+    OrganizationStatus,
+    Project,
+    Release,
+)
+from sentry.snuba import discover
 from sentry.utils import auth
 from sentry.web.decorators import transaction_start
 from sentry.web.frontend.base import BaseView
@@ -31,8 +43,12 @@ class DemoStartView(BaseView):
         logger.info("post.start", extra={"cookie_member_id": member_id})
         sentry_sdk.set_tag("member_id", member_id)
 
+        # TODO(steve): switch to camelCase for request field
         skip_buffer = request.POST.get("skip_buffer") == "1"
         sentry_sdk.set_tag("skip_buffer", skip_buffer)
+
+        scenario = request.POST.get("scenario")
+        sentry_sdk.set_tag("scenario", scenario)
 
         if member_id and not skip_buffer:
             try:
@@ -65,6 +81,7 @@ class DemoStartView(BaseView):
         # whether to initialize analytics when accepted_tracking=1
         # 0 means don't show the footer to accept cookies (user already declined)
         # no value means we show the footer to accept cookies (user has neither accepted nor declined)
+        # TODO: switch to camelCase for request field
         accepted_tracking = request.POST.get(ACCEPTED_TRACKING_COOKIE)
         if accepted_tracking in ["0", "1"]:
             resp.set_cookie(ACCEPTED_TRACKING_COOKIE, accepted_tracking)
@@ -77,6 +94,7 @@ class DemoStartView(BaseView):
 def get_redirect_url(request, org):
     # determine the redirect based on the scenario
     scenario = request.POST.get("scenario")
+    # basic scenarios
     if scenario == "performance":
         return f"/organizations/{org.slug}/performance/"
     if scenario == "releases":
@@ -87,8 +105,134 @@ def get_redirect_url(request, org):
         return f"/organizations/{org.slug}/discover/queries/"
     if scenario == "dashboards":
         return f"/organizations/{org.slug}/dashboards/"
-    url = auth.get_login_redirect(request)
-    # user is logged in so will be automatically redirected
-    # after landing on login page
-    url += "?allow_login=1"
-    return url
+    if scenario == "projects":
+        return f"/organizations/{org.slug}/projects/"
+
+    # more complicated scenarios with query lookups
+    try:
+        # no project slug
+        if scenario == "oneDiscoverQuery":
+            return get_one_discover_query(org)
+
+        # with project slug
+        project_slug = request.POST.get("projectSlug")
+
+        # issue details
+        if scenario == "oneIssue":
+            return get_one_issue(org, project_slug)
+        if scenario == "oneBreadcrumb":
+            return get_one_breadcrumb(org, project_slug)
+        if scenario == "oneStackTrace":
+            return get_one_stack_trace(org, project_slug)
+
+        # performance and discover
+        if scenario == "oneTransaction":
+            return get_one_transaction(org, project_slug)
+        if scenario == "oneWebVitals":
+            return get_one_web_vitals(org, project_slug)
+        if scenario == "oneTransactionSummary":
+            return get_one_transaction_summary(org, project_slug)
+
+        # releases
+        if scenario == "oneRelease":
+            return get_one_release(org, project_slug)
+
+    except Exception:
+        # if an error happens and just let the user enter the sandbox
+        # on the default page
+        capture_exception()
+
+    # default is the issues page
+    return f"/organizations/{org.slug}/issues/"
+
+
+def get_one_release(org: Organization, project_slug: Optional[str]):
+    project = _get_project(org, project_slug)
+    release_query = Release.objects.filter(organization=org)
+    if project_slug:
+        release_query = release_query.filter(projects=project)
+    # pick the most recent release
+    release = release_query.order_by("-date_added").first()
+    version = quote(release.version)
+
+    return f"/organizations/{org.slug}/releases/{version}/?project={project.id}"
+
+
+def get_one_issue(org: Organization, project_slug: Optional[str]):
+    group_query = Group.objects.filter(project__organization=org)
+    if project_slug:
+        group_query = group_query.filter(project__slug=project_slug)
+    group = group_query.first()
+
+    return f"/organizations/{org.slug}/issues/{group.id}/?project={group.project_id}"
+
+
+def get_one_breadcrumb(org: Organization, project_slug: Optional[str]):
+    return get_one_issue(org, project_slug) + "#breadcrumbs"
+
+
+def get_one_stack_trace(org: Organization, project_slug: Optional[str]):
+    return get_one_issue(org, project_slug) + "#exception"
+
+
+def get_one_transaction(org: Organization, project_slug: Optional[str]):
+    project = _get_project(org, project_slug)
+
+    # find the most recent transaction
+    result = discover.query(
+        query="event.type:transaction",
+        orderby="-timestamp",
+        selected_columns=["id", "timestamp"],
+        limit=1,
+        params={
+            "organization_id": org.id,
+            "project_id": [project.id],
+        },
+        referrer="sandbox.demo_start.get_one_transaction",
+    )
+
+    transaction_id = result["data"][0]["id"]
+
+    return f"/organizations/{org.slug}/discover/{project.slug}:{transaction_id}/"
+
+
+def get_one_discover_query(org: Organization):
+    discover_query = DiscoverSavedQuery.objects.filter(organization=org).first()
+
+    return f"/organizations/{org.slug}/discover/results/?id={discover_query.id}&statsPeriod=7d"
+
+
+def get_one_web_vitals(org: Organization, project_slug: Optional[str]):
+    # project_slug should be specified so we always get a front end project
+    project = _get_project(org, project_slug)
+    transaction = _get_one_transaction_name(project)
+
+    return f"/organizations/{org.slug}/performance/summary/vitals/?project={project.id}&statsPeriod=7d&transaction={transaction}"
+
+
+def get_one_transaction_summary(org: Organization, project_slug: Optional[str]):
+    project = _get_project(org, project_slug)
+    transaction = _get_one_transaction_name(project)
+
+    return f"/organizations/{org.slug}/performance/summary/?project={project.id}&statsPeriod=7d&transaction={transaction}"
+
+
+def _get_project(org: Organization, project_slug: Optional[str]):
+    project_query = Project.objects.filter(organization=org)
+    if project_slug:
+        project_query = project_query.filter(slug=project_slug)
+    return project_query.first()
+
+
+def _get_one_transaction_name(project: Project):
+    result = discover.query(
+        query="event.type:transaction",
+        selected_columns=["transaction"],
+        limit=1,
+        params={
+            "organization_id": project.organization_id,
+            "project_id": [project.id],
+        },
+        referrer="sandbox.demo_start._get_one_transaction_name",
+    )
+    return result["data"][0]["transaction"]

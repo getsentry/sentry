@@ -1,21 +1,21 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import Feature from 'app/components/acl/feature';
+import FeatureDisabled from 'app/components/acl/featureDisabled';
 import CreateAlertButton from 'app/components/createAlertButton';
+import Hovercard from 'app/components/hovercard';
+import * as Layout from 'app/components/layouts/thirds';
 import ExternalLink from 'app/components/links/externalLink';
 import List from 'app/components/list';
 import ListItem from 'app/components/list/listItem';
-import PageHeading from 'app/components/pageHeading';
-import {PanelBody} from 'app/components/panels';
-import Placeholder from 'app/components/placeholder';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import Tag from 'app/components/tag';
 import {t} from 'app/locale';
-import {PageContent, PageHeader} from 'app/styles/organization';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import BuilderBreadCrumbs from 'app/views/alerts/builder/builderBreadCrumbs';
 import {Dataset} from 'app/views/settings/incidentRules/types';
 
@@ -25,7 +25,6 @@ import {
   AlertWizardOptions,
   AlertWizardPanelContent,
   AlertWizardRuleTemplates,
-  WebVitalAlertTypes,
 } from './options';
 import RadioPanelGroup from './radioPanelGroup';
 
@@ -41,24 +40,30 @@ type Props = RouteComponentProps<RouteParams, {}> & {
 };
 
 type State = {
-  alertOption: AlertType | null;
+  alertOption: AlertType;
 };
-class AlertWizard extends React.Component<Props, State> {
+class AlertWizard extends Component<Props, State> {
   state: State = {
-    alertOption: null,
+    alertOption: 'issues',
   };
 
   handleChangeAlertOption = (alertOption: AlertType) => {
+    const {organization} = this.props;
     this.setState({alertOption});
+    trackAnalyticsEvent({
+      eventKey: 'alert_wizard.option_viewed',
+      eventName: 'Alert Wizard: Option Viewed',
+      organization_id: organization.id,
+      alert_type: alertOption,
+    });
   };
 
   renderCreateAlertButton() {
     const {organization, project, location} = this.props;
     const {alertOption} = this.state;
-    const metricRuleTemplate = alertOption && AlertWizardRuleTemplates[alertOption];
-    const disabled =
-      !organization.features.includes('performance-view') &&
-      metricRuleTemplate?.dataset === Dataset.TRANSACTIONS;
+    const metricRuleTemplate = AlertWizardRuleTemplates[alertOption];
+    const isMetricAlert = !!metricRuleTemplate;
+    const isTransactionDataset = metricRuleTemplate?.dataset === Dataset.TRANSACTIONS;
 
     const to = {
       pathname: `/organizations/${organization.slug}/alerts/${project.slug}/new/`,
@@ -68,17 +73,61 @@ class AlertWizard extends React.Component<Props, State> {
         referrer: location?.query?.referrer,
       },
     };
-    return (
-      <CreateAlertButton
-        organization={organization}
-        projectSlug={project.slug}
-        priority="primary"
-        to={to}
-        disabled={disabled}
-        hideIcon
+
+    const noFeatureMessage = t('Requires incidents feature.');
+    const renderNoAccess = p => (
+      <Hovercard
+        body={
+          <FeatureDisabled
+            features={p.features}
+            hideHelpToggle
+            message={noFeatureMessage}
+            featureName={noFeatureMessage}
+          />
+        }
       >
-        {t('Set Conditions')}
-      </CreateAlertButton>
+        {p.children(p)}
+      </Hovercard>
+    );
+
+    return (
+      <Feature
+        features={
+          isTransactionDataset
+            ? ['incidents', 'performance-view']
+            : isMetricAlert
+            ? ['incidents']
+            : []
+        }
+        requireAll
+        organization={organization}
+        hookName="feature-disabled:alert-wizard-performance"
+        renderDisabled={renderNoAccess}
+      >
+        {({hasFeature}) => (
+          <WizardButtonContainer
+            onClick={() =>
+              trackAnalyticsEvent({
+                eventKey: 'alert_wizard.option_selected',
+                eventName: 'Alert Wizard: Option Selected',
+                organization_id: organization.id,
+                alert_type: alertOption,
+              })
+            }
+          >
+            <CreateAlertButton
+              organization={organization}
+              projectSlug={project.slug}
+              disabled={!hasFeature}
+              priority="primary"
+              to={to}
+              hideIcon
+            >
+              {t('Set Conditions')}
+            </CreateAlertButton>
+          </WizardButtonContainer>
+        )}
+      </Feature>
     );
   }
 
@@ -90,82 +139,78 @@ class AlertWizard extends React.Component<Props, State> {
     } = this.props;
     const {alertOption} = this.state;
     const title = t('Alert Creation Wizard');
-    const panelContent = alertOption && AlertWizardPanelContent[alertOption];
+    const panelContent = AlertWizardPanelContent[alertOption];
     return (
-      <React.Fragment>
+      <Fragment>
         <SentryDocumentTitle title={title} projectSlug={projectId} />
-        <PageContent>
-          <Feature features={['organizations:alert-wizard']}>
-            <BuilderBreadCrumbs
-              hasMetricAlerts={hasMetricAlerts}
-              orgSlug={organization.slug}
-              projectSlug={projectId}
-              title={t('Create Alert Rule')}
-            />
-            <StyledPageHeader>
-              <PageHeading>{t('What should we alert you about?')}</PageHeading>
-            </StyledPageHeader>
-            <Styledh2>{t('Errors')}</Styledh2>
-            <WizardBody>
-              <WizardOptions>
-                {AlertWizardOptions.map(({categoryHeading, options}, i) => (
-                  <OptionsWrapper key={categoryHeading}>
-                    {i > 0 && <Styledh2>{categoryHeading}</Styledh2>}
-                    <RadioPanelGroup
-                      choices={options.map(alertType => {
-                        return [
-                          alertType,
-                          AlertWizardAlertNames[alertType],
-                          ...(WebVitalAlertTypes.has(alertType)
-                            ? [<Tag key={alertType}>{t('Web Vital')}</Tag>]
-                            : []),
-                        ] as [AlertType, string, React.ReactNode];
-                      })}
-                      onChange={this.handleChangeAlertOption}
-                      value={alertOption}
-                      label="alert-option"
-                    />
-                  </OptionsWrapper>
-                ))}
-              </WizardOptions>
-              <WizardPanel visible={!!panelContent && !!alertOption}>
-                {panelContent && alertOption && (
+
+        <Feature features={['organizations:alert-wizard']}>
+          <Layout.Header>
+            <Layout.HeaderContent>
+              <BuilderBreadCrumbs
+                hasMetricAlerts={hasMetricAlerts}
+                orgSlug={organization.slug}
+                projectSlug={projectId}
+                title={t('Select Alert')}
+              />
+              <Layout.Title>{t('Select Alert')}</Layout.Title>
+            </Layout.HeaderContent>
+          </Layout.Header>
+          <StyledLayoutBody>
+            <Layout.Main fullWidth>
+              <WizardBody>
+                <WizardOptions>
+                  <Styledh2>{t('Errors')}</Styledh2>
+                  {AlertWizardOptions.map(({categoryHeading, options}, i) => (
+                    <OptionsWrapper key={categoryHeading}>
+                      {i > 0 && <Styledh2>{categoryHeading}</Styledh2>}
+                      <RadioPanelGroup
+                        choices={options.map(alertType => {
+                          return [alertType, AlertWizardAlertNames[alertType]];
+                        })}
+                        onChange={this.handleChangeAlertOption}
+                        value={alertOption}
+                        label="alert-option"
+                      />
+                    </OptionsWrapper>
+                  ))}
+                </WizardOptions>
+                <WizardPanel visible={!!panelContent && !!alertOption}>
                   <WizardPanelBody>
-                    <Styledh2>{AlertWizardAlertNames[alertOption]}</Styledh2>
-                    <PanelDescription>
-                      {panelContent.description}{' '}
-                      {panelContent.docsLink && (
-                        <ExternalLink href={panelContent.docsLink}>
-                          {t('Learn more')}
-                        </ExternalLink>
-                      )}
-                    </PanelDescription>
-                    <WizardBodyPlaceholder height="250px" />
-                    <ExampleHeader>{t('Examples')}</ExampleHeader>
-                    <List symbol="bullet">
-                      {panelContent.examples.map((example, i) => (
-                        <ExampleItem key={i}>{example}</ExampleItem>
-                      ))}
-                    </List>
+                    <div>
+                      <PanelHeader>{AlertWizardAlertNames[alertOption]}</PanelHeader>
+                      <PanelBody withPadding>
+                        <PanelDescription>
+                          {panelContent.description}{' '}
+                          {panelContent.docsLink && (
+                            <ExternalLink href={panelContent.docsLink}>
+                              {t('Learn more')}
+                            </ExternalLink>
+                          )}
+                        </PanelDescription>
+                        <WizardImage src={panelContent.illustration} />
+                        <ExampleHeader>{t('Examples')}</ExampleHeader>
+                        <ExampleList symbol="bullet">
+                          {panelContent.examples.map((example, i) => (
+                            <ExampleItem key={i}>{example}</ExampleItem>
+                          ))}
+                        </ExampleList>
+                      </PanelBody>
+                    </div>
+                    <WizardFooter>{this.renderCreateAlertButton()}</WizardFooter>
                   </WizardPanelBody>
-                )}
-                {this.renderCreateAlertButton()}
-              </WizardPanel>
-            </WizardBody>
-          </Feature>
-        </PageContent>
-      </React.Fragment>
+                </WizardPanel>
+              </WizardBody>
+            </Layout.Main>
+          </StyledLayoutBody>
+        </Feature>
+      </Fragment>
     );
   }
 }
 
-const StyledPageHeader = styled(PageHeader)`
-  margin-bottom: ${space(4)};
-`;
-
-const WizardBodyPlaceholder = styled(Placeholder)`
-  background-color: ${p => p.theme.border};
-  opacity: 0.6;
+const StyledLayoutBody = styled(Layout.Body)`
+  margin-bottom: -${space(3)};
 `;
 
 const Styledh2 = styled('h2')`
@@ -176,19 +221,24 @@ const Styledh2 = styled('h2')`
 
 const WizardBody = styled('div')`
   display: flex;
+  padding-top: ${space(1)};
 `;
 
 const WizardOptions = styled('div')`
   flex: 3;
   margin-right: ${space(3)};
-  border-right: 1px solid ${p => p.theme.innerBorder};
   padding-right: ${space(3)};
+  max-width: 300px;
 `;
 
-const WizardPanel = styled('div')<{visible?: boolean}>`
+const WizardImage = styled('img')`
+  max-height: 300px;
+`;
+
+const WizardPanel = styled(Panel)<{visible?: boolean}>`
+  max-width: 700px;
   position: sticky;
   top: 20px;
-  padding: 0;
   flex: 5;
   display: flex;
   ${p => !p.visible && 'visibility: hidden'};
@@ -209,19 +259,21 @@ const WizardPanel = styled('div')<{visible?: boolean}>`
   }
 `;
 
+const ExampleList = styled(List)`
+  margin-bottom: ${space(2)} !important;
+`;
+
 const WizardPanelBody = styled(PanelBody)`
-  margin-bottom: ${space(2)};
   flex: 1;
   min-width: 100%;
 `;
 
-const PanelDescription = styled('div')`
-  color: ${p => p.theme.subText};
+const PanelDescription = styled('p')`
   margin-bottom: ${space(2)};
 `;
 
 const ExampleHeader = styled('div')`
-  margin: ${space(2)} 0;
+  margin: 0 0 ${space(1)} 0;
   font-size: ${p => p.theme.fontSizeLarge};
 `;
 
@@ -235,6 +287,16 @@ const OptionsWrapper = styled('div')`
   &:last-child {
     margin-bottom: 0;
   }
+`;
+
+const WizardFooter = styled('div')`
+  border-top: 1px solid ${p => p.theme.border};
+  padding: ${space(1.5)} ${space(1.5)} ${space(1.5)} ${space(1.5)};
+`;
+
+const WizardButtonContainer = styled('div')`
+  display: flex;
+  justify-content: flex-end;
 `;
 
 export default AlertWizard;

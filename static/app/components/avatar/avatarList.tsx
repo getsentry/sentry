@@ -1,5 +1,5 @@
-import React from 'react';
-import {css} from '@emotion/core';
+import {Component} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import UserAvatar from 'app/components/avatar/userAvatar';
@@ -23,7 +23,7 @@ type Props = {
   tooltipOptions: Mutable<UserAvatar['props']['tooltipOptions']>;
 } & DefaultProps;
 
-export default class AvatarList extends React.Component<Props> {
+export default class AvatarList extends Component<Props> {
   static defaultProps = defaultProps;
 
   render() {

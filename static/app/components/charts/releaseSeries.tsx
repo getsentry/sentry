@@ -1,8 +1,8 @@
-import React from 'react';
+import * as React from 'react';
 import {withRouter} from 'react-router';
 import {WithRouterProps} from 'react-router/lib/withRouter';
+import {withTheme} from '@emotion/react';
 import {EChartOption} from 'echarts/lib/echarts';
-import {withTheme} from 'emotion-theming';
 import {Query} from 'history';
 import isEqual from 'lodash/isEqual';
 import memoize from 'lodash/memoize';
@@ -86,7 +86,7 @@ type State = {
 };
 
 class ReleaseSeries extends React.Component<Props, State> {
-  state = {
+  state: State = {
     releases: null,
     releaseSeries: [],
   };

@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from sentry.api.event_search import InvalidSearchQuery
+from sentry.exceptions import InvalidSearchQuery
 from sentry.snuba import discover
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -609,6 +609,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 "spans.db",
                 "spans.resource",
                 "spans.browser",
+                "spans.total.time",
                 "spans.does_not_exist",
             ],
             query="event.type:transaction",
@@ -622,6 +623,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         assert data[0]["spans.db"] == span_ops["ops.db"]["value"]
         assert data[0]["spans.resource"] == span_ops["ops.resource"]["value"]
         assert data[0]["spans.browser"] == span_ops["ops.browser"]["value"]
+        assert data[0]["spans.total.time"] == span_ops["total.time"]["value"]
         assert data[0]["spans.does_not_exist"] is None
 
 
@@ -2924,66 +2926,6 @@ class GetFacetsTest(SnubaTestCase, TestCase):
         keys = {r.key for r in result}
         assert "color" in keys
         assert "toy" not in keys
-
-
-# Temporary basic coverage for performance facets
-class GetPerformanceFacetsTest(SnubaTestCase, TestCase):
-    def setUp(self):
-        super().setUp()
-
-        self.project = self.create_project()
-        self.min_ago = before_now(minutes=1)
-        self.day_ago = before_now(days=1)
-        self.two_mins_ago = before_now(minutes=2)
-        self._transaction_count = 0
-
-    def store_transaction(self, name="exampleTransaction", duration=100, tags=None):
-        if tags is None:
-            tags = []
-        event = load_data("transaction").copy()
-        event.data["tags"].extend(tags)
-        event.update(
-            {
-                "transaction": name,
-                "event_id": f"{self._transaction_count:02x}".rjust(32, "0"),
-                "start_timestamp": iso_format(self.two_mins_ago - timedelta(seconds=duration)),
-                "timestamp": iso_format(self.two_mins_ago),
-            }
-        )
-        self._transaction_count += 1
-        self.store_event(data=event, project_id=self.project.id)
-
-    def test_invalid_query(self):
-        with pytest.raises(InvalidSearchQuery):
-            discover.get_performance_facets(
-                "\n", {"project_id": [self.project.id], "end": self.min_ago, "start": self.day_ago}
-            )
-
-    def test_no_results(self):
-        results = discover.get_performance_facets(
-            "", {"project_id": [self.project.id], "end": self.min_ago, "start": self.day_ago}
-        )
-        assert results == []
-
-    def test_single_project(self):
-        self.store_transaction(duration=1, tags=[["color", "red"]])
-        self.store_transaction(duration=2, tags=[["color", "blue"]])
-
-        params = {"project_id": [self.project.id], "start": self.day_ago, "end": self.min_ago}
-
-        result = discover.get_performance_facets("", params)
-
-        assert len(result) == 11
-        for r in result:
-            if r.key == "color" and r.value == "red":
-                assert r.frequency == 0.5
-                assert r.performance == 1000
-            elif r.key == "color" and r.value == "blue":
-                assert r.frequency == 0.5
-                assert r.performance == 2000
-            else:
-                assert r.frequency == 1.0
-                assert r.performance == 1500
 
 
 def test_zerofill():

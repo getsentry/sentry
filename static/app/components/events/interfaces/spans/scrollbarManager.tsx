@@ -1,22 +1,30 @@
-import React from 'react';
+import * as React from 'react';
 
+import {
+  clamp,
+  rectOfContent,
+  toPercent,
+} from 'app/components/performance/waterfall/utils';
 import getDisplayName from 'app/utils/getDisplayName';
 import {setBodyUserSelect, UserSelectValues} from 'app/utils/userselect';
 
 import {DragManagerChildrenProps} from './dragManager';
-import {clamp, rectOfContent, toPercent} from './utils';
 
 export type ScrollbarManagerChildrenProps = {
   generateContentSpanBarRef: () => (instance: HTMLDivElement | null) => void;
   virtualScrollbarRef: React.RefObject<HTMLDivElement>;
+  scrollBarAreaRef: React.RefObject<HTMLDivElement>;
   onDragStart: (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => void;
+  onScroll: () => void;
   updateScrollState: () => void;
 };
 
 const ScrollbarManagerContext = React.createContext<ScrollbarManagerChildrenProps>({
   generateContentSpanBarRef: () => () => undefined,
   virtualScrollbarRef: React.createRef<HTMLDivElement>(),
+  scrollBarAreaRef: React.createRef<HTMLDivElement>(),
   onDragStart: () => {},
+  onScroll: () => {},
   updateScrollState: () => {},
 });
 
@@ -95,6 +103,7 @@ export class Provider extends React.Component<Props, State> {
 
   contentSpanBar: Set<HTMLDivElement> = new Set();
   virtualScrollbar: React.RefObject<HTMLDivElement> = React.createRef<HTMLDivElement>();
+  scrollBarArea: React.RefObject<HTMLDivElement> = React.createRef<HTMLDivElement>();
   isDragging: boolean = false;
   previousUserSelect: UserSelectValues | null = null;
 
@@ -149,6 +158,19 @@ export class Provider extends React.Component<Props, State> {
       spanBarDOM.style.overflow = 'hidden';
     });
 
+    // set inner width of scrollbar area
+    selectRefs(this.scrollBarArea, (scrollBarArea: HTMLDivElement) => {
+      scrollBarArea.style.width = `${maxContentWidth}px`;
+      scrollBarArea.style.maxWidth = `${maxContentWidth}px`;
+    });
+
+    selectRefs(
+      this.props.interactiveLayerRef,
+      (interactiveLayerRefDOM: HTMLDivElement) => {
+        interactiveLayerRefDOM.scrollLeft = 0;
+      }
+    );
+
     const spanBarDOM = this.getReferenceSpanBar();
 
     if (spanBarDOM) {
@@ -157,7 +179,7 @@ export class Provider extends React.Component<Props, State> {
   };
 
   syncVirtualScrollbar = (spanBar: HTMLDivElement) => {
-    // sync the virtual scrollbar's width scrolledSpanBar's width
+    // sync the virtual scrollbar's width to the spanBar's width
 
     if (!this.virtualScrollbar.current || !this.hasInteractiveLayer()) {
       return;
@@ -166,14 +188,14 @@ export class Provider extends React.Component<Props, State> {
     const virtualScrollbarDOM = this.virtualScrollbar.current;
 
     const maxContentWidth = spanBar.getBoundingClientRect().width;
-    const interactiveLayerRect = rectOfContent(this.props.interactiveLayerRef.current!);
 
     if (maxContentWidth === undefined || maxContentWidth <= 0) {
       virtualScrollbarDOM.style.width = '0';
       return;
     }
 
-    const visibleWidth = interactiveLayerRect.width;
+    const visibleWidth = this.props.interactiveLayerRef.current!.getBoundingClientRect()
+      .width;
 
     // This is the width of the content not visible.
     const maxScrollDistance = maxContentWidth - visibleWidth;
@@ -210,6 +232,44 @@ export class Provider extends React.Component<Props, State> {
 
   hasInteractiveLayer = (): boolean => !!this.props.interactiveLayerRef.current;
   initialMouseClickX: number | undefined = undefined;
+
+  onScroll = () => {
+    if (this.isDragging || !this.hasInteractiveLayer()) {
+      return;
+    }
+
+    const interactiveLayerRefDOM = this.props.interactiveLayerRef.current!;
+
+    const interactiveLayerRect = interactiveLayerRefDOM.getBoundingClientRect();
+    const scrollLeft = interactiveLayerRefDOM.scrollLeft;
+
+    // Update scroll position of the virtual scroll bar
+    selectRefs(this.scrollBarArea, (scrollBarAreaDOM: HTMLDivElement) => {
+      selectRefs(this.virtualScrollbar, (virtualScrollbarDOM: HTMLDivElement) => {
+        const scrollBarAreaRect = scrollBarAreaDOM.getBoundingClientRect();
+        const virtualScrollbarPosition = scrollLeft / scrollBarAreaRect.width;
+
+        const virtualScrollBarRect = rectOfContent(virtualScrollbarDOM);
+        const maxVirtualScrollableArea =
+          1 - virtualScrollBarRect.width / interactiveLayerRect.width;
+
+        const virtualLeft =
+          clamp(virtualScrollbarPosition, 0, maxVirtualScrollableArea) *
+          interactiveLayerRect.width;
+
+        virtualScrollbarDOM.style.transform = `translate3d(${virtualLeft}px, 0, 0)`;
+        virtualScrollbarDOM.style.transformOrigin = 'left';
+      });
+    });
+
+    // Update scroll positions of all the span bars
+    selectRefs(this.contentSpanBar, (spanBarDOM: HTMLDivElement) => {
+      const left = -scrollLeft;
+
+      spanBarDOM.style.transform = `translate3d(${left}px, 0, 0)`;
+      spanBarDOM.style.transformOrigin = 'left';
+    });
+  };
 
   onDragStart = (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
     if (
@@ -264,7 +324,8 @@ export class Provider extends React.Component<Props, State> {
 
     const virtualScrollbarDOM = this.virtualScrollbar.current;
 
-    const interactiveLayerRect = rectOfContent(this.props.interactiveLayerRef.current!);
+    const interactiveLayerRect = this.props.interactiveLayerRef.current!.getBoundingClientRect();
+
     const virtualScrollBarRect = rectOfContent(virtualScrollbarDOM);
 
     // Mouse x-coordinate relative to the interactive layer's left side
@@ -298,6 +359,20 @@ export class Provider extends React.Component<Props, State> {
       spanBarDOM.style.transform = `translate3d(${left}px, 0, 0)`;
       spanBarDOM.style.transformOrigin = 'left';
     });
+
+    // Update the scroll position of the scroll bar area
+    selectRefs(
+      this.props.interactiveLayerRef,
+      (interactiveLayerRefDOM: HTMLDivElement) => {
+        selectRefs(this.scrollBarArea, (scrollBarAreaDOM: HTMLDivElement) => {
+          const maxScrollDistance =
+            scrollBarAreaDOM.getBoundingClientRect().width - interactiveLayerRect.width;
+          const left = lerp(0, maxScrollDistance, virtualScrollPercentage);
+
+          interactiveLayerRefDOM.scrollLeft = left;
+        });
+      }
+    );
   };
 
   onDragEnd = (event: MouseEvent) => {
@@ -338,7 +413,9 @@ export class Provider extends React.Component<Props, State> {
     const childrenProps: ScrollbarManagerChildrenProps = {
       generateContentSpanBarRef: this.generateContentSpanBarRef,
       onDragStart: this.onDragStart,
+      onScroll: this.onScroll,
       virtualScrollbarRef: this.virtualScrollbar,
+      scrollBarAreaRef: this.scrollBarArea,
       updateScrollState: this.initializeScrollState,
     };
 

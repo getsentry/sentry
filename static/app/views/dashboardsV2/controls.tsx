@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -39,6 +39,7 @@ class Controls extends React.Component<Props> {
       dashboardState,
       dashboards,
       dashboard,
+      organization,
       onEdit,
       onCreate,
       onCancel,
@@ -58,9 +59,9 @@ class Controls extends React.Component<Props> {
       </Button>
     );
 
-    if (['edit', 'pending_delete'].includes(dashboardState)) {
+    if ([DashboardState.EDIT, DashboardState.PENDING_DELETE].includes(dashboardState)) {
       return (
-        <ButtonBar gap={1} key="edit-controls">
+        <StyledButtonBar gap={1} key="edit-controls">
           {cancelButton}
           <Confirm
             priority="danger"
@@ -81,13 +82,13 @@ class Controls extends React.Component<Props> {
           >
             {t('Save and Finish')}
           </Button>
-        </ButtonBar>
+        </StyledButtonBar>
       );
     }
 
     if (dashboardState === 'create') {
       return (
-        <ButtonBar gap={1} key="create-controls">
+        <StyledButtonBar gap={1} key="create-controls">
           {cancelButton}
           <Button
             data-test-id="dashboard-commit"
@@ -99,7 +100,7 @@ class Controls extends React.Component<Props> {
           >
             {t('Save and Finish')}
           </Button>
-        </ButtonBar>
+        </StyledButtonBar>
       );
     }
 
@@ -114,7 +115,7 @@ class Controls extends React.Component<Props> {
     if (dashboard) {
       currentOption = {
         label: dashboard.title,
-        value: dashboard,
+        value: {...dashboard, widgetDisplay: dashboard.widgets.map(w => w.displayType)},
       };
     } else if (dropdownOptions.length) {
       currentOption = dropdownOptions[0];
@@ -130,15 +131,24 @@ class Controls extends React.Component<Props> {
             options={dropdownOptions}
             value={currentOption}
             onChange={({value}: {value: DashboardListItem}) => {
-              const {organization} = this.props;
               browserHistory.push({
-                pathname: `/organizations/${organization.slug}/dashboards/${value.id}/`,
+                pathname: `/organizations/${organization.slug}/dashboard/${value.id}/`,
                 // TODO(mark) should this retain global selection?
                 query: {},
               });
             }}
           />
         </DashboardSelect>
+        <Feature features={['organizations:dashboards-manage']}>
+          <Button
+            data-test-id="dashboard-manage"
+            to={{
+              pathname: `/organizations/${organization.slug}/dashboards/`,
+            }}
+          >
+            {t('Manage Dashboards')}
+          </Button>
+        </Feature>
         <DashboardEditFeature>
           {hasFeature => (
             <Button
@@ -214,8 +224,6 @@ const DashboardSelect = styled('div')`
 `;
 
 const StyledButtonBar = styled(ButtonBar)`
-  flex-shrink: 0;
-
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     grid-auto-flow: row;
     grid-row-gap: ${space(1)};

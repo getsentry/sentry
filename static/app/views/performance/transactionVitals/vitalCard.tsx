@@ -1,6 +1,6 @@
-import React from 'react';
+import {Component} from 'react';
+import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {withTheme} from 'emotion-theming';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import throttle from 'lodash/throttle';
@@ -83,8 +83,8 @@ type State = {
   refPixelRect: Rectangle | null;
 };
 
-class VitalCard extends React.Component<Props, State> {
-  state = {
+class VitalCard extends Component<Props, State> {
+  state: State = {
     refDataRect: null,
     refPixelRect: null,
   };
@@ -108,10 +108,6 @@ class VitalCard extends React.Component<Props, State> {
     }
 
     return {...prevState};
-  }
-
-  showVitalColours() {
-    return this.props.organization.features.includes('performance-vitals-overview');
   }
 
   trackOpenInDiscoverClicked = () => {
@@ -345,12 +341,9 @@ class VitalCard extends React.Component<Props, State> {
     const {theme, chartData, precision, vitalDetails, vital} = this.props;
 
     const additionalFieldsFn = bucket => {
-      if (this.showVitalColours()) {
-        return {
-          itemStyle: {color: theme[this.getVitalsColor(vital, bucket)]},
-        };
-      }
-      return {};
+      return {
+        itemStyle: {color: theme[this.getVitalsColor(vital, bucket)]},
+      };
     };
 
     const data = formatHistogramData(chartData, {

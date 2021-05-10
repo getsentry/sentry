@@ -1,4 +1,3 @@
-import React from 'react';
 import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
@@ -36,7 +35,7 @@ const VitalBar = styled('div')<VitalBarProps>`
   display: grid;
   grid-template-columns: ${p => p.fractions.map(f => `${f}fr`).join(' ')};
   margin-bottom: ${space(1)};
-  border-radius: ${p => p.theme.borderRadius};
+  border-radius: 2px;
 `;
 
 type ColorProps = {

@@ -1,16 +1,46 @@
-import React from 'react';
+import * as React from 'react';
 import ReactDOM from 'react-dom';
-import {css} from '@emotion/core';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {IconClose} from 'app/icons';
 import {slideInLeft} from 'app/styles/animations';
 import space from 'app/styles/space';
-import {Theme} from 'app/utils/theme';
 
 import {CommonSidebarProps} from './types';
 
-type Props = React.HTMLProps<HTMLDivElement> &
+type PositionProps = Pick<CommonSidebarProps, 'orientation' | 'collapsed'>;
+
+const PanelContainer = styled('div')<PositionProps>`
+  position: fixed;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  z-index: ${p => p.theme.zIndex.sidebarPanel};
+  background: ${p => p.theme.background};
+  color: ${p => p.theme.textColor};
+  border-right: 1px solid ${p => p.theme.border};
+  box-shadow: 1px 0 2px rgba(0, 0, 0, 0.06);
+  text-align: left;
+  animation: 200ms ${slideInLeft};
+
+  ${p =>
+    p.orientation === 'top'
+      ? css`
+          top: ${p.theme.sidebar.mobileHeight};
+          left: 0;
+          right: 0;
+        `
+      : css`
+          width: 360px;
+          top: 0;
+          left: ${p.collapsed
+            ? p.theme.sidebar.collapsedWidth
+            : p.theme.sidebar.expandedWidth};
+        `};
+`;
+
+type Props = React.ComponentProps<typeof PanelContainer> &
   Pick<CommonSidebarProps, 'collapsed' | 'orientation' | 'hidePanel'> & {
     title?: string;
   };
@@ -79,39 +109,6 @@ class SidebarPanel extends React.Component<Props> {
 }
 
 export default SidebarPanel;
-
-const getPositionForOrientation = (
-  p: Pick<CommonSidebarProps, 'orientation' | 'collapsed'> & {theme: Theme}
-) =>
-  p.orientation === 'top'
-    ? css`
-        top: ${p.theme.sidebar.mobileHeight};
-        left: 0;
-        right: 0;
-      `
-    : css`
-        width: 360px;
-        top: 0;
-        left: ${p.collapsed
-          ? p.theme.sidebar.collapsedWidth
-          : p.theme.sidebar.expandedWidth};
-      `;
-
-const PanelContainer = styled('div')`
-  position: fixed;
-  bottom: 0;
-  display: flex;
-  flex-direction: column;
-  z-index: ${p => p.theme.zIndex.sidebarPanel};
-  background: ${p => p.theme.background};
-  color: ${p => p.theme.textColor};
-  border-right: 1px solid ${p => p.theme.border};
-  box-shadow: 1px 0 2px rgba(0, 0, 0, 0.06);
-  text-align: left;
-  animation: 200ms ${slideInLeft};
-
-  ${getPositionForOrientation};
-`;
 
 const SidebarPanelHeader = styled('div')`
   border-bottom: 1px solid ${p => p.theme.border};

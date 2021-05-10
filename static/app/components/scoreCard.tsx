@@ -1,8 +1,9 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
 import {Panel} from 'app/components/panels';
 import QuestionTooltip from 'app/components/questionTooltip';
+import TextOverflow from 'app/components/textOverflow';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {defined} from 'app/utils';
@@ -27,7 +28,11 @@ function ScoreCard({title, score, help, trend, trendStatus, className}: Props) {
 
       <ScoreWrapper>
         <Score>{score ?? '\u2014'}</Score>
-        {defined(trend) && <Trend trendStatus={trendStatus}>{trend}</Trend>}
+        {defined(trend) && (
+          <Trend trendStatus={trendStatus}>
+            <TextOverflow>{trend}</TextOverflow>
+          </Trend>
+        )}
       </ScoreWrapper>
     </StyledPanel>
   );
@@ -66,21 +71,25 @@ const Title = styled('div')`
 
 const ScoreWrapper = styled('div')`
   display: flex;
-  align-items: baseline;
+  flex-direction: row;
+  align-items: flex-end;
+  max-width: 100%;
 `;
 
 const Score = styled('span')`
+  flex-shrink: 1;
   font-size: 32px;
   line-height: 1;
+  white-space: nowrap;
 `;
 
 type TrendProps = {trendStatus: Props['trendStatus']};
 
-const Trend = styled('span')<TrendProps>`
+const Trend = styled('div')<TrendProps>`
   color: ${getTrendColor};
   margin-left: ${space(1)};
   line-height: 1;
-  ${overflowEllipsis};
+  overflow: hidden;
 `;
 
 export default ScoreCard;

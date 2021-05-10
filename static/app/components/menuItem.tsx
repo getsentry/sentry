@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
@@ -43,11 +43,15 @@ type MenuItemProps = {
   /**
    * A router target destination
    */
-  to?: Link['props']['to'];
+  to?: React.ComponentProps<typeof Link>['to'];
   /**
    * A server rendered URL.
    */
   href?: string;
+  /**
+   * Enable to allow default event on click
+   */
+  allowDefaultEvent?: boolean;
 
   className?: string;
 };
@@ -56,12 +60,14 @@ type Props = MenuItemProps & Omit<React.HTMLProps<HTMLLIElement>, keyof MenuItem
 
 class MenuItem extends React.Component<Props> {
   handleClick = (e: React.MouseEvent): void => {
-    const {onSelect, disabled, eventKey} = this.props;
+    const {onSelect, disabled, eventKey, allowDefaultEvent} = this.props;
     if (disabled) {
       return;
     }
     if (onSelect) {
-      e.preventDefault();
+      if (allowDefaultEvent !== true) {
+        e.preventDefault();
+      }
       callIfFunction(onSelect, eventKey);
     }
   };
@@ -139,7 +145,7 @@ class MenuItem extends React.Component<Props> {
         divider={divider}
         noAnchor={noAnchor}
         header={header}
-        {...omit(props, ['href', 'title', 'onSelect', 'eventKey', 'to'])}
+        {...omit(props, ['href', 'title', 'onSelect', 'eventKey', 'to', 'as'])}
       >
         {renderChildren}
       </MenuListItem>
@@ -207,7 +213,8 @@ function getChildStyles(props: MenuListItemProps & {theme: Theme}) {
 }
 
 const MenuAnchor = styled('a', {
-  shouldForwardProp: p => ['isActive', 'disabled'].includes(p) === false,
+  shouldForwardProp: p =>
+    typeof p === 'string' && ['isActive', 'disabled'].includes(p) === false,
 })<MenuListItemProps>`
   ${getListItemStyles}
 `;
@@ -241,7 +248,8 @@ const MenuTarget = styled('span')<MenuListItemProps>`
 `;
 
 const MenuLink = styled(Link, {
-  shouldForwardProp: p => ['isActive', 'disabled'].includes(p) === false,
+  shouldForwardProp: p =>
+    typeof p === 'string' && ['isActive', 'disabled'].includes(p) === false,
 })<MenuListItemProps>`
   ${getListItemStyles}
 `;

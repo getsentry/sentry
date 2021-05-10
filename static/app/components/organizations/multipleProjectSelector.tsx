@@ -1,8 +1,7 @@
-import React from 'react';
-import {Link} from 'react-router';
-import {ClassNames} from '@emotion/core';
+import * as React from 'react';
+import {Link, withRouter, WithRouterProps} from 'react-router';
+import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import Button from 'app/components/button';
 import HeaderItem from 'app/components/organizations/headerItem';
@@ -19,7 +18,7 @@ import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
 
 import ProjectSelector from './projectSelector';
 
-type Props = {
+type Props = WithRouterProps & {
   organization: Organization;
   value: number[];
   projects: Project[];
@@ -40,11 +39,7 @@ type State = {
   hasChanges: boolean;
 };
 
-export default class MultipleProjectSelector extends React.PureComponent<Props, State> {
-  static contextTypes = {
-    router: PropTypes.object,
-  };
-
+class MultipleProjectSelector extends React.PureComponent<Props, State> {
   static defaultProps = {
     multi: true,
     lockedMessageSubject: t('page'),
@@ -77,7 +72,7 @@ export default class MultipleProjectSelector extends React.PureComponent<Props, 
    */
   handleQuickSelect = (selected: Pick<Project, 'id'>) => {
     analytics('projectselector.direct_selection', {
-      path: getRouteStringFromRoutes(this.context.router.routes),
+      path: getRouteStringFromRoutes(this.props.router.routes),
       org_id: parseInt(this.props.organization.id, 10),
     });
 
@@ -100,7 +95,7 @@ export default class MultipleProjectSelector extends React.PureComponent<Props, 
     const {value, multi} = this.props;
     analytics('projectselector.update', {
       count: value.length,
-      path: getRouteStringFromRoutes(this.context.router.routes),
+      path: getRouteStringFromRoutes(this.props.router.routes),
       org_id: parseInt(this.props.organization.id, 10),
       multi,
     });
@@ -115,7 +110,7 @@ export default class MultipleProjectSelector extends React.PureComponent<Props, 
    */
   handleClear = () => {
     analytics('projectselector.clear', {
-      path: getRouteStringFromRoutes(this.context.router.routes),
+      path: getRouteStringFromRoutes(this.props.router.routes),
       org_id: parseInt(this.props.organization.id, 10),
     });
 
@@ -133,7 +128,7 @@ export default class MultipleProjectSelector extends React.PureComponent<Props, 
 
     analytics('projectselector.toggle', {
       action: selected.length > value.length ? 'added' : 'removed',
-      path: getRouteStringFromRoutes(this.context.router.routes),
+      path: getRouteStringFromRoutes(this.props.router.routes),
       org_id: parseInt(this.props.organization.id, 10),
     });
 
@@ -143,8 +138,7 @@ export default class MultipleProjectSelector extends React.PureComponent<Props, 
   };
 
   renderProjectName() {
-    const {location} = this.context.router;
-    const {forceProject, multi, organization, showIssueStreamLink} = this.props;
+    const {forceProject, location, multi, organization, showIssueStreamLink} = this.props;
 
     if (showIssueStreamLink && forceProject && multi) {
       return (
@@ -375,6 +369,8 @@ const SelectorFooterControls = ({
     </FooterContainer>
   );
 };
+
+export default withRouter(MultipleProjectSelector);
 
 const FooterContainer = styled('div')`
   padding: ${space(1)} 0;

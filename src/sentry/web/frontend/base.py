@@ -1,6 +1,5 @@
 import logging
 
-from django.core.urlresolvers import reverse
 from django.http import (
     HttpResponse,
     HttpResponseBadRequest,
@@ -9,6 +8,7 @@ from django.http import (
 )
 from django.middleware.csrf import CsrfViewMiddleware
 from django.template.context_processors import csrf
+from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 from sudo.views import redirect_to_sudo
@@ -233,9 +233,7 @@ class BaseView(View, OrganizationMixin):
         return super().dispatch(request, *args, **kwargs)
 
     def is_auth_required(self, request, *args, **kwargs):
-        return self.auth_required and not (
-            request.user.is_authenticated() and request.user.is_active
-        )
+        return self.auth_required and not (request.user.is_authenticated and request.user.is_active)
 
     def handle_auth_required(self, request, *args, **kwargs):
         auth.initiate_login(request, next_url=request.get_full_path())
@@ -373,7 +371,7 @@ class OrganizationView(BaseView):
         if not organization:
             return False
         # XXX(dcramer): this branch should really never hit
-        if not request.user.is_authenticated():
+        if not request.user.is_authenticated:
             return False
         if not self.valid_sso_required:
             return False

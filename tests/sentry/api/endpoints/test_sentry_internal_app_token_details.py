@@ -1,4 +1,4 @@
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
 from sentry.mediators.token_exchange import GrantExchanger
 from sentry.models import ApiToken

@@ -1,31 +1,26 @@
 ---
-created: '2021-03-08T16:39:06.504172Z'
+created: '2021-04-30T12:13:38.530645Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-app-depth-max:
-  hash: null
+app-depth-1:
+  hash: "8f4c7709e4af98d3c47ce3519690e6d9"
+  tree_label: "Scaleform::GFx::AS3::IMEManager::DispatchEvent"
   component:
-    app-depth-max (exception of system takes precedence)
-      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
-        stacktrace
-          frame (non app frame)
-            function*
-              "Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated"
-          frame (non app frame)
+    app-depth-1*
+      exception*
+        stacktrace*
+          frame*
             function*
               "Scaleform::GFx::AS3::IMEManager::DispatchEvent"
-          frame (non app frame)
-            function*
-              "<lambda>::operator()"
         type (ignored because exception is synthetic)
           "log_demo"
-        value*
+        value (ignored because stacktrace takes precedence)
           "Holy shit everything is on fire!"
 --------------------------------------------------------------------------
 system:
-  hash: "9bb5de55b854491dacc677184c9b019a"
-  tree_label: "<lambda>::operator()"
+  hash: "8f4c7709e4af98d3c47ce3519690e6d9"
+  tree_label: "<entire stacktrace>"
   component:
     system*
       exception*
@@ -33,10 +28,10 @@ system:
           frame (ignored because only 1 frame is considered by stack trace rule (family:native max-frames=1))
             function*
               "Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated"
-          frame (ignored because only 1 frame is considered by stack trace rule (family:native max-frames=1))
+          frame*
             function*
               "Scaleform::GFx::AS3::IMEManager::DispatchEvent"
-          frame*
+          frame (ignored by stack trace rule (category:indirection -group))
             function*
               "<lambda>::operator()"
         type (ignored because exception is synthetic)

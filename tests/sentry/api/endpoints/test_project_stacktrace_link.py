@@ -1,4 +1,4 @@
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
 from sentry.integrations.example.integration import ExampleIntegration
 from sentry.models import Integration, OrganizationIntegration
@@ -47,6 +47,7 @@ class ProjectStacktraceLinkTest(APITestCase):
 
         response = self.client.get(self.url, format="json")
         assert response.status_code == 400, response.content
+        assert response.data == {"detail": "Filepath is required"}
 
     def test_no_configs(self):
         self.login_as(user=self.user)

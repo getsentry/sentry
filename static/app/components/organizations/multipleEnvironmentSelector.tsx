@@ -1,8 +1,8 @@
-import React from 'react';
-import {ClassNames} from '@emotion/core';
+import * as React from 'react';
+import {withRouter, WithRouterProps} from 'react-router';
+import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 import uniq from 'lodash/uniq';
-import PropTypes from 'prop-types';
 
 import {Client} from 'app/api';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
@@ -29,7 +29,7 @@ type DefaultProps = {
   value: string[];
 };
 
-type Props = {
+type Props = WithRouterProps & {
   api: Client;
   organization: Organization;
   projects: Project[];
@@ -56,10 +56,6 @@ type State = {
  * Note we only fetch environments when this component is mounted
  */
 class MultipleEnvironmentSelector extends React.PureComponent<Props, State> {
-  static contextTypes = {
-    router: PropTypes.object,
-  };
-
   static defaultProps: DefaultProps = {
     value: [],
   };
@@ -108,7 +104,7 @@ class MultipleEnvironmentSelector extends React.PureComponent<Props, State> {
 
       analytics('environmentselector.toggle', {
         action: selectedEnvs.has(environment) ? 'added' : 'removed',
-        path: getRouteStringFromRoutes(this.context.router.routes),
+        path: getRouteStringFromRoutes(this.props.router.routes),
         org_id: parseInt(this.props.organization.id, 10),
       });
 
@@ -137,7 +133,7 @@ class MultipleEnvironmentSelector extends React.PureComponent<Props, State> {
 
     analytics('environmentselector.update', {
       count: this.state.selectedEnvs.size,
-      path: getRouteStringFromRoutes(this.context.router.routes),
+      path: getRouteStringFromRoutes(this.props.router.routes),
       org_id: parseInt(this.props.organization.id, 10),
     });
 
@@ -149,7 +145,7 @@ class MultipleEnvironmentSelector extends React.PureComponent<Props, State> {
    */
   handleClear = () => {
     analytics('environmentselector.clear', {
-      path: getRouteStringFromRoutes(this.context.router.routes),
+      path: getRouteStringFromRoutes(this.props.router.routes),
       org_id: parseInt(this.props.organization.id, 10),
     });
 
@@ -171,7 +167,7 @@ class MultipleEnvironmentSelector extends React.PureComponent<Props, State> {
   handleSelect = (item: Item) => {
     const {value: environment} = item;
     analytics('environmentselector.direct_selection', {
-      path: getRouteStringFromRoutes(this.context.router.routes),
+      path: getRouteStringFromRoutes(this.props.router.routes),
       org_id: parseInt(this.props.organization.id, 10),
     });
 
@@ -301,7 +297,7 @@ class MultipleEnvironmentSelector extends React.PureComponent<Props, State> {
   }
 }
 
-export default withApi(MultipleEnvironmentSelector);
+export default withApi(withRouter(MultipleEnvironmentSelector));
 
 const StyledHeaderItem = styled(HeaderItem)`
   height: 100%;

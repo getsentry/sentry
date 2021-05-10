@@ -24,6 +24,24 @@ describe('getDuration()', function () {
     expect(getDuration(604800 * 12)).toBe('3 months');
   });
 
+  it('should format negative durations', function () {
+    expect(getDuration(-0, 2)).toBe('0.00ms');
+    expect(getDuration(-0.1)).toBe('-100ms');
+    expect(getDuration(-0.1, 2)).toBe('-100.00ms');
+    expect(getDuration(-1)).toBe('-1 second');
+    expect(getDuration(-2)).toBe('-2 seconds');
+    expect(getDuration(-65)).toBe('-65 seconds');
+    expect(getDuration(-122)).toBe('-2 minutes');
+    expect(getDuration(-3720)).toBe('-62 minutes');
+    expect(getDuration(-36000)).toBe('-10 hours');
+    expect(getDuration(-86400)).toBe('-24 hours');
+    expect(getDuration(-86400 * 2)).toBe('-2 days');
+    expect(getDuration(-604800)).toBe('-1 week');
+    expect(getDuration(-604800 * 4)).toBe('-4 weeks');
+    expect(getDuration(-2629800)).toBe('-1 month');
+    expect(getDuration(-604800 * 12)).toBe('-3 months');
+  });
+
   it('should format numbers and abbreviate units', function () {
     expect(getDuration(0, 2, true)).toBe('0.00ms');
     expect(getDuration(0, 0, true)).toBe('0ms');

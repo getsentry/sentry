@@ -1,6 +1,6 @@
-import React from 'react';
+import {Component} from 'react';
 import LazyLoad from 'react-lazyload';
-import {withTheme} from 'emotion-theming';
+import {withTheme} from '@emotion/react';
 
 import MiniBarChart from 'app/components/charts/miniBarChart';
 import {tn} from 'app/locale';
@@ -19,7 +19,7 @@ type Props = DefaultProps & {
   theme: Theme;
 };
 
-class HealthStatsChart extends React.Component<Props> {
+class HealthStatsChart extends Component<Props> {
   static defaultProps: DefaultProps = {
     height: 24,
   };

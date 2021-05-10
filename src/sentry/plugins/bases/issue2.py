@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.conf.urls import url
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.utils.html import format_html
 from rest_framework.response import Response
 
@@ -89,7 +89,7 @@ class IssueTrackingPlugin2(Plugin):
         """
         assert self.auth_provider, "There is no auth provider configured for this plugin."
 
-        if not user.is_authenticated():
+        if not user.is_authenticated:
             return None
 
         try:
@@ -105,7 +105,7 @@ class IssueTrackingPlugin2(Plugin):
         if self.auth_provider is None:
             return False
 
-        if not request.user.is_authenticated():
+        if not request.user.is_authenticated:
             return True
 
         return not UserSocialAuth.objects.filter(

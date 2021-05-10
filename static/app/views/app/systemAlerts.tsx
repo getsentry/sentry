@@ -1,7 +1,5 @@
-import React from 'react';
-import createReactClass from 'create-react-class';
-import {ThemeProvider} from 'emotion-theming';
-import Reflux from 'reflux';
+import * as React from 'react';
+import {ThemeProvider} from '@emotion/react';
 
 import AlertStore from 'app/stores/alertStore';
 import {lightTheme} from 'app/utils/theme';
@@ -14,19 +12,24 @@ type State = {
   alerts: Array<Alert>;
 };
 
-const Alerts = createReactClass<Props, State>({
-  displayName: 'Alerts',
-  mixins: [Reflux.connect(AlertStore, 'alerts') as any],
+class SystemAlerts extends React.Component<Props, State> {
+  state = this.getInitialState();
 
-  getInitialState() {
+  getInitialState(): State {
     return {
-      alerts: [],
+      alerts: AlertStore.getInitialState() as Alert[],
     };
-  },
+  }
+
+  componentWillUnmount() {
+    this.unlistener?.();
+  }
+
+  unlistener = AlertStore.listen((alerts: Alert[]) => this.setState({alerts}), undefined);
 
   render() {
     const {className} = this.props;
-    const alerts = this.state.alerts as Array<Alert>;
+    const {alerts} = this.state;
     return (
       <ThemeProvider theme={lightTheme}>
         <div className={className}>
@@ -36,7 +39,7 @@ const Alerts = createReactClass<Props, State>({
         </div>
       </ThemeProvider>
     );
-  },
-});
+  }
+}
 
-export default Alerts;
+export default SystemAlerts;

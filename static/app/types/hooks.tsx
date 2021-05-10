@@ -49,6 +49,7 @@ export type RouteHooks = {
  */
 type DateRangeProps = React.ComponentProps<typeof DateRange>;
 type SelectorItemsProps = React.ComponentProps<typeof SelectorItems>;
+type GlobalNotificationProps = {className: string; organization?: Organization};
 
 /**
  * Component wrapping hooks
@@ -56,6 +57,7 @@ type SelectorItemsProps = React.ComponentProps<typeof SelectorItems>;
 export type ComponentHooks = {
   'component:header-date-range': () => React.ComponentType<DateRangeProps>;
   'component:header-selector-items': () => React.ComponentType<SelectorItemsProps>;
+  'component:global-notifications': () => React.ComponentType<GlobalNotificationProps>;
 };
 
 /**
@@ -89,6 +91,7 @@ export type AnalyticsHooks = {
  */
 export type FeatureDisabledHooks = {
   'feature-disabled:alerts-page': FeatureDisabledHook;
+  'feature-disabled:configure-distributed-tracing': FeatureDisabledHook;
   'feature-disabled:custom-inbound-filters': FeatureDisabledHook;
   'feature-disabled:custom-symbol-sources': FeatureDisabledHook;
   'feature-disabled:data-forwarding': FeatureDisabledHook;
@@ -106,6 +109,7 @@ export type FeatureDisabledHooks = {
   'feature-disabled:incidents-sidebar-item': FeatureDisabledHook;
   'feature-disabled:performance-new-project': FeatureDisabledHook;
   'feature-disabled:performance-page': FeatureDisabledHook;
+  'feature-disabled:performance-quick-trace': FeatureDisabledHook;
   'feature-disabled:performance-sidebar-item': FeatureDisabledHook;
   'feature-disabled:project-performance-score-card': FeatureDisabledHook;
   'feature-disabled:project-selector-checkbox': FeatureDisabledHook;
@@ -114,6 +118,7 @@ export type FeatureDisabledHooks = {
   'feature-disabled:sso-rippling': FeatureDisabledHook;
   'feature-disabled:sso-saml2': FeatureDisabledHook;
   'feature-disabled:trace-view-link': FeatureDisabledHook;
+  'feature-disabled:alert-wizard-performance': FeatureDisabledHook;
 };
 
 /**
@@ -215,6 +220,7 @@ type AnalyticsTrackEvent = (opts: {
    * The English string used as the name of the event.
    */
   eventName: string;
+  organization_id: string | number | null;
   /**
    * Arbitrary data to track
    */

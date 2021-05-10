@@ -1,11 +1,10 @@
-import React from 'react';
-import {css} from '@emotion/core';
+import {Fragment} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
 import Tooltip from 'app/components/tooltip';
 import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {
   Aggregation,
@@ -15,13 +14,23 @@ import {
   FIELDS,
   generateFieldAsString,
 } from 'app/utils/discover/fields';
+import {
+  AlertType,
+  hideParameterSelectorSet,
+  hidePrimarySelectorSet,
+} from 'app/views/alerts/wizard/options';
 import {QueryField} from 'app/views/eventsV2/table/queryField';
 import {FieldValueKind} from 'app/views/eventsV2/table/types';
 import {generateFieldOptions} from 'app/views/eventsV2/utils';
 import FormField from 'app/views/settings/components/forms/formField';
 import FormModel from 'app/views/settings/components/forms/model';
 
-import {errorFieldConfig, transactionFieldConfig} from './constants';
+import {
+  errorFieldConfig,
+  getWizardAlertFieldConfig,
+  OptionConfig,
+  transactionFieldConfig,
+} from './constants';
 import {PRESET_AGGREGATES} from './presets';
 import {Dataset} from './types';
 
@@ -32,11 +41,28 @@ type Props = Omit<FormField['props'], 'children'> & {
    */
   columnWidth?: number;
   inFieldLabels?: boolean;
+  alertType?: AlertType;
 };
 
-const getFieldOptionConfig = (dataset: Dataset) => {
-  const config = dataset === Dataset.ERRORS ? errorFieldConfig : transactionFieldConfig;
-
+const getFieldOptionConfig = ({
+  dataset,
+  organization,
+  alertType,
+}: {
+  dataset: Dataset;
+  organization: Organization;
+  alertType?: AlertType;
+}) => {
+  let config: OptionConfig;
+  let hidePrimarySelector = false;
+  let hideParameterSelector = false;
+  if (organization.features.includes('alert-wizard') && alertType) {
+    config = getWizardAlertFieldConfig(alertType);
+    hidePrimarySelector = hidePrimarySelectorSet.has(alertType);
+    hideParameterSelector = hideParameterSelectorSet.has(alertType);
+  } else {
+    config = dataset === Dataset.ERRORS ? errorFieldConfig : transactionFieldConfig;
+  }
   const aggregations = Object.fromEntries<Aggregation>(
     config.aggregations.map(key => {
       // TODO(scttcper): Temporary hack for default value while we handle the translation of user
@@ -64,7 +90,11 @@ const getFieldOptionConfig = (dataset: Dataset) => {
 
   const {measurementKeys} = config;
 
-  return {aggregations, fields, measurementKeys};
+  return {
+    fieldOptionsConfig: {aggregations, fields, measurementKeys},
+    hidePrimarySelector,
+    hideParameterSelector,
+  };
 };
 
 const help = ({name, model}: {name: string; model: FormModel}) => {
@@ -75,7 +105,7 @@ const help = ({name, model}: {name: string; model: FormModel}) => {
   )
     .map(preset => ({...preset, selected: preset.match.test(aggregate)}))
     .map((preset, i, list) => (
-      <React.Fragment key={preset.name}>
+      <Fragment key={preset.name}>
         <Tooltip title={t('This preset is selected')} disabled={!preset.selected}>
           <PresetButton
             type="button"
@@ -86,7 +116,7 @@ const help = ({name, model}: {name: string; model: FormModel}) => {
           </PresetButton>
         </Tooltip>
         {i + 1 < list.length && ', '}
-      </React.Fragment>
+      </Fragment>
     ));
 
   return tct(
@@ -95,12 +125,26 @@ const help = ({name, model}: {name: string; model: FormModel}) => {
   );
 };
 
-const MetricField = ({organization, columnWidth, inFieldLabels, ...props}: Props) => (
+const MetricField = ({
+  organization,
+  columnWidth,
+  inFieldLabels,
+  alertType,
+  ...props
+}: Props) => (
   <FormField help={help} {...props}>
     {({onChange, value, model, disabled}) => {
       const dataset = model.getValue('dataset');
 
-      const fieldOptionsConfig = getFieldOptionConfig(dataset);
+      const {
+        fieldOptionsConfig,
+        hidePrimarySelector,
+        hideParameterSelector,
+      } = getFieldOptionConfig({
+        dataset: dataset as Dataset,
+        organization,
+        alertType,
+      });
       const fieldOptions = generateFieldOptions({organization, ...fieldOptionsConfig});
       const fieldValue = explodeFieldString(value ?? '');
 
@@ -115,27 +159,25 @@ const MetricField = ({organization, columnWidth, inFieldLabels, ...props}: Props
           ? selectedField.meta.parameters.length
           : 0;
 
+      const parameterColumns =
+        numParameters - (hideParameterSelector ? 1 : 0) - (hidePrimarySelector ? 1 : 0);
+
       return (
-        <React.Fragment>
-          {!inFieldLabels && (
-            <AggregateHeader>
-              <div>{t('Function')}</div>
-              {numParameters > 0 && <div>{t('Parameter')}</div>}
-              {numParameters > 1 && <div>{t('Value')}</div>}
-            </AggregateHeader>
-          )}
+        <Fragment>
           <StyledQueryField
             filterPrimaryOptions={option => option.value.kind === FieldValueKind.FUNCTION}
             fieldOptions={fieldOptions}
             fieldValue={fieldValue}
             onChange={v => onChange(generateFieldAsString(v), {})}
             columnWidth={columnWidth}
-            gridColumns={numParameters}
+            gridColumns={parameterColumns + 1}
             inFieldLabels={inFieldLabels}
             shouldRenderTag={false}
             disabled={disabled}
+            hideParameterSelector={hideParameterSelector}
+            hidePrimarySelector={hidePrimarySelector}
           />
-        </React.Fragment>
+        </Fragment>
       );
     }}
   </FormField>
@@ -145,20 +187,8 @@ const StyledQueryField = styled(QueryField)<{gridColumns: number; columnWidth?: 
   ${p =>
     p.columnWidth &&
     css`
-      width: ${(p.gridColumns + 1) * p.columnWidth}px;
+      width: ${p.gridColumns * p.columnWidth}px;
     `}
-`;
-
-const AggregateHeader = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: 1fr;
-  grid-gap: ${space(1)};
-  text-transform: uppercase;
-  font-size: ${p => p.theme.fontSizeSmall};
-  color: ${p => p.theme.gray300};
-  font-weight: bold;
-  margin-bottom: ${space(1)};
 `;
 
 const PresetButton = styled(Button)<{disabled: boolean}>`

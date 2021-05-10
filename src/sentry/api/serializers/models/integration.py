@@ -1,23 +1,25 @@
 import logging
 from collections import defaultdict
+from typing import Any, Mapping, MutableMapping, Optional, Sequence
 
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.integrations import IntegrationProvider
 from sentry.models import (
     ExternalIssue,
-    ExternalTeam,
-    ExternalUser,
+    Group,
     GroupLink,
     Integration,
     OrganizationIntegration,
+    User,
 )
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.types.integrations import get_provider_string
+from sentry.utils.json import JSONData
 
 logger = logging.getLogger(__name__)
 
 
 # converts the provider to JSON
-def serialize_provider(provider):
+def serialize_provider(provider: IntegrationProvider) -> Mapping[str, Any]:
     return {
         "key": provider.key,
         "slug": provider.key,
@@ -30,8 +32,10 @@ def serialize_provider(provider):
 
 
 @register(Integration)
-class IntegrationSerializer(Serializer):
-    def serialize(self, obj, attrs, user):
+class IntegrationSerializer(Serializer):  # type: ignore
+    def serialize(
+        self, obj: Integration, attrs: Mapping[str, Any], user: User, **kwargs: Any
+    ) -> MutableMapping[str, JSONData]:
         provider = obj.get_provider()
         return {
             "id": str(obj.id),
@@ -45,11 +49,20 @@ class IntegrationSerializer(Serializer):
 
 
 class IntegrationConfigSerializer(IntegrationSerializer):
-    def __init__(self, organization_id=None, params=None):
+    def __init__(
+        self, organization_id: Optional[int] = None, params: Optional[Mapping[str, Any]] = None
+    ) -> None:
         self.organization_id = organization_id
         self.params = params or {}
 
-    def serialize(self, obj, attrs, user, include_config=True):
+    def serialize(
+        self,
+        obj: Integration,
+        attrs: Mapping[str, Any],
+        user: User,
+        include_config: bool = True,
+        **kwargs: Any,
+    ) -> MutableMapping[str, JSONData]:
         data = super().serialize(obj, attrs, user)
 
         if not include_config:
@@ -76,16 +89,18 @@ class IntegrationConfigSerializer(IntegrationSerializer):
 
 
 @register(OrganizationIntegration)
-class OrganizationIntegrationSerializer(Serializer):
-    def __init__(self, params=None):
+class OrganizationIntegrationSerializer(Serializer):  # type: ignore
+    def __init__(self, params: Optional[Mapping[str, Any]] = None) -> None:
         self.params = params
 
-    def serialize(self, obj, attrs, user, include_config=True):
+    def serialize(
+        self, obj: Integration, attrs: Mapping[str, Any], user: User, include_config: bool = True
+    ) -> MutableMapping[str, JSONData]:
         # XXX(epurkhiser): This is O(n) for integrations, especially since
         # we're using the IntegrationConfigSerializer which pulls in the
         # integration installation config object which very well may be making
         # API request for config options.
-        integration = serialize(
+        integration: MutableMapping[str, Any] = serialize(
             objects=obj.integration,
             user=user,
             serializer=IntegrationConfigSerializer(obj.organization.id, params=self.params),
@@ -107,7 +122,9 @@ class OrganizationIntegrationSerializer(Serializer):
                 config_data = installation.get_config_data() if include_config else None
                 dynamic_display_information = installation.get_dynamic_display_information()
             except ApiError as e:
-                # If there is an ApiError from our 3rd party integration providers, assume there is an problem with the configuration and set it to disabled.
+                # If there is an ApiError from our 3rd party integration
+                # providers, assume there is an problem with the configuration
+                # and set it to disabled.
                 integration.update({"status": "disabled"})
                 name = "sentry.serializers.model.organizationintegration"
                 log_info = {
@@ -125,8 +142,11 @@ class OrganizationIntegrationSerializer(Serializer):
         return integration
 
 
-class IntegrationProviderSerializer(Serializer):
-    def serialize(self, obj, attrs, user, organization):
+class IntegrationProviderSerializer(Serializer):  # type: ignore
+    def serialize(
+        self, obj: Integration, attrs: Mapping[str, Any], user: User, **kwargs: Any
+    ) -> MutableMapping[str, JSONData]:
+        org_slug = kwargs.pop("organization").slug
         metadata = obj.metadata
         metadata = metadata and metadata._asdict() or None
 
@@ -139,20 +159,25 @@ class IntegrationProviderSerializer(Serializer):
             "canDisable": obj.can_disable,
             "features": [f.value for f in obj.features],
             "setupDialog": dict(
-                url=f"/organizations/{organization.slug}/integrations/{obj.key}/setup/",
+                url=f"/organizations/{org_slug}/integrations/{obj.key}/setup/",
                 **obj.setup_dialog_config,
             ),
         }
 
 
 class IntegrationIssueConfigSerializer(IntegrationSerializer):
-    def __init__(self, group, action, params=None):
+    def __init__(
+        self, group: Group, action: str, params: Optional[Mapping[str, Any]] = None
+    ) -> None:
         self.group = group
         self.action = action
         self.params = params
 
-    def serialize(self, obj, attrs, user, organization_id=None):
+    def serialize(
+        self, obj: Integration, attrs: Mapping[str, Any], user: User, **kwargs: Any
+    ) -> MutableMapping[str, JSONData]:
         data = super().serialize(obj, attrs, user)
+        organization_id = kwargs.pop("organization_id")
         installation = obj.get_installation(organization_id)
 
         if self.action == "link":
@@ -167,10 +192,12 @@ class IntegrationIssueConfigSerializer(IntegrationSerializer):
 
 
 class IntegrationIssueSerializer(IntegrationSerializer):
-    def __init__(self, group):
+    def __init__(self, group: Group) -> None:
         self.group = group
 
-    def get_attrs(self, item_list, user, **kwargs):
+    def get_attrs(
+        self, item_list: Sequence[Integration], user: User, **kwargs: Any
+    ) -> MutableMapping[Integration, MutableMapping[str, Any]]:
         external_issues = ExternalIssue.objects.filter(
             id__in=GroupLink.objects.filter(
                 group_id=self.group.id,
@@ -203,31 +230,9 @@ class IntegrationIssueSerializer(IntegrationSerializer):
             item: {"external_issues": issues_by_integration.get(item.id, [])} for item in item_list
         }
 
-    def serialize(self, obj, attrs, user):
+    def serialize(
+        self, obj: Integration, attrs: Mapping[str, Any], user: User, **kwargs: Any
+    ) -> MutableMapping[str, JSONData]:
         data = super().serialize(obj, attrs, user)
         data["externalIssues"] = attrs.get("external_issues", [])
         return data
-
-
-@register(ExternalTeam)
-class ExternalTeamSerializer(Serializer):
-    def serialize(self, obj, attrs, user):
-        provider = get_provider_string(obj.provider)
-        return {
-            "id": str(obj.id),
-            "teamId": str(obj.team_id),
-            "provider": provider,
-            "externalName": obj.external_name,
-        }
-
-
-@register(ExternalUser)
-class ExternalUserSerializer(Serializer):
-    def serialize(self, obj, attrs, user):
-        provider = get_provider_string(obj.provider)
-        return {
-            "id": str(obj.id),
-            "memberId": str(obj.organizationmember_id),
-            "provider": provider,
-            "externalName": obj.external_name,
-        }

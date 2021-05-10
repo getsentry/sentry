@@ -1,7 +1,7 @@
-import React from 'react';
-import {Mention, MentionsInput} from 'react-mentions';
+import * as React from 'react';
+import {Mention, MentionsInput, MentionsInputProps} from 'react-mentions';
+import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {withTheme} from 'emotion-theming';
 
 import Button from 'app/components/button';
 import NavTabs from 'app/components/navTabs';
@@ -122,7 +122,7 @@ class NoteInputComponent extends React.Component<Props, State> {
     this.submitForm();
   };
 
-  handleChange = (e: MentionChangeEvent) => {
+  handleChange: MentionsInputProps['onChange'] = e => {
     this.setState({value: e.target.value});
 
     if (this.props.onChange) {
@@ -130,7 +130,7 @@ class NoteInputComponent extends React.Component<Props, State> {
     }
   };
 
-  handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement | HTMLInputElement>) => {
+  handleKeyDown: MentionsInputProps['onKeyDown'] = e => {
     // Auto submit the form on [meta] + Enter
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
       this.submitForm();
@@ -204,7 +204,6 @@ class NoteInputComponent extends React.Component<Props, State> {
         <NoteInputBody>
           {preview ? (
             <NotePreview
-              theme={theme}
               minHeight={minHeight}
               dangerouslySetInnerHTML={{__html: marked(this.cleanMarkdown(value))}}
             />
@@ -305,7 +304,7 @@ const getNotePreviewCss = (p: NotePreviewProps) => {
 `;
 };
 
-const getNoteInputErrorStyles = p => {
+const getNoteInputErrorStyles = (p: {error?: string; theme: Theme}) => {
   if (!p.error) {
     return '';
   }
@@ -344,12 +343,12 @@ const getNoteInputErrorStyles = p => {
   `;
 };
 
-const NoteInputForm = styled('form')`
+const NoteInputForm = styled('form')<{error?: string}>`
   font-size: 15px;
   line-height: 22px;
   transition: padding 0.2s ease-in-out;
 
-  ${getNoteInputErrorStyles}
+  ${p => getNoteInputErrorStyles(p)}
 `;
 
 const NoteInputBody = styled('div')`
@@ -423,7 +422,7 @@ const MarkdownSupported = styled('span')`
   font-size: 14px;
 `;
 
-const NotePreview = styled('div')<NotePreviewProps>`
-  ${getNotePreviewCss};
+const NotePreview = styled('div')<{minHeight: Props['minHeight']}>`
+  ${p => getNotePreviewCss(p)};
   padding-bottom: ${space(1)};
 `;

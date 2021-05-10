@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
@@ -17,8 +17,10 @@ import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
+import List from 'app/components/list';
+import ListItem from 'app/components/list/listItem';
 import LoadingMask from 'app/components/loadingMask';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import {Panel, PanelBody} from 'app/components/panels';
 import SelectMembers from 'app/components/selectMembers';
 import {ALL_ENVIRONMENTS_KEY} from 'app/constants';
 import {IconChevron, IconWarning} from 'app/icons';
@@ -267,7 +269,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
           // Grab the last part of something like 'sentry.mail.actions.NotifyEmailAction'
           const splitActionId = action.id.split('.');
           const actionName = splitActionId[splitActionId.length - 1];
-          if (actionName) {
+          if (actionName === 'SlackNotifyServiceAction') {
             transaction.setTag(actionName, true);
           }
         }
@@ -534,7 +536,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
               frequency: `${frequency}`,
             }}
             submitDisabled={!hasAccess || !canEdit}
-            submitLabel={isSavedAlertRule(rule) ? t('Save Rule') : t('Create Alert Rule')}
+            submitLabel={isSavedAlertRule(rule) ? t('Save Rule') : t('Save Rule')}
             extraButton={
               isSavedAlertRule(rule) ? (
                 <Confirm
@@ -552,157 +554,67 @@ class IssueRuleEditor extends AsyncView<Props, State> {
               ) : null
             }
           >
-            {this.state.loading && <SemiTransparentLoadingMask />}
-            <Panel>
-              <PanelHeader>{t('Alert Setup')}</PanelHeader>
-              <PanelBody>
-                <SelectField
-                  className={classNames({
-                    error: this.hasError('environment'),
-                  })}
-                  label={t('Environment')}
-                  help={t('Choose an environment for these conditions to apply to')}
-                  placeholder={t('Select an Environment')}
-                  clearable={false}
-                  name="environment"
-                  choices={environmentChoices}
-                  onChange={val => this.handleEnvironmentChange(val)}
-                  disabled={!hasAccess || !canEdit}
-                />
-
-                <Feature features={['organizations:team-alerts-ownership']}>
-                  <StyledField
-                    label={t('Team')}
-                    help={t('The team that owns this alert.')}
+            <List symbol="colored-numeric">
+              {this.state.loading && <SemiTransparentLoadingMask />}
+              <StyledListItem>{t('Add alert settings')}</StyledListItem>
+              <Panel>
+                <PanelBody>
+                  <SelectField
+                    className={classNames({
+                      error: this.hasError('environment'),
+                    })}
+                    label={t('Environment')}
+                    help={t('Choose an environment for these conditions to apply to')}
+                    placeholder={t('Select an Environment')}
+                    clearable={false}
+                    name="environment"
+                    choices={environmentChoices}
+                    onChange={val => this.handleEnvironmentChange(val)}
                     disabled={!hasAccess || !canEdit}
+                  />
+
+                  <Feature features={['organizations:team-alerts-ownership']}>
+                    <StyledField
+                      label={t('Team')}
+                      help={t('The team that can edit this alert.')}
+                      disabled={!hasAccess || !canEdit}
+                    >
+                      <SelectMembers
+                        showTeam
+                        project={project}
+                        organization={organization}
+                        value={this.getTeamId()}
+                        onChange={this.handleOwnerChange}
+                        filteredTeamIds={userTeams}
+                        includeUnassigned
+                      />
+                    </StyledField>
+                  </Feature>
+
+                  <StyledField
+                    label={t('Alert name')}
+                    help={t('Add a name for this alert')}
+                    error={detailedError?.name?.[0]}
+                    disabled={!hasAccess || !canEdit}
+                    required
+                    stacked
                   >
-                    <SelectMembers
-                      showTeam
-                      project={project}
-                      organization={organization}
-                      value={this.getTeamId()}
-                      onChange={this.handleOwnerChange}
-                      filteredTeamIds={userTeams}
-                      includeUnassigned
+                    <Input
+                      type="text"
+                      name="name"
+                      value={name}
+                      placeholder={t('My Rule Name')}
+                      onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+                        this.handleChange('name', event.target.value)
+                      }
+                      onBlur={this.handleValidateRuleName}
                     />
                   </StyledField>
-                </Feature>
-
-                <StyledField
-                  label={t('Alert name')}
-                  help={t('Add a name for this alert')}
-                  error={detailedError?.name?.[0]}
-                  disabled={!hasAccess || !canEdit}
-                  required
-                  stacked
-                >
-                  <Input
-                    type="text"
-                    name="name"
-                    value={name}
-                    placeholder={t('My Rule Name')}
-                    onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-                      this.handleChange('name', event.target.value)
-                    }
-                    onBlur={this.handleValidateRuleName}
-                  />
-                </StyledField>
-              </PanelBody>
-            </Panel>
-
-            <Panel>
-              <PanelHeader>{t('Alert Conditions')}</PanelHeader>
-              <PanelBody>
-                <Step>
-                  <StepConnector />
-
-                  <StepContainer>
-                    <ChevronContainer>
-                      <IconChevron
-                        color="gray200"
-                        isCircled
-                        direction="right"
-                        size="sm"
-                      />
-                    </ChevronContainer>
-
-                    <Feature features={['projects:alert-filters']} project={project}>
-                      {({hasFeature}) => (
-                        <StepContent>
-                          <StepLead>
-                            {tct(
-                              '[when:When] an event is captured by Sentry and [selector] of the following happens',
-                              {
-                                when: <Badge />,
-                                selector: (
-                                  <EmbeddedWrapper>
-                                    <EmbeddedSelectField
-                                      className={classNames({
-                                        error: this.hasError('actionMatch'),
-                                      })}
-                                      inline={false}
-                                      styles={{
-                                        control: provided => ({
-                                          ...provided,
-                                          minHeight: '20px',
-                                          height: '20px',
-                                        }),
-                                      }}
-                                      isSearchable={false}
-                                      isClearable={false}
-                                      name="actionMatch"
-                                      required
-                                      flexibleControlStateSize
-                                      choices={
-                                        hasFeature
-                                          ? ACTION_MATCH_CHOICES_MIGRATED
-                                          : ACTION_MATCH_CHOICES
-                                      }
-                                      onChange={val =>
-                                        this.handleChange('actionMatch', val)
-                                      }
-                                      disabled={!hasAccess || !canEdit}
-                                    />
-                                  </EmbeddedWrapper>
-                                ),
-                              }
-                            )}
-                          </StepLead>
-                          <RuleNodeList
-                            nodes={this.state.configs?.conditions ?? null}
-                            items={conditions ?? []}
-                            placeholder={
-                              hasFeature
-                                ? t('Add optional trigger...')
-                                : t('Add optional condition...')
-                            }
-                            onPropertyChange={this.handleChangeConditionProperty}
-                            onAddRow={this.handleAddCondition}
-                            onResetRow={this.handleResetCondition}
-                            onDeleteRow={this.handleDeleteCondition}
-                            organization={organization}
-                            project={project}
-                            disabled={!hasAccess || !canEdit}
-                            error={
-                              this.hasError('conditions') && (
-                                <StyledAlert type="error">
-                                  {detailedError?.conditions[0]}
-                                </StyledAlert>
-                              )
-                            }
-                          />
-                        </StepContent>
-                      )}
-                    </Feature>
-                  </StepContainer>
-                </Step>
-
-                <Feature
-                  features={['organizations:alert-filters', 'projects:alert-filters']}
-                  organization={organization}
-                  project={project}
-                  requireAll={false}
-                >
+                </PanelBody>
+              </Panel>
+              <StyledListItem>{t('Set conditions')}</StyledListItem>
+              <ConditionsPanel>
+                <PanelBody>
                   <Step>
                     <StepConnector />
 
@@ -716,52 +628,186 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                         />
                       </ChevronContainer>
 
+                      <Feature features={['projects:alert-filters']} project={project}>
+                        {({hasFeature}) => (
+                          <StepContent>
+                            <StepLead>
+                              {tct(
+                                '[when:When] an event is captured by Sentry and [selector] of the following happens',
+                                {
+                                  when: <Badge />,
+                                  selector: (
+                                    <EmbeddedWrapper>
+                                      <EmbeddedSelectField
+                                        className={classNames({
+                                          error: this.hasError('actionMatch'),
+                                        })}
+                                        inline={false}
+                                        styles={{
+                                          control: provided => ({
+                                            ...provided,
+                                            minHeight: '20px',
+                                            height: '20px',
+                                          }),
+                                        }}
+                                        isSearchable={false}
+                                        isClearable={false}
+                                        name="actionMatch"
+                                        required
+                                        flexibleControlStateSize
+                                        choices={
+                                          hasFeature
+                                            ? ACTION_MATCH_CHOICES_MIGRATED
+                                            : ACTION_MATCH_CHOICES
+                                        }
+                                        onChange={val =>
+                                          this.handleChange('actionMatch', val)
+                                        }
+                                        disabled={!hasAccess || !canEdit}
+                                      />
+                                    </EmbeddedWrapper>
+                                  ),
+                                }
+                              )}
+                            </StepLead>
+                            <RuleNodeList
+                              nodes={this.state.configs?.conditions ?? null}
+                              items={conditions ?? []}
+                              placeholder={
+                                hasFeature
+                                  ? t('Add optional trigger...')
+                                  : t('Add optional condition...')
+                              }
+                              onPropertyChange={this.handleChangeConditionProperty}
+                              onAddRow={this.handleAddCondition}
+                              onResetRow={this.handleResetCondition}
+                              onDeleteRow={this.handleDeleteCondition}
+                              organization={organization}
+                              project={project}
+                              disabled={!hasAccess || !canEdit}
+                              error={
+                                this.hasError('conditions') && (
+                                  <StyledAlert type="error">
+                                    {detailedError?.conditions[0]}
+                                  </StyledAlert>
+                                )
+                              }
+                            />
+                          </StepContent>
+                        )}
+                      </Feature>
+                    </StepContainer>
+                  </Step>
+
+                  <Feature
+                    features={['organizations:alert-filters', 'projects:alert-filters']}
+                    organization={organization}
+                    project={project}
+                    requireAll={false}
+                  >
+                    <Step>
+                      <StepConnector />
+
+                      <StepContainer>
+                        <ChevronContainer>
+                          <IconChevron
+                            color="gray200"
+                            isCircled
+                            direction="right"
+                            size="sm"
+                          />
+                        </ChevronContainer>
+
+                        <StepContent>
+                          <StepLead>
+                            {tct('[if:If] [selector] of these filters match', {
+                              if: <Badge />,
+                              selector: (
+                                <EmbeddedWrapper>
+                                  <EmbeddedSelectField
+                                    className={classNames({
+                                      error: this.hasError('filterMatch'),
+                                    })}
+                                    inline={false}
+                                    styles={{
+                                      control: provided => ({
+                                        ...provided,
+                                        minHeight: '20px',
+                                        height: '20px',
+                                      }),
+                                    }}
+                                    isSearchable={false}
+                                    isClearable={false}
+                                    name="filterMatch"
+                                    required
+                                    flexibleControlStateSize
+                                    choices={ACTION_MATCH_CHOICES}
+                                    onChange={val =>
+                                      this.handleChange('filterMatch', val)
+                                    }
+                                    disabled={!hasAccess || !canEdit}
+                                  />
+                                </EmbeddedWrapper>
+                              ),
+                            })}
+                          </StepLead>
+                          <RuleNodeList
+                            nodes={this.state.configs?.filters ?? null}
+                            items={filters ?? []}
+                            placeholder={t('Add optional filter...')}
+                            onPropertyChange={this.handleChangeFilterProperty}
+                            onAddRow={this.handleAddFilter}
+                            onResetRow={this.handleResetFilter}
+                            onDeleteRow={this.handleDeleteFilter}
+                            organization={organization}
+                            project={project}
+                            disabled={!hasAccess || !canEdit}
+                            error={
+                              this.hasError('filters') && (
+                                <StyledAlert type="error">
+                                  {detailedError?.filters[0]}
+                                </StyledAlert>
+                              )
+                            }
+                          />
+                        </StepContent>
+                      </StepContainer>
+                    </Step>
+                  </Feature>
+
+                  <Step>
+                    <StepContainer>
+                      <ChevronContainer>
+                        <IconChevron
+                          isCircled
+                          color="gray200"
+                          direction="right"
+                          size="sm"
+                        />
+                      </ChevronContainer>
                       <StepContent>
                         <StepLead>
-                          {tct('[if:If] [selector] of these filters match', {
-                            if: <Badge />,
-                            selector: (
-                              <EmbeddedWrapper>
-                                <EmbeddedSelectField
-                                  className={classNames({
-                                    error: this.hasError('filterMatch'),
-                                  })}
-                                  inline={false}
-                                  styles={{
-                                    control: provided => ({
-                                      ...provided,
-                                      minHeight: '20px',
-                                      height: '20px',
-                                    }),
-                                  }}
-                                  isSearchable={false}
-                                  isClearable={false}
-                                  name="filterMatch"
-                                  required
-                                  flexibleControlStateSize
-                                  choices={ACTION_MATCH_CHOICES}
-                                  onChange={val => this.handleChange('filterMatch', val)}
-                                  disabled={!hasAccess || !canEdit}
-                                />
-                              </EmbeddedWrapper>
-                            ),
+                          {tct('[then:Then] perform these actions', {
+                            then: <Badge />,
                           })}
                         </StepLead>
+
                         <RuleNodeList
-                          nodes={this.state.configs?.filters ?? null}
-                          items={filters ?? []}
-                          placeholder={t('Add optional filter...')}
-                          onPropertyChange={this.handleChangeFilterProperty}
-                          onAddRow={this.handleAddFilter}
-                          onResetRow={this.handleResetFilter}
-                          onDeleteRow={this.handleDeleteFilter}
+                          nodes={this.state.configs?.actions ?? null}
+                          selectType="grouped"
+                          items={actions ?? []}
+                          placeholder={t('Add action...')}
+                          onPropertyChange={this.handleChangeActionProperty}
+                          onAddRow={this.handleAddAction}
+                          onResetRow={this.handleResetAction}
+                          onDeleteRow={this.handleDeleteAction}
                           organization={organization}
                           project={project}
                           disabled={!hasAccess || !canEdit}
                           error={
-                            this.hasError('filters') && (
+                            this.hasError('actions') && (
                               <StyledAlert type="error">
-                                {detailedError?.filters[0]}
+                                {detailedError?.actions[0]}
                               </StyledAlert>
                             )
                           }
@@ -769,68 +815,26 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                       </StepContent>
                     </StepContainer>
                   </Step>
-                </Feature>
-
-                <Step>
-                  <StepContainer>
-                    <ChevronContainer>
-                      <IconChevron
-                        isCircled
-                        color="gray200"
-                        direction="right"
-                        size="sm"
-                      />
-                    </ChevronContainer>
-                    <StepContent>
-                      <StepLead>
-                        {tct('[then:Then] perform these actions', {
-                          then: <Badge />,
-                        })}
-                      </StepLead>
-
-                      <RuleNodeList
-                        nodes={this.state.configs?.actions ?? null}
-                        selectType="grouped"
-                        items={actions ?? []}
-                        placeholder={t('Add action...')}
-                        onPropertyChange={this.handleChangeActionProperty}
-                        onAddRow={this.handleAddAction}
-                        onResetRow={this.handleResetAction}
-                        onDeleteRow={this.handleDeleteAction}
-                        organization={organization}
-                        project={project}
-                        disabled={!hasAccess || !canEdit}
-                        error={
-                          this.hasError('actions') && (
-                            <StyledAlert type="error">
-                              {detailedError?.actions[0]}
-                            </StyledAlert>
-                          )
-                        }
-                      />
-                    </StepContent>
-                  </StepContainer>
-                </Step>
-              </PanelBody>
-            </Panel>
-
-            <Panel>
-              <PanelHeader>{t('Rate Limit')}</PanelHeader>
-              <PanelBody>
-                <SelectField
-                  label={t('Action Interval')}
-                  help={t('Perform these actions once this often for an issue')}
-                  clearable={false}
-                  name="frequency"
-                  className={this.hasError('frequency') ? ' error' : ''}
-                  value={frequency}
-                  required
-                  choices={FREQUENCY_CHOICES}
-                  onChange={val => this.handleChange('frequency', val)}
-                  disabled={!hasAccess || !canEdit}
-                />
-              </PanelBody>
-            </Panel>
+                </PanelBody>
+              </ConditionsPanel>
+              <StyledListItem>{t('Set action interval')}</StyledListItem>
+              <Panel>
+                <PanelBody>
+                  <SelectField
+                    label={t('Action Interval')}
+                    help={t('Perform these actions once this often for an issue')}
+                    clearable={false}
+                    name="frequency"
+                    className={this.hasError('frequency') ? ' error' : ''}
+                    value={frequency}
+                    required
+                    choices={FREQUENCY_CHOICES}
+                    onChange={val => this.handleChange('frequency', val)}
+                    disabled={!hasAccess || !canEdit}
+                  />
+                </PanelBody>
+              </Panel>
+            </List>
           </StyledForm>
         )}
       </Access>
@@ -845,8 +849,18 @@ const StyledForm = styled(Form)<Form['props']>`
   position: relative;
 `;
 
+const ConditionsPanel = styled(Panel)`
+  padding-top: ${space(0.5)};
+  padding-bottom: ${space(2)};
+`;
+
 const StyledAlert = styled(Alert)`
   margin-bottom: 0;
+`;
+
+const StyledListItem = styled(ListItem)`
+  margin: ${space(2)} 0 ${space(1)} 0;
+  font-size: ${p => p.theme.fontSizeExtraLarge};
 `;
 
 const Step = styled('div')`

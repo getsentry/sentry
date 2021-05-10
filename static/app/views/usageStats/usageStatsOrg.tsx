@@ -1,39 +1,33 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import moment from 'moment';
 
 import AsyncComponent from 'app/components/asyncComponent';
-import Card from 'app/components/card';
-import ErrorPanel from 'app/components/charts/errorPanel';
 import OptionSelector from 'app/components/charts/optionSelector';
-import {
-  ChartControls,
-  HeaderTitle,
-  InlineContainer,
-  SectionValue,
-} from 'app/components/charts/styles';
-import {DateTimeObject, getInterval} from 'app/components/charts/utils';
-import LoadingIndicator from 'app/components/loadingIndicator';
-import {parseStatsPeriod} from 'app/components/organizations/globalSelectionHeader/getParams';
-import {Panel, PanelBody} from 'app/components/panels';
-import QuestionTooltip from 'app/components/questionTooltip';
-import TextOverflow from 'app/components/textOverflow';
-import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'app/constants';
-import {IconWarning} from 'app/icons';
+import {InlineContainer, SectionHeading} from 'app/components/charts/styles';
+import {DateTimeObject, getSeriesApiInterval} from 'app/components/charts/utils';
+import NotAvailable from 'app/components/notAvailable';
+import ScoreCard from 'app/components/scoreCard';
+import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {DataCategory, IntervalPeriod, Organization, RelativePeriod} from 'app/types';
+import {parsePeriodToHours} from 'app/utils/dates';
 
-import {FORMAT_DATETIME_HOURLY, getDateFromMoment} from './usageChart/utils';
+import {
+  FORMAT_DATETIME_DAILY,
+  FORMAT_DATETIME_HOURLY,
+  getDateFromMoment,
+} from './usageChart/utils';
 import {Outcome, UsageSeries, UsageStat} from './types';
 import UsageChart, {
   CHART_OPTIONS_DATA_TRANSFORM,
-  CHART_OPTIONS_DATACATEGORY,
   ChartDataTransform,
   ChartStats,
 } from './usageChart';
-import {formatUsageWithUnits, getFormatUsageOptions} from './utils';
+import UsageStatsPerMin from './usageStatsPerMin';
+import {formatUsageWithUnits, getFormatUsageOptions, isDisplayUtc} from './utils';
 
 type Props = {
   organization: Organization;
@@ -44,7 +38,7 @@ type Props = {
   handleChangeState: (state: {
     dataCategory?: DataCategory;
     pagePeriod?: RelativePeriod;
-    chartTransform?: ChartDataTransform;
+    transform?: ChartDataTransform;
   }) => void;
 } & AsyncComponent['props'];
 
@@ -53,6 +47,20 @@ type State = {
 } & AsyncComponent['state'];
 
 class UsageStatsOrganization extends AsyncComponent<Props, State> {
+  componentDidUpdate(prevProps: Props) {
+    const {dataDatetime: prevDateTime} = prevProps;
+    const {dataDatetime: currDateTime} = this.props;
+
+    if (
+      prevDateTime.start !== currDateTime.start ||
+      prevDateTime.end !== currDateTime.end ||
+      prevDateTime.period !== currDateTime.period ||
+      prevDateTime.utc !== currDateTime.utc
+    ) {
+      this.reloadData();
+    }
+  }
+
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     return [['orgStats', this.endpointPath, {query: this.endpointQuery}]];
   }
@@ -65,10 +73,20 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
   get endpointQuery() {
     const {dataDatetime} = this.props;
 
-    // TODO: Enable user to use dateStart/dateEnd
+    const queryDatetime =
+      dataDatetime.start && dataDatetime.end
+        ? {
+            start: dataDatetime.start,
+            end: dataDatetime.end,
+            utc: dataDatetime.utc,
+          }
+        : {
+            statsPeriod: dataDatetime.period || DEFAULT_STATS_PERIOD,
+          };
+
     return {
-      statsPeriod: dataDatetime?.period || DEFAULT_STATS_PERIOD,
-      interval: getInterval(dataDatetime),
+      ...queryDatetime,
+      interval: getSeriesApiInterval(dataDatetime),
       groupBy: ['category', 'outcome'],
       field: ['sum(quantity)'],
     };
@@ -77,17 +95,19 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
   get chartData(): {
     chartStats: ChartStats;
     cardStats: {
-      total: string;
-      accepted: string;
-      dropped: string;
-      filtered: string;
+      total?: string;
+      accepted?: string;
+      dropped?: string;
+      filtered?: string;
     };
     dataError?: Error;
     chartDateInterval: IntervalPeriod;
     chartDateStart: string;
     chartDateEnd: string;
+    chartDateUtc: boolean;
     chartDateStartDisplay: string;
     chartDateEndDisplay: string;
+    chartDateTimezoneDisplay: string;
     chartTransform: ChartDataTransform;
   } {
     const {orgStats} = this.state;
@@ -107,7 +127,7 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
       case ChartDataTransform.PERIODIC:
         return {chartTransform};
       default:
-        return {chartTransform: ChartDataTransform.CUMULATIVE};
+        return {chartTransform: ChartDataTransform.PERIODIC};
     }
   }
 
@@ -115,46 +135,62 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
     chartDateInterval: IntervalPeriod;
     chartDateStart: string;
     chartDateEnd: string;
+    chartDateUtc: boolean;
     chartDateStartDisplay: string;
     chartDateEndDisplay: string;
+    chartDateTimezoneDisplay: string;
   } {
+    const {orgStats} = this.state;
     const {dataDatetime} = this.props;
-    const {period, start, end} = dataDatetime;
-    const interval = getInterval(dataDatetime);
 
-    let chartDateStart = moment().subtract(14, 'd');
-    let chartDateEnd = moment();
+    const interval = getSeriesApiInterval(dataDatetime);
 
-    try {
-      if (start && end) {
-        chartDateStart = moment(start);
-        chartDateEnd = moment(end);
-      }
-
-      if (period) {
-        const statsPeriod = parseStatsPeriod(period);
-        if (!statsPeriod) {
-          throw new Error('Format for data period is not recognized');
-        }
-
-        chartDateStart = moment().subtract(
-          statsPeriod.period as any, // TODO(ts): Oddity with momentjs types
-          statsPeriod.periodLength as any
-        );
-      }
-    } catch (err) {
-      // do nothing
+    // Use fillers as loading/error states will not display datetime at all
+    if (!orgStats || !orgStats.intervals) {
+      return {
+        chartDateInterval: interval,
+        chartDateStart: '',
+        chartDateEnd: '',
+        chartDateUtc: true,
+        chartDateStartDisplay: '',
+        chartDateEndDisplay: '',
+        chartDateTimezoneDisplay: '',
+      };
     }
 
-    // chartDateStart need to +1 hour to remove empty column on left of chart
-    const dateStart = chartDateStart.add(1, 'h').startOf('h');
-    const dateEnd = chartDateEnd.startOf('h');
+    const {intervals} = orgStats;
+    const intervalHours = parsePeriodToHours(interval);
+
+    // Keep datetime in UTC until we want to display it to users
+    const startTime = moment(intervals[0]).utc();
+    const endTime =
+      intervals.length < 2
+        ? moment(startTime) // when statsPeriod and interval is the same value
+        : moment(intervals[intervals.length - 1]).utc();
+    const useUtc = isDisplayUtc(dataDatetime);
+
+    // If interval is a day or more, use UTC to format date. Otherwise, the date
+    // may shift ahead/behind when converting to the user's local time.
+    const FORMAT_DATETIME =
+      intervalHours >= 24 ? FORMAT_DATETIME_DAILY : FORMAT_DATETIME_HOURLY;
+
+    const xAxisStart = moment(startTime);
+    const xAxisEnd = moment(endTime);
+    const displayStart = useUtc ? moment(startTime).utc() : moment(startTime).local();
+    const displayEnd = useUtc ? moment(endTime).utc() : moment(endTime).local();
+
+    if (intervalHours < 24) {
+      displayEnd.add(intervalHours, 'h');
+    }
+
     return {
       chartDateInterval: interval,
-      chartDateStart: dateStart.format(),
-      chartDateEnd: dateEnd.format(),
-      chartDateStartDisplay: dateStart.local().format(FORMAT_DATETIME_HOURLY),
-      chartDateEndDisplay: dateEnd.local().format(FORMAT_DATETIME_HOURLY),
+      chartDateStart: xAxisStart.format(),
+      chartDateEnd: xAxisEnd.format(),
+      chartDateUtc: useUtc,
+      chartDateStartDisplay: displayStart.format(FORMAT_DATETIME),
+      chartDateEndDisplay: displayEnd.format(FORMAT_DATETIME),
+      chartDateTimezoneDisplay: displayStart.format('Z'),
     };
   }
 
@@ -163,18 +199,18 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
   ): {
     chartStats: ChartStats;
     cardStats: {
-      total: string;
-      accepted: string;
-      dropped: string;
-      filtered: string;
+      total?: string;
+      accepted?: string;
+      dropped?: string;
+      filtered?: string;
     };
     dataError?: Error;
   } {
     const cardStats = {
-      total: '-',
-      accepted: '-',
-      dropped: '-',
-      filtered: '-',
+      total: undefined,
+      accepted: undefined,
+      dropped: undefined,
+      filtered: undefined,
     };
     const chartStats: ChartStats = {
       accepted: [],
@@ -188,13 +224,13 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
 
     try {
       const {dataCategory} = this.props;
-      const {chartDateInterval} = this.chartDateRange;
+      const {chartDateInterval, chartDateUtc} = this.chartDateRange;
 
       const usageStats: UsageStat[] = orgStats.intervals.map(interval => {
         const dateTime = moment(interval);
 
         return {
-          date: getDateFromMoment(dateTime, chartDateInterval),
+          date: getDateFromMoment(dateTime, chartDateInterval, chartDateUtc),
           total: 0,
           accepted: 0,
           filtered: 0,
@@ -203,18 +239,18 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
       });
 
       // Tally totals for card data
-      const count: any = {
+      const count: Record<'total' | Outcome, number> = {
         total: 0,
-        accepted: 0,
-        dropped: 0,
-        invalid: 0,
-        filtered: 0,
+        [Outcome.ACCEPTED]: 0,
+        [Outcome.FILTERED]: 0,
+        [Outcome.DROPPED]: 0,
+        [Outcome.INVALID]: 0, // Combined with dropped later
+        [Outcome.RATE_LIMITED]: 0, // Combined with dropped later
       };
 
       orgStats.groups.forEach(group => {
         const {outcome, category} = group.by;
-
-        // HACK The backend enum are singular, but the frontend enums are plural
+        // HACK: The backend enum are singular, but the frontend enums are plural
         if (!dataCategory.includes(`${category}`)) {
           return;
         }
@@ -223,17 +259,19 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
         count[outcome] += group.totals['sum(quantity)'];
 
         group.series['sum(quantity)'].forEach((stat, i) => {
-          if (outcome === Outcome.DROPPED || outcome === Outcome.INVALID) {
-            usageStats[i].dropped.total += stat;
+          if (outcome === Outcome.ACCEPTED || outcome === Outcome.FILTERED) {
+            usageStats[i][outcome] += stat;
+            return;
           }
 
-          usageStats[i][outcome] += stat;
+          // Breaking down into reasons for dropped is not needed
+          usageStats[i].dropped.total += stat;
         });
       });
 
-      // Invalid data is dropped
-      count.dropped += count.invalid;
-      delete count.invalid;
+      // Invalid and rate_limited data is combined with dropped
+      count[Outcome.DROPPED] += count[Outcome.INVALID];
+      count[Outcome.DROPPED] += count[Outcome.RATE_LIMITED];
 
       usageStats.forEach(stat => {
         stat.total = stat.accepted + stat.filtered + stat.dropped.total;
@@ -251,17 +289,17 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
             getFormatUsageOptions(dataCategory)
           ),
           accepted: formatUsageWithUnits(
-            count.accepted,
+            count[Outcome.ACCEPTED],
             dataCategory,
             getFormatUsageOptions(dataCategory)
           ),
           dropped: formatUsageWithUnits(
-            count.dropped,
+            count[Outcome.DROPPED],
             dataCategory,
             getFormatUsageOptions(dataCategory)
           ),
           filtered: formatUsageWithUnits(
-            count.filtered,
+            count[Outcome.FILTERED],
             dataCategory,
             getFormatUsageOptions(dataCategory)
           ),
@@ -278,13 +316,14 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
       return {
         cardStats,
         chartStats,
-        dataError: err,
+        dataError: new Error('Failed to parse stats data'),
       };
     }
   }
 
   renderCards() {
-    const {dataCategory, dataCategoryName} = this.props;
+    const {dataCategory, dataCategoryName, organization} = this.props;
+    const {loading} = this.state;
     const {total, accepted, dropped, filtered} = this.chartData.cardStats;
 
     const cardMetadata = [
@@ -294,61 +333,46 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
       },
       {
         title: t('Accepted'),
+        help: tct('Accepted [dataCategory] were successfully processed by Sentry', {
+          dataCategory,
+        }),
         value: accepted,
+        secondaryValue: (
+          <UsageStatsPerMin organization={organization} dataCategory={dataCategory} />
+        ),
       },
       {
         title: t('Filtered'),
-        description: tct(
+        help: tct(
           'Filtered [dataCategory] were blocked due to your inbound data filter rules',
           {dataCategory}
         ),
         value: filtered,
       },
-      // TODO(org-stats): Need a better description for dropped data
       {
         title: t('Dropped'),
-        description: tct(
-          'Dropped [dataCategory] were discarded due to rate-limits, quota limits, or spike protection',
+        help: tct(
+          'Dropped [dataCategory] were discarded due to invalid data, rate-limits, quota limits, or spike protection',
           {dataCategory}
         ),
         value: dropped,
       },
     ];
 
-    return (
-      <CardWrapper>
-        {cardMetadata.map((c, i) => (
-          <StyledCard key={i}>
-            <HeaderTitle>
-              <TextOverflow>{c.title}</TextOverflow>
-              {c.description && (
-                <QuestionTooltip size="sm" position="top" title={c.description} />
-              )}
-            </HeaderTitle>
-            <CardContent>
-              <TextOverflow>{c.value}</TextOverflow>
-            </CardContent>
-          </StyledCard>
-        ))}
-      </CardWrapper>
-    );
+    return cardMetadata.map((card, i) => (
+      <StyledScoreCard
+        key={i}
+        title={card.title}
+        score={loading ? undefined : card.value}
+        help={card.help}
+        trend={card.secondaryValue}
+      />
+    ));
   }
 
   renderChart() {
     const {dataCategory} = this.props;
-    const {error, loading, orgStats} = this.state;
-
-    if (loading) {
-      return (
-        <Panel>
-          <PanelBody>
-            <LoaderWrapper>
-              <LoadingIndicator />
-            </LoaderWrapper>
-          </PanelBody>
-        </Panel>
-      );
-    }
+    const {error, errors, loading} = this.state;
 
     const {
       chartStats,
@@ -356,34 +380,25 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
       chartDateInterval,
       chartDateStart,
       chartDateEnd,
-      chartDateStartDisplay,
-      chartDateEndDisplay,
+      chartDateUtc,
       chartTransform,
     } = this.chartData;
 
-    if (error || dataError || !orgStats) {
-      return (
-        <Panel>
-          <PanelBody>
-            <ErrorPanel height="256px">
-              <IconWarning color="gray300" size="lg" />
-            </ErrorPanel>
-          </PanelBody>
-        </Panel>
-      );
-    }
+    const hasError = error || !!dataError;
+    const chartErrors: any = dataError ? {...errors, data: dataError} : errors; // TODO(ts): AsyncComponent
 
     return (
       <UsageChart
-        title={tct('Usage for [start] — [end]', {
-          start: chartDateStartDisplay,
-          end: chartDateEndDisplay,
-        })}
+        isLoading={loading}
+        isError={hasError}
+        errors={chartErrors}
+        title=" " // Force the title to be blank
         footer={this.renderChartFooter()}
         dataCategory={dataCategory}
         dataTransform={chartTransform}
         usageDateStart={chartDateStart}
         usageDateEnd={chartDateEnd}
+        usageDateShowUtc={chartDateUtc}
         usageDateInterval={chartDateInterval}
         usageStats={chartStats}
       />
@@ -391,37 +406,34 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
   }
 
   renderChartFooter = () => {
-    const {dataCategory, dataDatetime, handleChangeState} = this.props;
-    const {chartTransform} = this.chartData;
-
-    const {period} = dataDatetime;
+    const {handleChangeState} = this.props;
+    const {loading, error} = this.state;
+    const {
+      chartDateInterval,
+      chartTransform,
+      chartDateStartDisplay,
+      chartDateEndDisplay,
+      chartDateTimezoneDisplay,
+    } = this.chartData;
 
     return (
-      <ChartControls>
+      <Footer>
         <InlineContainer>
-          <SectionValue>
-            <OptionSelector
-              title={t('Display')}
-              selected={period || DEFAULT_STATS_PERIOD}
-              options={Object.keys(DEFAULT_RELATIVE_PERIODS).map(k => ({
-                label: DEFAULT_RELATIVE_PERIODS[k],
-                value: k,
-              }))}
-              onChange={(val: string) =>
-                handleChangeState({pagePeriod: val as RelativePeriod})
-              }
-            />
-          </SectionValue>
-          <SectionValue>
-            <OptionSelector
-              title={t('of')}
-              selected={dataCategory}
-              options={CHART_OPTIONS_DATACATEGORY}
-              onChange={(val: string) =>
-                handleChangeState({dataCategory: val as DataCategory})
-              }
-            />
-          </SectionValue>
+          <FooterDate>
+            <SectionHeading>{t('Date Range:')}</SectionHeading>
+            <span>
+              {loading || error ? (
+                <NotAvailable />
+              ) : (
+                tct('[start] — [end] ([timezone] UTC, [interval] interval)', {
+                  start: chartDateStartDisplay,
+                  end: chartDateEndDisplay,
+                  timezone: chartDateTimezoneDisplay,
+                  interval: chartDateInterval,
+                })
+              )}
+            </span>
+          </FooterDate>
         </InlineContainer>
         <InlineContainer>
           <OptionSelector
@@ -429,60 +441,53 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
             selected={chartTransform}
             options={CHART_OPTIONS_DATA_TRANSFORM}
             onChange={(val: string) =>
-              handleChangeState({chartTransform: val as ChartDataTransform})
+              handleChangeState({transform: val as ChartDataTransform})
             }
           />
         </InlineContainer>
-      </ChartControls>
+      </Footer>
     );
   };
 
   renderComponent() {
     return (
-      <React.Fragment>
+      <Fragment>
         {this.renderCards()}
-        {this.renderChart()}
-      </React.Fragment>
+        <ChartWrapper>{this.renderChart()}</ChartWrapper>
+      </Fragment>
     );
   }
 }
 
 export default UsageStatsOrganization;
 
-const CardWrapper = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: 1fr;
-  grid-auto-rows: 1fr;
-  grid-gap: ${space(2)};
-  margin-bottom: ${space(3)};
-
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    grid-auto-flow: row;
-  }
+const StyledScoreCard = styled(ScoreCard)`
+  grid-column: auto / span 1;
+  margin: 0;
 `;
 
-const StyledCard = styled(Card)`
-  align-items: flex-start;
-  min-height: 95px;
-  padding: ${space(2)} ${space(3)};
-  color: ${p => p.theme.textColor};
+const ChartWrapper = styled('div')`
+  grid-column: 1 / -1;
 `;
 
-const CardContent = styled('div')`
-  margin-top: ${space(1)};
-  font-size: 32px;
-`;
-
-const LoaderWrapper = styled('div')`
+const Footer = styled('div')`
   display: flex;
-  justify-content: center;
+  flex-direction: row;
+  justify-content: space-between;
+  padding: ${space(1)} ${space(3)};
+  border-top: 1px solid ${p => p.theme.border};
+`;
+const FooterDate = styled('div')`
+  display: flex;
+  flex-direction: row;
   align-items: center;
 
-  /* Height of chart + footer is generally constant
-     Specify height here to reduce page reflow */
-  width: 100%;
-  height: 285px;
-  margin: 0;
-  padding: 0;
+  > ${SectionHeading} {
+    margin-right: ${space(1.5)};
+  }
+
+  > span:last-child {
+    font-weight: 400;
+    font-size: ${p => p.theme.fontSizeMedium};
+  }
 `;

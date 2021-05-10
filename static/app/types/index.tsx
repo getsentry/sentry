@@ -1,5 +1,10 @@
+// XXX(epurkhiser): When we switch to the new React JSX runtime we will no
+// longer need this import and can drop babel-preset-css-prop for babel-preset.
+/// <reference types="@emotion/react/types/css-prop" />
+
 import u2f from 'u2f-api';
 
+import exportGlobals from 'app/bootstrap/exportGlobals';
 import Alert from 'app/components/alert';
 import {getInterval} from 'app/components/charts/utils';
 import {SymbolicatorStatus} from 'app/components/events/interfaces/types';
@@ -17,6 +22,30 @@ import {DynamicSamplingRules} from './dynamicSampling';
 import {Event} from './event';
 import {Mechanism, RawStacktrace, StacktraceType} from './stacktrace';
 
+export enum SentryInitRenderReactComponent {
+  INDICATORS = 'Indicators',
+  SETUP_WIZARD = 'SetupWizard',
+  SYSTEM_ALERTS = 'SystemAlerts',
+  U2F_SIGN = 'U2fSign',
+}
+
+export type OnSentryInitConfiguration =
+  | {
+      name: 'passwordStrength';
+      input: string;
+      element: string;
+    }
+  | {
+      name: 'renderReact';
+      container: string;
+      component: SentryInitRenderReactComponent;
+      props?: Record<string, any>;
+    }
+  | {
+      name: 'onReady';
+      onReady: (globals: typeof exportGlobals) => void;
+    };
+
 declare global {
   interface Window {
     /**
@@ -32,6 +61,19 @@ declare global {
      * Pipeline
      */
     __pipelineInitialData: PipelineInitialData;
+
+    /**
+     * This allows our server-rendered templates to push configuration that should be
+     * run after we render our main application.
+     *
+     * An example of this is dynamically importing the `passwordStrength` module only
+     * on the organization login page.
+     */
+    __onSentryInit:
+      | OnSentryInitConfiguration[]
+      | {
+          push: (config: OnSentryInitConfiguration) => void;
+        };
 
     /**
      * Sentrys version string
@@ -84,7 +126,7 @@ export type ObjectStatus =
 
 export type Avatar = {
   avatarUuid: string | null;
-  avatarType: 'letter_avatar' | 'upload' | 'gravatar';
+  avatarType: 'letter_avatar' | 'upload' | 'gravatar' | 'background';
 };
 
 export type Actor = {
@@ -305,6 +347,7 @@ export type Team = {
   isPending: boolean;
   memberCount: number;
   avatar: Avatar;
+  externalTeams: ExternalTeam[];
 };
 
 export type TeamWithProjects = Team & {projects: Project[]};
@@ -397,7 +440,7 @@ export type AvatarUser = {
   // Compatibility shim with EventUser serializer
   ipAddress?: string;
   options?: {
-    avatarType: string;
+    avatarType: Avatar['avatarType'];
   };
   lastSeen?: string;
 };
@@ -436,7 +479,7 @@ export type User = Omit<AvatarUser, 'options'> & {
     stacktraceOrder: number;
     language: string;
     clock24Hours: boolean;
-    avatarType: string;
+    avatarType: Avatar['avatarType'];
   };
   flags: {newsletter_consent_prompt: boolean};
   hasPasswordAuth: boolean;
@@ -962,6 +1005,11 @@ type BaseGroupStatusResolution = {
   statusDetails: ResolutionStatusDetails;
 };
 
+export type GroupRelease = {
+  firstRelease: Release;
+  lastRelease: Release;
+};
+
 // TODO(ts): incomplete
 export type BaseGroup = {
   id: string;
@@ -970,14 +1018,12 @@ export type BaseGroup = {
   annotations: string[];
   assignedTo: Actor;
   culprit: string;
-  firstRelease: Release;
   firstSeen: string;
   hasSeen: boolean;
   isBookmarked: boolean;
   isUnhandled: boolean;
   isPublic: boolean;
   isSubscribed: boolean;
-  lastRelease: Release;
   lastSeen: string;
   level: Level;
   logger: string;
@@ -1000,11 +1046,13 @@ export type BaseGroup = {
   subscriptionDetails: {disabled?: boolean; reason?: string} | null;
   inbox?: InboxDetails | null | false;
   owners?: SuggestedOwner[] | null;
-};
+} & GroupRelease;
 
 export type GroupReprocessing = BaseGroup & GroupStats & BaseGroupStatusReprocessing;
 export type GroupResolution = BaseGroup & GroupStats & BaseGroupStatusResolution;
 export type Group = GroupResolution | GroupReprocessing;
+export type GroupCollapseRelease = Omit<Group, keyof GroupRelease> &
+  Partial<GroupRelease>;
 
 export type GroupTombstone = {
   id: string;
@@ -1491,6 +1539,7 @@ export type SentryAppComponent = {
     slug:
       | 'clickup'
       | 'clubhouse'
+      | 'komodor'
       | 'linear'
       | 'rookout'
       | 'spikesh'
@@ -2014,6 +2063,7 @@ export type CodeOwners = {
   dateCreated: string;
   dateUpdated: string;
   provider: 'github' | 'gitlab';
+  codeMapping?: RepositoryProjectPathConfig[];
 };
 
 export type KeyValueListData = {
@@ -2024,3 +2074,25 @@ export type KeyValueListData = {
   subjectDataTestId?: string;
   subjectIcon?: React.ReactNode;
 }[];
+
+export type ExternalActorMapping = {
+  id: string;
+  externalName: string;
+  memberId?: string;
+  teamId?: string;
+  sentryName: string;
+};
+
+export type ExternalUser = {
+  id: string;
+  memberId: string;
+  externalName: string;
+  provider: string;
+};
+
+export type ExternalTeam = {
+  id: string;
+  teamId: string;
+  externalName: string;
+  provider: string;
+};

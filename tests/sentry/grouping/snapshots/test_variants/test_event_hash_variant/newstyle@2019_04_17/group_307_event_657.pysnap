@@ -1,0 +1,112 @@
+---
+created: '2021-04-02T10:31:53.750778Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        stacktrace
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (non app frame)
+            function*
+              "stripped_application_code"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+        type (ignored because exception is synthetic)
+          "EXC_BAD_ACCESS / EXC_I386_GPFLT"
+        value*
+          "Fatal Error: EXC_BAD_ACCESS / EXC_I386_GPFLT"
+--------------------------------------------------------------------------
+system:
+  hash: "12c4b5346b5242ec65d3153bb45937b0"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "stripped_application_code"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+        type (ignored because exception is synthetic)
+          "EXC_BAD_ACCESS / EXC_I386_GPFLT"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: EXC_BAD_ACCESS / EXC_I386_GPFLT"

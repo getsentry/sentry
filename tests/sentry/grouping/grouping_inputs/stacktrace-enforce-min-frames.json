@@ -1,6 +1,5 @@
 {
   "_grouping": {
-    "enhancement_base": "common:2019-03-23",
     "enhancements": "function:log_demo::* +app\nfamily:native min-frames=2"
   },
   "exception": {

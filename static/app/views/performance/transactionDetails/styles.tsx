@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
 import {SectionHeading} from 'app/components/charts/styles';
@@ -11,7 +11,7 @@ type MetaDataProps = {
   tooltipText: string;
   bodyText: React.ReactNode;
   subtext: React.ReactNode;
-  beta?: boolean;
+  badge?: 'alpha' | 'beta' | 'new';
 };
 
 export function MetaData({
@@ -19,7 +19,7 @@ export function MetaData({
   tooltipText,
   bodyText,
   subtext,
-  beta,
+  badge,
 }: MetaDataProps) {
   return (
     <HeaderInfo>
@@ -31,7 +31,7 @@ export function MetaData({
           containerDisplayMode="block"
           title={tooltipText}
         />
-        {beta && <StyledFeatureBadge type="beta" />}
+        {badge && <StyledFeatureBadge type={badge} />}
       </StyledSectionHeading>
       <SectionBody>{bodyText}</SectionBody>
       <SectionSubtext>{subtext}</SectionSubtext>

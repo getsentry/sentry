@@ -148,11 +148,16 @@
     .project-breakdown .summary th,
     .project-breakdown .summary td {
       font-size: 14px;
-      padding: 8px 0;
+      padding-top: 8px;
+      padding-bottom: 8px;
     }
 
     .project-breakdown .summary .numeric {
       text-align: center;
+    }
+
+    .project-breakdown .col-errors-dropped {
+      padding-right: 2rem;
     }
 
     td.spectrum {  /* XXX: td qualifier is a hack */
@@ -279,8 +284,7 @@
         background-color: #6C5FC7 !important;
       }
 
-      .project-breakdown .col-filtered,
-      .project-breakdown .col-rate-limited {
+      .project-breakdown .col-dropped {
         display: none;
       }
 
@@ -393,9 +397,10 @@
         <tr>
           <th style="width: 2em; padding-right: 0.5em"></th>
           <th>Project</th>
-          <th style="width: 7em;" class="numeric">Errors</th>
-          <th style="width: 7em;" class="numeric col-filtered">Filtered</th>
-          <th style="width: 7em;" class="numeric col-rate-limited">Rate Limited</th>
+          <th style="width: 5em;" class="numeric">Errors</th>
+          <th style="width: 5em;" class="numeric col-dropped col-errors-dropped">Dropped</th>
+          <th style="width: 7em;" class="numeric">Transactions</th>
+          <th style="width: 7em;" class="numeric col-dropped">Dropped</th>
         </tr>
       </thead>
       <tbody>
@@ -407,9 +412,10 @@
           <td>
               {% if key.url %}<a href="{{ key.url }}">{% endif %}{{ key.label }}{% if key.url %}</a>{% endif %}
           </td>
-          <td class="numeric">{{ key.data.events|small_count:1 }}</td>
-          <td class="numeric col-filtered">{{ key.data.filtered|small_count:1 }}</td>
-          <td class="numeric col-rate-limited">{{ key.data.rate_limited|small_count:1 }}</td>
+          <td class="numeric">{{ key.data.accepted_errors|small_count:1 }}</td>
+          <td class="numeric col-dropped col-errors-dropped">{{ key.data.dropped_errors|small_count:1 }}</td>
+          <td class="numeric">{{ key.data.accepted_transactions|small_count:1 }}</td>
+          <td class="numeric col-dropped">{{ key.data.dropped_transactions|small_count:1 }}</td>
         </tr>
       {% endfor %}
       </tbody>
@@ -423,9 +429,10 @@
               <td>
                   {% if key.url %}<a href="{{ key.url }}">{% endif %}{{ key.label }}{% if key.url %}</a>{% endif %}
               </td>
-              <td class="numeric">{{ key.data.events|small_count:1 }}</td>
-              <td class="numeric col-filtered">{{ key.data.filtered|small_count:1 }}</td>
-              <td class="numeric col-rate-limited">{{ key.data.rate_limited|small_count:1 }}</td>
+              <td class="numeric">{{ key.data.accepted_errors|small_count:1 }}</td>
+              <td class="numeric col-dropped col-errors-dropped">{{ key.data.dropped_errors|small_count:1 }}</td>
+              <td class="numeric">{{ key.data.accepted_transactions|small_count:1 }}</td>
+              <td class="numeric col-dropped">{{ key.data.dropped_transactions|small_count:1 }}</td>
             </tr>
           {% endwith %}
         </tfoot>

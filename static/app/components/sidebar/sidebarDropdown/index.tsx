@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {logout} from 'app/actionCreators/account';
@@ -20,6 +20,7 @@ import space from 'app/styles/space';
 import {Config, Organization, User} from 'app/types';
 import withApi from 'app/utils/withApi';
 
+import SidebarMenuItemLink from '../sidebarMenuItemLink';
 import {CommonSidebarProps} from '../types';
 
 import Divider from './divider.styled';
@@ -90,7 +91,7 @@ const SidebarDropdown = ({api, org, orientation, collapsed, config, user}: Props
           {isOpen && (
             <OrgAndUserMenu {...getMenuProps({})}>
               {hasOrganization && (
-                <React.Fragment>
+                <Fragment>
                   <SidebarOrgSummary organization={org} />
                   {hasOrgRead && (
                     <SidebarMenuItem to={`/settings/${org.slug}/`}>
@@ -116,14 +117,14 @@ const SidebarDropdown = ({api, org, orientation, collapsed, config, user}: Props
                       <SwitchOrganization canCreateOrganization={canCreateOrg} />
                     </SidebarMenuItem>
                   )}
-                </React.Fragment>
+                </Fragment>
               )}
 
               {hasOrganization && user && <Divider />}
 
               <DemoModeGate>
                 {!!user && (
-                  <React.Fragment>
+                  <Fragment>
                     <UserSummary to="/settings/account/details/">
                       <UserBadgeNoOverflow user={user} avatarSize={32} />
                     </UserSummary>
@@ -149,7 +150,7 @@ const SidebarDropdown = ({api, org, orientation, collapsed, config, user}: Props
                         {t('Sign out')}
                       </SidebarMenuItem>
                     </div>
-                  </React.Fragment>
+                  </Fragment>
                 )}
               </DemoModeGate>
             </OrgAndUserMenu>
@@ -169,8 +170,10 @@ const SentryLink = styled(Link)`
   }
 `;
 
-const UserSummary = styled(Link)`
-  ${menuItemStyles}
+const UserSummary = styled(Link)<
+  Omit<React.ComponentProps<typeof SidebarMenuItemLink>, 'children'>
+>`
+  ${p => menuItemStyles(p)}
   padding: 10px 15px;
 `;
 

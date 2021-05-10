@@ -1,7 +1,7 @@
-import React from 'react';
+import * as React from 'react';
 import * as ReactRouter from 'react-router';
+import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {withTheme} from 'emotion-theming';
 import {Location} from 'history';
 
 import {Client} from 'app/api';

@@ -1,6 +1,6 @@
-import React from 'react';
+import {Component} from 'react';
 import * as ReactRouter from 'react-router';
-import {withTheme} from 'emotion-theming';
+import {withTheme} from '@emotion/react';
 import max from 'lodash/max';
 import min from 'lodash/min';
 
@@ -54,7 +54,7 @@ function computeAxisMax(data) {
   return Math.round(Math.ceil(maxValue / step) * step);
 }
 
-class Chart extends React.Component<Props> {
+class Chart extends Component<Props> {
   render() {
     const {
       theme,
@@ -94,7 +94,16 @@ class Chart extends React.Component<Props> {
         ];
 
     const yAxes = disableMultiAxis
-      ? undefined
+      ? [
+          {
+            axisLabel: {
+              color: theme.chartLabel,
+              formatter(value: number) {
+                return axisLabelFormatter(value, data[0].seriesName);
+              },
+            },
+          },
+        ]
       : [
           {
             gridIndex: 0,

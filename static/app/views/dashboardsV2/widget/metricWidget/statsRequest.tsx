@@ -1,4 +1,5 @@
-import React, {useEffect, useState} from 'react';
+import {useEffect, useState} from 'react';
+import * as React from 'react';
 import {Location} from 'history';
 import pick from 'lodash/pick';
 
@@ -9,14 +10,25 @@ import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {t} from 'app/locale';
 import {GlobalSelection, Organization, Project, SessionApiResponse} from 'app/types';
 import {Series} from 'app/types/echarts';
-import {
-  fillChartDataFromSessionsResponse,
-  getInterval,
-} from 'app/views/releases/detail/overview/chart/utils';
+import {QueryResults, stringifyQueryObject} from 'app/utils/tokenizeSearch';
+import {getInterval} from 'app/views/releases/detail/overview/chart/utils';
 import {roundDuration} from 'app/views/releases/utils';
 
 import {MetricQuery} from './types';
-import {getBreakdownChartData} from './utils';
+import {fillChartDataFromMetricsResponse, getBreakdownChartData} from './utils';
+
+type FilteredGrouping = Required<Pick<MetricQuery, 'metricMeta' | 'aggregation'>> &
+  Omit<MetricQuery, 'metricMeta' | 'aggregation'>;
+
+type RequestQuery = {
+  field: string;
+  interval: string;
+  query?: string;
+  start?: string;
+  end?: string;
+  period?: string;
+  utc?: string;
+};
 
 type ChildrenArgs = {
   isLoading: boolean;
@@ -27,57 +39,91 @@ type ChildrenArgs = {
 type Props = {
   api: Client;
   organization: Organization;
-  projectId: Project['id'];
-  queries: MetricQuery[];
+  projectSlug: Project['slug'];
   environments: GlobalSelection['environments'];
   datetime: GlobalSelection['datetime'];
   location: Location;
   children: (args: ChildrenArgs) => React.ReactElement;
-  yAxis?: string;
+  groupings: MetricQuery[];
+  searchQuery?: string;
 };
 
 function StatsRequest({
   api,
   organization,
-  projectId,
-  queries,
+  projectSlug,
+  groupings,
   environments,
   datetime,
   location,
   children,
-  yAxis,
+  searchQuery,
 }: Props) {
   const [isLoading, setIsLoading] = useState(false);
   const [errored, setErrored] = useState(false);
   const [series, setSeries] = useState<Series[]>([]);
 
+  const filteredGroupings = groupings.filter(
+    ({aggregation, metricMeta}) => !!metricMeta?.name && !!aggregation
+  ) as FilteredGrouping[];
+
   useEffect(() => {
     fetchData();
-  }, [projectId, environments, datetime, queries, yAxis]);
+  }, [projectSlug, environments, datetime, groupings, searchQuery]);
 
   function fetchData() {
-    if (!yAxis) {
+    if (!filteredGroupings.length) {
       return;
     }
 
-    const queriesWithAggregation = queries.filter(({aggregation}) => !!aggregation);
-
-    if (!queriesWithAggregation.length) {
-      return;
-    }
-
+    setErrored(false);
     setIsLoading(true);
 
-    const promises = queriesWithAggregation.map(({aggregation, groupBy}) => {
-      return api.requestPromise(`/organizations/${organization.slug}/sessions/`, {
-        query: {
-          project: projectId,
-          environment: environments,
-          groupBy: groupBy || null,
-          field: `${aggregation}(${yAxis})`,
-          interval: getInterval(datetime),
-          ...getParams(pick(location.query, Object.values(URL_PARAM))),
-        },
+    const requestExtraParams = getParams(
+      pick(
+        location.query,
+        Object.values(URL_PARAM).filter(param => param !== URL_PARAM.PROJECT)
+      )
+    );
+
+    const promises = filteredGroupings.map(({metricMeta, aggregation, groupBy}) => {
+      const query: RequestQuery = {
+        field: `${aggregation}(${metricMeta.name})`,
+        interval: getInterval(datetime),
+        ...requestExtraParams,
+      };
+
+      if (searchQuery) {
+        const tagsWithDoubleQuotes = searchQuery
+          .split(' ')
+          .filter(tag => !!tag)
+          .map(tag => {
+            const [key, value] = tag.split(':');
+
+            if (key && value) {
+              return `${key}:"${value}"`;
+            }
+
+            return '';
+          })
+          .filter(tag => !!tag);
+
+        if (!!tagsWithDoubleQuotes.length) {
+          query.query = stringifyQueryObject(new QueryResults(tagsWithDoubleQuotes));
+        }
+      }
+
+      const metricDataEndpoint = `/projects/${organization.slug}/${projectSlug}/metrics/data/`;
+
+      if (!!groupBy?.length) {
+        const groupByParameter = [...groupBy].join('&groupBy=');
+        return api.requestPromise(`${metricDataEndpoint}?groupBy=${groupByParameter}`, {
+          query,
+        });
+      }
+
+      return api.requestPromise(metricDataEndpoint, {
+        query,
       });
     });
 
@@ -92,26 +138,27 @@ function StatsRequest({
   }
 
   function getChartData(sessionReponses: SessionApiResponse[]) {
-    if (!sessionReponses.length || !yAxis) {
+    if (!sessionReponses.length) {
+      setIsLoading(false);
       return;
     }
 
-    const seriesData = sessionReponses.map((sessionReponse, index) => {
-      const {aggregation, groupBy} = queries[index];
-      const field = `${aggregation}(${yAxis})`;
+    const seriesData = sessionReponses.map((sessionResponse, index) => {
+      const {aggregation, legend, metricMeta} = filteredGroupings[index];
+      const field = `${aggregation}(${metricMeta.name})`;
 
       const breakDownChartData = getBreakdownChartData({
-        response: sessionReponse,
-        groupBy: groupBy || null,
+        response: sessionResponse,
+        sessionResponseIndex: index + 1,
+        legend,
       });
 
-      const chartData = fillChartDataFromSessionsResponse({
-        response: sessionReponse,
+      const chartData = fillChartDataFromMetricsResponse({
+        response: sessionResponse,
         field,
-        groupBy: groupBy || null,
         chartData: breakDownChartData,
         valueFormatter:
-          yAxis === 'session.duration'
+          metricMeta.name === 'session.duration'
             ? duration => roundDuration(duration ? duration / 1000 : 0)
             : undefined,
       });

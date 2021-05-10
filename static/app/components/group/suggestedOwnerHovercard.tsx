@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment';
 
@@ -95,7 +95,10 @@ class SuggestedOwnerHovercard extends React.Component<Props, State> {
                     .map(({message, dateCreated}, i) => (
                       <CommitReasonItem key={i}>
                         <CommitIcon />
-                        <CommitMessage message={message} date={dateCreated} />
+                        <CommitMessage
+                          message={message ?? undefined}
+                          date={dateCreated}
+                        />
                       </CommitReasonItem>
                     ))}
                 </div>
@@ -140,7 +143,7 @@ const tagColors = {
   tag: theme.blue300,
 };
 
-const CommitIcon = styled(p => <IconCommit {...p} />)`
+const CommitIcon = styled(IconCommit)`
   margin-right: ${space(0.5)};
   flex-shrink: 0;
 `;
@@ -194,7 +197,7 @@ const OwnershipTag = styled(({tagType, ...props}) => <div {...props}>{tagType}</
   text-align: center;
 `;
 
-const ViewMoreButton = styled(p => (
+const ViewMoreButton = styled((p: React.ComponentProps<typeof Button>) => (
   <Button {...p} priority="link" size="zero">
     {t('View more')}
   </Button>
@@ -213,7 +216,7 @@ const OwnershipValue = styled('code')`
   line-height: 1.2;
 `;
 
-const EmailAlert = styled(p => <Alert iconSize="16px" {...p} />)`
+const EmailAlert = styled(Alert)`
   margin: 10px -13px -13px;
   border-radius: 0;
   border-color: #ece0b0;

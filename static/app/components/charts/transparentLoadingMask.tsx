@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
 import LoadingMask from 'app/components/loadingMask';
@@ -7,7 +7,7 @@ type Props = {
   visible: boolean;
   className?: string;
   children?: React.ReactNode;
-} & React.HTMLProps<HTMLDivElement>;
+} & React.ComponentProps<typeof LoadingMask>;
 
 const TransparentLoadingMask = styled(
   ({className, visible, children, ...props}: Props) => {

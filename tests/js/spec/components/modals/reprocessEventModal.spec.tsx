@@ -38,9 +38,7 @@ describe('ReprocessEventModal', function () {
   });
 
   it('modal is open', () => {
-    expect(wrapper.find('[data-test-id="modal-title"]').text()).toEqual(
-      'Reprocess Events'
-    );
+    expect(wrapper.find('Header').text()).toEqual('Reprocess Events');
   });
 
   it('form fields & info', () => {
@@ -51,7 +49,7 @@ describe('ReprocessEventModal', function () {
 
     // Reprocess impacts
     expect(introduction.at(0).text()).toEqual(
-      'Reprocessing applies any new debug files or grouping configuration to an Issue. Before you give it a try, you should probably consider these impacts:'
+      'Reprocessing applies new debug files and grouping enhancements to this Issue. Please consider these impacts:'
     );
     const impacts = wrapper.find('StyledList');
     expect(impacts).toBeTruthy();
@@ -59,7 +57,7 @@ describe('ReprocessEventModal', function () {
 
     // Docs info
     expect(introduction.at(1).text()).toEqual(
-      'For more information please refer to the documentation on reprocessing.'
+      'For more information, please refer to the documentation.'
     );
 
     // Form

@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 
 import {Scope} from 'app/types';
 
@@ -30,11 +30,10 @@ type Props = {
   inline?: boolean;
   onBlur?: (value, event) => void;
   access?: Set<Scope>;
-  deprecatedSelectControl?: boolean;
   noOptionsMessage?: () => string;
 };
 
-export default class FieldFromConfig extends React.Component<Props> {
+export default class FieldFromConfig extends Component<Props> {
   render() {
     const {field, ...otherProps} = this.props;
 

@@ -1,4 +1,4 @@
-from sentry.models import ExternalUser
+from sentry.models import ExternalActor
 from sentry.testutils import APITestCase
 
 
@@ -14,14 +14,14 @@ class ExternalUserDetailsTest(APITestCase):
         )
 
     def test_basic_delete(self):
-        with self.feature({"organizations:import-codeowners": True}):
+        with self.feature({"organizations:integrations-codeowners": True}):
             self.get_success_response(
                 self.organization.slug, self.external_user.id, method="delete"
             )
-        assert not ExternalUser.objects.filter(id=str(self.external_user.id)).exists()
+        assert not ExternalActor.objects.filter(id=str(self.external_user.id)).exists()
 
     def test_basic_update(self):
-        with self.feature({"organizations:import-codeowners": True}):
+        with self.feature({"organizations:integrations-codeowners": True}):
             data = {"externalName": "@new_username"}
             response = self.get_success_response(
                 self.organization.slug, self.external_user.id, **data
@@ -30,7 +30,7 @@ class ExternalUserDetailsTest(APITestCase):
         assert response.data["externalName"] == "@new_username"
 
     def test_invalid_provider_update(self):
-        with self.feature({"organizations:import-codeowners": True}):
+        with self.feature({"organizations:integrations-codeowners": True}):
             data = {"provider": "unknown"}
             response = self.get_error_response(
                 self.organization.slug, self.external_user.id, status_code=400, **data

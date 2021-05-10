@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 
 import {Client} from 'app/api';
 import MiniBarChart from 'app/components/charts/miniBarChart';
@@ -33,7 +33,7 @@ const initialState: State = {
   stats: {received: [], rejected: []},
 };
 
-class EventChart extends React.Component<Props, State> {
+class EventChart extends Component<Props, State> {
   state: State = initialState;
 
   componentWillMount() {
@@ -92,7 +92,7 @@ class EventChart extends React.Component<Props, State> {
 
     rawData['events.total'].forEach((point, idx) => {
       const dReceived = point[1];
-      const dRejected = rawData['events.dropped'][idx][1];
+      const dRejected = rawData['events.dropped'][idx]?.[1];
       const ts = point[0];
       if (sReceived[ts] === undefined) {
         sReceived[ts] = dReceived;

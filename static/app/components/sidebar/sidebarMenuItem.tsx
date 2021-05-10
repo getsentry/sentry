@@ -1,5 +1,5 @@
-import React from 'react';
-import {css} from '@emotion/core';
+import * as React from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Theme} from 'app/utils/theme';
@@ -21,7 +21,7 @@ const SidebarMenuItem = ({to, children, href, ...props}: Props) => {
 };
 
 const menuItemStyles = (
-  p: React.ComponentProps<typeof SidebarMenuItemLink> & {theme: Theme}
+  p: Omit<React.ComponentProps<typeof SidebarMenuItemLink>, 'children'> & {theme: Theme}
 ) => css`
   color: ${p.theme.textColor};
   cursor: pointer;

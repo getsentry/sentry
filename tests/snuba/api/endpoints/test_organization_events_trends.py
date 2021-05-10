@@ -1,9 +1,9 @@
 from datetime import timedelta
 
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
 from sentry.api.endpoints.organization_events_trends import OrganizationEventsTrendsEndpointBase
-from sentry.api.event_search import get_filter
+from sentry.search.events.filter import get_filter
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import parse_link_header

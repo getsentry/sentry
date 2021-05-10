@@ -1,15 +1,12 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
-import moment from 'moment-timezone';
 
 import Button from 'app/components/button';
-import {getTraceDateTimeRange} from 'app/components/events/interfaces/spans/utils';
-import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
+import {generateTraceTarget} from 'app/components/quickTrace/utils';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {Event} from 'app/types/event';
-import EventView from 'app/utils/discover/eventView';
 import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
 
 import {TraceKnownData, TraceKnownDataType} from './types';
@@ -40,28 +37,6 @@ function getUserKnownDataDetails(
         };
       }
 
-      const dateCreated = moment(event.dateCreated).valueOf() / 1000;
-      const pointInTime = event?.dateReceived
-        ? moment(event.dateReceived).valueOf() / 1000
-        : dateCreated;
-
-      const {start, end} = getTraceDateTimeRange({start: pointInTime, end: pointInTime});
-
-      const orgFeatures = new Set(organization.features);
-
-      const traceEventView = EventView.fromSavedQuery({
-        id: undefined,
-        name: `Events with Trace ID ${traceId}`,
-        fields: ['title', 'event.type', 'project', 'trace.span', 'timestamp'],
-        orderby: '-timestamp',
-        query: `trace:${traceId}`,
-        projects: orgFeatures.has('global-views')
-          ? [ALL_ACCESS_PROJECTS]
-          : [Number(event.projectID)],
-        version: 2,
-        start,
-        end,
-      });
       return {
         subject: t('Trace ID'),
         value: (
@@ -69,10 +44,7 @@ function getUserKnownDataDetails(
             <pre className="val">
               <span className="val-string">{traceId}</span>
             </pre>
-            <StyledButton
-              size="xsmall"
-              to={traceEventView.getResultsViewUrlTarget(organization.slug)}
-            >
+            <StyledButton size="xsmall" to={generateTraceTarget(event, organization)}>
               {t('Search by Trace')}
             </StyledButton>
           </ButtonWrapper>

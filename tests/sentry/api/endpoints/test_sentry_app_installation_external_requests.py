@@ -1,5 +1,5 @@
 import responses
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.utils.http import urlencode
 
 from sentry.testutils import APITestCase

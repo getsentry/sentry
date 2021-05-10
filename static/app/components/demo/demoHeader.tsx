@@ -1,52 +1,45 @@
-import React from 'react';
 import styled from '@emotion/styled';
-import createReactClass from 'create-react-class';
-import Reflux from 'reflux';
 
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import ExternalLink from 'app/components/links/externalLink';
-import {IconSentryFull} from 'app/icons';
+import LogoSentry from 'app/components/logoSentry';
 import {t} from 'app/locale';
-import OrganizationStore from 'app/stores/organizationStore';
 import space from 'app/styles/space';
-import {Organization} from 'app/types';
 import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
 
-type Props = {organization?: Organization};
-
-function DemoHeader({organization}: Props) {
+export default function DemoHeader() {
   return (
     <Wrapper>
-      <LogoSvg />
+      <StyledLogoSentry />
       <ButtonBar gap={4}>
-        <StyledExternalLink href="https://docs.sentry.io">
+        <StyledExternalLink
+          onClick={() => trackAdvancedAnalyticsEvent('growth.demo_click_docs', {}, null)}
+          href="https://docs.sentry.io"
+        >
           {t('Documentation')}
         </StyledExternalLink>
+        <BaseButton
+          priority="form"
+          onClick={() =>
+            trackAdvancedAnalyticsEvent('growth.demo_click_request_demo', {}, null)
+          }
+          href="https://sentry.io/_/demo/"
+        >
+          {t('Request a Demo')}
+        </BaseButton>
         <GetStarted
           onClick={() =>
-            trackAdvancedAnalyticsEvent('growth.demo_click_get_started', {}, organization)
+            trackAdvancedAnalyticsEvent('growth.demo_click_get_started', {}, null)
           }
           href="https://sentry.io/signup/"
         >
-          {t('Sign Up')}
+          {t('Sign Up for Free')}
         </GetStarted>
       </ButtonBar>
     </Wrapper>
   );
 }
-
-//can't use withOrganization here since we aren't within the OrganizationContext
-export default createReactClass<Omit<Props, 'organization'>>({
-  displayName: 'DemoHeader',
-  mixins: [Reflux.connect(OrganizationStore, 'organization') as any],
-  render() {
-    const organization = this.state.organization?.organization as
-      | Organization
-      | undefined;
-    return <DemoHeader organization={organization} />;
-  },
-});
 
 //Note many of the colors don't come from the theme as they come from the marketing site
 const Wrapper = styled('div')`
@@ -68,7 +61,7 @@ const Wrapper = styled('div')`
   }
 `;
 
-const LogoSvg = styled(IconSentryFull)`
+const StyledLogoSentry = styled(LogoSentry)`
   margin-top: auto;
   margin-bottom: auto;
   margin-left: 20px;
@@ -77,13 +70,17 @@ const LogoSvg = styled(IconSentryFull)`
   color: ${p => p.theme.textColor};
 `;
 
-const GetStarted = styled(Button)`
-  background-color: #e1567c;
-  color: #fff;
-  box-shadow: 0 2px 0 rgb(54 45 89 / 10%);
-  border-color: transparent;
+const BaseButton = styled(Button)`
   border-radius: 2rem;
   text-transform: uppercase;
+`;
+
+//Note many of the colors don't come from the theme as they come from the marketing site
+const GetStarted = styled(BaseButton)`
+  border-color: transparent;
+  box-shadow: 0 2px 0 rgb(54 45 89 / 10%);
+  background-color: #e1567c;
+  color: #fff;
 `;
 
 const StyledExternalLink = styled(ExternalLink)`

@@ -1,0 +1,44 @@
+---
+created: '2021-04-08T09:39:04.587787Z'
+creator: sentry
+source: tests/sentry/grouping/similarity/test_features.py
+---
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","exe_common.inl"],["function","invoke_main"]],[["filename","winmain.cpp"],["function","wWinMain"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","function_template.hpp"],["function","boost::function0<T>::operator()"]],[["function","stripped_application_code"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","functional"],["function","std::_Func_class<T>::operator()"]],[["function","stripped_application_code"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","purevirt.cpp"],["function","_purecall"]],[["function","abort"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","winmain.cpp"],["function","wWinMain"]],[["filename","xstring"],["function","std::basic_string<T>::{ctor}"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","xstring"],["function","std::basic_string<T>::_Reallocate_for"]],[["function","stripped_application_code"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","xstring"],["function","std::basic_string<T>::assign"]],[["filename","xstring"],["function","std::basic_string<T>::_Reallocate_for"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["filename","xstring"],["function","std::basic_string<T>::{ctor}"]],[["filename","xstring"],["function","std::basic_string<T>::assign"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","BaseThreadInitThunk"]],[["function","stripped_application_code"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","DispatchMessageWorker"]],[["function","UserCallWinProcCheckWow"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","RtlUserThreadStart"]],[["function","BaseThreadInitThunk"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","UserCallWinProcCheckWow"]],[["function","stripped_application_code"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","abort"]],[["function","raise"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","raise"]],[["filename","crashpad_client_win.cc"],["function","crashpad::`anonymous namespace'::HandleAbortSignal"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","stripped_application_code"]],[["filename","exe_common.inl"],["function","invoke_main"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","stripped_application_code"]],[["filename","function_template.hpp"],["function","boost::function0<T>::operator()"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","stripped_application_code"]],[["filename","functional"],["function","std::_Func_class<T>::operator()"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","stripped_application_code"]],[["filename","purevirt.cpp"],["function","_purecall"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","stripped_application_code"]],[["function","DispatchMessageWorker"]]]
+similarity:2020-07-23:value:character-5-shingle: " / <h"
+similarity:2020-07-23:value:character-5-shingle: " <hex"
+similarity:2020-07-23:value:character-5-shingle: " Erro"
+similarity:2020-07-23:value:character-5-shingle: "/ <he"
+similarity:2020-07-23:value:character-5-shingle: ": <he"
+similarity:2020-07-23:value:character-5-shingle: "<hex>"
+similarity:2020-07-23:value:character-5-shingle: "> / <"
+similarity:2020-07-23:value:character-5-shingle: "Error"
+similarity:2020-07-23:value:character-5-shingle: "Fatal"
+similarity:2020-07-23:value:character-5-shingle: "al Er"
+similarity:2020-07-23:value:character-5-shingle: "atal "
+similarity:2020-07-23:value:character-5-shingle: "ex> /"
+similarity:2020-07-23:value:character-5-shingle: "hex> "
+similarity:2020-07-23:value:character-5-shingle: "l Err"
+similarity:2020-07-23:value:character-5-shingle: "or: <"
+similarity:2020-07-23:value:character-5-shingle: "r: <h"
+similarity:2020-07-23:value:character-5-shingle: "ror: "
+similarity:2020-07-23:value:character-5-shingle: "rror:"
+similarity:2020-07-23:value:character-5-shingle: "tal E"
+similarity:2020-07-23:value:character-5-shingle: "x> / "

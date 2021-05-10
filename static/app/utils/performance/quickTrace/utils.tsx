@@ -1,9 +1,12 @@
 import omit from 'lodash/omit';
+import moment from 'moment-timezone';
 
 import {Client} from 'app/api';
 import {getTraceDateTimeRange} from 'app/components/events/interfaces/spans/utils';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
+import {OrganizationSummary} from 'app/types';
 import {Event, EventTransaction} from 'app/types/event';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
 import {DiscoverQueryProps} from 'app/utils/discover/genericDiscoverQuery';
 import {
@@ -22,7 +25,7 @@ export function isTransaction(event: Event): event is EventTransaction {
  * An event can be an error or a transaction. We need to check whether the current
  * event id is in the list of errors as well
  */
-function isCurrentEvent(
+export function isCurrentEvent(
   event: TraceFull | QuickTraceEvent,
   currentEvent: Event
 ): boolean {
@@ -131,7 +134,8 @@ type ParsedQuickTrace = {
 
 export function parseQuickTrace(
   quickTrace: QuickTrace,
-  event: Event
+  event: Event,
+  organization: OrganizationSummary
 ): ParsedQuickTrace | null {
   const {type, trace} = quickTrace;
 
@@ -194,8 +198,10 @@ export function parseQuickTrace(
   const ancestors: TraceLite | null = isFullTrace ? [] : null;
   const children: TraceLite = [];
   const descendants: TraceLite | null = isFullTrace ? [] : null;
+  const projects = new Set();
 
   trace.forEach(e => {
+    projects.add(e.project_id);
     if (isChildren(e)) {
       children.push(e);
     } else if (isFullTrace) {
@@ -206,6 +212,10 @@ export function parseQuickTrace(
       }
     }
   });
+
+  if (isFullTrace && projects.size > 1) {
+    handleProjectMeta(organization, projects.size);
+  }
 
   return {
     root,
@@ -257,7 +267,8 @@ export function makeEventView({
 export function getTraceTimeRangeFromEvent(event: Event): {start: string; end: string} {
   const start = isTransaction(event)
     ? event.startTimestamp
-    : new Date(event.dateCreated).getTime() / 1000;
+    : moment(event.dateReceived ? event.dateReceived : event.dateCreated).valueOf() /
+      1000;
   const end = isTransaction(event) ? event.endTimestamp : start;
   return getTraceDateTimeRange({start, end});
 }
@@ -295,4 +306,21 @@ export function filterTrace(
     },
     []
   );
+}
+
+export function isTraceFull(transaction): transaction is TraceFull {
+  return Boolean((transaction as TraceFull).event_id);
+}
+
+export function isTraceFullDetailed(transaction): transaction is TraceFullDetailed {
+  return Boolean((transaction as TraceFullDetailed).event_id);
+}
+
+function handleProjectMeta(organization: OrganizationSummary, projects: number) {
+  trackAnalyticsEvent({
+    eventKey: 'quick_trace.connected_services',
+    eventName: 'Quick Trace: Connected Services',
+    organization_id: parseInt(organization.id, 10),
+    projects,
+  });
 }

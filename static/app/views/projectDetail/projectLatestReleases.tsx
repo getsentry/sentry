@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import pick from 'lodash/pick';
@@ -141,7 +141,7 @@ class ProjectLatestReleases extends AsyncComponent<Props, State> {
     const {lastDeploy, dateCreated} = release;
 
     return (
-      <React.Fragment key={release.version}>
+      <Fragment key={release.version}>
         <DateTime date={lastDeploy?.dateFinished || dateCreated} seconds={false} />
         <TextOverflow>
           <StyledVersion
@@ -150,7 +150,7 @@ class ProjectLatestReleases extends AsyncComponent<Props, State> {
             projectId={projectId}
           />
         </TextOverflow>
-      </React.Fragment>
+      </Fragment>
     );
   };
 

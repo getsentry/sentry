@@ -1,20 +1,20 @@
-export type MetricQuery = {
-  tags: string;
-  groupBy: string;
-  aggregation: string;
+import {DisplayType} from '../utils';
+
+export type MetricMeta = {
+  name: string;
+  operations: string[];
 };
 
-export type Metric = {
-  name: string;
-  type: string;
-  operations: string[];
-  tags: string[];
-  unit: string | null;
+export type MetricQuery = {
+  legend?: string;
+  aggregation?: string;
+  groupBy?: string[];
+  metricMeta?: MetricMeta;
 };
 
 export type MetricWidget = {
   title: string;
-  queries: MetricQuery[];
-  yAxis?: string;
-  id?: string;
+  displayType: DisplayType;
+  groupings: MetricQuery[];
+  searchQuery?: string;
 };

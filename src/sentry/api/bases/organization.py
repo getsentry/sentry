@@ -362,8 +362,7 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
             ) or request.auth.has_scope("project:write")
 
         if not (
-            has_valid_api_key
-            or (getattr(request, "user", None) and request.user.is_authenticated())
+            has_valid_api_key or (getattr(request, "user", None) and request.user.is_authenticated)
         ):
             return []
 

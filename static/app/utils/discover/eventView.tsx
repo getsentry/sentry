@@ -142,7 +142,7 @@ const parseSort = (sort: string): Sort => {
   };
 };
 
-const fromSorts = (sorts: string | string[] | undefined): Array<Sort> => {
+export const fromSorts = (sorts: string | string[] | undefined): Array<Sort> => {
   if (sorts === undefined) {
     return [];
   }
@@ -1173,7 +1173,7 @@ class EventView {
 
   getQueryWithAdditionalConditions() {
     const {query} = this;
-    if (!this.additionalConditions) {
+    if (this.additionalConditions.isEmpty()) {
       return query;
     }
     const conditions = tokenizeSearch(query);

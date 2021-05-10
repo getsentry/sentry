@@ -2,8 +2,8 @@ import os
 from urllib.parse import parse_qsl
 
 from django.conf import settings
-from django.core.urlresolvers import reverse
 from django.db.models import F
+from django.urls import reverse
 
 from sentry.models import (
     AuditLogEntry,

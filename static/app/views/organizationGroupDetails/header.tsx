@@ -1,7 +1,7 @@
-import React from 'react';
+import * as React from 'react';
+import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
-import PropTypes from 'prop-types';
 
 import {fetchOrgMembers} from 'app/actionCreators/members';
 import {Client} from 'app/api';
@@ -25,12 +25,12 @@ import ShortId from 'app/components/shortId';
 import Tooltip from 'app/components/tooltip';
 import {IconChat} from 'app/icons';
 import {t} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import space from 'app/styles/space';
-import {Group, Project} from 'app/types';
+import {Group, Organization, Project} from 'app/types';
 import {Event} from 'app/types/event';
 import {getMessage} from 'app/utils/events';
 import withApi from 'app/utils/withApi';
+import withOrganization from 'app/utils/withOrganization';
 
 import GroupActions from './actions';
 import UnhandledTag, {TagAndMessageWrapper} from './unhandledTag';
@@ -47,13 +47,14 @@ const TAB = {
   SIMILAR_ISSUES: 'similar-issues',
 };
 
-type Props = {
+type Props = WithRouterProps & {
   currentTab: string;
   baseUrl: string;
   group: Group;
   groupReprocessingStatus: ReprocessingStatus;
   project: Project;
   api: Client;
+  organization: Organization;
   event?: Event;
 };
 
@@ -66,16 +67,10 @@ type State = {
 };
 
 class GroupHeader extends React.Component<Props, State> {
-  static contextTypes = {
-    location: PropTypes.object,
-    organization: SentryTypes.Organization,
-  };
-
   state: State = {};
 
   componentDidMount() {
-    const {organization} = this.context;
-    const {group, api} = this.props;
+    const {group, api, organization} = this.props;
     const {project} = group;
 
     fetchOrgMembers(api, organization.slug, [project.id]).then(memberList => {
@@ -85,7 +80,7 @@ class GroupHeader extends React.Component<Props, State> {
   }
 
   getDisabledTabs() {
-    const {organization} = this.context;
+    const {organization} = this.props;
 
     const hasReprocessingV2Feature = organization.features.includes('reprocessing-v2');
 
@@ -123,8 +118,15 @@ class GroupHeader extends React.Component<Props, State> {
   }
 
   render() {
-    const {project, group, currentTab, baseUrl, event} = this.props;
-    const {organization, location} = this.context;
+    const {
+      project,
+      group,
+      currentTab,
+      baseUrl,
+      event,
+      organization,
+      location,
+    } = this.props;
     const projectFeatures = new Set(project ? project.features : []);
     const organizationFeatures = new Set(organization ? organization.features : []);
     const userCount = group.userCount;
@@ -351,7 +353,7 @@ class GroupHeader extends React.Component<Props, State> {
 
 export {GroupHeader, TAB};
 
-export default withApi(GroupHeader);
+export default withApi(withRouter(withOrganization(GroupHeader)));
 
 const TitleWrapper = styled('div')`
   display: flex;

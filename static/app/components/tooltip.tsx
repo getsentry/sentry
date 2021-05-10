@@ -1,7 +1,8 @@
-import React from 'react';
+import * as React from 'react';
 import ReactDOM from 'react-dom';
 import {Manager, Popper, PopperArrowProps, PopperProps, Reference} from 'react-popper';
-import styled, {SerializedStyles} from '@emotion/styled';
+import {SerializedStyles} from '@emotion/react';
+import styled from '@emotion/styled';
 import {AnimatePresence, motion, MotionStyle} from 'framer-motion';
 import memoize from 'lodash/memoize';
 import * as PopperJS from 'popper.js';
@@ -115,9 +116,7 @@ class Tooltip extends React.Component<Props, State> {
 
   async componentDidMount() {
     if (IS_ACCEPTANCE_TEST) {
-      const TooltipStore = (
-        await import(/* webpackChunkName: "TooltipStore" */ 'app/stores/tooltipStore')
-      ).default;
+      const TooltipStore = (await import('app/stores/tooltipStore')).default;
       TooltipStore.addTooltip(this);
     }
   }
@@ -126,9 +125,7 @@ class Tooltip extends React.Component<Props, State> {
     const {usesGlobalPortal} = this.state;
 
     if (IS_ACCEPTANCE_TEST) {
-      const TooltipStore = (
-        await import(/* webpackChunkName: "TooltipStore" */ 'app/stores/tooltipStore')
-      ).default;
+      const TooltipStore = (await import('app/stores/tooltipStore')).default;
       TooltipStore.removeTooltip(this);
     }
     if (!usesGlobalPortal) {

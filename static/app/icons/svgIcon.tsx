@@ -1,9 +1,9 @@
-import React from 'react';
-import {withTheme} from 'emotion-theming';
+import * as React from 'react';
+import {withTheme} from '@emotion/react';
 
 import {Aliases, Color, IconSize, Theme} from 'app/utils/theme';
 
-type Props = React.SVGAttributes<SVGElement> & {
+type Props = React.SVGAttributes<SVGSVGElement> & {
   theme: Theme;
   color?: Color | keyof Aliases;
   // TODO (Priscila): make size prop theme icon size only

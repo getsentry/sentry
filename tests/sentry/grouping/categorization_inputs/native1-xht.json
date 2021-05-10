@@ -1,0 +1,202 @@
+{
+  "event_id": "d772c0d14f1349a2bfd7d3dfcbc8b4e9",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": null,
+          "synthetic": true,
+          "type": "minidump"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "register_onexit_function",
+              "package": "C:\\WINDOWS\\System32\\ucrtbase.dll"
+            },
+            {
+              "function": "register_onexit_function",
+              "package": "C:\\WINDOWS\\System32\\ucrtbase.dll"
+            },
+            {
+              "function": "register_onexit_function",
+              "package": "C:\\WINDOWS\\System32\\ucrtbase.dll"
+            },
+            {
+              "abs_path": "D:\\releases\\abc\\Farming Simulator\\Frontend\\Src\\Win\\WinMain.cpp",
+              "filename": "WinMain.cpp",
+              "function": "wWinMain",
+              "package": "C:\\Program Files\\Company\\Example App 2020\\Company Farming Simulator.exe"
+            },
+            {
+              "abs_path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Professional\\VC\\Tools\\MSVC\\14.27.29110\\include\\xstring",
+              "filename": "xstring",
+              "function": "std::basic_string<T>::{ctor}",
+              "package": "C:\\Program Files\\Company\\Example App 2020\\Company Farming Simulator.exe"
+            },
+            {
+              "abs_path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Professional\\VC\\Tools\\MSVC\\14.27.29110\\include\\xstring",
+              "filename": "xstring",
+              "function": "std::basic_string<T>::assign",
+              "package": "C:\\Program Files\\Company\\Example App 2020\\Company Farming Simulator.exe"
+            },
+            {
+              "abs_path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Professional\\VC\\Tools\\MSVC\\14.27.29110\\include\\xstring",
+              "filename": "xstring",
+              "function": "std::basic_string<T>::assign",
+              "package": "C:\\Program Files\\Company\\Example App 2020\\Company Farming Simulator.exe"
+            },
+            {
+              "abs_path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Professional\\VC\\Tools\\MSVC\\14.27.29110\\include\\xstring",
+              "filename": "xstring",
+              "function": "std::basic_string<T>::_Reallocate_for",
+              "package": "C:\\Program Files\\Company\\Example App 2020\\Company Farming Simulator.exe"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "abs_path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Professional\\VC\\Tools\\MSVC\\14.27.29110\\include\\functional",
+              "filename": "functional",
+              "function": "std::_Func_class<T>::operator()",
+              "package": "C:\\Program Files\\Company\\Example App 2020\\abccore.dll"
+            },
+            {
+              "abs_path": "D:\\releases\\abc\\Farming Simulator\\Mezzanine\\Src\\Initialize.cpp",
+              "filename": "Initialize.cpp",
+              "function": "<lambda>::operator()",
+              "package": "C:\\Program Files\\Company\\Example App 2020\\Mezzanine.dll"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "abs_path": "D:\\releases\\abc\\shared\\company\\MediaCore\\GPUFoundation\\Src\\CUDA\\CUDADevice.cpp",
+              "filename": "CUDADevice.cpp",
+              "function": "GF::CUDADevice::ReleaseContext",
+              "package": "C:\\Program Files\\Company\\Example App 2020\\GPUFoundation.dll"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "abs_path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Professional\\VC\\Tools\\MSVC\\14.27.29110\\include\\xtree",
+              "filename": "xtree",
+              "function": "std::_Tree_val<T>::_Erase_tree<T>",
+              "package": "C:\\Program Files\\Company\\Example App 2020\\GPUFoundation.dll"
+            },
+            {
+              "abs_path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Professional\\VC\\Tools\\MSVC\\14.27.29110\\include\\xtree",
+              "filename": "xtree",
+              "function": "std::_Tree_node<T>::_Freenode",
+              "package": "C:\\Program Files\\Company\\Example App 2020\\GPUFoundation.dll"
+            },
+            {
+              "abs_path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Professional\\VC\\Tools\\MSVC\\14.27.29110\\include\\xtree",
+              "filename": "xtree",
+              "function": "std::_Tree_node<T>::_Freenode0",
+              "package": "C:\\Program Files\\Company\\Example App 2020\\GPUFoundation.dll"
+            },
+            {
+              "abs_path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Professional\\VC\\Tools\\MSVC\\14.27.29110\\include\\xmemory",
+              "filename": "xmemory",
+              "function": "std::_Normal_allocator_traits<T>::deallocate",
+              "package": "C:\\Program Files\\Company\\Example App 2020\\GPUFoundation.dll"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "package": "C:\\WINDOWS\\SYSTEM32\\nvcuda.dll"
+            },
+            {
+              "package": "C:\\WINDOWS\\SYSTEM32\\nvcuda.dll"
+            },
+            {
+              "package": "C:\\WINDOWS\\SYSTEM32\\nvcuda.dll"
+            },
+            {
+              "package": "C:\\WINDOWS\\SYSTEM32\\nvcuda.dll"
+            },
+            {
+              "package": "C:\\WINDOWS\\SYSTEM32\\nvcuda.dll"
+            },
+            {
+              "package": "C:\\WINDOWS\\SYSTEM32\\nvcuda.dll"
+            },
+            {
+              "package": "C:\\WINDOWS\\SYSTEM32\\nvcuda.dll"
+            },
+            {
+              "package": "C:\\WINDOWS\\SYSTEM32\\nvcuda.dll"
+            },
+            {
+              "package": "C:\\WINDOWS\\SYSTEM32\\nvcuda.dll"
+            },
+            {
+              "package": "C:\\WINDOWS\\SYSTEM32\\nvcuda.dll"
+            },
+            {
+              "package": "C:\\WINDOWS\\SYSTEM32\\nvcuda.dll"
+            },
+            {
+              "package": "C:\\WINDOWS\\SYSTEM32\\nvcuda.dll"
+            }
+          ]
+        },
+        "type": "EXCEPTION_ACCESS_VIOLATION_WRITE",
+        "value": "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
+      }
+    ]
+  },
+  "platform": "native"
+}

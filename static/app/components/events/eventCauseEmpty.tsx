@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment';
 
@@ -12,10 +12,11 @@ import {DataSection} from 'app/components/events/styles';
 import {Panel} from 'app/components/panels';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Commit, Organization, Project, PromptActivity, RepositoryStatus} from 'app/types';
+import {Commit, Organization, Project, RepositoryStatus} from 'app/types';
+import {Event} from 'app/types/event';
 import {trackAdhocEvent, trackAnalyticsEvent} from 'app/utils/analytics';
 import getDynamicText from 'app/utils/getDynamicText';
-import {snoozedDays} from 'app/utils/promptsActivity';
+import {promptCanShow, promptIsDismissed} from 'app/utils/promptIsDismissed';
 import withApi from 'app/utils/withApi';
 
 const EXAMPLE_COMMITS = ['dec0de', 'de1e7e', '5ca1ed'];
@@ -51,7 +52,7 @@ const DUMMY_COMMIT: Commit = {
       stacktraceOrder: 1,
       language: '',
       clock24Hours: false,
-      avatarType: '',
+      avatarType: 'letter_avatar',
     },
     flags: {newsletter_consent_prompt: false},
     hasPasswordAuth: true,
@@ -76,6 +77,8 @@ const DUMMY_COMMIT: Commit = {
   message: t('This example commit broke something'),
 };
 
+const SUSPECT_COMMITS_FEATURE = 'suspect_commits';
+
 type ClickPayload = {
   action: 'snoozed' | 'dismissed';
   eventKey: string;
@@ -83,6 +86,7 @@ type ClickPayload = {
 };
 
 type Props = {
+  event: Event;
   organization: Organization;
   project: Project;
   api: Client;
@@ -92,7 +96,7 @@ type State = {
   shouldShow: boolean | undefined;
 };
 
-class EventCauseEmpty extends React.Component<Props, State> {
+class EventCauseEmpty extends Component<Props, State> {
   state: State = {
     shouldShow: undefined,
   };
@@ -117,25 +121,20 @@ class EventCauseEmpty extends React.Component<Props, State> {
   }
 
   async fetchData() {
-    const {api, project, organization} = this.props;
+    const {api, event, project, organization} = this.props;
+
+    if (!promptCanShow(SUSPECT_COMMITS_FEATURE, event.eventID)) {
+      this.setState({shouldShow: false});
+      return;
+    }
 
     const data = await promptsCheck(api, {
       projectId: project.id,
       organizationId: organization.id,
-      feature: 'suspect_commits',
+      feature: SUSPECT_COMMITS_FEATURE,
     });
 
-    this.setState({shouldShow: this.shouldShow(data ?? {})});
-  }
-
-  shouldShow({snoozedTime, dismissedTime}: PromptActivity) {
-    if (dismissedTime) {
-      return false;
-    }
-    if (snoozedTime) {
-      return snoozedDays(snoozedTime) > 7;
-    }
-    return true;
+    this.setState({shouldShow: !promptIsDismissed(data ?? {}, 7)});
   }
 
   handleClick({action, eventKey, eventName}: ClickPayload) {
@@ -144,7 +143,7 @@ class EventCauseEmpty extends React.Component<Props, State> {
     const data = {
       projectId: project.id,
       organizationId: organization.id,
-      feature: 'suspect_commits',
+      feature: SUSPECT_COMMITS_FEATURE,
       status: action,
     };
     promptsUpdate(api, data).then(() => this.setState({shouldShow: false}));

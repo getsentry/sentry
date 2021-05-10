@@ -17,6 +17,7 @@ type Alert = {
 
 type AlertStoreInterface = Reflux.StoreDefinition & {
   init: () => void;
+  getInitialState: () => Alert[];
   onAddAlert: (alert: Alert) => void;
   onCloseAlert: (alert: Alert, duration?: number) => void;
 };
@@ -34,6 +35,10 @@ const storeConfig: AlertStoreInterface & Internals = {
   init() {
     this.alerts = [];
     this.count = 0;
+  },
+
+  getInitialState() {
+    return this.alerts;
   },
 
   onAddAlert(alert) {

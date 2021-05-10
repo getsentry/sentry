@@ -1,5 +1,5 @@
 from collections import defaultdict, namedtuple
-from typing import Any
+from typing import Any, Optional
 
 from django.db import models
 from django.db.models.signals import pre_save
@@ -20,7 +20,7 @@ def actor_type_to_class(type: int) -> Any:
     return ACTOR_TYPE_TO_CLASS[type]
 
 
-def actor_type_to_string(type):
+def actor_type_to_string(type: int) -> Optional[str]:
     # type will be 0 or 1 and we want to get "team" or "user"
     for k, v in ACTOR_TYPES.items():
         if v == type:

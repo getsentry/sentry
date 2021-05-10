@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
@@ -112,6 +112,7 @@ class Search extends React.Component<Props> {
     trackAnalyticsEvent({
       eventKey: `${this.props.entryPoint}.open`,
       eventName: `${this.props.entryPoint} Open`,
+      organization_id: null,
     });
   }
 
@@ -126,6 +127,7 @@ class Search extends React.Component<Props> {
       query: state && state.inputValue,
       result_type: item.resultType,
       source_type: item.sourceType,
+      organization_id: null,
     });
 
     const {to, action} = item;
@@ -169,6 +171,7 @@ class Search extends React.Component<Props> {
       eventKey: `${this.props.entryPoint}.query`,
       eventName: `${this.props.entryPoint} Query`,
       query,
+      organization_id: null,
     });
   }, 200);
 

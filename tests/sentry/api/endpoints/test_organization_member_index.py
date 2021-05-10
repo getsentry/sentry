@@ -1,9 +1,15 @@
 from django.core import mail
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
 from sentry import roles
 from sentry.api.endpoints.organization_member_index import OrganizationMemberSerializer
-from sentry.models import Authenticator, InviteStatus, OrganizationMember, OrganizationMemberTeam
+from sentry.models import (
+    Authenticator,
+    Integration,
+    InviteStatus,
+    OrganizationMember,
+    OrganizationMemberTeam,
+)
 from sentry.testutils import APITestCase, TestCase
 from sentry.testutils.helpers import Feature
 from sentry.utils.compat.mock import patch
@@ -477,22 +483,36 @@ class OrganizationMemberListTest(APITestCase):
     def test_user_has_external_user_association(self):
         response = self.get_valid_response(self.org.slug, qs_params={"expand": "externalUsers"})
         assert len(response.data) == 2
-        member = next(filter(lambda x: x["user"]["id"] == str(self.user_2.id), response.data))
-        assert member
-        assert len(member["externalUsers"]) == 1
-        assert member["externalUsers"][0]["id"] == str(self.external_user.id)
-        assert member["externalUsers"][0]["memberId"] == member["id"]
+        organization_member = next(
+            filter(lambda x: x["user"]["id"] == str(self.user_2.id), response.data)
+        )
+        assert organization_member
+        assert len(organization_member["externalUsers"]) == 1
+        assert organization_member["externalUsers"][0]["id"] == str(self.external_user.id)
+        assert (
+            organization_member["externalUsers"][0]["userId"] == organization_member["user"]["id"]
+        )
 
     def test_user_has_external_user_associations_across_multiple_orgs(self):
         self.org_2 = self.create_organization(owner=self.user_2)
-        self.external_user_2 = self.create_external_user(self.user_2, self.org_2)
+        self.integration_2 = Integration.objects.create(
+            provider="github", name="GitHub", external_id="github:2"
+        )
+        self.integration_2.add_organization(self.org_2, self.user_2)
+        self.external_user_2 = self.create_external_user(
+            self.user_2, self.org_2, integration=self.integration_2
+        )
         response = self.get_valid_response(self.org.slug, qs_params={"expand": "externalUsers"})
         assert len(response.data) == 2
-        member = next(filter(lambda x: x["user"]["id"] == str(self.user_2.id), response.data))
-        assert member
-        assert len(member["externalUsers"]) == 1
-        assert member["externalUsers"][0]["id"] == str(self.external_user.id)
-        assert member["externalUsers"][0]["memberId"] == member["id"]
+        organization_member = next(
+            filter(lambda x: x["user"]["id"] == str(self.user_2.id), response.data)
+        )
+        assert organization_member
+        assert len(organization_member["externalUsers"]) == 1
+        assert organization_member["externalUsers"][0]["id"] == str(self.external_user.id)
+        assert (
+            organization_member["externalUsers"][0]["userId"] == organization_member["user"]["id"]
+        )
 
 
 class OrganizationMemberListPostTest(APITestCase):

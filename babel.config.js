@@ -1,19 +1,24 @@
 /*eslint-env node*/
 module.exports = {
   presets: [
-    '@babel/preset-react',
-    '@babel/preset-env',
-    '@babel/preset-typescript',
     [
-      '@emotion/babel-preset-css-prop',
+      '@babel/preset-react',
       {
-        autoLabel: true,
-        sourceMap: false,
-        labelFormat: '[local]',
+        runtime: 'automatic',
+        importSource: '@emotion/react',
       },
     ],
+    [
+      '@babel/preset-env',
+      {
+        useBuiltIns: 'usage',
+        corejs: '3.11',
+      },
+    ],
+    '@babel/preset-typescript',
   ],
   plugins: [
+    '@emotion/babel-plugin',
     '@babel/plugin-transform-runtime',
     // NOTE: The order of the decorator and class-property plugins is important
     // here. Decorators must be processed first before class properties, see:
@@ -42,16 +47,8 @@ module.exports = {
       ],
     },
     development: {
-      presets: [
-        [
-          '@emotion/babel-preset-css-prop',
-          {
-            autoLabel: true,
-            sourceMap: false,
-          },
-        ],
-      ],
       plugins: [
+        '@emotion/babel-plugin',
         '@babel/plugin-transform-react-jsx-source',
         !!process.env.SENTRY_UI_HOT_RELOAD ? 'react-refresh/babel' : null,
       ].filter(Boolean),

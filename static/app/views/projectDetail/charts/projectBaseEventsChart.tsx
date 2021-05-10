@@ -1,6 +1,6 @@
-import React from 'react';
+import {Component} from 'react';
+import {withTheme} from '@emotion/react';
 import * as Sentry from '@sentry/react';
-import {withTheme} from 'emotion-theming';
 
 import {fetchTotalCount} from 'app/actionCreators/events';
 import EventsChart, {EventsChartProps} from 'app/components/charts/eventsChart';
@@ -26,7 +26,7 @@ type Props = Omit<
   help?: string;
 };
 
-class ProjectBaseEventsChart extends React.Component<Props> {
+class ProjectBaseEventsChart extends Component<Props> {
   componentDidMount() {
     this.fetchTotalCount();
   }

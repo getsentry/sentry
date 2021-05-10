@@ -1,5 +1,5 @@
 // eslint-disable-next-line simple-import-sort/imports
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import AsyncComponent from 'app/components/asyncComponent';
@@ -71,7 +71,7 @@ class IntegrationServerlessFunctions extends AsyncComponent<Props, State> {
 
   renderBody() {
     return (
-      <React.Fragment>
+      <Fragment>
         <Alert type="info">
           {t(
             'Manage your AWS Lambda functions below. Only Node and Python runtimes are currently supported.'
@@ -96,7 +96,7 @@ class IntegrationServerlessFunctions extends AsyncComponent<Props, State> {
             ))}
           </StyledPanelBody>
         </Panel>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

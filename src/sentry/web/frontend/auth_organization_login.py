@@ -1,6 +1,6 @@
 from django.contrib import messages
-from django.core.urlresolvers import reverse
 from django.db import transaction
+from django.urls import reverse
 from django.views.decorators.cache import never_cache
 
 from sentry.auth.helper import AuthHelper
@@ -37,7 +37,7 @@ class AuthOrganizationLoginView(AuthLoginView):
             "organization": organization,
             "provider_key": provider.key,
             "provider_name": provider.name,
-            "authenticated": request.user.is_authenticated(),
+            "authenticated": request.user.is_authenticated,
         }
 
         return self.respond("sentry/organization-login.html", context)

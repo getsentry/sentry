@@ -28,6 +28,18 @@ GUIDES = {
     "release_adoption": {"id": 13, "required_targets": ["release_adoption"]},
     "user_misery": {"id": 14, "required_targets": ["user_misery"]},
     "stack_trace_preview": {"id": 15, "required_targets": ["issue_stream_title"]},
+    "trace_view": {
+        "id": 16,
+        "required_targets": ["trace_view_guide_row", "trace_view_guide_row_details"],
+    },
+    "span_op_breakdowns_and_tag_explorer": {
+        "id": 17,
+        "required_targets": [
+            "span_op_breakdowns_filter",
+            "span_op_relative_breakdowns",
+            "tag_explorer",
+        ],
+    },
 }
 
 # demo mode has different guides

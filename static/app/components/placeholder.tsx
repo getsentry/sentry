@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
@@ -31,6 +31,7 @@ const Placeholder = styled(({className, children, error, testId}: Props) => {
   flex-direction: column;
   flex-shrink: 0;
   justify-content: center;
+  align-items: center;
 
   background-color: ${p => (p.error ? p.theme.red100 : p.theme.backgroundSecondary)};
   ${p => p.error && `color: ${p.theme.red200};`}

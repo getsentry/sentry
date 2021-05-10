@@ -1,0 +1,145 @@
+{
+  "event_id": "522a5b7a1e3c465983cb16f755d6803a",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": null,
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": null,
+          "synthetic": null,
+          "type": "UncaughtExceptionHandler"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "abs_path": "NativeStart.java",
+              "filename": "NativeStart.java",
+              "function": "main",
+              "module": "dalvik.system.NativeStart"
+            },
+            {
+              "abs_path": "ZygoteInit.java",
+              "filename": "ZygoteInit.java",
+              "function": "main",
+              "module": "com.android.internal.os.ZygoteInit"
+            },
+            {
+              "abs_path": "ZygoteInit.java",
+              "filename": "ZygoteInit.java",
+              "function": "run",
+              "module": "com.android.internal.os.ZygoteInit$MethodAndArgsCaller"
+            },
+            {
+              "abs_path": "Method.java",
+              "filename": "Method.java",
+              "function": "invoke",
+              "module": "java.lang.reflect.Method"
+            },
+            {
+              "abs_path": "Method.java",
+              "filename": "Method.java",
+              "function": "invokeNative",
+              "module": "java.lang.reflect.Method"
+            },
+            {
+              "abs_path": "ActivityThread.java",
+              "filename": "ActivityThread.java",
+              "function": "main",
+              "module": "android.app.ActivityThread"
+            },
+            {
+              "abs_path": "Looper.java",
+              "filename": "Looper.java",
+              "function": "loop",
+              "module": "android.os.Looper"
+            },
+            {
+              "abs_path": "Handler.java",
+              "filename": "Handler.java",
+              "function": "dispatchMessage",
+              "module": "android.os.Handler"
+            },
+            {
+              "abs_path": "Handler.java",
+              "filename": "Handler.java",
+              "function": "handleCallback",
+              "module": "android.os.Handler"
+            },
+            {
+              "abs_path": "Choreographer.java",
+              "filename": "Choreographer.java",
+              "function": "run",
+              "module": "android.view.Choreographer$FrameDisplayEventReceiver"
+            },
+            {
+              "abs_path": "Choreographer.java",
+              "filename": "Choreographer.java",
+              "function": "doFrame",
+              "module": "android.view.Choreographer"
+            },
+            {
+              "abs_path": "Choreographer.java",
+              "filename": "Choreographer.java",
+              "function": "doCallbacks",
+              "module": "android.view.Choreographer"
+            },
+            {
+              "abs_path": "Choreographer.java",
+              "filename": "Choreographer.java",
+              "function": "run",
+              "module": "android.view.Choreographer$CallbackRecord"
+            },
+            {
+              "abs_path": "ViewRootImpl.java",
+              "filename": "ViewRootImpl.java",
+              "function": "run",
+              "module": "android.view.ViewRootImpl$TraversalRunnable"
+            },
+            {
+              "abs_path": "ViewRootImpl.java",
+              "filename": "ViewRootImpl.java",
+              "function": "doTraversal",
+              "module": "android.view.ViewRootImpl"
+            },
+            {
+              "abs_path": "ViewRootImpl.java",
+              "filename": "ViewRootImpl.java",
+              "function": "performTraversals",
+              "module": "android.view.ViewRootImpl"
+            },
+            {
+              "abs_path": "HardwareRenderer.java",
+              "filename": "HardwareRenderer.java",
+              "function": "initialize",
+              "module": "android.view.HardwareRenderer$GlRenderer"
+            },
+            {
+              "abs_path": "HardwareRenderer.java",
+              "filename": "HardwareRenderer.java",
+              "function": "initializeEgl",
+              "module": "android.view.HardwareRenderer$GlRenderer"
+            },
+            {
+              "abs_path": "HardwareRenderer.java",
+              "filename": "HardwareRenderer.java",
+              "function": "loadEglConfig",
+              "module": "android.view.HardwareRenderer$GlRenderer"
+            },
+            {
+              "abs_path": "HardwareRenderer.java",
+              "filename": "HardwareRenderer.java",
+              "function": "chooseEglConfig",
+              "module": "android.view.HardwareRenderer$GlRenderer"
+            }
+          ]
+        },
+        "type": "IllegalArgumentException",
+        "value": "eglChooseConfig failed EGL_NOT_INITIALIZED"
+      }
+    ]
+  },
+  "platform": "java"
+}

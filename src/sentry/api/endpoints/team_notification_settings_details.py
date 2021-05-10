@@ -1,6 +1,5 @@
-from typing import Any
-
 from rest_framework import status
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
@@ -9,7 +8,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.notification_setting import NotificationSettingsSerializer
 from sentry.api.validators.notifications import validate, validate_type_option
-from sentry.models.notificationsetting import NotificationSetting
+from sentry.models import NotificationSetting, Team
 
 
 class TeamNotificationSettingsDetailsEndpoint(TeamEndpoint):
@@ -18,7 +17,7 @@ class TeamNotificationSettingsDetailsEndpoint(TeamEndpoint):
     NotificationSettings table via the API.
     """
 
-    def get(self, request: Any, team: Any) -> Response:
+    def get(self, request: Request, team: Team) -> Response:
         """
         Get the Notification Settings for a given User.
         ````````````````````````````````
@@ -42,7 +41,7 @@ class TeamNotificationSettingsDetailsEndpoint(TeamEndpoint):
             ),
         )
 
-    def put(self, request: Any, team: Any) -> Response:
+    def put(self, request: Request, team: Team) -> Response:
         """
         Update the Notification Settings for a given Team.
         ````````````````````````````````

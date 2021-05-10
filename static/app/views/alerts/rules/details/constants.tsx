@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import {t} from 'app/locale';
 import {SelectValue} from 'app/types';
@@ -10,8 +10,6 @@ export const TIME_OPTIONS: SelectValue<string>[] = [
   {label: t('Last 3 days'), value: TimePeriod.THREE_DAYS},
   {label: t('Last 7 days'), value: TimePeriod.SEVEN_DAYS},
 ];
-
-export const ALERT_RULE_DETAILS_DEFAULT_PERIOD = TimePeriod.ONE_DAY;
 
 export const TIME_WINDOWS = {
   [TimePeriod.SIX_HOURS]: TimeWindow.ONE_HOUR * 6 * 60 * 1000,

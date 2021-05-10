@@ -1,11 +1,13 @@
-import React from 'react';
+import {act} from 'react-dom/test-utils';
 import {browserHistory} from 'react-router';
 
+import {createListeners} from 'sentry-test/createListeners';
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
 
-import DashboardDetail from 'app/views/dashboardsV2/detail';
+import DashboardsV2Container from 'app/views/dashboardsV2/';
+import ViewEditDashboard from 'app/views/dashboardsV2/view';
 
 describe('Dashboards > Detail', function () {
   const organization = TestStubs.Organization({
@@ -52,11 +54,12 @@ describe('Dashboards > Detail', function () {
         method: 'DELETE',
       });
       wrapper = mountWithTheme(
-        <DashboardDetail
+        <DashboardsV2Container
           organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: 'default-overview'}}
           router={initialData.router}
           route={route}
+          location={location}
         />,
         initialData.routerContext
       );
@@ -81,13 +84,15 @@ describe('Dashboards > Detail', function () {
     });
 
     it('can rename and save', async function () {
+      const fireEvent = createListeners('window');
+
       const updateMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/default-overview/',
         method: 'PUT',
         body: TestStubs.Dashboard([], {id: '8', title: 'Updated prebuilt'}),
       });
       wrapper = mountWithTheme(
-        <DashboardDetail
+        <DashboardsV2Container
           organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: 'default-overview'}}
           router={initialData.router}
@@ -102,8 +107,16 @@ describe('Dashboards > Detail', function () {
       wrapper.find('Controls Button[data-test-id="dashboard-edit"]').simulate('click');
 
       // Rename
-      wrapper.find('DashboardTitle Input').simulate('blur', {
+      const dashboardTitle = wrapper.find('DashboardTitle Label');
+      dashboardTitle.simulate('click');
+
+      wrapper.find('StyledInput').simulate('change', {
         target: {innerText: 'Updated prebuilt', value: 'Updated prebuilt'},
+      });
+
+      act(() => {
+        // Press enter
+        fireEvent.keyDown('Enter');
       });
 
       wrapper.find('Controls Button[data-test-id="dashboard-commit"]').simulate('click');
@@ -118,7 +131,7 @@ describe('Dashboards > Detail', function () {
       // Should redirect to the new dashboard.
       expect(browserHistory.replace).toHaveBeenCalledWith(
         expect.objectContaining({
-          pathname: '/organizations/org-slug/dashboards/8/',
+          pathname: '/organizations/org-slug/dashboard/8/',
         })
       );
     });
@@ -132,7 +145,7 @@ describe('Dashboards > Detail', function () {
       });
 
       wrapper = mountWithTheme(
-        <DashboardDetail
+        <DashboardsV2Container
           organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: 'default-overview'}}
           router={initialData.router}
@@ -233,7 +246,7 @@ describe('Dashboards > Detail', function () {
         method: 'PUT',
       });
       wrapper = mountWithTheme(
-        <DashboardDetail
+        <DashboardsV2Container
           organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: '1'}}
           router={initialData.router}
@@ -281,7 +294,7 @@ describe('Dashboards > Detail', function () {
 
     it('can enter edit mode for widgets', async function () {
       wrapper = mountWithTheme(
-        <DashboardDetail
+        <DashboardsV2Container
           organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: '1'}}
           router={initialData.router}
@@ -311,6 +324,53 @@ describe('Dashboards > Detail', function () {
       const modal = await mountGlobalModal();
 
       expect(modal.find('AddDashboardWidgetModal').props().widget).toEqual(widgets[0]);
+    });
+
+    it('hides and shows manage dashboards based on feature', async function () {
+      wrapper = mountWithTheme(
+        <ViewEditDashboard
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        />,
+        initialData.routerContext
+      );
+      await tick();
+      wrapper.update();
+
+      expect(
+        wrapper.find('Controls Button[data-test-id="dashboard-manage"]').exists()
+      ).toBe(false);
+
+      const newOrg = initializeOrg({
+        organization: TestStubs.Organization({
+          features: [
+            'global-views',
+            'dashboards-basic',
+            'dashboards-edit',
+            'discover-query',
+            'dashboards-manage',
+          ],
+          projects: [TestStubs.Project()],
+        }),
+      });
+
+      wrapper = mountWithTheme(
+        <ViewEditDashboard
+          organization={newOrg.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={newOrg.router}
+          location={newOrg.router.location}
+        />,
+        newOrg.routerContext
+      );
+      await tick();
+      wrapper.update();
+
+      expect(
+        wrapper.find('Controls Button[data-test-id="dashboard-manage"]').exists()
+      ).toBe(true);
     });
   });
 });

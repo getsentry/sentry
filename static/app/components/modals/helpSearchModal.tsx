@@ -1,7 +1,5 @@
-import React from 'react';
-import {ClassNames, css} from '@emotion/core';
+import {ClassNames, css, withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {withTheme} from 'emotion-theming';
 
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import HelpSearch from 'app/components/helpSearch';
@@ -73,7 +71,7 @@ const Input = styled('input')`
 `;
 
 export const modalCss = css`
-  .modal-content {
+  [role='document'] {
     padding: 0;
   }
 `;

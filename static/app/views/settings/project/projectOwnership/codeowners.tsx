@@ -1,44 +1,32 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import AsyncComponent from 'app/components/asyncComponent';
+import {Client} from 'app/api';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import {IconDelete} from 'app/icons';
 import {t} from 'app/locale';
 import {CodeOwners, Organization, Project} from 'app/types';
+import withApi from 'app/utils/withApi';
 import RulesPanel from 'app/views/settings/project/projectOwnership/rulesPanel';
 
-type Props = AsyncComponent['props'] & {
+type Props = {
+  api: Client;
   organization: Organization;
   project: Project;
+  codeowners: any;
+  onDelete: (data: any) => void;
 };
 
-type State = {} & AsyncComponent['state'];
-
-class CodeOwnersPanel extends AsyncComponent<Props, State> {
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {organization, project} = this.props;
-    return [
-      [
-        'codeowners',
-        `/projects/${organization.slug}/${project.slug}/codeowners/?expand=codeMapping`,
-      ],
-    ];
-  }
-
+class CodeOwnersPanel extends Component<Props> {
   handleDelete = async (codeowner: CodeOwners) => {
-    const {organization, project} = this.props;
+    const {api, organization, project, onDelete} = this.props;
     const endpoint = `/api/0/projects/${organization.slug}/${project.slug}/codeowners/${codeowner.id}/`;
     try {
-      await this.api.requestPromise(endpoint, {
+      await api.requestPromise(endpoint, {
         method: 'DELETE',
       });
-      // remove config and update state
-      const {codeowners} = this.state;
-      this.setState({
-        codeowners: codeowners.filter(config => config.id !== codeowner.id),
-      });
+      onDelete(codeowner);
       addSuccessMessage(t('Deletion successful'));
     } catch {
       //no 4xx errors should happen on delete
@@ -46,9 +34,9 @@ class CodeOwnersPanel extends AsyncComponent<Props, State> {
     }
   };
 
-  renderBody() {
-    const {codeowners} = this.state;
-    return codeowners.map(codeowner => {
+  render() {
+    const {codeowners} = this.props;
+    return (codeowners || []).map(codeowner => {
       const {
         raw,
         dateUpdated,
@@ -56,7 +44,7 @@ class CodeOwnersPanel extends AsyncComponent<Props, State> {
         codeMapping: {repoName},
       } = codeowner;
       return (
-        <React.Fragment key={codeowner.id}>
+        <Fragment key={codeowner.id}>
           <RulesPanel
             data-test-id="codeowners-panel"
             type="codeowners"
@@ -75,10 +63,10 @@ class CodeOwnersPanel extends AsyncComponent<Props, State> {
               </Confirm>,
             ]}
           />
-        </React.Fragment>
+        </Fragment>
       );
     });
   }
 }
 
-export default CodeOwnersPanel;
+export default withApi(CodeOwnersPanel);

@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -14,6 +14,7 @@ import IdBadge from 'app/components/idBadge';
 import * as Layout from 'app/components/layouts/thirds';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
+import MissingProjectMembership from 'app/components/projects/missingProjectMembership';
 import TextOverflow from 'app/components/textOverflow';
 import {IconSettings, IconWarning} from 'app/icons';
 import {t} from 'app/locale';
@@ -88,21 +89,24 @@ class ProjectDetail extends AsyncView<Props, State> {
       hasSessions: null,
     });
 
-    const response: SessionApiResponse = await this.api.requestPromise(
-      `/organizations/${organization.slug}/sessions/`,
-      {
-        query: {
-          project: projectId,
-          field: 'sum(session)',
-          statsPeriod: '90d',
-          interval: '1d',
-        },
-      }
-    );
-
-    this.setState({
-      hasSessions: response.groups[0].totals['sum(session)'] > 0,
-    });
+    try {
+      const response: SessionApiResponse = await this.api.requestPromise(
+        `/organizations/${organization.slug}/sessions/`,
+        {
+          query: {
+            project: projectId,
+            field: 'sum(session)',
+            statsPeriod: '90d',
+            interval: '1d',
+          },
+        }
+      );
+      this.setState({
+        hasSessions: response.groups[0].totals['sum(session)'] > 0,
+      });
+    } catch {
+      // do nothing
+    }
   }
 
   handleProjectChange = (selectedProjects: number[]) => {
@@ -148,6 +152,19 @@ class ProjectDetail extends AsyncView<Props, State> {
     return this.renderBody();
   }
 
+  renderNoAccess(project: Project) {
+    const {organization} = this.props;
+
+    return (
+      <PageContent>
+        <MissingProjectMembership
+          organization={organization}
+          projectSlug={project.slug}
+        />
+      </PageContent>
+    );
+  }
+
   renderProjectNotFound() {
     return (
       <PageContent>
@@ -180,6 +197,10 @@ class ProjectDetail extends AsyncView<Props, State> {
 
     if (!loadingProjects && !project) {
       return this.renderProjectNotFound();
+    }
+
+    if (!loadingProjects && project && !project.hasAccess) {
+      return this.renderNoAccess(project);
     }
 
     return (
@@ -251,7 +272,7 @@ class ProjectDetail extends AsyncView<Props, State> {
                   hasTransactions={hasTransactions}
                 />
                 {isProjectStabilized && (
-                  <React.Fragment>
+                  <Fragment>
                     {visibleCharts.map((id, index) => (
                       <ProjectCharts
                         location={location}
@@ -272,7 +293,7 @@ class ProjectDetail extends AsyncView<Props, State> {
                       projectId={selection.projects[0]}
                       api={this.api}
                     />
-                  </React.Fragment>
+                  </Fragment>
                 )}
               </Layout.Main>
               <Layout.Side>

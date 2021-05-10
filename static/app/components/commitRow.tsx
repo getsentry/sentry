@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
 import {openInviteMembersModal} from 'app/actionCreators/modal';
@@ -12,7 +12,7 @@ import TimeSince from 'app/components/timeSince';
 import {IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import {Commit} from 'app/types';
+import {Commit, User} from 'app/types';
 
 type Props = {
   commit: Commit;
@@ -30,7 +30,7 @@ class CommitRow extends React.Component<Props> {
     return firstLine;
   }
 
-  renderHovercardBody(author) {
+  renderHovercardBody(author: User) {
     return (
       <EmailWarning>
         {tct(
@@ -70,7 +70,7 @@ class CommitRow extends React.Component<Props> {
           customAvatar
         ) : nonMemberEmail ? (
           <AvatarWrapper>
-            <Hovercard body={this.renderHovercardBody(author)}>
+            <Hovercard body={this.renderHovercardBody(author!)}>
               <UserAvatar size={36} user={author} />
               <EmailWarningIcon>
                 <IconWarning size="xs" />
@@ -102,6 +102,7 @@ class CommitRow extends React.Component<Props> {
 }
 
 const AvatarWrapper = styled('div')`
+  position: relative;
   align-self: flex-start;
   margin-right: ${space(2)};
 `;
@@ -122,10 +123,9 @@ const StyledLink = styled(Link)`
 `;
 
 const EmailWarningIcon = styled('span')`
-  position: relative;
-  top: 15px;
-  left: -11px;
-  display: inline-block;
+  position: absolute;
+  bottom: -6px;
+  right: -7px;
   line-height: 12px;
   border-radius: 50%;
   border: 1px solid ${p => p.theme.white};

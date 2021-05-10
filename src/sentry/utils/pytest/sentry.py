@@ -123,6 +123,9 @@ def pytest_configure(config):
         settings.SENTRY_TSDB = "sentry.tsdb.redissnuba.RedisSnubaTSDB"
         settings.SENTRY_EVENTSTREAM = "sentry.eventstream.snuba.SnubaEventStream"
 
+    if os.environ.get("DISABLE_TEST_SDK", False):
+        settings.SENTRY_SDK_CONFIG = {}
+
     if not hasattr(settings, "SENTRY_OPTIONS"):
         settings.SENTRY_OPTIONS = {}
 

@@ -3,7 +3,7 @@ import re
 from operator import attrgetter
 
 from django.conf import settings
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.utils.translation import ugettext as _
 
 from sentry import features
@@ -140,6 +140,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                     "on_unresolve": _("When unresolved"),
                 },
                 "mappedColumnLabel": _("Jira Project"),
+                "formatMessageValue": False,
             },
             {
                 "name": self.outbound_assignee_key,

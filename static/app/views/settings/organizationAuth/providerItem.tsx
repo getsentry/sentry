@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
 import Access from 'app/components/acl/access';
@@ -96,7 +96,7 @@ const ProviderItem = ({provider, active, onConfigure}: Props) => {
         renderDisabled,
         renderInstallButton,
       }: FeatureRenderProps) => (
-        <PanelItem alignItems="center">
+        <PanelItem center>
           <ProviderInfo>
             <ProviderLogo
               className={`provider-logo ${provider.name

@@ -1,0 +1,214 @@
+{
+  "event_id": "d5f67e6e8b6e4f9a9684a698f5f10543",
+  "exception": {
+    "values": [
+      {
+        "mechanism": {
+          "data": {
+            "relevant_address": "0x00000001d067c84c"
+          },
+          "description": null,
+          "handled": false,
+          "help_link": null,
+          "meta": {
+            "mach_exception": {
+              "code": 0,
+              "exception": 10,
+              "name": "EXC_CRASH",
+              "subcode": 0
+            },
+            "signal": {
+              "code": 0,
+              "name": "SIGABRT",
+              "number": 6
+            }
+          },
+          "synthetic": null,
+          "type": "signal"
+        },
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "UIApplicationMain",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "-[UIApplication _run]",
+              "package": "UIKitCore"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "CFRunLoopRunSpecific",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "__CFRunLoopRun",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "__CFRunLoopDoSource1",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "__CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE1_PERFORM_FUNCTION__",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "__CFMachPortPerform",
+              "package": "CoreFoundation"
+            },
+            {
+              "function": "IODispatchCalloutFromCFMessage",
+              "package": "IOKit"
+            },
+            {
+              "function": "CA::Display::DisplayLink::dispatch_items",
+              "package": "QuartzCore"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "malloc_vreport",
+              "package": "libsystem_malloc.dylib"
+            },
+            {
+              "function": "abort",
+              "package": "libsystem_c.dylib"
+            },
+            {
+              "function": "stripped_application_code"
+            },
+            {
+              "function": "stripped_application_code"
+            }
+          ]
+        },
+        "type": "SIGABRT"
+      }
+    ]
+  },
+  "platform": "cocoa"
+}

@@ -1,0 +1,18 @@
+---
+created: '2021-03-29T22:02:40.086815Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+SQLiteFullException:database or disk is full (code 13) (thread_id:_, crashed:_)
+                            java.lang.Thread  run category=threadbase
+  java.util.concurrent.ThreadPoolExecutor$Wo  run category=std
+     java.util.concurrent.ThreadPoolExecutor  runWorker category=threadbase
+  androidx.work.impl.utils.ForceStopRunnable  run category=indirection
+                      androidx.work.impl.b.q  b category=std
+                            androidx.h.a.a.g  a category=internals
+     android.database.sqlite.SQLiteStatement  executeUpdateDelete category=internals
+       android.database.sqlite.SQLiteSession  executeForChangedRowCount category=internals
+    android.database.sqlite.SQLiteConnection  executeForChangedRowCount category=internals
+    android.database.sqlite.SQLiteConnection  nativeExecuteForChangedRowCount category=internals

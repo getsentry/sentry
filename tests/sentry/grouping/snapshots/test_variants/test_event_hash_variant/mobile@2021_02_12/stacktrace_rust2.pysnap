@@ -1,44 +1,107 @@
 ---
-created: '2021-03-08T16:39:06.756740Z'
+created: '2021-04-30T12:13:39.046994Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
-app-depth-max:
+app-depth-1:
   hash: "eb87c1031dba55b67df86fb9fff59dc6"
   tree_label: "log_demo::main"
   component:
-    app-depth-max*
+    app-depth-1*
       exception*
         stacktrace*
-          frame (non app frame)
-            function*
-              "_main"
-          frame (marked out of app by stack trace rule (family:native function:std::* -app))
-            function*
-              "std::rt::lang_start_internal"
-          frame (non app frame)
-            function*
-              "___rust_maybe_catch_panic"
-          frame (marked out of app by stack trace rule (family:native function:std::* -app))
-            function*
-              "std::panicking::try::do_call"
-          frame (marked out of app by stack trace rule (family:native function:std::* -app))
-            function*
-              "std::rt::lang_start::{{closure}}"
           frame* (marked in-app by stack trace rule (family:native function:log_demo::* +app))
             function*
               "log_demo::main"
-          frame (non app frame)
+            package (ignored because function takes precedence)
+              "log_demo"
+        type*
+          "log_demo"
+        value (ignored because stacktrace takes precedence)
+          "Holy shit everything is on fire!"
+--------------------------------------------------------------------------
+app-depth-2:
+  hash: "f3257035573aef17e8643504abed74e6"
+  tree_label: "std::panicking::try::do_call | ..."
+  component:
+    app-depth-2*
+      exception*
+        stacktrace*
+          frame* (marked out of app by stack trace rule (family:native function:std::* -app))
             function*
-              "log::__private_api_log"
+              "std::panicking::try::do_call"
+            package (ignored because function takes precedence)
+              "std"
+          frame* (marked in-app by stack trace rule (family:native function:log_demo::* +app))
+            function*
+              "log_demo::main"
+            package (ignored because function takes precedence)
+              "log_demo"
+        type*
+          "log_demo"
+        value (ignored because stacktrace takes precedence)
+          "Holy shit everything is on fire!"
+--------------------------------------------------------------------------
+app-depth-3:
+  hash: "dd291e7b08c871b74afbf4434db70dd3"
+  tree_label: "std::rt::lang_start_internal | ..."
+  component:
+    app-depth-3*
+      exception*
+        stacktrace*
+          frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+            function*
+              "std::rt::lang_start_internal"
+            package (ignored because function takes precedence)
+              "std"
+          frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+            function*
+              "std::panicking::try::do_call"
+            package (ignored because function takes precedence)
+              "std"
+          frame* (marked in-app by stack trace rule (family:native function:log_demo::* +app))
+            function*
+              "log_demo::main"
+            package (ignored because function takes precedence)
+              "log_demo"
+        type*
+          "log_demo"
+        value (ignored because stacktrace takes precedence)
+          "Holy shit everything is on fire!"
+--------------------------------------------------------------------------
+app-depth-4:
+  hash: "0817e4e604fbe88c4534eff166df1db9"
+  tree_label: "_main | ..."
+  component:
+    app-depth-4*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "_main"
+          frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+            function*
+              "std::rt::lang_start_internal"
+            package (ignored because function takes precedence)
+              "std"
+          frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+            function*
+              "std::panicking::try::do_call"
+            package (ignored because function takes precedence)
+              "std"
+          frame* (marked in-app by stack trace rule (family:native function:log_demo::* +app))
+            function*
+              "log_demo::main"
+            package (ignored because function takes precedence)
+              "log_demo"
         type*
           "log_demo"
         value (ignored because stacktrace takes precedence)
           "Holy shit everything is on fire!"
 --------------------------------------------------------------------------
 system:
-  hash: "9b33b65a645c66239cafcd276fcd0659"
-  tree_label: "_main"
+  hash: "0817e4e604fbe88c4534eff166df1db9"
+  tree_label: "<entire stacktrace>"
   component:
     system*
       exception*
@@ -49,21 +112,31 @@ system:
           frame* (marked out of app by stack trace rule (family:native function:std::* -app))
             function*
               "std::rt::lang_start_internal"
+            package (ignored because function takes precedence)
+              "std"
           frame (ignored by stack trace rule (family:native function:__* -group))
             function*
               "___rust_maybe_catch_panic"
           frame* (marked out of app by stack trace rule (family:native function:std::* -app))
             function*
               "std::panicking::try::do_call"
-          frame* (marked out of app by stack trace rule (family:native function:std::* -app))
+            package (ignored because function takes precedence)
+              "std"
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "std::rt::lang_start::{{closure}}"
+            package (ignored because function takes precedence)
+              "std"
           frame* (marked in-app by stack trace rule (family:native function:log_demo::* +app))
             function*
               "log_demo::main"
+            package (ignored because function takes precedence)
+              "log_demo"
           frame (ignored by stack trace rule (family:native function:*::__* -group))
             function*
               "log::__private_api_log"
+            package (ignored because function takes precedence)
+              "log"
         type*
           "log_demo"
         value (ignored because stacktrace takes precedence)

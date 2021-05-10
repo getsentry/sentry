@@ -1,4 +1,4 @@
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
 from sentry.models import AuditLogEntry, ProjectOption
 from sentry.plugins.base import plugins

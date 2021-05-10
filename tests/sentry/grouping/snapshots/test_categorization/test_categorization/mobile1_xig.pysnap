@@ -1,0 +1,21 @@
+---
+created: '2021-03-29T22:02:38.414711Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+NoSuchMethodError:No static method ()Landroid/os/Parcel; in class Landroid/os/Parcel; or its super classes (declaration of 'android.os.Parcel' appears in /system/framework/framework.jar!classes2.dex) (thread_id:_, crashed:_)
+          com.android.internal.os.ZygoteInit  main category=system
+  com.android.internal.os.RuntimeInit$Method  run category=internals
+                    java.lang.reflect.Method  invoke category=indirection
+                  android.app.ActivityThread  main category=threadbase
+                           android.os.Looper  loop category=system
+                          android.os.Handler  dispatchMessage category=internals
+  com.google.android.gms.common.internal.Bas  handleMessage category=std
+  com.google.android.gms.common.internal.Bas  b category=internals
+  com.google.android.gms.common.internal.Bas  a category=internals
+  com.google.android.gms.common.internal.Bas  a category=internals
+  com.google.android.gms.common.internal.Bas  a category=internals
+  com.google.android.gms.common.internal.Bas  a category=internals
+  com.google.android.gms.common.internal.IGm  a category=internals

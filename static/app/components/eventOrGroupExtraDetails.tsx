@@ -1,6 +1,5 @@
-import React from 'react';
 import {Link, withRouter, WithRouterProps} from 'react-router';
-import {css} from '@emotion/core';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import GuideAnchor from 'app/components/assistant/guideAnchor';

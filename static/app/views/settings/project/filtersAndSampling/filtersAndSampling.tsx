@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import partition from 'lodash/partition';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';

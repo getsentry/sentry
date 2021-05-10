@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
 import Placeholder from 'app/components/placeholder';
@@ -14,12 +14,8 @@ type Props = {
   error?: React.ReactNode;
 };
 
-const Sparklines = React.lazy(
-  () => import(/* webpackChunkName: "Sparklines" */ 'app/components/sparklines')
-);
-const SparklinesLine = React.lazy(
-  () => import(/* webpackChunkName: "SparklinesLine" */ 'app/components/sparklines/line')
-);
+const Sparklines = React.lazy(() => import('app/components/sparklines'));
+const SparklinesLine = React.lazy(() => import('app/components/sparklines/line'));
 
 class SparkLine extends React.Component<Props> {
   render() {

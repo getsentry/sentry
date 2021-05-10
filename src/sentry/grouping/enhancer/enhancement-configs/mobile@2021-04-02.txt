@@ -1,0 +1,333 @@
+## * The default configuration of stacktrace grouping enhancers
+
+# iOS known apps
+family:native package:/var/containers/Bundle/Application/**          +app
+family:native package:/private/var/containers/Bundle/Application/**  +app
+
+# iOS apps in simulator
+family:native package:**/Developer/CoreSimulator/Devices/**          +app
+family:native package:**/Containers/Bundle/Application/**            +app
+
+# known well locations for unix paths
+family:native package:/lib/**                                        -app
+family:native package:/usr/lib/**                                    -app
+family:native path:/usr/local/lib/**                                 -app
+family:native path:/usr/local/Cellar/**                              -app
+family:native package:linux-gate.so*                                 -app
+
+# well known path components for mac paths
+family:native package:**.app/Contents/**                             +app
+family:native package:/Users/**                                      +app
+
+# rust common modules
+family:native function:std::*                                     -app
+family:native function:core::*                                    -app
+family:native function:alloc::*                                   -app
+family:native function:__rust_*                                   -app
+
+# rust borders
+family:native function:std::panicking::begin_panic                ^-group -group ^-app -app
+family:native function:core::panicking::begin_panic               ^-group -group ^-app -app
+family:native function:failure::backtrace::Backtrace::new         ^-group -group ^-app -app
+family:native function:error_chain::make_backtrace                ^-group -group ^-app -app
+
+# C++ borders
+family:native function:_CxxThrowException                         ^-group -group ^-app -app
+family:native function:__cxa_throw                                ^-group -group ^-app -app
+family:native function:__assert_rtn                               ^-group -group ^-app -app
+
+# Objective-C
+family:native function:_NSRaiseError                              ^-group -group ^-app -app
+family:native function:_mh_execute_header                         -group -app
+
+# Breakpad
+family:native function:google_breakpad::*                         -app -group
+family:native function:google_breakpad::ExceptionHandler::SignalHandler ^-group -group
+family:native function:google_breakpad::ExceptionHandler::WriteMinidumpWithException ^-group -group
+
+# Support frameworks that are not in-app
+family:native package:**/Frameworks/libswift*.dylib                  -app
+family:native package:**/Frameworks/KSCrash.framework/**             -app
+family:native package:**/Frameworks/SentrySwift.framework/**         -app
+family:native package:**/Frameworks/Sentry.framework/**              -app
+
+# Needed for versions < sentry-cocoa 7.0.0 and static linking.
+# Before sentry-cocoa 7.0.0, we marked all packages located inside the application bundle as inApp.
+# Since 7.0.0, the Cocoa SKD only marks the main executable as inApp. This change doesn't impact
+# applications using static libraries, as when using static libraries, all of them end up in the
+# main executable.
+family:native function:kscm_*                                     -app -group
+family:native function:sentrycrashcm_*                            -app -group
+family:native function:kscrash_*                                  -app -group
+family:native function:*sentrycrash_*                             -app -group
+family:native function:"?[[]KSCrash*"                             -app -group
+family:native function:"?[[]RNSentry*"                            -app -group
+
+# Projects shipping their own class called "SentryFoo" can then easily override this in their
+# own grouping enhancers.
+family:native function:"?[[]Sentry*"                              -app -group
+
+# Android ANR: Exception stack is a snapshot of the UI/main thread. The
+# *outermost* in-app frame is most indicative of which user action has led to ANR,
+# and that's what we want to group by. (innermost=crashing frame)
+#
+# Note: Newer Android SDKs send the snapshot flag with ANRs, so this rule is
+# not strictly necessary.
+error.mechanism:ANR invert-stacktrace=1
+
+# NSError iOS: Stacktrace is a thread snapshot as well.
+# Note: Newer iOS SDK sends snapshot flag, so this is not strictly necessary.
+error.mechanism:NSError invert-stacktrace=1
+
+# Categorization of frames
+family:native package:"/System/Library/Frameworks/**" category=system
+family:native package:"C:/Windows/**" category=system
+family:native package:/usr/lib/** category=system
+family:native function:memset category=system
+family:native function:memcpy category=system
+family:native function:__memcpy category=system
+family:native function:memcmp category=system
+family:native package:CoreFoundation category=system
+family:native package:IOKit category=system
+family:native package:QuartzCore category=system
+family:native package:IOMobileFramebuffer category=system
+family:native package:libobjc* category=system
+family:native package:/system/** category=system
+family:native package:/vendor/** category=system
+module:dalvik.system.* category=system
+module:com.android.* category=system
+family:native package:libdispatch.dylib category=system
+family:native package:WebKit category=system
+package:/apex/com.android.*/lib*/** category=system
+
+# (Presumably) preinstalled stuff on Lenovo Android devices
+module:com.lenovo.lsf.* category=system
+module:com.lenovo.payplus.* category=system
+
+family:native function:boost::* category=std
+family:native function:std::* category=std
+module:java.* category=std
+# common crypto library on android
+module:com.google.crypto.* category=std
+module:com.google.android.* category=std
+module:javax.crypto.* category=std
+
+module:android.database.* category=std
+module:androidx.* category=std
+module:android.* category=std
+module:android.os.* category=system
+
+family:native package:UIKit category=ui
+family:native package:UIKitCore category=ui
+family:native package:UIKitCore category=ui
+module:android.view.* category=ui
+module:android.text.* category=ui
+module:android.widget.* category=ui
+module:android.app.Dialog category=ui
+category:ui function:handleMessage category=indirection
+category:ui function:run category=indirection
+
+family:native package:**/libart.so category=gc
+
+family:native package:/system/lib/libmedia.so category=av
+family:native package:/System/lib/libaudioclient.so category=av
+family:native package:AudioToolbox* category=av
+family:native package:libAudioToolboxUtility.dylib category=av
+
+family:native function:std::_* category=internals
+
+family:native package:/usr/lib/system/** function:start category=threadbase
+family:native function:wWinMain category=threadbase
+family:native function:invoke_main category=threadbase
+family:native function:BaseThreadInitThunk category=threadbase
+family:native function:RtlUserThreadStart category=threadbase
+family:native function:thread_start category=threadbase
+family:native function:_pthread_start category=threadbase
+family:native function:__pthread_start category=threadbase
+family:native function:_pthread_body category=threadbase
+family:native function:_dispatch_worker_thread2 category=threadbase
+family:native function:_dispatch_client_callout category=threadbase
+family:native function:start_wqthread category=threadbase
+family:native function:_pthread_wqthread category=threadbase
+family:native function:boost::*::thread_proxy category=threadbase
+family:native package:/usr/lib/system/libsystem_pthread.dylib function:"<unknown>" category=threadbase
+module:android.os.AsyncTask* function:call category=threadbase
+module:java.lang.Thread category=threadbase
+family:native package:UIKit function:UIApplicationMain category=threadbase
+module:java.util.concurrent.ThreadPoolExecutor* function:runWorker category=threadbase
+module:android.os.* function:call category=threadbase
+module:android.app.ActivityThread function:main category=threadbase
+
+family:native package:"/usr/lib/system/libsystem_malloc.dylib" category=malloc
+family:native function:malloc category=malloc
+family:native function:malloc_report category=oom
+family:native function:malloc_vreport category=oom
+family:native function:malloc_base category=malloc
+family:native function:RtlpAllocateHeapInternal category=malloc
+family:native function:std::*::allocator_traits* category=malloc
+
+family:native function:*::operator()* category=indirection
+family:native function:*<lambda>* category=indirection
+family:native function:destructor' category=indirection
+family:native function:__dynamic_cast category=indirection
+family:native function:boost::function* category=indirection
+family:native function:boost::_bi::* category=indirection
+family:native function:boost::detail::function::functor_manager* category=indirection
+module:java.lang.reflect.* category=indirection
+module:java.lang.Class function:getMethod category=indirection
+module:androidx.work.impl.utils.ForceStopRunnable category=indirection
+
+family:native function:"*::\{dtor\}" category=dtor
+family:native function:"destructor'" category=dtor
+
+family:native function:exit category=shutdown
+family:native function:RtlExitUserProcess category=shutdown
+family:native function:ExitProcessImplementation category=shutdown
+family:native function:RtlExitUserThread category=shutdown
+
+family:native function:RtlpExecuteHandlerForException category=handler
+family:native function:_sigtramp category=handler
+family:native function:DispatchHookW category=handler
+family:native function:execute_onexit_table category=handler
+
+family:native function:abort category=throw
+family:native function:raise category=throw
+family:native function:std::terminate category=throw
+family:native function:RtlExitUserThread category=throw
+family:native function:TppRaiseInvalidParameter category=throw
+family:native function:_CxxThrowException category=throw
+family:native function:RaiseException category=throw
+family:native function:RaiseComPlusException category=throw
+family:native function:_CFThrowFormattedException category=throw
+family:native function:objc_exception_throw category=throw
+
+family:native package:"C:/WINDOWS/system32/DriverStore\**" category=driver
+family:native package:"/System/Library/Extensions/AppleIntel*GraphicsGLDriver.bundle/**" category=driver
+family:native function:*CUDA* category=driver
+family:native package:**/nvcuda.dll category=driver
+family:native package:"C:\Program Files\NVIDIA Corporation\**" category=driver
+family:native package:/System/Library/Extensions/GeForceGLDriver.bundle/** category=driver
+family:native package:/System/Library/Extensions/AMDRadeon*/** category=driver
+family:native package:/System/Library/PrivateFrameworks/GPUSupport.framework/** category=driver
+family:native package:libGPUSupportMercury.dylib category=driver
+family:native package:AGXGLDriver category=driver
+
+family:native function:RtlFreeHeap category=free
+family:native function:RtlFreeUnicodeString category=free
+family:native function:std::_Deallocate category=free
+family:native category:system function:free category=free
+
+family:native package:C:\Windows\SYSTEM32\OPENGL32.dll category=gl
+family:native package:/System/Library/Frameworks/OpenGL.framework/** category=gl
+family:native package:OpenGLES category=gl
+family:native package:GLEngine category=gl
+family:native package:/system/lib/libEGL.so category=gl
+family:native package:**/libGLES*.so category=gl
+family:native package:**/libESXGLES*.so category=gl
+family:native package:/system/lib/libskia.so category=gl
+# Not a graphics library but we've seen it be interchangeable with OpenGL in stacktraces.
+family:native package:/System/Library/Frameworks/OpenCL.framework/** category=gl
+
+family:native package:"/System/Library/PrivateFrameworks/GPUSupport.framework/**" function:gpusGenerateCrashLog* category=telemetry
+family:native function:gpusKillClientExt category=telemetry
+family:native function:crashpad::* category=telemetry
+# Presumably some chinese user-tracking SDK. Wraps activity creation in Android.
+module:cn.gundam.sdk.* category=telemetry
+
+# No app actually uses this. This appears to be some type of framework that
+# comes up as part of some "Lenovo ID" activity (user login prompt?). Not
+# entirely sure if any of that is linked into the app, it's probably something
+# preinstalled on Lenovo devices.
+module:com.lenovo.payplus.analytics.* category=telemetry
+
+family:native function:dlopen category=load
+family:native package:/system/lib/libnativeloader.so function:android::OpenNativeLibrary category=load
+module:java.lang.System function:loadLibrary category=load
+module:java.lang.Runtime function:loadLibrary* category=load
+
+family:native function:pthread_mutex_lock category=lock
+
+# Semi-interesting frames
+category:driver +sentinel +prefix
+category:free +sentinel +prefix
+category:malloc +sentinel +prefix
+category:lock +sentinel +prefix
+category:load +sentinel +prefix
+category:gl +sentinel
+category:gc +sentinel
+category:ui +sentinel +prefix
+
+# Ignore driver frame if it is directly calling another driver frame. This
+# removes a lot of noise from the stack especially if most of the called frames
+# failed symbolication, stack scanning was done or to paper over differences in
+# driver versions.
+category:driver | [ category:driver ] category=internals
+
+# Only group by top-level GL operaton, not any helper functions it may have called.
+
+[ category:gl ] | category:gl category=internals
+[ category:av ] | category:av  category=internals
+
+# Only group by top-level malloc op, not any helper function it may have called.
+[ category:malloc ] | category:malloc category=internals
+
+# abort() and exception raising is technically the culprit for crashes, but not
+# the thing we want to show.
+category:throw +sentinel +prefix ^-group
+
+# On Windows, _purecall internally aborts when the function pointer is invalid.
+# We want to treat this the same as a segfault happening before calling
+# _purecall.
+[ function:_purecall ] | category:throw category=internals
+
+# raise() called by abort() should only group by abort()
+[ category:throw ] | category:throw category=internals
+
+# Thread bases such as `main()` are just noise and are called by noise.
+category:threadbase -group v-group
+
+# handler frames typically call code for crash reporting, so the frames below
+# are noise and do not represent the actual crash. We usually expect something to
+# be above handler frames that represents the actual crash. The stackwalker
+# has a bug where it cannot walk past _sigtramp on OS X but that is expected to
+# be fixed eventually.
+category:handler ^-group -group
+
+# Crash reporting tools are noise that can occur outside of signal handlers
+# too, apparently (Apple's GPUSupport module)
+category:telemetry -group
+
+category:indirection -group
+category:internals -group
+category:threadbase v-group -group
+
+# system frames starting with underscore are likely garbage
+# unsymbolicated system frames are likely system frames starting with underscore
+# _purecall is an exception as it is often the only important frame in a block of system frames
+family:native category:system function:_* !function:_purecall category=internals
+family:native category:system function:"<unknown>" category=internals
+family:native function:_INTERNAL* category=internals
+
+# frames with .cold.1 are probably hotpaths vs slow paths but not relevant for grouping
+# e.g., two callstacks that should group together:
+#   foo -> bar
+#   foo -> foo.cold.1 -> bar
+family:native function:*.cold.1 category=indirection
+
+# System frame wedged between two other frames is just noise.
+[ !category:system ] | category:system | [ !category:system ] category=indirection
+
+# TODO: multi-category / category inheritance
+[ category:free ]       | category:system  category=internals
+[ category:system ]     | category:system  category=internals
+[ category:std ]        | category:system  category=internals
+[ category:std ]        | category:std     category=internals
+[ category:ui ]         | category:ui      category=internals
+[ category:ui ]         | category:system  category=internals
+[ category:internals ]  | category:system  category=internals
+[ category:load ]       | category:system  category=internals
+[ category:load ]       | category:load    category=internals
+[ category:throw ]      | category:system  category=internals
+[ category:gc ]         | category:system  category=internals
+[ category:gc ]         | category:gc      category=internals
+[ category:dtor ]       | category:dtor    category=internals

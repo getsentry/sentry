@@ -1,6 +1,4 @@
-import React from 'react';
 import {browserHistory} from 'react-router';
-import {withTheme} from 'emotion-theming';
 import {Location} from 'history';
 
 import AsyncComponent from 'app/components/asyncComponent';
@@ -12,14 +10,12 @@ import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {t} from 'app/locale';
 import {Organization, Project} from 'app/types';
 import getDynamicText from 'app/utils/getDynamicText';
-import {Theme} from 'app/utils/theme';
 
 const ALLOWED_TIME_PERIODS = ['1h', '24h', '7d', '14d', '30d'];
 
 type Props = AsyncComponent['props'] & {
   organization: Organization;
   location: Location;
-  theme: Theme;
   onTotalValuesChange: (value: number | null) => void;
   projectId?: string;
 };
@@ -109,7 +105,6 @@ class ProjectErrorsBasicChart extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
-    const {theme} = this.props;
     const {loading, reloading} = this.state;
 
     return getDynamicText({
@@ -123,7 +118,7 @@ class ProjectErrorsBasicChart extends AsyncComponent<Props, State> {
             series={this.getSeries()}
             isGroupedByDate
             showTimeInTooltip
-            colors={[theme.purple300, theme.purple200]}
+            colors={theme => [theme.purple300, theme.purple200]}
             grid={{left: '10px', right: '10px', top: '40px', bottom: '0px'}}
           />
         </TransitionChart>
@@ -133,4 +128,4 @@ class ProjectErrorsBasicChart extends AsyncComponent<Props, State> {
   }
 }
 
-export default withTheme(ProjectErrorsBasicChart);
+export default ProjectErrorsBasicChart;

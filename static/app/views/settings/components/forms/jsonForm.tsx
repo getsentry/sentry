@@ -1,8 +1,6 @@
-import React from 'react';
+import * as React from 'react';
+import {withRouter, WithRouterProps} from 'react-router';
 import * as Sentry from '@sentry/react';
-import {Location} from 'history';
-import PropTypes from 'prop-types';
-import {Box} from 'reflexbox'; // eslint-disable-line no-restricted-imports
 import scrollToElement from 'scroll-to-element';
 
 import {defined} from 'app/utils';
@@ -10,10 +8,6 @@ import {sanitizeQuerySelector} from 'app/utils/sanitizeQuerySelector';
 
 import FormPanel from './formPanel';
 import {Field, FieldObject, JsonFormObject} from './type';
-
-type DefaultProps = {
-  additionalFieldProps: {[key: string]: any};
-};
 
 type Props = {
   /**
@@ -26,16 +20,13 @@ type Props = {
    * Allows more fine grain control of title/fields
    */
   fields?: FieldObject[];
-  location?: Location;
-} & DefaultProps &
+
+  additionalFieldProps?: {[key: string]: any};
+} & WithRouterProps &
   Omit<
     React.ComponentProps<typeof FormPanel>,
     'highlighted' | 'fields' | 'additionalFieldProps'
   >;
-
-type Context = {
-  location?: Location;
-};
 
 type State = {
   // Field name that should be highlighted
@@ -43,16 +34,9 @@ type State = {
 };
 
 class JsonForm extends React.Component<Props, State> {
-  static contextTypes = {
-    location: PropTypes.object,
-  };
-
-  static defaultProps: DefaultProps = {
-    additionalFieldProps: {},
-  };
-
   state: State = {
-    highlighted: getLocation(this.props, this.context).hash,
+    // location.hash is optional because of tests.
+    highlighted: this.props.location?.hash,
   };
 
   componentDidMount() {
@@ -60,18 +44,16 @@ class JsonForm extends React.Component<Props, State> {
   }
 
   UNSAFE_componentWillReceiveProps(nextProps: Props) {
-    if (
-      getLocation(this.props, this.context).hash !==
-      getLocation(nextProps, this.context).hash
-    ) {
-      const hash = getLocation(nextProps, this.context).hash;
+    if (this.props.location.hash !== nextProps.location.hash) {
+      const hash = nextProps.location.hash;
       this.scrollToHash(hash);
       this.setState({highlighted: hash});
     }
   }
 
   scrollToHash(toHash?: string): void {
-    const hash = toHash || getLocation(this.props, this.context).hash;
+    // location.hash is optional because of tests.
+    const hash = toHash || this.props.location?.hash;
 
     if (!hash) {
       return;
@@ -168,7 +150,7 @@ class JsonForm extends React.Component<Props, State> {
     };
 
     return (
-      <Box {...otherProps}>
+      <div {...otherProps}>
         {typeof forms !== 'undefined' &&
           forms.map((formGroup, i) => (
             <React.Fragment key={i}>
@@ -178,13 +160,9 @@ class JsonForm extends React.Component<Props, State> {
         {typeof forms === 'undefined' &&
           typeof fields !== 'undefined' &&
           this.renderForm({fields, formPanelProps, title})}
-      </Box>
+      </div>
     );
   }
 }
 
-export default JsonForm;
-
-function getLocation(props: Props, context: Context): Location | {hash?: string} {
-  return props.location || context.location || {};
-}
+export default withRouter(JsonForm);

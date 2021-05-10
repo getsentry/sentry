@@ -1,4 +1,3 @@
-import React from 'react';
 import styled from '@emotion/styled';
 
 import {defined} from 'app/utils';
@@ -8,14 +7,9 @@ import FormField from './formField';
 import SelectControl, {ControlProps} from './selectControl';
 
 type SelectProps = Omit<ControlProps, 'onChange' | 'name'>;
-type FormProps = Omit<FormField['props'], 'onChange' | 'name'>;
+type FormProps = FormField['props'];
 
-type Props = {
-  name: string;
-  onChange: FormField['props']['onChange'];
-  deprecatedSelectControl?: boolean;
-} & FormProps &
-  SelectProps;
+type Props = FormProps & SelectProps;
 
 export default class SelectField extends FormField<Props> {
   static defaultProps = {
@@ -112,12 +106,10 @@ export default class SelectField extends FormField<Props> {
       required,
       name,
       isLoading,
-      deprecatedSelectControl,
     } = this.props;
 
     return (
       <StyledSelectControl
-        deprecatedSelectControl={deprecatedSelectControl}
         creatable={creatable}
         id={this.getId()}
         choices={choices}

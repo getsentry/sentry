@@ -1,6 +1,6 @@
-import React from 'react';
+import * as React from 'react';
 import {MultiValueProps} from 'react-select';
-import {withTheme} from 'emotion-theming';
+import {withTheme} from '@emotion/react';
 
 import Button from 'app/components/button';
 import SelectControl from 'app/components/forms/selectControl';
@@ -61,7 +61,6 @@ class InviteRowControl extends React.Component<Props, State> {
     const {inputValue} = this.state;
     switch (event.key) {
       case 'Enter':
-      case 'Tab':
       case ',':
       case ' ':
         onChangeEmails([...mapToOptions(emails), {label: inputValue, value: inputValue}]);

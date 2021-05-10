@@ -1,12 +1,11 @@
-import React from 'react';
-import {Link as RouterLink} from 'react-router';
+import * as React from 'react';
+import {Link as RouterLink, withRouter, WithRouterProps} from 'react-router';
 import {LocationDescriptor} from 'history';
-import PropTypes from 'prop-types';
 import * as qs from 'query-string';
 
 import {extractSelectionParameters} from 'app/components/organizations/globalSelectionHeader/utils';
 
-type Props = {
+type Props = WithRouterProps & {
   /**
    * Location that is being linked to
    */
@@ -32,14 +31,9 @@ type Props = {
  *
  * Falls back to <a> if there is no router present.
  */
-export default class GlobalSelectionLink extends React.Component<Props> {
-  static contextTypes = {
-    location: PropTypes.object,
-  };
-
+class GlobalSelectionLink extends React.Component<Props> {
   render() {
-    const {location} = this.context;
-    const {to} = this.props;
+    const {location, to} = this.props;
 
     const globalQuery = extractSelectionParameters(location?.query);
     const hasGlobalQuery = Object.keys(globalQuery).length > 0;
@@ -84,3 +78,5 @@ export default class GlobalSelectionLink extends React.Component<Props> {
     }
   }
 }
+
+export default withRouter(GlobalSelectionLink);

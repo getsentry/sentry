@@ -1,6 +1,6 @@
 import re
 
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 
 from sentry.constants import SentryAppStatus
 from sentry.mediators import sentry_apps
@@ -669,18 +669,25 @@ class PostSentryAppsTest(SentryAppsTest):
         )
         assert response.status_code == 400
 
-    def test_create_integration_exceeding_scopes(self):
+    def test_members_cant_create(self):
         member_om = OrganizationMember.objects.get(user=self.user, organization=self.org)
         member_om.role = "member"
         member_om.save()
         self.login_as(user=self.user)
-        response = self._post(events=(), scopes=("member:read", "member:write", "member:admin"))
+        response = self._post()
+        assert response.status_code == 403
+
+    def test_create_integration_exceeding_scopes(self):
+        member_om = OrganizationMember.objects.get(user=self.user, organization=self.org)
+        member_om.role = "manager"
+        member_om.save()
+        self.login_as(user=self.user)
+        response = self._post(events=(), scopes=("org:read", "org:write", "org:admin"))
 
         assert response.status_code == 400
         assert response.data == {
             "scopes": [
-                "Requested permission of member:write exceeds requester's permission. Please contact an administrator to make the requested change.",
-                "Requested permission of member:admin exceeds requester's permission. Please contact an administrator to make the requested change.",
+                "Requested permission of org:admin exceeds requester's permission. Please contact an administrator to make the requested change.",
             ]
         }
 

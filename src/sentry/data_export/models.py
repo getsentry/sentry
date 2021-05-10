@@ -1,8 +1,8 @@
 import logging
 
 from django.conf import settings
-from django.core.urlresolvers import reverse
 from django.db import models
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.encoding import force_text
 

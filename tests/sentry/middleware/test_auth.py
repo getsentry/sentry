@@ -24,7 +24,7 @@ class AuthenticationMiddlewareTestCase(TestCase):
         request = self.request
         assert login(request, self.user)
         self.middleware.process_request(request)
-        assert request.user.is_authenticated()
+        assert request.user.is_authenticated
         assert request.user == self.user
         assert "_nonce" not in request.session
         assert UserIP.objects.filter(user=self.user, ip_address="127.0.0.1").exists()
@@ -36,7 +36,7 @@ class AuthenticationMiddlewareTestCase(TestCase):
         user.save()
         assert login(request, user)
         self.middleware.process_request(request)
-        assert request.user.is_authenticated()
+        assert request.user.is_authenticated
         assert request.user == self.user
         assert request.session["_nonce"] == "xxx"
 

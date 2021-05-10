@@ -1,10 +1,10 @@
 import 'zrender/lib/svg/svg';
 
-import React from 'react';
+import * as React from 'react';
+import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import echarts, {EChartOption, ECharts} from 'echarts/lib/echarts';
 import ReactEchartsCore from 'echarts-for-react/lib/core';
-import {withTheme} from 'emotion-theming';
 
 import {IS_ACCEPTANCE_TEST} from 'app/constants';
 import space from 'app/styles/space';
@@ -71,9 +71,10 @@ type Props = {
    */
   series?: EChartOption.Series[];
   /**
-   * Array of color codes to use in charts
+   * Array of color codes to use in charts. May also take a function which is
+   * provided with the current theme
    */
-  colors?: string[];
+  colors?: string[] | ((theme: Theme) => string[]);
   /**
    * Must be explicitly `null` to disable xAxis
    *
@@ -355,8 +356,11 @@ function BaseChartUnwrapped({
         })
       : undefined;
 
+  const resolveColors =
+    colors !== undefined ? (Array.isArray(colors) ? colors : colors(theme)) : null;
+
   const color =
-    colors ||
+    resolveColors ||
     (series.length ? theme.charts.getColorPalette(series.length) : theme.charts.colors);
 
   const chartOption = {

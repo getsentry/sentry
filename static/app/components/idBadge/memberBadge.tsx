@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
@@ -92,7 +92,7 @@ const StyledEmail = styled('div')`
 type NameProps = {
   useLink: boolean;
   hideEmail: boolean;
-} & Pick<Link['props'], 'to'>;
+} & Pick<React.ComponentProps<typeof Link>, 'to'>;
 
 const StyledName = styled(({useLink, to, ...props}: NameProps) => {
   const forwardProps = omit(props, 'hideEmail');

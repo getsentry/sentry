@@ -1,0 +1,50 @@
+---
+created: '2021-04-02T10:31:49.897255Z'
+creator: sentry
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
+        stacktrace
+          frame (non app frame)
+            function* (isolated function)
+              "CUseCountedObject<T>::UCDestroy"
+          frame (non app frame)
+            function* (isolated function)
+              "CContext::LUCBeginLayerDestruction"
+          frame (non app frame)
+            function* (isolated function)
+              "NDXGI::CDevice::DestroyDriverInstance"
+          frame (non app frame)
+            function*
+              "OpenAdapter10"
+          frame (non app frame)
+          frame (non app frame)
+        type (ignored because exception is synthetic)
+          "EXCEPTION_ACCESS_VIOLATION_READ"
+--------------------------------------------------------------------------
+system:
+  hash: "6fcc3bb4fac6aa6e81bb6d0faf40b0dd"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            function* (isolated function)
+              "CUseCountedObject<T>::UCDestroy"
+          frame*
+            function* (isolated function)
+              "CContext::LUCBeginLayerDestruction"
+          frame*
+            function* (isolated function)
+              "NDXGI::CDevice::DestroyDriverInstance"
+          frame*
+            function*
+              "OpenAdapter10"
+          frame
+          frame (ignored due to recursion)
+        type (ignored because exception is synthetic)
+          "EXCEPTION_ACCESS_VIOLATION_READ"

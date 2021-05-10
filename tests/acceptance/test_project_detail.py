@@ -3,7 +3,7 @@ from django.utils import timezone
 from sentry.incidents.models import IncidentStatus
 from sentry.testutils import AcceptanceTestCase
 
-FEATURE_NAME = ["organizations:incidents", "organizations:project-detail"]
+FEATURE_NAME = ["organizations:incidents"]
 
 
 class ProjectDetailTest(AcceptanceTestCase):

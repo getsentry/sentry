@@ -32,4 +32,4 @@ def make_site():
 
 site = make_site()
 
-urlpatterns = [url(r"^admin/", include(site.urls))]
+urlpatterns = [url(r"^admin/", include(site.urls[:2]))]

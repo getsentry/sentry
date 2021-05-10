@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Query} from 'history';
@@ -11,7 +11,7 @@ import {t} from 'app/locale';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
 
-const defaultProps = {
+const defaultProps: DefaultProps = {
   size: 'small',
   onCursor: (cursor: string, path: string, query: Query, _direction: number) => {
     browserHistory.push({
@@ -21,16 +21,18 @@ const defaultProps = {
   },
 };
 
-type DefaultProps = Readonly<typeof defaultProps>;
+type DefaultProps = {
+  size?: 'zero' | 'xsmall' | 'small';
+  onCursor?: (cursor: string, path: string, query: Query, _direction: number) => void;
+};
 
-type Props = {
+type Props = DefaultProps & {
   className?: string;
   pageLinks: string | null | undefined;
-  size?: 'zero' | 'xsmall' | 'small';
   to?: string;
-} & DefaultProps;
+};
 
-class Pagination extends React.Component<Props> {
+class Pagination extends Component<Props> {
   static contextTypes = {
     location: PropTypes.object,
   };

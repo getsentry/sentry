@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {loadStatsForProject} from 'app/actionCreators/projects';
@@ -26,7 +26,7 @@ type Props = {
   hasProjectAccess: boolean;
 };
 
-class ProjectCard extends React.Component<Props> {
+class ProjectCard extends Component<Props> {
   componentDidMount() {
     const {organization, project, api} = this.props;
 
@@ -46,7 +46,7 @@ class ProjectCard extends React.Component<Props> {
 
   render() {
     const {organization, project, hasProjectAccess} = this.props;
-    const {id, stats, slug, transactionStats} = project;
+    const {stats, slug, transactionStats} = project;
     const totalErrors =
       stats !== undefined
         ? formatAbbreviatedNumber(stats.reduce((sum, [_, value]) => sum + value, 0))
@@ -60,9 +60,6 @@ class ProjectCard extends React.Component<Props> {
         : '0';
     const zeroTransactions = totalTransactions === '0';
     const hasFirstEvent = Boolean(project.firstEvent || project.firstTransactionEvent);
-    const projectLink = organization.features.includes('project-detail')
-      ? `/organizations/${organization.slug}/projects/${slug}/?project=${id}`
-      : `/organizations/${organization.slug}/issues/?project=${id}`;
 
     return (
       <div data-test-id={slug}>
@@ -74,15 +71,7 @@ class ProjectCard extends React.Component<Props> {
                   project={project}
                   avatarSize={18}
                   hideOverflow
-                  displayName={
-                    hasProjectAccess ? (
-                      <Link to={projectLink}>
-                        <strong>{slug}</strong>
-                      </Link>
-                    ) : (
-                      <span>{slug}</span>
-                    )
-                  }
+                  disableLink={!hasProjectAccess}
                 />
                 <BookmarkStar organization={organization} project={project} />
               </HeaderRow>
@@ -94,7 +83,7 @@ class ProjectCard extends React.Component<Props> {
                   {tn('%s error', '%s errors', totalErrors)}
                 </Link>
                 {this.hasPerformance && (
-                  <React.Fragment>
+                  <Fragment>
                     <em>|</em>
                     <TransactionsLink
                       data-test-id="project-transactions"
@@ -112,7 +101,7 @@ class ProjectCard extends React.Component<Props> {
                         />
                       )}
                     </TransactionsLink>
-                  </React.Fragment>
+                  </Fragment>
                 )}
               </SummaryLinks>
             </CardHeader>
@@ -144,7 +133,7 @@ type ContainerState = {
   projectDetails: Project | null;
 };
 
-class ProjectCardContainer extends React.Component<ContainerProps, ContainerState> {
+class ProjectCardContainer extends Component<ContainerProps, ContainerState> {
   state = this.getInitialState();
 
   getInitialState(): ContainerState {

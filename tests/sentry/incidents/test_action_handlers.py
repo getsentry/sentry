@@ -3,7 +3,7 @@ from urllib.parse import parse_qs
 
 import responses
 from django.core import mail
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.utils import timezone
 from exam import fixture
 from freezegun import freeze_time

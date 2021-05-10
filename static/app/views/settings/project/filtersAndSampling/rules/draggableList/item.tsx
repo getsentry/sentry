@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {DraggableSyntheticListeners} from '@dnd-kit/core';
 import {useSortable} from '@dnd-kit/sortable';
 import {Transform} from '@dnd-kit/utilities';
@@ -23,7 +23,7 @@ export type ItemProps = {
   transform?: Transform | null;
   listeners?: DraggableSyntheticListeners;
   sorting?: boolean;
-  transition?: string;
+  transition?: string | null;
   forwardRef?: React.Ref<HTMLElement>;
   attributes?: UseSortableOutputProps['attributes'];
   wrapperStyle?: React.CSSProperties;

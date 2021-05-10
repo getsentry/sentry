@@ -199,7 +199,7 @@ class Pipeline:
     def initialize(self):
         self.state.regenerate(
             {
-                "uid": self.request.user.id if self.request.user.is_authenticated() else None,
+                "uid": self.request.user.id if self.request.user.is_authenticated else None,
                 "provider_model_id": self.provider_model.id if self.provider_model else None,
                 "provider_key": self.provider.key,
                 "org_id": self.organization.id if self.organization else None,

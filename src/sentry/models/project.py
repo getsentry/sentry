@@ -51,7 +51,7 @@ class ProjectManager(BaseManager):
     def get_for_user(self, team, user, scope=None, _skip_team_check=False):
         from sentry.models import Team
 
-        if not (user and user.is_authenticated()):
+        if not (user and user.is_authenticated):
             return []
 
         if not _skip_team_check:

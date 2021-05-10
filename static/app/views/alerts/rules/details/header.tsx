@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import {Params} from 'react-router/lib/Router';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
@@ -21,7 +21,7 @@ type Props = {
   params: Params;
 };
 
-export default class DetailsHeader extends React.Component<Props> {
+export default class DetailsHeader extends Component<Props> {
   render() {
     const {hasIncidentRuleDetailsError, rule, params} = this.props;
 
@@ -97,7 +97,7 @@ const Details = styled(PageHeader)`
 `;
 
 const RuleTitle = styled(PageHeading, {
-  shouldForwardProp: p => isPropValid(p) && p !== 'loading',
+  shouldForwardProp: p => typeof p === 'string' && isPropValid(p) && p !== 'loading',
 })<{loading: boolean}>`
   ${p => p.loading && 'opacity: 0'};
   line-height: 1.5;

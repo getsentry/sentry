@@ -1,0 +1,12 @@
+---
+created: '2021-03-29T22:02:37.916825Z'
+creator: sentry
+source: tests/sentry/grouping/test_categorization.py
+---
+
+
+SIGSEGV:Segfault (thread_id:_, crashed:_)
+                /system/lib/arm/nb/libtcb.so  ??? category=internals
+                                              stripped_application_code
+                                              stripped_application_code
+                                              stripped_application_code

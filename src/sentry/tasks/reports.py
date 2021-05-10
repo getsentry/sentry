@@ -8,14 +8,22 @@ from collections import OrderedDict, namedtuple
 from datetime import datetime, timedelta
 from functools import partial, reduce
 from itertools import zip_longest
+from typing import Iterable, Mapping, NamedTuple, Tuple
 
 import pytz
 from django.urls.base import reverse
 from django.utils import dateformat, timezone
 from django.utils.http import urlencode
+from snuba_sdk.column import Column
+from snuba_sdk.conditions import Condition, Op
+from snuba_sdk.entity import Entity
+from snuba_sdk.expressions import Granularity
+from snuba_sdk.function import Function
+from snuba_sdk.query import Query
 
 from sentry import features
 from sentry.app import tsdb
+from sentry.constants import DataCategory
 from sentry.models import (
     Activity,
     GroupStatus,
@@ -26,6 +34,7 @@ from sentry.models import (
     User,
     UserOption,
 )
+from sentry.snuba.dataset import Dataset
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json, redis
 from sentry.utils.compat import filter, map, zip
@@ -34,12 +43,49 @@ from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
 from sentry.utils.iterators import chunked
 from sentry.utils.math import mean
+from sentry.utils.outcomes import Outcome
+from sentry.utils.snuba import raw_snql_query
 
 date_format = partial(dateformat.format, format_string="F jS, Y")
 
 logger = logging.getLogger(__name__)
 
 BATCH_SIZE = 20000
+
+ONE_DAY = int(timedelta(days=1).total_seconds())
+
+project_breakdown_colors = ["#422C6E", "#895289", "#D6567F", "#F38150", "#F2B713"]
+
+calendar_heat_colors = [
+    "#fae5cf",
+    "#f9ddc2",
+    "#f9d6b6",
+    "#f9cfaa",
+    "#f8c79e",
+    "#f8bf92",
+    "#f8b786",
+    "#f9a66d",
+    "#f99d60",
+    "#fa9453",
+    "#fb8034",
+    "#fc7520",
+    "#f9600c",
+    "#f75500",
+]
+
+
+total_color = """
+linear-gradient(
+    -45deg,
+    #ccc 25%,
+    transparent 25%,
+    transparent 50%,
+    #ccc 50%,
+    #ccc 75%,
+    transparent 75%,
+    transparent
+);
+"""
 
 
 def _get_organization_queryset():
@@ -51,7 +97,7 @@ def _fill_default_parameters(timestamp=None, rollup=None):
         timestamp = to_timestamp(floor_to_utc_day(timezone.now()))
 
     if rollup is None:
-        rollup = 60 * 60 * 24 * 7
+        rollup = ONE_DAY * 7
 
     return (timestamp, rollup)
 
@@ -109,7 +155,7 @@ def index_to_month(index):
     return (index // 12) + 1, index % 12 + 1
 
 
-def clean_series(start, stop, rollup, series):
+def clean_series(start: datetime, stop: datetime, rollup: int, series: Iterable[Tuple[int, int]]):
     """
     Validate a series, ensuring that it follows the specified rollup and
     boundaries. The start bound is inclusive, while the stop bound is
@@ -166,7 +212,7 @@ def merge_series(target, other, function=operator.add):
     return results
 
 
-def _query_tsdb_chunked(func, issue_ids, start, stop, rollup):
+def _query_tsdb_groups_chunked(func, issue_ids, start, stop, rollup):
     combined = {}
 
     for chunk in chunked(issue_ids, BATCH_SIZE):
@@ -175,16 +221,19 @@ def _query_tsdb_chunked(func, issue_ids, start, stop, rollup):
     return combined
 
 
-def prepare_project_series(start__stop, project, rollup=60 * 60 * 24):
+def prepare_project_series(start__stop, project):
     start, stop = start__stop
+    rollup = ONE_DAY
+
     resolution, series = tsdb.get_optimal_rollup_series(start, stop, rollup)
     assert resolution == rollup, "resolution does not match requested value"
+
     clean = partial(clean_series, start, stop, rollup)
     issue_ids = project.group_set.filter(
         status=GroupStatus.RESOLVED, resolved_at__gte=start, resolved_at__lt=stop
     ).values_list("id", flat=True)
 
-    tsdb_range = _query_tsdb_chunked(tsdb.get_range, issue_ids, start, stop, rollup)
+    tsdb_range = _query_tsdb_groups_chunked(tsdb.get_range, issue_ids, start, stop, rollup)
 
     return merge_series(
         reduce(
@@ -211,7 +260,7 @@ def prepare_project_aggregates(ignore__stop, project):
     start = stop - (period * segments)
 
     def get_aggregate_value(start, stop):
-        return tsdb.get_sums(tsdb.models.project, (project.id,), start, stop, rollup=60 * 60 * 24)[
+        return tsdb.get_sums(tsdb.models.project, (project.id,), start, stop, rollup=ONE_DAY)[
             project.id
         ]
 
@@ -253,8 +302,8 @@ def prepare_project_issue_summaries(interval, project):
         .values_list("group_id", flat=True)
     )
 
-    rollup = 60 * 60 * 24
-    event_counts = _query_tsdb_chunked(
+    rollup = ONE_DAY
+    event_counts = _query_tsdb_groups_chunked(
         tsdb.get_sums, new_issue_ids | reopened_issue_ids, start, stop, rollup
     )
 
@@ -270,15 +319,69 @@ def prepare_project_issue_summaries(interval, project):
     return [new_issue_count, reopened_issue_count, existing_issue_count]
 
 
-def prepare_project_usage_summary(start__stop, project):
+def prepare_project_usage_outcomes(start__stop, project):
     start, stop = start__stop
+
+    # XXX(epurkhiser): Tsdb used to use day buckets, where the end would
+    # represent a whole day. Snuba queries more accurately thus we must
+    # capture the entire last day
+    end = stop + timedelta(days=1)
+
+    query = Query(
+        dataset=Dataset.Outcomes.value,
+        match=Entity("outcomes"),
+        select=[
+            Column("outcome"),
+            Column("category"),
+            Function("sum", [Column("quantity")], "total"),
+        ],
+        where=[
+            Condition(Column("timestamp"), Op.GTE, start),
+            Condition(Column("timestamp"), Op.LT, end),
+            Condition(Column("project_id"), Op.EQ, project.id),
+            Condition(Column("org_id"), Op.EQ, project.organization_id),
+            Condition(
+                Column("outcome"), Op.IN, [Outcome.ACCEPTED, Outcome.FILTERED, Outcome.RATE_LIMITED]
+            ),
+            Condition(
+                Column("category"),
+                Op.IN,
+                [*DataCategory.error_categories(), DataCategory.TRANSACTION],
+            ),
+        ],
+        groupby=[Column("outcome"), Column("category")],
+        granularity=Granularity(ONE_DAY),
+    )
+    data = raw_snql_query(query, referrer="reports.outcomes")["data"]
+
     return (
-        tsdb.get_sums(
-            tsdb.models.project_total_blacklisted, [project.id], start, stop, rollup=60 * 60 * 24
-        )[project.id],
-        tsdb.get_sums(
-            tsdb.models.project_total_rejected, [project.id], start, stop, rollup=60 * 60 * 24
-        )[project.id],
+        # Accepted errors
+        sum(
+            row["total"]
+            for row in data
+            if row["category"] in DataCategory.error_categories()
+            and row["outcome"] == Outcome.ACCEPTED
+        ),
+        # Dropped errors
+        sum(
+            row["total"]
+            for row in data
+            if row["category"] in DataCategory.error_categories()
+            and row["outcome"] == Outcome.RATE_LIMITED
+        ),
+        # accepted transactions
+        sum(
+            row["total"]
+            for row in data
+            if row["category"] == DataCategory.TRANSACTION and row["outcome"] == Outcome.ACCEPTED
+        ),
+        # Dropped transactions
+        sum(
+            row["total"]
+            for row in data
+            if row["category"] == DataCategory.TRANSACTION
+            and row["outcome"] == Outcome.RATE_LIMITED
+        ),
     )
 
 
@@ -325,7 +428,7 @@ def clean_calendar_data(project, series, start, stop, rollup, timestamp=None):
 def prepare_project_calendar_series(interval, project):
     start, stop = get_calendar_query_range(interval, 3)
 
-    rollup = 60 * 60 * 24
+    rollup = ONE_DAY
     series = tsdb.get_range(tsdb.models.project, [project.id], start, stop, rollup=rollup)[
         project.id
     ]
@@ -333,7 +436,7 @@ def prepare_project_calendar_series(interval, project):
     return clean_calendar_data(project, series, start, stop, rollup)
 
 
-def build(name, fields):
+def build_report(name, fields):
     names, prepare_fields, merge_fields = zip(*fields)
 
     cls = namedtuple(name, names)
@@ -347,7 +450,7 @@ def build(name, fields):
     return cls, prepare, merge
 
 
-Report, prepare_project_report, merge_reports = build(
+Report, prepare_project_report, merge_reports = build_report(
     "Report",
     [
         (
@@ -361,7 +464,7 @@ Report, prepare_project_report, merge_reports = build(
             partial(merge_sequences, function=safe_add),
         ),
         ("issue_summaries", prepare_project_issue_summaries, merge_sequences),
-        ("usage_summary", prepare_project_usage_summary, merge_sequences),
+        ("series_outcomes", prepare_project_usage_outcomes, merge_sequences),
         (
             "calendar_series",
             prepare_project_calendar_series,
@@ -502,7 +605,7 @@ def fetch_personal_statistics(start__stop, organization, user):
 
     if resolved_issue_ids:
         users = tsdb.get_distinct_counts_union(
-            tsdb.models.users_affected_by_group, resolved_issue_ids, start, stop, 60 * 60 * 24
+            tsdb.models.users_affected_by_group, resolved_issue_ids, start, stop, ONE_DAY
         )
     else:
         users = {}
@@ -510,16 +613,13 @@ def fetch_personal_statistics(start__stop, organization, user):
     return {"resolved": len(resolved_issue_ids), "users": users}
 
 
-Duration = namedtuple(
-    "Duration",
-    (
-        "adjective",  # e.g. "daily" or "weekly",
-        "noun",  # relative to today, e.g. "yesterday" or "this week"
-        "date_format",  # date format used for large series x axis labeling
-    ),
-)
+class Duration(NamedTuple):
+    adjective: str  # e.g. "daily" or "weekly",
+    noun: str  # relative to today, e.g. "yesterday" or "this week"
+    date_format: str  # date format used for large series x axis labeling
 
-durations = {(60 * 60 * 24 * 7): Duration("weekly", "this week", "D")}
+
+durations = {(ONE_DAY * 7): Duration("weekly", "this week", "D")}
 
 
 def build_message(timestamp, duration, organization, user, reports):
@@ -636,39 +736,41 @@ def deliver_organization_user_report(timestamp, duration, organization_id, user_
         message.send()
 
 
-Point = namedtuple("Point", "resolved unresolved")
-DistributionType = namedtuple("DistributionType", "label color")
-
-
 def series_map(function, series):
     return [(timestamp, function(value)) for timestamp, value in series]
 
 
-project_breakdown_colors = ["#422C6E", "#895289", "#D6567F", "#F38150", "#F2B713"]
+class Key(NamedTuple):
+    label: str
+    url: str
+    color: str
+    data: Mapping[str, int]
 
-total_color = """
-linear-gradient(
-    -45deg,
-    #ccc 25%,
-    transparent 25%,
-    transparent 50%,
-    #ccc 50%,
-    #ccc 75%,
-    transparent 75%,
-    transparent
-);
-"""
+
+class Point(NamedTuple):
+    resolved: int
+    unresolved: int
+
+
+class DistributionType(NamedTuple):
+    label: str
+    color: str
 
 
 def build_project_breakdown_series(reports):
-    Key = namedtuple("Key", "label url color data")
-
     def get_legend_data(report):
-        filtered, rate_limited = report.usage_summary
+        (
+            accepted_errors,
+            dropped_errors,
+            accepted_transactions,
+            dropped_transactions,
+        ) = report.series_outcomes
+
         return {
-            "events": sum(sum(value) for timestamp, value in report.series),
-            "filtered": filtered,
-            "rate_limited": rate_limited,
+            "accepted_errors": accepted_errors,
+            "dropped_errors": dropped_errors,
+            "accepted_transactions": accepted_transactions,
+            "dropped_transactions": dropped_transactions,
         }
 
     # Find the reports with the most total events. (The number of reports to
@@ -692,10 +794,10 @@ def build_project_breakdown_series(reports):
     selections = map(
         lambda instance__color: (
             Key(
-                instance__color[0].slug,
-                instance__color[0].get_absolute_url(),
-                instance__color[1],
-                get_legend_data(reports[instance__color[0]]),
+                label=instance__color[0].slug,
+                url=instance__color[0].get_absolute_url(),
+                color=instance__color[1],
+                data=get_legend_data(reports[instance__color[0]]),
             ),
             reports[instance__color[0]],
         ),
@@ -809,22 +911,7 @@ def to_calendar(organization, interval, series):
     start, stop = get_calendar_range(interval, 3)
 
     legend, values = colorize(
-        [
-            "#fae5cf",
-            "#f9ddc2",
-            "#f9d6b6",
-            "#f9cfaa",
-            "#f8c79e",
-            "#f8bf92",
-            "#f8b786",
-            "#f9a66d",
-            "#f99d60",
-            "#fa9453",
-            "#fb8034",
-            "#fc7520",
-            "#f9600c",
-            "#f75500",
-        ],
+        calendar_heat_colors,
         [value for timestamp, value in series if value is not None],
     )
 

@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -8,6 +8,7 @@ import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
 import * as Layout from 'app/components/layouts/thirds';
 import TimeSince from 'app/components/timeSince';
 import {t} from 'app/locale';
+import space from 'app/styles/space';
 import {Organization, SavedQuery} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import withApi from 'app/utils/withApi';
@@ -96,7 +97,7 @@ class ResultsHeader extends React.Component<Props, State> {
 
     return (
       <Layout.Header>
-        <Layout.HeaderContent>
+        <StyledHeaderContent>
           <DiscoverBreadcrumb
             eventView={eventView}
             organization={organization}
@@ -108,7 +109,7 @@ class ResultsHeader extends React.Component<Props, State> {
             eventView={eventView}
           />
           {this.renderAuthor()}
-        </Layout.HeaderContent>
+        </StyledHeaderContent>
         <Layout.HeaderActions>
           <SavedQueryButtonGroup
             location={location}
@@ -129,9 +130,12 @@ class ResultsHeader extends React.Component<Props, State> {
 const Subtitle = styled('h4')`
   font-size: ${p => p.theme.fontSizeLarge};
   font-weight: normal;
-  line-height: 1.4;
   color: ${p => p.theme.gray300};
-  margin: 0;
+  margin: ${space(0.5)} 0 0 0;
+`;
+
+const StyledHeaderContent = styled(Layout.HeaderContent)`
+  overflow: unset;
 `;
 
 export default withApi(ResultsHeader);

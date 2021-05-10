@@ -5,8 +5,8 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
-from sentry.api.event_search import is_function
 from sentry.api.paginator import GenericOffsetPaginator
+from sentry.search.events.fields import is_function
 from sentry.snuba import discover
 
 logger = logging.getLogger(__name__)

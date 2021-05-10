@@ -1,7 +1,7 @@
-import React from 'react';
+import * as React from 'react';
 import TextareaAutosize from 'react-autosize-textarea';
+import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {withTheme} from 'emotion-theming';
 import moment from 'moment';
 
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
@@ -9,10 +9,8 @@ import Tag from 'app/components/tag';
 import {IconGithub, IconGitlab, IconSentry} from 'app/icons';
 import {inputStyles} from 'app/styles/input';
 import space from 'app/styles/space';
-import {Theme} from 'app/utils/theme';
 
 type Props = {
-  theme: Theme;
   raw: string;
   dateUpdated: string | null;
   provider?: string;
@@ -28,7 +26,7 @@ type Props = {
 type State = {};
 
 class RulesPanel extends React.Component<Props, State> {
-  renderIcon(provider) {
+  renderIcon(provider: string) {
     switch (provider) {
       case 'github':
         return <IconGithub size="md" />;
@@ -51,7 +49,6 @@ class RulesPanel extends React.Component<Props, State> {
 
   render() {
     const {
-      theme,
       raw,
       dateUpdated,
       provider,
@@ -66,7 +63,7 @@ class RulesPanel extends React.Component<Props, State> {
       <Container data-test-id={dataTestId}>
         <RulesHeader>
           <TitleContainer>
-            {this.renderIcon(provider)}
+            {this.renderIcon(provider ?? '')}
             <Title>{this.renderTitle()}</Title>
           </TitleContainer>
           {readOnly && <ReadOnlyTag type="default">{'Read Only'}</ReadOnlyTag>}
@@ -92,7 +89,6 @@ class RulesPanel extends React.Component<Props, State> {
                 autoComplete="off"
                 autoCorrect="off"
                 autoCapitalize="off"
-                theme={theme}
                 placeholder={placeholder}
               />
             </InnerPanelBody>
@@ -182,7 +178,7 @@ const InnerPanelBody = styled(PanelBody)`
 `;
 
 const StyledTextArea = styled(TextareaAutosize)`
-  ${inputStyles};
+  ${p => inputStyles(p)};
   height: 350px !important;
   overflow: auto;
   outline: 0;

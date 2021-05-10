@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -207,7 +207,7 @@ function _BackendCards(props: BackendCardsProps) {
                       value={value}
                       chart={chart}
                       horizontal
-                      minHeight={102}
+                      minHeight={96}
                       isNotInteractive
                     />
                   );
@@ -250,7 +250,7 @@ const SparklineContainer = styled('div')<SparklineContainerProps>`
   flex-grow: 4;
   max-height: ${p => p.height}px;
   max-width: ${p => p.width}px;
-  margin: ${space(1)} ${space(0)} ${space(1.5)} ${space(3)};
+  margin: ${space(1)} ${space(0)} ${space(0.5)} ${space(3)};
 `;
 
 const VitalsContainer = styled('div')`
@@ -329,7 +329,7 @@ export function VitalBar(props: VitalBarProps) {
       {showBar && <ColorBar colorStops={colorStops} />}
       <BarDetail>
         {showDurationDetail && p75 && (
-          <div>
+          <div data-test-id="vital-bar-p75">
             {t('The p75 for all transactions is ')}
             <strong>{p75}</strong>
           </div>

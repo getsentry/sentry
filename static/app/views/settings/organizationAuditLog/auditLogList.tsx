@@ -1,4 +1,3 @@
-import React from 'react';
 import styled from '@emotion/styled';
 
 import UserAvatar from 'app/components/avatar/userAvatar';
@@ -69,7 +68,7 @@ const AuditLogList = ({
 
           {hasEntries &&
             entries.map(entry => (
-              <StyledPanelItem alignItems="center" key={entry.id}>
+              <StyledPanelItem center key={entry.id}>
                 <UserInfo>
                   <div>
                     {entry.actor.email && (

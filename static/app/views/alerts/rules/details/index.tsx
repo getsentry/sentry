@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import {Location} from 'history';
 import moment from 'moment';
@@ -8,22 +8,21 @@ import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
 import DateTime from 'app/components/dateTime';
 import {t} from 'app/locale';
-import {Organization} from 'app/types';
+import {DateString, Organization} from 'app/types';
 import {getUtcDateString} from 'app/utils/dates';
 import withApi from 'app/utils/withApi';
 import {makeRuleDetailsQuery} from 'app/views/alerts/list/row';
-import {IncidentRule} from 'app/views/settings/incidentRules/types';
+import {
+  IncidentRule,
+  TimePeriod,
+  TimeWindow,
+} from 'app/views/settings/incidentRules/types';
 
 import {Incident} from '../../types';
 import {fetchAlertRule, fetchIncident, fetchIncidentsForRule} from '../../utils';
 
 import DetailsBody from './body';
-import {
-  ALERT_RULE_DETAILS_DEFAULT_PERIOD,
-  TIME_OPTIONS,
-  TIME_WINDOWS,
-  TimePeriodType,
-} from './constants';
+import {TIME_OPTIONS, TIME_WINDOWS, TimePeriodType} from './constants';
 import DetailsHeader from './header';
 
 type Props = {
@@ -40,7 +39,7 @@ type State = {
   selectedIncident?: Incident | null;
 };
 
-class AlertRuleDetails extends React.Component<Props, State> {
+class AlertRuleDetails extends Component<Props, State> {
   state: State = {isLoading: false, hasError: false};
 
   componentDidMount() {
@@ -62,8 +61,13 @@ class AlertRuleDetails extends React.Component<Props, State> {
 
   getTimePeriod(): TimePeriodType {
     const {location} = this.props;
+    const {rule} = this.state;
 
-    const period = location.query.period ?? ALERT_RULE_DETAILS_DEFAULT_PERIOD;
+    const defaultPeriod =
+      rule?.timeWindow && rule?.timeWindow > TimeWindow.ONE_HOUR
+        ? TimePeriod.SEVEN_DAYS
+        : TimePeriod.ONE_DAY;
+    const period = location.query.period ?? defaultPeriod;
 
     if (location.query.start && location.query.end) {
       return {
@@ -72,11 +76,11 @@ class AlertRuleDetails extends React.Component<Props, State> {
         period,
         label: t('Custom time'),
         display: (
-          <React.Fragment>
+          <Fragment>
             <DateTime date={moment.utc(location.query.start)} timeAndDate />
             {' — '}
             <DateTime date={moment.utc(location.query.end)} timeAndDate />
-          </React.Fragment>
+          </Fragment>
         ),
         custom: true,
       };
@@ -90,11 +94,11 @@ class AlertRuleDetails extends React.Component<Props, State> {
         period,
         label: t('Custom time'),
         display: (
-          <React.Fragment>
+          <Fragment>
             <DateTime date={moment.utc(start)} timeAndDate />
             {' — '}
             <DateTime date={moment.utc(end)} timeAndDate />
-          </React.Fragment>
+          </Fragment>
         ),
         custom: true,
       };
@@ -151,12 +155,22 @@ class AlertRuleDetails extends React.Component<Props, State> {
     }
   };
 
-  handleTimePeriodChange = async (value: string) => {
+  handleTimePeriodChange = (value: string) => {
+    browserHistory.push({
+      pathname: this.props.location.pathname,
+      query: {
+        period: value,
+      },
+    });
+  };
+
+  handleZoom = async (start: DateString, end: DateString) => {
     const {location} = this.props;
     await browserHistory.push({
       pathname: location.pathname,
       query: {
-        period: value,
+        start,
+        end,
       },
     });
   };
@@ -167,7 +181,7 @@ class AlertRuleDetails extends React.Component<Props, State> {
     const timePeriod = this.getTimePeriod();
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Feature organization={organization} features={['alert-details-redesign']}>
           <DetailsHeader
             hasIncidentRuleDetailsError={hasError}
@@ -181,9 +195,10 @@ class AlertRuleDetails extends React.Component<Props, State> {
             timePeriod={timePeriod}
             selectedIncident={selectedIncident}
             handleTimePeriodChange={this.handleTimePeriodChange}
+            handleZoom={this.handleZoom}
           />
         </Feature>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }
