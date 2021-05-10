@@ -310,8 +310,17 @@ register("store.race-free-group-creation-force-disable", default=False)
 # Killswitch for dropping events if they were to create groups
 register("store.load-shed-group-creation-projects", type=Any, default=[])
 
-# Killswitch for dropping events in ingest consumer or really anywhere
+# Killswitch for dropping events in ingest consumer
 register("store.load-shed-pipeline-projects", type=Any, default=[])
 
 # Switch for more performant project counter incr
 register("store.projectcounter-modern-upsert-sample-rate", default=0.0)
+
+# Killswitch for dropping events in ingest consumer (after parsing them)
+register("store.load-shed-parsed-pipeline-projects", type=Any, default=[])
+
+# Killswitch for dropping events in process_event
+register("store.load-shed-process-event-projects", type=Any, default=[])
+
+# Killswitch for dropping events in symbolicate_event
+register("store.load-shed-symbolicate-event-projects", type=Any, default=[])

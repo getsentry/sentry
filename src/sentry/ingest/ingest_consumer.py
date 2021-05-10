@@ -136,6 +136,18 @@ def _do_process_event(message, projects):
         )
         return  # message already processed do not reprocess
 
+    if killswitch_matches_context(
+        "store.load-shed-pipeline-projects",
+        {
+            "project_id": project_id,
+            "event_id": event_id,
+            "has_attachments": bool(attachments),
+        },
+    ):
+        # This killswitch is for the worst of scenarios and should probably not
+        # cause additional load on our logging infrastructure
+        return
+
     try:
         project = projects[project_id]
     except KeyError:
@@ -149,26 +161,23 @@ def _do_process_event(message, projects):
     # which assumes that data passed in is a raw dictionary.
     data = json.loads(payload)
 
-    if killswitch_matches_context(
-        "store.load-shed-pipeline-projects",
-        {
-            "project_id": project_id,
-            "event_id": event_id,
-            "organization_id": project.organization_id,
-            "platform": data.get("platform"),
-            "event_type": data.get("type") or "error",
-            "has_attachments": bool(attachments),
-        },
-    ):
-        # This killswitch is for the worst of scenarios and should probably not
-        # cause additional load on our logging infrastructure
-        return
-
     if project_id == settings.SENTRY_PROJECT:
         metrics.incr(
             "internal.captured.ingest_consumer.parsed",
             tags={"event_type": data.get("type") or "null"},
         )
+
+    if killswitch_matches_context(
+        "store.load-shed-parsed-pipeline-projects",
+        {
+            "organization_id": project.organization_id,
+            "project_id": project.project_id,
+            "event_type": data.get("type") or "null",
+            "has_attachments": bool(attachments),
+            "event_id": event_id,
+        },
+    ):
+        return
 
     cache_key = event_processing_store.store(data)
 

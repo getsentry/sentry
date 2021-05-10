@@ -8,19 +8,41 @@ features and more performant.
 """
 
 import copy
+from collections import namedtuple
 from typing import Any, Dict, List, Union
 
 from sentry import options
+from sentry.utils import metrics
 
 Condition = Dict[str, str]
 KillswitchConfig = List[Condition]
 LegacyKillswitchConfig = Union[KillswitchConfig, List[int]]
 Context = Dict[str, Any]
 
-ALL_KILLSWITCH_OPTIONS = [
-    "store.load-shed-group-creation-projects",
-    "store.load-shed-pipeline-projects",
-]
+KillswitchInfo = namedtuple("KillswitchInfo", ["description", "fields"])
+
+ALL_KILLSWITCH_OPTIONS = {
+    "store.load-shed-group-creation-projects": KillswitchInfo(
+        description="Drop event in save_event before entering transaction to create group",
+        fields=("project_id", "platform"),
+    ),
+    "store.load-shed-pipeline-projects": KillswitchInfo(
+        description="Drop event in ingest consumer. Available fields are severely restricted because nothing is parsed yet.",
+        fields=("project_id", "event_id", "has_attachments"),
+    ),
+    "store.load-shed-parsed-pipeline-projects": KillswitchInfo(
+        description="Drop events in ingest consumer after parsing them. Available fields are more but a bunch of stuff can go wrong before that.",
+        fields=("organization_id", "project_id", "event_type", "has_attachments", "event_id"),
+    ),
+    "store.load-shed-process-event-projects": KillswitchInfo(
+        description="Drop events in process_event.",
+        fields=("project_id", "event_id", "platform"),
+    ),
+    "store.load-shed-symbolicate-event-projects": KillswitchInfo(
+        description="Drop events in symbolicate_event.",
+        fields=("project_id", "event_id", "platform"),
+    ),
+}
 
 
 def normalize_value(option_value: Any) -> KillswitchConfig:
@@ -40,8 +62,15 @@ def normalize_value(option_value: Any) -> KillswitchConfig:
 
 def killswitch_matches_context(option_key: str, context: Context) -> bool:
     assert option_key in ALL_KILLSWITCH_OPTIONS
+    assert set(ALL_KILLSWITCH_OPTIONS[option_key].fields) == set(context)
     option_value = options.get(option_key)
-    return _value_matches(option_value, context)
+    rv = _value_matches(option_value, context)
+    metrics.incr(
+        "sentry.killswitches.run",
+        tags={"option_key": option_key, "decision": "matched" if rv else "passed"},
+    )
+
+    return rv
 
 
 def _value_matches(raw_option_value: LegacyKillswitchConfig, context: Context) -> bool:

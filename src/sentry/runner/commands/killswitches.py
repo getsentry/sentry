@@ -52,17 +52,19 @@ def edit(killswitch):
             "#   event_type: transaction\n"
             "# - project_id: 43\n"
             "#\n"
-            "# For now, always check in-code which fields are actually available within\n"
-            "# the killswitch! For example you can write `- foo: bar` and it will be\n"
-            "# written to the sentry option, but then silently ignored in the killswitch.\n"
-            "#\n"
             "# After saving and exiting, your killswitch conditions will be printed in faux-SQL\n"
-            "# for you to confirm. The above conditions' preview would be:"
+            "# for you to confirm. The above conditions' preview would be:\n"
             "#\n"
             "# DROP DATA WHERE\n"
             "#   (project_id = 42 AND event_type = transaction) OR\n"
             "#   (project_id = 43)\n"
+            "#\n"
+            f"# {killswitch}: {killswitches.ALL_KILLSWITCH_OPTIONS[killswitch].description}\n"
+            f"# Available fields:\n"
         )
+
+        for field in killswitches.ALL_KILLSWITCH_OPTIONS[killswitch].fields:
+            edit_text += f"#  - {field}\n"
 
         if option_value:
             edit_text += "\n"
@@ -86,6 +88,9 @@ def list():
 
     from sentry import killswitches, options
 
-    for killswitch in killswitches.ALL_KILLSWITCH_OPTIONS:
-        conditions = killswitches.print_conditions(options.get(killswitch))
-        click.echo(f"{killswitch}: {conditions}")
+    for name, info in killswitches.ALL_KILLSWITCH_OPTIONS.items():
+        click.echo()
+        click.echo(f"{name}")
+        click.echo(f"  # {info.description}")
+        conditions = killswitches.print_conditions(options.get(name))
+        click.echo(f"{conditions}")
