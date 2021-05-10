@@ -206,11 +206,13 @@ class IssueDetailsTest(AcceptanceTestCase, SnubaTestCase):
         )
 
     def test_python_invalid_json_error(self):
-        event = self.create_sample_event(platform="python-invalid-json-error")
+        event = self.create_sample_event(default="python-invalid-json-error", platform="native")
         self.page.visit_issue(self.org.slug, event.group.id)
         self.browser.snapshot("issue details invalid json error exception")
 
     def test_exception_with_address_instruction(self):
-        event = self.create_sample_event(platform="exception-with-address-instruction")
+        event = self.create_sample_event(
+            default="exception-with-address-instruction", platform="cocoa"
+        )
         self.page.visit_issue(self.org.slug, event.group.id)
         self.browser.snapshot("issue details exception with address instruction")
