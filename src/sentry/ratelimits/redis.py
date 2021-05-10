@@ -1,5 +1,8 @@
 from time import time
 
+from redis.exceptions import RedisError
+from sentry_sdk import capture_exception
+
 from sentry.exceptions import InvalidConfiguration
 from sentry.ratelimits.base import RateLimiter
 from sentry.utils.hashlib import md5_text
@@ -31,8 +34,13 @@ class RedisRateLimiter(RateLimiter):
         else:
             key = f"rl:{key_hex}:{bucket}"
 
-        with self.cluster.map() as client:
-            result = client.incr(key)
-            client.expire(key, window)
-
-        return result.value > limit
+        try:
+            with self.cluster.map() as client:
+                result = client.incr(key)
+                client.expire(key, window)
+            return result.value > limit
+        except RedisError as e:
+            # We don't want rate limited endpoints to fail when ratelimits
+            # can't be updated. We do want to know when that happens.
+            capture_exception(e)
+            return False
