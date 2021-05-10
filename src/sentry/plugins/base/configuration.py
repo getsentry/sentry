@@ -21,17 +21,23 @@ def react_plugin_config(plugin, project, request):
     if hasattr(request, "csp_nonce"):
         nonce = f' nonce="{request.csp_nonce}"'
 
+    # Pretty sure this is not in use, and if it is, it has been broken since
+    # https://github.com/getsentry/sentry/pull/13578/files#diff-d17d91cc629f5f2e4582adb6e52d426f654452b751da97bafa25160b78566438L206
     return mark_safe(
         """
     <div id="ref-plugin-config"></div>
     <script%s>
-    $(function(){
-        ReactDOM.render(React.createFactory(SentryApp.PluginConfig)({
+      window.__onSentryInit = window.__onSentryInit || [];
+      window.__onSentryInit.push({
+        name: 'renderReact',
+        component: 'PluginConfig',
+        container: '#ref-plugin-config',
+        props: {
             project: %s,
             organization: %s,
             data: %s
-        }), document.getElementById('ref-plugin-config'));
-    });
+        },
+      });
     </script>
     """
         % (
