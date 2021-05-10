@@ -28,7 +28,7 @@ const generateFields = () => ({
 describe('EventsV2 > Results', function () {
   const eventTitle = 'Oh no something bad';
   const features = ['discover-basic'];
-  let eventResultsMock, mockSaved;
+  let eventResultsMock, mockSaved, eventsStatsMock;
 
   beforeEach(function () {
     MockApiClient.addMockResponse({
@@ -43,7 +43,7 @@ describe('EventsV2 > Results', function () {
       url: '/organizations/org-slug/tags/',
       body: [],
     });
-    MockApiClient.addMockResponse({
+    eventsStatsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
       body: {data: [[123, []]]},
     });
@@ -284,7 +284,7 @@ describe('EventsV2 > Results', function () {
     expect(eventsRequest.props().yAxis).toEqual('count()');
   });
 
-  it('renders a display selector', function () {
+  it('renders a display selector', async function () {
     const organization = TestStubs.Organization({
       features,
       projects: [TestStubs.Project()],
@@ -305,6 +305,11 @@ describe('EventsV2 > Results', function () {
       />,
       initialData.routerContext
     );
+
+    ProjectsStore.loadInitialData(initialData.organization.projects);
+    await tick();
+    wrapper.update();
+
     // display selector is first.
     const selector = wrapper.find('OptionSelector').first();
 
@@ -593,5 +598,188 @@ describe('EventsV2 > Results', function () {
     expect(eventView.project).toEqual([2]);
     expect(eventView.statsPeriod).toEqual('7d');
     expect(eventView.environment).toEqual(['production']);
+  });
+
+  it('updates chart whenever yAxis parameter changes', async function () {
+    const organization = TestStubs.Organization({
+      features,
+      projects: [TestStubs.Project()],
+    });
+
+    const initialData = initializeOrg({
+      organization,
+      router: {
+        location: {query: {...generateFields(), yAxis: 'count()'}},
+      },
+    });
+
+    const wrapper = mountWithTheme(
+      <Results
+        organization={organization}
+        location={initialData.router.location}
+        router={initialData.router}
+      />,
+      initialData.routerContext
+    );
+
+    ProjectsStore.loadInitialData(initialData.organization.projects);
+    await tick();
+    wrapper.update();
+
+    // Should load events once
+    expect(eventsStatsMock).toHaveBeenCalledTimes(1);
+    expect(eventsStatsMock).toHaveBeenNthCalledWith(
+      1,
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          statsPeriod: '14d',
+          yAxis: 'count()',
+        }),
+      })
+    );
+
+    // Update location simulating a browser back button action
+    wrapper.setProps({
+      location: {
+        query: {...generateFields(), yAxis: 'count_unique(user)'},
+      },
+    });
+    await tick();
+    wrapper.update();
+
+    // Should load events again
+    expect(eventsStatsMock).toHaveBeenNthCalledWith(
+      2,
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          statsPeriod: '14d',
+          yAxis: 'count_unique(user)',
+        }),
+      })
+    );
+  });
+
+  it('updates chart whenever display parameter changes', async function () {
+    const organization = TestStubs.Organization({
+      features,
+      projects: [TestStubs.Project()],
+    });
+
+    const initialData = initializeOrg({
+      organization,
+      router: {
+        location: {query: {...generateFields(), display: 'default'}},
+      },
+    });
+
+    const wrapper = mountWithTheme(
+      <Results
+        organization={organization}
+        location={initialData.router.location}
+        router={initialData.router}
+      />,
+      initialData.routerContext
+    );
+
+    ProjectsStore.loadInitialData(initialData.organization.projects);
+    await tick();
+    wrapper.update();
+
+    // Should load events once
+    expect(eventsStatsMock).toHaveBeenCalledTimes(1);
+    expect(eventsStatsMock).toHaveBeenNthCalledWith(
+      1,
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          statsPeriod: '14d',
+          yAxis: 'count()',
+        }),
+      })
+    );
+
+    // Update location simulating a browser back button action
+    wrapper.setProps({
+      location: {
+        query: {...generateFields(), display: 'previous'},
+      },
+    });
+    await tick();
+    wrapper.update();
+
+    // Should load events again
+    expect(eventsStatsMock).toHaveBeenNthCalledWith(
+      2,
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          statsPeriod: '28d',
+          yAxis: 'count()',
+        }),
+      })
+    );
+  });
+
+  it('updates chart whenever display and yAxis parameters change', async function () {
+    const organization = TestStubs.Organization({
+      features,
+      projects: [TestStubs.Project()],
+    });
+
+    const initialData = initializeOrg({
+      organization,
+      router: {
+        location: {query: {...generateFields(), display: 'default', yAxis: 'count()'}},
+      },
+    });
+
+    const wrapper = mountWithTheme(
+      <Results
+        organization={organization}
+        location={initialData.router.location}
+        router={initialData.router}
+      />,
+      initialData.routerContext
+    );
+
+    ProjectsStore.loadInitialData(initialData.organization.projects);
+    await tick();
+    wrapper.update();
+
+    // Should load events once
+    expect(eventsStatsMock).toHaveBeenCalledTimes(1);
+    expect(eventsStatsMock).toHaveBeenNthCalledWith(
+      1,
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          statsPeriod: '14d',
+          yAxis: 'count()',
+        }),
+      })
+    );
+
+    // Update location simulating a browser back button action
+    wrapper.setProps({
+      location: {
+        query: {...generateFields(), display: 'previous', yAxis: 'count_unique(user)'},
+      },
+    });
+    await tick();
+    wrapper.update();
+
+    // Should load events again
+    expect(eventsStatsMock).toHaveBeenNthCalledWith(
+      2,
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          statsPeriod: '28d',
+          yAxis: 'count_unique(user)',
+        }),
+      })
+    );
   });
 });
