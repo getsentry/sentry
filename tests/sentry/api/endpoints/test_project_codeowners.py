@@ -62,7 +62,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         )
 
     def test_no_codeowners(self):
-        with self.feature({"organizations:import-codeowners": True}):
+        with self.feature({"organizations:integrations-codeowners": True}):
             resp = self.client.get(self.url)
         assert resp.status_code == 200
         assert resp.data == []
@@ -74,7 +74,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
 
     def test_codeowners_without_integrations(self):
         code_owner = self.create_codeowners(self.project, self.code_mapping, raw="*.js @tiger-team")
-        with self.feature({"organizations:import-codeowners": True}):
+        with self.feature({"organizations:integrations-codeowners": True}):
             resp = self.client.get(self.url)
         assert resp.status_code == 200
         resp_data = resp.data[0]
@@ -86,7 +86,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
 
     def test_codeowners_with_integration(self):
         self._create_codeowner_with_integration()
-        with self.feature({"organizations:import-codeowners": True}):
+        with self.feature({"organizations:integrations-codeowners": True}):
             resp = self.client.get(self.url)
         assert resp.status_code == 200
         resp_data = resp.data[0]
@@ -98,7 +98,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
 
     def test_get_expanded_codeowners_with_integration(self):
         self._create_codeowner_with_integration()
-        with self.feature({"organizations:import-codeowners": True}):
+        with self.feature({"organizations:integrations-codeowners": True}):
             resp = self.client.get(f"{self.url}?expand=codeMapping")
         assert resp.status_code == 200
         resp_data = resp.data[0]
@@ -110,7 +110,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         assert resp_data["codeMapping"]["id"] == str(self.code_mapping_with_integration.id)
 
     def test_basic_post(self):
-        with self.feature({"organizations:import-codeowners": True}):
+        with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.post(self.url, self.data)
         assert response.status_code == 201, response.content
         assert response.data["id"]
@@ -122,21 +122,21 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
 
     def test_empty_codeowners_text(self):
         self.data["raw"] = ""
-        with self.feature({"organizations:import-codeowners": True}):
+        with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.post(self.url, self.data)
         assert response.status_code == 400
         assert response.data == {"raw": ["This field may not be blank."]}
 
     def test_invalid_codeowners_text(self):
         self.data["raw"] = "docs/*"
-        with self.feature({"organizations:import-codeowners": True}):
+        with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.post(self.url, self.data)
         assert response.status_code == 400
         assert response.data == {"raw": ["Parse error: 'ownership' (line 1, column 1)"]}
 
     def test_cannot_find_external_user_name_association(self):
         self.data["raw"] = "docs/*  @MeredithAnya "
-        with self.feature({"organizations:import-codeowners": True}):
+        with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.post(self.url, self.data)
         assert response.status_code == 400
         assert response.data == {
@@ -145,7 +145,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
 
     def test_cannot_find_sentry_user_with_email(self):
         self.data["raw"] = "docs/*  someuser@sentry.io"
-        with self.feature({"organizations:import-codeowners": True}):
+        with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.post(self.url, self.data)
         assert response.status_code == 400
         assert response.data == {
@@ -156,7 +156,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
 
     def test_cannot_find_external_team_name_association(self):
         self.data["raw"] = "docs/*  @getsentry/frontend\nstatic/* @getsentry/frontend"
-        with self.feature({"organizations:import-codeowners": True}):
+        with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.post(self.url, self.data)
         assert response.status_code == 400
         assert response.data == {
@@ -167,7 +167,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
 
     def test_cannot_find__multiple_external_name_association(self):
         self.data["raw"] = "docs/*  @AnotherUser @getsentry/frontend @getsentry/docs"
-        with self.feature({"organizations:import-codeowners": True}):
+        with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.post(self.url, self.data)
         assert response.status_code == 400
         assert response.data == {
@@ -178,20 +178,20 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
 
     def test_missing_code_mapping_id(self):
         self.data.pop("codeMappingId")
-        with self.feature({"organizations:import-codeowners": True}):
+        with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.post(self.url, self.data)
         assert response.status_code == 400
         assert response.data == {"codeMappingId": ["This field is required."]}
 
     def test_invalid_code_mapping_id(self):
         self.data["codeMappingId"] = 500
-        with self.feature({"organizations:import-codeowners": True}):
+        with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.post(self.url, self.data)
         assert response.status_code == 400
         assert response.data == {"codeMappingId": ["This code mapping does not exist."]}
 
     def test_no_duplicates_allowed(self):
-        with self.feature({"organizations:import-codeowners": True}):
+        with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.post(self.url, self.data)
             assert response.status_code == 201, response.content
             response = self.client.post(self.url, self.data)
@@ -199,7 +199,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
             assert response.data == {"codeMappingId": ["This code mapping is already in use."]}
 
     def test_schema_is_correct(self):
-        with self.feature({"organizations:import-codeowners": True}):
+        with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.post(self.url, self.data)
         assert response.status_code == 201, response.content
         assert response.data["id"]
@@ -219,7 +219,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
 
     def test_schema_preserves_comments(self):
         self.data["raw"] = "docs/*    @NisanthanNanthakumar   @getsentry/ecosystem\n"
-        with self.feature({"organizations:import-codeowners": True}):
+        with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.post(self.url, self.data)
         assert response.status_code == 201, response.content
         assert response.data["id"]
@@ -239,7 +239,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
 
     def test_raw_email_correct_schema(self):
         self.data["raw"] = f"docs/*    {self.user.email}   @getsentry/ecosystem\n"
-        with self.feature({"organizations:import-codeowners": True}):
+        with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.post(self.url, self.data)
         assert response.status_code == 201, response.content
         assert response.data["id"]
@@ -263,7 +263,7 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
             "raw": "docs/*    @NisanthanNanthakumar   user2@sentry.io\n",
             "codeMappingId": self.code_mapping.id,
         }
-        with self.feature({"organizations:import-codeowners": True}):
+        with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.post(self.url, self.data)
         assert response.status_code == 400
         assert response.data == {

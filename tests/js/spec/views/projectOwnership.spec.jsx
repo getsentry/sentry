@@ -51,14 +51,14 @@ describe('Project Ownership', function () {
         TestStubs.routerContext()
       );
       expect(wrapper).toSnapshot();
-      // only rendered when `import-codeowners` feature flag enabled
+      // only rendered when `integrations-codeowners` feature flag enabled
       expect(wrapper.find('CodeOwnerButton').exists()).toBe(false);
     });
   });
 
   describe('codeowner action button', function () {
     it('renders button', function () {
-      org = TestStubs.Organization({features: ['import-codeowners']});
+      org = TestStubs.Organization({features: ['integrations-codeowners']});
 
       const wrapper = mountWithTheme(
         <ProjectOwnership

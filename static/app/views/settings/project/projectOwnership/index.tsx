@@ -58,7 +58,7 @@ class ProjectOwnership extends AsyncView<Props, State> {
         {query: {features: ['codeowners']}},
       ],
     ];
-    if (organization.features.includes('import-codeowners')) {
+    if (organization.features.includes('integrations-codeowners')) {
       endpoints.push([
         'codeowners',
         `/projects/${organization.slug}/${project.slug}/codeowners/`,
@@ -142,7 +142,7 @@ tags.sku_class:enterprise #enterprise`;
               >
                 {t('View Issues')}
               </Button>
-              <Feature features={['import-codeowners']}>
+              <Feature features={['integrations-codeowners']}>
                 <CodeOwnerButton
                   onClick={this.handleAddCodeOwner}
                   size="small"
@@ -181,7 +181,7 @@ tags.sku_class:enterprise #enterprise`;
             </Button>,
           ]}
         />
-        <Feature features={['import-codeowners']}>
+        <Feature features={['integrations-codeowners']}>
           <CodeOwnersPanel
             codeowners={codeowners}
             onDelete={this.handleCodeownerDeleted}
