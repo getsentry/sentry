@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
 import {fetchRecentSearches} from 'app/actionCreators/savedSearches';
@@ -34,7 +34,7 @@ const SEARCH_ITEMS: SearchItem[] = [
   {
     title: t('Assigned'),
     desc:
-      'assigned, assigned_or_suggested:[me|me_or_none|user@example.com|#team-example]',
+      'assigned, assigned_or_suggested:[me|[me, none]|user@example.com|#team-example]',
     value: '',
     type: 'default',
   },

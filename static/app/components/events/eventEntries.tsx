@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {Location} from 'history';
@@ -75,7 +75,7 @@ type State = {
   proGuardErrors: ProGuardErrors;
 };
 
-class EventEntries extends React.Component<Props, State> {
+class EventEntries extends Component<Props, State> {
   static defaultProps = defaultProps;
 
   state: State = {
@@ -351,7 +351,11 @@ class EventEntries extends React.Component<Props, State> {
         {!isShare &&
           isNotSharedOrganization(organization) &&
           (showExampleCommit ? (
-            <EventCauseEmpty organization={organization} project={project} />
+            <EventCauseEmpty
+              event={event}
+              organization={organization}
+              project={project}
+            />
           ) : (
             <EventCause
               organization={organization}

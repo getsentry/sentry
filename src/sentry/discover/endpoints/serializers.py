@@ -3,12 +3,13 @@ import re
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
 
-from sentry.api.event_search import InvalidSearchQuery, get_filter
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers.rest_framework import ListField
 from sentry.api.utils import InvalidParams, get_date_range_from_params
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.discover.models import MAX_KEY_TRANSACTIONS, KeyTransaction
+from sentry.exceptions import InvalidSearchQuery
+from sentry.search.events.filter import get_filter
 from sentry.utils.snuba import SENTRY_SNUBA_MAP
 
 

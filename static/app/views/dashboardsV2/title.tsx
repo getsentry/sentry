@@ -1,50 +1,38 @@
-import React from 'react';
-import styled from '@emotion/styled';
-
 import EditableText from 'app/components/editableText';
 import {t} from 'app/locale';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
+import {Organization} from 'app/types';
+import withOrganization from 'app/utils/withOrganization';
 
 import {DashboardDetails} from './types';
 
 type Props = {
   dashboard: DashboardDetails | null;
   isEditing: boolean;
+  organization: Organization;
   onUpdate: (dashboard: DashboardDetails) => void;
 };
 
-function DashboardTitle({dashboard, isEditing, onUpdate}: Props) {
+function DashboardTitle({dashboard, isEditing, organization, onUpdate}: Props) {
   return (
-    <Container>
+    <div>
       {!dashboard ? (
         t('Dashboards')
       ) : (
-        <StyledEditableText
+        <EditableText
           isDisabled={!isEditing}
-          value={dashboard.title}
+          value={
+            organization.features.includes('dashboards-manage') &&
+            dashboard.id === 'default-overview'
+              ? 'Default Dashboard'
+              : dashboard.title
+          }
           onChange={newTitle => onUpdate({...dashboard, title: newTitle})}
           errorMessage={t('Please set a title for this dashboard')}
           successMessage={t('Dashboard title updated successfully')}
         />
       )}
-    </Container>
+    </div>
   );
 }
 
-export default DashboardTitle;
-
-const Container = styled('div')`
-  ${overflowEllipsis};
-  margin-right: ${space(1)};
-  margin-left: -11px;
-
-  @media (max-width: ${p => p.theme.breakpoints[2]}) {
-    margin-bottom: ${space(2)};
-  }
-`;
-
-const StyledEditableText = styled(EditableText)`
-  position: absolute;
-  width: calc(100% + 11px);
-`;
+export default withOrganization(DashboardTitle);

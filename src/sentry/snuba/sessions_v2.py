@@ -5,8 +5,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import pytz
 
-from sentry.api.event_search import get_filter
 from sentry.api.utils import get_date_range_from_params
+from sentry.search.events.filter import get_filter
 from sentry.utils.dates import parse_stats_period, to_datetime, to_timestamp
 from sentry.utils.snuba import Dataset, raw_query, resolve_condition
 
@@ -93,13 +93,17 @@ class SessionsField:
         if status is None:
             return row["sessions"]
         if status == "healthy":
-            return row["sessions"] - row["sessions_errored"]
+            healthy_sessions = row["sessions"] - row["sessions_errored"]
+            return max(healthy_sessions, 0)
         if status == "abnormal":
             return row["sessions_abnormal"]
         if status == "crashed":
             return row["sessions_crashed"]
         if status == "errored":
-            return row["sessions_errored"]
+            errored_sessions = (
+                row["sessions_errored"] - row["sessions_crashed"] - row["sessions_abnormal"]
+            )
+            return max(errored_sessions, 0)
         return 0
 
 
@@ -116,13 +120,15 @@ class UsersField:
         if status is None:
             return row["users"]
         if status == "healthy":
-            return row["users"] - row["users_errored"]
+            healthy_users = row["users"] - row["users_errored"]
+            return max(healthy_users, 0)
         if status == "abnormal":
             return row["users_abnormal"]
         if status == "crashed":
             return row["users_crashed"]
         if status == "errored":
-            return row["users_errored"]
+            errored_users = row["users_errored"] - row["users_crashed"] - row["users_abnormal"]
+            return max(errored_users, 0)
         return 0
 
 

@@ -121,7 +121,7 @@ class BroadcastIndexEndpoint(OrganizationEndpoint):
             queryset = queryset.filter(id__in=ids)
 
         if result.get("hasSeen"):
-            if not request.user.is_authenticated():
+            if not request.user.is_authenticated:
                 return self.respond(status=401)
 
             if ids:

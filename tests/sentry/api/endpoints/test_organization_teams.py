@@ -3,6 +3,7 @@ from exam import fixture
 
 from sentry.models import OrganizationMember, OrganizationMemberTeam, Team
 from sentry.testutils import APITestCase
+from sentry.types.integrations import get_provider_string
 
 
 class OrganizationTeamsListTest(APITestCase):
@@ -89,6 +90,26 @@ class OrganizationTeamsListTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
+
+    def test_list_external_teams(self):
+        self.external_team = self.create_external_team(
+            self.team, external_name="@getsentry/ecosystem"
+        )
+        path = f"/api/0/organizations/{self.organization.slug}/teams/?detailed=1"
+        self.login_as(user=self.user)
+
+        response = self.client.get(path)
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(self.team.id)
+        assert len(response.data[0]["externalTeams"]) == 1
+        assert response.data[0]["externalTeams"][0] == {
+            "id": str(self.external_team.id),
+            "integrationId": str(self.external_team.integration.id),
+            "provider": get_provider_string(self.external_team.provider),
+            "externalName": self.external_team.external_name,
+            "teamId": str(self.team.id),
+        }
 
 
 class OrganizationTeamsCreateTest(APITestCase):

@@ -64,7 +64,7 @@ class OrganizationManager(BaseManager):
         """
         from sentry.models import OrganizationMember
 
-        if not user.is_authenticated():
+        if not user.is_authenticated:
             return []
 
         if settings.SENTRY_PUBLIC and scope is None:
@@ -420,7 +420,7 @@ class Organization(Model):
         from sentry.models import ApiKey
         from sentry.tasks.auth import remove_2fa_non_compliant_members
 
-        actor_id = request.user.id if request.user and request.user.is_authenticated() else None
+        actor_id = request.user.id if request.user and request.user.is_authenticated else None
         api_key_id = (
             request.auth.id
             if hasattr(request, "auth") and isinstance(request.auth, ApiKey)

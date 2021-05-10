@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import {Event} from 'app/types/event';
 import {DiscoverQueryProps} from 'app/utils/discover/genericDiscoverQuery';
@@ -44,7 +44,13 @@ export default function QuickTraceQuery({children, event, ...props}: QueryProps)
       {...props}
     >
       {traceLiteResults => (
-        <TraceFullQuery traceId={traceId} start={start} end={end} {...props}>
+        <TraceFullQuery
+          eventId={event.id}
+          traceId={traceId}
+          start={start}
+          end={end}
+          {...props}
+        >
           {traceFullResults => {
             if (
               !traceFullResults.isLoading &&
@@ -79,12 +85,14 @@ export default function QuickTraceQuery({children, event, ...props}: QueryProps)
             }
 
             return children({
-              isLoading: traceFullResults.isLoading || traceLiteResults.isLoading,
-              // once the full results are done loading, we should use not look at the
-              // light results for any errors
-              error: traceFullResults.isLoading
-                ? traceLiteResults.error
-                : traceFullResults.error,
+              // only use the light results loading state if it didn't error
+              // if it did, we should rely on the full results
+              isLoading: traceLiteResults.error
+                ? traceFullResults.isLoading
+                : traceLiteResults.isLoading || traceFullResults.isLoading,
+              // swallow any errors from the light results because we
+              // should rely on the full results in this situations
+              error: traceFullResults.error,
               trace: [],
               // if we reach this point but there were some traces in the full results,
               // that means there were other transactions in the trace, but the current

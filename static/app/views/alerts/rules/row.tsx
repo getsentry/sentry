@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import memoize from 'lodash/memoize';
@@ -249,9 +249,9 @@ class RuleListRow extends React.Component<Props, State> {
                       />
                     }
                   >
-                    <MenuItemActionLink href={editLink} title={t('Edit')}>
-                      {t('Edit')}
-                    </MenuItemActionLink>
+                    <li>
+                      <Link to={editLink}>{t('Edit')}</Link>
+                    </li>
                     <Confirm
                       disabled={!hasAccess || !canEdit}
                       message={tct(

@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment, PureComponent} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -116,7 +116,7 @@ const getFullActionTitle = ({
 /**
  * Lists saved actions as well as control to add a new action
  */
-class ActionsPanel extends React.PureComponent<Props> {
+class ActionsPanel extends PureComponent<Props> {
   handleChangeTargetIdentifier(triggerIndex: number, index: number, value: string) {
     const {triggers, onChange} = this.props;
     const {actions} = triggers[triggerIndex];
@@ -248,13 +248,15 @@ class ActionsPanel extends React.PureComponent<Props> {
       .sort((a, b) => a.dateCreated - b.dateCreated);
 
     return (
-      <React.Fragment>
-        <PerformActionsListItem>{t('Perform actions')}</PerformActionsListItem>
-        <AlertParagraph>
-          {t(
-            'When any of the thresholds above are met, perform an action such as sending an email or using an integration.'
-          )}
-        </AlertParagraph>
+      <Fragment>
+        <PerformActionsListItem>
+          {t('Perform actions')}
+          <AlertParagraph>
+            {t(
+              'When any of the thresholds above are met, perform an action such as sending an email or using an integration.'
+            )}
+          </AlertParagraph>
+        </PerformActionsListItem>
         {loading && <LoadingIndicator />}
         {actions.map(({action, actionIdx, triggerIndex, availableAction}) => {
           return (
@@ -341,7 +343,7 @@ class ActionsPanel extends React.PureComponent<Props> {
             {t('Add Action')}
           </Button>
         </ActionSection>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }
@@ -357,8 +359,8 @@ const ActionSection = styled('div')`
 
 const AlertParagraph = styled('p')`
   color: ${p => p.theme.subText};
-  margin-left: ${space(4)};
   margin-bottom: ${space(1)};
+  font-size: ${p => p.theme.fontSizeLarge};
 `;
 
 const PanelItemGrid = styled(PanelItem)`
@@ -394,6 +396,7 @@ const StyledListItem = styled(ListItem)`
 
 const PerformActionsListItem = styled(StyledListItem)`
   margin-bottom: 0;
+  line-height: 1.3;
 `;
 
 export default withOrganization(ActionsPanelWithSpace);

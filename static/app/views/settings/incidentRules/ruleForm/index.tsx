@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {RouteComponentProps} from 'react-router';
 import {PlainRoute} from 'react-router/lib/Route';
 import styled from '@emotion/styled';
@@ -63,6 +63,7 @@ type Props = {
   userTeamIds: Set<string>;
   ruleId?: string;
   sessionId?: string;
+  isCustomMetric?: boolean;
 } & RouteComponentProps<{orgId: string; projectId: string; ruleId?: string}, {}> & {
     onSubmitSuccess?: Form['props']['onSubmitSuccess'];
   } & AsyncComponent['props'];
@@ -448,9 +449,11 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       transaction.setTag('operation', !rule.id ? 'create' : 'edit');
       for (const trigger of sanitizedTriggers) {
         for (const action of trigger.actions) {
-          transaction.setTag(action.type, true);
-          if (action.integrationId) {
-            transaction.setTag(`integrationId:${action.integrationId}`, true);
+          if (action.type === 'slack') {
+            transaction.setTag(action.type, true);
+            if (action.integrationId) {
+              transaction.setTag(`integrationId:${action.integrationId}`, true);
+            }
           }
         }
       }
@@ -588,6 +591,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       onSubmitSuccess,
       project,
       userTeamIds,
+      isCustomMetric,
     } = this.props;
     const {
       query,
@@ -617,7 +621,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       thresholdType,
     };
     const alertType = getAlertTypeFromAggregateDataset({aggregate, dataset});
-    const wizardBuilderChart = ({footer}) => (
+    const wizardBuilderChart = (
       <TriggersChart
         {...chartProps}
         header={
@@ -628,7 +632,6 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
             </AlertInfo>
           </ChartHeader>
         }
-        footer={footer}
       />
     );
     const chart = <TriggersChart {...chartProps} />;
@@ -703,7 +706,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                 </Confirm>
               ) : null
             }
-            submitLabel={t('Create Rule')}
+            submitLabel={t('Save Rule')}
           >
             <Feature organization={organization} features={['alert-wizard']}>
               {({hasFeature}) =>
@@ -717,10 +720,9 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                       thresholdChart={wizardBuilderChart}
                       onFilterSearch={this.handleFilterUpdate}
                       allowChangeEventTypes={dataset === Dataset.ERRORS}
+                      alertType={isCustomMetric ? 'custom' : alertType}
                     />
-                    <StyledListItem>
-                      {t('Set thresholds to trigger alert')}
-                    </StyledListItem>
+                    <AlertListItem>{t('Set thresholds to trigger alert')}</AlertListItem>
                     {triggerForm(hasAccess)}
                     <StyledListItem>{t('Add a rule name and team')}</StyledListItem>
                     {ruleNameOwnerForm(hasAccess)}
@@ -753,6 +755,10 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 const StyledListItem = styled(ListItem)`
   margin: ${space(2)} 0 ${space(1)} 0;
   font-size: ${p => p.theme.fontSizeExtraLarge};
+`;
+
+const AlertListItem = styled(StyledListItem)`
+  margin-top: 0;
 `;
 
 const ChartHeader = styled('div')`

@@ -51,7 +51,7 @@ def has_download_permission(request, project):
     if is_system_auth(request.auth) or is_active_superuser(request):
         return True
 
-    if not request.user.is_authenticated():
+    if not request.user.is_authenticated:
         return False
 
     organization = project.organization
@@ -260,7 +260,7 @@ def find_missing_chunks(organization, chunks):
     """Returns a list of chunks which are missing for an org."""
     owned = set(
         FileBlobOwner.objects.filter(
-            blob__checksum__in=chunks, organization=organization
+            blob__checksum__in=chunks, organization_id=organization.id
         ).values_list("blob__checksum", flat=True)
     )
     return list(set(chunks) - owned)

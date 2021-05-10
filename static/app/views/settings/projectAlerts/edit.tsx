@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -28,7 +28,7 @@ type State = {
   ruleName: string;
 };
 
-class ProjectAlertsEditor extends React.Component<Props, State> {
+class ProjectAlertsEditor extends Component<Props, State> {
   state: State = {
     alertType: '',
     ruleName: '',
@@ -51,7 +51,7 @@ class ProjectAlertsEditor extends React.Component<Props, State> {
       : 'issue';
 
     return (
-      <React.Fragment>
+      <Fragment>
         <SentryDocumentTitle
           title={this.getTitle()}
           orgSlug={organization.slug}
@@ -86,7 +86,7 @@ class ProjectAlertsEditor extends React.Component<Props, State> {
             )}
           </Layout.Main>
         </EditConditionsBody>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

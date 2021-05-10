@@ -12,12 +12,13 @@ from rest_framework.response import Response
 from sentry import eventstream, features, search
 from sentry.api.base import audit_logger
 from sentry.api.fields import ActorField
-from sentry.api.issue_search import InvalidSearchQuery, convert_query_values, parse_search_query
+from sentry.api.issue_search import convert_query_values, parse_search_query
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer
 from sentry.app import ratelimiter
 from sentry.constants import DEFAULT_SORT_OPTION
 from sentry.db.models.query import create_or_update
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models import (
     TOMBSTONE_FIELDS_FROM_GROUP,
     Activity,
@@ -520,7 +521,7 @@ def update_groups(request, group_ids, projects, organization_id, search_fn, has_
     # so we won't have to requery for each group
     project_lookup = {p.id: p for p in projects}
 
-    acting_user = request.user if request.user.is_authenticated() else None
+    acting_user = request.user if request.user.is_authenticated else None
 
     if not group_ids:
         try:
@@ -655,7 +656,7 @@ def update_groups(request, group_ids, projects, organization_id, search_fn, has_
                         "release": release,
                         "type": res_type,
                         "status": res_status,
-                        "actor_id": request.user.id if request.user.is_authenticated() else None,
+                        "actor_id": request.user.id if request.user.is_authenticated else None,
                     }
                     resolution, created = GroupResolution.objects.get_or_create(
                         group=group, defaults=resolution_params
@@ -764,7 +765,7 @@ def update_groups(request, group_ids, projects, organization_id, search_fn, has_
                                 "user_window": ignore_user_window,
                                 "state": state,
                                 "actor_id": request.user.id
-                                if request.user.is_authenticated()
+                                if request.user.is_authenticated
                                 else None,
                             },
                         )

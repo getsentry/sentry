@@ -173,7 +173,7 @@ class ProjectSerializer(Serializer):
 
         with measure_span("preamble"):
             project_ids = [i.id for i in item_list]
-            if user.is_authenticated() and item_list:
+            if user.is_authenticated and item_list:
                 bookmarks = set(
                     ProjectBookmark.objects.filter(
                         user=user, project_id__in=project_ids

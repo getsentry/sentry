@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
@@ -42,14 +42,14 @@ describe('SentryAppExternalIssueActions', () => {
   describe('without an external issue linked', () => {
     beforeEach(() => {
       wrapper = mountWithTheme(
-        <React.Fragment>
+        <Fragment>
           <GlobalModal />
           <SentryAppExternalIssueActions
             group={group}
             sentryAppInstallation={install}
             sentryAppComponent={component}
           />
-        </React.Fragment>,
+        </Fragment>,
         TestStubs.routerContext()
       );
     });
@@ -70,7 +70,7 @@ describe('SentryAppExternalIssueActions', () => {
       await tick();
       wrapper.update();
 
-      expect(wrapper.find('Modal').first().prop('show')).toEqual(true);
+      expect(wrapper.find('GlobalModal[visible=true]').exists()).toEqual(true);
     });
 
     it('renders the Create Issue form fields, based on schema', async () => {

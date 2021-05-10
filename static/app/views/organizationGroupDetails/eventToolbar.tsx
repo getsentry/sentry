@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import {Link} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -18,8 +18,7 @@ import {Event} from 'app/types/event';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import getDynamicText from 'app/utils/getDynamicText';
 
-import DistributedTracingPrompt from './eventQuickTrace';
-import QuickTrace from './issueQuickTrace';
+import QuickTrace from './quickTrace';
 
 const formatDateDelta = (reference: moment.Moment, observed: moment.Moment) => {
   const duration = moment.duration(Math.abs(+observed - +reference));
@@ -49,7 +48,7 @@ type Props = {
   location: Location;
 };
 
-class GroupEventToolbar extends React.Component<Props> {
+class GroupEventToolbar extends Component<Props> {
   shouldComponentUpdate(nextProps: Props) {
     return this.props.event.id !== nextProps.event.id;
   }
@@ -80,7 +79,7 @@ class GroupEventToolbar extends React.Component<Props> {
           {dateCreated.format(format)}
         </dd>
         {dateReceived && (
-          <React.Fragment>
+          <Fragment>
             <dt>Received</dt>
             <dd>
               {dateReceived.format('ll')}
@@ -89,7 +88,7 @@ class GroupEventToolbar extends React.Component<Props> {
             </dd>
             <dt>Latency</dt>
             <dd>{formatDateDelta(dateCreated, dateReceived)}</dd>
-          </React.Fragment>
+          </Fragment>
         )}
       </DescriptionList>
     );
@@ -98,8 +97,8 @@ class GroupEventToolbar extends React.Component<Props> {
   render() {
     const evt = this.props.event;
 
-    const {organization, location} = this.props;
-    const groupId = this.props.group.id;
+    const {group, organization, location} = this.props;
+    const groupId = group.id;
 
     const baseEventsPath = `/organizations/${organization.slug}/issues/${groupId}/events/`;
 
@@ -111,11 +110,6 @@ class GroupEventToolbar extends React.Component<Props> {
     const isOverLatencyThreshold =
       evt.dateReceived &&
       Math.abs(+moment(evt.dateReceived) - +moment(evt.dateCreated)) > latencyThreshold;
-
-    const hasQuickTraceView =
-      organization.features.includes('trace-view-summary') ||
-      organization.features.includes('trace-view-quick');
-    const hasTraceContext = evt.contexts?.trace?.trace_id;
 
     return (
       <Wrapper>
@@ -145,15 +139,12 @@ class GroupEventToolbar extends React.Component<Props> {
           />
           {isOverLatencyThreshold && <StyledIconWarning color="yellow300" />}
         </Tooltip>
-        {hasQuickTraceView && !hasTraceContext && (
-          <DistributedTracingPrompt
-            group={this.props.group}
-            organization={organization}
-          />
-        )}
-        {hasQuickTraceView && hasTraceContext && (
-          <QuickTrace organization={organization} event={evt} location={location} />
-        )}
+        <QuickTrace
+          event={evt}
+          group={group}
+          organization={organization}
+          location={location}
+        />
       </Wrapper>
     );
   }

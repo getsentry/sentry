@@ -6,7 +6,8 @@ import {DashboardDetails, Widget} from 'app/views/dashboardsV2/types';
 export function createDashboard(
   api: Client,
   orgId: string,
-  newDashboard: DashboardDetails
+  newDashboard: DashboardDetails,
+  duplicate?: boolean
 ): Promise<DashboardDetails> {
   const {title, widgets} = newDashboard;
 
@@ -14,7 +15,7 @@ export function createDashboard(
     `/organizations/${orgId}/dashboards/`,
     {
       method: 'POST',
-      data: {title, widgets},
+      data: {title, widgets, duplicate},
     }
   );
 
@@ -28,6 +29,30 @@ export function createDashboard(
     }
   });
 
+  return promise;
+}
+
+export function fetchDashboard(
+  api: Client,
+  orgId: string,
+  dashboardId: string
+): Promise<DashboardDetails> {
+  const promise: Promise<DashboardDetails> = api.requestPromise(
+    `/organizations/${orgId}/dashboards/${dashboardId}/`,
+    {
+      method: 'GET',
+    }
+  );
+
+  promise.catch(response => {
+    const errorResponse = response?.responseJSON ?? null;
+
+    if (errorResponse) {
+      addErrorMessage(errorResponse);
+    } else {
+      addErrorMessage(t('Unable to load dashboard'));
+    }
+  });
   return promise;
 }
 

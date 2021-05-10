@@ -59,7 +59,7 @@ class IssueTrackingPlugin(Plugin):
         """
         assert self.auth_provider, "There is no auth provider configured for this plugin."
 
-        if not user.is_authenticated():
+        if not user.is_authenticated:
             return None
 
         try:
@@ -75,7 +75,7 @@ class IssueTrackingPlugin(Plugin):
         if self.auth_provider is None:
             return False
 
-        if not request.user.is_authenticated():
+        if not request.user.is_authenticated:
             return True
 
         return bool(

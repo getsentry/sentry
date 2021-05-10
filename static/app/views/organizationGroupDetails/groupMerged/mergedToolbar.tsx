@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
@@ -6,16 +6,19 @@ import {openDiffModal} from 'app/actionCreators/modal';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import {PanelHeader} from 'app/components/panels';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import GroupingStore from 'app/stores/groupingStore';
 import space from 'app/styles/space';
 import {Group, Organization, Project} from 'app/types';
+import withOrganization from 'app/utils/withOrganization';
 
 type Props = {
+  organization?: Organization;
   orgId: Organization['slug'];
   project: Project;
   groupId: Group['id'];
   onUnmerge: () => void;
+  onSplit: () => void;
   onToggleCollapse: () => void;
 };
 
@@ -91,7 +94,8 @@ class MergedToolbar extends React.Component<Props, State> {
   };
 
   render() {
-    const {onUnmerge, onToggleCollapse} = this.props;
+    const {onUnmerge, onSplit, onToggleCollapse, organization} = this.props;
+    const hasGroupingTreeFeature = organization?.features?.includes('grouping-tree-ui');
     const {
       unmergeList,
       unmergeLastCollapsed,
@@ -110,10 +114,29 @@ class MergedToolbar extends React.Component<Props, State> {
               'These events will be unmerged and grouped into a new issue. Are you sure you want to unmerge these events?'
             )}
           >
-            <Button size="small" title={t(`Unmerging ${unmergeCount} events`)}>
+            <Button
+              size="small"
+              title={tct('Unmerging [unmergeCount] events', {unmergeCount})}
+            >
               {t('Unmerge')} ({unmergeCount || 0})
             </Button>
           </Confirm>
+
+          {hasGroupingTreeFeature && (
+            <Confirm
+              onConfirm={onSplit}
+              message={t(
+                'These events will be grouped into a new issue by more specific criteria (for instance more frames). Are you sure you want to split them out of the existing issue?'
+              )}
+            >
+              <Button
+                size="small"
+                title={tct('Splitting out [unmergeCount] events', {unmergeCount})}
+              >
+                {t('Split')} ({unmergeCount || 0})
+              </Button>
+            </Confirm>
+          )}
 
           <CompareButton
             size="small"
@@ -131,7 +154,7 @@ class MergedToolbar extends React.Component<Props, State> {
   }
 }
 
-export default MergedToolbar;
+export default withOrganization(MergedToolbar);
 
 const CompareButton = styled(Button)`
   margin-left: ${space(1)};

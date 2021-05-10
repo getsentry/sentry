@@ -1,5 +1,7 @@
+import {DateTimeObject, getSeriesApiInterval} from 'app/components/charts/utils';
 import {DataCategory} from 'app/types';
 import {formatBytesBase10} from 'app/utils';
+import {parsePeriodToHours} from 'app/utils/dates';
 
 export const MILLION = 10 ** 6;
 export const BILLION = 10 ** 9;
@@ -79,4 +81,24 @@ export function abbreviateUsageNumber(n: number) {
 
   // Do not show decimals
   return n.toFixed().toLocaleString();
+}
+
+/**
+ * We want to display datetime in UTC in the following situations:
+ *
+ * 1) The user selected an absolute date range with UTC
+ * 2) The user selected a wide date range with 1d interval
+ *
+ * When the interval is 1d, we need to use UTC because the 24 hour range might
+ * shift forward/backward depending on the user's timezone, or it might be
+ * displayed as a day earlier/later
+ */
+export function isDisplayUtc(datetime: DateTimeObject): boolean {
+  if (datetime.utc) {
+    return true;
+  }
+
+  const interval = getSeriesApiInterval(datetime);
+  const hours = parsePeriodToHours(interval);
+  return hours >= 24;
 }

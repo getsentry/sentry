@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import Link from 'app/components/links/link';
@@ -16,8 +16,8 @@ type State = {
   isBookmarked: boolean;
 };
 
-class ProjectItem extends React.Component<Props, State> {
-  state = {
+class ProjectItem extends Component<Props, State> {
+  state: State = {
     isBookmarked: this.props.project.isBookmarked,
   };
 

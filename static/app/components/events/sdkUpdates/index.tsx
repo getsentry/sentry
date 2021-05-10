@@ -1,5 +1,3 @@
-import React from 'react';
-
 import Alert from 'app/components/alert';
 import EventDataSection from 'app/components/events/eventDataSection';
 import {IconUpgrade} from 'app/icons';

@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 import {motion} from 'framer-motion';
@@ -87,7 +87,7 @@ function ToastIndicator({indicator, onDismiss, className, ...props}: Props) {
   const {options, message, type} = indicator;
   const {undo, disableDismiss} = options || {};
   const showUndo = typeof undo === 'function';
-  const handleClick = e => {
+  const handleClick = (e: React.MouseEvent) => {
     if (disableDismiss) {
       return;
     }

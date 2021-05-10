@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import ReactDOM from 'react-dom';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -55,25 +55,24 @@ const PasswordStrength = ({
   const styles = css`
     background: ${colors[score]};
     width: ${percent}%;
-    height: 100%;
   `;
 
   return (
-    <React.Fragment>
+    <Fragment>
       <StrengthProgress
         role="progressbar"
         aria-valuenow={score}
         aria-valuemin={0}
         aria-valuemax={100}
       >
-        <div css={styles} />
+        <StrengthProgressBar css={styles} />
       </StrengthProgress>
       <StrengthLabel>
         {tct('Strength: [textScore]', {
           textScore: <ScoreText>{labels[score]}</ScoreText>,
         })}
       </StrengthLabel>
-    </React.Fragment>
+    </Fragment>
   );
 };
 
@@ -82,6 +81,10 @@ const StrengthProgress = styled('div')`
   height: 8px;
   border-radius: 2px;
   overflow: hidden;
+`;
+
+const StrengthProgressBar = styled('div')`
+  height: 100%;
 `;
 
 const StrengthLabel = styled('div')`

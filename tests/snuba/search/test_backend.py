@@ -7,8 +7,8 @@ import pytz
 from django.utils import timezone
 
 from sentry import options
-from sentry.api.event_search import InvalidSearchQuery
 from sentry.api.issue_search import IssueSearchVisitor, convert_query_values, parse_search_query
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models import (
     Environment,
     Group,

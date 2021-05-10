@@ -39,7 +39,7 @@ from sentry.snuba.events import Columns
 from sentry.utils import json, metrics
 from sentry.utils.compat import map
 from sentry.utils.dates import outside_retention_with_modified_start, to_timestamp
-from sentry.utils.snql import should_use_snql
+from sentry.utils.snql import SNQLOption, should_use_snql
 
 logger = logging.getLogger(__name__)
 
@@ -648,10 +648,13 @@ def raw_query(
         **kwargs,
     )
 
-    snql_entity = should_use_snql(referrer)
+    snql_option = should_use_snql(referrer)
 
     return bulk_raw_query(
-        [snuba_params], referrer=referrer, use_cache=use_cache, snql_entity=snql_entity
+        [snuba_params],
+        referrer=referrer,
+        use_cache=use_cache,
+        snql_option=snql_option,
     )[0]
 
 
@@ -688,11 +691,11 @@ def bulk_raw_query(
     snuba_param_list: Sequence[SnubaQueryParams],
     referrer: Optional[str] = None,
     use_cache: Optional[bool] = False,
-    snql_entity: Optional[str] = None,
+    snql_option: Optional[SNQLOption] = None,
 ) -> ResultSet:
     params = map(_prepare_query_params, snuba_param_list)
     return _apply_cache_and_build_results(
-        params, referrer=referrer, use_cache=use_cache, snql_entity=snql_entity
+        params, referrer=referrer, use_cache=use_cache, snql_option=snql_option
     )
 
 
@@ -700,7 +703,7 @@ def _apply_cache_and_build_results(
     snuba_param_list: Sequence[SnubaQueryBody],
     referrer: Optional[str] = None,
     use_cache: Optional[bool] = False,
-    snql_entity: Optional[str] = None,
+    snql_option: Optional[SNQLOption] = None,
 ) -> ResultSet:
     headers = {}
     if referrer:
@@ -728,7 +731,7 @@ def _apply_cache_and_build_results(
         to_query = [(query_pos, query_params, None) for query_pos, query_params in query_param_list]
 
     if to_query:
-        query_results = _bulk_snuba_query(map(itemgetter(1), to_query), headers, snql_entity)
+        query_results = _bulk_snuba_query(map(itemgetter(1), to_query), headers, snql_option)
         for result, (query_pos, _, cache_key) in zip(query_results, to_query):
             if cache_key:
                 cache.set(cache_key, json.dumps(result), settings.SENTRY_SNUBA_CACHE_TTL_SECONDS)
@@ -743,7 +746,7 @@ def _apply_cache_and_build_results(
 def _bulk_snuba_query(
     snuba_param_list: Sequence[SnubaQueryBody],
     headers: Mapping[str, str],
-    snql_entity: Optional[str] = None,
+    snql_option: Optional[SNQLOption] = None,
 ) -> ResultSet:
     with sentry_sdk.start_span(
         op="start_snuba_query",
@@ -754,17 +757,21 @@ def _bulk_snuba_query(
         # but we still want to know a general sense of how referrers impact performance
         span.set_tag("query.referrer", query_referrer)
         sentry_sdk.set_tag("query.referrer", query_referrer)
-        # This is confusing because this function is overloaded right now with three cases:
+        # This is confusing because this function is overloaded right now with four cases:
         # 1. A legacy JSON query (_snuba_query)
         # 2. A dryrun SnQL query of a legacy query (_snql_dryrun_query)
-        # 3. A direct SnQL query using the new SDK (_snql_query)
+        # 3. A SnQL query of a legacy query (_legacy_snql_query)
+        # 4. A direct SnQL query using the new SDK (_snql_query)
         query_fn = _snuba_query
         if isinstance(snuba_param_list[0][0], Query):
             query_fn = _snql_query
-        elif snql_entity is not None:
-            query_fn = _snql_dryrun_query
+        elif snql_option is not None:
+            if snql_option.dryrun:
+                query_fn = _snql_dryrun_query
+            else:
+                query_fn = _legacy_snql_query
             # hack to pass this value in for now
-            headers["snql_entity"] = snql_entity
+            headers["snql_entity"] = snql_option.entity
 
         if len(snuba_param_list) > 1:
             query_results = list(
@@ -856,6 +863,53 @@ def _snql_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str]]) -> RawResult:
         return _raw_snql_query(query, thread_hub, headers), forward, reverse
     except Exception as err:
         raise SnubaError(err)
+
+
+def _legacy_snql_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str]]) -> RawResult:
+    # Run the SnQL query and if something fails try the legacy version.
+    query_data, thread_hub, headers = params
+    query_params, forward, reverse = query_data
+    referrer = headers.get("referer", "<unknown>")
+    snql_entity = None
+    if "snql_entity" in headers:
+        snql_entity = headers["snql_entity"] or None
+        del headers["snql_entity"]
+
+    try:
+        if snql_entity is None or snql_entity == "auto":
+            snql_entity = query_params["dataset"]
+
+        metrics.incr("snuba.snql.legacy.incoming", tags={"referrer": referrer})
+        query = json_to_snql(query_params, snql_entity)
+        query.validate()
+    except Exception as e:
+        logger.warning(
+            "snuba.snql.parsing.error",
+            extra={"error": str(e), "params": json.dumps(query_params), "referrer": referrer},
+        )
+        metrics.incr(
+            "snuba.snql.legacy.failure", tags={"referrer": referrer, "reason": "parsing.error"}
+        )
+        return _snuba_query(params)
+
+    try:
+        result = _raw_snql_query(query, Hub(thread_hub), headers)
+    except Exception as e:
+        logger.warning(
+            "snuba.snql.sending.error",
+            extra={
+                "error": str(e),
+                "params": json.dumps(query_params),
+                "query": str(query),
+                "referrer": referrer,
+            },
+        )
+        metrics.incr(
+            "snuba.snql.legacy.failure", tags={"referrer": referrer, "reason": "sending.error"}
+        )
+        return _snuba_query(params)
+
+    return result, forward, reverse
 
 
 def _snql_dryrun_query(params: Tuple[SnubaQuery, Hub, Mapping[str, str]]) -> RawResult:
@@ -1588,7 +1642,7 @@ def is_duration_measurement(key):
 
 
 def is_span_op_breakdown(key):
-    return isinstance(key, str) and SPAN_OP_BREAKDOWNS_FIELD_RE.match(key)
+    return isinstance(key, str) and get_span_op_breakdown_name(key) is not None
 
 
 def get_measurement_name(measurement):
@@ -1598,7 +1652,12 @@ def get_measurement_name(measurement):
 
 def get_span_op_breakdown_name(breakdown):
     match = SPAN_OP_BREAKDOWNS_FIELD_RE.match(breakdown)
-    return f"ops.{match.group(1).lower()}" if match else None
+    if match:
+        breakdown_key = match.group(1).lower()
+        if breakdown_key == "total.time":
+            return breakdown_key
+        return f"ops.{breakdown_key}"
+    return None
 
 
 def get_array_column_alias(array_column):

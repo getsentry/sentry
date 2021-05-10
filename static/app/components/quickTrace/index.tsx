@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {Location, LocationDescriptor} from 'history';
 
 import DropdownLink from 'app/components/dropdownLink';
@@ -78,7 +78,7 @@ export default function QuickTrace({
 }: QuickTraceProps) {
   let parsedQuickTrace;
   try {
-    parsedQuickTrace = parseQuickTrace(quickTrace, event);
+    parsedQuickTrace = parseQuickTrace(quickTrace, event, organization);
   } catch (error) {
     return <React.Fragment>{'\u2014'}</React.Fragment>;
   }

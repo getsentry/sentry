@@ -59,7 +59,7 @@ class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
     def assert_serialized_dashboard(self, data, dashboard):
         assert data["id"] == str(dashboard.id)
         assert data["title"] == dashboard.title
-        assert data["createdBy"] == str(dashboard.created_by.id)
+        assert data["createdBy"]["id"] == str(dashboard.created_by.id)
 
 
 class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
@@ -133,6 +133,24 @@ class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCas
         response = self.do_request("delete", self.url(slug))
         assert response.status_code == 204
         assert DashboardTombstone.objects.filter(organization=self.organization, slug=slug).exists()
+
+    def test_delete_last_dashboard(self):
+        slug = "default-overview"
+        response = self.do_request("delete", self.url(slug))
+        assert response.status_code == 204
+        assert DashboardTombstone.objects.filter(organization=self.organization, slug=slug).exists()
+
+        response = self.do_request("delete", self.url(self.dashboard.id))
+        assert response.status_code == 409
+
+    def test_delete_last_default_dashboard(self):
+        response = self.do_request("delete", self.url(self.dashboard.id))
+        assert response.status_code == 204
+        assert self.client.get(self.url(self.dashboard.id)).status_code == 404
+
+        slug = "default-overview"
+        response = self.do_request("delete", self.url(slug))
+        assert response.status_code == 409
 
     def test_features_required(self):
         with self.feature({"organizations:dashboards-edit": False}):

@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -39,6 +39,7 @@ class Controls extends React.Component<Props> {
       dashboardState,
       dashboards,
       dashboard,
+      organization,
       onEdit,
       onCreate,
       onCancel,
@@ -58,7 +59,7 @@ class Controls extends React.Component<Props> {
       </Button>
     );
 
-    if (['edit', 'pending_delete'].includes(dashboardState)) {
+    if ([DashboardState.EDIT, DashboardState.PENDING_DELETE].includes(dashboardState)) {
       return (
         <StyledButtonBar gap={1} key="edit-controls">
           {cancelButton}
@@ -66,6 +67,7 @@ class Controls extends React.Component<Props> {
             priority="danger"
             message={t('Are you sure you want to delete this dashboard?')}
             onConfirm={onDelete}
+            disabled={dashboards.length <= 1}
           >
             <Button data-test-id="dashboard-delete" priority="danger">
               {t('Delete')}
@@ -114,14 +116,15 @@ class Controls extends React.Component<Props> {
     if (dashboard) {
       currentOption = {
         label: dashboard.title,
-        value: dashboard,
+        value: {...dashboard, widgetDisplay: dashboard.widgets.map(w => w.displayType)},
       };
     } else if (dropdownOptions.length) {
       currentOption = dropdownOptions[0];
     }
 
-    return (
-      <OverviewControls gap={1} key="controls">
+    const dashboardSelect =
+      organization.features.includes('dashboards-edit') &&
+      !organization.features.includes('dashboards-manage') ? (
         <DashboardSelect>
           <SelectControl
             key="select"
@@ -130,30 +133,35 @@ class Controls extends React.Component<Props> {
             options={dropdownOptions}
             value={currentOption}
             onChange={({value}: {value: DashboardListItem}) => {
-              const {organization} = this.props;
               browserHistory.push({
-                pathname: `/organizations/${organization.slug}/dashboards/${value.id}/`,
+                pathname: `/organizations/${organization.slug}/dashboard/${value.id}/`,
                 // TODO(mark) should this retain global selection?
                 query: {},
               });
             }}
           />
         </DashboardSelect>
-        <DashboardEditFeature>
-          {hasFeature => (
-            <Button
-              data-test-id="dashboard-create"
-              onClick={e => {
-                e.preventDefault();
-                onCreate();
-              }}
-              icon={<IconAdd size="xs" isCircled />}
-              disabled={!hasFeature}
-            >
-              {t('Create Dashboard')}
-            </Button>
-          )}
-        </DashboardEditFeature>
+      ) : null;
+
+    const createButton =
+      organization.features.includes('dashboards-edit') &&
+      !organization.features.includes('dashboards-manage') ? (
+        <Button
+          data-test-id="dashboard-create"
+          onClick={e => {
+            e.preventDefault();
+            onCreate();
+          }}
+          icon={<IconAdd size="xs" isCircled />}
+        >
+          {t('Create Dashboard')}
+        </Button>
+      ) : null;
+
+    return (
+      <StyledButtonBar gap={1} key="controls">
+        {dashboardSelect}
+        {createButton}
         <DashboardEditFeature>
           {hasFeature => (
             <Button
@@ -170,7 +178,7 @@ class Controls extends React.Component<Props> {
             </Button>
           )}
         </DashboardEditFeature>
-      </OverviewControls>
+      </StyledButtonBar>
     );
   }
 }
@@ -214,10 +222,6 @@ const DashboardSelect = styled('div')`
 `;
 
 const StyledButtonBar = styled(ButtonBar)`
-  flex-shrink: 0;
-`;
-
-const OverviewControls = styled(StyledButtonBar)`
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     grid-auto-flow: row;
     grid-row-gap: ${space(1)};

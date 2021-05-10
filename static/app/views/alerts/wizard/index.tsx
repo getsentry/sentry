@@ -1,9 +1,11 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import Feature from 'app/components/acl/feature';
+import FeatureDisabled from 'app/components/acl/featureDisabled';
 import CreateAlertButton from 'app/components/createAlertButton';
+import Hovercard from 'app/components/hovercard';
 import * as Layout from 'app/components/layouts/thirds';
 import ExternalLink from 'app/components/links/externalLink';
 import List from 'app/components/list';
@@ -13,6 +15,7 @@ import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import BuilderBreadCrumbs from 'app/views/alerts/builder/builderBreadCrumbs';
 import {Dataset} from 'app/views/settings/incidentRules/types';
 
@@ -39,22 +42,28 @@ type Props = RouteComponentProps<RouteParams, {}> & {
 type State = {
   alertOption: AlertType;
 };
-class AlertWizard extends React.Component<Props, State> {
+class AlertWizard extends Component<Props, State> {
   state: State = {
     alertOption: 'issues',
   };
 
   handleChangeAlertOption = (alertOption: AlertType) => {
+    const {organization} = this.props;
     this.setState({alertOption});
+    trackAnalyticsEvent({
+      eventKey: 'alert_wizard.option_viewed',
+      eventName: 'Alert Wizard: Option Viewed',
+      organization_id: organization.id,
+      alert_type: alertOption,
+    });
   };
 
   renderCreateAlertButton() {
     const {organization, project, location} = this.props;
     const {alertOption} = this.state;
     const metricRuleTemplate = AlertWizardRuleTemplates[alertOption];
-    const disabled =
-      !organization.features.includes('performance-view') &&
-      metricRuleTemplate?.dataset === Dataset.TRANSACTIONS;
+    const isMetricAlert = !!metricRuleTemplate;
+    const isTransactionDataset = metricRuleTemplate?.dataset === Dataset.TRANSACTIONS;
 
     const to = {
       pathname: `/organizations/${organization.slug}/alerts/${project.slug}/new/`,
@@ -64,17 +73,61 @@ class AlertWizard extends React.Component<Props, State> {
         referrer: location?.query?.referrer,
       },
     };
-    return (
-      <CreateAlertButton
-        organization={organization}
-        projectSlug={project.slug}
-        priority="primary"
-        to={to}
-        disabled={disabled}
-        hideIcon
+
+    const noFeatureMessage = t('Requires incidents feature.');
+    const renderNoAccess = p => (
+      <Hovercard
+        body={
+          <FeatureDisabled
+            features={p.features}
+            hideHelpToggle
+            message={noFeatureMessage}
+            featureName={noFeatureMessage}
+          />
+        }
       >
-        {t('Set Conditions')}
-      </CreateAlertButton>
+        {p.children(p)}
+      </Hovercard>
+    );
+
+    return (
+      <Feature
+        features={
+          isTransactionDataset
+            ? ['incidents', 'performance-view']
+            : isMetricAlert
+            ? ['incidents']
+            : []
+        }
+        requireAll
+        organization={organization}
+        hookName="feature-disabled:alert-wizard-performance"
+        renderDisabled={renderNoAccess}
+      >
+        {({hasFeature}) => (
+          <WizardButtonContainer
+            onClick={() =>
+              trackAnalyticsEvent({
+                eventKey: 'alert_wizard.option_selected',
+                eventName: 'Alert Wizard: Option Selected',
+                organization_id: organization.id,
+                alert_type: alertOption,
+              })
+            }
+          >
+            <CreateAlertButton
+              organization={organization}
+              projectSlug={project.slug}
+              disabled={!hasFeature}
+              priority="primary"
+              to={to}
+              hideIcon
+            >
+              {t('Set Conditions')}
+            </CreateAlertButton>
+          </WizardButtonContainer>
+        )}
+      </Feature>
     );
   }
 
@@ -88,7 +141,7 @@ class AlertWizard extends React.Component<Props, State> {
     const title = t('Alert Creation Wizard');
     const panelContent = AlertWizardPanelContent[alertOption];
     return (
-      <React.Fragment>
+      <Fragment>
         <SentryDocumentTitle title={title} projectSlug={projectId} />
 
         <Feature features={['organizations:alert-wizard']}>
@@ -144,14 +197,14 @@ class AlertWizard extends React.Component<Props, State> {
                         </ExampleList>
                       </PanelBody>
                     </div>
-                    <WizardButton>{this.renderCreateAlertButton()}</WizardButton>
+                    <WizardFooter>{this.renderCreateAlertButton()}</WizardFooter>
                   </WizardPanelBody>
                 </WizardPanel>
               </WizardBody>
             </Layout.Main>
           </StyledLayoutBody>
         </Feature>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }
@@ -236,9 +289,14 @@ const OptionsWrapper = styled('div')`
   }
 `;
 
-const WizardButton = styled('div')`
+const WizardFooter = styled('div')`
   border-top: 1px solid ${p => p.theme.border};
   padding: ${space(1.5)} ${space(1.5)} ${space(1.5)} ${space(1.5)};
+`;
+
+const WizardButtonContainer = styled('div')`
+  display: flex;
+  justify-content: flex-end;
 `;
 
 export default AlertWizard;

@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import TimeSince from 'app/components/timeSince';
 import {t} from 'app/locale';

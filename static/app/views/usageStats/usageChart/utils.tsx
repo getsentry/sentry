@@ -18,23 +18,27 @@ export const FORMAT_DATETIME_HOURLY = 'MMM D LT';
  * Ensure that this method is idempotent and doesn't change the moment object
  * that is passed in
  *
- * If hours are not shown, this method will need to follow the server timezone
- * (which is UTC) to avoid oddities caused by the user being ahead/behind UTC.
+ * If hours are not shown, this method will need to use UTC to avoid oddities
+ * caused by the user being ahead/behind UTC.
  */
-export function getDateFromMoment(m: moment.Moment, interval: IntervalPeriod = '1d') {
+export function getDateFromMoment(
+  m: moment.Moment,
+  interval: IntervalPeriod = '1d',
+  useUtc: boolean = false
+) {
   const days = parsePeriodToHours(interval) / 24;
   if (days >= 1) {
-    return moment(m).utc().format(FORMAT_DATETIME_DAILY);
+    return moment.utc(m).format(FORMAT_DATETIME_DAILY);
   }
 
   const parsedInterval = parseStatsPeriod(interval);
-  const localtime = moment(m).local();
+  const datetime = useUtc ? moment(m).utc() : moment(m).local();
 
   return parsedInterval
-    ? `${localtime.format(FORMAT_DATETIME_HOURLY)} - ${localtime
+    ? `${datetime.format(FORMAT_DATETIME_HOURLY)} - ${datetime
         .add(parsedInterval.period as any, parsedInterval.periodLength as any)
-        .format('LT')}`
-    : localtime.format(FORMAT_DATETIME_HOURLY);
+        .format('LT (Z)')}`
+    : datetime.format(FORMAT_DATETIME_HOURLY);
 }
 
 export function getDateFromUnixTimestamp(timestamp: number) {
@@ -45,10 +49,11 @@ export function getDateFromUnixTimestamp(timestamp: number) {
 export function getXAxisDates(
   dateStart: string,
   dateEnd: string,
+  dateUtc: boolean = true,
   interval: IntervalPeriod = '1d'
 ): string[] {
   const range: string[] = [];
-  const start = moment(dateStart).startOf('h');
+  const start = moment(dateStart).utc().startOf('h');
   const end = moment(dateEnd).startOf('h');
 
   if (!start.isValid() || !end.isValid()) {
@@ -61,7 +66,7 @@ export function getXAxisDates(
   };
 
   while (!start.isAfter(end)) {
-    range.push(getDateFromMoment(start, interval));
+    range.push(getDateFromMoment(start, interval, dateUtc));
     start.add(period as any, periodLength as any); // FIXME(ts): Something odd with momentjs types
   }
 

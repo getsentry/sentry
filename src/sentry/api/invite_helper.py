@@ -146,7 +146,7 @@ class ApiInviteHelper:
 
     @property
     def user_authenticated(self):
-        return self.request.user.is_authenticated()
+        return self.request.user.is_authenticated
 
     @property
     def needs_2fa(self):

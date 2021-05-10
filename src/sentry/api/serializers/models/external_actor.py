@@ -16,33 +16,32 @@ from sentry.types.integrations import get_provider_string
 class ExternalActorSerializer(Serializer):  # type: ignore
     def get_attrs(
         self, item_list: List[ExternalActor], user: User, **kwargs: Any
-    ) -> MutableMapping[Any, Any]:
+    ) -> MutableMapping[ExternalActor, MutableMapping[str, Any]]:
+        # get all of the actor ids we need to lookup
         external_actors_by_actor_id = {
             external_actor.actor_id: external_actor for external_actor in item_list
         }
 
+        # iterating over each actor id and split it up by type.
         actor_ids_by_type = defaultdict(list)
         for actor_id, external_actor in external_actors_by_actor_id.items():
             if actor_id is not None:
                 type_str = actor_type_to_string(external_actor.actor.type)
                 actor_ids_by_type[type_str].append(actor_id)
 
-        resolved_actors_by_type: MutableMapping[str, Mapping[int, int]] = defaultdict(dict)
+        # each actor id maps to an object
+        resolved_actors: MutableMapping[int, Any] = {}
         for type_str, type_id in ACTOR_TYPES.items():
             klass = actor_type_to_class(type_id)
             actor_ids = actor_ids_by_type[type_str]
 
-            resolved_actors = klass.objects.filter(actor_id__in=actor_ids)
+            for model in klass.objects.filter(actor_id__in=actor_ids):
+                resolved_actors[model.actor_id] = {type_str: model}
 
-            resolved_actors_by_type[type_str] = {model.actor_id: model for model in resolved_actors}
-
-        results: MutableMapping[ExternalActor, MutableMapping[str, Any]] = defaultdict(dict)
-        for type_str, mapping in resolved_actors_by_type.items():
-            for actor_id, model in mapping.items():
-                external_actor = external_actors_by_actor_id[actor_id]
-                results[external_actor][type_str] = model
-
-        return results
+        # create a mapping of external actor to a set of attributes. Those attributes are either {"user": User} or {"team": Team}.
+        return {
+            external_actor: resolved_actors[external_actor.actor_id] for external_actor in item_list
+        }
 
     def serialize(
         self,
@@ -57,6 +56,7 @@ class ExternalActorSerializer(Serializer):  # type: ignore
             "id": str(obj.id),
             "provider": provider,
             "externalName": obj.external_name,
+            "integrationId": str(obj.integration_id),
         }
 
         if obj.external_id:

@@ -1,9 +1,8 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import pick from 'lodash/pick';
 
-import Feature from 'app/components/acl/feature';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
@@ -52,7 +51,7 @@ type State = {
   onCursor?: () => void;
 };
 
-class Issues extends React.Component<Props, State> {
+class Issues extends Component<Props, State> {
   state: State = {
     issuesType: IssuesType.NEW,
   };
@@ -161,7 +160,7 @@ class Issues extends React.Component<Props, State> {
 
     return (
       <EmptyState>
-        <React.Fragment>
+        <Fragment>
           {issuesType === IssuesType.NEW &&
             tct('No new issues for the [timePeriod].', {
               timePeriod: displayedPeriod,
@@ -175,7 +174,7 @@ class Issues extends React.Component<Props, State> {
             tct('No issues for the [timePeriod].', {
               timePeriod: displayedPeriod,
             })}
-        </React.Fragment>
+        </Fragment>
       </EmptyState>
     );
   };
@@ -192,7 +191,7 @@ class Issues extends React.Component<Props, State> {
     ];
 
     return (
-      <React.Fragment>
+      <Fragment>
         <ControlsWrapper>
           <DropdownControl
             button={({isOpen, getActorProps}) => (
@@ -224,17 +223,15 @@ class Issues extends React.Component<Props, State> {
               {t('Open in Issues')}
             </Button>
 
-            <Feature features={['discover-basic']}>
-              <GuideAnchor target="release_issues_open_in_discover">
-                <DiscoverButton
-                  to={this.getDiscoverUrl()}
-                  size="small"
-                  data-test-id="discover-button"
-                >
-                  {t('Open in Discover')}
-                </DiscoverButton>
-              </GuideAnchor>
-            </Feature>
+            <GuideAnchor target="release_issues_open_in_discover">
+              <DiscoverButton
+                to={this.getDiscoverUrl()}
+                size="small"
+                data-test-id="discover-button"
+              >
+                {t('Open in Discover')}
+              </DiscoverButton>
+            </GuideAnchor>
             <StyledPagination pageLinks={pageLinks} onCursor={onCursor} />
           </OpenInButtonBar>
         </ControlsWrapper>
@@ -251,7 +248,7 @@ class Issues extends React.Component<Props, State> {
             onFetchSuccess={this.handleFetchSuccess}
           />
         </div>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

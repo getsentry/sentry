@@ -355,12 +355,6 @@ def prepare_project_usage_outcomes(start__stop, project):
     data = raw_snql_query(query, referrer="reports.outcomes")["data"]
 
     return (
-        # accepted transactions
-        sum(
-            row["total"]
-            for row in data
-            if row["category"] == DataCategory.TRANSACTION and row["outcome"] == Outcome.ACCEPTED
-        ),
         # Accepted errors
         sum(
             row["total"]
@@ -368,10 +362,26 @@ def prepare_project_usage_outcomes(start__stop, project):
             if row["category"] in DataCategory.error_categories()
             and row["outcome"] == Outcome.ACCEPTED
         ),
-        # Filtered
-        sum(row["total"] for row in data if row["outcome"] == Outcome.FILTERED),
-        # Rate limited
-        sum(row["total"] for row in data if row["outcome"] == Outcome.RATE_LIMITED),
+        # Dropped errors
+        sum(
+            row["total"]
+            for row in data
+            if row["category"] in DataCategory.error_categories()
+            and row["outcome"] == Outcome.RATE_LIMITED
+        ),
+        # accepted transactions
+        sum(
+            row["total"]
+            for row in data
+            if row["category"] == DataCategory.TRANSACTION and row["outcome"] == Outcome.ACCEPTED
+        ),
+        # Dropped transactions
+        sum(
+            row["total"]
+            for row in data
+            if row["category"] == DataCategory.TRANSACTION
+            and row["outcome"] == Outcome.RATE_LIMITED
+        ),
     )
 
 
@@ -749,12 +759,18 @@ class DistributionType(NamedTuple):
 
 def build_project_breakdown_series(reports):
     def get_legend_data(report):
-        accepted_errors, accepted_transactions, filtered, rate_limited = report.series_outcomes
+        (
+            accepted_errors,
+            dropped_errors,
+            accepted_transactions,
+            dropped_transactions,
+        ) = report.series_outcomes
+
         return {
             "accepted_errors": accepted_errors,
+            "dropped_errors": dropped_errors,
             "accepted_transactions": accepted_transactions,
-            "filtered": filtered,
-            "rate_limited": rate_limited,
+            "dropped_transactions": dropped_transactions,
         }
 
     # Find the reports with the most total events. (The number of reports to
@@ -778,10 +794,10 @@ def build_project_breakdown_series(reports):
     selections = map(
         lambda instance__color: (
             Key(
-                instance__color[0].slug,
-                instance__color[0].get_absolute_url(),
-                instance__color[1],
-                get_legend_data(reports[instance__color[0]]),
+                label=instance__color[0].slug,
+                url=instance__color[0].get_absolute_url(),
+                color=instance__color[1],
+                data=get_legend_data(reports[instance__color[0]]),
             ),
             reports[instance__color[0]],
         ),

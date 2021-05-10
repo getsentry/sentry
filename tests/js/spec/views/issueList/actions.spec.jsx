@@ -1,10 +1,9 @@
-import React from 'react';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
 import {selectByLabel} from 'sentry-test/select-new';
 
+import GroupStore from 'app/stores/groupStore';
 import SelectedGroupStore from 'app/stores/selectedGroupStore';
 import {IssueListActions} from 'app/views/issueList/actions';
 
@@ -345,7 +344,9 @@ describe('IssueListActions', function () {
   });
 
   describe('with inbox feature', function () {
+    let issuesApiMock;
     beforeEach(async () => {
+      GroupStore.init();
       SelectedGroupStore.init();
       await tick();
       const {organization} = TestStubs.routerContext().context;
@@ -370,28 +371,53 @@ describe('IssueListActions', function () {
         />,
         TestStubs.routerContext()
       );
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/projects/',
+        body: [TestStubs.Project({slug: 'earth', platform: 'javascript'})],
+      });
+      issuesApiMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        method: 'PUT',
+      });
     });
 
     it('acknowledges group', async function () {
       wrapper.find('IssueListActions').setState({anySelected: true});
       SelectedGroupStore.add(['1', '2', '3']);
       SelectedGroupStore.toggleSelectAll();
+      const inbox = {
+        date_added: '2020-11-24T13:17:42.248751Z',
+        reason: 0,
+        reason_details: null,
+      };
+      GroupStore.loadInitialData([
+        TestStubs.Group({id: '1', inbox}),
+        TestStubs.Group({id: '2', inbox}),
+        TestStubs.Group({id: '2', inbox}),
+      ]);
 
       await tick();
-      wrapper.update();
 
-      const apiMock = MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/issues/',
-        method: 'PUT',
-      });
       wrapper.find('button[aria-label="Mark Reviewed"]').simulate('click');
-
-      expect(apiMock).toHaveBeenCalledWith(
+      expect(issuesApiMock).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
           data: {inbox: false},
         })
       );
+    });
+
+    it('mark reviewed disabled for group that is already reviewed', async function () {
+      wrapper.find('IssueListActions').setState({anySelected: true});
+      SelectedGroupStore.add(['1']);
+      SelectedGroupStore.toggleSelectAll();
+      GroupStore.loadInitialData([TestStubs.Group({id: '1', inbox: null})]);
+
+      await tick();
+
+      expect(
+        wrapper.find('button[aria-label="Mark Reviewed"]').props()['aria-disabled']
+      ).toBe(true);
     });
   });
 });

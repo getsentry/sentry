@@ -1,4 +1,3 @@
-import React from 'react';
 import {act} from 'react-dom/test-utils';
 
 import {createListeners} from 'sentry-test/createListeners';
@@ -6,9 +5,9 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import EditableText from 'app/components/editableText';
 
-function renderedComponent(onChange: () => void, newValue = 'bar') {
-  const currentValue = 'foo';
+const currentValue = 'foo';
 
+function renderedComponent(onChange: () => void, newValue = 'bar') {
   const wrapper = mountWithTheme(
     <EditableText value={currentValue} onChange={onChange} />
   );
@@ -19,8 +18,8 @@ function renderedComponent(onChange: () => void, newValue = 'bar') {
   let inputWrapper = wrapper.find('InputWrapper');
   expect(inputWrapper.length).toEqual(0);
 
-  const styledIconEdit = wrapper.find('StyledIconEdit');
-  expect(styledIconEdit).toBeTruthy();
+  const styledIconEdit = wrapper.find('IconEdit');
+  expect(styledIconEdit.length).toEqual(1);
 
   label.simulate('click');
 
@@ -28,10 +27,10 @@ function renderedComponent(onChange: () => void, newValue = 'bar') {
   expect(inputWrapper.length).toEqual(0);
 
   inputWrapper = wrapper.find('InputWrapper');
-  expect(inputWrapper).toBeTruthy();
+  expect(inputWrapper.length).toEqual(1);
 
   const styledInput = wrapper.find('StyledInput');
-  expect(styledInput).toBeTruthy();
+  expect(styledInput.length).toEqual(1);
   styledInput.simulate('change', {target: {value: newValue}});
 
   const inputLabel = wrapper.find('InputLabel');
@@ -41,7 +40,6 @@ function renderedComponent(onChange: () => void, newValue = 'bar') {
 }
 
 describe('EditableText', function () {
-  const currentValue = 'foo';
   const newValue = 'bar';
 
   it('edit value and click outside of the component', function () {
@@ -60,7 +58,7 @@ describe('EditableText', function () {
     wrapper.update();
 
     const updatedLabel = wrapper.find('Label');
-    expect(updatedLabel).toBeTruthy();
+    expect(updatedLabel.length).toEqual(1);
 
     expect(updatedLabel.text()).toEqual(newValue);
   });
@@ -81,30 +79,9 @@ describe('EditableText', function () {
     wrapper.update();
 
     const updatedLabel = wrapper.find('Label');
-    expect(updatedLabel).toBeTruthy();
+    expect(updatedLabel.length).toEqual(1);
 
     expect(updatedLabel.text()).toEqual(newValue);
-  });
-
-  it('edit value and press escape', function () {
-    const fireEvent = createListeners('window');
-    const handleChange = jest.fn();
-
-    const wrapper = renderedComponent(handleChange);
-
-    act(() => {
-      // Press escape
-      fireEvent.keyDown('Escape');
-    });
-
-    expect(handleChange).toHaveBeenCalledTimes(0);
-
-    wrapper.update();
-
-    const updatedLabel = wrapper.find('Label');
-    expect(updatedLabel).toBeTruthy();
-
-    expect(updatedLabel.text()).toEqual(currentValue);
   });
 
   it('clear value and show error message', function () {
@@ -121,8 +98,76 @@ describe('EditableText', function () {
     expect(handleChange).toHaveBeenCalledTimes(0);
 
     wrapper.update();
+  });
 
-    const fieldControlErrorWrapper = wrapper.find('FieldControlErrorWrapper');
-    expect(fieldControlErrorWrapper).toBeTruthy();
+  it('displays a disabled value', function () {
+    const handleChange = jest.fn();
+
+    const wrapper = mountWithTheme(
+      <EditableText value={currentValue} onChange={handleChange} isDisabled />
+    );
+
+    let label = wrapper.find('Label');
+    expect(label.text()).toEqual(currentValue);
+
+    label.simulate('click');
+
+    const inputWrapper = wrapper.find('InputWrapper');
+    expect(inputWrapper.length).toEqual(0);
+
+    label = wrapper.find('Label');
+    expect(label.length).toEqual(1);
+  });
+
+  describe('revert value and close editor', function () {
+    it('prop value changes', function () {
+      const handleChange = jest.fn();
+      const newPropValue = 'new-prop-value';
+
+      const wrapper = renderedComponent(handleChange, '');
+
+      wrapper.setProps({value: newPropValue});
+      wrapper.update();
+
+      const updatedLabel = wrapper.find('Label');
+      expect(updatedLabel.length).toEqual(1);
+
+      expect(updatedLabel.text()).toEqual(newPropValue);
+    });
+
+    it('prop isDisabled changes', function () {
+      const handleChange = jest.fn();
+
+      const wrapper = renderedComponent(handleChange, '');
+
+      wrapper.setProps({isDisabled: true});
+      wrapper.update();
+
+      const updatedLabel = wrapper.find('Label');
+      expect(updatedLabel.length).toEqual(1);
+
+      expect(updatedLabel.text()).toEqual(currentValue);
+    });
+
+    it('edit value and press escape', function () {
+      const fireEvent = createListeners('window');
+      const handleChange = jest.fn();
+
+      const wrapper = renderedComponent(handleChange);
+
+      act(() => {
+        // Press escape
+        fireEvent.keyDown('Escape');
+      });
+
+      expect(handleChange).toHaveBeenCalledTimes(0);
+
+      wrapper.update();
+
+      const updatedLabel = wrapper.find('Label');
+      expect(updatedLabel.length).toEqual(1);
+
+      expect(updatedLabel.text()).toEqual(currentValue);
+    });
   });
 });

@@ -1,47 +1,52 @@
-import React from 'react';
+import * as React from 'react';
 import * as Sentry from '@sentry/react';
 
 import {MENU_CLOSE_DELAY} from 'app/constants';
 
-export type GetActorArgs = {
-  onClick?: (e: React.MouseEvent<Element>) => void;
-  onMouseEnter?: (e: React.MouseEvent<Element>) => void;
-  onMouseLeave?: (e: React.MouseEvent<Element>) => void;
-  onKeyDown?: (e: React.KeyboardEvent<Element>) => void;
-  onFocus?: (e: React.FocusEvent<Element>) => void;
-  onBlur?: (e: React.FocusEvent<Element>) => void;
-  onChange?: (e: React.ChangeEvent<Element>) => void;
+export type GetActorArgs<E extends Element> = {
+  onClick?: (e: React.MouseEvent<E>) => void;
+  onMouseEnter?: (e: React.MouseEvent<E>) => void;
+  onMouseLeave?: (e: React.MouseEvent<E>) => void;
+  onKeyDown?: (e: React.KeyboardEvent<E>) => void;
+  onFocus?: (e: React.FocusEvent<E>) => void;
+  onBlur?: (e: React.FocusEvent<E>) => void;
+  onChange?: (e: React.ChangeEvent<E>) => void;
   style?: React.CSSProperties;
   className?: string;
 };
 
-export type GetMenuArgs = {
-  onClick?: (e: React.MouseEvent<Element>) => void;
-  onMouseEnter?: (e: React.MouseEvent<Element>) => void;
-  onMouseLeave?: (e: React.MouseEvent<Element>) => void;
-  onMouseDown?: (e: React.MouseEvent<Element>) => void;
-  onKeyDown?: (event: React.KeyboardEvent<Element>) => void;
+export type GetMenuArgs<E extends Element> = {
+  onClick?: (e: React.MouseEvent<E>) => void;
+  onMouseEnter?: (e: React.MouseEvent<E>) => void;
+  onMouseLeave?: (e: React.MouseEvent<E>) => void;
+  onMouseDown?: (e: React.MouseEvent<E>) => void;
+  onKeyDown?: (event: React.KeyboardEvent<E>) => void;
   className?: string;
   itemCount?: number;
 };
 
 // Props for the "actor" element of `<DropdownMenu>`
 // This is the element that handles visibility of the dropdown menu
-type ActorProps = {
-  onClick: (e: React.MouseEvent<Element>) => void;
-  onMouseEnter: (e: React.MouseEvent<Element>) => void;
-  onMouseLeave: (e: React.MouseEvent<Element>) => void;
-  onKeyDown: (e: React.KeyboardEvent<Element>) => void;
+type ActorProps<E extends Element> = {
+  onClick: (e: React.MouseEvent<E>) => void;
+  onMouseEnter: (e: React.MouseEvent<E>) => void;
+  onMouseLeave: (e: React.MouseEvent<E>) => void;
+  onKeyDown: (e: React.KeyboardEvent<E>) => void;
 };
 
-type MenuProps = {
-  onClick: (e: React.MouseEvent<Element>) => void;
-  onMouseEnter: (e: React.MouseEvent<Element>) => void;
-  onMouseLeave: (e: React.MouseEvent<Element>) => void;
+type MenuProps<E extends Element> = {
+  onClick: (e: React.MouseEvent<E>) => void;
+  onMouseEnter: (e: React.MouseEvent<E>) => void;
+  onMouseLeave: (e: React.MouseEvent<E>) => void;
 };
 
-export type GetActorPropsFn = (opts?: GetActorArgs) => ActorProps;
-export type GetMenuPropsFn = (opts?: GetMenuArgs) => MenuProps;
+export type GetActorPropsFn = <E extends Element = Element>(
+  opts?: GetActorArgs<E>
+) => ActorProps<E>;
+
+export type GetMenuPropsFn = <E extends Element = Element>(
+  opts?: GetMenuArgs<E>
+) => MenuProps<E>;
 
 type RenderProps = {
   isOpen: boolean;
@@ -306,14 +311,14 @@ class DropdownMenu extends React.Component<Props, State> {
   }
 
   // Actor is the component that will open the dropdown menu
-  getActorProps: GetActorPropsFn = ({
+  getActorProps: GetActorPropsFn = <E extends Element = Element>({
     onClick,
     onMouseEnter,
     onMouseLeave,
     onKeyDown,
     style = {},
     ...props
-  }: GetActorArgs = {}) => {
+  }: GetActorArgs<E> = {}) => {
     const {isNestedDropdown, closeOnEscape} = this.props;
 
     const refProps = {ref: this.handleActorMount};
@@ -324,7 +329,7 @@ class DropdownMenu extends React.Component<Props, State> {
       ...refProps,
       style: {...style, outline: 'none'},
 
-      onKeyDown: (e: React.KeyboardEvent<Element>) => {
+      onKeyDown: (e: React.KeyboardEvent<E>) => {
         if (typeof onKeyDown === 'function') {
           onKeyDown(e);
         }
@@ -334,7 +339,7 @@ class DropdownMenu extends React.Component<Props, State> {
         }
       },
 
-      onMouseEnter: (e: React.MouseEvent<Element>) => {
+      onMouseEnter: (e: React.MouseEvent<E>) => {
         if (typeof onMouseEnter === 'function') {
           onMouseEnter(e);
         }
@@ -353,7 +358,7 @@ class DropdownMenu extends React.Component<Props, State> {
         }, MENU_CLOSE_DELAY);
       },
 
-      onMouseLeave: (e: React.MouseEvent<Element>) => {
+      onMouseLeave: (e: React.MouseEvent<E>) => {
         if (typeof onMouseLeave === 'function') {
           onMouseLeave(e);
         }
@@ -364,7 +369,7 @@ class DropdownMenu extends React.Component<Props, State> {
         this.handleMouseLeave(e);
       },
 
-      onClick: (e: React.MouseEvent<Element>) => {
+      onClick: (e: React.MouseEvent<E>) => {
         // If we are a nested dropdown, clicking the actor
         // should be a no-op so that the menu doesn't close.
         if (isNestedDropdown) {
@@ -383,19 +388,19 @@ class DropdownMenu extends React.Component<Props, State> {
   };
 
   // Menu is the menu component that <DropdownMenu> will control
-  getMenuProps: GetMenuPropsFn = ({
+  getMenuProps: GetMenuPropsFn = <E extends Element = Element>({
     onClick,
     onMouseLeave,
     onMouseEnter,
     ...props
-  }: GetMenuArgs = {}): MenuProps => {
+  }: GetMenuArgs<E> = {}): MenuProps<E> => {
     const refProps = {ref: this.handleMenuMount};
 
     // Props that the menu needs to have <DropdownMenu> work
     return {
       ...props,
       ...refProps,
-      onMouseEnter: (e: React.MouseEvent<Element>) => {
+      onMouseEnter: (e: React.MouseEvent<E>) => {
         if (typeof onMouseEnter === 'function') {
           onMouseEnter(e);
         }
@@ -405,14 +410,14 @@ class DropdownMenu extends React.Component<Props, State> {
           window.clearTimeout(this.mouseLeaveId);
         }
       },
-      onMouseLeave: (e: React.MouseEvent<Element>) => {
+      onMouseLeave: (e: React.MouseEvent<E>) => {
         if (typeof onMouseLeave === 'function') {
           onMouseLeave(e);
         }
 
         this.handleMouseLeave(e);
       },
-      onClick: (e: React.MouseEvent<Element>) => {
+      onClick: (e: React.MouseEvent<E>) => {
         this.handleDropdownMenuClick(e);
 
         if (typeof onClick === 'function') {

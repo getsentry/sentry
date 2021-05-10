@@ -86,7 +86,9 @@ class ReleaseTestCase(ActivityTestCase):
         # for that org -- also tests to make sure org overrides default preference
         # user5 committed with another email address and is still included.
 
-        participants = email.get_participants()[ExternalProviders.EMAIL]
+        participants = email.get_participants_with_group_subscription_reason()[
+            ExternalProviders.EMAIL
+        ]
         assert len(participants) == 3
         assert participants == {
             self.user1: GroupSubscriptionReason.committed,
@@ -103,7 +105,7 @@ class ReleaseTestCase(ActivityTestCase):
             (self.commit4, self.user5),
         ]
 
-        user_context = email.get_user_context(self.user1)
+        user_context = email.get_user_context(self.user1, {})
         # make sure this only includes projects user has access to
         assert len(user_context["projects"]) == 1
         assert user_context["projects"][0][0] == self.project
@@ -143,7 +145,9 @@ class ReleaseTestCase(ActivityTestCase):
         )
 
         # only user3 is included because they opted into all deploy emails
-        participants = email.get_participants()[ExternalProviders.EMAIL]
+        participants = email.get_participants_with_group_subscription_reason()[
+            ExternalProviders.EMAIL
+        ]
         assert len(participants) == 1
         assert participants == {self.user3: GroupSubscriptionReason.deploy_setting}
 
@@ -151,7 +155,7 @@ class ReleaseTestCase(ActivityTestCase):
         assert context["environment"] == "production"
         assert context["repos"] == []
 
-        user_context = email.get_user_context(self.user1)
+        user_context = email.get_user_context(self.user1, {})
         # make sure this only includes projects user has access to
         assert len(user_context["projects"]) == 1
         assert user_context["projects"][0][0] == self.project
@@ -188,7 +192,9 @@ class ReleaseTestCase(ActivityTestCase):
 
         # user3 and user 6 are included because they oped into all deploy emails
         # (one on an org level, one as their default)
-        participants = email.get_participants()[ExternalProviders.EMAIL]
+        participants = email.get_participants_with_group_subscription_reason()[
+            ExternalProviders.EMAIL
+        ]
         assert len(participants) == 2
         assert participants == {
             user6: GroupSubscriptionReason.deploy_setting,
@@ -199,7 +205,7 @@ class ReleaseTestCase(ActivityTestCase):
         assert context["environment"] == "production"
         assert context["repos"] == []
 
-        user_context = email.get_user_context(user6)
+        user_context = email.get_user_context(user6, {})
         # make sure this only includes projects user has access to
         assert len(user_context["projects"]) == 1
         assert user_context["projects"][0][0] == self.project

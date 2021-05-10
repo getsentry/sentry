@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import Button from 'app/components/button';
 import {t, tn} from 'app/locale';
@@ -9,91 +9,58 @@ type CollapseButtonRenderProps = {
 
 type ExpandButtonRenderProps = {
   onExpand: () => void;
-  numberOfCollapsedItems: number;
-};
-
-type DefaultProps = {
-  maxVisibleItems: number;
+  numberOfHiddenItems: number;
 };
 
 type Props = {
+  maxVisibleItems?: number;
   collapseButton?: (props: CollapseButtonRenderProps) => React.ReactNode;
   expandButton?: (props: ExpandButtonRenderProps) => React.ReactNode;
-} & DefaultProps;
-
-type State = {
-  collapsed: boolean;
 };
 
 /**
  * This component is used to show first X items and collapse the rest
  */
-class Collapsible extends React.Component<Props, State> {
-  static defaultProps: DefaultProps = {
-    maxVisibleItems: 5,
-  };
+const Collapsible: React.FC<Props> = ({
+  collapseButton,
+  expandButton,
+  maxVisibleItems = 5,
+  children,
+}) => {
+  const [isCollapsed, setCollapsed] = React.useState(true);
+  const handleCollapseToggle = () => setCollapsed(!isCollapsed);
 
-  state: State = {
-    collapsed: true,
-  };
+  const items = React.Children.toArray(children);
+  const canCollapse = items.length > maxVisibleItems;
 
-  handleCollapseToggle = () => {
-    this.setState(prevState => ({
-      collapsed: !prevState.collapsed,
-    }));
-  };
-
-  renderCollapseButton() {
-    const {collapseButton} = this.props;
-
-    if (typeof collapseButton === 'function') {
-      return collapseButton({onCollapse: this.handleCollapseToggle});
-    }
-
-    return (
-      <Button priority="link" onClick={this.handleCollapseToggle}>
-        {t('Collapse')}
-      </Button>
-    );
+  if (!canCollapse) {
+    return <React.Fragment>{children}</React.Fragment>;
   }
 
-  renderExpandButton(numberOfCollapsedItems: number) {
-    const {expandButton} = this.props;
+  const visibleItems = isCollapsed ? items.slice(0, maxVisibleItems) : items;
+  const numberOfHiddenItems = items.length - visibleItems.length;
 
-    if (typeof expandButton === 'function') {
-      return expandButton({
-        onExpand: this.handleCollapseToggle,
-        numberOfCollapsedItems,
-      });
-    }
+  const showDefault =
+    (numberOfHiddenItems > 0 && !expandButton) ||
+    (numberOfHiddenItems === 0 && !collapseButton);
 
-    return (
-      <Button priority="link" onClick={this.handleCollapseToggle}>
-        {tn('Show %s collapsed item', 'Show %s collapsed items', numberOfCollapsedItems)}
-      </Button>
-    );
-  }
+  return (
+    <React.Fragment>
+      {visibleItems}
 
-  render() {
-    const {maxVisibleItems, children} = this.props;
-    const {collapsed} = this.state;
+      {showDefault && (
+        <Button priority="link" onClick={handleCollapseToggle}>
+          {isCollapsed
+            ? tn('Show %s hidden item', 'Show %s hidden items', numberOfHiddenItems)
+            : t('Collapse')}
+        </Button>
+      )}
 
-    const items = React.Children.toArray(children);
-    const canExpand = items.length > maxVisibleItems;
-    const itemsToRender =
-      collapsed && canExpand ? items.slice(0, maxVisibleItems) : items;
-    const numberOfCollapsedItems = items.length - itemsToRender.length;
-
-    return (
-      <React.Fragment>
-        {itemsToRender}
-
-        {numberOfCollapsedItems > 0 && this.renderExpandButton(numberOfCollapsedItems)}
-
-        {numberOfCollapsedItems === 0 && canExpand && this.renderCollapseButton()}
-      </React.Fragment>
-    );
-  }
-}
+      {numberOfHiddenItems > 0 &&
+        expandButton?.({onExpand: handleCollapseToggle, numberOfHiddenItems})}
+      {numberOfHiddenItems === 0 && collapseButton?.({onCollapse: handleCollapseToggle})}
+    </React.Fragment>
+  );
+};
 
 export default Collapsible;

@@ -3,16 +3,16 @@ from parsimonious.exceptions import IncompleteParseError
 
 from sentry.api.event_search import (
     AggregateFilter,
-    InvalidSearchQuery,
     SearchFilter,
     SearchKey,
     SearchValue,
     SearchVisitor,
-    equality_operators,
     event_search_grammar,
-    to_list,
 )
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models.group import STATUS_QUERY_CHOICES
+from sentry.search.events.constants import EQUALITY_OPERATORS
+from sentry.search.events.filter import to_list
 from sentry.search.utils import (
     parse_actor_or_none_value,
     parse_release,
@@ -151,7 +151,7 @@ def convert_query_values(search_filters, projects, user, environments):
             )
             search_filter = search_filter._replace(
                 value=SearchValue(new_value),
-                operator="IN" if search_filter.operator in equality_operators else "NOT IN",
+                operator="IN" if search_filter.operator in EQUALITY_OPERATORS else "NOT IN",
             )
         elif isinstance(search_filter, AggregateFilter):
             raise InvalidSearchQuery(

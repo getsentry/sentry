@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import {css} from '@emotion/react';
 
 import {ModalRenderProps} from 'app/actionCreators/modal';
@@ -18,25 +18,20 @@ const CreateOwnershipRuleModal = ({Body, Header, closeModal, ...props}: Props) =
   };
 
   return (
-    <React.Fragment>
-      <Header closeButton onHide={closeModal}>
-        {t('Create Ownership Rule')}
-      </Header>
+    <Fragment>
+      <Header closeButton>{t('Create Ownership Rule')}</Header>
       <Body>
         <ProjectOwnershipModal {...props} onSave={handleSuccess} />
       </Body>
-    </React.Fragment>
+    </Fragment>
   );
 };
 
 export const modalCss = css`
   @media (min-width: ${theme.breakpoints[0]}) {
-    .modal-dialog {
-      width: 80%;
-      margin-left: -40%;
-    }
+    width: 80%;
   }
-  .modal-content {
+  [role='document'] {
     overflow: initial;
   }
 `;

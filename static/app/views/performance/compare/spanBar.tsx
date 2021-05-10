@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -15,11 +15,7 @@ import {
   DividerLine,
   DividerLineGhostContainer,
 } from 'app/components/performance/waterfall/rowDivider';
-import {
-  OperationName,
-  RowTitle,
-  RowTitleContainer,
-} from 'app/components/performance/waterfall/rowTitle';
+import {RowTitle, RowTitleContainer} from 'app/components/performance/waterfall/rowTitle';
 import {
   ConnectorBar,
   StyledIconChevron,
@@ -169,6 +165,7 @@ class SpanBar extends React.Component<Props, State> {
         <TreeToggle
           disabled={!!isRoot}
           isExpanded={this.props.showSpanTree}
+          errored={false}
           onClick={event => {
             event.stopPropagation();
 
@@ -191,8 +188,8 @@ class SpanBar extends React.Component<Props, State> {
 
     const operationName = getSpanOperation(span) ? (
       <strong>
-        <OperationName errored={false}>{getSpanOperation(span)}</OperationName>
-        {` \u2014 `}
+        {getSpanOperation(span)}
+        {' \u2014 '}
       </strong>
     ) : (
       ''

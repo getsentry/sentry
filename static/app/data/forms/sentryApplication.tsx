@@ -1,5 +1,3 @@
-import React from 'react';
-
 import ExternalLink from 'app/components/links/externalLink';
 import {tct} from 'app/locale';
 import {extractMultilineFields} from 'app/utils';

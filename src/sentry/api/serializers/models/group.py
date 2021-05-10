@@ -11,7 +11,6 @@ from django.db.models import Min
 from django.utils import timezone
 
 from sentry import tagstore, tsdb
-from sentry.api.event_search import convert_search_filter_to_snuba_query
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer
 from sentry.app import env
@@ -50,6 +49,7 @@ from sentry.notifications.helpers import (
 )
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.reprocessing2 import get_progress
+from sentry.search.events.filter import convert_search_filter_to_snuba_query
 from sentry.tagstore.snuba.backend import fix_tag_value_data
 from sentry.tsdb.snuba import SnubaTSDB
 from sentry.types.integrations import ExternalProviders
@@ -231,7 +231,7 @@ class GroupSerializerBase(Serializer):
         # making unnecessary queries.
         attach_foreignkey(item_list, Group.project, related=("organization",))
 
-        if user.is_authenticated() and item_list:
+        if user.is_authenticated and item_list:
             bookmarks = set(
                 GroupBookmark.objects.filter(user=user, group__in=item_list).values_list(
                     "group_id", flat=True
@@ -485,7 +485,7 @@ class GroupSerializerBase(Serializer):
         if (
             is_superuser
             or is_valid_sentryapp
-            or (user.is_authenticated() and user.get_orgs().filter(id=obj.organization.id).exists())
+            or (user.is_authenticated and user.get_orgs().filter(id=obj.organization.id).exists())
         ):
             with sentry_sdk.start_span(op="GroupSerializerBase.serialize.permalink.build"):
                 return obj.get_absolute_url()

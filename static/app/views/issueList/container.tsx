@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import DocumentTitle from 'react-document-title';
 
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
@@ -11,7 +11,7 @@ type Props = {
   organization: Organization;
 };
 
-class IssueListContainer extends React.Component<Props> {
+class IssueListContainer extends Component<Props> {
   componentDidMount() {
     // Setup here as render() may be expensive
     this.startMetricCollection();

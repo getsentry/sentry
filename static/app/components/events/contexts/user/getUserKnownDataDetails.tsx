@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import ExternalLink from 'app/components/links/externalLink';
 import {IconMail} from 'app/icons';

@@ -3,7 +3,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
-from sentry.api.event_search import get_function_alias
+from sentry.search.events.fields import get_function_alias
 from sentry.snuba import discover
 
 

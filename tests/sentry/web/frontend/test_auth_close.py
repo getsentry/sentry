@@ -32,4 +32,4 @@ class AuthClose(TestCase):
         self.login_as(self.user)
 
         resp = self.client.get(self.path)
-        assert resp.context["logged_in"] is True
+        assert resp.context["logged_in"]

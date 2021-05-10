@@ -1,5 +1,6 @@
-import React from 'react';
-import moment from 'moment-timezone';
+import {Component} from 'react';
+import moment from 'moment';
+import momentTimezone from 'moment-timezone';
 
 import ConfigStore from 'app/stores/configStore';
 
@@ -8,7 +9,7 @@ type DefaultProps = {
 };
 
 type Props = DefaultProps & {
-  date: moment.MomentInput;
+  date: moment.MomentInput | momentTimezone.MomentInput;
   dateOnly?: boolean;
   timeOnly?: boolean;
   shortDate?: boolean;
@@ -17,7 +18,7 @@ type Props = DefaultProps & {
   format?: string;
 };
 
-class DateTime extends React.Component<Props> {
+class DateTime extends Component<Props> {
   static defaultProps: DefaultProps = {
     seconds: true,
   };
@@ -84,8 +85,8 @@ class DateTime extends React.Component<Props> {
     return (
       <time {...carriedProps}>
         {utc
-          ? moment.utc(date).format(format)
-          : moment.tz(date, options?.timezone ?? '').format(format)}
+          ? moment.utc(date as moment.MomentInput).format(format)
+          : momentTimezone.tz(date, options?.timezone ?? '').format(format)}
       </time>
     );
   }

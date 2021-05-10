@@ -6,12 +6,12 @@ from django.http.request import QueryDict
 
 from sentry import features
 from sentry.api import client
-from sentry.api.event_search import to_list
 from sentry.charts import generate_chart
 from sentry.charts.types import ChartType
 from sentry.integrations.slack.message_builder.discover import build_discover_attachment
 from sentry.integrations.slack.utils import logger
 from sentry.models import ApiKey
+from sentry.search.events.filter import to_list
 
 from . import Handler, UnfurlableUrl, UnfurledUrl
 

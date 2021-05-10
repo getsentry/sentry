@@ -87,7 +87,7 @@ def get_context(lineno, context_line, pre_context=None, post_context=None):
 def is_newest_frame_first(event):
     newest_first = event.platform not in ("python", None)
 
-    if env.request and env.request.user.is_authenticated():
+    if env.request and env.request.user.is_authenticated:
         display = UserOption.objects.get_value(
             user=env.request.user, key="stacktrace_order", default=None
         )

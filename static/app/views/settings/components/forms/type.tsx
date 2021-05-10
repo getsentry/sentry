@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {createFilter} from 'react-select';
 
 import Alert from 'app/components/alert';
@@ -116,7 +116,6 @@ type SelectControlType = {type: 'choice' | 'select'} & {
   defaultOptions?: Array<{label: string; value: any}> | boolean;
   filterOption?: ReturnType<typeof createFilter>;
   noOptionsMessage?: () => string;
-  deprecatedSelectControl?: boolean;
 };
 
 type TextareaType = {type: 'textarea'} & {

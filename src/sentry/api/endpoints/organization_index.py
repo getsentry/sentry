@@ -63,7 +63,7 @@ class OrganizationIndexEndpoint(Endpoint):
 
         queryset = Organization.objects.distinct()
 
-        if request.auth and not request.user.is_authenticated():
+        if request.auth and not request.user.is_authenticated:
             if hasattr(request.auth, "project"):
                 queryset = queryset.filter(id=request.auth.project.organization_id)
             elif request.auth.organization is not None:
@@ -173,7 +173,7 @@ class OrganizationIndexEndpoint(Endpoint):
                                 terms of service and privacy policy.
         :auth: required, user-context-needed
         """
-        if not request.user.is_authenticated():
+        if not request.user.is_authenticated:
             return Response({"detail": "This endpoint requires user info"}, status=401)
 
         if not features.has("organizations:create", actor=request.user):
@@ -221,7 +221,7 @@ class OrganizationIndexEndpoint(Endpoint):
                     analytics.record(
                         "organization.created",
                         org,
-                        actor_id=request.user.id if request.user.is_authenticated() else None,
+                        actor_id=request.user.id if request.user.is_authenticated else None,
                     )
 
             except IntegrityError:

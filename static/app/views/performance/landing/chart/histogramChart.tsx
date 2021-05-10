@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -102,19 +102,15 @@ export function HistogramChart(props: Props) {
             allSeries.push(series);
           }
 
-          const values = series.data.map(point => point.value);
-          const max = values.length ? Math.max(...values) : undefined;
-
           const yAxis = {
             type: 'value' as const,
-            max,
             axisLabel: {
               color: theme.chartLabel,
             },
           };
 
           return (
-            <React.Fragment>
+            <Fragment>
               <BarChartZoom
                 minZoomWidth={10 ** -PRECISION * NUM_BUCKETS}
                 location={location}
@@ -153,7 +149,7 @@ export function HistogramChart(props: Props) {
                   );
                 }}
               </BarChartZoom>
-            </React.Fragment>
+            </Fragment>
           );
         }}
       </HistogramQuery>

@@ -1,4 +1,3 @@
-import React from 'react';
 import {act} from 'react-dom/test-utils';
 import {browserHistory} from 'react-router';
 
@@ -7,7 +6,8 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {mountGlobalModal} from 'sentry-test/modal';
 
-import DashboardDetail from 'app/views/dashboardsV2/detail';
+import DashboardsV2Container from 'app/views/dashboardsV2/';
+import ViewEditDashboard from 'app/views/dashboardsV2/view';
 
 describe('Dashboards > Detail', function () {
   const organization = TestStubs.Organization({
@@ -54,7 +54,7 @@ describe('Dashboards > Detail', function () {
         method: 'DELETE',
       });
       wrapper = mountWithTheme(
-        <DashboardDetail
+        <DashboardsV2Container
           organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: 'default-overview'}}
           router={initialData.router}
@@ -92,7 +92,7 @@ describe('Dashboards > Detail', function () {
         body: TestStubs.Dashboard([], {id: '8', title: 'Updated prebuilt'}),
       });
       wrapper = mountWithTheme(
-        <DashboardDetail
+        <DashboardsV2Container
           organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: 'default-overview'}}
           router={initialData.router}
@@ -131,7 +131,7 @@ describe('Dashboards > Detail', function () {
       // Should redirect to the new dashboard.
       expect(browserHistory.replace).toHaveBeenCalledWith(
         expect.objectContaining({
-          pathname: '/organizations/org-slug/dashboards/8/',
+          pathname: '/organizations/org-slug/dashboard/8/',
         })
       );
     });
@@ -145,7 +145,7 @@ describe('Dashboards > Detail', function () {
       });
 
       wrapper = mountWithTheme(
-        <DashboardDetail
+        <DashboardsV2Container
           organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: 'default-overview'}}
           router={initialData.router}
@@ -161,12 +161,6 @@ describe('Dashboards > Detail', function () {
         .find('Controls Button[data-test-id="dashboard-edit"]')
         .props();
       expect(editProps.disabled).toBe(true);
-
-      // Create should be disabled
-      const createProps = wrapper
-        .find('Controls Button[data-test-id="dashboard-create"]')
-        .props();
-      expect(createProps.disabled).toBe(true);
     });
   });
 
@@ -246,7 +240,7 @@ describe('Dashboards > Detail', function () {
         method: 'PUT',
       });
       wrapper = mountWithTheme(
-        <DashboardDetail
+        <DashboardsV2Container
           organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: '1'}}
           router={initialData.router}
@@ -294,7 +288,7 @@ describe('Dashboards > Detail', function () {
 
     it('can enter edit mode for widgets', async function () {
       wrapper = mountWithTheme(
-        <DashboardDetail
+        <DashboardsV2Container
           organization={initialData.organization}
           params={{orgId: 'org-slug', dashboardId: '1'}}
           router={initialData.router}
@@ -324,6 +318,53 @@ describe('Dashboards > Detail', function () {
       const modal = await mountGlobalModal();
 
       expect(modal.find('AddDashboardWidgetModal').props().widget).toEqual(widgets[0]);
+    });
+
+    it('hides and shows breadcrumbs based on feature', async function () {
+      wrapper = mountWithTheme(
+        <ViewEditDashboard
+          organization={initialData.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={initialData.router}
+          location={initialData.router.location}
+        />,
+        initialData.routerContext
+      );
+      await tick();
+      wrapper.update();
+
+      expect(wrapper.find('Breadcrumbs').exists()).toBe(false);
+
+      const newOrg = initializeOrg({
+        organization: TestStubs.Organization({
+          features: [
+            'global-views',
+            'dashboards-basic',
+            'dashboards-edit',
+            'discover-query',
+            'dashboards-manage',
+          ],
+          projects: [TestStubs.Project()],
+        }),
+      });
+
+      wrapper = mountWithTheme(
+        <ViewEditDashboard
+          organization={newOrg.organization}
+          params={{orgId: 'org-slug', dashboardId: '1'}}
+          router={newOrg.router}
+          location={newOrg.router.location}
+        />,
+        newOrg.routerContext
+      );
+      await tick();
+      wrapper.update();
+
+      const breadcrumbs = wrapper.find('Breadcrumbs');
+
+      expect(breadcrumbs.exists()).toBe(true);
+      expect(breadcrumbs.find('BreadcrumbLink').find('a').text()).toEqual('Dashboards');
+      expect(breadcrumbs.find('BreadcrumbItem').last().text()).toEqual('Custom Errors');
     });
   });
 });
