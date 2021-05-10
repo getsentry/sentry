@@ -108,6 +108,7 @@ class InstallationConfigView(PipelineView):
 class CustomSCMIntegrationProvider(IntegrationProvider):
     key = "custom_scm"
     name = "Custom Source Control Management (SCM)"
+    requires_feature_flag = True
     metadata = metadata
     integration_cls = CustomSCMIntegration
     features = frozenset([IntegrationFeatures.COMMITS, IntegrationFeatures.STACKTRACE_LINK])
