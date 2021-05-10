@@ -122,7 +122,185 @@ class Context:
         return Context(self.request, self.backends.copy())
 
 
-class ServiceDelegator(Service):
+class Delegator:
+    def __init__(self, backend_base, backends, selector_func, callback_func) -> None:
+        self.__backend_base = backend_base
+        self._backends = backends  # XXX: referenced by subclasses, left unmangled
+        self.__selector_func = selector_func
+        self.__callback_func = callback_func
+
+    class InvalidBackend(Exception):
+        """\
+        Exception raised when an invalid backend is returned by a selector
+        function.
+        """
+
+    class State(threading.local):
+        def __init__(self):
+            self.context = None
+
+    __state = State()
+
+    def __getattr__(self, attribute_name):
+        # When deciding how to handle attribute accesses, we have three
+        # different possible outcomes:
+        # 1. If this is defined as a method on the base implementation, we are
+        #    able delegate it to the backends based on the selector function.
+        # 2. If this is defined as an attribute on the base implementation, we
+        #    are able to (immediately) return that as the value. (This also
+        #    mirrors the behavior of ``LazyServiceWrapper``, which will cache
+        #    any attribute access during ``expose``, so we can't delegate
+        #    attribute access anyway.)
+        # 3. If this isn't defined at all on the base implementation, we let
+        #    the ``AttributeError`` raised by ``getattr`` propagate (mirroring
+        #    normal attribute access behavior for a missing/invalid name.)
+        base_value = getattr(self.__backend_base, attribute_name)
+        if not inspect.isroutine(base_value):
+            return base_value
+
+        def execute(*args, **kwargs):
+            context = type(self).__state.context
+
+            # If there is no context object already set in the thread local
+            # state, we are entering the delegator for the first time and need
+            # to create a new context.
+            if context is None:
+                from sentry.app import env  # avoids a circular import
+
+                context = Context(env.request, {})
+
+            # If this thread already has an active backend for this base class,
+            # we can safely call that backend synchronously without delegating.
+            if self.__backend_base in context.backends:
+                backend = context.backends[self.__backend_base]
+                return getattr(backend, attribute_name)(*args, **kwargs)
+
+            # Binding the call arguments to named arguments has two benefits:
+            # 1. These values always be passed in the same form to the selector
+            #    function and callback, regardless of how they were passed to
+            #    the method itself (as positional arguments, keyword arguments,
+            #    etc.)
+            # 2. This ensures that the given arguments are those supported by
+            #    the base backend itself, which should be a common subset of
+            #    arguments that are supported by all backends.
+            callargs = inspect.getcallargs(base_value, None, *args, **kwargs)
+
+            selected_backend_names = list(self.__selector_func(context, attribute_name, callargs))
+            if not len(selected_backend_names) > 0:
+                raise self.InvalidBackend("No backends returned by selector!")
+
+            # Ensure that the primary backend is actually registered -- we
+            # don't want to schedule any work on the secondaries if the primary
+            # request is going to fail anyway.
+            if selected_backend_names[0] not in self._backends:
+                raise self.InvalidBackend(
+                    f"{selected_backend_names[0]!r} is not a registered backend."
+                )
+
+            def call_backend_method(context, backend, is_primary):
+                # Update the thread local state in the executor to the provided
+                # context object. This allows the context to be propagated
+                # across different threads.
+                assert type(self).__state.context is None
+                type(self).__state.context = context
+
+                # Ensure that we haven't somehow accidentally entered a context
+                # where the backend we're calling has already been marked as
+                # active (or worse, some other backend is already active.)
+                base = self.__backend_base
+                assert base not in context.backends
+
+                # Mark the backend as active.
+                context.backends[base] = backend
+                try:
+                    return getattr(backend, attribute_name)(*args, **kwargs)
+                except Exception as e:
+                    # If this isn't the primary backend, we log any unexpected
+                    # exceptions so that they don't pass by unnoticed. (Any
+                    # exceptions raised by the primary backend aren't logged
+                    # here, since it's assumed that the caller will log them
+                    # from the calling thread.)
+                    if not is_primary:
+                        expected_raises = getattr(base_value, "__raises__", [])
+                        if not expected_raises or not isinstance(e, tuple(expected_raises)):
+                            logger.warning(
+                                "%s caught in executor while calling %r on %s.",
+                                type(e).__name__,
+                                attribute_name,
+                                type(backend).__name__,
+                                exc_info=True,
+                            )
+                    raise
+                finally:
+                    type(self).__state.context = None
+
+            # Enqueue all of the secondary backend requests first since these
+            # are non-blocking queue insertions. (Since the primary backend
+            # executor queue insertion can block, if that queue was full the
+            # secondary requests would have to wait unnecessarily to be queued
+            # until the after the primary request can be enqueued.)
+            # NOTE: If the same backend is both the primary backend *and* in
+            # the secondary backend list -- this is unlikely, but possible --
+            # this means that one of the secondary requests will be queued and
+            # executed before the primary request is queued.  This is such a
+            # strange usage pattern that I don't think it's worth optimizing
+            # for.)
+            results = [None] * len(selected_backend_names)
+            for i, backend_name in enumerate(selected_backend_names[1:], 1):
+                try:
+                    backend, executor = self._backends[backend_name]
+                except KeyError:
+                    logger.warning(
+                        "%r is not a registered backend and will be ignored.",
+                        backend_name,
+                        exc_info=True,
+                    )
+                else:
+                    results[i] = executor.submit(
+                        functools.partial(
+                            call_backend_method, context.copy(), backend, is_primary=False
+                        ),
+                        priority=1,
+                        block=False,
+                    )
+
+            # The primary backend is scheduled last since it may block the
+            # calling thread. (We don't have to protect this from ``KeyError``
+            # since we already ensured that the primary backend exists.)
+            backend, executor = self._backends[selected_backend_names[0]]
+            results[0] = executor.submit(
+                functools.partial(call_backend_method, context.copy(), backend, is_primary=True),
+                priority=0,
+                block=True,
+            )
+
+            if self.__callback_func is not None:
+                FutureSet([_f for _f in results if _f]).add_done_callback(
+                    lambda *a, **k: self.__callback_func(
+                        context, attribute_name, callargs, selected_backend_names, results
+                    )
+                )
+
+            return results[0].result()
+
+        return execute
+
+
+def build_instance_from_options(options, default_constructor=None):
+    try:
+        path = options["path"]
+    except KeyError:
+        if default_constructor:
+            constructor = default_constructor
+        else:
+            raise
+    else:
+        constructor = resolve_callable(path)
+
+    return constructor(**options.get("options", {}))
+
+
+class ServiceDelegator(Delegator, Service):
     """\
     This is backend that coordinates and delegates method execution to multiple
     backends. It can be used to route requests to different backends based on
@@ -212,191 +390,26 @@ class ServiceDelegator(Service):
         was invalid) of the same length and ordering as the backend names.
     """
 
-    class InvalidBackend(Exception):
-        """\
-        Exception raised when an invalid backend is returned by a selector
-        function.
-        """
-
-    class State(threading.local):
-        def __init__(self):
-            self.context = None
-
-    __state = State()
-
     def __init__(self, backend_base, backends, selector_func, callback_func=None):
-        self.__backend_base = import_string(backend_base)
-
-        def load_executor(options):
-            path = options.get("path")
-            if path is None:
-                executor_cls = ThreadedExecutor
-            else:
-                executor_cls = import_string(path)
-            return executor_cls(**options.get("options", {}))
-
-        self.__backends = {}
-        for name, options in backends.items():
-            self.__backends[name] = (
-                import_string(options["path"])(**options.get("options", {})),
-                load_executor(options.get("executor", {})),
-            )
-
-        self.__selector_func = resolve_callable(selector_func)
-
-        if callback_func is not None:
-            self.__callback_func = resolve_callable(callback_func)
-        else:
-            self.__callback_func = None
+        super().__init__(
+            import_string(backend_base),
+            {
+                name: (
+                    build_instance_from_options(options),
+                    build_instance_from_options(
+                        options.get("executor"), default_constructor=ThreadedExecutor
+                    ),
+                )
+                for name, options in backends.items()
+            },
+            resolve_callable(selector_func),
+            resolve_callable(callback_func) if callback_func is not None else None,
+        )
 
     def validate(self):
-        for backend, executor in self.__backends.values():
+        for backend, executor in self._backends.values():
             backend.validate()
 
     def setup(self):
-        for backend, executor in self.__backends.values():
+        for backend, executor in self._backends.values():
             backend.setup()
-
-    def __getattr__(self, attribute_name):
-        # When deciding how to handle attribute accesses, we have three
-        # different possible outcomes:
-        # 1. If this is defined as a method on the base implementation, we are
-        #    able delegate it to the backends based on the selector function.
-        # 2. If this is defined as an attribute on the base implementation, we
-        #    are able to (immediately) return that as the value. (This also
-        #    mirrors the behavior of ``LazyServiceWrapper``, which will cache
-        #    any attribute access during ``expose``, so we can't delegate
-        #    attribute access anyway.)
-        # 3. If this isn't defined at all on the base implementation, we let
-        #    the ``AttributeError`` raised by ``getattr`` propagate (mirroring
-        #    normal attribute access behavior for a missing/invalid name.)
-        base_value = getattr(self.__backend_base, attribute_name)
-        if not inspect.isroutine(base_value):
-            return base_value
-
-        def execute(*args, **kwargs):
-            context = type(self).__state.context
-
-            # If there is no context object already set in the thread local
-            # state, we are entering the delegator for the first time and need
-            # to create a new context.
-            if context is None:
-                from sentry.app import env  # avoids a circular import
-
-                context = Context(env.request, {})
-
-            # If this thread already has an active backend for this base class,
-            # we can safely call that backend synchronously without delegating.
-            if self.__backend_base in context.backends:
-                backend = context.backends[self.__backend_base]
-                return getattr(backend, attribute_name)(*args, **kwargs)
-
-            # Binding the call arguments to named arguments has two benefits:
-            # 1. These values always be passed in the same form to the selector
-            #    function and callback, regardless of how they were passed to
-            #    the method itself (as positional arguments, keyword arguments,
-            #    etc.)
-            # 2. This ensures that the given arguments are those supported by
-            #    the base backend itself, which should be a common subset of
-            #    arguments that are supported by all backends.
-            callargs = inspect.getcallargs(base_value, None, *args, **kwargs)
-
-            selected_backend_names = list(self.__selector_func(context, attribute_name, callargs))
-            if not len(selected_backend_names) > 0:
-                raise self.InvalidBackend("No backends returned by selector!")
-
-            # Ensure that the primary backend is actually registered -- we
-            # don't want to schedule any work on the secondaries if the primary
-            # request is going to fail anyway.
-            if selected_backend_names[0] not in self.__backends:
-                raise self.InvalidBackend(
-                    f"{selected_backend_names[0]!r} is not a registered backend."
-                )
-
-            def call_backend_method(context, backend, is_primary):
-                # Update the thread local state in the executor to the provided
-                # context object. This allows the context to be propagated
-                # across different threads.
-                assert type(self).__state.context is None
-                type(self).__state.context = context
-
-                # Ensure that we haven't somehow accidentally entered a context
-                # where the backend we're calling has already been marked as
-                # active (or worse, some other backend is already active.)
-                base = self.__backend_base
-                assert base not in context.backends
-
-                # Mark the backend as active.
-                context.backends[base] = backend
-                try:
-                    return getattr(backend, attribute_name)(*args, **kwargs)
-                except Exception as e:
-                    # If this isn't the primary backend, we log any unexpected
-                    # exceptions so that they don't pass by unnoticed. (Any
-                    # exceptions raised by the primary backend aren't logged
-                    # here, since it's assumed that the caller will log them
-                    # from the calling thread.)
-                    if not is_primary:
-                        expected_raises = getattr(base_value, "__raises__", [])
-                        if not expected_raises or not isinstance(e, tuple(expected_raises)):
-                            logger.warning(
-                                "%s caught in executor while calling %r on %s.",
-                                type(e).__name__,
-                                attribute_name,
-                                type(backend).__name__,
-                                exc_info=True,
-                            )
-                    raise
-                finally:
-                    type(self).__state.context = None
-
-            # Enqueue all of the secondary backend requests first since these
-            # are non-blocking queue insertions. (Since the primary backend
-            # executor queue insertion can block, if that queue was full the
-            # secondary requests would have to wait unnecessarily to be queued
-            # until the after the primary request can be enqueued.)
-            # NOTE: If the same backend is both the primary backend *and* in
-            # the secondary backend list -- this is unlikely, but possible --
-            # this means that one of the secondary requests will be queued and
-            # executed before the primary request is queued.  This is such a
-            # strange usage pattern that I don't think it's worth optimizing
-            # for.)
-            results = [None] * len(selected_backend_names)
-            for i, backend_name in enumerate(selected_backend_names[1:], 1):
-                try:
-                    backend, executor = self.__backends[backend_name]
-                except KeyError:
-                    logger.warning(
-                        "%r is not a registered backend and will be ignored.",
-                        backend_name,
-                        exc_info=True,
-                    )
-                else:
-                    results[i] = executor.submit(
-                        functools.partial(
-                            call_backend_method, context.copy(), backend, is_primary=False
-                        ),
-                        priority=1,
-                        block=False,
-                    )
-
-            # The primary backend is scheduled last since it may block the
-            # calling thread. (We don't have to protect this from ``KeyError``
-            # since we already ensured that the primary backend exists.)
-            backend, executor = self.__backends[selected_backend_names[0]]
-            results[0] = executor.submit(
-                functools.partial(call_backend_method, context.copy(), backend, is_primary=True),
-                priority=0,
-                block=True,
-            )
-
-            if self.__callback_func is not None:
-                FutureSet([_f for _f in results if _f]).add_done_callback(
-                    lambda *a, **k: self.__callback_func(
-                        context, attribute_name, callargs, selected_backend_names, results
-                    )
-                )
-
-            return results[0].result()
-
-        return execute
