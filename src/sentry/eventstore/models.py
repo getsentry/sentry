@@ -381,7 +381,7 @@ class Event:
 
     @staticmethod
     def _hashes_from_sorted_grouping_variants(variants):
-        """ Create hashes from variants and filter out None values """
+        """ Create hashes from variants and filter out duplicates and None values """
         filtered_hashes = []
         seen_hashes = set()
         for variant in variants:
