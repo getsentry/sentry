@@ -22,6 +22,7 @@ import withApi from 'app/utils/withApi';
 
 import Chart from '../../charts/chart';
 import {DoubleHeaderContainer} from '../../styles';
+import {getFieldOrBackup} from '../display/utils';
 
 type Props = {
   api: Client;
@@ -32,6 +33,8 @@ type Props = {
   field: string;
   title: string;
   titleTooltip: string;
+  backupFields?: string[];
+  backupDepth?: number;
 } & WithRouterProps;
 
 function DurationChart(props: Props) {
@@ -44,6 +47,8 @@ function DurationChart(props: Props) {
     field,
     title,
     titleTooltip,
+    backupFields,
+    backupDepth,
   } = props;
 
   // construct request parameters for fetching chart data
@@ -78,16 +83,26 @@ function DurationChart(props: Props) {
       showLoading={false}
       query={eventView.getEventsAPIPayload(location).query}
       includePrevious={false}
-      yAxis={[field]}
+      yAxis={[field, ...(backupFields || [])]}
       partial
       hideError
     >
-      {({loading, reloading, errored, timeseriesData: results}) => {
+      {({
+        loading,
+        reloading,
+        errored,
+        timeseriesData: singleAxisResults,
+        results: multiAxisResults,
+      }) => {
+        const _field = getFieldOrBackup(field, backupFields, backupDepth);
+        const results = singleAxisResults
+          ? singleAxisResults
+          : [multiAxisResults?.find(r => r.seriesName === _field)].filter(Boolean);
         const series = results
           ? results.map(({...rest}) => {
               return {
                 ...rest,
-                seriesName: props.field,
+                seriesName: _field,
               };
             })
           : [];

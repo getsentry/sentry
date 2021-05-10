@@ -77,6 +77,10 @@ type Props<T, P> = RequestProps<P> &
      * A hook to modify data into the correct output after data has been received
      */
     afterFetch?: (data: any, props?: Props<T, P>) => T;
+    /**
+     * A hook for parent orchestrators to pass down data based on query results, unlike afterFetch it is not meant for specializations as it will not modify data.
+     */
+    didFetch?: (data: T) => void;
   };
 
 type State<T> = {
@@ -141,6 +145,7 @@ class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> 
       api,
       beforeFetch,
       afterFetch,
+      didFetch,
       eventView,
       orgSlug,
       route,
@@ -186,6 +191,7 @@ class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> 
       }
 
       const tableData = afterFetch ? afterFetch(data, this.props) : data;
+      didFetch && didFetch(tableData);
 
       this.setState(prevState => ({
         isLoading: false,
