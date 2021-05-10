@@ -42,10 +42,6 @@ invite_status_names = {
 }
 
 
-
-
-class Access
-
 class OrganizationMemberState(Enum):
     INVITED = 0  # The member is created but does not have a user attached
     # accept an invite
@@ -61,10 +57,12 @@ class OrganizationMemberState(Enum):
 
     ACTIVE = 100  # The member is linked and able to access the organization
 
+
 def needs_2fa(self):
     org_requires_2fa = self.om.organization.flags.require_2fa.is_set
     user_has_2fa = Authenticator.objects.user_has_2fa(self.request.user.id)
     return org_requires_2fa and not user_has_2fa
+
 
 def get_member_status(self):
     if self.is_pending():
@@ -73,14 +71,13 @@ def get_member_status(self):
     elif self.flags["inactive:deactivated"]:
         return OrganizationMemberState.DEACTIVATED
 
-    elif self.flags["inactive:plan-downgrade"]:
+    elif self.flags["inactive:plan-downgraded"]:
         return OrganizationMemberState.RESTRICTED_DOWNGRADED
 
     elif needs_2fa(user):
         return OrganizationMemberState.RESTRICTED_2FA
 
-
-    ### based on the return value of this function we:
+    # based on the return value of this function we:
     # declare the user has no access and redirect them
     # if the user is in a restricted state, redirect to "action" page
     # or allow them through to the rest of the request
@@ -94,7 +91,6 @@ def get_member_status(self):
     # maybe create postgres views for each type of list?
 
     # we would like to try not relying on actual int values of Enums anywhere
-
 
 
 class OrganizationMemberTeam(BaseModel):
@@ -149,8 +145,8 @@ class OrganizationMember(Model):
         flags=(
             ("sso:linked", "sso:linked"),
             ("sso:invalid", "sso:invalid"),
-            ("inactive:plan-downgrade", "inactive:plan-downgrade"),
-            ("inactive:deactivated", "inactive:deactivated"),
+            ("restricted:plan-downgrade", "restricted:plan-downgrade"),
+            ("deactivated", "deactivated"),
         ),
         default=0,
     )
