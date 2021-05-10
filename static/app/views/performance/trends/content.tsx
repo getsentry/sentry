@@ -3,9 +3,14 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import Alert from 'app/components/alert';
+import Breadcrumbs from 'app/components/breadcrumbs';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import SearchBar from 'app/components/events/searchBar';
+import * as Layout from 'app/components/layouts/thirds';
+import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import {MAX_QUERY_LENGTH} from 'app/constants';
+import {IconFlag} from 'app/icons/iconFlag';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization} from 'app/types';
@@ -16,16 +21,17 @@ import {decodeScalar} from 'app/utils/queryString';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 
-import {FilterViews} from '../landing';
-import {getTransactionSearchQuery} from '../utils';
+import {getPerformanceLandingUrl, getTransactionSearchQuery} from '../utils';
 
 import ChangedTransactions from './changedTransactions';
 import {TrendChangeType, TrendFunctionField, TrendView} from './types';
 import {
   DEFAULT_MAX_DURATION,
+  DEFAULT_TRENDS_STATS_PERIOD,
   getCurrentTrendFunction,
   getCurrentTrendParameter,
   getSelectedQueryKey,
+  modifyTrendsViewDefaultPeriod,
   resetCursors,
   TRENDS_FUNCTIONS,
   TRENDS_PARAMETERS,
@@ -36,10 +42,10 @@ type Props = {
   location: Location;
   eventView: EventView;
   selection: GlobalSelection;
-  setError: (msg: string | undefined) => void;
 };
 
 type State = {
+  error?: string;
   previousTrendFunction?: TrendFunctionField;
 };
 
@@ -59,6 +65,10 @@ class TrendsContent extends React.Component<Props, State> {
         query: String(searchQuery).trim() || undefined,
       },
     });
+  };
+
+  setError = (error: string | undefined) => {
+    this.setState({error});
   };
 
   handleTrendFunctionChange = (field: string) => {
@@ -95,6 +105,20 @@ class TrendsContent extends React.Component<Props, State> {
     });
   };
 
+  renderError() {
+    const {error} = this.state;
+
+    if (!error) {
+      return null;
+    }
+
+    return (
+      <Alert type="error" icon={<IconFlag size="md" />}>
+        {error}
+      </Alert>
+    );
+  }
+
   handleParameterChange = (label: string) => {
     const {organization, location} = this.props;
     const cursors = resetCursors();
@@ -116,11 +140,33 @@ class TrendsContent extends React.Component<Props, State> {
     });
   };
 
+  getPerformanceLink() {
+    const {location} = this.props;
+
+    const newQuery = {
+      ...location.query,
+    };
+    const query = decodeScalar(location.query.query, '');
+    const conditions = tokenizeSearch(query);
+
+    // This stops errors from occurring when navigating to other views since we are appending aggregates to the trends view
+    conditions.removeTag('tpm()');
+    conditions.removeTag('confidence()');
+    conditions.removeTag('transaction.duration');
+    newQuery.query = stringifyQueryObject(conditions);
+    return {
+      pathname: getPerformanceLandingUrl(this.props.organization),
+      query: newQuery,
+    };
+  }
+
   render() {
-    const {organization, eventView, location, setError} = this.props;
+    const {organization, eventView, location} = this.props;
     const {previousTrendFunction} = this.state;
 
     const trendView = eventView.clone() as TrendView;
+    modifyTrendsViewDefaultPeriod(trendView, location);
+
     const fields = generateAggregateFields(
       organization,
       [
@@ -150,70 +196,101 @@ class TrendsContent extends React.Component<Props, State> {
     const query = getTransactionSearchQuery(location);
 
     return (
-      <DefaultTrends location={location} eventView={eventView}>
-        <StyledSearchContainer>
-          <StyledSearchBar
-            organization={organization}
-            projectIds={trendView.project}
-            query={query}
-            fields={fields}
-            onSearch={this.handleSearch}
-            maxQueryLength={MAX_QUERY_LENGTH}
-          />
-          <TrendsDropdown>
-            <DropdownControl
-              buttonProps={{prefix: t('Display')}}
-              label={currentTrendFunction.label}
-            >
-              {TRENDS_FUNCTIONS.map(({label, field}) => (
-                <DropdownItem
-                  key={field}
-                  onSelect={this.handleTrendFunctionChange}
-                  eventKey={field}
-                  data-test-id={field}
-                  isActive={field === currentTrendFunction.field}
-                >
-                  {label}
-                </DropdownItem>
-              ))}
-            </DropdownControl>
-          </TrendsDropdown>
-          <TrendsDropdown>
-            <DropdownControl
-              buttonProps={{prefix: t('Parameter')}}
-              label={currentTrendParameter.label}
-            >
-              {TRENDS_PARAMETERS.map(({label}) => (
-                <DropdownItem
-                  key={label}
-                  onSelect={this.handleParameterChange}
-                  eventKey={label}
-                  data-test-id={label}
-                  isActive={label === currentTrendParameter.label}
-                >
-                  {label}
-                </DropdownItem>
-              ))}
-            </DropdownControl>
-          </TrendsDropdown>
-        </StyledSearchContainer>
-        <TrendsLayoutContainer>
-          <ChangedTransactions
-            trendChangeType={TrendChangeType.IMPROVED}
-            previousTrendFunction={previousTrendFunction}
-            trendView={trendView}
-            location={location}
-            setError={setError}
-          />
-          <ChangedTransactions
-            trendChangeType={TrendChangeType.REGRESSION}
-            previousTrendFunction={previousTrendFunction}
-            trendView={trendView}
-            location={location}
-            setError={setError}
-          />
-        </TrendsLayoutContainer>
-      </DefaultTrends>
+      <GlobalSelectionHeader
+        defaultSelection={{
+          datetime: {
+            start: null,
+            end: null,
+            utc: false,
+            period: DEFAULT_TRENDS_STATS_PERIOD,
+          },
+        }}
+      >
+        <Layout.Header>
+          <Layout.HeaderContent>
+            <Breadcrumbs
+              crumbs={[
+                {
+                  label: 'Performance',
+                  to: this.getPerformanceLink(),
+                },
+                {
+                  label: 'Trends',
+                },
+              ]}
+            />
+            <Layout.Title>{t('Trends')}</Layout.Title>
+          </Layout.HeaderContent>
+        </Layout.Header>
+        <Layout.Body>
+          <Layout.Main fullWidth>
+            <DefaultTrends location={location} eventView={eventView}>
+              <StyledSearchContainer>
+                <StyledSearchBar
+                  organization={organization}
+                  projectIds={trendView.project}
+                  query={query}
+                  fields={fields}
+                  onSearch={this.handleSearch}
+                  maxQueryLength={MAX_QUERY_LENGTH}
+                />
+                <TrendsDropdown>
+                  <DropdownControl
+                    buttonProps={{prefix: t('Display')}}
+                    label={currentTrendFunction.label}
+                  >
+                    {TRENDS_FUNCTIONS.map(({label, field}) => (
+                      <DropdownItem
+                        key={field}
+                        onSelect={this.handleTrendFunctionChange}
+                        eventKey={field}
+                        data-test-id={field}
+                        isActive={field === currentTrendFunction.field}
+                      >
+                        {label}
+                      </DropdownItem>
+                    ))}
+                  </DropdownControl>
+                </TrendsDropdown>
+                <TrendsDropdown>
+                  <DropdownControl
+                    buttonProps={{prefix: t('Parameter')}}
+                    label={currentTrendParameter.label}
+                  >
+                    {TRENDS_PARAMETERS.map(({label}) => (
+                      <DropdownItem
+                        key={label}
+                        onSelect={this.handleParameterChange}
+                        eventKey={label}
+                        data-test-id={label}
+                        isActive={label === currentTrendParameter.label}
+                      >
+                        {label}
+                      </DropdownItem>
+                    ))}
+                  </DropdownControl>
+                </TrendsDropdown>
+              </StyledSearchContainer>
+              <TrendsLayoutContainer>
+                <ChangedTransactions
+                  trendChangeType={TrendChangeType.IMPROVED}
+                  previousTrendFunction={previousTrendFunction}
+                  trendView={trendView}
+                  location={location}
+                  setError={this.setError}
+                />
+                <ChangedTransactions
+                  trendChangeType={TrendChangeType.REGRESSION}
+                  previousTrendFunction={previousTrendFunction}
+                  trendView={trendView}
+                  location={location}
+                  setError={this.setError}
+                />
+              </TrendsLayoutContainer>
+            </DefaultTrends>
+          </Layout.Main>
+        </Layout.Body>
+      </GlobalSelectionHeader>
     );
   }
 }
@@ -252,7 +329,6 @@ class DefaultTrends extends React.Component<DefaultTrendsProps> {
         ...location.query,
         cursor: undefined,
         query: String(query).trim() || undefined,
-        view: FilterViews.TRENDS,
       },
     });
     return null;
