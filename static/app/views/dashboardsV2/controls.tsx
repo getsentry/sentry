@@ -67,7 +67,7 @@ class Controls extends React.Component<Props> {
             priority="danger"
             message={t('Are you sure you want to delete this dashboard?')}
             onConfirm={onDelete}
-            disabled={!(dashboards.length > 1)}
+            disabled={dashboards.length <= 1}
           >
             <Button data-test-id="dashboard-delete" priority="danger">
               {t('Delete')}

@@ -133,7 +133,7 @@ function DashboardList({
                   event.preventDefault();
                   handleDelete(dashboard);
                 }}
-                disabled={!(dashboards.length > 1)}
+                disabled={dashboards.length <= 1}
               >
                 {t('Delete')}
               </MenuItem>
