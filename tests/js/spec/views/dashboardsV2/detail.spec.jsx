@@ -161,12 +161,6 @@ describe('Dashboards > Detail', function () {
         .find('Controls Button[data-test-id="dashboard-edit"]')
         .props();
       expect(editProps.disabled).toBe(true);
-
-      // Create should be disabled
-      const createProps = wrapper
-        .find('Controls Button[data-test-id="dashboard-create"]')
-        .props();
-      expect(createProps.disabled).toBe(true);
     });
   });
 
@@ -326,7 +320,7 @@ describe('Dashboards > Detail', function () {
       expect(modal.find('AddDashboardWidgetModal').props().widget).toEqual(widgets[0]);
     });
 
-    it('hides and shows manage dashboards based on feature', async function () {
+    it('hides and shows breadcrumbs based on feature', async function () {
       wrapper = mountWithTheme(
         <ViewEditDashboard
           organization={initialData.organization}
@@ -339,9 +333,7 @@ describe('Dashboards > Detail', function () {
       await tick();
       wrapper.update();
 
-      expect(
-        wrapper.find('Controls Button[data-test-id="dashboard-manage"]').exists()
-      ).toBe(false);
+      expect(wrapper.find('Breadcrumbs').exists()).toBe(false);
 
       const newOrg = initializeOrg({
         organization: TestStubs.Organization({
@@ -368,9 +360,11 @@ describe('Dashboards > Detail', function () {
       await tick();
       wrapper.update();
 
-      expect(
-        wrapper.find('Controls Button[data-test-id="dashboard-manage"]').exists()
-      ).toBe(true);
+      const breadcrumbs = wrapper.find('Breadcrumbs');
+
+      expect(breadcrumbs.exists()).toBe(true);
+      expect(breadcrumbs.find('BreadcrumbLink').find('a').text()).toEqual('Dashboards');
+      expect(breadcrumbs.find('BreadcrumbItem').last().text()).toEqual('Custom Errors');
     });
   });
 });

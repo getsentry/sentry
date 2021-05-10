@@ -66,12 +66,20 @@ class OrganizationDashboardDetailsEndpoint(OrganizationEndpoint):
         if not features.has(EDIT_FEATURE, organization, actor=request.user):
             return Response(status=404)
 
+        num_dashboards = Dashboard.objects.filter(organization=organization).count()
+        num_tombstones = DashboardTombstone.objects.filter(organization=organization).count()
+
         if isinstance(dashboard, dict):
-            DashboardTombstone.objects.get_or_create(
-                organization=organization, slug=dashboard["id"]
-            )
-        else:
+            if num_dashboards > 0:
+                DashboardTombstone.objects.get_or_create(
+                    organization=organization, slug=dashboard["id"]
+                )
+            else:
+                return self.respond({"Cannot delete last Dashboard."}, status=409)
+        elif (num_dashboards > 1) or (num_tombstones == 0):
             dashboard.delete()
+        else:
+            return self.respond({"Cannot delete last Dashboard."}, status=409)
 
         return self.respond(status=204)
 

@@ -118,7 +118,9 @@ function DashboardList({
       return (
         <DashboardCard
           key={`${index}-${dashboard.id}`}
-          title={dashboard.title}
+          title={
+            dashboard.id === 'default-overview' ? 'Default Dashboard' : dashboard.title
+          }
           to={{
             pathname: `/organizations/${organization.slug}/dashboard/${dashboard.id}/`,
             query: {...location.query},
@@ -154,6 +156,7 @@ function DashboardList({
                   event.preventDefault();
                   handleDelete(dashboard);
                 }}
+                disabled={dashboards.length <= 1}
               >
                 {t('Delete')}
               </MenuItem>
