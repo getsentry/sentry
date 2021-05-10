@@ -134,7 +134,7 @@
   "devDependencies": {
     "@babel/plugin-transform-react-jsx-source": "^7.12.13",
     "@pmmmwh/react-refresh-webpack-plugin": "^0.4.2",
-    "@sentry/node": "6.3.1",
+    "@sentry/node": "6.3.6",
     "@size-limit/preset-small-lib": "^4.10.2",
     "@storybook/addon-a11y": "^6.2.9",
     "@storybook/addon-actions": "^6.2.9",
