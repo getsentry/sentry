@@ -42,10 +42,16 @@ invite_status_names = {
 }
 
 
+
+
+class Access
+
 class OrganizationMemberState(Enum):
     INVITED = 0  # The member is created but does not have a user attached
+    # accept an invite
 
     DEACTIVATED = 1  # The member has been deactivated by an admin and has _no_ access
+    # same as not a member -- GDPR CCPA vs. audit logs. managed user also?
 
     # The member and user are linked, but user has to take action to get access
     RESTRICTED_2FA = 20
@@ -54,6 +60,41 @@ class OrganizationMemberState(Enum):
     RESTRICTED_DOWNGRADED = 23
 
     ACTIVE = 100  # The member is linked and able to access the organization
+
+def needs_2fa(self):
+    org_requires_2fa = self.om.organization.flags.require_2fa.is_set
+    user_has_2fa = Authenticator.objects.user_has_2fa(self.request.user.id)
+    return org_requires_2fa and not user_has_2fa
+
+def get_member_status(self):
+    if self.is_pending():
+        return OrganizationMemberState.INVITED
+
+    elif self.flags["inactive:deactivated"]:
+        return OrganizationMemberState.DEACTIVATED
+
+    elif self.flags["inactive:plan-downgrade"]:
+        return OrganizationMemberState.RESTRICTED_DOWNGRADED
+
+    elif needs_2fa(user):
+        return OrganizationMemberState.RESTRICTED_2FA
+
+
+    ### based on the return value of this function we:
+    # declare the user has no access and redirect them
+    # if the user is in a restricted state, redirect to "action" page
+    # or allow them through to the rest of the request
+
+    # abstractions that have semantics
+
+    # put methods on object manager
+
+    # figure out what are the lists of OrgMembers we want to get?
+    # how to represent those with F annotations on a queryset, build methods onto object manager
+    # maybe create postgres views for each type of list?
+
+    # we would like to try not relying on actual int values of Enums anywhere
+
 
 
 class OrganizationMemberTeam(BaseModel):
@@ -184,18 +225,6 @@ class OrganizationMember(Model):
         if self.invite_status is None:
             return
         return invite_status_names[self.invite_status]
-
-    def get_member_status(self):
-        if self.is_pending():
-            return OrganizationMemberState.INVITED
-
-        elif self.flags["inactive:deactivated"]:
-            return OrganizationMemberState.DEACTIVATED
-
-        elif self.flags["inactive:plan-downgrade"]:
-            return OrganizationMemberState.RESTRICTED_DOWNGRADED
-
-        elif
 
     def deactivate(self):
         self.state = OrganizationMemberState.INACTIVE.value
