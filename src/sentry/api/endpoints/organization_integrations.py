@@ -8,6 +8,10 @@ class OrganizationIntegrationsEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationIntegrationsPermission,)
 
     def get(self, request, organization):
+
+        # filter by integration provider features
+        features = [feature.lower() for feature in request.GET.getlist("features", [])]
+
         integrations = OrganizationIntegration.objects.filter(
             organization=organization, status=ObjectStatus.VISIBLE
         )
@@ -20,10 +24,34 @@ class OrganizationIntegrationsEndpoint(OrganizationEndpoint):
         if request.GET.get("includeConfig") == "0":
             include_config = False
 
+        def on_results(results):
+            if len(features):
+                return [
+                    serialize(
+                        i,
+                        request.user,
+                        include_config=include_config,
+                    )
+                    for i in filter(
+                        # check if any feature in query param is in the provider feature list
+                        lambda i: any(
+                            f
+                            in [
+                                feature.name.lower()
+                                for feature in list(i.integration.get_provider().features)
+                            ]
+                            for f in features
+                        ),
+                        results,
+                    )
+                ]
+
+            return serialize(results, request.user, include_config=include_config)
+
         return self.paginate(
             queryset=integrations,
             request=request,
             order_by="integration__name",
-            on_results=lambda x: serialize(x, request.user, include_config=include_config),
+            on_results=on_results,
             paginator_cls=OffsetPaginator,
         )

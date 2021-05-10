@@ -273,6 +273,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
             IntegrationFeatures.ISSUE_BASIC,
             IntegrationFeatures.COMMITS,
             IntegrationFeatures.STACKTRACE_LINK,
+            IntegrationFeatures.CODEOWNERS,
         ]
     )
 

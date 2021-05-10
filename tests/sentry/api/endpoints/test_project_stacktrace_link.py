@@ -47,6 +47,7 @@ class ProjectStacktraceLinkTest(APITestCase):
 
         response = self.client.get(self.url, format="json")
         assert response.status_code == 400, response.content
+        assert response.data == {"detail": "Filepath is required"}
 
     def test_no_configs(self):
         self.login_as(user=self.user)
