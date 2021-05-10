@@ -858,6 +858,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
                 "last_seen": last_seen.get(item.id),
                 "user_count": user_counts.get(item.id, 0),
             }
+
         return attrs
 
     def _get_seen_stats(self, item_list, user):
@@ -1024,5 +1025,27 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
 
         if self._expand("owners"):
             result["owners"] = attrs["owners"]
+
+        if self._expand("sessions") and not self._collapse("stats"):
+            num_sessions = None  # TODO: Cache session count by project + environment
+            if num_sessions is None:
+                filters = {"project_id": [obj.project.id], "seq": 0}
+                if self.environment_ids:
+                    filters["environment"] = self.environment_ids
+                result_totals = raw_query(
+                    dataset=Dataset.Sessions,
+                    start=self.start,
+                    end=self.end,
+                    aggregations=[
+                        ["count()", None, "session_count"],
+                    ],
+                    filter_keys=filters,
+                    referrer="sessions.group.totals",
+                )
+                num_sessions = result_totals["data"][0]["session_count"]
+                if num_sessions:
+                    result["sessionPercent"] = int(result["count"]) / num_sessions
+                else:
+                    result["sessionPercent"] = None
 
         return result

@@ -1,3 +1,4 @@
+import time
 from datetime import timedelta
 
 import pytz
@@ -441,3 +442,103 @@ class StreamGroupSerializerTestCase(APITestCase, SnubaTestCase):
             assert get_range.call_count == 1
             for args, kwargs in get_range.call_args_list:
                 assert kwargs["environment_ids"] is None
+
+    def test_session_count(self):
+        group = self.group
+
+        environment = Environment.get_or_create(group.project, "prod")
+
+        self.received = time.time()
+        self.session_started = time.time() // 60 * 60
+        self.session_release = "foo@1.0.0"
+        self.session_crashed_release = "foo@2.0.0"
+        self.store_session(
+            {
+                "session_id": "5d52fd05-fcc9-4bf3-9dc9-267783670341",
+                "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102666",
+                "status": "exited",
+                "seq": 0,
+                "release": self.session_release,
+                "environment": "dev",
+                "retention_days": 90,
+                "org_id": self.project.organization_id,
+                "project_id": self.project.id,
+                "duration": 60.0,
+                "errors": 0,
+                "started": self.session_started,
+                "received": self.received,
+            }
+        )
+
+        self.store_session(
+            {
+                "session_id": "5e910c1a-6941-460e-9843-24103fb6a63c",
+                "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102666",
+                "status": "ok",
+                "seq": 0,
+                "release": self.session_release,
+                "environment": "prod",
+                "retention_days": 90,
+                "org_id": self.project.organization_id,
+                "project_id": self.project.id,
+                "duration": None,
+                "errors": 0,
+                "started": self.session_started,
+                "received": self.received,
+            }
+        )
+
+        self.store_session(
+            {
+                "session_id": "5e910c1a-6941-460e-9843-24103fb6a63c",
+                "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102666",
+                "status": "exited",
+                "seq": 1,
+                "release": self.session_release,
+                "environment": "prod",
+                "retention_days": 90,
+                "org_id": self.project.organization_id,
+                "project_id": self.project.id,
+                "duration": 30.0,
+                "errors": 0,
+                "started": self.session_started,
+                "received": self.received,
+            }
+        )
+
+        self.store_session(
+            {
+                "session_id": "a148c0c5-06a2-423b-8901-6b43b812cf82",
+                "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102666",
+                "status": "crashed",
+                "seq": 0,
+                "release": self.session_crashed_release,
+                "environment": "dev",
+                "retention_days": 90,
+                "org_id": self.project.organization_id,
+                "project_id": self.project.id,
+                "duration": 60.0,
+                "errors": 0,
+                "started": self.session_started,
+                "received": self.received,
+            }
+        )
+
+        result = serialize(
+            [group],
+            serializer=StreamGroupSerializerSnuba(stats_period="14d"),
+        )
+        assert "sessionPercent" not in result[0]
+        result = serialize(
+            [group],
+            serializer=StreamGroupSerializerSnuba(stats_period="14d", expand=["sessions"]),
+        )
+        assert result[0]["sessionPercent"]
+        assert result[0]["sessionPercent"] == 0.25
+        result = serialize(
+            [group],
+            serializer=StreamGroupSerializerSnuba(
+                environment_ids=[environment.id], stats_period="14d", expand=["sessions"]
+            ),
+        )
+        assert result[0]["sessionPercent"] == 0.50
