@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {withTheme} from '@emotion/react';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
@@ -13,6 +13,7 @@ import QuestionTooltip from 'app/components/questionTooltip';
 import {IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
 import {OrganizationSummary} from 'app/types';
+import {defined} from 'app/utils';
 import {axisLabelFormatter} from 'app/utils/discover/charts';
 import EventView from 'app/utils/discover/eventView';
 import {getDuration} from 'app/utils/formatters';
@@ -151,7 +152,7 @@ class DurationPercentileChart extends AsyncComponent<Props, State> {
   renderBody() {
     const {currentFilter} = this.props;
     const {chartData} = this.state;
-    if (chartData === null) {
+    if (!defined(chartData)) {
       return null;
     }
     const colors = (theme: Theme) =>

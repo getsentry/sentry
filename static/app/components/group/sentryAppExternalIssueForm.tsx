@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import {createFilter} from 'react-select';
 import debounce from 'lodash/debounce';
 
@@ -51,7 +51,7 @@ type Props = {
   onSubmitSuccess: (externalIssue: PlatformExternalIssue) => void;
 };
 
-export class SentryAppExternalIssueForm extends React.Component<Props, State> {
+export class SentryAppExternalIssueForm extends Component<Props, State> {
   state: State = {optionsByField: new Map()};
 
   componentDidMount() {
@@ -302,7 +302,6 @@ export class SentryAppExternalIssueForm extends React.Component<Props, State> {
 
     return (
       <FieldFromConfig
-        deprecatedSelectControl={false}
         key={field.name}
         field={fieldToPass}
         data-test-id={field.name}

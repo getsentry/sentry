@@ -1,34 +1,32 @@
-import React from 'react';
+import {Component} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import PropTypes from 'prop-types';
 
 import Alert from 'app/components/alert';
 import {IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
+import {LightWeightOrganization, Project} from 'app/types';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
+import withOrganization from 'app/utils/withOrganization';
+import withProject from 'app/utils/withProject';
 
 type Props = WithRouterProps & {
+  organization: LightWeightOrganization;
   error: Error | undefined;
   /**
    * Disable logging to Sentry
    */
   disableLogSentry?: boolean;
   disableReport?: boolean;
+  project?: Project;
 };
 
-class RouteError extends React.Component<Props> {
-  static contextTypes = {
-    organization: PropTypes.object,
-    project: PropTypes.object,
-  };
-
+class RouteError extends Component<Props> {
   UNSAFE_componentWillMount() {
     const {error} = this.props;
-    const {disableLogSentry, disableReport, routes} = this.props;
-    const {organization, project} = this.context;
+    const {disableLogSentry, disableReport, organization, project, routes} = this.props;
 
     if (disableLogSentry) {
       return;
@@ -139,5 +137,5 @@ const Heading = styled('h3')`
   margin-bottom: ${space(1.5)};
 `;
 
-export default withRouter(RouteError);
+export default withRouter(withOrganization(withProject(RouteError)));
 export {RouteError};

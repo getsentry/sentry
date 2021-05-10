@@ -11,6 +11,7 @@ from typing import (
     Mapping,
     Optional,
     Sequence,
+    Set,
     Tuple,
     TypeVar,
     cast,
@@ -209,6 +210,17 @@ def child_sort_key(item: TraceEvent) -> List[int]:
         return [0]
 
 
+def group_length(length: int) -> str:
+    if length == 1:
+        return "1"
+    elif length < 10:
+        return "<10"
+    elif length < 100:
+        return "<100"
+    else:
+        return ">100"
+
+
 def query_trace_data(
     trace_id: str, params: Mapping[str, str]
 ) -> Tuple[Sequence[SnubaTransaction], Sequence[SnubaError]]:
@@ -283,8 +295,7 @@ def query_trace_data(
 class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):  # type: ignore
     def has_feature(self, organization: Organization, request: HttpRequest) -> bool:
         return bool(
-            features.has("organizations:trace-view-quick", organization, actor=request.user)
-            or features.has("organizations:trace-view-summary", organization, actor=request.user)
+            features.has("organizations:performance-view", organization, actor=request.user)
         )
 
     @staticmethod
@@ -325,6 +336,24 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):  # 
             parent_map[item["trace.span"]].append(item)
         return parent_map
 
+    @staticmethod
+    def record_analytics(
+        transactions: Sequence[SnubaTransaction], trace_id: str, user_id: int, org_id: int
+    ) -> None:
+        with sentry_sdk.start_span(op="recording.analytics"):
+            len_transactions = len(transactions)
+
+            sentry_sdk.set_tag("trace_view.trace", trace_id)
+            sentry_sdk.set_tag("trace_view.transactions", len_transactions)
+            sentry_sdk.set_tag("trace_view.transactions.grouped", group_length(len_transactions))
+            projects: Set[int] = set()
+            for transaction in transactions:
+                projects.add(transaction["project.id"])
+
+            len_projects = len(projects)
+            sentry_sdk.set_tag("trace_view.projects", len_projects)
+            sentry_sdk.set_tag("trace_view.projects.grouped", group_length(len_projects))
+
     def get(self, request: HttpRequest, organization: Organization, trace_id: str) -> HttpResponse:
         if not self.has_feature(organization, request):
             return Response(status=404)
@@ -346,33 +375,26 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):  # 
             transactions, errors = query_trace_data(trace_id, params)
             if len(transactions) == 0:
                 return Response(status=404)
-            len_transactions = len(transactions)
-            sentry_sdk.set_tag("trace_view.transactions", len_transactions)
-            sentry_sdk.set_tag(
-                "trace_view.transactions.grouped",
-                "<10" if len_transactions < 10 else "<100" if len_transactions < 100 else ">100",
-            )
+            self.record_analytics(transactions, trace_id, self.request.user.id, organization.id)
 
         warning_extra: Dict[str, str] = {"trace": trace_id, "organization": organization}
 
-        root = transactions[0] if is_root(transactions[0]) else None
-
-        # Look for extra roots
-        extra_roots = 0
-        for item in transactions[1:]:
+        # Look for the roots
+        roots: List[SnubaTransaction] = []
+        for item in transactions:
             if is_root(item):
-                extra_roots += 1
+                roots.append(item)
             else:
                 break
-        if extra_roots > 0:
+        if len(roots) > 1:
             sentry_sdk.set_tag("discover.trace-view.warning", "root.extra-found")
             logger.warning(
                 "discover.trace-view.root.extra-found",
-                {"extra_roots": extra_roots, **warning_extra},
+                {"extra_roots": len(roots), **warning_extra},
             )
 
         return Response(
-            self.serialize(transactions, errors, root, warning_extra, event_id, detailed)
+            self.serialize(transactions, errors, roots, warning_extra, event_id, detailed)
         )
 
 
@@ -430,7 +452,7 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
         self,
         transactions: Sequence[SnubaTransaction],
         errors: Sequence[SnubaError],
-        root: Optional[SnubaTransaction],
+        roots: Sequence[SnubaTransaction],
         warning_extra: Dict[str, str],
         event_id: Optional[str],
         detailed: bool = False,
@@ -446,31 +468,38 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
         root_id: Optional[str] = None
 
         with sentry_sdk.start_span(op="building.trace", description="light trace"):
-            # We might not be necessarily connected to the root if we're on an orphan event
-            if root is not None and root["id"] != snuba_event["id"]:
-                # Get the root event and see if the current event's span is in the root event
-                root_event = eventstore.get_event_by_id(root["project.id"], root["id"])
-                root_spans: NodeSpans = root_event.data.get("spans", [])
-                root_span = find_event(
-                    root_spans,
-                    lambda item: item is not None
-                    and item["span_id"] == snuba_event["trace.parent_span"],
-                )
+            # Going to nodestore is more expensive than looping twice so check if we're on the root first
+            for root in roots:
+                if root["id"] == snuba_event["id"]:
+                    current_generation = 0
+                    break
 
-                # We only know to add the root if its the direct parent
-                if root_span is not None:
-                    # For the light response, the parent will be unknown unless it is a direct descendent of the root
-                    root_id = root["id"]
-                    trace_results.append(
-                        TraceEvent(
-                            root,
-                            None,
-                            0,
+            if current_generation is None:
+                for root in roots:
+                    # We might not be necessarily connected to the root if we're on an orphan event
+                    if root["id"] != snuba_event["id"]:
+                        # Get the root event and see if the current event's span is in the root event
+                        root_event = eventstore.get_event_by_id(root["project.id"], root["id"])
+                        root_spans: NodeSpans = root_event.data.get("spans", [])
+                        root_span = find_event(
+                            root_spans,
+                            lambda item: item is not None
+                            and item["span_id"] == snuba_event["trace.parent_span"],
                         )
-                    )
-                    current_generation = 1
-            elif root is not None and root["id"] == snuba_event["id"]:
-                current_generation = 0
+
+                        # We only know to add the root if its the direct parent
+                        if root_span is not None:
+                            # For the light response, the parent will be unknown unless it is a direct descendent of the root
+                            root_id = root["id"]
+                            trace_results.append(
+                                TraceEvent(
+                                    root,
+                                    None,
+                                    0,
+                                )
+                            )
+                            current_generation = 1
+                            break
 
             current_event = TraceEvent(snuba_event, root_id, current_generation)
             trace_results.append(current_event)
@@ -527,7 +556,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         self,
         transactions: Sequence[SnubaTransaction],
         errors: Sequence[SnubaError],
-        root: Optional[SnubaTransaction],
+        roots: Sequence[SnubaTransaction],
         warning_extra: Dict[str, str],
         event_id: Optional[str],
         detailed: bool = False,
@@ -545,9 +574,14 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         # on python 3.7.
         results_map: Dict[Optional[str], List[TraceEvent]] = OrderedDict()
         to_check: Deque[SnubaTransaction] = deque()
-        if root:
-            parent_events[root["id"]] = TraceEvent(root, None, 0)
-            results_map[None] = [parent_events[root["id"]]]
+        # The root of the orphan tree we're currently navigating through
+        orphan_root: Optional[SnubaTransaction] = None
+        if roots:
+            results_map[None] = []
+        for root in roots:
+            root_event = TraceEvent(root, None, 0)
+            parent_events[root["id"]] = root_event
+            results_map[None].append(root_event)
             to_check.append(root)
 
         with sentry_sdk.start_span(op="building.trace", description="full trace"):
@@ -568,6 +602,8 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                         current_event, None, 0
                     )
 
+                    # Used to avoid removing the orphan from results entirely if we loop
+                    orphan_root = current_event
                     # not using a defaultdict here as a DefaultOrderedDict isn't worth the effort
                     if parent_span_id in results_map:
                         results_map[parent_span_id].append(previous_event)
@@ -609,7 +645,16 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                             ]
                         )
                     # We need to connect back to an existing orphan trace
-                    if has_orphans and child["span_id"] in results_map:
+                    if (
+                        has_orphans
+                        and
+                        # The child event has already been checked
+                        child["span_id"] in results_map
+                        and orphan_root is not None
+                        and
+                        # In the case of a span loop popping the current root removes the orphan subtrace
+                        child["span_id"] != orphan_root["trace.parent_span"]
+                    ):
                         orphan_subtraces = results_map.pop(child["span_id"])
                         for orphan_subtrace in orphan_subtraces:
                             orphan_subtrace.parent_event_id = previous_event.event["id"]
@@ -646,9 +691,9 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         for index, result in enumerate(results_map.values()):
             for subtrace in result:
                 self.update_children(subtrace)
-            if index > 0 or root is None:
+            if index > 0 or len(roots) == 0:
                 orphans.extend(result)
-            elif root:
+            elif len(roots) > 0:
                 root_traces = result
         # We sort orphans and roots separately because we always want the root(s) as the first element(s)
         root_traces.sort(key=child_sort_key)

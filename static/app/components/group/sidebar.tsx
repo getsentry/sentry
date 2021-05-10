@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 import isObject from 'lodash/isObject';
@@ -74,7 +74,10 @@ class GroupSidebar extends React.Component<Props, State> {
     // Fetch group data for all environments since the one passed in props is filtered for the selected environment
     // The charts rely on having all environment data as well as the data for the selected env
     try {
-      const allEnvironmentsGroupData = await api.requestPromise(`/issues/${group.id}/`);
+      const query = {collapse: 'release'};
+      const allEnvironmentsGroupData = await api.requestPromise(`/issues/${group.id}/`, {
+        query,
+      });
       // eslint-disable-next-line react/no-did-mount-set-state
       this.setState({allEnvironmentsGroupData});
     } catch {

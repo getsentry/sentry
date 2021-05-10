@@ -214,3 +214,15 @@ reset-db() {
     create-db
     apply-migrations
 }
+
+direnv-help() {
+    cat >&2 <<EOF
+If you're a Sentry employee and you're stuck or have questions, ask in #discuss-dev-tooling.
+If you're not, please file an issue under https://github.com/getsentry/sentry/issues/new/ and mention @getsentry/owners-sentry-dev
+
+You can configure the behaviour of direnv by adding the following variables to a .env file:
+
+- SENTRY_DIRENV_DEBUG=1: This will allow printing debug messages
+- SENTRY_DEVENV_NO_REPORT=1: Do not report development environment errors to Sentry.io
+EOF
+}

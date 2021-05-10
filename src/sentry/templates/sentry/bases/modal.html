@@ -42,10 +42,13 @@
   {{ block.super }}
   {% script %}
   <script>
-    $(function() {
-      $('#sign-out').on('click', function() {
-        document.modalLogoutForm.submit();
-      });
+    document.addEventListener('DOMContentLoaded', function() {
+      const el = document.querySelector('#sign-out');
+      if (el) {
+        el.addEventListener('click', function() {
+          document.modalLogoutForm.submit();
+        });
+      }
     });
   </script>
   {% endscript %}

@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -23,7 +23,7 @@ import {IconCheckmark, IconFire, IconInfo, IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
-import {Actor, Organization, Project} from 'app/types';
+import {Actor, DateString, Organization, Project} from 'app/types';
 import Projects from 'app/utils/projects';
 import Timeline from 'app/views/alerts/rules/details/timeline';
 import {
@@ -51,6 +51,7 @@ type Props = {
   organization: Organization;
   location: Location;
   handleTimePeriodChange: (value: string) => void;
+  handleZoom: (start: DateString, end: DateString) => void;
 } & RouteComponentProps<{orgId: string}, {}>;
 
 export default class DetailsBody extends React.Component<Props> {
@@ -275,6 +276,7 @@ export default class DetailsBody extends React.Component<Props> {
       organization,
       timePeriod,
       selectedIncident,
+      handleZoom,
       params: {orgId},
     } = this.props;
 
@@ -291,16 +293,16 @@ export default class DetailsBody extends React.Component<Props> {
         {({initiallyLoaded, projects}) => {
           return initiallyLoaded ? (
             <React.Fragment>
-              <StyledLayoutBody>
-                {selectedIncident &&
-                  selectedIncident.alertRule.status === AlertRuleStatus.SNAPSHOT && (
+              {selectedIncident &&
+                selectedIncident.alertRule.status === AlertRuleStatus.SNAPSHOT && (
+                  <StyledLayoutBody>
                     <StyledAlert type="warning" icon={<IconInfo size="md" />}>
                       {t(
                         'Alert Rule settings have been updated since this alert was triggered.'
                       )}
                     </StyledAlert>
-                  )}
-              </StyledLayoutBody>
+                  </StyledLayoutBody>
+                )}
               <StyledLayoutBodyWrapper>
                 <Layout.Main>
                   <HeaderContainer>
@@ -353,11 +355,11 @@ export default class DetailsBody extends React.Component<Props> {
                     selectedIncident={selectedIncident}
                     organization={organization}
                     projects={projects}
-                    metricText={this.getMetricText()}
                     interval={this.getInterval()}
                     filter={this.getFilter()}
                     query={queryWithTypeFilter}
                     orgId={orgId}
+                    handleZoom={handleZoom}
                   />
                   <DetailWrapper>
                     <ActivityWrapper>

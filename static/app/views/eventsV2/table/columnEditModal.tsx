@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -31,8 +31,8 @@ type State = {
   columns: Column[];
 };
 
-class ColumnEditModal extends React.Component<Props, State> {
-  state = {
+class ColumnEditModal extends Component<Props, State> {
+  state: State = {
     columns: this.props.columns,
   };
 
@@ -64,7 +64,6 @@ class ColumnEditModal extends React.Component<Props, State> {
       measurementKeys,
       spanOperationBreakdownKeys,
       organization,
-      closeModal,
     } = this.props;
     const fieldOptions = generateFieldOptions({
       organization,
@@ -73,8 +72,8 @@ class ColumnEditModal extends React.Component<Props, State> {
       spanOperationBreakdownKeys,
     });
     return (
-      <React.Fragment>
-        <Header closeButton onHide={closeModal}>
+      <Fragment>
+        <Header closeButton>
           <h4>{t('Edit Columns')}</h4>
         </Header>
         <Body>
@@ -107,7 +106,7 @@ class ColumnEditModal extends React.Component<Props, State> {
             </Button>
           </ButtonBar>
         </Footer>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }
@@ -118,11 +117,8 @@ const Instruction = styled('div')`
 
 const modalCss = css`
   @media (min-width: ${theme.breakpoints[0]}) {
-    .modal-dialog {
-      width: auto;
-      max-width: 750px;
-      margin-left: -375px;
-    }
+    width: auto;
+    max-width: 750px;
   }
 `;
 

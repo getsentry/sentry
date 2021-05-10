@@ -158,6 +158,29 @@ def main(slow=False):
             ],
         },
     )
+    print(f"    > Loading trace with many roots")  # NOQA
+    trace_id = uuid4().hex
+    for _ in range(15):
+        create_trace(
+            slow,
+            timestamp - timedelta(milliseconds=random_normal(4000, 250, 1000)),
+            timestamp,
+            generate_user(),
+            trace_id,
+            None,
+            {
+                "project": frontend_project,
+                "transaction": "/multiple-root/:root/",
+                "frontend": True,
+                "children": [
+                    {
+                        "project": backend_project,
+                        "transaction": "/multiple-root/child/",
+                        "children": [],
+                    }
+                ],
+            },
+        )
 
     print(f"    > Loading chained trace with orphans")  # NOQA
     trace_id = uuid4().hex

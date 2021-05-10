@@ -1,23 +1,21 @@
-import React from 'react';
 import moment from 'moment';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import EventQuickTrace from 'app/views/organizationGroupDetails/eventQuickTrace';
+import ConfigureDistributedTracing from 'app/views/organizationGroupDetails/quickTrace/configureDistributedTracing';
 
 jest.mock('app/utils/analytics');
 
-describe('EventQuickTrace', function () {
+describe('ConfigureDistributedTracing', function () {
   let putMock;
   const routerContext = TestStubs.routerContext();
-  const organization = TestStubs.Organization();
-  const group = TestStubs.Group();
-  const event = {
-    ...TestStubs.Event(),
+  const organization = TestStubs.Organization({features: ['performance-view']});
+  const project = TestStubs.Project({platform: 'javascript'});
+  const event = TestStubs.Event({
     id: '2',
     eventID: '21098765432109876543210987654321',
-  };
+  });
 
   beforeEach(function () {
     jest.clearAllMocks();
@@ -35,9 +33,13 @@ describe('EventQuickTrace', function () {
     });
   });
 
-  it('renders', async function () {
+  it('renders basic UI', async function () {
     const wrapper = mountWithTheme(
-      <EventQuickTrace event={event} organization={organization} group={group} />,
+      <ConfigureDistributedTracing
+        event={event}
+        organization={organization}
+        project={project}
+      />,
       routerContext
     );
 
@@ -45,6 +47,25 @@ describe('EventQuickTrace', function () {
     wrapper.update();
 
     expect(wrapper.find('ExampleQuickTracePanel').exists()).toBe(true);
+    expect(wrapper.find('Hovercard').exists()).toBe(true);
+  });
+
+  it('renders hover card when feature is disabled', async function () {
+    const newOrganization = TestStubs.Organization();
+    const wrapper = mountWithTheme(
+      <ConfigureDistributedTracing
+        event={event}
+        organization={newOrganization}
+        project={project}
+      />,
+      routerContext
+    );
+
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('ExampleQuickTracePanel').exists()).toBe(true);
+    expect(wrapper.find('Hovercard').exists()).toBe(true);
   });
 
   /**
@@ -52,13 +73,16 @@ describe('EventQuickTrace', function () {
    * the show configure distributed tracing prompt.
    */
   it('doesnt render when event id starts with odd char', async function () {
-    const newEvent = {
-      ...event,
+    const newEvent = TestStubs.Event({
       id: 'B',
       eventID: 'BAFEDCBAFEDCBAFEDCBAFEDCBAFEDCBA',
-    };
+    });
     const wrapper = mountWithTheme(
-      <EventQuickTrace event={newEvent} organization={organization} group={group} />,
+      <ConfigureDistributedTracing
+        event={newEvent}
+        organization={organization}
+        project={project}
+      />,
       routerContext
     );
 
@@ -69,15 +93,13 @@ describe('EventQuickTrace', function () {
   });
 
   it('doesnt render when the project platform doesnt support tracing', async function () {
-    const newGroup = {
-      ...group,
-      project: {
-        ...group.project,
-        platform: '',
-      },
-    };
+    const newProject = TestStubs.Project({platform: ''});
     const wrapper = mountWithTheme(
-      <EventQuickTrace event={event} organization={organization} group={newGroup} />,
+      <ConfigureDistributedTracing
+        event={event}
+        organization={organization}
+        project={newProject}
+      />,
       routerContext
     );
 
@@ -89,7 +111,11 @@ describe('EventQuickTrace', function () {
 
   it('can be snoozed', async function () {
     const wrapper = mountWithTheme(
-      <EventQuickTrace event={event} organization={organization} group={group} />,
+      <ConfigureDistributedTracing
+        event={event}
+        organization={organization}
+        project={project}
+      />,
       routerContext
     );
 
@@ -107,7 +133,7 @@ describe('EventQuickTrace', function () {
         method: 'PUT',
         data: {
           organization_id: organization.id,
-          project_id: group.project.id,
+          project_id: project.id,
           feature: 'distributed_tracing',
           status: 'snoozed',
         },
@@ -120,8 +146,8 @@ describe('EventQuickTrace', function () {
       eventKey: 'quick_trace.missing_instrumentation.snoozed',
       eventName: 'Quick Trace: Missing Instrumentation Snoozed',
       organization_id: parseInt(organization.id, 10),
-      project_id: parseInt(group.project.id, 10),
-      platform: group.project.platform,
+      project_id: parseInt(project.id, 10),
+      platform: project.platform,
     });
   });
 
@@ -135,7 +161,11 @@ describe('EventQuickTrace', function () {
     });
 
     const wrapper = mountWithTheme(
-      <EventQuickTrace event={event} organization={organization} group={group} />,
+      <ConfigureDistributedTracing
+        event={event}
+        organization={organization}
+        project={project}
+      />,
       routerContext
     );
 
@@ -147,7 +177,11 @@ describe('EventQuickTrace', function () {
 
   it('can be dismissed', async function () {
     const wrapper = mountWithTheme(
-      <EventQuickTrace event={event} organization={organization} group={group} />,
+      <ConfigureDistributedTracing
+        event={event}
+        organization={organization}
+        project={project}
+      />,
       routerContext
     );
 
@@ -165,7 +199,7 @@ describe('EventQuickTrace', function () {
         method: 'PUT',
         data: {
           organization_id: organization.id,
-          project_id: group.project.id,
+          project_id: project.id,
           feature: 'distributed_tracing',
           status: 'dismissed',
         },
@@ -178,8 +212,8 @@ describe('EventQuickTrace', function () {
       eventKey: 'quick_trace.missing_instrumentation.dismissed',
       eventName: 'Quick Trace: Missing Instrumentation Dismissed',
       organization_id: parseInt(organization.id, 10),
-      project_id: parseInt(group.project.id, 10),
-      platform: group.project.platform,
+      project_id: parseInt(project.id, 10),
+      platform: project.platform,
     });
   });
 
@@ -191,7 +225,11 @@ describe('EventQuickTrace', function () {
     });
 
     const wrapper = mountWithTheme(
-      <EventQuickTrace event={event} organization={organization} group={group} />,
+      <ConfigureDistributedTracing
+        event={event}
+        organization={organization}
+        project={project}
+      />,
       routerContext
     );
 
@@ -203,7 +241,11 @@ describe('EventQuickTrace', function () {
 
   it('can capture analytics on docs click', async function () {
     const wrapper = mountWithTheme(
-      <EventQuickTrace event={event} organization={organization} group={group} />,
+      <ConfigureDistributedTracing
+        event={event}
+        organization={organization}
+        project={project}
+      />,
       routerContext
     );
 
@@ -216,8 +258,8 @@ describe('EventQuickTrace', function () {
       eventKey: 'quick_trace.missing_instrumentation.docs',
       eventName: 'Quick Trace: Missing Instrumentation Docs',
       organization_id: parseInt(organization.id, 10),
-      project_id: parseInt(group.project.id, 10),
-      platform: group.project.platform,
+      project_id: parseInt(project.id, 10),
+      platform: project.platform,
     });
   });
 });

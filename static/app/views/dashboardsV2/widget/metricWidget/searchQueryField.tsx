@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {ClassNames} from '@emotion/react';
 import memoize from 'lodash/memoize';
 
@@ -8,8 +8,6 @@ import {NEGATION_OPERATOR, SEARCH_WILDCARD} from 'app/constants';
 import {t} from 'app/locale';
 import {Organization, Project, Tag} from 'app/types';
 
-import {Metric} from './types';
-
 const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
   `^${NEGATION_OPERATOR}|\\${SEARCH_WILDCARD}`,
   'g'
@@ -17,24 +15,15 @@ const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
 
 type Props = Pick<
   React.ComponentProps<typeof SmartSearchBar>,
-  'onChange' | 'onBlur' | 'query'
+  'onSearch' | 'onBlur' | 'query'
 > & {
   api: Client;
   orgSlug: Organization['slug'];
   projectSlug: Project['slug'];
-  metricName: Metric['name'];
   tags: string[];
 };
 
-function SearchBar({
-  api,
-  orgSlug,
-  projectSlug,
-  metricName,
-  tags,
-  onChange,
-  onBlur,
-}: Props) {
+function SearchQueryField({api, orgSlug, projectSlug, tags, onSearch, onBlur}: Props) {
   /**
    * Prepare query string (e.g. strip special characters like negation operator)
    */
@@ -44,7 +33,7 @@ function SearchBar({
 
   function fetchTagValues(tagKey: string) {
     return api.requestPromise(
-      `/projects/${orgSlug}/${projectSlug}/metrics/tags/${metricName}/${tagKey}/`,
+      `/projects/${orgSlug}/${projectSlug}/metrics/tags/${tagKey}/`,
       {
         method: 'GET',
       }
@@ -73,7 +62,7 @@ function SearchBar({
           onGetTagValues={memoize(getTagValues, ({key}, query) => `${key}-${query}`)}
           supportedTags={supportedTags}
           prepareQuery={prepareQuery}
-          onChange={onChange}
+          onSearch={onSearch}
           onBlur={onBlur}
           useFormWrapper={false}
           excludeEnvironment
@@ -87,4 +76,4 @@ function SearchBar({
   );
 }
 
-export default SearchBar;
+export default SearchQueryField;

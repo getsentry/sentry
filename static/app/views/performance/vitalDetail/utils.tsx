@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {Location, Query} from 'history';
 
 import {IconCheckmark, IconFire, IconWarning} from 'app/icons';

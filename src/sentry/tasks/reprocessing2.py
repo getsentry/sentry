@@ -74,6 +74,8 @@ def reprocess_group(
         return
 
     remaining_event_ids = []
+    remaining_events_min_datetime = None
+    remaining_events_max_datetime = None
 
     for event in events:
         if max_events is None or max_events > 0:
@@ -94,6 +96,11 @@ def reprocess_group(
 
                     continue
 
+        if remaining_events_min_datetime is None or remaining_events_min_datetime > event.datetime:
+            remaining_events_min_datetime = event.datetime
+        if remaining_events_max_datetime is None or remaining_events_max_datetime < event.datetime:
+            remaining_events_max_datetime = event.datetime
+
         # In case of errors while kicking of reprocessing or if max_events has
         # been exceeded, do the default action.
         remaining_event_ids.append(event.event_id)
@@ -105,6 +112,8 @@ def reprocess_group(
             new_group_id=new_group_id,
             event_ids=remaining_event_ids,
             remaining_events=remaining_events,
+            from_timestamp=remaining_events_min_datetime,
+            to_timestamp=remaining_events_max_datetime,
         )
 
     reprocess_group.delay(
@@ -125,7 +134,9 @@ def reprocess_group(
     max_retries=5,
 )
 @retry
-def handle_remaining_events(project_id, new_group_id, event_ids, remaining_events):
+def handle_remaining_events(
+    project_id, new_group_id, event_ids, remaining_events, from_timestamp, to_timestamp
+):
     """
     Delete or merge/move associated per-event data: nodestore, event
     attachments, user reports. Mark the event as "tombstoned" in Snuba.
@@ -151,9 +162,17 @@ def handle_remaining_events(project_id, new_group_id, event_ids, remaining_event
         nodestore.delete_multi(node_ids)
 
         # Tell Snuba to delete the event data.
-        eventstream.tombstone_events_unsafe(project_id, event_ids)
+        eventstream.tombstone_events_unsafe(
+            project_id, event_ids, from_timestamp=from_timestamp, to_timestamp=to_timestamp
+        )
     elif remaining_events == "keep":
-        eventstream.replace_group_unsafe(project_id, event_ids, new_group_id=new_group_id)
+        eventstream.replace_group_unsafe(
+            project_id,
+            event_ids,
+            new_group_id=new_group_id,
+            from_timestamp=from_timestamp,
+            to_timestamp=to_timestamp,
+        )
     else:
         raise ValueError(f"Invalid value for remaining_events: {remaining_events}")
 

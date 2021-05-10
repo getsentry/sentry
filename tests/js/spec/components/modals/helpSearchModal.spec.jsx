@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
@@ -62,14 +60,14 @@ describe('Docs Search Modal', function () {
     );
 
     // No Modal
-    expect(wrapper.find('ModalDialog')).toHaveLength(0);
+    expect(wrapper.find('Modal')).toHaveLength(0);
     openHelpSearchModal();
     await tick();
     await tick();
     wrapper.update();
 
     // Should have Modal + input
-    expect(wrapper.find('ModalDialog')).toHaveLength(1);
+    expect(wrapper.find('Modal')).toHaveLength(1);
     expect(wrapper.find('HelpSearch')).toHaveLength(1);
   });
 });

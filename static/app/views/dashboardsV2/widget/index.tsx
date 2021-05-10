@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
@@ -6,14 +6,14 @@ import {t} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
 import withOrganization from 'app/utils/withOrganization';
 
-import WidgetNew from './widgetNew';
+import WidgetBuilder from './widgetBuilder';
 
-type Props = React.ComponentProps<typeof WidgetNew>;
+type Props = React.ComponentProps<typeof WidgetBuilder>;
 
-function WidgetNewContainer({organization, ...props}: Props) {
+function WidgetBuilderContainer({organization, ...props}: Props) {
   return (
     <Feature
-      features={['metrics']}
+      features={['metrics', 'dashboards-edit']}
       organization={organization}
       renderDisabled={() => (
         <PageContent>
@@ -21,9 +21,9 @@ function WidgetNewContainer({organization, ...props}: Props) {
         </PageContent>
       )}
     >
-      <WidgetNew {...props} organization={organization} />
+      <WidgetBuilder {...props} organization={organization} />
     </Feature>
   );
 }
 
-export default withOrganization(WidgetNewContainer);
+export default withOrganization(WidgetBuilderContainer);

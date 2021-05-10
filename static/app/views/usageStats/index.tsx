@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {LocationDescriptorObject} from 'history';
@@ -16,7 +16,7 @@ import TimeRangeSelector, {
 import PageHeading from 'app/components/pageHeading';
 import {Panel} from 'app/components/panels';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import {DEFAULT_STATS_PERIOD} from 'app/constants';
+import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'app/constants';
 import {t} from 'app/locale';
 import {PageContent, PageHeader} from 'app/styles/organization';
 import space from 'app/styles/space';
@@ -53,8 +53,8 @@ type State = {
   isCalendarOpen: boolean;
 };
 
-class OrganizationStats extends React.Component<Props, State> {
-  state = {
+class OrganizationStats extends Component<Props, State> {
+  state: State = {
     isCalendarOpen: false,
   };
 
@@ -232,9 +232,10 @@ class OrganizationStats extends React.Component<Props, State> {
     const {start, end, period, utc} = this.dataDatetime;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <DropdownDate isCalendarOpen={isCalendarOpen}>
           <TimeRangeSelector
+            organization={organization}
             relative={period ?? ''}
             start={start ?? null}
             end={end ?? null}
@@ -243,7 +244,7 @@ class OrganizationStats extends React.Component<Props, State> {
             onChange={() => {}}
             onUpdate={this.handleUpdateDatetime}
             onToggleSelector={isOpen => this.setState({isCalendarOpen: isOpen})}
-            organization={organization}
+            relativeOptions={omit(DEFAULT_RELATIVE_PERIODS, ['1h'])}
             defaultPeriod={DEFAULT_STATS_PERIOD}
           />
         </DropdownDate>
@@ -268,7 +269,7 @@ class OrganizationStats extends React.Component<Props, State> {
             </DropdownItem>
           ))}
         </DropdownDataCategory>
-      </React.Fragment>
+      </Fragment>
     );
   };
 
@@ -351,10 +352,17 @@ const DropdownDataCategory = styled(DropdownControl)`
       justify-content: space-between;
     }
   }
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    grid-column: auto / span 2;
+  }
+  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+    grid-column: auto / span 1;
+  }
 `;
 
 const DropdownDate = styled(Panel)<{isCalendarOpen: boolean}>`
-  grid-column: auto / span 3;
+  grid-column: auto / span 1;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -370,15 +378,29 @@ const DropdownDate = styled(Panel)<{isCalendarOpen: boolean}>`
   margin: 0;
   font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.textColor};
+  z-index: ${p => p.theme.zIndex.globalSelectionHeader};
 
+  /* TimeRageRoot in TimeRangeSelector */
   > div {
-    flex-grow: 1;
+    width: 100%;
+    align-self: stretch;
   }
 
+  /* StyledItemHeader used to show selected value of TimeRangeSelector */
   > div > div:first-child {
-    padding: ${space(1)} ${space(2)};
+    padding: 0 ${space(2)};
   }
 
+  /* Menu that dropdowns from TimeRangeSelector */
+  > div > div:last-child {
+    /* Remove awkward 1px width difference on dropdown due to border */
+    box-sizing: content-box;
+    font-size: 1em;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    grid-column: auto / span 2;
+  }
   @media (min-width: ${p => p.theme.breakpoints[2]}) {
     grid-column: auto / span 3;
   }

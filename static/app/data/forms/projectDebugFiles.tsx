@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import forEach from 'lodash/forEach';
 import isObject from 'lodash/isObject';
 import set from 'lodash/set';
@@ -46,7 +46,6 @@ export const fields: Record<string, Field> = {
   builtinSymbolSources: {
     name: 'builtinSymbolSources',
     type: 'select',
-    deprecatedSelectControl: false,
     multiple: true,
     label: t('Built-in Repositories'),
     help: t(
@@ -144,7 +143,7 @@ export const fields: Record<string, Field> = {
     removeConfirm: {
       confirmText: t('Remove Repository'),
       message: (
-        <React.Fragment>
+        <Fragment>
           <TextBlock>
             <strong>
               {t('Removing this repository applies instantly to new events.')}
@@ -155,7 +154,7 @@ export const fields: Record<string, Field> = {
               'Debug files from this repository will not be used to symbolicate future events. This may create new issues and alert members in your organization.'
             )}
           </TextBlock>
-        </React.Fragment>
+        </Fragment>
       ),
     },
   },

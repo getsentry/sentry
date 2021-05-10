@@ -41,11 +41,8 @@ class NewProcessingIssuesActivityNotification(ActivityNotification):
     def get_title(self) -> str:
         return self.get_subject()
 
-    def get_template(self) -> str:
-        return "sentry/emails/activity/new_processing_issues.txt"
-
-    def get_html_template(self) -> str:
-        return "sentry/emails/activity/new_processing_issues.html"
+    def get_filename(self) -> str:
+        return "activity/new_processing_issues"
 
     def get_category(self) -> str:
         return "new_processing_issues_activity_email"

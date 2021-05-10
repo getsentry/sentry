@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {mountWithTheme, shallow} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
 
@@ -31,7 +29,7 @@ describe('Confirm', function () {
 
     const modal = await mountGlobalModal();
 
-    expect(modal.find('Modal[show=true]').exists()).toBe(true);
+    expect(modal.find('GlobalModal[visible=true]').exists()).toBe(true);
   });
 
   it('clicks Confirm in modal and calls `onConfirm` callback', async function () {
@@ -55,7 +53,7 @@ describe('Confirm', function () {
     await tick();
     modal.update();
 
-    expect(modal.find('Modal[show=true]').exists()).toBe(false);
+    expect(modal.find('GlobalModal[visible=true]').exists()).toBe(false);
     expect(mock).toHaveBeenCalled();
     expect(mock.mock.calls).toHaveLength(1);
   });

@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import Alert from 'app/components/alert';
 import {IconLab} from 'app/icons';

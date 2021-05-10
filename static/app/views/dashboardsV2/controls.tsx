@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -59,7 +59,7 @@ class Controls extends React.Component<Props> {
       </Button>
     );
 
-    if (['edit', 'pending_delete'].includes(dashboardState)) {
+    if ([DashboardState.EDIT, DashboardState.PENDING_DELETE].includes(dashboardState)) {
       return (
         <StyledButtonBar gap={1} key="edit-controls">
           {cancelButton}
@@ -122,7 +122,7 @@ class Controls extends React.Component<Props> {
     }
 
     return (
-      <OverviewControls gap={1} key="controls">
+      <StyledButtonBar gap={1} key="controls">
         <DashboardSelect>
           <SelectControl
             key="select"
@@ -132,7 +132,7 @@ class Controls extends React.Component<Props> {
             value={currentOption}
             onChange={({value}: {value: DashboardListItem}) => {
               browserHistory.push({
-                pathname: `/organizations/${organization.slug}/dashboards/${value.id}/`,
+                pathname: `/organizations/${organization.slug}/dashboard/${value.id}/`,
                 // TODO(mark) should this retain global selection?
                 query: {},
               });
@@ -143,7 +143,7 @@ class Controls extends React.Component<Props> {
           <Button
             data-test-id="dashboard-manage"
             to={{
-              pathname: `/organizations/${organization.slug}/dashboards/manage/`,
+              pathname: `/organizations/${organization.slug}/dashboards/`,
             }}
           >
             {t('Manage Dashboards')}
@@ -180,7 +180,7 @@ class Controls extends React.Component<Props> {
             </Button>
           )}
         </DashboardEditFeature>
-      </OverviewControls>
+      </StyledButtonBar>
     );
   }
 }
@@ -224,10 +224,6 @@ const DashboardSelect = styled('div')`
 `;
 
 const StyledButtonBar = styled(ButtonBar)`
-  flex-shrink: 0;
-`;
-
-const OverviewControls = styled(StyledButtonBar)`
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     grid-auto-flow: row;
     grid-row-gap: ${space(1)};

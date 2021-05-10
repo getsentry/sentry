@@ -208,6 +208,7 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync):
                     "on_unresolve": _("When unresolved"),
                 },
                 "mappedColumnLabel": _("Azure DevOps Project"),
+                "formatMessageValue": False,
             },
             {
                 "name": self.outbound_assignee_key,

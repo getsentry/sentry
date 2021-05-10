@@ -1,10 +1,12 @@
-from typing import Any, Callable, Iterable, Mapping, MutableMapping
+from typing import Any, Callable, Iterable, Mapping, MutableMapping, Optional, Set
 
 from sentry.models import User
 from sentry.types.integrations import ExternalProviders
 
 # Shortcut so that types don't explode.
-Notifiable = Callable[[Any, Mapping[User, int], Mapping[str, Any]], None]
+Notifiable = Callable[
+    [Any, Set[User], Mapping[str, Any], Optional[Mapping[int, Mapping[str, Any]]]], None
+]
 
 # Global notifier registry.
 registry: MutableMapping[ExternalProviders, Notifiable] = {}
@@ -33,8 +35,9 @@ def register_notification_provider(
 def notify(
     provider: ExternalProviders,
     notification: Any,
-    users: Mapping[User, int],
+    users: Set[User],
     shared_context: Mapping[str, Any],
+    extra_context_by_user_id: Optional[Mapping[int, Mapping[str, Any]]] = None,
 ) -> None:
     """ Send notifications to these users. """
-    registry[provider](notification, users, shared_context)
+    registry[provider](notification, users, shared_context, extra_context_by_user_id)

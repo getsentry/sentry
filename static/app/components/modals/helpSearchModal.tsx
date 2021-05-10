@@ -1,4 +1,3 @@
-import React from 'react';
 import {ClassNames, css, withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -72,7 +71,7 @@ const Input = styled('input')`
 `;
 
 export const modalCss = css`
-  .modal-content {
+  [role='document'] {
     padding: 0;
   }
 `;
