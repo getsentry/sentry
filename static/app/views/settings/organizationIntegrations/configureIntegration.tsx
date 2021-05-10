@@ -92,7 +92,7 @@ class ConfigureIntegration extends AsyncView<Props, State> {
   }
 
   hasCodeOwners() {
-    return this.props.organization.features.includes('import-codeowners');
+    return this.props.organization.features.includes('integrations-codeowners');
   }
 
   onTabChange = (value: Tab) => {

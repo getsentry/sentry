@@ -12,7 +12,7 @@ describe('AddCodeOwnerModal', function () {
     closeModal: jest.fn(() => null),
   };
 
-  const org = TestStubs.Organization({features: ['import-codeowners']});
+  const org = TestStubs.Organization({features: ['integrations-codeowners']});
   const project = TestStubs.ProjectDetails();
   const integration = TestStubs.GitHubIntegration();
   const repo = TestStubs.Repository({

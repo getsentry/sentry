@@ -165,7 +165,7 @@ class ProjectCodeOwnersMixin:
     def has_feature(self, request: Request, project: Project) -> bool:
         return bool(
             features.has(
-                "organizations:import-codeowners", project.organization, actor=request.user
+                "organizations:integrations-codeowners", project.organization, actor=request.user
             )
         )
 

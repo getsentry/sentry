@@ -116,7 +116,7 @@ class ExternalActorEndpointMixin:
     @staticmethod
     def has_feature(request: Request, organization: Organization) -> bool:
         return bool(
-            features.has("organizations:import-codeowners", organization, actor=request.user)
+            features.has("organizations:integrations-codeowners", organization, actor=request.user)
         )
 
     def assert_has_feature(self, request: Request, organization: Organization) -> None:
