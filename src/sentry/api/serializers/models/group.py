@@ -1038,6 +1038,8 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                     end=self.end,
                     aggregations=[
                         ["count()", None, "session_count"],
+                        ["sum()", "session", "session_sum"],
+                        ["sum(session)", None, "anerror"],
                     ],
                     filter_keys=filters,
                     referrer="sessions.group.totals",
