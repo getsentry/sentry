@@ -391,7 +391,7 @@ let appConfig = {
   output: {
     path: distPath,
     publicPath: '',
-    filename: '[name].[contenthash].js',
+    filename: '[name].js',
     chunkFilename: 'chunks/[name].[contenthash].js',
     sourceMapFilename: 'sourcemaps/[name].[contenthash].js.map',
   },
