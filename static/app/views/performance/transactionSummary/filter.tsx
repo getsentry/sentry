@@ -18,6 +18,7 @@ import {decodeHistogramZoom} from './latencyChart';
 
 type DropdownButtonProps = React.ComponentProps<typeof DropdownButton>;
 
+// Make sure to update other instances like trends column fields, discover field types.
 export enum SpanOperationBreakdownFilter {
   None = 'none',
   Http = 'http',
