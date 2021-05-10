@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {RouteComponentProps} from 'react-router';
 import {PlainRoute} from 'react-router/lib/Route';
 import styled from '@emotion/styled';
@@ -63,6 +63,7 @@ type Props = {
   userTeamIds: Set<string>;
   ruleId?: string;
   sessionId?: string;
+  isCustomMetric?: boolean;
 } & RouteComponentProps<{orgId: string; projectId: string; ruleId?: string}, {}> & {
     onSubmitSuccess?: Form['props']['onSubmitSuccess'];
   } & AsyncComponent['props'];
@@ -590,6 +591,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       onSubmitSuccess,
       project,
       userTeamIds,
+      isCustomMetric,
     } = this.props;
     const {
       query,
@@ -718,7 +720,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                       thresholdChart={wizardBuilderChart}
                       onFilterSearch={this.handleFilterUpdate}
                       allowChangeEventTypes={dataset === Dataset.ERRORS}
-                      alertType={alertType}
+                      alertType={isCustomMetric ? 'custom' : alertType}
                     />
                     <AlertListItem>{t('Set thresholds to trigger alert')}</AlertListItem>
                     {triggerForm(hasAccess)}

@@ -1,9 +1,9 @@
-import React from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import EventTagsPill from 'app/components/events/eventTags/eventTagsPill';
 import {SecondaryHeader} from 'app/components/events/interfaces/spans/header';
+import ProjectBadge from 'app/components/idBadge/projectBadge';
 import {Panel} from 'app/components/panels';
 import Pills from 'app/components/pills';
 import SearchBar from 'app/components/searchBar';
@@ -62,8 +62,8 @@ export const StyledPanel = styled(Panel)`
   overflow: hidden;
 `;
 
-export const TransactionBarTitleContent = styled('span')`
-  margin-left: ${space(0.75)};
+export const StyledProjectBadge = styled(ProjectBadge)`
+  margin-right: ${space(0.75)};
 `;
 
 const StyledPills = styled(Pills)`

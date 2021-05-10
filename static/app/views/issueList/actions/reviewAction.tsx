@@ -1,5 +1,3 @@
-import React from 'react';
-
 import ActionLink from 'app/components/actions/actionLink';
 import {IconIssues} from 'app/icons';
 import {t} from 'app/locale';

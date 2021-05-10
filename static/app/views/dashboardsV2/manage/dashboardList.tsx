@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, Query} from 'history';
@@ -10,24 +10,46 @@ import WidgetLine from 'sentry-images/dashboard/widget-line-1.svg';
 import WidgetTable from 'sentry-images/dashboard/widget-table.svg';
 import WidgetWorldMap from 'sentry-images/dashboard/widget-world-map.svg';
 
+import {
+  createDashboard,
+  deleteDashboard,
+  fetchDashboard,
+} from 'app/actionCreators/dashboards';
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import {Client} from 'app/api';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
+import MenuItem from 'app/components/menuItem';
 import Pagination from 'app/components/pagination';
 import TimeSince from 'app/components/timeSince';
 import {t, tn} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
+import withApi from 'app/utils/withApi';
 import {DashboardListItem, DisplayType} from 'app/views/dashboardsV2/types';
+
+import ContextMenu from '../contextMenu';
+import {cloneDashboard} from '../utils';
 
 import DashboardCard from './dashboardCard';
 
 type Props = {
+  api: Client;
   organization: Organization;
   location: Location;
   dashboards: DashboardListItem[] | null;
   pageLinks: string;
+  onDashboardsChange: () => void;
 };
 
-function DashboardList({organization, location, dashboards, pageLinks}: Props) {
+function DashboardList({
+  api,
+  organization,
+  location,
+  dashboards,
+  pageLinks,
+  onDashboardsChange,
+}: Props) {
   function miniWidget(displayType: DisplayType): string {
     switch (displayType) {
       case DisplayType.BAR:
@@ -46,20 +68,68 @@ function DashboardList({organization, location, dashboards, pageLinks}: Props) {
     }
   }
 
+  function handleDelete(dashboard: DashboardListItem) {
+    deleteDashboard(api, organization.slug, dashboard.id)
+      .then(() => {
+        trackAnalyticsEvent({
+          eventKey: 'dashboards_manage.delete',
+          eventName: 'Dashboards Manager: Dashboard Deleted',
+          organization_id: parseInt(organization.id, 10),
+          dashboard_id: parseInt(dashboard.id, 10),
+        });
+        onDashboardsChange();
+        addSuccessMessage(t('Dashboard deleted'));
+      })
+      .catch(() => {
+        addErrorMessage(t('Error deleting Dashboard'));
+      });
+  }
+
+  function handleDuplicate(dashboard: DashboardListItem) {
+    fetchDashboard(api, organization.slug, dashboard.id)
+      .then(dashboardDetail => {
+        const newDashboard = cloneDashboard(dashboardDetail);
+        newDashboard.widgets.map(widget => (widget.id = undefined));
+        createDashboard(api, organization.slug, newDashboard, true).then(() => {
+          trackAnalyticsEvent({
+            eventKey: 'dashboards_manage.duplicate',
+            eventName: 'Dashboards Manager: Dashboard Duplicated',
+            organization_id: parseInt(organization.id, 10),
+            dashboard_id: parseInt(dashboard.id, 10),
+          });
+          onDashboardsChange();
+          addSuccessMessage(t('Dashboard duplicated'));
+        });
+      })
+      .catch(() => addErrorMessage(t('Error duplicating Dashboard')));
+  }
+
+  function handleClick(dashboard: DashboardListItem) {
+    trackAnalyticsEvent({
+      eventKey: 'dashboards_manage.change_sort',
+      eventName: 'Dashboards Manager: Sort By Changed',
+      organization_id: parseInt(organization.id, 10),
+      dashboard_id: parseInt(dashboard.id, 10),
+    });
+  }
+
   function renderMiniDashboards() {
     return dashboards?.map((dashboard, index) => {
       return (
         <DashboardCard
           key={`${index}-${dashboard.id}`}
-          title={dashboard.title}
+          title={
+            dashboard.id === 'default-overview' ? 'Default Dashboard' : dashboard.title
+          }
           to={{
-            pathname: `/organizations/${organization.slug}/dashboards/${dashboard.id}/`,
+            pathname: `/organizations/${organization.slug}/dashboard/${dashboard.id}/`,
             query: {...location.query},
           }}
           detail={tn('%s widget', '%s widgets', dashboard.widgetDisplay.length)}
           dateStatus={
             dashboard.dateCreated ? <TimeSince date={dashboard.dateCreated} /> : undefined
           }
+          onEventClick={() => handleClick(dashboard)}
           createdBy={dashboard.createdBy}
           renderWidgets={() => (
             <WidgetGrid>
@@ -78,6 +148,29 @@ function DashboardList({organization, location, dashboards, pageLinks}: Props) {
               })}
             </WidgetGrid>
           )}
+          renderContextMenu={() => (
+            <ContextMenu>
+              <MenuItem
+                data-test-id="dashboard-delete"
+                onClick={event => {
+                  event.preventDefault();
+                  handleDelete(dashboard);
+                }}
+                disabled={dashboards.length <= 1}
+              >
+                {t('Delete')}
+              </MenuItem>
+              <MenuItem
+                data-test-id="dashboard-duplicate"
+                onClick={event => {
+                  event.preventDefault();
+                  handleDuplicate(dashboard);
+                }}
+              >
+                {t('Duplicate')}
+              </MenuItem>
+            </ContextMenu>
+          )}
         />
       );
     });
@@ -95,7 +188,7 @@ function DashboardList({organization, location, dashboards, pageLinks}: Props) {
   }
 
   return (
-    <React.Fragment>
+    <Fragment>
       {renderDashboardGrid()}
       <PaginationRow
         pageLinks={pageLinks}
@@ -109,13 +202,19 @@ function DashboardList({organization, location, dashboards, pageLinks}: Props) {
             delete newQuery.cursor;
           }
 
+          trackAnalyticsEvent({
+            eventKey: 'dashboards_manage.paginate',
+            eventName: 'Dashboards Manager: Paginate',
+            organization_id: parseInt(organization.id, 10),
+          });
+
           browserHistory.push({
             pathname: path,
             query: newQuery,
           });
         }}
       />
-    </React.Fragment>
+    </Fragment>
   );
 }
 
@@ -179,4 +278,4 @@ const PaginationRow = styled(Pagination)`
   margin-bottom: ${space(3)};
 `;
 
-export default DashboardList;
+export default withApi(DashboardList);

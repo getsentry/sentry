@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
@@ -308,7 +308,7 @@ class DebugImageDetails extends AsyncComponent<Props, State> {
       !!onReprocessEvent;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Header closeButton>
           <Title>
             {t('Image')}
@@ -365,7 +365,7 @@ class DebugImageDetails extends AsyncComponent<Props, State> {
             )}
           </StyledButtonBar>
         </Footer>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }
@@ -397,28 +397,19 @@ const StyledButtonBar = styled(ButtonBar)`
 `;
 
 export const modalCss = css`
-  .modal-content {
+  [role='document'] {
     overflow: initial;
   }
 
   @media (min-width: ${theme.breakpoints[0]}) {
-    .modal-dialog {
-      width: 90%;
-      margin-left: -45%;
-    }
+    width: 90%;
   }
 
   @media (min-width: ${theme.breakpoints[3]}) {
-    .modal-dialog {
-      width: 70%;
-      margin-left: -35%;
-    }
+    width: 70%;
   }
 
   @media (min-width: ${theme.breakpoints[4]}) {
-    .modal-dialog {
-      width: 50%;
-      margin-left: -25%;
-    }
+    width: 50%;
   }
 `;

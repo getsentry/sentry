@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
@@ -296,6 +296,7 @@ class RuleConditionsFormForWizard extends React.PureComponent<Props, State> {
               inline={false}
               flexibleControlStateSize
               columnWidth={200}
+              alertType={alertType}
               required
             />
           )}

@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import * as ReactRouter from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -28,7 +28,7 @@ type ResultsChartProps = {
   confirmedQuery: boolean;
 };
 
-class ResultsChart extends React.Component<ResultsChartProps> {
+class ResultsChart extends Component<ResultsChartProps> {
   shouldComponentUpdate(nextProps: ResultsChartProps) {
     const {eventView, ...restProps} = this.props;
     const {eventView: nextEventView, ...restNextProps} = nextProps;
@@ -64,7 +64,7 @@ class ResultsChart extends React.Component<ResultsChartProps> {
     const isPrevious = display === DisplayModes.PREVIOUS;
 
     return (
-      <React.Fragment>
+      <Fragment>
         {getDynamicText({
           value: (
             <EventsChart
@@ -92,7 +92,7 @@ class ResultsChart extends React.Component<ResultsChartProps> {
           ),
           fixed: <Placeholder height="200px" testId="skeleton-ui" />,
         })}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }
@@ -111,7 +111,7 @@ type ContainerProps = {
   onDisplayChange: (value: string) => void;
 };
 
-class ResultsChartContainer extends React.Component<ContainerProps> {
+class ResultsChartContainer extends Component<ContainerProps> {
   shouldComponentUpdate(nextProps: ContainerProps) {
     const {eventView, ...restProps} = this.props;
     const {eventView: nextEventView, ...restNextProps} = nextProps;

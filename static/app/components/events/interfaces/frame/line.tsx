@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 import scrollToElement from 'scroll-to-element';
@@ -86,7 +86,7 @@ export class Line extends React.Component<Props, State> {
   // isExpanded can be initialized to true via parent component;
   // data synchronization is not important
   // https://facebook.github.io/react/tips/props-in-getInitialState-as-anti-pattern.html
-  state = {
+  state: State = {
     isExpanded: this.props.isExpanded,
   };
 

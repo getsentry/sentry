@@ -81,29 +81,44 @@ export const getDurationPillAlignment = ({
 };
 
 export const getToggleTheme = ({
-  isExpanded,
   theme,
+  isExpanded,
   disabled,
+  errored,
 }: {
-  isExpanded: boolean;
   theme: Theme;
+  isExpanded: boolean;
   disabled: boolean;
+  errored: boolean;
 }) => {
   const buttonTheme = isExpanded ? theme.button.default : theme.button.primary;
+  const errorTheme = theme.button.danger;
+
+  const background = errored
+    ? isExpanded
+      ? buttonTheme.background
+      : errorTheme.background
+    : buttonTheme.background;
+  const border = errored ? errorTheme.background : buttonTheme.border;
+  const color = errored
+    ? isExpanded
+      ? errorTheme.background
+      : buttonTheme.color
+    : buttonTheme.color;
 
   if (disabled) {
     return `
-    background: ${buttonTheme.background};
-    border: 1px solid ${theme.border};
-    color: ${buttonTheme.color};
+    background: ${background};
+    border: 1px solid ${border};
+    color: ${color};
     cursor: default;
   `;
   }
 
   return `
-    background: ${buttonTheme.background};
-    border: 1px solid ${theme.border};
-    color: ${buttonTheme.color};
+    background: ${background};
+    border: 1px solid ${border};
+    color: ${color};
   `;
 };
 
@@ -216,8 +231,9 @@ export const pickBarColour = (input: string | undefined): string => {
   const letterIndex1 = getLetterIndex(input.slice(0, 1));
   const letterIndex2 = getLetterIndex(input.slice(1, 2));
   const letterIndex3 = getLetterIndex(input.slice(2, 3));
+  const letterIndex4 = getLetterIndex(input.slice(3, 4));
 
   return colorsAsArray[
-    (letterIndex1 + letterIndex2 + letterIndex3) % colorsAsArray.length
+    (letterIndex1 + letterIndex2 + letterIndex3 + letterIndex4) % colorsAsArray.length
   ];
 };

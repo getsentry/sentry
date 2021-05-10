@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
@@ -190,6 +188,32 @@ describe('OrganizationRuleList', () => {
       expect.objectContaining({
         query: {
           name: testQuery,
+          team: ['myteams', 'unassigned'],
+        },
+      })
+    );
+  });
+
+  it('uses empty team query parameter when removing all teams', async () => {
+    const ownershipOrg = {
+      ...organization,
+      features: ['team-alerts-ownership'],
+    };
+    const wrapper = await createWrapper({organization: ownershipOrg});
+
+    wrapper.setProps({
+      location: {query: {team: 'myteams'}, search: '?team=myteams`'},
+    });
+    wrapper.find('Button[data-test-id="filter-button"]').simulate('click');
+    // Uncheck myteams
+    const myTeamsItem = wrapper.find('Filter').find('ListItem').at(0);
+    expect(myTeamsItem.text()).toBe('My Teams');
+    myTeamsItem.simulate('click');
+
+    expect(router.push).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: {
+          team: '',
         },
       })
     );
@@ -218,12 +242,13 @@ describe('OrganizationRuleList', () => {
     };
     await createWrapper({organization: ownershipOrg});
 
-    expect(router.replace).toHaveBeenCalledWith(
+    expect(rulesMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/combined-rules/',
       expect.objectContaining({
-        query: expect.objectContaining({
+        query: {
           expand: ['latestIncident'],
           sort: ['incident_status', 'date_triggered'],
-        }),
+        },
       })
     );
   });

@@ -245,14 +245,22 @@ class SnubaProtocolEventStream(EventStream):
         }
         self._send(project_id, "tombstone_events", extra_data=(state,), asynchronous=False)
 
-    def replace_group_unsafe(self, project_id, event_ids, new_group_id):
+    def replace_group_unsafe(
+        self, project_id, event_ids, new_group_id, from_timestamp=None, to_timestamp=None
+    ):
         """
         Tell Snuba to move events into a new group ID
 
         Same caveats as tombstone_events
         """
 
-        state = {"project_id": project_id, "event_ids": event_ids, "new_group_id": new_group_id}
+        state = {
+            "project_id": project_id,
+            "event_ids": event_ids,
+            "new_group_id": new_group_id,
+            "from_timestamp": from_timestamp,
+            "to_timestamp": to_timestamp,
+        }
         self._send(project_id, "replace_group", extra_data=(state,), asynchronous=False)
 
     def exclude_groups(self, project_id, group_ids):

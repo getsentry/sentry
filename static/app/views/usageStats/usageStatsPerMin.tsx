@@ -1,9 +1,7 @@
-import React from 'react';
 import styled from '@emotion/styled';
 
 import AsyncComponent from 'app/components/asyncComponent';
 import {t} from 'app/locale';
-import space from 'app/styles/space';
 import {DataCategory, Organization} from 'app/types';
 
 import {Outcome, UsageSeries} from './types';
@@ -98,5 +96,4 @@ const Wrapper = styled('div')`
   display: inline-block;
   color: ${p => p.theme.success};
   font-size: ${p => p.theme.fontSizeMedium};
-  margin-left: ${space(2)};
 `;

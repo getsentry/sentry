@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import {Organization, Project, Team} from 'app/types';
@@ -24,15 +24,16 @@ type Props = {
   organization: Organization;
   project: Project;
   eventView: EventView | undefined;
+  teams: Team[];
   wizardTemplate?: WizardRuleTemplate;
   sessionId?: string;
-  teams: Team[];
+  isCustomMetric?: boolean;
 } & RouteComponentProps<RouteParams, {}>;
 
 /**
  * Show metric rules form with an empty rule. Redirects to alerts list after creation.
  */
-class IncidentRulesCreate extends React.Component<Props> {
+class IncidentRulesCreate extends Component<Props> {
   handleSubmitSuccess = () => {
     const {router} = this.props;
     const {orgId} = this.props.params;

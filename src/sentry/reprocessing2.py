@@ -243,6 +243,8 @@ def delete_old_primary_hash(event):
             event.project_id,
             [event.event_id],
             old_primary_hash=old_primary_hash,
+            from_timestamp=event.datetime,
+            to_timestamp=event.datetime,
         )
 
 

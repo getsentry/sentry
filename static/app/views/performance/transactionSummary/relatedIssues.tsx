@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import pick from 'lodash/pick';
@@ -27,9 +27,10 @@ type Props = {
   end?: string;
 };
 
-class RelatedIssues extends React.Component<Props> {
+class RelatedIssues extends Component<Props> {
   getIssuesEndpoint() {
     const {transaction, organization, start, end, statsPeriod, location} = this.props;
+
     const queryParams = {
       start,
       end,
@@ -53,6 +54,9 @@ class RelatedIssues extends React.Component<Props> {
       }
     });
     currentFilter.addQuery('is:unresolved').setTagValues('transaction', [transaction]);
+
+    // Filter out key_transaction from being passed to issues as it will cause an error.
+    currentFilter.removeTag('key_transaction');
 
     return {
       path: `/organizations/${organization.slug}/issues/`,
@@ -104,7 +108,7 @@ class RelatedIssues extends React.Component<Props> {
     };
 
     return (
-      <React.Fragment>
+      <Fragment>
         <ControlsWrapper>
           <SectionHeading>{t('Related Issues')}</SectionHeading>
           <Button
@@ -129,7 +133,7 @@ class RelatedIssues extends React.Component<Props> {
             withPagination={false}
           />
         </TableWrapper>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

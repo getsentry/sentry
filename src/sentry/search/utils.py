@@ -229,8 +229,6 @@ def parse_actor_value(projects, value, user):
 
 
 def parse_actor_or_none_value(projects, value, user):
-    if value == "me_or_none":
-        return ["me_or_none", user]
     if value == "none":
         return None
     return parse_actor_value(projects, value, user)

@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import {Client} from 'app/api';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
@@ -32,7 +32,7 @@ type State = {
  * render one of those states.
  */
 class NoGroupsHandler extends React.Component<Props, State> {
-  state = {
+  state: State = {
     fetchingSentFirstEvent: true,
     sentFirstEvent: false,
     firstEventProjects: null,
@@ -116,9 +116,7 @@ class NoGroupsHandler extends React.Component<Props, State> {
     const project = projects && projects.length > 0 ? projects[0] : undefined;
     const sampleIssueId = groupIds.length > 0 ? groupIds[0] : undefined;
 
-    const ErrorRobot = React.lazy(
-      () => import(/* webpackChunkName: "ErrorRobot" */ 'app/components/errorRobot')
-    );
+    const ErrorRobot = React.lazy(() => import('app/components/errorRobot'));
 
     return (
       <React.Suspense fallback={<Placeholder height="260px" />}>

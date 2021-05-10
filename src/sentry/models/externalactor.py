@@ -13,7 +13,7 @@ class ExternalActor(DefaultFieldsModel):
 
     actor = FlexibleForeignKey("sentry.Actor", db_index=True, on_delete=models.CASCADE)
     organization = FlexibleForeignKey("sentry.Organization")
-    integration = FlexibleForeignKey("sentry.Integration", null=True)
+    integration = FlexibleForeignKey("sentry.Integration")
     provider = BoundedPositiveIntegerField(
         choices=(
             (ExternalProviders.EMAIL, "email"),

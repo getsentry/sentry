@@ -1,5 +1,3 @@
-import React from 'react';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
 
@@ -72,7 +70,7 @@ describe('ProjectReleaseTracking', function () {
     wrapper.find('Field[label="Regenerate Token"] Button').simulate('click');
 
     const modal = await mountGlobalModal();
-    expect(modal.find('ModalDialog')).toHaveLength(1);
+    expect(modal.find('Modal')).toHaveLength(1);
 
     expect(mock).not.toHaveBeenCalled();
 

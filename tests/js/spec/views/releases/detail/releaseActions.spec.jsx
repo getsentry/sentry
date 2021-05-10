@@ -1,4 +1,3 @@
-import React from 'react';
 import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
@@ -49,7 +48,7 @@ describe('ReleaseActions', function () {
     expect(affectedProjects.length).toBe(2);
 
     // confirm modal
-    modal.find('ModalDialog Button[priority="primary"]').simulate('click');
+    modal.find('Modal Button[priority="primary"]').simulate('click');
 
     expect(mockUpdate).toHaveBeenCalledWith(
       expect.anything(),

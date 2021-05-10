@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import {DraggableSyntheticListeners, UseDraggableArguments} from '@dnd-kit/core';
 import styled from '@emotion/styled';
 
@@ -30,7 +30,7 @@ type State = {
   isMenuActionsOpen: boolean;
 };
 
-class Rule extends React.Component<Props, State> {
+class Rule extends Component<Props, State> {
   state: State = {
     isMenuActionsOpen: false,
   };
