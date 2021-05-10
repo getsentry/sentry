@@ -78,8 +78,29 @@ class TestParseDuration(TestCase):
         with self.assertRaises(InvalidQuery):
             parse_duration(123, "test")
 
+    def test_large_durations(self):
+        max_duration = 999999999 * 24 * 60 * 60 * 1000
+        assert parse_duration(999999999, "d") == max_duration
+        assert parse_duration(999999999 * 24, "h") == max_duration
+        assert parse_duration(999999999 * 24 * 60, "m") == max_duration
+        assert parse_duration(999999999 * 24 * 60 * 60, "s") == max_duration
+        assert parse_duration(999999999 * 24 * 60 * 60 * 1000, "ms") == max_duration
+
+    def test_overflow_durations(self):
         with self.assertRaises(InvalidQuery):
-            parse_duration(9999999999, "day")
+            assert parse_duration(999999999 + 1, "d")
+
+        with self.assertRaises(InvalidQuery):
+            assert parse_duration((999999999 + 1) * 24, "h")
+
+        with self.assertRaises(InvalidQuery):
+            assert parse_duration((999999999 + 1) * 24 * 60 + 1, "m")
+
+        with self.assertRaises(InvalidQuery):
+            assert parse_duration((999999999 + 1) * 24 * 60 * 60 + 1, "s")
+
+        with self.assertRaises(InvalidQuery):
+            assert parse_duration((999999999 + 1) * 24 * 60 * 60 * 1000 + 1, "ms")
 
 
 def test_tokenize_query_only_keyed_fields():
