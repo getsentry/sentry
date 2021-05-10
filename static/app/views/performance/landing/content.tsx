@@ -70,6 +70,11 @@ class LandingContent extends Component<Props, State> {
     const defaultDisplay = getDefaultDisplayFieldForPlatform(projects, eventView);
     const currentDisplay = decodeScalar(location.query.landingDisplay);
 
+    // Transaction op can affect the display and show no results if it is explicitly set.
+    const query = decodeScalar(location.query.query, '');
+    const searchConditions = tokenizeSearch(query);
+    searchConditions.removeTag('transaction.op');
+
     trackAnalyticsEvent({
       eventKey: 'performance_views.landingv2.display_change',
       eventName: 'Performance Views: Landing v2 Display Change',
@@ -84,6 +89,7 @@ class LandingContent extends Component<Props, State> {
       pathname: location.pathname,
       query: {
         ...newQuery,
+        query: stringifyQueryObject(searchConditions),
         landingDisplay: field,
       },
     });
