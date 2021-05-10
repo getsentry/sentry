@@ -3,6 +3,7 @@ from uuid import uuid4
 from django import forms
 from django.utils.translation import ugettext_lazy as _
 
+from sentry.constants import ObjectStatus
 from sentry.integrations import (
     FeatureDescription,
     IntegrationFeatures,
@@ -60,9 +61,9 @@ class CustomSCMIntegration(IntegrationInstallation, RepositoryMixin):
             organization_id=self.organization_id,
             provider__isnull=True,
             integration_id__isnull=True,
-            status=0,
+            status=ObjectStatus.VISIBLE,
         )
-        return [{"name": repo.name, "identifier": repo.id} for repo in repos]
+        return [{"name": repo.name, "identifier": str(repo.id)} for repo in repos]
 
 
 class InstallationForm(forms.Form):
