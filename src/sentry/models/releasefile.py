@@ -1,5 +1,7 @@
 import errno
 import os
+import zipfile
+from typing import IO
 from urllib.parse import urlsplit, urlunsplit
 
 from django.core.files.base import File as FileObj
@@ -8,7 +10,7 @@ from django.db import models
 from sentry import options
 from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
 from sentry.models import clear_cached_files
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 from sentry.utils.hashlib import sha1_text
 
 
@@ -118,3 +120,35 @@ class ReleaseFileCache:
 
 
 ReleaseFile.cache = ReleaseFileCache()
+
+
+class ReleaseArchive:
+    """ Represents uploaded ZIP-archive of release files """
+
+    def __init__(self, fileobj: IO):
+        self._fileobj = fileobj
+
+    def __enter__(self):
+        self._zip_file = zipfile.ZipFile(self._fileobj)
+        self.manifest = self._read_manifest()
+        files = self.manifest.get("files", {})
+        self._filenames_by_url = {entry["url"]: path for path, entry in files.items()}
+
+        return self
+
+    def __exit__(self, *args, **kwargs):
+        self._zip_file.close()
+        self._fileobj.close()
+
+    def _read(self, filename: str) -> bytes:
+        return self._zip_file.read(filename)
+
+    def _read_manifest(self) -> dict:
+        manifest_bytes = self._read("manifest.json")
+        # TODO: what is encoding of manifest_bytes?
+        return json.loads(manifest_bytes.decode())
+
+    def get_file_by_url(self, url: str) -> bytes:
+        """ May raise ``KeyError`` """
+        filename = self._filenames_by_url[url]
+        return self._read(filename)

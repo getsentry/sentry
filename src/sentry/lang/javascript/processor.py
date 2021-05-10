@@ -1,8 +1,8 @@
-import zipfile
 from io import BytesIO
 
 from django.utils.encoding import force_bytes, force_text
 
+from sentry.models.releasefile import ReleaseArchive
 from sentry.tasks.assemble import RELEASE_ARCHIVE_FILENAME
 
 __all__ = ["JavaScriptStacktraceProcessor"]
@@ -346,6 +346,18 @@ def fetch_release_file(filename, release, dist=None):
     return result
 
 
+def _get_from_archive(url: str, archive: ReleaseArchive) -> bytes:
+    candidates = ReleaseFile.normalize(url)
+    for candidate in candidates:
+        try:
+            return archive.get_file_by_url(candidate)
+        except KeyError:
+            pass
+
+    # None of the filenames matched
+    raise KeyError(f"Not found in archive: '{url}'")
+
+
 def fetch_release_artifact(url, release, dist):
     """
     Get a release artifact either by extracting it or fetching it directly.
@@ -354,14 +366,13 @@ def fetch_release_artifact(url, release, dist):
     from the archive.
 
     """
-
     release_file = fetch_release_file(RELEASE_ARCHIVE_FILENAME, release, dist)
 
     if release_file is not None:
         zipobj = BytesIO(release_file.body)
         try:
-            with zipfile.ZipFile(zipobj, mode="r") as archive:
-                body = archive.read(url)  # FIXME: use normalized name or something
+            with ReleaseArchive(zipobj) as archive:
+                body = _get_from_archive(url, archive)
         except BaseException as exc:
             logger.error("Failed to read %s from release file %s: %s", url, release.id, exc)
         else:

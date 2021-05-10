@@ -1,15 +1,13 @@
 import hashlib
 import logging
-import zipfile
-from io import FileIO
 
 from django.db import IntegrityError, transaction
 
 from sentry.api.serializers import serialize
 from sentry.cache import default_cache
 from sentry.models import File, Organization, Release, ReleaseFile
+from sentry.models.releasefile import ReleaseArchive
 from sentry.tasks.base import instrumented_task
-from sentry.utils import json
 from sentry.utils.files import get_max_file_size
 from sentry.utils.sdk import bind_organization_context, configure_scope
 
@@ -187,13 +185,6 @@ def _upsert_release_file(file: File, **kwargs):
         old_file.delete()
 
 
-def _read_manifest(bundle: FileIO) -> dict:
-    with zipfile.ZipFile(bundle) as archive:
-        manifest_bytes = archive.read("manifest.json")
-    # TODO: what is encoding of manifest_bytes?
-    return json.loads(manifest_bytes.decode())
-
-
 @instrumented_task(name="sentry.tasks.assemble.assemble_artifacts", queue="assemble")
 def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
     """
@@ -225,7 +216,8 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
         bundle, temp_file = rv
 
         try:
-            manifest = _read_manifest(temp_file)
+            with ReleaseArchive(temp_file) as archive:
+                manifest = archive.manifest
         except BaseException:
             raise AssembleArtifactsError("failed to open release manifest")
 
