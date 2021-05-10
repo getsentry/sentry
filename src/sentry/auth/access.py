@@ -83,7 +83,7 @@ class BaseAccess:
 
     def has_permission(self, permission):
         """
-        Return bool representing if the user has the given Ω©permission.
+        Return bool representing if the user has the given permission.
 
         >>> access.has_permission('broadcasts.admin')
         """
