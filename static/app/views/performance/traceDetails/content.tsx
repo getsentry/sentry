@@ -510,16 +510,29 @@ class TraceDetailsContent extends React.Component<Props, State> {
               >
                 <StyledPanel>
                   <TraceViewHeaderContainer>
-                    <ScrollbarContainer
-                      ref={this.virtualScrollbarContainerRef}
-                      style={{
-                        // the width of this component is shrunk to compensate for half of the width of the divider line
-                        width: `calc(${toPercent(dividerPosition)} - 0.5px)`,
-                      }}
-                    >
-                      <ScrollbarManager.Consumer>
-                        {({virtualScrollbarRef, onDragStart}) => {
-                          return (
+                    <ScrollbarManager.Consumer>
+                      {({
+                        virtualScrollbarRef,
+                        scrollBarAreaRef,
+                        onDragStart,
+                        onScroll,
+                      }) => {
+                        return (
+                          <ScrollbarContainer
+                            ref={this.virtualScrollbarContainerRef}
+                            style={{
+                              // the width of this component is shrunk to compensate for half of the width of the divider line
+                              width: `calc(${toPercent(dividerPosition)} - 0.5px)`,
+                            }}
+                            onScroll={onScroll}
+                          >
+                            <div
+                              style={{
+                                width: 0,
+                                height: '1px',
+                              }}
+                              ref={scrollBarAreaRef}
+                            />
                             <VirtualScrollbar
                               data-type="virtual-scrollbar"
                               ref={virtualScrollbarRef}
@@ -527,10 +540,10 @@ class TraceDetailsContent extends React.Component<Props, State> {
                             >
                               <VirtualScrollbarGrip />
                             </VirtualScrollbar>
-                          );
-                        }}
-                      </ScrollbarManager.Consumer>
-                    </ScrollbarContainer>
+                          </ScrollbarContainer>
+                        );
+                      }}
+                    </ScrollbarManager.Consumer>
                     <DividerSpacer />
                   </TraceViewHeaderContainer>
                   <TraceViewContainer ref={this.traceViewRef}>
