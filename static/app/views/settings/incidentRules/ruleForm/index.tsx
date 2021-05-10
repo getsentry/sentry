@@ -645,6 +645,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
         projects={this.state.projects}
         errors={this.state.triggerErrors}
         triggers={triggers}
+        aggregate={aggregate}
         resolveThreshold={resolveThreshold}
         thresholdType={thresholdType}
         currentProject={params.projectId}
