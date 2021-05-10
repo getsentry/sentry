@@ -4,9 +4,10 @@ from django.utils.deprecation import MiddlewareMixin
 
 
 class SetRemoteAddrFromForwardedFor(MiddlewareMixin):
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         if not getattr(settings, "SENTRY_USE_X_FORWARDED_FOR", True):
             raise MiddlewareNotUsed
+        super().__init__(*args, **kwargs)
 
     def _remove_port_number(self, ip_address):
         if "[" in ip_address and "]" in ip_address:
