@@ -9,10 +9,7 @@ from sentry.utils.samples import load_data
 
 
 class OrganizationEventsTraceEndpointBase(APITestCase, SnubaTestCase):
-    FEATURES = [
-        "organizations:trace-view-quick",
-        "organizations:trace-view-summary",
-    ]
+    FEATURES = ["organizations:performance-view"]
 
     def get_start_end(self, duration):
         return self.day_ago, self.day_ago + timedelta(milliseconds=duration)

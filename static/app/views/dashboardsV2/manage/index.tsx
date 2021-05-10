@@ -7,10 +7,13 @@ import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
 import Breadcrumbs from 'app/components/breadcrumbs';
+import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import * as Layout from 'app/components/layouts/thirds';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import SearchBar from 'app/components/searchBar';
+import {IconAdd} from 'app/icons';
 import {t} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
 import space from 'app/styles/space';
@@ -53,7 +56,8 @@ class ManageDashboards extends AsyncView<Props, State> {
         `/organizations/${organization.slug}/dashboards/`,
         {
           query: {
-            ...pick(location.query, ['cursor', 'query', 'sort']),
+            ...pick(location.query, ['cursor', 'query']),
+            sort: this.getActiveSort().value,
             per_page: '9',
           },
         },
@@ -167,6 +171,14 @@ class ManageDashboards extends AsyncView<Props, State> {
     return t('Manage Dashboards');
   }
 
+  onCreate() {
+    const {organization, location} = this.props;
+    browserHistory.push({
+      pathname: `/organizations/${organization.slug}/dashboards/new/`,
+      query: location.query,
+    });
+  }
+
   renderBody() {
     const {organization} = this.props;
 
@@ -182,16 +194,32 @@ class ManageDashboards extends AsyncView<Props, State> {
               <Breadcrumbs
                 crumbs={[
                   {
-                    label: 'Dashboards',
+                    label: t('Dashboards'),
                     to: `/organizations/${organization.slug}/dashboards/`,
                   },
                   {
-                    label: 'Manage Dashboards',
+                    label: t('Manage Dashboards'),
                   },
                 ]}
               />
               <Layout.Title>{t('Manage Dashboards')}</Layout.Title>
             </Layout.HeaderContent>
+
+            <Layout.HeaderActions>
+              <ButtonBar gap={1}>
+                <Button
+                  data-test-id="dashboard-create"
+                  onClick={event => {
+                    event.preventDefault();
+                    this.onCreate();
+                  }}
+                  priority="primary"
+                  icon={<IconAdd size="xs" isCircled />}
+                >
+                  {t('Create Dashboard')}
+                </Button>
+              </ButtonBar>
+            </Layout.HeaderActions>
           </Layout.Header>
           <Layout.Body>
             <Layout.Main fullWidth>

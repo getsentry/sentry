@@ -5,11 +5,20 @@ import {ModalRenderProps} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
+import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {Panel, PanelBody} from 'app/components/panels';
 import {IconCheckmark, IconNot} from 'app/icons';
-import {t} from 'app/locale';
-import {CodeOwners, Organization, Project, RepositoryProjectPathConfig} from 'app/types';
+import {t, tct} from 'app/locale';
+import space from 'app/styles/space';
+import {
+  CodeOwners,
+  Integration,
+  Organization,
+  Project,
+  RepositoryProjectPathConfig,
+} from 'app/types';
+import {getIntegrationIcon} from 'app/utils/integrationUtil';
 import withApi from 'app/utils/withApi';
 import Form from 'app/views/settings/components/forms/form';
 import SelectField from 'app/views/settings/components/forms/selectField';
@@ -19,12 +28,13 @@ type Props = {
   organization: Organization;
   project: Project;
   codeMappings: RepositoryProjectPathConfig[];
+  integrations: Integration[];
   onSave: (data: CodeOwners) => void;
 } & ModalRenderProps;
 
 type State = {
   codeownerFile: CodeOwnerFile | null;
-  codeMappingId: number | null;
+  codeMappingId: string | null;
   isLoading: boolean;
   error: boolean;
   errorJSON: {raw?: string} | null;
@@ -45,7 +55,7 @@ class AddCodeOwnerModal extends Component<Props, State> {
     errorJSON: null,
   };
 
-  fetchFile = async (codeMappingId: number) => {
+  fetchFile = async (codeMappingId: string) => {
     const {organization} = this.props;
     this.setState({
       codeMappingId,
@@ -103,7 +113,7 @@ class AddCodeOwnerModal extends Component<Props, State> {
         <SourceFileBody>
           <IconCheckmark size="md" isCircled color="green200" />
           {codeownerFile.filepath}
-          <Button size="small" href={codeownerFile.html_url}>
+          <Button size="small" href={codeownerFile.html_url} target="_blank">
             {t('Preview File')}
           </Button>
         </SourceFileBody>
@@ -111,11 +121,33 @@ class AddCodeOwnerModal extends Component<Props, State> {
     );
   }
 
-  errorMessage() {
-    const {errorJSON} = this.state;
+  errorMessage(baseUrl) {
+    const {errorJSON, codeMappingId} = this.state;
+    const {codeMappings} = this.props;
+    const codeMapping = codeMappings.find(mapping => mapping.id === codeMappingId);
+    const {integrationId, provider} = codeMapping as RepositoryProjectPathConfig;
     return (
       <Alert type="error" icon={<IconNot size="md" />}>
         <p>{errorJSON?.raw?.[0]}</p>
+        {codeMapping && (
+          <p>
+            {tct(
+              'Configure [userMappingsLink:User Mappings] or[teamMappingsLink:Team Mappings] for any missing associations.',
+              {
+                userMappingsLink: (
+                  <Link
+                    to={`${baseUrl}/${provider?.key}/${integrationId}/?tab=userMappings&referrer=add-codeowners`}
+                  />
+                ),
+                teamMappingsLink: (
+                  <Link
+                    to={`${baseUrl}/${provider?.key}/${integrationId}/?tab=teamMappings&referrer=add-codeowners`}
+                  />
+                ),
+              }
+            )}
+          </p>
+        )}
       </Alert>
     );
   }
@@ -124,11 +156,9 @@ class AddCodeOwnerModal extends Component<Props, State> {
     const {codeMappingId, isLoading} = this.state;
     if (isLoading) {
       return (
-        <Panel>
-          <NoSourceFileBody>
-            <LoadingIndicator mini />
-          </NoSourceFileBody>
-        </Panel>
+        <Container>
+          <LoadingIndicator mini />
+        </Container>
       );
     }
     if (!codeMappingId) {
@@ -149,15 +179,36 @@ class AddCodeOwnerModal extends Component<Props, State> {
   }
 
   render() {
-    const {Header, Body, Footer, closeModal} = this.props;
+    const {Header, Body, Footer} = this.props;
     const {codeownerFile, error, errorJSON} = this.state;
-    const {codeMappings} = this.props;
+    const {codeMappings, integrations, organization} = this.props;
+    const baseUrl = `/settings/${organization.slug}/integrations`;
+
     return (
       <Fragment>
-        <Header closeButton onHide={closeModal}>
-          <h4>{t('Add Code Owner File')}</h4>
-        </Header>
+        <Header closeButton>{t('Add Code Owner File')}</Header>
         <Body>
+          {!codeMappings.length && (
+            <Fragment>
+              <div>
+                {t(
+                  "Configure code mapping to add your CODEOWNERS file. Select the integration you'd like to use for mapping:"
+                )}
+              </div>
+              <IntegrationsList>
+                {integrations.map(integration => (
+                  <Button
+                    key={integration.id}
+                    type="button"
+                    to={`${baseUrl}/${integration.provider.key}/${integration.id}/?tab=codeMappings&referrer=add-codeowners`}
+                  >
+                    {getIntegrationIcon(integration.provider.key)}
+                    <IntegrationName>{integration.name}</IntegrationName>
+                  </Button>
+                ))}
+              </IntegrationsList>
+            </Fragment>
+          )}
           {codeMappings.length > 0 && (
             <Form
               apiMethod="POST"
@@ -181,7 +232,7 @@ class AddCodeOwnerModal extends Component<Props, State> {
 
               <FileResult>
                 {codeownerFile ? this.sourceFile(codeownerFile) : this.noSourceFile()}
-                {error && errorJSON && this.errorMessage()}
+                {error && errorJSON && this.errorMessage(baseUrl)}
               </FileResult>
             </Form>
           )}
@@ -215,13 +266,27 @@ const NoSourceFileBody = styled(PanelBody)`
   display: grid;
   padding: 12px;
   grid-template-columns: 30px 1fr;
-  align-items: flex-start;
-  min-height: 150px;
+  align-items: center;
 `;
 const SourceFileBody = styled(PanelBody)`
   display: grid;
   padding: 12px;
   grid-template-columns: 30px 1fr 100px;
-  align-items: flex-start;
-  min-height: 150px;
+  align-items: center;
+`;
+
+const IntegrationsList = styled('div')`
+  display: grid;
+  grid-gap: ${space(1)};
+  justify-items: center;
+  margin-top: ${space(2)};
+`;
+
+const IntegrationName = styled('p')`
+  padding-left: 10px;
+`;
+
+const Container = styled('div')`
+  display: flex;
+  justify-content: center;
 `;

@@ -259,7 +259,7 @@ class TimeRangeSelector extends React.PureComponent<Props, State> {
     this.callCallback(onChange, newDateTime);
   };
 
-  handleSelectRelative = value => {
+  handleSelectRelative = (value: string) => {
     const {onChange} = this.props;
     const newDateTime: ChangeData = {
       relative: value,
@@ -350,9 +350,7 @@ class TimeRangeSelector extends React.PureComponent<Props, State> {
   handleOpen = () => {
     this.setState({isOpen: true});
     // Start loading react-date-picker
-    import(
-      /* webpackChunkName: "DateRangePicker" */ '../timeRangeSelector/dateRange/index'
-    );
+    import('../timeRangeSelector/dateRange/index');
   };
 
   render() {
@@ -480,7 +478,7 @@ const SelectorList = styled('div')<MenuProps>`
   flex: 1;
   flex-direction: column;
   flex-shrink: 0;
-  width: ${p => (p.isAbsoluteSelected ? '160px' : '220px')};
+  min-width: ${p => (p.isAbsoluteSelected ? '160px' : '220px')};
   min-height: 305px;
 `;
 

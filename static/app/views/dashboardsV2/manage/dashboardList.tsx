@@ -120,7 +120,7 @@ function DashboardList({
           key={`${index}-${dashboard.id}`}
           title={dashboard.title}
           to={{
-            pathname: `/organizations/${organization.slug}/dashboards/${dashboard.id}/`,
+            pathname: `/organizations/${organization.slug}/dashboard/${dashboard.id}/`,
             query: {...location.query},
           }}
           detail={tn('%s widget', '%s widgets', dashboard.widgetDisplay.length)}

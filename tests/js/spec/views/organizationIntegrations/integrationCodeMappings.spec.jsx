@@ -156,6 +156,7 @@ describe('IntegrationCodeMappings', function () {
     });
     wrapper.find('button[aria-label="edit"]').first().simulate('click');
 
+    await tick();
     const modal = await mountGlobalModal();
 
     modal
