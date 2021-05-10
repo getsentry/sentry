@@ -385,7 +385,13 @@ let appConfig = {
   output: {
     path: distPath,
     publicPath: '',
-    filename: '[name].[contenthash].js',
+    filename: pathData => {
+      const unversioned = ['runtime', 'app'];
+
+      return unversioned.includes(pathData.chunk.name)
+        ? '[name].js'
+        : '[name].[contenthash].js';
+    },
     chunkFilename: '[name].[contenthash].js',
     sourceMapFilename: '[name].js.map',
   },
