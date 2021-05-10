@@ -1,3 +1,5 @@
+import {AvatarProject} from 'app/types';
+
 const platforms = [
   'dotnet',
   'android',
@@ -57,4 +59,14 @@ export function getDocsPlatform(
   }
   // can't find a matching docs platform
   return null;
+}
+
+export function getConfigureTracingDocsLink(
+  project: AvatarProject | undefined
+): string | null {
+  const platform = project?.platform ?? null;
+  const docsPlatform = platform ? getDocsPlatform(platform, true) : null;
+  return docsPlatform === null
+    ? null // this platform does not support performance
+    : `https://docs.sentry.io/platforms/${docsPlatform}/performance/`;
 }

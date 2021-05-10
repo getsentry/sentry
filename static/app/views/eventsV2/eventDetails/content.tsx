@@ -11,11 +11,8 @@ import NotFound from 'app/components/errors/notFound';
 import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
 import {BorderlessEventEntries} from 'app/components/events/eventEntries';
 import EventMessage from 'app/components/events/eventMessage';
-import EventMetadata from 'app/components/events/eventMetadata';
 import EventVitals from 'app/components/events/eventVitals';
 import * as SpanEntryContext from 'app/components/events/interfaces/spans/context';
-import OpsBreakdown from 'app/components/events/opsBreakdown';
-import RootSpanStatus from 'app/components/events/rootSpanStatus';
 import FileSize from 'app/components/fileSize';
 import * as Layout from 'app/components/layouts/thirds';
 import LoadingError from 'app/components/loadingError';
@@ -178,11 +175,9 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
               <Button onClick={this.toggleSidebar}>
                 {isSidebarVisible ? 'Hide Details' : 'Show Details'}
               </Button>
-              {results && (
-                <Button icon={<IconOpen />} href={eventJsonUrl} external>
-                  {t('JSON')} (<FileSize bytes={event.size} />)
-                </Button>
-              )}
+              <Button icon={<IconOpen />} href={eventJsonUrl} external>
+                {t('JSON')} (<FileSize bytes={event.size} />)
+              </Button>
               {transactionSummaryTarget && (
                 <Feature organization={organization} features={['performance-view']}>
                   {({hasFeature}) => (
@@ -200,20 +195,18 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
           </Layout.HeaderActions>
         </Layout.Header>
         <Layout.Body>
-          {results && (
-            <Layout.Main fullWidth>
-              <EventMetas
-                quickTrace={results}
-                meta={metaResults?.meta ?? null}
-                event={event}
-                organization={organization}
-                projectId={this.projectId}
-                location={location}
-                errorDest="discover"
-                transactionDest="discover"
-              />
-            </Layout.Main>
-          )}
+          <Layout.Main fullWidth>
+            <EventMetas
+              quickTrace={results ?? null}
+              meta={metaResults?.meta ?? null}
+              event={event}
+              organization={organization}
+              projectId={this.projectId}
+              location={location}
+              errorDest="discover"
+              transactionDest="discover"
+            />
+          </Layout.Main>
           <Layout.Main fullWidth={!isSidebarVisible}>
             <Projects orgId={organization.slug} slugs={[this.projectId]}>
               {({projects, initiallyLoaded}) =>
@@ -253,17 +246,6 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
           </Layout.Main>
           {isSidebarVisible && (
             <Layout.Side>
-              {results === undefined && (
-                <Fragment>
-                  <EventMetadata
-                    event={event}
-                    organization={organization}
-                    projectId={this.projectId}
-                  />
-                  <RootSpanStatus event={event} />
-                  <OpsBreakdown event={event} />
-                </Fragment>
-              )}
               <EventVitals event={event} />
               {event.groupID && (
                 <LinkedIssue groupId={event.groupID} eventId={event.eventID} />
