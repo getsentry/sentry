@@ -7,35 +7,40 @@ import ProjectOwnership from 'app/views/settings/project/projectOwnership';
 jest.mock('app/actionCreators/modal');
 
 describe('Project Ownership', function () {
-  let org;
-  let project;
+  let org = TestStubs.Organization();
+  const project = TestStubs.ProjectDetails();
 
   beforeEach(function () {
-    org = TestStubs.Organization();
-    project = TestStubs.ProjectDetails();
-
-    Client.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/`,
-      method: 'GET',
-      body: project,
-    });
+    Client.clearMockResponses();
     Client.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/ownership/`,
       method: 'GET',
       body: {
-        raw: 'url:src @dummy@example.com',
-        fallthrough: 'false',
-        autoAssignment: 'false',
+        fallthrough: false,
+        autoAssignment: false,
       },
     });
     Client.addMockResponse({
-      url: `/organizations/${org.slug}/code-mappings/?projectId=${project.id}`,
+      url: `/organizations/${org.slug}/code-mappings/`,
+      query: {projectId: project.id},
+      method: 'GET',
+      body: [],
+    });
+    Client.addMockResponse({
+      url: `/organizations/${org.slug}/integrations/`,
+      query: {features: 'codeowners'},
+      method: 'GET',
+      body: [TestStubs.GithubIntegrationConfig()],
+    });
+    Client.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/codeowners/`,
+      features: {expand: 'codeMapping'},
       method: 'GET',
       body: [],
     });
   });
 
-  describe('render()', function () {
+  describe('without codeowners', function () {
     it('renders', function () {
       const wrapper = mountWithTheme(
         <ProjectOwnership
@@ -50,47 +55,11 @@ describe('Project Ownership', function () {
       expect(wrapper.find('CodeOwnerButton').exists()).toBe(false);
     });
   });
-});
-
-describe('Add Codeowner File', function () {
-  const org = TestStubs.Organization({features: ['import-codeowners']});
-  const project = TestStubs.ProjectDetails();
-
-  beforeEach(function () {
-    Client.clearMockResponses();
-    Client.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/`,
-      method: 'GET',
-      body: project,
-    });
-    Client.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/ownership/`,
-      method: 'GET',
-      body: {
-        raw: 'url:src @dummy@example.com',
-        fallthrough: 'false',
-        autoAssignment: 'false',
-      },
-    });
-    Client.addMockResponse({
-      url: `/organizations/${org.slug}/code-mappings/?projectId=${project.id}`,
-      method: 'GET',
-      body: [],
-    });
-    Client.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/codeowners/?expand=codeMapping`,
-      method: 'GET',
-      body: [],
-    });
-    Client.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
-      method: 'GET',
-      body: [],
-    });
-  });
 
   describe('codeowner action button', function () {
     it('renders button', function () {
+      org = TestStubs.Organization({features: ['import-codeowners']});
+
       const wrapper = mountWithTheme(
         <ProjectOwnership
           params={{orgId: org.slug, projectId: project.slug}}
@@ -99,6 +68,7 @@ describe('Add Codeowner File', function () {
         />,
         TestStubs.routerContext([{organization: org}])
       );
+
       expect(wrapper.find('CodeOwnerButton').exists()).toBe(true);
     });
     it('clicking button opens modal', async function () {

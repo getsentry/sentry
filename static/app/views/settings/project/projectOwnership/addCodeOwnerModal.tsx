@@ -189,7 +189,7 @@ class AddCodeOwnerModal extends Component<Props, State> {
         <Header closeButton>{t('Add Code Owner File')}</Header>
         <Body>
           {!codeMappings.length && (
-            <React.Fragment>
+            <Fragment>
               <div>
                 {t(
                   "Configure code mapping to add your CODEOWNERS file. Select the integration you'd like to use for mapping:"
@@ -207,7 +207,7 @@ class AddCodeOwnerModal extends Component<Props, State> {
                   </Button>
                 ))}
               </IntegrationsList>
-            </React.Fragment>
+            </Fragment>
           )}
           {codeMappings.length > 0 && (
             <Form

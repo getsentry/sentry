@@ -49,7 +49,8 @@ class ProjectOwnership extends AsyncView<Props, State> {
       ['ownership', `/projects/${organization.slug}/${project.slug}/ownership/`],
       [
         'codeMappings',
-        `/organizations/${organization.slug}/code-mappings/?projectId=${project.id}`,
+        `/organizations/${organization.slug}/code-mappings/`,
+        {query: {projectId: project.id}},
       ],
       [
         'integrations',
