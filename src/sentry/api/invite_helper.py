@@ -216,12 +216,11 @@ class ApiInviteHelper:
         return org_requires_2fa and not user_has_2fa
 
     def _needs_email_verification(self) -> bool:
-        # TODO: Replace with persistent switch in user settings
-        org_requires_email_verification = features.has(
-            "organizations:required-email-verification", self.om.organization
-        )
-
-        if not org_requires_email_verification:
+        organization = self.om.organization
+        if not (
+            features.has("organizations:required-email-verification", organization)
+            and organization.flags.require_email_verification
+        ):
             return False
 
         user = self.request.user
