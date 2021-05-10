@@ -357,18 +357,20 @@ def fetch_release_artifact(url, release, dist):
 
     release_file = fetch_release_file(RELEASE_ARCHIVE_FILENAME, release, dist)
 
-    if release_file is None:
-        # Fall back to maintain compatibility with old releases and versions of
-        # sentry-cli which upload files individually
-        return fetch_release_file(url, release, dist)
+    if release_file is not None:
+        zipobj = BytesIO(release_file.body)
+        try:
+            with zipfile.ZipFile(zipobj, mode="r") as archive:
+                body = archive.read(url)  # FIXME: use normalized name or something
+        except BaseException as exc:
+            logger.error("Failed to read %s from release file %s: %s", url, release.id, exc)
+        else:
+            # TODO: not sure if it is a good idea to pass the same headers here
+            return http.UrlResult(url, release_file.headers, body, 200, release_file.encoding)
 
-    # FIXME: error handling
-    zipobj = BytesIO(release_file.body)
-    with zipfile.ZipFile(zipobj, mode="r") as archive:
-        body = archive.read(url)  # FIXME: use normalized name or something
-
-    # TODO: not sure if it is a good idea to pass the same headers here
-    return http.UrlResult(url, release_file.headers, body, 200, release_file.encoding)
+    # Fall back to maintain compatibility with old releases and versions of
+    # sentry-cli which upload files individually
+    return fetch_release_file(url, release, dist)
 
 
 def fetch_file(url, project=None, release=None, dist=None, allow_scraping=True):
