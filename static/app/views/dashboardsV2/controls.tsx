@@ -67,6 +67,7 @@ class Controls extends React.Component<Props> {
             priority="danger"
             message={t('Are you sure you want to delete this dashboard?')}
             onConfirm={onDelete}
+            disabled={dashboards.length <= 1}
           >
             <Button data-test-id="dashboard-delete" priority="danger">
               {t('Delete')}
@@ -121,8 +122,9 @@ class Controls extends React.Component<Props> {
       currentOption = dropdownOptions[0];
     }
 
-    return (
-      <StyledButtonBar gap={1} key="controls">
+    const dashboardSelect =
+      organization.features.includes('dashboards-edit') &&
+      !organization.features.includes('dashboards-manage') ? (
         <DashboardSelect>
           <SelectControl
             key="select"
@@ -139,31 +141,27 @@ class Controls extends React.Component<Props> {
             }}
           />
         </DashboardSelect>
-        <Feature features={['organizations:dashboards-manage']}>
-          <Button
-            data-test-id="dashboard-manage"
-            to={{
-              pathname: `/organizations/${organization.slug}/dashboards/`,
-            }}
-          >
-            {t('Manage Dashboards')}
-          </Button>
-        </Feature>
-        <DashboardEditFeature>
-          {hasFeature => (
-            <Button
-              data-test-id="dashboard-create"
-              onClick={e => {
-                e.preventDefault();
-                onCreate();
-              }}
-              icon={<IconAdd size="xs" isCircled />}
-              disabled={!hasFeature}
-            >
-              {t('Create Dashboard')}
-            </Button>
-          )}
-        </DashboardEditFeature>
+      ) : null;
+
+    const createButton =
+      organization.features.includes('dashboards-edit') &&
+      !organization.features.includes('dashboards-manage') ? (
+        <Button
+          data-test-id="dashboard-create"
+          onClick={e => {
+            e.preventDefault();
+            onCreate();
+          }}
+          icon={<IconAdd size="xs" isCircled />}
+        >
+          {t('Create Dashboard')}
+        </Button>
+      ) : null;
+
+    return (
+      <StyledButtonBar gap={1} key="controls">
+        {dashboardSelect}
+        {createButton}
         <DashboardEditFeature>
           {hasFeature => (
             <Button
