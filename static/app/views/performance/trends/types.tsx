@@ -50,6 +50,10 @@ export enum TrendColumnField {
   FCP = 'measurements.fcp',
   FID = 'measurements.fid',
   CLS = 'measurements.cls',
+  SPANS_DB = 'spans.db',
+  SPANS_HTTP = 'spans.http',
+  SPANS_BROWSER = 'spans.browser',
+  SPANS_RESOURCE = 'spans.resource',
 }
 
 export type TrendStat = {
