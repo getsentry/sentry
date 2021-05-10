@@ -16,6 +16,7 @@ import {t} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
 import space from 'app/styles/space';
 import {Organization, SelectValue} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {decodeScalar} from 'app/utils/queryString';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
@@ -75,6 +76,11 @@ class ManageDashboards extends AsyncView<Props, State> {
 
   handleSearch(query: string) {
     const {location, router} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'dashboards_manage.search',
+      eventName: 'Dashboards Manager: Search',
+      organization_id: parseInt(this.props.organization.id, 10),
+    });
 
     router.push({
       pathname: location.pathname,
@@ -84,6 +90,12 @@ class ManageDashboards extends AsyncView<Props, State> {
 
   handleSortChange = (value: string) => {
     const {location} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'dashboards_manage.change_sort',
+      eventName: 'Dashboards Manager: Sort By Changed',
+      organization_id: parseInt(this.props.organization.id, 10),
+      sort: value,
+    });
     browserHistory.push({
       pathname: location.pathname,
       query: {
@@ -159,6 +171,11 @@ class ManageDashboards extends AsyncView<Props, State> {
 
   onCreate() {
     const {organization, location} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'dashboards_manage.create.start',
+      eventName: 'Dashboards Manager: Dashboard Create Started',
+      organization_id: parseInt(organization.id, 10),
+    });
     browserHistory.push({
       pathname: `/organizations/${organization.slug}/dashboards/new/`,
       query: location.query,

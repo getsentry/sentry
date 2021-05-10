@@ -24,6 +24,7 @@ import TimeSince from 'app/components/timeSince';
 import {t, tn} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import withApi from 'app/utils/withApi';
 import {DashboardListItem, DisplayType} from 'app/views/dashboardsV2/types';
 
@@ -70,6 +71,12 @@ function DashboardList({
   function handleDelete(dashboard: DashboardListItem) {
     deleteDashboard(api, organization.slug, dashboard.id)
       .then(() => {
+        trackAnalyticsEvent({
+          eventKey: 'dashboards_manage.delete',
+          eventName: 'Dashboards Manager: Dashboard Deleted',
+          organization_id: parseInt(organization.id, 10),
+          dashboard_id: parseInt(dashboard.id, 10),
+        });
         onDashboardsChange();
         addSuccessMessage(t('Dashboard deleted'));
       })
@@ -84,11 +91,26 @@ function DashboardList({
         const newDashboard = cloneDashboard(dashboardDetail);
         newDashboard.widgets.map(widget => (widget.id = undefined));
         createDashboard(api, organization.slug, newDashboard, true).then(() => {
+          trackAnalyticsEvent({
+            eventKey: 'dashboards_manage.duplicate',
+            eventName: 'Dashboards Manager: Dashboard Duplicated',
+            organization_id: parseInt(organization.id, 10),
+            dashboard_id: parseInt(dashboard.id, 10),
+          });
           onDashboardsChange();
           addSuccessMessage(t('Dashboard duplicated'));
         });
       })
       .catch(() => addErrorMessage(t('Error duplicating Dashboard')));
+  }
+
+  function handleClick(dashboard: DashboardListItem) {
+    trackAnalyticsEvent({
+      eventKey: 'dashboards_manage.change_sort',
+      eventName: 'Dashboards Manager: Sort By Changed',
+      organization_id: parseInt(organization.id, 10),
+      dashboard_id: parseInt(dashboard.id, 10),
+    });
   }
 
   function renderMiniDashboards() {
@@ -107,6 +129,7 @@ function DashboardList({
           dateStatus={
             dashboard.dateCreated ? <TimeSince date={dashboard.dateCreated} /> : undefined
           }
+          onEventClick={() => handleClick(dashboard)}
           createdBy={dashboard.createdBy}
           renderWidgets={() => (
             <WidgetGrid>
@@ -178,6 +201,12 @@ function DashboardList({
           if (offset <= 0 && isPrevious) {
             delete newQuery.cursor;
           }
+
+          trackAnalyticsEvent({
+            eventKey: 'dashboards_manage.paginate',
+            eventName: 'Dashboards Manager: Paginate',
+            organization_id: parseInt(organization.id, 10),
+          });
 
           browserHistory.push({
             pathname: path,
