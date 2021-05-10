@@ -1,3 +1,4 @@
+import abc
 import logging
 
 from django.db import IntegrityError
@@ -14,6 +15,7 @@ from sentry.models import (
     Organization,
     OrganizationMember,
     User,
+    UserEmail,
 )
 from sentry.tasks.base import instrumented_task
 from sentry.utils.email import MessageBuilder
@@ -57,47 +59,70 @@ def email_unlink_notifications(org_id, actor_id, provider_key):
         member.send_sso_unlink_email(actor, provider)
 
 
-@instrumented_task(
-    name="sentry.tasks.remove_2fa_non_compliant_members",
-    queue="auth",
-    default_retry_delay=60 * 5,
-    max_retries=5,
-)
-def remove_2fa_non_compliant_members(org_id, actor_id=None, actor_key_id=None, ip_address=None):
-    org = Organization.objects.get(id=org_id)
-    actor = User.objects.get(id=actor_id) if actor_id else None
-    actor_key = ApiKey.objects.get(id=actor_key_id) if actor_key_id else None
+class OrganizationComplianceTask(abc.ABC):
+    """Remove members who don't comply with a new org requirement."""
 
-    for member in OrganizationMember.objects.select_related("user").filter(
-        organization=org, user__isnull=False
-    ):
-        if not Authenticator.objects.user_has_2fa(member.user):
-            _remove_2fa_non_compliant_member(
-                member, org, actor=actor, actor_key=actor_key, ip_address=ip_address
-            )
+    log_label = ""
+
+    @abc.abstractmethod
+    def is_compliant(self, member: OrganizationMember) -> bool:
+        """Check whether a member complies with the new requirement."""
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def call_to_action(self, member: OrganizationMember):
+        """Prompt a member to comply with the new requirement."""
+        raise NotImplementedError()
+
+    def remove_non_compliant_members(self, org_id, actor_id, actor_key_id, ip_address):
+        org = Organization.objects.get(id=org_id)
+        actor = User.objects.get(id=actor_id) if actor_id else None
+        actor_key = ApiKey.objects.get(id=actor_key_id) if actor_key_id else None
+
+        def remove_member(member):
+            user = member.user
+            logging_data = {"organization_id": org.id, "user_id": user.id, "member_id": member.id}
+
+            try:
+                member.remove_user()
+                member.save()
+            except (AssertionError, IntegrityError):
+                logger.warning(
+                    f"Could not remove {self.log_label} noncompliant user from org",
+                    extra=logging_data,
+                )
+            else:
+                logger.info(
+                    f"{self.log_label} noncompliant user removed from org", extra=logging_data
+                )
+                AuditLogEntry.objects.create(
+                    actor=actor,
+                    actor_key=actor_key,
+                    ip_address=ip_address,
+                    event=AuditLogEntryEvent.MEMBER_PENDING,
+                    data=member.get_audit_log_data(),
+                    organization=org,
+                    target_object=org.id,
+                    target_user=user,
+                )
+
+                self.call_to_action(member)
+
+        for member in OrganizationMember.objects.select_related("user").filter(
+            organization=org, user__isnull=False
+        ):
+            if not self.is_compliant(org, member.user):
+                remove_member(member)
 
 
-def _remove_2fa_non_compliant_member(member, org, actor=None, actor_key=None, ip_address=None):
-    user = member.user
-    logging_data = {"organization_id": org.id, "user_id": user.id, "member_id": member.id}
+class TwoFactorComplianceTask(OrganizationComplianceTask):
+    log_label = "2FA"
 
-    try:
-        member.remove_user()
-        member.save()
-    except (AssertionError, IntegrityError):
-        logger.warning("Could not remove 2FA noncompliant user from org", extra=logging_data)
-    else:
-        logger.info("2FA noncompliant user removed from org", extra=logging_data)
-        AuditLogEntry.objects.create(
-            actor=actor,
-            actor_key=actor_key,
-            ip_address=ip_address,
-            event=AuditLogEntryEvent.MEMBER_PENDING,
-            data=member.get_audit_log_data(),
-            organization=org,
-            target_object=org.id,
-            target_user=user,
-        )
+    def is_compliant(self, member: OrganizationMember) -> bool:
+        return Authenticator.objects.user_has_2fa(member.user)
+
+    def call_to_action(self, member: OrganizationMember):
+        org = member.organization
 
         # send invite to setup 2fa
         email_context = {"url": member.get_invite_link(), "organization": org}
@@ -115,6 +140,35 @@ def _remove_2fa_non_compliant_member(member, org, actor=None, actor_key=None, ip
 
 
 @instrumented_task(
+    name="sentry.tasks.remove_2fa_non_compliant_members",
+    queue="auth",
+    default_retry_delay=60 * 5,
+    max_retries=5,
+)
+def remove_2fa_non_compliant_members(org_id, actor_id=None, actor_key_id=None, ip_address=None):
+    TwoFactorComplianceTask().remove_non_compliant_members(
+        org_id, actor_id, actor_key_id, ip_address
+    )
+
+
+class VerifiedEmailComplianceTask(OrganizationComplianceTask):
+    log_label = "verified email"
+
+    def is_compliant(self, member: OrganizationMember) -> bool:
+        return UserEmail.get_primary_email(member.user).is_verified
+
+    def call_to_action(self, member: OrganizationMember):
+        user = member.user
+        if isinstance(user, User):
+            email = UserEmail.get_primary_email(user).email
+
+            # TODO: Need to send different email with additional info
+            #  that the user has been removed from the org and needs
+            #  to redo the invite flow?
+            user.send_confirm_email_singular(email)
+
+
+@instrumented_task(
     name="sentry.tasks.remove_email_verification_non_compliant_members",
     queue="auth",
     default_retry_delay=60 * 5,
@@ -123,6 +177,6 @@ def _remove_2fa_non_compliant_member(member, org, actor=None, actor_key=None, ip
 def remove_email_verification_non_compliant_members(
     org_id, actor_id=None, actor_key_id=None, ip_address=None
 ):
-    # TODO: Custom email as in _remove_2fa_non_compliant_member,
-    #  or dispatch directly to User.send_confirm_email_singular?
-    pass
+    VerifiedEmailComplianceTask().remove_non_compliant_members(
+        org_id, actor_id, actor_key_id, ip_address
+    )
