@@ -24,7 +24,7 @@ class ExternalUserTest(APITestCase):
         }
 
     def test_basic_post(self):
-        with self.feature({"organizations:import-codeowners": True}):
+        with self.feature({"organizations:integrations-codeowners": True}):
             response = self.get_success_response(self.org_slug, status_code=201, **self.data)
         assert response.data == {
             **self.data,
@@ -39,31 +39,31 @@ class ExternalUserTest(APITestCase):
 
     def test_missing_provider(self):
         self.data.pop("provider")
-        with self.feature({"organizations:import-codeowners": True}):
+        with self.feature({"organizations:integrations-codeowners": True}):
             response = self.get_error_response(self.org_slug, status_code=400, **self.data)
         assert response.data == {"provider": ["This field is required."]}
 
     def test_missing_externalName(self):
         self.data.pop("externalName")
-        with self.feature({"organizations:import-codeowners": True}):
+        with self.feature({"organizations:integrations-codeowners": True}):
             response = self.get_error_response(self.org_slug, status_code=400, **self.data)
         assert response.data == {"externalName": ["This field is required."]}
 
     def test_missing_userId(self):
         self.data.pop("userId")
-        with self.feature({"organizations:import-codeowners": True}):
+        with self.feature({"organizations:integrations-codeowners": True}):
             response = self.get_error_response(self.org_slug, status_code=400, **self.data)
         assert response.data == {"userId": ["This field is required."]}
 
     def test_missing_integrationId(self):
         self.data.pop("integrationId")
-        with self.feature({"organizations:import-codeowners": True}):
+        with self.feature({"organizations:integrations-codeowners": True}):
             response = self.get_error_response(self.org_slug, status_code=400, **self.data)
         assert response.data == {"integrationId": ["This field is required."]}
 
     def test_invalid_provider(self):
         self.data.update(provider="unknown")
-        with self.feature({"organizations:import-codeowners": True}):
+        with self.feature({"organizations:integrations-codeowners": True}):
             response = self.get_error_response(self.org_slug, status_code=400, **self.data)
         assert response.data == {"provider": ['"unknown" is not a valid choice.']}
 
@@ -72,7 +72,7 @@ class ExternalUserTest(APITestCase):
             self.user, self.organization, self.integration, external_name=self.data["externalName"]
         )
 
-        with self.feature({"organizations:import-codeowners": True}):
+        with self.feature({"organizations:integrations-codeowners": True}):
             response = self.get_success_response(self.org_slug, status_code=200, **self.data)
         assert response.data == {
             **self.data,

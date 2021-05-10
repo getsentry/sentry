@@ -28,7 +28,7 @@ class ExternalTeamTest(APITestCase):
             "provider": "github",
             "integrationId": self.integration.id,
         }
-        with self.feature({"organizations:import-codeowners": True}):
+        with self.feature({"organizations:integrations-codeowners": True}):
             response = self.get_success_response(
                 self.organization.slug, self.team.slug, status_code=201, **data
             )
@@ -55,7 +55,7 @@ class ExternalTeamTest(APITestCase):
             "externalName": "@getsentry/ecosystem",
             "integrationId": self.integration.id,
         }
-        with self.feature({"organizations:import-codeowners": True}):
+        with self.feature({"organizations:integrations-codeowners": True}):
             response = self.get_error_response(
                 self.organization.slug, self.team.slug, status_code=400, **data
             )
@@ -66,7 +66,7 @@ class ExternalTeamTest(APITestCase):
             "provider": "github",
             "integrationId": self.integration.id,
         }
-        with self.feature({"organizations:import-codeowners": True}):
+        with self.feature({"organizations:integrations-codeowners": True}):
             response = self.get_error_response(
                 self.organization.slug, self.team.slug, status_code=400, **data
             )
@@ -77,7 +77,7 @@ class ExternalTeamTest(APITestCase):
             "externalName": "@getsentry/ecosystem",
             "provider": "github",
         }
-        with self.feature({"organizations:import-codeowners": True}):
+        with self.feature({"organizations:integrations-codeowners": True}):
             response = self.get_error_response(
                 self.organization.slug, self.team.slug, status_code=400, **data
             )
@@ -89,7 +89,7 @@ class ExternalTeamTest(APITestCase):
             "provider": "git",
             "integrationId": self.integration.id,
         }
-        with self.feature({"organizations:import-codeowners": True}):
+        with self.feature({"organizations:integrations-codeowners": True}):
             response = self.get_error_response(
                 self.organization.slug, self.team.slug, status_code=400, **data
             )
@@ -105,7 +105,7 @@ class ExternalTeamTest(APITestCase):
             "provider": get_provider_string(self.external_team.provider),
             "integrationId": self.integration.id,
         }
-        with self.feature({"organizations:import-codeowners": True}):
+        with self.feature({"organizations:integrations-codeowners": True}):
             response = self.get_success_response(
                 self.organization.slug, self.team.slug, status_code=200, **data
             )
@@ -129,7 +129,7 @@ class ExternalTeamTest(APITestCase):
             "provider": "github",
             "integrationId": self.integration.id,
         }
-        with self.feature({"organizations:import-codeowners": True}):
+        with self.feature({"organizations:integrations-codeowners": True}):
             response = self.get_error_response(
                 self.organization.slug, self.team.slug, status_code=400, **data
             )
@@ -144,7 +144,7 @@ class ExternalTeamTest(APITestCase):
             "provider": "slack",
             "integrationId": self.slack_integration.id,
         }
-        with self.feature({"organizations:import-codeowners": True}):
+        with self.feature({"organizations:integrations-codeowners": True}):
             response = self.get_success_response(self.organization.slug, self.team.slug, **data)
         assert response.data == {
             **data,
@@ -161,5 +161,5 @@ class ExternalTeamTest(APITestCase):
             "provider": "slack",
             "integrationId": self.slack_integration.id,
         }
-        with self.feature({"organizations:import-codeowners": True}):
+        with self.feature({"organizations:integrations-codeowners": True}):
             self.get_error_response(self.organization.slug, self.team.slug, **data)
