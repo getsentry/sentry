@@ -75,7 +75,7 @@ default_manager.add("organizations:filters-and-sampling", OrganizationFeature, T
 default_manager.add("organizations:global-views", OrganizationFeature)  # NOQA
 default_manager.add("organizations:grouping-tree-ui", OrganizationFeature, True)  # NOQA
 default_manager.add("organizations:images-loaded-v2", OrganizationFeature)  # NOQA
-default_manager.add("organizations:import-codeowners", OrganizationFeature, True)  # NOQA
+default_manager.add("organizations:integrations-codeowners", OrganizationFeature, True)  # NOQA
 default_manager.add("organizations:inbox", OrganizationFeature, True)  # NOQA
 default_manager.add("organizations:incidents", OrganizationFeature)  # NOQA
 default_manager.add("organizations:integrations-alert-rule", OrganizationFeature)  # NOQA
@@ -109,7 +109,6 @@ default_manager.add("organizations:relay", OrganizationFeature)  # NOQA
 default_manager.add("organizations:reprocessing-v2", OrganizationFeature)  # NOQA
 default_manager.add("organizations:rule-page", OrganizationFeature)  # NOQA
 default_manager.add("organizations:set-grouping-config", OrganizationFeature)  # NOQA
-default_manager.add("organizations:slack-migration", OrganizationFeature)  # NOQA
 default_manager.add("organizations:sso-basic", OrganizationFeature)  # NOQA
 default_manager.add("organizations:sso-migration", OrganizationFeature)  # NOQA
 default_manager.add("organizations:sso-rippling", OrganizationFeature)  # NOQA

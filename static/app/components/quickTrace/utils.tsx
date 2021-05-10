@@ -136,7 +136,7 @@ export function generateTraceTarget(
 
   const dateSelection = getParams(getTraceTimeRangeFromEvent(event));
 
-  if (organization.features.includes('trace-view-summary')) {
+  if (organization.features.includes('performance-view')) {
     // TODO(txiao): Should this persist the current query when going to trace view?
     return getTraceDetailsUrl(organization, traceId, dateSelection, {});
   }

@@ -927,7 +927,7 @@ SENTRY_FEATURES = {
     # Enable experimental performance improvements.
     "organizations:enterprise-perf": False,
     # Enable the API to importing CODEOWNERS for a project
-    "organizations:import-codeowners": False,
+    "organizations:integrations-codeowners": False,
     # Special feature flag primarily used on the sentry.io SAAS product for
     # easily enabling features while in early development.
     "organizations:internal-catchall": False,
@@ -979,13 +979,13 @@ SENTRY_FEATURES = {
     # Enable inbox support in the issue stream
     "organizations:inbox": True,
     # Enable the new alert details ux design
-    "organizations:alert-details-redesign": False,
+    "organizations:alert-details-redesign": True,
     # Enable the new images loaded design and features
     "organizations:images-loaded-v2": True,
     # Enable teams to have ownership of alert rules
     "organizations:team-alerts-ownership": False,
     # Enable the new alert creation wizard
-    "organizations:alert-wizard": False,
+    "organizations:alert-wizard": True,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
