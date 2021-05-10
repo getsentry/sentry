@@ -21,6 +21,7 @@ from sentry.search.utils import (
 )
 from sentry.utils.compat import filter, map
 from sentry.utils.snuba import is_duration_measurement, is_measurement, is_span_op_breakdown
+from sentry.utils.validators import is_event_id
 
 WILDCARD_CHARS = re.compile(r"[\*]")
 NEGATION_MAP = {
@@ -250,6 +251,11 @@ class SearchValue(namedtuple("SearchValue", "raw_value")):
         if not isinstance(self.raw_value, str):
             return False
         return bool(WILDCARD_CHARS.search(self.raw_value))
+
+    def is_event_id(self):
+        if not isinstance(self.raw_value, str):
+            return False
+        return is_event_id(self.raw_value)
 
 
 class SearchVisitor(NodeVisitor):
