@@ -25,7 +25,10 @@ describe('IntegrationListDirectory', function () {
     beforeEach(() => {
       mockResponse([
         [`/organizations/${org.slug}/config/integrations/`, TestStubs.ProviderList()],
-        [`/organizations/${org.slug}/integrations/`, TestStubs.IntegrationConfig()],
+        [
+          `/organizations/${org.slug}/integrations/`,
+          [TestStubs.BitbucketIntegrationConfig()],
+        ],
         [`/organizations/${org.slug}/sentry-apps/`, TestStubs.OrgOwnedApps()],
         ['/sentry-apps/', TestStubs.PublishedApps()],
         [
