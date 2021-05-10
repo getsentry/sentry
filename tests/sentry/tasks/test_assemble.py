@@ -200,11 +200,14 @@ class AssembleArtifactsTest(BaseAssembleTest):
         assert details is None
 
         release_file = ReleaseFile.objects.get(
-            organization=self.organization, release=self.release, name="~/index.js", dist=None
+            organization=self.organization,
+            release=self.release,
+            name="release-artifacts.zip",
+            dist=None,
         )
 
         assert release_file
-        assert release_file.file.headers == {"Sourcemap": "index.js.map"}
+        assert release_file.file.headers == {}
 
     def test_artifacts_invalid_org(self):
         bundle_file = self.create_artifact_bundle(org="invalid")

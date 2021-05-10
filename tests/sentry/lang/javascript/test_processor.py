@@ -480,13 +480,10 @@ class FetchFileTest(TestCase):
         compressed = BytesIO()
         with zipfile.ZipFile(compressed, mode="w") as zip_file:
             zip_file.writestr("/example.js", b"foo")
-        mock_fetch_release_file.return_value = http.UrlResult(
-            "release-archive.zip",
-            {"content-type": "application/json"},
-            compressed.getvalue(),
-            200,
-            None,
-        )
+        mock_fetch_release_file.side_effect = [
+            None,  # Trying to fetch release archive
+            http.UrlResult("/example.js", {"content-type": "application/json"}, b"foo", 200, None),
+        ]
 
         release = Release.objects.create(version="1", organization_id=self.project.organization_id)
         release.add_project(self.project)
