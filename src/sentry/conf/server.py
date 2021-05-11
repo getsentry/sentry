@@ -1022,6 +1022,8 @@ SENTRY_FEATURES = {
     "projects:servicehooks": False,
     # Use Kafka (instead of Celery) for ingestion pipeline.
     "projects:kafka-ingest": False,
+    # Enable stackwalking comparison
+    "symbolicator:compare-stackwalking-methods": False,
     # Don't add feature defaults down here! Please add them in their associated
     # group sorted alphabetically.
 }

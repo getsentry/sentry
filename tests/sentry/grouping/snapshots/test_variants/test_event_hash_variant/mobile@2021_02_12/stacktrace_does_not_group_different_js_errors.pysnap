@@ -1,5 +1,5 @@
 ---
-created: '2021-04-30T12:13:35.679883Z'
+created: '2021-05-05T18:04:39.169507Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -7,6 +7,15 @@ app-depth-1:
   hash: null
   component:
     app-depth-1
+      stacktrace
+        frame
+          filename (ignored because frame points to a URL)
+            "index.js"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: null
+  component:
+    app-depth-max
       stacktrace
         frame
           filename (ignored because frame points to a URL)
