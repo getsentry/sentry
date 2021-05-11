@@ -1,0 +1,298 @@
+{
+  "platform": "native",
+  "exception": {
+    "values": [
+      {
+        "type": "InvalidJsonError",
+        "value": "invalid value: string \"($string || $number || $array) && !(debug_meta.** || $frame.filename || $frame.abs_path || $logentry.formatted || $error.value) && !2faOtpError && !\\'FullStory Session\\'\", expected a selector at line 1 column 227",
+        "module": "sentry_relay",
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "safe_execute",
+              "module": "sentry.utils.safe",
+              "filename": "sentry/utils/safe.py",
+              "abs_path": "src/sentry/src/sentry/utils/safe.py",
+              "lineno": 21,
+              "platform": "python",
+              "pre_context": [
+                "    _with_transaction = kwargs.pop(\"_with_transaction\", True)",
+                "    expected_errors = kwargs.pop(\"expected_errors\", None)",
+                "    try:",
+                "        if _with_transaction:",
+                "            with transaction.atomic():"
+              ],
+              "context_line": "                result = func(*args, **kwargs)",
+              "post_context": [
+                "        else:",
+                "            result = func(*args, **kwargs)",
+                "    except Exception as e:",
+                "        if hasattr(func, \"im_class\"):",
+                "            cls = func.im_class"
+              ],
+              "in_app": true,
+              "vars": {
+                "_with_transaction": "True",
+                "args": [],
+                "cls": "<class 'function'>",
+                "cls_name": "'function'",
+                "e": "InvalidJsonError()",
+                "expected_errors": "None",
+                "func": "<function scrub_data at 0x7fb97f861bf8>",
+                "func_name": "'scrub_data'",
+                "kwargs": {
+                  "event": {
+                    "environment": "'production'",
+                    "event_id": "'400aab4e08cf471c80239215a5bc0c9f'",
+                    "level": "'error'",
+                    "logger": "''",
+                    "platform": "'javascript'",
+                    "received": "1620309476.423912",
+                    "release": "'d602a1638d85cbc7dd2813cc4e3fef83f6164a77'",
+                    "timestamp": "1620309476.354",
+                    "type": "'error'",
+                    "version": "'7'"
+                  },
+                  "project": "<Project at 0x7fb95bef5668: id=1314283, team_id=None, name='Front end', slug='front-end'>"
+                },
+                "logger": "<Logger sentry.safe.function (INFO)>"
+              }
+            },
+            {
+              "function": "scrub_data",
+              "module": "sentry.datascrubbing",
+              "filename": "sentry/datascrubbing.py",
+              "abs_path": "src/sentry/src/sentry/datascrubbing.py",
+              "lineno": 96,
+              "platform": "python",
+              "pre_context": [
+                "            metrics.timing(\"datascrubbing.config.rules_per_selector.size\", len(rules))",
+                "            total_rules += len(rules)",
+                "",
+                "        metrics.timing(\"datascrubbing.config.rules.size\", total_rules)",
+                ""
+              ],
+              "context_line": "        event = sentry_relay.pii_strip_event(config, event)",
+              "post_context": [
+                "",
+                "    return event",
+                "",
+                "",
+                "def _merge_pii_configs(prefixes_and_configs):"
+              ],
+              "in_app": true,
+              "vars": {
+                "config": {
+                  "applications": {
+                    "($string || $number || $array) && !(debug_meta.** || $frame.filename || $frame.abs_path || $logentry.formatted || $error.value) && !2faOtpError && !'FullStory Session'": [
+                      "'@common:filter'"
+                    ]
+                  },
+                  "rules": {},
+                  "vars": {
+                    "hashKey": "None"
+                  }
+                },
+                "event": {
+                  "environment": "'production'",
+                  "event_id": "'400aab4e08cf471c80239215a5bc0c9f'",
+                  "level": "'error'",
+                  "logger": "''",
+                  "platform": "'javascript'",
+                  "received": "1620309476.423912",
+                  "release": "'d602a1638d85cbc7dd2813cc4e3fef83f6164a77'",
+                  "timestamp": "1620309476.354",
+                  "type": "'error'",
+                  "version": "'7'"
+                },
+                "project": "<Project at 0x7fb95bef5668: id=1314283, team_id=None, name='Front end', slug='front-end'>",
+                "rules": ["'@common:filter'"],
+                "selector": "\"($string || $number || $array) && !(debug_meta.** || $frame.filename || $frame.abs_path || $logentry.formatted || $error.value) && !2faOtpError && !'FullStory Session'\"",
+                "total_rules": "1"
+              }
+            },
+            {
+              "function": "pii_strip_event",
+              "module": "sentry_relay.processing",
+              "filename": "sentry_relay/processing.py",
+              "abs_path": "/usr/local/lib/python3.6/site-packages/sentry_relay/processing.py",
+              "lineno": 190,
+              "platform": "python",
+              "pre_context": [
+                "    \"\"\"",
+                "    Scrub an event using new PII stripping config.",
+                "    \"\"\"",
+                "    raw_config = encode_str(json.dumps(config))",
+                "    raw_event = encode_str(json.dumps(event))"
+              ],
+              "context_line": "    raw_rv = rustcall(lib.relay_pii_strip_event, raw_config, raw_event)",
+              "post_context": [
+                "    return json.loads(decode_str(raw_rv, free=True))",
+                "",
+                "",
+                "def pii_selector_suggestions_from_event(event):",
+                "    \"\"\""
+              ],
+              "in_app": false,
+              "vars": {
+                "config": {
+                  "applications": {
+                    "($string || $number || $array) && !(debug_meta.** || $frame.filename || $frame.abs_path || $logentry.formatted || $error.value) && !2faOtpError && !'FullStory Session'": [
+                      "'@common:filter'"
+                    ]
+                  },
+                  "rules": {},
+                  "vars": {
+                    "hashKey": "None"
+                  }
+                },
+                "event": {
+                  "environment": "'production'",
+                  "event_id": "'400aab4e08cf471c80239215a5bc0c9f'",
+                  "level": "'error'",
+                  "logger": "''",
+                  "platform": "'javascript'",
+                  "received": "1620309476.423912",
+                  "release": "'d602a1638d85cbc7dd2813cc4e3fef83f6164a77'",
+                  "timestamp": "1620309476.354",
+                  "type": "'error'",
+                  "version": "'7'"
+                },
+                "raw_config": "<cdata 'struct RelayStr *' owning 24 bytes>",
+                "raw_event": "<cdata 'struct RelayStr *' owning 24 bytes>"
+              },
+              "data": {
+                "orig_in_app": -1
+              }
+            },
+            {
+              "function": "rustcall",
+              "module": "sentry_relay.utils",
+              "filename": "sentry_relay/utils.py",
+              "abs_path": "/usr/local/lib/python3.6/site-packages/sentry_relay/utils.py",
+              "lineno": 35,
+              "platform": "python",
+              "pre_context": [
+                "    cls = exceptions_by_code.get(err, RelayError)",
+                "    exc = cls(decode_str(msg, free=True))",
+                "    backtrace = decode_str(lib.relay_err_get_backtrace(), free=True)",
+                "    if backtrace:",
+                "        exc.rust_info = backtrace"
+              ],
+              "context_line": "    raise exc",
+              "post_context": [
+                "",
+                "",
+                "class RustObject(with_metaclass(_NoDict)):",
+                "    __slots__ = [\"_objptr\", \"_shared\"]",
+                "    __dealloc_func__ = None"
+              ],
+              "in_app": false,
+              "vars": {
+                "args": [
+                  "<cdata 'struct RelayStr *' owning 24 bytes>",
+                  "<cdata 'struct RelayStr *' owning 24 bytes>"
+                ],
+                "backtrace": "'stacktrace:    0: failure::backtrace::internal::InternalBacktrace::new\\n             at /root/.cargo/registry/src/github.com-1ecc6299db9ec823/failure-0.1.8/src/backtrace/internal.rs:46:44\\n   1: failure::backtrace::Backtrace::new\\n             at /root/.cargo/registry/src/github.com-1ecc6299db9ec823/failure-0.1.8/src/backtrace/mod.rs:121:35\\n      <failure::backtrace::Backtrace as core::default::Default>::default\\n             at /root/.cargo/registry/src/github.com-1ecc6299db9ec823/failure-0.1.8/src/ba...",
+                "cls": "<class 'sentry_relay.InvalidJsonError'>",
+                "err": "101",
+                "exc": "InvalidJsonError()",
+                "func": "<cdata 'struct RelayStr(*)(struct RelayStr *, struct RelayStr *)' 0x7fb993238750>",
+                "msg": "<cdata 'struct RelayStr' owning 24 bytes>",
+                "rv": "<cdata 'struct RelayStr' owning 24 bytes>"
+              },
+              "data": {
+                "orig_in_app": -1
+              }
+            },
+            {
+              "function": "<unknown>",
+              "filename": "unix64.S",
+              "abs_path": "/var/jenkins_home/workspace/external-projects/cffi-wheel-builder@5/libffi-3.2.1/x86_64-unknown-linux-gnu/../src/x86/unix64.S",
+              "lineno": 76,
+              "in_app": true
+            },
+            {
+              "function": "relay_pii_strip_event",
+              "filename": "processing.rs:143",
+              "abs_path": "/work/relay-cabi/src/processing.rs:143",
+              "lineno": 1,
+              "in_app": true
+            },
+            {
+              "function": "relay_ffi::__internal::catch_errors",
+              "package": "relay_ffi",
+              "filename": "lib.rs:140",
+              "abs_path": "/work/relay-ffi/src/lib.rs:140",
+              "lineno": 15,
+              "in_app": true
+            },
+            {
+              "function": "std::panic::catch_unwind",
+              "package": "std",
+              "filename": "panic.rs:431",
+              "abs_path": "/rustc/2fd73fabe469357a12c2c974c140f67e7cdd76d0/library/std/src/panic.rs:431",
+              "lineno": 14,
+              "in_app": false
+            },
+            {
+              "function": "std::panicking::try",
+              "package": "std",
+              "filename": "panicking.rs:343",
+              "abs_path": "/rustc/2fd73fabe469357a12c2c974c140f67e7cdd76d0/library/std/src/panicking.rs:343",
+              "lineno": 19,
+              "in_app": false
+            },
+            {
+              "function": "std::panicking::try::do_call",
+              "package": "std",
+              "filename": "panicking.rs:379",
+              "abs_path": "/rustc/2fd73fabe469357a12c2c974c140f67e7cdd76d0/library/std/src/panicking.rs:379",
+              "lineno": 40,
+              "in_app": false
+            },
+            {
+              "function": "relay_cabi::processing::relay_pii_strip_event::{{closure}}",
+              "package": "relay_cabi",
+              "filename": "processing.rs:148",
+              "abs_path": "/work/relay-cabi/src/processing.rs:148",
+              "lineno": 71,
+              "in_app": true
+            },
+            {
+              "function": "failure::error::Error::from",
+              "raw_function": "<failure::error::Error as core::convert::From<F>>::from",
+              "package": "failure",
+              "filename": "mod.rs:36",
+              "abs_path": "/root/.cargo/registry/src/github.com-1ecc6299db9ec823/failure-0.1.8/src/error/mod.rs:36",
+              "lineno": 18,
+              "in_app": false
+            },
+            {
+              "function": "failure::error::error_impl::ErrorImpl::from",
+              "raw_function": "<failure::error::error_impl::ErrorImpl as core::convert::From<F>>::from",
+              "package": "failure",
+              "filename": "error_impl.rs:19",
+              "abs_path": "/root/.cargo/registry/src/github.com-1ecc6299db9ec823/failure-0.1.8/src/error/error_impl.rs:19",
+              "lineno": 17,
+              "in_app": false
+            },
+            {
+              "function": "failure::backtrace::Backtrace::default",
+              "raw_function": "<failure::backtrace::Backtrace as core::default::Default>::default",
+              "package": "failure",
+              "filename": "mod.rs:140",
+              "abs_path": "/root/.cargo/registry/src/github.com-1ecc6299db9ec823/failure-0.1.8/src/backtrace/mod.rs:140",
+              "lineno": 13,
+              "in_app": false
+            }
+          ]
+        },
+        "mechanism": {
+          "type": "logging",
+          "handled": true
+        }
+      }
+    ]
+  }
+}
