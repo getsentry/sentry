@@ -102,6 +102,12 @@ Object.entries(SentryApp).forEach(([key, value]) =>
 );
 
 // Make globals available on the window object
-Object.entries(globals).forEach(([key, value]) => wrapObject(window, key, value));
+Object.entries(globals).forEach(([key, value]) => {
+  if (key === 'SentryApp') {
+    return;
+  }
+
+  wrapObject(window, key, value);
+});
 
 export default globals;
