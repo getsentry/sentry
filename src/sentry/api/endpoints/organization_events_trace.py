@@ -295,8 +295,7 @@ def query_trace_data(
 class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):  # type: ignore
     def has_feature(self, organization: Organization, request: HttpRequest) -> bool:
         return bool(
-            features.has("organizations:trace-view-quick", organization, actor=request.user)
-            or features.has("organizations:trace-view-summary", organization, actor=request.user)
+            features.has("organizations:performance-view", organization, actor=request.user)
         )
 
     @staticmethod

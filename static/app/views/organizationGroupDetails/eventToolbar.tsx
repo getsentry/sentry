@@ -18,8 +18,7 @@ import {Event} from 'app/types/event';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import getDynamicText from 'app/utils/getDynamicText';
 
-import DistributedTracingPrompt from './eventQuickTrace';
-import QuickTrace from './issueQuickTrace';
+import QuickTrace from './quickTrace';
 
 const formatDateDelta = (reference: moment.Moment, observed: moment.Moment) => {
   const duration = moment.duration(Math.abs(+observed - +reference));
@@ -98,8 +97,8 @@ class GroupEventToolbar extends Component<Props> {
   render() {
     const evt = this.props.event;
 
-    const {organization, location} = this.props;
-    const groupId = this.props.group.id;
+    const {group, organization, location} = this.props;
+    const groupId = group.id;
 
     const baseEventsPath = `/organizations/${organization.slug}/issues/${groupId}/events/`;
 
@@ -111,11 +110,6 @@ class GroupEventToolbar extends Component<Props> {
     const isOverLatencyThreshold =
       evt.dateReceived &&
       Math.abs(+moment(evt.dateReceived) - +moment(evt.dateCreated)) > latencyThreshold;
-
-    const hasQuickTraceView =
-      organization.features.includes('trace-view-summary') ||
-      organization.features.includes('trace-view-quick');
-    const hasTraceContext = evt.contexts?.trace?.trace_id;
 
     return (
       <Wrapper>
@@ -145,16 +139,12 @@ class GroupEventToolbar extends Component<Props> {
           />
           {isOverLatencyThreshold && <StyledIconWarning color="yellow300" />}
         </Tooltip>
-        {hasQuickTraceView && !hasTraceContext && (
-          <DistributedTracingPrompt
-            event={evt}
-            group={this.props.group}
-            organization={organization}
-          />
-        )}
-        {hasQuickTraceView && hasTraceContext && (
-          <QuickTrace organization={organization} event={evt} location={location} />
-        )}
+        <QuickTrace
+          event={evt}
+          group={group}
+          organization={organization}
+          location={location}
+        />
       </Wrapper>
     );
   }

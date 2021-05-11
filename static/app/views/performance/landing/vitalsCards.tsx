@@ -329,7 +329,7 @@ export function VitalBar(props: VitalBarProps) {
       {showBar && <ColorBar colorStops={colorStops} />}
       <BarDetail>
         {showDurationDetail && p75 && (
-          <div>
+          <div data-test-id="vital-bar-p75">
             {t('The p75 for all transactions is ')}
             <strong>{p75}</strong>
           </div>

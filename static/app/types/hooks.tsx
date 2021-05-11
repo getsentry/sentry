@@ -91,6 +91,7 @@ export type AnalyticsHooks = {
  */
 export type FeatureDisabledHooks = {
   'feature-disabled:alerts-page': FeatureDisabledHook;
+  'feature-disabled:configure-distributed-tracing': FeatureDisabledHook;
   'feature-disabled:custom-inbound-filters': FeatureDisabledHook;
   'feature-disabled:custom-symbol-sources': FeatureDisabledHook;
   'feature-disabled:data-forwarding': FeatureDisabledHook;
@@ -108,6 +109,7 @@ export type FeatureDisabledHooks = {
   'feature-disabled:incidents-sidebar-item': FeatureDisabledHook;
   'feature-disabled:performance-new-project': FeatureDisabledHook;
   'feature-disabled:performance-page': FeatureDisabledHook;
+  'feature-disabled:performance-quick-trace': FeatureDisabledHook;
   'feature-disabled:performance-sidebar-item': FeatureDisabledHook;
   'feature-disabled:project-performance-score-card': FeatureDisabledHook;
   'feature-disabled:project-selector-checkbox': FeatureDisabledHook;

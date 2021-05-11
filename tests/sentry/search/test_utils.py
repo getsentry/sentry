@@ -18,6 +18,7 @@ from sentry.search.utils import (
     convert_user_tag_to_query,
     get_latest_release,
     get_numeric_field_value,
+    parse_duration,
     parse_query,
     tokenize_query,
 )
@@ -45,6 +46,61 @@ def test_get_numeric_field_value():
         "foo_upper": -3.5,
         "foo_upper_inclusive": True,
     }
+
+
+class TestParseDuration(TestCase):
+    def test_ms(self):
+        assert parse_duration(123, "ms") == 123
+
+    def test_sec(self):
+        assert parse_duration(456, "s") == 456000
+
+    def test_minutes(self):
+        assert parse_duration(789, "min") == 789 * 60 * 1000
+        assert parse_duration(789, "m") == 789 * 60 * 1000
+
+    def test_hours(self):
+        assert parse_duration(234, "hr") == 234 * 60 * 60 * 1000
+        assert parse_duration(234, "h") == 234 * 60 * 60 * 1000
+
+    def test_days(self):
+        assert parse_duration(567, "day") == 567 * 24 * 60 * 60 * 1000
+        assert parse_duration(567, "d") == 567 * 24 * 60 * 60 * 1000
+
+    def test_weeks(self):
+        assert parse_duration(890, "wk") == 890 * 7 * 24 * 60 * 60 * 1000
+        assert parse_duration(890, "w") == 890 * 7 * 24 * 60 * 60 * 1000
+
+    def test_errors(self):
+        with self.assertRaises(InvalidQuery):
+            parse_duration("test", "ms")
+
+        with self.assertRaises(InvalidQuery):
+            parse_duration(123, "test")
+
+    def test_large_durations(self):
+        max_duration = 999999999 * 24 * 60 * 60 * 1000
+        assert parse_duration(999999999, "d") == max_duration
+        assert parse_duration(999999999 * 24, "h") == max_duration
+        assert parse_duration(999999999 * 24 * 60, "m") == max_duration
+        assert parse_duration(999999999 * 24 * 60 * 60, "s") == max_duration
+        assert parse_duration(999999999 * 24 * 60 * 60 * 1000, "ms") == max_duration
+
+    def test_overflow_durations(self):
+        with self.assertRaises(InvalidQuery):
+            assert parse_duration(999999999 + 1, "d")
+
+        with self.assertRaises(InvalidQuery):
+            assert parse_duration((999999999 + 1) * 24, "h")
+
+        with self.assertRaises(InvalidQuery):
+            assert parse_duration((999999999 + 1) * 24 * 60 + 1, "m")
+
+        with self.assertRaises(InvalidQuery):
+            assert parse_duration((999999999 + 1) * 24 * 60 * 60 + 1, "s")
+
+        with self.assertRaises(InvalidQuery):
+            assert parse_duration((999999999 + 1) * 24 * 60 * 60 * 1000 + 1, "ms")
 
 
 def test_tokenize_query_only_keyed_fields():
