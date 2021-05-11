@@ -12,9 +12,15 @@ type DefaultProps = {
   disabled: boolean;
 };
 
+type LinkProps = Omit<React.ComponentProps<typeof Link>, 'to'>;
+
 type Props = WithRouterProps &
   Partial<DefaultProps> &
-  React.ComponentProps<typeof Link> & {
+  LinkProps & {
+    /**
+     * Link target. We don't want to expose the ToLocationFunction on this component.
+     */
+    to: LocationDescriptor;
     query?: string;
     // If supplied by parent component, decides whether link element
     // is "active" or not ... overriding default behavior of strict
@@ -32,14 +38,10 @@ class ListLink extends React.Component<Props> {
   };
 
   isActive() {
-    const {isActive, to, query, index, location, router} = this.props;
+    const {isActive, to, query, index, router} = this.props;
     const queryData = query ? qs.parse(query) : undefined;
     const target: LocationDescriptor =
-      typeof to === 'string'
-        ? {pathname: to, query: queryData}
-        : typeof to === 'function'
-        ? to(location)
-        : to;
+      typeof to === 'string' ? {pathname: to, query: queryData} : to;
 
     if (typeof isActive === 'function') {
       return isActive(target, index);
