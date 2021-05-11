@@ -3,11 +3,13 @@ import styled from '@emotion/styled';
 import isFinite from 'lodash/isFinite';
 
 import {SectionHeading} from 'app/components/charts/styles';
+import {ActiveOperationFilter} from 'app/components/events/interfaces/spans/filter';
 import {
   RawSpanType,
   SpanEntry,
   TraceContextType,
 } from 'app/components/events/interfaces/spans/types';
+import {getSpanOperation} from 'app/components/events/interfaces/spans/utils';
 import {pickBarColour} from 'app/components/performance/waterfall/utils';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {t} from 'app/locale';
@@ -46,6 +48,7 @@ type DefaultProps = {
 };
 
 type Props = DefaultProps & {
+  operationNameFilters: ActiveOperationFilter;
   event: Event;
 };
 
@@ -66,7 +69,7 @@ class OpsBreakdown extends Component<Props> {
   }
 
   generateStats(): OpBreakdownType {
-    const {topN} = this.props;
+    const {topN, operationNameFilters} = this.props;
     const event = this.getTransactionEvent();
 
     if (!event) {
@@ -99,6 +102,19 @@ class OpsBreakdown extends Component<Props> {
               data: {},
             },
           ];
+
+    // Filter spans by operation name
+    if (operationNameFilters.type === 'active_filter') {
+      spans = spans.filter(span => {
+        const operationName = getSpanOperation(span);
+
+        const shouldFilterOut =
+          typeof operationName === 'string' &&
+          !operationNameFilters.operationNames.has(operationName);
+
+        return !shouldFilterOut;
+      });
+    }
 
     const operationNameIntervals = spans.reduce(
       (intervals: Partial<OperationNameIntervals>, span: RawSpanType) => {
