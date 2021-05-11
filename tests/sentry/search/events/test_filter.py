@@ -1245,6 +1245,16 @@ class GetSnubaQueryArgsTest(TestCase):
             ]
         ]
 
+    def test_shorthand_overflow(self):
+        with self.assertRaises(InvalidSearchQuery):
+            get_filter(f"transaction.duration:<{'9'*13}m")
+
+        with self.assertRaises(InvalidSearchQuery):
+            get_filter(f"transaction.duration:<{'9'*11}h")
+
+        with self.assertRaises(InvalidSearchQuery):
+            get_filter(f"transaction.duration:<{'9'*10}d")
+
 
 def with_type(type, argument):
     argument.get_type = lambda *_: type
