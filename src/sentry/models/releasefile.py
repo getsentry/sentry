@@ -1,6 +1,7 @@
 import errno
 import os
 import zipfile
+from tempfile import TemporaryDirectory
 from typing import IO
 from urllib.parse import urlsplit, urlunsplit
 
@@ -12,6 +13,7 @@ from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Mo
 from sentry.models import clear_cached_files
 from sentry.utils import json, metrics
 from sentry.utils.hashlib import sha1_text
+from sentry.utils.zip import safe_extract_zip
 
 
 class ReleaseFile(Model):
@@ -127,16 +129,15 @@ class ReleaseArchive:
 
     def __init__(self, fileobj: IO):
         self._fileobj = fileobj
-
-    def __enter__(self):
         self._zip_file = zipfile.ZipFile(self._fileobj)
         self.manifest = self._read_manifest()
         files = self.manifest.get("files", {})
         self._filenames_by_url = {entry["url"]: path for path, entry in files.items()}
 
+    def __enter__(self):
         return self
 
-    def __exit__(self, *args, **kwargs):
+    def __exit__(self, exc, value, tb):
         self._zip_file.close()
         self._fileobj.close()
 
@@ -146,9 +147,19 @@ class ReleaseArchive:
     def _read_manifest(self) -> dict:
         manifest_bytes = self._read("manifest.json")
         # TODO: what is encoding of manifest_bytes?
-        return json.loads(manifest_bytes.decode())
+        return json.loads(manifest_bytes.decode("utf-8"))
 
     def get_file_by_url(self, url: str) -> bytes:
         """ May raise ``KeyError`` """
         filename = self._filenames_by_url[url]
         return self._read(filename)
+
+    def extract(self) -> TemporaryDirectory:
+        """Extract contents to a temporary directory.
+
+        The caller is responsible for cleanup of the temporary files.
+        """
+        temp_dir = TemporaryDirectory()
+        safe_extract_zip(self._fileobj, temp_dir.name, strip_toplevel=False)
+
+        return temp_dir

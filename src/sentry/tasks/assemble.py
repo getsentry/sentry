@@ -1,8 +1,10 @@
 import hashlib
 import logging
+from os import path
 
 from django.db import IntegrityError, transaction
 
+from sentry import features
 from sentry.api.serializers import serialize
 from sentry.cache import default_cache
 from sentry.models import File, Organization, Release, ReleaseFile
@@ -185,6 +187,31 @@ def _upsert_release_file(file: File, **kwargs):
         old_file.delete()
 
 
+def _store_single_files(archive: ReleaseArchive, meta: dict):
+    try:
+        temp_dir = archive.extract()
+    except BaseException:
+        raise AssembleArtifactsError("failed to extract bundle")
+
+    with temp_dir:
+
+        artifacts = archive.manifest.get("files", {})
+        for rel_path, artifact in artifacts.items():
+            artifact_url = artifact.get("url", rel_path)
+            artifact_basename = artifact_url.rsplit("/", 1)[-1]
+
+            file = File.objects.create(
+                name=artifact_basename, type="release.file", headers=artifact.get("headers", {})
+            )
+
+            full_path = path.join(temp_dir.name, rel_path)
+            with open(full_path, "rb") as fp:
+                file.putfile(fp, logger=logger)
+
+            kwargs = dict(meta, name=artifact_url)
+            _upsert_release_file(file, **kwargs)
+
+
 @instrumented_task(name="sentry.tasks.assemble.assemble_artifacts", queue="assemble")
 def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
     """
@@ -216,37 +243,43 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
         bundle, temp_file = rv
 
         try:
-            with ReleaseArchive(temp_file) as archive:
-                manifest = archive.manifest
+            archive = ReleaseArchive(temp_file)
         except BaseException:
             raise AssembleArtifactsError("failed to open release manifest")
 
-        org_slug = manifest.get("org")
-        if organization.slug != org_slug:
-            raise AssembleArtifactsError("organization does not match uploaded bundle")
+        with archive:
+            manifest = archive.manifest
 
-        release_name = manifest.get("release")
-        if release_name != version:
-            raise AssembleArtifactsError("release does not match uploaded bundle")
+            org_slug = manifest.get("org")
+            if organization.slug != org_slug:
+                raise AssembleArtifactsError("organization does not match uploaded bundle")
 
-        try:
-            release = Release.objects.get(organization_id=organization.id, version=release_name)
-        except Release.DoesNotExist:
-            raise AssembleArtifactsError("release does not exist")
+            release_name = manifest.get("release")
+            if release_name != version:
+                raise AssembleArtifactsError("release does not match uploaded bundle")
 
-        dist_name = manifest.get("dist")
-        dist = None
-        if dist_name:
-            dist = release.add_dist(dist_name)
+            try:
+                release = Release.objects.get(organization_id=organization.id, version=release_name)
+            except Release.DoesNotExist:
+                raise AssembleArtifactsError("release does not exist")
 
-        kwargs = {
-            "organization_id": organization.id,
-            "release": release,
-            "name": RELEASE_ARCHIVE_FILENAME,
-            "dist": dist,
-        }
+            dist_name = manifest.get("dist")
+            dist = None
+            if dist_name:
+                dist = release.add_dist(dist_name)
 
-        _upsert_release_file(bundle, **kwargs)
+            meta = {  # Required for release file creation
+                "organization_id": organization.id,
+                "release": release,
+                "dist": dist,
+            }
+
+            if features.has("organizations:release-archives", organization):
+                kwargs = dict(meta, name=RELEASE_ARCHIVE_FILENAME)
+                _upsert_release_file(bundle, **kwargs)
+            else:
+                # Every file in bundle will become a release file
+                _store_single_files(archive, meta)
 
     except AssembleArtifactsError as e:
         set_assemble_status(
