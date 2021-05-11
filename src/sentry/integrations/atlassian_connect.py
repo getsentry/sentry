@@ -62,7 +62,9 @@ def get_integration_from_jwt(token, path, provider, query_params, method="GET"):
     if provider == "bitbucket":
         options = {"verify_aud": False}
 
-    decoded_verified = jwt.decode(token, integration.metadata["shared_secret"], options=options)
+    decoded_verified = jwt.decode(
+        token, integration.metadata["shared_secret"], options=options, algorithms=["HS256"]
+    )
     # Verify the query has not been tampered by Creating a Query Hash
     # and comparing it against the qsh claim on the verified token.
 
