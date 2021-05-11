@@ -14,8 +14,8 @@ import EventView from 'app/utils/discover/eventView';
 import {WebVital} from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
 import {getTermHelp, PERFORMANCE_TERM} from 'app/views/performance/data';
+import {vitalsRouteWithQuery} from 'app/views/performance/transactionSummary/transactionVitals/utils';
 import {SidebarSpacer} from 'app/views/performance/transactionSummary/utils';
-import {vitalsRouteWithQuery} from 'app/views/performance/transactionVitals/utils';
 
 import VitalInfo from '../vitalDetail/vitalInfo';
 

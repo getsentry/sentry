@@ -20,7 +20,7 @@ import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
 
-import {getTransactionName} from '../utils';
+import {getTransactionName} from '../../utils';
 
 import {PERCENTILE, VITAL_GROUPS} from './constants';
 import RumContent from './content';

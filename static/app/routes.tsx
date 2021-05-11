@@ -1343,7 +1343,9 @@ function routes() {
             />
             <Route
               path="/organizations/:orgId/performance/summary/vitals/"
-              componentPromise={() => import('app/views/performance/transactionVitals')}
+              componentPromise={() =>
+                import('app/views/performance/transactionSummary/transactionVitals')
+              }
               component={errorHandler(LazyLoad)}
             />
           </Route>

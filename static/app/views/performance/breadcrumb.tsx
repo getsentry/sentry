@@ -6,8 +6,8 @@ import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import {decodeScalar} from 'app/utils/queryString';
 
+import {vitalsRouteWithQuery} from './transactionSummary/transactionVitals/utils';
 import {transactionSummaryRouteWithQuery} from './transactionSummary/utils';
-import {vitalsRouteWithQuery} from './transactionVitals/utils';
 import {vitalDetailRouteWithQuery} from './vitalDetail/utils';
 import {getPerformanceLandingUrl} from './utils';
 

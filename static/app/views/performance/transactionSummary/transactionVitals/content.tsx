@@ -18,7 +18,7 @@ import Histogram from 'app/utils/performance/histogram';
 import {FILTER_OPTIONS} from 'app/utils/performance/histogram/constants';
 import {decodeScalar} from 'app/utils/queryString';
 
-import TransactionHeader, {Tab} from '../transactionSummary/header';
+import TransactionHeader, {Tab} from '../header';
 
 import {ZOOM_KEYS} from './constants';
 import VitalsPanel from './vitalsPanel';
