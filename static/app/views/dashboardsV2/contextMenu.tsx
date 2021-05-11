@@ -48,6 +48,7 @@ const MoreOptions = styled('span')`
 const DropdownTarget = styled('div')`
   display: flex;
   cursor: pointer;
+  padding: 0 5px;
 `;
 
 export default ContextMenu;
