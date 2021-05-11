@@ -23,6 +23,7 @@ type Props = {
   triggers: Trigger[];
   resolveThreshold: UnsavedIncidentRule['resolveThreshold'];
   thresholdType: UnsavedIncidentRule['thresholdType'];
+  aggregate: UnsavedIncidentRule['aggregate'];
   currentProject: string;
   availableActions: MetricActionTemplate[] | null;
   disabled: boolean;
@@ -95,6 +96,7 @@ class Triggers extends Component<Props> {
       projects,
       triggers,
       disabled,
+      aggregate,
       thresholdType,
       resolveThreshold,
       onThresholdTypeChange,
@@ -112,6 +114,7 @@ class Triggers extends Component<Props> {
               organization={organization}
               projects={projects}
               triggers={triggers}
+              aggregate={aggregate}
               resolveThreshold={resolveThreshold}
               thresholdType={thresholdType}
               onChange={this.handleChangeTrigger}
