@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import DocumentTitle from 'react-document-title';
 import * as ReactRouter from 'react-router';
 import * as Sentry from '@sentry/react';
@@ -123,6 +123,10 @@ class GroupDetails extends React.Component<Props, State> {
 
   get groupDetailsEndpoint() {
     return `/issues/${this.props.params.groupId}/`;
+  }
+
+  get groupReleaseEndpoint() {
+    return `/issues/${this.props.params.groupId}/first-last-release/`;
   }
 
   async getEvent(group?: Group) {
@@ -252,6 +256,7 @@ class GroupDetails extends React.Component<Props, State> {
     if (organization?.features?.includes('inbox')) {
       query.expand = 'inbox';
     }
+    query.collapse = 'release';
 
     return query;
   }
@@ -318,6 +323,12 @@ class GroupDetails extends React.Component<Props, State> {
     }
   };
 
+  async fetchGroupReleases() {
+    const {api} = this.props;
+    const releases = await api.requestPromise(this.groupReleaseEndpoint);
+    GroupStore.onPopulateReleases(this.props.params.groupId, releases);
+  }
+
   async fetchData() {
     const {api, isGlobalSelectionReady, params} = this.props;
 
@@ -336,6 +347,7 @@ class GroupDetails extends React.Component<Props, State> {
       });
 
       const [data] = await Promise.all([groupPromise, eventPromise]);
+      this.fetchGroupReleases();
 
       const reprocessingNewRoute = this.getReprocessingNewRoute(data);
 

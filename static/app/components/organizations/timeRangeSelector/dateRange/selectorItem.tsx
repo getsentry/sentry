@@ -1,10 +1,10 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
 
 type Props = {
-  onClick: (value: string, e: React.MouseEvent) => void;
+  onClick: (value: string, e?: React.MouseEvent) => void;
   value: string;
   label: React.ReactNode;
   selected: boolean;

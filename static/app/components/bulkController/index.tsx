@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import intersection from 'lodash/intersection';
 import isEqual from 'lodash/isEqual';
 import uniq from 'lodash/uniq';

@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import {Client} from 'app/api';
 import ConfigStore from 'app/stores/configStore';
@@ -29,7 +29,7 @@ const withTeamsForUser = <P extends InjectedTeamsProps>(
   > {
     static displayName = `withUsersTeams(${getDisplayName(WrappedComponent)})`;
 
-    state = {
+    state: InjectedTeamsProps = {
       teams: [],
       loadingTeams: true,
       error: null,

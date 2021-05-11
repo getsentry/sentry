@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import ExternalLink from 'app/components/links/externalLink';
@@ -30,10 +30,10 @@ type State = {
   showDeprecatedDsn: boolean;
 };
 
-class ProjectKeyCredentials extends React.Component<Props, State> {
+class ProjectKeyCredentials extends Component<Props, State> {
   static defaultProps = DEFAULT_PROPS;
 
-  state = {
+  state: State = {
     showDeprecatedDsn: false,
   };
 
@@ -59,7 +59,7 @@ class ProjectKeyCredentials extends React.Component<Props, State> {
     } = this.props;
 
     return (
-      <React.Fragment>
+      <Fragment>
         {showDsnPublic && (
           <Field
             label={t('DSN')}
@@ -211,7 +211,7 @@ class ProjectKeyCredentials extends React.Component<Props, State> {
             </TextCopyInput>
           </Field>
         )}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

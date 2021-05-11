@@ -1,4 +1,3 @@
-import React from 'react';
 import {WithRouterProps} from 'react-router';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';

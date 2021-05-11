@@ -1,5 +1,3 @@
-import React from 'react';
-
 import EventDataSection from 'app/components/events/eventDataSection';
 import Annotated from 'app/components/events/meta/annotated';
 import {t} from 'app/locale';

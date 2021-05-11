@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import {withTheme} from '@emotion/react';
 import * as Sentry from '@sentry/react';
 
@@ -26,7 +26,7 @@ type Props = Omit<
   help?: string;
 };
 
-class ProjectBaseEventsChart extends React.Component<Props> {
+class ProjectBaseEventsChart extends Component<Props> {
   componentDidMount() {
     this.fetchTotalCount();
   }

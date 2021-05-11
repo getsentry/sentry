@@ -1,6 +1,7 @@
 import re
 
 from django.db import IntegrityError, transaction
+from django.db.models import Case, When
 from rest_framework.response import Response
 
 from sentry import features
@@ -50,8 +51,27 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         query = request.GET.get("query")
         if query:
             dashboards = dashboards.filter(title__icontains=query)
-        dashboards = dashboards.order_by("title")
         prebuilt = Dashboard.get_prebuilt_list(organization, query)
+
+        sort_by = request.query_params.get("sort")
+        if sort_by in ("title", "-title"):
+            order_by = [
+                "-title" if sort_by.startswith("-") else "title",
+                "-date_added",
+            ]
+        elif sort_by in ("dateCreated", "-dateCreated"):
+            order_by = "-date_added" if sort_by.startswith("-") else "date_added"
+        elif sort_by == "mydashboards":
+            order_by = [
+                Case(When(created_by_id=request.user.id, then=-1), default="created_by_id"),
+                "-date_added",
+            ]
+        else:
+            order_by = "title"
+        if not isinstance(order_by, list):
+            order_by = [order_by]
+
+        dashboards = dashboards.order_by(*order_by)
 
         list_serializer = DashboardListSerializer()
 

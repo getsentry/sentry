@@ -13,7 +13,7 @@ reset="$(tput sgr0)"
 
 venv_name=".venv"
 
-die () {
+die() {
     cat <<EOF
 $@
 EOF
@@ -29,13 +29,13 @@ if [[ -n "$VIRTUAL_ENV" ]]; then
     # unless you explicitely set an environment variable
     if [[ "$minor" -gt 6 ]]; then
         if [[ -n "$SENTRY_PYTHON_VERSION" ]]; then
-            cat << EOF
+            cat <<EOF
 ${yellow}${bold}
 You have explicitly set a non-recommended Python version (${SENTRY_PYTHON_VERSION}). You're on your own.
 ${reset}
 EOF
         else
-            cat << EOF
+            cat <<EOF
 ${red}${bold}
 ERROR! You are running a virtualenv with a Python version different than 3.6
 We recommend you start with a fresh virtualenv or to set the variable SENTRY_PYTHON_VERSION

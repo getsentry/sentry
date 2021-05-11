@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import Indicators from 'app/components/indicators';
 import ThemeAndStyleProvider from 'app/themeAndStyleProvider';

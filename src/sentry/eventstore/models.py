@@ -4,6 +4,7 @@ from datetime import datetime
 from hashlib import md5
 
 import pytz
+import sentry_sdk
 from dateutil.parser import parse as parse_date
 from django.conf import settings
 from django.utils.encoding import force_text
@@ -416,9 +417,16 @@ class Event:
         config = load_grouping_config(config)
 
         if normalize_stacktraces:
-            normalize_stacktraces_for_grouping(self.data, config)
+            with sentry_sdk.start_span(op="grouping.normalize_stacktraces_for_grouping") as span:
+                span.set_tag("project", self.project_id)
+                span.set_tag("event_id", self.event_id)
+                normalize_stacktraces_for_grouping(self.data, config)
 
-        return get_grouping_variants_for_event(self, config)
+        with sentry_sdk.start_span(op="grouping.get_grouping_variants") as span:
+            span.set_tag("project", self.project_id)
+            span.set_tag("event_id", self.event_id)
+
+            return get_grouping_variants_for_event(self, config)
 
     def get_primary_hash(self):
         flat_hashes, hierarchical_hashes = self.get_hashes()

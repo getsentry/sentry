@@ -346,6 +346,8 @@ def initialize_app(config, skip_service_validation=False):
     if getattr(settings, "SENTRY_DEBUGGER", None) is None:
         settings.SENTRY_DEBUGGER = settings.DEBUG
 
+    monkeypatch_drf_listfield_serializer_errors()
+
     monkeypatch_model_unpickle()
 
     import django
@@ -470,6 +472,40 @@ def monkeypatch_django_migrations():
     from sentry.new_migrations.monkey import monkey_migrations
 
     monkey_migrations()
+
+
+def monkeypatch_drf_listfield_serializer_errors():
+    # This patches reverts https://github.com/encode/django-rest-framework/pull/5655,
+    # effectively we don't get that slight improvement
+    # in serializer error structure introduced in drf 3.8.x,
+    # This is simply the fastest way forward, otherwise
+    # frontend and sentry-cli needs updating and people using
+    # myriad other custom api clients may complain if we break
+    # their error handling.
+    # We're mainly focused on getting to Python 3.8, so this just isn't worth it.
+
+    from collections import Mapping
+
+    from rest_framework.fields import ListField
+    from rest_framework.utils import html
+
+    def to_internal_value(self, data):
+        if html.is_html_input(data):
+            data = html.parse_html_list(data, default=[])
+        if isinstance(data, (str, Mapping)) or not hasattr(data, "__iter__"):
+            self.fail("not_a_list", input_type=type(data).__name__)
+        if not self.allow_empty and len(data) == 0:
+            self.fail("empty")
+        # Begin code retained from < drf 3.8.x.
+        return [self.child.run_validation(item) for item in data]
+        # End code retained from < drf 3.8.x.
+
+    ListField.to_internal_value = to_internal_value
+
+    # We don't need to patch DictField since we don't use it
+    # at the time of patching. This is fine since anything newly
+    # introduced that does use it should prefer the better seralizer
+    # errors.
 
 
 def bind_cache_to_option_store():

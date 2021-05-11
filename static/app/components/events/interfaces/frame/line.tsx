@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 import scrollToElement from 'scroll-to-element';
@@ -86,7 +86,7 @@ export class Line extends React.Component<Props, State> {
   // isExpanded can be initialized to true via parent component;
   // data synchronization is not important
   // https://facebook.github.io/react/tips/props-in-getInitialState-as-anti-pattern.html
-  state = {
+  state: State = {
     isExpanded: this.props.isExpanded,
   };
 
@@ -237,10 +237,14 @@ export class Line extends React.Component<Props, State> {
 
     return !nextFrame ? (
       <LeadHint className="leads-to-app-hint" width="115px">
-        {t('Crashed in non-app: ')}
+        {t('Crashed in non-app')}
+        {': '}
       </LeadHint>
     ) : (
-      <LeadHint className="leads-to-app-hint">{t('Called from: ')}</LeadHint>
+      <LeadHint className="leads-to-app-hint">
+        {t('Called from')}
+        {': '}
+      </LeadHint>
     );
   }
 
@@ -293,8 +297,8 @@ export class Line extends React.Component<Props, State> {
       onFunctionNameToggle,
       image,
       maxLengthOfRelativeAddress,
-      isFrameAfterLastNonApp,
       includeSystemFrames,
+      isFrameAfterLastNonApp,
       showCompleteFunctionName,
       isHoverPreviewed,
     } = this.props;
@@ -437,17 +441,22 @@ const NativeLineContent = styled('div')<{isFrameAfterLastNonApp: boolean}>`
   display: grid;
   flex: 1;
   grid-gap: ${space(0.5)};
-  grid-template-columns: ${p => (p.isFrameAfterLastNonApp ? '167px' : '117px')} 1fr;
+  grid-template-columns: ${p =>
+    `minmax(${p.isFrameAfterLastNonApp ? '167px' : '117px'}, auto)  1fr`};
   align-items: center;
   justify-content: flex-start;
 
   @media (min-width: ${props => props.theme.breakpoints[0]}) {
-    grid-template-columns: ${p => (p.isFrameAfterLastNonApp ? '200px' : '150px')} 117px 1fr auto;
+    grid-template-columns:
+      ${p => (p.isFrameAfterLastNonApp ? '200px' : '150px')} minmax(117px, auto)
+      1fr;
   }
 
   @media (min-width: ${props => props.theme.breakpoints[2]}) and (max-width: ${props =>
       props.theme.breakpoints[3]}) {
-    grid-template-columns: ${p => (p.isFrameAfterLastNonApp ? '180px' : '140px')} 117px 1fr auto;
+    grid-template-columns:
+      ${p => (p.isFrameAfterLastNonApp ? '180px' : '140px')} minmax(117px, auto)
+      1fr;
   }
 `;
 

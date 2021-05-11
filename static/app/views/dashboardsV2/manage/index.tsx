@@ -1,19 +1,23 @@
-import React from 'react';
 import * as ReactRouter from 'react-router';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
 import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
-import Breadcrumbs from 'app/components/breadcrumbs';
-import * as Layout from 'app/components/layouts/thirds';
+import Button from 'app/components/button';
+import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import SearchBar from 'app/components/searchBar';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
+import {IconAdd} from 'app/icons';
 import {t} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
 import space from 'app/styles/space';
-import {Organization} from 'app/types';
+import {Organization, SelectValue} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
+import {decodeScalar} from 'app/utils/queryString';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import AsyncView from 'app/views/asyncView';
@@ -21,6 +25,13 @@ import AsyncView from 'app/views/asyncView';
 import {DashboardListItem} from '../types';
 
 import DashboardList from './dashboardList';
+
+const SORT_OPTIONS: SelectValue<string>[] = [
+  {label: t('My Dashboards'), value: 'mydashboards'},
+  {label: t('Dashboard Name (A-Z)'), value: 'title'},
+  {label: t('Date Created (Newest)'), value: '-dateCreated'},
+  {label: t('Date Created (Oldest)'), value: 'dateCreated'},
+];
 
 type Props = {
   api: Client;
@@ -44,11 +55,19 @@ class ManageDashboards extends AsyncView<Props, State> {
         {
           query: {
             ...pick(location.query, ['cursor', 'query']),
+            sort: this.getActiveSort().value,
             per_page: '9',
           },
         },
       ],
     ];
+  }
+
+  getActiveSort() {
+    const {location} = this.props;
+
+    const urlSort = decodeScalar(location.query.sort, 'mydashboards');
+    return SORT_OPTIONS.find(item => item.value === urlSort) || SORT_OPTIONS[0];
   }
 
   onDashboardsChange() {
@@ -57,12 +76,35 @@ class ManageDashboards extends AsyncView<Props, State> {
 
   handleSearch(query: string) {
     const {location, router} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'dashboards_manage.search',
+      eventName: 'Dashboards Manager: Search',
+      organization_id: parseInt(this.props.organization.id, 10),
+    });
 
     router.push({
       pathname: location.pathname,
       query: {...location.query, cursor: undefined, query},
     });
   }
+
+  handleSortChange = (value: string) => {
+    const {location} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'dashboards_manage.change_sort',
+      eventName: 'Dashboards Manager: Sort By Changed',
+      organization_id: parseInt(this.props.organization.id, 10),
+      sort: value,
+    });
+    browserHistory.push({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        cursor: undefined,
+        sort: value,
+      },
+    });
+  };
 
   getQuery() {
     const {query} = this.props.location.query;
@@ -71,6 +113,8 @@ class ManageDashboards extends AsyncView<Props, State> {
   }
 
   renderActions() {
+    const activeSort = this.getActiveSort();
+
     return (
       <StyledActions>
         <StyledSearchBar
@@ -79,6 +123,21 @@ class ManageDashboards extends AsyncView<Props, State> {
           placeholder={t('Search Dashboards')}
           onSearch={query => this.handleSearch(query)}
         />
+        <StyledDropdownControl
+          buttonProps={{prefix: t('Sort By')}}
+          label={activeSort.label}
+        >
+          {SORT_OPTIONS.map(({label, value}) => (
+            <DropdownItem
+              key={value}
+              onSelect={this.handleSortChange}
+              eventKey={value}
+              isActive={value === activeSort.value}
+            >
+              {label}
+            </DropdownItem>
+          ))}
+        </StyledDropdownControl>
       </StyledActions>
     );
   }
@@ -110,6 +169,19 @@ class ManageDashboards extends AsyncView<Props, State> {
     return t('Manage Dashboards');
   }
 
+  onCreate() {
+    const {organization, location} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'dashboards_manage.create.start',
+      eventName: 'Dashboards Manager: Dashboard Create Started',
+      organization_id: parseInt(organization.id, 10),
+    });
+    browserHistory.push({
+      pathname: `/organizations/${organization.slug}/dashboards/new/`,
+      query: location.query,
+    });
+  }
+
   renderBody() {
     const {organization} = this.props;
 
@@ -119,52 +191,69 @@ class ManageDashboards extends AsyncView<Props, State> {
         features={['dashboards-manage']}
         renderDisabled={this.renderNoAccess}
       >
-        <LightWeightNoProjectMessage organization={organization}>
-          <Layout.Header>
-            <Layout.HeaderContent>
-              <Breadcrumbs
-                crumbs={[
-                  {
-                    label: 'Dashboards',
-                    to: `/organizations/${organization.slug}/dashboards/`,
-                  },
-                  {
-                    label: 'Manage Dashboards',
-                  },
-                ]}
-              />
-              <Layout.Title>{t('Manage Dashboards')}</Layout.Title>
-            </Layout.HeaderContent>
-            {/* <PageHeader>
-              <PageHeading>{t('Manage Dashboards')}</PageHeading>
-            </PageHeader> */}
-          </Layout.Header>
-          <Layout.Body>
-            <Layout.Main fullWidth>
-              {this.renderActions()}
-              {this.renderDashboards()}
-            </Layout.Main>
-          </Layout.Body>
-        </LightWeightNoProjectMessage>
+        <SentryDocumentTitle title={t('Dashboards')} orgSlug={organization.slug}>
+          <StyledPageContent>
+            <LightWeightNoProjectMessage organization={organization}>
+              <PageContent>
+                <StyledPageHeader>
+                  {t('Manage Dashboards')}
+                  <Button
+                    data-test-id="dashboard-create"
+                    onClick={event => {
+                      event.preventDefault();
+                      this.onCreate();
+                    }}
+                    priority="primary"
+                    icon={<IconAdd size="xs" isCircled />}
+                  >
+                    {t('Create Dashboard')}
+                  </Button>
+                </StyledPageHeader>
+                {this.renderActions()}
+                {this.renderDashboards()}
+              </PageContent>
+            </LightWeightNoProjectMessage>
+          </StyledPageContent>
+        </SentryDocumentTitle>
       </Feature>
     );
   }
 }
 
+const StyledPageContent = styled(PageContent)`
+  padding: 0;
+`;
+
 const StyledSearchBar = styled(SearchBar)`
   flex-grow: 1;
+  margin-right: ${space(2)};
+  margin-bottom: ${space(2)};
+`;
+
+const StyledPageHeader = styled('div')`
+  display: flex;
+  align-items: flex-end;
+  font-size: ${p => p.theme.headerFontSize};
+  color: ${p => p.theme.textColor};
+  justify-content: space-between;
+  margin-bottom: ${space(2)};
+`;
+
+const StyledDropdownControl = styled(DropdownControl)`
+  margin-bottom: ${space(2)};
 `;
 
 const StyledActions = styled('div')`
   display: grid;
   grid-template-columns: auto max-content min-content;
+  width: 100%;
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     grid-template-columns: auto;
   }
 
+  margin-bottom: ${space(1)};
   align-items: center;
-  margin-bottom: ${space(3)};
 `;
 
 export default withApi(withOrganization(ManageDashboards));

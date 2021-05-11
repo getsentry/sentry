@@ -8,8 +8,12 @@ text_type = type("")
 
 # git usurbs your bin path for hooks and will always run system python
 if "VIRTUAL_ENV" in os.environ:
-    site_packages = glob("%s/lib/*/site-packages" % os.environ["VIRTUAL_ENV"])[0]
-    sys.path.insert(0, site_packages)
+    # If pre-commit is not installed outside of the virtualenv, glob will return []
+    try:
+        site_packages = glob("%s/lib/*/site-packages" % os.environ["VIRTUAL_ENV"])[0]
+        sys.path.insert(0, site_packages)
+    except IndexError:
+        pass
 
 
 def main():

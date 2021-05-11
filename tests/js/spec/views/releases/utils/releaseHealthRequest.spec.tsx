@@ -1,4 +1,3 @@
-import React from 'react';
 import isEqual from 'lodash/isEqual';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
