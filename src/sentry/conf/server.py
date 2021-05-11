@@ -881,10 +881,6 @@ SENTRY_FEATURES = {
     "organizations:discover-query": True,
     # Enable Performance view
     "organizations:performance-view": False,
-    # Enable the quick trace view on event details
-    "organizations:trace-view-quick": False,
-    # Enable the trace view summary
-    "organizations:trace-view-summary": False,
     # Enable multi project selection
     "organizations:global-views": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
@@ -1026,6 +1022,8 @@ SENTRY_FEATURES = {
     "projects:servicehooks": False,
     # Use Kafka (instead of Celery) for ingestion pipeline.
     "projects:kafka-ingest": False,
+    # Enable stackwalking comparison
+    "symbolicator:compare-stackwalking-methods": False,
     # Don't add feature defaults down here! Please add them in their associated
     # group sorted alphabetically.
 }

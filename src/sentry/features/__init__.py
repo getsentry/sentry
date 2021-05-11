@@ -116,8 +116,6 @@ default_manager.add("organizations:sso-rippling", OrganizationFeature)  # NOQA
 default_manager.add("organizations:sso-saml2", OrganizationFeature)  # NOQA
 default_manager.add("organizations:symbol-sources", OrganizationFeature)  # NOQA
 default_manager.add("organizations:team-alerts-ownership", OrganizationFeature, True)  # NOQA
-default_manager.add("organizations:trace-view-quick", OrganizationFeature, True)  # NOQA
-default_manager.add("organizations:trace-view-summary", OrganizationFeature, True)  # NOQA
 default_manager.add("organizations:transaction-comparison", OrganizationFeature, True)  # NOQA
 default_manager.add("organizations:unhandled-issue-flag", OrganizationFeature)  # NOQA
 default_manager.add("organizations:usage-stats-graph", OrganizationFeature, True)  # NOQA
@@ -149,6 +147,9 @@ default_manager.add("projects:similarity-view-v2", ProjectFeature)  # NOQA
 
 # Project plugin features
 default_manager.add("projects:plugins", ProjectPluginFeature)  # NOQA
+
+# Globally scoped features
+default_manager.add("symbolicator:compare-stackwalking-methods", Feature, True)  # NOQA
 
 # This is a gross hardcoded list, but there's no
 # other sensible way to manage this right now without augmenting
