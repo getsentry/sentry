@@ -123,9 +123,9 @@ class Context:
 
 
 class Delegator:
-    def __init__(self, backend_base, backends, selector, callback=None) -> None:
-        self.__backend_base = backend_base
-        self._backends = backends  # XXX: referenced by subclasses, left unmangled
+    def __init__(self, base, backends, selector, callback=None) -> None:
+        self.base = base
+        self.backends = backends
         self.selector = selector
         self.callback = callback
 
@@ -154,7 +154,7 @@ class Delegator:
         # 3. If this isn't defined at all on the base implementation, we let
         #    the ``AttributeError`` raised by ``getattr`` propagate (mirroring
         #    normal attribute access behavior for a missing/invalid name.)
-        base_value = getattr(self.__backend_base, attribute_name)
+        base_value = getattr(self.base, attribute_name)
         if not inspect.isroutine(base_value):
             return base_value
 
@@ -171,8 +171,8 @@ class Delegator:
 
             # If this thread already has an active backend for this base class,
             # we can safely call that backend synchronously without delegating.
-            if self.__backend_base in context.backends:
-                backend = context.backends[self.__backend_base]
+            if self.base in context.backends:
+                backend = context.backends[self.base]
                 return getattr(backend, attribute_name)(*args, **kwargs)
 
             # Binding the call arguments to named arguments has two benefits:
@@ -192,7 +192,7 @@ class Delegator:
             # Ensure that the primary backend is actually registered -- we
             # don't want to schedule any work on the secondaries if the primary
             # request is going to fail anyway.
-            if selected_backend_names[0] not in self._backends:
+            if selected_backend_names[0] not in self.backends:
                 raise self.InvalidBackend(
                     f"{selected_backend_names[0]!r} is not a registered backend."
                 )
@@ -207,7 +207,7 @@ class Delegator:
                 # Ensure that we haven't somehow accidentally entered a context
                 # where the backend we're calling has already been marked as
                 # active (or worse, some other backend is already active.)
-                base = self.__backend_base
+                base = self.base
                 assert base not in context.backends
 
                 # Mark the backend as active.
@@ -248,7 +248,7 @@ class Delegator:
             results = [None] * len(selected_backend_names)
             for i, backend_name in enumerate(selected_backend_names[1:], 1):
                 try:
-                    backend, executor = self._backends[backend_name]
+                    backend, executor = self.backends[backend_name]
                 except KeyError:
                     logger.warning(
                         "%r is not a registered backend and will be ignored.",
@@ -267,7 +267,7 @@ class Delegator:
             # The primary backend is scheduled last since it may block the
             # calling thread. (We don't have to protect this from ``KeyError``
             # since we already ensured that the primary backend exists.)
-            backend, executor = self._backends[selected_backend_names[0]]
+            backend, executor = self.backends[selected_backend_names[0]]
             results[0] = executor.submit(
                 functools.partial(call_backend_method, context.copy(), backend, is_primary=True),
                 priority=0,
@@ -407,9 +407,9 @@ class ServiceDelegator(Delegator, Service):
         )
 
     def validate(self):
-        for backend, executor in self._backends.values():
+        for backend, executor in self.backends.values():
             backend.validate()
 
     def setup(self):
-        for backend, executor in self._backends.values():
+        for backend, executor in self.backends.values():
             backend.setup()
