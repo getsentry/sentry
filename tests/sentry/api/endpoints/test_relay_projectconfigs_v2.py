@@ -21,7 +21,7 @@ def _get_all_keys(config):
         if isinstance(config[config_key], dict):
             for key in _get_all_keys(config[config_key]):
                 # Bypass operations breakdown key
-                if config_key == 'breakdowns' and key == 'span_ops':
+                if config_key == "breakdowns" and key == "span_ops":
                     continue
                 yield key
 
