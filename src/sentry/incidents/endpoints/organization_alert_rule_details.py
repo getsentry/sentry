@@ -6,6 +6,8 @@ from sentry.api.serializers.models.alert_rule import DetailedAlertRuleSerializer
 from sentry.incidents.endpoints.bases import OrganizationAlertRuleEndpoint
 from sentry.incidents.endpoints.serializers import AlertRuleSerializer as DrfAlertRuleSerializer
 from sentry.incidents.logic import AlreadyDeletedError, delete_alert_rule
+from sentry.models import OrganizationMemberTeam
+from sentry.models.actor import ACTOR_TYPES
 
 
 class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
@@ -26,6 +28,19 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
         )
 
         if serializer.is_valid():
+            if alert_rule.owner and alert_rule.owner.type == ACTOR_TYPES["team"]:
+                team = alert_rule.owner.resolve()
+                if not OrganizationMemberTeam.objects.filter(
+                    organizationmember__user=request.user, team=team, is_active=True
+                ).exists():
+                    return Response(
+                        {
+                            "detail": [
+                                "You do not have permission to edit this alert rule because you are not a member of the assigned team."
+                            ]
+                        },
+                        status=403,
+                    )
             alert_rule = serializer.save()
             return Response(serialize(alert_rule, request.user), status=status.HTTP_200_OK)
 
