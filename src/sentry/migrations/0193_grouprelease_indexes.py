@@ -50,6 +50,11 @@ class Migration(migrations.Migration):
                     """,
                 ),
             ],
-            state_operations=[],
+            state_operations=[
+                migrations.AlterIndexTogether(
+                    name="grouprelease",
+                    index_together={("group_id", "last_seen"), ("group_id", "first_seen")},
+                ),
+            ],
         )
     ]
