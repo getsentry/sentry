@@ -124,7 +124,13 @@ DEVSERVICES_CONFIG_DIR = os.path.normpath(
     os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "config")
 )
 
-CLICKHOUSE_CONFIG_PATH = os.path.join(DEVSERVICES_CONFIG_DIR, "clickhouse", "config.xml")
+SENTRY_DISTRIBUTED_CLICKHOUSE_TABLES = True
+
+CLICKHOUSE_CONFIG_PATH = (
+    os.path.join(DEVSERVICES_CONFIG_DIR, "clickhouse", "dist_config.xml")
+    if SENTRY_DISTRIBUTED_CLICKHOUSE_TABLES
+    else os.path.join(DEVSERVICES_CONFIG_DIR, "clickhouse", "loc_config.xml")
+)
 
 RELAY_CONFIG_DIR = os.path.join(DEVSERVICES_CONFIG_DIR, "relay")
 
