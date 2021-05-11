@@ -1027,27 +1027,45 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             result["owners"] = attrs["owners"]
 
         if self._expand("sessions") and not self._collapse("stats"):
-            num_sessions = None  # TODO: Cache session count by project + environment
+            session_count_key = self._build_session_cache_key(obj)
+            num_sessions = cache.get(session_count_key)
             if num_sessions is None:
-                filters = {"project_id": [obj.project.id], "seq": 0}
+                filters = {"project_id": [obj.project.id]}
                 if self.environment_ids:
                     filters["environment"] = self.environment_ids
                 result_totals = raw_query(
+                    selected_columns=["sessions"],
                     dataset=Dataset.Sessions,
                     start=self.start,
                     end=self.end,
-                    aggregations=[
-                        ["count()", None, "session_count"],
-                        ["sum()", "session", "session_sum"],
-                        ["sum(session)", None, "anerror"],
-                    ],
                     filter_keys=filters,
                     referrer="sessions.group.totals",
                 )
-                num_sessions = result_totals["data"][0]["session_count"]
-                if num_sessions:
-                    result["sessionPercent"] = int(result["count"]) / num_sessions
-                else:
-                    result["sessionPercent"] = None
+                num_sessions = result_totals["data"][0]["sessions"]
+                cache.set(session_count_key, num_sessions, 3600)  # Cache for 5 minutes
+
+            if num_sessions != 0:
+                result["sessionPercent"] = round(int(result["count"]) / num_sessions, 4)
+            else:
+                result["sessionPercent"] = None
 
         return result
+
+    def _build_session_cache_key(self, obj):
+        session_count_key = f"w-s:{obj.project.id}"
+
+        if self.start:
+            session_count_key = f"{session_count_key}-{self.start.replace(second=0, microsecond=0, tzinfo=None)}".replace(
+                " ", ""
+            )
+
+        if self.end:
+            session_count_key = f"{session_count_key}-{self.end.replace(second=0, microsecond=0, tzinfo=None)}".replace(
+                " ", ""
+            )
+
+        if self.environment_ids:
+            envs = "-".join(str(eid) for eid in self.environment_ids)
+            session_count_key = f"{session_count_key}-{envs}"
+
+        return session_count_key

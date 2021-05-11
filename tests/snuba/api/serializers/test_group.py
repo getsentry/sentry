@@ -26,6 +26,7 @@ from sentry.notifications.types import NotificationSettingOptionValues, Notifica
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.types.integrations import ExternalProviders
+from sentry.utils.cache import cache
 from sentry.utils.compat import mock
 from sentry.utils.compat.mock import patch
 
@@ -447,6 +448,8 @@ class StreamGroupSerializerTestCase(APITestCase, SnubaTestCase):
         group = self.group
 
         environment = Environment.get_or_create(group.project, "prod")
+        dev_environment = Environment.get_or_create(group.project, "dev")
+        no_sessions_environment = Environment.get_or_create(group.project, "no_sessions")
 
         self.received = time.time()
         self.session_started = time.time() // 60 * 60
@@ -513,7 +516,7 @@ class StreamGroupSerializerTestCase(APITestCase, SnubaTestCase):
                 "status": "crashed",
                 "seq": 0,
                 "release": self.session_crashed_release,
-                "environment": "dev",
+                "environment": "prod",
                 "retention_days": 90,
                 "org_id": self.project.organization_id,
                 "project_id": self.project.id,
@@ -534,11 +537,72 @@ class StreamGroupSerializerTestCase(APITestCase, SnubaTestCase):
             serializer=StreamGroupSerializerSnuba(stats_period="14d", expand=["sessions"]),
         )
         assert result[0]["sessionPercent"]
-        assert result[0]["sessionPercent"] == 0.25
+        assert result[0]["sessionPercent"] == 0.3333
         result = serialize(
             [group],
             serializer=StreamGroupSerializerSnuba(
                 environment_ids=[environment.id], stats_period="14d", expand=["sessions"]
             ),
         )
-        assert result[0]["sessionPercent"] == 0.50
+        assert result[0]["sessionPercent"] == 0.5
+
+        result = serialize(
+            [group],
+            serializer=StreamGroupSerializerSnuba(
+                environment_ids=[no_sessions_environment.id],
+                stats_period="14d",
+                expand=["sessions"],
+            ),
+        )
+        assert result[0]["sessionPercent"] is None
+
+        result = serialize(
+            [group],
+            serializer=StreamGroupSerializerSnuba(
+                environment_ids=[dev_environment.id], stats_period="14d", expand=["sessions"]
+            ),
+        )
+        assert result[0]["sessionPercent"] == 1
+
+        self.store_session(
+            {
+                "session_id": "a148c0c5-06a2-423b-8901-6b43b812cf83",
+                "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102667",
+                "status": "ok",
+                "seq": 0,
+                "release": self.session_release,
+                "environment": "dev",
+                "retention_days": 90,
+                "org_id": self.project.organization_id,
+                "project_id": self.project.id,
+                "duration": 60.0,
+                "errors": 0,
+                "started": self.session_started - 1590061,  # approximately 18 days
+                "received": self.received - 1590061,  # approximately 18 days
+            }
+        )
+
+        result = serialize(
+            [group],
+            serializer=StreamGroupSerializerSnuba(
+                environment_ids=[dev_environment.id],
+                stats_period="14d",
+                expand=["sessions"],
+                start=timezone.now() - timedelta(days=30),
+                end=timezone.now() - timedelta(days=15),
+            ),
+        )
+        assert result[0]["sessionPercent"] == 0.0  # No events in that time period
+
+        # Delete the cache from the query we did above, else this result comes back as 1 instead of 0.5
+        cache.delete(f"w-s:{group.project.id}-{dev_environment.id}")
+
+        result = serialize(
+            [group],
+            serializer=StreamGroupSerializerSnuba(
+                environment_ids=[dev_environment.id],
+                stats_period="14d",
+                expand=["sessions"],
+            ),
+        )
+        assert result[0]["sessionPercent"] == 0.5
