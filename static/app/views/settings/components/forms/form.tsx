@@ -242,7 +242,7 @@ const StyledFooter = styled('div')<{saveOnBlur?: boolean}>`
   }
 
   /* Better padding with form inside of a modal */
-  .modal-content & {
+  [role='document'] & {
     padding-right: 30px;
     margin-left: -30px;
     margin-right: -30px;

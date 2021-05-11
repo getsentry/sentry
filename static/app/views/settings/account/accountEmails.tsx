@@ -116,7 +116,7 @@ class AccountEmails extends AsyncView<Props, State> {
           allowUndo={false}
           onSubmitSuccess={this.handleSubmitSuccess}
         >
-          <JsonForm location={this.props.location} forms={accountEmailsFields} />
+          <JsonForm forms={accountEmailsFields} />
         </Form>
 
         <AlertLink to="/settings/account/notifications" icon={<IconStack />}>
