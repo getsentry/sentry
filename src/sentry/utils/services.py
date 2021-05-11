@@ -123,6 +123,76 @@ class Context:
 
 
 class Delegator:
+    """
+    The delegator is a class that coordinates and delegates method execution to
+    multiple named backends that share a common API. It can be used to route
+    requests to different backends based on method arguments, as well as execute
+    the same request against multiple backends in parallel for testing backend
+    performance and data consistency.
+
+    The backends used for a method call are determined by a selector function
+    which is provided with the current ``Context``, the method name (as a
+    string) and arguments (in the form returned by ``inspect.getcallargs``) and
+    expected to return a list of strings which correspond to names in the
+    backend mapping. (This list should contain at least one member.) The first
+    item in the result list is considered the "primary backend". The remainder
+    of the items in the result list are considered "secondary backends". The
+    result value of the primary backend will be the result value of the
+    delegated method (to callers, this appears as a synchronous method call.)
+    The secondary backends are called asynchronously in the background when
+    using threaded executors (the default.) To receive the result values of
+    these method calls, provide a callback, described below. If the primary
+    backend name returned by the selector function doesn't correspond to any
+    registered backend, the function will raise a ``InvalidBackend`` exception.
+    If any referenced secondary backends are not registered names, they will be
+    discarded and logged.
+
+    The members and ordering of the selector function result (and thus the
+    primary and secondary backends for a method call) may vary from call to
+    call based on the calling arguments or some other state. For example, some
+    calls may use a different primary backend based on some piece of global
+    state (e.g. some property of a web request), or a secondary backend
+    undergoing testing may be included based on the result of a random number
+    generator (essentially calling it in the background for a sample of calls.)
+
+    If provided, the callback is called after all futures have completed, either
+    successfully or unsuccessfully. The function parameters are:
+
+    - the context,
+    - the method name (as a string),
+    - the calling arguments (as returned by ``inspect.getcallargs``),
+    - the backend names (as returned by the selector function),
+    - a list of results (as either a ``Future``, or ``None`` if the backend
+      was invalid) of the same length and ordering as the backend names.
+
+    Implementation notes:
+
+    - Only method access is delegated to the individual backends. Attribute
+      values are returned from the base backend. Only methods that are defined
+      on the base backend are eligible for delegation (since these methods are
+      considered the public API.) Ideally, backend classes are concrete classes
+      of the base abstract class, but this is not strictly enforced at runtime
+      with instance checks.
+    - The backend makes no attempt to synchronize common backend option values
+      between backends (e.g. TSDB rollup configuration) to ensure equivalency
+      of request parameters based on configuration.
+    - Each backend is associated with an executor pool which defaults to a
+      thread pool implementation unless otherwise specified in the backend
+      configuration. If the backend itself is not thread safe (due to socket
+      access, etc.), it's recommended to specify a pool size of 1 to ensure
+      exclusive access to resources. Each executor is started when the first
+      task is submitted.
+    - The threaded executor does not use a bounded queue by default. If there
+      are large throughput differences between the primary and secondary
+      backend(s), a significant backlog may accumulate. In extreme cases, this can
+      lead to memory exhaustion.
+    - The request is added to the request queue of the primary backend using a
+      blocking put. The request is added to the request queue(s) of the
+      secondary backend(s) as a non-blocking put (if these queues are full, the
+      request is rejected and the future will raise ``Queue.Full`` when
+      attempting to retrieve the result.)
+    """
+
     def __init__(self, base, backends, selector, callback=None) -> None:
         self.base = base
         self.backends = backends
@@ -150,7 +220,7 @@ class Delegator:
         #    are able to (immediately) return that as the value. (This also
         #    mirrors the behavior of ``LazyServiceWrapper``, which will cache
         #    any attribute access during ``expose``, so we can't delegate
-        #    attribute access anyway.)
+        #    attribute access anyway when using this as a service interface.)
         # 3. If this isn't defined at all on the base implementation, we let
         #    the ``AttributeError`` raised by ``getattr`` propagate (mirroring
         #    normal attribute access behavior for a missing/invalid name.)
@@ -302,11 +372,6 @@ def build_instance_from_options(options, default_constructor=None):
 
 class ServiceDelegator(Delegator, Service):
     """\
-    This is backend that coordinates and delegates method execution to multiple
-    backends. It can be used to route requests to different backends based on
-    method arguments, as well as execute the same request against multiple
-    backends in parallel for testing backend performance and data consistency.
-
     The backends are provided as mapping of backend name to configuration
     parameters:
 
@@ -330,64 +395,11 @@ class ServiceDelegator(Delegator, Service):
         },
         # ... etc ...
 
-    The backends used for a method call are determined by a selector function
-    which is provided with the current context, the method name (as a string)
-    and arguments (in the form returned by ``inspect.getcallargs``) and
-    expected to return a list of strings which correspond to names in the
-    backend mapping. (This list should contain at least one member.) The first
-    item in the result list is considered the "primary backend". The remainder
-    of the items in the result list are considered "secondary backends". The
-    result value of the primary backend will be the result value of the
-    delegated method (to callers, this appears as a synchronous method call.)
-    The secondary backends are called asynchronously in the background.  (To
-    receive the result values of these method calls, provide a callback_func,
-    described below.) If the primary backend name returned by the selector
-    function doesn't correspond to any registered backend, the function will
-    raise a ``InvalidBackend`` exception.  If any referenced secondary backends
-    are not registered names, they will be discarded and logged.
-
-    The members and ordering of the selector function result (and thus the
-    primary and secondary backends for a method call) may vary from call to
-    call based on the calling arguments or some other state. For example, some
-    calls may use a different primary backend based on some piece of global
-    state (e.g. some property of a web request), or a secondary backend
-    undergoing testing may be included based on the result of a random number
-    generator (essentially calling it in the background for a sample of calls.)
-
     The selector function and callback function can be provided as either:
 
     - A dotted import path string (``path.to.callable``) that will be
       imported at backend instantiation, or
     - A reference to a callable object.
-
-    Implementation notes:
-
-    - Only method access is delegated to the individual backends. Attribute
-      values are returned from the base backend. Only methods that are defined
-      on the base backend are eligible for delegation (since these methods are
-      considered the public API.)
-    - The backend makes no attempt to synchronize common backend option values
-      between backends (e.g. TSDB rollup configuration) to ensure equivalency
-      of request parameters based on configuration.
-    - Each backend is associated with an executor pool which defaults to a
-      thread pool implementation unless otherwise specified in the backend
-      configuration. If the backend itself is not thread safe (due to socket
-      access, etc.), it's recommended to specify a pool size of 1 to ensure
-      exclusive access to resources. Each executor is started when the first
-      task is submitted.
-    - The request is added to the request queue of the primary backend using a
-      blocking put. The request is added to the request queue(s) of the
-      secondary backend(s) as a non-blocking put (if these queues are full, the
-      request is rejected and the future will raise ``Queue.Full`` when
-      attempting to retrieve the result.)
-    - The ``callback_func`` is called after all futures have completed, either
-      successfully or unsuccessfully. The function parameters are:
-      - the context,
-      - the method name (as a string),
-      - the calling arguments (as returned by ``inspect.getcallargs``),
-      - the backend names (as returned by the selector function),
-      - a list of results (as either a ``Future``, or ``None`` if the backend
-        was invalid) of the same length and ordering as the backend names.
     """
 
     def __init__(self, backend_base, backends, selector_func, callback_func=None):
