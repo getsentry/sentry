@@ -1,6 +1,7 @@
 import copy
 import ipaddress
 import logging
+import random
 import time
 from datetime import datetime, timedelta
 from io import BytesIO
@@ -358,6 +359,21 @@ class EventManager:
         except Exception:
             sentry_sdk.capture_exception()
 
+        # Optionally run a fraction of events with a third grouping
+        # configuration to measure its performance impact.
+        # This does not affect actual grouping.
+        try:
+            sample_rate = options.get("store.background-grouping-sample-rate")
+            if sample_rate and random.random() <= sample_rate:
+                with metrics.timer("event_manager.background_grouping"):
+                    copied_event = copy.deepcopy(job["event"])
+                    secondary_grouping_config = get_grouping_config_dict_for_project(
+                        project, secondary=True
+                    )
+                    _calculate_event_grouping(project, copied_event, secondary_grouping_config)
+        except Exception:
+            sentry_sdk.capture_exception()
+
         with metrics.timer("event_manager.load_grouping_config"):
             # At this point we want to normalize the in_app values in case the
             # clients did not set this appropriately so far.
@@ -365,7 +381,9 @@ class EventManager:
                 job["event"].data.data, project
             )
 
-        with sentry_sdk.start_span(op="event_manager.save.calculate_event_grouping"):
+        with sentry_sdk.start_span(op="event_manager.save.calculate_event_grouping"), metrics.timer(
+            "event_manager.calculate_event_grouping"
+        ):
             _calculate_event_grouping(project, job["event"], grouping_config)
 
         flat_hashes = job["event"].data["hashes"] + secondary_flat_hashes
