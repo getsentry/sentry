@@ -7,5 +7,5 @@ will then be regenerated, and you should be able to merge without conflicts.
 
 jira_ac: 0001_initial
 nodestore: 0002_nodestore_no_dictfield
-sentry: 0192_remove_fileblobowner_org_fk
+sentry: 0193_grouprelease_indexes
 social_auth: 0001_initial
