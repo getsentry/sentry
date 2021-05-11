@@ -649,6 +649,7 @@ describe('EventsV2 > Results', function () {
     wrapper.update();
 
     // Should load events again
+    expect(eventsStatsMock).toHaveBeenCalledTimes(2);
     expect(eventsStatsMock).toHaveBeenNthCalledWith(
       2,
       '/organizations/org-slug/events-stats/',
