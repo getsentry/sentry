@@ -71,7 +71,9 @@ class RecordFirstTransactionTest(TestCase):
         )
 
         transaction_processed.send(project=self.project, event=event, sender=type(self.project))
-        assert self.project.flags.has_transactions
+        project = Project.objects.get(id=self.project.id)
+        assert project.flags.has_transactions
+
         mock_record.assert_called_with(
             "first_transaction.sent",
             default_user_id=self.user.id,
@@ -94,4 +96,6 @@ class RecordFirstTransactionTest(TestCase):
         )
 
         transaction_processed.send(project=self.project, event=event, sender=type(self.project))
-        assert self.project.flags.has_transactions
+        project = Project.objects.get(id=self.project.id)
+
+        assert project.flags.has_transactions
