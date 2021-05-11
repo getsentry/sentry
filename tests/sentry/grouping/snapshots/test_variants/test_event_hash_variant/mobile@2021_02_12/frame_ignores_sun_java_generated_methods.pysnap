@@ -1,5 +1,5 @@
 ---
-created: '2021-04-30T12:13:39.267934Z'
+created: '2021-05-05T18:04:40.093763Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -20,6 +20,23 @@ app-depth-2:
   tree_label: "invoke | ..."
   component:
     app-depth-2*
+      stacktrace*
+        frame*
+          module* (removed reflection marker)
+            "sun.reflect.GeneratedMethodAccessor"
+          function*
+            "invoke"
+        frame*
+          module* (removed reflection marker)
+            "jdk.internal.reflect.GeneratedMethodAccessor"
+          function*
+            "invoke"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "9bc326575875422d0d4ced3c35d9f916"
+  tree_label: "<entire stacktrace>"
+  component:
+    app-depth-max*
       stacktrace*
         frame*
           module* (removed reflection marker)
