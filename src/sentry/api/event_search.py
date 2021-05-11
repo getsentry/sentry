@@ -253,9 +253,13 @@ class SearchValue(namedtuple("SearchValue", "raw_value")):
         return bool(WILDCARD_CHARS.search(self.raw_value))
 
     def is_event_id(self):
+        """Return whether the current value is a valid event id
+
+        Empty strings are valid, so that it can be used for has:id queries
+        """
         if not isinstance(self.raw_value, str):
             return False
-        return is_event_id(self.raw_value)
+        return is_event_id(self.raw_value) or self.raw_value == ""
 
 
 class SearchVisitor(NodeVisitor):
