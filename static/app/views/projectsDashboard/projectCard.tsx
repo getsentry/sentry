@@ -72,9 +72,7 @@ class ProjectCard extends Component<Props> {
                   data-test-id="project-errors"
                   to={`/organizations/${organization.slug}/issues/?project=${project.id}`}
                 >
-                  {totalErrors === 0 || totalErrors > 1
-                    ? t('%s errors', formatAbbreviatedNumber(totalErrors))
-                    : t('1 error')}
+                  {t('errors: %s', formatAbbreviatedNumber(totalErrors))}
                 </Link>
                 {this.hasPerformance && (
                   <Fragment>
@@ -83,10 +81,7 @@ class ProjectCard extends Component<Props> {
                       data-test-id="project-transactions"
                       to={`/organizations/${organization.slug}/performance/?project=${project.id}`}
                     >
-                      {totalTransactions === 0 || totalTransactions > 1
-                        ? t('%s transactions', formatAbbreviatedNumber(totalTransactions))
-                        : t('1 transaction')}
-
+                      {t('transactions: %s', formatAbbreviatedNumber(totalTransactions))}
                       {zeroTransactions && (
                         <QuestionTooltip
                           title={t(
