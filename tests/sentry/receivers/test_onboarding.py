@@ -13,6 +13,7 @@ from sentry.signals import (
     event_processed,
     first_event_pending,
     first_event_received,
+    first_transaction_received,
     issue_tracker_used,
     member_invited,
     member_joined,
@@ -214,6 +215,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         event = self.store_event(data=event_data, project_id=project.id)
 
         first_event_received.send(project=project, event=event, sender=type(project))
+        first_transaction_received.send(project=project, event=event, sender=type(project))
 
         task = OrganizationOnboardingTask.objects.get(
             organization=project.organization,
@@ -222,6 +224,8 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
 
         assert task is not None
+
+        assert project.flags.has_transactions
 
     def test_member_invited(self):
         user = self.create_user(email="test@example.org")
@@ -347,6 +351,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         transaction = self.store_event(data=event_data, project_id=project.id)
 
         first_event_received.send(project=project, event=transaction, sender=type(project))
+        first_transaction_received.send(project=project, event=transaction, sender=type(project))
 
         member = self.create_member(organization=self.organization, teams=[self.team], user=user)
 

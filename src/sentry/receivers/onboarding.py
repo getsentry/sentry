@@ -1,7 +1,7 @@
 import logging
 
 from django.db import IntegrityError, transaction
-from django.db.models import Q
+from django.db.models import F, Q
 from django.utils import timezone
 
 from sentry import analytics
@@ -11,6 +11,7 @@ from sentry.models import (
     Organization,
     OrganizationOnboardingTask,
     OrganizationOption,
+    Project,
 )
 from sentry.plugins.bases import IssueTrackingPlugin, IssueTrackingPlugin2
 from sentry.plugins.bases.notify import NotificationPlugin
@@ -19,6 +20,7 @@ from sentry.signals import (
     event_processed,
     first_event_pending,
     first_event_received,
+    first_transaction_received,
     issue_tracker_used,
     member_invited,
     member_joined,
@@ -110,18 +112,10 @@ def record_raven_installed(project, user, **kwargs):
 
 @first_event_received.connect(weak=False)
 def record_first_event(project, event, **kwargs):
-    if event.get_event_type() == "transaction":
-        record_first_transaction(project, event)
-    else:
-        record_first_error(project, event)
-
-
-def record_first_error(project, event):
     """
     Requires up to 2 database calls, but should only run with the first event in
     any project, so performance should not be a huge bottleneck.
     """
-
     # If complete, pass (creation fails due to organization, task unique constraint)
     # If pending, update.
     # If does not exist, create.
@@ -186,7 +180,10 @@ def record_first_error(project, event):
             )
 
 
-def record_first_transaction(project, event):
+@first_transaction_received.connect(weak=False)
+def record_first_transaction(project, event, **kwargs):
+    project.update(flags=F("flags").bitor(Project.flags.has_transactions))
+
     OrganizationOnboardingTask.objects.record(
         organization_id=project.organization_id,
         task=OnboardingTask.FIRST_TRANSACTION,
@@ -195,20 +192,16 @@ def record_first_transaction(project, event):
     )
 
     try:
-        user = Organization.objects.get(id=project.organization_id).get_default_owner()
+        default_user_id = project.organization.get_default_owner().id
     except IndexError:
-        logging.getLogger("sentry").warn(
-            "Cannot record first transaction for organization (%s) due to missing owners",
-            project.organization_id,
-        )
-        return
+        default_user_id = None
 
     analytics.record(
         "first_transaction.sent",
-        user_id=user.id,
+        default_user_id=default_user_id,
         organization_id=project.organization_id,
         project_id=project.id,
-        platform=event.platform,
+        platform=project.platform,
     )
 
 
