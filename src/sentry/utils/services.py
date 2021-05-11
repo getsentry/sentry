@@ -3,12 +3,12 @@ import inspect
 import itertools
 import logging
 import threading
-from typing import Tuple
+from typing import Any, Callable, Mapping, Optional, Sequence, Tuple, Type, TypeVar
 
 from django.utils.functional import LazyObject, empty
 
 from sentry.utils import metrics, warnings
-from sentry.utils.concurrent import FutureSet, ThreadedExecutor
+from sentry.utils.concurrent import Executor, FutureSet, ThreadedExecutor, TimedFuture
 
 from .imports import import_string
 
@@ -122,6 +122,19 @@ class Context:
         return Context(self.request, self.backends.copy())
 
 
+Selector = Callable[
+    [Context, str, Mapping[str, Any]],
+    Sequence[str],
+]
+
+Callback = Callable[
+    [Context, str, Mapping[str, Any], Sequence[str], Sequence[TimedFuture]],
+    None,
+]
+
+T = TypeVar("T")
+
+
 class Delegator:
     """
     The delegator is a class that coordinates and delegates method execution to
@@ -193,7 +206,13 @@ class Delegator:
       attempting to retrieve the result.)
     """
 
-    def __init__(self, base, backends, selector, callback=None) -> None:
+    def __init__(
+        self,
+        base: Type[T],
+        backends: Mapping[str, Tuple[T, Executor]],
+        selector: Selector,
+        callback: Optional[Callback] = None,
+    ) -> None:
         self.base = base
         self.backends = backends
         self.selector = selector
