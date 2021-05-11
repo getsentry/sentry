@@ -109,7 +109,7 @@ const CardBody = styled('div')`
   background: ${p => p.theme.gray100};
   padding: ${space(1.5)} ${space(2)};
   max-height: 150px;
-  height: 150px;
+  min-height: 150px;
   overflow: hidden;
 `;
 
