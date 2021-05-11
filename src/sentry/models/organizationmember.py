@@ -91,7 +91,13 @@ class OrganizationMember(Model):
     email = models.EmailField(null=True, blank=True, max_length=75)
     role = models.CharField(max_length=32, default=str(roles.get_default().id))
     flags = BitField(
-        flags=(("sso:linked", "sso:linked"), ("sso:invalid", "sso:invalid")), default=0
+        flags=(
+            ("sso:linked", "sso:linked"),
+            ("sso:invalid", "sso:invalid"),
+            ("restricted:plan-downgraded", "restricted:plan-downgraded"),
+            ("deactivated", "deactivated"),
+        ),
+        default=0,
     )
     token = models.CharField(max_length=64, null=True, blank=True, unique=True)
     date_added = models.DateTimeField(default=timezone.now)
