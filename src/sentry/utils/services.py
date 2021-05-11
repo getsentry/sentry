@@ -123,11 +123,11 @@ class Context:
 
 
 class Delegator:
-    def __init__(self, backend_base, backends, selector_func, callback_func) -> None:
+    def __init__(self, backend_base, backends, selector, callback=None) -> None:
         self.__backend_base = backend_base
         self._backends = backends  # XXX: referenced by subclasses, left unmangled
-        self.__selector_func = selector_func
-        self.__callback_func = callback_func
+        self.selector = selector
+        self.callback = callback
 
     class InvalidBackend(Exception):
         """\
@@ -185,7 +185,7 @@ class Delegator:
             #    arguments that are supported by all backends.
             callargs = inspect.getcallargs(base_value, None, *args, **kwargs)
 
-            selected_backend_names = list(self.__selector_func(context, attribute_name, callargs))
+            selected_backend_names = list(self.selector(context, attribute_name, callargs))
             if not len(selected_backend_names) > 0:
                 raise self.InvalidBackend("No backends returned by selector!")
 
@@ -274,9 +274,9 @@ class Delegator:
                 block=True,
             )
 
-            if self.__callback_func is not None:
+            if self.callback is not None:
                 FutureSet([_f for _f in results if _f]).add_done_callback(
-                    lambda *a, **k: self.__callback_func(
+                    lambda *a, **k: self.callback(
                         context, attribute_name, callargs, selected_backend_names, results
                     )
                 )
