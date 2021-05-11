@@ -1,5 +1,5 @@
 ---
-created: '2021-04-30T12:13:35.710238Z'
+created: '2021-05-05T18:04:39.242553Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -8,6 +8,18 @@ app-depth-1:
   tree_label: "jipJipManagementApplication"
   component:
     app-depth-1*
+      stacktrace*
+        frame*
+          module* (removed codegen marker)
+            "invalid.gruml.talkytalkyhub.common.config.JipJipConfig$$EnhancerBySpringCGLIB$$<auto>$$EnhancerBySpringCGLIB$$<auto>$$FastClassBySpringCGLIB$$<auto>"
+          function*
+            "jipJipManagementApplication"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "be15ca3d511b96918e087c4f42503ca2"
+  tree_label: "<entire stacktrace>"
+  component:
+    app-depth-max*
       stacktrace*
         frame*
           module* (removed codegen marker)

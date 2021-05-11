@@ -1,5 +1,5 @@
 ---
-created: '2021-04-30T12:13:39.481555Z'
+created: '2021-05-05T18:04:39.212878Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -8,6 +8,18 @@ app-depth-1:
   tree_label: "fn"
   component:
     app-depth-1*
+      stacktrace*
+        frame*
+          filename* (cleaned javassist parts)
+            "entriesresource_$$_javassist<auto>.java"
+          function*
+            "fn"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "dc3d511120ce04996b1eef3496516e5c"
+  tree_label: "<entire stacktrace>"
+  component:
+    app-depth-max*
       stacktrace*
         frame*
           filename* (cleaned javassist parts)

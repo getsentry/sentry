@@ -59,13 +59,14 @@ def get_stacktrace_hierarchy(main_variant, components, frames, inverted_hierarch
         all_variants[key] = prev_variant = GroupingComponent(
             id="stacktrace", values=layer, tree_label=tree_label
         )
-    else:
-        all_variants["app-depth-max"] = main_variant
 
     if not all_variants:
         all_variants.update(
             _build_fallback_tree(main_variant, components, frames, inverted_hierarchy)
         )
+
+    all_variants["app-depth-max"] = main_variant
+
     return all_variants
 
 
@@ -129,9 +130,6 @@ def _build_fallback_tree(main_variant, components, frames, inverted_hierarchy):
             values=pre_frames,
             tree_label=tree_label,
         )
-
-    else:
-        all_variants["app-depth-max"] = main_variant
 
     return all_variants
 

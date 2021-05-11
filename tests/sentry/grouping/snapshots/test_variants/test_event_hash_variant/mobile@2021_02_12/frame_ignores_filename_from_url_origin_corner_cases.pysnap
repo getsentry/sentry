@@ -1,5 +1,5 @@
 ---
-created: '2021-04-30T12:13:36.737386Z'
+created: '2021-05-05T18:04:40.832596Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -36,6 +36,32 @@ app-depth-2:
           function*
             "test"
           context-line*
+            "hello world"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "e04dce7550635e05dbd7f656102cf304"
+  tree_label: "<entire stacktrace>"
+  component:
+    app-depth-max*
+      stacktrace*
+        frame*
+          filename (ignored because frame points to a URL)
+            "foo.js"
+          function*
+            "test"
+          context-line*
+            "hello world"
+        frame*
+          filename*
+            "foo.js"
+          function*
+            "test"
+          context-line*
+            "hello world"
+        frame
+          filename (ignored because frame points to a URL)
+            "foo.js"
+          context-line (discarded because from URL origin and no function)
             "hello world"
 --------------------------------------------------------------------------
 system:
