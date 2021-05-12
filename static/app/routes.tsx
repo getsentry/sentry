@@ -1273,7 +1273,11 @@ function routes() {
 
           <Route
             path="/organizations/:orgId/stats/"
-            componentPromise={() => import('app/views/organizationStats')}
+            componentPromise={() =>
+              import(
+                /* webpackChunkName: "OrganizationStats" */ 'app/views/organizationStats'
+              )
+            }
             component={errorHandler(LazyLoad)}
           />
 

@@ -119,7 +119,6 @@ default_manager.add("organizations:symbol-sources", OrganizationFeature)  # NOQA
 default_manager.add("organizations:team-alerts-ownership", OrganizationFeature, True)  # NOQA
 default_manager.add("organizations:transaction-comparison", OrganizationFeature, True)  # NOQA
 default_manager.add("organizations:unhandled-issue-flag", OrganizationFeature)  # NOQA
-default_manager.add("organizations:usage-stats-graph", OrganizationFeature, True)  # NOQA
 default_manager.add("organizations:prompt-dashboards", OrganizationFeature)  # NOQA
 default_manager.add("organizations:performance-tag-page", OrganizationFeature, True)  # NOQA
 default_manager.add("organizations:performance-mobile-vitals", OrganizationFeature, True)  # NOQA
