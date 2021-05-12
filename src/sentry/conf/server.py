@@ -939,7 +939,7 @@ SENTRY_FEATURES = {
     # Enable experimental performance improvements.
     "organizations:enterprise-perf": False,
     # Enable the API to importing CODEOWNERS for a project
-    "organizations:integrations-codeowners": True,
+    "organizations:integrations-codeowners": False,
     # Special feature flag primarily used on the sentry.io SAAS product for
     # easily enabling features while in early development.
     "organizations:internal-catchall": False,
