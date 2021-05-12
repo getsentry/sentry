@@ -29,7 +29,7 @@ import {TableColumn} from 'app/views/eventsV2/table/types';
 
 import {
   PerformanceDuration,
-  platformToPerformanceType,
+  platformAndConditionsToPerformanceType,
   PROJECT_PERFORMANCE_TYPE,
 } from '../utils';
 
@@ -119,17 +119,17 @@ const filterToField = {
   [SpanOperationBreakdownFilter.Resource]: 'spans.resource',
 };
 
-const getTransactionField = (
+export const getTransactionField = (
   currentFilter: SpanOperationBreakdownFilter,
   projects: Project[],
-  projectIds: readonly number[]
+  eventView: EventView
 ) => {
   const fieldFromFilter = filterToField[currentFilter];
   if (fieldFromFilter) {
     return fieldFromFilter;
   }
 
-  const performanceType = platformToPerformanceType(projects, projectIds);
+  const performanceType = platformAndConditionsToPerformanceType(projects, eventView);
   if (performanceType === PROJECT_PERFORMANCE_TYPE.FRONTEND) {
     return 'measurements.lcp';
   }
@@ -140,7 +140,7 @@ const getTransactionField = (
 const getColumnsWithReplacedDuration = (
   currentFilter: SpanOperationBreakdownFilter,
   projects: Project[],
-  projectIds: readonly number[]
+  eventView: EventView
 ) => {
   const columns = COLUMN_ORDER.map(c => ({...c}));
   const durationColumn = columns.find(c => c.key === 'aggregate');
@@ -155,7 +155,7 @@ const getColumnsWithReplacedDuration = (
     return columns;
   }
 
-  const performanceType = platformToPerformanceType(projects, projectIds);
+  const performanceType = platformAndConditionsToPerformanceType(projects, eventView);
   if (performanceType === PROJECT_PERFORMANCE_TYPE.FRONTEND) {
     durationColumn.name = 'Avg LCP';
     return columns;
@@ -403,16 +403,12 @@ class _TagExplorer extends React.Component<Props> {
           ]
     );
 
-    const aggregateColumn = getTransactionField(
-      currentFilter,
-      projects,
-      sortedEventView.project
-    );
+    const aggregateColumn = getTransactionField(currentFilter, projects, sortedEventView);
 
     const adjustedColumns = getColumnsWithReplacedDuration(
       currentFilter,
       projects,
-      sortedEventView.project
+      sortedEventView
     );
     const columns = this.getColumnOrder(adjustedColumns);
 
