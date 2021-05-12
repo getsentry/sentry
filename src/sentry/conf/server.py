@@ -848,6 +848,8 @@ SENTRY_FEATURES = {
     "organizations:advanced-search": True,
     # Enable obtaining and using API keys.
     "organizations:api-keys": False,
+    # Enable Apple app-store-connect dsym symbol file collection.
+    "organizations:app-store-connect": False,
     # Enable explicit use of AND and OR in search.
     "organizations:boolean-search": False,
     # Enable unfurling charts using the Chartcuterie service
