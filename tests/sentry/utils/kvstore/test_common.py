@@ -1,5 +1,6 @@
 import itertools
 from dataclasses import dataclass
+from datetime import timedelta
 from typing import Iterator, Tuple
 
 import pytest
@@ -78,6 +79,11 @@ def test_single_key_operations(properties: Properties) -> None:
     # Test overwriting a key with a prior value.
     new_value = next(properties.values)
     store.set(key, new_value)
+    assert store.get(key) == new_value
+
+    # Test overwriting a key with a new TTL.
+    new_value = next(properties.values)
+    store.set(key, new_value, ttl=timedelta(seconds=30))
     assert store.get(key) == new_value
 
     # Test deleting an existing key.
