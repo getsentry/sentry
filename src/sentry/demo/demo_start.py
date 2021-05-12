@@ -26,6 +26,7 @@ logger = logging.getLogger(__name__)
 ACCEPTED_TRACKING_COOKIE = "accepted_tracking"
 MEMBER_ID_COOKIE = "demo_member_id"
 SKIP_EMAIL_COOKIE = "skip_email"
+SAAS_ORG_SLUG = "saas_org_slug"
 
 
 class DemoStartView(BaseView):
@@ -94,6 +95,10 @@ class DemoStartView(BaseView):
         skip_email = request.POST.get("skipEmail")
         if skip_email == "1":
             resp.set_cookie(SKIP_EMAIL_COOKIE, skip_email)
+
+        saas_org_slug = request.POST.get("saasOrgSlug")
+        if saas_org_slug:
+            resp.set_cookie(SAAS_ORG_SLUG, saas_org_slug)
 
         # set the member id
         resp.set_signed_cookie(MEMBER_ID_COOKIE, member.id)
