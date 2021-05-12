@@ -32,3 +32,9 @@ export type DebugFile = {
   uuid: string;
   data?: {type: DebugFileType; features: DebugFileFeature[]};
 };
+
+export type AppStoreConnectValidationData = {
+  configured: boolean;
+  appstoreCredentialsValid: boolean;
+  itunesSessionValid: boolean;
+};

@@ -219,6 +219,10 @@ const lightAliases = {
    */
   tagBarHover: colors.purple200,
   tagBar: colors.gray200,
+  /**
+   * Color for badge text
+   */
+  badgeText: colors.white,
 };
 
 const generateAlertTheme = (alias: Aliases) => ({
@@ -259,22 +263,32 @@ const generateBadgeTheme = (alias: Aliases) => ({
   default: {
     background: alias.badgeBackground,
     indicatorColor: alias.badgeBackground,
+    color: alias.badgeText,
   },
   alpha: {
     background: colors.orange400,
     indicatorColor: colors.orange400,
+    color: alias.badgeText,
   },
   beta: {
     background: `linear-gradient(90deg, ${colors.pink300}, ${colors.purple300})`,
     indicatorColor: colors.purple300,
+    color: alias.badgeText,
   },
   new: {
     background: colors.green300,
     indicatorColor: colors.green300,
+    color: alias.badgeText,
   },
   review: {
     background: colors.purple300,
     indicatorColor: colors.purple300,
+    color: alias.badgeText,
+  },
+  warning: {
+    background: colors.yellow300,
+    indicatorColor: colors.yellow300,
+    color: alias.badgeText,
   },
 });
 
@@ -601,6 +615,7 @@ const darkAliases = {
   tagBarHover: colors.purple300,
   tagBar: colors.gray400,
   businessIconColors: [colors.pink100, colors.pink300],
+  badgeText: colors.black,
 };
 
 export const lightTheme = {

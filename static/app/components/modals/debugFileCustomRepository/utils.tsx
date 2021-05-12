@@ -1,23 +1,16 @@
-import {Component, Fragment} from 'react';
-
-import {ModalRenderProps} from 'app/actionCreators/modal';
 import ExternalLink from 'app/components/links/externalLink';
 import {
   AWS_REGIONS,
   DEBUG_SOURCE_CASINGS,
   DEBUG_SOURCE_LAYOUTS,
-  getDebugSourceName,
 } from 'app/data/debugFileSources';
 import {t, tct} from 'app/locale';
 import {DebugFileSource} from 'app/types';
-import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
-import Form from 'app/views/settings/components/forms/form';
 import {Field} from 'app/views/settings/components/forms/type';
 
 function objectToChoices(obj: Record<string, string>): [key: string, value: string][] {
   return Object.entries(obj).map(([key, value]) => [key, t(value)]);
 }
-
 type FieldMap = Record<string, Field>;
 
 const commonFields: FieldMap = {
@@ -177,7 +170,7 @@ const gcsFields: FieldMap = {
   },
 };
 
-function getFormFields(type: DebugFileSource) {
+export function getFormFields(type: DebugFileSource) {
   switch (type) {
     case 'http':
       return [
@@ -222,69 +215,3 @@ function getFormFields(type: DebugFileSource) {
       return null;
   }
 }
-
-type Props = {
-  /**
-   * Callback invoked with the updated config value.
-   */
-  onSave: (config: Record<string, string>) => void;
-  /**
-   * Type of this source.
-   */
-  sourceType: DebugFileSource;
-  /**
-   * The sourceConfig. May be empty to create a new one.
-   */
-  sourceConfig?: Record<string, string>;
-} & Pick<ModalRenderProps, 'closeModal' | 'Header'>;
-
-class DebugFileSourceModal extends Component<Props> {
-  handleSave = (data: Record<string, string>) => {
-    const {sourceType, onSave, closeModal} = this.props;
-    onSave({...data, type: sourceType});
-    closeModal();
-  };
-
-  renderForm() {
-    const {sourceConfig, sourceType} = this.props;
-    const fields = getFormFields(sourceType);
-
-    if (!fields) {
-      return null;
-    }
-
-    return (
-      <Form
-        allowUndo
-        requireChanges
-        initialData={sourceConfig}
-        onSubmit={this.handleSave}
-        footerClass="modal-footer"
-      >
-        {fields.map((field, i) => (
-          <FieldFromConfig key={field.name || i} field={field} inline={false} stacked />
-        ))}
-      </Form>
-    );
-  }
-
-  render() {
-    const {sourceType, sourceConfig, Header} = this.props;
-
-    const headerText = sourceConfig
-      ? 'Update [name] Repository'
-      : 'Add [name] Repository';
-
-    return (
-      <Fragment>
-        <Header closeButton>
-          {tct(headerText, {name: getDebugSourceName(sourceType)})}
-        </Header>
-
-        {this.renderForm()}
-      </Fragment>
-    );
-  }
-}
-
-export default DebugFileSourceModal;
