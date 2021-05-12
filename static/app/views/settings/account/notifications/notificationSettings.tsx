@@ -229,7 +229,7 @@ class NotificationSettings extends AsyncComponent<Props, State> {
           <Avatar
             {...{[this.isGroupedByProject() ? 'project' : 'organization']: parent}}
           />
-          {parent.name}
+          {parent.slug}
         </React.Fragment>
       ),
       getData: data => this.getStateToPutForParent(data, parent.id),
