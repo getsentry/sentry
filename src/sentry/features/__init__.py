@@ -56,6 +56,7 @@ default_manager.add("organizations:alert-details-redesign", OrganizationFeature,
 default_manager.add("organizations:alert-filters", OrganizationFeature)  # NOQA
 default_manager.add("organizations:alert-wizard", OrganizationFeature, True)  # NOQA
 default_manager.add("organizations:api-keys", OrganizationFeature)  # NOQA
+default_manager.add("organizations:app-store-connect", OrganizationFeature)  # NOQA
 default_manager.add("organizations:boolean-search", OrganizationFeature)  # NOQA
 default_manager.add("organizations:chart-unfurls", OrganizationFeature, True)  # NOQA
 default_manager.add("organizations:custom-event-title", OrganizationFeature)  # NOQA
@@ -118,7 +119,6 @@ default_manager.add("organizations:symbol-sources", OrganizationFeature)  # NOQA
 default_manager.add("organizations:team-alerts-ownership", OrganizationFeature, True)  # NOQA
 default_manager.add("organizations:transaction-comparison", OrganizationFeature, True)  # NOQA
 default_manager.add("organizations:unhandled-issue-flag", OrganizationFeature)  # NOQA
-default_manager.add("organizations:usage-stats-graph", OrganizationFeature, True)  # NOQA
 default_manager.add("organizations:prompt-dashboards", OrganizationFeature)  # NOQA
 default_manager.add("organizations:performance-tag-page", OrganizationFeature, True)  # NOQA
 default_manager.add("organizations:performance-mobile-vitals", OrganizationFeature, True)  # NOQA
