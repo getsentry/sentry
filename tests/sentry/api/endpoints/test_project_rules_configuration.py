@@ -22,7 +22,7 @@ class ProjectRuleConfigurationTest(APITestCase):
         response = self.get_valid_response(self.organization.slug, project1.slug)
 
         assert len(response.data["actions"]) == 7
-        assert len(response.data["conditions"]) == 6
+        assert len(response.data["conditions"]) == 7
         assert len(response.data["filters"]) == 7
 
     @property
