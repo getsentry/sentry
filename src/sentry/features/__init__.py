@@ -117,8 +117,6 @@ default_manager.add("organizations:sso-rippling", OrganizationFeature)  # NOQA
 default_manager.add("organizations:sso-saml2", OrganizationFeature)  # NOQA
 default_manager.add("organizations:symbol-sources", OrganizationFeature)  # NOQA
 default_manager.add("organizations:team-alerts-ownership", OrganizationFeature, True)  # NOQA
-default_manager.add("organizations:trace-view-quick", OrganizationFeature, True)  # NOQA
-default_manager.add("organizations:trace-view-summary", OrganizationFeature, True)  # NOQA
 default_manager.add("organizations:transaction-comparison", OrganizationFeature, True)  # NOQA
 default_manager.add("organizations:unhandled-issue-flag", OrganizationFeature)  # NOQA
 default_manager.add("organizations:usage-stats-graph", OrganizationFeature, True)  # NOQA

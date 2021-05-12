@@ -26,13 +26,13 @@ import {VitalData} from 'app/utils/performance/vitals/vitalsCardsDiscoverQuery';
 import {Theme} from 'app/utils/theme';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 
-import {VitalBar} from '../landing/vitalsCards';
+import {VitalBar} from '../../landing/vitalsCards';
 import {
   VitalState,
   vitalStateColors,
   webVitalMeh,
   webVitalPoor,
-} from '../vitalDetail/utils';
+} from '../../vitalDetail/utils';
 
 import {NUM_BUCKETS, PERCENTILE} from './constants';
 import {Card, CardSectionHeading, CardSummary, Description, StatNumber} from './styles';
