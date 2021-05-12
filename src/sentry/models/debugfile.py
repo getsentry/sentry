@@ -173,7 +173,7 @@ def clean_redundant_difs(project, debug_id):
 
     all_features = set()
     bcsymbolmap_seen = False
-    plist_seen = False
+    uuidmap_seen = False
     for i, dif in enumerate(difs):
         mime_type = dif.file.headers.get("Content-Type")
         if mime_type == DIF_MIMETYPES["bcsymbolmap"]:
@@ -181,9 +181,9 @@ def clean_redundant_difs(project, debug_id):
                 bcsymbolmap_seen = True
             else:
                 dif.delete()
-        elif mime_type == DIF_MIMETYPES["plist"]:
-            if not plist_seen:
-                plist_seen = True
+        elif mime_type == DIF_MIMETYPES["uuidmap"]:
+            if not uuidmap_seen:
+                uuidmap_seen = True
             else:
                 dif.delete()
         else:
@@ -219,7 +219,7 @@ def create_dif_from_id(project, meta, fileobj=None, file=None):
         "wasm",
         "sourcebundle",
         "bcsymbolmap",
-        "plist",
+        "uuidmap",
     ):
         object_name = meta.name
     elif meta.file_format == "breakpad":
@@ -348,7 +348,7 @@ class DifKind(enum.Enum):
 
     Object = enum.auto()
     BcSymbolMap = enum.auto()
-    PList = enum.auto()
+    UuidMap = enum.auto()
     # TODO(flub): should we include proguard?  The tradeoff is that we'd be matching the
     # regex of it twice.  That cost is probably not too great to worry about.
 
@@ -363,7 +363,7 @@ def determine_dif_kind(path):
         if data.startswith(b"BCSymbolMap"):
             return DifKind.BcSymbolMap
         elif data.startswith(b"<?xml"):
-            return DifKind.PList
+            return DifKind.UuidMap
         else:
             return DifKind.Object
 
@@ -403,15 +403,15 @@ def detect_dif_from_path(path, name=None, debug_id=None):
                     file_format="bcsymbolmap", arch="any", debug_id=debug_id, name=name, path=path
                 )
             ]
-    elif dif_kind == DifKind.PList and debug_id is not None:
+    elif dif_kind == DifKind.UuidMap and debug_id is not None:
         try:
             UuidMapping.from_plist(debug_id, path)
         except SymbolicError as e:
             logger.warning("uuidmap.bad-file", exc_info=True)
-            raise BadDif("Invalid PList: %s" % e)
+            raise BadDif("Invalid UuidMap: %s" % e)
         else:
             return [
-                DifMeta(file_format="plist", arch="any", debug_id=debug_id, name=name, path=path)
+                DifMeta(file_format="uuidmap", arch="any", debug_id=debug_id, name=name, path=path)
             ]
     else:
         # native debug information files (MachO, ELF or Breakpad)

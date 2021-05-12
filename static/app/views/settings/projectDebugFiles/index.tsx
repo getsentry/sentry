@@ -68,7 +68,7 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
               'sourcebundle',
               'wasm',
               'bcsymbolmap',
-              'plist',
+              'uuidmap',
             ],
           },
         },
