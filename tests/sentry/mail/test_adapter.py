@@ -408,6 +408,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest, TestCase):
         mail.outbox = []
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             self.adapter.notify(Notification(event=event), target_type, target_identifier)
+
         assert sorted(email.to[0] for email in mail.outbox) == sorted(emails_sent_to)
 
     def test_notify_users_with_owners(self):
@@ -470,7 +471,9 @@ class MailAdapterNotifyTest(BaseMailAdapterTest, TestCase):
         )
         self.assert_notify(event_all_users, [user.email])
 
-    def test_notify_team(self):
+    def test_notify_team_members(self):
+        """Test that each member of a team is notified"""
+
         user = self.create_user(email="foo@example.com", is_active=True)
         user2 = self.create_user(email="baz@example.com", is_active=True)
         team = self.create_team(organization=self.organization, members=[user, user2])

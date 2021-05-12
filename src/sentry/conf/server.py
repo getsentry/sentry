@@ -939,7 +939,7 @@ SENTRY_FEATURES = {
     # Enable experimental performance improvements.
     "organizations:enterprise-perf": False,
     # Enable the API to importing CODEOWNERS for a project
-    "organizations:integrations-codeowners": False,
+    "organizations:integrations-codeowners": True,
     # Special feature flag primarily used on the sentry.io SAAS product for
     # easily enabling features while in early development.
     "organizations:internal-catchall": False,
@@ -967,7 +967,7 @@ SENTRY_FEATURES = {
     "organizations:minute-resolution-sessions": False,
     # Enable option to send alert, workflow, and deploy notifications
     # to 3rd parties (e.g. Slack) in addition to email
-    "organizations:notification-platform": False,
+    "organizations:notification-platform": True,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
     # Enable basic SSO functionality, providing configurable single sign on

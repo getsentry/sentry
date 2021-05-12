@@ -410,7 +410,83 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
     @responses.activate
     @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
     def test_issue_alert_team(self, mock_func):
-        """Test that issue alerts are sent to members of a Sentry team in Slack."""
+        """Test that issue alerts are sent to a team in Slack."""
+
+        # add a second user to the team so we can be sure it's only
+        # sent once (to the team, and not to each individual user)
+        user2 = self.create_user(is_superuser=False)
+        self.create_member(teams=[self.team], user=user2, organization=self.organization)
+        ExternalActor.objects.create(
+            actor=user2.actor,
+            organization=self.organization,
+            integration=self.integration,
+            provider=ExternalProviders.SLACK.value,
+            external_name="goma",
+            external_id="UXXXXXXX2",
+        )
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.SLACK,
+            NotificationSettingTypes.ISSUE_ALERTS,
+            NotificationSettingOptionValues.ALWAYS,
+            user=user2,
+        )
+        # update the team's notification settings
+        ExternalActor.objects.create(
+            actor=self.team.actor,
+            organization=self.organization,
+            integration=self.integration,
+            provider=ExternalProviders.SLACK.value,
+            external_name="goma",
+            external_id="CXXXXXXX2",
+        )
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.SLACK,
+            NotificationSettingTypes.ISSUE_ALERTS,
+            NotificationSettingOptionValues.ALWAYS,
+            project=self.project,
+            team=self.team,
+        )
+
+        event = self.store_event(
+            data={"message": "Hello world", "level": "error"}, project_id=self.project.id
+        )
+        action_data = {
+            "id": "sentry.mail.actions.NotifyEmailAction",
+            "targetType": "Team",  # TODO CEO make another test where this is issue owners
+            # and the issue owners includes both users and teams
+            "targetIdentifier": str(self.team.id),
+        }
+        rule = Rule.objects.create(
+            project=self.project,
+            label="ja rule",
+            data={
+                "match": "all",
+                "actions": [action_data],
+            },
+        )
+        notification = Notification(event=event, rule=rule)
+
+        with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
+            self.adapter.notify(notification, ActionTargetType.TEAM, self.team.id)
+
+        # check that only one was sent out - more would mean each user is being notified
+        # rather than the team
+        assert len(responses.calls) == 1
+
+        # check that the team got a notification
+        data = parse_qs(responses.calls[0].request.body)
+        assert data["channel"] == ["CXXXXXXX2"]
+        assert "attachments" in data
+        attachments = json.loads(data["attachments"][0])
+        assert len(attachments) == 1
+        assert attachments[0]["title"] == "Hello world"
+        assert attachments[0]["text"] == ""
+        assert attachments[0]["footer"] == event.group.qualified_short_id
+
+    @responses.activate
+    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
+    def test_issue_alert_team_fallback(self, mock_func):
+        """Test that issue alerts are sent to each member of a team in Slack."""
 
         user2 = self.create_user(is_superuser=False)
         self.create_member(teams=[self.team], user=user2, organization=self.organization)
@@ -454,6 +530,7 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
 
         # check that self.user got a notification
         data = parse_qs(responses.calls[0].request.body)
+        assert data["channel"] == ["UXXXXXXX1"]
         assert "attachments" in data
         attachments = json.loads(data["attachments"][0])
         assert len(attachments) == 1
@@ -463,6 +540,7 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
 
         # check that user2 got a notification as well
         data2 = parse_qs(responses.calls[1].request.body)
+        assert data2["channel"] == ["UXXXXXXX2"]
         assert "attachments" in data2
         attachments = json.loads(data2["attachments"][0])
         assert len(attachments) == 1

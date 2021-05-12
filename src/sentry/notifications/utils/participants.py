@@ -68,7 +68,6 @@ def get_participants_for_group(
     # TODO(dcramer): not used yet today except by Release's
     if not group:
         return {}
-
     participants_by_provider: MutableMapping[
         ExternalProviders, MutableMapping[User, int]
     ] = GroupSubscription.objects.get_participants(group)
@@ -144,7 +143,7 @@ def get_send_to(
     target_type: ActionTargetType,
     target_identifier: Optional[int] = None,
     event: Optional[Any] = None,
-) -> Mapping[ExternalProviders, Set[User]]:
+) -> Mapping[ExternalProviders, Union[Set[User], Set[Team]]]:
     """
     Returns a mapping of providers to a list of user IDs for the users that
     should receive notifications for the provided project. This result may come
@@ -153,7 +152,6 @@ def get_send_to(
     if not (project and project.teams.exists()):
         logger.debug("Tried to send notification to invalid project: %r", project)
         return {}
-
     if target_type == ActionTargetType.ISSUE_OWNERS:
         if not event:
             return get_send_to_all_in_project(project)
@@ -253,7 +251,7 @@ def get_send_to_team(
     project: Project, target_identifier: Optional[Union[str, int]]
 ) -> Mapping[ExternalProviders, Set[User]]:
     """
-    TODO(mgaeta): Use team notification settings instead of iterating over users.
+    Get a team's notification settings. If not present, get settings for each subscribed user in the team.
     :param project:
     :param target_identifier: Optional. String or int representation of a team_id.
     :returns: Mapping[ExternalProvider, Iterable[User]] A mapping of provider to
@@ -266,6 +264,18 @@ def get_send_to_team(
     except Team.DoesNotExist:
         return {}
 
+    team_notification_settings = NotificationSetting.objects.get_for_team(
+        NotificationSettingTypes.ISSUE_ALERTS, parent=project, team=team
+    )
+
+    if team_notification_settings:
+        mapping = {
+            ExternalProviders(notification_setting.provider): {team}
+            for notification_setting in team_notification_settings
+        }
+        return mapping
+
+    # fallback to notifying each subscribed user if there aren't team notification settings
     member_list = team.member_set.values_list("user_id", flat=True)
     users = User.objects.filter(id__in=member_list)
 
