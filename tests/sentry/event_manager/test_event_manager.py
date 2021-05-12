@@ -6,7 +6,7 @@ from time import time
 import pytest
 from django.utils import timezone
 
-from sentry import nodestore
+from sentry import nodestore, options
 from sentry.app import tsdb
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.constants import MAX_VERSION_LENGTH, DataCategory
@@ -168,6 +168,44 @@ class EventManagerTest(TestCase):
         assert group.message == event2.message
         assert group.data.get("type") == "default"
         assert group.data.get("metadata") == {"title": "foo 123"}
+
+    @mock.patch("sentry.event_manager._calculate_background_grouping")
+    def test_applies_background_grouping(self, mock_calc_grouping):
+
+        timestamp = time() - 300
+        manager = EventManager(
+            make_event(message="foo 123", event_id="a" * 32, timestamp=timestamp)
+        )
+        manager.normalize()
+        manager.save(self.project.id)
+
+        assert mock_calc_grouping.call_count == 0
+
+        options.set("store.background-grouping-config-id", "mobile:2021-02-12")
+        options.set("store.background-grouping-sample-rate", 1.0)
+
+        manager.save(self.project.id)
+
+        assert mock_calc_grouping.call_count == 1
+
+    @mock.patch("sentry.event_manager._calculate_background_grouping")
+    def test_background_grouping_sample_rate(self, mock_calc_grouping):
+
+        timestamp = time() - 300
+        manager = EventManager(
+            make_event(message="foo 123", event_id="a" * 32, timestamp=timestamp)
+        )
+        manager.normalize()
+        manager.save(self.project.id)
+
+        assert mock_calc_grouping.call_count == 0
+
+        options.set("store.background-grouping-config-id", "mobile:2021-02-12")
+        options.set("store.background-grouping-sample-rate", 0.0)
+
+        manager.save(self.project.id)
+
+        assert mock_calc_grouping.call_count == 0
 
     def test_updates_group_with_fingerprint(self):
         ts = time() - 200
