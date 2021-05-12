@@ -428,7 +428,7 @@ class ServiceDelegator(Delegator, Service):
                 name: (
                     build_instance_from_options(options),
                     build_instance_from_options(
-                        options.get("executor"), default_constructor=ThreadedExecutor
+                        options.get("executor", {}), default_constructor=ThreadedExecutor
                     ),
                 )
                 for name, options in backends.items()
