@@ -455,3 +455,24 @@ class AlertRuleDetailsDeleteEndpointTest(AlertRuleDetailsBase, APITestCase):
 
             # We also confirm that the incident is automatically resolved.
             assert Incident.objects.get(id=incident.id).status == IncidentStatus.CLOSED.value
+
+    def test_team_permission(self):
+        # Test ensures you can only delete alerts owned by your team or no one.
+        om = self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+        alert_rule = self.alert_rule
+        alert_rule.owner = self.team.actor
+        alert_rule.save()
+        # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
+        OrganizationMemberTeam.objects.filter(
+            organizationmember__user=self.user,
+            team=self.team,
+        ).delete()
+        with self.feature("organizations:incidents"):
+            resp = self.get_response(self.organization.slug, alert_rule.id)
+        assert resp.status_code == 403
+        self.create_team_membership(team=self.team, member=om)
+        with self.feature("organizations:incidents"):
+            resp = self.get_valid_response(self.organization.slug, alert_rule.id, status_code=204)
