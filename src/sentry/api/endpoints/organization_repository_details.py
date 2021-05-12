@@ -74,9 +74,9 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
         # TODO(meredith): Feature gate this as well
         if repo.provider == "integrations:custom_scm":
             if result.get("name"):
-                update_kwargs["name"] = result.get("name")
+                update_kwargs["name"] = result["name"]
             if result.get("url") is not None:
-                update_kwargs["url"] = result.get("url")
+                update_kwargs["url"] = result["url"] or None
 
         if update_kwargs:
             old_status = repo.status

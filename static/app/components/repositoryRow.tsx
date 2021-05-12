@@ -163,13 +163,15 @@ class RepositoryRow extends Component<Props> {
               </div>
             </RepositoryTitleAndUrl>
             {repository.provider.id === 'integrations:custom_scm' ? (
-              // TODO(meredith): Feature Gate this as well ^
               <EditAndDelete>
                 <StyledButton
                   size="xsmall"
                   icon={<IconEdit size="xs" />}
-                  label={t('add')}
-                  disabled={!hasAccess}
+                  label={t('edit')}
+                  disabled={
+                    !hasAccess ||
+                    (!isActive && repository.status !== RepositoryStatus.DISABLED)
+                  }
                   onClick={() => this.openModal()}
                 />
                 {this.renderDeleteButton(hasAccess)}

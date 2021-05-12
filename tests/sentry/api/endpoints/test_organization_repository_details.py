@@ -156,6 +156,70 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         assert repo.status == ObjectStatus.VISIBLE
         assert repo.integration_id == integration.id
 
+    def test_put_custom_scm_repo(self):
+        """
+        Allow repositories that are tied to Custom SCM integrations
+        to be able to update `name` and `url`.
+        """
+        self.login_as(user=self.user)
+
+        org = self.create_organization(owner=self.user, name="baz")
+        integration = Integration.objects.create(
+            provider="integrations:custom_scm", name="some-org"
+        )
+        integration.add_organization(org)
+
+        repo = Repository.objects.create(
+            name="some-org/example",
+            organization_id=org.id,
+            integration_id=integration.id,
+            provider="integrations:custom_scm",
+        )
+
+        url = reverse("sentry-api-0-organization-repository-details", args=[org.slug, repo.id])
+        response = self.client.put(
+            url, data={"url": "https://example.com/some-org/repo", "name": "some-org/new-name"}
+        )
+
+        assert response.status_code == 200
+        repo = Repository.objects.get(id=repo.id)
+        assert repo.url == "https://example.com/some-org/repo"
+        assert repo.name == "some-org/new-name"
+
+        # test that empty url sets it back to None
+        response = self.client.put(url, data={"url": ""})
+        repo = Repository.objects.get(id=repo.id)
+        assert repo.url is None
+        assert repo.name == "some-org/new-name"
+
+    def test_no_name_or_url_updates(self):
+        """
+        Repositories that are not tied to Custom SCM integrations
+        *cannot* update their `name` or `url`.
+
+        This is true for repos in the following categories:
+         * 'Unknown provider'
+         * Plugins
+         * First Party Integrations (non Custom SCM)
+        """
+        self.login_as(user=self.user)
+
+        org = self.create_organization(owner=self.user, name="baz")
+        repo = Repository.objects.create(
+            name="example", organization_id=org.id, url="https:/example.com/"
+        )
+
+        url = reverse("sentry-api-0-organization-repository-details", args=[org.slug, repo.id])
+        response = self.client.put(
+            url, data={"url": "https://example.com/some-org/repo", "name": "some-org/new-name"}
+        )
+
+        assert response.status_code == 200
+        repo = Repository.objects.get(id=repo.id)
+        # no changes were made
+        assert repo.url == "https:/example.com/"
+        assert repo.name == "example"
+
     def test_put_cancel_deletion(self):
         self.login_as(user=self.user)
 
