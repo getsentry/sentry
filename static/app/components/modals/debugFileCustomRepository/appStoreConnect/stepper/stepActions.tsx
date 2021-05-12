@@ -6,14 +6,22 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import {t} from 'app/locale';
 
 type Props = {
-  goNextDisabled: boolean;
+  primaryButtonDisabled: boolean;
   isLoading: boolean;
+  onFinish: () => void;
   onCancel?: () => void;
   onGoBack?: () => void;
   onGoNext?: () => void;
 };
 
-function StepActions({goNextDisabled, isLoading, onCancel, onGoBack, onGoNext}: Props) {
+function StepActions({
+  primaryButtonDisabled,
+  isLoading,
+  onFinish,
+  onCancel,
+  onGoBack,
+  onGoNext,
+}: Props) {
   return (
     <Wrapper>
       <ButtonBar gap={1}>
@@ -27,12 +35,12 @@ function StepActions({goNextDisabled, isLoading, onCancel, onGoBack, onGoNext}: 
             {t('Back')}
           </Button>
         )}
-        {onGoNext && (
+        {onGoNext ? (
           <StyledButton
             size="small"
             priority="primary"
             onClick={onGoNext}
-            disabled={goNextDisabled}
+            disabled={primaryButtonDisabled}
           >
             {isLoading && (
               <LoadingIndicatorWrapper>
@@ -40,6 +48,20 @@ function StepActions({goNextDisabled, isLoading, onCancel, onGoBack, onGoNext}: 
               </LoadingIndicatorWrapper>
             )}
             {t('Next')}
+          </StyledButton>
+        ) : (
+          <StyledButton
+            size="small"
+            priority="primary"
+            onClick={onFinish}
+            disabled={primaryButtonDisabled}
+          >
+            {isLoading && (
+              <LoadingIndicatorWrapper>
+                <LoadingIndicator mini />
+              </LoadingIndicatorWrapper>
+            )}
+            {t('Finish')}
           </StyledButton>
         )}
       </ButtonBar>

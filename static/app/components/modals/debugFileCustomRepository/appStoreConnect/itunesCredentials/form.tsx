@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
@@ -36,10 +36,19 @@ type Props = {
   projectSlug: Project['slug'];
   data: ItunesCredentialsData;
   onChange: (data: ItunesCredentialsData) => void;
+  onSwitchToReadMode: () => void;
   onCancel?: () => void;
 };
 
-function Form({api, orgSlug, projectSlug, data, onChange, onCancel}: Props) {
+function Form({
+  api,
+  orgSlug,
+  projectSlug,
+  data,
+  onChange,
+  onSwitchToReadMode,
+  onCancel,
+}: Props) {
   const [activeStep, setActiveStep] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [sessionContext, setSessionContext] = useState('');
@@ -59,16 +68,12 @@ function Form({api, orgSlug, projectSlug, data, onChange, onCancel}: Props) {
     org: data.org,
   });
 
-  useEffect(() => {
-    onChange({...stepOneData, ...stepTwoData, ...stepThreeData, sessionContext, useSms});
-  }, [stepThreeData]);
-
   function isFormInvalid() {
     switch (activeStep) {
       case 0:
-        return Object.keys(stepOneData).some(key => !stepOneData[key]?.trim());
+        return Object.keys(stepOneData).some(key => !stepOneData[key]);
       case 1:
-        return Object.keys(stepTwoData).some(key => !stepTwoData[key]?.trim());
+        return Object.keys(stepTwoData).some(key => !stepTwoData[key]);
       case 2:
         return Object.keys(stepThreeData).some(key => !stepThreeData[key]);
       default:
@@ -106,6 +111,11 @@ function Form({api, orgSlug, projectSlug, data, onChange, onCancel}: Props) {
       default:
         break;
     }
+  }
+
+  function handleSave() {
+    onChange({...stepOneData, ...stepTwoData, ...stepThreeData, sessionContext, useSms});
+    onSwitchToReadMode();
   }
 
   async function startItunesAuthentication(shouldGoNext = true) {
@@ -317,7 +327,8 @@ function Form({api, orgSlug, projectSlug, data, onChange, onCancel}: Props) {
           onGoBack={index !== 0 ? handleGoBack : undefined}
           onGoNext={index !== steps.length - 1 ? handleGoNext : undefined}
           onCancel={onCancel}
-          goNextDisabled={isFormInvalid() || isLoading}
+          onFinish={handleSave}
+          primaryButtonDisabled={isFormInvalid() || isLoading}
           isLoading={isLoading}
         />
       )}
