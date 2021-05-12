@@ -77,7 +77,7 @@ class Migration(migrations.Migration):
             state_operations=[
                 migrations.AlterIndexTogether(
                     name="release",
-                    index_together={("major", "minor", "patch", "revision")},
+                    index_together={("organization", "major", "minor", "patch", "revision")},
                 ),
             ],
         ),
