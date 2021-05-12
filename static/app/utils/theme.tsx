@@ -614,6 +614,7 @@ const darkAliases = {
   overlayBackgroundAlpha: 'rgba(18, 9, 23, 0.7)',
   tagBarHover: colors.purple300,
   tagBar: colors.gray400,
+  businessIconColors: [colors.pink100, colors.pink300],
   badgeText: colors.black,
 };
 

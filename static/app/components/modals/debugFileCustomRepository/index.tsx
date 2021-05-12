@@ -3,7 +3,6 @@ import {withRouter, WithRouterProps} from 'react-router';
 import {css} from '@emotion/react';
 
 import {ModalRenderProps} from 'app/actionCreators/modal';
-import ErrorBoundary from 'app/components/errorBoundary';
 import {getDebugSourceName} from 'app/data/debugFileSources';
 import {tct} from 'app/locale';
 import {DebugFileSource} from 'app/types';
@@ -55,17 +54,15 @@ function DebugFileCustomRepository({
   function renderForm() {
     if (sourceType === 'appStoreConnect') {
       return (
-        <ErrorBoundary>
-          <AppStoreConnect
-            Body={Body}
-            Footer={Footer}
-            closeModal={closeModal}
-            orgSlug={orgId}
-            projectSlug={projectId}
-            onSubmit={handleSave}
-            initialData={sourceConfig as AppStoreConnectInitialData | undefined}
-          />
-        </ErrorBoundary>
+        <AppStoreConnect
+          Body={Body}
+          Footer={Footer}
+          closeModal={closeModal}
+          orgSlug={orgId}
+          projectSlug={projectId}
+          onSubmit={handleSave}
+          initialData={sourceConfig as AppStoreConnectInitialData | undefined}
+        />
       );
     }
 

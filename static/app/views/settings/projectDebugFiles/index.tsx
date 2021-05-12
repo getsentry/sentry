@@ -90,16 +90,6 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
       endpoints.push(['builtinSymbolSources', '/builtin-symbol-sources/', {}]);
     }
 
-    // const appStoreConnectId = this.getAppStoreConnectId();
-
-    // if (appStoreConnectId) {
-    //   endpoints.push([
-    //     'appStoreConnectValidationData',
-    //     `/projects/${orgId}/${projectId}/appstoreconnect/validate/${appStoreConnectId}/`,
-    //     {},
-    //   ]);
-    // }
-
     return endpoints;
   }
 
@@ -179,12 +169,7 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
   }
 
   getFieldsSymbolSources() {
-    const {organization} = this.props;
-
-    if (
-      !organization.features?.includes('app-store-connect') ||
-      this.getAppStoreConnectId()
-    ) {
+    if (this.getAppStoreConnectId()) {
       return fields.symbolSources;
     }
 
@@ -240,7 +225,13 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
     const {orgId, projectId} = params;
     const {features, access} = organization;
 
-    const fieldsSymbolSources = this.getFieldsSymbolSources();
+    const hasAppStoreConnectFeatureFlag = !!organization.features?.includes(
+      'app-store-connect'
+    );
+
+    const fieldsSymbolSources = hasAppStoreConnectFeatureFlag
+      ? this.getFieldsSymbolSources()
+      : fields.symbolSources;
 
     const fieldProps = {
       organization,
@@ -260,36 +251,36 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
         </TextBlock>
 
         {features.includes('symbol-sources') && (
-          <AppStoreConnectContext.Consumer>
-            {data => (
-              <Fragment>
-                <PermissionAlert />
-                {this.renderAppStoreConnectAlert(data)}
-                <Form
-                  saveOnBlur
-                  allowUndo
-                  initialData={project}
-                  apiMethod="PUT"
-                  apiEndpoint={`/projects/${orgId}/${projectId}/`}
-                  onSubmitSuccess={ProjectActions.updateSuccess}
-                  key={
-                    [
-                      ...(project.builtinSymbolSources ?? []),
-                      ...(builtinSymbolSources ?? []),
-                    ].join() || project.id
-                  }
-                >
-                  <JsonForm
-                    features={new Set(features)}
-                    title={t('External Sources')}
-                    disabled={!access.includes('project:write')}
-                    fields={[fieldsSymbolSources, fields.builtinSymbolSources]}
-                    additionalFieldProps={fieldProps}
-                  />
-                </Form>
-              </Fragment>
+          <Fragment>
+            <PermissionAlert />
+            {hasAppStoreConnectFeatureFlag && (
+              <AppStoreConnectContext.Consumer>
+                {data => this.renderAppStoreConnectAlert(data)}
+              </AppStoreConnectContext.Consumer>
             )}
-          </AppStoreConnectContext.Consumer>
+            <Form
+              saveOnBlur
+              allowUndo
+              initialData={project}
+              apiMethod="PUT"
+              apiEndpoint={`/projects/${orgId}/${projectId}/`}
+              onSubmitSuccess={ProjectActions.updateSuccess}
+              key={
+                [
+                  ...(project.builtinSymbolSources ?? []),
+                  ...(builtinSymbolSources ?? []),
+                ].join() || project.id
+              }
+            >
+              <JsonForm
+                features={new Set(features)}
+                title={t('External Sources')}
+                disabled={!access.includes('project:write')}
+                fields={[fieldsSymbolSources, fields.builtinSymbolSources]}
+                additionalFieldProps={fieldProps}
+              />
+            </Form>
+          </Fragment>
         )}
 
         <Wrapper>
