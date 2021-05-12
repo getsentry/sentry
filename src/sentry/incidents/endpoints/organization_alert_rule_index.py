@@ -15,12 +15,14 @@ from sentry.api.paginator import (
 )
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.alert_rule import CombinedRuleSerializer
-from sentry.auth.superuser import is_active_superuser
+from sentry.api.utils import InvalidParams
 from sentry.incidents.endpoints.serializers import AlertRuleSerializer
 from sentry.incidents.models import AlertRule, Incident
-from sentry.models import OrganizationMemberTeam, Project, Rule, RuleStatus, Team, TeamStatus
+from sentry.models import OrganizationMemberTeam, Project, Rule, RuleStatus, Team
 from sentry.snuba.dataset import Dataset
 from sentry.utils.cursors import Cursor, StringCursor
+
+from .utils import parse_team_params
 
 
 class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
@@ -44,48 +46,17 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
                 "id", flat=True
             )
 
-        teams = set(request.GET.getlist("team", []))
+        teams = request.GET.getlist("team", [])
         team_filter_query = None
-        if teams:
-            # do normal teams lookup based on request params
-            verified_ids = set()
-            unassigned = None
-            if "unassigned" in teams:
-                teams.remove("unassigned")
-                unassigned = Q(owner_id=None)
+        if len(teams) > 0:
+            try:
+                teams_query, unassigned = parse_team_params(request, organization, teams)
+            except InvalidParams as err:
+                return Response(str(err), status=status.HTTP_400_BAD_REQUEST)
 
-            if "myteams" in teams:
-                teams.remove("myteams")
-                if is_active_superuser(request):
-                    # retrieve all teams within the organization
-                    myteams = Team.objects.filter(
-                        organization=organization, status=TeamStatus.VISIBLE
-                    ).values_list("id", flat=True)
-                    verified_ids.update(myteams)
-                else:
-                    myteams = [t.id for t in request.access.teams]
-                    verified_ids.update(myteams)
-
-            for team_id in teams:  # Verify each passed Team id is numeric
-                if type(team_id) is not int and not team_id.isdigit():
-                    return Response(
-                        f"Invalid Team ID: {team_id}", status=status.HTTP_400_BAD_REQUEST
-                    )
-            teams.update(verified_ids)
-
-            teams = Team.objects.filter(id__in=teams)
-            for team in teams:
-                if team.id in verified_ids:
-                    continue
-
-                if not request.access.has_team_access(team):
-                    return Response(
-                        f"Error: You do not have permission to access {team.name}",
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
-            team_filter_query = Q(owner_id__in=teams.values_list("actor_id", flat=True))
+            team_filter_query = Q(owner_id__in=teams_query.values_list("actor_id", flat=True))
             if unassigned:
-                team_filter_query = team_filter_query | unassigned
+                team_filter_query = team_filter_query | Q(owner_id=None)
 
         alert_rules = AlertRule.objects.fetch_for_organization(organization, project_ids)
         if not features.has("organizations:performance-view", organization):
