@@ -7,6 +7,11 @@ from sentry.utils.kvstore.abstract import KVStorage
 
 
 class RedisKVStorage(KVStorage[str, bytes]):
+    """
+    This class provides a key/value store backed by Redis (either a single node
+    or cluster.)
+    """
+
     def __init__(self, client: "Redis[bytes]") -> None:
         self.client = client
 
