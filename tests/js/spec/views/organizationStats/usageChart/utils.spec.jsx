@@ -1,4 +1,7 @@
-import {getDateFromMoment, getXAxisDates} from 'app/views/usageStats/usageChart/utils';
+import {
+  getDateFromMoment,
+  getXAxisDates,
+} from 'app/views/organizationStats/usageChart/utils';
 
 const TS_START = 1531094400000; // 2018 July 9, 12am UTC
 const TS_END = 1531180800000; // 2018 July 10, 12am UTC
