@@ -482,18 +482,14 @@ class Group(Model):
         from sentry.models import GroupRelease, Release
 
         orderby = "first_seen" if first else "-last_seen"
-        group_releases = list(
-            GroupRelease.objects.filter(group_id=group_id, project_id=project_id,).order_by(
-                orderby
-            )[:1]
-        )
-        if group_releases:
-            try:
-                release = Release.objects.get(id=group_releases[0].release_id)
-                return release.version
-            except Release.DoesNotExist:
-                return None
-        else:
+        try:
+            release = Release.objects.get(
+                id=GroupRelease.objects.filter(group_id=group_id, project_id=project_id)
+                .order_by(orderby)
+                .values("release_id")[:1]
+            )
+            return release.version
+        except Release.DoesNotExist:
             return None
 
     def get_first_release(self):
