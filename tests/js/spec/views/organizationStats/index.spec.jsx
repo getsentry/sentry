@@ -5,10 +5,10 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'app/constants';
 import {DataCategory} from 'app/types';
-import UsageStats from 'app/views/usageStats';
-import {CHART_OPTIONS_DATA_TRANSFORM} from 'app/views/usageStats/usageChart';
+import {OrganizationStats} from 'app/views/organizationStats';
+import {CHART_OPTIONS_DATA_TRANSFORM} from 'app/views/organizationStats/usageChart';
 
-describe('UsageStats', function () {
+describe('OrganizationStats', function () {
   const router = TestStubs.router();
   const {organization, routerContext} = initializeOrg({router});
 
@@ -28,7 +28,7 @@ describe('UsageStats', function () {
 
   it('renders with default state', async function () {
     const wrapper = mountWithTheme(
-      <UsageStats organization={organization} />,
+      <OrganizationStats organization={organization} />,
       routerContext
     );
 
@@ -120,7 +120,7 @@ describe('UsageStats', function () {
     });
 
     const wrapper = mountWithTheme(
-      <UsageStats organization={organization} />,
+      <OrganizationStats organization={organization} />,
       routerContext
     );
 
@@ -136,7 +136,7 @@ describe('UsageStats', function () {
 
   it('passes state from router down to components', async function () {
     const wrapper = mountWithTheme(
-      <UsageStats
+      <OrganizationStats
         organization={organization}
         location={{
           query: {
@@ -216,7 +216,7 @@ describe('UsageStats', function () {
 
   it('pushes state to router', async function () {
     const wrapper = mountWithTheme(
-      <UsageStats
+      <OrganizationStats
         organization={organization}
         location={{
           query: {
@@ -286,7 +286,7 @@ describe('UsageStats', function () {
 
   it('removes page query parameters during outbound navigation', async () => {
     const wrapper = mountWithTheme(
-      <UsageStats
+      <OrganizationStats
         organization={organization}
         location={{
           query: {

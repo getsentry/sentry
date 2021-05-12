@@ -4,7 +4,7 @@ import {
   formatUsageWithUnits,
   GIGABYTE,
   MILLION,
-} from 'app/views/usageStats/utils';
+} from 'app/views/organizationStats/utils';
 
 describe('formatUsageWithUnits', function () {
   it('returns correct strings for Errors', function () {
