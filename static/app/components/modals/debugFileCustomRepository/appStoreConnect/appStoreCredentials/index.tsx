@@ -1,14 +1,14 @@
 import {useState} from 'react';
 
 import {Client} from 'app/api';
-import {Organization, Project} from 'app/types';
 import {t} from 'app/locale';
+import {Organization, Project} from 'app/types';
 
 import Card from '../card';
+import CardItem from '../cardItem';
 import {AppStoreCredentialsData} from '../types';
 
 import Form from './form';
-import CardItem from '../cardItem';
 
 type Props = {
   api: Client;
