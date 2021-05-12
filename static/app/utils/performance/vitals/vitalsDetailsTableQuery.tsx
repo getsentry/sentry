@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import {MetaType} from 'app/utils/discover/eventView';
 import GenericDiscoverQuery, {

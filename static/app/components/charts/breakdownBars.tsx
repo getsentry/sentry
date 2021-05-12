@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
@@ -23,7 +23,7 @@ function BreakdownBars({data}: Props) {
   return (
     <BreakdownGrid>
       {data.map((point, i) => (
-        <React.Fragment key={`${i}:${point.label}`}>
+        <Fragment key={`${i}:${point.label}`}>
           <Percentage>{formatPercentage(point.value / total, 0)}</Percentage>
           <BarContainer
             data-test-id={`status-${point.label}`}
@@ -33,7 +33,7 @@ function BreakdownBars({data}: Props) {
             <Bar style={{width: `${((point.value / total) * 100).toFixed(2)}%`}} />
             <Label>{point.label}</Label>
           </BarContainer>
-        </React.Fragment>
+        </Fragment>
       ))}
     </BreakdownGrid>
   );

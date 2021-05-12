@@ -1,4 +1,3 @@
-import React from 'react';
 import {browserHistory} from 'react-router';
 import cloneDeep from 'lodash/cloneDeep';
 import range from 'lodash/range';
@@ -20,7 +19,6 @@ jest.mock('app/components/stream/group', () => jest.fn(() => null));
 jest.mock('app/views/issueList/noGroupsHandler/congratsRobots', () =>
   jest.fn(() => null)
 );
-jest.mock('app/utils/analytics');
 
 const DEFAULT_LINKS_HEADER =
   '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575731:0:1>; rel="previous"; results="false"; cursor="1443575731:0:1", ' +

@@ -1,4 +1,3 @@
-import React from 'react';
 import MockDate from 'mockdate';
 
 import {mountWithTheme} from 'sentry-test/enzyme';

@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import {ModalRenderProps} from 'app/actionCreators/modal';
@@ -79,7 +79,7 @@ export default class RequestIntegrationModal extends AsyncComponent<Props, State
     const buttonText = this.state.isSending ? t('Sending Request') : t('Send Request');
 
     return (
-      <React.Fragment>
+      <Fragment>
         <Header>
           <h4>{t('Request %s Installation', name)}</h4>
         </Header>
@@ -114,7 +114,7 @@ export default class RequestIntegrationModal extends AsyncComponent<Props, State
         <Footer>
           <Button onClick={this.sendRequest}>{buttonText}</Button>
         </Footer>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 
 import ActorAvatar from 'app/components/avatar/actorAvatar';
 import {Actor} from 'app/types';
@@ -12,7 +12,7 @@ type Props = {
   onRemove: (value: Value) => void;
 };
 
-export default class ValueComponent extends React.Component<Props> {
+export default class ValueComponent extends Component<Props> {
   handleClick = () => {
     this.props.onRemove(this.props.value);
   };

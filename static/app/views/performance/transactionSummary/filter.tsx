@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -18,6 +18,7 @@ import {decodeHistogramZoom} from './latencyChart';
 
 type DropdownButtonProps = React.ComponentProps<typeof DropdownButton>;
 
+// Make sure to update other instances like trends column fields, discover field types.
 export enum SpanOperationBreakdownFilter {
   None = 'none',
   Http = 'http',
@@ -32,6 +33,8 @@ const OPTIONS: SpanOperationBreakdownFilter[] = [
   SpanOperationBreakdownFilter.Browser,
   SpanOperationBreakdownFilter.Resource,
 ];
+
+export const spanOperationBreakdownSingleColumns = OPTIONS.map(o => `spans.${o}`);
 
 type Props = {
   organization: OrganizationSummary;

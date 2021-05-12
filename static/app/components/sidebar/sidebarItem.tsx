@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import * as ReactRouter from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -94,6 +94,9 @@ const SidebarItem = ({
   const isActiveRouter =
     (!hasPanel && router && to && location.pathname.startsWith(to)) ||
     (labelString === 'Discover' && location.pathname.includes('/discover/')) ||
+    (labelString === 'Dashboards' &&
+      (location.pathname.includes('/dashboards/') ||
+        location.pathname.includes('/dashboard/'))) ||
     // TODO: this won't be necessary once we remove settingsHome
     (labelString === 'Settings' && location.pathname.startsWith('/settings/')) ||
     (labelString === 'Alerts' &&

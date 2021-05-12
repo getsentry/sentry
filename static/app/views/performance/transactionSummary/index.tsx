@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import {browserHistory} from 'react-router';
 import {Params} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
@@ -25,12 +25,12 @@ import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
 
+import {addRoutePerformanceContext, getTransactionName} from '../utils';
+
 import {
   PERCENTILE as VITAL_PERCENTILE,
   VITAL_GROUPS,
-} from '../transactionVitals/constants';
-import {addRoutePerformanceContext, getTransactionName} from '../utils';
-
+} from './transactionVitals/constants';
 import SummaryContent from './content';
 import {
   decodeFilterFromLocation,
@@ -58,13 +58,12 @@ type State = {
 // as React.ReactText
 type TotalValues = Record<string, number>;
 
-class TransactionSummary extends React.Component<Props, State> {
+class TransactionSummary extends Component<Props, State> {
   state: State = {
     spanOperationBreakdownFilter: decodeFilterFromLocation(this.props.location),
     eventView: generateSummaryEventView(
       this.props.location,
-      getTransactionName(this.props.location),
-      this.props.organization
+      getTransactionName(this.props.location)
     ),
   };
 
@@ -74,8 +73,7 @@ class TransactionSummary extends React.Component<Props, State> {
       spanOperationBreakdownFilter: decodeFilterFromLocation(nextProps.location),
       eventView: generateSummaryEventView(
         nextProps.location,
-        getTransactionName(nextProps.location),
-        nextProps.organization
+        getTransactionName(nextProps.location)
       ),
     };
   }
@@ -270,8 +268,7 @@ const StyledPageContent = styled(PageContent)`
 
 function generateSummaryEventView(
   location: Location,
-  transactionName: string | undefined,
-  organization: Organization
+  transactionName: string | undefined
 ): EventView | undefined {
   if (transactionName === undefined) {
     return undefined;
@@ -288,9 +285,7 @@ function generateSummaryEventView(
     if (isAggregateField(field)) conditions.removeTag(field);
   });
 
-  const fields = organization.features.includes('trace-view-summary')
-    ? ['id', 'user.display', 'transaction.duration', 'trace', 'timestamp']
-    : ['id', 'user.display', 'transaction.duration', 'timestamp'];
+  const fields = ['id', 'user.display', 'transaction.duration', 'trace', 'timestamp'];
 
   return EventView.fromNewQueryWithLocation(
     {

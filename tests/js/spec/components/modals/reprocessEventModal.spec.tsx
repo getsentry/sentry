@@ -38,9 +38,7 @@ describe('ReprocessEventModal', function () {
   });
 
   it('modal is open', () => {
-    expect(wrapper.find('[data-test-id="modal-title"]').text()).toEqual(
-      'Reprocess Events'
-    );
+    expect(wrapper.find('Header').text()).toEqual('Reprocess Events');
   });
 
   it('form fields & info', () => {

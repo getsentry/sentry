@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import reduce from 'lodash/reduce';
 import {computed, makeObservable} from 'mobx';
@@ -34,7 +34,7 @@ type State = {
 
 const getLabel = (func: LambdaFunction) => func.FunctionName;
 
-export default class AwsLambdaFunctionSelect extends React.Component<Props, State> {
+export default class AwsLambdaFunctionSelect extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
     makeObservable(this);
@@ -166,13 +166,13 @@ export default class AwsLambdaFunctionSelect extends React.Component<Props, Stat
             <JsonForm renderHeader={() => FormHeader} forms={[formFields]} />
           </StyledForm>
         </ListItem>
-        <React.Fragment />
+        <Fragment />
       </List>
     );
   };
   render = () => {
     return (
-      <React.Fragment>
+      <Fragment>
         <HeaderWithHelp docsUrl="https://docs.sentry.io/product/integrations/aws-lambda/" />
         <Wrapper>
           {this.state.submitting ? this.renderLoadingScreeen() : this.renderCore()}
@@ -186,7 +186,7 @@ export default class AwsLambdaFunctionSelect extends React.Component<Props, Stat
             />
           )}
         </Observer>
-      </React.Fragment>
+      </Fragment>
     );
   };
 }

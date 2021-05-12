@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -10,7 +10,7 @@ import CustomIgnoreDurationModal from 'app/components/customIgnoreDurationModal'
 import DropdownLink from 'app/components/dropdownLink';
 import Duration from 'app/components/duration';
 import Tooltip from 'app/components/tooltip';
-import {IconChevron, IconNot} from 'app/icons';
+import {IconChevron, IconMute} from 'app/icons';
 import {t, tn} from 'app/locale';
 import space from 'app/styles/space';
 import {
@@ -73,7 +73,7 @@ const IgnoreActions = ({
           priority="primary"
           onClick={() => onUpdate({status: ResolutionStatus.UNRESOLVED})}
           label={t('Unignore')}
-          icon={<IconNot size="xs" />}
+          icon={<IconMute size="xs" />}
         />
       </Tooltip>
     );
@@ -115,16 +115,6 @@ const IgnoreActions = ({
 
   return (
     <ButtonBar merged>
-      <ActionLink
-        {...actionLinkProps}
-        type="button"
-        title={t('Ignore')}
-        onAction={() => onUpdate({status: ResolutionStatus.IGNORED})}
-        icon={<IconNot size="xs" />}
-      >
-        {t('Ignore')}
-      </ActionLink>
-
       <StyledDropdownLink
         customTitle={
           <ActionButton

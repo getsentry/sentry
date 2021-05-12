@@ -37,7 +37,7 @@ class OrganizationExternalMappings(AcceptanceTestCase):
     def test_external_user_mappings(self):
         with self.feature(
             {
-                "organizations:import-codeowners": True,
+                "organizations:integrations-codeowners": True,
                 "organizations:integrations-stacktrace-link": True,
             }
         ):
@@ -54,7 +54,7 @@ class OrganizationExternalMappings(AcceptanceTestCase):
 
             # Create mapping
             self.browser.click('[data-test-id="add-mapping-button"]')
-            self.browser.wait_until(".modal-dialog")
+            self.browser.wait_until("[role='dialog']")
 
             # Add Mapping Modal
             externalName = self.browser.find_element_by_name("externalName")
@@ -71,7 +71,7 @@ class OrganizationExternalMappings(AcceptanceTestCase):
     def test_external_team_mappings(self):
         with self.feature(
             {
-                "organizations:import-codeowners": True,
+                "organizations:integrations-codeowners": True,
                 "organizations:integrations-stacktrace-link": True,
             }
         ):
@@ -88,7 +88,7 @@ class OrganizationExternalMappings(AcceptanceTestCase):
 
             # Create mapping
             self.browser.click('[data-test-id="add-mapping-button"]')
-            self.browser.wait_until(".modal-dialog")
+            self.browser.wait_until("[role='dialog']")
 
             # Add Mapping Modal
             externalName = self.browser.find_element_by_name("externalName")

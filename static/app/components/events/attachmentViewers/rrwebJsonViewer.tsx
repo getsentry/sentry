@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import JsonViewer from 'app/components/events/attachmentViewers/jsonViewer';
@@ -10,7 +10,7 @@ type State = {
   showRawJson: boolean;
 };
 
-export default class RRWebJsonViewer extends React.Component<ViewerProps, State> {
+export default class RRWebJsonViewer extends Component<ViewerProps, State> {
   state: State = {
     showRawJson: false,
   };
@@ -19,7 +19,7 @@ export default class RRWebJsonViewer extends React.Component<ViewerProps, State>
     const {showRawJson} = this.state;
 
     return (
-      <React.Fragment>
+      <Fragment>
         <StyledPanelAlert border={showRawJson} type="info">
           {tct(
             'This is an attachment containing a session replay. [replayLink:View the replay] or [jsonLink:view the raw JSON].',
@@ -38,7 +38,7 @@ export default class RRWebJsonViewer extends React.Component<ViewerProps, State>
           )}
         </StyledPanelAlert>
         {showRawJson && <JsonViewer {...this.props} />}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

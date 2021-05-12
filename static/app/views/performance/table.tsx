@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import * as ReactRouter from 'react-router';
 import {Location, LocationDescriptorObject} from 'history';
 
@@ -184,6 +184,17 @@ class Table extends React.Component<Props, State> {
     ): React.ReactNode => this.renderBodyCell(tableData, column, dataRow);
   };
 
+  onSortClick(currentSortKind?: string, currentSortField?: string) {
+    const {organization} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.landingv2.transactions.sort',
+      eventName: 'Performance Views: Landing Transactions Sorted',
+      organization_id: parseInt(organization.id, 10),
+      field: currentSortField,
+      direction: currentSortKind,
+    });
+  }
+
   renderHeadCell(
     tableMeta: TableData['meta'],
     column: TableColumn<keyof TableDataRow>,
@@ -210,13 +221,18 @@ class Table extends React.Component<Props, State> {
     const currentSort = eventView.sortForField(field, tableMeta);
     const canSort =
       isFieldSortable(field, tableMeta) && field.field !== 'key_transaction';
+
+    const currentSortKind = currentSort ? currentSort.kind : undefined;
+    const currentSortField = currentSort ? currentSort.field : undefined;
+
     const sortLink = (
       <SortLink
         align={align}
         title={title || field.field}
-        direction={currentSort ? currentSort.kind : undefined}
+        direction={currentSortKind}
         canSort={canSort}
         generateSortLink={generateSortLink}
+        onClick={() => this.onSortClick(currentSortKind, currentSortField)}
       />
     );
     if (field.field.startsWith('user_misery')) {

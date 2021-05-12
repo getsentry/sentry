@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {ModalRenderProps, openModal} from 'app/actionCreators/modal';
@@ -45,7 +45,7 @@ function DeleteAction({disabled, project, organization, onDiscard, onDelete}: Pr
         renderDisabled={renderDiscardDisabled}
       >
         {({hasFeature, renderDisabled, ...props}) => (
-          <React.Fragment>
+          <Fragment>
             <Body>
               {!hasFeature &&
                 typeof renderDisabled === 'function' &&
@@ -65,7 +65,7 @@ function DeleteAction({disabled, project, organization, onDiscard, onDelete}: Pr
                 {t('Discard Future Events')}
               </Button>
             </Footer>
-          </React.Fragment>
+          </Fragment>
         )}
       </Feature>
     );

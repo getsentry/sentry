@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
 import congratsRobotsPlaceholder from 'sentry-images/spot/congrats-robots-placeholder.jpg';
@@ -22,9 +22,7 @@ const Message = () => (
   </React.Fragment>
 );
 
-const CongratsRobotsVideo = React.lazy(
-  () => import(/* webpackChunkName: "CongratsRobotsVideo" */ './congratsRobots')
-);
+const CongratsRobotsVideo = React.lazy(() => import('./congratsRobots'));
 
 type State = {hasError: boolean};
 

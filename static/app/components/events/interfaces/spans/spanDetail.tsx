@@ -1,4 +1,5 @@
-import React from 'react';
+import * as React from 'react';
+import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import map from 'lodash/map';
@@ -27,7 +28,7 @@ import {
   generateTraceTarget,
 } from 'app/components/quickTrace/utils';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
-import {IconChevron, IconWarning} from 'app/icons';
+import {IconAnchor, IconChevron, IconWarning} from 'app/icons';
 import {t, tct, tn} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
@@ -54,7 +55,7 @@ type TransactionResult = {
   id: string;
 };
 
-type Props = {
+type Props = WithRouterProps & {
   api: Client;
   orgId: string;
   organization: Organization;
@@ -66,6 +67,7 @@ type Props = {
   spanErrors: TableDataRow[];
   childTransactions: QuickTraceEvent[];
   relatedErrors: TraceError[];
+  scrollToHash: (hash: string) => void;
 };
 
 type State = {
@@ -267,9 +269,9 @@ class SpanDetail extends React.Component<Props, State> {
     }
 
     return (
-      <StyledDiscoverButton size="xsmall" to={generateTraceTarget(event, organization)}>
-        {t('Search by Trace')}
-      </StyledDiscoverButton>
+      <StyledButton size="xsmall" to={generateTraceTarget(event, organization)}>
+        {t('View Trace')}
+      </StyledButton>
     );
   }
 
@@ -434,6 +436,25 @@ class SpanDetail extends React.Component<Props, State> {
     };
   }
 
+  scrollBarIntoView = (spanId: string) => (e: React.MouseEvent<HTMLAnchorElement>) => {
+    // do not use the default anchor behaviour
+    // because it will be hidden behind the minimap
+    e.preventDefault();
+
+    const hash = `#span-${spanId}`;
+
+    this.props.scrollToHash(hash);
+
+    // TODO(txiao): This is causing a rerender of the whole page,
+    // which can be slow.
+    //
+    // make sure to update the location
+    browserHistory.push({
+      ...this.props.location,
+      hash,
+    });
+  };
+
   renderSpanDetails() {
     const {span, event, organization} = this.props;
 
@@ -472,7 +493,19 @@ class SpanDetail extends React.Component<Props, State> {
         <SpanDetails>
           <table className="table key-value">
             <tbody>
-              <Row title="Span ID" extra={this.renderTraversalButton()}>
+              <Row
+                title={
+                  isGapSpan(span) ? (
+                    <SpanIdTitle>Span ID</SpanIdTitle>
+                  ) : (
+                    <SpanIdTitle onClick={this.scrollBarIntoView(span.span_id)}>
+                      Span ID
+                      <StyledIconAnchor />
+                    </SpanIdTitle>
+                  )
+                }
+                extra={this.renderTraversalButton()}
+              >
                 {span.span_id}
               </Row>
               <Row title="Parent Span ID">{span.parent_span_id || ''}</Row>
@@ -570,6 +603,12 @@ const StyledDiscoverButton = styled(DiscoverButton)`
   right: ${space(0.5)};
 `;
 
+const StyledButton = styled(Button)`
+  position: absolute;
+  top: ${space(0.75)};
+  right: ${space(0.5)};
+`;
+
 export const SpanDetailContainer = styled('div')`
   border-bottom: 1px solid ${p => p.theme.border};
   cursor: auto;
@@ -612,15 +651,29 @@ const Toggle = styled(Button)`
   }
 `;
 
+const SpanIdTitle = styled('a')`
+  display: flex;
+  color: ${p => p.theme.textColor};
+  :hover {
+    color: ${p => p.theme.textColor};
+  }
+`;
+
+const StyledIconAnchor = styled(IconAnchor)`
+  display: block;
+  color: ${p => p.theme.gray300};
+  margin-left: ${space(1)};
+`;
+
 export const Row = ({
   title,
   keep,
   children,
   extra = null,
 }: {
-  title: string;
-  keep?: boolean;
+  title: JSX.Element | string | null;
   children: JSX.Element | string | null;
+  keep?: boolean;
   extra?: React.ReactNode;
 }) => {
   if (!keep && !children) {
@@ -674,4 +727,4 @@ function generateSlug(result: TransactionResult): string {
   });
 }
 
-export default withApi(SpanDetail);
+export default withApi(withRouter(SpanDetail));

@@ -1,4 +1,3 @@
-import React from 'react';
 import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
@@ -16,14 +15,15 @@ function initialize(projects, query) {
     features,
     projects,
   });
-  const initialData = initializeOrg({
+  const initialOrgData = {
     organization,
     router: {
       location: {
         query: {...query},
       },
     },
-  });
+  };
+  const initialData = initializeOrg(initialOrgData);
   ProjectsStore.loadInitialData(initialData.organization.projects);
   const eventView = EventView.fromLocation(initialData.router.location);
 
@@ -43,10 +43,12 @@ function initialize(projects, query) {
 }
 
 describe('TagExplorer', function () {
+  const facetUrl = '/organizations/org-slug/events-facets-performance/';
+  let facetApiMock;
   beforeEach(function () {
     browserHistory.push = jest.fn();
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-facets-performance/',
+    facetApiMock = MockApiClient.addMockResponse({
+      url: facetUrl,
       body: {
         data: [
           {
@@ -114,6 +116,82 @@ describe('TagExplorer', function () {
 
     expect(wrapper.find('TagsHeader')).toHaveLength(1);
     expect(wrapper.find('GridEditable')).toHaveLength(1);
+  });
+
+  it('Tag explorer uses LCP if projects are frontend', async function () {
+    const projects = [TestStubs.Project({id: '123', platform: 'javascript-react'})];
+    const {
+      organization,
+      location,
+      eventView,
+      api,
+      spanOperationBreakdownFilter,
+      transactionName,
+    } = initialize(projects, {
+      project: '123',
+    });
+
+    const wrapper = mountWithTheme(
+      <TagExplorer
+        api={api}
+        location={location}
+        organization={organization}
+        eventView={eventView}
+        projects={projects}
+        transactionName={transactionName}
+        currentFilter={spanOperationBreakdownFilter}
+      />
+    );
+
+    await tick();
+    wrapper.update();
+
+    const durationHeader = wrapper.find('GridHeadCell StyledLink').first();
+    expect(durationHeader.text().trim()).toEqual('Avg LCP');
+
+    expect(facetApiMock).toHaveBeenCalledWith(
+      facetUrl,
+      expect.objectContaining({
+        query: expect.objectContaining({
+          aggregateColumn: 'measurements.lcp',
+        }),
+      })
+    );
+  });
+
+  it('Tag explorer uses the operation breakdown as a column', async function () {
+    const projects = [TestStubs.Project({platform: 'javascript-react'})];
+    const {organization, location, eventView, api, transactionName} = initialize(
+      projects,
+      {}
+    );
+
+    const wrapper = mountWithTheme(
+      <TagExplorer
+        api={api}
+        location={location}
+        organization={organization}
+        eventView={eventView}
+        projects={projects}
+        transactionName={transactionName}
+        currentFilter={SpanOperationBreakdownFilter.Http}
+      />
+    );
+
+    await tick();
+    wrapper.update();
+
+    const durationHeader = wrapper.find('GridHeadCell StyledLink').first();
+    expect(durationHeader.text().trim()).toEqual('Avg Span Duration');
+
+    expect(facetApiMock).toHaveBeenCalledWith(
+      facetUrl,
+      expect.objectContaining({
+        query: expect.objectContaining({
+          aggregateColumn: 'spans.http',
+        }),
+      })
+    );
   });
 
   it('Check sort links of headers', async function () {
