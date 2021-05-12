@@ -16,6 +16,8 @@ from sentry.tasks.reports import (
     Report,
     Skipped,
     build_message,
+    build_project_issue_summaries,
+    build_project_series,
     change,
     clean_series,
     colorize,
@@ -28,8 +30,6 @@ from sentry.tasks.reports import (
     merge_sequences,
     merge_series,
     month_to_index,
-    prepare_project_issue_summaries,
-    prepare_project_series,
     prepare_reports,
     safe_add,
     user_subscribed_to_organization_reports,
@@ -308,7 +308,7 @@ class ReportTestCase(TestCase, SnubaTestCase):
             project_id=self.project.id,
         )
 
-        assert prepare_project_issue_summaries([two_min_ago, now], self.project) == [2, 0, 0]
+        assert build_project_issue_summaries([two_min_ago, now], self.project) == [2, 0, 0]
 
     @mock.patch("sentry.tasks.reports.BATCH_SIZE", 1)
     def test_paginates_project_series_and_reassembles_result(self):
@@ -352,7 +352,7 @@ class ReportTestCase(TestCase, SnubaTestCase):
         group2.resolved_at = two_days_ago
         group2.save()
 
-        response = prepare_project_series(
+        response = build_project_series(
             [floor_to_utc_day(seven_days_back), floor_to_utc_day(now)], self.project
         )
 
