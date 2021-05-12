@@ -391,7 +391,7 @@ def detect_dif_from_path(path, name=None, debug_id=None):
         ]
 
     dif_kind = determine_dif_kind(path)
-    if dif_kind == DifKind.BcSymbolMap:
+    if dif_kind == DifKind.BcSymbolMap and debug_id is not None:
         try:
             BcSymbolMap.open(path)
         except SymbolicError as e:
@@ -403,11 +403,11 @@ def detect_dif_from_path(path, name=None, debug_id=None):
                     file_format="bcsymbolmap", arch="any", debug_id=debug_id, name=name, path=path
                 )
             ]
-    elif dif_kind == DifKind.PList:
+    elif dif_kind == DifKind.PList and debug_id is not None:
         try:
             UuidMapping.from_plist(debug_id, path)
         except SymbolicError as e:
-            logger.warning("plist.bad-file", exc_info=True)
+            logger.warning("uuidmap.bad-file", exc_info=True)
             raise BadDif("Invalid PList: %s" % e)
         else:
             return [
