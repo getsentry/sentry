@@ -1011,22 +1011,23 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                         groupby=["project_id"],
                         referrer="serializers.GroupSerializerSnuba.session_totals",
                     )
+                    results = {}
                     for data in result_totals["data"]:
                         cache_key = self._build_session_cache_key(data["project_id"])
+                        results[data["project_id"]] = data["sessions"]
                         cache.set(cache_key, data["sessions"], 3600)
 
                     for item in missed_items:
-                        attrs[item].update({"sessionPercent": None})
-                        for data in result_totals["data"]:
-                            if data["project_id"] == item.project_id:
-                                attrs[item].update(
-                                    {
-                                        "sessionPercent": self._get_session_percent(
-                                            attrs[item]["times_seen"], data["sessions"]
-                                        )
-                                    }
-                                )
-                                break
+                        if item.project_id in results.keys():
+                            attrs[item].update(
+                                {
+                                    "sessionPercent": self._get_session_percent(
+                                        attrs[item]["times_seen"], data["sessions"]
+                                    )
+                                }
+                            )
+                        else:
+                            attrs[item].update({"sessionPercent": None})
 
         if self._expand("inbox"):
             inbox_stats = get_inbox_details(item_list)
@@ -1089,12 +1090,12 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         session_count_key = f"w-s:{project_id}"
 
         if self.start:
-            session_count_key = f"{session_count_key}-{self.start.replace(second=0, microsecond=0, tzinfo=None)}".replace(
+            session_count_key = f"{session_count_key}-{self.start.replace(minutes=0, second=0, microsecond=0, tzinfo=None)}".replace(
                 " ", ""
             )
 
         if self.end:
-            session_count_key = f"{session_count_key}-{self.end.replace(second=0, microsecond=0, tzinfo=None)}".replace(
+            session_count_key = f"{session_count_key}-{self.end.replace(minutes=0, second=0, microsecond=0, tzinfo=None)}".replace(
                 " ", ""
             )
 
