@@ -14,11 +14,8 @@ import withApi from 'app/utils/withApi';
 export type TableDataRow = {
   tags_key: string;
   tags_value: string;
-  sumdelta: number;
   count: number;
-  frequency: number;
-  aggregate: number;
-  comparison: number;
+  [key: string]: React.ReactText;
 };
 
 export type TableData = {
@@ -36,18 +33,17 @@ type ChildrenProps = Omit<GenericChildrenProps<TableData>, 'tableData'> & {
 
 type QueryProps = DiscoverQueryProps & {
   aggregateColumn: string;
-  allTagKeys?: boolean;
-  tagKey?: string;
+  tagKey: string;
   order?: string;
   children: (props: ChildrenProps) => React.ReactNode;
 };
 
 type FacetQuery = LocationQuery &
   EventQuery & {
+    tagKey?: string;
     order?: string;
     aggregateColumn?: string;
-    allTagKeys?: boolean;
-    tagKey?: string;
+    histograms?: boolean;
   };
 
 export function getRequestFunction(_props: QueryProps) {
@@ -57,8 +53,8 @@ export function getRequestFunction(_props: QueryProps) {
     const apiPayload: FacetQuery = eventView.getEventsAPIPayload(props.location);
     apiPayload.aggregateColumn = aggregateColumn;
     apiPayload.order = _props.order ? _props.order : '-sumdelta';
-    apiPayload.allTagKeys = _props.allTagKeys;
     apiPayload.tagKey = _props.tagKey;
+    apiPayload.histograms = true; //TODO(k-fish): Revisit to potentially remove.
     return apiPayload;
   }
   return getTagExplorerRequestPayload;
@@ -68,12 +64,11 @@ function shouldRefetchData(prevProps: QueryProps, nextProps: QueryProps) {
   return (
     prevProps.aggregateColumn !== nextProps.aggregateColumn ||
     prevProps.order !== nextProps.order ||
-    prevProps.allTagKeys !== nextProps.allTagKeys ||
     prevProps.tagKey !== nextProps.tagKey
   );
 }
 
-function SegmentExplorerQuery(props: QueryProps) {
+function TagKeyHistogramQuery(props: QueryProps) {
   return (
     <GenericDiscoverQuery<TableData, QueryProps>
       route="events-facets-performance"
@@ -84,4 +79,4 @@ function SegmentExplorerQuery(props: QueryProps) {
   );
 }
 
-export default withApi(SegmentExplorerQuery);
+export default withApi(TagKeyHistogramQuery);

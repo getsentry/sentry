@@ -168,7 +168,7 @@ type TagValueProps = {
   row: TableDataRow;
 };
 
-function TagValue(props: TagValueProps) {
+export function TagValue(props: TagValueProps) {
   return <div className="truncate">{props.row.tags_value}</div>;
 }
 
