@@ -8,6 +8,7 @@ import withOrganizations from 'app/utils/withOrganizations';
 import {ACCOUNT_NOTIFICATION_FIELDS} from 'app/views/settings/account/notifications/fields';
 import {NOTIFICATION_SETTING_FIELDS} from 'app/views/settings/account/notifications/fields2';
 import {
+  backfillMissingProvidersWithFallback,
   getChoiceString,
   getFallBackValue,
   groupByOrganization,
@@ -102,27 +103,45 @@ class NotificationSettings extends AsyncComponent<Props, State> {
     const {notificationSettings} = this.state;
 
     const providerList: string[] = changedData.provider.split('+');
+    const fallbackValue = getFallBackValue(notificationType);
 
-    return {
-      [notificationType]: Object.fromEntries(
-        Object.entries(notificationSettings[notificationType]).map(
-          ([scopeType, scopeTypeData]) => [
+    let updatedNotificationSettings;
+    if (Object.keys(notificationSettings).length) {
+      updatedNotificationSettings = {
+        [notificationType]: Object.fromEntries(
+          Object.entries(
+            notificationSettings[notificationType]
+          ).map(([scopeType, scopeTypeData]) => [
             scopeType,
             Object.fromEntries(
-              Object.entries(scopeTypeData).map(([scopeId, scopeIdData]) => {
-                const previousValue = Object.values(scopeIdData)[0];
-                return [
-                  scopeId,
-                  Object.fromEntries(
-                    providerList.map(provider => [provider, previousValue])
-                  ),
-                ];
-              })
+              Object.entries(scopeTypeData).map(([scopeId, scopeIdData]) => [
+                scopeId,
+                backfillMissingProvidersWithFallback(
+                  scopeIdData,
+                  providerList,
+                  fallbackValue
+                ),
+              ])
             ),
-          ]
-        )
-      ),
-    };
+          ])
+        ),
+      };
+    } else {
+      // If the user has no settings, we need to create them.
+      updatedNotificationSettings = {
+        [notificationType]: {
+          user: {
+            me: Object.fromEntries(
+              providerList.map(provider => [provider, fallbackValue])
+            ),
+          },
+        },
+      };
+    }
+
+    this.setState({notificationSettings: updatedNotificationSettings});
+
+    return updatedNotificationSettings;
   };
 
   getParentValues = (parentId: string): {[key: string]: string} => {
@@ -168,7 +187,7 @@ class NotificationSettings extends AsyncComponent<Props, State> {
     const newValue = Object.values(changedData)[0];
     const previousData = this.getParentValues(parentId);
 
-    return {
+    const notificationSettings = {
       [notificationType]: {
         [parentKey]: {
           [parentId]: Object.fromEntries(
@@ -177,6 +196,8 @@ class NotificationSettings extends AsyncComponent<Props, State> {
         },
       },
     };
+    this.setState({notificationSettings});
+    return notificationSettings;
   };
 
   getGroupedParents = (): {[key: string]: Organization[] | Project[]} => {
