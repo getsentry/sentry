@@ -30,11 +30,29 @@ class OrganizationStatsEndpointV2(OrganizationEventsEndpointBase):
         try:
             params = self.get_filter_params(request, organization, date_filter_optional=True)
         except NoProjects:
+            # TODO: should members with no project access be able to see any orgstats?
             raise NoProjects("No projects available")
+
+        # XXX(jferge): if no project ids are passed in as filters
+        # and we're not grouping by project, override the OrgEndpoint project
+        # retriever and set no project id param so all members get full totals
+        # if its an org-wide query.
+
+        if self._is_org_total_query(request):
+            params.pop("project_id")
 
         return QueryDefinition(
             request.GET,
             params,
+        )
+
+    def _is_org_total_query(self, request):
+        req_proj_ids = self.get_requested_project_ids(request)
+        return all(
+            [
+                not req_proj_ids or req_proj_ids == {-1},
+                "project" not in request.GET.get("groupBy", []),
+            ]
         )
 
     @contextmanager
