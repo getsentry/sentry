@@ -127,8 +127,7 @@ const getAddresstextBorderBottom = (
 const Address = styled('span')<Partial<Props> & {canBeConverted: boolean}>`
   padding-left: ${p => (p.canBeConverted ? null : '18px')};
   border-bottom: ${getAddresstextBorderBottom};
-  max-width: 93px;
-  white-space: pre-wrap;
+  white-space: nowrap;
 `;
 
 const Wrapper = styled('span')`

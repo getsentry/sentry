@@ -25,12 +25,12 @@ import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
 
+import {addRoutePerformanceContext, getTransactionName} from '../utils';
+
 import {
   PERCENTILE as VITAL_PERCENTILE,
   VITAL_GROUPS,
-} from '../transactionVitals/constants';
-import {addRoutePerformanceContext, getTransactionName} from '../utils';
-
+} from './transactionVitals/constants';
 import SummaryContent from './content';
 import {
   decodeFilterFromLocation,

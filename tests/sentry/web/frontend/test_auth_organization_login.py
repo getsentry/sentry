@@ -185,16 +185,21 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert not getattr(member.flags, "sso:invalid")
 
     def test_flow_as_unauthenticated_existing_matched_user_with_merge(self):
-        auth_provider = AuthProvider.objects.create(
-            organization=self.organization, provider="dummy"
-        )
         user = self.create_user("bar@example.com")
+
+        user.update(is_superuser=False)
+        org1 = self.create_organization(name="bar", owner=user)
+        path = reverse("sentry-auth-organization", args=[org1.slug])
+        # create a second org that the user belongs to, ensure they are redirected to correct
+        self.create_organization(name="zap", owner=user)
+
+        auth_provider = AuthProvider.objects.create(organization=org1, provider="dummy")
 
         email = user.emails.all()[:1].get()
         email.is_verified = False
         email.save()
 
-        resp = self.client.post(self.path, {"init": True})
+        resp = self.client.post(path, {"init": True})
 
         assert resp.status_code == 200
         assert self.provider.TEMPLATE in resp.content.decode("utf-8")
@@ -218,15 +223,14 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         resp = self.client.post(path, {"op": "confirm"}, follow=True)
         assert resp.redirect_chain == [
             (reverse("sentry-login"), 302),
-            ("/organizations/foo/issues/", 302),
+            (f"/organizations/{org1.slug}/issues/", 302),
         ]
         auth_identity = AuthIdentity.objects.get(auth_provider=auth_provider)
 
         new_user = auth_identity.user
         assert new_user == user
 
-        member = OrganizationMember.objects.get(organization=self.organization, user=user)
-
+        member = OrganizationMember.objects.get(organization=org1, user=user)
         assert getattr(member.flags, "sso:linked")
         assert not getattr(member.flags, "sso:invalid")
 
@@ -723,6 +727,47 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert resp.redirect_chain == [("/auth/login/", 302)]
         assert resp.status_code == 403
         self.assertTemplateUsed(resp, "sentry/no-organization-access.html")
+
+    def test_multiorg_login_correct_redirect_basic_auth(self):
+        user = self.create_user("bar@example.com")
+        user.update(is_superuser=False)
+
+        org1 = self.create_organization(name="bar", owner=user)
+        path = reverse("sentry-auth-organization", args=[org1.slug])
+        # create a second org that the user belongs to, ensure they are redirected to correct
+        self.create_organization(name="zap", owner=user)
+
+        self.client.get(path)
+        resp = self.client.post(
+            path,
+            {"username": user.username, "password": "admin", "op": "login"},
+            follow=True,
+        )
+        assert resp.redirect_chain == [
+            (reverse("sentry-login"), 302),
+            (f"/organizations/{org1.slug}/issues/", 302),
+        ]
+
+    def test_multiorg_login_correct_redirect_sso(self):
+        user = self.create_user("bar@example.com")
+        user.update(is_superuser=False)
+
+        org1 = self.create_organization(name="bar", owner=user)
+        path = reverse("sentry-auth-organization", args=[org1.slug])
+        # create a second org that the user belongs to, ensure they are redirected to correct
+        self.create_organization(name="zap", owner=user)
+
+        auth_provider = AuthProvider.objects.create(organization=org1, provider="dummy")
+        AuthIdentity.objects.create(auth_provider=auth_provider, user=user, ident="foo@example.com")
+
+        resp = self.client.post(path, {"init": True})
+
+        path = reverse("sentry-auth-sso")
+        resp = self.client.post(path, {"email": "foo@example.com"}, follow=True)
+        assert resp.redirect_chain == [
+            (reverse("sentry-login"), 302),
+            (f"/organizations/{org1.slug}/issues/", 302),
+        ]
 
     @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
     @with_feature({"organizations:create": False})

@@ -4,15 +4,14 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import ProjectsStore from 'app/stores/projectsStore';
-import PerformanceLanding from 'app/views/performance/landing';
+import TrendsIndex from 'app/views/performance/trends/';
 import {
   DEFAULT_MAX_DURATION,
+  getTrendsParameters,
   TRENDS_FUNCTIONS,
-  TRENDS_PARAMETERS,
 } from 'app/views/performance/trends/utils';
 
 const trendsViewQuery = {
-  view: 'TRENDS',
   query: `tpm():>0.01 transaction.duration:>0 transaction.duration:<${DEFAULT_MAX_DURATION}`,
 };
 
@@ -46,17 +45,30 @@ function selectTrendParameter(wrapper, label) {
   wrapper.update();
 }
 
-function initializeData(projects, query) {
+function initializeTrendsData(
+  projects = undefined,
+  query = {},
+  includeDefaultQuery = true
+) {
+  projects = Array.isArray(projects)
+    ? projects
+    : [
+        TestStubs.Project({id: '1', firstTransactionEvent: false}),
+        TestStubs.Project({id: '2', firstTransactionEvent: true}),
+      ];
   const features = ['transaction-event', 'performance-view'];
   const organization = TestStubs.Organization({
     features,
     projects,
   });
+
+  const newQuery = {...(includeDefaultQuery ? trendsViewQuery : {}), ...query};
+
   const initialData = initializeOrg({
     organization,
     router: {
       location: {
-        query: {...trendsViewQuery, ...query},
+        query: newQuery,
       },
     },
   });
@@ -163,13 +175,10 @@ describe('Performance > Trends', function () {
 
   it('renders basic UI elements', async function () {
     const projects = [TestStubs.Project()];
-    const data = initializeData(projects, {});
+    const data = initializeTrendsData(projects, {});
 
     const wrapper = mountWithTheme(
-      <PerformanceLanding
-        organization={data.organization}
-        location={data.router.location}
-      />,
+      <TrendsIndex organization={data.organization} location={data.router.location} />,
       data.routerContext
     );
 
@@ -183,13 +192,10 @@ describe('Performance > Trends', function () {
 
   it('transaction list items are rendered', async function () {
     const projects = [TestStubs.Project()];
-    const data = initializeData(projects, {project: ['-1']});
+    const data = initializeTrendsData(projects, {project: ['-1']});
 
     const wrapper = mountWithTheme(
-      <PerformanceLanding
-        organization={data.organization}
-        location={data.router.location}
-      />,
+      <TrendsIndex organization={data.organization} location={data.router.location} />,
       data.routerContext
     );
     await tick();
@@ -200,13 +206,10 @@ describe('Performance > Trends', function () {
 
   it('view summary menu action links to the correct view', async function () {
     const projects = [TestStubs.Project({id: 1, slug: 'internal'}), TestStubs.Project()];
-    const data = initializeData(projects, {project: ['1']});
+    const data = initializeTrendsData(projects, {project: ['1']});
 
     const wrapper = mountWithTheme(
-      <PerformanceLanding
-        organization={data.organization}
-        location={data.router.location}
-      />,
+      <TrendsIndex organization={data.organization} location={data.router.location} />,
       data.routerContext
     );
 
@@ -233,13 +236,10 @@ describe('Performance > Trends', function () {
 
   it('hide from list menu action modifies query', async function () {
     const projects = [TestStubs.Project({id: 1, slug: 'internal'}), TestStubs.Project()];
-    const data = initializeData(projects, {project: ['1']});
+    const data = initializeTrendsData(projects, {project: ['1']});
 
     const wrapper = mountWithTheme(
-      <PerformanceLanding
-        organization={data.organization}
-        location={data.router.location}
-      />,
+      <TrendsIndex organization={data.organization} location={data.router.location} />,
       data.routerContext
     );
 
@@ -259,20 +259,16 @@ describe('Performance > Trends', function () {
       query: expect.objectContaining({
         project: expect.anything(),
         query: `tpm():>0.01 transaction.duration:>0 transaction.duration:<${DEFAULT_MAX_DURATION} !transaction:/organizations/:orgId/performance/`,
-        view: 'TRENDS',
       }),
     });
   });
 
   it('Changing search causes cursors to be reset', async function () {
     const projects = [TestStubs.Project({id: 1, slug: 'internal'}), TestStubs.Project()];
-    const data = initializeData(projects, {project: ['1']});
+    const data = initializeTrendsData(projects, {project: ['1']});
 
     const wrapper = mountWithTheme(
-      <PerformanceLanding
-        organization={data.organization}
-        location={data.router.location}
-      />,
+      <TrendsIndex organization={data.organization} location={data.router.location} />,
       data.routerContext
     );
 
@@ -293,20 +289,16 @@ describe('Performance > Trends', function () {
         query: 'transaction.duration:>9000',
         improvedCursor: undefined,
         regressionCursor: undefined,
-        view: 'TRENDS',
       }),
     });
   });
 
   it('exclude greater than list menu action modifies query', async function () {
     const projects = [TestStubs.Project({id: 1, slug: 'internal'}), TestStubs.Project()];
-    const data = initializeData(projects, {project: ['1']});
+    const data = initializeTrendsData(projects, {project: ['1']});
 
     const wrapper = mountWithTheme(
-      <PerformanceLanding
-        organization={data.organization}
-        location={data.router.location}
-      />,
+      <TrendsIndex organization={data.organization} location={data.router.location} />,
       data.routerContext
     );
 
@@ -327,20 +319,16 @@ describe('Performance > Trends', function () {
       query: expect.objectContaining({
         project: expect.anything(),
         query: 'tpm():>0.01 transaction.duration:>0 transaction.duration:<=863',
-        view: 'TRENDS',
       }),
     });
   });
 
   it('exclude less than list menu action modifies query', async function () {
     const projects = [TestStubs.Project({id: 1, slug: 'internal'}), TestStubs.Project()];
-    const data = initializeData(projects, {project: ['1']});
+    const data = initializeTrendsData(projects, {project: ['1']});
 
     const wrapper = mountWithTheme(
-      <PerformanceLanding
-        organization={data.organization}
-        location={data.router.location}
-      />,
+      <TrendsIndex organization={data.organization} location={data.router.location} />,
       data.routerContext
     );
 
@@ -361,19 +349,15 @@ describe('Performance > Trends', function () {
       query: expect.objectContaining({
         project: expect.anything(),
         query: `tpm():>0.01 transaction.duration:<${DEFAULT_MAX_DURATION} transaction.duration:>=863`,
-        view: 'TRENDS',
       }),
     });
   });
 
   it('choosing a trend function changes location', async function () {
     const projects = [TestStubs.Project()];
-    const data = initializeData(projects, {project: ['-1']});
+    const data = initializeTrendsData(projects, {project: ['-1']});
     const wrapper = mountWithTheme(
-      <PerformanceLanding
-        organization={data.organization}
-        location={data.router.location}
-      />,
+      <TrendsIndex organization={data.organization} location={data.router.location} />,
       data.routerContext
     );
 
@@ -398,19 +382,16 @@ describe('Performance > Trends', function () {
 
   it('choosing a parameter changes location', async function () {
     const projects = [TestStubs.Project()];
-    const data = initializeData(projects, {project: ['-1']});
+    const data = initializeTrendsData(projects, {project: ['-1']});
     const wrapper = mountWithTheme(
-      <PerformanceLanding
-        organization={data.organization}
-        location={data.router.location}
-      />,
+      <TrendsIndex organization={data.organization} location={data.router.location} />,
       data.routerContext
     );
 
     await tick();
     wrapper.update();
 
-    for (const parameter of TRENDS_PARAMETERS) {
+    for (const parameter of getTrendsParameters()) {
       selectTrendParameter(wrapper, parameter.label);
 
       await tick();
@@ -426,13 +407,10 @@ describe('Performance > Trends', function () {
 
   it('trend functions in location make api calls', async function () {
     const projects = [TestStubs.Project(), TestStubs.Project()];
-    const data = initializeData(projects, {project: ['-1']});
+    const data = initializeTrendsData(projects, {project: ['-1']});
 
     const wrapper = mountWithTheme(
-      <PerformanceLanding
-        organization={data.organization}
-        location={data.router.location}
-      />,
+      <TrendsIndex organization={data.organization} location={data.router.location} />,
       data.routerContext
     );
 
@@ -492,4 +470,55 @@ describe('Performance > Trends', function () {
       );
     }
   }, 10000);
+
+  it('Visiting trends with trends feature will update filters if none are set', async function () {
+    const data = initializeTrendsData(undefined, {}, false);
+
+    const wrapper = mountWithTheme(
+      <TrendsIndex organization={data.organization} location={data.router.location} />,
+      data.routerContext
+    );
+    await tick();
+    wrapper.update();
+
+    expect(browserHistory.push).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        query: {
+          query: `tpm():>0.01 transaction.duration:>0 transaction.duration:<${DEFAULT_MAX_DURATION}`,
+        },
+      })
+    );
+  });
+
+  it('Navigating away from trends will remove extra tags from query', async function () {
+    const data = initializeTrendsData(
+      undefined,
+      {
+        query: `device.family:Mac tpm():>0.01 transaction.duration:>0 transaction.duration:<${DEFAULT_MAX_DURATION}`,
+      },
+      false
+    );
+
+    const wrapper = mountWithTheme(
+      <TrendsIndex organization={data.organization} location={data.router.location} />,
+      data.routerContext
+    );
+
+    await tick();
+    wrapper.update();
+
+    browserHistory.push.mockReset();
+
+    const byTransactionLink = wrapper.find('BreadcrumbLink');
+
+    expect(byTransactionLink.props().to).toEqual(
+      expect.objectContaining({
+        pathname: '/organizations/org-slug/performance/',
+        query: {
+          query: 'device.family:Mac',
+        },
+      })
+    );
+  });
 });
