@@ -8,6 +8,7 @@ from sentry import tsdb
 from sentry.receivers.rules import DEFAULT_RULE_LABEL
 from sentry.rules.conditions.base import EventCondition
 from sentry.utils import metrics
+from sentry.utils.snuba import Dataset, raw_query
 
 intervals = {
     "1m": ("one minute", timedelta(minutes=1)),
@@ -125,3 +126,80 @@ class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
             environment_id=environment_id,
             use_cache=True,
         )[event.group_id]
+
+
+session_percent_intervals = {
+    "1m": ("one minute", timedelta(minutes=1)),
+    "5m": ("five minutes", timedelta(minutes=5)),
+    "10m": ("ten minutes", timedelta(minutes=10)),
+    "30m": ("30 minutes", timedelta(minutes=30)),
+    "1h": ("one hour", timedelta(minutes=60)),
+}
+
+
+class SessionPercentForm(forms.Form):
+    interval = forms.ChoiceField(
+        choices=[
+            (key, label)
+            for key, (label, duration) in sorted(
+                session_percent_intervals.items(),
+                key=lambda key____label__duration: key____label__duration[1][1],
+            )
+        ]
+    )
+    value = forms.IntegerField(widget=forms.TextInput())
+
+
+class SessionPercentCondition(BaseEventFrequencyCondition):
+    form_cls = SessionPercentForm
+    form_fields = {
+        "value": {"type": "number", "placeholder": 100},
+        "interval": {
+            "type": "choice",
+            "choices": [
+                (key, label)
+                for key, (label, duration) in sorted(
+                    session_percent_intervals.items(),
+                    key=lambda key____label__duration: key____label__duration[1][1],
+                )
+            ],
+        },
+    }
+
+    label = "The issue has more errors than {value} percent of sessions in {interval}"
+
+    def get_rate(self, event, interval, environment_id):
+        _, duration = session_percent_intervals[interval]
+        end = timezone.now()
+        return self.query(event, end - duration, end, environment_id=environment_id)
+
+    def query_hook(self, event, start, end, environment_id):
+        # TODO: Cache the session query.
+
+        filters = {"project_id": [event.project_id]}
+        if environment_id:
+            filters["environment"] = [self.environment_id]
+
+        result_totals = raw_query(
+            selected_columns=["sessions"],
+            dataset=Dataset.Sessions,
+            start=self.start,
+            end=self.end,
+            filter_keys=filters,
+            groupby=["project_id"],
+            referrer="rules.conditions.event_frequency.SessionPercentCondition",
+        )
+        session_count = result_totals["data"][0]["sessions"]
+
+        issue_count = self.tsdb.get_sums(
+            model=self.tsdb.models.group,
+            keys=[event.group_id],
+            start=start,
+            end=end,
+            environment_id=environment_id,
+            use_cache=True,
+        )[event.group_id]
+
+        if session_count != 0:
+            return round(issue_count / session_count, 4)
+        return 0
