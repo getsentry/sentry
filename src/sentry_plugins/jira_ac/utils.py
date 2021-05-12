@@ -42,7 +42,7 @@ def get_jira_auth_from_request(request):
         raise ApiError("No token parameter")
     # Decode the JWT token, without verification. This gives
     # you a header JSON object, a claims JSON object, and a signature.
-    decoded = jwt.decode(token, verify=False)
+    decoded = jwt.decode(token, options={"verify_signature": False})
     # Extract the issuer ('iss') claim from the decoded, unverified
     # claims object. This is the clientKey for the tenant - an identifier
     # for the Atlassian application making the call
@@ -54,7 +54,7 @@ def get_jira_auth_from_request(request):
     jira_auth = JiraTenant.objects.get(client_key=issuer)
     # Verify the signature with the sharedSecret and
     # the algorithm specified in the header's alg field.
-    decoded_verified = jwt.decode(token, jira_auth.secret)
+    decoded_verified = jwt.decode(token, jira_auth.secret, algorithms="HS256")
     # Verify the query has not been tampered by Creating a Query Hash
     # and comparing it against the qsh claim on the verified token.
 
