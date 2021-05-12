@@ -16,7 +16,6 @@ from sentry.models import (
 from sentry.testutils import IntegrationTestCase
 from sentry.utils import json
 from sentry.utils.compat.mock import patch
-from sentry.utils.http import absolute_uri
 
 
 class VercelIntegrationTest(IntegrationTestCase):
@@ -439,42 +438,6 @@ class VercelIntegrationTest(IntegrationTestCase):
         )
         with self.assertRaises(ValidationError):
             installation.update_organization_config(data)
-
-    @responses.activate
-    def test_ui_hook_options(self):
-        """Test that the response to the UI hook CORS pre-flight OPTIONS request is handled correctly"""
-
-        uihook_url = "/extensions/vercel/ui-hook/"
-        resp = self.client.options(path=uihook_url)
-        assert resp.status_code == 200
-
-    @responses.activate
-    def test_ui_hook_post(self):
-        """Test that the response to the UI hook POST request is handled correctly"""
-
-        uihook_url = "/extensions/vercel/ui-hook/"
-        with self.tasks():
-            self.assert_setup_flow()
-        integration = Integration.objects.get(provider=self.provider.key)
-        integration.update(
-            external_id="hIwec0PQ34UDEma7XmhCRQ3x",
-            metadata={
-                "configurations": {
-                    "icfg_Gdv8qI5s0h3T3xeLZvifuhCb": {"organization_id": self.organization.id}
-                }
-            },
-        )
-
-        data = b'{"configurationId":"icfg_Gdv8qI5s0h3T3xeLZvifuhCb", "teamId":{}, "user":{"id":"hIwec0PQ34UDEma7XmhCRQ3x"}}'
-
-        resp = self.client.post(path=uihook_url, data=data, content_type="application/json")
-        assert resp.status_code == 200
-        assert (
-            absolute_uri(
-                f"/settings/{self.organization.slug}/integrations/vercel/{integration.id}/"
-            ).encode("utf-8")
-            in resp.content
-        )
 
     @responses.activate
     def test_get_dynamic_display_information(self):
