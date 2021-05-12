@@ -25,7 +25,7 @@ class Migration(migrations.Migration):
     atomic = False
 
     dependencies = [
-        ("sentry", "0192_remove_fileblobowner_org_fk"),
+        ("sentry", "0193_grouprelease_indexes"),
     ]
 
     operations = [
@@ -68,10 +68,10 @@ class Migration(migrations.Migration):
             database_operations=[
                 migrations.RunSQL(
                     """
-                CREATE INDEX CONCURRENTLY "sentry_release_major_minor_patch_revision_2d6f8f24_idx"
+                CREATE INDEX CONCURRENTLY IF NOT EXISTS "sentry_release_organization_id_major_mi_38715957_idx"
                 ON "sentry_release" ("organization_id", "major" DESC NULLS LAST , "minor" DESC NULLS LAST, "patch" DESC NULLS LAST, "revision" DESC NULLS LAST);
                 """,
-                    reverse_sql="DROP INDEX CONCURRENTLY sentry_release_major_minor_patch_revision_2d6f8f24_idx",
+                    reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS sentry_release_organization_id_major_mi_38715957_idx",
                 ),
             ],
             state_operations=[
