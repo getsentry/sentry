@@ -24,7 +24,7 @@ CHUNK_UPLOAD_ACCEPT = (
     "release_files",  # Release files assemble
     "pdbs",  # PDB upload and debug id override
     "sources",  # Source artifact bundle upload
-    "bcsymbolmaps",  # BCSymbolMaps and associated PLists
+    "bcsymbolmaps",  # BCSymbolMaps and associated PLists/UuidMaps
 )
 
 
