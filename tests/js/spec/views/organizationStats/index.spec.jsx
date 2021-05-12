@@ -5,10 +5,10 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'app/constants';
 import {DataCategory} from 'app/types';
-import {OrganizationStats} from 'app/views/organizationStatsV2';
-import {CHART_OPTIONS_DATA_TRANSFORM} from 'app/views/organizationStatsV2/usageChart';
+import {OrganizationStats} from 'app/views/organizationStats';
+import {CHART_OPTIONS_DATA_TRANSFORM} from 'app/views/organizationStats/usageChart';
 
-describe('OrganizationStatsV2', function () {
+describe('OrganizationStats', function () {
   const router = TestStubs.router();
   const {organization, routerContext} = initializeOrg({router});
 
