@@ -28,7 +28,7 @@ export const getFallBackValue = (notificationType: string): string => {
     case 'deploy':
       return 'committed_only';
     case 'workflow':
-      return 'subscribed_only';
+      return 'subscribe_only';
     default:
       return '';
   }

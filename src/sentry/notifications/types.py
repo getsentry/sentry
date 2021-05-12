@@ -45,7 +45,7 @@ class NotificationSettingTypes(Enum):
 NOTIFICATION_SETTING_TYPES = {
     NotificationSettingTypes.DEFAULT: "default",
     NotificationSettingTypes.DEPLOY: "deploy",
-    NotificationSettingTypes.ISSUE_ALERTS: "issue",
+    NotificationSettingTypes.ISSUE_ALERTS: "alerts",
     NotificationSettingTypes.WORKFLOW: "workflow",
 }
 
