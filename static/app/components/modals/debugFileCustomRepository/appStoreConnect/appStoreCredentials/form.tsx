@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
@@ -29,10 +29,19 @@ type Props = {
   projectSlug: Project['slug'];
   data: AppStoreCredentialsData;
   onChange: (data: AppStoreCredentialsData) => void;
+  onSwitchToReadMode: () => void;
   onCancel?: () => void;
 };
 
-function Form({api, orgSlug, projectSlug, data, onChange, onCancel}: Props) {
+function Form({
+  api,
+  orgSlug,
+  projectSlug,
+  data,
+  onChange,
+  onCancel,
+  onSwitchToReadMode,
+}: Props) {
   const [activeStep, setActiveStep] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -48,17 +57,10 @@ function Form({api, orgSlug, projectSlug, data, onChange, onCancel}: Props) {
     app: data.app,
   });
 
-  useEffect(() => {
-    onChange({
-      ...stepOneData,
-      ...stepTwoData,
-    });
-  }, [stepTwoData]);
-
   function isFormInvalid() {
     switch (activeStep) {
       case 0:
-        return Object.keys(stepOneData).some(key => !stepOneData[key]?.trim());
+        return Object.keys(stepOneData).some(key => !stepOneData[key]);
       case 1:
         return Object.keys(stepTwoData).some(key => !stepTwoData[key]);
       default:
@@ -76,6 +78,16 @@ function Form({api, orgSlug, projectSlug, data, onChange, onCancel}: Props) {
 
   function handleGoNext() {
     checkAppStoreConnectCredentials();
+  }
+
+  function handleSave() {
+    const updatedData = {
+      ...stepOneData,
+      ...stepTwoData,
+    };
+
+    onChange(updatedData);
+    onSwitchToReadMode();
   }
 
   async function checkAppStoreConnectCredentials() {
@@ -218,7 +230,8 @@ function Form({api, orgSlug, projectSlug, data, onChange, onCancel}: Props) {
           onGoBack={index !== 0 ? handleGoBack : undefined}
           onGoNext={index !== steps.length - 1 ? handleGoNext : undefined}
           onCancel={onCancel}
-          goNextDisabled={isFormInvalid() || isLoading}
+          onFinish={handleSave}
+          primaryButtonDisabled={isFormInvalid() || isLoading}
           isLoading={isLoading}
         />
       )}

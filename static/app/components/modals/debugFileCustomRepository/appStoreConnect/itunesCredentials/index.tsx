@@ -1,9 +1,11 @@
 import {useState} from 'react';
 
 import {Client} from 'app/api';
+import {t} from 'app/locale';
 import {Organization, Project} from 'app/types';
 
 import Card from '../card';
+import CardItem from '../cardItem';
 import {ItunesCredentialsData} from '../types';
 
 import Form from './form';
@@ -15,22 +17,40 @@ type Props = {
   isUpdating: boolean;
   data: ItunesCredentialsData;
   onChange: (data: ItunesCredentialsData) => void;
+  onReset: () => void;
 };
 
-function ItunesCredentials({data, isUpdating, ...props}: Props) {
+function ItunesCredentials({data, isUpdating, onReset, ...props}: Props) {
   const [isEditing, setIsEditing] = useState(!isUpdating);
+
+  function handleSwitchToReadMode() {
+    setIsEditing(false);
+  }
+
+  function handleCancel() {
+    setIsEditing(false);
+    onReset();
+  }
 
   if (isEditing) {
     return (
       <Form
         {...props}
         data={data}
-        onCancel={isUpdating ? () => setIsEditing(false) : undefined}
+        onSwitchToReadMode={handleSwitchToReadMode}
+        onCancel={isUpdating ? handleCancel : undefined}
       />
     );
   }
 
-  return <Card data={data} onDelete={() => setIsEditing(true)} />;
+  return (
+    <Card onEdit={() => setIsEditing(true)}>
+      {data.username && <CardItem label={t('User')} value={data.username} />}
+      {data.org?.name && (
+        <CardItem label={t('iTunes Organization')} value={data.org?.name} />
+      )}
+    </Card>
+  );
 }
 
 export default ItunesCredentials;
