@@ -125,7 +125,7 @@ ReleaseFile.cache = ReleaseFileCache()
 
 
 class ReleaseArchive:
-    """ Represents uploaded ZIP-archive of release files """
+    """ Read-only view of uploaded ZIP-archive of release files """
 
     def __init__(self, fileobj: IO):
         self._fileobj = fileobj
@@ -141,18 +141,18 @@ class ReleaseArchive:
         self._zip_file.close()
         self._fileobj.close()
 
-    def _read(self, filename: str) -> bytes:
+    def read(self, filename: str) -> bytes:
         return self._zip_file.read(filename)
 
     def _read_manifest(self) -> dict:
-        manifest_bytes = self._read("manifest.json")
+        manifest_bytes = self.read("manifest.json")
         # TODO: what is encoding of manifest_bytes?
         return json.loads(manifest_bytes.decode("utf-8"))
 
     def get_file_by_url(self, url: str) -> bytes:
         """ May raise ``KeyError`` """
         filename = self._filenames_by_url[url]
-        return self._read(filename)
+        return self.read(filename)
 
     def extract(self) -> TemporaryDirectory:
         """Extract contents to a temporary directory.
@@ -163,3 +163,21 @@ class ReleaseArchive:
         safe_extract_zip(self._fileobj, temp_dir.name, strip_toplevel=False)
 
         return temp_dir
+
+
+def merge_release_archives(archive1: ReleaseArchive, archive2: ReleaseArchive, target: IO):
+    """Fields in archive2 take precedence over fields in archive1. """
+    merged_manifest = dict(archive1.manifest, **archive2.manifest)
+    files1 = archive1.manifest.get("files", {})
+    files2 = archive2.manifest.get("files", {})
+
+    merged_manifest["files"] = dict(files1, **files2)
+
+    with zipfile.ZipFile(target, mode="w") as zip_file:
+
+        for filename in files2.keys():
+            zip_file.writestr(filename, archive2.read(filename))
+        for filename in files1.keys() - files2.keys():
+            zip_file.writestr(filename, archive1.read(filename))
+
+        zip_file.writestr("manifest.json", json.dumps(merged_manifest))
