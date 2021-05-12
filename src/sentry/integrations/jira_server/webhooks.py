@@ -21,7 +21,7 @@ def get_integration_from_token(token):
         raise ValueError("Token was empty")
 
     try:
-        unvalidated = jwt.decode(token, options={"verify_signature": False})
+        unvalidated = jwt.decode(token, verify=False)
     except jwt.DecodeError:
         raise ValueError("Could not decode JWT token")
     if "id" not in unvalidated:
@@ -31,7 +31,7 @@ def get_integration_from_token(token):
     except Integration.DoesNotExist:
         raise ValueError("Could not find integration for token")
     try:
-        jwt.decode(token, integration.metadata["webhook_secret"], algorithms="HS256")
+        jwt.decode(token, integration.metadata["webhook_secret"])
     except Exception as err:
         raise ValueError("Could not validate JWT. Got %s" % err)
 
