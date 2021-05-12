@@ -42,7 +42,7 @@ def get_integration_from_jwt(token, path, provider, query_params, method="GET"):
         raise AtlassianConnectValidationError("No token parameter")
     # Decode the JWT token, without verification. This gives
     # you a header JSON object, a claims JSON object, and a signature.
-    decoded = jwt.decode(token, options={"verify_signature": False})
+    decoded = jwt.decode(token, verify=False)
     # Extract the issuer ('iss') claim from the decoded, unverified
     # claims object. This is the clientKey for the tenant - an identifier
     # for the Atlassian application making the call
@@ -62,9 +62,7 @@ def get_integration_from_jwt(token, path, provider, query_params, method="GET"):
     if provider == "bitbucket":
         options = {"verify_aud": False}
 
-    decoded_verified = jwt.decode(
-        token, integration.metadata["shared_secret"], options=options, algorithms=["HS256"]
-    )
+    decoded_verified = jwt.decode(token, integration.metadata["shared_secret"], options=options)
     # Verify the query has not been tampered by Creating a Query Hash
     # and comparing it against the qsh claim on the verified token.
 
