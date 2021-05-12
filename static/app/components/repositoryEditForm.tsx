@@ -1,10 +1,13 @@
 import React from 'react';
 
-import {t} from 'app/locale';
+import {IconWarning} from 'app/icons';
+import {t, tct} from 'app/locale';
 import {Repository} from 'app/types';
 import {FieldFromConfig} from 'app/views/settings/components/forms';
 import Form from 'app/views/settings/components/forms/form';
 import {Field} from 'app/views/settings/components/forms/type';
+
+import Alert from './alert';
 
 type Props = Pick<Form['props'], 'onSubmitSuccess' | 'onCancel'> &
   Partial<Pick<Form['props'], 'onSubmit'>> & {
@@ -57,6 +60,17 @@ export default class RepositoryEditForm extends React.Component<Props> {
         apiMethod="PUT"
         onCancel={onCancel}
       >
+        <Alert type="warning" icon={<IconWarning />}>
+          {tct(
+            'Changing the [name:repo name] may have consequences if it no longer matches the repo name used when [link:sending commits with releases].',
+            {
+              link: (
+                <a href="https://docs.sentry.io/product/cli/releases/#sentry-cli-commit-integration" />
+              ),
+              name: <strong>repo name</strong>,
+            }
+          )}
+        </Alert>
         {this.formFields.map(field => (
           <FieldFromConfig
             key={field.name}

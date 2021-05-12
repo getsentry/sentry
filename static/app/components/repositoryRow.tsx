@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {cancelDeleteRepository, deleteRepository} from 'app/actionCreators/integrations';
@@ -114,7 +114,7 @@ class RepositoryRow extends Component<Props> {
   openModal = () => {
     const {repository, orgId} = this.props;
     openModal(({Body, Header, closeModal}) => (
-      <React.Fragment>
+      <Fragment>
         <Header closeButton>{t('Edit Repository')}</Header>
         <Body>
           <RepositoryEditForm
@@ -125,7 +125,7 @@ class RepositoryRow extends Component<Props> {
             onCancel={closeModal}
           />
         </Body>
-      </React.Fragment>
+      </Fragment>
     ));
   };
 

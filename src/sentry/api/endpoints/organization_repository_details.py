@@ -75,7 +75,7 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
         if repo.provider == "integrations:custom_scm":
             if result.get("name"):
                 update_kwargs["name"] = result.get("name")
-            if result.get("url"):
+            if result.get("url") is not None:
                 update_kwargs["url"] = result.get("url")
 
         if update_kwargs:
