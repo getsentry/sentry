@@ -424,6 +424,33 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert error == "Invalid query. Please fix the query and try again."
 
     @patch("sentry.snuba.discover.raw_query")
+    def test_retries_on_recoverable_snuba_errors(self, mock_query):
+        de = ExportedData.objects.create(
+            user=self.user,
+            organization=self.org,
+            query_type=ExportQueryType.DISCOVER,
+            query_info={"project": [self.project.id], "field": ["title"], "query": ""},
+        )
+        mock_query.side_effect = [
+            QueryMemoryLimitExceeded("test"),
+            {
+                "data": [{"count": 3}],
+                "meta": [{"name": "count", "type": "UInt64"}],
+            },
+        ]
+        with self.tasks():
+            assemble_download(de.id, count_down=0)
+        de = ExportedData.objects.get(id=de.id)
+        assert de.date_finished is not None
+        assert de.date_expired is not None
+        assert de.file is not None
+        assert isinstance(de.file, File)
+        assert de.file.headers == {"Content-Type": "text/csv"}
+        assert de.file.size is not None
+        assert de.file.checksum is not None
+        header, row = de.file.getfile().read().strip().split(b"\r\n")
+
+    @patch("sentry.snuba.discover.raw_query")
     @patch("sentry.data_export.models.ExportedData.email_failure")
     def test_discover_snuba_error(self, emailer, mock_query):
         de = ExportedData.objects.create(
@@ -435,33 +462,33 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
 
         mock_query.side_effect = QueryIllegalTypeOfArgument("test")
         with self.tasks():
-            assemble_download(de.id)
+            assemble_download(de.id, count_down=0)
         error = emailer.call_args[1]["message"]
         assert error == "Invalid query. Argument to function is wrong type."
 
         # unicode
         mock_query.side_effect = QueryIllegalTypeOfArgument("\xfc")
         with self.tasks():
-            assemble_download(de.id)
+            assemble_download(de.id, count_down=0)
         error = emailer.call_args[1]["message"]
         assert error == "Invalid query. Argument to function is wrong type."
 
         mock_query.side_effect = SnubaError("test")
         with self.tasks():
-            assemble_download(de.id)
+            assemble_download(de.id, count_down=0)
         error = emailer.call_args[1]["message"]
         assert error == "Internal error. Please try again."
 
         # unicode
         mock_query.side_effect = SnubaError("\xfc")
         with self.tasks():
-            assemble_download(de.id)
+            assemble_download(de.id, count_down=0)
         error = emailer.call_args[1]["message"]
         assert error == "Internal error. Please try again."
 
         mock_query.side_effect = RateLimitExceeded("test")
         with self.tasks():
-            assemble_download(de.id)
+            assemble_download(de.id, count_down=0)
         error = emailer.call_args[1]["message"]
         assert (
             error
@@ -470,7 +497,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
 
         mock_query.side_effect = QueryMemoryLimitExceeded("test")
         with self.tasks():
-            assemble_download(de.id)
+            assemble_download(de.id, count_down=0)
         error = emailer.call_args[1]["message"]
         assert (
             error
@@ -479,7 +506,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
 
         mock_query.side_effect = QueryExecutionTimeMaximum("test")
         with self.tasks():
-            assemble_download(de.id)
+            assemble_download(de.id, count_down=0)
         error = emailer.call_args[1]["message"]
         assert (
             error
@@ -488,7 +515,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
 
         mock_query.side_effect = QueryTooManySimultaneous("test")
         with self.tasks():
-            assemble_download(de.id)
+            assemble_download(de.id, count_down=0)
         error = emailer.call_args[1]["message"]
         assert (
             error
@@ -497,37 +524,37 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
 
         mock_query.side_effect = DatasetSelectionError("test")
         with self.tasks():
-            assemble_download(de.id)
+            assemble_download(de.id, count_down=0)
         error = emailer.call_args[1]["message"]
         assert error == "Internal error. Your query failed to run."
 
         mock_query.side_effect = QueryConnectionFailed("test")
         with self.tasks():
-            assemble_download(de.id)
+            assemble_download(de.id, count_down=0)
         error = emailer.call_args[1]["message"]
         assert error == "Internal error. Your query failed to run."
 
         mock_query.side_effect = QuerySizeExceeded("test")
         with self.tasks():
-            assemble_download(de.id)
+            assemble_download(de.id, count_down=0)
         error = emailer.call_args[1]["message"]
         assert error == "Internal error. Your query failed to run."
 
         mock_query.side_effect = QueryExecutionError("test")
         with self.tasks():
-            assemble_download(de.id)
+            assemble_download(de.id, count_down=0)
         error = emailer.call_args[1]["message"]
         assert error == "Internal error. Your query failed to run."
 
         mock_query.side_effect = SchemaValidationError("test")
         with self.tasks():
-            assemble_download(de.id)
+            assemble_download(de.id, count_down=0)
         error = emailer.call_args[1]["message"]
         assert error == "Internal error. Your query failed to run."
 
         mock_query.side_effect = UnqualifiedQueryError("test")
         with self.tasks():
-            assemble_download(de.id)
+            assemble_download(de.id, count_down=0)
         error = emailer.call_args[1]["message"]
         assert error == "Internal error. Your query failed to run."
 
