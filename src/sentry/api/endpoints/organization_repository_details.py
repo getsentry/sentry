@@ -5,6 +5,7 @@ from django.db import transaction
 from rest_framework import serializers
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationIntegrationsPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.fields.empty_integer import EmptyIntegerField
@@ -71,8 +72,10 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
             update_kwargs["integration_id"] = integration.id
             update_kwargs["provider"] = f"integrations:{integration.provider}"
 
-        # TODO(meredith): Feature gate this as well
-        if repo.provider == "integrations:custom_scm":
+        if (
+            features.has("organizations:integrations-custom-scm", organization, actor=request.user)
+            and repo.provider == "integrations:custom_scm"
+        ):
             if result.get("name"):
                 update_kwargs["name"] = result["name"]
             if result.get("url") is not None:

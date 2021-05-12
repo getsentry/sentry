@@ -3,6 +3,7 @@ from django.urls import reverse
 from sentry.constants import ObjectStatus
 from sentry.models import Commit, Integration, OrganizationOption, Repository
 from sentry.testutils import APITestCase
+from sentry.testutils.helpers import with_feature
 from sentry.utils.compat.mock import patch
 
 
@@ -156,6 +157,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         assert repo.status == ObjectStatus.VISIBLE
         assert repo.integration_id == integration.id
 
+    @with_feature("organizations:integrations-custom-scm")
     def test_put_custom_scm_repo(self):
         """
         Allow repositories that are tied to Custom SCM integrations
@@ -192,6 +194,7 @@ class OrganizationRepositoryDeleteTest(APITestCase):
         assert repo.url is None
         assert repo.name == "some-org/new-name"
 
+    @with_feature("organizations:integrations-custom-scm")
     def test_no_name_or_url_updates(self):
         """
         Repositories that are not tied to Custom SCM integrations
