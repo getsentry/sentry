@@ -4,7 +4,7 @@ from django.core import signing
 from django.test.utils import override_settings
 from exam import fixture
 
-from sentry.demo.demo_start import MEMBER_ID_COOKIE, SKIP_EMAIL_COOKIE, SAAS_ORG_SLUG
+from sentry.demo.demo_start import MEMBER_ID_COOKIE, SAAS_ORG_SLUG, SKIP_EMAIL_COOKIE
 from sentry.demo.models import DemoOrganization
 from sentry.demo.settings import DEMO_DATA_QUICK_GEN_PARAMS
 from sentry.models import Group, Organization, OrganizationStatus, Project, Release, User
