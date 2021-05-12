@@ -29,41 +29,30 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
         )
 
         if serializer.is_valid():
-            if not is_active_superuser(request):
-                if alert_rule.owner and alert_rule.owner.type == ACTOR_TYPES["team"]:
-                    team = alert_rule.owner.resolve()
-                    if not OrganizationMemberTeam.objects.filter(
-                        organizationmember__user=request.user, team=team, is_active=True
-                    ).exists():
-                        return Response(
-                            {
-                                "detail": [
-                                    "You do not have permission to edit this alert rule because you are not a member of the assigned team."
-                                ]
-                            },
-                            status=403,
-                        )
+            if not self._verify_user_has_permission(request, alert_rule):
+                return Response(
+                    {
+                        "detail": [
+                            "You do not have permission to edit this alert rule because you are not a member of the assigned team."
+                        ]
+                    },
+                    status=403,
+                )
             alert_rule = serializer.save()
             return Response(serialize(alert_rule, request.user), status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, organization, alert_rule):
-        if not is_active_superuser(request):
-            if alert_rule.owner and alert_rule.owner.type == ACTOR_TYPES["team"]:
-                team = alert_rule.owner.resolve()
-                if not OrganizationMemberTeam.objects.filter(
-                    organizationmember__user=request.user, team=team, is_active=True
-                ).exists():
-                    return Response(
-                        {
-                            "detail": [
-                                "You do not have permission to delete this alert rule because you are not a member of the assigned team."
-                            ]
-                        },
-                        status=403,
-                    )
-
+        if not self._verify_user_has_permission(request, alert_rule):
+            return Response(
+                {
+                    "detail": [
+                        "You do not have permission to delete this alert rule because you are not a member of the assigned team."
+                    ]
+                },
+                status=403,
+            )
         try:
             delete_alert_rule(alert_rule)
             return Response(status=status.HTTP_204_NO_CONTENT)
@@ -71,3 +60,13 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
             return Response(
                 "This rule has already been deleted", status=status.HTTP_400_BAD_REQUEST
             )
+
+    def _verify_user_has_permission(self, request, alert_rule):
+        if not is_active_superuser(request):
+            if alert_rule.owner and alert_rule.owner.type == ACTOR_TYPES["team"]:
+                team = alert_rule.owner.resolve()
+                if not OrganizationMemberTeam.objects.filter(
+                    organizationmember__user=request.user, team=team, is_active=True
+                ).exists():
+                    return False
+        return True
