@@ -65,7 +65,7 @@ from sentry.reprocessing2 import (
     is_reprocessed_event,
     save_unprocessed_event,
 )
-from sentry.signals import first_event_received, issue_unresolved
+from sentry.signals import first_event_received, first_transaction_received, issue_unresolved
 from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.utils import json, metrics
@@ -306,6 +306,12 @@ class EventManager:
             self._data["project"] = int(project_id)
             job = {"data": self._data, "start_time": start_time}
             jobs = save_transaction_events([job], projects)
+
+            if not project.flags.has_transactions:
+                first_transaction_received.send_robust(
+                    project=project, event=jobs[0]["event"], sender=Project
+                )
+
             return jobs[0]["event"]
 
         with metrics.timer("event_manager.save.organization.get_from_cache"):
@@ -473,7 +479,6 @@ class EventManager:
                         "environment_id": job["environment"].id,
                     },
                 )
-
         if not raw:
             if not project.first_event:
                 project.update(first_event=job["event"].datetime)

@@ -34,6 +34,8 @@ const validHookNames = new Set<HookName>([
   'feature-disabled:grid-editable-actions',
   'feature-disabled:open-discover',
   'feature-disabled:dashboards-edit',
+  'feature-disabled:dashboards-page',
+  'feature-disabled:dashboards-sidebar-item',
   'feature-disabled:incidents-sidebar-item',
   'feature-disabled:performance-new-project',
   'feature-disabled:performance-page',

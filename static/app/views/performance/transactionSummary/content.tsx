@@ -36,7 +36,7 @@ import {getTraceDetailsUrl} from 'app/views/performance/traceDetails/utils';
 import {
   PERCENTILE as VITAL_PERCENTILE,
   VITAL_GROUPS,
-} from 'app/views/performance/transactionVitals/constants';
+} from 'app/views/performance/transactionSummary/transactionVitals/constants';
 
 import {getTransactionDetailsUrl} from '../utils';
 
