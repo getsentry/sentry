@@ -19,7 +19,7 @@ class Properties:
         return zip(self.keys, self.values)
 
 
-@pytest.fixture(params=["bigtable", "cache/default", "memory", "redis"])
+@pytest.fixture(params=["bigtable", "cache/default", "memory", "memory+cachewrapper", "redis"])
 def properties(request) -> Properties:
     if request.param == "bigtable":
         from tests.sentry.utils.kvstore.test_bigtable import create_store, get_credentials
@@ -63,6 +63,15 @@ def properties(request) -> Properties:
             RedisKVStorage(Redis(db=6)),
             keys=(f"kvstore/{i}" for i in itertools.count()),
             values=(f"{i}".encode("utf8") for i in itertools.count()),
+        )
+    elif request.param == "memory+cachewrapper":
+        from sentry.utils.kvstore.cache import CacheKeyWrapper
+        from sentry.utils.kvstore.memory import MemoryKVStorage
+
+        return Properties(
+            CacheKeyWrapper(MemoryKVStorage()),
+            keys=map(str, itertools.count()),
+            values=itertools.count(),
         )
     else:
         raise ValueError("unknown kvstore label")
