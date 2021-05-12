@@ -7,7 +7,7 @@ from sentry.utils.kvstore.abstract import KVStorage
 
 
 class RedisKVStorage(KVStorage[str, bytes]):
-    def __init__(self, client: Redis[bytes]) -> None:
+    def __init__(self, client: "Redis[bytes]") -> None:
         self.client = client
 
     def get(self, key: str) -> Optional[bytes]:
