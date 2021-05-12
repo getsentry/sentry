@@ -1,6 +1,8 @@
 import hashlib
 import logging
+from io import BytesIO
 from os import path
+from typing import IO
 
 from django.db import IntegrityError, transaction
 
@@ -8,7 +10,7 @@ from sentry import features
 from sentry.api.serializers import serialize
 from sentry.cache import default_cache
 from sentry.models import File, Organization, Release, ReleaseFile
-from sentry.models.releasefile import ReleaseArchive
+from sentry.models.releasefile import ReleaseArchive, merge_release_archives
 from sentry.tasks.base import instrumented_task
 from sentry.utils.files import get_max_file_size
 from sentry.utils.sdk import bind_organization_context, configure_scope
@@ -162,7 +164,7 @@ class AssembleArtifactsError(Exception):
     pass
 
 
-def _upsert_release_file(file: File, **kwargs):
+def _upsert_release_file(file: File, temp_file: IO, replacement_strategy, **kwargs):
 
     release_file = None
 
@@ -183,8 +185,31 @@ def _upsert_release_file(file: File, **kwargs):
             file.delete()
     else:
         old_file = release_file.file
-        release_file.update(file=file)
+        release_file.update(file=replacement_strategy(old_file, file, temp_file))
         old_file.delete()
+
+
+def _simple_replace(old_file: File, new_file: File, new_fp: IO):
+    return new_file
+
+
+def _merge_archives(old_file: File, new_file: File, new_fp: IO):
+    # TODO: conversion to BytesIO is not pretty, but opening ZipFile with
+    # the file-like-object returned by File.getfile() yields an error
+    old_archive = ReleaseArchive(BytesIO(old_file.getfile().read()))
+    new_archive = ReleaseArchive(BytesIO(new_file.getfile().read()))
+    with old_archive, new_archive:
+        buffer = BytesIO()
+        merge_release_archives(old_archive, new_archive, buffer)
+
+        replacement = File.objects.create(name=old_file.name, type=old_file.type)
+        buffer.seek(0)
+        replacement.putfile(buffer)
+        replacement.save()
+
+    new_file.delete()  # old_file is deleted in _upsert_release_file
+
+    return replacement
 
 
 def _store_single_files(archive: ReleaseArchive, meta: dict):
@@ -209,7 +234,7 @@ def _store_single_files(archive: ReleaseArchive, meta: dict):
                 file.putfile(fp, logger=logger)
 
             kwargs = dict(meta, name=artifact_url)
-            _upsert_release_file(file, **kwargs)
+            _upsert_release_file(file, None, _simple_replace, **kwargs)
 
 
 @instrumented_task(name="sentry.tasks.assemble.assemble_artifacts", queue="assemble")
@@ -276,7 +301,7 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
 
             if features.has("organizations:release-archives", organization):
                 kwargs = dict(meta, name=RELEASE_ARCHIVE_FILENAME)
-                _upsert_release_file(bundle, **kwargs)
+                _upsert_release_file(bundle, temp_file, _merge_archives, **kwargs)
             else:
                 # Every file in bundle will become a release file
                 _store_single_files(archive, meta)

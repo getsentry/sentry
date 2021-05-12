@@ -173,7 +173,7 @@ def merge_release_archives(archive1: ReleaseArchive, archive2: ReleaseArchive, t
 
     merged_manifest["files"] = dict(files1, **files2)
 
-    with zipfile.ZipFile(target, mode="w") as zip_file:
+    with zipfile.ZipFile(target, mode="w", compression=zipfile.ZIP_DEFLATED) as zip_file:
 
         for filename in files2.keys():
             zip_file.writestr(filename, archive2.read(filename))
