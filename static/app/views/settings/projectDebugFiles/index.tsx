@@ -3,15 +3,24 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import ProjectActions from 'app/actions/projectActions';
+import Alert from 'app/components/alert';
 import Checkbox from 'app/components/checkbox';
+import List from 'app/components/list';
+import ListItem from 'app/components/list/listItem';
 import Pagination from 'app/components/pagination';
 import {PanelTable} from 'app/components/panels';
 import SearchBar from 'app/components/searchBar';
+import {DEBUG_SOURCE_TYPES} from 'app/data/debugFileSources';
 import {fields} from 'app/data/forms/projectDebugFiles';
+import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
-import {BuiltinSymbolSource, DebugFile} from 'app/types/debugFiles';
+import {
+  AppStoreConnectValidationData,
+  BuiltinSymbolSource,
+  DebugFile,
+} from 'app/types/debugFiles';
 import routeTitleGen from 'app/utils/routeTitle';
 import AsyncView from 'app/views/asyncView';
 import Form from 'app/views/settings/components/forms/form';
@@ -19,6 +28,8 @@ import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
 import PermissionAlert from 'app/views/settings/project/permissionAlert';
+
+import AppStoreConnectContext from '../project/appStoreConnectContext';
 
 import DebugFileRow from './debugFileRow';
 
@@ -28,9 +39,9 @@ type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
 };
 
 type State = AsyncView['state'] & {
-  debugFiles: DebugFile[];
-  builtinSymbolSources?: BuiltinSymbolSource[];
+  debugFiles: DebugFile[] | null;
   showDetails: boolean;
+  builtinSymbolSources?: BuiltinSymbolSource[] | null;
 };
 
 class ProjectDebugSymbols extends AsyncView<Props, State> {
@@ -118,6 +129,16 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
     return t('There are no debug symbols for this project.');
   }
 
+  getAppStoreConnectId(): undefined | string {
+    const {project} = this.props;
+    const appStoreConnectData = (project.symbolSources
+      ? JSON.parse(project.symbolSources)
+      : []
+    ).find(symbolSource => symbolSource.type === 'appStoreConnect');
+
+    return appStoreConnectData?.id;
+  }
+
   renderLoading() {
     return this.renderBody();
   }
@@ -147,6 +168,50 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
     });
   }
 
+  getFieldsSymbolSources() {
+    if (this.getAppStoreConnectId()) {
+      return fields.symbolSources;
+    }
+
+    const fieldsSymbolSources = fields.symbolSources as any;
+
+    if (
+      !!fieldsSymbolSources.addDropdown.items.find(
+        item => item.value === 'appStoreConnect'
+      )
+    ) {
+      return fields.symbolSources;
+    }
+
+    fieldsSymbolSources.addDropdown.items.push({
+      value: 'appStoreConnect',
+      label: t(DEBUG_SOURCE_TYPES.appStoreConnect),
+      searchKey: t('apple store connect'),
+    });
+
+    return fieldsSymbolSources;
+  }
+
+  renderAppStoreConnectAlert(data?: AppStoreConnectValidationData) {
+    if (!data) {
+      return null;
+    }
+
+    return (
+      <Alert type="warning" icon={<IconWarning size="xs" />}>
+        {t(
+          'We were unable to validate your credentials with App Store Connect. Please update the following data:'
+        )}
+        <List symbol="bullet">
+          {!data.appstoreCredentialsValid && (
+            <ListItem>{t('App Store Connect credentials')}</ListItem>
+          )}
+          {!data.itunesSessionValid && <ListItem>{t('iTunes credentials')}</ListItem>}
+        </List>
+      </Alert>
+    );
+  }
+
   renderBody() {
     const {organization, project, params} = this.props;
     const {
@@ -156,8 +221,17 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
       debugFiles,
       debugFilesPageLinks,
     } = this.state;
+
     const {orgId, projectId} = params;
     const {features, access} = organization;
+
+    const hasAppStoreConnectFeatureFlag = !!organization.features?.includes(
+      'app-store-connect'
+    );
+
+    const fieldsSymbolSources = hasAppStoreConnectFeatureFlag
+      ? this.getFieldsSymbolSources()
+      : fields.symbolSources;
 
     const fieldProps = {
       organization,
@@ -179,7 +253,11 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
         {features.includes('symbol-sources') && (
           <Fragment>
             <PermissionAlert />
-
+            {hasAppStoreConnectFeatureFlag && (
+              <AppStoreConnectContext.Consumer>
+                {data => this.renderAppStoreConnectAlert(data)}
+              </AppStoreConnectContext.Consumer>
+            )}
             <Form
               saveOnBlur
               allowUndo
@@ -198,7 +276,7 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
                 features={new Set(features)}
                 title={t('External Sources')}
                 disabled={!access.includes('project:write')}
-                fields={[fields.symbolSources, fields.builtinSymbolSources]}
+                fields={[fieldsSymbolSources, fields.builtinSymbolSources]}
                 additionalFieldProps={fieldProps}
               />
             </Form>
