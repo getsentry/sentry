@@ -53,12 +53,11 @@ from sentry.search.events.filter import convert_search_filter_to_snuba_query
 from sentry.tagstore.snuba.backend import fix_tag_value_data
 from sentry.tsdb.snuba import SnubaTSDB
 from sentry.types.integrations import ExternalProviders
-from sentry.utils import snuba
 from sentry.utils.cache import cache
 from sentry.utils.compat import zip
 from sentry.utils.db import attach_foreignkey
 from sentry.utils.safe import safe_execute
-from sentry.utils.snuba import Dataset, raw_query
+from sentry.utils.snuba import Dataset, aliased_query, raw_query
 
 # TODO(jess): remove when snuba is primary backend
 snuba_tsdb = SnubaTSDB(**settings.SENTRY_TSDB_OPTIONS)
@@ -814,8 +813,8 @@ class GroupSerializerSnuba(GroupSerializerBase):
         filters = {"project_id": project_ids, "group_id": group_ids}
         if self.environment_ids:
             filters["environment"] = self.environment_ids
-        result = snuba.aliased_query(
-            dataset=snuba.Dataset.Events,
+        result = aliased_query(
+            dataset=Dataset.Events,
             start=start,
             end=end,
             groupby=["group_id"],
@@ -949,6 +948,11 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             **query_params,
         )
 
+    def _get_session_percent(self, count, sessions):
+        if sessions != 0:
+            return round(int(count) / sessions, 4)
+        return None
+
     def get_attrs(self, item_list, user):
         if not self._collapse("base"):
             attrs = super().get_attrs(item_list, user)
@@ -973,6 +977,56 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                 if filtered_stats:
                     attrs[item].update({"filtered_stats": filtered_stats[item.id]})
                 attrs[item].update({"stats": stats[item.id]})
+
+            if self._expand("sessions"):
+                cache_keys = list(
+                    {self._build_session_cache_key(item.project_id) for item in item_list}
+                )
+                cache_data = cache.get_many(cache_keys)
+                missed_items = []
+                for item, cache_key in zip(item_list, cache_keys):
+                    num_sessions = cache_data.get(cache_key)
+                    if num_sessions is None:
+                        missed_items.append(item)
+                    else:
+                        attrs[item].update(
+                            {
+                                "sessionPercent": self._get_session_percent(
+                                    attrs[item]["times_seen"], num_sessions
+                                )
+                            }
+                        )
+
+                if missed_items:
+                    filters = {"project_id": list({item.project_id for item in missed_items})}
+                    if self.environment_ids:
+                        filters["environment"] = self.environment_ids
+
+                    result_totals = raw_query(
+                        selected_columns=["sessions"],
+                        dataset=Dataset.Sessions,
+                        start=self.start,
+                        end=self.end,
+                        filter_keys=filters,
+                        groupby=["project_id"],
+                        referrer="serializers.GroupSerializerSnuba.session_totals",
+                    )
+                    for data in result_totals["data"]:
+                        cache_key = self._build_session_cache_key(data["project_id"])
+                        cache.set(cache_key, data["sessions"], 3600)
+
+                    for item in missed_items:
+                        attrs[item].update({"sessionPercent": None})
+                        for data in result_totals["data"]:
+                            if data["project_id"] == item.project_id:
+                                attrs[item].update(
+                                    {
+                                        "sessionPercent": self._get_session_percent(
+                                            attrs[item]["times_seen"], data["sessions"]
+                                        )
+                                    }
+                                )
+                                break
 
         if self._expand("inbox"):
             inbox_stats = get_inbox_details(item_list)
@@ -1020,39 +1074,19 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                 else:
                     result["filtered"] = None
 
+            if self._expand("sessions"):
+                result["sessionPercent"] = attrs["sessionPercent"]
+
         if self._expand("inbox"):
             result["inbox"] = attrs["inbox"]
 
         if self._expand("owners"):
             result["owners"] = attrs["owners"]
 
-        if self._expand("sessions") and not self._collapse("stats"):
-            session_count_key = self._build_session_cache_key(obj)
-            num_sessions = cache.get(session_count_key)
-            if num_sessions is None:
-                filters = {"project_id": [obj.project.id]}
-                if self.environment_ids:
-                    filters["environment"] = self.environment_ids
-                result_totals = raw_query(
-                    selected_columns=["sessions"],
-                    dataset=Dataset.Sessions,
-                    start=self.start,
-                    end=self.end,
-                    filter_keys=filters,
-                    referrer="sessions.group.totals",
-                )
-                num_sessions = result_totals["data"][0]["sessions"]
-                cache.set(session_count_key, num_sessions, 3600)  # Cache for 5 minutes
-
-            if num_sessions != 0:
-                result["sessionPercent"] = round(int(result["count"]) / num_sessions, 4)
-            else:
-                result["sessionPercent"] = None
-
         return result
 
-    def _build_session_cache_key(self, obj):
-        session_count_key = f"w-s:{obj.project.id}"
+    def _build_session_cache_key(self, project_id):
+        session_count_key = f"w-s:{project_id}"
 
         if self.start:
             session_count_key = f"{session_count_key}-{self.start.replace(second=0, microsecond=0, tzinfo=None)}".replace(

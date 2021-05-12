@@ -459,7 +459,7 @@ class StreamGroupSerializerTestCase(APITestCase, SnubaTestCase):
             {
                 "session_id": "5d52fd05-fcc9-4bf3-9dc9-267783670341",
                 "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102666",
-                "status": "exited",
+                "status": "ok",
                 "seq": 0,
                 "release": self.session_release,
                 "environment": "dev",
@@ -536,7 +536,6 @@ class StreamGroupSerializerTestCase(APITestCase, SnubaTestCase):
             [group],
             serializer=StreamGroupSerializerSnuba(stats_period="14d", expand=["sessions"]),
         )
-        assert result[0]["sessionPercent"]
         assert result[0]["sessionPercent"] == 0.3333
         result = serialize(
             [group],
@@ -596,9 +595,21 @@ class StreamGroupSerializerTestCase(APITestCase, SnubaTestCase):
 
         # Delete the cache from the query we did above, else this result comes back as 1 instead of 0.5
         cache.delete(f"w-s:{group.project.id}-{dev_environment.id}")
+        project2 = self.create_project(
+            organization=self.organization, teams=[self.team], name="Another project"
+        )
+        data = {
+            "fingerprint": ["meow"],
+            "timestamp": iso_format(timezone.now()),
+            "type": "error",
+            "exception": [{"type": "Foo"}],
+        }
+        event = self.store_event(data=data, project_id=project2.id)
+        self.store_event(data=data, project_id=project2.id)
+        self.store_event(data=data, project_id=project2.id)
 
         result = serialize(
-            [group],
+            [group, event.group],
             serializer=StreamGroupSerializerSnuba(
                 environment_ids=[dev_environment.id],
                 stats_period="14d",
@@ -606,3 +617,5 @@ class StreamGroupSerializerTestCase(APITestCase, SnubaTestCase):
             ),
         )
         assert result[0]["sessionPercent"] == 0.5
+        # No sessions in project2
+        assert result[1]["sessionPercent"] is None
