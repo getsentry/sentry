@@ -305,7 +305,7 @@ class JiraServerIntegrationTest(IntegrationTestCase):
             data = json.loads(request.body)
             url = data["url"]
             token = url.split("/")[-2]
-            token_data = jwt.decode(token, verify=False)
+            token_data = jwt.decode(token, options={"verify_signature": False})
             assert "id" in token_data
             assert token_data["id"] == expected_id
 
