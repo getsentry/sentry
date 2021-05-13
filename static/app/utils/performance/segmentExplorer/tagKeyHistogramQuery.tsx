@@ -43,7 +43,6 @@ type FacetQuery = LocationQuery &
     tagKey?: string;
     order?: string;
     aggregateColumn?: string;
-    histograms?: boolean;
   };
 
 export function getRequestFunction(_props: QueryProps) {
@@ -54,7 +53,6 @@ export function getRequestFunction(_props: QueryProps) {
     apiPayload.aggregateColumn = aggregateColumn;
     apiPayload.order = _props.order ? _props.order : '-sumdelta';
     apiPayload.tagKey = _props.tagKey;
-    apiPayload.histograms = true; //TODO(k-fish): Revisit to potentially remove.
     return apiPayload;
   }
   return getTagExplorerRequestPayload;
@@ -71,7 +69,7 @@ function shouldRefetchData(prevProps: QueryProps, nextProps: QueryProps) {
 function TagKeyHistogramQuery(props: QueryProps) {
   return (
     <GenericDiscoverQuery<TableData, QueryProps>
-      route="events-facets-performance"
+      route="events-facets-performance-histogram"
       getRequestPayload={getRequestFunction(props)}
       shouldRefetchData={shouldRefetchData}
       {...props}
