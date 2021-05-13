@@ -9,13 +9,12 @@ import {Field} from 'app/views/settings/components/forms/type';
 
 import Alert from './alert';
 
-type Props = Pick<Form['props'], 'onSubmitSuccess' | 'onCancel'> &
-  Partial<Pick<Form['props'], 'onSubmit'>> & {
-    orgSlug: string;
-    repository: Repository;
-    onSubmitSuccess: (data: any) => void;
-    closeModal: () => void;
-  };
+type Props = Pick<Form['props'], 'onSubmitSuccess' | 'onCancel'> & {
+  orgSlug: string;
+  repository: Repository;
+  onSubmitSuccess: (data: any) => void;
+  closeModal: () => void;
+};
 
 export default class RepositoryEditForm extends React.Component<Props> {
   get initialData() {

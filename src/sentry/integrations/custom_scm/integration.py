@@ -125,7 +125,13 @@ class CustomSCMIntegrationProvider(IntegrationProvider):
     requires_feature_flag = True
     metadata = metadata
     integration_cls = CustomSCMIntegration
-    features = frozenset([IntegrationFeatures.COMMITS, IntegrationFeatures.STACKTRACE_LINK])
+    features = frozenset(
+        [
+            IntegrationFeatures.COMMITS,
+            IntegrationFeatures.STACKTRACE_LINK,
+            IntegrationFeatures.CODEOWNERS,
+        ]
+    )
 
     def get_pipeline_views(self):
         return [InstallationConfigView()]
