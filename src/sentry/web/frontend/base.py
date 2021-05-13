@@ -353,22 +353,6 @@ class OrganizationView(BaseView):
             redirect_uri = self.get_no_permission_url(request, *args, **kwargs)
         return self.redirect(redirect_uri)
 
-    # def needs_sso(self, request, organization):
-    #     if not organization:
-    #         return False
-    #     # XXX(dcramer): this branch should really never hit
-    #     if not request.user.is_authenticated:
-    #         return False
-    #     if not self.valid_sso_required:
-    #         return False
-    #     if not request.access.requires_sso:
-    #         return False
-    #     if not auth.has_completed_sso(request, organization.id):
-    #         return True
-    #     if not request.access.sso_is_valid:
-    #         return True
-    #     return False
-
     def convert_args(self, request, organization_slug=None, *args, **kwargs):
         active_organization = self.get_active_organization(
             request=request, organization_slug=organization_slug
