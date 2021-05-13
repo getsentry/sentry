@@ -88,23 +88,24 @@ class OpsBreakdown extends Component<Props> {
 
     let spans: RawSpanType[] = spanEntry?.data ?? [];
 
+    const rootSpan = {
+      op: traceContext.op,
+      timestamp: event.endTimestamp,
+      start_timestamp: event.startTimestamp,
+      trace_id: traceContext.trace_id || '',
+      span_id: traceContext.span_id || '',
+      data: {},
+    };
+
     spans =
       spans.length > 0
         ? spans
         : // if there are no descendent spans, then use the transaction root span
-          [
-            {
-              op: traceContext.op,
-              timestamp: event.endTimestamp,
-              start_timestamp: event.startTimestamp,
-              trace_id: traceContext.trace_id || '',
-              span_id: traceContext.span_id || '',
-              data: {},
-            },
-          ];
+          [rootSpan];
 
     // Filter spans by operation name
     if (operationNameFilters.type === 'active_filter') {
+      spans = [...spans, rootSpan];
       spans = spans.filter(span => {
         const operationName = getSpanOperation(span);
 
