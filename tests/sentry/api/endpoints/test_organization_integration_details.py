@@ -6,6 +6,7 @@ from sentry.models import (
     Repository,
 )
 from sentry.testutils import APITestCase
+from sentry.testutils.helpers import with_feature
 
 
 class OrganizationIntegrationDetailsTest(APITestCase):
@@ -81,3 +82,26 @@ class OrganizationIntegrationDetailsTest(APITestCase):
             assert not OrganizationIntegration.objects.filter(
                 integration=self.integration, organization=self.org
             ).exists()
+
+    def test_no_access_put_request(self):
+        data = {"name": "Example Name"}
+
+        response = self.client.put(self.path, format="json", data=data)
+        assert response.status_code == 404
+
+    @with_feature("organizations:integrations-custom-scm")
+    def test_valid_put_request(self):
+        integration = Integration.objects.create(
+            provider="custom_scm", name="A Name", external_id="1232948573948579127"
+        )
+        integration.add_organization(self.org, self.user)
+        path = f"/api/0/organizations/{self.org.slug}/integrations/{integration.id}/"
+
+        data = {"name": "New Name", "domain": "https://example.com/"}
+
+        response = self.client.put(path, format="json", data=data)
+        assert response.status_code == 200
+
+        updated = Integration.objects.get(id=integration.id)
+        assert updated.name == "New Name"
+        assert updated.metadata["domain_name"] == "https://example.com/"

@@ -40,7 +40,7 @@ class IntegrationMainSettings extends React.Component<Props, State> {
       {
         name: 'name',
         type: 'string',
-        required: true,
+        required: false,
         label: t('Integration Name'),
       },
       {

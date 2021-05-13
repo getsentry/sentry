@@ -96,6 +96,15 @@ class ConfigureIntegration extends AsyncView<Props, State> {
     return this.props.organization.features.includes('integrations-codeowners');
   }
 
+  isCustomIntegration() {
+    const {integration} = this.state;
+    const {organization} = this.props;
+    return (
+      organization.features.includes('integrations-custom-scm') &&
+      integration.provider.key === 'custom_scm'
+    );
+  }
+
   onTabChange = (value: Tab) => {
     this.setState({tab: value});
   };
@@ -233,8 +242,8 @@ class ConfigureIntegration extends AsyncView<Props, State> {
       ...(this.hasCodeOwners() ? [['userMappings', t('User Mappings')]] : []),
       ...(this.hasCodeOwners() ? [['teamMappings', t('Team Mappings')]] : []),
     ];
-    // TODO(meredith): Needs Feature Gating
-    if (this.hasCodeOwners()) {
+
+    if (this.isCustomIntegration()) {
       tabs.unshift(['settings', t('Settings')]);
     }
 
