@@ -45,16 +45,10 @@ class OrganizationEventsFacetsPerformanceEndpoint(OrganizationEventsV2EndpointBa
 
         all_tag_keys = None
         tag_key = None
-        histograms = None
 
         if self.has_tag_page_feature(organization, request):
-            # TODO(k-fish): Temporarily allow these options for this feature, potentially circle back to split histogram off before release.
             all_tag_keys = request.GET.get("allTagKeys")
             tag_key = request.GET.get("tagKey")
-            histograms = request.GET.get("histograms")
-
-            if histograms and not tag_key:
-                raise ParseError(detail="'tagKey' must be provided when using 'histograms'.")
 
         if not aggregate_column:
             raise ParseError(detail="'aggregateColumn' must be provided.")
@@ -78,31 +72,18 @@ class OrganizationEventsFacetsPerformanceEndpoint(OrganizationEventsV2EndpointBa
                 if not tag_data:
                     return {"data": []}
 
-                if histograms:
-                    results = query_facet_performance_key_histogram(
-                        tag_data=tag_data,
-                        tag_key=tag_key,
-                        filter_query=filter_query,
-                        aggregate_column=aggregate_column,
-                        referrer=referrer,
-                        orderby=self.get_orderby(request),
-                        limit=limit,
-                        offset=offset,
-                        params=params,
-                    )
-                else:
-                    results = query_facet_performance(
-                        tag_data=tag_data,
-                        filter_query=filter_query,
-                        aggregate_column=aggregate_column,
-                        referrer=referrer,
-                        orderby=self.get_orderby(request),
-                        limit=limit,
-                        offset=offset,
-                        params=params,
-                        all_tag_keys=all_tag_keys,
-                        tag_key=tag_key,
-                    )
+                results = query_facet_performance(
+                    tag_data=tag_data,
+                    filter_query=filter_query,
+                    aggregate_column=aggregate_column,
+                    referrer=referrer,
+                    orderby=self.get_orderby(request),
+                    limit=limit,
+                    offset=offset,
+                    params=params,
+                    all_tag_keys=all_tag_keys,
+                    tag_key=tag_key,
+                )
 
                 if not results:
                     return {"data": []}
@@ -290,36 +271,3 @@ def query_facet_performance(
         results["meta"] = discover.transform_meta(results, {})
 
         return results
-
-
-def query_facet_performance_key_histogram(
-    params: Mapping[str, str],
-    tag_data: Mapping[str, Any],
-    tag_key: str,
-    aggregate_column: Optional[str] = None,
-    filter_query: Optional[str] = None,
-    orderby: Optional[str] = None,
-    referrer: Optional[str] = None,
-    limit: Optional[int] = None,
-    offset: Optional[int] = None,
-) -> Dict:
-    # Histogram Code
-    precision = 0
-    num_buckets = 100
-    min_value = tag_data["min"]
-    max_value = tag_data["max"]
-
-    results = discover.histogram_query(
-        [aggregate_column],
-        filter_query,
-        params,
-        num_buckets,
-        precision,
-        min_value=min_value,
-        max_value=max_value,
-        referrer="api.organization-events-facets-performance-tags",
-        group_by=["tags_value", "tags_key"],
-        extra_conditions=[["tags_key", "IN", [tag_key]]],
-        normalize_results=False,
-    )
-    return results
