@@ -15,8 +15,8 @@ from sentry.mail import mail_adapter, send_notification_as_email
 from sentry.mail.adapter import ActionTargetType
 from sentry.models import (
     Activity,
-    NotificationSetting,
     Integration,
+    NotificationSetting,
     Organization,
     OrganizationMember,
     OrganizationMemberTeam,
@@ -27,7 +27,6 @@ from sentry.models import (
     User,
     UserReport,
 )
-from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
 from sentry.notifications.rules import AlertRuleNotification
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.notifications.utils.participants import (
@@ -45,6 +44,7 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.compat import mock
 from sentry.utils.email import MessageBuilder
+from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
 
 
 def send_notification(*args):
