@@ -1,7 +1,6 @@
 import logging
 from collections import defaultdict
 from typing import (
-    cast,
     Any,
     Iterable,
     List,
@@ -11,6 +10,7 @@ from typing import (
     Sequence,
     Set,
     Tuple,
+    cast,
 )
 
 from django.db.models import Count
