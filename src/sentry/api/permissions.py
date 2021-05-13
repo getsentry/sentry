@@ -2,6 +2,7 @@ from rest_framework import permissions
 
 from sentry.api.exceptions import SsoRequired, SuperuserRequired, TwoFactorRequired
 from sentry.auth import access
+from sentry.auth.access import MemberSecurityState
 from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import is_system_auth
 from sentry.utils import auth
@@ -58,12 +59,6 @@ class SuperuserPermission(permissions.BasePermission):
 
 
 class SentryPermission(ScopedPermission):
-    def is_not_2fa_compliant(self, request, organization):
-        return False
-
-    def needs_sso(self, request, organization):
-        return False
-
     def determine_access(self, request, organization):
         from sentry.api.base import logger
 
@@ -87,18 +82,19 @@ class SentryPermission(ScopedPermission):
                 )
             elif request.user.is_authenticated:
                 # session auth needs to confirm various permissions
-                if self.needs_sso(request, organization):
+                if request.access.sufficient_security != MemberSecurityState.ACTIVE:
+                    if request.access.sufficient_security == MemberSecurityState.RESTRICTED_SSO:
+                        logger.info(
+                            "access.must-sso",
+                            extra={"organization_id": organization.id, "user_id": request.user.id},
+                        )
 
-                    logger.info(
-                        "access.must-sso",
-                        extra={"organization_id": organization.id, "user_id": request.user.id},
-                    )
+                        raise SsoRequired(organization)
 
-                    raise SsoRequired(organization)
-
-                if self.is_not_2fa_compliant(request, organization):
+                if request.access.sufficient_security == MemberSecurityState.RESTRICTED_2FA:
                     logger.info(
                         "access.not-2fa-compliant",
                         extra={"organization_id": organization.id, "user_id": request.user.id},
                     )
                     raise TwoFactorRequired()
+                # TODO: add email restricted and plan downgrade here

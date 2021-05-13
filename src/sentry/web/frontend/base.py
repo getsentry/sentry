@@ -16,9 +16,9 @@ from sudo.views import redirect_to_sudo
 from sentry import roles
 from sentry.api.serializers import serialize
 from sentry.auth import access
+from sentry.auth.access import MemberSecurityState
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
-    Authenticator,
     Organization,
     OrganizationMember,
     OrganizationStatus,
@@ -107,13 +107,6 @@ class OrganizationMixin:
 
     def _is_org_member(self, user, organization):
         return OrganizationMember.objects.filter(user=user, organization=organization).exists()
-
-    def is_not_2fa_compliant(self, request, organization):
-        return (
-            organization.flags.require_2fa
-            and not Authenticator.objects.user_has_2fa(request.user)
-            and not is_active_superuser(request)
-        )
 
     def get_active_team(self, request, organization, team_slug):
         """
@@ -211,9 +204,6 @@ class BaseView(View, OrganizationMixin):
         if not self.has_permission(request, *args, **kwargs):
             return self.handle_permission_required(request, *args, **kwargs)
 
-        if "organization" in kwargs and self.is_not_2fa_compliant(request, kwargs["organization"]):
-            return self.handle_not_2fa_compliant(request, *args, **kwargs)
-
         self.request = request
         self.default_context = self.get_context_data(request, *args, **kwargs)
 
@@ -256,15 +246,8 @@ class BaseView(View, OrganizationMixin):
         redirect_uri = self.get_no_permission_url(request, *args, **kwargs)
         return self.redirect(redirect_uri)
 
-    def handle_not_2fa_compliant(self, request, *args, **kwargs):
-        redirect_uri = self.get_not_2fa_compliant_url(request, *args, **kwargs)
-        return self.redirect(redirect_uri)
-
     def get_no_permission_url(self, request, *args, **kwargs):
         return reverse("sentry-login")
-
-    def get_not_2fa_compliant_url(self, request, *args, **kwargs):
-        return reverse("sentry-account-settings-security")
 
     def get_context_data(self, request, **kwargs):
         context = csrf(request)
@@ -300,7 +283,6 @@ class OrganizationView(BaseView):
     """
 
     required_scope = None
-    valid_sso_required = True
 
     def get_access(self, request, organization, *args, **kwargs):
         if organization is None:
@@ -317,11 +299,8 @@ class OrganizationView(BaseView):
     def has_permission(self, request, organization, *args, **kwargs):
         if organization is None:
             return False
-        if self.valid_sso_required:
-            if request.access.requires_sso and not request.access.sso_is_valid:
-                return False
-            if self.needs_sso(request, organization):
-                return False
+        if request.access.sufficient_security != MemberSecurityState.ACTIVE:
+            return False
         if self.required_scope and not request.access.has_scope(self.required_scope):
             logger.info(
                 "User %s does not have %s permission to access organization %s",
@@ -356,32 +335,39 @@ class OrganizationView(BaseView):
         return False
 
     def handle_permission_required(self, request, organization, *args, **kwargs):
-        if self.needs_sso(request, organization):
+        if request.access.sufficient_security == MemberSecurityState.RESTRICTED_SSO or (
+            organization
+            and auth.has_completed_sso(request, organization.id)
+            # TODO: don't know if this second check is needed
+        ):
             logger.info(
                 "access.must-sso",
                 extra={"organization_id": organization.id, "user_id": request.user.id},
             )
             auth.initiate_login(request, next_url=request.get_full_path())
             redirect_uri = reverse("sentry-auth-organization", args=[organization.slug])
+        elif request.access.sufficient_security == MemberSecurityState.RESTRICTED_2FA:
+            redirect_uri = reverse("sentry-account-settings-security")
+        # TODO: add restricted email, plan downgrade here
         else:
             redirect_uri = self.get_no_permission_url(request, *args, **kwargs)
         return self.redirect(redirect_uri)
 
-    def needs_sso(self, request, organization):
-        if not organization:
-            return False
-        # XXX(dcramer): this branch should really never hit
-        if not request.user.is_authenticated:
-            return False
-        if not self.valid_sso_required:
-            return False
-        if not request.access.requires_sso:
-            return False
-        if not auth.has_completed_sso(request, organization.id):
-            return True
-        if not request.access.sso_is_valid:
-            return True
-        return False
+    # def needs_sso(self, request, organization):
+    #     if not organization:
+    #         return False
+    #     # XXX(dcramer): this branch should really never hit
+    #     if not request.user.is_authenticated:
+    #         return False
+    #     if not self.valid_sso_required:
+    #         return False
+    #     if not request.access.requires_sso:
+    #         return False
+    #     if not auth.has_completed_sso(request, organization.id):
+    #         return True
+    #     if not request.access.sso_is_valid:
+    #         return True
+    #     return False
 
     def convert_args(self, request, organization_slug=None, *args, **kwargs):
         active_organization = self.get_active_organization(

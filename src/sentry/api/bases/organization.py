@@ -9,15 +9,7 @@ from sentry.api.permissions import SentryPermission
 from sentry.api.utils import InvalidParams, get_date_range_from_params
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ALL_ACCESS_PROJECTS
-from sentry.models import (
-    ApiKey,
-    Authenticator,
-    Organization,
-    Project,
-    ProjectStatus,
-    ReleaseProject,
-)
-from sentry.utils import auth
+from sentry.models import ApiKey, Organization, Project, ProjectStatus, ReleaseProject
 from sentry.utils.compat import map
 from sentry.utils.hashlib import hash_values
 from sentry.utils.sdk import bind_organization_context
@@ -34,24 +26,6 @@ class OrganizationPermission(SentryPermission):
         "PUT": ["org:write", "org:admin"],
         "DELETE": ["org:admin"],
     }
-
-    def is_not_2fa_compliant(self, request, organization):
-        return (
-            organization.flags.require_2fa
-            and not Authenticator.objects.user_has_2fa(request.user)
-            and not is_active_superuser(request)
-        )
-
-    def needs_sso(self, request, organization):
-        # XXX(dcramer): this is very similar to the server-rendered views
-        # logic for checking valid SSO
-        if not request.access.requires_sso:
-            return False
-        if not auth.has_completed_sso(request, organization.id):
-            return True
-        if not request.access.sso_is_valid:
-            return True
-        return False
 
     def has_object_permission(self, request, view, organization):
         self.determine_access(request, organization)

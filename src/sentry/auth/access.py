@@ -1,6 +1,7 @@
 __all__ = ["from_user", "from_member", "DEFAULT"]
 
 import warnings
+from enum import Enum
 
 import sentry_sdk
 from django.conf import settings
@@ -10,6 +11,7 @@ from sentry import roles
 from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import is_system_auth
 from sentry.models import (
+    Authenticator,
     AuthIdentity,
     AuthProvider,
     OrganizationMember,
@@ -21,52 +23,84 @@ from sentry.models import (
 )
 
 
-def _sso_params(member):
-    """
-    Return a tuple of (requires_sso, sso_is_valid) for a given member.
-    """
-    # TODO(dcramer): we want to optimize this access pattern as its several
-    # network hops and needed in a lot of places
-    try:
-        auth_provider = AuthProvider.objects.get(organization=member.organization_id)
-    except AuthProvider.DoesNotExist:
-        sso_is_valid = True
-        requires_sso = False
-    else:
-        if auth_provider.flags.allow_unlinked:
-            requires_sso = False
+class MemberSecurityState(Enum):
+    NO_ACCESS = 0
+    RESTRICTED_2FA = 20
+    RESTRICTED_SSO = 21
+    RESTRICTED_EMAIL_VERIFIED = 22
+    RESTRICTED_DOWNGRADED = 23
+    ACTIVE = 100
+
+
+def has_sufficient_security(organization, member):
+    # need ? auth.has_completed_sso
+    def _needs_sso(member):
+        """
+        Return a tuple of (requires_sso, sso_is_valid) for a given member.
+        """
+        # TODO(dcramer): we want to optimize this access pattern as its several
+        # network hops and needed in a lot of places
+        try:
+            auth_provider = AuthProvider.objects.get(organization=organization.id)
+        except AuthProvider.DoesNotExist:
             sso_is_valid = True
+            requires_sso = False
         else:
-            requires_sso = True
-            try:
-                auth_identity = AuthIdentity.objects.get(
-                    auth_provider=auth_provider, user=member.user_id
-                )
-            except AuthIdentity.DoesNotExist:
-                sso_is_valid = False
-                # If an owner is trying to gain access,
-                # allow bypassing SSO if there are no other
-                # owners with SSO enabled.
-                if member.role == roles.get_top_dog().id:
-                    requires_sso = AuthIdentity.objects.filter(
-                        auth_provider=auth_provider,
-                        user__in=OrganizationMember.objects.filter(
-                            organization=member.organization_id,
-                            role=roles.get_top_dog().id,
-                            user__is_active=True,
-                        )
-                        .exclude(id=member.id)
-                        .values_list("user_id"),
-                    ).exists()
+            if auth_provider.flags.allow_unlinked:
+                requires_sso = False
+                sso_is_valid = True
             else:
-                sso_is_valid = auth_identity.is_valid(member)
-    return requires_sso, sso_is_valid
+                requires_sso = True
+                try:
+                    auth_identity = AuthIdentity.objects.get(
+                        auth_provider=auth_provider, user=member.user_id
+                    )
+                except AuthIdentity.DoesNotExist:
+                    sso_is_valid = False
+                    # If an owner is trying to gain access,
+                    # allow bypassing SSO if there are no other
+                    # owners with SSO enabled.
+                    if member.role == roles.get_top_dog().id:
+                        requires_sso = AuthIdentity.objects.filter(
+                            auth_provider=auth_provider,
+                            user__in=OrganizationMember.objects.filter(
+                                organization=member.organization_id,
+                                role=roles.get_top_dog().id,
+                                user__is_active=True,
+                            )
+                            .exclude(id=member.id)
+                            .values_list("user_id"),
+                        ).exists()
+                else:
+                    sso_is_valid = auth_identity.is_valid(member)
+        return requires_sso and not sso_is_valid
+
+    def _needs_2fa(member):
+        org_requires_2fa = member.organization.flags.require_2fa.is_set
+        user_has_2fa = Authenticator.objects.user_has_2fa(member.user.id)
+        return org_requires_2fa and not user_has_2fa
+
+    def _needs_email_verified(member):
+        return False
+
+    def _needs_plan_upgraded(member):
+        return False
+
+    for func_check, status in (
+        (_needs_sso, MemberSecurityState.RESTRICTED_SSO),
+        (_needs_2fa, MemberSecurityState.RESTRICTED_2FA),
+        (_needs_email_verified, MemberSecurityState.RESTRICTED_EMAIL_VERIFIED),
+        (_needs_plan_upgraded, MemberSecurityState.RESTRICTED_DOWNGRADED),
+    ):
+        if func_check(member):
+            return status
+
+    return MemberSecurityState.ACTIVE
 
 
 class BaseAccess:
     is_active = False
-    sso_is_valid = False
-    requires_sso = False
+    sufficient_security = MemberSecurityState.NO_ACCESS
     organization_id = None
     # teams with membership
     teams = ()
@@ -178,9 +212,8 @@ class Access(BaseAccess):
         organization_id,
         teams,
         projects,
+        sufficient_security,
         has_global_access,
-        sso_is_valid,
-        requires_sso,
         permissions=None,
         role=None,
     ):
@@ -195,13 +228,11 @@ class Access(BaseAccess):
             self.role = role
 
         self.is_active = is_active
-        self.sso_is_valid = sso_is_valid
-        self.requires_sso = requires_sso
+        self.sufficient_security = sufficient_security
 
 
 class OrganizationGlobalAccess(BaseAccess):
-    requires_sso = False
-    sso_is_valid = True
+    sufficient_security = True
     is_active = True
     has_global_access = True
     teams = ()
@@ -255,9 +286,8 @@ class SystemAccess(BaseAccess):
 
 
 class NoAccess(BaseAccess):
-    requires_sso = False
-    sso_is_valid = True
     is_active = False
+    sufficient_security = MemberSecurityState.NO_ACCESS
     organization_id = None
     has_global_access = False
     teams = ()
@@ -281,9 +311,9 @@ def from_request(request, organization=None, scopes=None):
         try:
             member = OrganizationMember.objects.get(user=request.user, organization=organization)
         except OrganizationMember.DoesNotExist:
-            requires_sso, sso_is_valid = False, True
+            sufficient_security = MemberSecurityState.ACTIVE
         else:
-            requires_sso, sso_is_valid = _sso_params(member)
+            sufficient_security = has_sufficient_security(organization, member)
             role = member.role
 
         team_list = ()
@@ -295,8 +325,7 @@ def from_request(request, organization=None, scopes=None):
             organization_id=organization.id if organization else None,
             teams=team_list,
             projects=project_list,
-            sso_is_valid=sso_is_valid,
-            requires_sso=requires_sso,
+            sufficient_security=sufficient_security,
             has_global_access=True,
             permissions=UserPermission.for_user(request.user.id),
             role=role,
@@ -332,8 +361,7 @@ def _from_sentry_app(user, organization=None):
         projects=project_list,
         permissions=(),
         has_global_access=False,
-        sso_is_valid=True,
-        requires_sso=False,
+        sufficient_security=MemberSecurityState.ACTIVE,
     )
 
 
@@ -358,7 +386,6 @@ def from_user(user, organization=None, scopes=None):
 def from_member(member, scopes=None):
     # TODO(dcramer): we want to optimize this access pattern as its several
     # network hops and needed in a lot of places
-    requires_sso, sso_is_valid = _sso_params(member)
 
     team_list = member.get_teams()
     with sentry_sdk.start_span(op="get_project_access_in_teams") as span:
@@ -375,9 +402,8 @@ def from_member(member, scopes=None):
 
     return Access(
         is_active=True,
-        requires_sso=requires_sso,
-        sso_is_valid=sso_is_valid,
         scopes=scopes,
+        sufficient_security=has_sufficient_security(member.organization, member),
         organization_id=member.organization_id,
         teams=team_list,
         projects=project_list,
