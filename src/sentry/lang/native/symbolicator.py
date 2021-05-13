@@ -24,7 +24,6 @@ INTERNAL_SOURCE_NAME = "sentry:project"
 
 logger = logging.getLogger(__name__)
 
-
 VALID_LAYOUTS = ("native", "symstore", "symstore_index2", "ssqp", "unified", "debuginfod")
 
 VALID_FILE_TYPES = ("pe", "pdb", "mach_debug", "mach_code", "elf_debug", "elf_code", "breakpad")
@@ -46,6 +45,37 @@ COMMON_SOURCE_PROPERTIES = {
     "name": {"type": "string"},
     "layout": LAYOUT_SCHEMA,
     "filetypes": {"type": "array", "items": {"type": "string", "enum": list(VALID_FILE_TYPES)}},
+}
+
+APP_STORE_CONNECT_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "type": {"type": "string", "enum": ["appStoreConnect"]},
+        "id": {"type": "string", "minLength": 1},
+        "name": {"type": "string"},
+        "appconnectIssuer": {"type": "string", "minLength": 36, "maxLength": 36},
+        "appconnectKey": {"type": "string", "minLength": 2, "maxLength": 20},
+        "itunesUser": {"type": "string", "minLength": 1, "maxLength": 100},
+        "appName": {"type": "string", "minLength": 1, "maxLength": 512},
+        "appId": {"type": "string", "minLength": 1, "maxLength": 512},
+        "orgId": {"type": "integer"},
+        "orgName": {"type": "string", "minLength": 1, "maxLength": 512},
+        "encrypted": {"type": "string"},
+    },
+    "required": [
+        "id",
+        "name",
+        "type",
+        "appconnectIssuer",
+        "appconnectKey",
+        "itunesUser",
+        "appName",
+        "appId",
+        "orgId",
+        "orgName",
+        "encrypted",
+    ],
+    "additionalProperties": False,
 }
 
 HTTP_SOURCE_SCHEMA = {
@@ -92,7 +122,9 @@ GCS_SOURCE_SCHEMA = {
 
 SOURCES_SCHEMA = {
     "type": "array",
-    "items": {"oneOf": [HTTP_SOURCE_SCHEMA, S3_SOURCE_SCHEMA, GCS_SOURCE_SCHEMA]},
+    "items": {
+        "oneOf": [HTTP_SOURCE_SCHEMA, S3_SOURCE_SCHEMA, GCS_SOURCE_SCHEMA, APP_STORE_CONNECT_SCHEMA]
+    },
 }
 
 
@@ -277,6 +309,9 @@ def parse_sources(config):
         jsonschema.validate(sources, SOURCES_SCHEMA)
     except jsonschema.ValidationError as e:
         raise InvalidSourcesError(e.message)
+
+    # remove App Store Connect sources (we don't need them in Symbolicator)
+    filter(lambda src: src.get("type") != "AppStoreConnect", sources)
 
     ids = set()
     for source in sources:

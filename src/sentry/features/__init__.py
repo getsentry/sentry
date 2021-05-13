@@ -56,6 +56,7 @@ default_manager.add("organizations:alert-details-redesign", OrganizationFeature,
 default_manager.add("organizations:alert-filters", OrganizationFeature)  # NOQA
 default_manager.add("organizations:alert-wizard", OrganizationFeature, True)  # NOQA
 default_manager.add("organizations:api-keys", OrganizationFeature)  # NOQA
+default_manager.add("organizations:app-store-connect", OrganizationFeature)  # NOQA
 default_manager.add("organizations:boolean-search", OrganizationFeature)  # NOQA
 default_manager.add("organizations:chart-unfurls", OrganizationFeature, True)  # NOQA
 default_manager.add("organizations:custom-event-title", OrganizationFeature)  # NOQA
@@ -85,7 +86,7 @@ default_manager.add("organizations:integrations-incident-management", Organizati
 default_manager.add("organizations:integrations-issue-basic", OrganizationFeature)  # NOQA
 default_manager.add("organizations:integrations-issue-sync", OrganizationFeature)  # NOQA
 default_manager.add("organizations:integrations-stacktrace-link", OrganizationFeature)  # NOQA
-default_manager.add("organizations:integrations-custom-scm", OrganizationFeature)  # NOQA
+default_manager.add("organizations:integrations-custom-scm", OrganizationFeature, True)  # NOQA
 default_manager.add("organizations:integrations-ticket-rules", OrganizationFeature, True)  # NOQA
 default_manager.add("organizations:integrations-vsts-limited-scopes", OrganizationFeature)  # NOQA
 default_manager.add("organizations:internal-catchall", OrganizationFeature)  # NOQA
@@ -118,7 +119,6 @@ default_manager.add("organizations:symbol-sources", OrganizationFeature)  # NOQA
 default_manager.add("organizations:team-alerts-ownership", OrganizationFeature, True)  # NOQA
 default_manager.add("organizations:transaction-comparison", OrganizationFeature, True)  # NOQA
 default_manager.add("organizations:unhandled-issue-flag", OrganizationFeature)  # NOQA
-default_manager.add("organizations:usage-stats-graph", OrganizationFeature, True)  # NOQA
 default_manager.add("organizations:prompt-dashboards", OrganizationFeature)  # NOQA
 default_manager.add("organizations:performance-tag-page", OrganizationFeature, True)  # NOQA
 default_manager.add("organizations:performance-mobile-vitals", OrganizationFeature, True)  # NOQA

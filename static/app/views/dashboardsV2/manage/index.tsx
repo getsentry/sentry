@@ -166,7 +166,7 @@ class ManageDashboards extends AsyncView<Props, State> {
   }
 
   getTitle() {
-    return t('Manage Dashboards');
+    return t('Dashboards');
   }
 
   onCreate() {
@@ -196,7 +196,7 @@ class ManageDashboards extends AsyncView<Props, State> {
             <LightWeightNoProjectMessage organization={organization}>
               <PageContent>
                 <StyledPageHeader>
-                  {t('Manage Dashboards')}
+                  {t('Dashboards')}
                   <Button
                     data-test-id="dashboard-create"
                     onClick={event => {
