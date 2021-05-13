@@ -1,0 +1,233 @@
+import * as React from 'react';
+import {withRouter} from 'react-router';
+import {WithRouterProps} from 'react-router/lib/withRouter';
+import styled from '@emotion/styled';
+import moment from 'moment';
+
+import {Client} from 'app/api';
+import AreaChart from 'app/components/charts/areaChart';
+import ChartZoom from 'app/components/charts/chartZoom';
+import {truncationFormatter} from 'app/components/charts/utils';
+import Count from 'app/components/count';
+import {Panel, PanelBody, PanelFooter} from 'app/components/panels';
+import Placeholder from 'app/components/placeholder';
+import {t, tct} from 'app/locale';
+import space from 'app/styles/space';
+import {GlobalSelection, Organization, Release} from 'app/types';
+import {ReactEchartsRef} from 'app/types/echarts';
+import withApi from 'app/utils/withApi';
+import {DisplayOption} from 'app/views/releases/list/utils';
+import {ReleaseHealthRequestRenderProps} from 'app/views/releases/utils/releaseHealthRequest';
+
+type Props = WithRouterProps & {
+  api: Client;
+  organization: Organization;
+  selection: GlobalSelection;
+  releases: Release[];
+  getHealthData: ReleaseHealthRequestRenderProps['getHealthData'];
+  activeDisplay: DisplayOption;
+  showHealthPlaceholders: boolean;
+};
+
+type State = {
+  width: number;
+  height: number;
+};
+
+class ReleaseAdoptionChart extends React.PureComponent<Props, State> {
+  state = {
+    width: -1,
+    height: -1,
+  };
+
+  ref: null | ReactEchartsRef = null;
+
+  /**
+   * Syncs component state with the chart's width/heights
+   */
+  updateDimensions = () => {
+    const chartRef = this.ref?.getEchartsInstance?.();
+    if (!chartRef) {
+      return;
+    }
+
+    const width = chartRef.getWidth();
+    const height = chartRef.getHeight();
+    if (width !== this.state.width || height !== this.state.height) {
+      this.setState({
+        width,
+        height,
+      });
+    }
+  };
+
+  handleRef = (ref: ReactEchartsRef): void => {
+    if (ref && !this.ref) {
+      this.ref = ref;
+      this.updateDimensions();
+    }
+
+    if (!ref) {
+      this.ref = null;
+    }
+  };
+
+  renderEmpty() {
+    return (
+      <ChartPanel>
+        <ChartBody withPadding>
+          <ChartHeader>
+            <Placeholder height="24px" />
+          </ChartHeader>
+          <Placeholder height="200px" />
+        </ChartBody>
+        <ChartFooter>
+          <Placeholder height="24px" />
+        </ChartFooter>
+      </ChartPanel>
+    );
+  }
+
+  render() {
+    const {
+      showHealthPlaceholders,
+      releases,
+      activeDisplay,
+      router,
+      selection,
+      getHealthData,
+    } = this.props;
+    const {start, end, period, utc} = selection.datetime;
+
+    if (showHealthPlaceholders) {
+      return this.renderEmpty();
+    }
+
+    const projectId = 11276;
+
+    const get24hCountByProject = getHealthData.get24hCountByProject(
+      projectId,
+      activeDisplay
+    );
+
+    const releasesSeries = releases.map(release => {
+      const releaseVersion = release.version;
+
+      const timeSeries = getHealthData.getTimeSeries(
+        releaseVersion,
+        projectId,
+        activeDisplay
+      );
+
+      return {
+        data: timeSeries[0].data.map((d, i) => ({
+          name: d.name,
+          value: (100 * d.value) / timeSeries[1].data[i].value,
+        })),
+        seriesName: releaseVersion,
+      };
+    });
+
+    return (
+      <ChartPanel>
+        <ChartBody withPadding>
+          <ChartHeader>
+            <ChartTitle>
+              {activeDisplay === DisplayOption.USERS
+                ? t('Releases Adopted by Users')
+                : t('Releases Adopted by Sessions')}
+            </ChartTitle>
+          </ChartHeader>
+          <ChartZoom router={router} period={period} utc={utc} start={start} end={end}>
+            {zoomRenderProps => (
+              <AreaChart
+                {...zoomRenderProps}
+                series={releasesSeries}
+                yAxis={{
+                  min: 0,
+                  max: 100,
+                  type: 'value',
+                  interval: 10,
+                  splitNumber: 10,
+                  data: [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100],
+                  axisLabel: {
+                    formatter: '{value}%',
+                  },
+                }}
+                tooltip={{
+                  formatter: seriesParams => {
+                    const series = Array.isArray(seriesParams)
+                      ? seriesParams
+                      : [seriesParams];
+                    const timestamp = series[0].data[0];
+                    const topSeries = series
+                      .sort((a, b) => b.data[1] - a.data[1])
+                      .slice(0, 3);
+                    const topSum = topSeries.reduce((acc, s) => acc + s.data[1], 0);
+                    if (series.length - topSeries.length > 0) {
+                      topSeries.push({
+                        seriesName: t('%s Others', series.length - topSeries.length),
+                        data: [timestamp, 100 - topSum],
+                        marker:
+                          '<span style="display:inline-block;margin-right:5px;border-radius:10px;width:10px;height:10px;"></span>',
+                      });
+                    }
+
+                    return [
+                      '<div class="tooltip-series">',
+                      topSeries
+                        .map(
+                          s =>
+                            `<div><span class="tooltip-label">${s.marker}<strong>${
+                              s.seriesName && truncationFormatter(s.seriesName, 12)
+                            }</strong></span>${s.data[1].toFixed(2)}%</div>`
+                        )
+                        .join(''),
+                      '</div>',
+                      `<div class="tooltip-date">${moment(timestamp).format(
+                        'MMM D, YYYY LT'
+                      )}</div>`,
+                      `<div class="tooltip-arrow"></div>`,
+                    ].join('');
+                  },
+                }}
+              />
+            )}
+          </ChartZoom>
+        </ChartBody>
+        {
+          <ChartFooter>
+            {tct('Total Sessions [sessionCount]', {
+              sessionCount: <Count value={get24hCountByProject ?? 0} />,
+            })}
+          </ChartFooter>
+        }
+      </ChartPanel>
+    );
+  }
+}
+
+export default withApi(withRouter(ReleaseAdoptionChart));
+
+const ChartPanel = styled(Panel)`
+  margin-top: ${space(2)};
+`;
+
+const ChartHeader = styled('div')`
+  margin-bottom: ${space(3)};
+`;
+
+const ChartTitle = styled('header')`
+  display: flex;
+  flex-direction: row;
+`;
+
+const ChartBody = styled(PanelBody)`
+  padding-right: 6px;
+`;
+
+const ChartFooter = styled(PanelFooter)`
+  display: flex;
+  align-items: center;
+  padding: ${space(1)} 20px;
+`;
