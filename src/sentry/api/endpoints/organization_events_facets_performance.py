@@ -2,6 +2,7 @@ import math
 from typing import Any, Dict, Mapping, Optional
 
 import sentry_sdk
+from django.http import Http404
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
@@ -33,12 +34,9 @@ class OrganizationEventsFacetsPerformanceEndpointBase(OrganizationEventsV2Endpoi
 
     def setup(self, request, organization):
         if not self.has_feature(organization, request):
-            return Response(status=404)
+            raise Http404
 
-        try:
-            params = self.get_snuba_params(request, organization)
-        except NoProjects:
-            return Response([])
+        params = self.get_snuba_params(request, organization)
 
         filter_query = request.GET.get("query")
         aggregate_column = request.GET.get("aggregateColumn")
@@ -52,6 +50,8 @@ class OrganizationEventsFacetsPerformanceEndpointBase(OrganizationEventsV2Endpoi
         if len(params.get("project_id", [])) > 1:
             raise ParseError(detail="You cannot view facet performance for multiple projects.")
 
+        return params, aggregate_column, filter_query
+
         self.params = params
         self.aggregate_column = aggregate_column
         self.filter_query = filter_query
@@ -59,13 +59,10 @@ class OrganizationEventsFacetsPerformanceEndpointBase(OrganizationEventsV2Endpoi
 
 class OrganizationEventsFacetsPerformanceEndpoint(OrganizationEventsFacetsPerformanceEndpointBase):
     def get(self, request, organization):
-        response = self.setup(request, organization)
-        if response:
-            return response
-
-        params = self.params
-        aggregate_column = self.aggregate_column
-        filter_query = self.filter_query
+        try:
+            params, aggregate_column, filter_query = self.setup(request, organization)
+        except NoProjects:
+            return Response([])
 
         all_tag_keys = None
         tag_key = None
@@ -130,13 +127,10 @@ class OrganizationEventsFacetsPerformanceHistogramEndpoint(
         return self.has_tag_page_feature(organization, request)
 
     def get(self, request, organization):
-        response = self.setup(request, organization)
-        if response:
-            return response
-
-        params = self.params
-        aggregate_column = self.aggregate_column
-        filter_query = self.filter_query
+        try:
+            params, aggregate_column, filter_query = self.setup(request, organization)
+        except NoProjects:
+            return Response([])
 
         tag_key = request.GET.get("tagKey")
 
