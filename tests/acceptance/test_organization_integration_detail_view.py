@@ -17,7 +17,7 @@ class OrganizationIntegrationDetailView(AcceptanceTestCase):
 
     def setUp(self):
         super().setUp()
-        features.add("organizations:integrations-feature_flag_integration", OrganizationFeature)
+        features.add("organizations:integrations-feature-flag-integration", OrganizationFeature)
         self.login_as(self.user)
 
     def load_page(self, slug, configuration_tab=False):

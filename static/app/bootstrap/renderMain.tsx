@@ -1,13 +1,11 @@
-import ReactDOM from 'react-dom';
-
 import {ROOT_ELEMENT} from 'app/constants';
 import Main from 'app/main';
 
-export function renderMain() {
-  const rootEl = document.getElementById(ROOT_ELEMENT);
+import {renderDom} from './renderDom';
 
+export function renderMain() {
   try {
-    ReactDOM.render(<Main />, rootEl);
+    renderDom(Main, `#${ROOT_ELEMENT}`);
   } catch (err) {
     if (err.message === 'URI malformed') {
       // eslint-disable-next-line no-console

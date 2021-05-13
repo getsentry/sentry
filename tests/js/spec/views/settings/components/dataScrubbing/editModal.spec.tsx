@@ -55,9 +55,7 @@ describe('Edit Modal', () => {
   it('open Edit Rule Modal', async () => {
     const wrapper = await renderComponent();
 
-    expect(wrapper.find('[data-test-id="modal-title"]').text()).toEqual(
-      'Edit an advanced data scrubbing rule'
-    );
+    expect(wrapper.find('Header').text()).toEqual('Edit an advanced data scrubbing rule');
 
     const fieldGroup = wrapper.find('FieldGroup');
     expect(fieldGroup).toHaveLength(2);
@@ -151,7 +149,7 @@ describe('Edit Modal', () => {
     await tick();
     wrapper.update();
 
-    expect(wrapper.find('[data-test-id="modal-title"]')).toHaveLength(0);
+    expect(wrapper.find('GlobalModal[visible=true]').exists()).toBe(false);
   });
 
   it('edit Rule Modal', async () => {
