@@ -271,6 +271,9 @@ class GetEventFileCommitters(CommitTestCase):
                 }
             ]
         )
+        GroupRelease.objects.create(
+            group_id=event.group.id, project_id=self.project.id, release_id=self.release.id
+        )
 
         result = get_serialized_event_file_committers(self.project, event)
         assert len(result) == 1
@@ -320,6 +323,9 @@ class GetEventFileCommitters(CommitTestCase):
                 }
             ]
         )
+        GroupRelease.objects.create(
+            group_id=event.group.id, project_id=self.project.id, release_id=self.release.id
+        )
 
         result = get_serialized_event_file_committers(self.project, event)
         assert len(result) == 1
@@ -359,6 +365,9 @@ class GetEventFileCommitters(CommitTestCase):
                     "patch_set": [{"path": "app/tigermachine.cpp", "type": "M"}],
                 }
             ]
+        )
+        GroupRelease.objects.create(
+            group_id=event.group.id, project_id=self.project.id, release_id=self.release.id
         )
 
         result = get_serialized_event_file_committers(self.project, event)
@@ -443,6 +452,9 @@ class GetEventFileCommitters(CommitTestCase):
                 "tags": {"sentry:release": self.release.version},
             },
             project_id=self.project.id,
+        )
+        GroupRelease.objects.create(
+            group_id=event.group.id, project_id=self.project.id, release_id=self.release.id
         )
 
         with self.assertRaises(Commit.DoesNotExist):
