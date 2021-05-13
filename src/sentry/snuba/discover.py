@@ -173,7 +173,6 @@ def query(
     query,
     params,
     orderby=None,
-    group_by=None,
     offset=None,
     limit=50,
     referrer=None,
@@ -226,13 +225,11 @@ def query(
     )
     snuba_filter = snuba_query.filter
 
-    groupby = group_by if group_by else []
-
     with sentry_sdk.start_span(op="discover.discover", description="query.snuba_query"):
         result = raw_query(
             start=snuba_filter.start,
             end=snuba_filter.end,
-            groupby=groupby + snuba_filter.groupby,
+            groupby=snuba_filter.groupby,
             conditions=snuba_filter.conditions,
             aggregations=snuba_filter.aggregations,
             selected_columns=snuba_filter.selected_columns,
@@ -785,6 +782,7 @@ def histogram_query(
     referrer=None,
     group_by=None,
     extra_conditions=None,
+    normalize_results=True,
 ):
     """
     API for generating histograms for numeric columns.
@@ -806,6 +804,7 @@ def histogram_query(
     :param str data_filter: Indicate the filter strategy to be applied to the data.
     :param [str] group_by: Experimental. Allows additional grouping to serve multifacet histograms.
     :param [str] extra_conditions: Adds any additional conditions to the histogram query that aren't received from params.
+    :param bool normalize_results: Indicate whether to normalize the results by column into bins.
     """
 
     multiplier = int(10 ** precision)
@@ -858,32 +857,46 @@ def histogram_query(
         conditions.append([histogram_alias, "<=", max_bin])
 
     columns = [] if key_column is None else [key_column]
+    limit = len(fields) * num_buckets
+
+    histogram_query = prepare_discover_query(
+        selected_columns=columns + [histogram_column, "count()"],
+        conditions=conditions,
+        query=user_query,
+        params=params,
+        orderby=[histogram_alias],
+        functions_acl=["array_join", "histogram"],
+    )
+
+    snuba_filter = histogram_query.filter
 
     if group_by:
-        results = query(
-            selected_columns=columns + [histogram_column, "count()"],
-            conditions=conditions,
-            query=user_query,
-            params=params,
-            orderby=[histogram_alias],
-            limit=len(fields) * num_buckets,
-            group_by=group_by,
-            referrer=referrer,
-            functions_acl=["array_join", "histogram"],
-        )
-        return results
+        snuba_filter.groupby += group_by
 
-    else:
-        results = query(
-            selected_columns=columns + [histogram_column, "count()"],
-            conditions=conditions,
-            query=user_query,
-            params=params,
-            orderby=[histogram_alias],
-            limit=len(fields) * num_buckets,
-            referrer=referrer,
-            functions_acl=["array_join", "histogram"],
-        )
+    result = raw_query(
+        start=snuba_filter.start,
+        end=snuba_filter.end,
+        groupby=snuba_filter.groupby,
+        conditions=snuba_filter.conditions,
+        aggregations=snuba_filter.aggregations,
+        selected_columns=snuba_filter.selected_columns,
+        filter_keys=snuba_filter.filter_keys,
+        having=snuba_filter.having,
+        orderby=snuba_filter.orderby,
+        dataset=Dataset.Discover,
+        limit=limit,
+        referrer=referrer,
+    )
+
+    results = transform_results(
+        result,
+        histogram_query.fields["functions"],
+        histogram_query.columns,
+        snuba_filter,
+    )
+
+    if not normalize_results:
+        return results
 
     return normalize_histogram_results(fields, key_column, histogram_params, results, array_column)
 
