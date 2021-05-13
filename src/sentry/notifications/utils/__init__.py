@@ -1,6 +1,17 @@
 import logging
 from collections import defaultdict
-from typing import Any, Iterable, List, Mapping, MutableMapping, Optional, Sequence, Set, Tuple
+from typing import (
+    cast,
+    Any,
+    Iterable,
+    List,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+)
 
 from django.db.models import Count
 from django.utils.safestring import mark_safe
@@ -225,7 +236,7 @@ def has_alert_integration(project: Project) -> bool:
 
     # check integrations
     providers = filter(is_alert_rule_integration, list(integrations.all()))
-    provider_keys = list(map(lambda x: x.key, providers))
+    provider_keys = map(lambda x: cast(str, x.key), providers)
     if Integration.objects.filter(organizations=org, provider__in=provider_keys).exists():
         return True
 
