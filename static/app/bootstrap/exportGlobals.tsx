@@ -9,6 +9,7 @@ import moment from 'moment';
 import PropTypes from 'prop-types';
 import Reflux from 'reflux';
 
+import {Client} from 'app/api';
 import plugins from 'app/plugins';
 
 const globals = {
@@ -63,22 +64,18 @@ const SentryApp = {
 let _beaconComponents: string[] = [];
 const makeBeaconRequest = throttle(
   async () => {
-    const headers = new Headers({
-      Accept: 'application/json; charset=utf-8',
-      'Content-Type': 'application/json',
-    });
+    const api = new Client();
 
     const components = _beaconComponents;
     _beaconComponents = [];
-    await fetch('/api/0/internal/beacon/', {
+    await api.requestPromise('/api/0/internal/beacon/', {
       method: 'POST',
-      headers,
-      body: JSON.stringify({
+      data: {
         batch_data: components.map(component => ({
           description: 'SentryApp',
           component,
         })),
-      }),
+      },
     });
   },
   5000,
