@@ -5,6 +5,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
+from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.search.utils import InvalidQuery
 from sentry.snuba.outcomes import QueryDefinition, massage_outcomes_result, run_outcomes_query
 from sentry.snuba.sessions_v2 import InvalidField, InvalidParams
@@ -50,7 +51,7 @@ class OrganizationStatsEndpointV2(OrganizationEventsEndpointBase):
         req_proj_ids = self.get_requested_project_ids(request)
         return all(
             [
-                not req_proj_ids or req_proj_ids == {-1},
+                not req_proj_ids or req_proj_ids == ALL_ACCESS_PROJECTS,
                 "project" not in request.GET.get("groupBy", []),
             ]
         )

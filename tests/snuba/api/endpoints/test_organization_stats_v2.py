@@ -352,8 +352,6 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
                 },
             ],
         }
-        self.org.flags.allow_joinleave = False
-        self.org.save()
 
     @freeze_time("2021-03-14T12:27:28.303Z")
     def test_org_simple(self):
