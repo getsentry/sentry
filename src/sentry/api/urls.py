@@ -153,8 +153,6 @@ from .endpoints.organization_events import (
 from .endpoints.organization_events_facets import OrganizationEventsFacetsEndpoint
 from .endpoints.organization_events_facets_performance import (
     OrganizationEventsFacetsPerformanceEndpoint,
-)
-from .endpoints.organization_events_facets_performance_histogram import (
     OrganizationEventsFacetsPerformanceHistogramEndpoint,
 )
 from .endpoints.organization_events_histogram import OrganizationEventsHistogramEndpoint

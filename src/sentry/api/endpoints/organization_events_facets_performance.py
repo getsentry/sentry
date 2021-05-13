@@ -22,7 +22,7 @@ ALLOWED_AGGREGATE_COLUMNS = {
 }
 
 
-class OrganizationEventsFacetsPerformanceEndpoint(OrganizationEventsV2EndpointBase):
+class OrganizationEventsFacetsPerformanceEndpointBase(OrganizationEventsV2EndpointBase):
     def has_feature(self, organization, request):
         return features.has(
             "organizations:performance-tag-explorer", organization, actor=request.user
@@ -31,7 +31,7 @@ class OrganizationEventsFacetsPerformanceEndpoint(OrganizationEventsV2EndpointBa
     def has_tag_page_feature(self, organization, request):
         return features.has("organizations:performance-tag-page", organization, actor=request.user)
 
-    def get(self, request, organization):
+    def setup(self, request, organization):
         if not self.has_feature(organization, request):
             return Response(status=404)
 
@@ -43,13 +43,6 @@ class OrganizationEventsFacetsPerformanceEndpoint(OrganizationEventsV2EndpointBa
         filter_query = request.GET.get("query")
         aggregate_column = request.GET.get("aggregateColumn")
 
-        all_tag_keys = None
-        tag_key = None
-
-        if self.has_tag_page_feature(organization, request):
-            all_tag_keys = request.GET.get("allTagKeys")
-            tag_key = request.GET.get("tagKey")
-
         if not aggregate_column:
             raise ParseError(detail="'aggregateColumn' must be provided.")
 
@@ -58,6 +51,28 @@ class OrganizationEventsFacetsPerformanceEndpoint(OrganizationEventsV2EndpointBa
 
         if len(params.get("project_id", [])) > 1:
             raise ParseError(detail="You cannot view facet performance for multiple projects.")
+
+        self.params = params
+        self.aggregate_column = aggregate_column
+        self.filter_query = filter_query
+
+
+class OrganizationEventsFacetsPerformanceEndpoint(OrganizationEventsFacetsPerformanceEndpointBase):
+    def get(self, request, organization):
+        response = self.setup(request, organization)
+        if response:
+            return response
+
+        params = self.params
+        aggregate_column = self.aggregate_column
+        filter_query = self.filter_query
+
+        all_tag_keys = None
+        tag_key = None
+
+        if self.has_tag_page_feature(organization, request):
+            all_tag_keys = request.GET.get("allTagKeys")
+            tag_key = request.GET.get("tagKey")
 
         def data_fn(offset, limit):
             with sentry_sdk.start_span(op="discover.endpoint", description="discover_query"):
@@ -105,6 +120,70 @@ class OrganizationEventsFacetsPerformanceEndpoint(OrganizationEventsV2EndpointBa
                 ),
                 default_per_page=5,
                 max_per_page=20,
+            )
+
+
+class OrganizationEventsFacetsPerformanceHistogramEndpoint(
+    OrganizationEventsFacetsPerformanceEndpointBase
+):
+    def has_feature(self, organization, request):
+        return self.has_tag_page_feature(organization, request)
+
+    def get(self, request, organization):
+        response = self.setup(request, organization)
+        if response:
+            return response
+
+        params = self.params
+        aggregate_column = self.aggregate_column
+        filter_query = self.filter_query
+
+        tag_key = request.GET.get("tagKey")
+
+        if not tag_key:
+            raise ParseError(detail="'tagKey' must be provided when using histograms.")
+
+        def data_fn(offset, limit):
+            with sentry_sdk.start_span(op="discover.endpoint", description="discover_query"):
+                referrer = "api.organization-events-facets-performance-histogram.top-tags"
+                tag_data = query_tag_data(
+                    filter_query=filter_query,
+                    aggregate_column=aggregate_column,
+                    referrer=referrer,
+                    params=params,
+                )
+
+                if not tag_data:
+                    return {"data": []}
+
+                results = query_facet_performance_key_histogram(
+                    tag_data=tag_data,
+                    tag_key=tag_key,
+                    filter_query=filter_query,
+                    aggregate_column=aggregate_column,
+                    referrer=referrer,
+                    orderby=self.get_orderby(request),
+                    params=params,
+                )
+
+                if not results:
+                    return {"data": []}
+
+                for row in results["data"]:
+                    row["tags_value"] = tagstore.get_tag_value_label(
+                        row["tags_key"], row["tags_value"]
+                    )
+                    row["tags_key"] = tagstore.get_standardized_key(row["tags_key"])
+
+                return results
+
+        with self.handle_query_errors():
+            return self.paginate(
+                request=request,
+                paginator=GenericOffsetPaginator(data_fn=data_fn),
+                on_results=lambda results: self.handle_results_with_meta(
+                    request, organization, params["project_id"], results
+                ),
             )
 
 
@@ -271,3 +350,33 @@ def query_facet_performance(
         results["meta"] = discover.transform_meta(results, {})
 
         return results
+
+
+def query_facet_performance_key_histogram(
+    params: Mapping[str, str],
+    tag_data: Mapping[str, Any],
+    tag_key: str,
+    aggregate_column: Optional[str] = None,
+    filter_query: Optional[str] = None,
+    orderby: Optional[str] = None,
+    referrer: Optional[str] = None,
+) -> Dict:
+    precision = 0
+    num_buckets = 100
+    min_value = tag_data["min"]
+    max_value = tag_data["max"]
+
+    results = discover.histogram_query(
+        [aggregate_column],
+        filter_query,
+        params,
+        num_buckets,
+        precision,
+        min_value=min_value,
+        max_value=max_value,
+        referrer="api.organization-events-facets-performance-histogram",
+        group_by=["tags_value", "tags_key"],
+        extra_conditions=[["tags_key", "IN", [tag_key]]],
+        normalize_results=False,
+    )
+    return results
