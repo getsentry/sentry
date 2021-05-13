@@ -52,10 +52,6 @@ class OrganizationEventsFacetsPerformanceEndpointBase(OrganizationEventsV2Endpoi
 
         return params, aggregate_column, filter_query
 
-        self.params = params
-        self.aggregate_column = aggregate_column
-        self.filter_query = filter_query
-
 
 class OrganizationEventsFacetsPerformanceEndpoint(OrganizationEventsFacetsPerformanceEndpointBase):
     def get(self, request, organization):
