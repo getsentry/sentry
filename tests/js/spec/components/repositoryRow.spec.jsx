@@ -2,7 +2,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
 
 import {Client} from 'app/api';
-import RepositoryRow from 'app/components/repositoryRow';
+import {RepositoryRow} from 'app/components/repositoryRow';
 
 describe('RepositoryRow', function () {
   beforeEach(function () {
@@ -98,7 +98,12 @@ describe('RepositoryRow', function () {
 
     it('displays disabled cancel', function () {
       const wrapper = mountWithTheme(
-        <RepositoryRow repository={pendingRepo} api={api} orgId={organization.slug} />,
+        <RepositoryRow
+          repository={pendingRepo}
+          api={api}
+          orgId={organization.slug}
+          organization={organization}
+        />,
         routerContext
       );
 
