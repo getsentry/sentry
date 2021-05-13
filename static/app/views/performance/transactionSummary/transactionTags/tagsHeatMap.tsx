@@ -1,5 +1,6 @@
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {EChartOption} from 'echarts';
 import {Location} from 'history';
 
 import HeatMapChart from 'app/components/charts/heatMapChart';
@@ -118,7 +119,7 @@ const TagsHeatMap = (
       inRange: {
         color: purples,
       },
-    },
+    } as EChartOption.VisualMap,
 
     grid: {
       left: space(3),

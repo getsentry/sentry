@@ -383,8 +383,9 @@ function BaseChartUnwrapped({
     axisPointer,
     dataZoom,
     graphic,
-    visualMap,
   };
+
+  chartOption.visualMap = visualMap as EChartOption.VisualMap[]; // TODO(ts): EChart types only allow an array whereas echart options accepts a single visual map object.
 
   const chartStyles = {
     height: getDimensionValue(height),
