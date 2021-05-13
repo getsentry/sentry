@@ -2,13 +2,20 @@ from collections import defaultdict
 from typing import Any, Dict, Iterable, List, Mapping, MutableMapping, Optional, Set, Tuple, Union
 
 from sentry.notifications.types import (
+    NOTIFICATION_SETTING_OPTION_VALUES,
+    NOTIFICATION_SETTING_TYPES,
     SUBSCRIPTION_REASON_MAP,
     VALID_VALUES_FOR_KEY,
     NotificationScopeType,
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
-from sentry.types.integrations import ExternalProviders
+from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
+
+PROVIDER_DEFAULTS = {
+    ExternalProviders.EMAIL: NotificationSettingOptionValues.DEFAULT,
+    ExternalProviders.SLACK: NotificationSettingOptionValues.NEVER,
+}
 
 # This mapping represents how to interpret the absence of a DB row for a given
 # provider. For example, a user with no NotificationSettings should be opted
@@ -342,3 +349,45 @@ def get_settings_by_provider(
             output[provider][scope_type] = value
 
     return output
+
+
+def get_fallback_settings(
+    types_to_serialize: Iterable[NotificationSettingTypes],
+    projects: Iterable[Any],
+    organizations: Iterable[Any],
+    user: Optional[Any] = None,
+) -> MutableMapping[str, MutableMapping[str, MutableMapping[int, MutableMapping[str, str]]]]:
+    """
+    The API is responsible for calculating the implied setting values when a
+    user or team does not have explicit notification settings. This function
+    creates a "dummy" version of the nested object of notification settings that
+    can be overridden by explicit settings.
+    """
+    data: MutableMapping[
+        str, MutableMapping[str, MutableMapping[int, MutableMapping[str, str]]]
+    ] = defaultdict(lambda: defaultdict(lambda: defaultdict(dict)))
+
+    # Set the application-wide defaults in case they aren't set.
+    for type_enum in types_to_serialize:
+        type_str = NOTIFICATION_SETTING_TYPES[type_enum]
+
+        for provider, value in PROVIDER_DEFAULTS.items():
+            provider_str = EXTERNAL_PROVIDERS[provider]
+            value_str = NOTIFICATION_SETTING_OPTION_VALUES[value]
+
+            for project in projects:
+                data[type_str]["project"][project.id][provider_str] = value_str
+
+            for organization in organizations:
+                data[type_str]["organization"][organization.id][provider_str] = value_str
+
+            # Only users (i.e. not teams) have parent-independent notification settings.
+            if user:
+                # Use legacy defaults for email settings.
+                if provider == ExternalProviders.EMAIL:
+                    value_str = NOTIFICATION_SETTING_OPTION_VALUES[
+                        NOTIFICATION_SETTING_DEFAULTS[type_enum]
+                    ]
+
+                data[type_str]["user"][user.id][provider_str] = value_str
+    return data
