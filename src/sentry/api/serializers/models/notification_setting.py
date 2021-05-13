@@ -1,7 +1,9 @@
 from collections import defaultdict
-from typing import Any, Dict, Iterable, Mapping
+from typing import Any, Iterable, Mapping, MutableMapping, Optional, Set, Union
 
 from sentry.api.serializers import Serializer
+from sentry.models import NotificationSetting, Team, User
+from sentry.notifications.types import NOTIFICATION_SETTING_DEFAULTS, NotificationSettingTypes
 
 
 class NotificationSettingsSerializer(Serializer):  # type: ignore
@@ -12,47 +14,53 @@ class NotificationSettingsSerializer(Serializer):  # type: ignore
     """
 
     def get_attrs(
-        self, item_list: Iterable[Any], user: Any, **kwargs: Any
-    ) -> Mapping[Any, Iterable[Any]]:
+        self,
+        item_list: Union[Iterable[Team], Iterable[User]],
+        user: User,
+        **kwargs: Any,
+    ) -> Mapping[Union[User, Team], Mapping[str, Iterable[Any]]]:
         """
-        This takes a list of Actors (which are either Users or Teams,
+        This takes a list of recipients (which are either Users or Teams,
         because both can have Notification Settings). The function
         returns a mapping of targets to flat lists of object to be passed to the
         `serialize` function.
 
-        :param item_list: List of Actor objects whose notification
-            settings should be serialized.
+        :param item_list: Either a Set of User or Team objects whose
+            notification settings should be serialized.
         :param user: The user who will be viewing the notification settings.
         :param kwargs: Dict of optional filter options:
             - type: NotificationSettingTypes enum value. e.g. WORKFLOW, DEPLOY.
         """
-        from sentry.models import NotificationSetting
+        type_option: Optional[NotificationSettingTypes] = kwargs.get("type")
+        actor_mapping = {recipient.actor_id: recipient for recipient in item_list}
 
-        actor_mapping = {actor.id: actor for actor in item_list}
-        filter_kwargs = dict(target_ids=actor_mapping.keys())
+        notifications_settings = NotificationSetting.objects._filter(
+            type=type_option,
+            target_ids=actor_mapping.keys(),
+        )
 
-        type_option = kwargs.get("type")
-        if type_option:
-            filter_kwargs["type"] = type_option
+        results: MutableMapping[Union[User, Team], MutableMapping[str, Set[Any]]] = defaultdict(
+            lambda: defaultdict(set)
+        )
 
-        notifications_settings = NotificationSetting.objects._filter(**filter_kwargs)
-
-        results = defaultdict(list)
         for notifications_setting in notifications_settings:
             target = actor_mapping.get(notifications_setting.target_id)
-            results[target].append(notifications_setting)
+            results[target]["settings"].add(notifications_setting)
 
         return results
 
     def serialize(
         self,
-        obj: Any,
-        attrs: Iterable[Any],
-        user: Any,
+        obj: Union[User, Team],
+        attrs: Mapping[str, Iterable[Any]],
+        user: User,
         **kwargs: Any,
     ) -> Mapping[str, Mapping[str, Mapping[int, Mapping[str, str]]]]:
         """
-        Convert a user or team's NotificationSettings to a python object comprised of primitives.
+        Convert a user or team's NotificationSettings to a python object
+        comprised of primitives. This will backfill all possible notification
+        settings with the appropriate defaults.
+
         Example: {
             "workflow": {
                 "project": {
@@ -77,7 +85,8 @@ class NotificationSettingsSerializer(Serializer):  # type: ignore
         data: Dict[str, Dict[str, Dict[int, Dict[str, str]]]] = defaultdict(
             lambda: defaultdict(lambda: defaultdict(dict))
         )
-        for n in attrs:  # Forgive the variable name, I wanted the next line to be legible.
+        # Forgive the variable name, I wanted the following line to be legible.
+        for n in attrs["settings"]:
             data[n.type_str][n.scope_str][n.scope_identifier][n.provider_str] = n.value_str
 
         return data
