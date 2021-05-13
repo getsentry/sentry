@@ -3,6 +3,7 @@ from typing import Any, Iterable, Mapping, MutableMapping, Optional, Set, Union
 
 from sentry.api.serializers import Serializer
 from sentry.models import NotificationSetting, Team, User
+from sentry.notifications.helpers import get_fallback_settings
 from sentry.notifications.types import NOTIFICATION_SETTING_DEFAULTS, NotificationSettingTypes
 
 
@@ -47,6 +48,16 @@ class NotificationSettingsSerializer(Serializer):  # type: ignore
             target = actor_mapping.get(notifications_setting.target_id)
             results[target]["settings"].add(notifications_setting)
 
+        for recipient in item_list:
+            # This works because both User and Team models implement `get_projects`.
+            results[recipient]["projects"] = recipient.get_projects()
+
+            if type(recipient) == Team:
+                results[recipient]["organizations"] = {recipient.organization}
+
+            if type(recipient) == User:
+                results[recipient]["organizations"] = user.get_orgs()
+
         return results
 
     def serialize(
@@ -79,12 +90,19 @@ class NotificationSettingsSerializer(Serializer):  # type: ignore
         :param obj: A user or team.
         :param attrs: The `obj` target's NotificationSettings
         :param user: The user who will be viewing the NotificationSettings.
-        :param kwargs: Currently unused but the same `kwargs` as `get_attrs`.
+        :param kwargs: The same `kwargs` as `get_attrs`.
         :returns A mapping. See example.
         """
-        data: Dict[str, Dict[str, Dict[int, Dict[str, str]]]] = defaultdict(
-            lambda: defaultdict(lambda: defaultdict(dict))
+        type_option: Optional[NotificationSettingTypes] = kwargs.get("type")
+        types_to_serialize = (
+            {type_option} if type_option else set(NOTIFICATION_SETTING_DEFAULTS.keys())
         )
+        user = obj if type(obj) == User else None
+
+        data = get_fallback_settings(
+            types_to_serialize, attrs["projects"], attrs["organizations"], user
+        )
+
         # Forgive the variable name, I wanted the following line to be legible.
         for n in attrs["settings"]:
             data[n.type_str][n.scope_str][n.scope_identifier][n.provider_str] = n.value_str
