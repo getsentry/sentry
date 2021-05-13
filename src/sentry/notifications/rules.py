@@ -10,9 +10,8 @@ from sentry.notifications.utils import (
     get_interface_list,
     get_link,
     get_rules,
-    get_integration_link,
-    has_integrations,
     has_alert_integration,
+    has_integrations,
 )
 from sentry.notifications.utils.participants import get_send_to
 from sentry.plugins.base.structs import Notification
