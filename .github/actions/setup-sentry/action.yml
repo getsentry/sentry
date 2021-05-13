@@ -7,8 +7,8 @@ inputs:
     default: 'false'
   kafka:
     description: 'Is kafka required?'
-    required: true
-    default: 'true'
+    required: false
+    default: 'false'
   chartcuterie:
     description: 'Is chartcuterie required?'
     required: false
