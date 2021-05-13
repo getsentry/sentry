@@ -1090,12 +1090,12 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         session_count_key = f"w-s:{project_id}"
 
         if self.start:
-            session_count_key = f"{session_count_key}-{self.start.replace(minutes=0, second=0, microsecond=0, tzinfo=None)}".replace(
+            session_count_key = f"{session_count_key}-{self.start.replace(minute=0, second=0, microsecond=0, tzinfo=None)}".replace(
                 " ", ""
             )
 
         if self.end:
-            session_count_key = f"{session_count_key}-{self.end.replace(minutes=0, second=0, microsecond=0, tzinfo=None)}".replace(
+            session_count_key = f"{session_count_key}-{self.end.replace(minute=0, second=0, microsecond=0, tzinfo=None)}".replace(
                 " ", ""
             )
 
