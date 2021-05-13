@@ -269,11 +269,11 @@ def get_send_to_team(
     )
 
     if team_notification_settings:
-        mapping = {
+        team_mapping = {
             ExternalProviders(notification_setting.provider): {team}
             for notification_setting in team_notification_settings
         }
-        return mapping
+        return team_mapping
 
     # fallback to notifying each subscribed user if there aren't team notification settings
     member_list = team.member_set.values_list("user_id", flat=True)
