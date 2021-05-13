@@ -4,10 +4,10 @@ from typing import Any, Iterable, List, Mapping, MutableMapping, Optional, Seque
 
 from django.db.models import Count
 from django.utils.safestring import mark_safe
-from sentry import integrations
-from sentry.integrations import IntegrationProvider, IntegrationFeatures
 
+from sentry import integrations
 from sentry.db.models.query import in_iexact
+from sentry.integrations import IntegrationFeatures, IntegrationProvider
 from sentry.models import (
     Activity,
     Commit,
