@@ -21,6 +21,10 @@ class CustomSCMRepositoryProvider(providers.IntegrationRepositoryProvider):
         just two steps:
            1. Change the provider from `null` to 'integrations:custom_scm'
            2. Add the integration_id that is passed from the request
+
+        We set the `identifier` to be the repo's id in our db
+        when we call `get_repositories`. Normally this is the id or
+        identifier in the other service (i.e. the GH repo id)
         """
         repo_id = request.data.get("identifier")
         integration_id = request.data.get("installation")
@@ -38,8 +42,8 @@ class CustomSCMRepositoryProvider(providers.IntegrationRepositoryProvider):
         except (Repository.DoesNotExist, Integration.DoesNotExist):
             raise Http404
 
-        repo.provider = "integrations:custom_scm"
+        repo.provider = self.id
         repo.integration_id = integration.id
         repo.save()
 
-        return Response(serialize(repo, request.user), status=200)
+        return Response(serialize(repo, request.user), status=201)

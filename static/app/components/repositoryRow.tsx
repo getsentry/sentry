@@ -13,13 +13,15 @@ import Tooltip from 'app/components/tooltip';
 import {IconDelete, IconEdit} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Repository, RepositoryStatus} from 'app/types';
+import {Organization, Repository, RepositoryStatus} from 'app/types';
+import withOrganization from 'app/utils/withOrganization';
 
 type DefaultProps = {
   showProvider?: boolean;
 };
 
 type Props = DefaultProps & {
+  organization: Organization;
   repository: Repository;
   api: Client;
   orgId: string;
@@ -130,8 +132,11 @@ class RepositoryRow extends Component<Props> {
   };
 
   render() {
-    const {repository, showProvider} = this.props;
+    const {repository, showProvider, organization} = this.props;
     const isActive = this.isActive;
+    const isCustomRepo =
+      organization.features.includes('integrations-custom-scm') &&
+      repository.provider.id === 'integrations:custom_scm';
 
     return (
       <Access access={['org:integrations']}>
@@ -162,7 +167,7 @@ class RepositoryRow extends Component<Props> {
                 )}
               </div>
             </RepositoryTitleAndUrl>
-            {repository.provider.id === 'integrations:custom_scm' ? (
+            {isCustomRepo ? (
               <EditAndDelete>
                 <StyledButton
                   size="xsmall"
@@ -225,4 +230,5 @@ const RepositoryTitle = styled('div')`
   line-height: 26px;
 `;
 
-export default RepositoryRow;
+export default withOrganization(RepositoryRow);
+export {RepositoryRow};

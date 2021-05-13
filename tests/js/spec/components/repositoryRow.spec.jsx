@@ -34,7 +34,12 @@ describe('RepositoryRow', function () {
 
     it('displays provider information', function () {
       const wrapper = mountWithTheme(
-        <RepositoryRow repository={repository} api={api} orgId={organization.slug} />,
+        <RepositoryRow
+          repository={repository}
+          api={api}
+          orgId={organization.slug}
+          organization={organization}
+        />,
         routerContext
       );
       expect(wrapper.find('strong').text()).toEqual(repository.name);
@@ -49,7 +54,12 @@ describe('RepositoryRow', function () {
 
     it('displays cancel pending button', function () {
       const wrapper = mountWithTheme(
-        <RepositoryRow repository={pendingRepo} api={api} orgId={organization.slug} />,
+        <RepositoryRow
+          repository={pendingRepo}
+          api={api}
+          orgId={organization.slug}
+          organization={organization}
+        />,
         routerContext
       );
 
@@ -72,7 +82,12 @@ describe('RepositoryRow', function () {
 
     it('displays disabled trash', function () {
       const wrapper = mountWithTheme(
-        <RepositoryRow repository={repository} api={api} orgId={organization.slug} />,
+        <RepositoryRow
+          repository={repository}
+          api={api}
+          orgId={organization.slug}
+          organization={organization}
+        />,
         routerContext
       );
 
@@ -109,7 +124,12 @@ describe('RepositoryRow', function () {
       });
 
       const wrapper = mountWithTheme(
-        <RepositoryRow repository={repository} api={api} orgId={organization.slug} />,
+        <RepositoryRow
+          repository={repository}
+          api={api}
+          orgId={organization.slug}
+          organization={organization}
+        />,
         routerContext
       );
       wrapper.find('Button[label="delete"]').simulate('click');
@@ -138,7 +158,12 @@ describe('RepositoryRow', function () {
       });
 
       const wrapper = mountWithTheme(
-        <RepositoryRow repository={pendingRepo} api={api} orgId={organization.slug} />,
+        <RepositoryRow
+          repository={pendingRepo}
+          api={api}
+          orgId={organization.slug}
+          organization={organization}
+        />,
         routerContext
       );
       wrapper.find('Button[data-test-id="repo-cancel"]').simulate('click');
@@ -151,12 +176,18 @@ describe('RepositoryRow', function () {
   describe('renders custom_scm repo', function () {
     const organization = TestStubs.Organization({
       access: ['org:integrations'],
+      features: ['integrations-custom-scm'],
     });
     const routerContext = TestStubs.routerContext([{organization}]);
 
     it('displays edit button', function () {
       const wrapper = mountWithTheme(
-        <RepositoryRow repository={customRepo} api={api} orgId={organization.slug} />,
+        <RepositoryRow
+          repository={customRepo}
+          api={api}
+          orgId={organization.slug}
+          organization={organization}
+        />,
         routerContext
       );
 
@@ -175,6 +206,7 @@ describe('RepositoryRow', function () {
           repository={customPendingRepo}
           api={api}
           orgId={organization.slug}
+          organization={organization}
         />,
         routerContext
       );
