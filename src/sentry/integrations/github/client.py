@@ -72,6 +72,7 @@ class GitHubClientMixin(ApiClient):
             output = []
             resp = self.get(path, params={"per_page": self.page_size})
             output.extend(resp)
+            page_number = 1
 
             def get_next_link(resp):
                 link = resp.headers.get("link")
@@ -88,10 +89,10 @@ class GitHubClientMixin(ApiClient):
 
                 return None
 
-            while get_next_link(resp):
+            while get_next_link(resp) and page_number < self.page_number_limit:
                 resp = self.get(get_next_link(resp))
                 output.extend(resp)
-
+                page_number += 1
             return output
 
     def get_issues(self, repo):
