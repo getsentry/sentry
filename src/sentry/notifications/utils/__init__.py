@@ -228,7 +228,6 @@ def has_integrations(organization: Organization, project: Project) -> bool:
 
 def is_alert_rule_integration(provider: IntegrationProvider) -> bool:
     return any(feature == IntegrationFeatures.ALERT_RULE for feature in provider.features)
-    # return any(lambda x: x == IntegrationFeatures.ALERT_RULE, provider.features)
 
 
 def has_alert_integration(project: Project) -> bool:
