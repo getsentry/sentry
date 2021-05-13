@@ -21,43 +21,6 @@ class InternalBeaconTest(APITestCase):
         response = self.client.post(
             url,
             data={
-                "data": {
-                    "description": "SentryApp",
-                    "component": "Form",
-                },
-            },
-        )
-        safe_urlopen.assert_called_once_with(
-            BEACON_URL,
-            json={
-                "type": "metric",
-                "install_id": install_id,
-                "version": sentry.get_version(),
-                "data": {
-                    "description": "SentryApp",
-                    "component": "Form",
-                },
-                "anonymous": False,
-                "admin_email": "foo@example.com",
-            },
-            timeout=5,
-        )
-
-        assert response.status_code == 204
-
-    @patch("sentry.api.endpoints.internal_beacon.safe_urlopen")
-    @responses.activate
-    def test_batch(self, safe_urlopen):
-        self.login_as(self.user, superuser=False)
-        url = "/api/0/internal/beacon/"
-
-        install_id = options.get("sentry:install-id")
-        assert options.set("system.admin-email", "foo@example.com")
-        assert options.set("beacon.anonymous", False)
-
-        response = self.client.post(
-            url,
-            data={
                 "batch_data": [
                     {
                         "description": "SentryApp",
@@ -80,8 +43,6 @@ class InternalBeaconTest(APITestCase):
                     "description": "SentryApp",
                     "component": "Foo",
                 },
-                "anonymous": False,
-                "admin_email": "foo@example.com",
             },
             timeout=5,
         )
@@ -95,8 +56,6 @@ class InternalBeaconTest(APITestCase):
                     "description": "SentryApp",
                     "component": "Bar",
                 },
-                "anonymous": False,
-                "admin_email": "foo@example.com",
             },
             timeout=5,
         )

@@ -30,22 +30,15 @@ class InternalBeaconEndpoint(Endpoint):
             )
             return Response(status=204)
 
-        anonymous = options.get("beacon.anonymous") is not False
-
         payload = {
             "type": "metric",
             "install_id": install_id,
             "version": get_version(),
-            "anonymous": anonymous,
         }
 
-        if not anonymous:
-            payload["admin_email"] = options.get("system.admin-email")
-
-        # Because this is used by the frontend, we want our frontend calls to be batched
-        # in order to reduce the number requests
-        data = request.data.get("data")
-        payload_data = [data] if data is not None else request.data.get("batch_data", [])
+        # Because this is used by the frontend, we want our frontend calls to
+        # be batched in order to reduce the number requests
+        payload_data = request.data.get("batch_data", [])
 
         for payload_data_item in payload_data:
             try:
