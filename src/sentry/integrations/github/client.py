@@ -1,5 +1,7 @@
 from datetime import datetime
 
+import sentry_sdk
+
 from sentry.integrations.client import ApiClient
 from sentry.integrations.github.utils import get_jwt
 
@@ -52,30 +54,45 @@ class GitHubClientMixin(ApiClient):
         Github uses the Link header to provide pagination links. Github recommends using the provided link relations and not constructing our own URL.
         https://docs.github.com/en/rest/guides/traversing-with-pagination
         """
-        output = []
-        resp = self.get(path, params={"per_page": self.page_size})
-        output.extend(resp)
+        try:
+            with sentry_sdk.configure_scope() as scope:
+                parent_span_id = scope.span.span_id
+                trace_id = scope.span.trace_id
+        except AttributeError:
+            parent_span_id = None
+            trace_id = None
 
-        def get_next_link(resp):
-            link = resp.headers.get("link")
-            if link is None:
-                return None
-
-            # Should be a comma separated string of links
-            links = link.split(",")
-
-            for link in links:
-                # If there is a 'next' link return the URL between the angle brackets, or None
-                if 'rel="next"' in link:
-                    return link[link.find("<") + 1 : link.find(">")]
-
-            return None
-
-        while get_next_link(resp):
-            resp = self.get(get_next_link(resp))
+        with sentry_sdk.start_transaction(
+            op=f"{self.integration_type}.http.pagination",
+            name=f"{self.integration_type}.http_response.pagination.{self.name}",
+            parent_span_id=parent_span_id,
+            trace_id=trace_id,
+            sampled=True,
+        ):
+            output = []
+            resp = self.get(path, params={"per_page": self.page_size})
             output.extend(resp)
 
-        return output
+            def get_next_link(resp):
+                link = resp.headers.get("link")
+                if link is None:
+                    return None
+
+                # Should be a comma separated string of links
+                links = link.split(",")
+
+                for link in links:
+                    # If there is a 'next' link return the URL between the angle brackets, or None
+                    if 'rel="next"' in link:
+                        return link[link.find("<") + 1 : link.find(">")]
+
+                return None
+
+            while get_next_link(resp):
+                resp = self.get(get_next_link(resp))
+                output.extend(resp)
+
+            return output
 
     def get_issues(self, repo):
         return self.get(f"/repos/{repo}/issues")
