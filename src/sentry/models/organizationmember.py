@@ -42,37 +42,6 @@ invite_status_names = {
 }
 
 
-class OrganizationMemberState(Enum):
-    INVITED = 0  # The member is created but does not have a user attached
-    # accept an invite
-
-    DEACTIVATED = 1  # The member has been deactivated by an admin and has _no_ access
-    # same as not a member -- GDPR CCPA vs. audit logs. managed user also?
-
-    # The member and user are linked, but user has to take action to get access
-    RESTRICTED_2FA = 20
-    RESTRICTED_SSO = 21
-    RESTRICTED_EMAIL = 22
-    RESTRICTED_DOWNGRADED = 23
-
-    ACTIVE = 100  # The member is linked and able to access the organization
-
-    # based on the return value of this function we:
-    # declare the user has no access and redirect them
-    # if the user is in a restricted state, redirect to "action" page
-    # or allow them through to the rest of the request
-
-    # abstractions that have semantics
-
-    # put methods on object manager
-
-    # figure out what are the lists of OrgMembers we want to get?
-    # how to represent those with F annotations on a queryset, build methods onto object manager
-    # maybe create postgres views for each type of list?
-
-    # we would like to try not relying on actual int values of Enums anywhere
-
-
 class OrganizationMemberTeam(BaseModel):
     """
     Identifies relationships between organization members and the teams they are on.
@@ -125,8 +94,6 @@ class OrganizationMember(Model):
         flags=(
             ("sso:linked", "sso:linked"),
             ("sso:invalid", "sso:invalid"),
-            ("restricted:plan-downgrade", "restricted:plan-downgrade"),
-            ("deactivated", "deactivated"),
         ),
         default=0,
     )
@@ -201,9 +168,6 @@ class OrganizationMember(Model):
         if self.invite_status is None:
             return
         return invite_status_names[self.invite_status]
-
-    def deactivate(self):
-        self.state = OrganizationMemberState.INACTIVE.value
 
     @property
     def invite_approved(self):
