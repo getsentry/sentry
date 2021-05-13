@@ -121,7 +121,7 @@ class DeletionPending extends Component<PendingProps, PendingState> {
 }
 
 type OrganizationDetailsProps = {
-  organization: Organization;
+  organization?: Organization;
   children?: React.ReactNode;
 };
 
@@ -129,10 +129,11 @@ const OrganizationDetailsBody = withOrganization(function OrganizationDetailsBod
   children,
   organization,
 }: OrganizationDetailsProps) {
-  if (organization && organization.status) {
+  if (organization?.status) {
     if (organization.status.id === 'pending_deletion') {
       return <DeletionPending organization={organization} />;
-    } else if (organization.status.id === 'deletion_in_progress') {
+    }
+    if (organization.status.id === 'deletion_in_progress') {
       return <DeletionInProgress organization={organization} />;
     }
   }
