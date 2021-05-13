@@ -470,7 +470,11 @@ def report(request):
         series = [
             (
                 timestamp + (i * rollup),
-                (random.randint(0, daily_maximum), random.randint(0, daily_maximum)),
+                (
+                    random.randint(0, daily_maximum),
+                    random.randint(0, daily_maximum),
+                    random.randint(0, daily_maximum),
+                ),
             )
             for i in range(0, 7)
         ]

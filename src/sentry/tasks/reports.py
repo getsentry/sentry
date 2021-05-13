@@ -22,6 +22,7 @@ from snuba_sdk.function import Function
 from snuba_sdk.query import Query
 
 from sentry import features
+from sentry.api.serializers.snuba import zerofill
 from sentry.app import tsdb
 from sentry.constants import DataCategory
 from sentry.models import (
@@ -44,7 +45,7 @@ from sentry.utils.http import absolute_uri
 from sentry.utils.iterators import chunked
 from sentry.utils.math import mean
 from sentry.utils.outcomes import Outcome
-from sentry.utils.snuba import raw_snql_query
+from sentry.utils.snuba import parse_snuba_datetime, raw_snql_query
 
 date_format = partial(dateformat.format, format_string="F jS, Y")
 
@@ -229,25 +230,72 @@ def build_project_series(start__stop, project):
     assert resolution == rollup, "resolution does not match requested value"
 
     clean = partial(clean_series, start, stop, rollup)
+
+    def zerofill_clean(data):
+        return clean(zerofill(data, start, stop, rollup, fill_default=0))
+
     issue_ids = project.group_set.filter(
         status=GroupStatus.RESOLVED, resolved_at__gte=start, resolved_at__lt=stop
     ).values_list("id", flat=True)
 
+    # TODO: The TSDB calls could be replaced with a SnQL call here
     tsdb_range_resolved = _query_tsdb_groups_chunked(tsdb.get_range, issue_ids, start, stop, rollup)
-    resolved_series = reduce(
+    resolved_error_series = reduce(
         merge_series,
         map(clean, tsdb_range_resolved.values()),
         clean([(timestamp, 0) for timestamp in series]),
     )
 
-    total_series = clean(
-        tsdb.get_range(tsdb.models.project, [project.id], start, stop, rollup=rollup)[project.id]
+    # Use outcomes to compute total errors and transactions
+    outcomes_query = Query(
+        dataset=Dataset.Outcomes.value,
+        match=Entity("outcomes"),
+        select=[
+            Column("time"),
+            Column("category"),
+            Function("sum", [Column("quantity")], "total"),
+        ],
+        where=[
+            Condition(Column("timestamp"), Op.GTE, start),
+            Condition(Column("timestamp"), Op.LT, stop),
+            Condition(Column("project_id"), Op.EQ, project.id),
+            Condition(Column("org_id"), Op.EQ, project.organization_id),
+            Condition(Column("outcome"), Op.IN, [Outcome.ACCEPTED]),
+            Condition(
+                Column("category"),
+                Op.IN,
+                [*DataCategory.error_categories(), DataCategory.TRANSACTION],
+            ),
+        ],
+        groupby=[Column("time"), Column("category")],
+        granularity=Granularity(rollup),
+    )
+    outcome_series = raw_snql_query(outcomes_query, referrer="reports.series")
+
+    total_error_series = [
+        (int(to_timestamp(parse_snuba_datetime(v["time"]))), v["total"])
+        for v in outcome_series["data"]
+        if v["category"] in DataCategory.error_categories()
+    ]
+    total_error_series = zerofill_clean(total_error_series)
+
+    transaction_series = [
+        (int(to_timestamp(parse_snuba_datetime(v["time"]))), v["total"])
+        for v in outcome_series["data"]
+        if v["category"] == DataCategory.TRANSACTION
+    ]
+    transaction_series = zerofill_clean(transaction_series)
+
+    error_series = merge_series(
+        resolved_error_series,
+        total_error_series,
+        lambda resolved, total: (resolved, total - resolved),
     )
 
     return merge_series(
-        resolved_series,
-        total_series,
-        lambda resolved, total: (resolved, total - resolved),  # unresolved
+        error_series,
+        transaction_series,
+        lambda errors, transactions: errors + (transactions,),
     )
 
 
@@ -856,13 +904,17 @@ def build_project_breakdown_series(reports):
 
 def to_context(organization, interval, reports):
     report = reduce(merge_reports, reports.values())
-    series = [(to_datetime(timestamp), Point(*values)) for timestamp, values in report.series]
+    error_series = [
+        # Drop the transaction count from each series entry
+        (to_datetime(timestamp), Point(*values[:2]))
+        for timestamp, values in report.series
+    ]
     return {
-        "series": {
-            "points": series,
-            "maximum": max(sum(point) for timestamp, point in series),
-            "all": sum(sum(point) for timestamp, point in series),
-            "resolved": sum(point.resolved for timestamp, point in series),
+        "error_series": {
+            "points": error_series,
+            "maximum": max(sum(point) for timestamp, point in error_series),
+            "all": sum(sum(point) for timestamp, point in error_series),
+            "resolved": sum(point.resolved for timestamp, point in error_series),
         },
         "distribution": {
             "types": list(
