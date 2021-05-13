@@ -28,8 +28,8 @@ from sentry.models import (
     User,
     UserEmail,
 )
-from sentry.utils.http import absolute_uri
 from sentry.utils.committers import get_serialized_event_file_committers
+from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger(__name__)
 

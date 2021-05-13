@@ -6,6 +6,7 @@ from sentry.notifications.base import BaseNotification
 from sentry.notifications.types import ActionTargetType
 from sentry.notifications.utils import (
     get_commits,
+    get_integration_link,
     get_interface_list,
     get_link,
     get_rules,

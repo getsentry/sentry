@@ -13,6 +13,7 @@ from sentry.models import Group, GroupSubscription, NotificationSetting, Project
 from sentry.notifications.activity import EMAIL_CLASSES_BY_TYPE
 from sentry.notifications.rules import AlertRuleNotification, get_send_to
 from sentry.notifications.types import ActionTargetType, GroupSubscriptionReason
+from sentry.notifications.utils import get_integration_link, has_alert_integration
 from sentry.plugins.base.structs import Notification
 from sentry.tasks.digests import deliver_digest
 from sentry.types.integrations import ExternalProviders
@@ -20,7 +21,6 @@ from sentry.utils import json, metrics
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
 from sentry.utils.linksign import generate_signed_link
-from sentry.notifications.utils import get_integration_link, has_alert_integration
 
 logger = logging.getLogger(__name__)
 
