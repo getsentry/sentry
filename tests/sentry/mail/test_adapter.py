@@ -398,6 +398,24 @@ class MailAdapterNotifyTest(BaseMailAdapterTest, TestCase):
 
         assert "Suspect Commits" in msg.body
 
+    def test_slack_link(self):
+        project = self.project
+        organization = project.organization
+        event = self.store_event(data=self.make_event_data("foo.jx"), project_id=project.id)
+
+        with self.tasks():
+            notification = Notification(event=event)
+
+            self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
+
+        assert len(mail.outbox) >= 1
+
+        msg = mail.outbox[-1]
+        assert (
+            f"/settings/{organization.slug}/integrations/slack/?referrer=alert_email"
+            in msg.alternatives[0][0]
+        )
+
     def assert_notify(
         self,
         event,
