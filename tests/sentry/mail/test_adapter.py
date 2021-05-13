@@ -16,6 +16,7 @@ from sentry.mail.adapter import ActionTargetType
 from sentry.models import (
     Activity,
     NotificationSetting,
+    Integration,
     Organization,
     OrganizationMember,
     OrganizationMemberTeam,
@@ -26,6 +27,7 @@ from sentry.models import (
     User,
     UserReport,
 )
+from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
 from sentry.notifications.rules import AlertRuleNotification
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.notifications.utils.participants import (
@@ -405,7 +407,6 @@ class MailAdapterNotifyTest(BaseMailAdapterTest, TestCase):
 
         with self.tasks():
             notification = Notification(event=event)
-
             self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
 
         assert len(mail.outbox) >= 1
@@ -414,6 +415,45 @@ class MailAdapterNotifyTest(BaseMailAdapterTest, TestCase):
         assert (
             f"/settings/{organization.slug}/integrations/slack/?referrer=alert_email"
             in msg.alternatives[0][0]
+        )
+
+    def test_slack_link_with_integration(self):
+        project = self.project
+        organization = project.organization
+        event = self.store_event(data=self.make_event_data("foo.jx"), project_id=project.id)
+
+        integration = Integration.objects.create(provider="msteams")
+        integration.add_organization(organization)
+
+        with self.tasks():
+            notification = Notification(event=event)
+            self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
+
+        assert len(mail.outbox) >= 1
+
+        msg = mail.outbox[-1]
+        assert (
+            f"/settings/{organization.slug}/integrations/slack/?referrer=alert_email"
+            not in msg.alternatives[0][0]
+        )
+
+    def test_slack_link_with_plugin(self):
+        project = self.project
+        organization = project.organization
+        event = self.store_event(data=self.make_event_data("foo.jx"), project_id=project.id)
+
+        OpsGeniePlugin().enable(project)
+
+        with self.tasks():
+            notification = Notification(event=event)
+            self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
+
+        assert len(mail.outbox) >= 1
+
+        msg = mail.outbox[-1]
+        assert (
+            f"/settings/{organization.slug}/integrations/slack/?referrer=alert_email"
+            not in msg.alternatives[0][0]
         )
 
     def assert_notify(

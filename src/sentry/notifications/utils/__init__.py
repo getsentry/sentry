@@ -4,6 +4,8 @@ from typing import Any, Iterable, List, Mapping, MutableMapping, Optional, Seque
 
 from django.db.models import Count
 from django.utils.safestring import mark_safe
+from sentry import integrations
+from sentry.integrations import IntegrationProvider, IntegrationFeatures
 
 from sentry.db.models.query import in_iexact
 from sentry.models import (
@@ -166,8 +168,10 @@ def get_link(group: Group, environment: Optional[str]) -> str:
 
 
 def get_integration_link(organization: Organization, integration_slug: str) -> str:
-    return absolute_uri(
-        f"/settings/{organization.slug}/integrations/{integration_slug}/?referrer=alert_email"
+    return str(
+        absolute_uri(
+            f"/settings/{organization.slug}/integrations/{integration_slug}/?referrer=alert_email"
+        )
     )
 
 
@@ -211,10 +215,25 @@ def has_integrations(organization: Organization, project: Project) -> bool:
     return bool(project_plugins or organization_integrations)
 
 
-def has_integration_installed(organization: Organization, integration_slug: str) -> bool:
-    return Integration.objects.filter(
-        organizations=organization, provider=integration_slug
-    ).exists()
+def is_alert_rule_integration(provider: IntegrationProvider) -> bool:
+    return any(feature == IntegrationFeatures.ALERT_RULE for feature in provider.features)
+    # return any(lambda x: x == IntegrationFeatures.ALERT_RULE, provider.features)
+
+
+def has_alert_integration(project: Project) -> bool:
+    org = project.organization
+
+    # check integrations
+    providers = filter(is_alert_rule_integration, list(integrations.all()))
+    provider_keys = list(map(lambda x: x.key, providers))
+    if Integration.objects.filter(organizations=org, provider__in=provider_keys).exists():
+        return True
+
+    # check plugins
+    from sentry.plugins.base import plugins
+
+    project_plugins = plugins.for_project(project, version=None)
+    return any(plugin.get_plugin_type() == "notification" for plugin in project_plugins)
 
 
 def get_interface_list(event: Any) -> Sequence[Any]:
