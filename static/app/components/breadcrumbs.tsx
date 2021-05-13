@@ -8,6 +8,7 @@ import {IconChevron} from 'app/icons';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Theme} from 'app/utils/theme';
+import BreadcrumbDropdown from 'app/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';
 
 const BreadcrumbList = styled('div')`
   display: flex;
@@ -39,11 +40,28 @@ export type Crumb = {
   key?: string;
 };
 
+export type CrumbDropdown = {
+  /**
+   * Name of the crumb
+   */
+  label: React.ReactNode;
+
+  /**
+   * Items of the crumb dropdown
+   */
+  items: BreadcrumbDropdown['props']['items'];
+
+  /**
+   * Callback function for when an item is selected
+   */
+  onSelect: BreadcrumbDropdown['props']['onSelect'];
+};
+
 type Props = React.ComponentPropsWithoutRef<typeof BreadcrumbList> & {
   /**
    * Array of crumbs that will be rendered
    */
-  crumbs: Crumb[];
+  crumbs: (Crumb | CrumbDropdown)[];
 
   /**
    * As a general rule of thumb we don't want the last item to be link as it most likely
@@ -54,6 +72,10 @@ type Props = React.ComponentPropsWithoutRef<typeof BreadcrumbList> & {
   linkLastItem?: boolean;
 };
 
+function isCrumbDropdown(crumb: Crumb | CrumbDropdown): crumb is CrumbDropdown {
+  return (crumb as CrumbDropdown).items !== undefined;
+}
+
 /**
  * Page breadcrumbs used for navigation, not to be confused with sentry's event breadcrumbs
  */
@@ -63,31 +85,48 @@ const Breadcrumbs = ({crumbs, linkLastItem = false, ...props}: Props) => {
   }
 
   if (!linkLastItem) {
-    crumbs[crumbs.length - 1].to = null;
+    const lastCrumb = crumbs[crumbs.length - 1];
+    if (!isCrumbDropdown(lastCrumb)) {
+      lastCrumb.to = null;
+    }
   }
 
   return (
     <BreadcrumbList {...props}>
-      {crumbs.map(({label, to, preserveGlobalSelection, key}, index) => {
-        const labelKey = typeof label === 'string' ? label : '';
-        const mapKey =
-          key ?? typeof to === 'string' ? `${labelKey}${to}` : `${labelKey}${index}`;
+      {crumbs.map((crumb, index) => {
+        if (isCrumbDropdown(crumb)) {
+          const {label, ...crumbProps} = crumb;
+          return (
+            <BreadcrumbDropdown
+              key={index}
+              isLast={index >= crumbs.length - 1}
+              route={{}}
+              name={label}
+              {...crumbProps}
+            />
+          );
+        } else {
+          const {label, to, preserveGlobalSelection, key} = crumb;
+          const labelKey = typeof label === 'string' ? label : '';
+          const mapKey =
+            key ?? typeof to === 'string' ? `${labelKey}${to}` : `${labelKey}${index}`;
 
-        return (
-          <React.Fragment key={mapKey}>
-            {to ? (
-              <BreadcrumbLink to={to} preserveGlobalSelection={preserveGlobalSelection}>
-                {label}
-              </BreadcrumbLink>
-            ) : (
-              <BreadcrumbItem>{label}</BreadcrumbItem>
-            )}
+          return (
+            <React.Fragment key={mapKey}>
+              {to ? (
+                <BreadcrumbLink to={to} preserveGlobalSelection={preserveGlobalSelection}>
+                  {label}
+                </BreadcrumbLink>
+              ) : (
+                <BreadcrumbItem>{label}</BreadcrumbItem>
+              )}
 
-            {index < crumbs.length - 1 && (
-              <BreadcrumbDividerIcon size="xs" direction="right" />
-            )}
-          </React.Fragment>
-        );
+              {index < crumbs.length - 1 && (
+                <BreadcrumbDividerIcon size="xs" direction="right" />
+              )}
+            </React.Fragment>
+          );
+        }
       })}
     </BreadcrumbList>
   );
