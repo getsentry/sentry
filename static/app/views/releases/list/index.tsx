@@ -300,6 +300,7 @@ class ReleasesList extends AsyncView<Props, State> {
                           organization={organization}
                           selection={selection}
                           releases={releases}
+                          project={project}
                           getHealthData={getHealthData}
                           activeDisplay={activeDisplay}
                           showHealthPlaceholders={isHealthLoading}
