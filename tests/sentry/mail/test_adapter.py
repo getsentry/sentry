@@ -408,7 +408,6 @@ class MailAdapterNotifyTest(BaseMailAdapterTest, TestCase):
         mail.outbox = []
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             self.adapter.notify(Notification(event=event), target_type, target_identifier)
-
         assert sorted(email.to[0] for email in mail.outbox) == sorted(emails_sent_to)
 
     def test_notify_users_with_owners(self):

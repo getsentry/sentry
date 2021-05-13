@@ -452,8 +452,7 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
         )
         action_data = {
             "id": "sentry.mail.actions.NotifyEmailAction",
-            "targetType": "Team",  # TODO CEO make another test where this is issue owners
-            # and the issue owners includes both users and teams
+            "targetType": "Team",
             "targetIdentifier": str(self.team.id),
         }
         rule = Rule.objects.create(
