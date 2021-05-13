@@ -31,16 +31,6 @@ class Migration(migrations.Migration):
     operations = [
         migrations.AddField(
             model_name="release",
-            name="build_code",
-            field=models.TextField(db_index=True, null=True),
-        ),
-        migrations.AddField(
-            model_name="release",
-            name="build_number",
-            field=models.BigIntegerField(db_index=True, null=True),
-        ),
-        migrations.AddField(
-            model_name="release",
             name="major",
             field=models.BigIntegerField(null=True),
         ),
@@ -56,20 +46,30 @@ class Migration(migrations.Migration):
         ),
         migrations.AddField(
             model_name="release",
+            name="revision",
+            field=models.BigIntegerField(null=True),
+        ),
+        migrations.AddField(
+            model_name="release",
             name="prerelease",
             field=models.TextField(null=True),
         ),
         migrations.AddField(
             model_name="release",
-            name="revision",
-            field=models.BigIntegerField(null=True),
+            name="build_code",
+            field=models.TextField(db_index=True, null=True),
+        ),
+        migrations.AddField(
+            model_name="release",
+            name="build_number",
+            field=models.BigIntegerField(db_index=True, null=True),
         ),
         migrations.SeparateDatabaseAndState(
             database_operations=[
                 migrations.RunSQL(
                     """
                 CREATE INDEX CONCURRENTLY IF NOT EXISTS "sentry_release_organization_id_major_mi_38715957_idx"
-                ON "sentry_release" ("organization_id", "major" DESC NULLS LAST , "minor" DESC NULLS LAST, "patch" DESC NULLS LAST, "revision" DESC NULLS LAST);
+                ON "sentry_release" ("organization_id", "major" DESC, "minor" DESC, "patch" DESC, "revision" DESC);
                 """,
                     reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS sentry_release_organization_id_major_mi_38715957_idx",
                 ),

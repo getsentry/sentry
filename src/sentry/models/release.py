@@ -166,9 +166,8 @@ class Release(Model):
         db_table = "sentry_release"
         unique_together = (("organization", "version"),)
         # TODO(django2.2): Note that we create this index with each column ordered
-        # descending, and as `nulls last` in our migrations. Django 2.2 allows us to
-        # specify functional indexes, which should allow us to specify this on the
-        # model.
+        # descending. Django 2.2 allows us to specify functional indexes, which should
+        # allow us to specify this on the model.
         index_together = (("organization", "major", "minor", "patch", "revision"),)
 
     __repr__ = sane_repr("organization_id", "version")
