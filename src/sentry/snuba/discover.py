@@ -173,6 +173,7 @@ def query(
     query,
     params,
     orderby=None,
+    group_by=None,
     offset=None,
     limit=50,
     referrer=None,
@@ -225,11 +226,13 @@ def query(
     )
     snuba_filter = snuba_query.filter
 
+    groupby = group_by if group_by else []
+
     with sentry_sdk.start_span(op="discover.discover", description="query.snuba_query"):
         result = raw_query(
             start=snuba_filter.start,
             end=snuba_filter.end,
-            groupby=snuba_filter.groupby,
+            groupby=groupby + snuba_filter.groupby,
             conditions=snuba_filter.conditions,
             aggregations=snuba_filter.aggregations,
             selected_columns=snuba_filter.selected_columns,
@@ -780,6 +783,8 @@ def histogram_query(
     max_value=None,
     data_filter=None,
     referrer=None,
+    group_by=None,
+    extra_conditions=None,
 ):
     """
     API for generating histograms for numeric columns.
@@ -799,6 +804,8 @@ def histogram_query(
     :param float max_value: The maximum value allowed to be in the histogram.
         If left unspecified, it is queried using `user_query` and `params`.
     :param str data_filter: Indicate the filter strategy to be applied to the data.
+    :param [str] group_by: Experimental. Allows additional grouping to serve multifacet histograms.
+    :param [str] extra_conditions: Adds any additional conditions to the histogram query that aren't received from params.
     """
 
     multiplier = int(10 ** precision)
@@ -831,6 +838,9 @@ def histogram_query(
         field_names = [histogram_function(field) for field in fields]
         conditions.append([key_alias, "IN", field_names])
 
+    if extra_conditions:
+        conditions.append(extra_conditions)
+
     histogram_params = find_histogram_params(num_buckets, min_value, max_value, multiplier)
     histogram_column = get_histogram_column(fields, key_column, histogram_params, array_column)
     histogram_alias = get_function_alias(histogram_column)
@@ -848,16 +858,32 @@ def histogram_query(
         conditions.append([histogram_alias, "<=", max_bin])
 
     columns = [] if key_column is None else [key_column]
-    results = query(
-        selected_columns=columns + [histogram_column, "count()"],
-        conditions=conditions,
-        query=user_query,
-        params=params,
-        orderby=[histogram_alias],
-        limit=len(fields) * num_buckets,
-        referrer=referrer,
-        functions_acl=["array_join", "histogram"],
-    )
+
+    if group_by:
+        results = query(
+            selected_columns=columns + [histogram_column, "count()"],
+            conditions=conditions,
+            query=user_query,
+            params=params,
+            orderby=[histogram_alias],
+            limit=len(fields) * num_buckets,
+            group_by=group_by,
+            referrer=referrer,
+            functions_acl=["array_join", "histogram"],
+        )
+        return results
+
+    else:
+        results = query(
+            selected_columns=columns + [histogram_column, "count()"],
+            conditions=conditions,
+            query=user_query,
+            params=params,
+            orderby=[histogram_alias],
+            limit=len(fields) * num_buckets,
+            referrer=referrer,
+            functions_acl=["array_join", "histogram"],
+        )
 
     return normalize_histogram_results(fields, key_column, histogram_params, results, array_column)
 

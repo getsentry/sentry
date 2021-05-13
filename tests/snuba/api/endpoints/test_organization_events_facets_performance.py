@@ -67,10 +67,10 @@ class OrganizationEventsFacetsPerformanceEndpointTest(SnubaTestCase, APITestCase
         self._transaction_count += 1
         self.store_event(data=event, project_id=project_id)
 
-    def do_request(self, query=None):
+    def do_request(self, query=None, feature_list=None):
         query = query if query is not None else {"aggregateColumn": "transaction.duration"}
         query["project"] = query["project"] if "project" in query else [self.project.id]
-        with self.feature(self.feature_list):
+        with self.feature(feature_list or self.feature_list):
             return self.client.get(self.url, query, format="json")
 
     def test_basic_request(self):
@@ -173,3 +173,100 @@ class OrganizationEventsFacetsPerformanceEndpointTest(SnubaTestCase, APITestCase
 
         assert response.status_code == 400, response.content
         assert response.data == {"detail": "'abc' is not a supported tags column."}
+
+    def test_tag_key_histograms(self):
+        request = {
+            "aggregateColumn": "transaction.duration",
+            "sort": "-frequency",
+            "per_page": 5,
+            "statsPeriod": "14d",
+            "query": "(color:red or color:blue)",
+            "histograms": True,
+        }
+        # No feature access
+        response = self.do_request(request)
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["count"] == 5
+        assert data[0]["tags_key"] == "color"
+        assert data[0]["tags_value"] == "blue"
+
+        # With feature access, no tag key
+        error_response = self.do_request(
+            request, feature_list=self.feature_list + ("organizations:performance-tag-page",)
+        )
+
+        assert error_response.status_code == 400, error_response.content
+        assert error_response.data == {
+            "detail": "'tagKey' must be provided when using 'histograms'."
+        }
+
+        # With feature access and tag key
+        request["tagKey"] = "color"
+        data_response = self.do_request(
+            request, feature_list=self.feature_list + ("organizations:performance-tag-page",)
+        )
+
+        histogram_data = data_response.data["data"]
+        assert len(histogram_data) == 2
+        assert histogram_data[0]["count"] == 14
+        assert histogram_data[0]["histogram_transaction_duration_50000_1000000_1"] == 1000000.0
+        assert histogram_data[0]["tags_value"] == "red"
+        assert histogram_data[0]["tags_key"] == "color"
+        assert histogram_data[1]["count"] == 5
+        assert histogram_data[1]["histogram_transaction_duration_50000_1000000_1"] == 4000000.0
+        assert histogram_data[1]["tags_value"] == "blue"
+        assert histogram_data[1]["tags_key"] == "color"
+
+    def test_all_tag_keys(self):
+        request = {
+            "aggregateColumn": "transaction.duration",
+            "sort": "-frequency",
+            "per_page": 5,
+            "statsPeriod": "14d",
+            "query": "(color:red or color:blue)",
+            "allTagKeys": True,
+        }
+        # No feature access
+        response = self.do_request(request)
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["count"] == 5
+        assert data[0]["tags_key"] == "color"
+        assert data[0]["tags_value"] == "blue"
+
+        # With feature access
+        response = self.do_request(
+            request, feature_list=self.feature_list + ("organizations:performance-tag-page",)
+        )
+        data = response.data["data"]
+        assert len(data) == 5
+        assert data[0]["count"] == 19
+        assert data[0]["tags_key"] == "application"
+        assert data[0]["tags_value"] == "countries"
+
+    def test_tag_key_values(self):
+        request = {
+            "aggregateColumn": "transaction.duration",
+            "sort": "-frequency",
+            "per_page": 5,
+            "statsPeriod": "14d",
+            "tagKey": "color",
+        }
+        # No feature access
+        response = self.do_request(request)
+        data = response.data["data"]
+        assert len(data) == 2
+        assert data[0]["count"] == 5
+        assert data[0]["tags_key"] == "color"
+        assert data[0]["tags_value"] == "blue"
+
+        # With feature access
+        response = self.do_request(
+            request, feature_list=self.feature_list + ("organizations:performance-tag-page",)
+        )
+        data = response.data["data"]
+        assert len(data) == 3
+        assert data[0]["count"] == 14
+        assert data[0]["tags_key"] == "color"
+        assert data[0]["tags_value"] == "red"
