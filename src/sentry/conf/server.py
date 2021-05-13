@@ -1689,12 +1689,7 @@ SENTRY_DEVSERVICES = {
                 "bind": "/etc/clickhouse-server/config.d/sentry.xml"
             },
         },
-        "environment": {
-            # This limits Clickhouse's memory to 30% of the host memory
-            # If you have high volume and your search return incomplete results
-            # You might want to change this to a higher value (and ensure your host has enough memory)
-            "MAX_MEMORY_USAGE_RATIO": "0.3"
-        },
+        "environment": {"MAX_MEMORY_USAGE_RATIO": "0.3"},
         "only_if": lambda settings, options: (settings.SENTRY_DISTRIBUTED_CLICKHOUSE_TABLES),
     },
     "snuba": {
