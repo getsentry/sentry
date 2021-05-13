@@ -20,6 +20,7 @@ from sentry.utils import json, metrics
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
 from sentry.utils.linksign import generate_signed_link
+from sentry.notifications.utils import get_integration_link, has_integration_installed
 
 logger = logging.getLogger(__name__)
 
@@ -197,6 +198,7 @@ class MailAdapter:
                 "user_ids": user_ids,
             },
         )
+        org = project.organization
         for user_id, digest in get_personalized_digests(target_type, project.id, digest, user_ids):
             start, end, counts = get_digest_metadata(digest)
 
@@ -221,6 +223,8 @@ class MailAdapter:
                 "project": project,
                 "digest": digest,
                 "counts": counts,
+                "slack_link": get_integration_link(org, "slack"),
+                "has_slack": has_integration_installed(org, "slack"),
             }
 
             headers = {

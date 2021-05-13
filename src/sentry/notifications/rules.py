@@ -9,7 +9,9 @@ from sentry.notifications.utils import (
     get_interface_list,
     get_link,
     get_rules,
+    get_integration_link,
     has_integrations,
+    has_integration_installed,
 )
 from sentry.notifications.utils.participants import get_send_to
 from sentry.plugins.base.structs import Notification
@@ -68,6 +70,8 @@ class AlertRuleNotification(BaseNotification):
             "enhanced_privacy": enhanced_privacy,
             "commits": get_commits(self.project, self.event),
             "environment": environment,
+            "slack_link": get_integration_link(self.organization, "slack"),
+            "has_slack": has_integration_installed(self.organization, "slack"),
         }
 
         # if the organization has enabled enhanced privacy controls we dont send

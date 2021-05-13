@@ -26,6 +26,7 @@ from sentry.models import (
     User,
     UserEmail,
 )
+from sentry.utils.http import absolute_uri
 from sentry.utils.committers import get_serialized_event_file_committers
 
 logger = logging.getLogger(__name__)
@@ -164,6 +165,12 @@ def get_link(group: Group, environment: Optional[str]) -> str:
     return str(group.get_absolute_url(params=query_params))
 
 
+def get_integration_link(organization: Organization, integration_slug: str) -> str:
+    return absolute_uri(
+        f"/settings/{organization.slug}/integrations/{integration_slug}/?referrer=alert_email"
+    )
+
+
 def get_rules(
     rules: Sequence[Rule], organization: Organization, project: Project
 ) -> Sequence[Tuple[str, str]]:
@@ -200,7 +207,14 @@ def has_integrations(organization: Organization, project: Project) -> bool:
 
     project_plugins = plugins.for_project(project, version=1)
     organization_integrations = Integration.objects.filter(organizations=organization).first()
+    # TODO: fix because project_plugins is an iterator and thus always truthy
     return bool(project_plugins or organization_integrations)
+
+
+def has_integration_installed(organization: Organization, integration_slug: str) -> bool:
+    return Integration.objects.filter(
+        organizations=organization, provider=integration_slug
+    ).exists()
 
 
 def get_interface_list(event: Any) -> Sequence[Any]:
