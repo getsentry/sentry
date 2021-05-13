@@ -12,6 +12,14 @@ from sentry.snuba import discover
 from sentry.utils.snuba import Dataset
 
 TAG_PAGE_MAX_TAG_VALUES = 5
+ALLOWED_AGGREGATE_COLUMNS = {
+    "transaction.duration",
+    "measurements.lcp",
+    "spans.browser",
+    "spans.http",
+    "spans.db",
+    "spans.resource",
+}
 
 
 class OrganizationEventsFacetsPerformanceEndpoint(OrganizationEventsV2EndpointBase):
@@ -47,15 +55,6 @@ class OrganizationEventsFacetsPerformanceEndpoint(OrganizationEventsV2EndpointBa
 
             if histograms and not tag_key:
                 raise ParseError(detail="'tagKey' must be provided when using 'histograms'.")
-
-        ALLOWED_AGGREGATE_COLUMNS = {
-            "transaction.duration",
-            "measurements.lcp",
-            "spans.browser",
-            "spans.http",
-            "spans.db",
-            "spans.resource",
-        }
 
         if not aggregate_column:
             raise ParseError(detail="'aggregateColumn' must be provided.")
