@@ -153,6 +153,7 @@ from .endpoints.organization_events import (
 from .endpoints.organization_events_facets import OrganizationEventsFacetsEndpoint
 from .endpoints.organization_events_facets_performance import (
     OrganizationEventsFacetsPerformanceEndpoint,
+    OrganizationEventsFacetsPerformanceHistogramEndpoint,
 )
 from .endpoints.organization_events_histogram import OrganizationEventsHistogramEndpoint
 from .endpoints.organization_events_meta import (
@@ -930,6 +931,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/events-facets-performance/$",
                     OrganizationEventsFacetsPerformanceEndpoint.as_view(),
                     name="sentry-api-0-organization-events-facets-performance",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/events-facets-performance-histogram/$",
+                    OrganizationEventsFacetsPerformanceHistogramEndpoint.as_view(),
+                    name="sentry-api-0-organization-events-facets-performance-histogram",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/events-meta/$",
