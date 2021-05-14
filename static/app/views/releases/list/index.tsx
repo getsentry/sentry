@@ -281,29 +281,29 @@ class ReleasesList extends AsyncView<Props, State> {
                 <Feature features={['organizations:release-adoption-chart']}>
                   <Projects orgId={organization.slug} slugs={[selectedProject.slug]}>
                     {({projects, initiallyLoaded, fetchError}) => {
-                      const project = projects && projects.length === 1 && projects[0];
-
-                      if (!initiallyLoaded || fetchError) {
-                        return null;
-                      }
+                      const project =
+                        projects && projects.length === 1 ? projects[0] : null;
 
                       if (
-                        project &&
-                        project.hasOwnProperty('features') &&
+                        fetchError ||
+                        !project ||
+                        !project.hasOwnProperty('features') ||
                         !(project as Project).features.includes('releases')
                       ) {
                         return null;
                       }
+
+                      const showPlaceholders = !initiallyLoaded || !isHealthLoading;
 
                       return (
                         <ReleaseAdoptionChart
                           organization={organization}
                           selection={selection}
                           releases={releases}
-                          project={project}
+                          project={project as Project}
                           getHealthData={getHealthData}
                           activeDisplay={activeDisplay}
-                          showHealthPlaceholders={isHealthLoading}
+                          showPlaceholders={showPlaceholders}
                         />
                       );
                     }}

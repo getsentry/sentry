@@ -27,7 +27,7 @@ type Props = WithRouterProps & {
   project: Project;
   getHealthData: ReleaseHealthRequestRenderProps['getHealthData'];
   activeDisplay: DisplayOption;
-  showHealthPlaceholders: boolean;
+  showPlaceholders: boolean;
 };
 
 type State = {
@@ -91,7 +91,7 @@ class ReleaseAdoptionChart extends React.PureComponent<Props, State> {
 
   render() {
     const {
-      showHealthPlaceholders,
+      showPlaceholders,
       releases,
       project,
       activeDisplay,
@@ -101,7 +101,7 @@ class ReleaseAdoptionChart extends React.PureComponent<Props, State> {
     } = this.props;
     const {start, end, period, utc} = selection.datetime;
 
-    if (showHealthPlaceholders) {
+    if (showPlaceholders) {
       return this.renderEmpty();
     }
 
