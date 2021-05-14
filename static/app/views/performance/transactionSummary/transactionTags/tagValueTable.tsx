@@ -99,7 +99,6 @@ const COLUMN_ORDER: TagColumn[] = [
 ];
 
 type Props = {
-  isLoading?: boolean;
   location: Location;
   organization: Organization;
   projects: Project[];
@@ -290,15 +289,7 @@ export class TagValueTable extends Component<Props, State> {
   };
 
   render() {
-    const {
-      isLoading: isParentLoading,
-      eventView,
-      tagKey,
-      location,
-      projects,
-      limit,
-      organization,
-    } = this.props;
+    const {eventView, tagKey, location, projects, limit, organization} = this.props;
 
     const aggregateColumn = getTransactionField(
       SpanOperationBreakdownFilter.None,
@@ -328,7 +319,7 @@ export class TagValueTable extends Component<Props, State> {
         {({isLoading, tableData}) => {
           return (
             <GridEditable
-              isLoading={isLoading || isParentLoading}
+              isLoading={isLoading}
               data={tableData && tableData.data ? tableData.data : []}
               columnOrder={newColumns}
               columnSortBy={[]}
