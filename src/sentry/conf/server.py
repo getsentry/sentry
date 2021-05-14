@@ -125,6 +125,9 @@ DEVSERVICES_CONFIG_DIR = os.path.normpath(
 )
 
 SENTRY_DISTRIBUTED_CLICKHOUSE_TABLES = False
+CLICKHOUSE_IMAGE = "yandex/clickhouse-server:20.3.9.70"
+CLICKHOUSE_PORTS = {"9000/tcp": 9000, "9009/tcp": 9009, "8123/tcp": 8123}
+CLICKHOUSE_ULIMITS = [{"name": "nofile", "soft": 262144, "hard": 262144}]
 
 RELAY_CONFIG_DIR = os.path.join(DEVSERVICES_CONFIG_DIR, "relay")
 
@@ -1653,10 +1656,10 @@ SENTRY_DEVSERVICES = {
         ),
     },
     "clickhouse": {
-        "image": "yandex/clickhouse-server:20.3.9.70",
+        "image": CLICKHOUSE_IMAGE,
         "pull": True,
-        "ports": {"9000/tcp": 9000, "9009/tcp": 9009, "8123/tcp": 8123},
-        "ulimits": [{"name": "nofile", "soft": 262144, "hard": 262144}],
+        "ports": CLICKHOUSE_PORTS,
+        "ulimits": CLICKHOUSE_ULIMITS,
         "volumes": {
             "clickhouse": {"bind": "/var/lib/clickhouse"},
             os.path.join(DEVSERVICES_CONFIG_DIR, "clickhouse", "loc_config.xml"): {
@@ -1672,10 +1675,10 @@ SENTRY_DEVSERVICES = {
         "only_if": lambda settings, options: (not settings.SENTRY_DISTRIBUTED_CLICKHOUSE_TABLES),
     },
     "clickhouse_dist": {
-        "image": "yandex/clickhouse-server:20.3.9.70",
+        "image": CLICKHOUSE_IMAGE,
         "pull": True,
-        "ports": {"9000/tcp": 9000, "9009/tcp": 9009, "8123/tcp": 8123},
-        "ulimits": [{"name": "nofile", "soft": 262144, "hard": 262144}],
+        "ports": CLICKHOUSE_PORTS,
+        "ulimits": CLICKHOUSE_ULIMITS,
         "volumes": {
             "clickhouse_dist": {"bind": "/var/lib/clickhouse"},
             os.path.join(DEVSERVICES_CONFIG_DIR, "clickhouse", "dist_config.xml"): {
