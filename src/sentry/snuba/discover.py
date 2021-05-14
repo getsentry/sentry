@@ -56,10 +56,6 @@ logger = logging.getLogger(__name__)
 PreparedQuery = namedtuple("query", ["filter", "columns", "fields"])
 PaginationResult = namedtuple("PaginationResult", ["next", "previous", "oldest", "latest"])
 FacetResult = namedtuple("FacetResult", ["key", "value", "count"])
-PerformanceFacetResult = namedtuple(
-    "PerformanceFacetResult",
-    ["key", "value", "performance", "count", "frequency", "comparison", "sumdelta"],
-)
 
 resolve_discover_column = resolve_column(Dataset.Discover)
 
@@ -157,8 +153,7 @@ def transform_data(result, translated_columns, snuba_filter):
 
         return transformed
 
-    if len(translated_columns):
-        result["data"] = [get_row(row) for row in result["data"]]
+    result["data"] = [get_row(row) for row in result["data"]]
 
     rollup = snuba_filter.rollup
     if rollup and rollup > 0:
@@ -770,145 +765,6 @@ def get_facets(query, params, limit=10, referrer=None):
     return results
 
 
-def get_performance_facets(
-    query,
-    params,
-    orderby=None,
-    aggregate_column="duration",
-    aggregate_function="avg",
-    limit=20,
-    offset=None,
-    referrer=None,
-):
-    """
-    High-level API for getting 'facet map' results for performance data
-
-    Performance facets are high frequency tags and the aggregate duration of
-    their most frequent values
-
-    query (str) Filter query string to create conditions from.
-    params (Dict[str, str]) Filtering parameters with start, end, project_id, environment
-    limit (int) The number of records to fetch.
-    referrer (str|None) A referrer string to help locate the origin of this query.
-
-    Returns Sequence[FacetResult]
-    """
-    with sentry_sdk.start_span(
-        op="discover.discover", description="facets.filter_transform"
-    ) as span:
-        span.set_data("query", query)
-        snuba_filter = get_filter(query, params)
-
-        # Resolve the public aliases into the discover dataset names.
-        snuba_filter, translated_columns = resolve_discover_aliases(snuba_filter)
-
-    with sentry_sdk.start_span(op="discover.discover", description="facets.frequent_tags"):
-        # Get the most relevant tag keys
-        key_names = raw_query(
-            aggregations=[
-                [aggregate_function, aggregate_column, "aggregate"],
-                ["count", None, "count"],
-            ],
-            start=snuba_filter.start,
-            end=snuba_filter.end,
-            conditions=snuba_filter.conditions,
-            filter_keys=snuba_filter.filter_keys,
-            orderby=["-count"],
-            dataset=Dataset.Discover,
-            referrer="{}.{}".format(referrer, "all_transactions"),
-        )
-        counts = [r["count"] for r in key_names["data"]]
-        aggregates = [r["aggregate"] for r in key_names["data"]]
-
-        # Return early to avoid doing more queries with 0 count transactions or aggregates for columns that dont exist
-        if len(counts) != 1 or counts[0] == 0 or aggregates[0] is None:
-            return []
-
-    results = []
-    snuba_filter.conditions.append([aggregate_column, "IS NOT NULL", None])
-
-    # Aggregate for transaction
-    transaction_aggregate = key_names["data"][0]["aggregate"]
-
-    # Dynamically sample so at least 10000 transactions are selected
-    transaction_count = key_names["data"][0]["count"]
-    sampling_enabled = transaction_count > 50000
-    # Log growth starting at 50,000
-    target_sample = 50000 * (math.log(transaction_count, 10) - 3)
-
-    dynamic_sample_rate = 0 if transaction_count <= 0 else (target_sample / transaction_count)
-    sample_rate = min(max(dynamic_sample_rate, 0), 1) if sampling_enabled else None
-    frequency_sample_rate = sample_rate if sample_rate else 1
-
-    excluded_tags = [
-        "tags_key",
-        "NOT IN",
-        ["trace", "trace.ctx", "trace.span", "project", "browser", "celery_task_id"],
-    ]
-
-    with sentry_sdk.start_span(op="discover.discover", description="facets.aggregate_tags"):
-        conditions = snuba_filter.conditions
-        aggregate_comparison = transaction_aggregate * 1.01 if transaction_aggregate else 0
-        having = [excluded_tags]
-        if orderby and orderby in ("sumdelta", "-sumdelta", "aggregate", "-aggregate"):
-            having.append(["aggregate", ">", aggregate_comparison])
-
-        if orderby is None:
-            orderby = []
-        else:
-            orderby = [orderby]
-
-        tag_values = raw_query(
-            selected_columns=[
-                [
-                    "sum",
-                    [
-                        "minus",
-                        [
-                            aggregate_column,
-                            str(transaction_aggregate),
-                        ],
-                    ],
-                    "sumdelta",
-                ],
-            ],
-            aggregations=[
-                [aggregate_function, aggregate_column, "aggregate"],
-                ["count", None, "cnt"],
-            ],
-            conditions=conditions,
-            start=snuba_filter.start,
-            end=snuba_filter.end,
-            filter_keys=snuba_filter.filter_keys,
-            orderby=orderby + ["tags_key"],
-            groupby=["tags_key", "tags_value"],
-            having=having,
-            dataset=Dataset.Discover,
-            referrer="{}.{}".format(referrer, "tag_values"),
-            sample=sample_rate,
-            turbo=sample_rate is not None,
-            limitby=[1, "tags_key"],
-            limit=limit,
-            offset=offset,
-        )
-        results.extend(
-            [
-                PerformanceFacetResult(
-                    key=r["tags_key"],
-                    value=r["tags_value"],
-                    performance=float(r["aggregate"]),
-                    count=int(r["cnt"]),
-                    frequency=float((r["cnt"] / frequency_sample_rate) / transaction_count),
-                    comparison=float(r["aggregate"] / transaction_aggregate),
-                    sumdelta=float(r["sumdelta"]),
-                )
-                for r in tag_values["data"]
-            ]
-        )
-
-    return results
-
-
 HistogramParams = namedtuple(
     "HistogramParams", ["num_buckets", "bucket_size", "start_offset", "multiplier"]
 )
@@ -924,6 +780,9 @@ def histogram_query(
     max_value=None,
     data_filter=None,
     referrer=None,
+    group_by=None,
+    extra_conditions=None,
+    normalize_results=True,
 ):
     """
     API for generating histograms for numeric columns.
@@ -943,6 +802,9 @@ def histogram_query(
     :param float max_value: The maximum value allowed to be in the histogram.
         If left unspecified, it is queried using `user_query` and `params`.
     :param str data_filter: Indicate the filter strategy to be applied to the data.
+    :param [str] group_by: Experimental. Allows additional grouping to serve multifacet histograms.
+    :param [str] extra_conditions: Adds any additional conditions to the histogram query that aren't received from params.
+    :param bool normalize_results: Indicate whether to normalize the results by column into bins.
     """
 
     multiplier = int(10 ** precision)
@@ -975,6 +837,9 @@ def histogram_query(
         field_names = [histogram_function(field) for field in fields]
         conditions.append([key_alias, "IN", field_names])
 
+    if extra_conditions:
+        conditions.append(extra_conditions)
+
     histogram_params = find_histogram_params(num_buckets, min_value, max_value, multiplier)
     histogram_column = get_histogram_column(fields, key_column, histogram_params, array_column)
     histogram_alias = get_function_alias(histogram_column)
@@ -992,16 +857,46 @@ def histogram_query(
         conditions.append([histogram_alias, "<=", max_bin])
 
     columns = [] if key_column is None else [key_column]
-    results = query(
+    limit = len(fields) * num_buckets
+
+    histogram_query = prepare_discover_query(
         selected_columns=columns + [histogram_column, "count()"],
         conditions=conditions,
         query=user_query,
         params=params,
         orderby=[histogram_alias],
-        limit=len(fields) * num_buckets,
-        referrer=referrer,
         functions_acl=["array_join", "histogram"],
     )
+
+    snuba_filter = histogram_query.filter
+
+    if group_by:
+        snuba_filter.groupby += group_by
+
+    result = raw_query(
+        start=snuba_filter.start,
+        end=snuba_filter.end,
+        groupby=snuba_filter.groupby,
+        conditions=snuba_filter.conditions,
+        aggregations=snuba_filter.aggregations,
+        selected_columns=snuba_filter.selected_columns,
+        filter_keys=snuba_filter.filter_keys,
+        having=snuba_filter.having,
+        orderby=snuba_filter.orderby,
+        dataset=Dataset.Discover,
+        limit=limit,
+        referrer=referrer,
+    )
+
+    results = transform_results(
+        result,
+        histogram_query.fields["functions"],
+        histogram_query.columns,
+        snuba_filter,
+    )
+
+    if not normalize_results:
+        return results
 
     return normalize_histogram_results(fields, key_column, histogram_params, results, array_column)
 

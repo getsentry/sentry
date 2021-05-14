@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import round from 'lodash/round';
 
 import AsyncComponent from 'app/components/asyncComponent';
@@ -141,8 +141,9 @@ class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
     const {selection, isProjectStabilized, hasSessions} = this.props;
 
     if (
-      (prevProps.selection !== selection || prevProps.hasSessions !== hasSessions) &&
-      isProjectStabilized
+      prevProps.selection !== selection ||
+      prevProps.hasSessions !== hasSessions ||
+      prevProps.isProjectStabilized !== isProjectStabilized
     ) {
       this.remountComponent();
     }

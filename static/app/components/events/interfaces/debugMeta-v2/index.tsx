@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {withRouter} from 'react-router';
 import {WithRouterProps} from 'react-router/lib/withRouter';
 import {
@@ -232,7 +232,7 @@ class DebugMeta extends React.PureComponent<Props, State> {
         : undefined;
 
     const mod = await import(
-      /* webpackChunkName: "DebugImageDetails" */ 'app/components/events/interfaces/debugMeta-v2/debugImageDetails'
+      'app/components/events/interfaces/debugMeta-v2/debugImageDetails'
     );
 
     const {default: Modal, modalCss} = mod;

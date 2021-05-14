@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
@@ -65,6 +65,7 @@ const defaultProps = {
   canSelect: true,
   withChart: true,
   useFilteredStats: false,
+  useTintRow: true,
 };
 
 type Props = {
@@ -145,7 +146,7 @@ class StreamGroup extends React.Component<Props, State> {
       return;
     }
 
-    const actionTaken = this.state.data.status === 'unresolved' ? false : true;
+    const actionTaken = this.state.data.status !== 'unresolved';
     const data = GroupStore.get(id) as Group;
     this.setState(state => {
       // When searching is:for_review and the inbox reason is removed
@@ -346,6 +347,7 @@ class StreamGroup extends React.Component<Props, State> {
       displayReprocessingLayout,
       showInboxTime,
       useFilteredStats,
+      useTintRow,
       customStatsPeriod,
     } = this.props;
 
@@ -379,6 +381,7 @@ class StreamGroup extends React.Component<Props, State> {
         hasInbox={hasInbox}
         unresolved={unresolved}
         actionTaken={actionTaken}
+        useTintRow={useTintRow ?? true}
       >
         {canSelect && (
           <GroupCheckBoxWrapper>
@@ -570,6 +573,7 @@ const Wrapper = styled(PanelItem)<{
   hasInbox: boolean;
   unresolved: boolean;
   actionTaken: boolean;
+  useTintRow: boolean;
 }>`
   position: relative;
   padding: ${p => (p.hasInbox ? `${space(1.5)} 0` : `${space(1)} 0`)};
@@ -578,6 +582,7 @@ const Wrapper = styled(PanelItem)<{
   ${p => (p.hasInbox ? p.theme.textColor : p.theme.subText)};
 
   ${p =>
+    p.useTintRow &&
     (p.reviewed || !p.unresolved) &&
     !p.actionTaken &&
     css`

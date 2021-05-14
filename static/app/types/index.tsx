@@ -4,6 +4,7 @@
 
 import u2f from 'u2f-api';
 
+import exportGlobals from 'app/bootstrap/exportGlobals';
 import Alert from 'app/components/alert';
 import {getInterval} from 'app/components/charts/utils';
 import {SymbolicatorStatus} from 'app/components/events/interfaces/types';
@@ -21,6 +22,30 @@ import {DynamicSamplingRules} from './dynamicSampling';
 import {Event} from './event';
 import {Mechanism, RawStacktrace, StacktraceType} from './stacktrace';
 
+export enum SentryInitRenderReactComponent {
+  INDICATORS = 'Indicators',
+  SETUP_WIZARD = 'SetupWizard',
+  SYSTEM_ALERTS = 'SystemAlerts',
+  U2F_SIGN = 'U2fSign',
+}
+
+export type OnSentryInitConfiguration =
+  | {
+      name: 'passwordStrength';
+      input: string;
+      element: string;
+    }
+  | {
+      name: 'renderReact';
+      container: string;
+      component: SentryInitRenderReactComponent;
+      props?: Record<string, any>;
+    }
+  | {
+      name: 'onReady';
+      onReady: (globals: typeof exportGlobals) => void;
+    };
+
 declare global {
   interface Window {
     /**
@@ -36,6 +61,19 @@ declare global {
      * Pipeline
      */
     __pipelineInitialData: PipelineInitialData;
+
+    /**
+     * This allows our server-rendered templates to push configuration that should be
+     * run after we render our main application.
+     *
+     * An example of this is dynamically importing the `passwordStrength` module only
+     * on the organization login page.
+     */
+    __onSentryInit:
+      | OnSentryInitConfiguration[]
+      | {
+          push: (config: OnSentryInitConfiguration) => void;
+        };
 
     /**
      * Sentrys version string
@@ -242,6 +280,7 @@ export type Project = {
   groupingConfig: string;
   latestDeploys?: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
   builtinSymbolSources?: string[];
+  symbolSources?: string;
   stats?: TimeseriesValue[];
   transactionStats?: TimeseriesValue[];
   latestRelease?: Release;
@@ -1501,6 +1540,7 @@ export type SentryAppComponent = {
     slug:
       | 'clickup'
       | 'clubhouse'
+      | 'komodor'
       | 'linear'
       | 'rookout'
       | 'spikesh'
@@ -1980,7 +2020,7 @@ export type ServerlessFunction = {
 /**
  * File storage service options for debug files
  */
-export type DebugFileSource = 'http' | 's3' | 'gcs';
+export type DebugFileSource = 'http' | 's3' | 'gcs' | 'appStoreConnect';
 
 /**
  * Base type for series   style API response

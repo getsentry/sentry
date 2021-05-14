@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
@@ -24,7 +24,7 @@ const Badge = styled(({children, text, ...props}: Props) => (
   font-size: 75%;
   font-weight: 600;
   text-align: center;
-  color: #fff;
+  color: ${p => p.theme.badge[p.type ?? 'default'].color};
   background: ${p => p.theme.badge[p.type ?? 'default'].background};
   transition: background 100ms linear;
 

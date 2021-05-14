@@ -25,6 +25,8 @@ logger = logging.getLogger(__name__)
 
 ACCEPTED_TRACKING_COOKIE = "accepted_tracking"
 MEMBER_ID_COOKIE = "demo_member_id"
+SKIP_EMAIL_COOKIE = "skip_email"
+SAAS_ORG_SLUG = "saas_org_slug"
 
 
 class DemoStartView(BaseView):
@@ -43,8 +45,9 @@ class DemoStartView(BaseView):
         logger.info("post.start", extra={"cookie_member_id": member_id})
         sentry_sdk.set_tag("member_id", member_id)
 
-        # TODO(steve): switch to camelCase for request field
-        skip_buffer = request.POST.get("skip_buffer") == "1"
+        # TODO: remove snake case
+        skip_buffer_input = request.POST.get("skipBuffer") or request.POST.get("skip_buffer")
+        skip_buffer = skip_buffer_input == "1"
         sentry_sdk.set_tag("skip_buffer", skip_buffer)
 
         scenario = request.POST.get("scenario")
@@ -81,10 +84,21 @@ class DemoStartView(BaseView):
         # whether to initialize analytics when accepted_tracking=1
         # 0 means don't show the footer to accept cookies (user already declined)
         # no value means we show the footer to accept cookies (user has neither accepted nor declined)
-        # TODO: switch to camelCase for request field
-        accepted_tracking = request.POST.get(ACCEPTED_TRACKING_COOKIE)
+        # TODO: remove snake case
+        accepted_tracking = request.POST.get("acceptedTracking") or request.POST.get(
+            ACCEPTED_TRACKING_COOKIE
+        )
         if accepted_tracking in ["0", "1"]:
             resp.set_cookie(ACCEPTED_TRACKING_COOKIE, accepted_tracking)
+
+        # if skip email is 1, set the cookie
+        skip_email = request.POST.get("skipEmail")
+        if skip_email == "1":
+            resp.set_cookie(SKIP_EMAIL_COOKIE, skip_email)
+
+        saas_org_slug = request.POST.get("saasOrgSlug")
+        if saas_org_slug:
+            resp.set_cookie(SAAS_ORG_SLUG, saas_org_slug)
 
         # set the member id
         resp.set_signed_cookie(MEMBER_ID_COOKIE, member.id)

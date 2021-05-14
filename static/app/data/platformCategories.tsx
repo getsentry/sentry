@@ -37,6 +37,7 @@ export const frontend = [
   'javascript-ember',
   'javascript-gatsby',
   'javascript-vue',
+  'javascript-nextjs',
 ] as const;
 
 export const mobile = [

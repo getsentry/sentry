@@ -1,11 +1,11 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
 import ActivityAvatar from 'app/components/activity/item/avatar';
 import Card from 'app/components/card';
 import Link from 'app/components/links/link';
-import TextOverflow from 'app/components/textOverflow';
 import {t} from 'app/locale';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {User} from 'app/types';
 
@@ -94,14 +94,16 @@ const CardHeader = styled('div')`
   padding: ${space(1.5)} ${space(2)};
 `;
 
-const Title = styled(TextOverflow)`
+const Title = styled('div')`
   color: ${p => p.theme.textColor};
+  ${overflowEllipsis};
 `;
 
-const Detail = styled(TextOverflow)`
+const Detail = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.gray300};
+  ${overflowEllipsis};
   line-height: 1.5;
 `;
 
@@ -109,7 +111,7 @@ const CardBody = styled('div')`
   background: ${p => p.theme.gray100};
   padding: ${space(1.5)} ${space(2)};
   max-height: 150px;
-  height: 150px;
+  min-height: 150px;
   overflow: hidden;
 `;
 
@@ -120,11 +122,12 @@ const CardFooter = styled('div')`
   padding: ${space(1)} ${space(2)};
 `;
 
-const DateSelected = styled(TextOverflow)`
+const DateSelected = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   display: grid;
   grid-column-gap: ${space(1)};
   color: ${p => p.theme.textColor};
+  ${overflowEllipsis};
 `;
 
 const DateStatus = styled('span')`

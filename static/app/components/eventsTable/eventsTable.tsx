@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 
 import EventsTableRow from 'app/components/eventsTable/eventsTableRow';
 import {t} from 'app/locale';
@@ -12,7 +12,7 @@ type Props = {
   projectId: string;
   groupId: string;
 };
-class EventsTable extends React.Component<Props> {
+class EventsTable extends Component<Props> {
   render() {
     const {events, tagList, orgId, projectId, groupId} = this.props;
 

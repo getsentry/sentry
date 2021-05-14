@@ -5,12 +5,8 @@ import responses
 from django.utils import timezone
 from exam import fixture
 
-from sentry.integrations.slack.notifications import (
-    send_issue_notification_as_slack,
-    send_notification_as_slack,
-)
+from sentry.integrations.slack.notifications import send_notification_as_slack
 from sentry.mail import mail_adapter
-from sentry.mail.adapter import ActionTargetType
 from sentry.models import (
     Activity,
     Deploy,
@@ -31,7 +27,12 @@ from sentry.notifications.activity import (
     ResolvedInReleaseActivityNotification,
     UnassignedActivityNotification,
 )
-from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
+from sentry.notifications.rules import AlertRuleNotification
+from sentry.notifications.types import (
+    ActionTargetType,
+    NotificationSettingOptionValues,
+    NotificationSettingTypes,
+)
 from sentry.plugins.base import Notification
 from sentry.rules.processor import RuleFuture
 from sentry.testutils import TestCase
@@ -44,12 +45,7 @@ from tests.sentry.mail.activity import ActivityTestCase
 
 def send_notification(*args):
     args_list = list(args)[1:]
-    send_notification_as_slack(*args_list)
-
-
-def send_issue_notification(*args):
-    args_list = list(args)[1:]
-    send_issue_notification_as_slack(*args_list)
+    send_notification_as_slack(*args_list, {})
 
 
 def get_attachment():
@@ -377,7 +373,7 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
         )
 
     @responses.activate
-    @mock.patch("sentry.mail.notify.notify_participants", side_effect=send_issue_notification)
+    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
     def test_issue_alert_user(self, mock_func):
         """Test that issue alerts are sent to a Slack user."""
 
@@ -398,10 +394,12 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
             },
         )
 
-        notification = Notification(event=event, rule=rule)
+        notification = AlertRuleNotification(
+            Notification(event=event, rule=rule), ActionTargetType.MEMBER, self.user.id
+        )
 
-        with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
-            self.adapter.notify(notification, ActionTargetType.MEMBER, self.user.id)
+        with self.tasks():
+            notification.send()
 
         attachment = get_attachment()
 
@@ -410,7 +408,7 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
         assert attachment["footer"] == event.group.qualified_short_id
 
     @responses.activate
-    @mock.patch("sentry.mail.notify.notify_participants", side_effect=send_issue_notification)
+    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
     def test_issue_alert_team(self, mock_func):
         """Test that issue alerts are sent to members of a Sentry team in Slack."""
 
@@ -474,7 +472,7 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
 
     @pytest.mark.skip(reason="will be needed soon but not yet")
     @responses.activate
-    @mock.patch("sentry.mail.notify.notify_participants", side_effect=send_issue_notification)
+    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
     @mock.patch("sentry.mail.adapter.digests")
     def test_digest_enabled(self, digests, mock_func):
         """

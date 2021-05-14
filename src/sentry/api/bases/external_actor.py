@@ -10,7 +10,7 @@ from sentry import features
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.validators.external_actor import (
     validate_external_id_option,
-    validate_integration_id_option,
+    validate_integration_id,
 )
 from sentry.api.validators.integrations import validate_provider
 from sentry.models import ExternalActor, Organization, Team, User
@@ -27,14 +27,14 @@ class ExternalActorSerializerBase(CamelSnakeModelSerializer):  # type: ignore
     external_id = serializers.CharField(required=False, allow_null=True)
     external_name = serializers.CharField(required=True)
     provider = serializers.ChoiceField(choices=get_provider_choices(AVAILABLE_PROVIDERS))
-    integration_id = serializers.IntegerField(required=False, allow_null=True)
+    integration_id = serializers.IntegerField(required=True)
 
     @property
     def organization(self) -> Organization:
         return self.context["organization"]
 
-    def validate_integration_id(self, integration_id: str) -> Optional[str]:
-        return validate_integration_id_option(integration_id, self.organization)
+    def validate_integration_id(self, integration_id: str) -> str:
+        return validate_integration_id(integration_id, self.organization)
 
     def validate_external_id(self, external_id: str) -> Optional[str]:
         return validate_external_id_option(external_id)
@@ -116,7 +116,7 @@ class ExternalActorEndpointMixin:
     @staticmethod
     def has_feature(request: Request, organization: Organization) -> bool:
         return bool(
-            features.has("organizations:import-codeowners", organization, actor=request.user)
+            features.has("organizations:integrations-codeowners", organization, actor=request.user)
         )
 
     def assert_has_feature(self, request: Request, organization: Organization) -> None:

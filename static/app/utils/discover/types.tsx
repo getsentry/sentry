@@ -37,5 +37,5 @@ export const DISPLAY_MODE_FALLBACK_OPTIONS = {
 // default list of yAxis options
 export const CHART_AXIS_OPTIONS = [
   {label: 'count()', value: 'count()'},
-  {label: 'count_unique(users)', value: 'count_unique(user)'},
+  {label: 'count_unique(user)', value: 'count_unique(user)'},
 ];

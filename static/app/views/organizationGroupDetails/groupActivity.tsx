@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -51,7 +51,7 @@ type State = {
   inputId: string;
 };
 
-class GroupActivity extends React.Component<Props, State> {
+class GroupActivity extends Component<Props, State> {
   // TODO(dcramer): only re-render on group/activity change
   state: State = {
     createBusy: false,
@@ -143,7 +143,7 @@ class GroupActivity extends React.Component<Props, State> {
     };
 
     return (
-      <React.Fragment>
+      <Fragment>
         {(reprocessingStatus === ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT ||
           reprocessingStatus === ReprocessingStatus.REPROCESSED_AND_HAS_EVENT) && (
           <StyledReprocessedBox
@@ -222,7 +222,7 @@ class GroupActivity extends React.Component<Props, State> {
             </div>
           </div>
         </div>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

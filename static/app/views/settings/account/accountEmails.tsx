@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
@@ -116,7 +116,7 @@ class AccountEmails extends AsyncView<Props, State> {
           allowUndo={false}
           onSubmitSuccess={this.handleSubmitSuccess}
         >
-          <JsonForm location={this.props.location} forms={accountEmailsFields} />
+          <JsonForm forms={accountEmailsFields} />
         </Form>
 
         <AlertLink to="/settings/account/notifications" icon={<IconStack />}>

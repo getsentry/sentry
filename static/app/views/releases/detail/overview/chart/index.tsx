@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import * as ReactRouter from 'react-router';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -52,7 +52,7 @@ type Props = {
   projectSlug: string;
 };
 
-class ReleaseChartContainer extends React.Component<Props> {
+class ReleaseChartContainer extends Component<Props> {
   /**
    * This returns an array with 3 colors, one for each of
    * 1. This Release
@@ -301,7 +301,7 @@ class ReleaseChartContainer extends React.Component<Props> {
             </ChartContainer>
             <AnchorWrapper>
               <GuideAnchor target="release_chart" position="bottom" offset="-80px">
-                <React.Fragment />
+                <Fragment />
               </GuideAnchor>
             </AnchorWrapper>
             <ReleaseChartControls

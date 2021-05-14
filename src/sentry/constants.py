@@ -275,6 +275,8 @@ KNOWN_DIF_FORMATS = {
     "application/wasm": "wasm",
     "text/x-proguard+plain": "proguard",
     "application/x-sentry-bundle+zip": "sourcebundle",
+    "application/x-bcsymbolmap": "bcsymbolmap",
+    "application/x-debugid-map": "uuidmap",
 }
 
 NATIVE_UNKNOWN_STRING = "<unknown>"
