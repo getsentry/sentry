@@ -9,7 +9,9 @@ class MatchType:
     EQUAL = "eq"
     NOT_EQUAL = "ne"
     STARTS_WITH = "sw"
+    NOT_STARTS_WITH = "nsw"
     ENDS_WITH = "ew"
+    NOT_ENDS_WITH = "new"
     CONTAINS = "co"
     NOT_CONTAINS = "nc"
     IS_SET = "is"
@@ -21,7 +23,9 @@ MATCH_CHOICES = OrderedDict(
         (MatchType.EQUAL, "equals"),
         (MatchType.NOT_EQUAL, "does not equal"),
         (MatchType.STARTS_WITH, "starts with"),
+        (MatchType.NOT_STARTS_WITH, "does not start with"),
         (MatchType.ENDS_WITH, "ends with"),
+        (MatchType.NOT_ENDS_WITH, "does not end with"),
         (MatchType.CONTAINS, "contains"),
         (MatchType.NOT_CONTAINS, "does not contain"),
         (MatchType.IS_SET, "is set"),
@@ -208,11 +212,23 @@ class EventAttributeCondition(EventCondition):
                     return True
             return False
 
+        elif match == MatchType.NOT_STARTS_WITH:
+            for t_value in value:
+                if t_value.startswith(value):
+                    return False
+            return True
+
         elif match == MatchType.ENDS_WITH:
-            for a_value in attribute_values:
-                if a_value.endswith(value):
+            for t_value in value:
+                if t_value.endswith(value):
                     return True
             return False
+
+        elif match == MatchType.NOT_ENDS_WITH:
+            for t_value in value:
+                if t_value.startswith(value):
+                    return False
+            return True
 
         elif match == MatchType.CONTAINS:
             for a_value in attribute_values:
