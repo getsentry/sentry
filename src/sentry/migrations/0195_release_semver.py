@@ -25,7 +25,7 @@ class Migration(migrations.Migration):
     atomic = False
 
     dependencies = [
-        ("sentry", "0193_grouprelease_indexes"),
+        ("sentry", "0194_add_custom_scm_provider"),
     ]
 
     operations = [
