@@ -231,4 +231,3 @@ const RepositoryTitle = styled('div')`
 `;
 
 export default withOrganization(RepositoryRow);
-export {RepositoryRow};

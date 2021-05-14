@@ -2,7 +2,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
 
 import {Client} from 'app/api';
-import {RepositoryRow} from 'app/components/repositoryRow';
+import RepositoryRow from 'app/components/repositoryRow';
 
 describe('RepositoryRow', function () {
   beforeEach(function () {
