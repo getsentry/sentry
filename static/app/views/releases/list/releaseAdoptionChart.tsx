@@ -200,8 +200,9 @@ class ReleaseAdoptionChart extends React.PureComponent<Props, State> {
         </ChartBody>
         {
           <ChartFooter>
-            {tct('Total Sessions [sessionCount]', {
-              sessionCount: <Count value={get24hCountByProject ?? 0} />,
+            {tct('Total [display] [count]', {
+              display: activeDisplay === DisplayOption.USERS ? 'Users' : 'Sessions',
+              count: <Count value={get24hCountByProject ?? 0} />,
             })}
           </ChartFooter>
         }
