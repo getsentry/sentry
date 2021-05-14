@@ -1,5 +1,6 @@
 import itertools
 from dataclasses import dataclass
+from datetime import timedelta
 from typing import Iterator, Tuple
 
 import pytest
@@ -18,7 +19,7 @@ class Properties:
         return zip(self.keys, self.values)
 
 
-@pytest.fixture(params=["bigtable", "cache/default", "memory"])
+@pytest.fixture(params=["bigtable", "cache/default", "memory", "memory+cachewrapper", "redis"])
 def properties(request) -> Properties:
     if request.param == "bigtable":
         from tests.sentry.utils.kvstore.test_bigtable import create_store, get_credentials
@@ -53,6 +54,25 @@ def properties(request) -> Properties:
             keys=itertools.count(),
             values=itertools.count(),
         )
+    elif request.param == "redis":
+        from redis import Redis
+
+        from sentry.utils.kvstore.redis import RedisKVStorage
+
+        return Properties(
+            RedisKVStorage(Redis(db=6)),
+            keys=(f"kvstore/{i}" for i in itertools.count()),
+            values=(f"{i}".encode("utf8") for i in itertools.count()),
+        )
+    elif request.param == "memory+cachewrapper":
+        from sentry.utils.kvstore.cache import CacheKeyWrapper
+        from sentry.utils.kvstore.memory import MemoryKVStorage
+
+        return Properties(
+            CacheKeyWrapper(MemoryKVStorage()),
+            keys=map(str, itertools.count()),
+            values=itertools.count(),
+        )
     else:
         raise ValueError("unknown kvstore label")
 
@@ -68,6 +88,11 @@ def test_single_key_operations(properties: Properties) -> None:
     # Test overwriting a key with a prior value.
     new_value = next(properties.values)
     store.set(key, new_value)
+    assert store.get(key) == new_value
+
+    # Test overwriting a key with a new TTL.
+    new_value = next(properties.values)
+    store.set(key, new_value, ttl=timedelta(seconds=30))
     assert store.get(key) == new_value
 
     # Test deleting an existing key.

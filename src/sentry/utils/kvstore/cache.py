@@ -1,8 +1,10 @@
 from datetime import timedelta
-from typing import Any, Optional
+from typing import Any, Iterator, Optional, Sequence, Tuple
 
-from sentry.cache.base import BaseCache
-from sentry.utils.kvstore.abstract import KVStorage
+from django.conf import settings
+
+from sentry.cache.base import BaseCache, unwrap_key, wrap_key
+from sentry.utils.kvstore.abstract import KVStorage, V
 
 
 class CacheKVStorage(KVStorage[Any, Any]):
@@ -49,3 +51,57 @@ class CacheKVStorage(KVStorage[Any, Any]):
         # running this against a real deployment (it could be helpful to
         # destroy a development environment, though.)
         pass
+
+
+class CacheKeyWrapper(KVStorage[str, V]):
+    """
+    This class implements a compatibility layer for interacting with storages
+    that have existing data written with cache key prefixes.
+    """
+
+    # XXX: ``keys`` must be ``str`` to avoid type mismatches when returning
+    # unwrapped values (e.g. from ``get_many``), even though the write path
+    # would accept ``Any`` type.
+
+    def __init__(
+        self,
+        storage: KVStorage[str, V],
+        prefix: str = BaseCache.prefix,
+        version: Optional[Any] = None,
+    ):
+        if version is None:
+            version = settings.CACHE_VERSION
+
+        self.storage = storage
+        self.prefix = prefix
+        self.version = version
+
+    def get(self, key: str) -> Optional[V]:
+        return self.storage.get(wrap_key(self.prefix, self.version, key))
+
+    def get_many(self, keys: Sequence[str]) -> Iterator[Tuple[str, V]]:
+        results = self.storage.get_many([wrap_key(self.prefix, self.version, key) for key in keys])
+        for key, value in results:
+            yield unwrap_key(self.prefix, self.version, key), value
+
+    def set(self, key: str, value: V, ttl: Optional[timedelta] = None) -> None:
+        return self.storage.set(
+            wrap_key(self.prefix, self.version, key),
+            value,
+            ttl,
+        )
+
+    def delete(self, key: str) -> None:
+        self.storage.delete(wrap_key(self.prefix, self.version, key))
+
+    def delete_many(self, keys: Sequence[str]) -> None:
+        return self.storage.delete_many([wrap_key(self.prefix, self.version, key) for key in keys])
+
+    def bootstrap(self) -> None:
+        self.storage.bootstrap()
+
+    def destroy(self) -> None:
+        # ``destroy`` is not implemented since the cache key prefix implies this
+        # is a shared keyspace, and suggests that this may cause collateral
+        # damage to other storage instances
+        raise NotImplementedError
