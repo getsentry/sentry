@@ -52,6 +52,19 @@ class CustomSCMIntegration(IntegrationInstallation, RepositoryMixin):
     def get_client(self):
         pass
 
+    def get_stacktrace_link(self, repo, filepath, default, version):
+        """
+        We don't have access to verify that the file does exists
+        (using `check_file`) so instead we just return the
+        formatted source url using the default branch provided.
+        """
+        return self.format_source_url(repo, filepath, default)
+
+    def format_source_url(self, repo, filepath, branch):
+        # This format works for GitHub/GitLab, not sure if it would
+        # need to change for a different provider
+        return f"{repo.url}/blob/{branch}/{filepath}"
+
     def get_repositories(self, query=None):
         """
         Used to get any repositories that are not already tied
@@ -112,7 +125,13 @@ class CustomSCMIntegrationProvider(IntegrationProvider):
     requires_feature_flag = True
     metadata = metadata
     integration_cls = CustomSCMIntegration
-    features = frozenset([IntegrationFeatures.COMMITS, IntegrationFeatures.STACKTRACE_LINK])
+    features = frozenset(
+        [
+            IntegrationFeatures.COMMITS,
+            IntegrationFeatures.STACKTRACE_LINK,
+            IntegrationFeatures.CODEOWNERS,
+        ]
+    )
 
     def get_pipeline_views(self):
         return [InstallationConfigView()]

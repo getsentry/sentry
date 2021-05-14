@@ -68,6 +68,10 @@ class IntegrationRepos extends AsyncComponent<Props, State> {
     itemList.forEach(item => {
       if (item.id === data.id) {
         item.status = data.status;
+        // allow for custom scm repositories to be updated, and
+        // url is optional and therefore can be an empty string
+        item.url = data.url === undefined ? item.url : data.url;
+        item.name = data.name || item.name;
       }
     });
     this.setState({itemList});
