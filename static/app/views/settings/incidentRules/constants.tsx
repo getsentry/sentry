@@ -61,8 +61,14 @@ const allAggregations: AggregationKey[] = [
   'count',
 ];
 
-export function getWizardAlertFieldConfig(alertType: AlertType): OptionConfig {
+export function getWizardAlertFieldConfig(
+  alertType: AlertType,
+  dataset: Dataset
+): OptionConfig {
   // If user selected apdex we must include that in the OptionConfig as it has a user specified column
+  if (alertType === 'custom' && dataset === Dataset.ERRORS) {
+    return errorFieldConfig;
+  }
   const aggregations =
     alertType === 'apdex' || alertType === 'custom'
       ? allAggregations
