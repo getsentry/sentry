@@ -23,7 +23,7 @@ EXTERNAL_PROVIDERS = {
     ExternalProviders.PAGERDUTY: "pagerduty",
     ExternalProviders.GITHUB: "github",
     ExternalProviders.GITLAB: "gitlab",
-    ExternalProviders.CUSTOM: "custom",
+    ExternalProviders.CUSTOM: "custom_scm",
 }
 
 
