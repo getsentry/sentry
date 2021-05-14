@@ -80,7 +80,7 @@ jobs:
       # Otherwise... only lint modified files
       # Note `eslint --fix` will not fail when it auto fixes files
       - name: eslint (changed files only)
-        if: steps.eslint.outputs.all-files != 'true'
+        if: steps.changes.outputs.frontend == 'true' && steps.eslint.outputs.all-files != 'true'
         run: |
           yarn eslint --fix ${{ steps.changes.outputs.frontend_modified_lintable_files }}
 
