@@ -128,7 +128,7 @@ class TaggedEventCondition(EventCondition):
 
         elif match == MatchType.NOT_ENDS_WITH:
             for t_value in values:
-                if t_value.startswith(value):
+                if t_value.endswith(value):
                     return False
             return True
 

@@ -213,20 +213,20 @@ class EventAttributeCondition(EventCondition):
             return False
 
         elif match == MatchType.NOT_STARTS_WITH:
-            for t_value in value:
-                if t_value.startswith(value):
+            for a_value in attribute_values:
+                if a_value.startswith(value):
                     return False
             return True
 
         elif match == MatchType.ENDS_WITH:
-            for t_value in value:
-                if t_value.endswith(value):
+            for a_value in attribute_values:
+                if a_value.endswith(value):
                     return True
             return False
 
         elif match == MatchType.NOT_ENDS_WITH:
-            for t_value in value:
-                if t_value.startswith(value):
+            for a_value in attribute_values:
+                if a_value.endswith(value):
                     return False
             return True
 
