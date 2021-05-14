@@ -21,6 +21,8 @@ type Props = {
   tagKey: string;
 };
 
+const TAG_VALUE_LIMIT = 10;
+
 const TagsDisplay = (props: Props) => {
   const {eventView, location, organization, projects, tagKey} = props;
   const aggregateColumn = getTransactionField(
@@ -38,7 +40,7 @@ const TagsDisplay = (props: Props) => {
         orgSlug={organization.slug}
         location={location}
         aggregateColumn={aggregateColumn}
-        limit={20}
+        limit={TAG_VALUE_LIMIT}
         tagKey={tagKey}
         order="-sumdelta"
       >
@@ -46,7 +48,7 @@ const TagsDisplay = (props: Props) => {
           return <TagsHeatMap {...props} tableData={tableData} isLoading={isLoading} />;
         }}
       </TagKeyHistogramQuery>
-      <TagValueTable {...props} />
+      <TagValueTable {...props} limit={TAG_VALUE_LIMIT} />
     </React.Fragment>
   );
 };

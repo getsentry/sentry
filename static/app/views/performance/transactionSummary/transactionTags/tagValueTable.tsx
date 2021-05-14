@@ -106,6 +106,7 @@ type Props = {
   transactionName: string;
   tagKey: string;
   eventView: EventView;
+  limit: number;
 };
 
 type State = {
@@ -295,6 +296,7 @@ export class TagValueTable extends Component<Props, State> {
       tagKey,
       location,
       projects,
+      limit,
       organization,
     } = this.props;
 
@@ -319,8 +321,8 @@ export class TagValueTable extends Component<Props, State> {
         location={location}
         aggregateColumn={aggregateColumn}
         tagKey={tagKey}
-        limit={10}
-        order="-sumdelta"
+        limit={limit}
+        order="-frequency"
         allTagKeys
       >
         {({isLoading, tableData}) => {
