@@ -328,6 +328,7 @@ function generateBackendPerformanceEventView(
     fields: [
       'key_transaction',
       'transaction',
+      'http.method',
       'transaction.op',
       'project',
       'tpm()',

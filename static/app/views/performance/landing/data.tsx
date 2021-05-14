@@ -24,6 +24,7 @@ export const FRONTEND_OTHER_COLUMN_TITLES = [
 
 export const BACKEND_COLUMN_TITLES = [
   'transaction',
+  'http method',
   'operation',
   'project',
   'tpm',
