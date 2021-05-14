@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Location, LocationDescriptorObject, Query} from 'history';
 
 import {GuideAnchor} from 'app/components/assistant/guideAnchor';
+import FeatureBadge from 'app/components/featureBadge';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumn,
@@ -475,7 +476,12 @@ function TagsHeader(props: HeaderProps) {
 
   return (
     <Header>
-      <SectionHeading>{t('Suspect Tags')}</SectionHeading>
+      <SectionHeading>
+        <div>
+          {t('Suspect Tags')}
+          <FeatureBadge type="beta" noTooltip />
+        </div>
+      </SectionHeading>
       <StyledPagination pageLinks={pageLinks} onCursor={handleCursor} size="small" />
     </Header>
   );
