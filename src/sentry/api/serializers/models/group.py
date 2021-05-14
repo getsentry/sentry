@@ -979,13 +979,13 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                 attrs[item].update({"stats": stats[item.id]})
 
             if self._expand("sessions"):
-                cache_keys = list(
-                    {self._build_session_cache_key(item.project_id) for item in item_list}
-                )
-                cache_data = cache.get_many(cache_keys)
+                uniq_project_ids = list({item.project_id for item in item_list})
+                cache_keys = {pid: self._build_session_cache_key(pid) for pid in uniq_project_ids}
+
+                cache_data = cache.get_many(cache_keys.values())
                 missed_items = []
-                for item, cache_key in zip(item_list, cache_keys):
-                    num_sessions = cache_data.get(cache_key)
+                for item in item_list:
+                    num_sessions = cache_data.get(cache_keys[item.project_id])
                     if num_sessions is None:
                         missed_items.append(item)
                     else:
