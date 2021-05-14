@@ -122,7 +122,10 @@ class ReleaseAdoptionChart extends React.PureComponent<Props, State> {
       return {
         data: timeSeries[0].data.map((d, i) => ({
           name: d.name,
-          value: (100 * d.value) / timeSeries[1].data[i].value,
+          value:
+            d.value > 0 && timeSeries[1].data[i].value > 0
+              ? (100 * d.value) / timeSeries[1].data[i].value
+              : 0,
         })),
         seriesName: releaseVersion,
       };
