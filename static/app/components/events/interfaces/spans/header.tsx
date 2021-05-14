@@ -28,6 +28,7 @@ import {
 import * as CursorGuideHandler from './cursorGuideHandler';
 import * as DividerHandlerManager from './dividerHandlerManager';
 import {DragManagerChildrenProps} from './dragManager';
+import {ActiveOperationFilter} from './filter';
 import MeasurementsPanel from './measurementsPanel';
 import * as ScrollbarManager from './scrollbarManager';
 import {
@@ -51,6 +52,7 @@ type PropType = {
   dragProps: DragManagerChildrenProps;
   trace: ParsedTraceType;
   event: EventTransaction;
+  operationNameFilters: ActiveOperationFilter;
 };
 
 type State = {
@@ -419,7 +421,12 @@ class TraceViewHeader extends React.Component<PropType, State> {
                   }}
                 >
                   {this.props.event && (
-                    <OpsBreakdown event={this.props.event} topN={3} hideHeader />
+                    <OpsBreakdown
+                      operationNameFilters={this.props.operationNameFilters}
+                      event={this.props.event}
+                      topN={3}
+                      hideHeader
+                    />
                   )}
                 </OperationsBreakdown>
                 <DividerSpacer

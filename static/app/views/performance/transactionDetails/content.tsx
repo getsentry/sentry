@@ -10,7 +10,6 @@ import {BorderlessEventEntries} from 'app/components/events/eventEntries';
 import EventMetadata from 'app/components/events/eventMetadata';
 import EventVitals from 'app/components/events/eventVitals';
 import * as SpanEntryContext from 'app/components/events/interfaces/spans/context';
-import OpsBreakdown from 'app/components/events/opsBreakdown';
 import RootSpanStatus from 'app/components/events/rootSpanStatus';
 import FileSize from 'app/components/fileSize';
 import * as Layout from 'app/components/layouts/thirds';
@@ -215,7 +214,6 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                             projectId={this.projectId}
                           />
                           <RootSpanStatus event={event} />
-                          <OpsBreakdown event={event} />
                         </Fragment>
                       )}
                       <EventVitals event={event} />

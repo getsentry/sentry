@@ -176,6 +176,7 @@ class TraceView extends PureComponent<Props, State> {
       trace={parsedTrace}
       event={this.props.event}
       virtualScrollBarContainerRef={this.virtualScrollBarContainerRef}
+      operationNameFilters={this.props.operationNameFilters}
     />
   );
 
