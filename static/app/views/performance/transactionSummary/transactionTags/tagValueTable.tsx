@@ -16,7 +16,7 @@ import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import EventView, {isFieldSortable} from 'app/utils/discover/eventView';
 import {formatPercentage} from 'app/utils/formatters';
-import SegmentExplorerQuery, {
+import {
   TableData,
   TableDataRow,
 } from 'app/utils/performance/segmentExplorer/segmentExplorerQuery';
@@ -26,8 +26,7 @@ import CellAction, {Actions, updateQuery} from 'app/views/eventsV2/table/cellAct
 import {TableColumn} from 'app/views/eventsV2/table/types';
 
 import {PerformanceDuration} from '../../utils';
-import {SpanOperationBreakdownFilter} from '../filter';
-import {getTransactionField, TagValue} from '../tagExplorer';
+import {TagValue} from '../tagExplorer';
 
 const TAGS_CURSOR_NAME = 'tags_cursor';
 
@@ -105,7 +104,8 @@ type Props = {
   transactionName: string;
   tagKey: string;
   eventView: EventView;
-  limit: number;
+  tableData: TableData | null;
+  isLoading: boolean;
 };
 
 type State = {
@@ -282,13 +282,7 @@ export class TagValueTable extends Component<Props, State> {
   };
 
   render() {
-    const {eventView, tagKey, location, projects, limit, organization} = this.props;
-
-    const aggregateColumn = getTransactionField(
-      SpanOperationBreakdownFilter.None,
-      projects,
-      eventView
-    );
+    const {eventView, tagKey, location, isLoading, tableData} = this.props;
 
     const newColumns = [...COLUMN_ORDER].map(c => {
       const newColumn = {...c};
@@ -299,37 +293,18 @@ export class TagValueTable extends Component<Props, State> {
     });
 
     return (
-      <SegmentExplorerQuery
-        eventView={eventView}
-        orgSlug={organization.slug}
-        location={location}
-        aggregateColumn={aggregateColumn}
-        tagKey={tagKey}
-        limit={limit}
-        sort="-frequency"
-        allTagKeys
-      >
-        {({isLoading, tableData}) => {
-          return (
-            <GridEditable
-              isLoading={isLoading}
-              data={tableData && tableData.data ? tableData.data : []}
-              columnOrder={newColumns}
-              columnSortBy={[]}
-              grid={{
-                renderHeadCell: this.renderHeadCellWithMeta(
-                  eventView,
-                  {},
-                  newColumns
-                ) as any,
-                renderBodyCell: this.renderBodyCellWithData(this.props) as any,
-                onResizeColumn: this.handleResizeColumn as any,
-              }}
-              location={location}
-            />
-          );
+      <GridEditable
+        isLoading={isLoading}
+        data={tableData && tableData.data ? tableData.data : []}
+        columnOrder={newColumns}
+        columnSortBy={[]}
+        grid={{
+          renderHeadCell: this.renderHeadCellWithMeta(eventView, {}, newColumns) as any,
+          renderBodyCell: this.renderBodyCellWithData(this.props) as any,
+          onResizeColumn: this.handleResizeColumn as any,
         }}
-      </SegmentExplorerQuery>
+        location={location}
+      />
     );
   }
 }

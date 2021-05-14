@@ -4,6 +4,7 @@ import {Location} from 'history';
 
 import {Organization, Project} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
+import SegmentExplorerQuery from 'app/utils/performance/segmentExplorer/segmentExplorerQuery';
 import TagKeyHistogramQuery from 'app/utils/performance/segmentExplorer/tagKeyHistogramQuery';
 
 import {SpanOperationBreakdownFilter} from '../filter';
@@ -48,7 +49,20 @@ const TagsDisplay = (props: Props) => {
           return <TagsHeatMap {...props} tableData={tableData} isLoading={isLoading} />;
         }}
       </TagKeyHistogramQuery>
-      <TagValueTable {...props} limit={TAG_VALUE_LIMIT} />
+      <SegmentExplorerQuery
+        eventView={eventView}
+        orgSlug={organization.slug}
+        location={location}
+        aggregateColumn={aggregateColumn}
+        tagKey={tagKey}
+        limit={TAG_VALUE_LIMIT}
+        sort="-frequency"
+        allTagKeys
+      >
+        {({isLoading, tableData}) => {
+          return <TagValueTable {...props} tableData={tableData} isLoading={isLoading} />;
+        }}
+      </SegmentExplorerQuery>
     </React.Fragment>
   );
 };
