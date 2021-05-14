@@ -13,6 +13,8 @@ class ExternalProviders(Enum):
     GITHUB = 200
     GITLAB = 210
 
+    CUSTOM = 700
+
 
 EXTERNAL_PROVIDERS = {
     ExternalProviders.EMAIL: "email",
@@ -21,6 +23,7 @@ EXTERNAL_PROVIDERS = {
     ExternalProviders.PAGERDUTY: "pagerduty",
     ExternalProviders.GITHUB: "github",
     ExternalProviders.GITLAB: "gitlab",
+    ExternalProviders.CUSTOM: "custom",
 }
 
 
