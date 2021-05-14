@@ -4,10 +4,12 @@ import {browserHistory, RouteComponentProps} from 'react-router';
 import {switchOrganization} from 'app/actionCreators/organizations';
 import AlertActions from 'app/actions/alertActions';
 import {Client} from 'app/api';
+import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import ErrorBoundary from 'app/components/errorBoundary';
 import Footer from 'app/components/footer';
 import {Body, Main} from 'app/components/layouts/thirds';
+import {IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
 import {Organization} from 'app/types';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
@@ -22,14 +24,14 @@ function DeletionInProgress({organization}: InProgressProps) {
   return (
     <Body>
       <Main>
-        <p>
+        <Alert type="warning" icon={<IconWarning />}>
           {tct(
             'The [organization] organization is currently in the process of being deleted from Sentry.',
             {
               organization: <strong>{organization.slug}</strong>,
             }
           )}
-        </p>
+        </Alert>
       </Main>
     </Body>
   );
