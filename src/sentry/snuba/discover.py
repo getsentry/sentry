@@ -781,6 +781,7 @@ def histogram_query(
     data_filter=None,
     referrer=None,
     group_by=None,
+    limit_by=None,
     extra_conditions=None,
     normalize_results=True,
 ):
@@ -803,6 +804,7 @@ def histogram_query(
         If left unspecified, it is queried using `user_query` and `params`.
     :param str data_filter: Indicate the filter strategy to be applied to the data.
     :param [str] group_by: Experimental. Allows additional grouping to serve multifacet histograms.
+    :param [str] limit_by: Experimental. Allows limiting within a group when serving multifacet histograms.
     :param [str] extra_conditions: Adds any additional conditions to the histogram query that aren't received from params.
     :param bool normalize_results: Indicate whether to normalize the results by column into bins.
     """
@@ -884,6 +886,7 @@ def histogram_query(
         having=snuba_filter.having,
         orderby=snuba_filter.orderby,
         dataset=Dataset.Discover,
+        limitby=limit_by,
         limit=limit,
         referrer=referrer,
     )
