@@ -17,6 +17,7 @@ import EventView from 'app/utils/discover/eventView';
 import {decodeScalar} from 'app/utils/queryString';
 import Breadcrumb from 'app/views/performance/breadcrumb';
 
+import {tagsRouteWithQuery} from './transactionTags/utils';
 import {vitalsRouteWithQuery} from './transactionVitals/utils';
 import KeyTransactionButton from './keyTransactionButton';
 import {transactionSummaryRouteWithQuery} from './utils';
@@ -24,6 +25,7 @@ import {transactionSummaryRouteWithQuery} from './utils';
 export enum Tab {
   TransactionSummary,
   RealUserMonitoring,
+  Tags,
 }
 
 type Props = {
@@ -59,6 +61,10 @@ class TransactionHeader extends React.Component<Props> {
       eventName: 'Performance Views: Vitals tab clicked',
       organization_id: organization.id,
     });
+  };
+
+  trackTagsTabClick = () => {
+    // TODO(k-fish): Add analytics for tags
   };
 
   handleIncompatibleQuery: React.ComponentProps<
@@ -122,6 +128,13 @@ class TransactionHeader extends React.Component<Props> {
       query: location.query,
     });
 
+    const tagsTarget = tagsRouteWithQuery({
+      orgSlug: organization.slug,
+      transaction: transactionName,
+      projectID: decodeScalar(location.query.project),
+      query: location.query,
+    });
+
     return (
       <Layout.Header>
         <Layout.HeaderContent>
@@ -163,6 +176,15 @@ class TransactionHeader extends React.Component<Props> {
                 {t('Web Vitals')}
               </ListLink>
             )}
+            <Feature features={['organizations:performance-tag-page']}>
+              <ListLink
+                to={tagsTarget}
+                isActive={() => currentTab === Tab.Tags}
+                onClick={this.trackTagsTabClick}
+              >
+                {t('Tags')}
+              </ListLink>
+            </Feature>
           </StyledNavTabs>
         </React.Fragment>
       </Layout.Header>

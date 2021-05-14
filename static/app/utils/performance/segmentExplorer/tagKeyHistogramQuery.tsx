@@ -14,11 +14,8 @@ import withApi from 'app/utils/withApi';
 export type TableDataRow = {
   tags_key: string;
   tags_value: string;
-  sumdelta: number;
   count: number;
-  frequency: number;
-  aggregate: number;
-  comparison: number;
+  [key: string]: React.ReactText;
 };
 
 export type TableData = {
@@ -36,18 +33,16 @@ type ChildrenProps = Omit<GenericChildrenProps<TableData>, 'tableData'> & {
 
 type QueryProps = DiscoverQueryProps & {
   aggregateColumn: string;
-  allTagKeys?: boolean;
-  tagKey?: string;
+  tagKey: string;
   sort?: string | string[];
   children: (props: ChildrenProps) => React.ReactNode;
 };
 
 type FacetQuery = LocationQuery &
   EventQuery & {
+    tagKey?: string;
     sort?: string | string[];
     aggregateColumn?: string;
-    allTagKeys?: boolean;
-    tagKey?: string;
   };
 
 export function getRequestFunction(_props: QueryProps) {
@@ -56,13 +51,8 @@ export function getRequestFunction(_props: QueryProps) {
     const {eventView} = props;
     const apiPayload: FacetQuery = eventView.getEventsAPIPayload(props.location);
     apiPayload.aggregateColumn = aggregateColumn;
-    apiPayload.sort = _props.sort ? _props.sort : apiPayload.sort;
-    if (_props.allTagKeys) {
-      apiPayload.allTagKeys = _props.allTagKeys;
-    }
-    if (_props.tagKey) {
-      apiPayload.tagKey = _props.tagKey;
-    }
+    apiPayload.sort = _props.sort ? _props.sort : '-sumdelta';
+    apiPayload.tagKey = _props.tagKey;
     return apiPayload;
   }
   return getTagExplorerRequestPayload;
@@ -72,15 +62,14 @@ function shouldRefetchData(prevProps: QueryProps, nextProps: QueryProps) {
   return (
     prevProps.aggregateColumn !== nextProps.aggregateColumn ||
     prevProps.sort !== nextProps.sort ||
-    prevProps.allTagKeys !== nextProps.allTagKeys ||
     prevProps.tagKey !== nextProps.tagKey
   );
 }
 
-function SegmentExplorerQuery(props: QueryProps) {
+function TagKeyHistogramQuery(props: QueryProps) {
   return (
     <GenericDiscoverQuery<TableData, QueryProps>
-      route="events-facets-performance"
+      route="events-facets-performance-histogram"
       getRequestPayload={getRequestFunction(props)}
       shouldRefetchData={shouldRefetchData}
       {...props}
@@ -88,4 +77,4 @@ function SegmentExplorerQuery(props: QueryProps) {
   );
 }
 
-export default withApi(SegmentExplorerQuery);
+export default withApi(TagKeyHistogramQuery);
