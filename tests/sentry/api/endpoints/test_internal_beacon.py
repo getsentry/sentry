@@ -38,3 +38,24 @@ class InternalBeaconTest(APITestCase):
         )
 
         assert response.status_code == 204
+
+    @patch("sentry.tasks.beacon.send_beacon_metric.delay")
+    def test_payload_validation(self, mock_send_beacon_metric):
+        self.login_as(self.user, superuser=False)
+        url = "/api/0/internal/beacon/"
+
+        # test large number of metrics
+        metric = {
+            "description": "SentryApp",
+            "component": "Foo",
+        }
+        response = self.client.post(
+            url,
+            data={"batch_data": [metric for i in range(25)]},
+        )
+        assert response.status_code == 400
+
+        # Test a single metric with a large dict
+        metric = {i: i for i in range(25)}
+        response = self.client.post(url, data={"batch_data": [metric]})
+        assert response.status_code == 400
