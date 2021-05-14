@@ -90,5 +90,6 @@ jobs:
           python -m venv .venv
           source .venv/bin/activate
           pip install wheel
+          pip install -v "xmlsec==1.3.10"
           curl https://get.volta.sh | bash
           make bootstrap
