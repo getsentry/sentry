@@ -39,9 +39,6 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
             teams=[self.create_team(organization=self.org, members=[self.user2])],
         )
 
-        self.organization3 = self.create_organization()
-        self.create_member(user=self.user, organization=self.organization3, role="admin", teams=[])
-
         self.store_outcomes(
             {
                 "org_id": self.org.id,
@@ -309,14 +306,26 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         }
 
     @freeze_time("2021-03-14T12:27:28.303Z")
-    def test_no_projects(self):
+    def test_no_project_access(self):
+        user = self.create_user(is_superuser=False)
+        self.create_member(user=user, organization=self.organization, role="member", teams=[])
+
         response = self.do_request(
-            {"project": [-1], "statsPeriod": "1d", "interval": "1d", "field": ["sum(quantity)"]},
-            org=self.organization3,
+            {
+                "project": [self.project.id],
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "category": ["error", "transaction"],
+                "field": ["sum(quantity)"],
+            },
+            org=self.organization,
+            user=user,
         )
 
-        assert response.status_code == 400, response.content
-        assert result_sorted(response.data) == {"detail": "No projects available"}
+        assert response.status_code == 403, response.content
+        assert result_sorted(response.data) == {
+            "detail": "You do not have permission to perform this action."
+        }
 
     @freeze_time("2021-03-14T12:27:28.303Z")
     def test_open_membership_semantics(self):

@@ -28,30 +28,31 @@ class OrganizationStatsEndpointV2(OrganizationEventsEndpointBase):
             return Response(result, status=200)
 
     def build_outcomes_query(self, request, organization):
-        try:
-            params = self.get_filter_params(request, organization, date_filter_optional=True)
-        except NoProjects:
-            # TODO: should members with no project access be able to see any orgstats?
-            raise NoProjects("No projects available")
+        params = {"organization_id": organization.id}
+        project_ids = self._get_projects_for_orgstats_query(request, organization)
 
-        # XXX(jferge): if no project ids are passed in as filters
-        # and we're not grouping by project, override the OrgEndpoint project
-        # retriever and set no project id param so all members get full totals
-        # if its an org-wide query.
+        if project_ids:
+            params["project_id"] = project_ids
 
-        if self._is_org_total_query(request):
-            params.pop("project_id")
+        return QueryDefinition(request.GET, params)
 
-        return QueryDefinition(
-            request.GET,
-            params,
-        )
-
-    def _is_org_total_query(self, request):
+    def _get_projects_for_orgstats_query(self, request, organization):
+        # look at the raw project_id filter passed in, if its empty
+        # and project_id is not in groupBy filter, treat it as an
+        # org wide query and don't pass project_id in to QueryDefinition
         req_proj_ids = self.get_requested_project_ids(request)
+        if self._is_org_total_query(request, req_proj_ids):
+            return None
+        else:
+            projects = self.get_projects(request, organization, project_ids=req_proj_ids)
+            if not projects:
+                raise NoProjects
+            return [p.id for p in projects]
+
+    def _is_org_total_query(self, request, project_ids):
         return all(
             [
-                not req_proj_ids or req_proj_ids == ALL_ACCESS_PROJECTS,
+                not project_ids or project_ids == ALL_ACCESS_PROJECTS,
                 "project" not in request.GET.get("groupBy", []),
             ]
         )
