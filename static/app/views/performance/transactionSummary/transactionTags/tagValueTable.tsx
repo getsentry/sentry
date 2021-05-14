@@ -322,7 +322,7 @@ export class TagValueTable extends Component<Props, State> {
         aggregateColumn={aggregateColumn}
         tagKey={tagKey}
         limit={limit}
-        order="-frequency"
+        sort="-frequency"
         allTagKeys
       >
         {({isLoading, tableData}) => {

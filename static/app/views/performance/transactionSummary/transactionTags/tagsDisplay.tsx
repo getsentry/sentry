@@ -42,7 +42,7 @@ const TagsDisplay = (props: Props) => {
         aggregateColumn={aggregateColumn}
         limit={TAG_VALUE_LIMIT}
         tagKey={tagKey}
-        order="-sumdelta"
+        sort="-frequency"
       >
         {({isLoading, tableData}) => {
           return <TagsHeatMap {...props} tableData={tableData} isLoading={isLoading} />;

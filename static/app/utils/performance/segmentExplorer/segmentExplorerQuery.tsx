@@ -38,13 +38,13 @@ type QueryProps = DiscoverQueryProps & {
   aggregateColumn: string;
   allTagKeys?: boolean;
   tagKey?: string;
-  order?: string;
+  sort?: string | string[];
   children: (props: ChildrenProps) => React.ReactNode;
 };
 
 type FacetQuery = LocationQuery &
   EventQuery & {
-    order?: string;
+    sort?: string | string[];
     aggregateColumn?: string;
     allTagKeys?: boolean;
     tagKey?: string;
@@ -56,7 +56,7 @@ export function getRequestFunction(_props: QueryProps) {
     const {eventView} = props;
     const apiPayload: FacetQuery = eventView.getEventsAPIPayload(props.location);
     apiPayload.aggregateColumn = aggregateColumn;
-    apiPayload.order = _props.order ? _props.order : '-sumdelta';
+    apiPayload.sort = _props.sort ? _props.sort : apiPayload.sort;
     if (_props.allTagKeys) {
       apiPayload.allTagKeys = _props.allTagKeys;
     }
@@ -71,7 +71,7 @@ export function getRequestFunction(_props: QueryProps) {
 function shouldRefetchData(prevProps: QueryProps, nextProps: QueryProps) {
   return (
     prevProps.aggregateColumn !== nextProps.aggregateColumn ||
-    prevProps.order !== nextProps.order ||
+    prevProps.sort !== nextProps.sort ||
     prevProps.allTagKeys !== nextProps.allTagKeys ||
     prevProps.tagKey !== nextProps.tagKey
   );

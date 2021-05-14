@@ -423,7 +423,6 @@ class _TagExplorer extends React.Component<Props> {
         aggregateColumn={aggregateColumn}
         limit={5}
         cursor={cursor}
-        order={tagSort}
       >
         {({isLoading, tableData, pageLinks}) => {
           return (

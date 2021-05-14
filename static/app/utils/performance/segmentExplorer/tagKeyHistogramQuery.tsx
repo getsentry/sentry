@@ -34,14 +34,14 @@ type ChildrenProps = Omit<GenericChildrenProps<TableData>, 'tableData'> & {
 type QueryProps = DiscoverQueryProps & {
   aggregateColumn: string;
   tagKey: string;
-  order?: string;
+  sort?: string | string[];
   children: (props: ChildrenProps) => React.ReactNode;
 };
 
 type FacetQuery = LocationQuery &
   EventQuery & {
     tagKey?: string;
-    order?: string;
+    sort?: string | string[];
     aggregateColumn?: string;
   };
 
@@ -51,7 +51,7 @@ export function getRequestFunction(_props: QueryProps) {
     const {eventView} = props;
     const apiPayload: FacetQuery = eventView.getEventsAPIPayload(props.location);
     apiPayload.aggregateColumn = aggregateColumn;
-    apiPayload.order = _props.order ? _props.order : '-sumdelta';
+    apiPayload.sort = _props.sort ? _props.sort : '-sumdelta';
     apiPayload.tagKey = _props.tagKey;
     return apiPayload;
   }
@@ -61,7 +61,7 @@ export function getRequestFunction(_props: QueryProps) {
 function shouldRefetchData(prevProps: QueryProps, nextProps: QueryProps) {
   return (
     prevProps.aggregateColumn !== nextProps.aggregateColumn ||
-    prevProps.order !== nextProps.order ||
+    prevProps.sort !== nextProps.sort ||
     prevProps.tagKey !== nextProps.tagKey
   );
 }

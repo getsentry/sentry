@@ -68,7 +68,7 @@ const TagsPageContent = (props: Props) => {
         location={location}
         aggregateColumn={aggregateColumn}
         limit={20}
-        order="-sumdelta"
+        sort="-sumdelta"
         allTagKeys
       >
         {({isLoading, tableData}) => {
@@ -135,6 +135,7 @@ const InnerContent = (
   if (tagSelected) {
     eventView.additionalConditions.setTagValues('has', [tagSelected]);
   }
+
   const query = decodeScalar(location.query.query, '');
 
   return (
