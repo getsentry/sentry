@@ -1,6 +1,17 @@
 <yandex>
     <max_server_memory_usage_to_ram_ratio from_env="MAX_MEMORY_USAGE_RATIO" />
 
+    <remote_servers>
+        <cluster_one_sh>
+            <shard>
+                <replica>
+                    <host>localhost</host>
+                    <port>9000</port>
+                </replica>
+            </shard>
+        </cluster_one_sh>
+    </remote_servers>
+
     <zookeeper>
         <node>
             <host>sentry_zookeeper</host>
