@@ -68,7 +68,7 @@ class ServiceIncidents extends Component<Props, State> {
           orientation={orientation}
           collapsed={collapsed}
           active={active}
-          icon={<IconWarning className="animated pulse infinite" />}
+          icon={<IconWarning size="md" />}
           label={t('Service status')}
           onClick={onShowPanel}
         />
