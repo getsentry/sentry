@@ -1,12 +1,9 @@
-import responses
-
 from sentry.testutils import APITestCase
 from sentry.utils.compat.mock import patch
 
 
 class InternalBeaconTest(APITestCase):
     @patch("sentry.tasks.beacon.send_beacon_metric")
-    @responses.activate
     def test_simple(self, mock_send_beacon_metric):
         self.login_as(self.user, superuser=False)
         url = "/api/0/internal/beacon/"
