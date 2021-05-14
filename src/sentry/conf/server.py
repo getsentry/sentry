@@ -133,11 +133,6 @@ _common_clickhouse_settings = {
     "environment": {"MAX_MEMORY_USAGE_RATIO": "0.3"},
 }
 
-
-# CLICKHOUSE_IMAGE = "yandex/clickhouse-server:20.3.9.70"
-# CLICKHOUSE_PORTS = {"9000/tcp": 9000, "9009/tcp": 9009, "8123/tcp": 8123}
-# CLICKHOUSE_ULIMITS = [{"name": "nofile", "soft": 262144, "hard": 262144}]
-
 RELAY_CONFIG_DIR = os.path.join(DEVSERVICES_CONFIG_DIR, "relay")
 
 SYMBOLICATOR_CONFIG_DIR = os.path.join(DEVSERVICES_CONFIG_DIR, "symbolicator")
