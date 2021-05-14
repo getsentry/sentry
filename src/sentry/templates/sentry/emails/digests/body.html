@@ -7,13 +7,15 @@
 
 
 {% block header %}
-  {% if not has_alert_integration %}
-    <a href="{{ slack_link }}" class="btn btn-default integration-link">
-      <img src="{% absolute_asset_url 'sentry' 'images/logos/logo-slack.svg' %}" class="logo-small"/>
-      Set up in Slack
-    </a>
-  {% endif %}
-  {{ block.super }}
+  <div class="header-with-buttons">
+    {{ block.super }}
+    {% if not has_alert_integration %}
+      <a href="{{ slack_link }}" class="btn btn-default integration-link">
+        <img src="{% absolute_asset_url 'sentry' 'images/logos/logo-slack.svg' %}" class="logo-small"/>
+        Set up in Slack
+      </a>
+    {% endif %}
+  </div>
 {% endblock %}
 
 
