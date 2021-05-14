@@ -174,6 +174,8 @@ class OrganizationEventsFacetsPerformanceHistogramEndpoint(
                 on_results=lambda results: self.handle_results_with_meta(
                     request, organization, params["project_id"], results
                 ),
+                default_per_page=5,
+                max_per_page=10,
             )
 
 
@@ -350,6 +352,7 @@ def query_facet_performance_key_histogram(
     filter_query: Optional[str] = None,
     orderby: Optional[str] = None,
     referrer: Optional[str] = None,
+    limit: Optional[int] = None,
 ) -> Dict:
     precision = 0
     num_buckets = 100
@@ -365,6 +368,7 @@ def query_facet_performance_key_histogram(
         min_value=min_value,
         max_value=max_value,
         referrer="api.organization-events-facets-performance-histogram",
+        limit_by=[limit, "tags_key"] if limit else None,
         group_by=["tags_value", "tags_key"],
         extra_conditions=[["tags_key", "IN", [tag_key]]],
         normalize_results=False,
