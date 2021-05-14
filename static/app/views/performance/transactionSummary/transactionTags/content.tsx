@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useState} from 'react';
+import React, {Fragment, useEffect, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -11,11 +11,9 @@ import Radio from 'app/components/radio';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
-import {defined} from 'app/utils';
 import EventView from 'app/utils/discover/eventView';
 import SegmentExplorerQuery, {
   TableData,
-  TableDataRow,
 } from 'app/utils/performance/segmentExplorer/segmentExplorerQuery';
 import {decodeScalar} from 'app/utils/queryString';
 import {SidebarSpacer} from 'app/views/performance/transactionSummary/utils';
@@ -81,28 +79,40 @@ const TagsPageContent = (props: Props) => {
   );
 };
 
-function getSuspectRowTagKey(row: TableDataRow, isOther: boolean) {
-  return row.comparison > 1 && !isOther ? row.tags_key : undefined;
-}
+function getTagKeyOptions(tableData: TableData) {
+  const suspectTags: TagOption[] = [];
+  const otherTags: TagOption[] = [];
+  tableData.data.forEach(row => {
+    const tagArray = row.comparison > 1 ? suspectTags : otherTags;
+    tagArray.push(row.tags_key);
+  });
 
-function getTagKeyOptions(tableData: TableData | null, isOther: boolean): TagOption[] {
-  return tableData
-    ? tableData.data.map(row => getSuspectRowTagKey(row, isOther)).filter(defined)
-    : [];
+  return {
+    suspectTags,
+    otherTags,
+  };
 }
 
 const InnerContent = (
   props: Props & {tableData: TableData | null; isLoading?: boolean}
 ) => {
   const {eventView, location, organization, tableData} = props;
-  const suspectTags: TagOption[] = getTagKeyOptions(tableData, false);
-  const otherTags: TagOption[] = getTagKeyOptions(tableData, true);
 
-  const defaultTag = suspectTags.length ? suspectTags[0] : '';
+  if (!tableData) {
+    return null;
+  }
+
+  const tagOptions = getTagKeyOptions(tableData);
+
+  const defaultTag = tagOptions.suspectTags.length
+    ? tagOptions.suspectTags[0]
+    : tagOptions.otherTags.length
+    ? tagOptions.otherTags[0]
+    : '';
   const [tagSelected, changeTagSelected] = useState(defaultTag);
 
   useEffect(() => {
-    if (defaultTag) {
+    if (defaultTag && !tagSelected) {
       changeTagSelected(defaultTag);
     }
   }, [defaultTag]);
@@ -119,14 +129,19 @@ const InnerContent = (
     });
   };
 
-  const changeTag = (tag: string) => () => changeTagSelected(tag);
+  const changeTag = (tag: string) => {
+    return changeTagSelected(tag);
+  };
+  if (tagSelected) {
+    eventView.additionalConditions.setTagValues('has', [tagSelected]);
+  }
   const query = decodeScalar(location.query.query, '');
 
   return (
     <ReversedLayoutBody>
       <TagsSideBar
-        suspectTags={suspectTags}
-        otherTags={otherTags}
+        suspectTags={tagOptions.suspectTags}
+        otherTags={tagOptions.otherTags}
         tagSelected={tagSelected}
         changeTag={changeTag}
       />
@@ -155,25 +170,32 @@ const TagsSideBar = (props: {
   const {suspectTags, otherTags, changeTag, tagSelected} = props;
   return (
     <StyledSide>
-      <StyledSectionHeading>
-        {t('Suspect Tags')}
-        <QuestionTooltip
-          position="top"
-          title={t('Suspect tags are tags that often correspond to slower transaction')}
-          size="sm"
-        />
-      </StyledSectionHeading>
-      {suspectTags.map(tag => (
-        <RadioLabel key={tag}>
-          <Radio
-            aria-label={tag}
-            checked={tagSelected === tag}
-            onChange={() => changeTag(tag)}
-          />
-          {tag}
-        </RadioLabel>
-      ))}
-      <SidebarSpacer />
+      {suspectTags.length ? (
+        <React.Fragment>
+          <StyledSectionHeading>
+            {t('Suspect Tags')}
+            <QuestionTooltip
+              position="top"
+              title={t(
+                'Suspect tags are tags that often correspond to slower transaction'
+              )}
+              size="sm"
+            />
+          </StyledSectionHeading>
+          {suspectTags.map(tag => (
+            <RadioLabel key={tag}>
+              <Radio
+                aria-label={tag}
+                checked={tagSelected === tag}
+                onChange={() => changeTag(tag)}
+              />
+              {tag}
+            </RadioLabel>
+          ))}
+
+          <SidebarSpacer />
+        </React.Fragment>
+      ) : null}
       <StyledSectionHeading>
         {t('Other Tags')}
         <QuestionTooltip

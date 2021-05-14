@@ -40,7 +40,7 @@ const TagsHeatMap = (
 ) => {
   const {tableData, isLoading} = props;
 
-  if (!tableData || !tableData.data) {
+  if (!tableData || !tableData.data || !tableData.data.length) {
     return null;
   }
 

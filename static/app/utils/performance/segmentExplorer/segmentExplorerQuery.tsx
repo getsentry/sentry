@@ -57,8 +57,12 @@ export function getRequestFunction(_props: QueryProps) {
     const apiPayload: FacetQuery = eventView.getEventsAPIPayload(props.location);
     apiPayload.aggregateColumn = aggregateColumn;
     apiPayload.order = _props.order ? _props.order : '-sumdelta';
-    apiPayload.allTagKeys = _props.allTagKeys;
-    apiPayload.tagKey = _props.tagKey;
+    if (_props.allTagKeys) {
+      apiPayload.allTagKeys = _props.allTagKeys;
+    }
+    if (_props.tagKey) {
+      apiPayload.tagKey = _props.tagKey;
+    }
     return apiPayload;
   }
   return getTagExplorerRequestPayload;
