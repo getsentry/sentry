@@ -8,7 +8,7 @@ import ListItem from 'app/components/list/listItem';
 import {Panel} from 'app/components/panels';
 import SearchBar from 'app/components/searchBar';
 import {IconWarning} from 'app/icons';
-import {t, tn} from 'app/locale';
+import {t, tct, tn} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {EventTransaction} from 'app/types/event';
@@ -82,18 +82,22 @@ class SpansInterface extends Component<Props, State> {
       errors.length
     );
 
+    // mapping from span ids to the span op and the number of errors in that span
     const errorsMap: {
       [spanId: string]: {operation: string; errorsCount: number};
     } = {};
 
     errors.forEach(error => {
       if (!errorsMap[error.span]) {
+        // first check of the error belongs to the root span
         if (parsedTrace.rootSpanID === error.span) {
           errorsMap[error.span] = {
             operation: parsedTrace.op,
             errorsCount: 0,
           };
         } else {
+          // since it does not belong to the root span, check if it belongs
+          // to one of the other spans in the transaction
           const span = parsedTrace.spans.find(s => s.span_id === error.span);
           if (!span?.op) {
             return;
@@ -118,12 +122,20 @@ class SpansInterface extends Component<Props, State> {
               <List symbol="bullet">
                 {Object.entries(errorsMap).map(([spanId, {operation, errorsCount}]) => (
                   <ListItem key={spanId}>
-                    {tn('%s error in ', '%s errors in ', errorsCount)}
-                    <ErrorLink
-                      onClick={scrollToSpan(spanId, scrollToHash, this.props.location)}
-                    >
-                      {operation}
-                    </ErrorLink>
+                    {tct('[errors] in [link]', {
+                      errors: tn('%s error in ', '%s errors in ', errorsCount),
+                      link: (
+                        <ErrorLink
+                          onClick={scrollToSpan(
+                            spanId,
+                            scrollToHash,
+                            this.props.location
+                          )}
+                        >
+                          {operation}
+                        </ErrorLink>
+                      ),
+                    })}
                   </ListItem>
                 ))}
               </List>
