@@ -2,15 +2,13 @@ import {Component, Fragment} from 'react';
 
 import {Organization} from 'app/types';
 import {EventTransaction} from 'app/types/event';
-import {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
 
 import {ScrollbarManagerChildrenProps, withScrollbarManager} from './scrollbarManager';
 import SpanBar from './spanBar';
 import {ParsedTraceType, ProcessedSpanType, TreeDepthType} from './types';
-import {getSpanID, isGapSpan, SpanBoundsType, SpanGeneratedBoundsType} from './utils';
+import {SpanBoundsType, SpanGeneratedBoundsType} from './utils';
 
 type PropType = ScrollbarManagerChildrenProps & {
-  orgId: string;
   organization: Organization;
   event: Readonly<EventTransaction>;
   span: Readonly<ProcessedSpanType>;
@@ -26,7 +24,6 @@ type PropType = ScrollbarManagerChildrenProps & {
   isLast: boolean;
   isRoot?: boolean;
   isCurrentSpanFilteredOut: boolean;
-  spansWithErrors: TableData | null | undefined;
 };
 
 type State = {
@@ -60,32 +57,6 @@ class SpanGroup extends Component<PropType, State> {
     return this.props.renderedSpanChildren;
   };
 
-  getSpanErrors(): TableDataRow[] {
-    const {span, spansWithErrors} = this.props;
-
-    const spanID = getSpanID(span);
-
-    if (isGapSpan(span) || !spansWithErrors?.data || !spanID) {
-      return [];
-    }
-
-    return spansWithErrors.data.filter(row => {
-      return row['trace.span'] === spanID;
-    });
-  }
-
-  getTotalNumberOfErrors(): number {
-    const {spansWithErrors} = this.props;
-
-    const data = spansWithErrors?.data;
-
-    if (Array.isArray(data)) {
-      return data.length;
-    }
-
-    return 0;
-  }
-
   render() {
     const {
       spanBarColour,
@@ -100,7 +71,6 @@ class SpanGroup extends Component<PropType, State> {
       treeDepth,
       spanNumber,
       isCurrentSpanFilteredOut,
-      orgId,
       organization,
       event,
     } = this.props;
@@ -110,7 +80,6 @@ class SpanGroup extends Component<PropType, State> {
         <SpanBar
           organization={organization}
           event={event}
-          orgId={orgId}
           spanBarColour={spanBarColour}
           spanBarHatch={spanBarHatch}
           span={span}
@@ -125,8 +94,6 @@ class SpanGroup extends Component<PropType, State> {
           isLast={isLast}
           isRoot={isRoot}
           isCurrentSpanFilteredOut={isCurrentSpanFilteredOut}
-          totalNumberOfErrors={this.getTotalNumberOfErrors()}
-          spanErrors={this.getSpanErrors()}
         />
         {this.renderSpanChildren()}
       </Fragment>
