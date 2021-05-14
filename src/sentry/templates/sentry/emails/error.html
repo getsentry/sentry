@@ -6,6 +6,18 @@
 {% load sentry_assets %}
 {% load i18n static %}
 
+{% block head %}
+  {{ block.super }}
+  <style type="text/css" inline="false">
+    @media only screen and (max-device-width: 480px) {
+      /* Hide CTA in header on mobile */
+      .header-buttons .integration-link {
+        display: none !important;
+      }
+    }
+  </style>
+{% endblock %}
+
 {% block preheader %}
   New alert from {{ project_label }}.
 {% endblock %}
