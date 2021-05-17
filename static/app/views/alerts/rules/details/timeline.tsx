@@ -11,7 +11,6 @@ import Link from 'app/components/links/link';
 import {Panel, PanelBody} from 'app/components/panels';
 import SeenByList from 'app/components/seenByList';
 import TimeSince from 'app/components/timeSince';
-import {IconEllipse} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {getTriggerName} from 'app/views/alerts/details/activity/statusItem';
@@ -115,10 +114,7 @@ class TimelineIncident extends React.Component<IncidentProps> {
 
     return (
       <Activity key={activity.id}>
-        <ActivityTrack>
-          <IconEllipse size="sm" color="gray300" />
-          {!last && <VerticalDivider />}
-        </ActivityTrack>
+        <ActivityTrack>{!last && <VerticalDivider />}</ActivityTrack>
 
         <ActivityBody>
           <ActivityTime>
@@ -271,6 +267,14 @@ const ActivityTrack = styled('div')`
   flex-direction: column;
   align-items: center;
   margin-right: ${space(1)};
+
+  &:before {
+    content: '';
+    width: ${space(1)};
+    height: ${space(1)};
+    background-color: ${p => p.theme.gray300};
+    border-radius: ${space(1)};
+  }
 `;
 
 const ActivityBody = styled('div')`
