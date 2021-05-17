@@ -1,5 +1,5 @@
 ---
-created: '2021-05-05T18:04:39.120835Z'
+created: '2021-05-17T08:41:28.000515Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -25,7 +25,7 @@ app-depth-1:
               "destructor'"
             package (ignored because function takes precedence)
               "winhttp.dll"
-        type (ignored because exception is synthetic)
+        type (ignored because exception is synthetic (detected via exception type))
           "EXCEPTION_ACCESS_VIOLATION_WRITE"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
@@ -157,7 +157,7 @@ app-depth-max:
               "RtlpOptimizeWaitOnAddressWaitList"
             package (ignored because function takes precedence)
               "ntdll.dll"
-        type (ignored because exception is synthetic)
+        type (ignored because exception is synthetic (detected via exception type))
           "EXCEPTION_ACCESS_VIOLATION_WRITE"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"

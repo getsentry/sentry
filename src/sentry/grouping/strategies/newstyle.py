@@ -48,6 +48,28 @@ RECURSION_COMPARISON_FIELDS = [
     "colno",
 ]
 
+# Ignore all those kinds of exception types as they are produced from platform
+# specific error codes.
+#
+# For example there can be crashes with EXC_ACCESS_VIOLATION_* on Windows with
+# the same exact stacktrace as a crash with EXC_BAD_ACCESS on macOS.
+_synthetic_exception_type_re = re.compile(
+    r"""
+    ^
+    (
+        EXC_ |
+        EXCEPTION_ |
+        SIG |
+        KERN_ |
+        ILL_
+
+    # e.g. "EXC_BAD_ACCESS / 0x00000032"
+    ) [A-Z0-9_ /x]+
+    $
+    """,
+    re.X,
+)
+
 
 def is_recursion_v1(frame1, frame2):
     "Returns a boolean indicating whether frames are recursive calls."
@@ -513,12 +535,16 @@ def single_exception(exception, context, **meta):
         values=[exception.type] if exception.type else [],
         similarity_encoder=ident_encoder,
     )
+    system_type_component = type_component.shallow_copy()
 
     ns_error_component = None
 
     if exception.mechanism:
         if exception.mechanism.synthetic:
             type_component.update(contributes=False, hint="ignored because exception is synthetic")
+            system_type_component.update(
+                contributes=False, hint="ignored because exception is synthetic"
+            )
         if exception.mechanism.meta and "ns_error" in exception.mechanism.meta:
             ns_error_component = GroupingComponent(
                 id="ns-error",
@@ -526,6 +552,17 @@ def single_exception(exception, context, **meta):
                     exception.mechanism.meta["ns_error"].get("domain"),
                     exception.mechanism.meta["ns_error"].get("code"),
                 ],
+            )
+
+        if context["detect_synthetic_exception_types"] and _synthetic_exception_type_re.match(
+            exception.type
+        ):
+            # Do not update type component of system variant, such that regex
+            # can be continuously modified without unnecessarily creating new
+            # groups.
+            type_component.update(
+                contributes=False,
+                hint="ignored because exception is synthetic (detected via exception type)",
             )
 
     if exception.stacktrace is not None:
@@ -540,7 +577,10 @@ def single_exception(exception, context, **meta):
     rv = {}
 
     for variant, stacktrace_component in stacktrace_variants.items():
-        values = [stacktrace_component, type_component]
+        values = [
+            stacktrace_component,
+            system_type_component if variant == "system" else type_component,
+        ]
 
         if ns_error_component is not None:
             values.append(ns_error_component)

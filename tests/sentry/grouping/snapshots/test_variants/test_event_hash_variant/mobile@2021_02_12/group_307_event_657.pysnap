@@ -1,5 +1,5 @@
 ---
-created: '2021-05-05T18:04:39.707918Z'
+created: '2021-05-17T08:41:28.731631Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -13,7 +13,7 @@ app-depth-1:
           frame*
             function*
               "stripped_application_code"
-        type (ignored because exception is synthetic)
+        type (ignored because exception is synthetic (detected via exception type))
           "EXC_BAD_ACCESS / EXC_I386_GPFLT"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXC_BAD_ACCESS / EXC_I386_GPFLT"
@@ -76,7 +76,7 @@ app-depth-max:
           frame (ignored by stack trace rule (category:internals -group))
             package* (used as fallback because function name is not available)
               "libc++abi.dylib"
-        type (ignored because exception is synthetic)
+        type (ignored because exception is synthetic (detected via exception type))
           "EXC_BAD_ACCESS / EXC_I386_GPFLT"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXC_BAD_ACCESS / EXC_I386_GPFLT"

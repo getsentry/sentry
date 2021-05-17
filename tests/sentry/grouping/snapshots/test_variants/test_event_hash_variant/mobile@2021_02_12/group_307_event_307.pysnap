@@ -1,5 +1,5 @@
 ---
-created: '2021-05-05T18:04:40.769663Z'
+created: '2021-05-17T08:41:29.485762Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -13,7 +13,7 @@ app-depth-1:
           frame*
             function*
               "stripped_application_code"
-        type (ignored because exception is synthetic)
+        type (ignored because exception is synthetic (detected via exception type))
           "EXC_BAD_ACCESS / EXC_I386_GPFLT"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXC_BAD_ACCESS / EXC_I386_GPFLT"
@@ -79,7 +79,7 @@ app-depth-max:
               "__dynamic_cast"
             package (ignored because function takes precedence)
               "libc++abi.dylib"
-        type (ignored because exception is synthetic)
+        type (ignored because exception is synthetic (detected via exception type))
           "EXC_BAD_ACCESS / EXC_I386_GPFLT"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXC_BAD_ACCESS / EXC_I386_GPFLT"
