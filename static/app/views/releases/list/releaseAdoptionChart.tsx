@@ -134,6 +134,11 @@ class ReleaseAdoptionChart extends React.PureComponent<Props, State> {
       };
     });
 
+    const legend = {
+      right: 10,
+      top: 5,
+    };
+
     return (
       <Panel>
         <ChartBody withPadding>
@@ -197,6 +202,7 @@ class ReleaseAdoptionChart extends React.PureComponent<Props, State> {
                     ].join('');
                   },
                 }}
+                legend={legend}
               />
             )}
           </ChartZoom>
