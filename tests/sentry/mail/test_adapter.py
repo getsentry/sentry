@@ -474,7 +474,9 @@ class MailAdapterNotifyTest(BaseMailAdapterTest, TestCase):
         )
         self.assert_notify(event_all_users, [user.email])
 
-    def test_notify_team(self):
+    def test_notify_team_members(self):
+        """Test that each member of a team is notified"""
+
         user = self.create_user(email="foo@example.com", is_active=True)
         user2 = self.create_user(email="baz@example.com", is_active=True)
         team = self.create_team(organization=self.organization, members=[user, user2])

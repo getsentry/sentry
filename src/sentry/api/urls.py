@@ -108,6 +108,7 @@ from .endpoints.group_tombstone_details import GroupTombstoneDetailsEndpoint
 from .endpoints.group_user_reports import GroupUserReportsEndpoint
 from .endpoints.grouping_configs import GroupingConfigsEndpoint
 from .endpoints.index import IndexEndpoint
+from .endpoints.internal_beacon import InternalBeaconEndpoint
 from .endpoints.internal_environment import InternalEnvironmentEndpoint
 from .endpoints.internal_mail import InternalMailEndpoint
 from .endpoints.internal_packages import InternalPackagesEndpoint
@@ -153,6 +154,7 @@ from .endpoints.organization_events import (
 from .endpoints.organization_events_facets import OrganizationEventsFacetsEndpoint
 from .endpoints.organization_events_facets_performance import (
     OrganizationEventsFacetsPerformanceEndpoint,
+    OrganizationEventsFacetsPerformanceHistogramEndpoint,
 )
 from .endpoints.organization_events_histogram import OrganizationEventsHistogramEndpoint
 from .endpoints.organization_events_meta import (
@@ -930,6 +932,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/events-facets-performance/$",
                     OrganizationEventsFacetsPerformanceEndpoint.as_view(),
                     name="sentry-api-0-organization-events-facets-performance",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/events-facets-performance-histogram/$",
+                    OrganizationEventsFacetsPerformanceHistogramEndpoint.as_view(),
+                    name="sentry-api-0-organization-events-facets-performance-histogram",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/events-meta/$",
@@ -1950,6 +1957,11 @@ urlpatterns = [
                     r"^options/$",
                     SystemOptionsEndpoint.as_view(),
                     name="sentry-api-0-system-options",
+                ),
+                url(
+                    r"^beacon/$",
+                    InternalBeaconEndpoint.as_view(),
+                    name="sentry-api-0-internal-beacon",
                 ),
                 url(r"^quotas/$", InternalQuotasEndpoint.as_view()),
                 url(r"^queue/tasks/$", InternalQueueTasksEndpoint.as_view()),

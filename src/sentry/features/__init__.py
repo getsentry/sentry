@@ -86,7 +86,7 @@ default_manager.add("organizations:integrations-incident-management", Organizati
 default_manager.add("organizations:integrations-issue-basic", OrganizationFeature)  # NOQA
 default_manager.add("organizations:integrations-issue-sync", OrganizationFeature)  # NOQA
 default_manager.add("organizations:integrations-stacktrace-link", OrganizationFeature)  # NOQA
-default_manager.add("organizations:integrations-custom-scm", OrganizationFeature)  # NOQA
+default_manager.add("organizations:integrations-custom-scm", OrganizationFeature, True)  # NOQA
 default_manager.add("organizations:integrations-ticket-rules", OrganizationFeature, True)  # NOQA
 default_manager.add("organizations:integrations-vsts-limited-scopes", OrganizationFeature)  # NOQA
 default_manager.add("organizations:internal-catchall", OrganizationFeature)  # NOQA
@@ -107,6 +107,7 @@ default_manager.add("organizations:performance-ops-breakdown", OrganizationFeatu
 default_manager.add("organizations:performance-tag-explorer", OrganizationFeature, True)  # NOQA
 default_manager.add("organizations:performance-view", OrganizationFeature)  # NOQA
 default_manager.add("organizations:related-events", OrganizationFeature)  # NOQA
+default_manager.add("organizations:release-adoption-chart", OrganizationFeature, True)  # NOQA
 default_manager.add("organizations:relay", OrganizationFeature)  # NOQA
 default_manager.add("organizations:reprocessing-v2", OrganizationFeature)  # NOQA
 default_manager.add("organizations:rule-page", OrganizationFeature)  # NOQA
