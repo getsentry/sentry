@@ -141,8 +141,8 @@ percentage_format    = ~r"([0-9\.]+)%"
 # NOTE: the order in which these operators are listed matters because for
 # example, if < comes before <= it will match that even if the operator is <=
 operator             = ">=" / "<=" / ">" / "<" / "=" / "!="
-or_operator          = ~r"OR(?![^\s])"i
-and_operator         = ~r"AND(?![^\s])"i
+or_operator          = ~r"OR(?=\s|$)"i
+and_operator         = ~r"AND(?=\s|$)"i
 open_paren           = "("
 closed_paren         = ")"
 open_bracket         = "["
