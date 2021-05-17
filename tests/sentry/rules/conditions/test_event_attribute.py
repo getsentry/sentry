@@ -81,6 +81,18 @@ class EventAttributeConditionTest(RuleTestCase):
         )
         self.assertDoesNotPass(rule, event)
 
+    def test_does_not_start_with(self):
+        event = self.get_event()
+        rule = self.get_rule(
+            data={"match": MatchType.NOT_STARTS_WITH, "attribute": "platform", "value": "ph"}
+        )
+        self.assertDoesNotPass(rule, event)
+
+        rule = self.get_rule(
+            data={"match": MatchType.NOT_STARTS_WITH, "attribute": "platform", "value": "py"}
+        )
+        self.assertPasses(rule, event)
+
     def test_ends_with(self):
         event = self.get_event()
         rule = self.get_rule(
@@ -92,6 +104,18 @@ class EventAttributeConditionTest(RuleTestCase):
             data={"match": MatchType.ENDS_WITH, "attribute": "platform", "value": "thon"}
         )
         self.assertDoesNotPass(rule, event)
+
+    def test_does_not_end_with(self):
+        event = self.get_event()
+        rule = self.get_rule(
+            data={"match": MatchType.NOT_ENDS_WITH, "attribute": "platform", "value": "hp"}
+        )
+        self.assertDoesNotPass(rule, event)
+
+        rule = self.get_rule(
+            data={"match": MatchType.NOT_ENDS_WITH, "attribute": "platform", "value": "thon"}
+        )
+        self.assertPasses(rule, event)
 
     def test_contains(self):
         event = self.get_event()
