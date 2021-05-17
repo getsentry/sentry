@@ -988,6 +988,8 @@ SENTRY_FEATURES = {
     "organizations:team-alerts-ownership": False,
     # Enable the new alert creation wizard
     "organizations:alert-wizard": True,
+    # Enable the adoption chart in the releases page
+    "organizations:release-adoption-chart": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
@@ -1572,6 +1574,15 @@ SENTRY_USE_CDC_DEV = False
 #     }
 # }
 
+POSTGRES_INIT_DB_VOLUME = (
+    {
+        os.path.join(CDC_CONFIG_DIR, "init_hba.sh"): {
+            "bind": "/docker-entrypoint-initdb.d/init_hba.sh"
+        }
+    }
+    if SENTRY_USE_CDC_DEV
+    else {}
+)
 
 SENTRY_DEVSERVICES = {
     "redis": {
@@ -1600,9 +1611,7 @@ SENTRY_DEVSERVICES = {
             "postgres": {"bind": "/var/lib/postgresql/data"},
             "wal2json": {"bind": "/wal2json"},
             CDC_CONFIG_DIR: {"bind": "/cdc"},
-            os.path.join(CDC_CONFIG_DIR, "init_hba.sh"): {
-                "bind": "/docker-entrypoint-initdb.d/init_hba.sh"
-            },
+            **POSTGRES_INIT_DB_VOLUME,
         },
         "command": [
             "postgres",
@@ -1613,7 +1622,7 @@ SENTRY_DEVSERVICES = {
             "-c",
             "max_wal_senders=1",
         ],
-        "entrypoint": "/cdc/postgres-entrypoint.sh",
+        "entrypoint": "/cdc/postgres-entrypoint.sh" if SENTRY_USE_CDC_DEV else None,
         "healthcheck": {
             "test": ["CMD", "pg_isready", "-U", "postgres"],
             "interval": 30000000000,  # Test every 30 seconds (in ns).
