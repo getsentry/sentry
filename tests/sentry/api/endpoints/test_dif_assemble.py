@@ -83,7 +83,7 @@ class DifAssembleEndpoint(APITestCase):
         # Now we add ownership to the blob
         blobs = FileBlob.objects.all()
         for blob in blobs:
-            FileBlobOwner.objects.create(blob=blob, organization=self.organization)
+            FileBlobOwner.objects.create(blob=blob, organization_id=self.organization.id)
 
         # The request will start the job to assemble the file
         response = self.client.post(
@@ -149,9 +149,9 @@ class DifAssembleEndpoint(APITestCase):
 
         # The order here is on purpose because we check for the order of checksums
         blob1 = FileBlob.from_file(fileobj1)
-        FileBlobOwner.objects.get_or_create(organization=self.organization, blob=blob1)
+        FileBlobOwner.objects.get_or_create(organization_id=self.organization.id, blob=blob1)
         blob3 = FileBlob.from_file(fileobj3)
-        FileBlobOwner.objects.get_or_create(organization=self.organization, blob=blob3)
+        FileBlobOwner.objects.get_or_create(organization_id=self.organization.id, blob=blob3)
         blob2 = FileBlob.from_file(fileobj2)
 
         # we make a request now but we are missing ownership for chunk 2
@@ -165,7 +165,7 @@ class DifAssembleEndpoint(APITestCase):
         assert response.data[total_checksum]["missingChunks"] == [checksum2]
 
         # we add ownership to chunk 2
-        FileBlobOwner.objects.get_or_create(organization=self.organization, blob=blob2)
+        FileBlobOwner.objects.get_or_create(organization_id=self.organization.id, blob=blob2)
 
         # new request, ownership for all chunks is there but file does not exist yet
         response = self.client.post(

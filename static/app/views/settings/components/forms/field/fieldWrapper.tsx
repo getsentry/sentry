@@ -84,7 +84,7 @@ const FieldWrapper = styled('div')<Props>`
   ${p =>
     !p.hasControlState &&
     css`
-      .modal-content & {
+      [role='document'] & {
         padding-right: 0;
       }
     `}

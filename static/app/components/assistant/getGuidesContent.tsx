@@ -272,6 +272,18 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
             }
           ),
         },
+        {
+          title: t('Suspect Tags'),
+          target: 'tag_explorer',
+          description: tct(
+            "See which tags often correspond to slower transactions. You'll want to investigate these more. [link:Learn more]",
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/product/performance/transaction-summary/#suspect-tags" />
+              ),
+            }
+          ),
+        },
       ],
     },
   ];

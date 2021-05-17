@@ -8,7 +8,9 @@ DEFAULT_EXPIRATION = timedelta(weeks=4)
 
 
 class ExportError(Exception):
-    pass
+    def __init__(self, message, recoverable=False):
+        super().__init__(message)
+        self.recoverable = recoverable
 
 
 class ExportStatus(str, Enum):

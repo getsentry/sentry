@@ -10,7 +10,7 @@ import Button from 'app/components/button';
 import Card from 'app/components/card';
 import LetterAvatar from 'app/components/letterAvatar';
 import Tooltip from 'app/components/tooltip';
-import {IconCheckmark, IconClose, IconEvent, IconLock} from 'app/icons';
+import {IconCheckmark, IconClose, IconLock, IconSync} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {AvatarUser, OnboardingTask, OnboardingTaskKey, Organization} from 'app/types';
@@ -200,7 +200,7 @@ const InProgressIndicator = styled(({user, ...props}: InProgressIndicatorProps) 
         user: user?.name,
       })}
     >
-      <IconEvent />
+      <IconSync />
     </Tooltip>
     {t('Task in progress...')}
   </div>

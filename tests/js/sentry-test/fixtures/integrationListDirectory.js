@@ -33,29 +33,49 @@ export function ProviderList() {
   };
 }
 
-export function IntegrationConfig() {
-  return [
-    {
-      accountType: null,
-      configData: {},
-      configOrganization: [],
-      domainName: 'bitbucket.org/%7Bfb715533-bbd7-4666-aa57-01dc93dd9cc0%7D',
-      icon:
-        'https://secure.gravatar.com/avatar/8b4cb68e40b74c90427d8262256bd1c8?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FNN-0.png',
-      id: '4',
-      name: '{fb715533-bbd7-4666-aa57-01dc93dd9cc0}',
-      provider: {
-        aspects: {},
-        canAdd: true,
-        canDisable: false,
-        features: ['commits', 'issue-basic'],
-        key: 'bitbucket',
-        name: 'Bitbucket',
-        slug: 'bitbucket',
-      },
-      status: 'active',
+export function BitbucketIntegrationConfig() {
+  return {
+    accountType: null,
+    configData: {},
+    configOrganization: [],
+    domainName: 'bitbucket.org/%7Bfb715533-bbd7-4666-aa57-01dc93dd9cc0%7D',
+    icon:
+      'https://secure.gravatar.com/avatar/8b4cb68e40b74c90427d8262256bd1c8?d=https%3A%2F%2Favatar-management--avatars.us-west-2.prod.public.atl-paas.net%2Finitials%2FNN-0.png',
+    id: '4',
+    name: '{fb715533-bbd7-4666-aa57-01dc93dd9cc0}',
+    provider: {
+      aspects: {},
+      canAdd: true,
+      canDisable: false,
+      features: ['commits', 'issue-basic'],
+      key: 'bitbucket',
+      name: 'Bitbucket',
+      slug: 'bitbucket',
     },
-  ];
+    status: 'active',
+  };
+}
+
+export function GithubIntegrationConfig() {
+  return {
+    accountType: null,
+    configData: {},
+    configOrganization: [],
+    domainName: 'github.com',
+    icon: 'https://secure.gravatar.com/avatar/8b4cb68e40b74c90427d8262256bd1c8',
+    id: '5',
+    name: 'NisanthanNanthakumar',
+    provider: {
+      aspects: {},
+      canAdd: true,
+      canDisable: false,
+      features: ['commits', 'issue-basic'],
+      key: 'github',
+      name: 'Github',
+      slug: 'github',
+    },
+    status: 'active',
+  };
 }
 
 export function OrgOwnedApps() {

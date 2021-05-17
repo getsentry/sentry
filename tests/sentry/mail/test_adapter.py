@@ -611,7 +611,7 @@ class MailAdapterRuleNotifyTest(BaseMailAdapterTest, TestCase):
             self.adapter.rule_notify(event, futures, ActionTargetType.ISSUE_OWNERS)
             assert notify.call_count == 1
 
-    @mock.patch("sentry.mail.notifications.digests")
+    @mock.patch("sentry.mail.adapter.digests")
     def test_digest(self, digests):
         digests.enabled.return_value = True
 

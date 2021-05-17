@@ -15,12 +15,14 @@ from sentry.models import (
 )
 from sentry.notifications.helpers import (
     get_deploy_values_by_provider,
+    get_settings_by_provider,
     transform_to_notification_settings_by_user,
 )
 from sentry.notifications.notify import notification_providers
 from sentry.notifications.types import (
     ActionTargetType,
     GroupSubscriptionReason,
+    NotificationScopeType,
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
@@ -217,6 +219,34 @@ def get_users_for_teams_to_resolve(teams_to_resolve: Set[int]) -> Set[User]:
             sentry_orgmember_set__organizationmemberteam__team__id__in=teams_to_resolve,
         )
     )
+
+
+def disabled_users_from_project(project: Project) -> Mapping[ExternalProviders, Set[User]]:
+    """ Get a set of users that have disabled Issue Alert notifications for a given project. """
+    user_ids = project.member_set.values_list("user", flat=True)
+    users = User.objects.filter(id__in=user_ids)
+    notification_settings = NotificationSetting.objects.get_for_users_by_parent(
+        type=NotificationSettingTypes.ISSUE_ALERTS,
+        parent=project,
+        users=users,
+    )
+    notification_settings_by_user = transform_to_notification_settings_by_user(
+        notification_settings, users
+    )
+    # Although this can be done with dict comprehension, looping for clarity.
+    output = defaultdict(set)
+    for user in users:
+        settings = notification_settings_by_user.get(user)
+        if settings:
+            settings_by_provider = get_settings_by_provider(settings)
+            for provider, settings_value_by_scope in settings_by_provider.items():
+                project_setting = settings_value_by_scope.get(NotificationScopeType.PROJECT)
+                user_setting = settings_value_by_scope.get(NotificationScopeType.USER)
+                if project_setting == NotificationSettingOptionValues.NEVER or (
+                    not project_setting and user_setting == NotificationSettingOptionValues.NEVER
+                ):
+                    output[provider].add(user)
+    return output
 
 
 def get_send_to_team(

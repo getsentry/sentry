@@ -10,11 +10,17 @@ frontend_lintable: &frontend_lintable
   - '**/tsconfig*.json'
   - '{package,now,vercel}.json'
 
-frontend: &frontend
-  - *frontend_lintable
-  - '**/*.less'
+yarn_lockfile: &yarn_lockfile
   - 'yarn.lock'
+
+eslint_config: &eslint_config
   - '.eslint*'
+
+frontend: &frontend
+  - *yarn_lockfile
+  - *frontend_lintable
+  - *eslint_config
+  - '**/*.less'
   - 'docs-ui/**'
   - 'static/**'
   - 'tests/js/**'

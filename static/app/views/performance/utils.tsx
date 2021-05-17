@@ -6,10 +6,10 @@ import {backend, frontend} from 'app/data/platformCategories';
 import {GlobalSelection, OrganizationSummary, Project} from 'app/types';
 import {defined} from 'app/utils';
 import {statsPeriodToDays} from 'app/utils/dates';
+import EventView from 'app/utils/discover/eventView';
 import getCurrentSentryReactTransaction from 'app/utils/getCurrentSentryReactTransaction';
 import {decodeScalar} from 'app/utils/queryString';
-
-import {FilterViews} from './landing';
+import {tokenizeSearch} from 'app/utils/tokenizeSearch';
 
 /**
  * Performance type can used to determine a default view or which specific field should be used by default on pages
@@ -19,6 +19,7 @@ export enum PROJECT_PERFORMANCE_TYPE {
   ANY = 'any', // Fallback to transaction duration
   FRONTEND = 'frontend',
   BACKEND = 'backend',
+  FRONTEND_OTHER = 'frontend_other',
 }
 
 const FRONTEND_PLATFORMS: string[] = [...frontend];
@@ -55,20 +56,44 @@ export function platformToPerformanceType(
   return PROJECT_PERFORMANCE_TYPE.ANY;
 }
 
+/**
+ * Used for transaction summary to determine appropriate columns on a page, since there is no display field set for the page.
+ */
+export function platformAndConditionsToPerformanceType(
+  projects: Project[],
+  eventView: EventView
+) {
+  const performanceType = platformToPerformanceType(projects, eventView.project);
+  if (performanceType === PROJECT_PERFORMANCE_TYPE.FRONTEND) {
+    const conditions = tokenizeSearch(eventView.query);
+    const ops = conditions.getTagValues('!transaction.op');
+    if (ops.some(op => op === 'pageload')) {
+      return PROJECT_PERFORMANCE_TYPE.FRONTEND_OTHER;
+    }
+  }
+  return performanceType;
+}
+
+/**
+ * Used for transaction summary to check the view itself, since it can have conditions which would exclude it from having vitals aside from platform.
+ */
+export function isSummaryViewFrontendPageLoad(eventView: EventView, projects: Project[]) {
+  return (
+    platformAndConditionsToPerformanceType(projects, eventView) ===
+    PROJECT_PERFORMANCE_TYPE.FRONTEND
+  );
+}
+
 export function getPerformanceLandingUrl(organization: OrganizationSummary): string {
   return `/organizations/${organization.slug}/performance/`;
 }
 
-export function getTransactionSearchQuery(location: Location, query: string = '') {
-  return decodeScalar(location.query.query, query).trim();
+export function getPerformanceTrendsUrl(organization: OrganizationSummary): string {
+  return `/organizations/${organization.slug}/performance/trends/`;
 }
 
-export function getCurrentPerformanceView(location: Location): string {
-  const currentView = location.query.view as FilterViews;
-  if (Object.values(FilterViews).includes(currentView)) {
-    return currentView;
-  }
-  return FilterViews.ALL_TRANSACTIONS;
+export function getTransactionSearchQuery(location: Location, query: string = '') {
+  return decodeScalar(location.query.query, query).trim();
 }
 
 export function getTransactionDetailsUrl(

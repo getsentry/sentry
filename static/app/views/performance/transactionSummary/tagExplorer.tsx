@@ -3,6 +3,8 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptorObject, Query} from 'history';
 
+import {GuideAnchor} from 'app/components/assistant/guideAnchor';
+import FeatureBadge from 'app/components/featureBadge';
 import GridEditable, {
   COL_WIDTH_UNDEFINED,
   GridColumn,
@@ -28,7 +30,7 @@ import {TableColumn} from 'app/views/eventsV2/table/types';
 
 import {
   PerformanceDuration,
-  platformToPerformanceType,
+  platformAndConditionsToPerformanceType,
   PROJECT_PERFORMANCE_TYPE,
 } from '../utils';
 
@@ -118,17 +120,17 @@ const filterToField = {
   [SpanOperationBreakdownFilter.Resource]: 'spans.resource',
 };
 
-const getTransactionField = (
+export const getTransactionField = (
   currentFilter: SpanOperationBreakdownFilter,
   projects: Project[],
-  projectIds: readonly number[]
+  eventView: EventView
 ) => {
   const fieldFromFilter = filterToField[currentFilter];
   if (fieldFromFilter) {
     return fieldFromFilter;
   }
 
-  const performanceType = platformToPerformanceType(projects, projectIds);
+  const performanceType = platformAndConditionsToPerformanceType(projects, eventView);
   if (performanceType === PROJECT_PERFORMANCE_TYPE.FRONTEND) {
     return 'measurements.lcp';
   }
@@ -139,7 +141,7 @@ const getTransactionField = (
 const getColumnsWithReplacedDuration = (
   currentFilter: SpanOperationBreakdownFilter,
   projects: Project[],
-  projectIds: readonly number[]
+  eventView: EventView
 ) => {
   const columns = COLUMN_ORDER.map(c => ({...c}));
   const durationColumn = columns.find(c => c.key === 'aggregate');
@@ -154,7 +156,7 @@ const getColumnsWithReplacedDuration = (
     return columns;
   }
 
-  const performanceType = platformToPerformanceType(projects, projectIds);
+  const performanceType = platformAndConditionsToPerformanceType(projects, eventView);
   if (performanceType === PROJECT_PERFORMANCE_TYPE.FRONTEND) {
     durationColumn.name = 'Avg LCP';
     return columns;
@@ -167,7 +169,7 @@ type TagValueProps = {
   row: TableDataRow;
 };
 
-function TagValue(props: TagValueProps) {
+export function TagValue(props: TagValueProps) {
   return <div className="truncate">{props.row.tags_value}</div>;
 }
 
@@ -402,16 +404,12 @@ class _TagExplorer extends React.Component<Props> {
           ]
     );
 
-    const aggregateColumn = getTransactionField(
-      currentFilter,
-      projects,
-      sortedEventView.project
-    );
+    const aggregateColumn = getTransactionField(currentFilter, projects, sortedEventView);
 
     const adjustedColumns = getColumnsWithReplacedDuration(
       currentFilter,
       projects,
-      sortedEventView.project
+      sortedEventView
     );
     const columns = this.getColumnOrder(adjustedColumns);
 
@@ -425,12 +423,13 @@ class _TagExplorer extends React.Component<Props> {
         aggregateColumn={aggregateColumn}
         limit={5}
         cursor={cursor}
-        order={tagSort}
       >
         {({isLoading, tableData, pageLinks}) => {
           return (
             <React.Fragment>
-              <TagsHeader organization={organization} pageLinks={pageLinks} />
+              <GuideAnchor target="tag_explorer">
+                <TagsHeader organization={organization} pageLinks={pageLinks} />
+              </GuideAnchor>
               <GridEditable
                 isLoading={isLoading}
                 data={tableData && tableData.data ? tableData.data : []}
@@ -476,7 +475,12 @@ function TagsHeader(props: HeaderProps) {
 
   return (
     <Header>
-      <SectionHeading>{t('Suspect Tags')}</SectionHeading>
+      <SectionHeading>
+        <div>
+          {t('Suspect Tags')}
+          <FeatureBadge type="beta" noTooltip />
+        </div>
+      </SectionHeading>
       <StyledPagination pageLinks={pageLinks} onCursor={handleCursor} size="small" />
     </Header>
   );

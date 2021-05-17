@@ -8,6 +8,7 @@ import GuideAnchor from 'app/components/assistant/guideAnchor';
 import ButtonBar from 'app/components/buttonBar';
 import DiscoverFeature from 'app/components/discover/discoverFeature';
 import DiscoverButton from 'app/components/discoverButton';
+import * as AnchorLinkManager from 'app/components/events/interfaces/spans/anchorLinkManager';
 import * as DividerHandlerManager from 'app/components/events/interfaces/spans/dividerHandlerManager';
 import * as ScrollbarManager from 'app/components/events/interfaces/spans/scrollbarManager';
 import FeatureBadge from 'app/components/featureBadge';
@@ -509,16 +510,29 @@ class TraceDetailsContent extends React.Component<Props, State> {
               >
                 <StyledPanel>
                   <TraceViewHeaderContainer>
-                    <ScrollbarContainer
-                      ref={this.virtualScrollbarContainerRef}
-                      style={{
-                        // the width of this component is shrunk to compensate for half of the width of the divider line
-                        width: `calc(${toPercent(dividerPosition)} - 0.5px)`,
-                      }}
-                    >
-                      <ScrollbarManager.Consumer>
-                        {({virtualScrollbarRef, onDragStart}) => {
-                          return (
+                    <ScrollbarManager.Consumer>
+                      {({
+                        virtualScrollbarRef,
+                        scrollBarAreaRef,
+                        onDragStart,
+                        onScroll,
+                      }) => {
+                        return (
+                          <ScrollbarContainer
+                            ref={this.virtualScrollbarContainerRef}
+                            style={{
+                              // the width of this component is shrunk to compensate for half of the width of the divider line
+                              width: `calc(${toPercent(dividerPosition)} - 0.5px)`,
+                            }}
+                            onScroll={onScroll}
+                          >
+                            <div
+                              style={{
+                                width: 0,
+                                height: '1px',
+                              }}
+                              ref={scrollBarAreaRef}
+                            />
                             <VirtualScrollbar
                               data-type="virtual-scrollbar"
                               ref={virtualScrollbarRef}
@@ -526,35 +540,37 @@ class TraceDetailsContent extends React.Component<Props, State> {
                             >
                               <VirtualScrollbarGrip />
                             </VirtualScrollbar>
-                          );
-                        }}
-                      </ScrollbarManager.Consumer>
-                    </ScrollbarContainer>
+                          </ScrollbarContainer>
+                        );
+                      }}
+                    </ScrollbarManager.Consumer>
                     <DividerSpacer />
                   </TraceViewHeaderContainer>
                   <TraceViewContainer ref={this.traceViewRef}>
-                    <TransactionGroup
-                      location={location}
-                      organization={organization}
-                      traceInfo={traceInfo}
-                      transaction={{
-                        traceSlug,
-                        generation: 0,
-                        'transaction.duration':
-                          traceInfo.endTimestamp - traceInfo.startTimestamp,
-                        children: traces,
-                        start_timestamp: traceInfo.startTimestamp,
-                        timestamp: traceInfo.endTimestamp,
-                      }}
-                      continuingDepths={[]}
-                      isOrphan={false}
-                      isLast={false}
-                      index={0}
-                      isVisible
-                      hasGuideAnchor={false}
-                      renderedChildren={transactionGroups}
-                      barColour={pickBarColour('')}
-                    />
+                    <AnchorLinkManager.Provider>
+                      <TransactionGroup
+                        location={location}
+                        organization={organization}
+                        traceInfo={traceInfo}
+                        transaction={{
+                          traceSlug,
+                          generation: 0,
+                          'transaction.duration':
+                            traceInfo.endTimestamp - traceInfo.startTimestamp,
+                          children: traces,
+                          start_timestamp: traceInfo.startTimestamp,
+                          timestamp: traceInfo.endTimestamp,
+                        }}
+                        continuingDepths={[]}
+                        isOrphan={false}
+                        isLast={false}
+                        index={0}
+                        isVisible
+                        hasGuideAnchor={false}
+                        renderedChildren={transactionGroups}
+                        barColour={pickBarColour('')}
+                      />
+                    </AnchorLinkManager.Provider>
                     {this.renderInfoMessage({
                       isVisible: true,
                       numberOfHiddenTransactionsAbove,

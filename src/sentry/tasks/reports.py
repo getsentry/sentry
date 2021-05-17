@@ -189,7 +189,7 @@ def merge_sequences(target, other, function=operator.add):
     return rt_type([function(x, y) for x, y in zip(target, other)])
 
 
-def merge_mappings(target, other, function=lambda x, y: x + y):
+def merge_mappings(target, other, function=operator.add):
     """
     Merge two mappings into a single mapping. The set of keys in both
     mappings must be equal.
@@ -221,7 +221,7 @@ def _query_tsdb_groups_chunked(func, issue_ids, start, stop, rollup):
     return combined
 
 
-def prepare_project_series(start__stop, project):
+def build_project_series(start__stop, project):
     start, stop = start__stop
     rollup = ONE_DAY
 
@@ -233,24 +233,25 @@ def prepare_project_series(start__stop, project):
         status=GroupStatus.RESOLVED, resolved_at__gte=start, resolved_at__lt=stop
     ).values_list("id", flat=True)
 
-    tsdb_range = _query_tsdb_groups_chunked(tsdb.get_range, issue_ids, start, stop, rollup)
+    tsdb_range_resolved = _query_tsdb_groups_chunked(tsdb.get_range, issue_ids, start, stop, rollup)
+    resolved_series = reduce(
+        merge_series,
+        map(clean, tsdb_range_resolved.values()),
+        clean([(timestamp, 0) for timestamp in series]),
+    )
+
+    total_series = clean(
+        tsdb.get_range(tsdb.models.project, [project.id], start, stop, rollup=rollup)[project.id]
+    )
 
     return merge_series(
-        reduce(
-            merge_series,
-            map(clean, tsdb_range.values()),
-            clean([(timestamp, 0) for timestamp in series]),
-        ),
-        clean(
-            tsdb.get_range(tsdb.models.project, [project.id], start, stop, rollup=rollup)[
-                project.id
-            ]
-        ),
+        resolved_series,
+        total_series,
         lambda resolved, total: (resolved, total - resolved),  # unresolved
     )
 
 
-def prepare_project_aggregates(ignore__stop, project):
+def build_project_aggregates(ignore__stop, project):
     # TODO: This needs to return ``None`` for periods that don't have any data
     # (because the project is not old enough) and possibly extrapolate for
     # periods that only have partial periods.
@@ -270,7 +271,7 @@ def prepare_project_aggregates(ignore__stop, project):
     ]
 
 
-def prepare_project_issue_summaries(interval, project):
+def build_project_issue_summaries(interval, project):
     start, stop = interval
 
     queryset = project.group_set.exclude(status=GroupStatus.IGNORED)
@@ -319,7 +320,7 @@ def prepare_project_issue_summaries(interval, project):
     return [new_issue_count, reopened_issue_count, existing_issue_count]
 
 
-def prepare_project_usage_outcomes(start__stop, project):
+def build_project_usage_outcomes(start__stop, project):
     start, stop = start__stop
 
     # XXX(epurkhiser): Tsdb used to use day buckets, where the end would
@@ -355,12 +356,19 @@ def prepare_project_usage_outcomes(start__stop, project):
     data = raw_snql_query(query, referrer="reports.outcomes")["data"]
 
     return (
-        # accepted errors
+        # Accepted errors
         sum(
             row["total"]
             for row in data
             if row["category"] in DataCategory.error_categories()
             and row["outcome"] == Outcome.ACCEPTED
+        ),
+        # Dropped errors
+        sum(
+            row["total"]
+            for row in data
+            if row["category"] in DataCategory.error_categories()
+            and row["outcome"] == Outcome.RATE_LIMITED
         ),
         # accepted transactions
         sum(
@@ -368,10 +376,13 @@ def prepare_project_usage_outcomes(start__stop, project):
             for row in data
             if row["category"] == DataCategory.TRANSACTION and row["outcome"] == Outcome.ACCEPTED
         ),
-        # Filtered
-        sum(row["total"] for row in data if row["outcome"] == Outcome.FILTERED),
-        # Rate limited
-        sum(row["total"] for row in data if row["outcome"] == Outcome.RATE_LIMITED),
+        # Dropped transactions
+        sum(
+            row["total"]
+            for row in data
+            if row["category"] == DataCategory.TRANSACTION
+            and row["outcome"] == Outcome.RATE_LIMITED
+        ),
     )
 
 
@@ -415,7 +426,7 @@ def clean_calendar_data(project, series, start, stop, rollup, timestamp=None):
     return map(remove_invalid_values, clean_series(start, stop, rollup, series))
 
 
-def prepare_project_calendar_series(interval, project):
+def build_project_calendar_series(interval, project):
     start, stop = get_calendar_query_range(interval, 3)
 
     rollup = ONE_DAY
@@ -426,38 +437,46 @@ def prepare_project_calendar_series(interval, project):
     return clean_calendar_data(project, series, start, stop, rollup)
 
 
-def build_report(name, fields):
-    names, prepare_fields, merge_fields = zip(*fields)
+def build_report(fields):
+    """
+    Constructs the Report namedtuple class, as well as the `prepare` and
+    `merge` functions for creating the Report object.
 
-    cls = namedtuple(name, names)
+    Each field is a tuple of the (field name, builder fn, merge fn).
+
+    The merge function is used to merge the value of that field together for
+    multiple reports.
+    """
+    names, field_builders, field_mergers = zip(*fields)
+
+    cls = namedtuple("Report", names)
 
     def prepare(*args):
-        return cls(*[f(*args) for f in prepare_fields])
+        return cls(*[f(*args) for f in field_builders])
 
     def merge(target, other):
-        return cls(*[f(target[i], other[i]) for i, f in enumerate(merge_fields)])
+        return cls(*[f(target[i], other[i]) for i, f in enumerate(field_mergers)])
 
     return cls, prepare, merge
 
 
-Report, prepare_project_report, merge_reports = build_report(
-    "Report",
+Report, build_project_report, merge_reports = build_report(
     [
         (
             "series",
-            prepare_project_series,
+            build_project_series,
             partial(merge_series, function=merge_sequences),
         ),
         (
             "aggregates",
-            prepare_project_aggregates,
+            build_project_aggregates,
             partial(merge_sequences, function=safe_add),
         ),
-        ("issue_summaries", prepare_project_issue_summaries, merge_sequences),
-        ("series_outcomes", prepare_project_usage_outcomes, merge_sequences),
+        ("issue_summaries", build_project_issue_summaries, merge_sequences),
+        ("series_outcomes", build_project_usage_outcomes, merge_sequences),
         (
             "calendar_series",
-            prepare_project_calendar_series,
+            build_project_calendar_series,
             partial(merge_series, function=safe_add),
         ),
     ],
@@ -466,11 +485,14 @@ Report, prepare_project_report, merge_reports = build_report(
 
 class ReportBackend:
     def build(self, timestamp, duration, project):
-        return prepare_project_report(_to_interval(timestamp, duration), project)
+        """
+        Constructs the report for a project.
+        """
+        return build_project_report(_to_interval(timestamp, duration), project)
 
     def prepare(self, timestamp, duration, organization):
         """
-        Build and store reports for all projects in the organization.
+        Build and store reports for all projects in an organization.
         """
         raise NotImplementedError
 
@@ -749,26 +771,36 @@ class DistributionType(NamedTuple):
 
 def build_project_breakdown_series(reports):
     def get_legend_data(report):
-        accepted_errors, accepted_transactions, filtered, rate_limited = report.series_outcomes
+        (
+            accepted_errors,
+            dropped_errors,
+            accepted_transactions,
+            dropped_transactions,
+        ) = report.series_outcomes
+
         return {
             "accepted_errors": accepted_errors,
+            "dropped_errors": dropped_errors,
             "accepted_transactions": accepted_transactions,
-            "filtered": filtered,
-            "rate_limited": rate_limited,
+            "dropped_transactions": dropped_transactions,
         }
 
-    # Find the reports with the most total events. (The number of reports to
-    # keep is the same as the number of colors available to use in the legend.)
-    instances = map(
-        operator.itemgetter(0),
-        sorted(
+    # Find the reports with the most total events. Note that reports are keyed
+    # on project, so this returns the list of Projects, which map to reports
+    all_projects = [
+        v[0]
+        for v in sorted(
             reports.items(),
-            key=lambda instance__report: sum(
-                sum(values) for timestamp, values in instance__report[1][0]
+            key=lambda project__report: sum(
+                sum(resolved__unresolved) for _, resolved__unresolved in project__report[1].series
             ),
             reverse=True,
-        ),
-    )[: len(project_breakdown_colors)]
+        )
+    ]
+
+    # The number of reports to keep is the same as the number of colors
+    # available to use in the legend.
+    projects = all_projects[: len(project_breakdown_colors)]
 
     # Starting building the list of items to include in the report chart. This
     # is a list of [Key, Report] pairs, in *ascending* order of the total sum
@@ -776,23 +808,23 @@ def build_project_breakdown_series(reports):
     # largest color blocks are at the bottom and it feels appropriately
     # weighted.)
     selections = map(
-        lambda instance__color: (
+        lambda project__color: (
             Key(
-                instance__color[0].slug,
-                instance__color[0].get_absolute_url(),
-                instance__color[1],
-                get_legend_data(reports[instance__color[0]]),
+                label=project__color[0].slug,
+                url=project__color[0].get_absolute_url(),
+                color=project__color[1],
+                data=get_legend_data(reports[project__color[0]]),
             ),
-            reports[instance__color[0]],
+            reports[project__color[0]],
         ),
-        zip(instances, project_breakdown_colors),
+        zip(projects, project_breakdown_colors),
     )[::-1]
 
     # Collect any reports that weren't in the selection set, merge them
     # together and add it at the top (front) of the stack.
-    overflow = set(reports) - set(instances)
+    overflow = set(reports) - set(projects)
     if overflow:
-        overflow_report = reduce(merge_reports, [reports[instance] for instance in overflow])
+        overflow_report = reduce(merge_reports, [reports[project] for project in overflow])
         selections.insert(
             0, (Key("Other", None, "#f2f0fa", get_legend_data(overflow_report)), overflow_report)
         )

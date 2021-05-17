@@ -92,6 +92,16 @@ const lightAliases = {
   innerBorder: colors.gray100,
 
   /**
+   * Border around modals
+   */
+  modalBorder: 'none',
+
+  /**
+   * Box shadow on the modal
+   */
+  modalBoxShadow: 'none',
+
+  /**
    * A color that denotes a "success", or something good
    */
   success: colors.green300,
@@ -209,6 +219,10 @@ const lightAliases = {
    */
   tagBarHover: colors.purple200,
   tagBar: colors.gray200,
+  /**
+   * Color for badge text
+   */
+  badgeText: colors.white,
 };
 
 const generateAlertTheme = (alias: Aliases) => ({
@@ -249,22 +263,32 @@ const generateBadgeTheme = (alias: Aliases) => ({
   default: {
     background: alias.badgeBackground,
     indicatorColor: alias.badgeBackground,
+    color: alias.badgeText,
   },
   alpha: {
     background: colors.orange400,
     indicatorColor: colors.orange400,
+    color: alias.badgeText,
   },
   beta: {
     background: `linear-gradient(90deg, ${colors.pink300}, ${colors.purple300})`,
     indicatorColor: colors.purple300,
+    color: alias.badgeText,
   },
   new: {
     background: colors.green300,
     indicatorColor: colors.green300,
+    color: alias.badgeText,
   },
   review: {
     background: colors.purple300,
     indicatorColor: colors.purple300,
+    color: alias.badgeText,
+  },
+  warning: {
+    background: colors.yellow300,
+    indicatorColor: colors.yellow300,
+    color: alias.badgeText,
   },
 });
 
@@ -448,7 +472,7 @@ const commonTheme = {
     settingsSidebarNav: 1018,
     sidebarPanel: 1019,
     sidebar: 1020,
-    orgUserAndMarketingMenu: 1030,
+    orgAndUserMenu: 1030,
 
     // Sentry user feedback modal
     sentryErrorEmbed: 1090,
@@ -544,6 +568,9 @@ const commonTheme = {
 
   space: [0, 8, 16, 20, 30],
 
+  // used as a gradient,
+  businessIconColors: ['#EA5BC2', '#6148CE'],
+
   demo: {
     headerSize: '70px',
   },
@@ -557,6 +584,8 @@ const darkAliases = {
   backgroundSecondary: colors.gray500,
   border: colors.gray400,
   innerBorder: colors.gray500,
+  modalBorder: `1px solid ${colors.gray400}`,
+  modalBoxShadow: '0 15px 40px 0 rgb(67 62 75 / 30%), 0 1px 15px 0 rgb(67 61 74 / 15%)',
   textColor: colors.white,
   subText: colors.gray200,
   linkColor: colors.blue200,
@@ -585,6 +614,8 @@ const darkAliases = {
   overlayBackgroundAlpha: 'rgba(18, 9, 23, 0.7)',
   tagBarHover: colors.purple300,
   tagBar: colors.gray400,
+  businessIconColors: [colors.pink100, colors.pink300],
+  badgeText: colors.black,
 };
 
 export const lightTheme = {

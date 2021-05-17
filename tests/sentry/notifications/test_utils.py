@@ -6,6 +6,7 @@ from sentry.notifications.helpers import (
     get_groups_for_query,
     get_scope,
     get_scope_type,
+    get_settings_by_provider,
     get_subscription_from_attributes,
     get_target_id,
     get_user_subscriptions_for_groups,
@@ -28,7 +29,7 @@ from sentry.types.integrations import ExternalProviders
 
 class NotificationHelpersTest(TestCase):
     def setUp(self):
-        super().setUp()
+        super(TestCase, self).setUp()
 
         NotificationSetting.objects.update_settings(
             ExternalProviders.SLACK,
@@ -318,3 +319,15 @@ class NotificationHelpersTest(TestCase):
             global_default_workflow_option,
         )
         assert subscriptions == {self.group.id: (False, True, None)}
+
+    def test_get_settings_by_provider(self):
+        settings = {
+            NotificationScopeType.USER: {
+                ExternalProviders.EMAIL: NotificationSettingOptionValues.NEVER
+            }
+        }
+        assert get_settings_by_provider(settings) == {
+            ExternalProviders.EMAIL: {
+                NotificationScopeType.USER: NotificationSettingOptionValues.NEVER
+            }
+        }
