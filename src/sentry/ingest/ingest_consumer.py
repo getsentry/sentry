@@ -171,7 +171,7 @@ def _do_process_event(message, projects):
         "store.load-shed-parsed-pipeline-projects",
         {
             "organization_id": project.organization_id,
-            "project_id": project.project_id,
+            "project_id": project.id,
             "event_type": data.get("type") or "null",
             "has_attachments": bool(attachments),
             "event_id": event_id,
