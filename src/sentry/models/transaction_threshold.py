@@ -25,3 +25,16 @@ class TransactionThreshold(Model):
         app_label = "sentry"
         db_table = "sentry_transactionthreshold"
         unique_together = (("project", "transaction"),)
+
+
+class ProjectTransactionThreshold(Model):
+    __core__ = False
+
+    project = FlexibleForeignKey("sentry.Project", unique=True)
+    organization = FlexibleForeignKey("sentry.Organization")
+    threshold = models.IntegerField()
+    metric = models.PositiveSmallIntegerField(default=TransactionMetric.DURATION.value)
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_projecttransactionthreshold"
