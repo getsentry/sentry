@@ -1,6 +1,6 @@
 import {Link} from 'react-router';
 import {css} from '@emotion/react';
-import {Location, Query} from 'history';
+import {Query} from 'history';
 import * as queryString from 'query-string';
 
 import AnnotatedText from 'app/components/events/meta/annotatedText';
@@ -12,7 +12,6 @@ import {IconInfo, IconOpen} from 'app/icons';
 import {Organization} from 'app/types';
 import {EventTag} from 'app/types/event';
 import {isUrl} from 'app/utils';
-import TraceHoverCard from 'app/utils/discover/traceHoverCard';
 
 import EventTagsPillValue from './eventTagsPillValue';
 
@@ -26,7 +25,6 @@ type Props = {
   streamPath: string;
   releasesPath: string;
   query: Query;
-  location: Location;
   organization: Organization;
   projectId: string;
   hasQueryFeature: boolean;
@@ -39,13 +37,10 @@ const EventTagsPill = ({
   projectId,
   streamPath,
   releasesPath,
-  location,
-  hasQueryFeature,
 }: Props) => {
   const locationSearch = `?${queryString.stringify(query)}`;
   const {key, value} = tag;
   const isRelease = key === 'release';
-  const isTrace = key === 'trace';
   const name = !key ? <AnnotatedText value={key} meta={getMeta(tag, 'key')} /> : key;
   const type = !key ? 'error' : undefined;
 
@@ -75,22 +70,6 @@ const EventTagsPill = ({
             </Link>
           </VersionHoverCard>
         </div>
-      )}
-      {isTrace && hasQueryFeature && (
-        <TraceHoverCard
-          containerClassName="pill-icon"
-          traceId={value}
-          orgSlug={organization.slug}
-          location={location}
-        >
-          {({to}) => {
-            return (
-              <Link to={to}>
-                <IconOpen size="xs" css={iconStyle} />
-              </Link>
-            );
-          }}
-        </TraceHoverCard>
       )}
     </Pill>
   );
