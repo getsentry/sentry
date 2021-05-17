@@ -34,7 +34,7 @@ class ParameterValidationError(SentryAPIException):
     code = "parameter-validation-error"
 
     def __init__(self, message: str, context: Optional[List[str]] = None) -> None:
-        super().__init__(message=message, context=".".join(context))
+        super().__init__(message=message, context=".".join(context or []))
 
 
 class ProjectMoved(SentryAPIException):
