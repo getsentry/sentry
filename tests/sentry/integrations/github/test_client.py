@@ -119,3 +119,42 @@ class GitHubAppsClientTest(TestCase):
             source_url
             == "https://github.com/Test-Organization/foo/blob/master/src/sentry/integrations/github/client.py"
         )
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @responses.activate
+    def test_get_with_pagination(self, get_jwt):
+        responses.add(
+            method=responses.POST,
+            url="https://api.github.com/app/installations/1/access_tokens",
+            body='{"token": "12345token", "expires_at": "2030-01-01T00:00:00Z"}',
+            content_type="application/json",
+        )
+
+        url = f"https://api.github.com/repos/{self.repo.name}/assignees?per_page={self.client.page_size}"
+
+        responses.add(
+            method=responses.GET,
+            url=url,
+            json={"text": 200},
+            headers={"link": f'<{url}&page=2>; rel="next", <{url}&page=4>; rel="last"'},
+        )
+        responses.add(
+            method=responses.GET,
+            url=f"{url}&page=2",
+            json={"text": 200},
+            headers={"link": f'<{url}&page=3>; rel="next", <{url}&page=4>; rel="last"'},
+        )
+        responses.add(
+            method=responses.GET,
+            url=f"{url}&page=3",
+            json={"text": 200},
+            headers={"link": f'<{url}&page=4>; rel="next", <{url}&page=4>; rel="last"'},
+        )
+        responses.add(
+            method=responses.GET,
+            url=f"{url}&page=4",
+            json={"text": 200},
+        )
+        self.client.get_with_pagination(f"/repos/{self.repo.name}/assignees")
+        assert len(responses.calls) == 5
+        assert responses.calls[1].response.status_code == 200
