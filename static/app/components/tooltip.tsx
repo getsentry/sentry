@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import ReactDOM from 'react-dom';
 import {Manager, Popper, PopperArrowProps, PopperProps, Reference} from 'react-popper';
 import {SerializedStyles} from '@emotion/react';
@@ -116,9 +116,7 @@ class Tooltip extends React.Component<Props, State> {
 
   async componentDidMount() {
     if (IS_ACCEPTANCE_TEST) {
-      const TooltipStore = (
-        await import(/* webpackChunkName: "TooltipStore" */ 'app/stores/tooltipStore')
-      ).default;
+      const TooltipStore = (await import('app/stores/tooltipStore')).default;
       TooltipStore.addTooltip(this);
     }
   }
@@ -127,9 +125,7 @@ class Tooltip extends React.Component<Props, State> {
     const {usesGlobalPortal} = this.state;
 
     if (IS_ACCEPTANCE_TEST) {
-      const TooltipStore = (
-        await import(/* webpackChunkName: "TooltipStore" */ 'app/stores/tooltipStore')
-      ).default;
+      const TooltipStore = (await import('app/stores/tooltipStore')).default;
       TooltipStore.removeTooltip(this);
     }
     if (!usesGlobalPortal) {

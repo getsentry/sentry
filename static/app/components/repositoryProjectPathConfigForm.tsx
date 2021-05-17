@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import pick from 'lodash/pick';
 
 import {t} from 'app/locale';
@@ -24,7 +24,7 @@ type Props = {
   existingConfig?: RepositoryProjectPathConfig;
 };
 
-export default class RepositoryProjectPathConfigForm extends React.Component<Props> {
+export default class RepositoryProjectPathConfigForm extends Component<Props> {
   get initialData() {
     const {existingConfig, integration} = this.props;
     return {

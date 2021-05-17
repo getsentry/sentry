@@ -1,5 +1,5 @@
 ---
-created: '2021-05-03T12:50:46.615548Z'
+created: '2021-05-17T08:41:28.209882Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -18,6 +18,46 @@ app-depth-1:
           frame*
             function*
               "application_frame"
+        type (ignored because exception is synthetic (detected via exception type))
+          "EXC_BAD_INSTRUCTION / EXC_I386_INVOP"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: EXC_BAD_INSTRUCTION / EXC_I386_INVOP"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "3ff01ce959249abecc6bc8a8f1432b0b"
+  tree_label: "<entire stacktrace>"
+  component:
+    app-depth-max*
+      exception*
+        stacktrace*
+          frame*
+            function*
+              "application_frame"
+          frame* (marked as prefix frame by stack trace rule (category:malloc +sentinel +prefix))
+            function*
+              "malloc_zone_malloc"
+            package (ignored because function takes precedence)
+              "libsystem_malloc.dylib"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "nanov2_malloc"
+            package (ignored because function takes precedence)
+              "libsystem_malloc.dylib"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "nanov2_allocate"
+            package (ignored because function takes precedence)
+              "libsystem_malloc.dylib"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "nanov2_allocate_from_block"
+            package (ignored because function takes precedence)
+              "libsystem_malloc.dylib"
+          frame (ignored by stack trace rule (category:indirection -group))
+            function*
+              "nanov2_allocate_from_block.cold.1"
+            package (ignored because function takes precedence)
+              "libsystem_malloc.dylib"
         type (ignored because exception is synthetic (detected via exception type))
           "EXC_BAD_INSTRUCTION / EXC_I386_INVOP"
         value (ignored because stacktrace takes precedence)

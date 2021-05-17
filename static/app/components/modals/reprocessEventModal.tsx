@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
@@ -48,7 +48,7 @@ type State = {
   maxEvents?: number;
 };
 
-class ReprocessingEventModal extends React.Component<Props, State> {
+class ReprocessingEventModal extends Component<Props, State> {
   state: State = {maxEvents: undefined};
 
   handleSuccess = () => {
@@ -74,10 +74,8 @@ class ReprocessingEventModal extends React.Component<Props, State> {
     const title = t('Reprocess Events');
 
     return (
-      <React.Fragment>
-        <Header closeButton>
-          <span data-test-id="modal-title">{title}</span>
-        </Header>
+      <Fragment>
+        <Header closeButton>{title}</Header>
         <Body>
           <Introduction>
             {t(
@@ -125,7 +123,7 @@ class ReprocessingEventModal extends React.Component<Props, State> {
             />
           </Form>
         </Body>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

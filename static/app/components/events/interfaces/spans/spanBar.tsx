@@ -1,6 +1,6 @@
 import 'intersection-observer'; // this is a polyfill
 
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
 import Count from 'app/components/count';
@@ -38,19 +38,19 @@ import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {EventTransaction} from 'app/types/event';
 import {defined} from 'app/utils';
-import {TableDataRow} from 'app/utils/discover/discoverQuery';
 import * as QuickTraceContext from 'app/utils/performance/quickTrace/quickTraceContext';
 import {QuickTraceContextChildrenProps} from 'app/utils/performance/quickTrace/quickTraceContext';
 import {QuickTraceEvent, TraceError} from 'app/utils/performance/quickTrace/types';
 import {isTraceFull} from 'app/utils/performance/quickTrace/utils';
 
-import * as CursorGuideHandler from './cursorGuideHandler';
-import * as DividerHandlerManager from './dividerHandlerManager';
+import * as AnchorLinkManager from './anchorLinkManager';
 import {
   MINIMAP_CONTAINER_HEIGHT,
   MINIMAP_SPAN_BAR_HEIGHT,
   NUM_OF_SPANS_FIT_IN_MINI_MAP,
-} from './header';
+} from './constants';
+import * as CursorGuideHandler from './cursorGuideHandler';
+import * as DividerHandlerManager from './dividerHandlerManager';
 import * as ScrollbarManager from './scrollbarManager';
 import SpanDetail from './spanDetail';
 import {ParsedTraceType, ProcessedSpanType, TreeDepthType} from './types';
@@ -182,7 +182,6 @@ const MARGIN_LEFT = 0;
 
 type SpanBarProps = {
   event: Readonly<EventTransaction>;
-  orgId: string;
   organization: Organization;
   trace: Readonly<ParsedTraceType>;
   span: Readonly<ProcessedSpanType>;
@@ -198,8 +197,6 @@ type SpanBarProps = {
   isRoot?: boolean;
   toggleSpanTree: () => void;
   isCurrentSpanFilteredOut: boolean;
-  totalNumberOfErrors: number;
-  spanErrors: TableDataRow[];
 };
 
 type SpanBarState = {
@@ -234,43 +231,52 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     }));
   };
 
+  scrollIntoView = () => {
+    const element = this.spanRowDOMRef.current;
+    if (!element) {
+      return;
+    }
+    const boundingRect = element.getBoundingClientRect();
+    const offset = boundingRect.top + window.scrollY - MINIMAP_CONTAINER_HEIGHT;
+    this.setState({showDetail: true}, () => window.scrollTo(0, offset));
+  };
+
   renderDetail({
     isVisible,
     transactions,
     errors,
   }: {
     isVisible: boolean;
-    transactions: QuickTraceEvent[];
-    errors: TraceError[];
+    transactions: QuickTraceEvent[] | null;
+    errors: TraceError[] | null;
   }) {
-    if (!this.state.showDetail || !isVisible) {
-      return null;
-    }
-
-    const {
-      span,
-      orgId,
-      organization,
-      isRoot,
-      trace,
-      totalNumberOfErrors,
-      spanErrors,
-      event,
-    } = this.props;
+    const {span, organization, isRoot, trace, event} = this.props;
 
     return (
-      <SpanDetail
-        span={span}
-        orgId={orgId}
-        organization={organization}
-        event={event}
-        isRoot={!!isRoot}
-        trace={trace}
-        totalNumberOfErrors={totalNumberOfErrors}
-        spanErrors={spanErrors}
-        childTransactions={transactions}
-        relatedErrors={errors}
-      />
+      <AnchorLinkManager.Consumer>
+        {({registerScrollFn, scrollToHash}) => {
+          if (!isGapSpan(span)) {
+            registerScrollFn(`#span-${span.span_id}`, this.scrollIntoView);
+          }
+
+          if (!this.state.showDetail || !isVisible) {
+            return null;
+          }
+
+          return (
+            <SpanDetail
+              span={span}
+              organization={organization}
+              event={event}
+              isRoot={!!isRoot}
+              trace={trace}
+              childTransactions={transactions}
+              relatedErrors={errors}
+              scrollToHash={scrollToHash}
+            />
+          );
+        }}
+      </AnchorLinkManager.Consumer>
     );
   }
 
@@ -488,10 +494,10 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
 
   renderTitle(
     scrollbarManagerChildrenProps: ScrollbarManager.ScrollbarManagerChildrenProps,
-    errors: TraceError[]
+    errors: TraceError[] | null
   ) {
     const {generateContentSpanBarRef} = scrollbarManagerChildrenProps;
-    const {span, treeDepth, spanErrors} = this.props;
+    const {span, treeDepth} = this.props;
 
     const operationName = getSpanOperation(span) ? (
       <strong>
@@ -504,7 +510,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     const description = span?.description ?? getSpanID(span);
 
     const left = treeDepth * (TOGGLE_BORDER_BOX / 2) + MARGIN_LEFT;
-    const errored = errors.length + spanErrors.length > 0;
+    const errored = Boolean(errors && errors.length > 0);
 
     return (
       <RowTitleContainer
@@ -766,38 +772,40 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     );
   }
 
-  getRelatedErrors(quickTrace: QuickTraceContextChildrenProps): TraceError[] {
+  getRelatedErrors(quickTrace: QuickTraceContextChildrenProps): TraceError[] | null {
     if (!quickTrace) {
-      return [];
+      return null;
     }
 
     const {span} = this.props;
     const {currentEvent} = quickTrace;
 
     if (isGapSpan(span) || !currentEvent || !isTraceFull(currentEvent)) {
-      return [];
+      return null;
     }
 
     return currentEvent.errors.filter(error => error.span === span.span_id);
   }
 
-  getChildTransactions(quickTrace: QuickTraceContextChildrenProps): QuickTraceEvent[] {
+  getChildTransactions(
+    quickTrace: QuickTraceContextChildrenProps
+  ): QuickTraceEvent[] | null {
     if (!quickTrace) {
-      return [];
+      return null;
     }
 
     const {span} = this.props;
     const {trace} = quickTrace;
 
     if (isGapSpan(span) || !trace) {
-      return [];
+      return null;
     }
 
     return trace.filter(({parent_span_id}) => parent_span_id === span.span_id);
   }
 
-  renderErrorBadge(errors: TraceError[]): React.ReactNode {
-    return errors.length ? <ErrorBadge /> : null;
+  renderErrorBadge(errors: TraceError[] | null): React.ReactNode {
+    return errors?.length ? <ErrorBadge /> : null;
   }
 
   renderWarningText({warningText}: {warningText?: string} = {}) {
@@ -819,7 +827,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   }: {
     dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps;
     scrollbarManagerChildrenProps: ScrollbarManager.ScrollbarManagerChildrenProps;
-    errors: TraceError[];
+    errors: TraceError[] | null;
   }) {
     const {span, spanBarColour, spanBarHatch, spanNumber} = this.props;
     const startTimestamp: number = span.start_timestamp;

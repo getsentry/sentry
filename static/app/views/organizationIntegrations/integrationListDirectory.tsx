@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
@@ -468,7 +468,7 @@ export class IntegrationListDirectory extends AsyncComponent<
     const categoryList = uniq(flatten(list.map(getCategoriesForIntegration))).sort();
 
     return (
-      <React.Fragment>
+      <Fragment>
         <SentryDocumentTitle title={title} orgSlug={orgId} />
 
         {!this.props.hideHeader && (
@@ -522,7 +522,7 @@ export class IntegrationListDirectory extends AsyncComponent<
             )}
           </PanelBody>
         </Panel>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

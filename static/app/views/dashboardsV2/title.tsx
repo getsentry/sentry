@@ -1,17 +1,18 @@
-import React from 'react';
-
 import EditableText from 'app/components/editableText';
 import {t} from 'app/locale';
+import {Organization} from 'app/types';
+import withOrganization from 'app/utils/withOrganization';
 
 import {DashboardDetails} from './types';
 
 type Props = {
   dashboard: DashboardDetails | null;
   isEditing: boolean;
+  organization: Organization;
   onUpdate: (dashboard: DashboardDetails) => void;
 };
 
-function DashboardTitle({dashboard, isEditing, onUpdate}: Props) {
+function DashboardTitle({dashboard, isEditing, organization, onUpdate}: Props) {
   return (
     <div>
       {!dashboard ? (
@@ -19,7 +20,12 @@ function DashboardTitle({dashboard, isEditing, onUpdate}: Props) {
       ) : (
         <EditableText
           isDisabled={!isEditing}
-          value={dashboard.title}
+          value={
+            organization.features.includes('dashboards-manage') &&
+            dashboard.id === 'default-overview'
+              ? 'Default Dashboard'
+              : dashboard.title
+          }
           onChange={newTitle => onUpdate({...dashboard, title: newTitle})}
           errorMessage={t('Please set a title for this dashboard')}
           successMessage={t('Dashboard title updated successfully')}
@@ -29,4 +35,4 @@ function DashboardTitle({dashboard, isEditing, onUpdate}: Props) {
   );
 }
 
-export default DashboardTitle;
+export default withOrganization(DashboardTitle);

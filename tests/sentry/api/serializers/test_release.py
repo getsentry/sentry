@@ -1,5 +1,7 @@
 from uuid import uuid4
 
+from rest_framework.exceptions import ErrorDetail
+
 from sentry import tagstore
 from sentry.api.endpoints.organization_releases import ReleaseSerializerWithProjects
 from sentry.api.serializers import serialize
@@ -464,7 +466,9 @@ class ReleaseRefsSerializerTest(TestCase):
         serializer = ReleaseSerializerWithProjects(data=data)
 
         assert not serializer.is_valid()
-        assert serializer.errors == {"refs": ["This field may not be null."]}
+        assert serializer.errors == {
+            "refs": [ErrorDetail("This field may not be null.", code="null")]
+        }
 
         # test good refs
         data = {

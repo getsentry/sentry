@@ -41,7 +41,7 @@ def get_grouping_config_dict_for_project(project, silent=True, secondary=False):
 
     # At a later point we might want to store additional information here
     # such as frames that mark the end of a stacktrace and more.
-    return {"id": config_id, "enhancements": _get_project_enhancements_config(project)}
+    return {"id": config_id, "enhancements": _get_project_enhancements_config(project, secondary)}
 
 
 def get_grouping_config_dict_for_event_data(data, project):

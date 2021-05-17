@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Access from 'app/components/acl/access';
@@ -18,14 +18,14 @@ type Props = {
   onDelete: (pathConfig: RepositoryProjectPathConfig) => void;
 };
 
-export default class RepositoryProjectPathConfigRow extends React.Component<Props> {
+export default class RepositoryProjectPathConfigRow extends Component<Props> {
   render() {
     const {pathConfig, project, onEdit, onDelete} = this.props;
 
     return (
       <Access access={['org:integrations']}>
         {({hasAccess}) => (
-          <React.Fragment>
+          <Fragment>
             <NameRepoColumn>
               <ProjectRepoHolder>
                 <RepoName>{pathConfig.repoName}</RepoName>
@@ -70,7 +70,7 @@ export default class RepositoryProjectPathConfigRow extends React.Component<Prop
                 </Confirm>
               </Tooltip>
             </ButtonColumn>
-          </React.Fragment>
+          </Fragment>
         )}
       </Access>
     );

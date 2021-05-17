@@ -39,9 +39,12 @@ def validate_association(
         sentry_items = [item.external_name for item in associations]
 
     diff = [str(item) for item in raw_items if item not in sentry_items]
+    unique_diff = list(dict.fromkeys(diff).keys())
 
-    if len(diff):
-        return [f'The following {type} do not have an association in Sentry: {", ".join(diff)}.']
+    if len(unique_diff):
+        return [
+            f'The following {type} do not have an association in Sentry: {", ".join(unique_diff)}.'
+        ]
 
     return []
 
@@ -162,7 +165,7 @@ class ProjectCodeOwnersMixin:
     def has_feature(self, request: Request, project: Project) -> bool:
         return bool(
             features.has(
-                "organizations:import-codeowners", project.organization, actor=request.user
+                "organizations:integrations-codeowners", project.organization, actor=request.user
             )
         )
 

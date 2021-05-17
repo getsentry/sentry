@@ -1,4 +1,4 @@
-import React, {Component} from 'react';
+import {Component, Fragment} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 
 import {switchOrganization} from 'app/actionCreators/organizations';
@@ -9,9 +9,9 @@ import ErrorBoundary from 'app/components/errorBoundary';
 import Footer from 'app/components/footer';
 import NarrowLayout from 'app/components/narrowLayout';
 import {t, tct} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import {Organization} from 'app/types';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
+import withOrganization from 'app/utils/withOrganization';
 import OrganizationContext from 'app/views/organizationContext';
 
 type InProgressProps = {
@@ -120,29 +120,30 @@ class DeletionPending extends Component<PendingProps, PendingState> {
   }
 }
 
-class OrganizationDetailsBody extends Component {
-  static contextTypes = {
-    organization: SentryTypes.Organization,
-  };
+type OrganizationDetailsProps = {
+  organization?: Organization;
+  children?: React.ReactNode;
+};
 
-  render() {
-    const {organization} = this.context;
-
-    if (organization && organization.status) {
-      if (organization.status.id === 'pending_deletion') {
-        return <DeletionPending organization={organization} />;
-      } else if (organization.status.id === 'deletion_in_progress') {
-        return <DeletionInProgress organization={organization} />;
-      }
+const OrganizationDetailsBody = withOrganization(function OrganizationDetailsBody({
+  children,
+  organization,
+}: OrganizationDetailsProps) {
+  if (organization?.status) {
+    if (organization.status.id === 'pending_deletion') {
+      return <DeletionPending organization={organization} />;
     }
-    return (
-      <React.Fragment>
-        <ErrorBoundary>{this.props.children}</ErrorBoundary>
-        <Footer />
-      </React.Fragment>
-    );
+    if (organization.status.id === 'deletion_in_progress') {
+      return <DeletionInProgress organization={organization} />;
+    }
   }
-}
+  return (
+    <Fragment>
+      <ErrorBoundary>{children}</ErrorBoundary>
+      <Footer />
+    </Fragment>
+  );
+});
 
 type Props = {
   detailed: boolean;

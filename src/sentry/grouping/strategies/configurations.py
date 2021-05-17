@@ -66,7 +66,9 @@ BASE_STRATEGY = create_strategy_configuration(
         # Remove platform differences in native frames
         "native_fuzzing": False,
         # Ignore exception types for native if they are platform specific error
-        # codes.
+        # codes. Normally SDKs are supposed to disable error-type grouping with
+        # the `synthetic` flag in the event, but a lot of error types we can
+        # also detect on the backend.
         "detect_synthetic_exception_types": False,
     },
 )

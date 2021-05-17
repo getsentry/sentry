@@ -1,4 +1,4 @@
-import React from 'react';
+import {PureComponent} from 'react';
 
 import Feature from 'app/components/acl/feature';
 import {Panel, PanelBody} from 'app/components/panels';
@@ -15,7 +15,7 @@ type Props = {
   userTeamIds: Set<string>;
 };
 
-class RuleNameOwnerForm extends React.PureComponent<Props> {
+class RuleNameOwnerForm extends PureComponent<Props> {
   render() {
     const {disabled, project, organization, userTeamIds} = this.props;
 

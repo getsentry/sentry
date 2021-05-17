@@ -314,7 +314,6 @@ def get_settings_by_provider(
 ) -> MutableMapping[
     ExternalProviders, MutableMapping[NotificationScopeType, NotificationSettingOptionValues]
 ]:
-
     output: MutableMapping[
         ExternalProviders, MutableMapping[NotificationScopeType, NotificationSettingOptionValues]
     ] = defaultdict(dict)

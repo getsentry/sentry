@@ -1,6 +1,6 @@
-import React from 'react';
+import * as React from 'react';
+import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 import map from 'lodash/map';
 
 import {Client} from 'app/api';
@@ -12,7 +12,6 @@ import FileSize from 'app/components/fileSize';
 import ExternalLink from 'app/components/links/externalLink';
 import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {
   ErrorDot,
   ErrorLevel,
@@ -22,17 +21,19 @@ import {
 } from 'app/components/performance/waterfall/rowDetails';
 import Pill from 'app/components/pill';
 import Pills from 'app/components/pills';
-import {generateIssueEventTarget} from 'app/components/quickTrace/utils';
+import {
+  generateIssueEventTarget,
+  generateTraceTarget,
+} from 'app/components/quickTrace/utils';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
-import {IconChevron, IconWarning} from 'app/icons';
-import {t, tct, tn} from 'app/locale';
+import {IconAnchor, IconChevron, IconWarning} from 'app/icons';
+import {t, tn} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {EventTransaction} from 'app/types/event';
 import {assert} from 'app/types/utils';
-import {TableDataRow} from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
-import {eventDetailsRoute, generateEventSlug} from 'app/utils/discover/urls';
+import {generateEventSlug} from 'app/utils/discover/urls';
 import getDynamicText from 'app/utils/getDynamicText';
 import {QuickTraceEvent, TraceError} from 'app/utils/performance/quickTrace/types';
 import withApi from 'app/utils/withApi';
@@ -51,106 +52,29 @@ type TransactionResult = {
   id: string;
 };
 
-type Props = {
+type Props = WithRouterProps & {
   api: Client;
-  orgId: string;
   organization: Organization;
   event: Readonly<EventTransaction>;
   span: Readonly<ProcessedSpanType>;
   isRoot: boolean;
   trace: Readonly<ParsedTraceType>;
-  totalNumberOfErrors: number;
-  spanErrors: TableDataRow[];
-  childTransactions: QuickTraceEvent[];
-  relatedErrors: TraceError[];
+  childTransactions: QuickTraceEvent[] | null;
+  relatedErrors: TraceError[] | null;
+  scrollToHash: (hash: string) => void;
 };
 
 type State = {
-  transactionResults?: TransactionResult[];
   errorsOpened: boolean;
 };
 
 class SpanDetail extends React.Component<Props, State> {
   state: State = {
-    transactionResults: undefined,
     errorsOpened: false,
   };
 
-  componentDidMount() {
-    const {span} = this.props;
-
-    if (isGapSpan(span)) {
-      return;
-    }
-
-    this.fetchSpanDescendents(span.span_id, span.trace_id)
-      .then(response => {
-        if (!response.data || !Array.isArray(response.data)) {
-          return;
-        }
-
-        this.setState({
-          transactionResults: response.data,
-        });
-      })
-      .catch(error => {
-        Sentry.captureException(error);
-      });
-  }
-
-  fetchSpanDescendents(
-    spanID: string,
-    traceID: string
-  ): Promise<{data: TransactionResult[]}> {
-    const {api, organization, childTransactions, trace, event} = this.props;
-
-    // Skip doing a request if the results will be behind a disabled button.
-    if (!organization.features.includes('discover-basic')) {
-      return Promise.resolve({data: []});
-    }
-
-    // Quick trace found some results that we can use to link to child
-    // spans without making additional queries.
-    if (childTransactions.length) {
-      return Promise.resolve({
-        data: childTransactions.map(child => ({
-          'project.name': child.project_slug,
-          transaction: child.transaction,
-          'trace.span': child.span_id,
-          id: child.event_id,
-        })),
-      });
-    }
-
-    const url = `/organizations/${organization.slug}/eventsv2/`;
-
-    const {start, end} = getParams(
-      getTraceDateTimeRange({
-        start: trace.traceStartTimestamp,
-        end: trace.traceEndTimestamp,
-      })
-    );
-
-    const query = {
-      field: ['transaction', 'id', 'trace.span'],
-      sort: ['-id'],
-      query: `event.type:transaction trace:${traceID} trace.parent_span:${spanID}`,
-      project: organization.features.includes('global-views')
-        ? [ALL_ACCESS_PROJECTS]
-        : [Number(event.projectID)],
-      referrer: 'api.trace-view.span-detail',
-      start,
-      end,
-    };
-
-    return api.requestPromise(url, {
-      method: 'GET',
-      query,
-    });
-  }
-
   renderTraversalButton(): React.ReactNode {
-    if (!this.state.transactionResults) {
+    if (!this.props.childTransactions) {
       // TODO: Amend size to use theme when we evetually refactor LoadingIndicator
       // 12px is consistent with theme.iconSizes['xs'] but theme returns a string.
       return (
@@ -160,7 +84,7 @@ class SpanDetail extends React.Component<Props, State> {
       );
     }
 
-    if (this.state.transactionResults.length <= 0) {
+    if (this.props.childTransactions.length <= 0) {
       return (
         <StyledDiscoverButton size="xsmall" disabled>
           {t('No Children')}
@@ -168,11 +92,11 @@ class SpanDetail extends React.Component<Props, State> {
       );
     }
 
-    const {span, orgId, trace, event, organization} = this.props;
+    const {span, trace, event, organization} = this.props;
 
     assert(!isGapSpan(span));
 
-    if (this.state.transactionResults.length === 1) {
+    if (this.props.childTransactions.length === 1) {
       // Note: This is rendered by this.renderSpanChild() as a dedicated row
       return null;
     }
@@ -208,7 +132,7 @@ class SpanDetail extends React.Component<Props, State> {
       <StyledDiscoverButton
         data-test-id="view-child-transactions"
         size="xsmall"
-        to={childrenEventView.getResultsViewUrlTarget(orgId)}
+        to={childrenEventView.getResultsViewUrlTarget(organization.slug)}
       >
         {t('View Children')}
       </StyledDiscoverButton>
@@ -216,17 +140,28 @@ class SpanDetail extends React.Component<Props, State> {
   }
 
   renderSpanChild(): React.ReactNode {
-    if (!this.state.transactionResults || this.state.transactionResults.length !== 1) {
+    const {childTransactions} = this.props;
+
+    if (!childTransactions || childTransactions.length !== 1) {
       return null;
     }
 
-    const eventSlug = generateSlug(this.state.transactionResults[0]);
+    const childTransaction = childTransactions[0];
+
+    const transactionResult: TransactionResult = {
+      'project.name': childTransaction.project_slug,
+      transaction: childTransaction.transaction,
+      'trace.span': childTransaction.span_id,
+      id: childTransaction.event_id,
+    };
+
+    const eventSlug = generateSlug(transactionResult);
 
     const viewChildButton = (
       <SpanEntryContext.Consumer>
         {({getViewChildTransactionTarget}) => {
           const to = getViewChildTransactionTarget({
-            ...this.state.transactionResults![0],
+            ...transactionResult,
             eventSlug,
           });
 
@@ -235,68 +170,32 @@ class SpanDetail extends React.Component<Props, State> {
           }
 
           return (
-            <StyledDiscoverButton
-              data-test-id="view-child-transaction"
-              size="xsmall"
-              to={to}
-            >
+            <StyledButton data-test-id="view-child-transaction" size="xsmall" to={to}>
               {t('View Transaction')}
-            </StyledDiscoverButton>
+            </StyledButton>
           );
         }}
       </SpanEntryContext.Consumer>
     );
 
-    const results = this.state.transactionResults[0];
-
     return (
       <Row title="Child Transaction" extra={viewChildButton}>
-        {`${results.transaction} (${results['project.name']})`}
+        {`${transactionResult.transaction} (${transactionResult['project.name']})`}
       </Row>
     );
   }
 
   renderTraceButton() {
-    const {span, orgId, organization, trace, event} = this.props;
-
-    const {start, end} = getTraceDateTimeRange({
-      start: trace.traceStartTimestamp,
-      end: trace.traceEndTimestamp,
-    });
+    const {span, organization, event} = this.props;
 
     if (isGapSpan(span)) {
       return null;
     }
 
-    const orgFeatures = new Set(organization.features);
-
-    const traceEventView = EventView.fromSavedQuery({
-      id: undefined,
-      name: `Transactions with Trace ID ${span.trace_id}`,
-      fields: [
-        'transaction',
-        'project',
-        'trace.span',
-        'transaction.duration',
-        'timestamp',
-      ],
-      orderby: '-timestamp',
-      query: `event.type:transaction trace:${span.trace_id}`,
-      projects: orgFeatures.has('global-views')
-        ? [ALL_ACCESS_PROJECTS]
-        : [Number(event.projectID)],
-      version: 2,
-      start,
-      end,
-    });
-
     return (
-      <StyledDiscoverButton
-        size="xsmall"
-        to={traceEventView.getResultsViewUrlTarget(orgId)}
-      >
-        {t('Search by Trace')}
-      </StyledDiscoverButton>
+      <StyledButton size="xsmall" to={generateTraceTarget(event, organization)}>
+        {t('View Trace')}
+      </StyledButton>
     );
   }
 
@@ -321,125 +220,40 @@ class SpanDetail extends React.Component<Props, State> {
   };
 
   renderSpanErrorMessage() {
-    const {
-      orgId,
-      spanErrors,
-      totalNumberOfErrors,
-      span,
-      trace,
-      organization,
-      event,
-      relatedErrors,
-    } = this.props;
+    const {span, organization, relatedErrors} = this.props;
     const {errorsOpened} = this.state;
 
-    /**
-     * Use the related errors as the default and fall back to span errors if this is
-     * empty. This fall back can be removed once trace navigation rollout is complete.
-     */
-    if (relatedErrors.length) {
-      return (
-        <Alert system type="error" icon={<IconWarning size="md" />}>
-          <ErrorMessageTitle>
-            {tn(
-              'An error event occurred in this transaction.',
-              '%s error events occurred in this transaction.',
-              relatedErrors.length
-            )}
-            <Toggle priority="link" onClick={this.toggleErrors}>
-              <IconChevron direction={errorsOpened ? 'up' : 'down'} />
-            </Toggle>
-          </ErrorMessageTitle>
-          {errorsOpened && (
-            <ErrorMessageContent>
-              {relatedErrors.map(error => (
-                <React.Fragment key={error.event_id}>
-                  <ErrorDot level={error.level} />
-                  <ErrorLevel>{error.level}</ErrorLevel>
-                  <ErrorTitle>
-                    <Link to={generateIssueEventTarget(error, organization)}>
-                      {error.title}
-                    </Link>
-                  </ErrorTitle>
-                </React.Fragment>
-              ))}
-            </ErrorMessageContent>
-          )}
-        </Alert>
-      );
-    }
-
-    if (spanErrors.length === 0 || totalNumberOfErrors === 0 || isGapSpan(span)) {
+    if (!relatedErrors || relatedErrors.length <= 0 || isGapSpan(span)) {
       return null;
     }
 
-    // invariant: spanErrors.length <= totalNumberOfErrors
-
-    const eventSlug = generateEventSlug(spanErrors[0]);
-
-    const {start, end} = getTraceDateTimeRange({
-      start: trace.traceStartTimestamp,
-      end: trace.traceEndTimestamp,
-    });
-
-    const orgFeatures = new Set(organization.features);
-
-    const errorsEventView = EventView.fromSavedQuery({
-      id: undefined,
-      name: `Error events associated with span ${span.span_id}`,
-      fields: ['title', 'project', 'issue', 'timestamp'],
-      orderby: '-timestamp',
-      query: `event.type:error trace:${span.trace_id} trace.span:${span.span_id}`,
-      projects: orgFeatures.has('global-views')
-        ? [ALL_ACCESS_PROJECTS]
-        : [Number(event.projectID)],
-      version: 2,
-      start,
-      end,
-    });
-
-    const target =
-      spanErrors.length === 1
-        ? {
-            pathname: eventDetailsRoute({
-              orgSlug: orgId,
-              eventSlug,
-            }),
-          }
-        : errorsEventView.getResultsViewUrlTarget(orgId);
-
-    const message =
-      totalNumberOfErrors === 1 ? (
-        <Link to={target}>
-          <span>{t('An error event occurred in this span.')}</span>
-        </Link>
-      ) : spanErrors.length === totalNumberOfErrors ? (
-        <div>
-          {tct('[link] occurred in this span.', {
-            link: (
-              <Link to={target}>
-                <span>{t('%d error events', totalNumberOfErrors)}</span>
-              </Link>
-            ),
-          })}
-        </div>
-      ) : (
-        <div>
-          {tct('[link] occurred in this span.', {
-            link: (
-              <Link to={target}>
-                <span>
-                  {t('%d out of %d error events', spanErrors.length, totalNumberOfErrors)}
-                </span>
-              </Link>
-            ),
-          })}
-        </div>
-      );
-
     return (
       <Alert system type="error" icon={<IconWarning size="md" />}>
-        {message}
+        <ErrorMessageTitle>
+          {tn(
+            'An error event occurred in this transaction.',
+            '%s error events occurred in this transaction.',
+            relatedErrors.length
+          )}
+          <Toggle priority="link" onClick={this.toggleErrors}>
+            <IconChevron direction={errorsOpened ? 'up' : 'down'} />
+          </Toggle>
+        </ErrorMessageTitle>
+        {errorsOpened && (
+          <ErrorMessageContent>
+            {relatedErrors.map(error => (
+              <React.Fragment key={error.event_id}>
+                <ErrorDot level={error.level} />
+                <ErrorLevel>{error.level}</ErrorLevel>
+                <ErrorTitle>
+                  <Link to={generateIssueEventTarget(error, organization)}>
+                    {error.title}
+                  </Link>
+                </ErrorTitle>
+              </React.Fragment>
+            ))}
+          </ErrorMessageContent>
+        )}
       </Alert>
     );
   }
@@ -460,6 +274,25 @@ class SpanDetail extends React.Component<Props, State> {
       nonSizeKeys,
     };
   }
+
+  scrollBarIntoView = (spanId: string) => (e: React.MouseEvent<HTMLAnchorElement>) => {
+    // do not use the default anchor behaviour
+    // because it will be hidden behind the minimap
+    e.preventDefault();
+
+    const hash = `#span-${spanId}`;
+
+    this.props.scrollToHash(hash);
+
+    // TODO(txiao): This is causing a rerender of the whole page,
+    // which can be slow.
+    //
+    // make sure to update the location
+    browserHistory.push({
+      ...this.props.location,
+      hash,
+    });
+  };
 
   renderSpanDetails() {
     const {span, event, organization} = this.props;
@@ -499,7 +332,19 @@ class SpanDetail extends React.Component<Props, State> {
         <SpanDetails>
           <table className="table key-value">
             <tbody>
-              <Row title="Span ID" extra={this.renderTraversalButton()}>
+              <Row
+                title={
+                  isGapSpan(span) ? (
+                    <SpanIdTitle>Span ID</SpanIdTitle>
+                  ) : (
+                    <SpanIdTitle onClick={this.scrollBarIntoView(span.span_id)}>
+                      Span ID
+                      <StyledIconAnchor />
+                    </SpanIdTitle>
+                  )
+                }
+                extra={this.renderTraversalButton()}
+              >
                 {span.span_id}
               </Row>
               <Row title="Parent Span ID">{span.parent_span_id || ''}</Row>
@@ -597,6 +442,12 @@ const StyledDiscoverButton = styled(DiscoverButton)`
   right: ${space(0.5)};
 `;
 
+const StyledButton = styled(Button)`
+  position: absolute;
+  top: ${space(0.75)};
+  right: ${space(0.5)};
+`;
+
 export const SpanDetailContainer = styled('div')`
   border-bottom: 1px solid ${p => p.theme.border};
   cursor: auto;
@@ -639,15 +490,29 @@ const Toggle = styled(Button)`
   }
 `;
 
+const SpanIdTitle = styled('a')`
+  display: flex;
+  color: ${p => p.theme.textColor};
+  :hover {
+    color: ${p => p.theme.textColor};
+  }
+`;
+
+const StyledIconAnchor = styled(IconAnchor)`
+  display: block;
+  color: ${p => p.theme.gray300};
+  margin-left: ${space(1)};
+`;
+
 export const Row = ({
   title,
   keep,
   children,
   extra = null,
 }: {
-  title: string;
-  keep?: boolean;
+  title: JSX.Element | string | null;
   children: JSX.Element | string | null;
+  keep?: boolean;
   extra?: React.ReactNode;
 }) => {
   if (!keep && !children) {
@@ -701,4 +566,4 @@ function generateSlug(result: TransactionResult): string {
   });
 }
 
-export default withApi(SpanDetail);
+export default withApi(withRouter(SpanDetail));

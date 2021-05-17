@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 
 import Access from 'app/components/acl/access';
 import Alert from 'app/components/alert';

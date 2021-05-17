@@ -1,5 +1,6 @@
 import pytest
 
+from sentry.models import GroupHash
 from sentry.testutils.helpers import Feature
 
 
@@ -37,7 +38,7 @@ def store_stacktrace(default_project, factories):
 
 @pytest.mark.django_db
 @pytest.mark.snuba
-def test_basic(client, default_project, store_stacktrace, default_user, reset_snuba):
+def test_basic(client, default_project, store_stacktrace, reset_snuba):
     def _check_merged(seq):
         event1 = store_stacktrace(["foo", "bar", "baz"])
         event2 = store_stacktrace(["foo", "bam", "baz"])
@@ -129,7 +130,7 @@ def test_basic(client, default_project, store_stacktrace, default_user, reset_sn
 
 @pytest.mark.django_db
 @pytest.mark.snuba
-def test_split_everything(client, default_project, store_stacktrace, default_user, reset_snuba):
+def test_split_everything(client, default_project, store_stacktrace, reset_snuba):
     """
     We have two events in one group, one has a stacktrace that is a suffix of
     the other. This presents an edgecase where it is legitimate to split up the
@@ -150,20 +151,20 @@ def test_split_everything(client, default_project, store_stacktrace, default_use
     assert response.data == [
         {
             "childId": None,
+            "parentId": None,
             "eventCount": 1,
             "id": "bab925683e73afdb4dc4047397a7b36b",
             "label": "<entire stacktrace>",
             "latestEvent": response.data[0]["latestEvent"],
-            "parentId": None,
         },
         {
             "childId": "aa1c4037371150958f9ea22adb110bbc",
+            "parentId": None,
             "eventCount": 1,
             "id": "bab925683e73afdb4dc4047397a7b36b",
             "label": "foo",
             "childLabel": "<entire stacktrace>",
             "latestEvent": response.data[1]["latestEvent"],
-            "parentId": None,
         },
     ]
 
@@ -177,3 +178,86 @@ def test_split_everything(client, default_project, store_stacktrace, default_use
 
     event4 = store_stacktrace(["bar", "foo"])
     assert event4.group_id not in (event.group_id, event2.group_id, event3.group_id)
+
+
+@pytest.mark.django_db
+@pytest.mark.snuba
+def test_no_hash_twice(client, default_project, store_stacktrace, reset_snuba):
+    """
+    Regression test for a bug where we accidentally created too large arrays
+    for groupby in underlying Snuba query, leading to duplicated nodes in the
+    tree
+    """
+    event1 = store_stacktrace(["foo", "bar", "baz"])
+    event2 = store_stacktrace(["boo", "bar", "baz"])
+    assert event2.group_id == event1.group_id
+
+    url = f"/api/0/issues/{event1.group_id}/hashes/split/"
+
+    response = client.get(url, format="json")
+    assert response.status_code == 200
+    assert response.data == [
+        {
+            "childId": "ce6d941a9829057608a96725c201e636",
+            "parentId": None,
+            "childLabel": "bar | ...",
+            "eventCount": 2,
+            "id": "dc6e6375dcdf74132537129e6a182de7",
+            "label": "baz",
+            "latestEvent": response.data[0]["latestEvent"],
+        }
+    ]
+
+
+@pytest.mark.django_db
+@pytest.mark.snuba
+def test_materialized_hashes_missing(client, default_project, store_stacktrace, reset_snuba):
+    """
+    Test that we are able to show grouping breakdown if hashes are materialized
+    improperly. This can happen if there's a fallback grouping strategy, or due
+    to yet-to-be-discovered bugs in merge/unmerge. In those cases we pretend we
+    are at the outer level.
+
+    Also test if splitting up the group to the next level works.
+    """
+    event1 = store_stacktrace(["foo", "bar", "baz"])
+    event2 = store_stacktrace(["boo", "bam", "baz"])
+    assert event2.group_id == event1.group_id
+
+    GroupHash.objects.filter(group_id=event1.group_id).delete()
+
+    url = f"/api/0/issues/{event1.group_id}/hashes/split/"
+
+    response = client.get(url, format="json")
+    assert response.status_code == 200
+    assert response.data == [
+        {
+            "childId": "3d433234e3f52665a03e87b46e423534",
+            "parentId": None,
+            "childLabel": "bam | ...",
+            "eventCount": 1,
+            "id": "dc6e6375dcdf74132537129e6a182de7",
+            "label": "baz",
+            "latestEvent": response.data[0]["latestEvent"],
+        },
+        {
+            "childId": "ce6d941a9829057608a96725c201e636",
+            "parentId": None,
+            "childLabel": "bar | ...",
+            "eventCount": 1,
+            "id": "dc6e6375dcdf74132537129e6a182de7",
+            "label": "baz",
+            "latestEvent": response.data[1]["latestEvent"],
+        },
+    ]
+
+    response = client.put(
+        f"/api/0/issues/{event1.group_id}/hashes/split/?id=dc6e6375dcdf74132537129e6a182de7",
+    )
+    assert response.status_code == 200
+
+    # There should only be one grouphash associated with this group now, the
+    # split one.
+    gh = GroupHash.objects.get(group_id=event1.group_id)
+    assert gh.hash == "dc6e6375dcdf74132537129e6a182de7"
+    assert gh.state == GroupHash.State.SPLIT

@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -8,7 +8,13 @@ import Button from 'app/components/button';
 import ExternalLink from 'app/components/links/externalLink';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import {CodeOwners, Organization, Project, RepositoryProjectPathConfig} from 'app/types';
+import {
+  CodeOwners,
+  Integration,
+  Organization,
+  Project,
+  RepositoryProjectPathConfig,
+} from 'app/types';
 import routeTitleGen from 'app/utils/routeTitle';
 import AsyncView from 'app/views/asyncView';
 import Form from 'app/views/settings/components/forms/form';
@@ -28,6 +34,7 @@ type State = {
   ownership: null | any;
   codeMappings: RepositoryProjectPathConfig[];
   codeowners?: CodeOwners[];
+  integrations: Integration[];
 } & AsyncView['state'];
 
 class ProjectOwnership extends AsyncView<Props, State> {
@@ -42,26 +49,34 @@ class ProjectOwnership extends AsyncView<Props, State> {
       ['ownership', `/projects/${organization.slug}/${project.slug}/ownership/`],
       [
         'codeMappings',
-        `/organizations/${organization.slug}/code-mappings/?projectId=${project.id}`,
+        `/organizations/${organization.slug}/code-mappings/`,
+        {query: {projectId: project.id}},
+      ],
+      [
+        'integrations',
+        `/organizations/${organization.slug}/integrations/`,
+        {query: {features: ['codeowners']}},
       ],
     ];
-    if (organization.features.includes('import-codeowners')) {
+    if (organization.features.includes('integrations-codeowners')) {
       endpoints.push([
         'codeowners',
-        `/projects/${organization.slug}/${project.slug}/codeowners/?expand=codeMapping`,
+        `/projects/${organization.slug}/${project.slug}/codeowners/`,
+        {query: {expand: ['codeMapping']}},
       ]);
     }
     return endpoints;
   }
 
   handleAddCodeOwner = () => {
-    const {codeMappings} = this.state;
+    const {codeMappings, integrations} = this.state;
     openModal(modalProps => (
       <AddCodeOwnerModal
         {...modalProps}
         organization={this.props.organization}
         project={this.props.project}
         codeMappings={codeMappings}
+        integrations={integrations}
         onSave={this.handleCodeownerAdded}
       />
     ));
@@ -113,11 +128,11 @@ tags.sku_class:enterprise #enterprise`;
     const disabled = !organization.access.includes('project:write');
 
     return (
-      <React.Fragment>
+      <Fragment>
         <SettingsPageHeader
           title={t('Issue Owners')}
           action={
-            <React.Fragment>
+            <Fragment>
               <Button
                 to={{
                   pathname: `/organizations/${organization.slug}/issues/`,
@@ -127,7 +142,7 @@ tags.sku_class:enterprise #enterprise`;
               >
                 {t('View Issues')}
               </Button>
-              <Feature features={['import-codeowners']}>
+              <Feature features={['integrations-codeowners']}>
                 <CodeOwnerButton
                   onClick={this.handleAddCodeOwner}
                   size="small"
@@ -137,7 +152,7 @@ tags.sku_class:enterprise #enterprise`;
                   {t('Add Codeowner File')}
                 </CodeOwnerButton>
               </Feature>
-            </React.Fragment>
+            </Fragment>
           }
         />
         <PermissionAlert />
@@ -166,7 +181,7 @@ tags.sku_class:enterprise #enterprise`;
             </Button>,
           ]}
         />
-        <Feature features={['import-codeowners']}>
+        <Feature features={['integrations-codeowners']}>
           <CodeOwnersPanel
             codeowners={codeowners}
             onDelete={this.handleCodeownerDeleted}
@@ -224,7 +239,7 @@ tags.sku_class:enterprise #enterprise`;
             ]}
           />
         </Form>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

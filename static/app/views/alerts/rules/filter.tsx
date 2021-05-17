@@ -1,9 +1,9 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
 import CheckboxFancy from 'app/components/checkboxFancy/checkboxFancy';
 import DropdownButton from 'app/components/dropdownButton';
-import DropdownControl from 'app/components/dropdownControl';
+import DropdownControl, {Content} from 'app/components/dropdownControl';
 import {IconFilter} from 'app/icons';
 import {t, tn} from 'app/locale';
 import space from 'app/styles/space';
@@ -17,7 +17,8 @@ export type RenderProps = {
 type RenderFunc = (props: RenderProps) => React.ReactElement;
 
 type Props = {
-  header: string;
+  header: React.ReactElement;
+  headerLabel: string;
   onFilterChange: (filterSelection: Set<string>) => void;
   filterList: string[];
   children: RenderFunc;
@@ -50,7 +51,7 @@ class Filter extends React.Component<Props> {
   };
 
   render() {
-    const {children, header, filterList} = this.props;
+    const {children, header, headerLabel, filterList} = this.props;
     const checkedQuantity = this.getNumberOfActiveFilters();
 
     const dropDownButtonProps: Pick<DropdownButtonProps, 'children' | 'priority'> & {
@@ -77,6 +78,7 @@ class Filter extends React.Component<Props> {
       <DropdownControl
         menuWidth="240px"
         blendWithActor
+        alwaysRenderMenu={false}
         button={({isOpen, getActorProps}) => (
           <StyledDropdownButton
             {...getActorProps()}
@@ -90,28 +92,41 @@ class Filter extends React.Component<Props> {
           </StyledDropdownButton>
         )}
       >
-        <MenuContent>
-          <Header>
-            <span>{header}</span>
-            <CheckboxFancy
-              isChecked={checkedQuantity > 0}
-              isIndeterminate={
-                checkedQuantity > 0 && checkedQuantity !== filterList.length
-              }
-              onClick={event => {
-                event.stopPropagation();
-                this.toggleAllFilters();
-              }}
-            />
-          </Header>
-          {children({toggleFilter: this.toggleFilter})}
-        </MenuContent>
+        {({isOpen, getMenuProps}) => (
+          <MenuContent
+            {...getMenuProps()}
+            isOpen={isOpen}
+            blendCorner
+            alignMenu="left"
+            width="240px"
+          >
+            {isOpen && (
+              <React.Fragment>
+                {header}
+                <Header>
+                  <span>{headerLabel}</span>
+                  <CheckboxFancy
+                    isChecked={checkedQuantity > 0}
+                    isIndeterminate={
+                      checkedQuantity > 0 && checkedQuantity !== filterList.length
+                    }
+                    onClick={event => {
+                      event.stopPropagation();
+                      this.toggleAllFilters();
+                    }}
+                  />
+                </Header>
+                {children({toggleFilter: this.toggleFilter})}
+              </React.Fragment>
+            )}
+          </MenuContent>
+        )}
       </DropdownControl>
     );
   }
 }
 
-const MenuContent = styled('div')`
+const MenuContent = styled(Content)`
   max-height: 250px;
   overflow-y: auto;
 `;

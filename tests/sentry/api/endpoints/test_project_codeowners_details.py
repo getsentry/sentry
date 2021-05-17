@@ -1,6 +1,6 @@
 from django.urls import reverse
 
-from sentry.models import ProjectCodeOwners
+from sentry.models import Integration, ProjectCodeOwners
 from sentry.testutils import APITestCase
 
 
@@ -17,9 +17,16 @@ class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
         self.project = self.project = self.create_project(
             organization=self.organization, teams=[self.team], slug="bengal"
         )
+        self.integration = Integration.objects.create(
+            provider="github", name="GitHub", external_id="github:1"
+        )
+
+        self.integration.add_organization(self.organization, self.user)
         self.code_mapping = self.create_code_mapping(project=self.project)
-        self.external_user = self.create_external_user(external_name="@NisanthanNanthakumar")
-        self.external_team = self.create_external_team()
+        self.external_user = self.create_external_user(
+            external_name="@NisanthanNanthakumar", integration=self.integration
+        )
+        self.external_team = self.create_external_team(integration=self.integration)
         self.data = {
             "raw": "docs/*    @NisanthanNanthakumar   @getsentry/ecosystem\n",
         }
@@ -36,18 +43,18 @@ class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
         )
 
     def test_basic_delete(self):
-        with self.feature({"organizations:import-codeowners": True}):
+        with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.delete(self.url)
         assert response.status_code == 204
         assert not ProjectCodeOwners.objects.filter(id=str(self.codeowners.id)).exists()
 
     def test_basic_update(self):
-        self.create_external_team(external_name="@getsentry/frontend")
-        self.create_external_team(external_name="@getsentry/docs")
+        self.create_external_team(external_name="@getsentry/frontend", integration=self.integration)
+        self.create_external_team(external_name="@getsentry/docs", integration=self.integration)
         data = {
             "raw": "\n# cool stuff comment\n*.js                    @getsentry/frontend @NisanthanNanthakumar\n# good comment\n\n\n  docs/*  @getsentry/docs @getsentry/ecosystem\n\n"
         }
-        with self.feature({"organizations:import-codeowners": True}):
+        with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.put(self.url, data)
         assert response.status_code == 200
         assert response.data["id"] == str(self.codeowners.id)
@@ -62,7 +69,7 @@ class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
                 "codeowners_id": 1000,
             },
         )
-        with self.feature({"organizations:import-codeowners": True}):
+        with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.put(self.url, self.data)
         assert response.status_code == 404
         assert response.data == {"detail": "The requested resource does not exist"}
@@ -71,7 +78,7 @@ class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
         data = {
             "raw": "\n# cool stuff comment\n*.js                    @getsentry/frontend @NisanthanNanthakumar\n# good comment\n\n\n  docs/*  @getsentry/docs @getsentry/ecosystem\nsrc/sentry/*       @AnotherUser\n\n"
         }
-        with self.feature({"organizations:import-codeowners": True}):
+        with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.put(self.url, data)
         assert response.status_code == 400
         assert response.data == {
@@ -81,7 +88,7 @@ class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
         }
 
     def test_invalid_code_mapping_id_update(self):
-        with self.feature({"organizations:import-codeowners": True}):
+        with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.put(self.url, {"codeMappingId": 500})
         assert response.status_code == 400
         assert response.data == {"codeMappingId": ["This code mapping does not exist."]}
@@ -89,14 +96,14 @@ class ProjectCodeOwnersDetailsEndpointTestCase(APITestCase):
     def test_no_duplicates_code_mappings(self):
         new_code_mapping = self.create_code_mapping(project=self.project, stack_root="blah")
         self.create_codeowners(project=self.project, code_mapping=new_code_mapping)
-        with self.feature({"organizations:import-codeowners": True}):
+        with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.put(self.url, {"codeMappingId": new_code_mapping.id})
             assert response.status_code == 400
             assert response.data == {"codeMappingId": ["This code mapping is already in use."]}
 
     def test_codeowners_email_update(self):
         data = {"raw": f"\n# cool stuff comment\n*.js {self.user.email}\n# good comment\n\n\n"}
-        with self.feature({"organizations:import-codeowners": True}):
+        with self.feature({"organizations:integrations-codeowners": True}):
             response = self.client.put(self.url, data)
         assert response.status_code == 200
         assert response.data["raw"] == "# cool stuff comment\n*.js admin@sentry.io\n# good comment"

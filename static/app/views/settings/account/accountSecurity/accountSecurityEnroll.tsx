@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import {RouteComponentProps, withRouter} from 'react-router';
 import styled from '@emotion/styled';
 import QRCode from 'qrcode.react';
@@ -379,13 +379,13 @@ class AccountSecurityEnroll extends AsyncView<Props, State> {
       : {};
 
     return (
-      <React.Fragment>
+      <Fragment>
         <SettingsPageHeader
           title={
-            <React.Fragment>
+            <Fragment>
               <span>{authenticator.name}</span>
               <CircleIndicator css={{marginLeft: 6}} enabled={authenticator.isEnrolled} />
-            </React.Fragment>
+            </Fragment>
           }
           action={
             authenticator.isEnrolled &&
@@ -411,7 +411,7 @@ class AccountSecurityEnroll extends AsyncView<Props, State> {
             <JsonForm forms={[{title: 'Configuration', fields: fields ?? []}]} />
           </Form>
         )}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }
