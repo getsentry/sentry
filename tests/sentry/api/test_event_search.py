@@ -130,13 +130,6 @@ class ParseSearchQueryTest(unittest.TestCase):
                 value=SearchValue(raw_value="e]"),
             ),
         ]
-        assert parse_search_query("test:[[h]]") == [
-            SearchFilter(
-                key=SearchKey(name="test"),
-                operator="=",
-                value=SearchValue(raw_value="[[h]]"),
-            ),
-        ]
         assert parse_search_query("test:[]") == [
             SearchFilter(
                 key=SearchKey(name="test"),
@@ -157,6 +150,20 @@ class ParseSearchQueryTest(unittest.TestCase):
                 operator="IN",
                 value=SearchValue(raw_value=["test@test.com", "hi", "1.0"]),
             )
+        ]
+        assert parse_search_query("test:[[h]]") == [
+            SearchFilter(
+                key=SearchKey(name="test"),
+                operator="IN",
+                value=SearchValue(raw_value=["[h]"]),
+            ),
+        ]
+        assert parse_search_query("test:[a, [h]]") == [
+            SearchFilter(
+                key=SearchKey(name="test"),
+                operator="IN",
+                value=SearchValue(raw_value=["a", "[h]"]),
+            ),
         ]
 
         assert parse_search_query("user.email:[test@test.com]user.email:hello@hello.com") == [
