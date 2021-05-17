@@ -18,12 +18,50 @@ class UserNotificationSettingsTestBase(APITestCase):
 
 class UserNotificationSettingsGetTest(UserNotificationSettingsTestBase):
     def test_simple(self):
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.ISSUE_ALERTS,
+            NotificationSettingOptionValues.NEVER,
+            user=self.user,
+        )
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.EMAIL,
+            NotificationSettingTypes.DEPLOY,
+            NotificationSettingOptionValues.NEVER,
+            user=self.user,
+            organization=self.org,
+        )
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.SLACK,
+            NotificationSettingTypes.DEPLOY,
+            NotificationSettingOptionValues.ALWAYS,
+            user=self.user,
+            organization=self.org,
+        )
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.SLACK,
+            NotificationSettingTypes.WORKFLOW,
+            NotificationSettingOptionValues.SUBSCRIBE_ONLY,
+            user=self.user,
+        )
+
+        with self.feature(FEATURE_NAMES):
+            response = self.get_success_response("me")
+
+        # Spot check.
+        assert response.data["alerts"]["user"][self.user.id]["email"] == "never"
+        assert response.data["deploy"]["organization"][self.org.id]["email"] == "never"
+        assert response.data["deploy"]["organization"][self.org.id]["slack"] == "always"
+        assert response.data["workflow"]["user"][self.user.id]["slack"] == "subscribe_only"
+
+    def test_notification_settings_empty(self):
         with self.feature(FEATURE_NAMES):
             response = self.get_success_response("me")
 
         # Spot check.
         assert response.data["alerts"]["user"][self.user.id]["email"] == "always"
         assert response.data["deploy"]["organization"][self.org.id]["email"] == "default"
+        assert response.data["deploy"]["organization"][self.org.id]["slack"] == "default"
         assert response.data["workflow"]["user"][self.user.id]["slack"] == "never"
 
     def test_type_querystring(self):

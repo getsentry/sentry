@@ -3,8 +3,8 @@ from typing import Any, Iterable, Mapping, MutableMapping, Optional, Set, Union
 
 from sentry.api.serializers import Serializer
 from sentry.models import NotificationSetting, Team, User
-from sentry.notifications.helpers import get_fallback_settings
-from sentry.notifications.types import NOTIFICATION_SETTING_DEFAULTS, NotificationSettingTypes
+from sentry.notifications.helpers import NOTIFICATION_SETTING_DEFAULTS, get_fallback_settings
+from sentry.notifications.types import NotificationSettingTypes
 
 
 class NotificationSettingsSerializer(Serializer):  # type: ignore

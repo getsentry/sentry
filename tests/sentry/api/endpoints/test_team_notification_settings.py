@@ -17,7 +17,7 @@ class TeamNotificationSettingsTestBase(APITestCase):
         _ = self.project  # Force creation.
 
 
-class UserNotificationSettingsGetTest(TeamNotificationSettingsTestBase):
+class TeamNotificationSettingsGetTest(TeamNotificationSettingsTestBase):
     def test_simple(self):
         with self.feature(FEATURE_NAMES):
             response = self.get_success_response(self.org.slug, self.team.slug)
@@ -25,7 +25,7 @@ class UserNotificationSettingsGetTest(TeamNotificationSettingsTestBase):
         # Spot check.
         assert response.data["alerts"]["project"][self.project.id]["email"] == "default"
         assert response.data["deploy"]["organization"][self.org.id]["email"] == "default"
-        assert response.data["workflow"]["project"][self.project.id]["slack"] == "never"
+        assert response.data["workflow"]["project"][self.project.id]["slack"] == "default"
 
     def test_type_querystring(self):
         with self.feature(FEATURE_NAMES):
@@ -54,7 +54,7 @@ class UserNotificationSettingsGetTest(TeamNotificationSettingsTestBase):
             self.get_error_response(other_org.slug, other_team.slug, status_code=403)
 
 
-class UserNotificationSettingsTest(TeamNotificationSettingsTestBase):
+class TeamNotificationSettingsTest(TeamNotificationSettingsTestBase):
     method = "put"
 
     def test_simple(self):

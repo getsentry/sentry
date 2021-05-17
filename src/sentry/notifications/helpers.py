@@ -2,7 +2,8 @@ from collections import defaultdict
 from typing import Any, Dict, Iterable, List, Mapping, MutableMapping, Optional, Set, Tuple, Union
 
 from sentry.notifications.types import (
-    NOTIFICATION_SCOPE_TYPE, NOTIFICATION_SETTING_OPTION_VALUES,
+    NOTIFICATION_SCOPE_TYPE,
+    NOTIFICATION_SETTING_OPTION_VALUES,
     NOTIFICATION_SETTING_TYPES,
     SUBSCRIPTION_REASON_MAP,
     VALID_VALUES_FOR_KEY,
@@ -11,14 +12,6 @@ from sentry.notifications.types import (
     NotificationSettingTypes,
 )
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
-
-# This mapping represents how to interpret the absence of a DB row for a given
-# provider. For example, a user with no NotificationSettings should be opted
-# into receiving emails but no Slack messages.
-AVAILABLE_PROVIDER_DEFAULTS = {
-    ExternalProviders.EMAIL: NotificationSettingOptionValues.DEFAULT,
-    ExternalProviders.SLACK: NotificationSettingOptionValues.NEVER,
-}
 
 # This mapping represents how to interpret the absence of a DB row for a given
 # provider. For example, a user with no NotificationSettings should be opted
@@ -370,7 +363,7 @@ def get_fallback_settings(
         str, MutableMapping[str, MutableMapping[int, MutableMapping[str, str]]]
     ] = defaultdict(lambda: defaultdict(lambda: defaultdict(dict)))
 
-    project_independent_value_str = NOTIFICATION_SETTING_OPTION_VALUES[
+    parent_independent_value_str = NOTIFICATION_SETTING_OPTION_VALUES[
         NotificationSettingOptionValues.DEFAULT
     ]
 
@@ -380,22 +373,19 @@ def get_fallback_settings(
         scope_str = NOTIFICATION_SCOPE_TYPE[scope_type]
         type_str = NOTIFICATION_SETTING_TYPES[type_enum]
 
-        for provider in AVAILABLE_PROVIDER_DEFAULTS.keys():
+        for provider in NOTIFICATION_SETTING_DEFAULTS.keys():
             provider_str = EXTERNAL_PROVIDERS[provider]
 
             parents = projects if scope_type == NotificationScopeType.PROJECT else organizations
             for parent in parents:
-                data[type_str][scope_str][parent.id][provider_str] = project_independent_value_str
+                data[type_str][scope_str][parent.id][provider_str] = parent_independent_value_str
 
             # Only users (i.e. not teams) have parent-independent notification settings.
             if user:
                 # Each provider has it's own defaults by type.
-                value = AVAILABLE_PROVIDER_DEFAULTS[provider]
-                if value == NotificationSettingOptionValues.DEFAULT:
-                    value = NOTIFICATION_SETTING_DEFAULTS[type_enum]
-
+                value = NOTIFICATION_SETTING_DEFAULTS[provider][type_enum]
                 value_str = NOTIFICATION_SETTING_OPTION_VALUES[value]
-                scope_str = NOTIFICATION_SCOPE_TYPE[NotificationScopeType.USER]
+                user_scope_str = NOTIFICATION_SCOPE_TYPE[NotificationScopeType.USER]
 
-                data[type_str][scope_str][user.id][provider_str] = value_str
+                data[type_str][user_scope_str][user.id][provider_str] = value_str
     return data

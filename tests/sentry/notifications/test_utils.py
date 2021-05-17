@@ -367,7 +367,7 @@ class NotificationHelpersTest(TestCase):
                 "project": {
                     self.project.id: {
                         "email": "default",
-                        "slack": "never",
+                        "slack": "default",
                     }
                 }
             }
