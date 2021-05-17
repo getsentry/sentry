@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
@@ -19,7 +19,7 @@ type State = {
   MD5?: any;
 };
 
-class Gravatar extends React.Component<Props, State> {
+class Gravatar extends Component<Props, State> {
   state: State = {
     MD5: undefined,
   };
@@ -27,7 +27,7 @@ class Gravatar extends React.Component<Props, State> {
   componentDidMount() {
     this._isMounted = true;
 
-    import(/* webpackChunkName: "MD5" */ 'crypto-js/md5')
+    import('crypto-js/md5')
       .then(mod => mod.default)
       .then(MD5 => {
         if (!this._isMounted) {

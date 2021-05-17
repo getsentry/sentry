@@ -1,5 +1,5 @@
 ---
-created: '2021-04-30T12:13:39.466342Z'
+created: '2021-05-05T18:04:40.482039Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -22,6 +22,49 @@ app-depth-2:
           filename*
             "foo.py"
         frame*
+          filename*
+            "bar.py"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "659ad79e2e70c822d30a53d7d889529e"
+  tree_label: "<entire stacktrace>"
+  component:
+    app-depth-max*
+      stacktrace*
+        frame*
+          filename*
+            "foo.py"
+        frame*
+          filename*
+            "bar.py"
+        frame (ignored due to recursion)
+          filename*
+            "bar.py"
+        frame (ignored due to recursion)
+          filename*
+            "bar.py"
+        frame (ignored due to recursion)
+          filename*
+            "bar.py"
+        frame (ignored due to recursion)
+          filename*
+            "bar.py"
+        frame (ignored due to recursion)
+          filename*
+            "bar.py"
+        frame (ignored due to recursion)
+          filename*
+            "bar.py"
+        frame (ignored due to recursion)
+          filename*
+            "bar.py"
+        frame (ignored due to recursion)
+          filename*
+            "bar.py"
+        frame (ignored due to recursion)
+          filename*
+            "bar.py"
+        frame (ignored due to recursion)
           filename*
             "bar.py"
 --------------------------------------------------------------------------

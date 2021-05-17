@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
 import GuideAnchor from 'app/components/assistant/guideAnchor';
@@ -7,7 +7,6 @@ import {pickBarColour} from 'app/components/performance/waterfall/utils';
 import {t, tct} from 'app/locale';
 import {Organization} from 'app/types';
 import {EventTransaction} from 'app/types/event';
-import {TableData} from 'app/utils/discover/discoverQuery';
 
 import {DragManagerChildrenProps} from './dragManager';
 import {ActiveOperationFilter} from './filter';
@@ -43,13 +42,11 @@ type RenderedSpanTree = {
 };
 
 type PropType = {
-  orgId: string;
   organization: Organization;
   trace: ParsedTraceType;
   dragProps: DragManagerChildrenProps;
   filterSpans: FilterSpans | undefined;
   event: EventTransaction;
-  spansWithErrors: TableData | null | undefined;
   operationNameFilters: ActiveOperationFilter;
   traceViewRef: React.RefObject<HTMLDivElement>;
 };
@@ -182,7 +179,7 @@ class SpanTree extends React.Component<PropType> {
     generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
     previousSiblingEndTimestamp: undefined | number;
   }): RenderedSpanTree => {
-    const {orgId, event, spansWithErrors, organization} = this.props;
+    const {event, organization} = this.props;
 
     const spanBarColour: string = pickBarColour(getSpanOperation(span));
     const spanChildren: Array<RawSpanType> = childSpans?.[getSpanID(span)] ?? [];
@@ -296,7 +293,6 @@ class SpanTree extends React.Component<PropType> {
     const spanGapComponent =
       isValidGap && isSpanDisplayed ? (
         <SpanGroup
-          orgId={orgId}
           organization={organization}
           event={event}
           spanNumber={spanNumber}
@@ -310,7 +306,6 @@ class SpanTree extends React.Component<PropType> {
           numOfSpanChildren={0}
           renderedSpanChildren={[]}
           isCurrentSpanFilteredOut={isCurrentSpanFilteredOut}
-          spansWithErrors={spansWithErrors}
           spanBarHatch
         />
       ) : null;
@@ -324,7 +319,6 @@ class SpanTree extends React.Component<PropType> {
           {infoMessage}
           {spanGapComponent}
           <SpanGroup
-            orgId={orgId}
             organization={organization}
             event={event}
             spanNumber={spanGroupNumber}
@@ -340,7 +334,6 @@ class SpanTree extends React.Component<PropType> {
             spanBarColour={spanBarColour}
             isCurrentSpanFilteredOut={isCurrentSpanFilteredOut}
             spanBarHatch={false}
-            spansWithErrors={spansWithErrors}
           />
         </React.Fragment>
       ),

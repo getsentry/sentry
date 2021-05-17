@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {WithRouterProps} from 'react-router/lib/withRouter';
 
 import {disablePlugin, enablePlugin, fetchPlugins} from 'app/actionCreators/plugins';

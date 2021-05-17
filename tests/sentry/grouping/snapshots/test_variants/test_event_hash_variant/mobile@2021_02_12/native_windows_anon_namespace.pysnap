@@ -1,5 +1,5 @@
 ---
-created: '2021-04-30T12:13:39.925209Z'
+created: '2021-05-17T08:41:29.052198Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -15,7 +15,7 @@ app-depth-1:
               "main.cpp"
             function*
               "`anonymous namespace'::crash"
-        type (ignored because exception is synthetic)
+        type (ignored because exception is synthetic (detected via exception type))
           "EXCEPTION_ACCESS_VIOLATION_WRITE"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
@@ -37,7 +37,7 @@ app-depth-2:
               "main.cpp"
             function*
               "`anonymous namespace'::crash"
-        type (ignored because exception is synthetic)
+        type (ignored because exception is synthetic (detected via exception type))
           "EXCEPTION_ACCESS_VIOLATION_WRITE"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
@@ -64,7 +64,44 @@ app-depth-3:
               "main.cpp"
             function*
               "`anonymous namespace'::crash"
-        type (ignored because exception is synthetic)
+        type (ignored because exception is synthetic (detected via exception type))
+          "EXCEPTION_ACCESS_VIOLATION_WRITE"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "3df8bc242dfdc7460b42fa529422630f"
+  tree_label: "<entire stacktrace>"
+  component:
+    app-depth-max*
+      exception*
+        stacktrace*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            filename (discarded native filename for grouping stability)
+              "exe_common.inl"
+            function*
+              "__scrt_common_main_seh"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            filename (discarded native filename for grouping stability)
+              "exe_common.inl"
+            function*
+              "invoke_main"
+          frame*
+            filename (discarded native filename for grouping stability)
+              "main.cpp"
+            function*
+              "main"
+          frame*
+            filename (discarded native filename for grouping stability)
+              "main.cpp"
+            function*
+              "`anonymous namespace'::start"
+          frame*
+            filename (discarded native filename for grouping stability)
+              "main.cpp"
+            function*
+              "`anonymous namespace'::crash"
+        type (ignored because exception is synthetic (detected via exception type))
           "EXCEPTION_ACCESS_VIOLATION_WRITE"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"

@@ -1,4 +1,3 @@
-import React from 'react';
 import {browserHistory} from 'react-router';
 import cloneDeep from 'lodash/cloneDeep';
 import range from 'lodash/range';
@@ -10,7 +9,6 @@ import ErrorRobot from 'app/components/errorRobot';
 import StreamGroup from 'app/components/stream/group';
 import GroupStore from 'app/stores/groupStore';
 import TagStore from 'app/stores/tagStore';
-import {logExperiment} from 'app/utils/analytics';
 import * as parseLinkHeader from 'app/utils/parseLinkHeader';
 import IssueListWithStores, {IssueListOverview} from 'app/views/issueList/overview';
 
@@ -21,7 +19,6 @@ jest.mock('app/components/stream/group', () => jest.fn(() => null));
 jest.mock('app/views/issueList/noGroupsHandler/congratsRobots', () =>
   jest.fn(() => null)
 );
-jest.mock('app/utils/analytics');
 
 const DEFAULT_LINKS_HEADER =
   '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575731:0:1>; rel="previous"; results="false"; cursor="1443575731:0:1", ' +
@@ -1684,7 +1681,6 @@ describe('IssueList', function () {
       organization.experiments = {InboxExperiment: 1};
       wrapper = mountWithTheme(<IssueListOverview {...props} />);
       expect(wrapper.find('IssueListHeader').exists()).toBeTruthy();
-      expect(logExperiment).toHaveBeenCalledTimes(1);
     });
 
     it('displays a count that represents the current page', function () {

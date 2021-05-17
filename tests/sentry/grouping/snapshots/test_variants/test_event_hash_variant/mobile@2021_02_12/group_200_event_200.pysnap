@@ -1,5 +1,5 @@
 ---
-created: '2021-04-08T09:28:25.221976Z'
+created: '2021-05-17T08:41:28.000515Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -25,7 +25,139 @@ app-depth-1:
               "destructor'"
             package (ignored because function takes precedence)
               "winhttp.dll"
-        type (ignored because exception is synthetic)
+        type (ignored because exception is synthetic (detected via exception type))
+          "EXCEPTION_ACCESS_VIOLATION_WRITE"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "6b9106347534a0018fe5f3d9993b3bb5"
+  tree_label: "<entire stacktrace>"
+  component:
+    app-depth-max*
+      exception*
+        stacktrace*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "RtlUserThreadStart"
+            package (ignored because function takes precedence)
+              "ntdll.dll"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "BaseThreadInitThunk"
+            package (ignored because function takes precedence)
+              "kernel32.dll"
+          frame*
+            function*
+              "TppWorkerThread"
+            package (ignored because function takes precedence)
+              "ntdll.dll"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "TppWorkpExecuteCallback"
+            package (ignored because function takes precedence)
+              "ntdll.dll"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "HTTP_THREAD_POOL::_StaticWorkItemCallback"
+            package (ignored because function takes precedence)
+              "winhttp.dll"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "HTTP_ASYNC_OVERLAPPED::OnWorkItem"
+            package (ignored because function takes precedence)
+              "winhttp.dll"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "WEBIO_REQUEST::OnIoComplete"
+            package (ignored because function takes precedence)
+              "winhttp.dll"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "HTTP_USER_REQUEST::OnSendRequest"
+            package (ignored because function takes precedence)
+              "winhttp.dll"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "HTTP_BASE_OBJECT::Dereference"
+            package (ignored because function takes precedence)
+              "winhttp.dll"
+          frame*
+            function*
+              "destructor'"
+            package (ignored because function takes precedence)
+              "winhttp.dll"
+          frame (ignored by stack trace rule (category:indirection -group))
+            function*
+              "HTTP_USER_REQUEST::~HTTP_USER_REQUEST"
+            package (ignored because function takes precedence)
+              "winhttp.dll"
+          frame*
+            function*
+              "destructor'"
+            package (ignored because function takes precedence)
+              "winhttp.dll"
+          frame* (marked as prefix frame by stack trace rule (category:free +sentinel +prefix))
+            function*
+              "RtlFreeHeap"
+            package (ignored because function takes precedence)
+              "ntdll.dll"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "memset"
+            package (ignored because function takes precedence)
+              "ntdll.dll"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "RtlpFreeUserBlock"
+            package (ignored because function takes precedence)
+              "ntdll.dll"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "RtlpFreeUserBlockToHeap"
+            package (ignored because function takes precedence)
+              "ntdll.dll"
+          frame* (marked as prefix frame by stack trace rule (category:free +sentinel +prefix))
+            function*
+              "RtlFreeHeap"
+            package (ignored because function takes precedence)
+              "ntdll.dll"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "RtlpFreeHeapInternal"
+            package (ignored because function takes precedence)
+              "ntdll.dll"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "RtlpFreeHeap"
+            package (ignored because function takes precedence)
+              "ntdll.dll"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "RtlEnterCriticalSection"
+            package (ignored because function takes precedence)
+              "ntdll.dll"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "RtlpEnterCriticalSectionContended"
+            package (ignored because function takes precedence)
+              "ntdll.dll"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "RtlpWaitOnCriticalSection"
+            package (ignored because function takes precedence)
+              "ntdll.dll"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "RtlpWaitOnAddress"
+            package (ignored because function takes precedence)
+              "ntdll.dll"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "RtlpOptimizeWaitOnAddressWaitList"
+            package (ignored because function takes precedence)
+              "ntdll.dll"
+        type (ignored because exception is synthetic (detected via exception type))
           "EXCEPTION_ACCESS_VIOLATION_WRITE"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXCEPTION_ACCESS_VIOLATION_WRITE"

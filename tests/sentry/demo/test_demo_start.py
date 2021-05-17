@@ -4,7 +4,7 @@ from django.core import signing
 from django.test.utils import override_settings
 from exam import fixture
 
-from sentry.demo.demo_start import MEMBER_ID_COOKIE
+from sentry.demo.demo_start import MEMBER_ID_COOKIE, SAAS_ORG_SLUG, SKIP_EMAIL_COOKIE
 from sentry.demo.models import DemoOrganization
 from sentry.demo.settings import DEMO_DATA_QUICK_GEN_PARAMS
 from sentry.models import Group, Organization, OrganizationStatus, Project, Release, User
@@ -137,5 +137,19 @@ class DemoStartTeset(TestCase):
     @mock.patch("sentry.demo.demo_org_manager.assign_demo_org")
     def test_skip_buffer(self, mock_assign_demo_org, mock_auth_login):
         mock_assign_demo_org.return_value = (self.org, self.user)
-        self.client.post(self.path, data={"skip_buffer": "1"})
+        self.client.post(self.path, data={"skipBuffer": "1"})
         mock_assign_demo_org.assert_called_once_with(skip_buffer=True)
+
+    @mock.patch("sentry.demo.demo_start.auth.login")
+    @mock.patch("sentry.demo.demo_org_manager.assign_demo_org")
+    def test_skip_email(self, mock_assign_demo_org, mock_auth_login):
+        mock_assign_demo_org.return_value = (self.org, self.user)
+        resp = self.client.post(self.path, data={"skipEmail": "1"})
+        assert resp.cookies[SKIP_EMAIL_COOKIE].value == "1"
+
+    @mock.patch("sentry.demo.demo_start.auth.login")
+    @mock.patch("sentry.demo.demo_org_manager.assign_demo_org")
+    def test_saas_org_slug(self, mock_assign_demo_org, mock_auth_login):
+        mock_assign_demo_org.return_value = (self.org, self.user)
+        resp = self.client.post(self.path, data={"saasOrgSlug": "my-org"})
+        assert resp.cookies[SAAS_ORG_SLUG].value == "my-org"

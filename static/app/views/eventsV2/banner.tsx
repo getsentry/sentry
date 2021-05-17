@@ -1,4 +1,3 @@
-import React from 'react';
 import styled from '@emotion/styled';
 
 import tourAlert from 'sentry-images/spot/discover-tour-alert.svg';

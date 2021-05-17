@@ -9,14 +9,12 @@ from sentry.utils.samples import load_data
 
 from .page_objects.transaction_summary import TransactionSummaryPage
 
-FEATURE_NAMES = (
-    "organizations:performance-view",
-    "organizations:measurements",
-)
+FEATURE_NAMES = ("organizations:performance-view",)
 
 
 def make_event(event_data):
     event_data["event_id"] = "c" * 32
+    event_data["contexts"]["trace"]["trace_id"] = "a" * 32
     return event_data
 
 

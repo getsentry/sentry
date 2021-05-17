@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import {Location, LocationDescriptor} from 'history';
 
 import Breadcrumbs, {Crumb} from 'app/components/breadcrumbs';
@@ -6,8 +6,8 @@ import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import {decodeScalar} from 'app/utils/queryString';
 
+import {vitalsRouteWithQuery} from './transactionSummary/transactionVitals/utils';
 import {transactionSummaryRouteWithQuery} from './transactionSummary/utils';
-import {vitalsRouteWithQuery} from './transactionVitals/utils';
 import {vitalDetailRouteWithQuery} from './vitalDetail/utils';
 import {getPerformanceLandingUrl} from './utils';
 
@@ -22,7 +22,7 @@ type Props = {
   realUserMonitoring?: boolean;
 };
 
-class Breadcrumb extends React.Component<Props> {
+class Breadcrumb extends Component<Props> {
   getCrumbs() {
     const crumbs: Crumb[] = [];
     const {

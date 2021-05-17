@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
 import {fetchOrgMembers} from 'app/actionCreators/members';
@@ -33,6 +33,7 @@ type Props = {
   projects: Project[];
   resolveThreshold: UnsavedIncidentRule['resolveThreshold'];
   thresholdType: UnsavedIncidentRule['thresholdType'];
+  aggregate: UnsavedIncidentRule['aggregate'];
   trigger: Trigger;
   triggerIndex: number;
   isCritical: boolean;
@@ -145,6 +146,7 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
       organization,
       triggers,
       thresholdType,
+      aggregate,
       resolveThreshold,
       projects,
       onThresholdTypeChange,
@@ -155,6 +157,13 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
       alertThreshold: resolveThreshold,
       actions: [],
     };
+
+    const thresholdUnits =
+      aggregate.includes('duration') || aggregate.includes('measurements')
+        ? 'ms'
+        : aggregate.includes('failure_rate')
+        ? '%'
+        : '';
 
     return (
       <React.Fragment>
@@ -171,21 +180,26 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
               error={errors && errors.get(index)}
               trigger={trigger}
               thresholdType={thresholdType}
+              aggregate={aggregate}
               resolveThreshold={resolveThreshold}
               organization={organization}
               projects={projects}
               triggerIndex={index}
               isCritical={isCritical}
-              fieldHelp={tct('The threshold that will activate the [severity] status.', {
-                severity: isCritical ? t('critical') : t('warning'),
-              })}
+              fieldHelp={tct(
+                'The threshold[units] that will activate the [severity] status.',
+                {
+                  severity: isCritical ? t('critical') : t('warning'),
+                  units: thresholdUnits ? ` (${thresholdUnits})` : '',
+                }
+              )}
               triggerLabel={
                 <React.Fragment>
                   <TriggerIndicator size={12} />
                   {isCritical ? t('Critical') : t('Warning')}
                 </React.Fragment>
               }
-              placeholder={isCritical ? '300' : t('None')}
+              placeholder={isCritical ? `300${thresholdUnits}` : t('None')}
               onChange={this.handleChangeTrigger(index)}
               onThresholdTypeChange={onThresholdTypeChange}
             />
@@ -199,12 +213,15 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
           trigger={resolveTrigger}
           // Flip rule thresholdType to opposite
           thresholdType={+!thresholdType}
+          aggregate={aggregate}
           resolveThreshold={resolveThreshold}
           organization={organization}
           projects={projects}
           triggerIndex={2}
           isCritical={false}
-          fieldHelp={t('The threshold that will activate the resolved status.')}
+          fieldHelp={tct('The threshold[units] that will activate the resolved status.', {
+            units: thresholdUnits ? ` (${thresholdUnits})` : '',
+          })}
           triggerLabel={
             <React.Fragment>
               <ResolvedIndicator size={12} />

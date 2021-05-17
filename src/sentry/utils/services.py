@@ -3,12 +3,12 @@ import inspect
 import itertools
 import logging
 import threading
-from typing import Tuple
+from typing import Any, Callable, Mapping, Optional, Sequence, Tuple, Type, TypeVar
 
 from django.utils.functional import LazyObject, empty
 
 from sentry.utils import metrics, warnings
-from sentry.utils.concurrent import FutureSet, ThreadedExecutor
+from sentry.utils.concurrent import Executor, FutureSet, ThreadedExecutor, TimedFuture
 
 from .imports import import_string
 
@@ -122,51 +122,43 @@ class Context:
         return Context(self.request, self.backends.copy())
 
 
-class ServiceDelegator(Service):
-    """\
-    This is backend that coordinates and delegates method execution to multiple
-    backends. It can be used to route requests to different backends based on
-    method arguments, as well as execute the same request against multiple
-    backends in parallel for testing backend performance and data consistency.
+Selector = Callable[
+    [Context, str, Mapping[str, Any]],
+    Sequence[str],
+]
 
-    The backends are provided as mapping of backend name to configuration
-    parameters:
+Callback = Callable[
+    [Context, str, Mapping[str, Any], Sequence[str], Sequence[TimedFuture]],
+    None,
+]
 
-        'redis': {
-            'path': 'sentry.tsdb.redis.RedisTSDB',
-            'executor': {
-                'path': 'sentry.utils.services.ThreadedExecutor',
-                'options': {
-                    'worker_count': 1,
-                },
-            },
-        },
-        'dummy': {
-            'path': 'sentry.tsdb.dummy.DummyTSDB',
-            'executor': {
-                'path': 'sentry.utils.services.ThreadedExecutor',
-                'options': {
-                    'worker_count': 4,
-                },
-            },
-        },
-        # ... etc ...
+T = TypeVar("T")
+
+
+class Delegator:
+    """
+    The delegator is a class that coordinates and delegates method execution to
+    multiple named backends that share a common API. It can be used to route
+    requests to different backends based on method arguments, as well as execute
+    the same request against multiple backends in parallel for testing backend
+    performance and data consistency.
 
     The backends used for a method call are determined by a selector function
-    which is provided with the current context, the method name (as a string)
-    and arguments (in the form returned by ``inspect.getcallargs``) and
+    which is provided with the current ``Context``, the method name (as a
+    string) and arguments (in the form returned by ``inspect.getcallargs``) and
     expected to return a list of strings which correspond to names in the
     backend mapping. (This list should contain at least one member.) The first
     item in the result list is considered the "primary backend". The remainder
     of the items in the result list are considered "secondary backends". The
     result value of the primary backend will be the result value of the
     delegated method (to callers, this appears as a synchronous method call.)
-    The secondary backends are called asynchronously in the background.  (To
-    receive the result values of these method calls, provide a callback_func,
-    described below.) If the primary backend name returned by the selector
-    function doesn't correspond to any registered backend, the function will
-    raise a ``InvalidBackend`` exception.  If any referenced secondary backends
-    are not registered names, they will be discarded and logged.
+    The secondary backends are called asynchronously in the background when
+    using threaded executors (the default.) To receive the result values of
+    these method calls, provide a callback, described below. If the primary
+    backend name returned by the selector function doesn't correspond to any
+    registered backend, the function will raise a ``InvalidBackend`` exception.
+    If any referenced secondary backends are not registered names, they will be
+    discarded and logged.
 
     The members and ordering of the selector function result (and thus the
     primary and secondary backends for a method call) may vary from call to
@@ -176,18 +168,24 @@ class ServiceDelegator(Service):
     undergoing testing may be included based on the result of a random number
     generator (essentially calling it in the background for a sample of calls.)
 
-    The selector function and callback function can be provided as either:
+    If provided, the callback is called after all futures have completed, either
+    successfully or unsuccessfully. The function parameters are:
 
-    - A dotted import path string (``path.to.callable``) that will be
-      imported at backend instantiation, or
-    - A reference to a callable object.
+    - the context,
+    - the method name (as a string),
+    - the calling arguments (as returned by ``inspect.getcallargs``),
+    - the backend names (as returned by the selector function),
+    - a list of results (as either a ``Future``, or ``None`` if the backend
+      was invalid) of the same length and ordering as the backend names.
 
     Implementation notes:
 
     - Only method access is delegated to the individual backends. Attribute
       values are returned from the base backend. Only methods that are defined
       on the base backend are eligible for delegation (since these methods are
-      considered the public API.)
+      considered the public API.) Ideally, backend classes are concrete classes
+      of the base abstract class, but this is not strictly enforced at runtime
+      with instance checks.
     - The backend makes no attempt to synchronize common backend option values
       between backends (e.g. TSDB rollup configuration) to ensure equivalency
       of request parameters based on configuration.
@@ -197,20 +195,28 @@ class ServiceDelegator(Service):
       access, etc.), it's recommended to specify a pool size of 1 to ensure
       exclusive access to resources. Each executor is started when the first
       task is submitted.
+    - The threaded executor does not use a bounded queue by default. If there
+      are large throughput differences between the primary and secondary
+      backend(s), a significant backlog may accumulate. In extreme cases, this can
+      lead to memory exhaustion.
     - The request is added to the request queue of the primary backend using a
       blocking put. The request is added to the request queue(s) of the
       secondary backend(s) as a non-blocking put (if these queues are full, the
       request is rejected and the future will raise ``Queue.Full`` when
       attempting to retrieve the result.)
-    - The ``callback_func`` is called after all futures have completed, either
-      successfully or unsuccessfully. The function parameters are:
-      - the context,
-      - the method name (as a string),
-      - the calling arguments (as returned by ``inspect.getcallargs``),
-      - the backend names (as returned by the selector function),
-      - a list of results (as either a ``Future``, or ``None`` if the backend
-        was invalid) of the same length and ordering as the backend names.
     """
+
+    def __init__(
+        self,
+        base: Type[T],
+        backends: Mapping[str, Tuple[T, Executor]],
+        selector: Selector,
+        callback: Optional[Callback] = None,
+    ) -> None:
+        self.base = base
+        self.backends = backends
+        self.selector = selector
+        self.callback = callback
 
     class InvalidBackend(Exception):
         """\
@@ -224,39 +230,6 @@ class ServiceDelegator(Service):
 
     __state = State()
 
-    def __init__(self, backend_base, backends, selector_func, callback_func=None):
-        self.__backend_base = import_string(backend_base)
-
-        def load_executor(options):
-            path = options.get("path")
-            if path is None:
-                executor_cls = ThreadedExecutor
-            else:
-                executor_cls = import_string(path)
-            return executor_cls(**options.get("options", {}))
-
-        self.__backends = {}
-        for name, options in backends.items():
-            self.__backends[name] = (
-                import_string(options["path"])(**options.get("options", {})),
-                load_executor(options.get("executor", {})),
-            )
-
-        self.__selector_func = resolve_callable(selector_func)
-
-        if callback_func is not None:
-            self.__callback_func = resolve_callable(callback_func)
-        else:
-            self.__callback_func = None
-
-    def validate(self):
-        for backend, executor in self.__backends.values():
-            backend.validate()
-
-    def setup(self):
-        for backend, executor in self.__backends.values():
-            backend.setup()
-
     def __getattr__(self, attribute_name):
         # When deciding how to handle attribute accesses, we have three
         # different possible outcomes:
@@ -266,11 +239,11 @@ class ServiceDelegator(Service):
         #    are able to (immediately) return that as the value. (This also
         #    mirrors the behavior of ``LazyServiceWrapper``, which will cache
         #    any attribute access during ``expose``, so we can't delegate
-        #    attribute access anyway.)
+        #    attribute access anyway when using this as a service interface.)
         # 3. If this isn't defined at all on the base implementation, we let
         #    the ``AttributeError`` raised by ``getattr`` propagate (mirroring
         #    normal attribute access behavior for a missing/invalid name.)
-        base_value = getattr(self.__backend_base, attribute_name)
+        base_value = getattr(self.base, attribute_name)
         if not inspect.isroutine(base_value):
             return base_value
 
@@ -287,8 +260,8 @@ class ServiceDelegator(Service):
 
             # If this thread already has an active backend for this base class,
             # we can safely call that backend synchronously without delegating.
-            if self.__backend_base in context.backends:
-                backend = context.backends[self.__backend_base]
+            if self.base in context.backends:
+                backend = context.backends[self.base]
                 return getattr(backend, attribute_name)(*args, **kwargs)
 
             # Binding the call arguments to named arguments has two benefits:
@@ -301,14 +274,14 @@ class ServiceDelegator(Service):
             #    arguments that are supported by all backends.
             callargs = inspect.getcallargs(base_value, None, *args, **kwargs)
 
-            selected_backend_names = list(self.__selector_func(context, attribute_name, callargs))
+            selected_backend_names = list(self.selector(context, attribute_name, callargs))
             if not len(selected_backend_names) > 0:
                 raise self.InvalidBackend("No backends returned by selector!")
 
             # Ensure that the primary backend is actually registered -- we
             # don't want to schedule any work on the secondaries if the primary
             # request is going to fail anyway.
-            if selected_backend_names[0] not in self.__backends:
+            if selected_backend_names[0] not in self.backends:
                 raise self.InvalidBackend(
                     f"{selected_backend_names[0]!r} is not a registered backend."
                 )
@@ -323,7 +296,7 @@ class ServiceDelegator(Service):
                 # Ensure that we haven't somehow accidentally entered a context
                 # where the backend we're calling has already been marked as
                 # active (or worse, some other backend is already active.)
-                base = self.__backend_base
+                base = self.base
                 assert base not in context.backends
 
                 # Mark the backend as active.
@@ -364,7 +337,7 @@ class ServiceDelegator(Service):
             results = [None] * len(selected_backend_names)
             for i, backend_name in enumerate(selected_backend_names[1:], 1):
                 try:
-                    backend, executor = self.__backends[backend_name]
+                    backend, executor = self.backends[backend_name]
                 except KeyError:
                     logger.warning(
                         "%r is not a registered backend and will be ignored.",
@@ -383,16 +356,16 @@ class ServiceDelegator(Service):
             # The primary backend is scheduled last since it may block the
             # calling thread. (We don't have to protect this from ``KeyError``
             # since we already ensured that the primary backend exists.)
-            backend, executor = self.__backends[selected_backend_names[0]]
+            backend, executor = self.backends[selected_backend_names[0]]
             results[0] = executor.submit(
                 functools.partial(call_backend_method, context.copy(), backend, is_primary=True),
                 priority=0,
                 block=True,
             )
 
-            if self.__callback_func is not None:
+            if self.callback is not None:
                 FutureSet([_f for _f in results if _f]).add_done_callback(
-                    lambda *a, **k: self.__callback_func(
+                    lambda *a, **k: self.callback(
                         context, attribute_name, callargs, selected_backend_names, results
                     )
                 )
@@ -400,3 +373,74 @@ class ServiceDelegator(Service):
             return results[0].result()
 
         return execute
+
+
+def build_instance_from_options(options, default_constructor=None):
+    try:
+        path = options["path"]
+    except KeyError:
+        if default_constructor:
+            constructor = default_constructor
+        else:
+            raise
+    else:
+        constructor = resolve_callable(path)
+
+    return constructor(**options.get("options", {}))
+
+
+class ServiceDelegator(Delegator, Service):
+    """\
+    The backends are provided as mapping of backend name to configuration
+    parameters:
+
+        'redis': {
+            'path': 'sentry.tsdb.redis.RedisTSDB',
+            'executor': {
+                'path': 'sentry.utils.services.ThreadedExecutor',
+                'options': {
+                    'worker_count': 1,
+                },
+            },
+        },
+        'dummy': {
+            'path': 'sentry.tsdb.dummy.DummyTSDB',
+            'executor': {
+                'path': 'sentry.utils.services.ThreadedExecutor',
+                'options': {
+                    'worker_count': 4,
+                },
+            },
+        },
+        # ... etc ...
+
+    The selector function and callback function can be provided as either:
+
+    - A dotted import path string (``path.to.callable``) that will be
+      imported at backend instantiation, or
+    - A reference to a callable object.
+    """
+
+    def __init__(self, backend_base, backends, selector_func, callback_func=None):
+        super().__init__(
+            import_string(backend_base),
+            {
+                name: (
+                    build_instance_from_options(options),
+                    build_instance_from_options(
+                        options.get("executor", {}), default_constructor=ThreadedExecutor
+                    ),
+                )
+                for name, options in backends.items()
+            },
+            resolve_callable(selector_func),
+            resolve_callable(callback_func) if callback_func is not None else None,
+        )
+
+    def validate(self):
+        for backend, executor in self.backends.values():
+            backend.validate()
+
+    def setup(self):
+        for backend, executor in self.backends.values():
+            backend.setup()

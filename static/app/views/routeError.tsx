@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -23,7 +23,7 @@ type Props = WithRouterProps & {
   project?: Project;
 };
 
-class RouteError extends React.Component<Props> {
+class RouteError extends Component<Props> {
   UNSAFE_componentWillMount() {
     const {error} = this.props;
     const {disableLogSentry, disableReport, organization, project, routes} = this.props;

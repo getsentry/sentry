@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component, createRef, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import AnnotatedText from 'app/components/events/meta/annotatedText';
@@ -16,13 +16,13 @@ type State = {
   hasOverflow: boolean;
 };
 
-class Summary extends React.Component<Props, State> {
+class Summary extends Component<Props, State> {
   state: State = {
     isExpanded: false,
     hasOverflow: false,
   };
 
-  summaryNode = React.createRef<HTMLDivElement>();
+  summaryNode = createRef<HTMLDivElement>();
 
   onToggle = () => {
     this.setState(prevState => ({
@@ -66,14 +66,14 @@ class Summary extends React.Component<Props, State> {
   render() {
     const {children} = this.props;
     return (
-      <React.Fragment>
+      <Fragment>
         <div onClick={this.onToggle} ref={this.summaryNode}>
           <StyledPre>
             <StyledCode>{children}</StyledCode>
           </StyledPre>
         </div>
         {this.renderData()}
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

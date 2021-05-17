@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import TextareaAutosize from 'react-autosize-textarea';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
@@ -7,7 +7,7 @@ import {inputStyles} from 'app/styles/input';
 import space from 'app/styles/space';
 
 type InputProps = Omit<Parameters<typeof inputStyles>[0], 'theme'>;
-type Props = React.TextareaHTMLAttributes<HTMLTextAreaElement> &
+type Props = Omit<React.TextareaHTMLAttributes<HTMLTextAreaElement>, 'css'> &
   InputProps & {
     /**
      * Enable autosizing of the textarea.
@@ -47,6 +47,7 @@ const TextArea = styled(TextAreaControl, {shouldForwardProp: propFilter})`
   ${p =>
     p.autosize &&
     `
+      height: auto;
       padding: calc(${space(1)} - 2px) ${space(1)};
       line-height: 1.6em;
     `}

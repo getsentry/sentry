@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {addSuccessMessage} from 'app/actionCreators/indicator';
@@ -15,7 +15,7 @@ type Props = {
  * It will display the installation ID after installation so users can copy it and paste it in Split's website.
  * We also have a link for users to click so they can go to Split's website.
  */
-export default class SplitInstallationIdModal extends React.Component<Props> {
+export default class SplitInstallationIdModal extends Component<Props> {
   onCopy = async () =>
     //This hack is needed because the normal copying methods with TextCopyInput do not work correctly
     await navigator.clipboard.writeText(this.props.installationId);

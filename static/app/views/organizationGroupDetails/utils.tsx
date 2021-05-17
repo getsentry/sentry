@@ -1,4 +1,3 @@
-import React from 'react';
 import orderBy from 'lodash/orderBy';
 
 import {bulkUpdate} from 'app/actionCreators/group';

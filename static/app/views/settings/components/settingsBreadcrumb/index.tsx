@@ -1,4 +1,4 @@
-import React from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 import createReactClass from 'create-react-class';
 import Reflux from 'reflux';
@@ -30,7 +30,7 @@ type Props = {
   route: any;
 };
 
-class SettingsBreadcrumb extends React.Component<Props> {
+class SettingsBreadcrumb extends Component<Props> {
   static defaultProps = {
     pathMap: {},
   };

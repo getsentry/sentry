@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import ProjectActions from 'app/actions/projectActions';
@@ -65,7 +65,7 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
     };
 
     return (
-      <React.Fragment>
+      <Fragment>
         <SettingsPageHeader title={t('Issue Grouping')} />
 
         <TextBlock>
@@ -120,7 +120,7 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
             onUpgrade={this.fetchData}
           />
         </Form>
-      </React.Fragment>
+      </Fragment>
     );
   }
 }

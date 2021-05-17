@@ -1,4 +1,4 @@
-import React, {MouseEvent} from 'react';
+import {MouseEvent} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
@@ -48,6 +48,7 @@ const MoreOptions = styled('span')`
 const DropdownTarget = styled('div')`
   display: flex;
   cursor: pointer;
+  padding: 0 5px;
 `;
 
 export default ContextMenu;

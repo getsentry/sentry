@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptor, Query} from 'history';
@@ -21,6 +21,7 @@ import {TableDataRow} from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
 import {
   getAggregateAlias,
+  isRelativeSpanOperationBreakdownField,
   SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'app/utils/discover/fields';
@@ -35,7 +36,7 @@ import {getTraceDetailsUrl} from 'app/views/performance/traceDetails/utils';
 import {
   PERCENTILE as VITAL_PERCENTILE,
   VITAL_GROUPS,
-} from 'app/views/performance/transactionVitals/constants';
+} from 'app/views/performance/transactionSummary/transactionVitals/constants';
 
 import {getTransactionDetailsUrl} from '../utils';
 
@@ -191,9 +192,13 @@ class SummaryContent extends React.Component<Props, State> {
         })
       );
 
-    const transactionsListTitles = organization.features.includes('trace-view-summary')
-      ? [t('event id'), t('user'), t('total duration'), t('trace id'), t('timestamp')]
-      : [t('event id'), t('user'), t('total duration'), t('timestamp')];
+    const transactionsListTitles = [
+      t('event id'),
+      t('user'),
+      t('total duration'),
+      t('trace id'),
+      t('timestamp'),
+    ];
 
     let transactionsListEventView = eventView.clone();
 
@@ -292,6 +297,28 @@ class SummaryContent extends React.Component<Props, State> {
               location={location}
               organization={organization}
               eventView={transactionsListEventView}
+              generateDiscoverEventView={() => {
+                const {selected} = getTransactionsListSort(location, {
+                  p95: totalValues?.p95 ?? 0,
+                  spanOperationBreakdownFilter,
+                });
+                const sortedEventView = transactionsListEventView.withSorts([
+                  selected.sort,
+                ]);
+
+                if (spanOperationBreakdownFilter === SpanOperationBreakdownFilter.None) {
+                  const fields = [
+                    // Remove the extra field columns
+                    ...sortedEventView.fields.slice(0, transactionsListTitles.length),
+                  ];
+
+                  // omit "Operation Duration" column
+                  sortedEventView.fields = fields.filter(({field}) => {
+                    return !isRelativeSpanOperationBreakdownField(field);
+                  });
+                }
+                return sortedEventView;
+              }}
               titles={transactionsListTitles}
               handleDropdownChange={this.handleTransactionsListSortChange}
               generateLink={{

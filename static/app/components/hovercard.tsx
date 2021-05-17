@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import ReactDOM from 'react-dom';
 import {Manager, Popper, PopperProps, Reference} from 'react-popper';
 import {keyframes} from '@emotion/react';

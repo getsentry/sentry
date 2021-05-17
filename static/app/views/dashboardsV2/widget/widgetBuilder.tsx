@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import {useEffect, useState} from 'react';
 import {RouteComponentProps} from 'react-router';
 
 import Alert from 'app/components/alert';
@@ -41,7 +41,9 @@ function WidgetBuilder({
   const {widgetId, orgId, dashboardId} = params;
 
   const goBackLocation = {
-    pathname: `/organizations/${orgId}/dashboards/${dashboardId}/`,
+    pathname: dashboardId
+      ? `/organizations/${orgId}/dashboard/${dashboardId}/`
+      : `/organizations/${orgId}/dashboards/new/`,
     query: {...location.query, dataSet: undefined},
   };
 

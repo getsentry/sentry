@@ -260,7 +260,7 @@ def find_missing_chunks(organization, chunks):
     """Returns a list of chunks which are missing for an org."""
     owned = set(
         FileBlobOwner.objects.filter(
-            blob__checksum__in=chunks, organization=organization
+            blob__checksum__in=chunks, organization_id=organization.id
         ).values_list("blob__checksum", flat=True)
     )
     return list(set(chunks) - owned)

@@ -1,4 +1,4 @@
-import React from 'react';
+import * as React from 'react';
 import styled from '@emotion/styled';
 
 import {formatAddress, parseAddress} from 'app/components/events/interfaces/utils';
@@ -127,8 +127,7 @@ const getAddresstextBorderBottom = (
 const Address = styled('span')<Partial<Props> & {canBeConverted: boolean}>`
   padding-left: ${p => (p.canBeConverted ? null : '18px')};
   border-bottom: ${getAddresstextBorderBottom};
-  max-width: 93px;
-  white-space: pre-wrap;
+  white-space: nowrap;
 `;
 
 const Wrapper = styled('span')`

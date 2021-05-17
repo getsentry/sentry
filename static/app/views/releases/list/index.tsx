@@ -1,9 +1,10 @@
-import React from 'react';
+import {Fragment} from 'react';
 import {forceCheck} from 'react-lazyload';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
+import Feature from 'app/components/acl/feature';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -17,8 +18,9 @@ import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {t} from 'app/locale';
 import {PageContent, PageHeader} from 'app/styles/organization';
 import space from 'app/styles/space';
-import {GlobalSelection, Organization, Release, ReleaseStatus} from 'app/types';
+import {GlobalSelection, Organization, Project, Release, ReleaseStatus} from 'app/types';
 import {defined} from 'app/utils';
+import Projects from 'app/utils/projects';
 import routeTitleGen from 'app/utils/routeTitle';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
@@ -27,6 +29,7 @@ import AsyncView from 'app/views/asyncView';
 import ReleaseArchivedNotice from '../detail/overview/releaseArchivedNotice';
 import ReleaseHealthRequest from '../utils/releaseHealthRequest';
 
+import ReleaseAdoptionChart from './releaseAdoptionChart';
 import ReleaseCard from './releaseCard';
 import ReleaseDisplayOptions from './releaseDisplayOptions';
 import ReleaseLanding from './releaseLanding';
@@ -263,25 +266,69 @@ class ReleasesList extends AsyncView<Props, State> {
         releasesReloading={reloading}
         healthStatsPeriod={location.query.healthStatsPeriod}
       >
-        {({isHealthLoading, getHealthData}) => (
-          <React.Fragment>
-            {releases.map((release, index) => (
-              <ReleaseCard
-                key={`${release.version}-${release.projects[0].slug}`}
-                activeDisplay={activeDisplay}
-                release={release}
-                organization={organization}
-                location={location}
-                selection={selection}
-                reloading={reloading}
-                showHealthPlaceholders={isHealthLoading}
-                isTopRelease={index === 0}
-                getHealthData={getHealthData}
-              />
-            ))}
-            <Pagination pageLinks={releasesPageLinks} />
-          </React.Fragment>
-        )}
+        {({isHealthLoading, getHealthData}) => {
+          const selectedProjectId =
+            selection.projects &&
+            selection.projects.length === 1 &&
+            selection.projects[0];
+          const selectedProject = organization.projects.find(
+            p => p.id === `${selectedProjectId}`
+          );
+
+          return (
+            <Fragment>
+              {selectedProject && (
+                <Feature features={['organizations:release-adoption-chart']}>
+                  <Projects orgId={organization.slug} slugs={[selectedProject.slug]}>
+                    {({projects, initiallyLoaded, fetchError}) => {
+                      const project =
+                        projects && projects.length === 1 ? projects[0] : null;
+
+                      if (
+                        fetchError ||
+                        !project ||
+                        !project.hasOwnProperty('features') ||
+                        !(project as Project).features.includes('releases')
+                      ) {
+                        return null;
+                      }
+
+                      const showPlaceholders = !initiallyLoaded || isHealthLoading;
+
+                      return (
+                        <ReleaseAdoptionChart
+                          organization={organization}
+                          selection={selection}
+                          releases={releases}
+                          project={project as Project}
+                          getHealthData={getHealthData}
+                          activeDisplay={activeDisplay}
+                          showPlaceholders={showPlaceholders}
+                        />
+                      );
+                    }}
+                  </Projects>
+                </Feature>
+              )}
+
+              {releases.map((release, index) => (
+                <ReleaseCard
+                  key={`${release.version}-${release.projects[0].slug}`}
+                  activeDisplay={activeDisplay}
+                  release={release}
+                  organization={organization}
+                  location={location}
+                  selection={selection}
+                  reloading={reloading}
+                  showHealthPlaceholders={isHealthLoading}
+                  isTopRelease={index === 0}
+                  getHealthData={getHealthData}
+                />
+              ))}
+              <Pagination pageLinks={releasesPageLinks} />
+            </Fragment>
+          );
+        }}
       </ReleaseHealthRequest>
     );
   }
