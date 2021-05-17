@@ -1,4 +1,10 @@
-__all__ = ["Feature", "OrganizationFeature", "ProjectFeature", "ProjectPluginFeature"]
+__all__ = [
+    "Feature",
+    "OrganizationFeature",
+    "ProjectFeature",
+    "ProjectPluginFeature",
+    "GlobalFeature",
+]
 
 
 class Feature:
@@ -22,3 +28,7 @@ class ProjectPluginFeature(ProjectFeature):
     def __init__(self, name, project, plugin):
         ProjectFeature.__init__(self, name, project)
         self.plugin = plugin
+
+
+class GlobalFeature(Feature):
+    pass
