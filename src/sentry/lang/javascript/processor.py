@@ -358,6 +358,7 @@ def _get_from_archive(url: str, archive: ReleaseArchive) -> bytes:
     raise KeyError(f"Not found in archive: '{url}'")
 
 
+@metrics.wraps("sourcemaps.fetch_release_artifact")
 def fetch_release_artifact(url, release, dist):
     """
     Get a release artifact either by extracting it or fetching it directly.
