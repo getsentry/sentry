@@ -11,6 +11,7 @@ from sentry.cache import default_cache
 from sentry.models import File, Organization, Release, ReleaseFile
 from sentry.models.releasefile import ReleaseArchive, merge_release_archives
 from sentry.tasks.base import instrumented_task
+from sentry.utils import metrics
 from sentry.utils.files import get_max_file_size
 from sentry.utils.sdk import bind_organization_context, configure_scope
 
@@ -192,7 +193,9 @@ def _simple_replace(old_file: File, new_file: File, new_archive: ReleaseArchive)
     return new_file
 
 
+@metrics.wraps("tasks.assemble.merge_archives")
 def _merge_archives(old_file: File, new_file: File, new_archive: ReleaseArchive):
+
     with ReleaseArchive(old_file.getfile()) as old_archive:
         buffer = BytesIO()
         merge_release_archives(old_archive, new_archive, buffer)
