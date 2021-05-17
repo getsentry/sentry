@@ -328,9 +328,9 @@ function generateBackendPerformanceEventView(
     fields: [
       'key_transaction',
       'transaction',
-      'http.method',
-      'transaction.op',
       'project',
+      'transaction.op',
+      'http.method',
       'tpm()',
       'p50()',
       'p95()',
@@ -448,8 +448,8 @@ function generateFrontendOtherPerformanceEventView(
     fields: [
       'key_transaction',
       'transaction',
-      'transaction.op',
       'project',
+      'transaction.op',
       'tpm()',
       'p50(transaction.duration)',
       'p75(transaction.duration)',
