@@ -12,7 +12,6 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.snuba import discover
 from sentry.utils.snuba import Dataset
 
-TAG_PAGE_MAX_TAG_VALUES = 5
 ALLOWED_AGGREGATE_COLUMNS = {
     "transaction.duration",
     "measurements.lcp",
@@ -154,6 +153,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpoint(
                     referrer=referrer,
                     orderby=self.get_orderby(request),
                     params=params,
+                    limit=limit,
                 )
 
                 if not results:
@@ -291,7 +291,7 @@ def query_facet_performance(
 
         if tag_key:
             conditions.append(["tags_key", "IN", [tag_key]])
-        tag_key_limit = TAG_PAGE_MAX_TAG_VALUES if tag_key else 1
+        tag_key_limit = limit if tag_key else 1
 
         tag_selected_columns = [
             [
