@@ -1352,6 +1352,13 @@ function routes() {
               }
               component={errorHandler(LazyLoad)}
             />
+            <Route
+              path="/organizations/:orgId/performance/summary/tags/"
+              componentPromise={() =>
+                import('app/views/performance/transactionSummary/transactionTags')
+              }
+              component={errorHandler(LazyLoad)}
+            />
           </Route>
           <Route
             path="/organizations/:orgId/performance/vitaldetail/"

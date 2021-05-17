@@ -1,5 +1,5 @@
 ---
-created: '2021-05-05T18:04:38.977894Z'
+created: '2021-05-17T08:41:27.197072Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -18,7 +18,7 @@ app-depth-1:
           frame*
             function*
               "stripped_application_code"
-        type (ignored because exception is synthetic)
+        type (ignored because exception is synthetic (detected via exception type))
           "EXC_BAD_ACCESS / 0x00000032"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXC_BAD_ACCESS / <hex>"
@@ -180,7 +180,7 @@ app-depth-max:
               "ImageLoaderMachOCompressed::rebase"
             package (ignored because function takes precedence)
               "dyld"
-        type (ignored because exception is synthetic)
+        type (ignored because exception is synthetic (detected via exception type))
           "EXC_BAD_ACCESS / 0x00000032"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXC_BAD_ACCESS / <hex>"

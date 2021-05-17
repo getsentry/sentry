@@ -1,5 +1,5 @@
 ---
-created: '2021-04-26T06:44:48.504933Z'
+created: '2021-05-13T22:16:37.389823Z'
 creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
@@ -13,7 +13,7 @@ config:
       - db
       - browser
       - resource
-      type: span_operations
+      type: spanOperations
   datascrubbingSettings:
     excludeFields: []
     scrubData: true
