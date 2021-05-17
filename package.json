@@ -26,7 +26,7 @@
     "@sentry/integrations": "6.4.0",
     "@sentry/react": "6.4.0",
     "@sentry/release-parser": "^0.6.0",
-    "@sentry/rrweb": "^0.1.1",
+    "@sentry/rrweb": "^0.3.1",
     "@sentry/tracing": "6.4.0",
     "@sentry/utils": "6.4.0",
     "@types/color": "^3.0.0",
