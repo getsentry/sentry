@@ -70,7 +70,7 @@ register(
     epoch_defaults={
         1: {
             "span_ops": {
-                "type": "spanOperations",
+                "type": "span_operations",
                 "matches": ["http", "db", "browser", "resource"],
             }
         },

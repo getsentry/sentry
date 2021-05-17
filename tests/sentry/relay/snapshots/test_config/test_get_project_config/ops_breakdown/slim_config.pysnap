@@ -1,19 +1,11 @@
 ---
-created: '2021-05-13T22:16:37.059214Z'
+created: '2021-04-26T06:44:48.135605Z'
 creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
 config:
   allowedDomains:
   - '*'
-  breakdowns:
-    span_ops:
-      matches:
-      - http
-      - db
-      - browser
-      - resource
-      type: spanOperations
   datascrubbingSettings:
     excludeFields: []
     scrubData: true
