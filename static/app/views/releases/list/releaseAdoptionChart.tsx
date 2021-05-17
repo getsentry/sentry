@@ -75,7 +75,7 @@ class ReleaseAdoptionChart extends React.PureComponent<Props, State> {
 
   renderEmpty() {
     return (
-      <ChartPanel>
+      <Panel>
         <ChartBody withPadding>
           <ChartHeader>
             <Placeholder height="24px" />
@@ -85,7 +85,7 @@ class ReleaseAdoptionChart extends React.PureComponent<Props, State> {
         <ChartFooter>
           <Placeholder height="24px" />
         </ChartFooter>
-      </ChartPanel>
+      </Panel>
     );
   }
 
@@ -135,7 +135,7 @@ class ReleaseAdoptionChart extends React.PureComponent<Props, State> {
     });
 
     return (
-      <ChartPanel>
+      <Panel>
         <ChartBody withPadding>
           <ChartHeader>
             <ChartTitle>
@@ -209,19 +209,15 @@ class ReleaseAdoptionChart extends React.PureComponent<Props, State> {
             })}
           </ChartFooter>
         }
-      </ChartPanel>
+      </Panel>
     );
   }
 }
 
 export default withApi(withRouter(ReleaseAdoptionChart));
 
-const ChartPanel = styled(Panel)`
-  margin-top: ${space(2)};
-`;
-
 const ChartHeader = styled('div')`
-  margin-bottom: ${space(3)};
+  margin-bottom: ${space(1)};
 `;
 
 const ChartTitle = styled('header')`
@@ -230,7 +226,7 @@ const ChartTitle = styled('header')`
 `;
 
 const ChartBody = styled(PanelBody)`
-  padding-right: 6px;
+  padding-bottom: 0;
 `;
 
 const ChartFooter = styled(PanelFooter)`
