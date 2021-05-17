@@ -234,6 +234,9 @@ def _store_single_files(archive: ReleaseArchive, meta: dict):
             kwargs = dict(meta, name=artifact_url)
             _upsert_release_file(file, None, _simple_replace, **kwargs)
 
+            # Count files extracted, to compare them to release files update
+            metrics.incr("tasks.assemble.extracted_file")
+
 
 @instrumented_task(name="sentry.tasks.assemble.assemble_artifacts", queue="assemble")
 def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
