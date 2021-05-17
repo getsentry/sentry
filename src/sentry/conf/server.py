@@ -124,7 +124,14 @@ DEVSERVICES_CONFIG_DIR = os.path.normpath(
     os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "config")
 )
 
-CLICKHOUSE_CONFIG_PATH = os.path.join(DEVSERVICES_CONFIG_DIR, "clickhouse", "config.xml")
+SENTRY_DISTRIBUTED_CLICKHOUSE_TABLES = False
+_common_clickhouse_settings = {
+    "image": "yandex/clickhouse-server:20.3.9.70",
+    "pull": True,
+    "ports": {"9000/tcp": 9000, "9009/tcp": 9009, "8123/tcp": 8123},
+    "ulimits": [{"name": "nofile", "soft": 262144, "hard": 262144}],
+    "environment": {"MAX_MEMORY_USAGE_RATIO": "0.3"},
+}
 
 RELAY_CONFIG_DIR = os.path.join(DEVSERVICES_CONFIG_DIR, "relay")
 
@@ -988,6 +995,8 @@ SENTRY_FEATURES = {
     "organizations:team-alerts-ownership": False,
     # Enable the new alert creation wizard
     "organizations:alert-wizard": True,
+    # Enable the adoption chart in the releases page
+    "organizations:release-adoption-chart": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
@@ -1572,6 +1581,15 @@ SENTRY_USE_CDC_DEV = False
 #     }
 # }
 
+POSTGRES_INIT_DB_VOLUME = (
+    {
+        os.path.join(CDC_CONFIG_DIR, "init_hba.sh"): {
+            "bind": "/docker-entrypoint-initdb.d/init_hba.sh"
+        }
+    }
+    if SENTRY_USE_CDC_DEV
+    else {}
+)
 
 SENTRY_DEVSERVICES = {
     "redis": {
@@ -1600,9 +1618,7 @@ SENTRY_DEVSERVICES = {
             "postgres": {"bind": "/var/lib/postgresql/data"},
             "wal2json": {"bind": "/wal2json"},
             CDC_CONFIG_DIR: {"bind": "/cdc"},
-            os.path.join(CDC_CONFIG_DIR, "init_hba.sh"): {
-                "bind": "/docker-entrypoint-initdb.d/init_hba.sh"
-            },
+            **POSTGRES_INIT_DB_VOLUME,
         },
         "command": [
             "postgres",
@@ -1613,7 +1629,7 @@ SENTRY_DEVSERVICES = {
             "-c",
             "max_wal_senders=1",
         ],
-        "entrypoint": "/cdc/postgres-entrypoint.sh",
+        "entrypoint": "/cdc/postgres-entrypoint.sh" if SENTRY_USE_CDC_DEV else None,
         "healthcheck": {
             "test": ["CMD", "pg_isready", "-U", "postgres"],
             "interval": 30000000000,  # Test every 30 seconds (in ns).
@@ -1653,23 +1669,24 @@ SENTRY_DEVSERVICES = {
         ),
     },
     "clickhouse": {
-        "image": "yandex/clickhouse-server:20.3.9.70",
-        "pull": True,
-        "ports": {"9000/tcp": 9000, "9009/tcp": 9009, "8123/tcp": 8123},
-        "ulimits": [{"name": "nofile", "soft": 262144, "hard": 262144}],
+        **_common_clickhouse_settings,
         "volumes": {
             "clickhouse": {"bind": "/var/lib/clickhouse"},
-            CLICKHOUSE_CONFIG_PATH: {"bind": "/etc/clickhouse-server/config.d/sentry.xml"},
+            os.path.join(DEVSERVICES_CONFIG_DIR, "clickhouse", "loc_config.xml"): {
+                "bind": "/etc/clickhouse-server/config.d/sentry.xml"
+            },
         },
-        "environment": {
-            # This limits Clickhouse's memory to 30% of the host memory
-            # If you have high volume and your search return incomplete results
-            # You might want to change this to a higher value (and ensure your host has enough memory)
-            "MAX_MEMORY_USAGE_RATIO": "0.3"
+        "only_if": lambda settings, options: (not settings.SENTRY_DISTRIBUTED_CLICKHOUSE_TABLES),
+    },
+    "clickhouse_dist": {
+        **_common_clickhouse_settings,
+        "volumes": {
+            "clickhouse_dist": {"bind": "/var/lib/clickhouse"},
+            os.path.join(DEVSERVICES_CONFIG_DIR, "clickhouse", "dist_config.xml"): {
+                "bind": "/etc/clickhouse-server/config.d/sentry.xml"
+            },
         },
-        "only_if": lambda settings, options: (
-            "snuba" in settings.SENTRY_EVENTSTREAM or "kafka" in settings.SENTRY_EVENTSTREAM
-        ),
+        "only_if": lambda settings, options: (settings.SENTRY_DISTRIBUTED_CLICKHOUSE_TABLES),
     },
     "snuba": {
         "image": "getsentry/snuba:nightly",
