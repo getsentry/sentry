@@ -235,6 +235,24 @@ class NotificationsManager(BaseManager):  # type: ignore
             target__in=[user.actor.id for user in users],
         )
 
+    def get_for_recipient_by_parent(
+        self,
+        type: NotificationSettingTypes,
+        parent: Any,
+        recipient: Any,
+    ) -> QuerySet:
+        """
+        Find all of a project/organization's notification settings for a recipient.
+        This will include each recipient's project/organization-independent settings.
+        """
+        scope_type = get_scope_type(type)
+        return self.filter(
+            scope_type=scope_type.value,
+            scope_identifier=parent.id,
+            type=type.value,
+            target=recipient.actor_id,
+        )
+
     def filter_to_subscribed_users(
         self,
         project: Any,
