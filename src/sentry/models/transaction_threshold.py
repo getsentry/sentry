@@ -30,7 +30,7 @@ class TransactionThreshold(Model):
 class ProjectTransactionThreshold(Model):
     __core__ = False
 
-    project = FlexibleForeignKey("sentry.Project", unique=True)
+    project = FlexibleForeignKey("sentry.Project", unique=True, db_constraint=False)
     organization = FlexibleForeignKey("sentry.Organization")
     threshold = models.IntegerField()
     metric = models.PositiveSmallIntegerField(default=TransactionMetric.DURATION.value)
