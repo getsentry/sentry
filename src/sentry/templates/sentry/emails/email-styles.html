@@ -156,6 +156,13 @@
     border-bottom: 1px solid #dee7eb;
   }
 
+  .header-with-buttons {
+    display: flex;
+    width: 100%;
+    justify-content: space-between;
+    align-items: center;
+  }
+
   .header table {
     margin-bottom: 0;
   }
@@ -878,6 +885,7 @@
       height:29px;
   }
 
+
   /* Commit list */
 
   .inner table.table.commit-list h4 {
@@ -928,6 +936,28 @@
 
   .well p {
     margin-bottom: 20px;
+  }
+
+  .logo-small {
+    width: 16px;
+    height: 16px;
+    margin-right: 8px;
+  }
+
+  .header-buttons {
+    display: flex;
+    width: 100%;
+    justify-content: flex-end;
+    height: fit-content;
+  }
+
+  .integration-link {
+    display: flex;
+    align-items: center;
+  }
+
+  .header-buttons .integration-link {
+    margin-right: 8px;
   }
 
   @media only screen and (max-device-width: 480px) {
