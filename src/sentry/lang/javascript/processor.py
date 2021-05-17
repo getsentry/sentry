@@ -376,8 +376,7 @@ def fetch_release_artifact(url, release, dist):
         except BaseException as exc:
             logger.error("Failed to read %s from release file %s: %s", url, release.id, exc)
         else:
-            # TODO: not sure if it is a good idea to pass the same headers here
-            return http.UrlResult(url, release_file.headers, body, 200, release_file.encoding)
+            return http.UrlResult(url, {}, body, 200, release_file.encoding)
 
     # Fall back to maintain compatibility with old releases and versions of
     # sentry-cli which upload files individually
