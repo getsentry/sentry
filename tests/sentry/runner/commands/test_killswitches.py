@@ -32,7 +32,10 @@ class KillswitchesTest(CliTestCase):
         )
 
         mock_edit.return_value = (
-            "- project_id: 42\n" "  event_type: transaction\n" "- project_id: 43\n"
+            "- project_id: 42\n"
+            "  event_type: transaction\n"
+            "- project_id: 43\n"
+            "  event_type: ~\n"
         )
 
         rv = self.invoke(

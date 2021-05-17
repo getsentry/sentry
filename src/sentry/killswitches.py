@@ -45,6 +45,19 @@ ALL_KILLSWITCH_OPTIONS = {
 }
 
 
+def validate_user_input(killswitch_name: str, option_value: Any) -> KillswitchConfig:
+    for condition in option_value:
+        valid_options = set(ALL_KILLSWITCH_OPTIONS[killswitch_name].fields)
+        used_options = set(condition)
+        if valid_options - used_options:
+            raise ValueError(f"Missing fields: {valid_options - used_options}")
+
+        if used_options - valid_options:
+            raise ValueError(f"Unknown fields: {used_options - valid_options}")
+
+    return normalize_value(option_value)
+
+
 def normalize_value(option_value: Any) -> KillswitchConfig:
     rv = []
     for condition in option_value:

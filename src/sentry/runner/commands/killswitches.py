@@ -60,11 +60,13 @@ def edit(killswitch):
             "#   (project_id = 43)\n"
             "#\n"
             f"# {killswitch}: {killswitches.ALL_KILLSWITCH_OPTIONS[killswitch].description}\n"
-            f"# Available fields:\n"
+            f"# Required fields:\n"
         )
 
         for field in killswitches.ALL_KILLSWITCH_OPTIONS[killswitch].fields:
             edit_text += f"#  - {field}\n"
+
+        edit_text += "# Wildcards can be specified such as `project_id: ~`"
 
         if option_value:
             edit_text += "\n"
@@ -74,7 +76,7 @@ def edit(killswitch):
         if edited_text is None:
             return option_value
 
-        return killswitches.normalize_value(yaml.safe_load(edited_text))
+        return killswitches.validate_user_input(killswitch, yaml.safe_load(edited_text))
 
     _safe_modify(killswitch, edit)
 
