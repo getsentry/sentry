@@ -156,7 +156,14 @@ register_strategy_config(
     base="newstyle:2019-10-29",
     risk=RISK_LEVEL_HIGH,
     changelog="""
-        * Experimentally producing multiple variants.
+        * Produces multiple levels of issue grouping that power issue breakdown.
+        * Filenames in native events are no longer used because they differ
+          between platforms, and package (dll basename) is used as fallback for a
+          frame if a function name is not available.
+        * Error codes (signals) on native/"synthetic" exceptions are now
+          ignored to paper over platform differences.
+        * Anonymous namespaces from different compilers now no longer result in
+          different issues.
     """,
     initial_context={
         "hierarchical_grouping": True,
