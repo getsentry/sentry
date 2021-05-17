@@ -249,7 +249,6 @@ function BaseChartUnwrapped({
   previousPeriod,
   echartsTheme,
   devicePixelRatio,
-  visualMap,
 
   showTimeInTooltip,
   useShortDate,
@@ -384,8 +383,6 @@ function BaseChartUnwrapped({
     dataZoom,
     graphic,
   };
-
-  chartOption.visualMap = visualMap as EChartOption.VisualMap[]; // TODO(ts): EChart types only allow an array whereas echart options accepts a single visual map object.
 
   const chartStyles = {
     height: getDimensionValue(height),

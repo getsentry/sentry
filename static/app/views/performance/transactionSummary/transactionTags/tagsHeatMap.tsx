@@ -110,7 +110,17 @@ const TagsHeatMap = (
         alignWithLabel: true,
       },
     } as any, // TODO(k-fish): Expand typing to allow data option
-    visualMap: {
+
+    grid: {
+      left: space(3),
+      right: space(3),
+      top: space(3),
+      bottom: space(4),
+    },
+  };
+
+  const visualMaps = [
+    {
       min: 0,
       max: maxCount,
       show: false,
@@ -120,14 +130,7 @@ const TagsHeatMap = (
         color: purples,
       },
     } as EChartOption.VisualMap,
-
-    grid: {
-      left: space(3),
-      right: space(3),
-      top: space(3),
-      bottom: space(4),
-    },
-  };
+  ];
 
   const series: Series[] = [];
 
@@ -164,7 +167,7 @@ const TagsHeatMap = (
       <TransitionChart loading={loading} reloading={reloading}>
         <TransparentLoadingMask visible={reloading} />
 
-        <HeatMapChart series={series} {...chartOptions} />
+        <HeatMapChart visualMaps={visualMaps} series={series} {...chartOptions} />
       </TransitionChart>
     </StyledPanel>
   );

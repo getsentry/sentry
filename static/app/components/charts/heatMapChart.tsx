@@ -1,3 +1,5 @@
+import './components/visualMap';
+
 import * as React from 'react';
 import {EChartOption} from 'echarts';
 
@@ -16,14 +18,18 @@ export type LineChartSeries = Series &
 type Props = Omit<ChartProps, 'series'> & {
   series: LineChartSeries[];
   seriesOptions?: EChartOption.SeriesHeatmap;
+  visualMaps: EChartOption.VisualMap[];
 };
 
 export default class HeatMapChart extends React.Component<Props> {
   render() {
-    const {series, seriesOptions, ...props} = this.props;
+    const {series, seriesOptions, visualMaps, ...props} = this.props;
 
     return (
       <BaseChart
+        options={{
+          visualMap: visualMaps,
+        }}
         {...props}
         series={series.map(({seriesName, data, dataArray, ...options}) =>
           HeatMapSeries({
