@@ -2,7 +2,6 @@ from collections import defaultdict
 from typing import Any, Dict, Iterable, List, Mapping, MutableMapping, Optional, Set, Tuple, Union
 
 from sentry.notifications.types import (
-    NOTIFICATION_SETTING_DEFAULTS,
     SUBSCRIPTION_REASON_MAP,
     VALID_VALUES_FOR_KEY,
     NotificationScopeType,
@@ -10,6 +9,22 @@ from sentry.notifications.types import (
     NotificationSettingTypes,
 )
 from sentry.types.integrations import ExternalProviders
+
+# This mapping represents how to interpret the absence of a DB row for a given
+# provider. For example, a user with no NotificationSettings should be opted
+# into receiving emails but no Slack messages.
+NOTIFICATION_SETTING_DEFAULTS = {
+    ExternalProviders.EMAIL: {
+        NotificationSettingTypes.DEPLOY: NotificationSettingOptionValues.COMMITTED_ONLY,
+        NotificationSettingTypes.ISSUE_ALERTS: NotificationSettingOptionValues.ALWAYS,
+        NotificationSettingTypes.WORKFLOW: NotificationSettingOptionValues.SUBSCRIBE_ONLY,
+    },
+    ExternalProviders.SLACK: {
+        NotificationSettingTypes.DEPLOY: NotificationSettingOptionValues.NEVER,
+        NotificationSettingTypes.ISSUE_ALERTS: NotificationSettingOptionValues.NEVER,
+        NotificationSettingTypes.WORKFLOW: NotificationSettingOptionValues.NEVER,
+    },
+}
 
 
 def _get_setting_mapping_from_mapping(
@@ -31,7 +46,10 @@ def _get_setting_mapping_from_mapping(
         if notification_setting_option:
             return notification_setting_option
 
-    return {ExternalProviders.EMAIL: NOTIFICATION_SETTING_DEFAULTS[type]}
+    return {
+        provider: NOTIFICATION_SETTING_DEFAULTS[provider][type]
+        for provider in [ExternalProviders.EMAIL]
+    }
 
 
 def where_should_user_be_notified(
@@ -95,29 +113,30 @@ def where_should_be_participating(
     ]
 
 
-def get_deploy_values_by_provider(
+def get_values_by_provider_by_type(
     notification_settings_by_scope: Mapping[
         NotificationScopeType, Mapping[ExternalProviders, NotificationSettingOptionValues]
     ],
     all_providers: Iterable[ExternalProviders],
+    type: NotificationSettingTypes,
 ) -> Mapping[ExternalProviders, NotificationSettingOptionValues]:
     """
     Given a mapping of scopes to a mapping of default and specific notification
     settings by provider, determine the notification setting by provider for
-    DEPLOY notifications.
+    the given notification type.
     """
-    organization_specific_mapping = notification_settings_by_scope.get(
-        NotificationScopeType.ORGANIZATION, {}
-    )
+    parent_scope = get_scope_type(type)
+
+    parent_specific_mapping = notification_settings_by_scope.get(parent_scope, {})
     organization_independent_mapping = notification_settings_by_scope.get(
         NotificationScopeType.USER, {}
     )
 
     return {
         provider: (
-            organization_specific_mapping.get(provider)
+            parent_specific_mapping.get(provider)
             or organization_independent_mapping.get(provider)
-            or NotificationSettingOptionValues.COMMITTED_ONLY
+            or NOTIFICATION_SETTING_DEFAULTS[provider][type]
         )
         for provider in all_providers
     }
