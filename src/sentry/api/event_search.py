@@ -120,14 +120,14 @@ aggregate_key    = key open_paren function_arg* closed_paren
 search_key       = key / quoted_key
 search_value     = quoted_value / value
 value            = ~r"[^()\s]*"
-in_value         = ~r"[^(),\s]*[^\],\s)]"
+in_value         = ~r"[^(),\s]*(?:[^],\s)]|](?=]))"
 numeric_value    = ~r"([-]?[0-9\.]+)([kmb])?(?=\s|\)|$|,|])"
 boolean_value    = ~r"(true|1|false|0)(?=\s|\)|$)"i
 quoted_value     = ~r"\"((?:[^\"]|(?<=\\)[\"])*)?\""s
 key              = ~r"[a-zA-Z0-9_\.-]+"
 function_arg     = ws key? comma? ws
 quoted_key       = ~r"\"([a-zA-Z0-9_\.:-]+)\""
-explicit_tag_key = "tags[" search_key "]"
+explicit_tag_key = "tags" open_bracket search_key closed_bracket
 text_key         = explicit_tag_key / search_key
 text_value       = quoted_value / in_value
 
@@ -146,7 +146,7 @@ and_operator         = ~r"AND(?![^\s])"i
 open_paren           = "("
 closed_paren         = ")"
 open_bracket         = "["
-closed_bracket       = ~r"\](?=\s|$)"
+closed_bracket       = "]"
 sep                  = ":"
 negation             = "!"
 comma                = ","
@@ -740,7 +740,7 @@ class SearchVisitor(NodeVisitor):
         return node.match.groups()[0]
 
     def visit_explicit_tag_key(self, node, children):
-        return SearchKey(f"tags[{children[1].name}]")
+        return SearchKey(f"tags[{children[2].name}]")
 
     def visit_text_key(self, node, children):
         return children[0]
