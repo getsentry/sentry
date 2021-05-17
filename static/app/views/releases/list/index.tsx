@@ -293,7 +293,7 @@ class ReleasesList extends AsyncView<Props, State> {
                         return null;
                       }
 
-                      const showPlaceholders = !initiallyLoaded || !isHealthLoading;
+                      const showPlaceholders = !initiallyLoaded || isHealthLoading;
 
                       return (
                         <ReleaseAdoptionChart
