@@ -237,7 +237,6 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
     """
     Creates release files from an uploaded artifact bundle.
     """
-
     try:
         organization = Organization.objects.get_from_cache(pk=org_id)
         bind_organization_context(organization)
@@ -293,7 +292,6 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
                 "release": release,
                 "dist": dist,
             }
-
             if features.has("organizations:release-archives", organization):
                 kwargs = dict(meta, name=RELEASE_ARCHIVE_FILENAME)
                 _upsert_release_file(bundle, archive, _merge_archives, **kwargs)

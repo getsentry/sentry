@@ -186,28 +186,37 @@ class AssembleArtifactsTest(BaseAssembleTest):
         blob1 = FileBlob.from_file(ContentFile(bundle_file))
         total_checksum = sha1(bundle_file).hexdigest()
 
-        assemble_artifacts(
-            org_id=self.organization.id,
-            version=self.release.version,
-            checksum=total_checksum,
-            chunks=[blob1.checksum],
-        )
+        for has_release_archives in (True, False):
+            with self.feature({"organizations:release-archives": has_release_archives}):
 
-        status, details = get_assemble_status(
-            AssembleTask.ARTIFACTS, self.organization.id, total_checksum
-        )
-        assert status == ChunkFileState.OK
-        assert details is None
+                assemble_artifacts(
+                    org_id=self.organization.id,
+                    version=self.release.version,
+                    checksum=total_checksum,
+                    chunks=[blob1.checksum],
+                )
 
-        release_file = ReleaseFile.objects.get(
-            organization=self.organization,
-            release=self.release,
-            name="release-artifacts.zip",
-            dist=None,
-        )
+                status, details = get_assemble_status(
+                    AssembleTask.ARTIFACTS, self.organization.id, total_checksum
+                )
+                assert status == ChunkFileState.OK
+                assert details is None
 
-        assert release_file
-        assert release_file.file.headers == {}
+                release_file = ReleaseFile.objects.get(
+                    organization=self.organization,
+                    release=self.release,
+                    name="release-artifacts.zip" if has_release_archives else "~/index.js",
+                    dist=None,
+                )
+
+                assert release_file
+
+                if has_release_archives:
+                    assert release_file.file.headers == {}
+                    # Artifact is the same as original bundle
+                    assert release_file.file.size == len(bundle_file)
+                else:
+                    assert release_file.file.headers == {"Sourcemap": "index.js.map"}
 
     def test_artifacts_invalid_org(self):
         bundle_file = self.create_artifact_bundle(org="invalid")
