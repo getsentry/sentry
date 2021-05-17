@@ -303,7 +303,8 @@ class FromSentryAppTest(TestCase):
         result = access.from_request(request, self.org)
         assert result.has_project_access(project) is False
         assert result.has_project_membership(project) is False
-        assert len(result.projects) == 1
+        # the create_app fixture creates a project that has no teams assigned
+        assert len(result.projects) == 2
         assert list(result.projects)[0].id == self.project.id
 
 

@@ -321,9 +321,9 @@ def _from_sentry_app(user, organization=None):
 
     team_list = list(Team.objects.filter(organization=organization))
     project_list = list(
-        Project.objects.filter(status=ProjectStatus.VISIBLE, teams__in=team_list).distinct()
+        Project.objects.filter(status=ProjectStatus.VISIBLE, organization=organization).distinct()
     )
-
+    # TODO: set has_global_access to true instead of grabbing all projects above?
     return Access(
         scopes=sentry_app.scope_list,
         is_active=True,

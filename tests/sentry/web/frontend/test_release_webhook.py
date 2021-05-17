@@ -111,4 +111,4 @@ class BuiltinReleaseWebhookTest(ReleaseWebhookTestBase):
     def test_no_teams_and_no_user(self):
         self.project.remove_team(self.team)
         resp = self.client.post(self.path, user=None, content_type="application/json")
-        assert resp.status_code == 403
+        assert resp.status_code == 403  # TODO: confirm this is actually not expected behavior

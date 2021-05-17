@@ -47,6 +47,15 @@ class ProjectPermissionTest(ProjectPermissionBase):
         self.create_member(user=user, organization=self.org, role="member", teams=[self.team])
         assert self.has_object_perm("GET", self.project, user=user)
 
+    def test_member_project_no_teams(self):
+        user = self.create_user(is_superuser=False)
+        self.create_member(user=user, organization=self.org, role="member", teams=[])
+        project = self.create_project(teams=[self.team])
+        self.team.delete()
+        # if `allow_joinleave` is True, members should be able to GET a project even if
+        # it has no teams
+        assert self.has_object_perm("GET", project, user=user)
+
     def test_api_key_with_org_access(self):
         key = ApiKey.objects.create(organization=self.org, scope_list=["project:read"])
         assert self.has_object_perm("GET", self.project, auth=key)
@@ -178,6 +187,19 @@ class ProjectPermissionNoJoinLeaveTest(ProjectPermissionBase):
         user = self.create_user(is_superuser=False)
         self.create_member(user=user, organization=self.org, role="member", teams=[self.team])
         assert self.has_object_perm("GET", self.project, user=user)
+
+    def test_member_without_team_access(self):
+        user = self.create_user(is_superuser=False)
+        self.create_member(user=user, organization=self.org, role="member", teams=[])
+        assert not self.has_object_perm("GET", self.project, user=user)
+
+    def test_member_project_no_teams(self):
+        user = self.create_user(is_superuser=False)
+        self.create_member(user=user, organization=self.org, role="member", teams=[])
+        project = self.create_project(teams=[self.team])
+        self.team.delete()
+        # if `allow_joinleave` is False, members cannot GET a project with no teams
+        assert not self.has_object_perm("GET", project, user=user)
 
     def test_api_key_with_org_access(self):
         key = ApiKey.objects.create(organization=self.org, scope_list=["project:read"])
