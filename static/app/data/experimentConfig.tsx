@@ -14,19 +14,7 @@ export const unassignedValue = -1;
  */
 export const experimentList = [
   {
-    key: 'IntegrationDirectoryCategoryExperiment',
-    type: ExperimentType.Organization,
-    parameter: 'variant',
-    assignments: ['0', '1'],
-  },
-  {
-    key: 'TrialEndingNotice',
-    type: ExperimentType.Organization,
-    parameter: 'exposed',
-    assignments: [0, 1],
-  },
-  {
-    key: 'InboxExperiment',
+    key: 'DashboardUpsellSandboxExperiment',
     type: ExperimentType.Organization,
     parameter: 'exposed',
     assignments: [0, 1],
