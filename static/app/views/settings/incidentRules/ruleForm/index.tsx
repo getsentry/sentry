@@ -717,7 +717,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                       disabled={!hasAccess || !canEdit}
                       thresholdChart={wizardBuilderChart}
                       onFilterSearch={this.handleFilterUpdate}
-                      allowChangeEventTypes={dataset === Dataset.ERRORS}
+                      allowChangeEventTypes={isCustomMetric || dataset === Dataset.ERRORS}
                       alertType={isCustomMetric ? 'custom' : alertType}
                     />
                     <AlertListItem>{t('Set thresholds to trigger alert')}</AlertListItem>
