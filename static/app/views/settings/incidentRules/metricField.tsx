@@ -57,7 +57,7 @@ const getFieldOptionConfig = ({
   let hidePrimarySelector = false;
   let hideParameterSelector = false;
   if (organization.features.includes('alert-wizard') && alertType) {
-    config = getWizardAlertFieldConfig(alertType);
+    config = getWizardAlertFieldConfig(alertType, dataset);
     hidePrimarySelector = hidePrimarySelectorSet.has(alertType);
     hideParameterSelector = hideParameterSelectorSet.has(alertType);
   } else {
