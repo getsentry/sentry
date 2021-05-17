@@ -146,7 +146,6 @@ class ReleaseArchive:
 
     def _read_manifest(self) -> dict:
         manifest_bytes = self.read("manifest.json")
-        # TODO: what is encoding of manifest_bytes?
         return json.loads(manifest_bytes.decode("utf-8"))
 
     def get_file_by_url(self, url: str) -> bytes:

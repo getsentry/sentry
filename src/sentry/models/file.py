@@ -1,3 +1,4 @@
+import io
 import mmap
 import os
 import tempfile
@@ -558,7 +559,7 @@ class ChunkedFileBlobIndexWrapper:
         self._curidx = None
         self.closed = True
 
-    def seek(self, pos):
+    def _seek(self, pos):
         if self.closed:
             raise ValueError("I/O operation on closed file")
 
@@ -580,6 +581,16 @@ class ChunkedFileBlobIndexWrapper:
         else:
             raise ValueError("Cannot seek to pos")
         self._curfile.seek(pos - self._curidx.offset)
+
+    def seek(self, pos, whence=io.SEEK_SET):
+        if whence == io.SEEK_SET:
+            return self._seek(pos)
+        if whence == io.SEEK_CUR:
+            return self._seek(self.tell() + pos)
+        if whence == io.SEEK_END:
+            return self._seek(self.size + pos)
+
+        raise ValueError(f"Invalid value for whence: {whence}")
 
     def tell(self):
         if self.closed:

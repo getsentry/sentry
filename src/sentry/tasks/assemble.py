@@ -2,7 +2,6 @@ import hashlib
 import logging
 from io import BytesIO
 from os import path
-from typing import IO
 
 from django.db import IntegrityError, transaction
 
@@ -164,7 +163,7 @@ class AssembleArtifactsError(Exception):
     pass
 
 
-def _upsert_release_file(file: File, temp_file: IO, replacement_strategy, **kwargs):
+def _upsert_release_file(file: File, archive: ReleaseArchive, replacement_strategy, **kwargs):
 
     release_file = None
 
@@ -185,20 +184,16 @@ def _upsert_release_file(file: File, temp_file: IO, replacement_strategy, **kwar
             file.delete()
     else:
         old_file = release_file.file
-        release_file.update(file=replacement_strategy(old_file, file, temp_file))
+        release_file.update(file=replacement_strategy(old_file, file, archive))
         old_file.delete()
 
 
-def _simple_replace(old_file: File, new_file: File, new_fp: IO):
+def _simple_replace(old_file: File, new_file: File, new_archive: ReleaseArchive):
     return new_file
 
 
-def _merge_archives(old_file: File, new_file: File, new_fp: IO):
-    # TODO: conversion to BytesIO is not pretty, but opening ZipFile with
-    # the file-like-object returned by File.getfile() yields an error
-    old_archive = ReleaseArchive(BytesIO(old_file.getfile().read()))
-    new_archive = ReleaseArchive(BytesIO(new_file.getfile().read()))
-    with old_archive, new_archive:
+def _merge_archives(old_file: File, new_file: File, new_archive: ReleaseArchive):
+    with ReleaseArchive(old_file.getfile()) as old_archive:
         buffer = BytesIO()
         merge_release_archives(old_archive, new_archive, buffer)
 
@@ -301,7 +296,7 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
 
             if features.has("organizations:release-archives", organization):
                 kwargs = dict(meta, name=RELEASE_ARCHIVE_FILENAME)
-                _upsert_release_file(bundle, temp_file, _merge_archives, **kwargs)
+                _upsert_release_file(bundle, archive, _merge_archives, **kwargs)
             else:
                 # Every file in bundle will become a release file
                 _store_single_files(archive, meta)
