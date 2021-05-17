@@ -15,7 +15,7 @@ class TransactionThreshold(Model):
     __core__ = False
 
     # max_length here is based on the maximum for transactions in relay
-    transaction = models.CharField(max_length=200, null=True)
+    transaction = models.CharField(max_length=200)
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)
     organization = FlexibleForeignKey("sentry.Organization")
     threshold = models.IntegerField()
