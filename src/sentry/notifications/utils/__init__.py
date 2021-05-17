@@ -1,24 +1,11 @@
 import logging
 from collections import defaultdict
-from typing import (
-    Any,
-    Iterable,
-    List,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Sequence,
-    Set,
-    Tuple,
-    cast,
-)
+from typing import Any, Iterable, List, Mapping, MutableMapping, Optional, Sequence, Set, Tuple
 
 from django.db.models import Count
 from django.utils.safestring import mark_safe
 
-from sentry import integrations
 from sentry.db.models.query import in_iexact
-from sentry.integrations import IntegrationFeatures, IntegrationProvider
 from sentry.models import (
     Activity,
     Commit,
@@ -40,7 +27,6 @@ from sentry.models import (
     UserEmail,
 )
 from sentry.utils.committers import get_serialized_event_file_committers
-from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger(__name__)
 
@@ -178,14 +164,6 @@ def get_link(group: Group, environment: Optional[str]) -> str:
     return str(group.get_absolute_url(params=query_params))
 
 
-def get_integration_link(organization: Organization, integration_slug: str) -> str:
-    return str(
-        absolute_uri(
-            f"/settings/{organization.slug}/integrations/{integration_slug}/?referrer=alert_email"
-        )
-    )
-
-
 def get_rules(
     rules: Sequence[Rule], organization: Organization, project: Project
 ) -> Sequence[Tuple[str, str]]:
@@ -222,28 +200,7 @@ def has_integrations(organization: Organization, project: Project) -> bool:
 
     project_plugins = plugins.for_project(project, version=1)
     organization_integrations = Integration.objects.filter(organizations=organization).first()
-    # TODO: fix because project_plugins is an iterator and thus always truthy
     return bool(project_plugins or organization_integrations)
-
-
-def is_alert_rule_integration(provider: IntegrationProvider) -> bool:
-    return any(feature == IntegrationFeatures.ALERT_RULE for feature in provider.features)
-
-
-def has_alert_integration(project: Project) -> bool:
-    org = project.organization
-
-    # check integrations
-    providers = filter(is_alert_rule_integration, list(integrations.all()))
-    provider_keys = map(lambda x: cast(str, x.key), providers)
-    if Integration.objects.filter(organizations=org, provider__in=provider_keys).exists():
-        return True
-
-    # check plugins
-    from sentry.plugins.base import plugins
-
-    project_plugins = plugins.for_project(project, version=None)
-    return any(plugin.get_plugin_type() == "notification" for plugin in project_plugins)
 
 
 def get_interface_list(event: Any) -> Sequence[Any]:
