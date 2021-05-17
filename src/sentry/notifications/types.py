@@ -130,13 +130,6 @@ VALID_VALUES_FOR_KEY = {
 }
 
 
-NOTIFICATION_SETTING_DEFAULTS = {
-    NotificationSettingTypes.DEPLOY: NotificationSettingOptionValues.COMMITTED_ONLY,
-    NotificationSettingTypes.ISSUE_ALERTS: NotificationSettingOptionValues.ALWAYS,
-    NotificationSettingTypes.WORKFLOW: NotificationSettingOptionValues.SUBSCRIBE_ONLY,
-}
-
-
 class GroupSubscriptionReason:
     implicit = -1  # not for use as a persisted field value
     committed = -2  # not for use as a persisted field value
