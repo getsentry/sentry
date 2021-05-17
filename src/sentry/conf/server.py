@@ -848,6 +848,8 @@ SENTRY_FEATURES = {
     "organizations:advanced-search": True,
     # Enable obtaining and using API keys.
     "organizations:api-keys": False,
+    # Enable Apple app-store-connect dsym symbol file collection.
+    "organizations:app-store-connect": False,
     # Enable explicit use of AND and OR in search.
     "organizations:boolean-search": False,
     # Enable unfurling charts using the Chartcuterie service
@@ -875,10 +877,6 @@ SENTRY_FEATURES = {
     "organizations:discover-query": True,
     # Enable Performance view
     "organizations:performance-view": False,
-    # Enable the quick trace view on event details
-    "organizations:trace-view-quick": False,
-    # Enable the trace view summary
-    "organizations:trace-view-summary": False,
     # Enable multi project selection
     "organizations:global-views": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
@@ -980,9 +978,6 @@ SENTRY_FEATURES = {
     "organizations:transaction-comparison": False,
     # Return unhandled information on the issue level
     "organizations:unhandled-issue-flag": True,
-    # Enable graph for subscription quota for errors, transactions and
-    # attachments
-    "organizations:usage-stats-graph": False,
     # Enable inbox support in the issue stream
     "organizations:inbox": True,
     # Enable the new alert details ux design
@@ -993,6 +988,8 @@ SENTRY_FEATURES = {
     "organizations:team-alerts-ownership": False,
     # Enable the new alert creation wizard
     "organizations:alert-wizard": True,
+    # Enable the adoption chart in the releases page
+    "organizations:release-adoption-chart": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
@@ -1020,6 +1017,8 @@ SENTRY_FEATURES = {
     "projects:servicehooks": False,
     # Use Kafka (instead of Celery) for ingestion pipeline.
     "projects:kafka-ingest": False,
+    # Enable stackwalking comparison
+    "symbolicator:compare-stackwalking-methods": False,
     # Don't add feature defaults down here! Please add them in their associated
     # group sorted alphabetically.
 }

@@ -787,6 +787,21 @@ class GetSnubaQueryArgsTest(TestCase):
         with self.assertRaises(InvalidSearchQuery):
             get_filter("id:deadbeef*")
 
+    def test_event_id(self):
+        event_id = "a" * 32
+        results = get_filter(f"id:{event_id}")
+        assert results.conditions == [["id", "=", event_id]]
+
+        event_id = "a" * 16 + "-" * 16 + "b" * 16
+        results = get_filter(f"id:{event_id}")
+        assert results.conditions == [["id", "=", event_id]]
+
+        with self.assertRaises(InvalidSearchQuery):
+            get_filter("id:deadbeef")
+
+        with self.assertRaises(InvalidSearchQuery):
+            get_filter(f"id:{'g' * 32}")
+
     def test_negated_wildcard(self):
         _filter = get_filter("!release:3.1.* user.email:*@example.com")
         assert _filter.conditions == [
@@ -1244,6 +1259,16 @@ class GetSnubaQueryArgsTest(TestCase):
                 1,
             ]
         ]
+
+    def test_shorthand_overflow(self):
+        with self.assertRaises(InvalidSearchQuery):
+            get_filter(f"transaction.duration:<{'9'*13}m")
+
+        with self.assertRaises(InvalidSearchQuery):
+            get_filter(f"transaction.duration:<{'9'*11}h")
+
+        with self.assertRaises(InvalidSearchQuery):
+            get_filter(f"transaction.duration:<{'9'*10}d")
 
 
 def with_type(type, argument):

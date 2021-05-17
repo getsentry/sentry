@@ -1273,7 +1273,11 @@ function routes() {
 
           <Route
             path="/organizations/:orgId/stats/"
-            componentPromise={() => import('app/views/organizationStats')}
+            componentPromise={() =>
+              import(
+                /* webpackChunkName: "OrganizationStats" */ 'app/views/organizationStats'
+              )
+            }
             component={errorHandler(LazyLoad)}
           />
 
@@ -1343,7 +1347,16 @@ function routes() {
             />
             <Route
               path="/organizations/:orgId/performance/summary/vitals/"
-              componentPromise={() => import('app/views/performance/transactionVitals')}
+              componentPromise={() =>
+                import('app/views/performance/transactionSummary/transactionVitals')
+              }
+              component={errorHandler(LazyLoad)}
+            />
+            <Route
+              path="/organizations/:orgId/performance/summary/tags/"
+              componentPromise={() =>
+                import('app/views/performance/transactionSummary/transactionTags')
+              }
               component={errorHandler(LazyLoad)}
             />
           </Route>

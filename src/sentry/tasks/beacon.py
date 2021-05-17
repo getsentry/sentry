@@ -14,9 +14,34 @@ from sentry.http import safe_urlopen, safe_urlread
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json
 
-BEACON_URL = "https://sentry.io/remote/beacon/"
+#  BEACON_URL = "https://sentry.io/remote/beacon/"
+BEACON_URL = "https://dev.getsentry.net:8000/remote/beacon/"
 
 logger = logging.getLogger("beacon")
+
+
+def get_install_id():
+    from sentry import options
+
+    install_id = options.get("sentry:install-id")
+    if not install_id:
+        install_id = sha1(uuid4().bytes).hexdigest()
+        logger.info("beacon.generated-install-id", extra={"install_id": install_id})
+        options.set("sentry:install-id", install_id)
+
+    return install_id
+
+
+def should_skip_beacon(install_id):
+    if not settings.SENTRY_BEACON:
+        logger.info("beacon.skipped", extra={"install_id": install_id, "reason": "disabled"})
+        return True
+
+    if settings.DEBUG:
+        logger.info("beacon.skipped", extra={"install_id": install_id, "reason": "debug"})
+        return True
+
+    return False
 
 
 @instrumented_task(name="sentry.tasks.send_beacon", queue="update")
@@ -29,18 +54,9 @@ def send_beacon():
     from sentry import options
     from sentry.models import Broadcast, Organization, Project, Team, User
 
-    install_id = options.get("sentry:install-id")
-    if not install_id:
-        install_id = sha1(uuid4().bytes).hexdigest()
-        logger.info("beacon.generated-install-id", extra={"install_id": install_id})
-        options.set("sentry:install-id", install_id)
+    install_id = get_install_id()
 
-    if not settings.SENTRY_BEACON:
-        logger.info("beacon.skipped", extra={"install_id": install_id, "reason": "disabled"})
-        return
-
-    if settings.DEBUG:
-        logger.info("beacon.skipped", extra={"install_id": install_id, "reason": "debug"})
+    if should_skip_beacon(install_id):
         return
 
     end = timezone.now()
@@ -107,3 +123,25 @@ def send_beacon():
         Broadcast.objects.filter(upstream_id__isnull=False).exclude(
             upstream_id__in=upstream_ids
         ).update(is_active=False)
+
+
+@instrumented_task(name="sentry.tasks.send_beacon_metric", queue="update")
+def send_beacon_metric(metrics, **kwargs):
+    install_id = get_install_id()
+
+    if should_skip_beacon(install_id):
+        return
+
+    payload = {
+        "type": "metric",
+        "install_id": install_id,
+        "version": sentry.get_version(),
+        "data": {
+            "metrics": metrics,
+        },
+    }
+
+    try:
+        safe_urlopen(BEACON_URL, json=payload, timeout=5)
+    except Exception:
+        logger.warning("beacon_metric.failed", exc_info=True, extra={"install_id": install_id})

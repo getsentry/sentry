@@ -315,3 +315,12 @@ register("store.load-shed-pipeline-projects", type=Sequence, default=[])
 
 # Switch for more performant project counter incr
 register("store.projectcounter-modern-upsert-sample-rate", default=0.0)
+
+# Run an experimental grouping config in background for performance analysis
+register("store.background-grouping-config-id", default=None)
+
+# Fraction of events that will pass through background grouping
+register("store.background-grouping-sample-rate", default=0.0)
+
+# True if background grouping should run before secondary and primary grouping
+register("store.background-grouping-before", default=False)
