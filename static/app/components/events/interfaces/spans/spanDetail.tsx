@@ -1,5 +1,5 @@
 import * as React from 'react';
-import {browserHistory, withRouter, WithRouterProps} from 'react-router';
+import {withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import map from 'lodash/map';
 
@@ -41,7 +41,7 @@ import withApi from 'app/utils/withApi';
 import * as SpanEntryContext from './context';
 import InlineDocs from './inlineDocs';
 import {ParsedTraceType, ProcessedSpanType, rawSpanKeys, RawSpanType} from './types';
-import {getTraceDateTimeRange, isGapSpan, isOrphanSpan} from './utils';
+import {getTraceDateTimeRange, isGapSpan, isOrphanSpan, scrollToSpan} from './utils';
 
 const SIZE_DATA_KEYS = ['Encoded Body Size', 'Decoded Body Size', 'Transfer Size'];
 
@@ -275,27 +275,8 @@ class SpanDetail extends React.Component<Props, State> {
     };
   }
 
-  scrollBarIntoView = (spanId: string) => (e: React.MouseEvent<HTMLAnchorElement>) => {
-    // do not use the default anchor behaviour
-    // because it will be hidden behind the minimap
-    e.preventDefault();
-
-    const hash = `#span-${spanId}`;
-
-    this.props.scrollToHash(hash);
-
-    // TODO(txiao): This is causing a rerender of the whole page,
-    // which can be slow.
-    //
-    // make sure to update the location
-    browserHistory.push({
-      ...this.props.location,
-      hash,
-    });
-  };
-
   renderSpanDetails() {
-    const {span, event, organization} = this.props;
+    const {span, event, location, organization, scrollToHash} = this.props;
 
     if (isGapSpan(span)) {
       return (
@@ -337,7 +318,9 @@ class SpanDetail extends React.Component<Props, State> {
                   isGapSpan(span) ? (
                     <SpanIdTitle>Span ID</SpanIdTitle>
                   ) : (
-                    <SpanIdTitle onClick={this.scrollBarIntoView(span.span_id)}>
+                    <SpanIdTitle
+                      onClick={scrollToSpan(span.span_id, scrollToHash, location)}
+                    >
                       Span ID
                       <StyledIconAnchor />
                     </SpanIdTitle>
