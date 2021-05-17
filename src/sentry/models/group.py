@@ -9,6 +9,7 @@ from functools import reduce
 from operator import or_
 from typing import List, Mapping, Optional, Set
 
+from django.core.cache import cache
 from django.db import models
 from django.db.models import Q
 from django.utils import timezone
@@ -481,14 +482,19 @@ class Group(Model):
         from sentry.models import GroupRelease, Release
 
         orderby = "first_seen" if first else "-last_seen"
+        cache_key = f"g-r:{group_id}-{project_id}-{first}"
         try:
-            release = Release.objects.get(
-                id=GroupRelease.objects.filter(group_id=group_id, project_id=project_id)
-                .order_by(orderby)
-                .values("release_id")[:1]
-            )
-            return release.version
+            release_version = cache.get(cache_key)
+            if not release_version:
+                release_version = Release.objects.get(
+                    id=GroupRelease.objects.filter(group_id=group_id, project_id=project_id)
+                    .order_by(orderby)
+                    .values("release_id")[:1]
+                ).version
+                cache.set(cache_key, release_version, 3600)
+            return release_version
         except Release.DoesNotExist:
+            cache.set(cache_key, None, 3600)
             return None
 
     def get_first_release(self):
