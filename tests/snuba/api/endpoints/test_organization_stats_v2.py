@@ -327,6 +327,24 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
             "detail": "You do not have permission to perform this action."
         }
 
+        response = self.do_request(
+            {
+                "project": [self.project.id],
+                "groupBy": ["project"],
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "category": ["error", "transaction"],
+                "field": ["sum(quantity)"],
+            },
+            org=self.organization,
+            user=user,
+        )
+
+        assert response.status_code == 403, response.content
+        assert result_sorted(response.data) == {
+            "detail": "You do not have permission to perform this action."
+        }
+
     @freeze_time("2021-03-14T12:27:28.303Z")
     def test_open_membership_semantics(self):
         self.org.flags.allow_joinleave = True
