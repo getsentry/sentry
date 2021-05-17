@@ -4,6 +4,10 @@ export type Item = {
   index: number;
   searchKey?: string;
   groupLabel?: boolean;
+  /**
+   * Error message to display for the field
+   */
+  error?: string;
 } & Record<string, any>;
 
 type Items<T> = Array<

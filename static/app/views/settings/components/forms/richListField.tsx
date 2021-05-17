@@ -6,8 +6,11 @@ import Confirm from 'app/components/confirm';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import {Item as ListItem} from 'app/components/dropdownAutoComplete/types';
 import DropdownButton from 'app/components/dropdownButton';
-import {IconAdd, IconDelete, IconSettings} from 'app/icons';
+import Tooltip from 'app/components/tooltip';
+import {IconAdd, IconDelete, IconSettings, IconWarning} from 'app/icons';
 import {t} from 'app/locale';
+import space from 'app/styles/space';
+import {Theme} from 'app/utils/theme';
 import InputField from 'app/views/settings/components/forms/inputField';
 
 type ConfirmProps = Partial<React.ComponentProps<typeof Confirm>>;
@@ -36,12 +39,6 @@ type DefaultProps = {
   onRemoveItem: RichListCallback;
 };
 
-const defaultProps: DefaultProps = {
-  addButtonText: t('Add item'),
-  onAddItem: (item, addItem) => addItem(item),
-  onRemoveItem: (item, removeItem) => removeItem(item),
-};
-
 /**
  * You can get better typing by specifying the item type
  * when using this component.
@@ -66,9 +63,6 @@ export type RichListProps = {
    */
   value: ListItem[];
 
-  onBlur: InputField['props']['onBlur'];
-  onChange: InputField['props']['onChange'];
-
   /**
    * Configuration for the add item dropdown.
    */
@@ -78,6 +72,9 @@ export type RichListProps = {
    * Disables all controls in the rich list.
    */
   disabled: boolean;
+
+  onBlur?: InputField['props']['onBlur'];
+  onChange?: InputField['props']['onChange'];
 
   /**
    * Properties for the confirm remove dialog. If missing, the item will be
@@ -91,10 +88,14 @@ export type RichListProps = {
    * The callback is expected to call `editItem(item)`
    */
   onEditItem?: RichListCallback;
-} & DefaultProps;
+} & Partial<DefaultProps>;
 
-class RichList extends React.PureComponent<RichListProps> {
-  static defaultProps = defaultProps;
+class RichList extends React.PureComponent<RichListProps, {}> {
+  static defaultProps: DefaultProps = {
+    addButtonText: t('Add item'),
+    onAddItem: (item, addItem) => addItem(item),
+    onRemoveItem: (item, removeItem) => removeItem(item),
+  };
 
   triggerChange = (items: UpdatedItem[]) => {
     if (!this.props.disabled) {
@@ -133,13 +134,13 @@ class RichList extends React.PureComponent<RichListProps> {
   };
 
   onRemoveItem = (item: ListItem, index: number) => {
-    if (!this.props.disabled) {
+    if (!this.props.disabled && this.props.onRemoveItem) {
       this.props.onRemoveItem(item, () => this.removeItem(index));
     }
   };
 
   renderItem = (item: ListItem, index: number) => {
-    const {disabled} = this.props;
+    const {disabled, renderItem, onEditItem} = this.props;
 
     const removeIcon = (onClick?: () => void) => (
       <ItemButton
@@ -165,10 +166,19 @@ class RichList extends React.PureComponent<RichListProps> {
         removeIcon(() => this.onRemoveItem(item, index))
       );
 
+    const error = item.error;
+
     return (
-      <Item disabled={disabled} key={index}>
-        {this.props.renderItem(item)}
-        {this.props.onEditItem && (
+      <Item disabled={!!disabled} error={!!error} key={index}>
+        {error && (
+          <ErrorIcon>
+            <Tooltip title={error}>
+              <IconWarning color="red300" />
+            </Tooltip>
+          </ErrorIcon>
+        )}
+        {renderItem(item)}
+        {onEditItem && (
           <ItemButton
             onClick={() => this.onEditItem(item, index)}
             disabled={disabled}
@@ -249,7 +259,38 @@ const ItemList = styled('ul')`
   padding: 0;
 `;
 
-const Item = styled('li')<{disabled?: boolean}>`
+const getItemStyle = (theme: Theme, disabled: boolean, error: boolean) => {
+  if (disabled) {
+    return `
+      opacity: 0.65;
+      cursor: not-allowed;
+      background-color: ${theme.button.default.background};
+      border: 1px solid ${theme.button.default.border};
+      color: ${theme.button.default.color};
+    `;
+  }
+
+  if (error) {
+    return `
+      color: ${theme.black};
+      border: 1px solid ${theme.red300};
+      &,
+      button,
+      button:hover,
+      button:focus {
+        background-color: ${theme.red100};
+      }
+    `;
+  }
+
+  return `
+    background-color: ${theme.button.default.background};
+    border: 1px solid ${theme.button.default.border};
+    color: ${theme.button.default.color};
+  `;
+};
+
+const Item = styled('li')<{disabled: boolean; error: boolean}>`
   display: flex;
   align-items: center;
   background-color: ${p => p.theme.button.default.background};
@@ -264,9 +305,11 @@ const Item = styled('li')<{disabled?: boolean}>`
   margin: 0 10px 5px 0;
   white-space: nowrap;
   opacity: ${p => (p.disabled ? 0.65 : null)};
-  padding: 8px 12px;
+  padding: ${space(1)} ${space(1.5)};
   /* match adjacent elements */
-  height: 30px;
+  height: 32px;
+  overflow: hidden;
+  ${p => getItemStyle(p.theme, p.disabled, p.error)}
 `;
 
 const ItemButton = styled(Button)`
@@ -275,4 +318,9 @@ const ItemButton = styled(Button)`
   &:hover {
     color: ${p => (p.disabled ? p.theme.gray300 : p.theme.button.default.color)};
   }
+`;
+
+const ErrorIcon = styled('div')`
+  margin-right: 10px;
+  display: inline-flex;
 `;
