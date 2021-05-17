@@ -14,8 +14,8 @@ from sentry.models import (
     UserOption,
 )
 from sentry.notifications.helpers import (
-    get_deploy_values_by_provider,
     get_settings_by_provider,
+    get_values_by_provider_by_type,
     transform_to_notification_settings_by_user,
 )
 from sentry.notifications.notify import notification_providers
@@ -117,8 +117,10 @@ def get_participants_for_release(
     ] = defaultdict(dict)
     for user in users:
         notification_settings_by_scope = notification_settings_by_user.get(user, {})
-        values_by_provider = get_deploy_values_by_provider(
-            notification_settings_by_scope, notification_providers()
+        values_by_provider = get_values_by_provider_by_type(
+            notification_settings_by_scope,
+            notification_providers(),
+            NotificationSettingTypes.DEPLOY,
         )
         for provider, value in values_by_provider.items():
             reason_option = get_reason(user, value, user_ids)
