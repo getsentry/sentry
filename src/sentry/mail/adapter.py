@@ -13,6 +13,7 @@ from sentry.models import Group, GroupSubscription, NotificationSetting, Project
 from sentry.notifications.activity import EMAIL_CLASSES_BY_TYPE
 from sentry.notifications.rules import AlertRuleNotification, get_send_to
 from sentry.notifications.types import ActionTargetType, GroupSubscriptionReason
+from sentry.notifications.utils import get_integration_link, has_alert_integration
 from sentry.plugins.base.structs import Notification
 from sentry.tasks.digests import deliver_digest
 from sentry.types.integrations import ExternalProviders
@@ -197,6 +198,7 @@ class MailAdapter:
                 "user_ids": user_ids,
             },
         )
+        org = project.organization
         for user_id, digest in get_personalized_digests(target_type, project.id, digest, user_ids):
             start, end, counts = get_digest_metadata(digest)
 
@@ -221,6 +223,8 @@ class MailAdapter:
                 "project": project,
                 "digest": digest,
                 "counts": counts,
+                "slack_link": get_integration_link(org, "slack"),
+                "has_alert_integration": has_alert_integration(project),
             }
 
             headers = {

@@ -1,8 +1,23 @@
 {% extends "sentry/emails/base.html" %}
 
 {% load sentry_helpers %}
+{% load sentry_assets %}
 
 {% block bodyclass %}digest{% endblock %}
+
+
+{% block header %}
+  <div class="header-with-buttons">
+    {{ block.super }}
+    {% if not has_alert_integration %}
+      <a href="{{ slack_link }}" class="btn btn-default integration-link">
+        <img src="{% absolute_asset_url 'sentry' 'images/email/slack-logo.png' %}" class="logo-small" />
+        Set up in Slack
+      </a>
+    {% endif %}
+  </div>
+{% endblock %}
+
 
 {% block content %}
 
