@@ -157,10 +157,13 @@
   }
 
   .header-with-buttons {
-    display: flex;
+    display: inline-block;
     width: 100%;
-    justify-content: space-between;
     align-items: center;
+  }
+
+  .header-with-buttons h1 {
+    float: left;
   }
 
   .header table {
@@ -169,7 +172,7 @@
 
   .header .btn {
     float: right;
-    margin: -3px 0 0 0;
+    margin: -3px 0 0 0; /* TODO: Fix negative margin not supported by email client */
   }
   .header h1 {
     margin: 0;
@@ -942,13 +945,13 @@
     width: 16px;
     height: 16px;
     margin-right: 8px;
+    margin: auto 8px auto 0;
   }
 
   .header-buttons {
     display: flex;
-    width: 100%;
-    justify-content: flex-end;
     height: fit-content;
+    float: right;
   }
 
   .integration-link {
@@ -956,8 +959,12 @@
     align-items: center;
   }
 
+  .header-buttons .btn {
+    margin: 0px;
+  }
+
   .header-buttons .integration-link {
-    margin-right: 8px;
+    margin: 0 8px;
   }
 
   @media only screen and (max-device-width: 480px) {
