@@ -68,15 +68,19 @@ const makeBeaconRequest = throttle(
 
     const components = _beaconComponents;
     _beaconComponents = [];
-    await api.requestPromise('/api/0/internal/beacon/', {
-      method: 'POST',
-      data: {
-        batch_data: components.map(component => ({
-          description: 'SentryApp',
-          component,
-        })),
-      },
-    });
+    try {
+      await api.requestPromise('/api/0/internal/beacon/', {
+        method: 'POST',
+        data: {
+          batch_data: components.map(component => ({
+            description: 'SentryApp',
+            component,
+          })),
+        },
+      });
+    } catch (e) {
+      // Delicious failure.
+    }
   },
   5000,
   {trailing: true, leading: false}
