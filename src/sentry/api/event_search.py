@@ -82,7 +82,7 @@ aggregate_key    = key open_paren function_arg* closed_paren
 search_key       = key / quoted_key
 search_value     = quoted_value / value
 value            = ~r"[^()\s]*"
-in_value         = ~r"[^(),\s]*(?:[^],\s)]|](?=]))"
+in_value         = ~r"[^(),\s]*(?:[^\],\s)]|](?=]))"
 numeric_value    = ~r"([-]?[0-9\.]+)([kmb])?(?=\s|\)|$|,|])"
 boolean_value    = ~r"(true|1|false|0)(?=\s|\)|$)"i
 key              = ~r"[a-zA-Z0-9_\.-]+"
