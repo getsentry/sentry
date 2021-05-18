@@ -1,5 +1,4 @@
 from django.db import IntegrityError, transaction
-from django.db.models import Count
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
@@ -182,28 +181,7 @@ class KeyTransactionEndpoint(KeyTransactionBase):
 
 @register(TeamKeyTransaction)
 class TeamKeyTransactionSerializer(Serializer):
-    def get_attrs(self, item_list, user, **kwargs):
-        queryset = (
-            TeamKeyTransaction.objects.values("team_id")
-            .filter(team__in=[item.team_id for item in item_list])
-            .annotate(total=Count("team_id"))
-        )
-
-        totals = {}
-        for item in queryset:
-            totals[item["team_id"]] = item["total"]
-
-        attrs = {}
-        for item in item_list:
-            attrs[item] = {
-                "total": totals[item.team_id],
-            }
-
-        return attrs
-
     def serialize(self, obj, attrs, user, **kwargs):
         return {
             "team": str(obj.team_id),
-            # the total number of key transactions this team has
-            "total": attrs["total"],
         }

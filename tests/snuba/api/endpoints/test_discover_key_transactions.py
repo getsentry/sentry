@@ -95,19 +95,6 @@ class TeamKeyTransactionTest(APITestCase, SnubaTestCase):
                 project=self.project,
             )
 
-        for team in [team1]:
-            TeamKeyTransaction.objects.bulk_create(
-                [
-                    TeamKeyTransaction(
-                        team=team,
-                        organization=self.org,
-                        transaction=f"{self.event_data['transaction']}-{i}",
-                        project=self.project,
-                    )
-                    for i in range(10)
-                ]
-            )
-
         with self.feature(self.features):
             response = self.client.get(
                 self.url,
@@ -122,11 +109,9 @@ class TeamKeyTransactionTest(APITestCase, SnubaTestCase):
         assert response.data == [
             {
                 "team": str(team1.id),
-                "total": 11,
             },
             {
                 "team": str(team2.id),
-                "total": 1,
             },
         ]
 
