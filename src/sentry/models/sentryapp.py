@@ -15,10 +15,10 @@ from sentry.constants import (
 )
 from sentry.db.models import (
     ArrayField,
-    BaseManager,
     BoundedPositiveIntegerField,
     EncryptedJsonField,
     FlexibleForeignKey,
+    ParanoidManager,
     ParanoidModel,
 )
 from sentry.models.apiscopes import HasApiScopes
@@ -78,7 +78,7 @@ def track_response_code(status, integration_slug, webhook_event):
     )
 
 
-class SentryAppManager(BaseManager):
+class SentryAppManager(ParanoidManager):
     def get_alertable_sentry_apps(self, organization_id: int) -> QuerySet:
         return self.filter(
             installations__organization_id=organization_id,
