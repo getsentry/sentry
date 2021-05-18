@@ -4,12 +4,18 @@ import uuid
 from hashlib import sha256
 
 from django.db import models
+from django.db.models import QuerySet
 from django.template.defaultfilters import slugify
 from django.utils import timezone
 
-from sentry.constants import SENTRY_APP_SLUG_MAX_LENGTH, SentryAppStatus
+from sentry.constants import (
+    SENTRY_APP_SLUG_MAX_LENGTH,
+    SentryAppInstallationStatus,
+    SentryAppStatus,
+)
 from sentry.db.models import (
     ArrayField,
+    BaseManager,
     BoundedPositiveIntegerField,
     EncryptedJsonField,
     FlexibleForeignKey,
@@ -72,6 +78,16 @@ def track_response_code(status, integration_slug, webhook_event):
     )
 
 
+class SentryAppManager(BaseManager):
+    def get_alertable_sentry_apps(self, organization_id: int) -> QuerySet:
+        return self.filter(
+            installations__organization_id=organization_id,
+            is_alertable=True,
+            installations__status=SentryAppInstallationStatus.INSTALLED,
+            installations__date_deleted=None,
+        ).distinct()
+
+
 class SentryApp(ParanoidModel, HasApiScopes):
     __core__ = True
 
@@ -121,6 +137,8 @@ class SentryApp(ParanoidModel, HasApiScopes):
         "sentry.User", null=True, on_delete=models.SET_NULL, db_constraint=False
     )
     creator_label = models.TextField(null=True)
+
+    objects = SentryAppManager()
 
     class Meta:
         app_label = "sentry"
