@@ -55,25 +55,32 @@ jobs:
 
       # Setup custom tsc matcher, see https://github.com/actions/setup-node/issues/97
       - name: setup matchers
-        id: matchers
         if: steps.changes.outputs.frontend == 'true'
         run: |
           echo "::remove-matcher owner=masters::"
           echo "::add-matcher::.github/tsc.json"
           echo "::add-matcher::.github/eslint-stylish.json"
 
-      # Lint entire frontend if this is on main branch
+      - name: eslint logic
+        id: eslint
+        if: steps.changes.outputs.frontend == 'true' && (github.ref == 'refs/heads/master' || steps.changes.outputs.eslint_config == 'true' || steps.changes.outputs.yarn_lockfile == 'true')
+        run: echo "::set-output name=all-files::true"
+
+      # Lint entire frontend if:
+      # - this is on main branch
+      # - eslint configuration in repo has changed
+      # - yarn lockfile has changed (i.e. we bump our eslint config)
       - name: eslint
-        if: github.ref == 'refs/heads/master' && steps.changes.outputs.frontend == 'true'
+        if: steps.eslint.outputs.all-files == 'true'
         run: |
           # Run relax config on main branch (and stricter config for changed files)
           yarn lint -c .eslintrc.relax.js
           yarn lint:css
 
-      # Otherwise if it's not main branch, only lint modified files
+      # Otherwise... only lint modified files
       # Note `eslint --fix` will not fail when it auto fixes files
       - name: eslint (changed files only)
-        if: github.ref != 'refs/heads/master' && steps.changes.outputs.frontend == 'true'
+        if: steps.changes.outputs.frontend == 'true' && steps.eslint.outputs.all-files != 'true'
         run: |
           yarn eslint --fix ${{ steps.changes.outputs.frontend_modified_lintable_files }}
 

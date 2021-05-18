@@ -2,7 +2,7 @@ from sentry.models import NotificationSetting
 from sentry.notifications.helpers import (
     _get_setting_mapping_from_mapping,
     collect_groups_by_project,
-    get_deploy_values_by_provider,
+    get_fallback_settings,
     get_groups_for_query,
     get_scope,
     get_scope_type,
@@ -10,6 +10,7 @@ from sentry.notifications.helpers import (
     get_subscription_from_attributes,
     get_target_id,
     get_user_subscriptions_for_groups,
+    get_values_by_provider_by_type,
     should_be_participating,
     transform_to_notification_settings_by_parent_id,
     transform_to_notification_settings_by_user,
@@ -147,20 +148,31 @@ class NotificationHelpersTest(TestCase):
             == [ExternalProviders.EMAIL]
         )
 
+    def test_get_deploy_values_by_provider_empty_settings(self):
+        values_by_provider = get_values_by_provider_by_type(
+            {}, notification_providers(), NotificationSettingTypes.DEPLOY
+        )
+        assert values_by_provider == {
+            ExternalProviders.EMAIL: NotificationSettingOptionValues.COMMITTED_ONLY,
+            ExternalProviders.SLACK: NotificationSettingOptionValues.NEVER,
+        }
+
     def test_get_deploy_values_by_provider(self):
         notification_settings_by_scope = {
             NotificationScopeType.ORGANIZATION: {
-                ExternalProviders.EMAIL: NotificationSettingOptionValues.COMMITTED_ONLY
+                ExternalProviders.SLACK: NotificationSettingOptionValues.COMMITTED_ONLY
             },
             NotificationScopeType.USER: {
                 ExternalProviders.EMAIL: NotificationSettingOptionValues.ALWAYS
             },
         }
-        values_by_provider = get_deploy_values_by_provider(
-            notification_settings_by_scope, notification_providers()
+        values_by_provider = get_values_by_provider_by_type(
+            notification_settings_by_scope,
+            notification_providers(),
+            NotificationSettingTypes.DEPLOY,
         )
         assert values_by_provider == {
-            ExternalProviders.EMAIL: NotificationSettingOptionValues.COMMITTED_ONLY,
+            ExternalProviders.EMAIL: NotificationSettingOptionValues.ALWAYS,
             ExternalProviders.SLACK: NotificationSettingOptionValues.COMMITTED_ONLY,
         }
 
@@ -329,5 +341,34 @@ class NotificationHelpersTest(TestCase):
         assert get_settings_by_provider(settings) == {
             ExternalProviders.EMAIL: {
                 NotificationScopeType.USER: NotificationSettingOptionValues.NEVER
+            }
+        }
+
+    def test_get_fallback_settings_minimal(self):
+        assert get_fallback_settings({NotificationSettingTypes.ISSUE_ALERTS}, {}, {}) == {}
+
+    def test_get_fallback_settings_user(self):
+        data = get_fallback_settings({NotificationSettingTypes.ISSUE_ALERTS}, {}, {}, self.user)
+        assert data == {
+            "alerts": {
+                "user": {
+                    self.user.id: {
+                        "email": "always",
+                        "slack": "never",
+                    }
+                }
+            }
+        }
+
+    def test_get_fallback_settings_projects(self):
+        data = get_fallback_settings({NotificationSettingTypes.ISSUE_ALERTS}, {self.project}, {})
+        assert data == {
+            "alerts": {
+                "project": {
+                    self.project.id: {
+                        "email": "default",
+                        "slack": "default",
+                    }
+                }
             }
         }

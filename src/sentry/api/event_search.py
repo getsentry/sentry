@@ -21,6 +21,7 @@ from sentry.search.utils import (
 )
 from sentry.utils.compat import filter, map
 from sentry.utils.snuba import is_duration_measurement, is_measurement, is_span_op_breakdown
+from sentry.utils.validators import is_event_id
 
 WILDCARD_CHARS = re.compile(r"[\*]")
 NEGATION_MAP = {
@@ -31,6 +32,102 @@ NEGATION_MAP = {
     ">=": "<",
     "IN": "NOT IN",
 }
+
+
+event_search_grammar = Grammar(
+    r"""
+search            = (boolean_operator / paren_term / search_term)*
+boolean_operator  = spaces (or_operator / and_operator) spaces
+paren_term        = spaces open_paren spaces (paren_term / boolean_operator / search_term)+ spaces closed_paren spaces
+search_term       = key_val_term / quoted_raw_search / raw_search
+key_val_term      = spaces (time_filter / rel_time_filter / specific_time_filter
+                    / duration_filter / boolean_filter / numeric_filter
+                    / aggregate_filter / aggregate_date_filter / aggregate_rel_date_filter
+                    / has_filter / is_filter / text_filter)
+                    spaces
+raw_search        = (!key_val_term ~r"\ *(?!(?i)OR(?![^\s]))(?!(?i)AND(?![^\s]))([^\ ^\n ()]+)\ *" )*
+quoted_raw_search = spaces quoted_value spaces
+
+# standard key:val filter
+text_filter = negation? text_key sep ((open_bracket text_value (comma spaces text_value)* closed_bracket) / search_value)
+
+# filter for dates
+time_filter = search_key sep? operator (date_format / alt_date_format)
+
+# filter for relative dates
+rel_time_filter = search_key sep rel_date_format
+
+# filter for durations
+duration_filter = search_key sep operator? duration_format
+
+# exact time filter for dates
+specific_time_filter = search_key sep (date_format / alt_date_format)
+
+# Numeric comparison filter
+numeric_filter = search_key sep ((operator? numeric_value) / (open_bracket numeric_value (comma spaces numeric_value)* closed_bracket))
+
+# Boolean comparison filter
+boolean_filter = negation? search_key sep boolean_value
+
+# Aggregate numeric filter
+aggregate_filter          = negation? aggregate_key sep operator? (duration_format / numeric_value / percentage_format)
+aggregate_date_filter     = negation? aggregate_key sep operator? (date_format / alt_date_format)
+aggregate_rel_date_filter = negation? aggregate_key sep operator? rel_date_format
+
+# has filter for not null type checks
+has_filter = negation? "has" sep (search_key / search_value)
+is_filter  = negation? "is" sep search_value
+
+aggregate_key    = key open_paren function_arg* closed_paren
+search_key       = key / quoted_key
+search_value     = quoted_value / value
+value            = ~r"[^()\s]*"
+in_value         = ~r"[^(),\s]*(?:[^],\s)]|](?=]))"
+numeric_value    = ~r"([-]?[0-9\.]+)([kmb])?(?=\s|\)|$|,|])"
+boolean_value    = ~r"(true|1|false|0)(?=\s|\)|$)"i
+key              = ~r"[a-zA-Z0-9_\.-]+"
+function_arg     = spaces key? comma? spaces
+quoted_key       = ~r"\"([a-zA-Z0-9_\.:-]+)\""
+explicit_tag_key = "tags" open_bracket search_key closed_bracket
+text_key         = explicit_tag_key / search_key
+text_value       = quoted_value / in_value
+
+# Explanation of quoted string regex, courtesy of Matt
+# "              # literal quote
+# (              # begin capture group
+#   (?:          # begin uncaptured group
+#     [^"]       # any character that's not quote
+#     |          # or
+#     (?<=\\)["] # A quote, preceded by a \ (for escaping)
+#   )            # end uncaptured group
+#   *            # repeat the uncaptured group
+# )              # end captured group
+# ?              # allow to be empty (allow empty quotes)
+# "              # quote literal
+quoted_value = ~r"\"((?:[^\"]|(?<=\\)[\"])*)?\""s
+
+# Format tokens
+date_format          = ~r"\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{1,6})?)?Z?(?=\s|\)|$)"
+alt_date_format      = ~r"\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{1,6})?(\+\d{2}:\d{2})?)?(?=\s|\)|$)"
+rel_date_format      = ~r"[\+\-][0-9]+[wdhm](?=\s|\)|$)"
+duration_format      = ~r"([0-9\.]+)(ms|s|min|m|hr|h|day|d|wk|w)(?=\s|\)|$)"
+percentage_format    = ~r"([0-9\.]+)%"
+
+# NOTE: the order in which these operators are listed matters because for
+# example, if < comes before <= it will match that even if the operator is <=
+operator             = ">=" / "<=" / ">" / "<" / "=" / "!="
+or_operator          = ~r"OR(?=\s|$)"i
+and_operator         = ~r"AND(?=\s|$)"i
+open_paren           = "("
+closed_paren         = ")"
+open_bracket         = "["
+closed_bracket       = "]"
+sep                  = ":"
+negation             = "!"
+comma                = ","
+spaces               = " "*
+"""
+)
 
 
 def translate(pat):
@@ -51,128 +148,11 @@ def translate(pat):
             i += 1
         elif c == "*":
             res += ".*"
-        # TODO: We're disabling everything except for wildcard matching for the
-        # moment. Just commenting this code out for the moment, since there's a
-        # reasonable chance we'll add this back in in the future.
-        # elif c == '?':
-        #     res = res + '.'
-        # elif c == '[':
-        #     j = i
-        #     if j < n and pat[j] == '!':
-        #         j = j + 1
-        #     if j < n and pat[j] == ']':
-        #         j = j + 1
-        #     while j < n and pat[j] != ']':
-        #         j = j + 1
-        #     if j >= n:
-        #         res = res + '\\['
-        #     else:
-        #         stuff = pat[i:j].replace('\\', '\\\\')
-        #         i = j + 1
-        #         if stuff[0] == '!':
-        #             stuff = '^' + stuff[1:]
-        #         elif stuff[0] == '^':
-        #             stuff = '\\' + stuff
-        #         res = '%s[%s]' % (res, stuff)
-        # In py3.7 only characters that can have special meaning in a regular expression are escaped
-        # introduced that here so we don't escape those either
-        # https://github.com/python/cpython/blob/3.7/Lib/re.py#L252
         elif c in "()[]?*+-|^$\\.&~# \t\n\r\v\f":
             res += re.escape(c)
         else:
             res += c
     return "^" + res + "$"
-
-
-# Explanation of quoted string regex, courtesy of Matt
-# "              // literal quote
-# (              // begin capture group
-#   (?:          // begin uncaptured group
-#     [^"]       // any character that's not quote
-#     |          // or
-#     (?<=\\)["] // A quote, preceded by a \ (for escaping)
-#   )            // end uncaptured group
-#   *            // repeat the uncaptured group
-# )              // end captured group
-# ?              // allow to be empty (allow empty quotes)
-# "              // quote literal
-
-event_search_grammar = Grammar(
-    r"""
-search               = (boolean_operator / paren_term / search_term)*
-boolean_operator     = spaces (or_operator / and_operator) spaces
-paren_term           = spaces open_paren spaces (paren_term / boolean_operator / search_term)+ spaces closed_paren spaces
-search_term          = key_val_term / quoted_raw_search / raw_search
-key_val_term         = spaces (time_filter / rel_time_filter / specific_time_filter
-                       / duration_filter / boolean_filter / numeric_filter
-                       / aggregate_filter / aggregate_date_filter / aggregate_rel_date_filter
-                       / has_filter / is_filter / text_filter)
-                       spaces
-raw_search           = (!key_val_term ~r"\ *(?!(?i)OR(?![^\s]))(?!(?i)AND(?![^\s]))([^\ ^\n ()]+)\ *" )*
-quoted_raw_search    = spaces quoted_value spaces
-
-# standard key:val filter
-text_filter          = negation? text_key sep ((open_bracket text_value (comma space* text_value)* closed_bracket) / search_value)
-# filter for dates
-time_filter          = search_key sep? operator (date_format / alt_date_format)
-# filter for relative dates
-rel_time_filter      = search_key sep rel_date_format
-# filter for durations
-duration_filter      = search_key sep operator? duration_format
-# exact time filter for dates
-specific_time_filter = search_key sep (date_format / alt_date_format)
-# Numeric comparison filter
-numeric_filter       = search_key sep ((operator? numeric_value) / (open_bracket numeric_value (comma space* numeric_value)* closed_bracket))
-# Boolean comparison filter
-boolean_filter       = negation? search_key sep boolean_value
-# Aggregate numeric filter
-aggregate_filter          = negation? aggregate_key sep operator? (duration_format / numeric_value / percentage_format)
-aggregate_date_filter     = negation? aggregate_key sep operator? (date_format / alt_date_format)
-aggregate_rel_date_filter = negation? aggregate_key sep operator? rel_date_format
-
-# has filter for not null type checks
-has_filter           = negation? "has" sep (search_key / search_value)
-is_filter            = negation? "is" sep search_value
-
-aggregate_key        = key open_paren function_arg* closed_paren
-search_key           = key / quoted_key
-search_value         = quoted_value / value
-value                = ~r"[^()\s]*"
-in_value             = ~r"[^(),\s]*[^\],\s)]"
-numeric_value        = ~r"([-]?[0-9\.]+)([kmb])?(?=\s|\)|$|,|])"
-boolean_value        = ~r"(true|1|false|0)(?=\s|\)|$)"i
-quoted_value         = ~r"\"((?:[^\"]|(?<=\\)[\"])*)?\""s
-key                  = ~r"[a-zA-Z0-9_\.-]+"
-function_arg         = space? key? comma? space?
-# only allow colons in quoted keys
-quoted_key           = ~r"\"([a-zA-Z0-9_\.:-]+)\""
-explicit_tag_key     = "tags[" search_key "]"
-text_key             = explicit_tag_key / search_key
-text_value           = quoted_value / in_value
-
-date_format          = ~r"\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{1,6})?)?Z?(?=\s|\)|$)"
-alt_date_format      = ~r"\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{1,6})?(\+\d{2}:\d{2})?)?(?=\s|\)|$)"
-rel_date_format      = ~r"[\+\-][0-9]+[wdhm](?=\s|\)|$)"
-duration_format      = ~r"([0-9\.]+)(ms|s|min|m|hr|h|day|d|wk|w)(?=\s|\)|$)"
-percentage_format    = ~r"([0-9\.]+)%"
-
-# NOTE: the order in which these operators are listed matters
-# because for example, if < comes before <= it will match that
-# even if the operator is <=
-or_operator          = ~r"OR(?![^\s])"i
-and_operator         = ~r"AND(?![^\s])"i
-operator             = ">=" / "<=" / ">" / "<" / "=" / "!="
-open_paren           = "("
-closed_paren         = ")"
-open_bracket         = "["
-closed_bracket       = ~r"\](?=\s|$)"
-sep                  = ":"
-space                = " "
-negation             = "!"
-comma                = ","
-spaces               = ~r"\ *"
-"""
-)
 
 
 class SearchBoolean(namedtuple("SearchBoolean", "left_term operator right_term")):
@@ -250,6 +230,15 @@ class SearchValue(namedtuple("SearchValue", "raw_value")):
         if not isinstance(self.raw_value, str):
             return False
         return bool(WILDCARD_CHARS.search(self.raw_value))
+
+    def is_event_id(self):
+        """Return whether the current value is a valid event id
+
+        Empty strings are valid, so that it can be used for has:id queries
+        """
+        if not isinstance(self.raw_value, str):
+            return False
+        return is_event_id(self.raw_value) or self.raw_value == ""
 
 
 class SearchVisitor(NodeVisitor):
@@ -751,7 +740,7 @@ class SearchVisitor(NodeVisitor):
         return node.match.groups()[0]
 
     def visit_explicit_tag_key(self, node, children):
-        return SearchKey(f"tags[{children[1].name}]")
+        return SearchKey(f"tags[{children[2].name}]")
 
     def visit_text_key(self, node, children):
         return children[0]

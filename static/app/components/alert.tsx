@@ -22,6 +22,16 @@ type AlertThemeProps = {
 
 const DEFAULT_TYPE = 'info';
 
+const IconWrapper = styled('span')`
+  display: flex;
+  margin-right: ${space(1)};
+
+  /* Give the wrapper an explicit height so icons are line height with the
+   * (common) line height. */
+  height: 22px;
+  align-items: center;
+`;
+
 const getAlertColorStyles = ({
   backgroundLight,
   border,
@@ -29,7 +39,7 @@ const getAlertColorStyles = ({
 }: AlertThemeProps) => css`
   background: ${backgroundLight};
   border: 1px solid ${border};
-  svg {
+  ${IconWrapper} {
     color: ${iconColor};
   }
 `;
@@ -43,7 +53,7 @@ const getSystemAlertColorStyles = ({
   border: 0;
   border-radius: 0;
   border-bottom: 1px solid ${border};
-  svg {
+  ${IconWrapper} {
     color: ${iconColor};
   }
 `;
@@ -65,16 +75,6 @@ const alertStyles = ({theme, type = DEFAULT_TYPE, system}: Props & {theme: Theme
 
   ${getAlertColorStyles(theme.alert[type])};
   ${system && getSystemAlertColorStyles(theme.alert[type])};
-`;
-
-const IconWrapper = styled('span')`
-  display: flex;
-  margin-right: ${space(1)};
-
-  /* Give the wrapper an explicit height so icons are line height with the
-   * (common) line height. */
-  height: 22px;
-  align-items: center;
 `;
 
 const StyledTextBlock = styled('span')`

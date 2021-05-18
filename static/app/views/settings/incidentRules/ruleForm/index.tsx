@@ -451,9 +451,6 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
         for (const action of trigger.actions) {
           if (action.type === 'slack') {
             transaction.setTag(action.type, true);
-            if (action.integrationId) {
-              transaction.setTag(`integrationId:${action.integrationId}`, true);
-            }
           }
         }
       }
@@ -645,6 +642,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
         projects={this.state.projects}
         errors={this.state.triggerErrors}
         triggers={triggers}
+        aggregate={aggregate}
         resolveThreshold={resolveThreshold}
         thresholdType={thresholdType}
         currentProject={params.projectId}
@@ -719,7 +717,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                       disabled={!hasAccess || !canEdit}
                       thresholdChart={wizardBuilderChart}
                       onFilterSearch={this.handleFilterUpdate}
-                      allowChangeEventTypes={dataset === Dataset.ERRORS}
+                      allowChangeEventTypes={isCustomMetric || dataset === Dataset.ERRORS}
                       alertType={isCustomMetric ? 'custom' : alertType}
                     />
                     <AlertListItem>{t('Set thresholds to trigger alert')}</AlertListItem>
