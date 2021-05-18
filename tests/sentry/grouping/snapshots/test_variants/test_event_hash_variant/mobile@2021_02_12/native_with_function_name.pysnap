@@ -1,5 +1,5 @@
 ---
-created: '2021-05-05T18:04:39.132688Z'
+created: '2021-05-17T08:41:28.020060Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -23,7 +23,7 @@ app-depth-1:
               "`anonymous namespace'::something::nested::Foo<T>::crash"
             package (ignored because function takes precedence)
               "crash"
-        type (ignored because exception is synthetic)
+        type (ignored because exception is synthetic (detected via exception type))
           "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
@@ -49,7 +49,7 @@ app-depth-2:
               "`anonymous namespace'::something::nested::Foo<T>::crash"
             package (ignored because function takes precedence)
               "crash"
-        type (ignored because exception is synthetic)
+        type (ignored because exception is synthetic (detected via exception type))
           "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
@@ -82,7 +82,7 @@ app-depth-3:
               "`anonymous namespace'::something::nested::Foo<T>::crash"
             package (ignored because function takes precedence)
               "crash"
-        type (ignored because exception is synthetic)
+        type (ignored because exception is synthetic (detected via exception type))
           "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
@@ -122,7 +122,7 @@ app-depth-4:
               "`anonymous namespace'::something::nested::Foo<T>::crash"
             package (ignored because function takes precedence)
               "crash"
-        type (ignored because exception is synthetic)
+        type (ignored because exception is synthetic (detected via exception type))
           "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
@@ -162,7 +162,7 @@ app-depth-max:
               "`anonymous namespace'::something::nested::Foo<T>::crash"
             package (ignored because function takes precedence)
               "crash"
-        type (ignored because exception is synthetic)
+        type (ignored because exception is synthetic (detected via exception type))
           "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
