@@ -51,6 +51,8 @@ SAMPLED_URL_NAMES = {
     "sentry-api-0-organization-stats-v2",
     "sentry-api-0-project-stats",
 }
+if settings.ADDITIONAL_SAMPLED_URLS:
+    SAMPLED_URL_NAMES.update(settings.ADDITIONAL_SAMPLED_URLS)
 
 SAMPLED_TASKS = {
     "sentry.tasks.send_ping",
