@@ -10,7 +10,7 @@ datadog==0.29.3
 django-crispy-forms==1.7.2
 django-manifest-loader==1.0.0
 django-picklefield==1.0.0
-django-sudo==3.1.0
+django-sudo @ https://github.com/getsentry/django-sudo/archive/6221d933d923a85ba039e814d9bb595f28cecedc.zip#egg=django-sudo
 Django==2.0.13
 djangorestframework==3.11.2
 email-reply-parser==0.5.12
