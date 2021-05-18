@@ -38,7 +38,7 @@ import {
   VITAL_GROUPS,
 } from 'app/views/performance/transactionSummary/transactionVitals/constants';
 
-import {getTransactionDetailsUrl} from '../utils';
+import {getTransactionDetailsUrl, isSummaryViewFrontendPageLoad} from '../utils';
 
 import TransactionSummaryCharts from './charts';
 import Filter, {
@@ -184,13 +184,14 @@ class SummaryContent extends React.Component<Props, State> {
     // NOTE: This is not a robust check for whether or not a transaction is a front end
     // transaction, however it will suffice for now.
     const hasWebVitals =
-      totalValues !== null &&
-      VITAL_GROUPS.some(group =>
-        group.vitals.some(vital => {
-          const alias = getAggregateAlias(`percentile(${vital}, ${VITAL_PERCENTILE})`);
-          return Number.isFinite(totalValues[alias]);
-        })
-      );
+      isSummaryViewFrontendPageLoad(eventView, projects) ||
+      (totalValues !== null &&
+        VITAL_GROUPS.some(group =>
+          group.vitals.some(vital => {
+            const alias = getAggregateAlias(`percentile(${vital}, ${VITAL_PERCENTILE})`);
+            return Number.isFinite(totalValues[alias]);
+          })
+        ));
 
     const transactionsListTitles = [
       t('event id'),
