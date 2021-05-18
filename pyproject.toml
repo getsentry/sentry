@@ -33,8 +33,8 @@ filterwarnings = [
     # The following warning filters should be kept in sync with
     # sentry.utils.pytest.sentry, and sentry.runner.settings.
     # TODO(joshuarli): Address these as a prerequisite to testing on Django 2.1.
+    "ignore::django.utils.deprecation.RemovedInDjango20Warning",
     "ignore::django.utils.deprecation.RemovedInDjango21Warning",
-    "ignore::django.utils.deprecation.RemovedInDjango30Warning",
     # DeprecationWarnings from Python 3.6's sre_parse are just so painful,
     # and I haven't found a way to ignore it specifically from a module.
     # This one in particular is from the "cookies" packages as depended

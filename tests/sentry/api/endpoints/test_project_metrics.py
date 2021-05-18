@@ -1,4 +1,4 @@
-from django.urls import reverse
+from django.core.urlresolvers import reverse
 
 from sentry.models import ApiToken
 from sentry.testutils import APITestCase

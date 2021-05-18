@@ -1,4 +1,4 @@
-from django.urls import reverse
+from django.core.urlresolvers import reverse
 
 from sentry.models import Integration, Repository
 from sentry.testutils import APITestCase
