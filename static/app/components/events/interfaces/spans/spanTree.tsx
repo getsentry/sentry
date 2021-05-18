@@ -1,7 +1,6 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
-import GuideAnchor from 'app/components/assistant/guideAnchor';
 import {MessageRow} from 'app/components/performance/waterfall/messageRow';
 import {pickBarColour} from 'app/components/performance/waterfall/utils';
 import {t, tct} from 'app/locale';
@@ -392,9 +391,6 @@ class SpanTree extends React.Component<PropType> {
     return (
       <TraceViewContainer ref={this.props.traceViewRef}>
         {spanTree}
-        <GuideAnchorWrapper>
-          <GuideAnchor target="span_tree" position="bottom" />
-        </GuideAnchorWrapper>
         {infoMessage}
         {limitExceededMessage}
       </TraceViewContainer>
@@ -406,12 +402,6 @@ const TraceViewContainer = styled('div')`
   overflow-x: hidden;
   border-bottom-left-radius: 3px;
   border-bottom-right-radius: 3px;
-`;
-
-const GuideAnchorWrapper = styled('div')`
-  height: 0;
-  width: 0;
-  margin-left: 50%;
 `;
 
 /**
