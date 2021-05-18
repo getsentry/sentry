@@ -97,9 +97,10 @@ class NotificationSettingsSerializer(Serializer):  # type: ignore
         types_to_serialize = {type_option} if type_option else set(VALID_VALUES_FOR_KEY.keys())
         user = obj if type(obj) == User else None
 
-        data = get_fallback_settings(
-            types_to_serialize, attrs["projects"], attrs["organizations"], user
-        )
+        project_ids = {_.id for _ in attrs["projects"]}
+        organization_ids = {_.id for _ in attrs["organizations"]}
+
+        data = get_fallback_settings(types_to_serialize, project_ids, organization_ids, user)
 
         # Forgive the variable name, I wanted the following line to be legible.
         for n in attrs["settings"]:
