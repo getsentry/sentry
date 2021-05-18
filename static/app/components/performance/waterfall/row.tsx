@@ -10,10 +10,11 @@ type RowProps = {
   showBorder?: boolean;
 };
 
-type RowAndDivProps = Omit<React.HTMLProps<HTMLDivElement>, keyof RowProps> & RowProps;
+type RowAndElementProps = Omit<React.HTMLProps<HTMLTableRowElement>, keyof RowProps> &
+  RowProps;
 
-export const Row = styled('div')<RowAndDivProps>`
-  display: ${p => (p.visible ? 'block' : 'none')};
+export const Row = styled('tr')<RowAndElementProps>`
+  display: ${p => (p.visible ? 'table-row' : 'none')};
   border-top: ${p => (p.showBorder ? `1px solid ${p.theme.border}` : null)};
   margin-top: ${p => (p.showBorder ? '-1px' : null)}; /* to prevent offset on toggle */
   position: relative;
