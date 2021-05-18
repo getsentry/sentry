@@ -13,7 +13,6 @@ import {ChartContainer, HeaderTitleLegend} from 'app/components/charts/styles';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Panel from 'app/components/panels/panel';
 import Placeholder from 'app/components/placeholder';
-import ChartPalette from 'app/constants/chartPalette';
 import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -26,9 +25,13 @@ import {formatUsageWithUnits, GIGABYTE} from '../utils';
 
 import {getTooltipFormatter, getXAxisDates, getXAxisLabelInterval} from './utils';
 
-const COLOR_ERRORS = Color(ChartPalette[4][3]).lighten(0.25).string();
-const COLOR_TRANSACTIONS = Color(ChartPalette[4][2]).lighten(0.35).string();
-const COLOR_ATTACHMENTS = Color(ChartPalette[4][1]).lighten(0.65).string();
+const COLOR_ERRORS = Color(commonTheme.dataCategory.errors).lighten(0.25).string();
+const COLOR_TRANSACTIONS = Color(commonTheme.dataCategory.transactions)
+  .lighten(0.35)
+  .string();
+const COLOR_ATTACHMENTS = Color(commonTheme.dataCategory.attachments)
+  .lighten(0.65)
+  .string();
 const COLOR_DROPPED = commonTheme.red300;
 const COLOR_PROJECTED = commonTheme.gray100;
 

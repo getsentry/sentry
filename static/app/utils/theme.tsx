@@ -225,6 +225,12 @@ const lightAliases = {
   badgeText: colors.white,
 };
 
+const dataCategory = {
+  errors: CHART_PALETTE[4][3],
+  transactions: CHART_PALETTE[4][2],
+  attachments: CHART_PALETTE[4][1],
+};
+
 const generateAlertTheme = (alias: Aliases) => ({
   muted: {
     background: colors.gray200,
@@ -537,6 +543,8 @@ const commonTheme = {
     lineHeightHeading: '1.15',
     lineHeightBody: '1.4',
   },
+
+  dataCategory,
 
   tag,
 
