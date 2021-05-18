@@ -74,6 +74,16 @@ export function platformAndConditionsToPerformanceType(
   return performanceType;
 }
 
+/**
+ * Used for transaction summary to check the view itself, since it can have conditions which would exclude it from having vitals aside from platform.
+ */
+export function isSummaryViewFrontendPageLoad(eventView: EventView, projects: Project[]) {
+  return (
+    platformAndConditionsToPerformanceType(projects, eventView) ===
+    PROJECT_PERFORMANCE_TYPE.FRONTEND
+  );
+}
+
 export function getPerformanceLandingUrl(organization: OrganizationSummary): string {
   return `/organizations/${organization.slug}/performance/`;
 }

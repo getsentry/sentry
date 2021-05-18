@@ -25,7 +25,6 @@ class NotificationSettingsSerializer(Serializer):  # type: ignore
         :param user: The user who will be viewing the notification settings.
         :param kwargs: Dict of optional filter options:
             - type: NotificationSettingTypes enum value. e.g. WORKFLOW, DEPLOY.
-            - provider: ExternalProvider enum value. e.g. SLACK, EMAIL.
         """
         from sentry.models import NotificationSetting
 
@@ -35,10 +34,6 @@ class NotificationSettingsSerializer(Serializer):  # type: ignore
         type_option = kwargs.get("type")
         if type_option:
             filter_kwargs["type"] = type_option
-
-        provider_option = kwargs.get("provider")
-        if provider_option:
-            filter_kwargs["provider"] = provider_option
 
         notifications_settings = NotificationSetting.objects._filter(**filter_kwargs)
 

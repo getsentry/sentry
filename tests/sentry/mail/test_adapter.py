@@ -15,7 +15,6 @@ from sentry.mail import mail_adapter, send_notification_as_email
 from sentry.mail.adapter import ActionTargetType
 from sentry.models import (
     Activity,
-    Integration,
     NotificationSetting,
     Organization,
     OrganizationMember,
@@ -44,7 +43,6 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.compat import mock
 from sentry.utils.email import MessageBuilder
-from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
 
 
 def send_notification(*args):
@@ -400,62 +398,6 @@ class MailAdapterNotifyTest(BaseMailAdapterTest, TestCase):
 
         assert "Suspect Commits" in msg.body
 
-    def test_slack_link(self):
-        project = self.project
-        organization = project.organization
-        event = self.store_event(data=self.make_event_data("foo.jx"), project_id=project.id)
-
-        with self.tasks():
-            notification = Notification(event=event)
-            self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
-
-        assert len(mail.outbox) >= 1
-
-        msg = mail.outbox[-1]
-        assert (
-            f"/settings/{organization.slug}/integrations/slack/?referrer=alert_email"
-            in msg.alternatives[0][0]
-        )
-
-    def test_slack_link_with_integration(self):
-        project = self.project
-        organization = project.organization
-        event = self.store_event(data=self.make_event_data("foo.jx"), project_id=project.id)
-
-        integration = Integration.objects.create(provider="msteams")
-        integration.add_organization(organization)
-
-        with self.tasks():
-            notification = Notification(event=event)
-            self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
-
-        assert len(mail.outbox) >= 1
-
-        msg = mail.outbox[-1]
-        assert (
-            f"/settings/{organization.slug}/integrations/slack/?referrer=alert_email"
-            not in msg.alternatives[0][0]
-        )
-
-    def test_slack_link_with_plugin(self):
-        project = self.project
-        organization = project.organization
-        event = self.store_event(data=self.make_event_data("foo.jx"), project_id=project.id)
-
-        OpsGeniePlugin().enable(project)
-
-        with self.tasks():
-            notification = Notification(event=event)
-            self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
-
-        assert len(mail.outbox) >= 1
-
-        msg = mail.outbox[-1]
-        assert (
-            f"/settings/{organization.slug}/integrations/slack/?referrer=alert_email"
-            not in msg.alternatives[0][0]
-        )
-
     def assert_notify(
         self,
         event,
@@ -528,7 +470,9 @@ class MailAdapterNotifyTest(BaseMailAdapterTest, TestCase):
         )
         self.assert_notify(event_all_users, [user.email])
 
-    def test_notify_team(self):
+    def test_notify_team_members(self):
+        """Test that each member of a team is notified"""
+
         user = self.create_user(email="foo@example.com", is_active=True)
         user2 = self.create_user(email="baz@example.com", is_active=True)
         team = self.create_team(organization=self.organization, members=[user, user2])

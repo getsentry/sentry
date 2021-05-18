@@ -4,12 +4,10 @@ import * as Router from 'react-router';
 import * as Sentry from '@sentry/react';
 import createReactClass from 'create-react-class';
 import jQuery from 'jquery';
-import throttle from 'lodash/throttle';
 import moment from 'moment';
 import PropTypes from 'prop-types';
 import Reflux from 'reflux';
 
-import {Client} from 'app/api';
 import plugins from 'app/plugins';
 
 const globals = {
@@ -38,7 +36,7 @@ const globals = {
 
 // The SentryApp global contains exported app modules for use in javascript
 // modules that are not compiled with the sentry bundle.
-const SentryApp = {
+globals.SentryApp = {
   // The following components are used in sentry-plugins.
   Form: require('app/components/forms/form').default,
   FormState: require('app/components/forms/index').FormState,
@@ -56,52 +54,7 @@ const SentryApp = {
   Modal: require('app/actionCreators/modal'),
 };
 
-/**
- * Wrap export so that we can track usage of these globals to determine how we want to handle deprecatation.
- * These are sent to Sentry install, which then checks to see if SENTRY_BEACON is enabled
- * in order to make a request to the SaaS beacon.
- */
-let _beaconComponents: string[] = [];
-const makeBeaconRequest = throttle(
-  async () => {
-    const api = new Client();
-
-    const components = _beaconComponents;
-    _beaconComponents = [];
-    await api.requestPromise('/api/0/internal/beacon/', {
-      method: 'POST',
-      data: {
-        batch_data: components.map(component => ({
-          description: 'SentryApp',
-          component,
-        })),
-      },
-    });
-  },
-  5000,
-  {trailing: true, leading: false}
-);
-
-function wrapObject(parent, key, value) {
-  Object.defineProperty(parent, key, {
-    configurable: true,
-    enumerable: true,
-    get: () => {
-      if (key !== 'SentryApp') {
-        _beaconComponents.push(key);
-        makeBeaconRequest();
-      }
-
-      return value;
-    },
-  });
-}
-
-Object.entries(SentryApp).forEach(([key, value]) =>
-  wrapObject(globals.SentryApp, key, value)
-);
-
 // Make globals available on the window object
-Object.entries(globals).forEach(([key, value]) => wrapObject(window, key, value));
+Object.keys(globals).forEach(name => (window[name] = globals[name]));
 
 export default globals;
