@@ -20,6 +20,8 @@ class ProjectTransactionThresholdOverride(Model):
     organization = FlexibleForeignKey("sentry.Organization")
     threshold = models.IntegerField()
     metric = models.PositiveSmallIntegerField(default=TransactionMetric.DURATION.value)
+    edited_by = FlexibleForeignKey("sentry.User", null=True, on_delete=models.SET_NULL)
+    date_updated = models.DateTimeField(auto_now=True)
 
     class Meta:
         app_label = "sentry"
@@ -34,6 +36,8 @@ class ProjectTransactionThreshold(Model):
     organization = FlexibleForeignKey("sentry.Organization")
     threshold = models.IntegerField()
     metric = models.PositiveSmallIntegerField(default=TransactionMetric.DURATION.value)
+    edited_by = FlexibleForeignKey("sentry.User", null=True, on_delete=models.SET_NULL)
+    date_updated = models.DateTimeField(auto_now=True)
 
     class Meta:
         app_label = "sentry"
