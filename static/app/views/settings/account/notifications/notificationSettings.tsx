@@ -293,7 +293,7 @@ class NotificationSettings extends AsyncComponent<Props, State> {
       choices: defaultFields.choices?.concat([
         [
           'default',
-          `${getChoiceString(defaultFields.choices, currentDefault)} (${t('default')})`,
+          `${t('Default')} (${getChoiceString(defaultFields.choices, currentDefault)})`,
         ],
       ]),
       defaultValue: 'default',
