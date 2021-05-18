@@ -7,6 +7,7 @@ from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.discover.endpoints import serializers
 from sentry.discover.models import KeyTransaction, TeamKeyTransaction
+from sentry.models import Team
 
 
 class KeyTransactionPermission(OrganizationPermission):
@@ -57,10 +58,10 @@ class KeyTransactionEndpoint(KeyTransactionBase):
 
         key_teams = TeamKeyTransaction.objects.filter(
             organization=organization,
-            team__in=request.access.teams,
+            team__in=Team.objects.get_for_user(organization, request.user),
             project=project,
             transaction=transaction_name,
-        )
+        ).order_by("team_id")
 
         return Response(serialize(list(key_teams)), status=200)
 
@@ -97,7 +98,11 @@ class KeyTransactionEndpoint(KeyTransactionBase):
         with transaction.atomic():
             serializer = serializers.TeamKeyTransactionSerializer(
                 data=request.data,
-                context={"mode": "create", "request": request},
+                context={
+                    "mode": "create",
+                    "request": request,
+                    "organization": organization,
+                },
             )
 
             if serializer.is_valid():
@@ -156,7 +161,12 @@ class KeyTransactionEndpoint(KeyTransactionBase):
             return Response(status=204)
 
         serializer = serializers.TeamKeyTransactionSerializer(
-            data=request.data, context={"request": request}
+            data=request.data,
+            context={
+                "mode": "create",
+                "request": request,
+                "organization": organization,
+            },
         )
 
         if serializer.is_valid():
