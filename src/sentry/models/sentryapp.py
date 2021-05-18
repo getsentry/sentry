@@ -135,15 +135,6 @@ class SentryApp(ParanoidModel, HasApiScopes):
 
         return cls.objects.filter(status=SentryAppStatus.PUBLISHED)
 
-    # this method checks if a user from a sentry app has permission to a specific project
-    # for now, only checks if app is installed on the org of the project
-    @classmethod
-    def check_project_permission_for_sentry_app_user(cls, user, project):
-        assert user.is_sentry_app
-        # if the user exists, so should the sentry_app
-        sentry_app = cls.objects.get(proxy_user=user)
-        return sentry_app.is_installed_on(project.organization)
-
     @property
     def is_published(self):
         return self.status == SentryAppStatus.PUBLISHED
