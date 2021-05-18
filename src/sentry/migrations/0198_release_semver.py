@@ -25,7 +25,7 @@ class Migration(migrations.Migration):
     atomic = False
 
     dependencies = [
-        ("sentry", "0194_add_custom_scm_provider"),
+        ("sentry", "0197_add_scim_enabled_boolean"),
     ]
 
     operations = [
