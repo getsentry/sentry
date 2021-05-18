@@ -1,3 +1,5 @@
+from rest_framework.exceptions import ErrorDetail
+
 from sentry.models import Environment, GroupInboxReason, Release
 from sentry.models.groupinbox import add_group_to_inbox, remove_group_from_inbox
 from sentry.testutils import APITestCase, SnubaTestCase
@@ -150,3 +152,24 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             response = self.client.get(url, format="json")
             assert response.status_code == 200, response.content
             assert response.data["inbox"] is None
+
+    def test_assigned_to_unknown(self):
+        with self.feature("organizations:inbox"):
+            self.login_as(user=self.user)
+            event = self.store_event(
+                data={"timestamp": iso_format(before_now(minutes=3))},
+                project_id=self.project.id,
+            )
+            group = event.group
+            url = f"/api/0/issues/{group.id}/"
+            response = self.client.put(
+                url, {"assignedTo": "admin@localhost", "status": "unresolved"}, format="json"
+            )
+            assert response.status_code == 200
+            response = self.client.put(
+                url, {"assignedTo": "user@doesntexist.com", "status": "unresolved"}, format="json"
+            )
+            assert response.status_code == 400
+            assert response.data == {
+                "assignedTo": [ErrorDetail(string="Unknown actor input", code="invalid")]
+            }
