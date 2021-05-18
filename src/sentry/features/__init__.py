@@ -93,6 +93,7 @@ default_manager.add("organizations:internal-catchall", OrganizationFeature)  # N
 default_manager.add("organizations:invite-members", OrganizationFeature)  # NOQA
 default_manager.add("organizations:invite-members-rate-limits", OrganizationFeature)  # NOQA
 default_manager.add("organizations:issue-list-trend-sort", OrganizationFeature, True)  # NOQA
+default_manager.add("organizations:issue-percent-display", OrganizationFeature, True)  # NOQA
 default_manager.add("organizations:large-debug-files", OrganizationFeature)  # NOQA
 default_manager.add("organizations:metric-alert-builder-aggregate", OrganizationFeature)  # NOQA
 default_manager.add("organizations:metrics", OrganizationFeature, True)  # NOQA
