@@ -162,9 +162,10 @@ def get_project_config(project, full_config=True, project_keys=None):
         if dynamic_sampling is not None:
             cfg["config"]["dynamicSampling"] = dynamic_sampling
 
-    breakdowns_config = project.get_option("sentry:breakdowns")
-    if breakdowns_config is not None:
-        cfg["config"]["breakdowns"] = breakdowns_config
+    if features.has("organizations:performance-ops-breakdown", project.organization):
+        breakdowns_config = project.get_option("sentry:breakdowns")
+        if breakdowns_config is not None:
+            cfg["config"]["breakdowns"] = breakdowns_config
 
     if not full_config:
         # This is all we need for external Relay processors
