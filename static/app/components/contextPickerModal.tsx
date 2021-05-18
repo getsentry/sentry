@@ -4,6 +4,7 @@ import {components, StylesConfig} from 'react-select';
 import styled from '@emotion/styled';
 
 import {ModalRenderProps} from 'app/actionCreators/modal';
+import AsyncComponent from 'app/components/asyncComponent';
 import SelectControl from 'app/components/forms/selectControl';
 import IdBadge from 'app/components/idBadge';
 import Link from 'app/components/links/link';
@@ -13,7 +14,7 @@ import ConfigStore from 'app/stores/configStore';
 import OrganizationsStore from 'app/stores/organizationsStore';
 import OrganizationStore from 'app/stores/organizationStore';
 import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
+import {Integration, Organization, Project} from 'app/types';
 import Projects from 'app/utils/projects';
 import replaceRouterParams from 'app/utils/replaceRouterParams';
 
@@ -62,6 +63,7 @@ type Props = ModalRenderProps & {
    * on which the modal was opened
    */
   comingFromProjectId?: string;
+  configs: Integration[];
 };
 
 const selectStyles = {
@@ -109,6 +111,7 @@ class ContextPickerModal extends Component<Props> {
   // right hard.
   orgSelect: any | null = null;
   projectSelect: any | null = null;
+  configSelect: any | null = null;
 
   // Performs checks to see if we need to prompt user
   // i.e. When there is only 1 org and no project is needed or
@@ -118,14 +121,16 @@ class ContextPickerModal extends Component<Props> {
     projects: Array<{slug: string}>,
     latestOrg: string = this.props.organization
   ) => {
-    const {needProject, onFinish, nextPath} = this.props;
+    const {needProject, onFinish, nextPath, configs} = this.props;
+    const {isSuperuser} = ConfigStore.get('user') || {};
 
     // If no project is needed and theres only 1 org OR
     // if we need a project and there's only 1 project
     // then return because we can't navigate anywhere yet
     if (
       (!needProject && organizations.length !== 1) ||
-      (needProject && projects.length !== 1)
+      (needProject && projects.length !== 1) ||
+      (configs.length && isSuperuser)
     ) {
       return;
     }
@@ -170,14 +175,6 @@ class ContextPickerModal extends Component<Props> {
     }
   };
 
-  focusProjectSelector = () => {
-    this.doFocus(this.projectSelect);
-  };
-
-  focusOrganizationSelector = () => {
-    this.doFocus(this.orgSelect);
-  };
-
   handleSelectOrganization = ({value}: {value: string}) => {
     // If we do not need to select a project, we can early return after selecting an org
     // No need to fetch org details
@@ -198,6 +195,17 @@ class ContextPickerModal extends Component<Props> {
     this.navigateIfFinish([{slug: organization}], [{slug: value}]);
   };
 
+  handleSelectConfiguration = ({value}: {value: string}) => {
+    const {onFinish, nextPath} = this.props;
+
+    if (!value) {
+      return;
+    }
+
+    onFinish(`${nextPath}${value}/`);
+    return;
+  };
+
   getMemberProjects = () => {
     const {projects} = this.props;
     const nonMemberProjects: Project[] = [];
@@ -209,25 +217,28 @@ class ContextPickerModal extends Component<Props> {
     return [memberProjects, nonMemberProjects];
   };
 
-  onProjectMenuOpen = () => {
-    const {projects, comingFromProjectId} = this.props;
+  onMenuOpen = (
+    ref: any | null,
+    listItems: (Project | Integration)[],
+    valueKey: string,
+    currentSelected: string = ''
+  ) => {
     // Hacky way to pre-focus to an item with newer versions of react select
     // See https://github.com/JedWatson/react-select/issues/3648
     setTimeout(() => {
-      const ref = this.projectSelect;
       if (ref) {
-        const projectChoices = ref.select.state.menuOptions.focusable;
-        const projectToBeFocused = projects.find(({id}) => id === comingFromProjectId);
-        const selectedIndex = projectChoices.findIndex(
-          option => option.value === projectToBeFocused?.slug
-        );
-        if (selectedIndex >= 0 && projectToBeFocused) {
+        const choices = ref.select.state.menuOptions.focusable;
+        const toBeFocused = listItems.find(({id}) => id === currentSelected);
+        const selectedIndex = toBeFocused
+          ? choices.findIndex(option => option.value === toBeFocused[valueKey])
+          : 0;
+        if (selectedIndex >= 0 && toBeFocused) {
           // Focusing selected option only if it exists
           ref.select.scrollToFocusedOptionOnUpdate = true;
           ref.select.inputIsHiddenAfterUpdate = false;
           ref.select.setState({
             focusedValue: null,
-            focusedOption: projectChoices[selectedIndex],
+            focusedOption: choices[selectedIndex],
           });
         }
       }
@@ -253,7 +264,7 @@ class ContextPickerModal extends Component<Props> {
   };
 
   get headerText() {
-    const {needOrg, needProject} = this.props;
+    const {needOrg, needProject, configs} = this.props;
     if (needOrg && needProject) {
       return t('Select an organization and a project to continue');
     }
@@ -263,12 +274,15 @@ class ContextPickerModal extends Component<Props> {
     if (needProject) {
       return t('Select a project to continue');
     }
+    if (configs.length) {
+      return t('Select a configuration to continue');
+    }
     //if neither project nor org needs to be selected, nothing will render anyways
     return '';
   }
 
   renderProjectSelectOrMessage() {
-    const {organization, projects} = this.props;
+    const {organization, projects, comingFromProjectId} = this.props;
     const [memberProjects, nonMemberProjects] = this.getMemberProjects();
     const {isSuperuser} = ConfigStore.get('user') || {};
 
@@ -302,18 +316,54 @@ class ContextPickerModal extends Component<Props> {
         </div>
       );
     }
+
     return (
       <StyledSelectControl
         ref={(ref: any) => {
           this.projectSelect = ref;
-          this.focusProjectSelector();
+          this.doFocus(this.projectSelect);
         }}
         placeholder={t('Select a Project to continue')}
         name="project"
         options={projectOptions}
         onChange={this.handleSelectProject}
-        onMenuOpen={this.onProjectMenuOpen}
+        onMenuOpen={() =>
+          this.onMenuOpen(this.projectSelect, projects, 'slug', comingFromProjectId)
+        }
         components={{Option: this.customOptionProject, DropdownIndicator: null}}
+        styles={selectStyles}
+        menuIsOpen
+      />
+    );
+  }
+
+  renderIntegrationConfigs() {
+    const {configs} = this.props;
+    const {isSuperuser} = ConfigStore.get('user') || {};
+
+    const options = [
+      {
+        label: tct('[providerName] Configurations', {
+          providerName: configs[0].provider.name,
+        }),
+        options: configs.map(config => ({
+          value: config.id,
+          label: `${config.domainName}`,
+          isDisabled: isSuperuser ? false : true,
+        })),
+      },
+    ];
+    return (
+      <StyledSelectControl
+        ref={(ref: any) => {
+          this.configSelect = ref;
+          this.doFocus(this.configSelect);
+        }}
+        placeholder={t('Select a configuration to continue')}
+        name="configurations"
+        options={options}
+        onChange={this.handleSelectConfiguration}
+        onMenuOpen={() => this.onMenuOpen(this.configSelect, configs, 'id')}
         styles={selectStyles}
         menuIsOpen
       />
@@ -329,19 +379,23 @@ class ContextPickerModal extends Component<Props> {
       loading,
       Header,
       Body,
+      configs,
     } = this.props;
-
-    const shouldShowPicker = needOrg || needProject;
-
-    if (!shouldShowPicker) {
-      return null;
-    }
+    const {isSuperuser} = ConfigStore.get('user') || {};
 
     const shouldShowProjectSelector = organization && needProject && !loading;
+
+    const shouldShowConfigSelector = configs.length && isSuperuser;
 
     const orgChoices = organizations
       .filter(({status}) => status.id !== 'pending_deletion')
       .map(({slug}) => ({label: slug, value: slug}));
+
+    const shouldShowPicker = needOrg || needProject || shouldShowConfigSelector;
+
+    if (!shouldShowPicker) {
+      return null;
+    }
 
     return (
       <Fragment>
@@ -355,7 +409,7 @@ class ContextPickerModal extends Component<Props> {
                 if (shouldShowProjectSelector) {
                   return;
                 }
-                this.focusOrganizationSelector();
+                this.doFocus(this.orgSelect);
               }}
               placeholder={t('Select an Organization')}
               name="organization"
@@ -369,6 +423,7 @@ class ContextPickerModal extends Component<Props> {
           )}
 
           {shouldShowProjectSelector && this.renderProjectSelectOrMessage()}
+          {shouldShowConfigSelector && this.renderIntegrationConfigs()}
         </Body>
       </Fragment>
     );
@@ -377,28 +432,42 @@ class ContextPickerModal extends Component<Props> {
 
 type ContainerProps = Omit<
   Props,
-  'projects' | 'loading' | 'organizations' | 'organization' | 'onSelectOrganization'
+  | 'projects'
+  | 'loading'
+  | 'organizations'
+  | 'organization'
+  | 'onSelectOrganization'
+  | 'configs'
 > & {
   /**
    * List of slugs we want to be able to choose from
    */
   projectSlugs?: string[];
-};
+  configUrl?: string;
+} & AsyncComponent['props'];
 
 type ContainerState = {
   selectedOrganization?: string;
   organizations: Organization[];
-};
+  configs?: Integration[];
+} & AsyncComponent['state'];
 
-class ContextPickerModalContainer extends Component<ContainerProps, ContainerState> {
-  state = this.getInitialState();
-
-  getInitialState(): ContainerState {
+class ContextPickerModalContainer extends AsyncComponent<ContainerProps, ContainerState> {
+  getDefaultState() {
     const storeState = OrganizationStore.get();
     return {
+      ...super.getDefaultState(),
       organizations: OrganizationsStore.getAll(),
       selectedOrganization: storeState.organization?.slug,
     };
+  }
+
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+    const {configUrl} = this.props;
+    if (configUrl) {
+      return [['configs', configUrl]];
+    }
+    return [];
   }
 
   componentWillUnmount() {
@@ -417,9 +486,11 @@ class ContextPickerModalContainer extends Component<ContainerProps, ContainerSta
   renderModal({
     projects,
     initiallyLoaded,
+    configs,
   }: {
     projects?: Project[];
     initiallyLoaded?: boolean;
+    configs?: Integration[];
   }) {
     return (
       <ContextPickerModal
@@ -429,13 +500,23 @@ class ContextPickerModalContainer extends Component<ContainerProps, ContainerSta
         organizations={this.state.organizations}
         organization={this.state.selectedOrganization!}
         onSelectOrganization={this.handleSelectOrganization}
+        configs={configs || []}
       />
     );
   }
 
   render() {
-    const {projectSlugs} = this.props;
+    const {projectSlugs, configUrl} = this.props;
 
+    if (configUrl && this.state.loading) {
+      return <LoadingIndicator />;
+    }
+    if (this.state.configs?.length) {
+      return this.renderModal({
+        configs: this.state.configs,
+        initiallyLoaded: !this.state.loading,
+      });
+    }
     if (this.state.selectedOrganization) {
       return (
         <Projects
