@@ -1,9 +1,11 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import Alert from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
 import Avatar from 'app/components/avatar';
-import {t} from 'app/locale';
+import {IconInfo} from 'app/icons';
+import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import withOrganizations from 'app/utils/withOrganizations';
@@ -374,6 +376,11 @@ class NotificationSettings extends AsyncComponent<Props, State> {
       <React.Fragment>
         <SettingsPageHeader title={title} />
         {description && <TextBlock>{description}</TextBlock>}
+        <FeedbackAlert type="info" icon={<IconInfo />}>
+          {tct('Got feedback? Email [email:ecosystem-feedback@sentry.io].', {
+            email: <a href="mailto:ecosystem-feedback@sentry.io" />,
+          })}
+        </FeedbackAlert>
         <Form
           saveOnBlur
           apiMethod="PUT"
@@ -411,4 +418,9 @@ const FieldLabel = styled('div')`
   gap: ${space(0.5)};
   line-height: 16px;
 `;
+
+const FeedbackAlert = styled(Alert)`
+  margin: 20px 0px;
+`;
+
 export default withOrganizations(NotificationSettings);
