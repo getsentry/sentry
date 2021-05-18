@@ -216,7 +216,7 @@ def get_scope_type(type: NotificationSettingTypes) -> NotificationScopeType:
     if type in [NotificationSettingTypes.WORKFLOW, NotificationSettingTypes.ISSUE_ALERTS]:
         return NotificationScopeType.PROJECT
 
-    raise Exception("type must be issue_alert, deploy, or workflow")
+    raise Exception(f"type {type}, must be alerts, deploy, or workflow")
 
 
 def get_scope(

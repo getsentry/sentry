@@ -3,8 +3,8 @@ from typing import Any, Iterable, Mapping, MutableMapping, Optional, Set, Union
 
 from sentry.api.serializers import Serializer
 from sentry.models import NotificationSetting, Team, User
-from sentry.notifications.helpers import NOTIFICATION_SETTING_DEFAULTS, get_fallback_settings
-from sentry.notifications.types import NotificationSettingTypes
+from sentry.notifications.helpers import get_fallback_settings
+from sentry.notifications.types import VALID_VALUES_FOR_KEY, NotificationSettingTypes
 
 
 class NotificationSettingsSerializer(Serializer):  # type: ignore
@@ -94,9 +94,7 @@ class NotificationSettingsSerializer(Serializer):  # type: ignore
         :returns A mapping. See example.
         """
         type_option: Optional[NotificationSettingTypes] = kwargs.get("type")
-        types_to_serialize = (
-            {type_option} if type_option else set(NOTIFICATION_SETTING_DEFAULTS.keys())
-        )
+        types_to_serialize = {type_option} if type_option else set(VALID_VALUES_FOR_KEY.keys())
         user = obj if type(obj) == User else None
 
         data = get_fallback_settings(
