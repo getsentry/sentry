@@ -1,5 +1,9 @@
 import {Organization, Project} from 'app/types';
 
+export type NotificationSettingsObject = {
+  [key: string]: {[key: string]: {[key: string]: {[key: string]: string}}};
+};
+
 // Which fine tuning parts are grouped by project
 export const isGroupedByProject = (type: string): boolean =>
   ['alerts', 'email', 'workflow'].includes(type);
@@ -89,4 +93,24 @@ export const backfillMissingProvidersWithFallback = (
     entries.push([provider, fallback]);
   }
   return Object.fromEntries(entries);
+};
+
+export const mergeNotificationSettings = (
+  ...objects: NotificationSettingsObject[]
+): NotificationSettingsObject => {
+  /** Deeply merge N notification settings objects (usually just 2). */
+  const output = {};
+  objects.map(settingsByType =>
+    Object.entries(settingsByType).map(([type, settingsByScopeType]) =>
+      Object.entries(settingsByScopeType).map(([scopeType, settingsByScopeId]) =>
+        Object.entries(settingsByScopeId).map(([scopeId, settingsByProvider]) =>
+          Object.entries(settingsByProvider).map(([provider, value]) => {
+            output[type][scopeType][scopeId][provider] = value;
+          })
+        )
+      )
+    )
+  );
+
+  return output;
 };

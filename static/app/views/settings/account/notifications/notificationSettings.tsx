@@ -15,6 +15,8 @@ import {
   getFallBackValue,
   groupByOrganization,
   isGroupedByProject,
+  mergeNotificationSettings,
+  NotificationSettingsObject,
   providerListToString,
 } from 'app/views/settings/account/notifications/utils';
 import Form from 'app/views/settings/components/forms/form';
@@ -29,9 +31,7 @@ type Props = {
 } & AsyncComponent['props'];
 
 type State = {
-  notificationSettings: {
-    [key: string]: {[key: string]: {[key: string]: {[key: string]: string}}};
-  };
+  notificationSettings: NotificationSettingsObject;
   projects: Project[];
 } & AsyncComponent['state'];
 
@@ -174,7 +174,10 @@ class NotificationSettings extends AsyncComponent<Props, State> {
     }
 
     this.setState({
-      notificationSettings: {...notificationSettings, ...updatedNotificationSettings},
+      notificationSettings: mergeNotificationSettings(
+        notificationSettings,
+        updatedNotificationSettings
+      ),
     });
 
     return updatedNotificationSettings;
@@ -216,7 +219,10 @@ class NotificationSettings extends AsyncComponent<Props, State> {
     }
 
     this.setState({
-      notificationSettings: {...notificationSettings, ...updatedNotificationSettings},
+      notificationSettings: mergeNotificationSettings(
+        notificationSettings,
+        updatedNotificationSettings
+      ),
     });
 
     return updatedNotificationSettings;
@@ -240,7 +246,10 @@ class NotificationSettings extends AsyncComponent<Props, State> {
       },
     };
     this.setState({
-      notificationSettings: {...notificationSettings, ...updatedNotificationSettings},
+      notificationSettings: mergeNotificationSettings(
+        notificationSettings,
+        updatedNotificationSettings
+      ),
     });
     return updatedNotificationSettings;
   };
