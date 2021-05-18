@@ -191,7 +191,7 @@ class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> 
       }
 
       const tableData = afterFetch ? afterFetch(data, this.props) : data;
-      didFetch && didFetch(tableData);
+      didFetch?.(tableData);
 
       this.setState(prevState => ({
         isLoading: false,
