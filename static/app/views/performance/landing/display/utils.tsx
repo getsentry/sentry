@@ -1,49 +1,28 @@
 import {AxisOption} from '../../data';
 
-export function getAxisOrBackupAxis(axis: AxisOption, axisBackupDepth?: number) {
-  const displayedAxis = axisBackupDepth
-    ? getBackupAxisOptions(axis, axisBackupDepth) || axis
-    : axis;
+export function getAxisOrBackupAxis(axis: AxisOption, usingBackupAxis: boolean) {
+  const displayedAxis = usingBackupAxis ? getBackupAxisOption(axis) ?? axis : axis;
   return displayedAxis;
 }
 
-export function getBackupAxisOptions(axis: AxisOption, depth: number) {
-  if (depth === 0) {
-    return axis;
-  }
-  if (!axis.backupOption) {
-    return null;
-  }
-  return getBackupAxisOptions(axis.backupOption, depth - 1);
+export function getBackupAxisOption(axis: AxisOption) {
+  return axis.backupOption;
 }
 
-export function getBackupAxes(axes: AxisOption[], depth: number) {
-  return axes.map(axis => getBackupAxisOptions(axis, depth) || axis);
+export function getBackupAxes(axes: AxisOption[], usingBackupAxis: boolean) {
+  return usingBackupAxis ? axes.map(axis => getBackupAxisOption(axis) ?? axis) : axes;
 }
 
-export function getBackupFields(axis: AxisOption, maxFields = 20) {
-  const fields: string[] = [];
+export function getBackupField(axis: AxisOption) {
+  const backupOption = getBackupAxisOption(axis);
 
-  function _getBackupFields(_axis: AxisOption): string[] {
-    if (fields.length === maxFields) {
-      return fields;
-    }
-
-    if (!_axis.backupOption) {
-      return fields;
-    }
-
-    fields.push(_axis.backupOption.field);
-    return _getBackupFields(_axis.backupOption);
+  if (!backupOption) {
+    return undefined;
   }
 
-  return _getBackupFields(axis);
+  return backupOption.field;
 }
 
-export function getFieldOrBackup(
-  field: string,
-  backupFields?: string[],
-  backupDepth?: number
-) {
-  return backupDepth && backupFields ? backupFields[backupDepth - 1] : field;
+export function getFieldOrBackup(field: string, backupField?: string) {
+  return backupField ?? field;
 }

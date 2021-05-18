@@ -30,7 +30,7 @@ type Props = {
 function DoubleAxisDisplay(props: Props) {
   const {eventView, location, organization, axisOptions, leftAxis, rightAxis} = props;
 
-  const [axisBackupDepth, setAxisDepth] = useState(0);
+  const [usingBackupAxis, setUsingBackupAxis] = useState(false);
 
   const onFilterChange = (field: string) => (minValue, maxValue) => {
     const filterString = getTransactionSearchQuery(location);
@@ -60,14 +60,14 @@ function DoubleAxisDisplay(props: Props) {
     });
   };
 
-  const didReceiveMultiAxis = (depth: number) => {
-    setAxisDepth(depth);
+  const didReceiveMultiAxis = () => {
+    setUsingBackupAxis(true);
   };
 
-  const leftAxisOrBackup = getAxisOrBackupAxis(leftAxis, axisBackupDepth);
-  const rightAxisOrBackup = getAxisOrBackupAxis(rightAxis, axisBackupDepth);
+  const leftAxisOrBackup = getAxisOrBackupAxis(leftAxis, usingBackupAxis);
+  const rightAxisOrBackup = getAxisOrBackupAxis(rightAxis, usingBackupAxis);
 
-  const optionsOrBackup = getBackupAxes(axisOptions, axisBackupDepth);
+  const optionsOrBackup = getBackupAxes(axisOptions, usingBackupAxis);
 
   return (
     <Panel>
@@ -75,15 +75,15 @@ function DoubleAxisDisplay(props: Props) {
         <SingleAxisChart
           axis={leftAxis}
           onFilterChange={onFilterChange(leftAxis.field)}
-          axisBackupDepth={axisBackupDepth}
           didReceiveMultiAxis={didReceiveMultiAxis}
+          usingBackupAxis={usingBackupAxis}
           {...props}
         />
         <SingleAxisChart
           axis={rightAxis}
           onFilterChange={onFilterChange(rightAxis.field)}
-          axisBackupDepth={axisBackupDepth}
           didReceiveMultiAxis={didReceiveMultiAxis}
+          usingBackupAxis={usingBackupAxis}
           {...props}
         />
       </DoubleChartContainer>

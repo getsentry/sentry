@@ -8,7 +8,7 @@ import {AxisOption} from '../../data';
 import DurationChart from '../chart/durationChart';
 import HistogramChart from '../chart/histogramChart';
 
-import {getAxisOrBackupAxis, getBackupFields} from './utils';
+import {getAxisOrBackupAxis, getBackupField} from './utils';
 
 type DisplayProps = {
   location: Location;
@@ -16,8 +16,8 @@ type DisplayProps = {
   eventView: EventView;
   axis: AxisOption;
   onFilterChange: (minValue: number, maxValue: number) => void; // only used for distribution graphs
-  didReceiveMultiAxis?: (axisDepth: number) => void;
-  axisBackupDepth?: number;
+  didReceiveMultiAxis?: () => void;
+  usingBackupAxis: boolean;
 };
 
 export function SingleAxisChart(props: DisplayProps) {
@@ -28,25 +28,22 @@ export function SingleAxisChart(props: DisplayProps) {
     organization,
     location,
     didReceiveMultiAxis,
-    axisBackupDepth,
+    usingBackupAxis,
   } = props;
 
-  const backupFields = getBackupFields(axis);
+  const backupField = getBackupField(axis);
 
   function didReceiveMulti(dataCounts: Record<string, number>) {
     if (!didReceiveMultiAxis) {
       return;
     }
-    const allFields = [axis.field, ...backupFields];
-    for (const [index, field] of allFields.entries()) {
-      if (dataCounts[field]) {
-        didReceiveMultiAxis(index);
-        return;
-      }
+    if (!dataCounts[axis.field] && backupField && dataCounts[backupField]) {
+      didReceiveMultiAxis();
+      return;
     }
   }
 
-  const axisOrBackup = getAxisOrBackupAxis(axis, axisBackupDepth);
+  const axisOrBackup = getAxisOrBackupAxis(axis, usingBackupAxis);
 
   return axis.isDistribution ? (
     <HistogramChart
@@ -58,8 +55,7 @@ export function SingleAxisChart(props: DisplayProps) {
       title={axisOrBackup.label}
       titleTooltip={axisOrBackup.tooltip}
       didReceiveMultiAxis={didReceiveMulti}
-      backupFields={backupFields}
-      backupDepth={axisBackupDepth}
+      backupField={usingBackupAxis ? backupField : undefined}
     />
   ) : (
     <DurationChart
@@ -68,8 +64,7 @@ export function SingleAxisChart(props: DisplayProps) {
       organization={organization}
       title={axisOrBackup.label}
       titleTooltip={axisOrBackup.tooltip}
-      backupFields={backupFields}
-      backupDepth={axisBackupDepth}
+      backupField={usingBackupAxis ? backupField : undefined}
     />
   );
 }
