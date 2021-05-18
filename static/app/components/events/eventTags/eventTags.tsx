@@ -44,7 +44,6 @@ const EventTags = ({
             tag={tag}
             projectId={projectId}
             organization={organization}
-            location={location}
             query={generateQueryWithTag(location.query, tag)}
             streamPath={streamPath}
             releasesPath={releasesPath}
