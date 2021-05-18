@@ -229,6 +229,7 @@ def patch_transport_for_instrumentation(transport, transport_name):
             return _update_rate_limits(*args, **kwargs)
 
         transport._update_rate_limits = patched_update_rate_limits
+    return transport
 
 
 def configure_sdk():
