@@ -949,11 +949,6 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             **query_params,
         )
 
-    def _get_session_percent(self, count, sessions):
-        if sessions != 0:
-            return round(int(count) / sessions, 4)
-        return None
-
     def get_attrs(self, item_list, user):
         if not self._collapse("base"):
             attrs = super().get_attrs(item_list, user)
