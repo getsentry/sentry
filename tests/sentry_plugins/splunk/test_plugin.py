@@ -1,6 +1,7 @@
 import responses
 from exam import fixture
 
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils import PluginTestCase
 from sentry.utils import json
 from sentry_plugins.splunk.plugin import SplunkPlugin
@@ -36,6 +37,42 @@ class SplunkPluginTest(PluginTestCase):
         assert payload == self.plugin.get_event_payload(event)
         headers = request.headers
         assert headers["Authorization"] == "Splunk 12345678-1234-1234-1234-1234567890AB"
+
+    @responses.activate
+    def test_dont_reraise_error(self):
+        responses.add(
+            responses.POST, "https://splunk.example.com:8088/services/collector", status=404
+        )
+
+        self.plugin.set_option("token", "12345678-1234-1234-1234-1234567890AB", self.project)
+        self.plugin.set_option("index", "main", self.project)
+        self.plugin.set_option("instance", "https://splunk.example.com:8088", self.project)
+
+        event = self.store_event(
+            data={"message": "Hello world", "level": "warning"}, project_id=self.project.id
+        )
+        with self.options({"system.url-prefix": "http://example.com"}):
+            self.plugin.post_process(event)
+
+        resp = responses.calls[0].response
+        assert resp.status_code == 404
+
+    @responses.activate
+    def test_reraise_error(self):
+        responses.add(
+            responses.POST, "https://splunk.example.com:8088/services/collector", status=500
+        )
+
+        self.plugin.set_option("token", "12345678-1234-1234-1234-1234567890AB", self.project)
+        self.plugin.set_option("index", "main", self.project)
+        self.plugin.set_option("instance", "https://splunk.example.com:8088", self.project)
+
+        event = self.store_event(
+            data={"message": "Hello world", "level": "warning"}, project_id=self.project.id
+        )
+        with self.options({"system.url-prefix": "http://example.com"}):
+            with self.assertRaises(ApiError):
+                self.plugin.post_process(event)
 
     def test_http_payload(self):
         event = self.store_event(
