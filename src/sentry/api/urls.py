@@ -56,6 +56,7 @@ from .endpoints.assistant import AssistantEndpoint
 from .endpoints.auth_config import AuthConfigEndpoint
 from .endpoints.auth_index import AuthIndexEndpoint
 from .endpoints.auth_login import AuthLoginEndpoint
+from .endpoints.auth_register import AuthRegisterEndpoint
 from .endpoints.authenticator_index import AuthenticatorIndexEndpoint
 from .endpoints.broadcast_details import BroadcastDetailsEndpoint
 from .endpoints.broadcast_index import BroadcastIndexEndpoint
@@ -522,6 +523,11 @@ urlpatterns = [
                 url(r"^$", AuthIndexEndpoint.as_view(), name="sentry-api-0-auth"),
                 url(r"^config/$", AuthConfigEndpoint.as_view(), name="sentry-api-0-auth-config"),
                 url(r"^login/$", AuthLoginEndpoint.as_view(), name="sentry-api-0-auth-login"),
+                url(
+                    r"^register/$",
+                    AuthRegisterEndpoint.as_view(),
+                    name="sentry-api-0-auth-register",
+                ),
             ]
         ),
     ),
