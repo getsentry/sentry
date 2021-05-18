@@ -1,6 +1,7 @@
 from datetime import timedelta
 
 import pytest
+from django.core.cache import cache
 from django.db.models import ProtectedError
 from django.utils import timezone
 
@@ -208,6 +209,7 @@ class GroupTest(TestCase, SnubaTestCase):
 
         assert group.first_release == release
         assert group.get_first_release() == release.version
+        cache.delete(group._get_cache_key(group.id, group.project_id, True))
         assert group.get_last_release() == release.version
 
     def test_first_release_from_tag(self):
@@ -219,6 +221,7 @@ class GroupTest(TestCase, SnubaTestCase):
         group = event.group
 
         assert group.get_first_release() == "a"
+        cache.delete(group._get_cache_key(group.id, group.project_id, True))
         assert group.get_last_release() == "a"
 
     def test_first_last_release_miss(self):
@@ -305,8 +308,10 @@ class GroupTest(TestCase, SnubaTestCase):
         )
 
         assert group.get_first_release() == "200"
+        cache.delete(group2._get_cache_key(group2.id, group2.project_id, True))
 
         assert group2.get_first_release() is None
+        cache.delete(group._get_cache_key(group.id, group.project_id, True))
 
         assert group.get_last_release() == "100"
 

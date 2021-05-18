@@ -478,14 +478,17 @@ class Group(Model):
             project_id=self.project_id,
         )
 
+    def _get_cache_key(self, project_id, group_id, first):
+        return f"g-r:{group_id}-{project_id}-{first}"
+
     def __get_release(self, project_id, group_id, first=True):
         from sentry.models import GroupRelease, Release
 
         orderby = "first_seen" if first else "-last_seen"
-        cache_key = f"g-r:{group_id}-{project_id}-{first}"
+        cache_key = self._get_cache_key(project_id, group_id, first)
         try:
             release_version = cache.get(cache_key)
-            if release_version is not None:
+            if release_version is None:
                 release_version = Release.objects.get(
                     id=GroupRelease.objects.filter(group_id=group_id, project_id=project_id)
                     .order_by(orderby)
@@ -494,7 +497,6 @@ class Group(Model):
                 cache.set(cache_key, release_version, 3600)
             elif release_version is False:
                 release_version = None
-
             return release_version
         except Release.DoesNotExist:
             cache.set(cache_key, False, 3600)
