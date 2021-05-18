@@ -211,13 +211,17 @@ class TeamKeyTransactionTest(APITestCase, SnubaTestCase):
         self.create_team_membership(team, user=self.user)
         self.project.add_team(team)
 
-        for i in range(MAX_TEAM_KEY_TRANSACTIONS):
-            TeamKeyTransaction.objects.create(
-                team=team,
-                organization=self.org,
-                transaction=f"{self.event_data['transaction']}-{i}",
-                project=self.project,
-            )
+        TeamKeyTransaction.objects.bulk_create(
+            [
+                TeamKeyTransaction(
+                    team=team,
+                    organization=self.org,
+                    transaction=f"{self.event_data['transaction']}-{i}",
+                    project=self.project,
+                )
+                for i in range(MAX_TEAM_KEY_TRANSACTIONS)
+            ]
+        )
 
         with self.feature(self.features):
             response = self.client.post(
@@ -236,6 +240,43 @@ class TeamKeyTransactionTest(APITestCase, SnubaTestCase):
                 f"At most {MAX_TEAM_KEY_TRANSACTIONS} Key Transactions can be added for a team"
             ]
         }
+
+    def test_post_key_transaction_limit_is_per_team(self):
+        team1 = self.create_team(organization=self.org, name="Team Foo")
+        self.create_team_membership(team1, user=self.user)
+        self.project.add_team(team1)
+
+        team2 = self.create_team(organization=self.org, name="Team Bar")
+        self.create_team_membership(team2, user=self.user)
+        self.project.add_team(team2)
+
+        TeamKeyTransaction.objects.bulk_create(
+            [
+                TeamKeyTransaction(
+                    team=team,
+                    organization=self.org,
+                    transaction=f"{self.event_data['transaction']}-{i}",
+                    project=self.project,
+                )
+                for team in [team1, team2]
+                for i in range(MAX_TEAM_KEY_TRANSACTIONS - 1)
+            ]
+        )
+
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                data={
+                    "project": [self.project.id],
+                    "transaction": self.event_data["transaction"],
+                    "team": [team1.id, team2.id],
+                },
+                format="json",
+            )
+
+        assert response.status_code == 201
+        key_transactions = TeamKeyTransaction.objects.filter(team__in=[team1, team2])
+        assert len(key_transactions) == 2 * MAX_TEAM_KEY_TRANSACTIONS
 
     def test_post_key_transactions(self):
         team = self.create_team(organization=self.org, name="Team Foo")

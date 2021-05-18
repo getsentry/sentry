@@ -108,13 +108,13 @@ class KeyTransactionEndpoint(KeyTransactionBase):
                     "transaction": data["transaction"],
                 }
 
-                keyed_transactions = TeamKeyTransaction.objects.filter(
-                    **base_filter, team__in=data["team"]
+                keyed_transaction_team_ids = set(
+                    TeamKeyTransaction.objects.values_list("team_id", flat=True).filter(
+                        **base_filter, team__in=data["team"]
+                    )
                 )
-                if len(keyed_transactions) == len(data["team"]):
+                if len(keyed_transaction_team_ids) == len(data["team"]):
                     return Response(status=204)
-
-                keyed_transaction_team_ids = {k.team_id for k in keyed_transactions}
 
                 try:
                     # TeamKeyTransaction.objects.create(**base_filter)
@@ -167,12 +167,7 @@ class KeyTransactionEndpoint(KeyTransactionBase):
                 "transaction": data["transaction"],
             }
 
-            try:
-                model = TeamKeyTransaction.objects.filter(
-                    **base_filter, team__in=data["team"]
-                ).delete()
-            except TeamKeyTransaction.DoesNotExist:
-                return Response(status=204)
+            TeamKeyTransaction.objects.filter(**base_filter, team__in=data["team"]).delete()
 
             return Response(status=204)
 

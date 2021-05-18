@@ -1,6 +1,7 @@
 import re
 from typing import Sequence
 
+from django.db.models import Count, Max
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
 
@@ -283,9 +284,14 @@ class TeamKeyTransactionSerializer(serializers.Serializer):
         data = super().validate(data)
         if self.context.get("mode") == "create":
             team = data["team"]
-            count = TeamKeyTransaction.objects.filter(team_id__in=[t.id for t in team]).count()
+            count = (
+                TeamKeyTransaction.objects.values("team_id")
+                .filter(team__in=[item.id for item in team])
+                .annotate(total=Count("team_id"))
+                .aggregate(max=Max("total"))
+            )
             # Limit the number of key transactions for a team
-            if count >= MAX_TEAM_KEY_TRANSACTIONS:
+            if count["max"] and count["max"] >= MAX_TEAM_KEY_TRANSACTIONS:
                 raise serializers.ValidationError(
                     f"At most {MAX_TEAM_KEY_TRANSACTIONS} Key Transactions can be added for a team"
                 )
