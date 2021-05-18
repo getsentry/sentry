@@ -127,6 +127,9 @@ default_manager.add("organizations:discover-arithmetic", OrganizationFeature, Tr
 default_manager.add("organizations:transaction-events", OrganizationFeature, True)  # NOQA
 default_manager.add("organizations:unified-span-view", OrganizationFeature, True)  # NOQA
 default_manager.add("organizations:team-key-transactions", OrganizationFeature, True)  # NOQA
+default_manager.add(
+    "organizations:project-transaction-threshold", OrganizationFeature, True
+)  # NOQA
 # NOTE: Don't add features down here! Add them to their specific group and sort
 #       them alphabetically! The order features are registered is not important.
 
