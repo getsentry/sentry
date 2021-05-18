@@ -34,7 +34,7 @@ class TeamNotificationSettingsDetailsEndpoint(TeamEndpoint):
 
         return Response(
             serialize(
-                team.actor,
+                team,
                 request.user,
                 NotificationSettingsSerializer(),
                 type=type_option,

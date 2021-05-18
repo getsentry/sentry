@@ -110,7 +110,6 @@ export function Tags({
                 tag={tag}
                 projectId={transaction.project_slug}
                 organization={organization}
-                location={location}
                 query={query}
                 streamPath={streamPath}
                 releasesPath={releasesPath}
