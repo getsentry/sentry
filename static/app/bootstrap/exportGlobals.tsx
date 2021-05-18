@@ -72,9 +72,11 @@ const makeBeaconRequest = throttle(
       await api.requestPromise('/api/0/internal/beacon/', {
         method: 'POST',
         data: {
-          batch_data: components.map(component => ({
+          // Limit to first 20 components... if there are more than 20, then something
+          // is probably wrong.
+          batch_data: components.slice(0, 20).map(component => ({
             description: 'SentryApp',
-            component,
+            ...component,
           })),
         },
       });
@@ -86,26 +88,45 @@ const makeBeaconRequest = throttle(
   {trailing: true, leading: false}
 );
 
-function wrapObject(parent, key, value) {
-  Object.defineProperty(parent, key, {
-    configurable: true,
-    enumerable: true,
-    get: () => {
-      if (key !== 'SentryApp') {
-        _beaconComponents.push(key);
-        makeBeaconRequest();
-      }
+[
+  [SentryApp, globals.SentryApp],
+  [globals, window],
+].forEach(([obj, parent]) => {
+  const properties = Object.fromEntries(
+    Object.entries(obj).map(([key, value]) => {
+      return [
+        key,
+        {
+          configurable: false,
+          enumerable: false,
+          get() {
+            try {
+              const stack = new Error().stack;
+              // Split stack by lines and filter out empty strings
+              const stackArr = stack.split('\n').filter(s => !!s);
+              // There's an issue with Firefox where this getter for jQuery gets called many times (> 100)
+              // The stacktrace doesn't show it being called outside of this block either.
+              // And this works fine in Chrome...
+              if (key !== 'SentryApp' && stackArr.length > 1) {
+                // Limit the number of frames to include
+                _beaconComponents.push({
+                  component: key,
+                  stack: stackArr.slice(0, 5).join('\n'),
+                });
+                makeBeaconRequest();
+              }
+            } catch {
+              // Ignore errors
+            }
 
-      return value;
-    },
-  });
-}
+            return value;
+          },
+        },
+      ];
+    })
+  );
 
-Object.entries(SentryApp).forEach(([key, value]) =>
-  wrapObject(globals.SentryApp, key, value)
-);
-
-// Make globals available on the window object
-Object.entries(globals).forEach(([key, value]) => wrapObject(window, key, value));
+  Object.defineProperties(parent, properties);
+});
 
 export default globals;
