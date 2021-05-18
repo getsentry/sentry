@@ -492,6 +492,9 @@ class Group(Model):
                     .values("release_id")[:1]
                 ).version
                 cache.set(cache_key, release_version, 3600)
+            elif release_version is False:
+                release_version = None
+
             return release_version
         except Release.DoesNotExist:
             cache.set(cache_key, False, 3600)
