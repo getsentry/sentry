@@ -18,6 +18,7 @@ type HistogramProps = {
   max?: number;
   precision?: number;
   dataFilter?: DataFilter;
+  didReceiveMultiAxis?: (axisCounts: Record<string, number>) => void;
 };
 
 type RequestProps = DiscoverQueryProps & HistogramProps;
@@ -63,7 +64,21 @@ function beforeFetch(api: Client) {
 }
 
 function HistogramQuery(props: Props) {
-  const {children, fields} = props;
+  const {children, fields, didReceiveMultiAxis} = props;
+
+  function didFetch(data: Histograms) {
+    if (didReceiveMultiAxis) {
+      const counts: Record<string, number> = {};
+      Object.entries(data).forEach(
+        ([key, values]) =>
+          (counts[key] = values.length
+            ? values.reduce((prev, curr) => prev + curr.count, 0)
+            : 0)
+      );
+      didReceiveMultiAxis(counts);
+    }
+  }
+
   if (fields.length === 0) {
     return (
       <React.Fragment>
@@ -82,6 +97,7 @@ function HistogramQuery(props: Props) {
       route="events-histogram"
       getRequestPayload={getHistogramRequestPayload}
       beforeFetch={beforeFetch}
+      didFetch={didFetch}
       {...omit(props, 'children')}
     >
       {({tableData, ...rest}) => {

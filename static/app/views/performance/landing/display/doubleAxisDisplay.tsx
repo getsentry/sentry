@@ -1,3 +1,4 @@
+import {useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -15,6 +16,7 @@ import {AxisOption} from '../../data';
 import {getTransactionSearchQuery} from '../../utils';
 
 import {SingleAxisChart} from './singleAxisChart';
+import {getAxisOrBackupAxis, getBackupAxes} from './utils';
 
 type Props = {
   location: Location;
@@ -27,6 +29,8 @@ type Props = {
 
 function DoubleAxisDisplay(props: Props) {
   const {eventView, location, organization, axisOptions, leftAxis, rightAxis} = props;
+
+  const [usingBackupAxis, setUsingBackupAxis] = useState(false);
 
   const onFilterChange = (field: string) => (minValue, maxValue) => {
     const filterString = getTransactionSearchQuery(location);
@@ -56,25 +60,38 @@ function DoubleAxisDisplay(props: Props) {
     });
   };
 
+  const didReceiveMultiAxis = (useBackup: boolean) => {
+    setUsingBackupAxis(useBackup);
+  };
+
+  const leftAxisOrBackup = getAxisOrBackupAxis(leftAxis, usingBackupAxis);
+  const rightAxisOrBackup = getAxisOrBackupAxis(rightAxis, usingBackupAxis);
+
+  const optionsOrBackup = getBackupAxes(axisOptions, usingBackupAxis);
+
   return (
     <Panel>
       <DoubleChartContainer>
         <SingleAxisChart
           axis={leftAxis}
           onFilterChange={onFilterChange(leftAxis.field)}
+          didReceiveMultiAxis={didReceiveMultiAxis}
+          usingBackupAxis={usingBackupAxis}
           {...props}
         />
         <SingleAxisChart
           axis={rightAxis}
           onFilterChange={onFilterChange(rightAxis.field)}
+          didReceiveMultiAxis={didReceiveMultiAxis}
+          usingBackupAxis={usingBackupAxis}
           {...props}
         />
       </DoubleChartContainer>
 
       <Footer
-        options={axisOptions}
-        leftAxis={leftAxis.value}
-        rightAxis={rightAxis.value}
+        options={optionsOrBackup}
+        leftAxis={leftAxisOrBackup.value}
+        rightAxis={rightAxisOrBackup.value}
         organization={organization}
         eventView={eventView}
         location={location}
