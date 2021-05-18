@@ -11,7 +11,7 @@ class TransactionMetric(Enum):
     FCP = 3
 
 
-class TransactionThreshold(Model):
+class ProjectTransactionThresholdOverride(Model):
     __core__ = False
 
     # max_length here is based on the maximum for transactions in relay
@@ -23,7 +23,7 @@ class TransactionThreshold(Model):
 
     class Meta:
         app_label = "sentry"
-        db_table = "sentry_transactionthreshold"
+        db_table = "sentry_projecttransactionthresholdoverride"
         unique_together = (("project", "transaction"),)
 
 
