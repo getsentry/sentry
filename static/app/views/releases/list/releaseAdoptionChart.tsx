@@ -34,6 +34,7 @@ type Props = WithRouterProps & {
   getHealthData: ReleaseHealthRequestRenderProps['getHealthData'];
   activeDisplay: DisplayOption;
   showPlaceholders: boolean;
+  totalCount: number;
 };
 
 type State = {
@@ -104,17 +105,13 @@ class ReleaseAdoptionChart extends React.PureComponent<Props, State> {
       router,
       selection,
       getHealthData,
+      totalCount,
     } = this.props;
     const {start, end, period, utc} = selection.datetime;
 
     if (showPlaceholders) {
       return this.renderEmpty();
     }
-
-    const get24hCountByProject = getHealthData.get24hCountByProject(
-      Number(project.id),
-      activeDisplay
-    );
 
     const releasesSeries = releases.map(release => {
       const releaseVersion = release.version;
@@ -221,7 +218,7 @@ class ReleaseAdoptionChart extends React.PureComponent<Props, State> {
               })}
             </SectionHeading>
             <SectionValue>
-              <Count value={get24hCountByProject ?? 0} />
+              <Count value={totalCount ?? 0} />
             </SectionValue>
           </InlineContainer>
         </ChartFooter>

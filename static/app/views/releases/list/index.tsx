@@ -296,6 +296,27 @@ class ReleasesList extends AsyncView<Props, State> {
 
                       const showPlaceholders = !initiallyLoaded || isHealthLoading;
 
+                      let totalCount = 0;
+
+                      if (releases && releases.length) {
+                        const timeSeries = getHealthData.getTimeSeries(
+                          releases[0].version,
+                          Number(project.id),
+                          activeDisplay
+                        );
+
+                        const totalData = timeSeries[1].data;
+
+                        totalCount = totalData
+                          .map(point => point.value)
+                          .reduce((acc, value) => acc + value);
+                      }
+
+                      // Hide the chart if the release has no total sessions
+                      if (totalCount === 0) {
+                        return null;
+                      }
+
                       return (
                         <ReleaseAdoptionChart
                           organization={organization}
@@ -305,6 +326,7 @@ class ReleasesList extends AsyncView<Props, State> {
                           getHealthData={getHealthData}
                           activeDisplay={activeDisplay}
                           showPlaceholders={showPlaceholders}
+                          totalCount={totalCount}
                         />
                       );
                     }}
