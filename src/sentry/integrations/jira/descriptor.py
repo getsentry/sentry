@@ -65,7 +65,7 @@ class JiraDescriptorEndpoint(Endpoint):
                         }
                     ],
                 },
-                "apiMigrations": {"gdpr": True},
+                "apiMigrations": {"gdpr": True, "context-qsh": True},
                 "scopes": scopes,
             }
         )
