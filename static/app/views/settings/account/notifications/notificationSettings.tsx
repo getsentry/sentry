@@ -1,8 +1,10 @@
 import React from 'react';
+import styled from '@emotion/styled';
 
 import AsyncComponent from 'app/components/asyncComponent';
 import Avatar from 'app/components/avatar';
 import {t} from 'app/locale';
+import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import withOrganizations from 'app/utils/withOrganizations';
 import {ACCOUNT_NOTIFICATION_FIELDS} from 'app/views/settings/account/notifications/fields';
@@ -225,12 +227,12 @@ class NotificationSettings extends AsyncComponent<Props, State> {
 
     return Object.assign({}, defaultFields, {
       label: (
-        <React.Fragment>
+        <FieldLabel>
           <Avatar
             {...{[this.isGroupedByProject() ? 'project' : 'organization']: parent}}
           />
-          {parent.slug}
-        </React.Fragment>
+          <span>{parent.slug}</span>
+        </FieldLabel>
       ),
       getData: data => this.getStateToPutForParent(data, parent.id),
       name: parent.id,
@@ -310,4 +312,9 @@ class NotificationSettings extends AsyncComponent<Props, State> {
   }
 }
 
+const FieldLabel = styled('div')`
+  display: flex;
+  gap: ${space(0.5)};
+  line-height: 16px;
+`;
 export default withOrganizations(NotificationSettings);
