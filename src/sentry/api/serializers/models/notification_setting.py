@@ -102,8 +102,15 @@ class NotificationSettingsSerializer(Serializer):  # type: ignore
 
         data = get_fallback_settings(types_to_serialize, project_ids, organization_ids, user)
 
-        # Forgive the variable name, I wanted the following line to be legible.
+        # Forgive the variable name, I wanted the following lines to be legible.
         for n in attrs["settings"]:
+            # Filter out invalid notification settings.
+            if (n.scope_str == "project" and n.scope_identifier not in project_ids) or (
+                n.scope_str == "organization" and n.scope_identifier not in organization_ids
+            ):
+                continue
+
+            # Override the notification settings.
             data[n.type_str][n.scope_str][n.scope_identifier][n.provider_str] = n.value_str
 
         return data
