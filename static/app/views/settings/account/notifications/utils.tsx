@@ -53,26 +53,38 @@ export const getChoiceString = (choices: string[][], key: string): string => {
 export const backfillMissingProvidersWithFallback = (
   data: {[key: string]: string},
   providerList: string[],
-  fallbackValue: string
+  fallbackValue: string,
+  scopeType: string
 ): {[key: string]: string} => {
   /**
    * Transform `data` to include only providers expected in `providerList`.
    * Everything not in that list is set to "never". Missing values will be
    * backfilled either with a current value from `data` or `fallbackValue` if
-   * none are present.
+   * none are present. When wiping out a provider, set the parent-independent
+   * setting to "never" and all parent-specific settings to "default".
    *
    * For example:
-   * f({}, ["email"], "sometimes") = {"email": "sometimes"}
+   * f({}, ["email"], "sometimes", "user") = {"email": "sometimes"}
    *
-   * f({"email": "always", pagerduty: "always"}, ["email", "slack"], "sometimes") =
+   * f({"email": "always", pagerduty: "always"}, ["email", "slack"], "sometimes", "user) =
    * {"email": "always", "slack": "always", "pagerduty": "never"}
    */
   const entries: string[][] = [];
   let fallback = fallbackValue;
   for (const [provider, previousValue] of Object.entries(data)) {
     fallback = previousValue;
-    entries.push([provider, providerList.includes(provider) ? previousValue : 'never']);
+    let value;
+    if (providerList.includes(provider)) {
+      value = previousValue;
+    } else if (scopeType === 'user') {
+      value = 'never';
+    } else {
+      value = 'default';
+    }
+
+    entries.push([provider, value]);
   }
+
   for (const provider of providerList) {
     entries.push([provider, fallback]);
   }
