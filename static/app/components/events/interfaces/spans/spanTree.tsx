@@ -2,11 +2,12 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 
 import {MessageRow} from 'app/components/performance/waterfall/messageRow';
-import {pickBarColour} from 'app/components/performance/waterfall/utils';
+import {pickBarColour, toPercent} from 'app/components/performance/waterfall/utils';
 import {t, tct} from 'app/locale';
 import {Organization} from 'app/types';
 import {EventTransaction} from 'app/types/event';
 
+import * as DividerHandlerManager from './dividerHandlerManager';
 import {DragManagerChildrenProps} from './dragManager';
 import {ActiveOperationFilter} from './filter';
 import SpanGroup from './spanGroup';
@@ -390,7 +391,20 @@ class SpanTree extends React.Component<PropType> {
 
     return (
       <TraceViewContainer ref={this.props.traceViewRef}>
-        {spanTree}
+        <DividerHandlerManager.Consumer>
+          {({
+            dividerPosition,
+          }: DividerHandlerManager.DividerHandlerManagerChildrenProps) => {
+            return (
+              <colgroup>
+                <col span={1} style={{width: toPercent(dividerPosition)}} />
+                <col span={1} style={{width: toPercent(1 - dividerPosition)}} />
+              </colgroup>
+            );
+          }}
+        </DividerHandlerManager.Consumer>
+
+        <tbody>{spanTree}</tbody>
         {infoMessage}
         {limitExceededMessage}
       </TraceViewContainer>
