@@ -92,19 +92,19 @@ explicit_tag_key = "tags" open_bracket search_key closed_bracket
 text_key         = explicit_tag_key / search_key
 text_value       = quoted_value / in_value
 
-# Explanation of quoted string regex, courtesy of Matt
+# Explanation of quoted string regex
 # "              # literal quote
 # (              # begin capture group
 #   (?:          # begin uncaptured group
-#     [^"]       # any character that's not quote
+#     \\\"       # A \", where both the \ and " are escaped
 #     |          # or
-#     (?<=\\)["] # A quote, preceded by a \ (for escaping)
+#     [^"]       # any character that's not quote
 #   )            # end uncaptured group
 #   *            # repeat the uncaptured group
 # )              # end captured group
 # ?              # allow to be empty (allow empty quotes)
 # "              # quote literal
-quoted_value = ~r"\"((?:[^\"]|(?<=\\)[\"])*)?\""s
+quoted_value = ~r"\"((?:\\\"|[^\"])*)?\""s
 
 # Format tokens
 date_format          = ~r"\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{1,6})?)?Z?(?=\s|\)|$)"
