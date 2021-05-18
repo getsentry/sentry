@@ -820,6 +820,30 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     );
   }
 
+  renderNewHeader({
+    scrollbarManagerChildrenProps,
+    dividerHandlerChildrenProps,
+    errors,
+  }: {
+    dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps;
+    scrollbarManagerChildrenProps: ScrollbarManager.ScrollbarManagerChildrenProps;
+    errors: TraceError[] | null;
+  }) {
+    return (
+      <React.Fragment>
+        <td style={{outline: '1px solid red', position: 'relative'}}>
+          title
+          <div
+            style={{position: 'absolute', top: 0, right: 0, width: '1px', height: '100%'}}
+          >
+            {this.renderDivider(dividerHandlerChildrenProps)}
+          </div>
+        </td>
+        <td>spanbar</td>
+      </React.Fragment>
+    );
+  }
+
   renderHeader({
     scrollbarManagerChildrenProps,
     dividerHandlerChildrenProps,
@@ -943,7 +967,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
                       {(
                         dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
                       ) =>
-                        this.renderHeader({
+                        this.renderNewHeader({
                           dividerHandlerChildrenProps,
                           scrollbarManagerChildrenProps,
                           errors,
