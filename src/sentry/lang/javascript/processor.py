@@ -1,3 +1,4 @@
+import time
 from io import BytesIO
 
 from django.utils.encoding import force_bytes, force_text
@@ -366,6 +367,8 @@ def fetch_release_artifact(url, release, dist):
     from the archive.
 
     """
+    start = time.monotonic()
+
     release_file = fetch_release_file(RELEASE_ARCHIVE_FILENAME, release, dist)
 
     if release_file is not None:
@@ -376,11 +379,15 @@ def fetch_release_artifact(url, release, dist):
         except BaseException as exc:
             logger.error("Failed to read %s from release file %s: %s", url, release.id, exc)
         else:
+            metrics.timing("sourcemaps.release_artifact_from_archive", time.monotonic() - start)
             return http.UrlResult(url, {}, body, 200, release_file.encoding)
 
     # Fall back to maintain compatibility with old releases and versions of
     # sentry-cli which upload files individually
-    return fetch_release_file(url, release, dist)
+    artifact = fetch_release_file(url, release, dist)
+    metrics.timing("sourcemaps.release_artifact_from_file", time.monotonic() - start)
+
+    return artifact
 
 
 def fetch_file(url, project=None, release=None, dist=None, allow_scraping=True):
