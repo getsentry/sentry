@@ -1,3 +1,5 @@
+import set from 'lodash/set';
+
 import {Organization, Project} from 'app/types';
 
 export type NotificationSettingsObject = {
@@ -105,7 +107,7 @@ export const mergeNotificationSettings = (
       Object.entries(settingsByScopeType).map(([scopeType, settingsByScopeId]) =>
         Object.entries(settingsByScopeId).map(([scopeId, settingsByProvider]) =>
           Object.entries(settingsByProvider).map(([provider, value]) => {
-            output[type][scopeType][scopeId][provider] = value;
+            set(output, [type, scopeType, scopeId, provider].join('.'), value);
           })
         )
       )

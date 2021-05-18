@@ -64,7 +64,7 @@ class ProjectManager(BaseManager):
         """ Returns the QuerySet of all organizations that a set of Teams have access to. """
         from sentry.models import ProjectStatus
 
-        return self.filter(status=ProjectStatus.VISIBLE, team_id__in=team_ids)
+        return self.filter(status=ProjectStatus.VISIBLE, teams__in=team_ids)
 
     # TODO(dcramer): we might want to cache this per user
     def get_for_user(self, team, user, scope=None, _skip_team_check=False):
