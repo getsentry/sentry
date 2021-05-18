@@ -82,16 +82,18 @@ class SentryPermission(ScopedPermission):
                 )
             elif request.user.is_authenticated:
                 # session auth needs to confirm various permissions
-                if request.access.sufficient_security != MemberSecurityState.ACTIVE:
-                    if request.access.sufficient_security == MemberSecurityState.RESTRICTED_SSO:
-                        logger.info(
-                            "access.must-sso",
-                            extra={"organization_id": organization.id, "user_id": request.user.id},
-                        )
+                if (
+                    request.access.member_security_state == MemberSecurityState.RESTRICTED_SSO
+                    or not auth.has_completed_sso(request, organization.id)
+                ):
+                    logger.info(
+                        "access.must-sso",
+                        extra={"organization_id": organization.id, "user_id": request.user.id},
+                    )
 
-                        raise SsoRequired(organization)
+                    raise SsoRequired(organization)
 
-                if request.access.sufficient_security == MemberSecurityState.RESTRICTED_2FA:
+                if request.access.member_security_state == MemberSecurityState.RESTRICTED_2FA:
                     logger.info(
                         "access.not-2fa-compliant",
                         extra={"organization_id": organization.id, "user_id": request.user.id},

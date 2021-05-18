@@ -299,7 +299,7 @@ class OrganizationView(BaseView):
     def has_permission(self, request, organization, *args, **kwargs):
         if organization is None:
             return False
-        if request.access.sufficient_security != MemberSecurityState.ACTIVE:
+        if request.access.member_security_state != MemberSecurityState.ACTIVE:
             return False
         if self.required_scope and not request.access.has_scope(self.required_scope):
             logger.info(
@@ -335,10 +335,8 @@ class OrganizationView(BaseView):
         return False
 
     def handle_permission_required(self, request, organization, *args, **kwargs):
-        if request.access.sufficient_security == MemberSecurityState.RESTRICTED_SSO or (
-            organization
-            and auth.has_completed_sso(request, organization.id)
-            # TODO: don't know if this second check is needed
+        if request.access.member_security_state == MemberSecurityState.RESTRICTED_SSO or (
+            organization and not auth.has_completed_sso(request, organization.id)
         ):
             logger.info(
                 "access.must-sso",
@@ -346,7 +344,7 @@ class OrganizationView(BaseView):
             )
             auth.initiate_login(request, next_url=request.get_full_path())
             redirect_uri = reverse("sentry-auth-organization", args=[organization.slug])
-        elif request.access.sufficient_security == MemberSecurityState.RESTRICTED_2FA:
+        elif request.access.member_security_state == MemberSecurityState.RESTRICTED_2FA:
             redirect_uri = reverse("sentry-account-settings-security")
         # TODO: add restricted email, plan downgrade here
         else:

@@ -32,12 +32,8 @@ class MemberSecurityState(Enum):
     ACTIVE = 100
 
 
-def has_sufficient_security(organization, member):
-    # need ? auth.has_completed_sso
+def member_security_state(organization, member):
     def _needs_sso(member):
-        """
-        Return a tuple of (requires_sso, sso_is_valid) for a given member.
-        """
         # TODO(dcramer): we want to optimize this access pattern as its several
         # network hops and needed in a lot of places
         try:
@@ -100,7 +96,7 @@ def has_sufficient_security(organization, member):
 
 class BaseAccess:
     is_active = False
-    sufficient_security = MemberSecurityState.NO_ACCESS
+    member_security_state = MemberSecurityState.NO_ACCESS
     organization_id = None
     # teams with membership
     teams = ()
@@ -212,7 +208,7 @@ class Access(BaseAccess):
         organization_id,
         teams,
         projects,
-        sufficient_security,
+        member_security_state,
         has_global_access,
         permissions=None,
         role=None,
@@ -228,11 +224,11 @@ class Access(BaseAccess):
             self.role = role
 
         self.is_active = is_active
-        self.sufficient_security = sufficient_security
+        self.member_security_state = member_security_state
 
 
 class OrganizationGlobalAccess(BaseAccess):
-    sufficient_security = True
+    member_security_state = MemberSecurityState.ACTIVE
     is_active = True
     has_global_access = True
     teams = ()
@@ -287,7 +283,7 @@ class SystemAccess(BaseAccess):
 
 class NoAccess(BaseAccess):
     is_active = False
-    sufficient_security = MemberSecurityState.NO_ACCESS
+    member_security_state = MemberSecurityState.NO_ACCESS
     organization_id = None
     has_global_access = False
     teams = ()
@@ -311,9 +307,9 @@ def from_request(request, organization=None, scopes=None):
         try:
             member = OrganizationMember.objects.get(user=request.user, organization=organization)
         except OrganizationMember.DoesNotExist:
-            sufficient_security = MemberSecurityState.ACTIVE
+            member_security_state = MemberSecurityState.ACTIVE
         else:
-            sufficient_security = has_sufficient_security(organization, member)
+            member_security_state = member_security_state(organization, member)
             role = member.role
 
         team_list = ()
@@ -325,7 +321,7 @@ def from_request(request, organization=None, scopes=None):
             organization_id=organization.id if organization else None,
             teams=team_list,
             projects=project_list,
-            sufficient_security=sufficient_security,
+            member_security_state=member_security_state,
             has_global_access=True,
             permissions=UserPermission.for_user(request.user.id),
             role=role,
@@ -361,7 +357,7 @@ def _from_sentry_app(user, organization=None):
         projects=project_list,
         permissions=(),
         has_global_access=False,
-        sufficient_security=MemberSecurityState.ACTIVE,
+        member_security_state=MemberSecurityState.ACTIVE,
     )
 
 
@@ -403,7 +399,7 @@ def from_member(member, scopes=None):
     return Access(
         is_active=True,
         scopes=scopes,
-        sufficient_security=has_sufficient_security(member.organization, member),
+        member_security_state=member_security_state(member.organization, member),
         organization_id=member.organization_id,
         teams=team_list,
         projects=project_list,
