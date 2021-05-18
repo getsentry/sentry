@@ -1,3 +1,4 @@
+from datetime import datetime
 from uuid import uuid4
 
 import requests
@@ -7,40 +8,19 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.bases.project import ProjectEndpoint, StrictProjectPermission
 from sentry.utils import fernet_encrypt as encrypt
-from sentry.utils import json
-from sentry.utils.appleconnect import appstore_connect, itunes_connect
+from sentry.utils.appleconnect import (
+    appstore_connect,
+    credentials_key_name,
+    get_app_store_credentials,
+    itunes_connect,
+    validate_credentials,
+)
 from sentry.utils.appleconnect.itunes_connect import ITunesHeaders
 from sentry.utils.safe import get_path
 
 
-def credentials_key_name():
-    return "sentry:appleconnect_key"
-
-
-def symbol_sources_prop_name():
-    return "sentry:symbol_sources"
-
-
 def app_store_connect_feature_name():
     return "organizations:app-store-connect"
-
-
-def get_app_store_credentials(project, credentials_id):
-    sources_config = project.get_option(symbol_sources_prop_name())
-
-    if credentials_id is None:
-        return None
-    try:
-        sources = json.loads(sources_config)
-        for source in sources:
-            if (
-                source.get("type") == "appStoreConnect"
-                and source.get("id") == credentials_id.lower()
-            ):
-                return source
-        return None
-    except BaseException as e:
-        raise ValueError("bad sources") from e
 
 
 class AppStoreConnectCredentialsSerializer(serializers.Serializer):
@@ -151,6 +131,7 @@ class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):
             }
             credentials["encrypted"] = encrypt.encrypt_object(encrypted, key)
             credentials["type"] = "appStoreConnect"
+            credentials["refreshDate"] = datetime.utcnow()
             credentials["id"] = uuid4().hex
             credentials["name"] = "Apple App Store Connect"
 
@@ -238,6 +219,7 @@ class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):
             credentials.update(new_credentials)
 
             credentials["encrypted"] = encrypt.encrypt_object(secrets, key)
+            credentials["refreshDate"] = datetime.utcnow()
             credentials["id"] = uuid4().hex
 
         except ValueError:
@@ -248,48 +230,23 @@ class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):
 class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):
     permission_classes = [StrictProjectPermission]
 
-    def get_result(self, app_store: bool, itunes: bool):
-        return {
-            "appstoreCredentialsValid": app_store,
-            "itunesSessionValid": itunes,
-        }
-
     def get(self, request, project, credentials_id):
         if not features.has(
             app_store_connect_feature_name(), project.organization, actor=request.user
         ):
             return Response(status=404)
 
-        credentials = get_app_store_credentials(project, credentials_id)
-        key = project.get_option(credentials_key_name())
-
-        if key is None or credentials is None:
-            return Response(status=404)
-
         try:
-            secrets = encrypt.decrypt_object(credentials.get("encrypted"), key)
+            use_caching = request.GET.get("cached", False)
+            validity = validate_credentials(project, credentials_id, use_caching)
         except ValueError:
             return Response(status=500)
 
-        credentials = appstore_connect.AppConnectCredentials(
-            key_id=credentials.get("appconnectKey"),
-            key=secrets.get("appconnectPrivateKey"),
-            issuer_id=credentials.get("appconnectIssuer"),
-        )
-
-        session = requests.Session()
-        apps = appstore_connect.get_apps(session, credentials)
-
-        appstore_valid = apps is not None
-        itunes_connect.load_session_cookie(session, secrets.get("itunesSession"))
-        itunes_session_info = itunes_connect.get_session_info(session)
-
-        itunes_session_valid = itunes_session_info is not None
-
         return Response(
             {
-                "appstoreCredentialsValid": appstore_valid,
-                "itunesSessionValid": itunes_session_valid,
+                "appstoreCredentialsValid": validity.appstore_credentials_valid,
+                "itunesSessionValid": validity.itunes_session_valid,
+                "expirationDate": validity.expiration_date,
             },
             status=200,
         )

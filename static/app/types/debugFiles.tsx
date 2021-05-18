@@ -37,4 +37,6 @@ export type AppStoreConnectValidationData = {
   configured: boolean;
   appstoreCredentialsValid: boolean;
   itunesSessionValid: boolean;
+  /** Approximate expiration Date of AppStore Credentials as an ISO DateTime */
+  expirationDate?: string;
 };

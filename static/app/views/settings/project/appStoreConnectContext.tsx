@@ -15,10 +15,11 @@ type ProviderProps = {
   project: Project;
   orgSlug: Organization['slug'];
   api: Client;
+  cached?: boolean;
 };
 
 const Provider = withApi(
-  withProject(({api, children, project, orgSlug}: ProviderProps) => {
+  withProject(({api, children, project, orgSlug, cached}: ProviderProps) => {
     const [appStoreConnectValidationData, setAppStoreConnectValidationData] = useState<
       AppStoreConnectValidationData | undefined
     >();
@@ -29,7 +30,7 @@ const Provider = withApi(
 
     function getAppStoreConnectSymbolSourceId() {
       return (project.symbolSources ? JSON.parse(project.symbolSources) : []).find(
-        symbolSouce => symbolSouce.type === 'appStoreConnect'
+        symbolSource => symbolSource.type === 'appStoreConnect'
       )?.id;
     }
 
@@ -41,9 +42,11 @@ const Provider = withApi(
       }
 
       try {
-        const response: AppStoreConnectValidationData = await api.requestPromise(
-          `/projects/${orgSlug}/${project.slug}/appstoreconnect/validate/${appStoreConnectSymbolSourceId}/`
-        );
+        let url = `/projects/${orgSlug}/${project.slug}/appstoreconnect/validate/${appStoreConnectSymbolSourceId}/`;
+        if (cached) {
+          url += '?cached';
+        }
+        const response: AppStoreConnectValidationData = await api.requestPromise(url);
         setAppStoreConnectValidationData(response);
       } catch {
         // do nothing

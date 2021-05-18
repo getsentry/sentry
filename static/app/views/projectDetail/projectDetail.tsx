@@ -14,6 +14,7 @@ import IdBadge from 'app/components/idBadge';
 import * as Layout from 'app/components/layouts/thirds';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
+import AppStoreUpdateNotification from 'app/components/projects/appstoreUpdateNotification';
 import MissingProjectMembership from 'app/components/projects/missingProjectMembership';
 import TextOverflow from 'app/components/textOverflow';
 import {IconSettings, IconWarning} from 'app/icons';
@@ -264,6 +265,12 @@ class ProjectDetail extends AsyncView<Props, State> {
             <Layout.Body>
               <StyledSdkUpdatesAlert />
               <Layout.Main>
+                {project && (
+                  <AppStoreUpdateNotification
+                    organization={organization}
+                    project={project}
+                  />
+                )}
                 <ProjectScoreCards
                   organization={organization}
                   isProjectStabilized={isProjectStabilized}

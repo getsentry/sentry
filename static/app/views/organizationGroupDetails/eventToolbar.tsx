@@ -8,12 +8,13 @@ import DateTime from 'app/components/dateTime';
 import FileSize from 'app/components/fileSize';
 import ExternalLink from 'app/components/links/externalLink';
 import NavigationButtonGroup from 'app/components/navigationButtonGroup';
+import AppStoreUpdateNotification from 'app/components/projects/appstoreUpdateNotification';
 import Tooltip from 'app/components/tooltip';
 import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
 import space from 'app/styles/space';
-import {Group, Organization} from 'app/types';
+import {Group, Organization, Project} from 'app/types';
 import {Event} from 'app/types/event';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import getDynamicText from 'app/utils/getDynamicText';
@@ -43,6 +44,7 @@ const formatDateDelta = (reference: moment.Moment, observed: moment.Moment) => {
 
 type Props = {
   organization: Organization;
+  project: Project;
   group: Group;
   event: Event;
   location: Location;
@@ -97,7 +99,7 @@ class GroupEventToolbar extends Component<Props> {
   render() {
     const evt = this.props.event;
 
-    const {group, organization, location} = this.props;
+    const {group, organization, project, location} = this.props;
     const groupId = group.id;
 
     const baseEventsPath = `/organizations/${organization.slug}/issues/${groupId}/events/`;
@@ -144,6 +146,11 @@ class GroupEventToolbar extends Component<Props> {
           group={group}
           organization={organization}
           location={location}
+        />
+        <AppStoreUpdateNotification
+          organization={organization}
+          project={project}
+          inEventToolbar
         />
       </Wrapper>
     );

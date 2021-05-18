@@ -271,6 +271,7 @@ class GroupEventDetails extends Component<Props, State> {
                     group={group}
                     event={eventWithMeta}
                     organization={organization}
+                    project={project}
                     location={location}
                   />
                 )}
