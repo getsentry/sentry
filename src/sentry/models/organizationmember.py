@@ -22,6 +22,7 @@ from sentry.db.models import (
     FlexibleForeignKey,
     Model,
     sane_repr,
+    EncryptedJsonField,
 )
 from sentry.models.team import TeamStatus
 from sentry.utils.http import absolute_uri
@@ -124,6 +125,8 @@ class OrganizationMember(Model):
         default=InviteStatus.APPROVED.value,
         null=True,
     )
+
+    scim_data = EncryptedJsonField()
 
     # Deprecated -- no longer used
     type = BoundedPositiveIntegerField(default=50, blank=True)

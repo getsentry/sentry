@@ -15,6 +15,7 @@ class TeamPermission(OrganizationPermission):
     scope_map = {
         "GET": ["team:read", "team:write", "team:admin"],
         "POST": ["team:write", "team:admin"],
+        "PATCH": ["team:write", "team:admin"],  # TODO: is this right?
         "PUT": ["team:write", "team:admin"],
         "DELETE": ["team:admin"],
     }
