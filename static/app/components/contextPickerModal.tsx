@@ -17,6 +17,7 @@ import space from 'app/styles/space';
 import {Integration, Organization, Project} from 'app/types';
 import Projects from 'app/utils/projects';
 import replaceRouterParams from 'app/utils/replaceRouterParams';
+import IntegrationIcon from 'app/views/organizationIntegrations/integrationIcon';
 
 type Props = ModalRenderProps & {
   /**
@@ -63,7 +64,7 @@ type Props = ModalRenderProps & {
    * on which the modal was opened
    */
   comingFromProjectId?: string;
-  configs: Integration[];
+  integrationConfigs: Integration[];
 };
 
 const selectStyles = {
@@ -121,7 +122,7 @@ class ContextPickerModal extends Component<Props> {
     projects: Array<{slug: string}>,
     latestOrg: string = this.props.organization
   ) => {
-    const {needProject, onFinish, nextPath, configs} = this.props;
+    const {needProject, onFinish, nextPath, integrationConfigs} = this.props;
     const {isSuperuser} = ConfigStore.get('user') || {};
 
     // If no project is needed and theres only 1 org OR
@@ -130,7 +131,7 @@ class ContextPickerModal extends Component<Props> {
     if (
       (!needProject && organizations.length !== 1) ||
       (needProject && projects.length !== 1) ||
-      (configs.length && isSuperuser)
+      (integrationConfigs.length && isSuperuser)
     ) {
       return;
     }
@@ -264,7 +265,7 @@ class ContextPickerModal extends Component<Props> {
   };
 
   get headerText() {
-    const {needOrg, needProject, configs} = this.props;
+    const {needOrg, needProject, integrationConfigs} = this.props;
     if (needOrg && needProject) {
       return t('Select an organization and a project to continue');
     }
@@ -274,7 +275,7 @@ class ContextPickerModal extends Component<Props> {
     if (needProject) {
       return t('Select a project to continue');
     }
-    if (configs.length) {
+    if (integrationConfigs.length) {
       return t('Select a configuration to continue');
     }
     //if neither project nor org needs to be selected, nothing will render anyways
@@ -338,17 +339,22 @@ class ContextPickerModal extends Component<Props> {
   }
 
   renderIntegrationConfigs() {
-    const {configs} = this.props;
+    const {integrationConfigs} = this.props;
     const {isSuperuser} = ConfigStore.get('user') || {};
 
     const options = [
       {
         label: tct('[providerName] Configurations', {
-          providerName: configs[0].provider.name,
+          providerName: integrationConfigs[0].provider.name,
         }),
-        options: configs.map(config => ({
+        options: integrationConfigs.map(config => ({
           value: config.id,
-          label: `${config.domainName}`,
+          label: (
+            <StyledIntegrationItem>
+              <IntegrationIcon size={22} integration={config} />
+              <span>{config.domainName}</span>
+            </StyledIntegrationItem>
+          ),
           isDisabled: isSuperuser ? false : true,
         })),
       },
@@ -363,7 +369,8 @@ class ContextPickerModal extends Component<Props> {
         name="configurations"
         options={options}
         onChange={this.handleSelectConfiguration}
-        onMenuOpen={() => this.onMenuOpen(this.configSelect, configs, 'id')}
+        onMenuOpen={() => this.onMenuOpen(this.configSelect, integrationConfigs, 'id')}
+        components={{DropdownIndicator: null}}
         styles={selectStyles}
         menuIsOpen
       />
@@ -379,13 +386,13 @@ class ContextPickerModal extends Component<Props> {
       loading,
       Header,
       Body,
-      configs,
+      integrationConfigs,
     } = this.props;
     const {isSuperuser} = ConfigStore.get('user') || {};
 
     const shouldShowProjectSelector = organization && needProject && !loading;
 
-    const shouldShowConfigSelector = configs.length && isSuperuser;
+    const shouldShowConfigSelector = integrationConfigs.length && isSuperuser;
 
     const orgChoices = organizations
       .filter(({status}) => status.id !== 'pending_deletion')
@@ -437,7 +444,7 @@ type ContainerProps = Omit<
   | 'organizations'
   | 'organization'
   | 'onSelectOrganization'
-  | 'configs'
+  | 'integrationConfigs'
 > & {
   /**
    * List of slugs we want to be able to choose from
@@ -449,7 +456,7 @@ type ContainerProps = Omit<
 type ContainerState = {
   selectedOrganization?: string;
   organizations: Organization[];
-  configs?: Integration[];
+  integrationConfigs?: Integration[];
 } & AsyncComponent['state'];
 
 class ContextPickerModalContainer extends AsyncComponent<ContainerProps, ContainerState> {
@@ -465,7 +472,7 @@ class ContextPickerModalContainer extends AsyncComponent<ContainerProps, Contain
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {configUrl} = this.props;
     if (configUrl) {
-      return [['configs', configUrl]];
+      return [['integrationConfigs', configUrl]];
     }
     return [];
   }
@@ -486,11 +493,11 @@ class ContextPickerModalContainer extends AsyncComponent<ContainerProps, Contain
   renderModal({
     projects,
     initiallyLoaded,
-    configs,
+    integrationConfigs,
   }: {
     projects?: Project[];
     initiallyLoaded?: boolean;
-    configs?: Integration[];
+    integrationConfigs?: Integration[];
   }) {
     return (
       <ContextPickerModal
@@ -500,7 +507,7 @@ class ContextPickerModalContainer extends AsyncComponent<ContainerProps, Contain
         organizations={this.state.organizations}
         organization={this.state.selectedOrganization!}
         onSelectOrganization={this.handleSelectOrganization}
-        configs={configs || []}
+        integrationConfigs={integrationConfigs || []}
       />
     );
   }
@@ -511,9 +518,9 @@ class ContextPickerModalContainer extends AsyncComponent<ContainerProps, Contain
     if (configUrl && this.state.loading) {
       return <LoadingIndicator />;
     }
-    if (this.state.configs?.length) {
+    if (this.state.integrationConfigs?.length) {
       return this.renderModal({
-        configs: this.state.configs,
+        integrationConfigs: this.state.integrationConfigs,
         initiallyLoaded: !this.state.loading,
       });
     }
@@ -543,4 +550,9 @@ const StyledSelectControl = styled(SelectControl)`
 
 const StyledLoadingIndicator = styled(LoadingIndicator)`
   z-index: 1;
+`;
+
+const StyledIntegrationItem = styled('div')`
+  display: flex;
+  gap: ${space(0.5)};
 `;
