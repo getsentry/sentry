@@ -874,7 +874,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
               spanBarHatch={!!spanBarHatch}
               style={{
                 backgroundColor: spanBarColour,
-                left: `clamp(0%, ${toPercent(bounds.left || 0)}, calc(100% - 1px))`,
+                left: `min(${toPercent(bounds.left || 0)}, calc(100% - 1px))`,
                 width: toPercent(bounds.width || 0),
               }}
             >

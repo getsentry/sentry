@@ -349,7 +349,7 @@ class TransactionBar extends React.Component<Props, State> {
         spanBarHatch={false}
         style={{
           backgroundColor: barColour,
-          left: `clamp(0%, ${toPercent(startPercentage || 0)}, calc(100% - 1px))`,
+          left: `min(${toPercent(startPercentage || 0)}, calc(100% - 1px))`,
           width: toPercent(widthPercentage || 0),
         }}
       >
