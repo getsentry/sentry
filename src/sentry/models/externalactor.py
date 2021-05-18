@@ -22,6 +22,7 @@ class ExternalActor(DefaultFieldsModel):
             (ExternalProviders.PAGERDUTY, "pagerduty"),
             (ExternalProviders.GITHUB, "github"),
             (ExternalProviders.GITLAB, "gitlab"),
+            (ExternalProviders.CUSTOM, "custom_scm"),
         ),
     )
 

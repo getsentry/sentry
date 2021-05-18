@@ -34,6 +34,7 @@ from sentry.search.utils import parse_release
 from sentry.utils.compat import filter
 from sentry.utils.dates import to_timestamp
 from sentry.utils.snuba import FUNCTION_TO_OPERATOR, OPERATOR_TO_FUNCTION, SNUBA_AND, SNUBA_OR
+from sentry.utils.validators import INVALID_EVENT_DETAILS
 
 
 def is_condition(term):
@@ -122,8 +123,6 @@ def convert_search_filter_to_snuba_query(search_filter, key=None, params=None):
 
     if name in NO_CONVERSION_FIELDS:
         return
-    elif name == "id" and search_filter.value.is_wildcard():
-        raise InvalidSearchQuery("Wildcard conditions are not permitted on `id` field.")
     elif name == "environment":
         # conditions added to env_conditions are OR'd
         env_conditions = []
@@ -285,6 +284,13 @@ def convert_search_filter_to_snuba_query(search_filter, key=None, params=None):
             "timestamp.to_day",
         }:
             value = int(to_timestamp(value)) * 1000
+
+        # Validate event ids are uuids
+        if name == "id":
+            if search_filter.value.is_wildcard():
+                raise InvalidSearchQuery("Wildcard conditions are not permitted on `id` field.")
+            elif not search_filter.value.is_event_id():
+                raise InvalidSearchQuery(INVALID_EVENT_DETAILS.format("Filter"))
 
         # most field aliases are handled above but timestamp.to_{hour,day} are
         # handled here

@@ -6,13 +6,11 @@ import pick from 'lodash/pick';
 import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
-import Breadcrumbs from 'app/components/breadcrumbs';
 import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
-import * as Layout from 'app/components/layouts/thirds';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import SearchBar from 'app/components/searchBar';
+import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {IconAdd} from 'app/icons';
 import {t} from 'app/locale';
 import {PageContent} from 'app/styles/organization';
@@ -168,7 +166,7 @@ class ManageDashboards extends AsyncView<Props, State> {
   }
 
   getTitle() {
-    return t('Manage Dashboards');
+    return t('Dashboards');
   }
 
   onCreate() {
@@ -193,54 +191,51 @@ class ManageDashboards extends AsyncView<Props, State> {
         features={['dashboards-manage']}
         renderDisabled={this.renderNoAccess}
       >
-        <LightWeightNoProjectMessage organization={organization}>
-          <Layout.Header>
-            <Layout.HeaderContent>
-              <Breadcrumbs
-                crumbs={[
-                  {
-                    label: t('Dashboards'),
-                    to: `/organizations/${organization.slug}/dashboards/`,
-                  },
-                  {
-                    label: t('Manage Dashboards'),
-                  },
-                ]}
-              />
-              <Layout.Title>{t('Manage Dashboards')}</Layout.Title>
-            </Layout.HeaderContent>
-
-            <Layout.HeaderActions>
-              <ButtonBar gap={1}>
-                <Button
-                  data-test-id="dashboard-create"
-                  onClick={event => {
-                    event.preventDefault();
-                    this.onCreate();
-                  }}
-                  priority="primary"
-                  icon={<IconAdd size="xs" isCircled />}
-                >
-                  {t('Create Dashboard')}
-                </Button>
-              </ButtonBar>
-            </Layout.HeaderActions>
-          </Layout.Header>
-          <Layout.Body>
-            <Layout.Main fullWidth>
-              {this.renderActions()}
-              {this.renderDashboards()}
-            </Layout.Main>
-          </Layout.Body>
-        </LightWeightNoProjectMessage>
+        <SentryDocumentTitle title={t('Dashboards')} orgSlug={organization.slug}>
+          <StyledPageContent>
+            <LightWeightNoProjectMessage organization={organization}>
+              <PageContent>
+                <StyledPageHeader>
+                  {t('Dashboards')}
+                  <Button
+                    data-test-id="dashboard-create"
+                    onClick={event => {
+                      event.preventDefault();
+                      this.onCreate();
+                    }}
+                    priority="primary"
+                    icon={<IconAdd size="xs" isCircled />}
+                  >
+                    {t('Create Dashboard')}
+                  </Button>
+                </StyledPageHeader>
+                {this.renderActions()}
+                {this.renderDashboards()}
+              </PageContent>
+            </LightWeightNoProjectMessage>
+          </StyledPageContent>
+        </SentryDocumentTitle>
       </Feature>
     );
   }
 }
 
+const StyledPageContent = styled(PageContent)`
+  padding: 0;
+`;
+
 const StyledSearchBar = styled(SearchBar)`
   flex-grow: 1;
   margin-right: ${space(2)};
+  margin-bottom: ${space(2)};
+`;
+
+const StyledPageHeader = styled('div')`
+  display: flex;
+  align-items: flex-end;
+  font-size: ${p => p.theme.headerFontSize};
+  color: ${p => p.theme.textColor};
+  justify-content: space-between;
   margin-bottom: ${space(2)};
 `;
 

@@ -106,6 +106,8 @@ export type FeatureDisabledHooks = {
   'feature-disabled:grid-editable-actions': FeatureDisabledHook;
   'feature-disabled:open-discover': FeatureDisabledHook;
   'feature-disabled:dashboards-edit': FeatureDisabledHook;
+  'feature-disabled:dashboards-page': FeatureDisabledHook;
+  'feature-disabled:dashboards-sidebar-item': FeatureDisabledHook;
   'feature-disabled:incidents-sidebar-item': FeatureDisabledHook;
   'feature-disabled:performance-new-project': FeatureDisabledHook;
   'feature-disabled:performance-page': FeatureDisabledHook;
