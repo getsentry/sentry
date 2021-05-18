@@ -11,10 +11,12 @@ import space from 'app/styles/space';
 import {Organization, SavedSearch} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 
+import IssueListDisplayOptions from './displayOptions';
 import SavedSearchSelector from './savedSearchSelector';
 import IssueListSearchBar from './searchBar';
 import IssueListSortOptions from './sortOptions';
 import {TagValueLoader} from './types';
+import {IssueDisplayOptions} from './utils';
 
 type IssueListSearchBarProps = React.ComponentProps<typeof IssueListSearchBar>;
 
@@ -22,12 +24,14 @@ type Props = {
   organization: Organization;
   savedSearchList: SavedSearch[];
   savedSearch: SavedSearch;
+  display: IssueDisplayOptions;
   sort: string;
   query: string;
   isSearchDisabled: boolean;
   queryCount: number;
   queryMaxCount: number;
 
+  onDisplayChange: (display: string) => void;
   onSortChange: (sort: string) => void;
   onSearch: (query: string) => void;
   onSidebarToggle: (event: React.MouseEvent) => void;
@@ -64,11 +68,13 @@ class IssueListFilters extends React.Component<Props> {
       savedSearchList,
       isSearchDisabled,
       sort,
+      display,
 
       onSidebarToggle,
       onSearch,
       onSavedSearchDelete,
       onSortChange,
+      onDisplayChange,
       tagValueLoader,
       tags,
       isInbox,
@@ -85,6 +91,7 @@ class IssueListFilters extends React.Component<Props> {
 
         <SearchContainer isInbox={isInbox}>
           <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
+          <IssueListDisplayOptions onDisplayChange={onDisplayChange} display={display} />
 
           <SearchSelectorContainer isInbox={isInbox}>
             {!isInbox && (

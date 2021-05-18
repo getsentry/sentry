@@ -68,6 +68,7 @@ import {
   getTabs,
   getTabsWithCounts,
   isForReviewQuery,
+  IssueDisplayOptions,
   IssueSortOptions,
   Query,
   QueryCounts,
@@ -76,6 +77,7 @@ import {
 
 const MAX_ITEMS = 25;
 const DEFAULT_SORT = IssueSortOptions.DATE;
+const DEFAULT_DISPLAY = IssueDisplayOptions.EVENTS;
 // the default period for the graph in each issue row
 const DEFAULT_GRAPH_STATS_PERIOD = '24h';
 // the allowed period choices for graph in each issue row
@@ -130,6 +132,7 @@ type EndpointParams = Partial<GlobalSelection['datetime']> & {
   groupStatsPeriod?: string;
   cursor?: string;
   page?: number | string;
+  display?: string;
 };
 
 type CountsEndpointParams = Omit<EndpointParams, 'cursor' | 'page' | 'query'> & {
@@ -138,6 +141,7 @@ type CountsEndpointParams = Omit<EndpointParams, 'cursor' | 'page' | 'query'> & 
 
 type StatEndpointParams = Omit<EndpointParams, 'cursor' | 'page'> & {
   groups: string[];
+  expand?: string | string[];
 };
 
 class IssueListOverview extends React.Component<Props, State> {
@@ -311,6 +315,19 @@ class IssueListOverview extends React.Component<Props, State> {
     return DEFAULT_SORT;
   }
 
+  getDisplay(): IssueDisplayOptions {
+    const {location} = this.props;
+
+    if (
+      location.query.display &&
+      Object.values(IssueDisplayOptions).includes(location.query.display)
+    ) {
+      return location.query.display as IssueDisplayOptions;
+    }
+
+    return DEFAULT_DISPLAY;
+  }
+
   getGroupStatsPeriod(): string {
     let currentPeriod: string;
     if (typeof this.props.location.query?.groupStatsPeriod === 'string') {
@@ -399,6 +416,7 @@ class IssueListOverview extends React.Component<Props, State> {
     if (!requestParams.statsPeriod && !requestParams.start) {
       requestParams.statsPeriod = DEFAULT_STATS_PERIOD;
     }
+    requestParams.expand = 'sessions';
 
     this._lastStatsRequest = this.props.api.request(this.getGroupStatsEndpoint(), {
       method: 'GET',
@@ -694,6 +712,10 @@ class IssueListOverview extends React.Component<Props, State> {
     this.transitionTo({sort});
   };
 
+  onDisplayChange = (display: string) => {
+    this.transitionTo({display});
+  };
+
   onCursorChange = (cursor: string | undefined, _path, query, pageDiff: number) => {
     const queryPageInt = parseInt(query.page, 10);
     let nextPage: number | undefined = isNaN(queryPageInt)
@@ -827,6 +849,7 @@ class IssueListOverview extends React.Component<Props, State> {
           displayReprocessingLayout={displayReprocessingLayout}
           useFilteredStats
           showInboxTime={showInboxTime}
+          display={this.getDisplay()}
         />
       );
     });
@@ -1039,8 +1062,10 @@ class IssueListOverview extends React.Component<Props, State> {
                   query={query}
                   savedSearch={savedSearch}
                   sort={this.getSort()}
+                  display={this.getDisplay()}
                   queryCount={queryCount}
                   queryMaxCount={queryMaxCount}
+                  onDisplayChange={this.onDisplayChange}
                   onSortChange={this.onSortChange}
                   onSearch={this.onSearch}
                   onSavedSearchSelect={this.onSavedSearchSelect}
@@ -1070,6 +1095,7 @@ class IssueListOverview extends React.Component<Props, State> {
                     allResultsVisible={this.allResultsVisible()}
                     hasInbox={hasFeature}
                     displayReprocessingActions={displayReprocessingActions}
+                    display={this.getDisplay()}
                   />
                   <PanelBody>
                     <ProcessingIssueList

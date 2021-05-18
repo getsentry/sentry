@@ -41,7 +41,12 @@ import {queryToObj} from 'app/utils/stream';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import {TimePeriodType} from 'app/views/alerts/rules/details/constants';
-import {getTabs, isForReviewQuery, Query} from 'app/views/issueList/utils';
+import {
+  getTabs,
+  isForReviewQuery,
+  IssueDisplayOptions,
+  Query,
+} from 'app/views/issueList/utils';
 
 const DiscoveryExclusionFields: string[] = [
   'query',
@@ -72,6 +77,7 @@ type Props = {
   id: string;
   selection: GlobalSelection;
   organization: Organization;
+  display: IssueDisplayOptions;
   displayReprocessingLayout?: boolean;
   query?: string;
   hasGuideAnchor?: boolean;
@@ -349,6 +355,7 @@ class StreamGroup extends React.Component<Props, State> {
       useFilteredStats,
       useTintRow,
       customStatsPeriod,
+      display,
     } = this.props;
 
     const {period, start, end} = selection.datetime || {};
@@ -372,6 +379,9 @@ class StreamGroup extends React.Component<Props, State> {
 
     const hasInbox = organization.features.includes('inbox');
     const unresolved = data.status === 'unresolved' ? true : false;
+
+    const sessionPercent =
+      data.sessionCount && Number(primaryCount) / Number(data.sessionCount);
 
     return (
       <Wrapper
@@ -443,7 +453,15 @@ class StreamGroup extends React.Component<Props, State> {
                         >
                           <span {...getActorProps({})}>
                             <div className="dropdown-actor-title">
-                              <PrimaryCount value={primaryCount} />
+                              <PrimaryCount
+                                value={
+                                  display === IssueDisplayOptions.SESSIONS &&
+                                  sessionPercent
+                                    ? sessionPercent
+                                    : primaryCount
+                                }
+                              />
+                              {display === IssueDisplayOptions.SESSIONS && '%'}
                               {secondaryCount !== undefined && useFilteredStats && (
                                 <SecondaryCount value={secondaryCount} />
                               )}
