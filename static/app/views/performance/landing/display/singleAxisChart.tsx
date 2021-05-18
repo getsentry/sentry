@@ -16,7 +16,7 @@ type DisplayProps = {
   eventView: EventView;
   axis: AxisOption;
   onFilterChange: (minValue: number, maxValue: number) => void; // only used for distribution graphs
-  didReceiveMultiAxis?: () => void;
+  didReceiveMultiAxis?: (useBackup: boolean) => void;
   usingBackupAxis: boolean;
 };
 
@@ -37,8 +37,12 @@ export function SingleAxisChart(props: DisplayProps) {
     if (!didReceiveMultiAxis) {
       return;
     }
-    if (!dataCounts[axis.field] && backupField && dataCounts[backupField]) {
-      didReceiveMultiAxis();
+    if (dataCounts[axis.field]) {
+      didReceiveMultiAxis(false);
+      return;
+    }
+    if (backupField && dataCounts[backupField]) {
+      didReceiveMultiAxis(true);
       return;
     }
   }
@@ -55,7 +59,8 @@ export function SingleAxisChart(props: DisplayProps) {
       title={axisOrBackup.label}
       titleTooltip={axisOrBackup.tooltip}
       didReceiveMultiAxis={didReceiveMulti}
-      backupField={usingBackupAxis ? backupField : undefined}
+      usingBackupAxis={usingBackupAxis}
+      backupField={backupField}
     />
   ) : (
     <DurationChart
@@ -64,7 +69,8 @@ export function SingleAxisChart(props: DisplayProps) {
       organization={organization}
       title={axisOrBackup.label}
       titleTooltip={axisOrBackup.tooltip}
-      backupField={usingBackupAxis ? backupField : undefined}
+      usingBackupAxis={usingBackupAxis}
+      backupField={backupField}
     />
   );
 }

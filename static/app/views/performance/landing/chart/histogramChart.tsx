@@ -38,6 +38,7 @@ type Props = {
   onFilterChange: (minValue: number, maxValue: number) => void;
   didReceiveMultiAxis?: (axisCounts: Record<string, number>) => void;
   backupField?: string;
+  usingBackupAxis: boolean;
 };
 
 export function HistogramChart(props: Props) {
@@ -52,7 +53,10 @@ export function HistogramChart(props: Props) {
     titleTooltip,
     didReceiveMultiAxis,
     backupField,
+    usingBackupAxis,
   } = props;
+
+  const _backupField = backupField ? [backupField] : [];
 
   const xAxis = {
     type: 'category' as const,
@@ -77,12 +81,12 @@ export function HistogramChart(props: Props) {
         eventView={eventView}
         numBuckets={NUM_BUCKETS}
         precision={PRECISION}
-        fields={[field, ...(backupField || [])]}
+        fields={[field, ..._backupField]}
         dataFilter="exclude_outliers"
         didReceiveMultiAxis={didReceiveMultiAxis}
       >
         {results => {
-          const _field = getFieldOrBackup(field, backupField);
+          const _field = usingBackupAxis ? getFieldOrBackup(field, backupField) : field;
           const loading = results.isLoading;
           const errored = results.error !== null;
           const chartData = results.histograms?.[_field];

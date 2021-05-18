@@ -34,6 +34,7 @@ type Props = {
   title: string;
   titleTooltip: string;
   backupField?: string;
+  usingBackupAxis: boolean;
 } & WithRouterProps;
 
 function DurationChart(props: Props) {
@@ -47,6 +48,7 @@ function DurationChart(props: Props) {
     title,
     titleTooltip,
     backupField,
+    usingBackupAxis,
   } = props;
 
   // construct request parameters for fetching chart data
@@ -60,6 +62,8 @@ function DurationChart(props: Props) {
     : null;
 
   const {utc} = getParams(location.query);
+
+  const _backupField = backupField ? [backupField] : [];
 
   return (
     <EventsRequest
@@ -81,7 +85,7 @@ function DurationChart(props: Props) {
       showLoading={false}
       query={eventView.getEventsAPIPayload(location).query}
       includePrevious={false}
-      yAxis={[field, ...(backupField || [])]}
+      yAxis={[field, ..._backupField]}
       partial
       hideError
     >
@@ -92,7 +96,7 @@ function DurationChart(props: Props) {
         timeseriesData: singleAxisResults,
         results: multiAxisResults,
       }) => {
-        const _field = getFieldOrBackup(field, backupField);
+        const _field = usingBackupAxis ? getFieldOrBackup(field, backupField) : field;
         const results = singleAxisResults
           ? singleAxisResults
           : [multiAxisResults?.find(r => r.seriesName === _field)].filter(Boolean);

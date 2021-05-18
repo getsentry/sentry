@@ -60,8 +60,8 @@ function DoubleAxisDisplay(props: Props) {
     });
   };
 
-  const didReceiveMultiAxis = () => {
-    setUsingBackupAxis(true);
+  const didReceiveMultiAxis = (useBackup: boolean) => {
+    setUsingBackupAxis(useBackup);
   };
 
   const leftAxisOrBackup = getAxisOrBackupAxis(leftAxis, usingBackupAxis);
