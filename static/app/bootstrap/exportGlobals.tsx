@@ -103,7 +103,7 @@ const makeBeaconRequest = throttle(
             try {
               const stack = new Error().stack;
               // Split stack by lines and filter out empty strings
-              const stackArr = stack.split('\n').filter(s => !!s);
+              const stackArr = stack?.split('\n').filter(s => !!s) || [];
               // There's an issue with Firefox where this getter for jQuery gets called many times (> 100)
               // The stacktrace doesn't show it being called outside of this block either.
               // And this works fine in Chrome...
