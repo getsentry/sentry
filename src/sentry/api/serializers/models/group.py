@@ -53,6 +53,7 @@ from sentry.search.events.filter import convert_search_filter_to_snuba_query
 from sentry.tagstore.snuba.backend import fix_tag_value_data
 from sentry.tsdb.snuba import SnubaTSDB
 from sentry.types.integrations import ExternalProviders
+from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.compat import zip
 from sentry.utils.db import attach_foreignkey
@@ -948,11 +949,6 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             **query_params,
         )
 
-    def _get_session_percent(self, count, sessions):
-        if sessions != 0:
-            return round(int(count) / sessions, 4)
-        return None
-
     def get_attrs(self, item_list, user):
         if not self._collapse("base"):
             attrs = super().get_attrs(item_list, user)
@@ -981,21 +977,21 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             if self._expand("sessions"):
                 uniq_project_ids = list({item.project_id for item in item_list})
                 cache_keys = {pid: self._build_session_cache_key(pid) for pid in uniq_project_ids}
-
                 cache_data = cache.get_many(cache_keys.values())
                 missed_items = []
                 for item in item_list:
                     num_sessions = cache_data.get(cache_keys[item.project_id])
                     if num_sessions is None:
+                        found = "miss"
                         missed_items.append(item)
                     else:
+                        found = "hit"
                         attrs[item].update(
                             {
-                                "sessionPercent": self._get_session_percent(
-                                    attrs[item]["times_seen"], num_sessions
-                                )
+                                "sessionCount": num_sessions,
                             }
                         )
+                    metrics.incr(f"group.get_session_counts.{found}")
 
                 if missed_items:
                     filters = {"project_id": list({item.project_id for item in missed_items})}
@@ -1021,13 +1017,11 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                         if item.project_id in results.keys():
                             attrs[item].update(
                                 {
-                                    "sessionPercent": self._get_session_percent(
-                                        attrs[item]["times_seen"], data["sessions"]
-                                    )
+                                    "sessionCount": results[item.project_id],
                                 }
                             )
                         else:
-                            attrs[item].update({"sessionPercent": None})
+                            attrs[item].update({"sessionCount": None})
 
         if self._expand("inbox"):
             inbox_stats = get_inbox_details(item_list)
@@ -1076,7 +1070,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                     result["filtered"] = None
 
             if self._expand("sessions"):
-                result["sessionPercent"] = attrs["sessionPercent"]
+                result["sessionCount"] = attrs["sessionCount"]
 
         if self._expand("inbox"):
             result["inbox"] = attrs["inbox"]
