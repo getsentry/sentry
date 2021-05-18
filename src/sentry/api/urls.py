@@ -1366,7 +1366,7 @@ urlpatterns = [
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/notification-settings/$",
                     TeamNotificationSettingsDetailsEndpoint.as_view(),
-                    name="sentry-api-0-user-notification-settings",
+                    name="sentry-api-0-team-notification-settings",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/members/$",

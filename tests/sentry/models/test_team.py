@@ -46,6 +46,15 @@ class TeamTest(TestCase):
 
         assert member not in team.member_set.all()
 
+    def test_get_projects(self):
+        user = self.create_user()
+        org = self.create_organization(owner=user)
+        team = self.create_team(organization=org)
+        project = self.create_project(teams=[team], name="name")
+
+        projects = team.get_projects()
+        assert {_.id for _ in projects} == {project.id}
+
 
 class TransferTest(TestCase):
     def test_simple(self):

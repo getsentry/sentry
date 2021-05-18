@@ -58,17 +58,17 @@ class UserEndpoint(Endpoint):
     permission_classes = (UserPermission,)
 
     def convert_args(self, request, user_id, *args, **kwargs):
-        try:
-            if user_id == "me":
-                if not request.user.is_authenticated:
-                    raise ResourceDoesNotExist
-                user_id = request.user.id
+        if user_id == "me":
+            if not request.user.is_authenticated:
+                raise ResourceDoesNotExist
+            user_id = request.user.id
 
+        try:
             user = User.objects.get(id=user_id)
-        except User.DoesNotExist:
+        except (User.DoesNotExist, ValueError):
             raise ResourceDoesNotExist
 
         self.check_object_permissions(request, user)
 
         kwargs["user"] = user
-        return (args, kwargs)
+        return args, kwargs

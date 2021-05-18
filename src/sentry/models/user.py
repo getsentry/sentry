@@ -338,24 +338,14 @@ class User(BaseModel, AbstractBaseUser):
             request.session["_nonce"] = self.session_nonce
 
     def get_orgs(self):
-        from sentry.models import Organization, OrganizationMember, OrganizationStatus
+        from sentry.models import Organization
 
-        return Organization.objects.filter(
-            status=OrganizationStatus.VISIBLE,
-            id__in=OrganizationMember.objects.filter(user=self).values("organization"),
-        )
+        return Organization.objects.get_for_user_ids({self.id})
 
     def get_projects(self):
-        from sentry.models import OrganizationMemberTeam, Project, ProjectStatus, ProjectTeam
+        from sentry.models import Project
 
-        return Project.objects.filter(
-            status=ProjectStatus.VISIBLE,
-            id__in=ProjectTeam.objects.filter(
-                team_id__in=OrganizationMemberTeam.objects.filter(
-                    organizationmember__user=self
-                ).values_list("team_id", flat=True)
-            ).values_list("project_id", flat=True),
-        )
+        return Project.objects.get_for_user_ids({self.id})
 
     def get_orgs_require_2fa(self):
         from sentry.models import Organization, OrganizationStatus
