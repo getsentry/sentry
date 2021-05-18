@@ -165,6 +165,12 @@
           "name": "JavaScript"
         },
         {
+          "link": "https://docs.sentry.io/platforms/javascript/guides/nextjs/",
+          "type": "framework",
+          "id": "javascript-nextjs",
+          "name": "Next.js"
+        },
+        {
           "link": "https://docs.getsentry.com/clients/javascript/integrations/react/",
           "type": "framework",
           "id": "javascript-react",

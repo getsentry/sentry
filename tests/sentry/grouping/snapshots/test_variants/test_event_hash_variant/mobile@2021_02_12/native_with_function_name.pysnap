@@ -1,12 +1,12 @@
 ---
-created: '2021-04-30T12:13:37.603108Z'
+created: '2021-05-17T08:41:28.020060Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
   hash: null
   component:
-    app (exception of app-depth-1/app-depth-2/app-depth-3/app-depth-4/system takes precedence)
+    app (exception of app-depth-1/app-depth-2/app-depth-3/app-depth-4/app-depth-max/system takes precedence)
       threads (thread has no stacktrace)
 --------------------------------------------------------------------------
 app-depth-1:
@@ -23,7 +23,7 @@ app-depth-1:
               "`anonymous namespace'::something::nested::Foo<T>::crash"
             package (ignored because function takes precedence)
               "crash"
-        type (ignored because exception is synthetic)
+        type (ignored because exception is synthetic (detected via exception type))
           "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
@@ -49,7 +49,7 @@ app-depth-2:
               "`anonymous namespace'::something::nested::Foo<T>::crash"
             package (ignored because function takes precedence)
               "crash"
-        type (ignored because exception is synthetic)
+        type (ignored because exception is synthetic (detected via exception type))
           "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
@@ -82,7 +82,7 @@ app-depth-3:
               "`anonymous namespace'::something::nested::Foo<T>::crash"
             package (ignored because function takes precedence)
               "crash"
-        type (ignored because exception is synthetic)
+        type (ignored because exception is synthetic (detected via exception type))
           "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
@@ -122,7 +122,47 @@ app-depth-4:
               "`anonymous namespace'::something::nested::Foo<T>::crash"
             package (ignored because function takes precedence)
               "crash"
-        type (ignored because exception is synthetic)
+        type (ignored because exception is synthetic (detected via exception type))
+          "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "a07df792479c5ba46fc056236749b796"
+  tree_label: "<entire stacktrace>"
+  component:
+    app-depth-max*
+      exception*
+        stacktrace*
+          frame*
+            filename (discarded native filename for grouping stability)
+              "main.cpp"
+            function*
+              "main"
+            package (ignored because function takes precedence)
+              "crash"
+          frame*
+            filename (discarded native filename for grouping stability)
+              "main.cpp"
+            function*
+              "`anonymous namespace'::start"
+            package (ignored because function takes precedence)
+              "crash"
+          frame*
+            filename (discarded native filename for grouping stability)
+              "main.cpp"
+            function*
+              "`anonymous namespace'::crash"
+            package (ignored because function takes precedence)
+              "crash"
+          frame*
+            filename (discarded native filename for grouping stability)
+              "main.cpp"
+            function*
+              "`anonymous namespace'::something::nested::Foo<T>::crash"
+            package (ignored because function takes precedence)
+              "crash"
+        type (ignored because exception is synthetic (detected via exception type))
           "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"

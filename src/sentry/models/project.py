@@ -1,11 +1,13 @@
 import logging
 import warnings
 from collections import defaultdict
+from typing import Sequence
 from uuid import uuid1
 
 import sentry_sdk
 from django.conf import settings
 from django.db import IntegrityError, models, transaction
+from django.db.models import QuerySet
 from django.db.models.signals import pre_delete
 from django.utils import timezone
 from django.utils.http import urlencode
@@ -45,8 +47,34 @@ class ProjectTeam(Model):
         db_table = "sentry_projectteam"
         unique_together = (("project", "team"),)
 
+    __repr__ = sane_repr("project_id", "team_id")
+
 
 class ProjectManager(BaseManager):
+    def get_for_user_ids(self, user_ids: Sequence[int]) -> QuerySet:
+        """ Returns the QuerySet of all projects that a set of Users have access to. """
+        from sentry.models import OrganizationMemberTeam, ProjectStatus, ProjectTeam
+
+        return self.filter(
+            status=ProjectStatus.VISIBLE,
+            id__in=ProjectTeam.objects.filter(
+                team_id__in=OrganizationMemberTeam.objects.filter(
+                    organizationmember__user_id__in=user_ids
+                ).values_list("team_id", flat=True)
+            ).values_list("project_id", flat=True),
+        )
+
+    def get_for_team_ids(self, team_ids: Sequence[int]) -> QuerySet:
+        """ Returns the QuerySet of all organizations that a set of Teams have access to. """
+        from sentry.models import ProjectStatus, ProjectTeam
+
+        return self.filter(
+            status=ProjectStatus.VISIBLE,
+            id__in=ProjectTeam.objects.filter(team_id__in=team_ids).values_list(
+                "project_id", flat=True
+            ),
+        )
+
     # TODO(dcramer): we might want to cache this per user
     def get_for_user(self, team, user, scope=None, _skip_team_check=False):
         from sentry.models import Team
