@@ -7,7 +7,7 @@ from threading import Lock
 import rb
 from django.utils.functional import SimpleLazyObject
 from pkg_resources import resource_string
-from redis.client import Script, StrictRedis
+from redis.client import Redis, Script
 from redis.connection import ConnectionPool, Encoder
 from redis.exceptions import BusyLoadingError, ConnectionError
 from rediscluster import RedisCluster
@@ -114,7 +114,7 @@ class _RedisCluster:
 
         # Redis cluster does not wait to attempt to connect. We'd prefer to not
         # make TCP connections on boot. Wrap the client in a lazy proxy object.
-        def cluster_factory():
+        def cluster_factory() -> "Redis[str]":
             if config.get("is_redis_cluster", False):
                 return RetryingRedisCluster(
                     # Intentionally copy hosts here because redis-cluster-py
@@ -133,7 +133,7 @@ class _RedisCluster:
             else:
                 host = hosts[0].copy()
                 host["decode_responses"] = True
-                return StrictRedis(**host)
+                return Redis(**host)
 
         return SimpleLazyObject(cluster_factory)
 
