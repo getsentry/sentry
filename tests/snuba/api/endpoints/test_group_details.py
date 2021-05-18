@@ -125,7 +125,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             == response.data["firstRelease"]["lastEvent"]
         )
         assert response.data["firstRelease"]["firstEvent"].ctime() == first_event.ctime()
-        assert response.data["lastRelease"] == {"version": "1.1"}
+        assert response.data["lastRelease"] is None
 
     def test_group_expand_inbox(self):
         with self.feature("organizations:inbox"):
