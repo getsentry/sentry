@@ -61,7 +61,7 @@ const SentryApp = {
  * These are sent to Sentry install, which then checks to see if SENTRY_BEACON is enabled
  * in order to make a request to the SaaS beacon.
  */
-let _beaconComponents: string[] = [];
+let _beaconComponents: {component: string; stack: string}[] = [];
 const makeBeaconRequest = throttle(
   async () => {
     const api = new Client();
