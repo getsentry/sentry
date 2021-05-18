@@ -15,6 +15,7 @@ from sentry.mail import mail_adapter, send_notification_as_email
 from sentry.mail.adapter import ActionTargetType
 from sentry.models import (
     Activity,
+    GroupRelease,
     Integration,
     NotificationSetting,
     Organization,
@@ -387,6 +388,9 @@ class MailAdapterNotifyTest(BaseMailAdapterTest, TestCase):
                 "tags": {"sentry:release": release.version},
             },
             project_id=self.project.id,
+        )
+        GroupRelease.objects.create(
+            group_id=event.group.id, project_id=self.project.id, release_id=self.release.id
         )
 
         with self.tasks():

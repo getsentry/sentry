@@ -1,12 +1,14 @@
 from datetime import timedelta
 
 import pytest
+from django.core.cache import cache
 from django.db.models import ProtectedError
 from django.utils import timezone
 
 from sentry.models import (
     Group,
     GroupRedirect,
+    GroupRelease,
     GroupSnooze,
     GroupStatus,
     Release,
@@ -207,6 +209,7 @@ class GroupTest(TestCase, SnubaTestCase):
 
         assert group.first_release == release
         assert group.get_first_release() == release.version
+        cache.delete(group._get_cache_key(group.id, group.project_id, True))
         assert group.get_last_release() == release.version
 
     def test_first_release_from_tag(self):
@@ -218,6 +221,7 @@ class GroupTest(TestCase, SnubaTestCase):
         group = event.group
 
         assert group.get_first_release() == "a"
+        cache.delete(group._get_cache_key(group.id, group.project_id, True))
         assert group.get_last_release() == "a"
 
     def test_first_last_release_miss(self):
@@ -268,3 +272,47 @@ class GroupTest(TestCase, SnubaTestCase):
         group = event.group
         url = f"http://testserver/organizations/{project.organization.slug}/issues/{group.id}/events/{event.event_id}/"
         assert url == group.get_absolute_url(event_id=event.event_id)
+
+    def test_get_releases(self):
+        now = timezone.now().replace(microsecond=0)
+        project = self.create_project()
+        group = self.create_group(project=project)
+        group2 = self.create_group(project=project)
+
+        last_release = Release.objects.create(
+            organization_id=self.organization.id,
+            version="100",
+            date_added=iso_format(now - timedelta(seconds=10)),
+        )
+        first_release = Release.objects.create(
+            organization_id=self.organization.id,
+            version="200",
+            date_added=iso_format(now - timedelta(seconds=100)),
+        )
+        GroupRelease.objects.create(
+            project_id=project.id,
+            group_id=group.id,
+            release_id=first_release.id,
+            environment="",
+            last_seen=first_release.date_added,
+            first_seen=first_release.date_added,
+        )
+
+        GroupRelease.objects.create(
+            project_id=project.id,
+            group_id=group.id,
+            release_id=last_release.id,
+            environment="",
+            last_seen=last_release.date_added,
+            first_seen=last_release.date_added,
+        )
+
+        assert group.get_first_release() == "200"
+        cache.delete(group2._get_cache_key(group2.id, group2.project_id, True))
+
+        assert group2.get_first_release() is None
+        cache.delete(group._get_cache_key(group.id, group.project_id, True))
+
+        assert group.get_last_release() == "100"
+
+        assert group2.get_last_release() is None
