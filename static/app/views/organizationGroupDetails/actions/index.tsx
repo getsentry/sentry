@@ -319,10 +319,12 @@ const BookmarkButton = styled(ActionButton)<{isActive: boolean}>`
   ${p =>
     p.isActive &&
     `
-    background: ${p.theme.yellow100};
-    color: ${p.theme.yellow300};
-    border-color: ${p.theme.yellow300};
-    text-shadow: 0 1px 0 rgba(0, 0, 0, 0.15);
+   && {
+ background: ${p.theme.yellow100};
+ color: ${p.theme.yellow300};
+ border-color: ${p.theme.yellow300};
+ text-shadow: 0 1px 0 rgba(0, 0, 0, 0.15);
+}
   `}
 `;
 
