@@ -866,7 +866,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
             {this.renderDivider(dividerHandlerChildrenProps)}
           </div>
         </td>
-        <td>
+        <td style={{position: 'relative'}}>
           <RowCell
             data-type="span-row-cell"
             showDetail={this.state.showDetail}
@@ -902,6 +902,35 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
             {this.renderMeasurements()}
             {this.renderCursorGuide()}
           </RowCell>
+        </td>
+        <td>
+          {!this.state.showDetail && (
+            <DividerLineGhostContainer
+              style={{
+                width: toPercent(dividerPosition),
+                display: 'none',
+                left: 0,
+                marginTop: `-${ROW_HEIGHT / 2}px`,
+                // top: 0,
+                height: `${ROW_HEIGHT}px`,
+                outline: '1px solid red',
+              }}
+            >
+              <DividerLine
+                ref={addGhostDividerLineRef()}
+                style={{
+                  right: 0,
+                }}
+                className="hovering"
+                onClick={event => {
+                  // the ghost divider line should not be interactive.
+                  // we prevent the propagation of the clicks from this component to prevent
+                  // the span detail from being opened.
+                  event.stopPropagation();
+                }}
+              />
+            </DividerLineGhostContainer>
+          )}
         </td>
       </React.Fragment>
     );
