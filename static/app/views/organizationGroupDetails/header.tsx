@@ -44,6 +44,7 @@ const TAB = {
   TAGS: 'tags',
   EVENTS: 'events',
   MERGED: 'merged',
+  SPLITTED: 'splitted',
   SIMILAR_ISSUES: 'similar-issues',
 };
 
