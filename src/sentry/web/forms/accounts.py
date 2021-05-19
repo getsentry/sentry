@@ -12,9 +12,7 @@ from sentry import newsletter, options
 from sentry.app import ratelimiter
 from sentry.auth import password_validation
 from sentry.models import User
-from sentry.utils import metrics
 from sentry.utils.auth import find_users, logger
-from sentry.utils.hashlib import md5_text
 from sentry.web.forms.fields import AllowedEmailField, CustomTypedChoiceField
 
 
@@ -85,8 +83,6 @@ class AuthenticationForm(forms.Form):
             return
         return value.lower()
 
-    # TODO(dcramer): this logic needs updated to match the api-based validation in auth_login.py
-    # (and ideally moved entirely into the API)
     def is_rate_limited(self):
         if self._is_ip_rate_limited():
             return True
@@ -111,7 +107,7 @@ class AuthenticationForm(forms.Form):
         if not username:
             return False
 
-        return ratelimiter.is_limited(f"auth:username:{md5_text(username)}", limit)
+        return ratelimiter.is_limited(f"auth:username:{username}", limit)
 
     def clean(self):
         username = self.cleaned_data.get("username")
@@ -124,9 +120,6 @@ class AuthenticationForm(forms.Form):
             )
 
         if self.is_rate_limited():
-            metrics.incr(
-                "login.attempt", instance="rate_limited", skip_internal=True, sample_rate=1.0
-            )
             logger.info(
                 "user.auth.rate-limited",
                 extra={"ip_address": self.request.META["REMOTE_ADDR"], "username": username},
