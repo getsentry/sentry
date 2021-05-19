@@ -3,7 +3,7 @@ on:
   issues:
     types: [labeled]
 jobs:
-  routed:
+  ensure_one_status:
     runs-on: ubuntu-latest
     if: "startsWith(github.event.label.name, 'Status: ')"
     steps:
@@ -12,5 +12,5 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
         run: |
-          labels_to_remove=$(gh api "/repos/$GH_REPO/labels" -q '[.[].name | select(startswith("Status: ") and . != "${{ github.event.label.name }}")] | join(",")')
+          labels_to_remove=$(gh api --paginate "/repos/$GH_REPO/labels" -q '[.[].name | select(startswith("Status: ") and . != "${{ github.event.label.name }}")] | join(",")')
           gh issue edit ${{ github.event.issue.number }} --remove-label "$labels_to_remove" --add-label "${{ github.event.label.name }}"
