@@ -1,14 +1,15 @@
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from sentry.api.base import Endpoint, SessionAuthentication
+from sentry.api.authentication import ImprovedSessionAuthentication
+from sentry.api.base import Endpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.models import ApiApplication, ApiApplicationStatus
 
 
 class ApiApplicationsEndpoint(Endpoint):
-    authentication_classes = (SessionAuthentication,)
+    authentication_classes = (ImprovedSessionAuthentication,)
     permission_classes = (IsAuthenticated,)
 
     def get(self, request):
