@@ -52,10 +52,14 @@ export const TraceDetailBody = styled('div')`
   margin-top: ${space(2)};
 `;
 
-export const TraceViewContainer = styled('div')`
+export const TraceViewContainer = styled('table')`
   overflow-x: hidden;
   border-bottom-left-radius: 3px;
   border-bottom-right-radius: 3px;
+
+  table-layout: fixed;
+  width: 100%;
+  display: table;
 `;
 
 export const StyledPanel = styled(Panel)`
