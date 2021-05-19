@@ -132,6 +132,18 @@ class RuleConditionsFormForWizard extends React.PureComponent<Props, State> {
       },
     ];
 
+    if (organization.features.includes('performance-view') && alertType === 'custom') {
+      dataSourceOptions.push({
+        label: t('Transactions'),
+        options: [
+          {
+            value: Datasource.TRANSACTION,
+            label: DATA_SOURCE_LABELS[Datasource.TRANSACTION],
+          },
+        ],
+      });
+    }
+
     const formElemBaseStyle = {
       padding: `${space(0.5)}`,
       border: 'none',
