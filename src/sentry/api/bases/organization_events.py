@@ -316,6 +316,9 @@ class KeyTransactionBase(OrganizationEventsV2EndpointBase):
     def has_feature(self, request, organization):
         return features.has("organizations:performance-view", organization, actor=request.user)
 
+    def has_team_feature(self, request, organization):
+        return features.has("organizations:team-key-transactions", organization, actor=request.user)
+
     def get_project(self, request, organization):
         projects = self.get_projects(request, organization)
 

@@ -1,5 +1,7 @@
 import re
+from typing import Sequence
 
+from django.db.models import Count, Max
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
 
@@ -7,8 +9,14 @@ from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers.rest_framework import ListField
 from sentry.api.utils import InvalidParams, get_date_range_from_params
 from sentry.constants import ALL_ACCESS_PROJECTS
-from sentry.discover.models import MAX_KEY_TRANSACTIONS, KeyTransaction
+from sentry.discover.models import (
+    MAX_KEY_TRANSACTIONS,
+    MAX_TEAM_KEY_TRANSACTIONS,
+    KeyTransaction,
+    TeamKeyTransaction,
+)
 from sentry.exceptions import InvalidSearchQuery
+from sentry.models import Team
 from sentry.search.events.filter import get_filter
 from sentry.utils.snuba import SENTRY_SNUBA_MAP
 
@@ -248,4 +256,44 @@ class KeyTransactionSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 f"At most {MAX_KEY_TRANSACTIONS} Key Transactions can be added"
             )
+        return data
+
+
+class TeamKeyTransactionSerializer(serializers.Serializer):
+    transaction = serializers.CharField(required=True, max_length=200)
+    team = serializers.ListField(child=serializers.IntegerField())
+
+    def validate_team(self, team_ids: Sequence[int]) -> Team:
+        request = self.context["request"]
+        organization = self.context["organization"]
+        verified_teams = {team.id for team in Team.objects.get_for_user(organization, request.user)}
+
+        teams = Team.objects.filter(id__in=team_ids)
+
+        for team in teams:
+            if team.id in verified_teams:
+                continue
+
+            if not request.access.has_team_access(team):
+                raise serializers.ValidationError(
+                    f"You do not have permission to access {team.name}"
+                )
+
+        return teams
+
+    def validate(self, data):
+        data = super().validate(data)
+        if self.context.get("mode") == "create":
+            team = data["team"]
+            count = (
+                TeamKeyTransaction.objects.values("team_id")
+                .filter(team__in=[item.id for item in team])
+                .annotate(total=Count("team_id"))
+                .aggregate(max=Max("total"))
+            )
+            # Limit the number of key transactions for a team
+            if count["max"] and count["max"] >= MAX_TEAM_KEY_TRANSACTIONS:
+                raise serializers.ValidationError(
+                    f"At most {MAX_TEAM_KEY_TRANSACTIONS} Key Transactions can be added for a team"
+                )
         return data
