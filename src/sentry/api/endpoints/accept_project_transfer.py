@@ -5,7 +5,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from sentry import roles
-from sentry.api.base import Endpoint, SessionAuthentication
+from sentry.api.authentication import ImprovedSessionAuthentication
+from sentry.api.base import Endpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization import (
@@ -27,7 +28,7 @@ class InvalidPayload(Exception):
 
 
 class AcceptProjectTransferEndpoint(Endpoint):
-    authentication_classes = (SessionAuthentication,)
+    authentication_classes = (ImprovedSessionAuthentication,)
     permission_classes = (IsAuthenticated,)
 
     def get_validated_data(self, data, user):

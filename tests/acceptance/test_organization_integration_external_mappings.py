@@ -37,7 +37,7 @@ class OrganizationExternalMappings(AcceptanceTestCase):
     def test_external_user_mappings(self):
         with self.feature(
             {
-                "organizations:import-codeowners": True,
+                "organizations:integrations-codeowners": True,
                 "organizations:integrations-stacktrace-link": True,
             }
         ):
@@ -71,7 +71,7 @@ class OrganizationExternalMappings(AcceptanceTestCase):
     def test_external_team_mappings(self):
         with self.feature(
             {
-                "organizations:import-codeowners": True,
+                "organizations:integrations-codeowners": True,
                 "organizations:integrations-stacktrace-link": True,
             }
         ):

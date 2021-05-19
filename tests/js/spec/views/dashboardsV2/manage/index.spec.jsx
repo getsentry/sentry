@@ -60,7 +60,7 @@ describe('Dashboards > Detail', function () {
       />
     );
 
-    const content = wrapper.find('DocumentTitle');
+    const content = wrapper.find('HelpMessage');
     expect(content.text()).toContain('You need at least one project to use this view');
   });
 

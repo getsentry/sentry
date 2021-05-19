@@ -1,6 +1,7 @@
 import copy
 import ipaddress
 import logging
+import random
 import time
 from datetime import datetime, timedelta
 from io import BytesIO
@@ -24,7 +25,9 @@ from sentry.constants import (
 from sentry.culprit import generate_culprit
 from sentry.eventstore.processing import event_processing_store
 from sentry.grouping.api import (
+    BackgroundGroupingConfigLoader,
     GroupingConfigNotFound,
+    SecondaryGroupingConfigLoader,
     apply_server_fingerprinting,
     get_fingerprinting_config_for_project,
     get_grouping_config_dict_for_event_data,
@@ -32,6 +35,7 @@ from sentry.grouping.api import (
     load_grouping_config,
 )
 from sentry.ingest.inbound_filters import FilterStatKeys
+from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL, convert_crashreport_count
 from sentry.models import (
     CRASH_REPORT_TYPES,
@@ -65,7 +69,7 @@ from sentry.reprocessing2 import (
     is_reprocessed_event,
     save_unprocessed_event,
 )
-from sentry.signals import first_event_received, issue_unresolved
+from sentry.signals import first_event_received, first_transaction_received, issue_unresolved
 from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.utils import json, metrics
@@ -306,6 +310,12 @@ class EventManager:
             self._data["project"] = int(project_id)
             job = {"data": self._data, "start_time": start_time}
             jobs = save_transaction_events([job], projects)
+
+            if not project.flags.has_transactions:
+                first_transaction_received.send_robust(
+                    project=project, event=jobs[0]["event"], sender=Project
+                )
+
             return jobs[0]["event"]
 
         with metrics.timer("event_manager.save.organization.get_from_cache"):
@@ -338,15 +348,18 @@ class EventManager:
         _derive_plugin_tags_many(jobs, projects)
         _derive_interface_tags_many(jobs)
 
+        do_background_grouping_before = options.get("store.background-grouping-before")
+        if do_background_grouping_before:
+            _run_background_grouping(project, job)
+
         secondary_flat_hashes = []
 
         try:
             if (project.get_option("sentry:secondary_grouping_expiry") or 0) >= time.time():
                 with metrics.timer("event_manager.secondary_grouping"):
                     secondary_event = copy.deepcopy(job["event"])
-                    secondary_grouping_config = get_grouping_config_dict_for_project(
-                        project, secondary=True
-                    )
+                    loader = SecondaryGroupingConfigLoader()
+                    secondary_grouping_config = loader.get_config_dict(project)
                     _calculate_event_grouping(project, secondary_event, secondary_grouping_config)
                     secondary_flat_hashes.extend(secondary_event.data["hashes"])
         except Exception:
@@ -359,11 +372,16 @@ class EventManager:
                 job["event"].data.data, project
             )
 
-        with sentry_sdk.start_span(op="event_manager.save.calculate_event_grouping"):
+        with sentry_sdk.start_span(op="event_manager.save.calculate_event_grouping"), metrics.timer(
+            "event_manager.calculate_event_grouping"
+        ):
             _calculate_event_grouping(project, job["event"], grouping_config)
 
         flat_hashes = job["event"].data["hashes"] + secondary_flat_hashes
         hierarchical_hashes = job["event"].data.get("hierarchical_hashes") or []
+
+        if not do_background_grouping_before:
+            _run_background_grouping(project, job)
 
         _materialize_metadata_many(jobs)
 
@@ -473,7 +491,6 @@ class EventManager:
                         "environment_id": job["environment"].id,
                     },
                 )
-
         if not raw:
             if not project.first_event:
                 project.update(first_event=job["event"].datetime)
@@ -514,6 +531,27 @@ class EventManager:
 
         self._data = job["event"].data.data
         return job["event"]
+
+
+@metrics.wraps("event_manager.background_grouping")
+def _calculate_background_grouping(project, event, config):
+    _calculate_event_grouping(project, event, config)
+
+
+def _run_background_grouping(project, job):
+    """Optionally run a fraction of events with a third grouping config
+    This can be helpful to measure its performance impact.
+    This does not affect actual grouping.
+    """
+    try:
+        sample_rate = options.get("store.background-grouping-sample-rate")
+        if sample_rate and random.random() <= sample_rate:
+            config = BackgroundGroupingConfigLoader().get_config_dict(project)
+            if config["id"]:
+                copied_event = copy.deepcopy(job["event"])
+                _calculate_background_grouping(project, copied_event, config)
+    except Exception:
+        sentry_sdk.capture_exception()
 
 
 @metrics.wraps("save_event.pull_out_data")
@@ -944,7 +982,13 @@ def _save_aggregate(event, flat_hashes, hierarchical_hashes, release, **kwargs):
 
     if existing_group_id is None:
 
-        if project.id in (options.get("store.load-shed-group-creation-projects") or ()):
+        if killswitch_matches_context(
+            "store.load-shed-group-creation-projects",
+            {
+                "project_id": project.id,
+                "platform": event.platform,
+            },
+        ):
             raise HashDiscarded("Load shedding group creation")
 
         with sentry_sdk.start_span(

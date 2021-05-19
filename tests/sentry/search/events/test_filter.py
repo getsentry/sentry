@@ -787,6 +787,21 @@ class GetSnubaQueryArgsTest(TestCase):
         with self.assertRaises(InvalidSearchQuery):
             get_filter("id:deadbeef*")
 
+    def test_event_id(self):
+        event_id = "a" * 32
+        results = get_filter(f"id:{event_id}")
+        assert results.conditions == [["id", "=", event_id]]
+
+        event_id = "a" * 16 + "-" * 16 + "b" * 16
+        results = get_filter(f"id:{event_id}")
+        assert results.conditions == [["id", "=", event_id]]
+
+        with self.assertRaises(InvalidSearchQuery):
+            get_filter("id:deadbeef")
+
+        with self.assertRaises(InvalidSearchQuery):
+            get_filter(f"id:{'g' * 32}")
+
     def test_negated_wildcard(self):
         _filter = get_filter("!release:3.1.* user.email:*@example.com")
         assert _filter.conditions == [
@@ -1188,6 +1203,15 @@ class GetSnubaQueryArgsTest(TestCase):
         result = get_filter("apdex(300):>-0.5")
         assert result.having == [["apdex_300", ">", -0.5]]
 
+    def test_function_with_bad_arguments(self):
+        result = get_filter("percentile(transaction.duration 0.75):>100")
+        assert result.having == []
+        assert result.conditions == [
+            _om("percentile"),
+            _om("transaction.duration 0.75"),
+            _om(":>100"),
+        ]
+
     def test_function_with_date_arguments(self):
         result = get_filter("last_seen():2020-04-01T19:34:52+00:00")
         assert result.having == [["last_seen", "=", 1585769692]]
@@ -1244,6 +1268,16 @@ class GetSnubaQueryArgsTest(TestCase):
                 1,
             ]
         ]
+
+    def test_shorthand_overflow(self):
+        with self.assertRaises(InvalidSearchQuery):
+            get_filter(f"transaction.duration:<{'9'*13}m")
+
+        with self.assertRaises(InvalidSearchQuery):
+            get_filter(f"transaction.duration:<{'9'*11}h")
+
+        with self.assertRaises(InvalidSearchQuery):
+            get_filter(f"transaction.duration:<{'9'*10}d")
 
 
 def with_type(type, argument):

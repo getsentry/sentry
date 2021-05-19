@@ -51,12 +51,6 @@ repos:
       # We can't change this mock to unittest.mock until Python 3.8,
       # refer to the comment in this file.
       exclude: 'src/sentry/utils/compat/mock.py'
-    - id: shellcheck
-      name: shellcheck
-      entry: shellcheck
-      language: system
-      exclude: 'src/sentry/templates/sentry/reprocessing-script.sh'
-      types: [shell]
 
 -   repo: https://github.com/sirosen/check-jsonschema
     rev: 0.3.0

@@ -23,4 +23,5 @@ class AuthProviderSerializer(Serializer):
             "login_url": absolute_uri(login_url),
             "default_role": organization.default_role,
             "require_link": not obj.flags.allow_unlinked,
+            "scim_enabled": bool(obj.flags.scim_enabled),
         }

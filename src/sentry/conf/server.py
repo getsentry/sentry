@@ -124,7 +124,14 @@ DEVSERVICES_CONFIG_DIR = os.path.normpath(
     os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "config")
 )
 
-CLICKHOUSE_CONFIG_PATH = os.path.join(DEVSERVICES_CONFIG_DIR, "clickhouse", "config.xml")
+SENTRY_DISTRIBUTED_CLICKHOUSE_TABLES = False
+_common_clickhouse_settings = {
+    "image": "yandex/clickhouse-server:20.3.9.70",
+    "pull": True,
+    "ports": {"9000/tcp": 9000, "9009/tcp": 9009, "8123/tcp": 8123},
+    "ulimits": [{"name": "nofile", "soft": 262144, "hard": 262144}],
+    "environment": {"MAX_MEMORY_USAGE_RATIO": "0.3"},
+}
 
 RELAY_CONFIG_DIR = os.path.join(DEVSERVICES_CONFIG_DIR, "relay")
 
@@ -848,6 +855,8 @@ SENTRY_FEATURES = {
     "organizations:advanced-search": True,
     # Enable obtaining and using API keys.
     "organizations:api-keys": False,
+    # Enable Apple app-store-connect dsym symbol file collection.
+    "organizations:app-store-connect": False,
     # Enable explicit use of AND and OR in search.
     "organizations:boolean-search": False,
     # Enable unfurling charts using the Chartcuterie service
@@ -875,10 +884,6 @@ SENTRY_FEATURES = {
     "organizations:discover-query": True,
     # Enable Performance view
     "organizations:performance-view": False,
-    # Enable the quick trace view on event details
-    "organizations:trace-view-quick": False,
-    # Enable the trace view summary
-    "organizations:trace-view-summary": False,
     # Enable multi project selection
     "organizations:global-views": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
@@ -918,6 +923,8 @@ SENTRY_FEATURES = {
     "organizations:integrations-vsts-limited-scopes": False,
     # Allow orgs to use the stacktrace linking feature
     "organizations:integrations-stacktrace-link": False,
+    # Allow orgs to install a custom source code management integration
+    "organizations:integrations-custom-scm": False,
     # Temporary safety measure, turned on for specific orgs only if
     # absolutely necessary, to be removed shortly
     "organizations:slack-allow-workspace": False,
@@ -932,7 +939,7 @@ SENTRY_FEATURES = {
     # Enable experimental performance improvements.
     "organizations:enterprise-perf": False,
     # Enable the API to importing CODEOWNERS for a project
-    "organizations:import-codeowners": False,
+    "organizations:integrations-codeowners": False,
     # Special feature flag primarily used on the sentry.io SAAS product for
     # easily enabling features while in early development.
     "organizations:internal-catchall": False,
@@ -972,15 +979,16 @@ SENTRY_FEATURES = {
     "organizations:sso-saml2": True,
     # Enable Rippling SSO functionality.
     "organizations:sso-rippling": False,
+    # Enable SCIM Provisioning functionality.
+    "organizations:sso-scim": False,
     # Enable workaround for migrating IdP instances
     "organizations:sso-migration": False,
+    # Enable team based key transactions for performance
+    "organizations:team-key-transactions": False,
     # Enable transaction comparison view for performance.
     "organizations:transaction-comparison": False,
     # Return unhandled information on the issue level
     "organizations:unhandled-issue-flag": True,
-    # Enable graph for subscription quota for errors, transactions and
-    # attachments
-    "organizations:usage-stats-graph": False,
     # Enable inbox support in the issue stream
     "organizations:inbox": True,
     # Enable the new alert details ux design
@@ -991,6 +999,12 @@ SENTRY_FEATURES = {
     "organizations:team-alerts-ownership": False,
     # Enable the new alert creation wizard
     "organizations:alert-wizard": True,
+    # Enable the adoption chart in the releases page
+    "organizations:release-adoption-chart": False,
+    # Enable the project level transaction thresholds
+    "organizations:project-transaction-threshold": False,
+    # Enable percent displays in issue stream
+    "organizations:issue-percent-display": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
@@ -1018,6 +1032,8 @@ SENTRY_FEATURES = {
     "projects:servicehooks": False,
     # Use Kafka (instead of Celery) for ingestion pipeline.
     "projects:kafka-ingest": False,
+    # Enable stackwalking comparison
+    "symbolicator:compare-stackwalking-methods": False,
     # Don't add feature defaults down here! Please add them in their associated
     # group sorted alphabetically.
 }
@@ -1661,23 +1677,24 @@ SENTRY_DEVSERVICES = {
         ),
     },
     "clickhouse": {
-        "image": "yandex/clickhouse-server:20.3.9.70",
-        "pull": True,
-        "ports": {"9000/tcp": 9000, "9009/tcp": 9009, "8123/tcp": 8123},
-        "ulimits": [{"name": "nofile", "soft": 262144, "hard": 262144}],
+        **_common_clickhouse_settings,
         "volumes": {
             "clickhouse": {"bind": "/var/lib/clickhouse"},
-            CLICKHOUSE_CONFIG_PATH: {"bind": "/etc/clickhouse-server/config.d/sentry.xml"},
+            os.path.join(DEVSERVICES_CONFIG_DIR, "clickhouse", "loc_config.xml"): {
+                "bind": "/etc/clickhouse-server/config.d/sentry.xml"
+            },
         },
-        "environment": {
-            # This limits Clickhouse's memory to 30% of the host memory
-            # If you have high volume and your search return incomplete results
-            # You might want to change this to a higher value (and ensure your host has enough memory)
-            "MAX_MEMORY_USAGE_RATIO": "0.3"
+        "only_if": lambda settings, options: (not settings.SENTRY_DISTRIBUTED_CLICKHOUSE_TABLES),
+    },
+    "clickhouse_dist": {
+        **_common_clickhouse_settings,
+        "volumes": {
+            "clickhouse_dist": {"bind": "/var/lib/clickhouse"},
+            os.path.join(DEVSERVICES_CONFIG_DIR, "clickhouse", "dist_config.xml"): {
+                "bind": "/etc/clickhouse-server/config.d/sentry.xml"
+            },
         },
-        "only_if": lambda settings, options: (
-            "snuba" in settings.SENTRY_EVENTSTREAM or "kafka" in settings.SENTRY_EVENTSTREAM
-        ),
+        "only_if": lambda settings, options: (settings.SENTRY_DISTRIBUTED_CLICKHOUSE_TABLES),
     },
     "snuba": {
         "image": "getsentry/snuba:nightly",
@@ -1779,6 +1796,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.vercel.VercelIntegrationProvider",
     "sentry.integrations.msteams.MsTeamsIntegrationProvider",
     "sentry.integrations.aws_lambda.AwsLambdaIntegrationProvider",
+    "sentry.integrations.custom_scm.CustomSCMIntegrationProvider",
 )
 
 
@@ -2196,6 +2214,9 @@ SENTRY_PROJECT_COUNTER_STATEMENT_TIMEOUT = 1000
 
 # Implemented in getsentry to run additional devserver workers.
 SENTRY_EXTRA_WORKERS = None
+
+# A set of extra URLs to sample
+ADDITIONAL_SAMPLED_URLS = {}
 
 # This controls whether Sentry is run in a demo mode.
 # Enabling this will allow users to create accounts without an email or password.

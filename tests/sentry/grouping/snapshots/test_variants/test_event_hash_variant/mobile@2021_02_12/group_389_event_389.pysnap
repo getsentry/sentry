@@ -1,5 +1,5 @@
 ---
-created: '2021-04-30T12:13:35.879168Z'
+created: '2021-05-17T08:41:27.725745Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -13,7 +13,57 @@ app-depth-1:
           frame*
             function*
               "stripped_application_code"
-        type (ignored because exception is synthetic)
+        type (ignored because exception is synthetic (detected via exception type))
+          "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
+        value (ignored because stacktrace takes precedence)
+          "Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "aeed765d29d1a60cb094f66d2cd8efb2"
+  tree_label: "<entire stacktrace>"
+  component:
+    app-depth-max*
+      exception*
+        stacktrace*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "stripped_application_code"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "thread_start"
+            package (ignored because function takes precedence)
+              "libsystem_pthread.dylib"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "_pthread_start"
+            package (ignored because function takes precedence)
+              "libsystem_pthread.dylib"
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
+            function*
+              "_pthread_body"
+            package (ignored because function takes precedence)
+              "libsystem_pthread.dylib"
+          frame*
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored due to recursion)
+            function*
+              "stripped_application_code"
+          frame (ignored by stack trace rule (category:internals -group))
+            function*
+              "_pthread_testcancel"
+            package (ignored because function takes precedence)
+              "libsystem_pthread.dylib"
+        type (ignored because exception is synthetic (detected via exception type))
           "EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: EXC_BAD_ACCESS / KERN_INVALID_ADDRESS"
