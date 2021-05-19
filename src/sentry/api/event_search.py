@@ -78,7 +78,7 @@ aggregate_rel_date_filter = negation? aggregate_key sep operator? rel_date_forma
 has_filter = negation? "has" sep (search_key / search_value)
 is_filter  = negation? "is" sep search_value
 
-aggregate_key    = key open_paren function_arg* closed_paren
+aggregate_key    = key open_paren spaces function_args? spaces closed_paren
 search_key       = key / quoted_key
 search_value     = quoted_value / value
 value            = ~r"[^()\s]*"
@@ -86,7 +86,7 @@ in_value         = ~r"[^(),\s]*(?:[^\],\s)]|](?=]))"
 numeric_value    = ~r"([-]?[0-9\.]+)([kmb])?(?=\s|\)|$|,|])"
 boolean_value    = ~r"(true|1|false|0)(?=\s|\)|$)"i
 key              = ~r"[a-zA-Z0-9_\.-]+"
-function_arg     = spaces key? comma? spaces
+function_args    = key (spaces comma spaces key)*
 quoted_key       = ~r"\"([a-zA-Z0-9_\.:-]+)\""
 explicit_tag_key = "tags" open_bracket search_key closed_bracket
 text_key         = explicit_tag_key / search_key
@@ -317,8 +317,8 @@ class SearchVisitor(NodeVisitor):
         return filter(is_not_optional, children)
 
     def remove_space(self, children):
-        def is_not_space(child):
-            return not (isinstance(child, Node) and child.text == " " * len(child.text))
+        def is_not_space(text):
+            return not (isinstance(text, str) and text == " " * len(text))
 
         return filter(is_not_space, children)
 
@@ -667,7 +667,6 @@ class SearchVisitor(NodeVisitor):
         return SearchKey(self.key_mappings_lookup.get(key, key))
 
     def visit_aggregate_key(self, node, children):
-        children = self.flatten(children)
         children = self.remove_optional_nodes(children)
         children = self.remove_space(children)
 
@@ -676,17 +675,16 @@ class SearchVisitor(NodeVisitor):
             args = ""
         else:
             (function_name, open_paren, args, close_paren) = children
-
-        if isinstance(args, Node):
-            args = ""
-        elif isinstance(args, list):
-            args = "".join(args)
+            args = ", ".join(args[0])
 
         key = "".join([function_name, open_paren, args, close_paren])
         return AggregateKey(self.key_mappings_lookup.get(key, key))
 
-    def visit_function_arg(self, node, children):
-        return node.text
+    def visit_function_args(self, node, children):
+        args = [children[0]]
+        args.extend(v[3] for v in children[1])
+
+        return args
 
     def visit_search_value(self, node, children):
         return SearchValue(children[0])
@@ -747,6 +745,9 @@ class SearchVisitor(NodeVisitor):
 
     def visit_text_value(self, node, children):
         return children[0]
+
+    def visit_spaces(self, node, children):
+        return " "
 
     def generic_visit(self, node, children):
         return children or node
