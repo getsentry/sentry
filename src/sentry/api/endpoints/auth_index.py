@@ -1,9 +1,10 @@
 from django.contrib.auth import logout
 from django.contrib.auth.models import AnonymousUser
 from rest_framework import status
+from rest_framework.authentication import SessionAuthentication
 from rest_framework.response import Response
 
-from sentry.api.authentication import ImprovedSessionAuthentication, QuietBasicAuthentication
+from sentry.api.authentication import QuietBasicAuthentication
 from sentry.api.base import Endpoint
 from sentry.api.serializers import DetailedUserSerializer, serialize
 from sentry.api.validators import AuthVerifyValidator
@@ -21,7 +22,7 @@ class AuthIndexEndpoint(Endpoint):
     and simple HTTP authentication.
     """
 
-    authentication_classes = [QuietBasicAuthentication, ImprovedSessionAuthentication]
+    authentication_classes = [QuietBasicAuthentication, SessionAuthentication]
 
     permission_classes = ()
 
