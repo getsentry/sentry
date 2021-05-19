@@ -56,6 +56,17 @@ class SsoRequired(SentryAPIException):
         super().__init__(loginUrl=reverse("sentry-auth-organization", args=[organization.slug]))
 
 
+class MemberDisabledOverLimit(SentryAPIException):
+    status_code = status.HTTP_401_UNAUTHORIZED
+    code = "member-disabled-over-limit"
+    message = "Must upgrade plan"
+
+    def __init__(self, organization):
+        super().__init__(
+            next=reverse("sentry-organization-disabled-member", args=[organization.slug])
+        )
+
+
 class SuperuserRequired(SentryAPIException):
     status_code = status.HTTP_403_FORBIDDEN
     code = "superuser-required"

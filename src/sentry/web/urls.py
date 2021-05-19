@@ -15,6 +15,7 @@ from sentry.web.frontend.auth_login import AuthLoginView
 from sentry.web.frontend.auth_logout import AuthLogoutView
 from sentry.web.frontend.auth_organization_login import AuthOrganizationLoginView
 from sentry.web.frontend.auth_provider_login import AuthProviderLoginView
+from sentry.web.frontend.disabled_member_view import DisabledMemberView
 from sentry.web.frontend.error_page_embed import ErrorPageEmbedView
 from sentry.web.frontend.group_event_json import GroupEventJsonView
 from sentry.web.frontend.group_plugin_action import GroupPluginActionView
@@ -317,6 +318,11 @@ urlpatterns += [
     url(r"^onboarding/", generic_react_page_view),
     # Admin
     url(r"^manage/", react_page_view, name="sentry-admin-overview"),
+    url(
+        r"^disabled-member/(?P<organization_slug>[^/]+)/$",
+        DisabledMemberView.as_view(),
+        name="sentry-organization-disabled-member",
+    ),
     # Legacy Redirects
     url(
         r"^docs/?$",
