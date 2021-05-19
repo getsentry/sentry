@@ -1,7 +1,7 @@
 import re
 
 from django.db import IntegrityError
-from django.db.models import Q
+from django.db.models import F, Q
 from django.db.models.functions import Coalesce
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
@@ -185,9 +185,7 @@ class OrganizationReleasesEndpoint(
             else:
                 queryset = queryset.filter(status=status_int)
 
-        queryset = queryset.select_related("owner").annotate(
-            date=Coalesce("date_released", "date_added"),
-        )
+        queryset = queryset.select_related("owner").annotate(date=F("date_added"))
 
         queryset = add_environment_to_queryset(queryset, filter_params)
 
