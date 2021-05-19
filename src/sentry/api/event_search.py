@@ -43,7 +43,8 @@ boolean_operator = spaces (or_operator / and_operator) spaces
 paren_term       = spaces open_paren spaces (paren_term / boolean_operator / search_term)+ spaces closed_paren spaces
 search_term      = key_val_term / free_text_quoted / free_text
 
-free_text        = (!key_val_term ~r"\ *(?!(?i)OR(?![^\s]))(?!(?i)AND(?![^\s]))([^\ ^\n ()]+)\ *" )*
+free_text        = (spaces !key_val_term !or_operator !and_operator (free_parens / ~r"[^()\n ]+") spaces)+
+free_parens      = spaces open_paren spaces free_text? spaces closed_paren spaces
 free_text_quoted = spaces quoted_value spaces
 
 # All key:value filter types
