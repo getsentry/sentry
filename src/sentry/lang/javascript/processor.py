@@ -22,7 +22,7 @@ from django.conf import settings
 from requests.utils import get_encoding_from_headers
 from symbolic import SourceMapView
 
-from sentry import http
+from sentry import features, http
 from sentry.interfaces.stacktrace import Stacktrace
 from sentry.models import EventError, Organization, ReleaseFile
 from sentry.stacktraces.processing import StacktraceProcessor
@@ -390,7 +390,9 @@ def fetch_release_artifact(url, release, dist):
     return artifact
 
 
-def fetch_file(url, project=None, release=None, dist=None, allow_scraping=True):
+def fetch_file(
+    url, project=None, release=None, dist=None, allow_scraping=True, use_release_archive=False
+):
     """
     Pull down a URL, returning a UrlResult object.
 
@@ -407,8 +409,12 @@ def fetch_file(url, project=None, release=None, dist=None, allow_scraping=True):
 
     # if we've got a release to look on, try that first (incl associated cache)
     if release:
-        with metrics.timer("sourcemaps.release_file"):
-            result = fetch_release_artifact(url, release, dist)
+        if use_release_archive:
+            with metrics.timer("sourcemaps.release_artifact"):
+                result = fetch_release_artifact(url, release, dist)
+        else:
+            with metrics.timer("sourcemaps.release_file"):
+                result = fetch_release_file(url, release, dist)
     else:
         result = None
 
@@ -526,7 +532,9 @@ def get_max_age(headers):
     return min(max_age, CACHE_CONTROL_MAX)
 
 
-def fetch_sourcemap(url, project=None, release=None, dist=None, allow_scraping=True):
+def fetch_sourcemap(
+    url, project=None, release=None, dist=None, allow_scraping=True, use_release_archive=False
+):
     if is_data_uri(url):
         try:
             body = base64.b64decode(
@@ -538,7 +546,12 @@ def fetch_sourcemap(url, project=None, release=None, dist=None, allow_scraping=T
     else:
         # look in the database and, if not found, optionally try to scrape the web
         result = fetch_file(
-            url, project=project, release=release, dist=dist, allow_scraping=allow_scraping
+            url,
+            project=project,
+            release=release,
+            dist=dist,
+            allow_scraping=allow_scraping,
+            use_release_archive=use_release_archive,
         )
         body = result.body
     try:
@@ -612,6 +625,8 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         self.allow_scraping = organization.get_option(
             "sentry:scrape_javascript", True
         ) is not False and self.project.get_option("sentry:scrape_javascript", True)
+        self.use_release_archive = features.has("organizations:release-archives", organization)
+
         self.fetch_count = 0
         self.sourcemaps_touched = set()
 
@@ -979,6 +994,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                     release=self.release,
                     dist=self.dist,
                     allow_scraping=self.allow_scraping,
+                    use_release_archive=self.use_release_archive,
                 )
         except http.BadSource as exc:
             # we don't perform the same check here as above, because if someone has

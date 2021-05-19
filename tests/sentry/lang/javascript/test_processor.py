@@ -477,6 +477,25 @@ class FetchFileTest(TestCase):
     @responses.activate
     @patch("sentry.lang.javascript.processor.fetch_release_file")
     def test_non_url_with_release(self, mock_fetch_release_file):
+
+        mock_fetch_release_file.return_value = http.UrlResult(
+            "/example.js", {"content-type": "application/json"}, b"foo", 200, None
+        )
+
+        release = Release.objects.create(version="1", organization_id=self.project.organization_id)
+        release.add_project(self.project)
+
+        result = fetch_file("/example.js", release=release)
+        assert result.url == "/example.js"
+        assert result.body == b"foo"
+        assert isinstance(result.body, bytes)
+        assert result.headers == {"content-type": "application/json"}
+        assert result.encoding is None
+
+    @responses.activate
+    @patch("sentry.lang.javascript.processor.fetch_release_file")
+    def test_non_url_with_release_archive(self, mock_fetch_release_file):
+
         compressed = BytesIO()
         with zipfile.ZipFile(compressed, mode="w") as zip_file:
             zip_file.writestr("/example.js", b"foo")
@@ -488,7 +507,7 @@ class FetchFileTest(TestCase):
         release = Release.objects.create(version="1", organization_id=self.project.organization_id)
         release.add_project(self.project)
 
-        result = fetch_file("/example.js", release=release)
+        result = fetch_file("/example.js", release=release, use_release_archive=True)
         assert result.url == "/example.js"
         assert result.body == b"foo"
         assert isinstance(result.body, bytes)
