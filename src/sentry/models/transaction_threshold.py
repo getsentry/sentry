@@ -2,7 +2,7 @@ from enum import Enum
 
 from django.db import models
 
-from sentry.db.models import FlexibleForeignKey, Model
+from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey
 
 
 class TransactionMetric(Enum):
@@ -11,7 +11,7 @@ class TransactionMetric(Enum):
     FCP = 3
 
 
-class ProjectTransactionThresholdOverride(Model):
+class ProjectTransactionThresholdOverride(DefaultFieldsModel):
     __core__ = False
 
     # max_length here is based on the maximum for transactions in relay
@@ -23,7 +23,6 @@ class ProjectTransactionThresholdOverride(Model):
     edited_by = FlexibleForeignKey(
         "sentry.User", null=True, on_delete=models.SET_NULL, db_constraint=False
     )
-    date_updated = models.DateTimeField(auto_now=True)
 
     class Meta:
         app_label = "sentry"
@@ -31,7 +30,7 @@ class ProjectTransactionThresholdOverride(Model):
         unique_together = (("project", "transaction"),)
 
 
-class ProjectTransactionThreshold(Model):
+class ProjectTransactionThreshold(DefaultFieldsModel):
     __core__ = False
 
     project = FlexibleForeignKey("sentry.Project", unique=True, db_constraint=False)
@@ -41,7 +40,6 @@ class ProjectTransactionThreshold(Model):
     edited_by = FlexibleForeignKey(
         "sentry.User", null=True, on_delete=models.SET_NULL, db_constraint=False
     )
-    date_updated = models.DateTimeField(auto_now=True)
 
     class Meta:
         app_label = "sentry"

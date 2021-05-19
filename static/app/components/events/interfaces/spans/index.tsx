@@ -3,6 +3,7 @@ import * as ReactRouter from 'react-router';
 import styled from '@emotion/styled';
 
 import Alert from 'app/components/alert';
+import GuideAnchor from 'app/components/assistant/guideAnchor';
 import List from 'app/components/list';
 import ListItem from 'app/components/list/listItem';
 import {Panel} from 'app/components/panels';
@@ -199,6 +200,9 @@ class SpansInterface extends Component<Props, State> {
                   parsedTrace={parsedTrace}
                   operationNameFilters={this.state.operationNameFilters}
                 />
+                <GuideAnchorWrapper>
+                  <GuideAnchor target="span_tree" position="bottom" />
+                </GuideAnchorWrapper>
               </Panel>
             </AnchorLinkManager.Provider>
           )}
@@ -207,6 +211,12 @@ class SpansInterface extends Component<Props, State> {
     );
   }
 }
+
+const GuideAnchorWrapper = styled('div')`
+  height: 0;
+  width: 0;
+  margin-left: 50%;
+`;
 
 const Container = styled('div')<{hasErrors: boolean}>`
   ${p =>
