@@ -13,4 +13,5 @@ class ProjectTransactionThresholdSerializer(Serializer):
             "projectId": str(obj.project_id),
             "editedBy": str(obj.edited_by_id),
             "dateUpdated": obj.date_updated,
+            "dateAdded": obj.date_added,
         }

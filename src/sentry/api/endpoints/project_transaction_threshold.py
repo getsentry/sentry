@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.bases.project import ProjectEndpoint, ProjectSettingPermission
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models import transaction_threshold
+from sentry.api.serializers.models import project_transaction_threshold
 from sentry.models.transaction_threshold import TRANSACTION_METRICS, ProjectTransactionThreshold
 
 
@@ -50,7 +50,7 @@ class ProjectTransactionThresholdEndpoint(ProjectEndpoint):
             serialize(
                 project_threshold,
                 request.user,
-                serializer=transaction_threshold.ProjectTransactionThresholdSerializer(),
+                serializer=project_transaction_threshold.ProjectTransactionThresholdSerializer(),
             ),
             status.HTTP_200_OK,
         )
@@ -81,7 +81,7 @@ class ProjectTransactionThresholdEndpoint(ProjectEndpoint):
             serialize(
                 project_threshold,
                 request.user,
-                serializer=transaction_threshold.ProjectTransactionThresholdSerializer(),
+                serializer=project_transaction_threshold.ProjectTransactionThresholdSerializer(),
             ),
             status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
         )
