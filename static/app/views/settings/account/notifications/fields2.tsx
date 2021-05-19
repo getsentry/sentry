@@ -15,8 +15,8 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, NotificationSettingFiel
     type: 'select',
     label: t('Issue Alert Notifications'),
     choices: [
-      ['always', t('Always')],
-      ['never', t('Never')],
+      ['always', t('On')],
+      ['never', t('Off')],
     ],
   },
   deploy: {
@@ -24,9 +24,9 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, NotificationSettingFiel
     type: 'select',
     label: t('Deploy Notifications'),
     choices: [
-      ['always', t('Always')],
+      ['always', t('On')],
       ['committed_only', t('Only Committed Issues')],
-      ['never', t('Never')],
+      ['never', t('Off')],
     ],
   },
   provider: {
@@ -44,9 +44,9 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, NotificationSettingFiel
     type: 'select',
     label: t('Workflow Notifications'),
     choices: [
-      ['always', t('Always')],
+      ['always', t('On')],
       ['subscribe_only', t('Only Subscribed Issues')],
-      ['never', t('Never')],
+      ['never', t('Off')],
     ],
   },
 };

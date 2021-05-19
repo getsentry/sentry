@@ -18,9 +18,8 @@ import {IS_ACCEPTANCE_TEST} from 'app/constants';
  */
 const testableTransition = !IS_ACCEPTANCE_TEST
   ? (t?: Transition) => t
-  : function (transition?: Transition): Transition {
+  : function (): Transition {
       return {
-        ...transition,
         delay: 0,
         staggerChildren: 0,
         type: false,
