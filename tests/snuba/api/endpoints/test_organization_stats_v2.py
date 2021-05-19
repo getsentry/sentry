@@ -19,6 +19,9 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         self.login_as(user=self.user)
 
         self.org = self.organization
+        self.org.flags.allow_joinleave = False
+        self.org.save()
+
         self.org2 = self.create_organization()
 
         self.project = self.create_project(
@@ -31,8 +34,10 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
 
         self.user2 = self.create_user(is_superuser=False)
         self.create_member(user=self.user2, organization=self.organization, role="member", teams=[])
-        self.organization3 = self.create_organization()
-        self.create_member(user=self.user, organization=self.organization3, role="admin", teams=[])
+        self.project4 = self.create_project(
+            name="users2sproj",
+            teams=[self.create_team(organization=self.org, members=[self.user2])],
+        )
 
         self.store_outcomes(
             {
@@ -184,8 +189,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
                 "interval": "1d",
                 "field": ["sum(quantity)"],
                 "category": ["error", "attachment"],
-            },
-            user=self.user2,
+            }
         )
 
         assert response.status_code == 400, response.content
@@ -245,7 +249,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         }
 
     @freeze_time("2021-03-14T12:27:28.303Z")
-    def test_user_all_accessible(self):
+    def test_user_org_total_all_accessible(self):
         response = self.do_request(
             {
                 "project": [-1],
@@ -267,14 +271,114 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
             ],
         }
 
-    def test_no_projects(self):
+    @freeze_time("2021-03-14T12:27:28.303Z")
+    def test_user_no_proj_specific_access(self):
         response = self.do_request(
-            {"project": [-1], "statsPeriod": "1d", "interval": "1d", "field": ["sum(quantity)"]},
-            org=self.organization3,
+            {
+                "project": self.project.id,
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["sum(quantity)"],
+                "category": ["error", "transaction"],
+            },
+            user=self.user2,
         )
 
-        assert response.status_code == 400, response.content
-        assert result_sorted(response.data) == {"detail": "No projects available"}
+        assert response.status_code == 403
+        response = self.do_request(
+            {
+                "project": [-1],
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["sum(quantity)"],
+                "category": ["error", "transaction"],
+                "groupBy": ["project"],
+            },
+            user=self.user2,
+        )
+
+        assert response.status_code == 200
+        assert result_sorted(response.data) == {
+            "start": "2021-03-14T00:00:00Z",
+            "end": "2021-03-14T12:28:00Z",
+            "intervals": ["2021-03-14T00:00:00Z"],
+            "groups": [],
+        }
+
+    @freeze_time("2021-03-14T12:27:28.303Z")
+    def test_no_project_access(self):
+        user = self.create_user(is_superuser=False)
+        self.create_member(user=user, organization=self.organization, role="member", teams=[])
+
+        response = self.do_request(
+            {
+                "project": [self.project.id],
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "category": ["error", "transaction"],
+                "field": ["sum(quantity)"],
+            },
+            org=self.organization,
+            user=user,
+        )
+
+        assert response.status_code == 403, response.content
+        assert result_sorted(response.data) == {
+            "detail": "You do not have permission to perform this action."
+        }
+
+        response = self.do_request(
+            {
+                "project": [self.project.id],
+                "groupBy": ["project"],
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "category": ["error", "transaction"],
+                "field": ["sum(quantity)"],
+            },
+            org=self.organization,
+            user=user,
+        )
+
+        assert response.status_code == 403, response.content
+        assert result_sorted(response.data) == {
+            "detail": "You do not have permission to perform this action."
+        }
+
+    @freeze_time("2021-03-14T12:27:28.303Z")
+    def test_open_membership_semantics(self):
+        self.org.flags.allow_joinleave = True
+        self.org.save()
+        response = self.do_request(
+            {
+                "project": [-1],
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["sum(quantity)"],
+                "category": ["error", "transaction"],
+                "groupBy": ["project"],
+            },
+            user=self.user2,
+        )
+
+        assert response.status_code == 200
+        assert result_sorted(response.data) == {
+            "start": "2021-03-14T00:00:00Z",
+            "end": "2021-03-14T12:28:00Z",
+            "intervals": ["2021-03-14T00:00:00Z"],
+            "groups": [
+                {
+                    "by": {"project": self.project.id},
+                    "series": {"sum(quantity)": [6]},
+                    "totals": {"sum(quantity)": 6},
+                },
+                {
+                    "by": {"project": self.project2.id},
+                    "series": {"sum(quantity)": [1]},
+                    "totals": {"sum(quantity)": 1},
+                },
+            ],
+        }
 
     @freeze_time("2021-03-14T12:27:28.303Z")
     def test_org_simple(self):

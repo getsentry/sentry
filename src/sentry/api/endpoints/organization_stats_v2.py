@@ -5,6 +5,7 @@ from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
+from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.search.utils import InvalidQuery
 from sentry.snuba.outcomes import QueryDefinition, massage_outcomes_result, run_outcomes_query
 from sentry.snuba.sessions_v2 import InvalidField, InvalidParams
@@ -27,14 +28,33 @@ class OrganizationStatsEndpointV2(OrganizationEventsEndpointBase):
             return Response(result, status=200)
 
     def build_outcomes_query(self, request, organization):
-        try:
-            params = self.get_filter_params(request, organization, date_filter_optional=True)
-        except NoProjects:
-            raise NoProjects("No projects available")
+        params = {"organization_id": organization.id}
+        project_ids = self._get_projects_for_orgstats_query(request, organization)
 
-        return QueryDefinition(
-            request.GET,
-            params,
+        if project_ids:
+            params["project_id"] = project_ids
+
+        return QueryDefinition(request.GET, params)
+
+    def _get_projects_for_orgstats_query(self, request, organization):
+        # look at the raw project_id filter passed in, if its empty
+        # and project_id is not in groupBy filter, treat it as an
+        # org wide query and don't pass project_id in to QueryDefinition
+        req_proj_ids = self.get_requested_project_ids(request)
+        if self._is_org_total_query(request, req_proj_ids):
+            return None
+        else:
+            projects = self.get_projects(request, organization, project_ids=req_proj_ids)
+            if not projects:
+                raise NoProjects
+            return [p.id for p in projects]
+
+    def _is_org_total_query(self, request, project_ids):
+        return all(
+            [
+                not project_ids or project_ids == ALL_ACCESS_PROJECTS,
+                "project" not in request.GET.get("groupBy", []),
+            ]
         )
 
     @contextmanager

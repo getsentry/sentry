@@ -8,8 +8,10 @@ from sentry.testutils import TestCase
 from sentry.utils.outcomes import Outcome
 
 
-def _make_query(qs, allow_minute_resolution=True):
-    return QueryDefinition(QueryDict(qs), {}, allow_minute_resolution)
+def _make_query(qs, params=None, allow_minute_resolution=True):
+    if params is None:
+        params = {}
+    return QueryDefinition(QueryDict(qs), params, allow_minute_resolution)
 
 
 class OutcomesQueryDefinitionTests(TestCase):
@@ -77,12 +79,29 @@ class OutcomesQueryDefinitionTests(TestCase):
     def test_correct_times_seen_aggregate(self):
         query = _make_query(
             "statsPeriod=6h&interval=10m&groupBy=category&field=sum(times_seen)",
+            {},
             True,
         )
         assert query.aggregations == [("count()", "", "times_seen")]
 
         query = _make_query(
             "statsPeriod=6h&interval=1d&groupBy=category&field=sum(times_seen)",
+            {},
             True,
         )
         assert query.aggregations == [("sum", "times_seen", "times_seen")]
+
+    def test_filter_keys(self):
+        query = _make_query(
+            "statsPeriod=6h&interval=10m&groupBy=category&field=sum(times_seen)",
+            {"organization_id": 1},
+            True,
+        )
+        assert query.filter_keys == {"org_id": [1]}
+
+        query = _make_query(
+            "statsPeriod=6h&interval=1d&groupBy=category&field=sum(times_seen)",
+            {"organization_id": 1, "project_id": [1, 2, 3, 4, 5]},
+            True,
+        )
+        assert query.filter_keys == {"org_id": [1], "project_id": [1, 2, 3, 4, 5]}
