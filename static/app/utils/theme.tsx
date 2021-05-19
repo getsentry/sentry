@@ -3,6 +3,7 @@ import '@emotion/react';
 import color from 'color';
 
 import CHART_PALETTE from 'app/constants/chartPalette';
+import {DataCategory} from 'app/types';
 
 const colors = {
   white: '#FFFFFF',
@@ -226,9 +227,10 @@ const lightAliases = {
 };
 
 const dataCategory = {
-  errors: CHART_PALETTE[4][3],
-  transactions: CHART_PALETTE[4][2],
-  attachments: CHART_PALETTE[4][1],
+  [DataCategory.ERRORS]: CHART_PALETTE[4][3],
+  [DataCategory.TRANSACTIONS]: CHART_PALETTE[4][2],
+  [DataCategory.ATTACHMENTS]: CHART_PALETTE[4][1],
+  [DataCategory.DEFAULT]: CHART_PALETTE[4][0],
 };
 
 const generateAlertTheme = (alias: Aliases) => ({
