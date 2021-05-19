@@ -9,7 +9,6 @@ from django.http import HttpResponse
 from django.utils.http import urlquote
 from django.views.decorators.csrf import csrf_exempt
 from pytz import utc
-from rest_framework.authentication import SessionAuthentication
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -24,7 +23,7 @@ from sentry.utils.dates import to_datetime
 from sentry.utils.http import absolute_uri, is_valid_origin, origin_from_request
 from sentry.utils.sdk import capture_exception
 
-from .authentication import ApiKeyAuthentication, TokenAuthentication
+from .authentication import ApiKeyAuthentication, ImprovedSessionAuthentication, TokenAuthentication
 from .paginator import BadPaginationError, Paginator
 from .permissions import NoPermission
 
@@ -36,7 +35,7 @@ ONE_DAY = ONE_HOUR * 24
 
 LINK_HEADER = '<{uri}&cursor={cursor}>; rel="{name}"; results="{has_results}"; cursor="{cursor}"'
 
-DEFAULT_AUTHENTICATION = (TokenAuthentication, ApiKeyAuthentication, SessionAuthentication)
+DEFAULT_AUTHENTICATION = (TokenAuthentication, ApiKeyAuthentication, ImprovedSessionAuthentication)
 
 logger = logging.getLogger(__name__)
 audit_logger = logging.getLogger("sentry.audit.api")

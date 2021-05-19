@@ -163,27 +163,7 @@ class AuthLoginView(BaseView):
             return self.redirect(auth.get_login_redirect(request))
 
         elif request.method == "POST":
-            from sentry.app import ratelimiter
-            from sentry.utils.hashlib import md5_text
-
-            login_attempt = (
-                op == "login" and request.POST.get("username") and request.POST.get("password")
-            )
-
-            if login_attempt and ratelimiter.is_limited(
-                "auth:login:username:{}".format(
-                    md5_text(login_form.clean_username(request.POST["username"])).hexdigest()
-                ),
-                limit=10,
-                window=60,  # 10 per minute should be enough for anyone
-            ):
-                login_form.errors["__all__"] = [
-                    "You have made too many login attempts. Please try again later."
-                ]
-                metrics.incr(
-                    "login.attempt", instance="rate_limited", skip_internal=True, sample_rate=1.0
-                )
-            elif login_form.is_valid():
+            if login_form.is_valid():
                 user = login_form.get_user()
 
                 auth.login(request, user, organization_id=organization.id if organization else None)
