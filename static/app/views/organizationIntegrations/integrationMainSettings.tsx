@@ -1,5 +1,6 @@
 import React from 'react';
 
+import {addSuccessMessage} from 'app/actionCreators/indicator';
 import {t} from 'app/locale';
 import {Integration, Organization} from 'app/types';
 import Form from 'app/views/settings/components/forms/form';
@@ -22,6 +23,7 @@ class IntegrationMainSettings extends React.Component<Props, State> {
   };
 
   handleSubmitSuccess = (data: Integration) => {
+    addSuccessMessage(t('Integration updated.'));
     this.props.onUpdate();
     this.setState({integration: data});
   };

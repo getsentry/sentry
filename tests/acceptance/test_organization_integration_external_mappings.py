@@ -24,6 +24,7 @@ class OrganizationExternalMappings(AcceptanceTestCase):
             name="getsentry/sentry",
             provider="integrations:github",
             integration_id=self.integration.id,
+            project=self.project,
             url="https://github.com/getsentry/sentry",
         )
 
@@ -101,3 +102,36 @@ class OrganizationExternalMappings(AcceptanceTestCase):
             self.browser.click('[aria-label="Save Changes"]')
             self.browser.wait_until_not(".loading-indicator")
             self.browser.snapshot("integrations - one external team mapping")
+
+    def test_settings_tab(self):
+        provider = "custom_scm"
+        integration = Integration.objects.create(
+            provider=provider,
+            external_id="123456789",
+            name="Some Org",
+            metadata={
+                "domain_name": "https://github.com/some-org/",
+            },
+        )
+        integration.add_organization(self.organization, self.user)
+        with self.feature(
+            {
+                "organizations:integrations-codeowners": True,
+                "organizations:integrations-stacktrace-link": True,
+                "organizations:integrations-custom-scm": True,
+            }
+        ):
+            self.browser.get(
+                f"/settings/{self.organization.slug}/integrations/{provider}/{integration.id}/"
+            )
+            self.browser.wait_until_not(".loading-indicator")
+            self.browser.click(".nav-tabs li:nth-child(1) a")
+            self.browser.wait_until_not(".loading-indicator")
+
+            name = self.browser.find_element_by_name("name")
+            name.clear()
+            name.send_keys("New Name")
+
+            self.browser.click('[aria-label="Save Settings"]')
+            self.browser.wait_until('[data-test-id="toast-success"]')
+            self.browser.snapshot("integrations - custom scm settings")
