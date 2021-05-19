@@ -108,6 +108,7 @@ from .sentryappinstallation import *  # NOQA
 from .servicehook import *  # NOQA
 from .team import *  # NOQA
 from .teamavatar import *  # NOQA
+from .transaction_threshold import *  # NOQA
 from .user import *  # NOQA
 from .useravatar import *  # NOQA
 from .useremail import *  # NOQA
