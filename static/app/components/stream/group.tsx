@@ -380,8 +380,12 @@ class StreamGroup extends React.Component<Props, State> {
     const hasInbox = organization.features.includes('inbox');
     const unresolved = data.status === 'unresolved' ? true : false;
 
-    const sessionPercent =
-      data.sessionCount && Number(primaryCount) / Number(data.sessionCount);
+    const showSessions = display === IssueDisplayOptions.SESSIONS;
+    // calculate a percentage count based on session data if the user has selected sessions display
+    const primaryPercent =
+      showSessions &&
+      data.sessionCount &&
+      Number(primaryCount) / Number(data.sessionCount);
 
     return (
       <Wrapper
@@ -453,15 +457,8 @@ class StreamGroup extends React.Component<Props, State> {
                         >
                           <span {...getActorProps({})}>
                             <div className="dropdown-actor-title">
-                              <PrimaryCount
-                                value={
-                                  display === IssueDisplayOptions.SESSIONS &&
-                                  sessionPercent
-                                    ? sessionPercent
-                                    : primaryCount
-                                }
-                              />
-                              {display === IssueDisplayOptions.SESSIONS && '%'}
+                              <PrimaryCount value={primaryPercent || primaryCount} />
+                              {primaryPercent && '%'}
                               {secondaryCount !== undefined && useFilteredStats && (
                                 <SecondaryCount value={secondaryCount} />
                               )}

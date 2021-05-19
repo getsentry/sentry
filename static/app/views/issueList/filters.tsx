@@ -2,6 +2,7 @@ import * as React from 'react';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import Feature from 'app/components/acl/feature';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import PageHeading from 'app/components/pageHeading';
 import QueryCount from 'app/components/queryCount';
@@ -30,6 +31,8 @@ type Props = {
   isSearchDisabled: boolean;
   queryCount: number;
   queryMaxCount: number;
+  hasSessions: boolean;
+  selectedProjects: number[];
 
   onDisplayChange: (display: string) => void;
   onSortChange: (sort: string) => void;
@@ -69,6 +72,8 @@ class IssueListFilters extends React.Component<Props> {
       isSearchDisabled,
       sort,
       display,
+      hasSessions,
+      selectedProjects,
 
       onSidebarToggle,
       onSearch,
@@ -91,7 +96,14 @@ class IssueListFilters extends React.Component<Props> {
 
         <SearchContainer isInbox={isInbox}>
           <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
-          <IssueListDisplayOptions onDisplayChange={onDisplayChange} display={display} />
+          <Feature features={['issue-percent-display']} organization={organization}>
+            <IssueListDisplayOptions
+              onDisplayChange={onDisplayChange}
+              display={display}
+              hasSessions={hasSessions}
+              hasMultipleProjectsSelected={selectedProjects.length > 1}
+            />
+          </Feature>
 
           <SearchSelectorContainer isInbox={isInbox}>
             {!isInbox && (

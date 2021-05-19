@@ -14,8 +14,6 @@ import {GlobalSelection, Group, Organization} from 'app/types';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import withApi from 'app/utils/withApi';
 
-import {IssueDisplayOptions} from '../utils';
-
 import ActionSet from './actionSet';
 import Headers from './headers';
 import {BULK_LIMIT, BULK_LIMIT_STR, ConfirmAction} from './utils';
@@ -35,7 +33,6 @@ type Props = {
   queryCount: number;
   displayCount: React.ReactElement;
   displayReprocessingActions: boolean;
-  display: IssueDisplayOptions;
   hasInbox?: boolean;
   onMarkReviewed?: (itemIds: string[]) => void;
 };
@@ -253,7 +250,6 @@ class IssueListActions extends React.Component<Props, State> {
       selection,
       organization,
       displayReprocessingActions,
-      display,
     } = this.props;
 
     const {
@@ -303,7 +299,6 @@ class IssueListActions extends React.Component<Props, State> {
             statsPeriod={statsPeriod}
             hasInbox={hasInbox}
             isReprocessingQuery={displayReprocessingActions}
-            display={display}
           />
         </StyledFlex>
         {!allResultsVisible && pageSelected && (

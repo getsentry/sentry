@@ -120,6 +120,8 @@ type State = {
   issuesLoading: boolean;
   tagsLoading: boolean;
   memberList: ReturnType<typeof indexMembersByProject>;
+  // Will be set to true if there is valid session data from issue-stats api call
+  hasSessions: boolean;
   query?: string;
 };
 
@@ -169,6 +171,7 @@ class IssueListOverview extends React.Component<Props, State> {
       issuesLoading: true,
       tagsLoading: true,
       memberList: {},
+      hasSessions: false,
     };
   }
 
@@ -316,13 +319,15 @@ class IssueListOverview extends React.Component<Props, State> {
   }
 
   getDisplay(): IssueDisplayOptions {
-    const {location} = this.props;
+    const {organization, location} = this.props;
 
-    if (
-      location.query.display &&
-      Object.values(IssueDisplayOptions).includes(location.query.display)
-    ) {
-      return location.query.display as IssueDisplayOptions;
+    if (organization.features.includes('issue-percent-display')) {
+      if (
+        location.query.display &&
+        Object.values(IssueDisplayOptions).includes(location.query.display)
+      ) {
+        return location.query.display as IssueDisplayOptions;
+      }
     }
 
     return DEFAULT_DISPLAY;
@@ -416,7 +421,9 @@ class IssueListOverview extends React.Component<Props, State> {
     if (!requestParams.statsPeriod && !requestParams.start) {
       requestParams.statsPeriod = DEFAULT_STATS_PERIOD;
     }
-    requestParams.expand = 'sessions';
+    if (this.props.organization.features.includes('issue-percent-display')) {
+      requestParams.expand = 'sessions';
+    }
 
     this._lastStatsRequest = this.props.api.request(this.getGroupStatsEndpoint(), {
       method: 'GET',
@@ -427,6 +434,13 @@ class IssueListOverview extends React.Component<Props, State> {
         }
 
         GroupActions.populateStats(groups, data);
+        const hasSessions =
+          data.filter(groupStats => !groupStats.sessionCount).length === 0;
+        if (hasSessions !== this.state.hasSessions) {
+          this.setState({
+            hasSessions,
+          });
+        }
       },
       error: err => {
         this.setState({
@@ -975,6 +989,7 @@ class IssueListOverview extends React.Component<Props, State> {
       groupIds,
       queryMaxCount,
       itemsRemoved,
+      hasSessions,
     } = this.state;
     const {
       organization,
@@ -1076,6 +1091,8 @@ class IssueListOverview extends React.Component<Props, State> {
                   tagValueLoader={this.tagValueLoader}
                   tags={tags}
                   isInbox={hasFeature}
+                  hasSessions={hasSessions}
+                  selectedProjects={selection.projects}
                 />
 
                 <Panel>

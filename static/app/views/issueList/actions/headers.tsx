@@ -7,14 +7,11 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {GlobalSelection} from 'app/types';
 
-import {getDisplayLabel, IssueDisplayOptions} from '../utils';
-
 type Props = {
   selection: GlobalSelection;
   statsPeriod: string;
   onSelectStatsPeriod: (statsPeriod: string) => void;
   isReprocessingQuery: boolean;
-  display: IssueDisplayOptions;
   hasInbox?: boolean;
   anySelected?: boolean;
 };
@@ -25,7 +22,6 @@ function Headers({
   onSelectStatsPeriod,
   isReprocessingQuery,
   hasInbox,
-  display,
 }: Props) {
   return (
     <Fragment>
@@ -58,8 +54,8 @@ function Headers({
               </GraphToggle>
             </GraphHeader>
           </GraphHeaderWrapper>
-          <DisplayOrUsersLabel>{getDisplayLabel(display)}</DisplayOrUsersLabel>
-          <DisplayOrUsersLabel>{t('Users')}</DisplayOrUsersLabel>
+          <EventsOrUsersLabel>{t('Events')}</EventsOrUsersLabel>
+          <EventsOrUsersLabel>{t('Users')}</EventsOrUsersLabel>
           <AssigneesLabel className="hidden-xs hidden-sm">
             <ToolbarHeader>{t('Assignee')}</ToolbarHeader>
           </AssigneesLabel>
@@ -107,7 +103,7 @@ const GraphToggle = styled('a')<{active: boolean}>`
   }
 `;
 
-const DisplayOrUsersLabel = styled(ToolbarHeader)`
+const EventsOrUsersLabel = styled(ToolbarHeader)`
   display: inline-grid;
   align-items: center;
   justify-content: flex-end;
