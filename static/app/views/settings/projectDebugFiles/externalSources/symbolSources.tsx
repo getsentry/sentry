@@ -100,7 +100,7 @@ function SymbolSources({api, organization, symbolSources, projectSlug}: Props) {
     if (symbolSourcesQuantity < symbolSources.length) {
       return {
         successMessage: t('Successfully removed custom repository'),
-        errorMessage: t('An error occured while removing custom repository'),
+        errorMessage: t('An error occured while removing the custom repository'),
       };
     }
 
