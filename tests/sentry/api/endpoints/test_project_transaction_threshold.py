@@ -142,7 +142,7 @@ class ProjectTransactionThresholdTest(APITestCase):
                 },
             )
 
-        assert response.status_code == 201, response.content
+        assert response.status_code == 200, response.content
         assert response.data["threshold"] == "400"
         assert response.data["metric"] == "lcp"
 

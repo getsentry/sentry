@@ -39,7 +39,10 @@ class ProjectTransactionThresholdEndpoint(ProjectEndpoint):
             return self.respond(status=404)
 
         try:
-            project_threshold = ProjectTransactionThreshold.objects.get(project=project)
+            project_threshold = ProjectTransactionThreshold.objects.get(
+                project=project,
+                organization=project.organization,
+            )
         except ProjectTransactionThreshold.DoesNotExist:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
@@ -64,7 +67,7 @@ class ProjectTransactionThresholdEndpoint(ProjectEndpoint):
         data = serializer.validated_data
 
         with transaction.atomic():
-            project_threshold, _ = ProjectTransactionThreshold.objects.update_or_create(
+            project_threshold, created = ProjectTransactionThreshold.objects.update_or_create(
                 project=project,
                 organization=project.organization,
                 defaults={
@@ -80,7 +83,7 @@ class ProjectTransactionThresholdEndpoint(ProjectEndpoint):
                 request.user,
                 serializer=transaction_threshold.ProjectTransactionThresholdSerializer(),
             ),
-            status=status.HTTP_201_CREATED,
+            status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
         )
 
     def delete(self, request, project):
