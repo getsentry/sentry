@@ -803,6 +803,12 @@ function routes() {
           />
         </Route>
 
+        <Route
+          path="/disabled-member/:orgId/"
+          componentPromise={() => import('app/views/disabledMember')}
+          component={errorHandler(LazyLoad)}
+        />
+
         {/* Settings routes */}
         <Route component={errorHandler(OrganizationDetails)}>
           <Route path="/settings/" name="Settings" component={SettingsWrapper}>
