@@ -221,6 +221,7 @@ function DashboardList({
 const DashboardGrid = styled('div')`
   display: grid;
   grid-template-columns: minmax(100px, 1fr);
+  grid-template-rows: repeat(3, max-content);
   grid-gap: ${space(3)};
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
