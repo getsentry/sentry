@@ -16,7 +16,7 @@ describe('PasswordField', function () {
 
     it('renders with form context', function () {
       const wrapper = mountWithTheme(
-        <Form initialdata={{fieldName: 'foobar'}}>
+        <Form initialData={{fieldName: 'foobar'}}>
           <PasswordField name="fieldName" />
         </Form>
       );

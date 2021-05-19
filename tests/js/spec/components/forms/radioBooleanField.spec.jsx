@@ -15,7 +15,7 @@ describe('RadioBooleanField', function () {
     it('renders with form context', function () {
       const wrapper = mountWithTheme(
         <Form initialData={{fieldName: true}}>
-          <RadioBooleanField name="fieldName" yesLabel="Yes" noLabel="No" />,
+          <RadioBooleanField name="fieldName" yesLabel="Yes" noLabel="No" />
         </Form>
       );
       expect(wrapper).toSnapshot();
