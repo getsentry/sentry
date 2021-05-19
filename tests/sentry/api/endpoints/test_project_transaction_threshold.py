@@ -4,7 +4,7 @@ from sentry.models.transaction_threshold import ProjectTransactionThreshold
 from sentry.testutils import APITestCase
 
 
-class ProjectEventsTest(APITestCase):
+class ProjectTransactionThresholdTest(APITestCase):
     feature_name = "organizations:project-transaction-threshold"
 
     def test_get(self):
