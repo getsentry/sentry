@@ -2,6 +2,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {selectByValue} from 'sentry-test/select-new';
 
 import ContextPickerModal from 'app/components/contextPickerModal';
+import ConfigStore from 'app/stores/configStore';
 import OrganizationsStore from 'app/stores/organizationsStore';
 import OrganizationStore from 'app/stores/organizationStore';
 import ProjectsStore from 'app/stores/projectsStore';
@@ -244,6 +245,181 @@ describe('ContextPickerModal', function () {
     selectByValue(wrapper, 'project3', {control: true, name: 'project'});
 
     expect(onFinish).toHaveBeenCalledWith('/test/org2/path/project3/');
+
+    await tick();
+    wrapper.unmount();
+  });
+
+  it('isSuperUser and selects an integrationConfig and calls `onFinish` with URL to that configuration', async function () {
+    OrganizationsStore.load([org]);
+    OrganizationStore.onUpdate(org);
+    ConfigStore.config = {
+      user: {isSuperuser: true},
+    };
+
+    const provider = {slug: 'github'};
+    const configUrl = `/api/0/organizations/${org.slug}/integrations/?provider_key=${provider.slug}&includeConfig=0`;
+    const githubConfigs = [
+      {
+        accountType: 'User',
+        configData: null,
+        domainName: 'github.com/NisanthanNanthakumar',
+        icon: 'https://avatars.githubusercontent.com/u/10494',
+        id: '1',
+        name: 'NisanthanNanthakumar',
+        provider: {
+          aspects: {},
+          canAdd: true,
+          canDisable: false,
+          features: ['codeowners', 'commits', 'issue-basic', 'stacktrace-link'],
+          key: 'github',
+          name: 'GitHub',
+          slug: 'github',
+        },
+        status: 'active',
+      },
+      {
+        accountType: 'Organization',
+        configData: null,
+        domainName: 'github.com/santrysantrysantry',
+        icon: 'https://avatars.githubusercontent.com/u/83424',
+        id: '2',
+        name: 'santrysantrysantry',
+        provider: {
+          aspects: {},
+          canAdd: true,
+          canDisable: false,
+          features: ['codeowners', 'commits', 'issue-basic', 'stacktrace-link'],
+          key: 'github',
+          name: 'GitHub',
+          slug: 'github',
+        },
+        status: 'active',
+      },
+    ];
+    const fetchGithubConfigs = MockApiClient.addMockResponse({
+      url: configUrl,
+      body: githubConfigs,
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/projects/`,
+      body: [],
+    });
+
+    const wrapper = mountWithTheme(
+      getComponent({
+        needOrg: false,
+        needProject: false,
+        nextPath: `/settings/${org.slug}/integrations/${provider.slug}/`,
+        configUrl,
+      }),
+      TestStubs.routerContext()
+    );
+
+    expect(fetchGithubConfigs).toHaveBeenCalled();
+    expect(wrapper.find('StyledSelectControl').prop('name')).toEqual('configurations');
+    selectByValue(wrapper, githubConfigs[0].id, {control: true, name: 'configurations'});
+    expect(onFinish).toHaveBeenCalledWith(
+      `/settings/${org.slug}/integrations/github/${githubConfigs[0].id}/`
+    );
+
+    await tick();
+    wrapper.unmount();
+  });
+
+  it('not superUser and cannot select an integrationConfig and calls `onFinish` with URL to integration overview page', async function () {
+    OrganizationsStore.load([org]);
+    OrganizationStore.onUpdate(org);
+    ConfigStore.config = {
+      user: {isSuperuser: false},
+    };
+
+    const provider = {slug: 'github'};
+    const configUrl = `/api/0/organizations/${org.slug}/integrations/?provider_key=${provider.slug}&includeConfig=0`;
+    const githubConfigs = [
+      {
+        accountType: 'User',
+        configData: null,
+        domainName: 'github.com/NisanthanNanthakumar',
+        icon: 'https://avatars.githubusercontent.com/u/10494',
+        id: '1',
+        name: 'NisanthanNanthakumar',
+        provider: {
+          aspects: {},
+          canAdd: true,
+          canDisable: false,
+          features: ['codeowners', 'commits', 'issue-basic', 'stacktrace-link'],
+          key: 'github',
+          name: 'GitHub',
+          slug: 'github',
+        },
+        status: 'active',
+      },
+    ];
+
+    const fetchGithubConfigs = MockApiClient.addMockResponse({
+      url: configUrl,
+      body: githubConfigs,
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/projects/`,
+      body: [],
+    });
+
+    const wrapper = mountWithTheme(
+      getComponent({
+        needOrg: false,
+        needProject: false,
+        nextPath: `/settings/${org.slug}/integrations/${provider.slug}/`,
+        configUrl,
+      }),
+      TestStubs.routerContext()
+    );
+
+    expect(fetchGithubConfigs).toHaveBeenCalled();
+    expect(wrapper.find('StyledSelectControl').exists()).toBeFalsy();
+    expect(onFinish).toHaveBeenCalledWith(`/settings/${org.slug}/integrations/github/`);
+
+    await tick();
+    wrapper.unmount();
+  });
+
+  it('is superUser and no integration configurations and calls `onFinish` with URL to integration overview page', async function () {
+    OrganizationsStore.load([org]);
+    OrganizationStore.onUpdate(org);
+    ConfigStore.config = {
+      user: {isSuperuser: true},
+    };
+
+    const provider = {slug: 'github'};
+    const configUrl = `/api/0/organizations/${org.slug}/integrations/?provider_key=${provider.slug}&includeConfig=0`;
+    const githubConfigs = [];
+
+    const fetchGithubConfigs = MockApiClient.addMockResponse({
+      url: configUrl,
+      body: githubConfigs,
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/projects/`,
+      body: [],
+    });
+
+    const wrapper = mountWithTheme(
+      getComponent({
+        needOrg: false,
+        needProject: false,
+        nextPath: `/settings/${org.slug}/integrations/${provider.slug}/`,
+        configUrl,
+      }),
+      TestStubs.routerContext()
+    );
+
+    expect(fetchGithubConfigs).toHaveBeenCalled();
+    expect(wrapper.find('StyledSelectControl').exists()).toBeFalsy();
+    expect(onFinish).toHaveBeenCalledWith(`/settings/${org.slug}/integrations/github/`);
 
     await tick();
     wrapper.unmount();
