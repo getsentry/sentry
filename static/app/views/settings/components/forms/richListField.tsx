@@ -134,8 +134,8 @@ class RichList extends React.PureComponent<RichListProps, {}> {
   };
 
   onRemoveItem = (item: ListItem, index: number) => {
-    if (!this.props.disabled && this.props.onRemoveItem) {
-      this.props.onRemoveItem(item, () => this.removeItem(index));
+    if (!this.props.disabled) {
+      this.props?.onRemoveItem(item, () => this.removeItem(index));
     }
   };
 
