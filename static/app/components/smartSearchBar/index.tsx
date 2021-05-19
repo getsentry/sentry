@@ -6,6 +6,7 @@ import * as Sentry from '@sentry/react';
 import createReactClass from 'create-react-class';
 import debounce from 'lodash/debounce';
 import Reflux from 'reflux';
+import TextareaAutosize from 'react-autosize-textarea';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {
@@ -45,6 +46,7 @@ import {
   filterSearchGroupsByIndex,
   removeSpace,
 } from './utils';
+import renderQuery from '../dreamSearch/renderer';
 
 const DROPDOWN_BLUR_DURATION = 200;
 
@@ -230,7 +232,7 @@ type Props = WithRouterProps & {
   /**
    * Called on key down
    */
-  onKeyDown?: (evt: React.KeyboardEvent<HTMLInputElement>) => void;
+  onKeyDown?: (evt: React.KeyboardEvent<HTMLTextAreaElement>) => void;
 
   /**
    * Called when a recent search is saved
@@ -353,7 +355,7 @@ class SmartSearchBar extends React.Component<Props, State> {
   /**
    * Ref to the search element itself
    */
-  searchInput = React.createRef<HTMLInputElement>();
+  searchInput = React.createRef<HTMLTextAreaElement>();
 
   blur = () => {
     if (!this.searchInput.current) {
@@ -415,7 +417,7 @@ class SmartSearchBar extends React.Component<Props, State> {
 
   onQueryFocus = () => this.setState({dropdownVisible: true});
 
-  onQueryBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+  onQueryBlur = (e: React.FocusEvent<HTMLTextAreaElement>) => {
     // wait before closing dropdown in case blur was a result of clicking a
     // menu option
     const value = e.target.value;
@@ -428,8 +430,10 @@ class SmartSearchBar extends React.Component<Props, State> {
     this.blurTimeout = window.setTimeout(blurHandler, DROPDOWN_BLUR_DURATION);
   };
 
-  onQueryChange = (evt: React.ChangeEvent<HTMLInputElement>) => {
-    this.setState({query: evt.target.value}, this.updateAutoCompleteItems);
+  onQueryChange = (evt: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const query = evt.target.value.replaceAll('\n', '');
+
+    this.setState({query}, this.updateAutoCompleteItems);
     callIfFunction(this.props.onChange, evt.target.value, evt);
   };
 
@@ -438,7 +442,7 @@ class SmartSearchBar extends React.Component<Props, State> {
   /**
    * Handle keyboard navigation
    */
-  onKeyDown = (evt: React.KeyboardEvent<HTMLInputElement>) => {
+  onKeyDown = (evt: React.KeyboardEvent<HTMLTextAreaElement>) => {
     const {onKeyDown} = this.props;
     const {key} = evt;
 
@@ -534,7 +538,7 @@ class SmartSearchBar extends React.Component<Props, State> {
     }
   };
 
-  onKeyUp = (evt: React.KeyboardEvent<HTMLInputElement>) => {
+  onKeyUp = (evt: React.KeyboardEvent<HTMLTextAreaElement>) => {
     // Other keys are managed at onKeyDown function
     if (evt.key !== 'Escape') {
       return;
@@ -1118,6 +1122,7 @@ class SmartSearchBar extends React.Component<Props, State> {
           onClick={this.onInputClick}
           disabled={disabled}
           maxLength={maxQueryLength}
+          spellCheck={false}
         />
         {(this.state.loading || this.state.searchGroups.length > 0) && (
           <DropdownWrapper visible={this.state.dropdownVisible}>
@@ -1140,12 +1145,11 @@ class SmartSearchBar extends React.Component<Props, State> {
           {inlineLabel}
         </SearchLabel>
 
-        {useFormWrapper ? (
-          <StyledForm onSubmit={this.onSubmit}>{input}</StyledForm>
-        ) : (
-          input
-        )}
-        <StyledButtonBar gap={0.5}>
+        <InputWrapper>
+          <ShadowText>{renderQuery(this.state.query)}</ShadowText>
+          {useFormWrapper ? <form onSubmit={this.onSubmit}>{input}</form> : input}
+        </InputWrapper>
+        <ActionsBar gap={0.5}>
           {this.state.query !== '' && (
             <InputButton
               type="button"
@@ -1270,7 +1274,7 @@ class SmartSearchBar extends React.Component<Props, State> {
               )}
             </StyledDropdownLink>
           )}
-        </StyledButtonBar>
+        </ActionsBar>
       </Container>
     );
   }
@@ -1306,14 +1310,14 @@ const Container = styled('div')<{isOpen: boolean}>`
     p.isOpen
       ? `${p.theme.borderRadius} ${p.theme.borderRadius} 0 0`
       : p.theme.borderRadius};
-  /* match button height */
-  height: 40px;
   box-shadow: inset ${p => p.theme.dropShadowLight};
   background: ${p => p.theme.background};
-
+  padding: 7px ${space(1)};
   position: relative;
-
-  display: flex;
+  display: grid;
+  grid-template-columns: max-content 1fr max-content;
+  grid-gap: ${space(1)};
+  align-items: start;
 
   .show-sidebar & {
     background: ${p => p.theme.backgroundSecondary};
@@ -1324,27 +1328,49 @@ const DropdownWrapper = styled('div')<{visible: boolean}>`
   display: ${p => (p.visible ? 'block' : 'none')};
 `;
 
-const StyledForm = styled('form')`
-  flex-grow: 1;
+const InputWrapper = styled('div')`
+  position: relative;
 `;
 
-const StyledInput = styled('input')`
-  color: ${p => p.theme.textColor};
+const ShadowText = styled('div')`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  user-select: none;
+  white-space: pre-wrap;
+
+  line-height: 24px;
+  font-size: ${p => p.theme.fontSizeSmall};
+  font-family: ${p => p.theme.text.familyMono};
+`;
+
+const StyledInput = styled(TextareaAutosize)`
+  display: flex;
+  position: relative;
+  resize: none;
+  color: transparent;
   background: transparent;
   border: 0;
   outline: none;
-  font-size: ${p => p.theme.fontSizeMedium};
   width: 100%;
-  height: 40px;
-  line-height: 40px;
-  padding: 0 0 0 ${space(1)};
+  line-height: 24px;
+  padding: 0;
+  caret-color: ${p => p.theme.textColor};
+  font-size: ${p => p.theme.fontSizeSmall};
+  font-family: ${p => p.theme.text.familyMono};
 
+  &::selection {
+    background: rgba(0, 0, 0, 0.2);
+  }
   &::placeholder {
     color: ${p => p.theme.formPlaceholder};
   }
   &:focus {
     border-color: ${p => p.theme.border};
     border-bottom-right-radius: 0;
+    box-shadow: none;
   }
 
   .show-sidebar & {
@@ -1368,10 +1394,6 @@ const DropdownElement = styled('a')<Omit<DropdownElementStylesProps, 'theme'>>`
   ${getDropdownElementStyles}
 `;
 
-const StyledButtonBar = styled(ButtonBar)`
-  margin-right: ${space(1)};
-`;
-
 const EllipsisButton = styled(InputButton)`
   /*
    * this is necessary because DropdownLink wraps the button in an unstyled
@@ -1386,8 +1408,11 @@ const VerticalEllipsisIcon = styled(IconEllipsis)`
 
 const SearchLabel = styled('label')`
   display: flex;
-  align-items: center;
+  padding: ${space(0.5)} 0;
   margin: 0;
-  padding-left: ${space(1)};
   color: ${p => p.theme.gray300};
+`;
+
+const ActionsBar = styled(ButtonBar)`
+  margin: ${space(0.5)} 0;
 `;
