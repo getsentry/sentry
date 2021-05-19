@@ -110,6 +110,9 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
 )
 
+# The ratio of requests for which the new stackwalking method should be compared against the old one
+register("symbolicator.compare_stackwalking_methods_rate", default=0.0)
+
 # Backend chart rendering via chartcuterie
 register("chart-rendering.enabled", default=False, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 register(
