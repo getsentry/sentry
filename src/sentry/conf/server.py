@@ -1593,7 +1593,6 @@ SENTRY_USE_CDC_DEV = False
 #     }
 # }
 
-# THING = "clickhouse_dist"
 POSTGRES_INIT_DB_VOLUME = (
     {
         os.path.join(CDC_CONFIG_DIR, "init_hba.sh"): {
@@ -1693,16 +1692,6 @@ SENTRY_DEVSERVICES = {
             "snuba" in settings.SENTRY_EVENTSTREAM or "kafka" in settings.SENTRY_EVENTSTREAM
         ),
     },
-    """     "clickhouse_dist": {
-        **_common_clickhouse_settings,
-        "volumes": {
-            "clickhouse_dist": {"bind": "/var/lib/clickhouse"},
-            os.path.join(DEVSERVICES_CONFIG_DIR, "clickhouse", "dist_config.xml"): {
-                "bind": "/etc/clickhouse-server/config.d/sentry.xml"
-            },
-        },
-        "only_if": lambda settings, options: (settings.SENTRY_DISTRIBUTED_CLICKHOUSE_TABLES),
-    }, """
     "snuba": {
         "image": "getsentry/snuba:nightly",
         "pull": True,
