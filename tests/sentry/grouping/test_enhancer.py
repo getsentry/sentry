@@ -400,3 +400,42 @@ def test_range_matching_direct():
         ],
         "python",
     )
+
+
+def test_range_matching_negative():
+    enhancement = Enhancements.from_config_string(
+        """
+        [ !function:foo ] | function:foo | [ !function:foo ] category=foo
+    """
+    )
+
+    (rule,) = enhancement.rules
+
+    assert not bool(
+        _get_matching_frame_actions(
+            rule,
+            [
+                {"function": "foo"},
+                {"function": "bar"},
+                {"function": "foo"},
+            ],
+            "python",
+        )
+    )
+
+    assert (
+        sorted(
+            dict(
+                _get_matching_frame_actions(
+                    rule,
+                    [
+                        {"function": "bar"},
+                        {"function": "foo"},
+                        {"function": "baz"},
+                    ],
+                    "python",
+                )
+            )
+        )
+        == [1]
+    )

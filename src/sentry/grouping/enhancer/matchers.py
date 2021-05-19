@@ -1,9 +1,11 @@
-from typing import Optional
+import dataclasses
+from abc import ABC, abstractmethod
+from dataclasses import dataclass
+from typing import Any, Mapping, Optional, Sequence, Tuple
 
 from sentry.grouping.utils import get_rule_bool
 from sentry.stacktraces.functions import get_function_name_for_frame
 from sentry.stacktraces.platform import get_behavior_family_for_platform
-from sentry.utils.functional import cached
 from sentry.utils.glob import glob_match
 from sentry.utils.safe import get_path
 
@@ -59,34 +61,60 @@ def _get_function_name(frame_data: dict, platform: Optional[str]):
 
 def create_match_frame(frame_data: dict, platform: Optional[str]) -> dict:
     """ Create flat dict of values relevant to matchers """
-    match_frame = dict(
-        category=get_path(frame_data, "data", "category"),
-        family=get_behavior_family_for_platform(frame_data.get("platform") or platform),
-        function=_get_function_name(frame_data, platform),
-        in_app=frame_data.get("in_app"),
-        module=get_path(frame_data, "module"),
-        package=frame_data.get("package"),
-        path=frame_data.get("abs_path") or frame_data.get("filename"),
-    )
-
-    for key in list(match_frame.keys()):
-        value = match_frame[key]
-        if isinstance(value, (bytes, str)):
-            if key in ("package", "path"):
-                value = match_frame[key] = value.lower()
-
-            if isinstance(value, str):
-                match_frame[key] = value.encode("utf-8")
-
-    return match_frame
+    return frame_data
 
 
-class Match:
+@dataclass
+class MatchConfig:
+    field: str
+    path_like: bool
+    pattern_is_glob: bool
+    negated: bool
+    patterns: Sequence[str]
+    required: bool = False
+
+
+class Match(ABC):
     description = None
 
-    def matches_frame(self, frames, idx, platform, exception_data, cache):
+    @abstractmethod
+    def extract_frame_data(self, frames, idx, platform, exception_data):
         raise NotImplementedError()
 
+    def matches_frame(self, frames, idx, platform, exception_data, cache):
+        config = self.get_match_config()
+        global_extracted, frame_extracted = self.extract_frame_data(
+            frames, idx, platform, exception_data
+        )
+        if config.field in frame_extracted:
+            val = frame_extracted[config.field]
+        elif config.field in global_extracted:
+            val = global_extracted[config.field]
+        elif config.required:
+            return False
+        else:
+            val = None
+
+        if val is None:
+            is_match = False
+        elif config.pattern_is_glob:
+            if config.path_like:
+                is_match = any(path_like_match(val, pat.encode("utf8")) for pat in config.patterns)
+            else:
+                is_match = any(glob_match(val, pat.encode("utf8")) for pat in config.patterns)
+        else:
+            is_match = val in config.patterns
+
+        if config.negated:
+            is_match = not is_match
+
+        return is_match
+
+    @abstractmethod
+    def get_match_config(self) -> MatchConfig:
+        raise NotImplementedError()
+
+    @abstractmethod
     def _to_config_structure(self, version):
         raise NotImplementedError()
 
@@ -120,17 +148,6 @@ class FrameMatch(Match):
     @classmethod
     def from_key(cls, key, pattern, negated):
 
-        instance_key = (key, pattern, negated)
-        if instance_key in cls.instances:
-            instance = cls.instances[instance_key]
-        else:
-            instance = cls.instances[instance_key] = cls._from_key(key, pattern, negated)
-
-        return instance
-
-    @classmethod
-    def _from_key(cls, key, pattern, negated):
-
         subclass = {
             "package": PackageMatch,
             "path": PathMatch,
@@ -153,7 +170,6 @@ class FrameMatch(Match):
         except KeyError:
             raise InvalidEnhancerConfig("Unknown matcher '%s'" % key)
         self.pattern = pattern
-        self._encoded_pattern = pattern.encode("utf-8")
         self.negated = negated
 
     @property
@@ -162,17 +178,6 @@ class FrameMatch(Match):
             self.key,
             self.pattern.split() != [self.pattern] and '"%s"' % self.pattern or self.pattern,
         )
-
-    def matches_frame(self, frames, idx, platform, exception_data, cache):
-        match_frame = frames[idx]
-        rv = self._positive_frame_match(match_frame, platform, exception_data, cache)
-        if self.negated:
-            rv = not rv
-        return rv
-
-    def _positive_frame_match(self, match_frame, platform, exception_data, cache):
-        # Implement is subclasses
-        raise NotImplementedError
 
     def _to_config_structure(self, version):
         if self.key == "family":
@@ -184,8 +189,18 @@ class FrameMatch(Match):
         return ("!" if self.negated else "") + MATCH_KEYS[self.key] + arg
 
 
-def path_like_match(pattern, value):
+def path_like_match(value, pattern):
     """ Stand-alone function for use with ``cached`` """
+    if isinstance(value, str):
+        value = value.encode("utf8")
+    if isinstance(pattern, str):
+        pattern = pattern.encode("utf8")
+
+    if value is not None:
+        value = value.lower()
+
+    pattern = pattern.lower()
+
     if glob_match(value, pattern, ignorecase=False, doublestar=True, path_normalize=True):
         return True
     if not value.startswith(b"/") and glob_match(
@@ -196,38 +211,34 @@ def path_like_match(pattern, value):
     return False
 
 
-class PathLikeMatch(FrameMatch):
-    def __init__(self, key, pattern, negated=False):
-        super().__init__(key, pattern.lower(), negated)
-
-    def _positive_frame_match(self, match_frame, platform, exception_data, cache):
-        value = match_frame[self.field]
-        if value is None:
-            return False
-
-        return cached(cache, path_like_match, self._encoded_pattern, value)
-
-
-class PackageMatch(PathLikeMatch):
-
-    field = "package"
-
-
-class PathMatch(PathLikeMatch):
-
-    field = "path"
-
-
 class FamilyMatch(FrameMatch):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._flags = set(self._encoded_pattern.split(b","))
+    def extract_frame_data(
+        self, frames, idx, platform, exception_data
+    ) -> Tuple[Mapping[str, Any], Mapping[str, Any]]:
+        frame_platform = frames[idx].get("platform")
+        if frame_platform:
+            return {}, {"family": get_behavior_family_for_platform(frame_platform)}
+        else:
+            return {"family": get_behavior_family_for_platform(platform)}, {}
 
-    def _positive_frame_match(self, match_frame, platform, exception_data, cache):
-        if b"all" in self._flags:
-            return True
-
-        return match_frame["family"] in self._flags
+    def get_match_config(self) -> MatchConfig:
+        flags = self.pattern.split(",")
+        if "all" in flags:
+            return MatchConfig(
+                field="family",
+                pattern_is_glob=False,
+                patterns=[],
+                path_like=False,
+                negated=not self.negated,
+            )
+        else:
+            return MatchConfig(
+                field="family",
+                pattern_is_glob=False,
+                path_like=False,
+                patterns=flags,
+                negated=self.negated,
+            )
 
 
 class InAppMatch(FrameMatch):
@@ -235,60 +246,112 @@ class InAppMatch(FrameMatch):
         super().__init__(*args, **kwargs)
         self._ref_val = get_rule_bool(self.pattern)
 
-    def _positive_frame_match(self, match_frame, platform, exception_data, cache):
-        ref_val = self._ref_val
-        return ref_val is not None and ref_val == match_frame["in_app"]
+    def extract_frame_data(self, frames, idx, platform, exception_data):
+        return {}, {"in_app": frames[idx].get("in_app")}
 
-
-class FunctionMatch(FrameMatch):
-    def _positive_frame_match(self, match_frame, platform, exception_data, cache):
-
-        return cached(cache, glob_match, match_frame["function"], self._encoded_pattern)
+    def get_match_config(self) -> MatchConfig:
+        return MatchConfig(
+            field="in_app",
+            pattern_is_glob=False,
+            path_like=False,
+            patterns=[self._ref_val],
+            negated=self.negated,
+        )
 
 
 class FrameFieldMatch(FrameMatch):
-    def _positive_frame_match(self, match_frame, platform, exception_data, cache):
-        field = match_frame[self.field]
-        if field is None:
-            return False
+    path_like: bool = False
+    field_name: str
+    field_path: Sequence[str]
 
-        return cached(cache, glob_match, field, self._encoded_pattern)
+    def extract_frame_data(self, frames, idx, platform, exception_data):
+        value = get_path(frames[idx], *self.field_path)
+        return {}, {self.field_name: value}
+
+    def get_match_config(self) -> MatchConfig:
+        pattern = self.pattern
+        return MatchConfig(
+            field=self.field_name,
+            pattern_is_glob=True,
+            path_like=self.path_like,
+            patterns=[pattern],
+            negated=self.negated,
+        )
+
+
+class PackageMatch(FrameFieldMatch):
+    path_like = True
+    field_name = "package"
+    field_path = ["package"]
+
+
+class PathMatch(FrameFieldMatch):
+    path_like = True
+    field_name = "path"
+    field_path = ["path"]  # unused
+
+    def extract_frame_data(self, frames, idx, platform, exception_data):
+        value = get_path(frames[idx], "abs_path") or get_path(frames[idx], "filename")
+        return {}, {"path": value}
+
+
+class FunctionMatch(FrameFieldMatch):
+    field_name = "function"
+    field_path = ["function"]
+
+    def extract_frame_data(self, frames, idx, platform, exception_data):
+        return {}, {"function": _get_function_name(frames[idx], platform)}
 
 
 class ModuleMatch(FrameFieldMatch):
+    field_name = "module"
 
-    field = "module"
+    field_path = ["module"]
 
 
 class CategoryMatch(FrameFieldMatch):
-
-    field = "category"
+    field_name = "category"
+    field_path = ["data", "category"]
 
 
 class ExceptionFieldMatch(FrameMatch):
-    def _positive_frame_match(self, frame_data, platform, exception_data, cache):
-        field = get_path(exception_data, *self.field_path) or "<unknown>"
-        return cached(cache, glob_match, field, self._encoded_pattern)
+    field_path: Sequence[str]
+    field_name: str
+
+    def extract_frame_data(self, frames, idx, platform, exception_data):
+        return {self.field_name: get_path(exception_data, *self.field_path) or "<unknown>"}, {}
+
+    def get_match_config(self) -> MatchConfig:
+        return MatchConfig(
+            field=self.field_name,
+            pattern_is_glob=True,
+            path_like=False,
+            patterns=[self.pattern],
+            negated=self.negated,
+        )
 
 
 class ExceptionTypeMatch(ExceptionFieldMatch):
+    field_name = "exception_type"
 
     field_path = ["type"]
 
 
 class ExceptionValueMatch(ExceptionFieldMatch):
+    field_name = "exception_value"
 
     field_path = ["value"]
 
 
 class ExceptionMechanismMatch(ExceptionFieldMatch):
+    field_name = "exception_mechanism"
 
     field_path = ["mechanism", "type"]
 
 
+@dataclass
 class CallerMatch(Match):
-    def __init__(self, caller: FrameMatch):
-        self.caller = caller
+    caller: FrameMatch
 
     @property
     def description(self):
@@ -297,24 +360,40 @@ class CallerMatch(Match):
     def _to_config_structure(self, version):
         return f"[{self.caller._to_config_structure(version)}]|"
 
-    def matches_frame(self, frames, idx, platform, exception_data, cache):
-        return idx > 0 and self.caller.matches_frame(
-            frames, idx - 1, platform, exception_data, cache
+    def extract_frame_data(self, frames, idx, platform, exception_data):
+        if idx <= 0:
+            return {}, {}
+
+        _exception_data, frame_data = self.caller.extract_frame_data(
+            frames, idx - 1, platform, exception_data
         )
+        return {}, {f"caller_{k}": v for k, v in frame_data.items()}
+
+    def get_match_config(self) -> MatchConfig:
+        rv = self.caller.get_match_config()
+        return dataclasses.replace(rv, field=f"caller_{rv.field}", required=True)
 
 
+@dataclass
 class CalleeMatch(Match):
-    def __init__(self, caller: FrameMatch):
-        self.caller = caller
+    callee: FrameMatch
 
     @property
     def description(self):
-        return f"| [ {self.caller.description} ]"
+        return f"| [ {self.callee.description} ]"
 
     def _to_config_structure(self, version):
-        return f"|[{self.caller._to_config_structure(version)}]"
+        return f"|[{self.callee._to_config_structure(version)}]"
 
-    def matches_frame(self, frames, idx, platform, exception_data, cache):
-        return idx < len(frames) - 1 and self.caller.matches_frame(
-            frames, idx + 1, platform, exception_data, cache
+    def extract_frame_data(self, frames, idx, platform, exception_data):
+        if idx >= len(frames) - 1:
+            return {}, {}
+
+        _exception_data, frame_data = self.callee.extract_frame_data(
+            frames, idx + 1, platform, exception_data
         )
+        return {}, {f"callee_{k}": v for k, v in frame_data.items()}
+
+    def get_match_config(self) -> MatchConfig:
+        rv = self.callee.get_match_config()
+        return dataclasses.replace(rv, field=f"callee_{rv.field}", required=True)
