@@ -111,7 +111,7 @@ default_manager.add("organizations:related-events", OrganizationFeature)  # NOQA
 default_manager.add("organizations:release-adoption-chart", OrganizationFeature, True)  # NOQA
 default_manager.add("organizations:relay", OrganizationFeature)  # NOQA
 default_manager.add("organizations:reprocessing-v2", OrganizationFeature)  # NOQA
-default_manager.add("organizations:required-email-verification", OrganizationFeature)  # NOQA
+default_manager.add("organizations:required-email-verification", OrganizationFeature, True)  # NOQA
 default_manager.add("organizations:rule-page", OrganizationFeature)  # NOQA
 default_manager.add("organizations:set-grouping-config", OrganizationFeature)  # NOQA
 default_manager.add("organizations:sso-basic", OrganizationFeature)  # NOQA

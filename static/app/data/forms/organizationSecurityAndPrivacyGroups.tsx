@@ -30,11 +30,11 @@ export default [
         },
       },
       {
-        /* TODO: Render only if "organizations:required-email-verification" feature flag is set */
         name: 'requireEmailVerification',
         type: 'boolean',
         label: t('Require Email Verification'),
         help: t('Require and enforce email address verification for all members'),
+        visible: ({features}) => features.has('required-email-verification'),
         confirm: {
           true: t(
             'This will remove all members whose email addresses are not verified' +
