@@ -264,16 +264,20 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
           }
 
           return (
-            <SpanDetail
-              span={span}
-              organization={organization}
-              event={event}
-              isRoot={!!isRoot}
-              trace={trace}
-              childTransactions={transactions}
-              relatedErrors={errors}
-              scrollToHash={scrollToHash}
-            />
+            <tr>
+              <td colSpan={2}>
+                <SpanDetail
+                  span={span}
+                  organization={organization}
+                  event={event}
+                  isRoot={!!isRoot}
+                  trace={trace}
+                  childTransactions={transactions}
+                  relatedErrors={errors}
+                  scrollToHash={scrollToHash}
+                />
+              </td>
+            </tr>
           );
         }}
       </AnchorLinkManager.Consumer>
@@ -1008,18 +1012,18 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     const isSpanVisible = isSpanVisibleInView && !isCurrentSpanFilteredOut;
 
     return (
-      <Row
-        ref={this.spanRowDOMRef}
-        visible={isSpanVisible}
-        showBorder={this.state.showDetail}
-        data-test-id="span-row"
-      >
-        <QuickTraceContext.Consumer>
-          {quickTrace => {
-            const errors = this.getRelatedErrors(quickTrace);
-            const transactions = this.getChildTransactions(quickTrace);
-            return (
-              <React.Fragment>
+      <QuickTraceContext.Consumer>
+        {quickTrace => {
+          const errors = this.getRelatedErrors(quickTrace);
+          const transactions = this.getChildTransactions(quickTrace);
+          return (
+            <React.Fragment>
+              <Row
+                ref={this.spanRowDOMRef}
+                visible={isSpanVisible}
+                showBorder={this.state.showDetail}
+                data-test-id="span-row"
+              >
                 <ScrollbarManager.Consumer>
                   {scrollbarManagerChildrenProps => (
                     <DividerHandlerManager.Consumer>
@@ -1035,12 +1039,12 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
                     </DividerHandlerManager.Consumer>
                   )}
                 </ScrollbarManager.Consumer>
-                {this.renderDetail({isVisible: isSpanVisible, transactions, errors})}
-              </React.Fragment>
-            );
-          }}
-        </QuickTraceContext.Consumer>
-      </Row>
+              </Row>
+              {this.renderDetail({isVisible: isSpanVisible, transactions, errors})}
+            </React.Fragment>
+          );
+        }}
+      </QuickTraceContext.Consumer>
     );
   }
 }
