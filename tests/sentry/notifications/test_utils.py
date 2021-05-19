@@ -361,7 +361,7 @@ class NotificationHelpersTest(TestCase):
         }
 
     def test_get_fallback_settings_projects(self):
-        data = get_fallback_settings({NotificationSettingTypes.ISSUE_ALERTS}, {self.project}, {})
+        data = get_fallback_settings({NotificationSettingTypes.ISSUE_ALERTS}, {self.project.id}, {})
         assert data == {
             "alerts": {
                 "project": {

@@ -531,19 +531,19 @@ class StreamGroupSerializerTestCase(APITestCase, SnubaTestCase):
             [group],
             serializer=StreamGroupSerializerSnuba(stats_period="14d"),
         )
-        assert "sessionPercent" not in result[0]
+        assert "sessionCount" not in result[0]
         result = serialize(
             [group],
             serializer=StreamGroupSerializerSnuba(stats_period="14d", expand=["sessions"]),
         )
-        assert result[0]["sessionPercent"] == 0.3333
+        assert result[0]["sessionCount"] == 3
         result = serialize(
             [group],
             serializer=StreamGroupSerializerSnuba(
                 environment_ids=[environment.id], stats_period="14d", expand=["sessions"]
             ),
         )
-        assert result[0]["sessionPercent"] == 0.5
+        assert result[0]["sessionCount"] == 2
 
         result = serialize(
             [group],
@@ -553,7 +553,7 @@ class StreamGroupSerializerTestCase(APITestCase, SnubaTestCase):
                 expand=["sessions"],
             ),
         )
-        assert result[0]["sessionPercent"] is None
+        assert result[0]["sessionCount"] is None
 
         result = serialize(
             [group],
@@ -561,7 +561,7 @@ class StreamGroupSerializerTestCase(APITestCase, SnubaTestCase):
                 environment_ids=[dev_environment.id], stats_period="14d", expand=["sessions"]
             ),
         )
-        assert result[0]["sessionPercent"] == 1
+        assert result[0]["sessionCount"] == 1
 
         self.store_session(
             {
@@ -591,7 +591,7 @@ class StreamGroupSerializerTestCase(APITestCase, SnubaTestCase):
                 end=timezone.now() - timedelta(days=15),
             ),
         )
-        assert result[0]["sessionPercent"] == 0.0  # No events in that time period
+        assert result[0]["sessionCount"] == 1
 
         # Delete the cache from the query we did above, else this result comes back as 1 instead of 0.5
         cache.delete(f"w-s:{group.project.id}-{dev_environment.id}")
@@ -616,6 +616,6 @@ class StreamGroupSerializerTestCase(APITestCase, SnubaTestCase):
                 expand=["sessions"],
             ),
         )
-        assert result[0]["sessionPercent"] == 0.5
+        assert result[0]["sessionCount"] == 2
         # No sessions in project2
-        assert result[1]["sessionPercent"] is None
+        assert result[1]["sessionCount"] is None
