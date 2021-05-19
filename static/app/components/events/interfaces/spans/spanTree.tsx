@@ -48,7 +48,7 @@ type PropType = {
   filterSpans: FilterSpans | undefined;
   event: EventTransaction;
   operationNameFilters: ActiveOperationFilter;
-  traceViewRef: React.RefObject<HTMLDivElement>;
+  traceViewRef: React.RefObject<HTMLTableElement>;
 };
 
 class SpanTree extends React.Component<PropType> {

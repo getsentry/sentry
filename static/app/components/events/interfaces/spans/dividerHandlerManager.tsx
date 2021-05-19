@@ -46,7 +46,7 @@ type PropType = {
 
   // this is the DOM element where the drag events occur. it's also the reference point
   // for calculating the relative mouse x coordinate.
-  interactiveLayerRef: React.RefObject<HTMLDivElement>;
+  interactiveLayerRef: React.RefObject<HTMLTableElement>;
 };
 
 export class Provider extends React.Component<PropType, StateType> {

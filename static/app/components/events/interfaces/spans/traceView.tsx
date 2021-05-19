@@ -65,7 +65,7 @@ class TraceView extends PureComponent<Props, State> {
     }
   }
 
-  traceViewRef = createRef<HTMLDivElement>();
+  traceViewRef = createRef<HTMLTableElement>();
   virtualScrollBarContainerRef = createRef<HTMLDivElement>();
   minimapInteractiveRef = createRef<HTMLDivElement>();
 

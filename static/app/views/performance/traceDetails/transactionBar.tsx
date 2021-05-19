@@ -70,7 +70,7 @@ class TransactionBar extends React.Component<Props, State> {
     showDetail: false,
   };
 
-  transactionRowDOMRef = React.createRef<HTMLDivElement>();
+  transactionRowDOMRef = React.createRef<HTMLTableRowElement>();
 
   toggleDisplayDetail = () => {
     const {transaction} = this.props;

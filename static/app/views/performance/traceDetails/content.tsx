@@ -86,7 +86,7 @@ class TraceDetailsContent extends React.Component<Props, State> {
     filteredTransactionIds: undefined,
   };
 
-  traceViewRef = React.createRef<HTMLDivElement>();
+  traceViewRef = React.createRef<HTMLTableElement>();
   virtualScrollbarContainerRef = React.createRef<HTMLDivElement>();
 
   renderTraceLoading() {

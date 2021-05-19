@@ -220,7 +220,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     this.disconnectObservers();
   }
 
-  spanRowDOMRef = React.createRef<HTMLDivElement>();
+  spanRowDOMRef = React.createRef<HTMLTableRowElement>();
   intersectionObserver?: IntersectionObserver = void 0;
   zoomLevel: number = 1; // assume initial zoomLevel is 100%
   _mounted: boolean = false;
