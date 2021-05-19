@@ -829,17 +829,76 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     scrollbarManagerChildrenProps: ScrollbarManager.ScrollbarManagerChildrenProps;
     errors: TraceError[] | null;
   }) {
+    const {span, spanBarColour, spanBarHatch, spanNumber} = this.props;
+    const startTimestamp: number = span.start_timestamp;
+    const endTimestamp: number = span.timestamp;
+    const duration = Math.abs(endTimestamp - startTimestamp);
+    const durationString = getHumanDuration(duration);
+    const bounds = this.getBounds();
+    const {dividerPosition, addGhostDividerLineRef} = dividerHandlerChildrenProps;
+    const displaySpanBar = defined(bounds.left) && defined(bounds.width);
+    const durationDisplay = getDurationDisplay(bounds);
+
     return (
       <React.Fragment>
-        <td style={{outline: '1px solid red', position: 'relative'}}>
-          title
+        <td style={{position: 'relative'}}>
+          <RowCell
+            data-type="span-row-cell"
+            showDetail={this.state.showDetail}
+            style={{
+              height: `${ROW_HEIGHT}px`,
+              top: 0,
+              left: 0,
+            }}
+            onClick={() => {
+              this.toggleDisplayDetail();
+            }}
+          >
+            {this.renderTitle(scrollbarManagerChildrenProps, errors)}
+          </RowCell>
           <div
             style={{position: 'absolute', top: 0, right: 0, width: '1px', height: '100%'}}
           >
             {this.renderDivider(dividerHandlerChildrenProps)}
           </div>
         </td>
-        <td>spanbar</td>
+        <td>
+          <RowCell
+            data-type="span-row-cell"
+            showDetail={this.state.showDetail}
+            showStriping={spanNumber % 2 !== 0}
+            style={{
+              height: `${ROW_HEIGHT}px`,
+              top: 0,
+              left: 0,
+            }}
+            onClick={() => {
+              this.toggleDisplayDetail();
+            }}
+          >
+            {displaySpanBar && (
+              <RowRectangle
+                spanBarHatch={!!spanBarHatch}
+                style={{
+                  backgroundColor: spanBarColour,
+                  left: `min(${toPercent(bounds.left || 0)}, calc(100% - 1px))`,
+                  width: toPercent(bounds.width || 0),
+                }}
+              >
+                <DurationPill
+                  durationDisplay={durationDisplay}
+                  showDetail={this.state.showDetail}
+                  spanBarHatch={!!spanBarHatch}
+                >
+                  {durationString}
+                  {this.renderWarningText({warningText: bounds.warning})}
+                </DurationPill>
+              </RowRectangle>
+            )}
+            {this.renderMeasurements()}
+            {this.renderCursorGuide()}
+          </RowCell>
+        </td>
       </React.Fragment>
     );
   }
