@@ -1203,6 +1203,15 @@ class GetSnubaQueryArgsTest(TestCase):
         result = get_filter("apdex(300):>-0.5")
         assert result.having == [["apdex_300", ">", -0.5]]
 
+    def test_function_with_bad_arguments(self):
+        result = get_filter("percentile(transaction.duration 0.75):>100")
+        assert result.having == []
+        assert result.conditions == [
+            _om("percentile"),
+            _om("transaction.duration 0.75"),
+            _om(":>100"),
+        ]
+
     def test_function_with_date_arguments(self):
         result = get_filter("last_seen():2020-04-01T19:34:52+00:00")
         assert result.having == [["last_seen", "=", 1585769692]]
