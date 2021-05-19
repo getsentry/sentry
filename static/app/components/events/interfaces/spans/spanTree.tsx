@@ -77,11 +77,21 @@ class SpanTree extends React.Component<PropType> {
 
     const showHiddenSpansMessage = !isCurrentSpanHidden && numOfSpansOutOfViewAbove > 0;
 
+    const Wrapper = ({children}) => {
+      return (
+        <MessageRow>
+          <td colSpan={2}>{children}</td>
+        </MessageRow>
+      );
+    };
+
     if (showHiddenSpansMessage) {
       messages.push(
-        <span key="spans-out-of-view">
-          <strong>{numOfSpansOutOfViewAbove}</strong> {t('spans out of view')}
-        </span>
+        <Wrapper key="spans-out-of-view">
+          <span>
+            <strong>{numOfSpansOutOfViewAbove}</strong> {t('spans out of view')}
+          </span>
+        </Wrapper>
       );
     }
 
@@ -92,19 +102,23 @@ class SpanTree extends React.Component<PropType> {
       if (!isCurrentSpanHidden) {
         if (numOfFilteredSpansAbove === 1) {
           messages.push(
-            <span key="spans-filtered">
-              {tct('[numOfSpans] hidden span', {
-                numOfSpans: <strong>{numOfFilteredSpansAbove}</strong>,
-              })}
-            </span>
+            <Wrapper key="spans-out-of-view">
+              <span>
+                {tct('[numOfSpans] hidden span', {
+                  numOfSpans: <strong>{numOfFilteredSpansAbove}</strong>,
+                })}
+              </span>
+            </Wrapper>
           );
         } else {
           messages.push(
-            <span key="spans-filtered">
-              {tct('[numOfSpans] hidden spans', {
-                numOfSpans: <strong>{numOfFilteredSpansAbove}</strong>,
-              })}
-            </span>
+            <Wrapper key="spans-filtered">
+              <span>
+                {tct('[numOfSpans] hidden spans', {
+                  numOfSpans: <strong>{numOfFilteredSpansAbove}</strong>,
+                })}
+              </span>
+            </Wrapper>
           );
         }
       }
@@ -114,7 +128,7 @@ class SpanTree extends React.Component<PropType> {
       return null;
     }
 
-    return <MessageRow>{messages}</MessageRow>;
+    return <React.Fragment>{messages}</React.Fragment>;
   }
 
   generateLimitExceededMessage() {
@@ -404,9 +418,11 @@ class SpanTree extends React.Component<PropType> {
           }}
         </DividerHandlerManager.Consumer>
 
-        <tbody>{spanTree}</tbody>
-        {infoMessage}
-        {limitExceededMessage}
+        <tbody>
+          {spanTree}
+          {infoMessage}
+          {limitExceededMessage}
+        </tbody>
       </TraceViewContainer>
     );
   }
