@@ -132,6 +132,10 @@ _common_clickhouse_settings = {
     "ulimits": [{"name": "nofile", "soft": 262144, "hard": 262144}],
     "environment": {"MAX_MEMORY_USAGE_RATIO": "0.3"},
 }
+CLICKHOUSE_CONFIG_FILE = (
+    "dist_config.xml" if SENTRY_DISTRIBUTED_CLICKHOUSE_TABLES else "loc_config.xml"
+)
+CLICKHOUSE_VOLUME = "clickhouse_dist" if SENTRY_DISTRIBUTED_CLICKHOUSE_TABLES else "clickhouse"
 
 RELAY_CONFIG_DIR = os.path.join(DEVSERVICES_CONFIG_DIR, "relay")
 
@@ -1589,6 +1593,7 @@ SENTRY_USE_CDC_DEV = False
 #     }
 # }
 
+# THING = "clickhouse_dist"
 POSTGRES_INIT_DB_VOLUME = (
     {
         os.path.join(CDC_CONFIG_DIR, "init_hba.sh"): {
@@ -1679,14 +1684,16 @@ SENTRY_DEVSERVICES = {
     "clickhouse": {
         **_common_clickhouse_settings,
         "volumes": {
-            "clickhouse": {"bind": "/var/lib/clickhouse"},
-            os.path.join(DEVSERVICES_CONFIG_DIR, "clickhouse", "loc_config.xml"): {
+            CLICKHOUSE_VOLUME: {"bind": "/var/lib/clickhouse"},
+            os.path.join(DEVSERVICES_CONFIG_DIR, "clickhouse", CLICKHOUSE_CONFIG_FILE): {
                 "bind": "/etc/clickhouse-server/config.d/sentry.xml"
             },
         },
-        "only_if": lambda settings, options: (not settings.SENTRY_DISTRIBUTED_CLICKHOUSE_TABLES),
+        "only_if": lambda settings, options: (
+            "snuba" in settings.SENTRY_EVENTSTREAM or "kafka" in settings.SENTRY_EVENTSTREAM
+        ),
     },
-    "clickhouse_dist": {
+    """     "clickhouse_dist": {
         **_common_clickhouse_settings,
         "volumes": {
             "clickhouse_dist": {"bind": "/var/lib/clickhouse"},
@@ -1695,7 +1702,7 @@ SENTRY_DEVSERVICES = {
             },
         },
         "only_if": lambda settings, options: (settings.SENTRY_DISTRIBUTED_CLICKHOUSE_TABLES),
-    },
+    }, """
     "snuba": {
         "image": "getsentry/snuba:nightly",
         "pull": True,
