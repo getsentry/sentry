@@ -1,3 +1,4 @@
+from datetime import datetime
 from urllib.parse import parse_qs
 
 import pytest
@@ -35,7 +36,7 @@ from sentry.notifications.types import (
 )
 from sentry.plugins.base import Notification
 from sentry.rules.processor import RuleFuture
-from sentry.testutils import TestCase
+from sentry.testutils import APITestCase, TestCase
 from sentry.types.activity import ActivityType
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
@@ -58,7 +59,7 @@ def get_attachment():
     return attachments[0]
 
 
-class SlackActivityNotificationTest(ActivityTestCase, TestCase):
+class SlackActivityNotificationTest(ActivityTestCase, TestCase, APITestCase):
     @fixture
     def adapter(self):
         return mail_adapter
@@ -360,6 +361,100 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
             notification.send()
 
         attachment = get_attachment()
+        assert (
+            attachment["title"] == f"Deployed version {release.version} to {self.environment.name}"
+        )
+        assert (
+            attachment["text"]
+            == f"Version {release.version} was deployed to {self.environment.name}"
+        )
+        assert (
+            attachment["footer"]
+            == "<http://testserver/settings/account/notifications/?referrer=ReleaseActivitySlack|Notification Settings>"
+        )
+
+    @responses.activate
+    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
+    def test_deploy_committed_only(self, mock_func):
+        """
+        Test that a Slack message is sent only to committers with the expected payload when a deploy happens
+        """
+
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.SLACK,
+            NotificationSettingTypes.DEPLOY,
+            NotificationSettingOptionValues.COMMITTED_ONLY,
+            user=self.user,
+        )
+        # create another user with the same setting who isn't a committer
+        user2 = self.create_user("foo@example.com")
+        self.create_member(
+            organization=self.organization, user=user2, role="admin", teams=[self.team]
+        )
+        ExternalActor.objects.create(
+            actor=user2.actor,
+            organization=self.organization,
+            integration=self.integration,
+            provider=ExternalProviders.SLACK.value,
+            external_name="colleen",
+            external_id="UXXXXXXX2",
+        )
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.SLACK,
+            NotificationSettingTypes.DEPLOY,
+            NotificationSettingOptionValues.COMMITTED_ONLY,
+            user=user2,
+        )
+
+        repo = self.create_repo(self.project)
+        release = self.create_release(self.project)
+        author = self.create_commit_author(project=self.project, user=self.user)
+        commit = self.create_commit(
+            project=self.project,
+            repo=repo,
+            author=author,
+            date_added=datetime(2020, 5, 18, tzinfo=timezone.utc),
+        )
+        commit2 = self.create_commit(
+            project=self.project,
+            repo=repo,
+            author=author,
+            date_added=datetime(2020, 5, 19, tzinfo=timezone.utc),
+        )
+        release.add_project(self.project)
+        release.set_commits(
+            [
+                {"id": commit.key, "repository": repo.name},
+                {"id": commit2.key, "repository": repo.name},
+                {"id": "a" * 40, "repository": repo.name},
+                {"id": "b" * 40, "repository": repo.name, "message": "#skipsentry"},
+            ]
+        )
+        deploy = Deploy.objects.create(
+            release=release,
+            organization_id=self.organization.id,
+            environment_id=self.environment.id,
+        )
+        notification = ReleaseActivityNotification(
+            Activity(
+                project=self.project,
+                user=self.user,
+                type=Activity.RELEASE,
+                data={"version": release.version, "deploy_id": deploy.id},
+            )
+        )
+        with self.tasks():
+            notification.send()
+
+        # make sure we notified self.user and NOT user2, who did not commit
+        assert len(responses.calls) == 1
+        data = parse_qs(responses.calls[0].request.body)
+        assert data["channel"] == ["UXXXXXXX1"]
+        assert "attachments" in data
+        attachments = json.loads(data["attachments"][0])
+
+        assert len(attachments) == 1
+        attachment = attachments[0]
         assert (
             attachment["title"] == f"Deployed version {release.version} to {self.environment.name}"
         )
