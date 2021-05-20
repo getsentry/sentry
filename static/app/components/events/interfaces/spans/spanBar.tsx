@@ -903,15 +903,13 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
             {this.renderCursorGuide()}
           </RowCell>
         </td>
-        <td>
+        <td style={{all: 'unset'}}>
           {!this.state.showDetail && (
             <DividerLineGhostContainer
               style={{
                 width: toPercent(dividerPosition),
                 display: 'none',
                 left: 0,
-                marginTop: `-${ROW_HEIGHT / 2}px`,
-                // top: 0,
                 height: `${ROW_HEIGHT}px`,
                 outline: '1px solid red',
               }}
