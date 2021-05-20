@@ -231,6 +231,18 @@ def patch_transport_for_instrumentation(transport, transport_name):
             return _update_rate_limits(*args, **kwargs)
 
         transport._update_rate_limits = patched_update_rate_limits
+
+    _check_disabled = transport._check_disabled
+    if _check_disabled:
+
+        def patched_check_disabled(*args, **kwargs):
+            result = _check_disabled(*args, **kwargs)
+            if result:
+                metrics.incr(f"internal.check_disabled.{transport_name}.events.is_disabled")
+            return result
+
+        transport._check_disabled = patched_check_disabled
+
     return transport
 
 
