@@ -861,7 +861,13 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
             {this.renderTitle(scrollbarManagerChildrenProps, errors)}
           </RowCell>
           <div
-            style={{position: 'absolute', top: 0, right: 0, width: '1px', height: '100%'}}
+            style={{
+              position: 'absolute',
+              top: 0,
+              right: `-1px`,
+              width: '1px',
+              height: '100%',
+            }}
           >
             {this.renderDivider(dividerHandlerChildrenProps)}
           </div>
@@ -907,17 +913,17 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
           {!this.state.showDetail && (
             <DividerLineGhostContainer
               style={{
-                width: toPercent(dividerPosition),
-                display: 'none',
+                width: `var(--ghost-divider-handle-position, ${toPercent(
+                  dividerPosition
+                )})`,
+                display: 'var(--ghost-divider-display, none)',
                 left: 0,
                 height: `${ROW_HEIGHT}px`,
-                outline: '1px solid red',
               }}
             >
               <DividerLine
-                ref={addGhostDividerLineRef()}
                 style={{
-                  right: 0,
+                  right: '-1px',
                 }}
                 className="hovering"
                 onClick={event => {
