@@ -436,6 +436,7 @@ const TraceViewContainer = styled('table')`
   table-layout: fixed;
   width: 100%;
   display: table;
+  margin: 0;
 `;
 
 /**
