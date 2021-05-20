@@ -99,18 +99,20 @@ def get_group_with_redirect(id_or_qualified_short_id, queryset=None, organizatio
     except Group.DoesNotExist as error:
         from sentry.models import GroupRedirect
 
-        if short_id:
-            params = {
-                "id": GroupRedirect.objects.filter(
-                    organization_id=organization.id,
-                    previous_short_id=short_id.short_id,
-                    previous_project_slug=short_id.project_slug,
-                ).values_list("group_id", flat=True)
-            }
-        else:
-            params["id"] = GroupRedirect.objects.filter(previous_group_id=params["id"]).values_list(
-                "group_id", flat=True
-            )
+        try:
+            if short_id:
+                params = {
+                    "id": GroupRedirect.objects.get(
+                        organization_id=organization.id,
+                        previous_short_id=short_id.short_id,
+                        previous_project_slug=short_id.project_slug,
+                    ).group_id
+                }
+            else:
+                params["id"] = GroupRedirect.objects.get(previous_group_id=params["id"]).group_id
+        except GroupRedirect.DoesNotExist:
+            raise error
+
         try:
             return queryset.get(**params), True
         except Group.DoesNotExist:
