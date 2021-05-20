@@ -31,7 +31,7 @@ function BuildInSymbolSources({
 
     return {
       successMessage: t('Successfully removed built-in repository'),
-      errorMessage: t('An error occured while removing built-in repository'),
+      errorMessage: t('An error occurred while removing built-in repository'),
     };
   }
 
