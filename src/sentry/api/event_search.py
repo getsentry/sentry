@@ -52,7 +52,7 @@ quoted_raw_search = spaces quoted_value spaces
 text_filter = negation? text_key sep ((open_bracket text_value (comma spaces text_value)* closed_bracket) / search_value)
 
 # filter for dates
-time_filter = search_key sep? operator iso_8601_date_format
+time_filter = search_key sep operator iso_8601_date_format
 
 # filter for relative dates
 rel_time_filter = search_key sep rel_date_format
