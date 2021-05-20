@@ -208,7 +208,6 @@ class OrganizationEndpoint(Endpoint):
     ):
         qs = Project.objects.filter(organization=organization, status=ProjectStatus.VISIBLE)
         user = getattr(request, "user", None)
-
         # A project_id of -1 means 'all projects I have access to'
         # While no project_ids means 'all projects I am a member of'.
         if project_ids == ALL_ACCESS_PROJECTS:

@@ -1,6 +1,6 @@
 from django.urls import reverse
 
-from sentry.models.transaction_threshold import ProjectTransactionThreshold
+from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
 from sentry.testutils import APITestCase
 
 
@@ -32,7 +32,10 @@ class ProjectTransactionThresholdTest(APITestCase):
         project = self.create_project()
 
         ProjectTransactionThreshold.objects.create(
-            project=project, organization=project.organization, threshold=300, metric=1
+            project=project,
+            organization=project.organization,
+            threshold=300,
+            metric=TransactionMetric.DURATION.value,
         )
 
         url = reverse(
@@ -86,7 +89,10 @@ class ProjectTransactionThresholdTest(APITestCase):
         )
 
         ProjectTransactionThreshold.objects.create(
-            project=project, organization=project.organization, threshold=300, metric=1
+            project=project,
+            organization=project.organization,
+            threshold=300,
+            metric=TransactionMetric.DURATION.value,
         )
 
         with self.feature(self.feature_name):
@@ -152,7 +158,10 @@ class ProjectTransactionThresholdTest(APITestCase):
         project = self.create_project()
 
         ProjectTransactionThreshold.objects.create(
-            project=project, organization=project.organization, threshold=300, metric=1
+            project=project,
+            organization=project.organization,
+            threshold=300,
+            metric=TransactionMetric.DURATION.value,
         )
         assert ProjectTransactionThreshold.objects.filter(
             project=project, organization=project.organization

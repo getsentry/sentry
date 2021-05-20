@@ -1,16 +1,19 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
+import omit from 'lodash/omit';
 
 import Button from 'app/components/button';
-import Confirm from 'app/components/confirm';
+import ConfirmDelete from 'app/components/confirmDelete';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import {Item as ListItem} from 'app/components/dropdownAutoComplete/types';
 import DropdownButton from 'app/components/dropdownButton';
-import {IconAdd, IconDelete, IconSettings} from 'app/icons';
+import Tooltip from 'app/components/tooltip';
+import {IconAdd, IconDelete, IconSettings, IconWarning} from 'app/icons';
 import {t} from 'app/locale';
+import space from 'app/styles/space';
 import InputField from 'app/views/settings/components/forms/inputField';
 
-type ConfirmProps = Partial<React.ComponentProps<typeof Confirm>>;
+type ConfirmDeleteProps = Partial<React.ComponentProps<typeof ConfirmDelete>>;
 type DropdownProps = Omit<React.ComponentProps<typeof DropdownAutoComplete>, 'children'>;
 
 type UpdatedItem = ListItem | Record<string, string>;
@@ -34,12 +37,6 @@ type DefaultProps = {
    * The callback is expected to call `removeItem(item)`
    */
   onRemoveItem: RichListCallback;
-};
-
-const defaultProps: DefaultProps = {
-  addButtonText: t('Add item'),
-  onAddItem: (item, addItem) => addItem(item),
-  onRemoveItem: (item, removeItem) => removeItem(item),
 };
 
 /**
@@ -66,9 +63,6 @@ export type RichListProps = {
    */
   value: ListItem[];
 
-  onBlur: InputField['props']['onBlur'];
-  onChange: InputField['props']['onChange'];
-
   /**
    * Configuration for the add item dropdown.
    */
@@ -79,11 +73,14 @@ export type RichListProps = {
    */
   disabled: boolean;
 
+  onBlur?: InputField['props']['onBlur'];
+  onChange?: InputField['props']['onChange'];
+
   /**
-   * Properties for the confirm remove dialog. If missing, the item will be
+   * Properties for the confirm delete dialog. If missing, the item will be
    * removed immediately.
    */
-  removeConfirm?: ConfirmProps;
+  removeConfirm?: ConfirmDeleteProps;
 
   /**
    * Callback invoked when an item is interacted with.
@@ -91,10 +88,14 @@ export type RichListProps = {
    * The callback is expected to call `editItem(item)`
    */
   onEditItem?: RichListCallback;
-} & DefaultProps;
+} & Partial<DefaultProps>;
 
-class RichList extends React.PureComponent<RichListProps> {
-  static defaultProps = defaultProps;
+class RichList extends React.PureComponent<RichListProps, {}> {
+  static defaultProps: DefaultProps = {
+    addButtonText: t('Add item'),
+    onAddItem: (item, addItem) => addItem(item),
+    onRemoveItem: (item, removeItem) => removeItem(item),
+  };
 
   triggerChange = (items: UpdatedItem[]) => {
     if (!this.props.disabled) {
@@ -127,57 +128,87 @@ class RichList extends React.PureComponent<RichListProps> {
   };
 
   onEditItem = (item: ListItem, index: number) => {
-    if (!this.props.disabled && this.props.onEditItem) {
-      this.props.onEditItem(item, data => this.updateItem(data, index));
+    if (!this.props.disabled) {
+      this.props.onEditItem?.(omit(item, 'error') as ListItem, data =>
+        this.updateItem(data, index)
+      );
     }
   };
 
   onRemoveItem = (item: ListItem, index: number) => {
     if (!this.props.disabled) {
-      this.props.onRemoveItem(item, () => this.removeItem(index));
+      this.props.onRemoveItem?.(item, () => this.removeItem(index));
     }
   };
 
   renderItem = (item: ListItem, index: number) => {
-    const {disabled} = this.props;
+    const {disabled, renderItem, onEditItem} = this.props;
 
-    const removeIcon = (onClick?: () => void) => (
-      <ItemButton
-        onClick={onClick}
-        disabled={disabled}
-        size="zero"
-        icon={<IconDelete size="xs" />}
-        borderless
-      />
-    );
-
-    const removeConfirm =
-      this.props.removeConfirm && !disabled ? (
-        <Confirm
-          priority="danger"
-          confirmText={t('Remove')}
-          {...this.props.removeConfirm}
-          onConfirm={() => this.onRemoveItem(item, index)}
-        >
-          {removeIcon()}
-        </Confirm>
-      ) : (
-        removeIcon(() => this.onRemoveItem(item, index))
-      );
+    const error = item.error;
 
     return (
-      <Item disabled={disabled} key={index}>
-        {this.props.renderItem(item)}
-        {this.props.onEditItem && (
-          <ItemButton
-            onClick={() => this.onEditItem(item, index)}
-            disabled={disabled}
-            icon={<IconSettings />}
-            size="zero"
-            borderless
-          />
+      <Item
+        disabled={!!disabled}
+        key={index}
+        onClick={
+          error && onEditItem && !disabled
+            ? () => this.onEditItem(item, index)
+            : undefined
+        }
+      >
+        {renderItem(item)}
+        {error ? (
+          <ErrorIcon>
+            <Tooltip title={error} containerDisplayMode="inline-flex">
+              <IconWarning color="red300" />
+            </Tooltip>
+          </ErrorIcon>
+        ) : (
+          onEditItem && (
+            <SettingsButton
+              onClick={() => this.onEditItem(item, index)}
+              disabled={disabled}
+              icon={<IconSettings />}
+              size="zero"
+              label={t('Edit Item')}
+              borderless
+            />
+          )
         )}
-        {removeConfirm}
+        <DeleteButtonWrapper
+          onClick={event => {
+            event.preventDefault();
+            event.stopPropagation();
+          }}
+        >
+          {this.props.removeConfirm ? (
+            <ConfirmDelete
+              confirmText={t('Remove')}
+              disabled={disabled}
+              {...this.props.removeConfirm}
+              confirmInput={item.name}
+              priority="danger"
+              onConfirm={() => this.onRemoveItem(item, index)}
+            >
+              <DeleteButton
+                disabled={disabled}
+                size="zero"
+                icon={<IconDelete size="xs" />}
+                label={t('Delete Item')}
+                borderless
+              />
+            </ConfirmDelete>
+          ) : (
+            <DeleteButton
+              disabled={disabled}
+              size="zero"
+              icon={<IconDelete size="xs" />}
+              label={t('Delete Item')}
+              onClick={() => this.onRemoveItem(item, index)}
+              borderless
+            />
+          )}
+        </DeleteButtonWrapper>
       </Item>
     );
   };
@@ -249,30 +280,59 @@ const ItemList = styled('ul')`
   padding: 0;
 `;
 
-const Item = styled('li')<{disabled?: boolean}>`
+const Item = styled('li')<{
+  disabled: boolean;
+  onClick?: (event: React.MouseEvent) => void;
+}>`
+  position: relative;
   display: flex;
   align-items: center;
-  background-color: ${p => p.theme.button.default.background};
-  border: 1px solid ${p => p.theme.button.default.border};
   border-radius: ${p => p.theme.button.borderRadius};
-  color: ${p => p.theme.button.default.color};
-  cursor: ${p => (p.disabled ? 'not-allowed' : 'default')};
   font-size: ${p => p.theme.fontSizeSmall};
   font-weight: 600;
   line-height: ${p => p.theme.fontSizeSmall};
   text-transform: none;
   margin: 0 10px 5px 0;
   white-space: nowrap;
-  opacity: ${p => (p.disabled ? 0.65 : null)};
-  padding: 8px 12px;
+  padding: ${space(1)} 36px ${space(1)} ${space(1.5)};
   /* match adjacent elements */
-  height: 30px;
+  height: 32px;
+  overflow: hidden;
+  background-color: ${p => p.theme.button.default.background};
+  border: 1px solid ${p => p.theme.button.default.border};
+  color: ${p => p.theme.button.default.color};
+  opacity: ${p => (p.disabled ? 0.65 : null)};
+  cursor: ${p => (p.disabled ? 'not-allowed' : p.onClick ? 'pointer' : 'default')};
 `;
 
 const ItemButton = styled(Button)`
-  margin-left: 10px;
   color: ${p => p.theme.gray300};
   &:hover {
     color: ${p => (p.disabled ? p.theme.gray300 : p.theme.button.default.color)};
   }
+`;
+
+const SettingsButton = styled(ItemButton)`
+  margin-left: 10px;
+`;
+
+const DeleteButton = styled(ItemButton)`
+  height: 100%;
+  width: 100%;
+`;
+
+const ErrorIcon = styled('div')`
+  margin-left: 10px;
+  display: inline-flex;
+`;
+
+const DeleteButtonWrapper = styled('div')`
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+  right: 0;
+  width: 36px;
+  height: 100%;
 `;

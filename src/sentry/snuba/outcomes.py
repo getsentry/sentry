@@ -203,8 +203,8 @@ def get_filter(
 
     if "project_id" in params:
         filter_keys["project_id"] = params["project_id"]
-    if "organization" in params:
-        filter_keys["organization_id"] = params["organization_id"]
+    if "organization_id" in params:
+        filter_keys["org_id"] = [params["organization_id"]]
 
     return conditions, filter_keys
 

@@ -1787,7 +1787,7 @@ urlpatterns = [
                     name="sentry-api-0-project-codeowners-details",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/threshold/$",
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/transaction-threshold/configure/$",
                     ProjectTransactionThresholdEndpoint.as_view(),
                     name="sentry-api-0-project-transaction-threshold",
                 ),
