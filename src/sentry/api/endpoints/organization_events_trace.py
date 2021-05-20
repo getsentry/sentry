@@ -377,7 +377,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):  # 
                 return Response(status=404)
             self.record_analytics(transactions, trace_id, self.request.user.id, organization.id)
 
-        warning_extra: Dict[str, str] = {"trace": trace_id, "organization": organization}
+        warning_extra: Dict[str, str] = {"trace": trace_id, "organization": organization.slug}
 
         # Look for the roots
         roots: List[SnubaTransaction] = []
