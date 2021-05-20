@@ -233,18 +233,18 @@ export default class DetailsBody extends React.Component<Props> {
 
     return (
       <StatusContainer>
-        <div>
+        <HeaderItem>
           <Heading noMargin>{t('Status')}</Heading>
           <ItemValue>
             <AlertBadge status={status} />
           </ItemValue>
-        </div>
-        <div>
+        </HeaderItem>
+        <HeaderItem>
           <Heading noMargin>
             {activeIncident ? t('Last Triggered') : t('Last Resolved')}
           </Heading>
           <ItemValue>{activityDate ? <TimeSince date={activityDate} /> : '-'}</ItemValue>
-        </div>
+        </HeaderItem>
       </StatusContainer>
     );
   }
@@ -427,6 +427,7 @@ const StatusWrapper = styled('div')`
 `;
 
 const HeaderContainer = styled('div')`
+  height: 60px;
   display: flex;
   flex-direction: row;
   align-content: flex-start;
@@ -483,10 +484,11 @@ const ItemValue = styled('div')`
 `;
 
 const StatusContainer = styled('div')`
+  height: 60px;
   display: grid;
   grid-template-columns: 50% 50%;
-  grid-row-gap: 16px;
-  margin-bottom: 20px;
+  grid-gap: ${space(2)};
+  margin-bottom: ${space(1.5)};
 `;
 
 const Heading = styled(SectionHeading)<{noMargin?: boolean}>`
