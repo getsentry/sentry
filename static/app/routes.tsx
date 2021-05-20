@@ -1020,13 +1020,13 @@ function routes() {
               }}
             />
             <Route
-              path="/organizations/:orgId/issues/:groupId/splitted/"
+              path="/organizations/:orgId/issues/:groupId/grouping/"
               componentPromise={() =>
-                import('app/views/organizationGroupDetails/groupSplitted')
+                import('app/views/organizationGroupDetails/grouping')
               }
               component={errorHandler(LazyLoad)}
               props={{
-                currentTab: TAB.MERGED,
+                currentTab: TAB.GROUPING,
                 isEventRoute: false,
               }}
             />
@@ -1893,6 +1893,10 @@ function routes() {
           <Redirect
             from=":projectId/issues/:groupId/merged/"
             to="/organizations/:orgId/issues/:groupId/merged/"
+          />
+          <Redirect
+            from=":projectId/issues/:groupId/grouping/"
+            to="/organizations/:orgId/issues/:groupId/grouping/"
           />
           <Route
             path=":projectId/events/:eventId/"
