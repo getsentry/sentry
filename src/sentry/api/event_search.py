@@ -36,17 +36,29 @@ NEGATION_MAP = {
 
 event_search_grammar = Grammar(
     r"""
-search            = (boolean_operator / paren_term / search_term)*
-boolean_operator  = spaces (or_operator / and_operator) spaces
-paren_term        = spaces open_paren spaces (paren_term / boolean_operator / search_term)+ spaces closed_paren spaces
-search_term       = key_val_term / quoted_raw_search / raw_search
-key_val_term      = spaces (time_filter / rel_time_filter / specific_time_filter
-                    / duration_filter / boolean_filter / numeric_filter
-                    / aggregate_filter / aggregate_date_filter / aggregate_rel_date_filter
-                    / has_filter / is_filter / text_filter)
-                    spaces
-raw_search        = (!key_val_term ~r"\ *(?!(?i)OR(?![^\s]))(?!(?i)AND(?![^\s]))([^\ ^\n ()]+)\ *" )*
-quoted_raw_search = spaces quoted_value spaces
+search = (boolean_operator / paren_term / search_term)*
+
+boolean_operator = spaces (or_operator / and_operator) spaces
+paren_term       = spaces open_paren spaces (paren_term / boolean_operator / search_term)+ spaces closed_paren spaces
+search_term      = key_val_term / free_text_quoted / free_text
+
+free_text        = (!key_val_term ~r"\ *(?!(?i)OR(?![^\s]))(?!(?i)AND(?![^\s]))([^\ ^\n ()]+)\ *" )*
+free_text_quoted = spaces quoted_value spaces
+
+# All key:value filter types
+key_val_term   = spaces key_val_filter spaces
+key_val_filter = time_filter
+               / rel_time_filter
+               / specific_time_filter
+               / duration_filter
+               / boolean_filter
+               / numeric_filter
+               / aggregate_filter
+               / aggregate_date_filter
+               / aggregate_rel_date_filter
+               / has_filter
+               / is_filter
+               / text_filter
 
 # standard key:val filter
 text_filter = negation? text_key sep ((open_bracket text_value (comma spaces text_value)* closed_bracket) / search_value)
@@ -91,20 +103,7 @@ quoted_key       = ~r"\"([a-zA-Z0-9_\.:-]+)\""
 explicit_tag_key = "tags" open_bracket search_key closed_bracket
 text_key         = explicit_tag_key / search_key
 text_value       = quoted_value / in_value
-
-# Explanation of quoted string regex
-# "              # literal quote
-# (              # begin capture group
-#   (?:          # begin uncaptured group
-#     \\\"       # A \", where both the \ and " are escaped
-#     |          # or
-#     [^"]       # any character that's not quote
-#   )            # end uncaptured group
-#   *            # repeat the uncaptured group
-# )              # end captured group
-# ?              # allow to be empty (allow empty quotes)
-# "              # quote literal
-quoted_value = ~r"\"((?:\\\"|[^\"])*)?\""s
+quoted_value     = ~r"\"((?:\\\"|[^\"])*)?\""s
 
 # Formats
 iso_8601_date_format = ~r"(\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{1,6})?)?(Z|([+-]\d{2}:\d{2}))?)(?=\s|\)|$)"
@@ -293,7 +292,7 @@ class SearchVisitor(NodeVisitor):
 
     def flatten(self, children):
         def _flatten(seq):
-            # there is a list from search_term and one from raw_search, so flatten them.
+            # there is a list from search_term and one from free_text, so flatten them.
             # Flatten each group in the list, since nodes can return multiple items
             for item in seq:
                 if isinstance(item, list):
@@ -340,14 +339,14 @@ class SearchVisitor(NodeVisitor):
         # key_val_term is a list because of group
         return key_val_term[0]
 
-    def visit_raw_search(self, node, children):
+    def visit_free_text(self, node, children):
         value = node.text.strip(" ")
         if not value:
             return None
 
         return SearchFilter(SearchKey("message"), "=", SearchValue(value))
 
-    def visit_quoted_raw_search(self, node, children):
+    def visit_free_text_quoted(self, node, children):
         value = children[1]
         if not value:
             return None
@@ -356,7 +355,7 @@ class SearchVisitor(NodeVisitor):
     def visit_paren_term(self, node, children):
         if not self.allow_boolean:
             # It's possible to have a valid search that includes parens, so we can't just error out when we find a paren expression.
-            return self.visit_raw_search(node, children)
+            return self.visit_free_text(node, children)
 
         children = self.remove_space(self.remove_optional_nodes(self.flatten(children)))
         children = self.flatten(children[1])
