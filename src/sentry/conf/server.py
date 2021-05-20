@@ -1685,9 +1685,6 @@ SENTRY_DEVSERVICES = {
                 "dist_config.xml" if SENTRY_DISTRIBUTED_CLICKHOUSE_TABLES else "loc_config.xml",
             ): {"bind": "/etc/clickhouse-server/config.d/sentry.xml"},
         },
-        "only_if": lambda settings, options: (
-            "snuba" in settings.SENTRY_EVENTSTREAM or "kafka" in settings.SENTRY_EVENTSTREAM
-        ),
     },
     "snuba": {
         "image": "getsentry/snuba:nightly",
