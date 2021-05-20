@@ -15,6 +15,7 @@ from urllib.parse import urlparse
 from celery.schedules import crontab
 from django.conf.global_settings import *  # NOQA
 from django.urls import reverse_lazy
+
 # Queue configuration
 from kombu import Exchange, Queue
 
