@@ -105,11 +105,9 @@ export const mergeNotificationSettings = (
   objects.map(settingsByType =>
     Object.entries(settingsByType).map(([type, settingsByScopeType]) =>
       Object.entries(settingsByScopeType).map(([scopeType, settingsByScopeId]) =>
-        Object.entries(settingsByScopeId).map(([scopeId, settingsByProvider]) =>
-          Object.entries(settingsByProvider).map(([provider, value]) => {
-            set(output, [type, scopeType, scopeId, provider].join('.'), value);
-          })
-        )
+        Object.entries(settingsByScopeId).map(([scopeId, settingsByProvider]) => {
+          set(output, [type, scopeType, scopeId].join('.'), settingsByProvider);
+        })
       )
     )
   );
