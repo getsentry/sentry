@@ -1,5 +1,6 @@
 import inspect
 import random
+from datetime import datetime
 
 import sentry_sdk
 from django.conf import settings
@@ -227,6 +228,16 @@ def patch_transport_for_instrumentation(transport, transport_name):
     if _update_rate_limits:
 
         def patched_update_rate_limits(*args, **kwargs):
+            # Adding checks to find out which of x-rate-limit and 429 might be the cause
+            response = args[0]
+            if response and response.headers:
+                has_rate_limit = response.headers.get("x-sentry-rate-limits")
+                if has_rate_limit:
+                    metrics.incr(f"internal.update_rate_limits.{transport_name}.x_rate_limit.count")
+            if response and response.status:
+                if response.status == 429:
+                    metrics.incr(f"internal.update_rate_limits.{transport_name}.status_429.count")
+
             metrics.incr(f"internal.update_rate_limits.{transport_name}.events")
             return _update_rate_limits(*args, **kwargs)
 
@@ -238,6 +249,14 @@ def patch_transport_for_instrumentation(transport, transport_name):
         def patched_check_disabled(*args, **kwargs):
             result = _check_disabled(*args, **kwargs)
             if result:
+                ts = transport._disabled_until.get("transaction")
+
+                # Confirm the transaction bucket is disabled
+                if ts is not None and ts > datetime.utcnow():
+                    metrics.incr(
+                        f"internal.check_disabled.{transport_name}.events.transactions_disabled"
+                    )
+
                 metrics.incr(f"internal.check_disabled.{transport_name}.events.is_disabled")
             return result
 
