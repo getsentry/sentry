@@ -95,6 +95,7 @@ const FieldControlStyled = styled('div')<{alignRight?: boolean}>`
   flex: 1;
   flex-direction: column;
   position: relative;
+  max-width: 100%;
   ${p => (p.alignRight ? 'align-items: flex-end;' : '')};
 `;
 

@@ -34,7 +34,7 @@ export type DebugFile = {
 };
 
 export type AppStoreConnectValidationData = {
-  configured: boolean;
+  id: string;
   appstoreCredentialsValid: boolean;
   itunesSessionValid: boolean;
 };

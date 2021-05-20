@@ -4,6 +4,10 @@ export type Item = {
   index: number;
   searchKey?: string;
   groupLabel?: boolean;
+  /**
+   * Error message to display for the field
+   */
+  error?: React.ReactNode;
 } & Record<string, any>;
 
 type Items<T> = Array<
