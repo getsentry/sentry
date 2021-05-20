@@ -553,6 +553,7 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 `;
 
 const StyledIntegrationItem = styled('div')`
-  display: flex;
-  gap: ${space(0.5)};
+  display: grid;
+  grid-template-columns: ${space(4)} auto;
+  grid-template-rows: 1fr;
 `;

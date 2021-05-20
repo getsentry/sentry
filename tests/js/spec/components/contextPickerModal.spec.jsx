@@ -259,47 +259,10 @@ describe('ContextPickerModal', function () {
 
     const provider = {slug: 'github'};
     const configUrl = `/api/0/organizations/${org.slug}/integrations/?provider_key=${provider.slug}&includeConfig=0`;
-    const githubConfigs = [
-      {
-        accountType: 'User',
-        configData: null,
-        domainName: 'github.com/NisanthanNanthakumar',
-        icon: 'https://avatars.githubusercontent.com/u/10494',
-        id: '1',
-        name: 'NisanthanNanthakumar',
-        provider: {
-          aspects: {},
-          canAdd: true,
-          canDisable: false,
-          features: ['codeowners', 'commits', 'issue-basic', 'stacktrace-link'],
-          key: 'github',
-          name: 'GitHub',
-          slug: 'github',
-        },
-        status: 'active',
-      },
-      {
-        accountType: 'Organization',
-        configData: null,
-        domainName: 'github.com/santrysantrysantry',
-        icon: 'https://avatars.githubusercontent.com/u/83424',
-        id: '2',
-        name: 'santrysantrysantry',
-        provider: {
-          aspects: {},
-          canAdd: true,
-          canDisable: false,
-          features: ['codeowners', 'commits', 'issue-basic', 'stacktrace-link'],
-          key: 'github',
-          name: 'GitHub',
-          slug: 'github',
-        },
-        status: 'active',
-      },
-    ];
+    const integration = TestStubs.GitHubIntegration();
     const fetchGithubConfigs = MockApiClient.addMockResponse({
       url: configUrl,
-      body: githubConfigs,
+      body: [integration],
     });
 
     MockApiClient.addMockResponse({
@@ -319,9 +282,9 @@ describe('ContextPickerModal', function () {
 
     expect(fetchGithubConfigs).toHaveBeenCalled();
     expect(wrapper.find('StyledSelectControl').prop('name')).toEqual('configurations');
-    selectByValue(wrapper, githubConfigs[0].id, {control: true, name: 'configurations'});
+    selectByValue(wrapper, integration.id, {control: true, name: 'configurations'});
     expect(onFinish).toHaveBeenCalledWith(
-      `/settings/${org.slug}/integrations/github/${githubConfigs[0].id}/`
+      `/settings/${org.slug}/integrations/github/${integration.id}/`
     );
 
     await tick();
@@ -337,30 +300,10 @@ describe('ContextPickerModal', function () {
 
     const provider = {slug: 'github'};
     const configUrl = `/api/0/organizations/${org.slug}/integrations/?provider_key=${provider.slug}&includeConfig=0`;
-    const githubConfigs = [
-      {
-        accountType: 'User',
-        configData: null,
-        domainName: 'github.com/NisanthanNanthakumar',
-        icon: 'https://avatars.githubusercontent.com/u/10494',
-        id: '1',
-        name: 'NisanthanNanthakumar',
-        provider: {
-          aspects: {},
-          canAdd: true,
-          canDisable: false,
-          features: ['codeowners', 'commits', 'issue-basic', 'stacktrace-link'],
-          key: 'github',
-          name: 'GitHub',
-          slug: 'github',
-        },
-        status: 'active',
-      },
-    ];
 
     const fetchGithubConfigs = MockApiClient.addMockResponse({
       url: configUrl,
-      body: githubConfigs,
+      body: [TestStubs.GitHubIntegration()],
     });
 
     MockApiClient.addMockResponse({
@@ -395,11 +338,10 @@ describe('ContextPickerModal', function () {
 
     const provider = {slug: 'github'};
     const configUrl = `/api/0/organizations/${org.slug}/integrations/?provider_key=${provider.slug}&includeConfig=0`;
-    const githubConfigs = [];
 
     const fetchGithubConfigs = MockApiClient.addMockResponse({
       url: configUrl,
-      body: githubConfigs,
+      body: [],
     });
 
     MockApiClient.addMockResponse({
