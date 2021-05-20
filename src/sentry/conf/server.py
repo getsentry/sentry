@@ -124,7 +124,7 @@ DEVSERVICES_CONFIG_DIR = os.path.normpath(
     os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "config")
 )
 
-SENTRY_DISTRIBUTED_CLICKHOUSE_TABLES = True
+SENTRY_DISTRIBUTED_CLICKHOUSE_TABLES = False
 
 RELAY_CONFIG_DIR = os.path.join(DEVSERVICES_CONFIG_DIR, "relay")
 
