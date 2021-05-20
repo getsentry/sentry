@@ -1,5 +1,6 @@
 import time
 from io import BytesIO
+from typing import Tuple
 
 from django.utils.encoding import force_bytes, force_text
 
@@ -347,7 +348,7 @@ def fetch_release_file(filename, release, dist=None):
     return result
 
 
-def _get_from_archive(url: str, archive: ReleaseArchive) -> bytes:
+def _get_from_archive(url: str, archive: ReleaseArchive) -> Tuple[bytes, dict]:
     candidates = ReleaseFile.normalize(url)
     for candidate in candidates:
         try:
@@ -375,12 +376,16 @@ def fetch_release_artifact(url, release, dist):
         zipobj = BytesIO(release_file.body)
         try:
             with ReleaseArchive(zipobj) as archive:
-                body = _get_from_archive(url, archive)
+                body, headers = _get_from_archive(url, archive)
         except BaseException as exc:
             logger.error("Failed to read %s from release file %s: %s", url, release.id, exc)
         else:
+            # discover_sourcemaps() expects lowercase headers:
+            headers = {key.lower(): value for key, value in headers.items()}
+            result = http.UrlResult(url, headers, body, 200, release_file.encoding)
             metrics.timing("sourcemaps.release_artifact_from_archive", time.monotonic() - start)
-            return http.UrlResult(url, {}, body, 200, release_file.encoding)
+
+            return result
 
     # Fall back to maintain compatibility with old releases and versions of
     # sentry-cli which upload files individually

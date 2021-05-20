@@ -2,7 +2,7 @@ import errno
 import os
 import zipfile
 from tempfile import TemporaryDirectory
-from typing import IO
+from typing import IO, Tuple
 from urllib.parse import urlsplit, urlunsplit
 
 from django.core.files.base import File as FileObj
@@ -132,7 +132,7 @@ class ReleaseArchive:
         self._zip_file = zipfile.ZipFile(self._fileobj)
         self.manifest = self._read_manifest()
         files = self.manifest.get("files", {})
-        self._filenames_by_url = {entry["url"]: path for path, entry in files.items()}
+        self._entries_by_url = {entry["url"]: (path, entry) for path, entry in files.items()}
 
     def __enter__(self):
         return self
@@ -148,10 +148,13 @@ class ReleaseArchive:
         manifest_bytes = self.read("manifest.json")
         return json.loads(manifest_bytes.decode("utf-8"))
 
-    def get_file_by_url(self, url: str) -> bytes:
-        """ May raise ``KeyError`` """
-        filename = self._filenames_by_url[url]
-        return self.read(filename)
+    def get_file_by_url(self, url: str) -> Tuple[bytes, dict]:
+        """Return file contents and headers.
+
+        May raise ``KeyError``
+        """
+        filename, entry = self._entries_by_url[url]
+        return self.read(filename), entry.get("headers", {})
 
     def extract(self) -> TemporaryDirectory:
         """Extract contents to a temporary directory.

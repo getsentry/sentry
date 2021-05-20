@@ -1116,9 +1116,8 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
             {"url": "http://example.com/file2.js", "type": "js_invalid_content"},
         ]
 
-    @responses.activate
     @with_feature("organizations:release-archives")
-    def test_expansion_via_release_archive(self):
+    def _test_expansion_via_release_archive(self, link_sourcemaps: bool):
         project = self.project
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
         release.add_project(project)
@@ -1144,9 +1143,15 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
 
         file_like = BytesIO()
         with zipfile.ZipFile(file_like, "w") as zip:
-            zip.writestr("manifest.json", json.dumps(manifest))
             for rel_path, entry in manifest["files"].items():
-                zip.writestr(rel_path, load_fixture(os.path.basename(rel_path)))
+                name = os.path.basename(rel_path)
+                content = load_fixture(name)
+                if name == "file.min.js" and not link_sourcemaps:
+                    # Remove link to source map, add to header instead
+                    content = content.replace(b"//@ sourceMappingURL=file.sourcemap.js", b"")
+                    entry["headers"] = {"SourceMap": "/file.sourcemap.js"}
+                zip.writestr(rel_path, content)
+            zip.writestr("manifest.json", json.dumps(manifest))
         file_like.seek(0)
 
         file = File.objects.create(name=RELEASE_ARCHIVE_FILENAME)
@@ -1211,6 +1216,12 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
             "\ttry {",
             "\t\treturn multiply(add(a, b), a, b) / c;",
         ]
+
+    def test_expansion_via_release_archive(self):
+        self._test_expansion_via_release_archive(link_sourcemaps=True)
+
+    def test_expansion_via_release_archive_no_sourcemap_link(self):
+        self._test_expansion_via_release_archive(link_sourcemaps=False)
 
     def test_node_processing(self):
         project = self.project
