@@ -55,7 +55,8 @@ class TeamKeyTransaction extends Component<Props, State> {
   componentDidUpdate(prevProps: Props) {
     const orgSlugChanged = prevProps.organization.slug !== this.props.organization.slug;
     const projectsChanged = prevProps.project !== this.props.project;
-    if (orgSlugChanged || projectsChanged) {
+    const transactionChanged = prevProps.transactionName !== this.props.transactionName;
+    if (orgSlugChanged || projectsChanged || transactionChanged) {
       this.fetchData();
     }
   }
