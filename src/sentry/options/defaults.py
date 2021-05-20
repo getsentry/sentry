@@ -1,6 +1,12 @@
 from sentry.logging import LoggingFormat
-from sentry.options import (FLAG_ALLOW_EMPTY, FLAG_IMMUTABLE, FLAG_NOSTORE, FLAG_PRIORITIZE_DISK,
-                            FLAG_REQUIRED, register)
+from sentry.options import (
+    FLAG_ALLOW_EMPTY,
+    FLAG_IMMUTABLE,
+    FLAG_NOSTORE,
+    FLAG_PRIORITIZE_DISK,
+    FLAG_REQUIRED,
+    register,
+)
 from sentry.utils.types import Any, Bool, Dict, Int, Sequence, String
 
 # Cache
