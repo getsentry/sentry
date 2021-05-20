@@ -22,7 +22,7 @@ def attach_foreignkey(objects, field, related=(), database=None):
     if not is_foreignkey:
         field = field.field
         accessor = "_%s_cache" % field.name
-        model = field.rel.to
+        model = field.remote_field.model
         lookup = "pk"
         column = field.column
         key = lookup
