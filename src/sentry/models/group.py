@@ -451,7 +451,12 @@ class Group(Model):
 
         from sentry.models import GroupShare
 
-        return cls.objects.get(id=GroupShare.objects.filter(uuid=share_id).values_list("group_id"))
+        try:
+            gs = GroupShare.objects.get(uuid=share_id)
+        except GroupShare.DoesNotExist:
+            raise cls.DoesNotExist
+
+        return cls.objects.get(id=gs.group.id)
 
     def get_score(self):
         return type(self).calculate_score(self.times_seen, self.last_seen)
