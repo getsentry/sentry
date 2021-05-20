@@ -224,14 +224,14 @@ def patch_transport_for_instrumentation(transport, transport_name):
 
         transport._worker.submit = patched_worker_submit
 
-    _send_envelope = transport.send_envelope
+    _send_envelope = transport._send_envelope
     if _send_envelope:
 
         def patched_send_envelope(*args, **kwargs):
             metrics.incr(f"internal.send_envelope.{transport_name}.events")
             return _send_envelope(*args, **kwargs)
 
-        transport.send_envelope = patched_send_envelope
+        transport._send_envelope = patched_send_envelope
 
     _send_request = transport._send_request
     if _send_request:
