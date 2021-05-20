@@ -7,12 +7,13 @@ import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
 
-from sentry import eventstore, features, options
+from sentry import eventstore, features
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.event_manager import save_attachment
 from sentry.eventstore.processing import event_processing_store
 from sentry.ingest.types import ConsumerType
 from sentry.ingest.userreport import Conflict, save_userreport
+from sentry.killswitches import killswitch_matches_context
 from sentry.models import Project
 from sentry.signals import event_accepted
 from sentry.tasks.store import preprocess_event
@@ -135,7 +136,14 @@ def _do_process_event(message, projects):
         )
         return  # message already processed do not reprocess
 
-    if project_id in (options.get("store.load-shed-pipeline-projects") or ()):
+    if killswitch_matches_context(
+        "store.load-shed-pipeline-projects",
+        {
+            "project_id": project_id,
+            "event_id": event_id,
+            "has_attachments": bool(attachments),
+        },
+    ):
         # This killswitch is for the worst of scenarios and should probably not
         # cause additional load on our logging infrastructure
         return
@@ -158,6 +166,18 @@ def _do_process_event(message, projects):
             "internal.captured.ingest_consumer.parsed",
             tags={"event_type": data.get("type") or "null"},
         )
+
+    if killswitch_matches_context(
+        "store.load-shed-parsed-pipeline-projects",
+        {
+            "organization_id": project.organization_id,
+            "project_id": project.id,
+            "event_type": data.get("type") or "null",
+            "has_attachments": bool(attachments),
+            "event_id": event_id,
+        },
+    ):
+        return
 
     cache_key = event_processing_store.store(data)
 
