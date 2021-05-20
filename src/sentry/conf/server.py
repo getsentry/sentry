@@ -15,7 +15,6 @@ from urllib.parse import urlparse
 from celery.schedules import crontab
 from django.conf.global_settings import *  # NOQA
 from django.urls import reverse_lazy
-
 # Queue configuration
 from kombu import Exchange, Queue
 
@@ -980,6 +979,8 @@ SENTRY_FEATURES = {
     "organizations:sso-saml2": True,
     # Enable Rippling SSO functionality.
     "organizations:sso-rippling": False,
+    # Enable SCIM Provisioning functionality.
+    "organizations:sso-scim": False,
     # Enable workaround for migrating IdP instances
     "organizations:sso-migration": False,
     # Enable team based key transactions for performance
@@ -1000,6 +1001,10 @@ SENTRY_FEATURES = {
     "organizations:alert-wizard": True,
     # Enable the adoption chart in the releases page
     "organizations:release-adoption-chart": False,
+    # Enable the project level transaction thresholds
+    "organizations:project-transaction-threshold": False,
+    # Enable percent displays in issue stream
+    "organizations:issue-percent-display": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
@@ -2211,6 +2216,9 @@ SENTRY_PROJECT_COUNTER_STATEMENT_TIMEOUT = 1000
 
 # Implemented in getsentry to run additional devserver workers.
 SENTRY_EXTRA_WORKERS = None
+
+# A set of extra URLs to sample
+ADDITIONAL_SAMPLED_URLS = {}
 
 # This controls whether Sentry is run in a demo mode.
 # Enabling this will allow users to create accounts without an email or password.

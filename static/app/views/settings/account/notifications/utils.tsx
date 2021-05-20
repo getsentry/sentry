@@ -1,4 +1,10 @@
+import set from 'lodash/set';
+
 import {Organization, Project} from 'app/types';
+
+export type NotificationSettingsObject = {
+  [key: string]: {[key: string]: {[key: string]: {[key: string]: string}}};
+};
 
 // Which fine tuning parts are grouped by project
 export const isGroupedByProject = (type: string): boolean =>
@@ -53,28 +59,58 @@ export const getChoiceString = (choices: string[][], key: string): string => {
 export const backfillMissingProvidersWithFallback = (
   data: {[key: string]: string},
   providerList: string[],
-  fallbackValue: string
+  fallbackValue: string,
+  scopeType: string
 ): {[key: string]: string} => {
   /**
    * Transform `data` to include only providers expected in `providerList`.
    * Everything not in that list is set to "never". Missing values will be
    * backfilled either with a current value from `data` or `fallbackValue` if
-   * none are present.
+   * none are present. When wiping out a provider, set the parent-independent
+   * setting to "never" and all parent-specific settings to "default".
    *
    * For example:
-   * f({}, ["email"], "sometimes") = {"email": "sometimes"}
+   * f({}, ["email"], "sometimes", "user") = {"email": "sometimes"}
    *
-   * f({"email": "always", pagerduty: "always"}, ["email", "slack"], "sometimes") =
+   * f({"email": "always", pagerduty: "always"}, ["email", "slack"], "sometimes", "user) =
    * {"email": "always", "slack": "always", "pagerduty": "never"}
    */
   const entries: string[][] = [];
   let fallback = fallbackValue;
   for (const [provider, previousValue] of Object.entries(data)) {
     fallback = previousValue;
-    entries.push([provider, providerList.includes(provider) ? previousValue : 'never']);
+    let value;
+    if (providerList.includes(provider)) {
+      value = previousValue;
+    } else if (scopeType === 'user') {
+      value = 'never';
+    } else {
+      value = 'default';
+    }
+
+    entries.push([provider, value]);
   }
+
   for (const provider of providerList) {
     entries.push([provider, fallback]);
   }
   return Object.fromEntries(entries);
+};
+
+export const mergeNotificationSettings = (
+  ...objects: NotificationSettingsObject[]
+): NotificationSettingsObject => {
+  /** Deeply merge N notification settings objects (usually just 2). */
+  const output = {};
+  objects.map(settingsByType =>
+    Object.entries(settingsByType).map(([type, settingsByScopeType]) =>
+      Object.entries(settingsByScopeType).map(([scopeType, settingsByScopeId]) =>
+        Object.entries(settingsByScopeId).map(([scopeId, settingsByProvider]) => {
+          set(output, [type, scopeType, scopeId].join('.'), settingsByProvider);
+        })
+      )
+    )
+  );
+
+  return output;
 };

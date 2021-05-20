@@ -5,6 +5,8 @@ import zlib
 from django.conf import settings
 from django.core.exceptions import MiddlewareNotUsed
 
+from sentry.utils import metrics
+
 logger = logging.getLogger(__name__)
 Z_CHUNK = 1024 * 8
 
@@ -128,3 +130,8 @@ class DecompressBodyMiddleware:
             # remove the header. Otherwise, LazyData will attempt to re-decode
             # the body.
             del request.META["HTTP_CONTENT_ENCODING"]
+
+            metrics.incr(
+                "middleware.proxy.decompress_body.fired",
+                tags={"method": request.method, "path": request.path, "encoding": encoding},
+            )

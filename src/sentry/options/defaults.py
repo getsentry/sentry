@@ -1,13 +1,7 @@
 from sentry.logging import LoggingFormat
-from sentry.options import (
-    FLAG_ALLOW_EMPTY,
-    FLAG_IMMUTABLE,
-    FLAG_NOSTORE,
-    FLAG_PRIORITIZE_DISK,
-    FLAG_REQUIRED,
-    register,
-)
-from sentry.utils.types import Bool, Dict, Int, Sequence, String
+from sentry.options import (FLAG_ALLOW_EMPTY, FLAG_IMMUTABLE, FLAG_NOSTORE, FLAG_PRIORITIZE_DISK,
+                            FLAG_REQUIRED, register)
+from sentry.utils.types import Any, Bool, Dict, Int, Sequence, String
 
 # Cache
 # register('cache.backend', flags=FLAG_NOSTORE)
@@ -109,6 +103,9 @@ register(
     default={"url": "http://localhost:3021"},
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
 )
+
+# The ratio of requests for which the new stackwalking method should be compared against the old one
+register("symbolicator.compare_stackwalking_methods_rate", default=0.0)
 
 # Backend chart rendering via chartcuterie
 register("chart-rendering.enabled", default=False, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
@@ -308,10 +305,10 @@ register("store.race-free-group-creation-force-disable", default=False)
 
 
 # Killswitch for dropping events if they were to create groups
-register("store.load-shed-group-creation-projects", type=Sequence, default=[])
+register("store.load-shed-group-creation-projects", type=Any, default=[])
 
-# Killswitch for dropping events in ingest consumer or really anywhere
-register("store.load-shed-pipeline-projects", type=Sequence, default=[])
+# Killswitch for dropping events in ingest consumer
+register("store.load-shed-pipeline-projects", type=Any, default=[])
 
 # Switch for more performant project counter incr
 register("store.projectcounter-modern-upsert-sample-rate", default=0.0)
@@ -324,6 +321,15 @@ register("store.background-grouping-sample-rate", default=0.0)
 
 # True if background grouping should run before secondary and primary grouping
 register("store.background-grouping-before", default=False)
+
+# Killswitch for dropping events in ingest consumer (after parsing them)
+register("store.load-shed-parsed-pipeline-projects", type=Any, default=[])
+
+# Killswitch for dropping events in process_event
+register("store.load-shed-process-event-projects", type=Any, default=[])
+
+# Killswitch for dropping events in symbolicate_event
+register("store.load-shed-symbolicate-event-projects", type=Any, default=[])
 
 # All Relay options (statically authenticated Relays can be registered here)
 register("relay", default={})
