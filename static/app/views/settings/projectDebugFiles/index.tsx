@@ -193,7 +193,7 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
   }
 
   renderAppStoreConnectAlert(data?: AppStoreConnectValidationData) {
-    if (!data || Object.keys(data).every(key => data[key])) {
+    if (!data || (data.appstoreCredentialsValid && data.itunesSessionValid)) {
       return null;
     }
 
