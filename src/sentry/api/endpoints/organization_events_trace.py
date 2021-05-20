@@ -698,6 +698,11 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         # We sort orphans and roots separately because we always want the root(s) as the first element(s)
         root_traces.sort(key=child_sort_key)
         orphans.sort(key=child_sort_key)
+
+        if len(orphans) > 0:
+            sentry_sdk.set_tag("discover.trace-view.contains-orphans", "yes")
+            logger.warning("discover.trace-view.contains-orphans", extra=warning_extra)
+
         return [trace.full_dict(detailed) for trace in root_traces] + [
             orphan.full_dict(detailed) for orphan in orphans
         ]
