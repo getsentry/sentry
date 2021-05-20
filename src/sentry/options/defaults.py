@@ -324,3 +324,6 @@ register("store.background-grouping-sample-rate", default=0.0)
 
 # True if background grouping should run before secondary and primary grouping
 register("store.background-grouping-before", default=False)
+
+# All Relay options (statically authenticated Relays can be registered here)
+register("relay", default={})

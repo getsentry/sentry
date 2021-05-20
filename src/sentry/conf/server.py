@@ -4,6 +4,7 @@ These settings act as the default (base) settings for the Sentry-provided web-se
 
 import os
 import os.path
+import random
 import re
 import socket
 import sys
@@ -11,11 +12,18 @@ import tempfile
 from datetime import timedelta
 from urllib.parse import urlparse
 
+from celery.schedules import crontab
 from django.conf.global_settings import *  # NOQA
+from django.urls import reverse_lazy
+
+# Queue configuration
+from kombu import Exchange, Queue
 
 import sentry
 from sentry.utils.celery import crontab_with_minute_jitter
 from sentry.utils.types import type_from_value
+
+from .locale import CATALOGS
 
 
 def gettext_noop(s):
@@ -260,7 +268,6 @@ LANGUAGES = (
     ("zh-tw", gettext_noop("Traditional Chinese")),
 )
 
-from .locale import CATALOGS
 
 LANGUAGES = tuple((code, name) for code, name in LANGUAGES if code in CATALOGS)
 
@@ -418,7 +425,6 @@ CSRF_COOKIE_NAME = "sc"
 
 # Auth configuration
 
-from django.urls import reverse_lazy
 
 LOGIN_REDIRECT_URL = reverse_lazy("sentry-login-redirect")
 LOGIN_URL = reverse_lazy("sentry-login")
@@ -499,8 +505,6 @@ AUTH_PROVIDER_LABELS = {
     "visualstudio": "Visual Studio",
 }
 
-import random
-
 
 def SOCIAL_AUTH_DEFAULT_USERNAME():
     return random.choice(["Darth Vader", "Obi-Wan Kenobi", "R2-D2", "C-3PO", "Yoda"])
@@ -509,8 +513,6 @@ def SOCIAL_AUTH_DEFAULT_USERNAME():
 SOCIAL_AUTH_PROTECTED_USER_FIELDS = ["email"]
 SOCIAL_AUTH_FORCE_POST_DISCONNECT = True
 
-# Queue configuration
-from kombu import Exchange, Queue
 
 BROKER_URL = "redis://127.0.0.1:6379"
 BROKER_TRANSPORT_OPTIONS = {}
@@ -641,7 +643,6 @@ def create_partitioned_queues(name):
 create_partitioned_queues("counters")
 create_partitioned_queues("triggers")
 
-from celery.schedules import crontab
 
 # XXX: Make sure to register the monitor_id for each job in `SENTRY_CELERYBEAT_MONITORS`!
 CELERYBEAT_SCHEDULE_FILENAME = os.path.join(tempfile.gettempdir(), "sentry-celerybeat")
@@ -1997,6 +1998,8 @@ SENTRY_BUILTIN_SOURCES = {
 # Relay
 # List of PKs explicitly allowed by Sentry.  All relays here are always
 # registered as internal relays.
+# DEPRECATED !!! (18.May.2021) This entry has been deprecated in favour of
+# ~/.sentry/conf.yml (relay.static_auth)
 SENTRY_RELAY_WHITELIST_PK = [
     # NOTE (RaduW) This is the relay key for the relay instance used by devservices.
     # This should NOT be part of any production environment.

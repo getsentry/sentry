@@ -6,16 +6,28 @@ from rest_framework.authentication import BasicAuthentication, get_authorization
 from rest_framework.exceptions import AuthenticationFailed
 from sentry_relay import UnpackError
 
+from sentry import options
 from sentry.auth.system import SystemToken, is_internal_ip
 from sentry.models import ApiApplication, ApiKey, ApiToken, ProjectKey, Relay
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
+from sentry.utils import safe
 from sentry.utils.sdk import configure_scope
 
 
 def is_internal_relay(request, public_key):
     """
-    Checks if the relay is allowed to register, otherwise raises an exception
+    Checks if the relay is internal (authorised for all project configs)
     """
+    # check static settings
+    relay_options = options.get("relay")
+    relay_id = get_header_relay_id(request)
+    relay_info = safe.get_path(relay_options, "static_auth", relay_id)
+
+    if relay_info is not None and relay_info.get("internal") is True:
+        return True  # the requesting relay is registered as internal
+
+    # check legacy whitelisted public_key settings
+    # (we can't check specific relays but we can check public keys)
     if settings.DEBUG or public_key in settings.SENTRY_RELAY_WHITELIST_PK:
         return True
 
@@ -60,11 +72,24 @@ class RelayAuthentication(BasicAuthentication):
         with configure_scope() as scope:
             scope.set_tag("relay_id", relay_id)
 
-        try:
-            relay = Relay.objects.get(relay_id=relay_id)
-            relay.is_internal = is_internal_relay(request, relay.public_key)
-        except Relay.DoesNotExist:
-            raise AuthenticationFailed("Unknown relay")
+        # first see if we have a statically configured relay and therefore we don't
+        # need to go to the database for it
+        relay_options = options.get("relay")
+        relay_info = safe.get_path(relay_options, "static_auth", relay_id)
+
+        if relay_info is not None:
+            # we have a statically configured Relay
+            relay = Relay(
+                relay_id=relay_id,
+                public_key=relay_info.get("public_key"),
+                is_internal=relay_info.get("internal") is True,
+            )
+        else:
+            try:
+                relay = Relay.objects.get(relay_id=relay_id)
+                relay.is_internal = is_internal_relay(request, relay.public_key)
+            except Relay.DoesNotExist:
+                raise AuthenticationFailed("Unknown relay")
 
         try:
             data = relay.public_key_object.unpack(request.body, relay_sig, max_age=60 * 5)
