@@ -15,6 +15,7 @@ import MarkArea from 'app/components/charts/components/markArea';
 import MarkLine from 'app/components/charts/components/markLine';
 import EventsRequest from 'app/components/charts/eventsRequest';
 import LineChart, {LineChartSeries} from 'app/components/charts/lineChart';
+import {SectionHeading} from 'app/components/charts/styles';
 import {
   parseStatsPeriod,
   StatsPeriodType,
@@ -672,10 +673,14 @@ const ChartSummary = styled('div')`
   margin-right: auto;
 `;
 
-const SummaryText = styled('span')`
-  margin-top: ${space(0.25)};
+const SummaryText = styled(SectionHeading)`
+  flex: 1;
+  display: flex;
+  align-items: center;
+  margin: 0;
   font-weight: bold;
   font-size: ${p => p.theme.fontSizeSmall};
+  line-height: 1;
 `;
 
 const SummaryStats = styled('div')`
