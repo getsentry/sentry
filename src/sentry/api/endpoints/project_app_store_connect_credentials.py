@@ -47,10 +47,9 @@ To create and manage these credentials, several API endpoints exist:
 7. ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/validate/{id}/``
 
    Validate if an existing ITunes session is still active or if a new one needs to be
-   initiated by steps 2-4.  See :class:`AppStoreConnectCredentialsValidateEndpoint`.
+   initiated by steps 2-4.
 """
-import datetime
-from typing import Optional
+from datetime import datetime
 from uuid import uuid4
 
 import dateutil.parser
@@ -60,10 +59,14 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.bases.project import ProjectEndpoint, StrictProjectPermission
-from sentry.models import Project
+from sentry.api.exceptions import (
+    AppConnectAuthenticationError,
+    ItunesAuthenticationError,
+    ItunesTwoFactorAuthenticationRequired,
+)
 from sentry.utils import fernet_encrypt as encrypt
 from sentry.utils import json
-from sentry.utils.appleconnect import appstore_connect, itunes_connect
+from sentry.utils.appleconnect import appstore_connect, itunes_connect, validate_credentials
 from sentry.utils.appleconnect.itunes_connect import ITunesHeaders
 from sentry.utils.safe import get_path
 
@@ -82,14 +85,12 @@ SYMBOL_SOURCES_PROP_NAME = "sentry:symbol_sources"
 # The name of the feature flag which enables the App Store Connect symbol source.
 APP_STORE_CONNECT_FEATURE_NAME = "organizations:app-store-connect"
 
-# iTunes session token validity is 10-14 days so we like refreshing after 1 week.
-ITUNES_TOKEN_VALIDITY = datetime.timedelta(weeks=1)
 
+def get_app_store_credentials(project, credentials_id):
+    """Loads the appStoreConnect symbol source from project options.
 
-def get_app_store_config(
-    project: Project, credentials_id: Optional[str]
-) -> Optional[json.JSONData]:
-    """Returns the appStoreConnect symbol source config for a project."""
+    Returns the JSON of the matching appStoreConnect symbol source as it was stored.
+    """
     sources_config = project.get_option(SYMBOL_SOURCES_PROP_NAME)
 
     if credentials_id is None:
@@ -180,7 +181,7 @@ class AppStoreConnectAppsEndpoint(ProjectEndpoint):
         apps = appstore_connect.get_apps(session, credentials)
 
         if apps is None:
-            return Response("App connect authentication error.", status=401)
+            raise AppConnectAuthenticationError()
 
         apps = [{"name": app.name, "bundleId": app.bundle_id, "appId": app.app_id} for app in apps]
         result = {"apps": apps}
@@ -264,7 +265,7 @@ class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):
             }
             credentials["encrypted"] = encrypt.encrypt_object(encrypted, key)
             credentials["type"] = "appStoreConnect"
-            credentials["itunesCreated"] = validation_context.get("itunes_created")
+            credentials["refreshDate"] = datetime.utcnow()
             credentials["id"] = uuid4().hex
             credentials["name"] = "Apple App Store Connect"
             # TODO(flub): validate this using the JSON schema in sentry.lang.native.symbolicator
@@ -319,7 +320,7 @@ class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):
             return Response(serializer.errors, status=400)
 
         # get the existing credentials
-        symbol_source_config = get_app_store_config(project, credentials_id)
+        credentials = get_app_store_credentials(project, credentials_id)
         key = project.get_option(CREDENTIALS_KEY_NAME)
 
         if key is None or symbol_source_config is None:
@@ -361,7 +362,11 @@ class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):
 
         try:
             secrets.update(new_secrets)
-            symbol_source_config.update(new_credentials)
+            credentials.update(new_credentials)
+
+            credentials["encrypted"] = encrypt.encrypt_object(secrets, key)
+            credentials["refreshDate"] = datetime.utcnow()
+            credentials["id"] = uuid4().hex
 
             symbol_source_config["encrypted"] = encrypt.encrypt_object(secrets, key)
             symbol_source_config["itunesCreated"] = new_itunes_created
@@ -385,11 +390,8 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):
     {
         "appstoreCredentialsValid": true,
         "itunesSessionValid": true,
-        "itunesSessionRefreshAt": "YYYY-MM-DDTHH:MM:SS.SSSSSSZ" | null
     }
     ```
-
-    Here the ``itunesSessionRefreshAt`` is when we recommend to refresh the iTunes session.
     """
 
     permission_classes = [StrictProjectPermission]
@@ -400,7 +402,7 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):
         ):
             return Response(status=404)
 
-        symbol_source_cfg = get_app_store_config(project, credentials_id)
+        credentials = get_app_store_credentials(project, credentials_id)
         key = project.get_option(CREDENTIALS_KEY_NAME)
 
         if key is None or symbol_source_cfg is None:
@@ -415,30 +417,18 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):
             expiration_date = None
 
         try:
-            secrets = encrypt.decrypt_object(symbol_source_cfg.get("encrypted"), key)
+            validity = validate_credentials(project, credentials_id)
         except ValueError:
             return Response(status=500)
 
-        credentials = appstore_connect.AppConnectCredentials(
-            key_id=symbol_source_cfg.get("appconnectKey"),
-            key=secrets.get("appconnectPrivateKey"),
-            issuer_id=symbol_source_cfg.get("appconnectIssuer"),
-        )
-
-        session = requests.Session()
-        apps = appstore_connect.get_apps(session, credentials)
-
-        appstore_valid = apps is not None
-        itunes_connect.load_session_cookie(session, secrets.get("itunesSession"))
-        itunes_session_info = itunes_connect.get_session_info(session)
-
-        itunes_session_valid = itunes_session_info is not None
+        if validity is None:
+            return Response(status=404)
 
         return Response(
             {
-                "appstoreCredentialsValid": appstore_valid,
-                "itunesSessionValid": itunes_session_valid,
-                "itunesSessionRefreshAt": expiration_date if itunes_session_valid else None,
+                "appstoreCredentialsValid": validity.appstore_credentials_valid,
+                "itunesSessionValid": validity.itunes_session_valid,
+                "expirationDate": validity.expiration_date,
             },
             status=200,
         )
@@ -547,7 +537,7 @@ class AppStoreConnectStartAuthEndpoint(ProjectEndpoint):
             session, service_key=auth_key, account_name=user_name, password=password
         )
         if init_login_result is None:
-            return Response("ITunes login failed.", status=401)
+            raise ItunesAuthenticationError()
 
         # send session context to be used in next calls
         session_context = {
@@ -569,8 +559,6 @@ class AppStoreConnectRequestSmsSerializer(serializers.Serializer):
 
 class AppStoreConnectRequestSmsEndpoint(ProjectEndpoint):
     """Switches an ITunes login to using SMS for 2FA.
-
-    ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/requestSms/``
 
     You must have called :class:`AppStoreConnectStartAuthEndpoint`
     (``projects/{org_slug}/{proj_slug}/appstoreconnect/start/``) before calling this and
@@ -656,8 +644,6 @@ class AppStoreConnect2FactorAuthSerializer(serializers.Serializer):
 
 class AppStoreConnect2FactorAuthEndpoint(ProjectEndpoint):
     """Completes the 2FA ITunes login, returning a valid session.
-
-    ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/2fa/``
 
     The request most contain the code provided by the user as well as the ``sessionContext``
     provided by either the :class:`AppStoreConnectStartAuthEndpoint`
@@ -774,7 +760,7 @@ class AppStoreConnect2FactorAuthEndpoint(ProjectEndpoint):
 
                 return Response(response_body, status=200)
             else:
-                return Response("2FA failed.", status=401)
+                raise ItunesTwoFactorAuthenticationRequired()
 
         except ValueError:
             return Response("Invalid validation context passed.", status=400)
