@@ -158,7 +158,7 @@ function SymbolSources({api, organization, symbolSources, projectSlug}: Props) {
 
     return {
       successMessage: t('Successfully updated custom repository'),
-      errorMessage: t('An error occured while updating the custom repository'),
+      errorMessage: t('An error occurred while updating the custom repository'),
     };
   }
 
