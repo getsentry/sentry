@@ -7,58 +7,50 @@ from sentry.testutils import APITestCase
 class ProjectTransactionThresholdTest(APITestCase):
     feature_name = "organizations:project-transaction-threshold"
 
-    def test_get(self):
-        self.login_as(user=self.user)
-        project = self.create_project()
+    def setUp(self) -> None:
+        super().setUp()
 
-        ProjectTransactionThreshold.objects.create(
-            project=project, organization=project.organization, threshold=300, metric=1
+        self.login_as(user=self.user)
+        self.project = self.create_project()
+
+        self.url = reverse(
+            "sentry-api-0-project-transaction-threshold",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+            },
         )
 
-        url = reverse(
-            "sentry-api-0-project-transaction-threshold",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+    def test_get(self):
+        ProjectTransactionThreshold.objects.create(
+            project=self.project,
+            organization=self.project.organization,
+            threshold=300,
+            metric=TransactionMetric.DURATION.value,
         )
 
         with self.feature(self.feature_name):
-            response = self.client.get(url, format="json")
+            response = self.client.get(self.url, format="json")
 
         assert response.status_code == 200, response.content
         assert response.data["threshold"] == "300"
         assert response.data["metric"] == "duration"
 
     def test_get_returns_error_without_feature_enabled(self):
-        self.login_as(user=self.user)
-        project = self.create_project()
-
         ProjectTransactionThreshold.objects.create(
-            project=project,
-            organization=project.organization,
+            project=self.project,
+            organization=self.project.organization,
             threshold=300,
             metric=TransactionMetric.DURATION.value,
         )
 
-        url = reverse(
-            "sentry-api-0-project-transaction-threshold",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
-        )
-
-        response = self.client.get(url, format="json")
+        response = self.client.get(self.url, format="json")
         assert response.status_code == 404
 
     def test_create_project_threshold(self):
-        self.login_as(user=self.user)
-
-        project = self.create_project()
-
-        url = reverse(
-            "sentry-api-0-project-transaction-threshold",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
-        )
-
         with self.feature(self.feature_name):
             response = self.client.post(
-                url,
+                self.url,
                 data={
                     "metric": "duration",
                     "threshold": "300",
@@ -71,7 +63,7 @@ class ProjectTransactionThresholdTest(APITestCase):
         assert response.data["editedBy"] == str(self.user.id)
 
         assert ProjectTransactionThreshold.objects.filter(
-            project=project, organization=project.organization
+            project=self.project, organization=self.project.organization
         ).exists()
 
     def test_project_threshold_permissions(self):
@@ -117,18 +109,9 @@ class ProjectTransactionThresholdTest(APITestCase):
         assert response.status_code == 403
 
     def test_update_project_threshold(self):
-        self.login_as(user=self.user)
-
-        project = self.create_project()
-
-        url = reverse(
-            "sentry-api-0-project-transaction-threshold",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
-        )
-
         with self.feature(self.feature_name):
             response = self.client.post(
-                url,
+                self.url,
                 data={
                     "metric": "duration",
                     "threshold": "300",
@@ -141,7 +124,7 @@ class ProjectTransactionThresholdTest(APITestCase):
 
         with self.feature(self.feature_name):
             response = self.client.post(
-                url,
+                self.url,
                 data={
                     "metric": "lcp",
                     "threshold": "400",
@@ -153,29 +136,20 @@ class ProjectTransactionThresholdTest(APITestCase):
         assert response.data["metric"] == "lcp"
 
     def test_clear_project_threshold(self):
-        self.login_as(user=self.user)
-
-        project = self.create_project()
-
         ProjectTransactionThreshold.objects.create(
-            project=project,
-            organization=project.organization,
+            project=self.project,
+            organization=self.project.organization,
             threshold=300,
             metric=TransactionMetric.DURATION.value,
         )
         assert ProjectTransactionThreshold.objects.filter(
-            project=project, organization=project.organization
+            project=self.project, organization=self.project.organization
         ).exists()
 
-        url = reverse(
-            "sentry-api-0-project-transaction-threshold",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
-        )
-
         with self.feature(self.feature_name):
-            response = self.client.delete(url)
+            response = self.client.delete(self.url)
 
         assert response.status_code == 204
         assert not ProjectTransactionThreshold.objects.filter(
-            project=project, organization=project.organization
+            project=self.project, organization=self.project.organization
         ).exists()
