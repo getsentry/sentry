@@ -144,7 +144,7 @@ export enum IssueDisplayOptions {
   SESSIONS = 'sessions',
 }
 
-export function getDisplayLabel(key: string) {
+export function getDisplayLabel(key: IssueDisplayOptions) {
   switch (key) {
     case IssueDisplayOptions.SESSIONS:
       return t('Events as %');

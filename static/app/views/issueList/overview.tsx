@@ -1112,7 +1112,6 @@ class IssueListOverview extends React.Component<Props, State> {
                     allResultsVisible={this.allResultsVisible()}
                     hasInbox={hasFeature}
                     displayReprocessingActions={displayReprocessingActions}
-                    display={this.getDisplay()}
                   />
                   <PanelBody>
                     <ProcessingIssueList

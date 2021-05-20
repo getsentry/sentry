@@ -64,6 +64,7 @@ const DiscoveryExclusionFields: string[] = [
 ];
 
 export const DEFAULT_STREAM_GROUP_STATS_PERIOD = '24h';
+const DEFAULT_DISPLAY = IssueDisplayOptions.EVENTS;
 
 const defaultProps = {
   statsPeriod: DEFAULT_STREAM_GROUP_STATS_PERIOD,
@@ -71,13 +72,13 @@ const defaultProps = {
   withChart: true,
   useFilteredStats: false,
   useTintRow: true,
+  display: DEFAULT_DISPLAY,
 };
 
 type Props = {
   id: string;
   selection: GlobalSelection;
   organization: Organization;
-  display: IssueDisplayOptions;
   displayReprocessingLayout?: boolean;
   query?: string;
   hasGuideAnchor?: boolean;
@@ -85,6 +86,7 @@ type Props = {
   showInboxTime?: boolean;
   index?: number;
   customStatsPeriod?: TimePeriodType;
+  display?: IssueDisplayOptions;
   // TODO(ts): higher order functions break defaultprops export types
 } & Partial<typeof defaultProps>;
 
@@ -385,7 +387,7 @@ class StreamGroup extends React.Component<Props, State> {
     const primaryPercent =
       showSessions &&
       data.sessionCount &&
-      Number(primaryCount) / Number(data.sessionCount);
+      (Number(primaryCount) / Number(data.sessionCount)) * 100;
 
     return (
       <Wrapper
