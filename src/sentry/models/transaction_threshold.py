@@ -11,6 +11,13 @@ class TransactionMetric(Enum):
     FCP = 3
 
 
+TRANSACTION_METRICS = {
+    TransactionMetric.DURATION.value: "duration",
+    TransactionMetric.LCP.value: "lcp",
+    TransactionMetric.FCP.value: "fcp",
+}
+
+
 class ProjectTransactionThresholdOverride(DefaultFieldsModel):
     __core__ = False
 
