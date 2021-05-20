@@ -787,6 +787,21 @@ class GetSnubaQueryArgsTest(TestCase):
         with self.assertRaises(InvalidSearchQuery):
             get_filter("id:deadbeef*")
 
+    def test_event_id(self):
+        event_id = "a" * 32
+        results = get_filter(f"id:{event_id}")
+        assert results.conditions == [["id", "=", event_id]]
+
+        event_id = "a" * 16 + "-" * 16 + "b" * 16
+        results = get_filter(f"id:{event_id}")
+        assert results.conditions == [["id", "=", event_id]]
+
+        with self.assertRaises(InvalidSearchQuery):
+            get_filter("id:deadbeef")
+
+        with self.assertRaises(InvalidSearchQuery):
+            get_filter(f"id:{'g' * 32}")
+
     def test_negated_wildcard(self):
         _filter = get_filter("!release:3.1.* user.email:*@example.com")
         assert _filter.conditions == [
@@ -1187,6 +1202,15 @@ class GetSnubaQueryArgsTest(TestCase):
     def test_function_with_negative_arguments(self):
         result = get_filter("apdex(300):>-0.5")
         assert result.having == [["apdex_300", ">", -0.5]]
+
+    def test_function_with_bad_arguments(self):
+        result = get_filter("percentile(transaction.duration 0.75):>100")
+        assert result.having == []
+        assert result.conditions == [
+            _om("percentile"),
+            _om("transaction.duration 0.75"),
+            _om(":>100"),
+        ]
 
     def test_function_with_date_arguments(self):
         result = get_filter("last_seen():2020-04-01T19:34:52+00:00")

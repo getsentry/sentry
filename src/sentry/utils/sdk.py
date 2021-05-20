@@ -51,6 +51,8 @@ SAMPLED_URL_NAMES = {
     "sentry-api-0-organization-stats-v2",
     "sentry-api-0-project-stats",
 }
+if settings.ADDITIONAL_SAMPLED_URLS:
+    SAMPLED_URL_NAMES.update(settings.ADDITIONAL_SAMPLED_URLS)
 
 SAMPLED_TASKS = {
     "sentry.tasks.send_ping",
@@ -209,6 +211,41 @@ def traces_sampler(sampling_context):
     return float(settings.SENTRY_BACKEND_APM_SAMPLING or 0)
 
 
+# Patches the send_request function to check outgoing requests and patches the update_rate_limits function as it is first to be called after the response.
+# TODO(k-fish): Remove after backend transaction findings are in.
+def patch_transport_for_instrumentation(transport, transport_name):
+    _send_request = transport._send_request
+    if _send_request:
+
+        def patched_send_request(*args, **kwargs):
+            metrics.incr(f"internal.sent_requests.{transport_name}.events")
+            return _send_request(*args, **kwargs)
+
+        transport._send_request = patched_send_request
+
+    _update_rate_limits = transport._update_rate_limits
+    if _update_rate_limits:
+
+        def patched_update_rate_limits(*args, **kwargs):
+            metrics.incr(f"internal.update_rate_limits.{transport_name}.events")
+            return _update_rate_limits(*args, **kwargs)
+
+        transport._update_rate_limits = patched_update_rate_limits
+
+    _check_disabled = transport._check_disabled
+    if _check_disabled:
+
+        def patched_check_disabled(*args, **kwargs):
+            result = _check_disabled(*args, **kwargs)
+            if result:
+                metrics.incr(f"internal.check_disabled.{transport_name}.events.is_disabled")
+            return result
+
+        transport._check_disabled = patched_check_disabled
+
+    return transport
+
+
 def configure_sdk():
     from sentry_sdk.integrations.celery import CeleryIntegration
     from sentry_sdk.integrations.django import DjangoIntegration
@@ -225,16 +262,17 @@ def configure_sdk():
     sdk_options["traces_sampler"] = traces_sampler
 
     if upstream_dsn:
-        upstream_transport = make_transport(get_options(dsn=upstream_dsn, **sdk_options))
+        transport = make_transport(get_options(dsn=upstream_dsn, **sdk_options))
+        upstream_transport = patch_transport_for_instrumentation(transport, "upstream")
     else:
         upstream_transport = None
 
     if relay_dsn:
-        relay_transport = make_transport(get_options(dsn=relay_dsn, **sdk_options))
+        transport = make_transport(get_options(dsn=relay_dsn, **sdk_options))
+        relay_transport = patch_transport_for_instrumentation(transport, "relay")
     elif internal_project_key and internal_project_key.dsn_private:
-        relay_transport = make_transport(
-            get_options(dsn=internal_project_key.dsn_private, **sdk_options)
-        )
+        transport = make_transport(get_options(dsn=internal_project_key.dsn_private, **sdk_options))
+        relay_transport = patch_transport_for_instrumentation(transport, "relay")
     else:
         relay_transport = None
 
