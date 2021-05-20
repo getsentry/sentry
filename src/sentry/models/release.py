@@ -149,10 +149,10 @@ class Release(Model):
     patch = models.BigIntegerField(null=True)
     revision = models.BigIntegerField(null=True)
     prerelease = models.TextField(null=True)
-    build_code = models.TextField(null=True, db_index=True)
+    build_code = models.TextField(null=True)
     # If `build_code` can be parsed as a 64 bit int we'll store it here as well for
     # sorting/comparison purposes
-    build_number = models.BigIntegerField(null=True, db_index=True)
+    build_number = models.BigIntegerField(null=True)
 
     # HACK HACK HACK
     # As a transitionary step we permit release rows to exist multiple times
@@ -168,7 +168,11 @@ class Release(Model):
         # TODO(django2.2): Note that we create this index with each column ordered
         # descending. Django 2.2 allows us to specify functional indexes, which should
         # allow us to specify this on the model.
-        index_together = (("organization", "major", "minor", "patch", "revision"),)
+        index_together = (
+            ("organization", "major", "minor", "patch", "revision"),
+            ("organization", "build_code"),
+            ("organization", "build_number"),
+        )
 
     __repr__ = sane_repr("organization_id", "version")
 
