@@ -145,7 +145,7 @@ function SymbolSources({api, organization, symbolSources, projectSlug}: Props) {
     if (symbolSourcesQuantity > symbolSources.length) {
       return {
         successMessage: t('Successfully added custom repository'),
-        errorMessage: t('An error occured while adding a new custom repository'),
+        errorMessage: t('An error occurred while adding a new custom repository'),
       };
     }
 
