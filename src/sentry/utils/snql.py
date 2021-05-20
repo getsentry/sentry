@@ -51,8 +51,6 @@ dryrun_check = ReferrerCheck(
         "tsdb-modelid:200",
         "tsdb-modelid:202",
         "tsdb-modelid:100",
-        "eventstore.get_next_or_prev_event_id",
-        "tagstore.get_tag_value_paginator_for_projects",
     },
     allowlist=set(),
     prefixes=[
@@ -62,19 +60,15 @@ dryrun_check = ReferrerCheck(
         "incidents.",
         "tagstore.",
         "group.",
-        "search.",
+        "search",
         "serializers.",
         "eventstore.",
-        "search_sample.",
+        "search_sample",
         "testing.test",
+        "api.",
+        "discover",
     ],
-    by_entity={
-        "api.performance.durationpercentilechart": "discover_transactions",
-        "api.performance.vital-detail": "discover_transactions",
-        "api.performance.status-breakdown": "discover_transactions",
-        "api.trends.get-percentage-change": "discover_transactions",
-        "api.performance.transaction-summary": "discover_transactions",
-    },
+    by_entity={},
 )
 
 snql_check = ReferrerCheck(
