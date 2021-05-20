@@ -1,9 +1,20 @@
+import {Component} from 'react';
+
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import TeamKeyTransaction from 'app/components/performance/teamKeyTransaction';
 
-function TestTitle({disabled, keyedTeamsCount}) {
-  return <p>{disabled ? 'disabled' : `count: ${keyedTeamsCount}`}</p>;
+class TestButton extends Component {
+  render() {
+    const {keyedTeamsCount, ...props} = this.props;
+    return <button {...props}>{`count: ${keyedTeamsCount}`}</button>;
+  }
+}
+
+async function openTeamKeyTransactionDropdown(wrapper) {
+  wrapper.find('TestButton').simulate('click');
+  await tick();
+  wrapper.update();
 }
 
 describe('TeamKeyTransaction', function () {
@@ -15,7 +26,6 @@ describe('TeamKeyTransaction', function () {
   ];
 
   beforeEach(function () {
-    jest.clearAllMocks();
     MockApiClient.clearMockResponses();
   });
 
@@ -32,16 +42,17 @@ describe('TeamKeyTransaction', function () {
         organization={organization}
         teams={teams}
         transactionName="transaction"
-        title={TestTitle}
+        title={TestButton}
       />
     );
-
     await tick();
     wrapper.update();
 
+    openTeamKeyTransactionDropdown(wrapper);
+
     // header should show the checked state
     expect(getTeamKeyTransactionsMock).toHaveBeenCalledTimes(1);
-    expect(wrapper.find('TestTitle').exists()).toBeTruthy();
+    expect(wrapper.find('TestButton').exists()).toBeTruthy();
     const header = wrapper.find('DropdownMenuHeader');
     expect(header.exists()).toBeTruthy();
     expect(header.find('StyledCheckbox').props().isChecked).toBeTruthy();
@@ -69,12 +80,14 @@ describe('TeamKeyTransaction', function () {
         organization={organization}
         teams={teams}
         transactionName="transaction"
-        title={TestTitle}
+        title={TestButton}
       />
     );
 
     await tick();
     wrapper.update();
+
+    openTeamKeyTransactionDropdown(wrapper);
 
     // header should show the indeterminate state
     const header = wrapper.find('DropdownMenuHeader');
@@ -105,12 +118,13 @@ describe('TeamKeyTransaction', function () {
         organization={organization}
         teams={teams}
         transactionName="transaction"
-        title={TestTitle}
+        title={TestButton}
       />
     );
-
     await tick();
     wrapper.update();
+
+    openTeamKeyTransactionDropdown(wrapper);
 
     // header should show the unchecked state
     const header = wrapper.find('DropdownMenuHeader');
@@ -157,15 +171,15 @@ describe('TeamKeyTransaction', function () {
         organization={organization}
         teams={teams}
         transactionName="transaction"
-        title={TestTitle}
+        title={TestButton}
       />
     );
-
     await tick();
     wrapper.update();
 
-    wrapper.find('DropdownMenuItem').first().simulate('click');
+    openTeamKeyTransactionDropdown(wrapper);
 
+    wrapper.find('DropdownMenuItem').first().simulate('click');
     await tick();
     wrapper.update();
 
@@ -204,15 +218,15 @@ describe('TeamKeyTransaction', function () {
         organization={organization}
         teams={teams}
         transactionName="transaction"
-        title={TestTitle}
+        title={TestButton}
       />
     );
-
     await tick();
     wrapper.update();
 
-    wrapper.find('DropdownMenuItem').first().simulate('click');
+    openTeamKeyTransactionDropdown(wrapper);
 
+    wrapper.find('DropdownMenuItem').first().simulate('click');
     await tick();
     wrapper.update();
 
@@ -252,22 +266,22 @@ describe('TeamKeyTransaction', function () {
         organization={organization}
         teams={teams}
         transactionName="transaction"
-        title={TestTitle}
+        title={TestButton}
       />
     );
-
     await tick();
     wrapper.update();
 
-    wrapper.find('DropdownMenuHeader').simulate('click');
+    openTeamKeyTransactionDropdown(wrapper);
 
+    wrapper.find('DropdownMenuHeader StyledCheckbox').simulate('click');
     await tick();
     wrapper.update();
 
     // header should be checked now
-    const header = wrapper.find('DropdownMenuHeader');
-    expect(header.find('StyledCheckbox').props().isChecked).toBeTruthy();
-    expect(header.find('StyledCheckbox').props().isIndeterminate).toBeFalsy();
+    const headerCheckbox = wrapper.find('DropdownMenuHeader StyledCheckbox');
+    expect(headerCheckbox.props().isChecked).toBeTruthy();
+    expect(headerCheckbox.props().isIndeterminate).toBeFalsy();
 
     // all teams should be checked now
     const entries = wrapper.find('DropdownMenuItem');
@@ -308,22 +322,22 @@ describe('TeamKeyTransaction', function () {
         organization={organization}
         teams={teams}
         transactionName="transaction"
-        title={TestTitle}
+        title={TestButton}
       />
     );
-
     await tick();
     wrapper.update();
 
-    wrapper.find('DropdownMenuHeader').simulate('click');
+    openTeamKeyTransactionDropdown(wrapper);
 
+    wrapper.find('DropdownMenuHeader StyledCheckbox').simulate('click');
     await tick();
     wrapper.update();
 
     // header should be unchecked now
-    const header = wrapper.find('DropdownMenuHeader');
-    expect(header.find('StyledCheckbox').props().isChecked).toBeFalsy();
-    expect(header.find('StyledCheckbox').props().isIndeterminate).toBeFalsy();
+    const headerCheckbox = wrapper.find('DropdownMenuHeader StyledCheckbox');
+    expect(headerCheckbox.props().isChecked).toBeFalsy();
+    expect(headerCheckbox.props().isIndeterminate).toBeFalsy();
 
     // all teams should be unchecked now
     const entries = wrapper.find('DropdownMenuItem');
