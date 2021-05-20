@@ -279,7 +279,7 @@ def from_request(request, organization=None, scopes=None):
         # we special case superuser so that if they're a member of the org
         # they must still follow SSO checks, but they gain global access
         try:
-            member = OrganizationMember.objects.get(user=request.user, organization=organization)
+            member = request.get_organization_member(organization_id=organization.id)
         except OrganizationMember.DoesNotExist:
             requires_sso, sso_is_valid = False, True
         else:
@@ -306,7 +306,7 @@ def from_request(request, organization=None, scopes=None):
     if hasattr(request, "auth") and not request.user.is_authenticated:
         return from_auth(request.auth, scopes=scopes)
 
-    return from_user(request.user, organization, scopes=scopes)
+    return from_user(request.user, organization, scopes=scopes, request=request)
 
 
 # only used internally
@@ -337,7 +337,7 @@ def _from_sentry_app(user, organization=None):
     )
 
 
-def from_user(user, organization=None, scopes=None):
+def from_user(user, organization=None, scopes=None, request=None):
     if not user or user.is_anonymous() or not user.is_active:
         return DEFAULT
 
@@ -345,7 +345,11 @@ def from_user(user, organization=None, scopes=None):
         return OrganizationlessAccess(permissions=UserPermission.for_user(user.id))
 
     try:
-        om = OrganizationMember.objects.get(user=user, organization=organization)
+        # try to use get_organization_member if we can on the request
+        if request:
+            om = request.get_organization_member(organization.id)
+        else:
+            om = OrganizationMember.objects.get(user=user, organization=organization)
     except OrganizationMember.DoesNotExist:
         return OrganizationlessAccess(permissions=UserPermission.for_user(user.id))
 

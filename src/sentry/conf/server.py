@@ -302,6 +302,7 @@ MIDDLEWARE_CLASSES = (
     "sentry.middleware.superuser.SuperuserMiddleware",
     "sentry.middleware.locale.SentryLocaleMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
+    "sentry.middleware.auth.OrganizationMemberMiddleware",
 )
 
 ROOT_URLCONF = "sentry.conf.urls"
