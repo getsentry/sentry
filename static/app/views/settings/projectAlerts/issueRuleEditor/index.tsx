@@ -36,6 +36,7 @@ import {
 } from 'app/types/alerts';
 import {metric} from 'app/utils/analytics';
 import {getDisplayName} from 'app/utils/environment';
+import {isActiveSuperuser} from 'app/utils/isActiveSuperuser';
 import recreateRoute from 'app/utils/recreateRoute';
 import routeTitleGen from 'app/utils/routeTitle';
 import withOrganization from 'app/utils/withOrganization';
@@ -518,7 +519,13 @@ class IssueRuleEditor extends AsyncView<Props, State> {
 
     const userTeams = new Set(teams.filter(({isMember}) => isMember).map(({id}) => id));
     const ownerId = rule?.owner?.split(':')[1];
-    const canEdit = ownerId ? userTeams.has(ownerId) : true;
+    // check if superuser or if user is on the alert's team
+    const canEdit = isActiveSuperuser() || (ownerId ? userTeams.has(ownerId) : true);
+
+    const filteredTeamIds = new Set(...userTeams);
+    if (ownerId) {
+      filteredTeamIds.add(ownerId);
+    }
 
     // Note `key` on `<Form>` below is so that on initial load, we show
     // the form with a loading mask on top of it, but force a re-render by using
@@ -585,8 +592,9 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                         organization={organization}
                         value={this.getTeamId()}
                         onChange={this.handleOwnerChange}
-                        filteredTeamIds={userTeams}
+                        filteredTeamIds={filteredTeamIds}
                         includeUnassigned
+                        disabled={!hasAccess || !canEdit}
                       />
                     </StyledField>
                   </Feature>
@@ -608,6 +616,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                         this.handleChange('name', event.target.value)
                       }
                       onBlur={this.handleValidateRuleName}
+                      disabled={!hasAccess || !canEdit}
                     />
                   </StyledField>
                 </PanelBody>
