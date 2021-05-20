@@ -25,7 +25,7 @@ function BuildInSymbolSources({
     if (builtinSymbolSourcesQuantity > builtinSymbolSources.length) {
       return {
         successMessage: t('Successfully added built-in repository'),
-        errorMessage: t('An error occured while adding new built-in repository'),
+        errorMessage: t('An error occurred while adding new built-in repository'),
       };
     }
 
