@@ -20,6 +20,7 @@ import Breadcrumb from 'app/views/performance/breadcrumb';
 import {tagsRouteWithQuery} from './transactionTags/utils';
 import {vitalsRouteWithQuery} from './transactionVitals/utils';
 import KeyTransactionButton from './keyTransactionButton';
+import TeamKeyTransactionButton from './teamKeyTransactionButton';
 import {transactionSummaryRouteWithQuery} from './utils';
 
 export enum Tab {
@@ -97,11 +98,23 @@ class TransactionHeader extends React.Component<Props> {
     const {eventView, organization, transactionName} = this.props;
 
     return (
-      <KeyTransactionButton
-        transactionName={transactionName}
-        eventView={eventView}
-        organization={organization}
-      />
+      <Feature organization={organization} features={['team-key-transactions']}>
+        {({hasFeature}) =>
+          hasFeature ? (
+            <TeamKeyTransactionButton
+              transactionName={transactionName}
+              eventView={eventView}
+              organization={organization}
+            />
+          ) : (
+            <KeyTransactionButton
+              transactionName={transactionName}
+              eventView={eventView}
+              organization={organization}
+            />
+          )
+        }
+      </Feature>
     );
   }
 
