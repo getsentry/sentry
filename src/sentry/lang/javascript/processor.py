@@ -689,7 +689,6 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         """
         Attempt to demangle the given frame.
         """
-
         frame = processable_frame.frame
         token = None
 
@@ -956,6 +955,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                     release=self.release,
                     dist=self.dist,
                     allow_scraping=self.allow_scraping,
+                    use_release_archive=self.use_release_archive,
                 )
         except http.BadSource as exc:
             # most people don't upload release artifacts for their third-party libraries,
