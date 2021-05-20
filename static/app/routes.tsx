@@ -766,7 +766,6 @@ function routes() {
           componentPromise={() => import('app/views/sentryAppExternalInstallation')}
           component={errorHandler(LazyLoad)}
         />
-
         <Redirect from="/account/" to="/settings/account/details/" />
 
         <Redirect from="/share/group/:shareId/" to="/share/issue/:shareId/" />
@@ -789,6 +788,12 @@ function routes() {
         />
 
         <Route
+          path="/organizations/:orgId/disabled-member/"
+          componentPromise={() => import('app/views/disabledMember')}
+          component={errorHandler(LazyLoad)}
+        />
+
+        <Route
           path="/join-request/:orgId/"
           componentPromise={() => import('app/views/organizationJoinRequest')}
           component={errorHandler(LazyLoad)}
@@ -802,12 +807,6 @@ function routes() {
             component={errorHandler(LazyLoad)}
           />
         </Route>
-
-        <Route
-          path="/disabled-member/:orgId/"
-          componentPromise={() => import('app/views/disabledMember')}
-          component={errorHandler(LazyLoad)}
-        />
 
         {/* Settings routes */}
         <Route component={errorHandler(OrganizationDetails)}>

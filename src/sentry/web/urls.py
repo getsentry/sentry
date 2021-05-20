@@ -318,11 +318,6 @@ urlpatterns += [
     url(r"^onboarding/", generic_react_page_view),
     # Admin
     url(r"^manage/", react_page_view, name="sentry-admin-overview"),
-    url(
-        r"^disabled-member/(?P<organization_slug>[^/]+)/$",
-        DisabledMemberView.as_view(),
-        name="sentry-organization-disabled-member",
-    ),
     # Legacy Redirects
     url(
         r"^docs/?$",
@@ -541,6 +536,11 @@ urlpatterns += [
                     r"^(?P<organization_slug>[\w_-]+)/restore/$",
                     RestoreOrganizationView.as_view(),
                     name="sentry-restore-organization",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^/]+)/disabled-member/$",
+                    DisabledMemberView.as_view(),
+                    name="sentry-organization-disabled-member",
                 ),
                 # need to force these to React and ensure organization_slug is captured
                 # TODO(RyanSkonnord): Generalize to all pages without regressing
