@@ -547,6 +547,10 @@ class TraceDetailsContent extends React.Component<Props, State> {
                     <DividerSpacer />
                   </TraceViewHeaderContainer>
                   <TraceViewContainer ref={this.traceViewRef}>
+                    <colgroup>
+                      <col span={1} style={{width: toPercent(dividerPosition)}} />
+                      <col span={1} style={{width: toPercent(1 - dividerPosition)}} />
+                    </colgroup>
                     <AnchorLinkManager.Provider>
                       <TransactionGroup
                         location={location}

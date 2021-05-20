@@ -298,26 +298,32 @@ class TransactionBar extends React.Component<Props, State> {
     const {dividerPosition, addGhostDividerLineRef} = dividerHandlerChildrenProps;
 
     return (
-      <DividerLineGhostContainer
-        style={{
-          width: `calc(${toPercent(dividerPosition)} + 0.5px)`,
-          display: 'none',
-        }}
-      >
-        <DividerLine
-          ref={addGhostDividerLineRef()}
-          style={{
-            right: 0,
-          }}
-          className="hovering"
-          onClick={event => {
-            // the ghost divider line should not be interactive.
-            // we prevent the propagation of the clicks from this component to prevent
-            // the span detail from being opened.
-            event.stopPropagation();
-          }}
-        />
-      </DividerLineGhostContainer>
+      <td style={{all: 'unset'}}>
+        {!this.state.showDetail && (
+          <DividerLineGhostContainer
+            style={{
+              width: toPercent(dividerPosition),
+              display: 'none',
+              left: 0,
+              height: `${ROW_HEIGHT}px`,
+            }}
+          >
+            <DividerLine
+              ref={addGhostDividerLineRef()}
+              style={{
+                right: '-1px',
+              }}
+              className="hovering"
+              onClick={event => {
+                // the ghost divider line should not be interactive.
+                // we prevent the propagation of the clicks from this component to prevent
+                // the span detail from being opened.
+                event.stopPropagation();
+              }}
+            />
+          </DividerLineGhostContainer>
+        )}
+      </td>
     );
   }
 
@@ -379,42 +385,56 @@ class TransactionBar extends React.Component<Props, State> {
     const {dividerPosition} = dividerHandlerChildrenProps;
 
     return (
-      <RowCellContainer showDetail={showDetail}>
-        <RowCell
-          data-test-id="transaction-row-title"
-          data-type="span-row-cell"
-          style={{
-            width: `calc(${toPercent(dividerPosition)} - 0.5px)`,
-            paddingTop: 0,
-          }}
-          showDetail={showDetail}
-          onClick={this.toggleDisplayDetail}
-        >
-          <GuideAnchor target="trace_view_guide_row" disabled={!hasGuideAnchor}>
-            {this.renderTitle(scrollbarManagerChildrenProps)}
-          </GuideAnchor>
-        </RowCell>
-        <DividerContainer>
-          {this.renderDivider(dividerHandlerChildrenProps)}
-          {this.renderErrorBadge()}
-        </DividerContainer>
-        <RowCell
-          data-test-id="transaction-row-duration"
-          data-type="span-row-cell"
-          showStriping={index % 2 !== 0}
-          style={{
-            width: `calc(${toPercent(1 - dividerPosition)} - 0.5px)`,
-            paddingTop: 0,
-          }}
-          showDetail={showDetail}
-          onClick={this.toggleDisplayDetail}
-        >
-          <GuideAnchor target="trace_view_guide_row_details" disabled={!hasGuideAnchor}>
-            {this.renderRectangle()}
-          </GuideAnchor>
-        </RowCell>
-        {!showDetail && this.renderGhostDivider(dividerHandlerChildrenProps)}
-      </RowCellContainer>
+      <React.Fragment>
+        <td style={{position: 'relative'}}>
+          <RowCell
+            data-test-id="transaction-row-title"
+            data-type="span-row-cell"
+            style={{
+              height: `${ROW_HEIGHT}px`,
+              top: 0,
+              left: 0,
+            }}
+            showDetail={showDetail}
+            onClick={this.toggleDisplayDetail}
+          >
+            <GuideAnchor target="trace_view_guide_row" disabled={!hasGuideAnchor}>
+              {this.renderTitle(scrollbarManagerChildrenProps)}
+            </GuideAnchor>
+          </RowCell>
+          <div
+            style={{
+              position: 'absolute',
+              top: 0,
+              right: `-1px`,
+              width: '1px',
+              height: '100%',
+            }}
+          >
+            {this.renderDivider(dividerHandlerChildrenProps)}
+            {this.renderErrorBadge()}
+          </div>
+        </td>
+        <td style={{position: 'relative'}}>
+          <RowCell
+            data-test-id="transaction-row-duration"
+            data-type="span-row-cell"
+            showStriping={index % 2 !== 0}
+            style={{
+              height: `${ROW_HEIGHT}px`,
+              top: 0,
+              left: 0,
+            }}
+            showDetail={showDetail}
+            onClick={this.toggleDisplayDetail}
+          >
+            <GuideAnchor target="trace_view_guide_row_details" disabled={!hasGuideAnchor}>
+              {this.renderRectangle()}
+            </GuideAnchor>
+          </RowCell>
+        </td>
+        {this.renderGhostDivider(dividerHandlerChildrenProps)}
+      </React.Fragment>
     );
   }
 
@@ -446,12 +466,16 @@ class TransactionBar extends React.Component<Props, State> {
           }
 
           return (
-            <TransactionDetail
-              location={location}
-              organization={organization}
-              transaction={transaction}
-              scrollToHash={scrollToHash}
-            />
+            <tr>
+              <td colSpan={2}>
+                <TransactionDetail
+                  location={location}
+                  organization={organization}
+                  transaction={transaction}
+                  scrollToHash={scrollToHash}
+                />
+              </td>
+            </tr>
           );
         }}
       </AnchorLinkManager.Consumer>
@@ -463,26 +487,28 @@ class TransactionBar extends React.Component<Props, State> {
     const {showDetail} = this.state;
 
     return (
-      <Row
-        ref={this.transactionRowDOMRef}
-        visible={isVisible}
-        showBorder={showDetail}
-        cursor={isTraceFullDetailed(transaction) ? 'pointer' : 'default'}
-      >
-        <ScrollbarManager.Consumer>
-          {scrollbarManagerChildrenProps => (
-            <DividerHandlerManager.Consumer>
-              {dividerHandlerChildrenProps =>
-                this.renderHeader({
-                  dividerHandlerChildrenProps,
-                  scrollbarManagerChildrenProps,
-                })
-              }
-            </DividerHandlerManager.Consumer>
-          )}
-        </ScrollbarManager.Consumer>
+      <React.Fragment>
+        <Row
+          ref={this.transactionRowDOMRef}
+          visible={isVisible}
+          showBorder={showDetail}
+          cursor={isTraceFullDetailed(transaction) ? 'pointer' : 'default'}
+        >
+          <ScrollbarManager.Consumer>
+            {scrollbarManagerChildrenProps => (
+              <DividerHandlerManager.Consumer>
+                {dividerHandlerChildrenProps =>
+                  this.renderHeader({
+                    dividerHandlerChildrenProps,
+                    scrollbarManagerChildrenProps,
+                  })
+                }
+              </DividerHandlerManager.Consumer>
+            )}
+          </ScrollbarManager.Consumer>
+        </Row>
         {this.renderDetail()}
-      </Row>
+      </React.Fragment>
     );
   }
 }
