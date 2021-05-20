@@ -1,3 +1,6 @@
+import {MouseEvent} from 'react';
+import {browserHistory} from 'react-router';
+import {Location} from 'history';
 import isNumber from 'lodash/isNumber';
 import isString from 'lodash/isString';
 import set from 'lodash/set';
@@ -596,4 +599,29 @@ export function getMeasurementBounds(
       return _exhaustiveCheck;
     }
   }
+}
+
+export function scrollToSpan(
+  spanId: string,
+  scrollToHash: (hash: string) => void,
+  location: Location
+) {
+  return (e: MouseEvent<Element>) => {
+    // do not use the default anchor behaviour
+    // because it will be hidden behind the minimap
+    e.preventDefault();
+
+    const hash = `#span-${spanId}`;
+
+    scrollToHash(hash);
+
+    // TODO(txiao): This is causing a rerender of the whole page,
+    // which can be slow.
+    //
+    // make sure to update the location
+    browserHistory.push({
+      ...location,
+      hash,
+    });
+  };
 }
