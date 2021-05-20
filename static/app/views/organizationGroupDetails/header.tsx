@@ -136,10 +136,6 @@ class GroupHeader extends React.Component<Props, State> {
 
     let className = 'group-detail';
 
-    if (group.isBookmarked) {
-      className += ' isBookmarked';
-    }
-
     if (group.hasSeen) {
       className += ' hasSeen';
     }
