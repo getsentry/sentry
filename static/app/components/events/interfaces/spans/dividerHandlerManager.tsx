@@ -125,8 +125,6 @@ export class Provider extends React.Component<PropType, StateType> {
       dividerDOM.style.cursor = 'col-resize';
     });
 
-    document.body.style.setProperty('--ghost-divider-display', 'block');
-
     selectRefs(this.ghostDividerLineRefs, (dividerDOM: HTMLDivElement) => {
       dividerDOM.style.cursor = 'col-resize';
 
@@ -202,9 +200,6 @@ export class Provider extends React.Component<PropType, StateType> {
       dividerDOM.style.backgroundColor = '';
       dividerDOM.style.cursor = '';
     });
-
-    document.body.style.removeProperty('--ghost-divider-handle-position');
-    document.body.style.removeProperty('--ghost-divider-display');
 
     selectRefs(this.ghostDividerLineRefs, (dividerDOM: HTMLDivElement) => {
       dividerDOM.style.cursor = '';

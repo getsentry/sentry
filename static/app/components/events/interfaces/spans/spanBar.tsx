@@ -913,15 +913,14 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
           {!this.state.showDetail && (
             <DividerLineGhostContainer
               style={{
-                width: `var(--ghost-divider-handle-position, ${toPercent(
-                  dividerPosition
-                )})`,
-                display: 'var(--ghost-divider-display, none)',
+                width: toPercent(dividerPosition),
+                display: 'none',
                 left: 0,
                 height: `${ROW_HEIGHT}px`,
               }}
             >
               <DividerLine
+                ref={addGhostDividerLineRef()}
                 style={{
                   right: '-1px',
                 }}
