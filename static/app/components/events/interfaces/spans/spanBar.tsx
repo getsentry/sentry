@@ -870,6 +870,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
             }}
           >
             {this.renderDivider(dividerHandlerChildrenProps)}
+            {this.renderErrorBadge(errors)}
           </div>
         </td>
         <td style={{position: 'relative'}}>
