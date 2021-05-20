@@ -21,7 +21,7 @@ class ProjectTransactionThresholdSerializer(serializers.Serializer):
 
     def validate_threshold(self, threshold):
         if threshold % 100:
-            raise serializers.ValidationError("Invalid threshold: specify a multiple of 100")
+            raise serializers.ValidationError("Invalid threshold - specify a multiple of 100")
 
         return threshold
 
@@ -36,7 +36,7 @@ class ProjectTransactionThresholdEndpoint(ProjectEndpoint):
 
     def get(self, request, project):
         if not self.has_feature(project, request):
-            return self.respond(status=404)
+            return self.respond(status=status.HTTP_404_NOT_FOUND)
 
         try:
             project_threshold = ProjectTransactionThreshold.objects.get(
@@ -56,7 +56,7 @@ class ProjectTransactionThresholdEndpoint(ProjectEndpoint):
 
     def post(self, request, project):
         if not self.has_feature(project, request):
-            return self.respond(status=404)
+            return self.respond(status=status.HTTP_404_NOT_FOUND)
 
         serializer = ProjectTransactionThresholdSerializer(data=request.data)
 
@@ -86,7 +86,7 @@ class ProjectTransactionThresholdEndpoint(ProjectEndpoint):
 
     def delete(self, request, project):
         if not self.has_feature(project, request):
-            return self.respond(status=404)
+            return self.respond(status=status.HTTP_404_NOT_FOUND)
 
         try:
             project_threshold = ProjectTransactionThreshold.objects.get(
