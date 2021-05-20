@@ -165,28 +165,28 @@ export default class DetailsBody extends React.Component<Props> {
     return (
       <React.Fragment>
         <SidebarGroup>
-          <SidebarHeading>{t('Metric')}</SidebarHeading>
+          <Heading>{t('Metric')}</Heading>
           <RuleText>{this.getMetricText()}</RuleText>
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarHeading>{t('Environment')}</SidebarHeading>
+          <Heading>{t('Environment')}</Heading>
           <RuleText>{rule.environment ?? 'All'}</RuleText>
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarHeading>{t('Filters')}</SidebarHeading>
+          <Heading>{t('Filters')}</Heading>
           {this.getFilter()}
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarHeading>{t('Conditions')}</SidebarHeading>
+          <Heading>{t('Conditions')}</Heading>
           {criticalTrigger && this.renderTrigger(criticalTrigger)}
           {warningTrigger && this.renderTrigger(warningTrigger)}
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarHeading>{t('Other Details')}</SidebarHeading>
+          <Heading>{t('Other Details')}</Heading>
           <KeyValueTable>
             <Feature features={['organizations:team-alerts-ownership']}>
               <KeyValueTableRow
@@ -234,15 +234,15 @@ export default class DetailsBody extends React.Component<Props> {
     return (
       <StatusContainer>
         <div>
-          <SidebarHeading noMargin>{t('Status')}</SidebarHeading>
+          <Heading noMargin>{t('Status')}</Heading>
           <ItemValue>
             <AlertBadge status={status} />
           </ItemValue>
         </div>
         <div>
-          <SidebarHeading noMargin>
+          <Heading noMargin>
             {activeIncident ? t('Last Triggered') : t('Last Resolved')}
-          </SidebarHeading>
+          </Heading>
           <ItemValue>{activityDate ? <TimeSince date={activityDate} /> : '-'}</ItemValue>
         </div>
       </StatusContainer>
@@ -307,8 +307,8 @@ export default class DetailsBody extends React.Component<Props> {
                 <Layout.Main>
                   <HeaderContainer>
                     <HeaderGrid>
-                      <div>
-                        <SidebarHeading noMargin>{t('Display')}</SidebarHeading>
+                      <HeaderItem>
+                        <Heading noMargin>{t('Display')}</Heading>
                         <ChartControls>
                           <DropdownControl label={timePeriod.display}>
                             {TIME_OPTIONS.map(({label, value}) => (
@@ -322,16 +322,16 @@ export default class DetailsBody extends React.Component<Props> {
                             ))}
                           </DropdownControl>
                         </ChartControls>
-                      </div>
+                      </HeaderItem>
                       {projects && projects.length && (
-                        <div>
-                          <SidebarHeading noMargin>{t('Project')}</SidebarHeading>
+                        <HeaderItem>
+                          <Heading noMargin>{t('Project')}</Heading>
 
                           <IdBadge avatarSize={16} project={projects[0]} />
-                        </div>
+                        </HeaderItem>
                       )}
-                      <div>
-                        <SidebarHeading noMargin>
+                      <HeaderItem>
+                        <Heading noMargin>
                           {t('Time Interval')}
                           <Tooltip
                             title={t(
@@ -340,10 +340,10 @@ export default class DetailsBody extends React.Component<Props> {
                           >
                             <IconInfo size="xs" color="gray200" />
                           </Tooltip>
-                        </SidebarHeading>
+                        </Heading>
 
                         <RuleText>{this.getTimeWindow()}</RuleText>
-                      </div>
+                      </HeaderItem>
                     </HeaderGrid>
                   </HeaderContainer>
 
@@ -435,8 +435,20 @@ const HeaderContainer = styled('div')`
 const HeaderGrid = styled('div')`
   display: grid;
   grid-template-columns: auto auto auto;
-  align-items: flex-start;
-  gap: ${space(4)};
+  align-items: stretch;
+  grid-gap: 60px;
+`;
+
+const HeaderItem = styled('div')`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+
+  > *:nth-child(2) {
+    flex: 1;
+    display: flex;
+    align-items: center;
+  }
 `;
 
 const StyledLayoutBody = styled(Layout.Body)`
@@ -477,7 +489,7 @@ const StatusContainer = styled('div')`
   margin-bottom: 20px;
 `;
 
-const SidebarHeading = styled(SectionHeading)<{noMargin?: boolean}>`
+const Heading = styled(SectionHeading)<{noMargin?: boolean}>`
   display: grid;
   grid-template-columns: auto auto;
   justify-content: flex-start;
