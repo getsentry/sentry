@@ -212,9 +212,27 @@ def traces_sampler(sampling_context):
     return float(settings.SENTRY_BACKEND_APM_SAMPLING or 0)
 
 
-# Patches the send_request function to check outgoing requests and patches the update_rate_limits function as it is first to be called after the response.
+# Patches transport functions to add metrics to improve resolution around events sent to our ingest
 # TODO(k-fish): Remove after backend transaction findings are in.
 def patch_transport_for_instrumentation(transport, transport_name):
+    _worker_submit = transport._worker.submit
+    if _worker_submit:
+
+        def patched_worker_submit(*args, **kwargs):
+            metrics.incr(f"internal.worker_submit.{transport_name}.events")
+            return _worker_submit(*args, **kwargs)
+
+        transport._worker.submit = patched_worker_submit
+
+    _send_envelope = transport.send_envelope
+    if _send_envelope:
+
+        def patched_send_envelope(*args, **kwargs):
+            metrics.incr(f"internal.send_envelope.{transport_name}.events")
+            return _send_envelope(*args, **kwargs)
+
+        transport.send_envelope = patched_send_envelope
+
     _send_request = transport._send_request
     if _send_request:
 
