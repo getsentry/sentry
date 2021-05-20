@@ -9,10 +9,6 @@ import WidgetCard from './widgetCard';
 import WidgetWrapper from './widgetWrapper';
 
 const initialStyles: React.ComponentProps<typeof WidgetWrapper>['animate'] = {
-  x: 0,
-  y: 0,
-  scaleX: 1,
-  scaleY: 1,
   zIndex: 'auto',
 };
 
@@ -75,6 +71,12 @@ function SortableWidget(props: Props) {
             }
           : initialStyles
       }
+      transformTemplate={(___transform, generatedTransform) => {
+        if (isEditing && !!transform) {
+          return generatedTransform;
+        }
+        return 'none';
+      }}
       transition={{
         duration: !currentWidgetDragging ? 0.25 : 0,
         easings: {
