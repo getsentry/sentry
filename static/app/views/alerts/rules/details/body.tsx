@@ -234,7 +234,7 @@ export default class DetailsBody extends React.Component<Props> {
     return (
       <StatusContainer>
         <HeaderItem>
-          <Heading noMargin>{t('Status')}</Heading>
+          <Heading noMargin>{t('Current Status')}</Heading>
           <Status>
             <AlertBadge status={status} hideText />
             {activeIncident ? t('Triggered') : t('Resolved')}
