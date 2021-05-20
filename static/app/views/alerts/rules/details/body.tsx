@@ -235,15 +235,11 @@ export default class DetailsBody extends React.Component<Props> {
       <StatusContainer>
         <HeaderItem>
           <Heading noMargin>{t('Status')}</Heading>
-          <ItemValue>
-            <AlertBadge status={status} />
-          </ItemValue>
-        </HeaderItem>
-        <HeaderItem>
-          <Heading noMargin>
-            {activeIncident ? t('Last Triggered') : t('Last Resolved')}
-          </Heading>
-          <ItemValue>{activityDate ? <TimeSince date={activityDate} /> : '-'}</ItemValue>
+          <Status>
+            <AlertBadge status={status} hideText />
+            {activeIncident ? t('Triggered') : t('Resolved')}
+            {activityDate ? <TimeSince date={activityDate} /> : '-'}
+          </Status>
         </HeaderItem>
       </StatusContainer>
     );
@@ -475,19 +471,17 @@ const ActivityWrapper = styled('div')`
   width: 100%;
 `;
 
-const ItemValue = styled('div')`
-  display: flex;
-  justify-content: flex-start;
-  align-items: center;
+const Status = styled('div')`
   position: relative;
-  font-size: ${p => p.theme.fontSizeExtraLarge};
+  display: grid;
+  grid-template-columns: auto auto auto;
+  grid-gap: ${space(0.5)};
+  font-size: ${p => p.theme.fontSizeLarge};
 `;
 
 const StatusContainer = styled('div')`
   height: 60px;
-  display: grid;
-  grid-template-columns: 50% 50%;
-  grid-gap: ${space(2)};
+  display: flex;
   margin-bottom: ${space(1.5)};
 `;
 
