@@ -157,10 +157,6 @@ export class Provider extends React.Component<PropType, StateType> {
 
     const dividerHandlePositionString = toPercent(this.dividerHandlePosition);
 
-    document.body.style.setProperty(
-      '--ghost-divider-handle-position',
-      dividerHandlePositionString
-    );
     selectRefs(this.ghostDividerLineRefs, (dividerDOM: HTMLDivElement) => {
       const {parentNode} = dividerDOM;
 
