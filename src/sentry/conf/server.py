@@ -1176,7 +1176,7 @@ SENTRY_ALLOW_PUBLIC_PROJECTS = True
 # Will an invite be sent when a member is added to an organization?
 SENTRY_ENABLE_INVITES = True
 
-# Default to not sending the Access-Control-Allow-Origin header on api/store
+# Origins allowed for session-based API access (via the Access-Control-Allow-Origin header)
 SENTRY_ALLOW_ORIGIN = None
 
 # Enable scraping of javascript context for source code
