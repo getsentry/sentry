@@ -105,3 +105,33 @@ class OrganizationIntegrationDetailsTest(APITestCase):
         updated = Integration.objects.get(id=integration.id)
         assert updated.name == "New Name"
         assert updated.metadata["domain_name"] == "https://example.com/"
+
+    @with_feature("organizations:integrations-custom-scm")
+    def test_partial_updates(self):
+        integration = Integration.objects.create(
+            provider="custom_scm", name="A Name", external_id="1232948573948579127"
+        )
+        integration.add_organization(self.org, self.user)
+        path = f"/api/0/organizations/{self.org.slug}/integrations/{integration.id}/"
+
+        data = {"domain": "https://example.com/"}
+        response = self.client.put(path, format="json", data=data)
+        assert response.status_code == 200
+
+        updated = Integration.objects.get(id=integration.id)
+        assert updated.name == "A Name"
+        assert updated.metadata["domain_name"] == "https://example.com/"
+
+        data = {"name": "Newness"}
+        response = self.client.put(path, format="json", data=data)
+        assert response.status_code == 200
+        updated = Integration.objects.get(id=integration.id)
+        assert updated.name == "Newness"
+        assert updated.metadata["domain_name"] == "https://example.com/"
+
+        data = {"domain": ""}
+        response = self.client.put(path, format="json", data=data)
+        assert response.status_code == 200
+        updated = Integration.objects.get(id=integration.id)
+        assert updated.name == "Newness"
+        assert updated.metadata["domain_name"] == ""

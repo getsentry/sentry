@@ -15,7 +15,7 @@ from sentry.utils.audit import create_audit_entry
 
 class IntegrationSerializer(serializers.Serializer):
     name = serializers.CharField(required=False)
-    domain = serializers.URLField(required=False)
+    domain = serializers.URLField(required=False, allow_blank=True)
 
 
 class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint):
@@ -48,7 +48,7 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
             data = serializer.validated_data
             if data.get("name"):
                 update_kwargs["name"] = data["name"]
-            if data.get("domain"):
+            if data.get("domain") is not None:
                 metadata = integration.metadata
                 metadata["domain_name"] = data["domain"]
                 update_kwargs["metadata"] = metadata
