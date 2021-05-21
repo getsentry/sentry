@@ -117,6 +117,7 @@ default_manager.add("organizations:sso-basic", OrganizationFeature)  # NOQA
 default_manager.add("organizations:sso-migration", OrganizationFeature)  # NOQA
 default_manager.add("organizations:sso-rippling", OrganizationFeature)  # NOQA
 default_manager.add("organizations:sso-saml2", OrganizationFeature)  # NOQA
+default_manager.add("organizations:sso-scim", OrganizationFeature, True)  # NOQA
 default_manager.add("organizations:symbol-sources", OrganizationFeature)  # NOQA
 default_manager.add("organizations:team-alerts-ownership", OrganizationFeature, True)  # NOQA
 default_manager.add("organizations:transaction-comparison", OrganizationFeature, True)  # NOQA
@@ -128,6 +129,11 @@ default_manager.add("organizations:discover-arithmetic", OrganizationFeature, Tr
 default_manager.add("organizations:transaction-events", OrganizationFeature, True)  # NOQA
 default_manager.add("organizations:unified-span-view", OrganizationFeature, True)  # NOQA
 default_manager.add("organizations:team-key-transactions", OrganizationFeature, True)  # NOQA
+default_manager.add(
+    "organizations:project-transaction-threshold", OrganizationFeature, True  # NOQA
+)
+default_manager.add("organizations:performance-landing-widgets", OrganizationFeature, True)  # NOQA
+
 # NOTE: Don't add features down here! Add them to their specific group and sort
 #       them alphabetically! The order features are registered is not important.
 

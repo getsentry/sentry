@@ -534,35 +534,6 @@ class SnubaTagStorage(TagStorage):
 
         return keys_with_counts
 
-    def __get_release(self, project_id, group_id, first=True):
-        filters = {"project_id": get_project_list(project_id)}
-        conditions = [["tags[sentry:release]", "IS NOT NULL", None], DEFAULT_TYPE_CONDITION]
-        if group_id is not None:
-            filters["group_id"] = [group_id]
-        aggregations = [["min" if first else "max", SEEN_COLUMN, "seen"]]
-        orderby = "seen" if first else "-seen"
-
-        result = snuba.query(
-            dataset=Dataset.Events,
-            groupby=["tags[sentry:release]"],
-            conditions=conditions,
-            filter_keys=filters,
-            aggregations=aggregations,
-            limit=1,
-            orderby=orderby,
-            referrer="tagstore.__get_release",
-        )
-        if not result:
-            return None
-        else:
-            return list(result.keys())[0]
-
-    def get_first_release(self, project_id, group_id):
-        return self.__get_release(project_id, group_id, True)
-
-    def get_last_release(self, project_id, group_id):
-        return self.__get_release(project_id, group_id, False)
-
     def get_release_tags(self, organization_id, project_ids, environment_id, versions):
         filters = {"project_id": project_ids}
         if environment_id:
