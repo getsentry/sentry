@@ -1,13 +1,28 @@
+import logging
+import uuid
+from time import time
 from urllib.parse import parse_qs
 
 import responses
 from django.core import mail
 from django.utils import timezone
 
-from sentry.models import ExternalActor, GroupAssignee, Integration, UserOption
+from sentry.event_manager import EventManager
+from sentry.models import ExternalActor, Group, GroupAssignee, GroupStatus, Integration, UserOption
 from sentry.testutils import APITestCase
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
+
+
+def make_event(**kwargs):
+    result = {
+        "event_id": uuid.uuid1().hex,
+        "level": logging.ERROR,
+        "logger": "default",
+        "tags": [],
+    }
+    result.update(kwargs)
+    return result
 
 
 def get_attachment():
@@ -47,7 +62,11 @@ class ActivityNotificationTest(APITestCase):
         )
         UserOption.objects.create(user=self.user, key="self_notifications", value="1")
         url = f"/api/0/users/{self.user.id}/notification-settings/"
-        data = {"workflow": {"user": {self.user.id: {"email": "always", "slack": "always"}}}}
+        data = {
+            "workflow": {"user": {self.user.id: {"email": "always", "slack": "always"}}},
+            "deploy": {"user": {self.user.id: {"email": "always", "slack": "always"}}},
+            "alerts": {"user": {self.user.id: {"email": "always", "slack": "always"}}},
+        }
         self.login_as(self.user)
         with self.feature("organizations:notification-platform"):
             response = self.client.put(url, format="json", data=data)
@@ -152,11 +171,70 @@ class ActivityNotificationTest(APITestCase):
 
     @responses.activate
     def test_sends_resolution_notification(self):
-        pass
+        """
+        Test that an email AND Slack notification are sent with
+        the expected values when an issue is resolved.
+        """
+        # resolve the issue
+        url = f"/api/0/issues/{self.group.id}/"
+        with self.tasks():
+            response = self.client.put(url, format="json", data={"status": "resolved"})
+        assert response.status_code == 200, response.content
+
+        msg = mail.outbox[0]
+        # check the txt version
+        assert f"{self.user.username} marked {self.short_id} as resolved" in msg.body
+        # check the html version
+        assert f"{self.short_id}</a> as resolved</p>" in msg.alternatives[0][0]
+
+        attachment = get_attachment()
+
+        assert attachment["title"] == "Resolved Issue"
+        assert attachment["text"] == f"{self.name} marked {self.short_id} as resolved"
+        assert (
+            attachment["footer"]
+            == f"<http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=ResolvedActivitySlack|{self.short_id}> via <http://testserver/settings/account/notifications/?referrer=ResolvedActivitySlack|Notification Settings>"
+        )
 
     @responses.activate
     def test_sends_regression_notification(self):
-        pass
+        """
+        Test that an email AND Slack notification are sent with
+        the expected values when an issue regresses.
+        """
+        # resolve and unresolve the issue
+        ts = time() - 300
+        manager = EventManager(make_event(event_id="a" * 32, checksum="a" * 32, timestamp=ts))
+        with self.tasks():
+            event = manager.save(self.project.id)
+
+        group = Group.objects.get(id=event.group_id)
+        group.status = GroupStatus.RESOLVED
+        group.save()
+        assert group.is_resolved()
+
+        manager = EventManager(make_event(event_id="b" * 32, checksum="a" * 32, timestamp=ts + 50))
+        with self.tasks():
+            event2 = manager.save(self.project.id)
+        assert event.group_id == event2.group_id
+
+        group = Group.objects.get(id=group.id)
+        assert not group.is_resolved()
+
+        msg = mail.outbox[0]
+        # check the txt version
+        assert f"Sentry marked {group.qualified_short_id} as a regression" in msg.body
+        # check the html version
+        assert f"{group.qualified_short_id}</a> as a regression</p>" in msg.alternatives[0][0]
+
+        attachment = get_attachment()
+
+        assert attachment["title"] == "Regression"
+        assert attachment["text"] == f"Sentry marked {group.qualified_short_id} as a regression"
+        assert (
+            attachment["footer"]
+            == f"<http://testserver/organizations/{self.organization.slug}/issues/{group.id}/?referrer=RegressionActivitySlack|{group.qualified_short_id}> via <http://testserver/settings/account/notifications/?referrer=RegressionActivitySlack|Notification Settings>"
+        )
 
     @responses.activate
     def test_sends_processing_issue_notification(self):
