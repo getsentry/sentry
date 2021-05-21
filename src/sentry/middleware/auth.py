@@ -2,7 +2,7 @@ from django.contrib.auth import get_user as auth_get_user
 from django.contrib.auth.models import AnonymousUser
 from django.utils.functional import SimpleLazyObject
 
-from sentry.models import OrganizationMember, UserIP
+from sentry.models import UserIP
 from sentry.utils.auth import AuthUserPasswordExpired, logger
 from sentry.utils.linksign import process_signature
 
@@ -53,22 +53,3 @@ class AuthenticationMiddleware:
             from sentry.web.frontend.accounts import expired
 
             return expired(request, exception.user)
-
-
-def get_organization_member(request, organization_id):
-    if not request.user:
-        # TODO better exception
-        raise Exception("No user available")
-    if not hasattr(request, "_cached_member_by_org"):
-        request._cached_member_by_org = {}
-    if organization_id not in request._cached_member_by_org:
-        member = OrganizationMember.objects.get(user=request.user, organization_id=organization_id)
-        request._cached_member_by_org[organization_id] = member
-    return request._cached_member_by_org[organization_id]
-
-
-class OrganizationMemberMiddleware:
-    def process_request(self, request):
-        request.get_organization_member = lambda organization_id: get_organization_member(
-            request, organization_id
-        )
