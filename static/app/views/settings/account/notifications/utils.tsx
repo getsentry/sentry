@@ -1,6 +1,6 @@
 import set from 'lodash/set';
 
-import {Organization, Project} from 'app/types';
+import {OrganizationSummary, Project} from 'app/types';
 
 export type NotificationSettingsObject = {
   [key: string]: {[key: string]: {[key: string]: {[key: string]: string}}};
@@ -12,7 +12,7 @@ export const isGroupedByProject = (type: string): boolean =>
 
 export const groupByOrganization = (projects: Project[]) => {
   return projects.reduce<
-    Record<string, {organization: Organization; projects: Project[]}>
+    Record<string, {organization: OrganizationSummary; projects: Project[]}>
   >((acc, project) => {
     const orgSlug = project.organization.slug;
     if (acc.hasOwnProperty(orgSlug)) {

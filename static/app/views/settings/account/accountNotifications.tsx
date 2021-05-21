@@ -6,6 +6,8 @@ import {PanelFooter} from 'app/components/panels';
 import accountNotificationFields from 'app/data/forms/accountNotificationSettings';
 import {IconChevron, IconMail} from 'app/icons';
 import {t} from 'app/locale';
+import {OrganizationSummary} from 'app/types';
+import withOrganizations from 'app/utils/withOrganizations';
 import AsyncView from 'app/views/asyncView';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
@@ -34,13 +36,15 @@ const FINE_TUNE_FOOTERS = {
   },
 };
 
-type Props = AsyncView['props'] & {};
+type Props = AsyncView['props'] & {
+  organizations: OrganizationSummary[];
+};
 
 type State = AsyncView['state'] & {
   data: Record<string, unknown> | null;
 };
 
-export default class AccountNotifications extends AsyncView<Props, State> {
+class AccountNotifications extends AsyncView<Props, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     return [['data', '/users/me/notifications/']];
   }
@@ -100,3 +104,5 @@ const FineTuningFooter = ({path, text}: FooterProps) => (
     </FineTuneLink>
   </PanelFooter>
 );
+
+export default withOrganizations(AccountNotifications);
