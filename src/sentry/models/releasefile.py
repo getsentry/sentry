@@ -142,20 +142,19 @@ class ReleaseArchive:
         self._zip_file.close()
         self._fileobj.close()
 
-    def read(self, filename: str) -> bytes:
-        return self._zip_file.read(filename)
-
     def _read_manifest(self) -> dict:
-        manifest_bytes = self.read("manifest.json")
+        manifest_bytes = self._zip_file.read("manifest.json")
         return json.loads(manifest_bytes.decode("utf-8"))
 
-    def get_file_by_url(self, url: str) -> Tuple[bytes, dict]:
-        """Return file contents and headers.
+    def get_file_by_url(self, url: str) -> Tuple[IO, dict]:
+        """Return file-like object and headers.
+
+        The caller is responsible for closing the returned stream.
 
         May raise ``KeyError``
         """
         filename, entry = self._entries_by_url[url]
-        return self.read(filename), entry.get("headers", {})
+        return self._zip_file.open(filename), entry.get("headers", {})
 
     def extract(self) -> TemporaryDirectory:
         """Extract contents to a temporary directory.

@@ -228,6 +228,69 @@ def should_retry_fetch(attempt: int, e: Exception) -> bool:
 fetch_retry_policy = ConditionalRetryPolicy(should_retry_fetch, exponential_delay(0.05))
 
 
+def fetch_and_cache_artifact(filename, fetch_fn, cache_key, cache_key_meta, headers, compress_fn):
+    # If the release file is not in cache, check if we can retrieve at
+    # least the size metadata from cache and prevent compression and
+    # caching if payload exceeds the backend limit.
+    z_body_size = None
+
+    if CACHE_MAX_VALUE_SIZE:
+        cache_meta = cache.get(cache_key_meta)
+        if cache_meta:
+            z_body_size = int(cache_meta.get("compressed_size"))
+
+    def fetch_release_body():
+        with fetch_fn() as fp:
+            if z_body_size and z_body_size > CACHE_MAX_VALUE_SIZE:
+                return None, fp.read()
+            else:
+                return compress_fn(fp)
+
+    try:
+        with metrics.timer("sourcemaps.release_file_read"):
+            z_body, body = fetch_retry_policy(fetch_release_body)
+    except Exception:
+        logger.error("sourcemap.compress_read_failed", exc_info=sys.exc_info())
+        result = None
+    else:
+        headers = {k.lower(): v for k, v in headers.items()}
+        encoding = get_encoding_from_headers(headers)
+        result = http.UrlResult(filename, headers, body, 200, encoding)
+
+        # If we don't have the compressed body for caching because the
+        # cached metadata said it is too large payload for the cache
+        # backend, do not attempt to cache.
+        if z_body:
+            # This will implicitly skip too large payloads. Those will be cached
+            # on the file system by `ReleaseFile.cache`, instead.
+            cache.set(cache_key, (headers, z_body, 200, encoding), 3600)
+
+            # In case the previous call to cache implicitly fails, we use
+            # the meta data to avoid pointless compression which is done
+            # only for caching.
+            cache.set(cache_key_meta, {"compressed_size": len(z_body)}, 3600)
+
+    return result
+
+
+def get_cache_keys(filename, release, dist):
+    dist_name = dist and dist.name or None
+    releasefile_ident = ReleaseFile.get_ident(filename, dist_name)
+    cache_key = get_release_file_cache_key(
+        release_id=release.id, releasefile_ident=releasefile_ident
+    )
+
+    # Cache key to store file metadata, currently only the size of the
+    # compressed version of file. We cannot use the cache_key because large
+    # payloads (silently) fail to cache due to e.g. memcached payload size
+    # limitation and we use the meta data to avoid compression of such a files.
+    cache_key_meta = get_release_file_cache_key_meta(
+        release_id=release.id, releasefile_ident=releasefile_ident
+    )
+
+    return cache_key, cache_key_meta
+
+
 def fetch_release_file(filename, release, dist=None):
     """
     Attempt to retrieve a release artifact from the database.
@@ -236,17 +299,7 @@ def fetch_release_file(filename, release, dist=None):
     """
 
     dist_name = dist and dist.name or None
-    releasefile_ident = ReleaseFile.get_ident(filename, dist_name)
-    cache_key = get_release_file_cache_key(
-        release_id=release.id, releasefile_ident=releasefile_ident
-    )
-    # Cache key to store file metadata, currently only the size of the
-    # compressed version of file. We cannot use the cache_key because large
-    # payloads (silently) fail to cache due to e.g. memcached payload size
-    # limitation and we use the meta data to avoid compression of such a files.
-    cache_key_meta = get_release_file_cache_key_meta(
-        release_id=release.id, releasefile_ident=releasefile_ident
-    )
+    cache_key, cache_key_meta = get_cache_keys(filename, release, dist)
 
     logger.debug("Checking cache for release artifact %r (release_id=%s)", filename, release.id)
     result = cache.get(cache_key)
@@ -288,46 +341,14 @@ def fetch_release_file(filename, release, dist=None):
             "Found release artifact %r (id=%s, release_id=%s)", filename, releasefile.id, release.id
         )
 
-        # If the release file is not in cache, check if we can retrieve at
-        # least the size metadata from cache and prevent compression and
-        # caching if payload exceeds the backend limit.
-        z_body_size = None
-
-        if CACHE_MAX_VALUE_SIZE:
-            cache_meta = cache.get(cache_key_meta)
-            if cache_meta:
-                z_body_size = int(cache_meta.get("compressed_size"))
-
-        def fetch_release_body():
-            with ReleaseFile.cache.getfile(releasefile) as fp:
-                if z_body_size and z_body_size > CACHE_MAX_VALUE_SIZE:
-                    return None, fp.read()
-                else:
-                    return compress_file(fp)
-
-        try:
-            with metrics.timer("sourcemaps.release_file_read"):
-                z_body, body = fetch_retry_policy(fetch_release_body)
-        except Exception:
-            logger.error("sourcemap.compress_read_failed", exc_info=sys.exc_info())
-            result = None
-        else:
-            headers = {k.lower(): v for k, v in releasefile.file.headers.items()}
-            encoding = get_encoding_from_headers(headers)
-            result = http.UrlResult(filename, headers, body, 200, encoding)
-
-            # If we don't have the compressed body for caching because the
-            # cached metadata said it is too large payload for the cache
-            # backend, do not attempt to cache.
-            if z_body:
-                # This will implicitly skip too large payloads. Those will be cached
-                # on the file system by `ReleaseFile.cache`, instead.
-                cache.set(cache_key, (headers, z_body, 200, encoding), 3600)
-
-                # In case the previous call to cache implicitly fails, we use
-                # the meta data to avoid pointless compression which is done
-                # only for caching.
-                cache.set(cache_key_meta, {"compressed_size": len(z_body)}, 3600)
+        result = fetch_and_cache_artifact(
+            filename,
+            lambda: ReleaseFile.cache.getfile(releasefile),
+            cache_key,
+            cache_key_meta,
+            releasefile.file.headers,
+            compress_file,
+        )
 
     # in the cache as an unsuccessful attempt
     elif result == -1:
@@ -398,6 +419,12 @@ def fetch_release_archive(release, dist) -> Optional[IO]:
             return file_
 
 
+def compress(fp: IO) -> Tuple[bytes, bytes]:
+    """ Alternative for compress_file when fp does not support chunks """
+    content = fp.read()
+    return zlib.compress(content), content
+
+
 def fetch_release_artifact(url, release, dist):
     """
     Get a release artifact either by extracting it or fetching it directly.
@@ -406,25 +433,46 @@ def fetch_release_artifact(url, release, dist):
     from the archive.
 
     """
+    cache_key, cache_key_meta = get_cache_keys(url, release, dist)
+
+    result = cache.get(cache_key)
+    if result:
+        return result
+
     start = time.monotonic()
 
     release_file = fetch_release_archive(release, dist)
-
     if release_file is not None:
         try:
-            with ReleaseArchive(release_file) as archive:
-                body, headers = get_from_archive(url, archive)
+            archive = ReleaseArchive(release_file)
         except BaseException as exc:
-            logger.error("Failed to read %s from release file %s: %s", url, release.id, exc)
+            logger.error("Failed to initialize archive for release %s", release.id, exc_info=exc)
         else:
-            # discover_sourcemaps() expects lowercase headers:
-            headers = {key.lower(): value for key, value in headers.items()}
+            with archive:
+                try:
+                    fp, headers = get_from_archive(url, archive)
+                except KeyError:
+                    logger.debug(
+                        "Release artifact %r not found in archive (release_id=%s)", url, release.id
+                    )
+                    cache.set(cache_key, -1, 60)
+                except BaseException as exc:
+                    logger.error("Failed to read %s from release %s", url, release.id, exc_info=exc)
+                else:
+                    result = fetch_and_cache_artifact(
+                        url,
+                        lambda: fp,
+                        cache_key,
+                        cache_key_meta,
+                        headers,
+                        # Cannot use `compress_file` because `ZipExtFile` does not support chunks
+                        compress_fn=compress,
+                    )
+                    metrics.timing(
+                        "sourcemaps.release_artifact_from_archive", time.monotonic() - start
+                    )
 
-            encoding = get_encoding_from_headers(headers)
-            result = http.UrlResult(url, headers, body, 200, encoding)
-            metrics.timing("sourcemaps.release_artifact_from_archive", time.monotonic() - start)
-
-            return result
+                    return result
 
     # Fall back to maintain compatibility with old releases and versions of
     # sentry-cli which upload files individually

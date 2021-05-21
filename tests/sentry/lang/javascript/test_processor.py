@@ -15,6 +15,7 @@ from sentry.lang.javascript.errormapping import REACT_MAPPING_URL, rewrite_excep
 from sentry.lang.javascript.processor import (
     CACHE_CONTROL_MAX,
     CACHE_CONTROL_MIN,
+    RELEASE_ARCHIVE_FILENAME,
     JavaScriptStacktraceProcessor,
     UnparseableSourcemap,
     cache,
@@ -31,6 +32,7 @@ from sentry.lang.javascript.processor import (
 )
 from sentry.models import EventError, File, Release, ReleaseFile
 from sentry.testutils import TestCase
+from sentry.utils import json
 from sentry.utils.compat.mock import ANY, MagicMock, call, patch
 from sentry.utils.strings import truncatechars
 
@@ -493,26 +495,47 @@ class FetchFileTest(TestCase):
         assert result.encoding is None
 
     @responses.activate
-    @patch("sentry.lang.javascript.processor.fetch_release_file")
-    def test_non_url_with_release_archive(self, mock_fetch_release_file):
+    def test_non_url_with_release_archive(self):
 
         compressed = BytesIO()
         with zipfile.ZipFile(compressed, mode="w") as zip_file:
-            zip_file.writestr("/example.js", b"foo")
-        mock_fetch_release_file.side_effect = [
-            None,  # Trying to fetch release archive
-            http.UrlResult("/example.js", {"content-type": "application/json"}, b"foo", 200, None),
-        ]
+            zip_file.writestr("example.js", b"foo")
+            zip_file.writestr(
+                "manifest.json",
+                json.dumps(
+                    {
+                        "files": {
+                            "example.js": {
+                                "url": "/example.js",
+                                "headers": {"content-type": "application/json"},
+                            }
+                        }
+                    }
+                ),
+            )
 
         release = Release.objects.create(version="1", organization_id=self.project.organization_id)
         release.add_project(self.project)
+
+        file = File.objects.create(
+            name=RELEASE_ARCHIVE_FILENAME,
+        )
+        compressed.seek(0)
+        file.putfile(compressed)
+
+        ReleaseFile.objects.create(
+            name=RELEASE_ARCHIVE_FILENAME,
+            release=release,
+            organization_id=self.project.organization_id,
+            file=file,
+        )
 
         result = fetch_file("/example.js", release=release, use_release_archive=True)
         assert result.url == "/example.js"
         assert result.body == b"foo"
         assert isinstance(result.body, bytes)
         assert result.headers == {"content-type": "application/json"}
-        assert result.encoding is None
+        assert result.encoding == "utf-8"
 
     @responses.activate
     def test_unicode_body(self):
