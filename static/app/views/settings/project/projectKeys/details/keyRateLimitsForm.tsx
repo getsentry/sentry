@@ -153,7 +153,7 @@ class KeyRateLimitsForm extends React.Component<Props> {
                     );
                   }}
                   help={t(
-                    'Apply a rate limit to this credential to cap the amount of events accepted during a time window.'
+                    'Apply a rate limit to this credential to cap the amount of errors accepted during a time window.'
                   )}
                   inline={false}
                 >
