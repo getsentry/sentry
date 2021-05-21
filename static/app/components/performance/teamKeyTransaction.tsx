@@ -1,16 +1,19 @@
-import {Component, ReactElement} from 'react';
+import {Component, ComponentClass} from 'react';
 import styled from '@emotion/styled';
 
 import {toggleKeyTransaction} from 'app/actionCreators/performance';
 import {Client} from 'app/api';
+import MenuHeader from 'app/components/actions/menuHeader';
 import CheckboxFancy from 'app/components/checkboxFancy/checkboxFancy';
-import DropdownLink from 'app/components/dropdownLink';
+import DropdownControl, {Content} from 'app/components/dropdownControl';
+import {GetActorPropsFn} from 'app/components/dropdownMenu';
+import MenuItem from 'app/components/menuItem';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Team} from 'app/types';
 import withApi from 'app/utils/withApi';
 
-export type TitleProps = {
+export type TitleProps = Partial<ReturnType<GetActorPropsFn>> & {
   keyedTeamsCount: number;
   disabled?: boolean;
 };
@@ -21,7 +24,7 @@ type Props = {
   organization: Organization;
   teams: Team[];
   transactionName: string;
-  title: (props: TitleProps) => ReactElement;
+  title: ComponentClass<TitleProps>;
 };
 
 type State = {
@@ -142,16 +145,17 @@ class TeamKeyTransaction extends Component<Props, State> {
   };
 
   render() {
-    const {teams, title: Title} = this.props;
+    const {teams, title} = this.props;
     const {keyedTeams, isLoading} = this.state;
 
     if (isLoading) {
-      return <Title disabled keyedTeamsCount={keyedTeams.size} />;
+      const Title = title;
+      return <Title disabled keyedTeamsCount={0} />;
     }
 
     return (
       <TeamKeyTransactionSelector
-        title={<Title keyedTeamsCount={keyedTeams.size} />}
+        title={title}
         handleToggleKeyTransaction={this.handleToggleKeyTransaction}
         teams={teams}
         keyedTeams={keyedTeams}
@@ -161,14 +165,14 @@ class TeamKeyTransaction extends Component<Props, State> {
 }
 
 type SelectorProps = {
-  title: React.ReactNode;
+  title: ComponentClass<TitleProps>;
   handleToggleKeyTransaction: (selection: TeamSelection) => void;
   teams: Team[];
   keyedTeams: Set<string>;
 };
 
 function TeamKeyTransactionSelector({
-  title,
+  title: Title,
   handleToggleKeyTransaction,
   teams,
   keyedTeams,
@@ -179,52 +183,129 @@ function TeamKeyTransactionSelector({
   };
 
   return (
-    <DropdownLink caret={false} title={title} anchorMiddle>
-      <DropdownMenuHeader
-        first
-        onClick={toggleTeam({
-          type: 'my teams',
-          action: teams.length === keyedTeams.size ? 'unkey' : 'key',
-        })}
-      >
-        {t('My Teams')}
-        <StyledCheckbox
-          isChecked={teams.length === keyedTeams.size}
-          isIndeterminate={teams.length > keyedTeams.size && keyedTeams.size > 0}
-        />
-      </DropdownMenuHeader>
-      {teams.map(team => (
-        <DropdownMenuItem
-          key={team.slug}
-          onClick={toggleTeam({
-            type: 'id',
-            action: keyedTeams.has(team.id) ? 'unkey' : 'key',
-            teamId: team.id,
-          })}
+    <DropdownControl
+      button={({getActorProps}) => (
+        <Title keyedTeamsCount={keyedTeams.size} {...getActorProps()} />
+      )}
+    >
+      {({isOpen, getMenuProps}) => (
+        <DropdownWrapper
+          {...getMenuProps()}
+          isOpen={isOpen}
+          blendCorner
+          alignMenu="right"
+          width="220px"
         >
-          {team.name}
-          <StyledCheckbox isChecked={keyedTeams.has(team.id)} />
-        </DropdownMenuItem>
-      ))}
-    </DropdownLink>
+          {isOpen && (
+            <DropdownContent>
+              <DropdownMenuHeader first>
+                {t('My Teams')}
+                <StyledCheckbox
+                  isChecked={teams.length === keyedTeams.size}
+                  isIndeterminate={teams.length > keyedTeams.size && keyedTeams.size > 0}
+                  onClick={toggleTeam({
+                    type: 'my teams',
+                    action: teams.length === keyedTeams.size ? 'unkey' : 'key',
+                  })}
+                />
+              </DropdownMenuHeader>
+              {teams.map(team => (
+                <DropdownMenuItem
+                  key={team.slug}
+                  onClick={toggleTeam({
+                    type: 'id',
+                    action: keyedTeams.has(team.id) ? 'unkey' : 'key',
+                    teamId: team.id,
+                  })}
+                >
+                  <MenuItemContent>
+                    {team.name}
+                    <StyledCheckbox isChecked={keyedTeams.has(team.id)} />
+                  </MenuItemContent>
+                </DropdownMenuItem>
+              ))}
+            </DropdownContent>
+          )}
+        </DropdownWrapper>
+      )}
+    </DropdownControl>
   );
 }
 
-const DropdownMenuItemBase = styled('li')`
+const DropdownWrapper = styled(Content)`
+  margin-top: 9px;
+  left: auto;
+  right: 50%;
+  transform: translateX(calc(50%));
+
+  /* Adapted from the dropdown-menu class */
+  border: none;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px rgba(52, 60, 69, 0.2), 0 1px 3px rgba(70, 82, 98, 0.25);
+  background-clip: padding-box;
+  overflow: visible;
+
+  &:before {
+    width: 0;
+    height: 0;
+    border-left: 9px solid transparent;
+    border-right: 9px solid transparent;
+    border-bottom: 9px solid ${p => p.theme.border};
+    content: '';
+    display: block;
+    position: absolute;
+    top: -9px;
+    left: calc(50% - 9px);
+    right: auto;
+    z-index: -2;
+  }
+
+  &:after {
+    width: 0;
+    height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-bottom: 8px solid ${p => p.theme.background};
+    content: '';
+    display: block;
+    position: absolute;
+    top: -8px;
+    left: calc(50% - 8px);
+    right: auto;
+    z-index: -1;
+  }
+`;
+
+const DropdownContent = styled('div')`
+  max-height: 250px;
+  overflow-y: auto;
+`;
+
+const DropdownMenuHeader = styled(MenuHeader)<{first?: boolean}>`
   display: flex;
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  padding: ${space(1)} ${space(1.5)};
-`;
+  padding: ${space(1.5)} ${space(2)};
 
-const DropdownMenuHeader = styled(DropdownMenuItemBase)<{first?: boolean}>`
   background: ${p => p.theme.backgroundSecondary};
   ${p => p.first && 'border-radius: 2px'};
 `;
 
-const DropdownMenuItem = styled(DropdownMenuItemBase)`
-  border-top: 1px solid ${p => p.theme.border};
+const DropdownMenuItem = styled(MenuItem)`
+  font-size: ${p => p.theme.fontSizeMedium};
+
+  &:not(:last-child) {
+    border-bottom: 1px solid ${p => p.theme.innerBorder};
+  }
+`;
+
+const MenuItemContent = styled('div')`
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
 `;
 
 const StyledCheckbox = styled(CheckboxFancy)`

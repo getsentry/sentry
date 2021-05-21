@@ -1,3 +1,4 @@
+import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
@@ -17,6 +18,26 @@ type Props = {
   transactionName: string;
 };
 
+/**
+ * This can't be a function component because `TeamKeyTransaction` uses
+ * `DropdownControl` which in turn uses passes a ref to this component.
+ */
+class TitleButton extends Component<TitleProps> {
+  render() {
+    const {keyedTeamsCount, ...props} = this.props;
+    return (
+      <StyledButton
+        {...props}
+        icon={keyedTeamsCount ? <IconStar color="yellow300" isSolid /> : <IconStar />}
+      >
+        {keyedTeamsCount
+          ? tn('Starred for Team', 'Starred for Teams', keyedTeamsCount)
+          : t('Star for Team')}
+      </StyledButton>
+    );
+  }
+}
+
 function TeamKeyTransactionButton({eventView, teams, ...props}: Props) {
   if (eventView.project.length !== 1) {
     return <TitleButton disabled keyedTeamsCount={0} />;
@@ -30,19 +51,6 @@ function TeamKeyTransactionButton({eventView, teams, ...props}: Props) {
       title={TitleButton}
       {...props}
     />
-  );
-}
-
-function TitleButton({disabled, keyedTeamsCount}: TitleProps) {
-  return (
-    <StyledButton
-      disabled={disabled}
-      icon={keyedTeamsCount ? <IconStar color="yellow300" isSolid /> : <IconStar />}
-    >
-      {keyedTeamsCount
-        ? tn('Starred for Team', 'Starred for Teams', keyedTeamsCount)
-        : t('Star for Team')}
-    </StyledButton>
   );
 }
 
