@@ -1,5 +1,6 @@
 import threading
 
+from celery.signals import task_failure, task_success
 from django.core.signals import request_finished
 
 from sentry.models import OrganizationMember
@@ -8,6 +9,10 @@ _cache = threading.local()
 
 
 def request_cache(func):
+    """
+    A decorator to memoize functions on a per-request basis.
+    """
+
     def wrapped(*args, **kwargs):
         if not hasattr(_cache, "items"):
             _cache.items = {}
@@ -26,6 +31,8 @@ def clear_cache(**kwargs):
 
 
 request_finished.connect(clear_cache)
+task_failure.connect(clear_cache)
+task_success.connect(clear_cache)
 
 
 @request_cache
