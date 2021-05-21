@@ -112,8 +112,8 @@ explicit_tag_key = "tags" open_bracket search_key closed_bracket
 text_key         = explicit_tag_key / search_key
 text_value       = quoted_value / in_value
 quoted_value     = ~r"\"((?:\\\"|[^\"])*)?\""s
-numeric_in_list  = open_bracket numeric_value (comma spaces numeric_value)* closed_bracket
-text_in_list     = open_bracket text_value (comma spaces text_value)* closed_bracket
+numeric_in_list  = open_bracket numeric_value (spaces comma spaces numeric_value)* closed_bracket
+text_in_list     = open_bracket text_value (spaces comma spaces text_value)* closed_bracket
 
 # Formats
 iso_8601_date_format = ~r"(\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{1,6})?)?(Z|([+-]\d{2}:\d{2}))?)(?=\s|\)|$)"
@@ -407,7 +407,7 @@ class SearchVisitor(NodeVisitor):
     def process_list(self, first, remaining):
         return [
             first,
-            *[item[2] for item in remaining],
+            *[item[3] for item in remaining],
         ]
 
     def visit_numeric_filter(self, node, children):
@@ -622,9 +622,7 @@ class SearchVisitor(NodeVisitor):
     def visit_text_in_filter(self, node, children):
         (negation, search_key, _, search_value) = children
         operator = "IN"
-        search_value = SearchValue(
-            self.process_list(search_value[1], [(_, _, val) for _, _, val in search_value[2]])
-        )
+        search_value = SearchValue(self.process_list(search_value[1], search_value[2]))
 
         operator = self.handle_negation(negation, operator)
 
@@ -683,10 +681,7 @@ class SearchVisitor(NodeVisitor):
         return AggregateKey(self.key_mappings_lookup.get(key, key))
 
     def visit_function_args(self, node, children):
-        args = [children[0]]
-        args.extend(v[3] for v in children[1])
-
-        return args
+        return self.process_list(children[0], children[1])
 
     def visit_search_value(self, node, children):
         return SearchValue(children[0])
