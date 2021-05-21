@@ -1,6 +1,6 @@
 import time
 from io import BytesIO
-from typing import Tuple
+from typing import IO, Optional, Tuple
 
 from django.utils.encoding import force_bytes, force_text
 
@@ -348,7 +348,7 @@ def fetch_release_file(filename, release, dist=None):
     return result
 
 
-def _get_from_archive(url: str, archive: ReleaseArchive) -> Tuple[bytes, dict]:
+def get_from_archive(url: str, archive: ReleaseArchive) -> Tuple[bytes, dict]:
     candidates = ReleaseFile.normalize(url)
     for candidate in candidates:
         try:
@@ -358,6 +358,44 @@ def _get_from_archive(url: str, archive: ReleaseArchive) -> Tuple[bytes, dict]:
 
     # None of the filenames matched
     raise KeyError(f"Not found in archive: '{url}'")
+
+
+def fetch_release_archive(release, dist) -> Optional[IO]:
+    """Fetch release archive and cache if possible.
+
+    If return value is not empty, the caller is responsible for closing the stream.
+    """
+    dist_name = dist and dist.name or None
+    releasefile_ident = ReleaseFile.get_ident(RELEASE_ARCHIVE_FILENAME, dist_name)
+    cache_key = get_release_file_cache_key(
+        release_id=release.id, releasefile_ident=releasefile_ident
+    )
+
+    result = cache.get(cache_key)
+
+    if result:
+        return BytesIO(result)
+    else:
+        qs = ReleaseFile.objects.filter(
+            release=release, dist=dist, ident=releasefile_ident
+        ).select_related("file")
+        try:
+            releasefile = qs[0]
+        except IndexError:
+            return None
+        else:
+            try:
+                file_ = fetch_retry_policy(lambda: ReleaseFile.cache.getfile(releasefile))
+            except Exception:
+                logger.error("sourcemaps.read_archive_failed", exc_info=sys.exc_info())
+
+                return None
+
+            # This will implicitly skip too large payloads.
+            cache.set(cache_key, file_.read(), 3600)
+            file_.seek(0)
+
+            return file_
 
 
 def fetch_release_artifact(url, release, dist):
@@ -370,29 +408,30 @@ def fetch_release_artifact(url, release, dist):
     """
     start = time.monotonic()
 
-    release_file = fetch_release_file(RELEASE_ARCHIVE_FILENAME, release, dist)
+    release_file = fetch_release_archive(release, dist)
 
     if release_file is not None:
-        zipobj = BytesIO(release_file.body)
         try:
-            with ReleaseArchive(zipobj) as archive:
-                body, headers = _get_from_archive(url, archive)
+            with ReleaseArchive(release_file) as archive:
+                body, headers = get_from_archive(url, archive)
         except BaseException as exc:
             logger.error("Failed to read %s from release file %s: %s", url, release.id, exc)
         else:
             # discover_sourcemaps() expects lowercase headers:
             headers = {key.lower(): value for key, value in headers.items()}
-            result = http.UrlResult(url, headers, body, 200, release_file.encoding)
+
+            encoding = get_encoding_from_headers(headers)
+            result = http.UrlResult(url, headers, body, 200, encoding)
             metrics.timing("sourcemaps.release_artifact_from_archive", time.monotonic() - start)
 
             return result
 
     # Fall back to maintain compatibility with old releases and versions of
     # sentry-cli which upload files individually
-    artifact = fetch_release_file(url, release, dist)
+    result = fetch_release_file(url, release, dist)
     metrics.timing("sourcemaps.release_artifact_from_file", time.monotonic() - start)
 
-    return artifact
+    return result
 
 
 def fetch_file(

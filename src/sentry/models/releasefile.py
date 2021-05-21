@@ -132,6 +132,7 @@ class ReleaseArchive:
         self._zip_file = zipfile.ZipFile(self._fileobj)
         self.manifest = self._read_manifest()
         files = self.manifest.get("files", {})
+
         self._entries_by_url = {entry["url"]: (path, entry) for path, entry in files.items()}
 
     def __enter__(self):
