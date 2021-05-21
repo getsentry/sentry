@@ -2,6 +2,11 @@ import set from 'lodash/set';
 
 import {OrganizationSummary, Project} from 'app/types';
 
+const ALL_PROVIDERS = {
+  email: 'default',
+  slack: 'never',
+};
+
 export type NotificationSettingsObject = {
   [key: string]: {[key: string]: {[key: string]: {[key: string]: string}}};
 };
@@ -67,38 +72,30 @@ export const backfillMissingProvidersWithFallback = (
   scopeType: string
 ): {[key: string]: string} => {
   /**
-   * Transform `data` to include only providers expected in `providerList`.
-   * Everything not in that list is set to "never". Missing values will be
-   * backfilled either with a current value from `data` or `fallbackValue` if
-   * none are present. When wiping out a provider, set the parent-independent
-   * setting to "never" and all parent-specific settings to "default".
-   *
-   * For example:
-   * f({}, ["email"], "sometimes", "user") = {"email": "sometimes"}
-   *
-   * f({"email": "always", pagerduty: "always"}, ["email", "slack"], "sometimes", "user) =
-   * {"email": "always", "slack": "always", "pagerduty": "never"}
+   * Transform `data`, a mapping of providers to values, so that all providers
+   * in `providerList` are "on" in the resulting object. The "on" value is
+   * determined by checking `data` for non-"never" values and falling back to
+   * the value `fallbackValue`. The "off" value is either "default" or "never"
+   * depending on whether `scopeType` is "parent" or "user" respectively.
    */
-  const entries: string[][] = [];
-  let fallback = fallbackValue;
-  for (const [provider, previousValue] of Object.entries(data)) {
-    fallback = previousValue;
-    let value;
-    if (providerList.includes(provider)) {
-      value = previousValue;
-    } else if (scopeType === 'user') {
-      value = 'never';
-    } else {
-      value = 'default';
-    }
 
-    entries.push([provider, value]);
-  }
-
-  for (const provider of providerList) {
-    entries.push([provider, fallback]);
-  }
-  return Object.fromEntries(entries);
+  // First pass: determine the fallback value.
+  const fallback = Object.values(data).reduce(
+    (previousValue, currentValue) =>
+      currentValue === 'never' ? previousValue : currentValue,
+    fallbackValue
+  );
+  // Second pass: fill in values for every provider.
+  return Object.fromEntries(
+    Object.keys(ALL_PROVIDERS).map(provider => [
+      provider,
+      providerList.includes(provider)
+        ? fallback
+        : scopeType === 'user'
+        ? 'never'
+        : 'default',
+    ])
+  );
 };
 
 export const mergeNotificationSettings = (
@@ -129,9 +126,13 @@ export const getUserDefaultValues = (
    * ID rather than "me" so we assume the first ID is the user's.
    */
   return (
-    Object.values(notificationSettings[notificationType]?.user || {}).pop() || {
-      email: getFallBackValue(notificationType),
-    }
+    Object.values(notificationSettings[notificationType]?.user || {}).pop() ||
+    Object.fromEntries(
+      Object.entries(ALL_PROVIDERS).map(([provider, value]) => [
+        provider,
+        value === 'default' ? getFallBackValue(notificationType) : value,
+      ])
+    )
   );
 };
 
