@@ -125,13 +125,6 @@ DEVSERVICES_CONFIG_DIR = os.path.normpath(
 )
 
 SENTRY_DISTRIBUTED_CLICKHOUSE_TABLES = False
-_common_clickhouse_settings = {
-    "image": "yandex/clickhouse-server:20.3.9.70",
-    "pull": True,
-    "ports": {"9000/tcp": 9000, "9009/tcp": 9009, "8123/tcp": 8123},
-    "ulimits": [{"name": "nofile", "soft": 262144, "hard": 262144}],
-    "environment": {"MAX_MEMORY_USAGE_RATIO": "0.3"},
-}
 
 RELAY_CONFIG_DIR = os.path.join(DEVSERVICES_CONFIG_DIR, "relay")
 
@@ -1678,24 +1671,21 @@ SENTRY_DEVSERVICES = {
         ),
     },
     "clickhouse": {
-        **_common_clickhouse_settings,
+        "image": "yandex/clickhouse-server:20.3.9.70",
+        "pull": True,
+        "ports": {"9000/tcp": 9000, "9009/tcp": 9009, "8123/tcp": 8123},
+        "ulimits": [{"name": "nofile", "soft": 262144, "hard": 262144}],
+        "environment": {"MAX_MEMORY_USAGE_RATIO": "0.3"},
         "volumes": {
-            "clickhouse": {"bind": "/var/lib/clickhouse"},
-            os.path.join(DEVSERVICES_CONFIG_DIR, "clickhouse", "loc_config.xml"): {
-                "bind": "/etc/clickhouse-server/config.d/sentry.xml"
-            },
+            "clickhouse_dist"
+            if SENTRY_DISTRIBUTED_CLICKHOUSE_TABLES
+            else "clickhouse": {"bind": "/var/lib/clickhouse"},
+            os.path.join(
+                DEVSERVICES_CONFIG_DIR,
+                "clickhouse",
+                "dist_config.xml" if SENTRY_DISTRIBUTED_CLICKHOUSE_TABLES else "loc_config.xml",
+            ): {"bind": "/etc/clickhouse-server/config.d/sentry.xml"},
         },
-        "only_if": lambda settings, options: (not settings.SENTRY_DISTRIBUTED_CLICKHOUSE_TABLES),
-    },
-    "clickhouse_dist": {
-        **_common_clickhouse_settings,
-        "volumes": {
-            "clickhouse_dist": {"bind": "/var/lib/clickhouse"},
-            os.path.join(DEVSERVICES_CONFIG_DIR, "clickhouse", "dist_config.xml"): {
-                "bind": "/etc/clickhouse-server/config.d/sentry.xml"
-            },
-        },
-        "only_if": lambda settings, options: (settings.SENTRY_DISTRIBUTED_CLICKHOUSE_TABLES),
     },
     "snuba": {
         "image": "getsentry/snuba:nightly",
