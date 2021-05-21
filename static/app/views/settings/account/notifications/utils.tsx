@@ -197,7 +197,9 @@ export const isEverythingDisabled = (
    * "never"? If so, the API is telling us that the user has opted out of
    * all notifications.
    */
-  return decideDefault(notificationType, notificationSettings) === 'never';
+  return ['never', 'default'].includes(
+    decideDefault(notificationType, notificationSettings)
+  );
 };
 
 export const getParentIds = (

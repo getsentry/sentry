@@ -19,6 +19,7 @@ import {
   getStateToPutForProvider,
   getUserDefaultValues,
   groupByOrganization,
+  isEverythingDisabled,
   isGroupedByProject,
   mergeNotificationSettings,
   NotificationSettingsObject,
@@ -293,18 +294,7 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
     const {notificationType} = this.props;
     const {notificationSettings} = this.state;
 
-    return (
-      // For user, all providers are "never".
-      Object.values(this.getUserDefaultValues()).every(value => value === 'never') &&
-      // Every leaf value is either "never" or "default".
-      Object.values(
-        notificationSettings[notificationType]?.[this.getParentKey()] || {}
-      ).every(settingsByProvider =>
-        Object.values(settingsByProvider).every(value =>
-          ['never', 'default'].includes(value)
-        )
-      )
-    );
+    return isEverythingDisabled(notificationType, notificationSettings);
   };
 
   renderBody() {
