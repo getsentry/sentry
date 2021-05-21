@@ -1,8 +1,16 @@
 import pytest
+from django.conf import settings
 from django.http import HttpRequest
-from rest_framework.exceptions import AuthenticationFailed
+from django.middleware.csrf import rotate_token
+from exam import fixture
+from rest_framework.exceptions import AuthenticationFailed, PermissionDenied
+from rest_framework.request import Request
 
-from sentry.api.authentication import ClientIdSecretAuthentication, DSNAuthentication
+from sentry.api.authentication import (
+    ClientIdSecretAuthentication,
+    DSNAuthentication,
+    ImprovedSessionAuthentication,
+)
 from sentry.models import ProjectKeyStatus
 from sentry.testutils import TestCase
 
@@ -92,3 +100,42 @@ class TestDSNAuthentication(TestCase):
 
         with pytest.raises(AuthenticationFailed):
             self.auth.authenticate(request)
+
+
+class TestImprovedSessionAuthentication(TestCase):
+    @fixture
+    def auth(self):
+        return ImprovedSessionAuthentication()
+
+    def test_does_not_enforce_csrf_on_get(self):
+        assert not settings.CSRF_USE_SESSIONS
+
+        request = HttpRequest()
+        request.method = "GET"
+        assert self.auth.authenticate(Request(request)) is None
+
+    def test_fails_without_csrf_on_post(self):
+        assert not settings.CSRF_USE_SESSIONS
+
+        request = HttpRequest()
+        request.method = "POST"
+        with pytest.raises(PermissionDenied):
+            self.auth.authenticate(Request(request))
+
+    def test_fails_with_invalid_csrf_on_post(self):
+        assert not settings.CSRF_USE_SESSIONS
+
+        request = HttpRequest()
+        request.method = "POST"
+        request.META[settings.CSRF_HEADER_NAME] = "csrf"
+        with pytest.raises(PermissionDenied):
+            self.auth.authenticate(Request(request))
+
+    def test_succeeds_with_valid_csrf_on_post(self):
+        assert not settings.CSRF_USE_SESSIONS
+
+        request = HttpRequest()
+        request.method = "POST"
+        rotate_token(request)
+        request.META[settings.CSRF_HEADER_NAME] = request.META["CSRF_COOKIE"]
+        assert self.auth.authenticate(Request(request)) is None
