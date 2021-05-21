@@ -19,18 +19,7 @@ from sentry.models import (
     Team,
     UserPermission,
 )
-
-
-def _get_organization_member(user, organization, request=None):
-    """
-    A wrapper to use the cached get_organization_member if the request has it available
-    Certain tests aren't using the middleware which provides get_organization_member
-    so we should check the property before we use it.
-    """
-    if hasattr(request, "get_organization_member"):
-        return request.get_organization_member(organization.id)
-    else:
-        return OrganizationMember.objects.get(user=user, organization=organization)
+from sentry.utils.request_cache import get_organization_member
 
 
 def _sso_params(member):
@@ -291,7 +280,7 @@ def from_request(request, organization=None, scopes=None):
         # we special case superuser so that if they're a member of the org
         # they must still follow SSO checks, but they gain global access
         try:
-            member = _get_organization_member(request.user, organization, request)
+            member = get_organization_member(request.user.id, organization.id)
         except OrganizationMember.DoesNotExist:
             requires_sso, sso_is_valid = False, True
         else:
@@ -318,7 +307,7 @@ def from_request(request, organization=None, scopes=None):
     if hasattr(request, "auth") and not request.user.is_authenticated:
         return from_auth(request.auth, scopes=scopes)
 
-    return from_user(request.user, organization, scopes=scopes, request=request)
+    return from_user(request.user, organization, scopes=scopes)
 
 
 # only used internally
@@ -349,7 +338,7 @@ def _from_sentry_app(user, organization=None):
     )
 
 
-def from_user(user, organization=None, scopes=None, request=None):
+def from_user(user, organization=None, scopes=None):
     if not user or user.is_anonymous() or not user.is_active:
         return DEFAULT
 
@@ -357,7 +346,7 @@ def from_user(user, organization=None, scopes=None, request=None):
         return OrganizationlessAccess(permissions=UserPermission.for_user(user.id))
 
     try:
-        om = _get_organization_member(user, organization, request)
+        om = get_organization_member(user.id, organization.id)
     except OrganizationMember.DoesNotExist:
         return OrganizationlessAccess(permissions=UserPermission.for_user(user.id))
 
