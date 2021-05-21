@@ -3,6 +3,8 @@ import pytest
 from sentry.models import GroupHash
 from sentry.testutils.helpers import Feature
 
+pytestmark = pytest.mark.skip(reason="too flaky")
+
 
 @pytest.fixture(autouse=True)
 def hierarchical_grouping_features():
