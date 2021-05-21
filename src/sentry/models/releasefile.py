@@ -142,8 +142,11 @@ class ReleaseArchive:
         self._zip_file.close()
         self._fileobj.close()
 
+    def read(self, filename: str) -> bytes:
+        return self._zip_file.read(filename)
+
     def _read_manifest(self) -> dict:
-        manifest_bytes = self._zip_file.read("manifest.json")
+        manifest_bytes = self.read("manifest.json")
         return json.loads(manifest_bytes.decode("utf-8"))
 
     def get_file_by_url(self, url: str) -> Tuple[IO, dict]:
