@@ -2,7 +2,7 @@ from sentry.models import Integration
 from sentry.testutils import AcceptanceTestCase
 
 
-class OrganizationExternalMappings(AcceptanceTestCase):
+class OrganizationIntegrationConfigurationTabs(AcceptanceTestCase):
     def setUp(self):
         super().setUp()
         self.login_as(self.user)
