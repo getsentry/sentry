@@ -1,6 +1,5 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
-import capitalize from 'lodash/capitalize';
 
 import List from 'app/components/list';
 import ListItem from 'app/components/list/listItem';
@@ -11,7 +10,7 @@ import space from 'app/styles/space';
 import {Meta, MetaError} from 'app/types';
 
 import Chunks from './chunks';
-import {getTooltipText} from './utils';
+import {getErrorMessage, getTooltipText} from './utils';
 import ValueElement from './valueElement';
 
 type Props = {
@@ -33,28 +32,6 @@ const AnnotatedText = ({value, meta, ...props}: Props) => {
     }
 
     return element;
-  };
-
-  const formatErrorKind = (kind: string) => {
-    return capitalize(kind.replace(/_/g, ' '));
-  };
-
-  const getErrorMessage = (error: MetaError) => {
-    const errorMessage: string[] = [];
-
-    if (Array.isArray(error)) {
-      if (error[0]) {
-        errorMessage.push(formatErrorKind(error[0]));
-      }
-
-      if (error[1]?.reason) {
-        errorMessage.push(`(${error[1].reason})`);
-      }
-    } else {
-      errorMessage.push(formatErrorKind(error));
-    }
-
-    return errorMessage.join(' ');
   };
 
   const getTooltipTitle = (errors: Array<MetaError>) => {
