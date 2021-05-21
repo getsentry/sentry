@@ -291,6 +291,17 @@ def get_cache_keys(filename, release, dist):
     return cache_key, cache_key_meta
 
 
+def result_from_cache(filename, result):
+    # Previous caches would be a 3-tuple instead of a 4-tuple,
+    # so this is being maintained for backwards compatibility
+    try:
+        encoding = result[3]
+    except IndexError:
+        encoding = None
+
+    return http.UrlResult(filename, result[0], zlib.decompress(result[1]), result[2], encoding)
+
+
 def fetch_release_file(filename, release, dist=None):
     """
     Attempt to retrieve a release artifact from the database.
@@ -356,19 +367,12 @@ def fetch_release_file(filename, release, dist=None):
 
     # in the cache as a successful attempt, including the zipped contents of the file
     else:
-        # Previous caches would be a 3-tuple instead of a 4-tuple,
-        # so this is being maintained for backwards compatibility
-        try:
-            encoding = result[3]
-        except IndexError:
-            encoding = None
-        result = http.UrlResult(
-            filename, result[0], zlib.decompress(result[1]), result[2], encoding
-        )
+        result = result_from_cache(filename, result)
 
     return result
 
 
+@metrics.wraps("sourcemaps.get_from_archive")
 def get_from_archive(url: str, archive: ReleaseArchive) -> Tuple[bytes, dict]:
     candidates = ReleaseFile.normalize(url)
     for candidate in candidates:
@@ -381,6 +385,7 @@ def get_from_archive(url: str, archive: ReleaseArchive) -> Tuple[bytes, dict]:
     raise KeyError(f"Not found in archive: '{url}'")
 
 
+@metrics.wraps("sourcemaps.fetch_release_archive")
 def fetch_release_archive(release, dist) -> Optional[IO]:
     """Fetch release archive and cache if possible.
 
@@ -394,7 +399,9 @@ def fetch_release_archive(release, dist) -> Optional[IO]:
 
     result = cache.get(cache_key)
 
-    if result:
+    if result == -1:
+        return None
+    elif result:
         return BytesIO(result)
     else:
         qs = ReleaseFile.objects.filter(
@@ -403,6 +410,8 @@ def fetch_release_archive(release, dist) -> Optional[IO]:
         try:
             releasefile = qs[0]
         except IndexError:
+            # Cache as nonexistent:
+            cache.set(cache_key, -1, 60)
             return None
         else:
             try:
@@ -436,8 +445,12 @@ def fetch_release_artifact(url, release, dist):
     cache_key, cache_key_meta = get_cache_keys(url, release, dist)
 
     result = cache.get(cache_key)
+
+    if result == -1:  # Cached as unavailable
+        return None
+
     if result:
-        return result
+        return result_from_cache(url, result)
 
     start = time.monotonic()
 

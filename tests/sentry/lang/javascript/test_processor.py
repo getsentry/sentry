@@ -21,6 +21,7 @@ from sentry.lang.javascript.processor import (
     cache,
     discover_sourcemap,
     fetch_file,
+    fetch_release_archive,
     fetch_release_file,
     fetch_sourcemap,
     generate_module,
@@ -530,12 +531,83 @@ class FetchFileTest(TestCase):
             file=file,
         )
 
+        # Attempt to fetch nonexisting
+        with pytest.raises(http.BadSource):
+            fetch_file("does-not-exist.js", release=release, use_release_archive=True)
+
+        # Attempt to fetch nonexsting again (to check if cache works)
+        with pytest.raises(http.BadSource):
+            result = fetch_file("does-not-exist.js", release=release, use_release_archive=True)
+
         result = fetch_file("/example.js", release=release, use_release_archive=True)
         assert result.url == "/example.js"
         assert result.body == b"foo"
         assert isinstance(result.body, bytes)
         assert result.headers == {"content-type": "application/json"}
         assert result.encoding == "utf-8"
+
+        # Make sure cache loading works:
+        result2 = fetch_file("/example.js", release=release, use_release_archive=True)
+        assert result2 == result
+
+    @patch("sentry.lang.javascript.processor.cache.set", side_effect=cache.set)
+    @patch("sentry.lang.javascript.processor.cache.get", side_effect=cache.get)
+    def test_archive_caching(self, cache_get, cache_set):
+        release = Release.objects.create(version="1", organization_id=self.project.organization_id)
+
+        def relevant_calls(mock):
+            return [
+                call
+                for call in mock.mock_calls
+                if (
+                    call.args and call.args[0] or call.kwargs and call.kwargs["key"] or ""
+                ).startswith("releasefile")
+            ]
+
+        # No archive exists:
+        result = fetch_release_archive(release, dist=None)
+        assert result is None
+        assert len(relevant_calls(cache_get)) == 1
+        assert len(relevant_calls(cache_set)) == 1
+        cache_get.reset_mock()
+        cache_set.reset_mock()
+
+        # Still no archive, cache is only read
+        result = fetch_release_archive(release, dist=None)
+        assert result is None
+        assert len(relevant_calls(cache_get)) == 1
+        assert len(relevant_calls(cache_set)) == 0
+        cache_get.reset_mock()
+        cache_set.reset_mock()
+
+        file = File.objects.create(
+            name=RELEASE_ARCHIVE_FILENAME,
+        )
+        file.putfile(BytesIO(b"foo"))
+
+        release = Release.objects.create(version="2", organization_id=self.project.organization_id)
+        ReleaseFile.objects.create(
+            name=RELEASE_ARCHIVE_FILENAME,
+            release=release,
+            organization_id=self.project.organization_id,
+            file=file,
+        )
+
+        # No we have one, call set again
+        result = fetch_release_archive(release, dist=None)
+        assert result not in (None, -1)
+        assert len(relevant_calls(cache_get)) == 1
+        assert len(relevant_calls(cache_set)) == 1
+        cache_get.reset_mock()
+        cache_set.reset_mock()
+
+        # Second time, get it from cache
+        result = fetch_release_archive(release, dist=None)
+        assert result not in (None, -1)
+        assert len(relevant_calls(cache_get)) == 1
+        assert len(relevant_calls(cache_set)) == 0
+        cache_get.reset_mock()
+        cache_set.reset_mock()
 
     @responses.activate
     def test_unicode_body(self):
