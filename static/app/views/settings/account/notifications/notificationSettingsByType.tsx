@@ -264,7 +264,7 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
     const {notificationType} = this.props;
 
     const fields = [
-      Object.assign(NOTIFICATION_SETTING_FIELDS[notificationType], {
+      Object.assign({}, NOTIFICATION_SETTING_FIELDS[notificationType], {
         help: t('This is the default for all projects.'),
         getData: data => this.getStateToPutForDefault(data),
       }),
