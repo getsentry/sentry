@@ -799,6 +799,13 @@ class ParseSearchQueryTest(unittest.TestCase):
                 value=SearchValue(raw_value=[500, 501, 502]),
             )
         ]
+        assert parse_search_query("project_id:[500, 501 ,502]") == [
+            SearchFilter(
+                key=SearchKey(name="project_id"),
+                operator="IN",
+                value=SearchValue(raw_value=[500, 501, 502]),
+            ),
+        ]
         assert parse_search_query("project_id:[500,501,502] issue.id:[100]") == [
             SearchFilter(
                 key=SearchKey(name="project_id"),

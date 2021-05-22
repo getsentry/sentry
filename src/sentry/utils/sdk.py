@@ -212,9 +212,35 @@ def traces_sampler(sampling_context):
     return float(settings.SENTRY_BACKEND_APM_SAMPLING or 0)
 
 
-# Patches the send_request function to check outgoing requests and patches the update_rate_limits function as it is first to be called after the response.
+# Patches transport functions to add metrics to improve resolution around events sent to our ingest
 # TODO(k-fish): Remove after backend transaction findings are in.
 def patch_transport_for_instrumentation(transport, transport_name):
+    _worker_submit = transport._worker.submit
+    if _worker_submit:
+
+        def patched_worker_submit(*args, **kwargs):
+            metrics.incr(f"internal.worker_submit.{transport_name}.events")
+            return _worker_submit(*args, **kwargs)
+
+        transport._worker.submit = patched_worker_submit
+
+    _send_envelope = transport._send_envelope
+    if _send_envelope:
+
+        def patched_send_envelope(*args, **kwargs):
+            metrics.incr(f"internal.send_envelope.{transport_name}.events")
+            try:
+                result = _send_envelope(*args, **kwargs)
+                metrics.incr(f"internal.send_envelope.{transport_name}.sent.events")
+                return result
+            except Exception as error:
+                error_name = type(error).__name__
+                metrics.incr(
+                    f"internal.send_envelope.{transport_name}.error", tags={"error": error_name}
+                )
+
+        transport._send_envelope = patched_send_envelope
+
     _send_request = transport._send_request
     if _send_request:
 
@@ -246,17 +272,20 @@ def patch_transport_for_instrumentation(transport, transport_name):
     _check_disabled = transport._check_disabled
     if _check_disabled:
 
+        def check_disabled_bucket(bucket):
+            ts = transport._disabled_until.get(bucket)
+
+            # Confirm the transaction bucket is disabled
+            if ts is not None and ts > datetime.utcnow():
+                metrics.incr(f"internal.check_disabled.{transport_name}.bucket.{bucket}.disabled")
+
         def patched_check_disabled(*args, **kwargs):
             result = _check_disabled(*args, **kwargs)
+            metrics.incr(f"internal.check_disabled.{transport_name}.events.count")
             if result:
-                if getattr(transport, "_disabled_until", None):
-                    ts = transport._disabled_until.get("transaction")
 
-                    # Confirm the transaction bucket is disabled
-                    if ts is not None and ts > datetime.utcnow():
-                        metrics.incr(
-                            f"internal.check_disabled.{transport_name}.events.transactions_disabled"
-                        )
+                if getattr(transport, "_disabled_until", None):
+                    check_disabled_bucket("transaction")
 
                 metrics.incr(f"internal.check_disabled.{transport_name}.events.is_disabled")
             return result

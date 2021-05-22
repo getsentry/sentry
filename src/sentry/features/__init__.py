@@ -133,6 +133,8 @@ default_manager.add("organizations:limit-features-on-downgrade", OrganizationFea
 default_manager.add(
     "organizations:project-transaction-threshold", OrganizationFeature, True  # NOQA
 )
+default_manager.add("organizations:performance-landing-widgets", OrganizationFeature, True)  # NOQA
+
 # NOTE: Don't add features down here! Add them to their specific group and sort
 #       them alphabetically! The order features are registered is not important.
 
