@@ -46,6 +46,20 @@ class RequestCacheTest(TestCase):
         assert mock_now.call_count == 1
 
     @patch("django.utils.timezone.now")
+    def test_different_args(self, mock_now):
+        app.env.request = HttpRequest()
+        assert cached_fn("cat", arg2="dog") == "catdog"
+        assert cached_fn("hey", arg2="dog") == "heydog"
+        assert mock_now.call_count == 2
+
+    @patch("django.utils.timezone.now")
+    def test_different_kwargs(self, mock_now):
+        app.env.request = HttpRequest()
+        assert cached_fn("cat", arg2="dog") == "catdog"
+        assert cached_fn("cat", arg2="hat") == "cathat"
+        assert mock_now.call_count == 2
+
+    @patch("django.utils.timezone.now")
     def test_different_request(self, mock_now):
         app.env.request = HttpRequest()
         assert cached_fn("cat") == "cat"
