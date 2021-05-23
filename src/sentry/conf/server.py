@@ -1000,7 +1000,6 @@ SENTRY_FEATURES = {
     "organizations:project-transaction-threshold": False,
     # Enable percent displays in issue stream
     "organizations:issue-percent-display": False,
-    "organizations:limit-features-on-downgrade": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.

@@ -3,7 +3,6 @@ from datetime import timedelta
 
 from django.utils import timezone
 
-from sentry import features
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import OrganizationMember
 from sentry.search.utils import InvalidQuery, parse_datetime_string
@@ -89,10 +88,6 @@ def get_date_range_from_params(params, optional=False):
 
 def is_member_disabled_from_limit(request, organization):
     user = request.user
-
-    # check feature flag
-    if not features.has("organizations:limit-features-on-downgrade", organization):
-        return False
 
     # never limit sentry apps
     if getattr(user, "is_sentry_app", False):

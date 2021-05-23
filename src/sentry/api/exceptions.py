@@ -59,7 +59,7 @@ class SsoRequired(SentryAPIException):
 class MemberDisabledOverLimit(SentryAPIException):
     status_code = status.HTTP_401_UNAUTHORIZED
     code = "member-disabled-over-limit"
-    message = "Must upgrade plan"
+    message = "Organization over member limit"
 
     def __init__(self, organization):
         super().__init__(
