@@ -1,8 +1,18 @@
 import functools
 import logging
 import random
-from concurrent.futures import Future, ThreadPoolExecutor, wait
-from typing import Any, Callable, Mapping, MutableSequence, Optional, Tuple
+from concurrent.futures import Future, ThreadPoolExecutor, as_completed
+from typing import (
+    Any,
+    Callable,
+    Mapping,
+    MutableMapping,
+    MutableSequence,
+    NamedTuple,
+    Optional,
+    Tuple,
+    TypeVar,
+)
 
 import msgpack
 import sentry_sdk
@@ -31,8 +41,14 @@ logger = logging.getLogger(__name__)
 
 CACHE_TIMEOUT = 3600
 
+T = TypeVar("T")
 
 Message = Any
+
+
+class AsyncResult(NamedTuple):  # TODO: Use Generic[T] with 3.7+
+    future: "Future[T]"
+    callback: Optional[Callable[["Future[T]"], None]] = None
 
 
 class IngestConsumerWorker(AbstractBatchWorker):
@@ -58,10 +74,18 @@ class IngestConsumerWorker(AbstractBatchWorker):
         # Processing functions may be either synchronous or asynchronous.
         # Functions that return ``None`` are assumed to have completed
         # successfully after they have returned. Functions that return a
-        # ``Future`` instance will need to wait until the future has a result
-        # value before exiting.
+        # ``AsyncResult`` may perform a combination of synchronous and
+        # asynchronous work, and need to be explicitly waited on to ensure they
+        # have completed (and callback has been invoked, if provided) before
+        # this method returns.
         other_messages: MutableSequence[
-            Tuple[Callable[[Message, Mapping[int, Project]], Optional[Future[None]]], Message]
+            Tuple[
+                Callable[
+                    [Message, Mapping[int, Project]],
+                    Optional[AsyncResult],
+                ],
+                Message,
+            ]
         ] = []
 
         projects_to_fetch = set()
@@ -96,14 +120,22 @@ class IngestConsumerWorker(AbstractBatchWorker):
 
         if other_messages:
             with metrics.timer("ingest_consumer.process_other_messages_batch"):
-                futures = []
+                # Keep a mapping of futures to their metadata so that we can
+                # easily associate a future with its callback once completed.
+                results: MutableMapping["Future[Any]", "AsyncResult[Any]"] = {}
 
+                # Execute synchronous tasks and dispatch asynchronous tasks.
                 for processing_func, message in other_messages:
-                    future = processing_func(message, projects)
-                    if future is not None:
-                        futures.append(future)
+                    result = processing_func(message, projects)
+                    if result is not None:
+                        results[result.future] = result
 
-                wait(futures)
+                # Wait for any asynchronous work to be completed, invoking
+                # callbacks (on the main thread) as results are ready.
+                for future in as_completed(results.keys()):
+                    callback = results[future].callback
+                    if callback is not None:
+                        callback(future)
 
     def shutdown(self):
         if self.__process_event_executor is not None:
