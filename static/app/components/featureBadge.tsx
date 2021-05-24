@@ -44,7 +44,7 @@ const FeaturedBadge = ({
       <React.Fragment>
         {variant === 'badge' && <StyledTag priority={type}>{labels[type]}</StyledTag>}
         {variant === 'indicator' && (
-          <CircleIndicator color={theme?.badge[type].indicatorColor} size={8} />
+          <CircleIndicator color={theme.badge[type].indicatorColor} size={8} />
         )}
       </React.Fragment>
     </Tooltip>
@@ -55,7 +55,7 @@ const StyledTag = styled(Tag)`
   padding: 3px ${space(0.75)};
 `;
 
-const StyledFeatureBadge = styled(FeaturedBadge)`
+const StyledFeatureBadge = styled(withTheme(FeaturedBadge))`
   display: inline-flex;
   align-items: center;
   margin-left: ${space(0.75)};
@@ -63,4 +63,4 @@ const StyledFeatureBadge = styled(FeaturedBadge)`
   top: -1px;
 `;
 
-export default withTheme(StyledFeatureBadge);
+export default StyledFeatureBadge;
