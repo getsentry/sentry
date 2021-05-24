@@ -75,7 +75,7 @@ class OrganizationComplianceTask(abc.ABC):
         raise NotImplementedError()
 
     def remove_non_compliant_members(self, org_id, actor_id, actor_key_id, ip_address):
-        org = Organization.objects.get(id=org_id)
+        org = Organization.objects.get_from_cache(id=org_id)
         actor = User.objects.get(id=actor_id) if actor_id else None
         actor_key = ApiKey.objects.get(id=actor_key_id) if actor_key_id else None
 
