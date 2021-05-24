@@ -38,7 +38,7 @@ SAMPLED_URL_NAMES = {
     # integrations
     "sentry-extensions-jira-issue-hook",
     "sentry-extensions-vercel-webhook",
-    "sentry-extensions-vercel-delete",
+    "sentry-extensions-vercel-generic-webhook",
     "sentry-extensions-vercel-configure",
     "sentry-extensions-vercel-ui-hook",
     "sentry-api-0-group-integration-details",

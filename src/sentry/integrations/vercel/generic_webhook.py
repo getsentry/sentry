@@ -40,6 +40,7 @@ def verify_signature(request):
     expected = hmac.new(
         key=secret.encode("utf-8"), msg=bytes(request.body), digestmod=hashlib.sha1
     ).hexdigest()
+
     return constant_time_compare(expected, signature)
 
 
@@ -99,7 +100,7 @@ def get_payload_and_token(payload, organization_id, sentry_project_id):
     return [release_payload, sentry_app_installation_token.api_token.token]
 
 
-class VercelUninstallEndpoint(Endpoint):
+class VercelGenericWebhookEndpoint(Endpoint):
     authentication_classes = ()
     permission_classes = ()
     provider = "vercel"
@@ -135,16 +136,7 @@ class VercelUninstallEndpoint(Endpoint):
             return self._delete(external_id, configuration_id, request)
 
         if event_type == "deployment":
-            payload = request.data["payload"]
-            # Only create releases for production deloys for now
-            if payload["target"] != "production":
-                logger.info(
-                    "Ignoring deployment for environment: %s" % payload["target"],
-                    extra={"external_id": external_id, "vercel_project_id": payload["projectId"]},
-                )
-                return self.respond(status=204)
-
-            return self._deployment_created(payload, external_id)
+            return self._deployment_created(external_id, request)
 
     def delete(self, request):
         # userId should always be present
@@ -252,7 +244,15 @@ class VercelUninstallEndpoint(Endpoint):
 
         return self.respond(status=204)
 
-    def _deployment_created(self, payload, external_id):
+    def _deployment_created(self, external_id, request):
+        payload = request.data["payload"]
+        # Only create releases for production deloys for now
+        if payload["target"] != "production":
+            logger.info(
+                "Ignoring deployment for environment: %s" % payload["target"],
+                extra={"external_id": external_id, "vercel_project_id": payload["projectId"]},
+            )
+            return self.respond(status=204)
         """
         Steps:
             1. Find all org integrations that match the external id
