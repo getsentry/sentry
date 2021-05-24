@@ -101,7 +101,7 @@ class IssueListFilters extends React.Component<Props> {
               onDisplayChange={onDisplayChange}
               display={display}
               hasSessions={hasSessions}
-              hasMultipleProjectsSelected={selectedProjects.length > 1}
+              hasMultipleProjectsSelected={selectedProjects.length !== 1}
             />
           </Feature>
 
