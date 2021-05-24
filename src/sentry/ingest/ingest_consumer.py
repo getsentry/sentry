@@ -217,7 +217,7 @@ def _do_process_event(message, projects):
 
 
 @trace_func(name="ingest_consumer.process_event")
-def process_event(message, projects):
+def process_event(message, projects) -> None:
     return _do_process_event(message, projects)
 
 
@@ -237,7 +237,7 @@ def process_attachment_chunk(message, projects):
 
 @trace_func(name="ingest_consumer.process_individual_attachment")
 @metrics.wraps("ingest_consumer.process_individual_attachment")
-def process_individual_attachment(message, projects):
+def process_individual_attachment(message, projects) -> None:
     event_id = message["event_id"]
     project_id = int(message["project_id"])
     cache_key = cache_key_for_event({"event_id": event_id, "project": project_id})
@@ -284,7 +284,7 @@ def process_individual_attachment(message, projects):
 
 @trace_func(name="ingest_consumer.process_userreport")
 @metrics.wraps("ingest_consumer.process_userreport")
-def process_userreport(message, projects):
+def process_userreport(message, projects) -> None:
     project_id = int(message["project_id"])
     start_time = to_datetime(message["start_time"])
     feedback = json.loads(message["payload"])
