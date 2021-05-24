@@ -25,6 +25,50 @@ USERID_UNINSTALL_RESPONSE = """{
 class VercelUninstallTest(APITestCase):
     def setUp(self):
         self.url = "/extensions/vercel/delete/"
+        metadata = {
+            "access_token": "my_access_token",
+            "installation_id": "my_config_id",
+            "installation_type": "team",
+            "webhook_id": "my_webhook_id",
+        }
+        self.integration = Integration.objects.create(
+            provider="vercel",
+            external_id="vercel_team_id",
+            name="My Vercel Team",
+            metadata=metadata,
+        )
+        self.integration.add_organization(self.organization)
+
+    def _get_delete_response(self):
+        # https://vercel.com/docs/integrations?query=event%20paylo#webhooks/events/integration-configuration-removed
+        return """{
+            "payload": {
+                "configuration": {
+                    "id": "my_config_id",
+                    "projects": ["project_id1"]
+                }
+            },
+            "teamId": "vercel_team_id",
+            "userId": "vercel_user_id"
+        }"""
+
+    def test_uninstall(self):
+        response = self.client.post(
+            path=self.url,
+            data=self._get_delete_response(),
+            content_type="application/json",
+        )
+
+        assert response.status_code == 204
+        assert not Integration.objects.filter(id=self.integration.id).exists()
+        assert not OrganizationIntegration.objects.filter(
+            integration_id=self.integration.id, organization_id=self.organization.id
+        ).exists()
+
+
+class VercelUninstallWithConfigurationsTest(APITestCase):
+    def setUp(self):
+        self.url = "/extensions/vercel/delete/"
         self.second_org = self.create_organization(name="Blah", owner=self.user)
         metadata = {
             "access_token": "my_access_token",
