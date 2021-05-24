@@ -56,12 +56,6 @@ class VercelIntegrationTest(IntegrationTestCase):
             json={"projects": [], "pagination": {"count": 0}},
         )
 
-        responses.add(
-            responses.POST,
-            f"https://api.vercel.com/v1/integrations/webhooks?{team_query}",
-            json={"id": "webhook-id"},
-        )
-
         params = {
             "configurationId": "config_id",
             "code": "oauth-code",
@@ -94,7 +88,6 @@ class VercelIntegrationTest(IntegrationTestCase):
             "access_token": "my_access_token",
             "installation_id": "my_config_id",
             "installation_type": installation_type,
-            "webhook_id": "webhook-id",
         }
         assert OrganizationIntegration.objects.get(
             integration=integration, organization=self.organization
