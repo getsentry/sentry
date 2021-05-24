@@ -1,9 +1,40 @@
 import {
   backfillMissingProvidersWithFallback,
   decideDefault,
+  getUserDefaultValues,
 } from 'app/views/settings/account/notifications/utils';
 
 describe('Notification Settings Utils', () => {
+  describe('getUserDefaultValues', () => {
+    describe('when notificationsSettings are empty', () => {
+      it('should return fallback values', () => {
+        expect(getUserDefaultValues('deploy', {})).toEqual({
+          email: 'committed_only',
+          slack: 'never',
+        });
+      });
+    });
+    describe('when notificationsSettings are not empty', () => {
+      it('should return the parent-independent notificationSettings', () => {
+        expect(
+          getUserDefaultValues('alerts', {
+            alerts: {
+              user: {
+                me: {
+                  email: 'never',
+                  slack: 'never',
+                },
+              },
+            },
+          })
+        ).toEqual({
+          email: 'never',
+          slack: 'never',
+        });
+      });
+    });
+  });
+
   describe('backfillMissingProvidersWithFallback', () => {
     describe('when scopeType is user', () => {
       it('should add missing provider with the fallback value', () => {

@@ -217,11 +217,21 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
       : {organizations};
   };
 
+  getCurrentDefault = (): string => {
+    /** Calculate the currently selected provider. */
+    const {notificationType} = this.props;
+    const {notificationSettings} = this.state;
+
+    const providersList = this.getCurrentProviders();
+    return providersList.length
+      ? getUserDefaultValues(notificationType, notificationSettings)[providersList[0]]
+      : 'never';
+  };
+
   getParentField = (parent: OrganizationSummary | Project): FieldObject => {
     const {notificationType} = this.props;
 
     const defaultFields = NOTIFICATION_SETTING_FIELDS[notificationType];
-    const currentDefault = Object.values(this.getUserDefaultValues())[0];
 
     return Object.assign({}, defaultFields, {
       label: (
@@ -237,7 +247,10 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
       choices: defaultFields.choices?.concat([
         [
           'default',
-          `${t('Default')} (${getChoiceString(defaultFields.choices, currentDefault)})`,
+          `${t('Default')} (${getChoiceString(
+            defaultFields.choices,
+            this.getCurrentDefault()
+          )})`,
         ],
       ]),
       defaultValue: 'default',
@@ -247,16 +260,11 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
 
   getInitialData(): {[key: string]: string} {
     const {notificationType} = this.props;
+    const {notificationSettings} = this.state;
 
-    const providerList = this.getCurrentProviders();
-    const initialData = {
-      [notificationType]: providerList.length
-        ? this.getUserDefaultValues()[providerList[0]]
-        : 'never',
-    };
-
-    if (!this.isEverythingDisabled()) {
-      initialData.provider = providerListToString(providerList);
+    const initialData = {[notificationType]: this.getCurrentDefault()};
+    if (!isEverythingDisabled(notificationType, notificationSettings)) {
+      initialData.provider = providerListToString(this.getCurrentProviders());
     }
     return initialData;
   }
