@@ -139,7 +139,7 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
     this.setState({accountNumber});
   };
 
-  hanldeChangeRegion = (region: string) => {
+  handleChangeRegion = (region: string) => {
     this.debouncedTrackValueChanged('region');
     this.setState({region});
   };
@@ -249,7 +249,7 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
               <SelectField
                 name="region"
                 value={region}
-                onChange={this.hanldeChangeRegion}
+                onChange={this.handleChangeRegion}
                 options={this.regionOptions}
                 allowClear={false}
                 inline={false}

@@ -140,7 +140,7 @@ def distribution_v5(hour: int) -> int:
     return 1
 
 
-distrubtion_fns = [
+distribution_fns = [
     distribution_v1,
     distribution_v2,
     distribution_v3,
@@ -480,7 +480,7 @@ class DataPopulation:
         beta = config["DURATION_BETA"]
         return MIN_FRONTEND_DURATION / 1000.0 + random.gammavariate(alpha, beta) / (1 + day_weight)
 
-    def fix_breadrumbs(self, event_json):
+    def fix_breadcrumbs(self, event_json):
         """
         Fixes the timestamps on breadcrumbs to match the current time
         Evenly spaces out all breadcrumbs starting at BREADCRUMB_LOOKBACK_TIME ago
@@ -510,7 +510,7 @@ class DataPopulation:
 
     def fix_error_event(self, event_json):
         self.fix_timestamps(event_json)
-        self.fix_breadrumbs(event_json)
+        self.fix_breadcrumbs(event_json)
 
     def fix_transaction_event(self, event_json, old_span_id):
         self.fix_timestamps(event_json)
@@ -533,13 +533,13 @@ class DataPopulation:
         """
         Creates an envelope payload for a session and posts it to Relay
         """
-        formated_time = time.isoformat()
+        formatted_time = time.isoformat()
         envelope_headers = "{}"
         item_headers = json.dumps({"type": "session"})
         data = {
             "sid": sid,
             "did": str(user_id),
-            "started": formated_time,
+            "started": formatted_time,
             "duration": random.randrange(2, 60),
             "attrs": {
                 "release": release,
@@ -730,13 +730,13 @@ class DataPopulation:
                 member = random.choice(org_members)
                 GroupAssignee.objects.assign(group, member.user)
 
-    def iter_timestamps(self, disribution_fn_num: int, starting_release: int = 0):
+    def iter_timestamps(self, distribution_fn_num: int, starting_release: int = 0):
         """
         Yields a series of ordered timestamps and the day in a tuple
         """
 
-        # disribution_fn_num starts at 1 instead of 0
-        distribution_fn = distrubtion_fns[disribution_fn_num - 1]
+        # distribution_fn_num starts at 1 instead of 0
+        distribution_fn = distribution_fns[distribution_fn_num - 1]
 
         config = self.get_config()
         MAX_DAYS = config["MAX_DAYS"]
@@ -948,7 +948,7 @@ class DataPopulation:
         This function populates a set of two related events with the same trace id:
         - Front-end transaction
         - Back-end transaction
-        Occurrance times and durations are randomized
+        Occurrence times and durations are randomized
         """
         react_transaction = get_event_from_file("scen2/react_transaction.json")
         python_transaction = get_event_from_file("scen2/python_transaction.json")
