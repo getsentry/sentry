@@ -110,10 +110,6 @@ class VercelGenericWebhookEndpoint(Endpoint):
         return super().dispatch(request, *args, **kwargs)
 
     def post(self, request):
-        # XXX(meredith): This is only handling the integration-configuration-removed
-        # webhook event, in the future will need to check the "type" attribute
-        # when handling more webhook event types
-        # https://vercel.com/docs/integrations?query=event%20paylo#webhooks/events
         if not request.META.get("HTTP_X_VERCEL_SIGNATURE"):
             logger.error("vercel.webhook.missing-signature")
             return self.respond(status=401)
@@ -124,6 +120,11 @@ class VercelGenericWebhookEndpoint(Endpoint):
             logger.error("vercel.webhook.invalid-signature")
             return self.respond(status=401)
 
+        # Vercel's generic webhook allows you to subscribe to different events,
+        # denoted by the `type` attribute. We currently subscribe to:
+        #     * integration-configuration-removed
+        #     * deployment
+        # https://vercel.com/docs/integrations?query=event%20paylo#webhooks/events
         try:
             event_type = request.data["type"]
         except KeyError:

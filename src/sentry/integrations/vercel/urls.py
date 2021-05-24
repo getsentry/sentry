@@ -12,6 +12,8 @@ urlpatterns = [
         VercelExtensionConfigurationView.as_view(),
         name="sentry-extensions-vercel-configure",
     ),
+    # XXX(meredith): This route has become our generic hook, in
+    # the future we'll need to update the route name to reflect that.
     url(
         r"^delete/$",
         VercelGenericWebhookEndpoint.as_view(),
