@@ -1,7 +1,7 @@
 import functools
 import logging
 import random
-from concurrent.futures import Future, wait
+from concurrent.futures import Future, ThreadPoolExecutor, wait
 from typing import Any, Callable, Mapping, MutableSequence, Optional, Tuple
 
 import msgpack
@@ -36,6 +36,13 @@ Message = Any
 
 
 class IngestConsumerWorker(AbstractBatchWorker):
+    def __init__(self, process_event_executor: Optional[ThreadPoolExecutor] = None) -> None:
+        self.__process_event_executor = process_event_executor
+        if self.__process_event_executor is None:
+            self.__process_event = process_event
+        else:
+            raise NotImplementedError
+
     def process_message(self, message):
         message = msgpack.unpackb(message.value(), use_list=False)
         return message
@@ -65,7 +72,7 @@ class IngestConsumerWorker(AbstractBatchWorker):
                 projects_to_fetch.add(message["project_id"])
 
                 if message_type == "event":
-                    other_messages.append((process_event, message))
+                    other_messages.append((self.__process_event, message))
                 elif message_type == "attachment_chunk":
                     attachment_chunks.append(message)
                 elif message_type == "attachment":
@@ -99,7 +106,8 @@ class IngestConsumerWorker(AbstractBatchWorker):
                 wait(futures)
 
     def shutdown(self):
-        pass
+        if self.__process_event_executor is not None:
+            self.__process_event_executor.shutdown()
 
 
 def trace_func(**span_kwargs):
