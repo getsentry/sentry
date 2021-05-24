@@ -991,6 +991,7 @@ type GroupFiltered = {
 export type GroupStats = GroupFiltered & {
   lifetime?: GroupFiltered;
   filtered: GroupFiltered | null;
+  sessionCount?: string | null;
   id: string;
 };
 
