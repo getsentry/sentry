@@ -294,7 +294,6 @@ class VercelReleasesNewTest(VercelReleasesTest):
 
     @responses.activate
     def test_release_already_created(self):
-        responses.reset()
         responses.add(
             responses.POST,
             absolute_uri("/api/0/organizations/%s/releases/" % self.organization.slug),
