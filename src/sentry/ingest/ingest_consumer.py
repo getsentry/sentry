@@ -161,11 +161,17 @@ def trace_func(**span_kwargs):
 
 @metrics.wraps("ingest_consumer.process_event")
 def _do_process_event(message: Message, projects: Mapping[int, Project]) -> None:
-    data, callback = _load_event(message, projects)
+    result = _load_event(message, projects)
+    if result is None:
+        return
+
+    data, callback = result
     callback(_store_event(data))
 
 
-def _load_event(message: Message, projects: Mapping[int, Project]):
+def _load_event(
+    message: Message, projects: Mapping[int, Project]
+) -> Optional[Tuple[Any, Callable[[str], None]]]:
     payload = message["payload"]
     start_time = float(message["start_time"])
     event_id = message["event_id"]
@@ -289,8 +295,12 @@ def process_event(message: Message, projects: Mapping[int, Project]) -> None:
 
 def process_event_async(
     executor: ThreadPoolExecutor, message: Message, projects: Mapping[int, Project]
-) -> "AsyncResult[str]":
-    data, callback = _load_event(message, projects)
+) -> Optional["AsyncResult[str]"]:
+    result = _load_event(message, projects)
+    if result is None:
+        return None
+
+    data, callback = result
     return AsyncResult(
         executor.submit(_store_event, data),
         lambda future: callback(future.result()),
