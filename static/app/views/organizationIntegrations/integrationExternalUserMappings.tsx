@@ -76,9 +76,9 @@ class IntegrationExternalUserMappings extends AsyncComponent<Props, State> {
 
   get sentryNames() {
     const {members} = this.state;
-    return members.map(({id, email, name, ...rest}) => {
+    return members.map(({user: {id}, email, name}) => {
       const label = email !== name ? `${name} - ${email}` : `${email}`;
-      return {...rest, id, name: label, email};
+      return {id, name: label};
     });
   }
 
