@@ -34,6 +34,110 @@ NEGATION_MAP = {
 }
 
 
+event_search_grammar = Grammar(
+    r"""
+search = (boolean_operator / paren_term / search_term)*
+
+boolean_operator = spaces (or_operator / and_operator) spaces
+paren_term       = spaces open_paren spaces (paren_term / boolean_operator / search_term)+ spaces closed_paren spaces
+search_term      = key_val_term / free_text_quoted / free_text
+
+free_text        = (!key_val_term ~r"\ *(?!(?i)OR(?![^\s]))(?!(?i)AND(?![^\s]))([^\ ^\n ()]+)\ *" )*
+free_text_quoted = spaces quoted_value spaces
+
+# All key:value filter types
+key_val_term   = spaces key_val_filter spaces
+key_val_filter = time_filter
+               / rel_time_filter
+               / specific_time_filter
+               / duration_filter
+               / boolean_filter
+               / numeric_in_filter
+               / numeric_filter
+               / aggregate_filter
+               / aggregate_date_filter
+               / aggregate_rel_date_filter
+               / has_filter
+               / is_filter
+               / text_in_filter
+               / text_filter
+
+# standard key:val filter
+text_filter = negation? text_key sep search_value
+
+# in filter key:[val1, val2]
+text_in_filter = negation? text_key sep text_in_list
+
+# filter for dates
+time_filter = search_key sep operator iso_8601_date_format
+
+# filter for relative dates
+rel_time_filter = search_key sep rel_date_format
+
+# filter for durations
+duration_filter = search_key sep operator? duration_format
+
+# exact time filter for dates
+specific_time_filter = search_key sep iso_8601_date_format
+
+# numeric comparison filter
+numeric_filter = search_key sep operator? numeric_value
+
+# numeric in filter
+numeric_in_filter = search_key sep numeric_in_list
+
+# boolean comparison filter
+boolean_filter = negation? search_key sep boolean_value
+
+# aggregate numeric filter
+aggregate_filter          = negation? aggregate_key sep operator? (duration_format / numeric_value / percentage_format)
+aggregate_date_filter     = negation? aggregate_key sep operator? iso_8601_date_format
+aggregate_rel_date_filter = negation? aggregate_key sep operator? rel_date_format
+
+# has filter for not null type checks
+has_filter = negation? "has" sep (search_key / search_value)
+is_filter  = negation? "is" sep search_value
+
+aggregate_key    = key open_paren spaces function_args? spaces closed_paren
+search_key       = key / quoted_key
+search_value     = quoted_value / value
+value            = ~r"[^()\s]*"
+in_value         = ~r"[^(),\s]*(?:[^\],\s)]|](?=]))"
+numeric_value    = ~r"([-]?[0-9\.]+)([kmb])?(?=\s|\)|$|,|])"
+boolean_value    = ~r"(true|1|false|0)(?=\s|\)|$)"i
+key              = ~r"[a-zA-Z0-9_\.-]+"
+function_args    = key (spaces comma spaces key)*
+quoted_key       = ~r"\"([a-zA-Z0-9_\.:-]+)\""
+explicit_tag_key = "tags" open_bracket search_key closed_bracket
+text_key         = explicit_tag_key / search_key
+text_value       = quoted_value / in_value
+quoted_value     = ~r"\"((?:\\\"|[^\"])*)?\""s
+numeric_in_list  = open_bracket numeric_value (spaces comma spaces numeric_value)* closed_bracket
+text_in_list     = open_bracket text_value (spaces comma spaces text_value)* closed_bracket
+
+# Formats
+iso_8601_date_format = ~r"(\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{1,6})?)?(Z|([+-]\d{2}:\d{2}))?)(?=\s|\)|$)"
+rel_date_format      = ~r"[\+\-][0-9]+[wdhm](?=\s|\)|$)"
+duration_format      = ~r"([0-9\.]+)(ms|s|min|m|hr|h|day|d|wk|w)(?=\s|\)|$)"
+percentage_format    = ~r"([0-9\.]+)%"
+
+# NOTE: the order in which these operators are listed matters because for
+# example, if < comes before <= it will match that even if the operator is <=
+operator             = ">=" / "<=" / ">" / "<" / "=" / "!="
+or_operator          = ~r"OR(?=\s|$)"i
+and_operator         = ~r"AND(?=\s|$)"i
+open_paren           = "("
+closed_paren         = ")"
+open_bracket         = "["
+closed_bracket       = "]"
+sep                  = ":"
+negation             = "!"
+comma                = ","
+spaces               = " "*
+"""
+)
+
+
 def translate(pat):
     """Translate a shell PATTERN to a regular expression.
     modified from: https://github.com/python/cpython/blob/2.7/Lib/fnmatch.py#L85
@@ -57,102 +161,6 @@ def translate(pat):
         else:
             res += c
     return "^" + res + "$"
-
-
-# Explanation of quoted string regex, courtesy of Matt
-# "              // literal quote
-# (              // begin capture group
-#   (?:          // begin uncaptured group
-#     [^"]       // any character that's not quote
-#     |          // or
-#     (?<=\\)["] // A quote, preceded by a \ (for escaping)
-#   )            // end uncaptured group
-#   *            // repeat the uncaptured group
-# )              // end captured group
-# ?              // allow to be empty (allow empty quotes)
-# "              // quote literal
-
-event_search_grammar = Grammar(
-    r"""
-search            = (boolean_operator / paren_term / search_term)*
-boolean_operator  = ws (or_operator / and_operator) ws
-paren_term        = ws open_paren ws (paren_term / boolean_operator / search_term)+ ws closed_paren ws
-search_term       = key_val_term / quoted_raw_search / raw_search
-key_val_term      = ws (time_filter / rel_time_filter / specific_time_filter
-                    / duration_filter / boolean_filter / numeric_filter
-                    / aggregate_filter / aggregate_date_filter / aggregate_rel_date_filter
-                    / has_filter / is_filter / text_filter)
-                    ws
-raw_search        = (!key_val_term ~r"\ *(?!(?i)OR(?![^\s]))(?!(?i)AND(?![^\s]))([^\ ^\n ()]+)\ *" )*
-quoted_raw_search = ws quoted_value ws
-
-# standard key:val filter
-text_filter = negation? text_key sep ((open_bracket text_value (comma ws text_value)* closed_bracket) / search_value)
-
-# filter for dates
-time_filter = search_key sep? operator (date_format / alt_date_format)
-
-# filter for relative dates
-rel_time_filter = search_key sep rel_date_format
-
-# filter for durations
-duration_filter = search_key sep operator? duration_format
-
-# exact time filter for dates
-specific_time_filter = search_key sep (date_format / alt_date_format)
-
-# Numeric comparison filter
-numeric_filter = search_key sep ((operator? numeric_value) / (open_bracket numeric_value (comma ws numeric_value)* closed_bracket))
-
-# Boolean comparison filter
-boolean_filter = negation? search_key sep boolean_value
-
-# Aggregate numeric filter
-aggregate_filter          = negation? aggregate_key sep operator? (duration_format / numeric_value / percentage_format)
-aggregate_date_filter     = negation? aggregate_key sep operator? (date_format / alt_date_format)
-aggregate_rel_date_filter = negation? aggregate_key sep operator? rel_date_format
-
-# has filter for not null type checks
-has_filter = negation? "has" sep (search_key / search_value)
-is_filter  = negation? "is" sep search_value
-
-aggregate_key    = key open_paren function_arg* closed_paren
-search_key       = key / quoted_key
-search_value     = quoted_value / value
-value            = ~r"[^()\s]*"
-in_value         = ~r"[^(),\s]*(?:[^],\s)]|](?=]))"
-numeric_value    = ~r"([-]?[0-9\.]+)([kmb])?(?=\s|\)|$|,|])"
-boolean_value    = ~r"(true|1|false|0)(?=\s|\)|$)"i
-quoted_value     = ~r"\"((?:[^\"]|(?<=\\)[\"])*)?\""s
-key              = ~r"[a-zA-Z0-9_\.-]+"
-function_arg     = ws key? comma? ws
-quoted_key       = ~r"\"([a-zA-Z0-9_\.:-]+)\""
-explicit_tag_key = "tags" open_bracket search_key closed_bracket
-text_key         = explicit_tag_key / search_key
-text_value       = quoted_value / in_value
-
-# Format tokens
-date_format          = ~r"\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{1,6})?)?Z?(?=\s|\)|$)"
-alt_date_format      = ~r"\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{1,6})?(\+\d{2}:\d{2})?)?(?=\s|\)|$)"
-rel_date_format      = ~r"[\+\-][0-9]+[wdhm](?=\s|\)|$)"
-duration_format      = ~r"([0-9\.]+)(ms|s|min|m|hr|h|day|d|wk|w)(?=\s|\)|$)"
-percentage_format    = ~r"([0-9\.]+)%"
-
-# NOTE: the order in which these operators are listed matters because for
-# example, if < comes before <= it will match that even if the operator is <=
-operator             = ">=" / "<=" / ">" / "<" / "=" / "!="
-or_operator          = ~r"OR(?=\s|$)"i
-and_operator         = ~r"AND(?=\s|$)"i
-open_paren           = "("
-closed_paren         = ")"
-open_bracket         = "["
-closed_bracket       = "]"
-sep                  = ":"
-negation             = "!"
-comma                = ","
-ws                   = " "*
-"""
-)
 
 
 class SearchBoolean(namedtuple("SearchBoolean", "left_term operator right_term")):
@@ -294,7 +302,7 @@ class SearchVisitor(NodeVisitor):
 
     def flatten(self, children):
         def _flatten(seq):
-            # there is a list from search_term and one from raw_search, so flatten them.
+            # there is a list from search_term and one from free_text, so flatten them.
             # Flatten each group in the list, since nodes can return multiple items
             for item in seq:
                 if isinstance(item, list):
@@ -317,8 +325,8 @@ class SearchVisitor(NodeVisitor):
         return filter(is_not_optional, children)
 
     def remove_space(self, children):
-        def is_not_space(child):
-            return not (isinstance(child, Node) and child.text == " " * len(child.text))
+        def is_not_space(text):
+            return not (isinstance(text, str) and text == " " * len(text))
 
         return filter(is_not_space, children)
 
@@ -341,14 +349,14 @@ class SearchVisitor(NodeVisitor):
         # key_val_term is a list because of group
         return key_val_term[0]
 
-    def visit_raw_search(self, node, children):
+    def visit_free_text(self, node, children):
         value = node.text.strip(" ")
         if not value:
             return None
 
         return SearchFilter(SearchKey("message"), "=", SearchValue(value))
 
-    def visit_quoted_raw_search(self, node, children):
+    def visit_free_text_quoted(self, node, children):
         value = children[1]
         if not value:
             return None
@@ -357,7 +365,7 @@ class SearchVisitor(NodeVisitor):
     def visit_paren_term(self, node, children):
         if not self.allow_boolean:
             # It's possible to have a valid search that includes parens, so we can't just error out when we find a paren expression.
-            return self.visit_raw_search(node, children)
+            return self.visit_free_text(node, children)
 
         children = self.remove_space(self.remove_optional_nodes(self.flatten(children)))
         children = self.flatten(children[1])
@@ -377,12 +385,8 @@ class SearchVisitor(NodeVisitor):
                 (
                     search_key,
                     sep,
-                    (
-                        (
-                            "=",
-                            search_value,
-                        ),
-                    ),
+                    "=",
+                    search_value,
                 ),
             )
 
@@ -403,45 +407,42 @@ class SearchVisitor(NodeVisitor):
     def process_list(self, first, remaining):
         return [
             first,
-            *[item[2] for item in remaining],
+            *[item[3] for item in remaining],
         ]
 
     def visit_numeric_filter(self, node, children):
-        (search_key, _, (value,)) = children
-        operator = value[0]
+        (search_key, _, operator, search_value) = children
         if isinstance(operator, Node):
-            if isinstance(operator.expr, Optional):
-                operator = "="
-            else:
-                operator = operator.text
+            operator = "=" if isinstance(operator.expr, Optional) else operator.text
         else:
             operator = operator[0]
 
-        if operator == "[":
-            operator = "IN"
-            search_value = self.process_list(value[1], value[2])
+        if self.is_numeric_key(search_key.name):
+            try:
+                search_value = SearchValue(parse_numeric_value(*search_value.match.groups()))
+            except InvalidQuery as exc:
+                raise InvalidSearchQuery(str(exc))
+            return SearchFilter(search_key, operator, search_value)
         else:
-            search_value = value[1]
+            search_value = search_value.text
+            search_value = SearchValue(operator + search_value if operator != "=" else search_value)
+            return self._handle_basic_filter(search_key, "=", search_value)
+
+    def visit_numeric_in_filter(self, node, children):
+        (search_key, _, value) = children
+        operator = "IN"
+        search_value = self.process_list(value[1], value[2])
 
         if self.is_numeric_key(search_key.name):
             try:
                 search_value = SearchValue(
                     [parse_numeric_value(*val.match.groups()) for val in search_value]
-                    if operator == "IN"
-                    else parse_numeric_value(*search_value.match.groups())
                 )
             except InvalidQuery as exc:
                 raise InvalidSearchQuery(str(exc))
             return SearchFilter(search_key, operator, search_value)
         else:
-            if operator != "IN":
-                search_value = search_value.text
-            else:
-                search_value = [v.text for v in search_value]
-            search_value = SearchValue(
-                operator + search_value if operator not in ("=", "IN") else search_value
-            )
-            operator = "=" if operator not in ("=", "IN") else operator
+            search_value = SearchValue([v.text for v in search_value])
             return self._handle_basic_filter(search_key, operator, search_value)
 
     def handle_negation(self, negation, operator):
@@ -486,7 +487,6 @@ class SearchVisitor(NodeVisitor):
 
     def visit_aggregate_date_filter(self, node, children):
         (negation, search_key, _, operator, search_value) = children
-        search_value = search_value[0]
         operator = self.handle_negation(negation, operator)
         is_date_aggregate = any(key in search_key.name for key in self.date_keys)
         if is_date_aggregate:
@@ -523,7 +523,7 @@ class SearchVisitor(NodeVisitor):
 
     def visit_time_filter(self, node, children):
         (search_key, _, operator, search_value) = children
-        search_value = search_value[0]
+
         if search_key.name in self.date_keys:
             try:
                 search_value = parse_datetime_string(search_value)
@@ -545,13 +545,14 @@ class SearchVisitor(NodeVisitor):
                 raise InvalidSearchQuery(str(exc))
             return SearchFilter(search_key, operator, SearchValue(search_value))
         elif self.is_numeric_key(search_key.name):
-            return self.visit_numeric_filter(node, (search_key, sep, ((operator, search_value),)))
+            return self.visit_numeric_filter(node, (search_key, sep, operator, search_value))
         else:
             search_value = operator + search_value.text if operator != "=" else search_value.text
             return self._handle_basic_filter(search_key, "=", SearchValue(search_value))
 
     def visit_rel_time_filter(self, node, children):
         (search_key, _, value) = children
+
         if search_key.name in self.date_keys:
             try:
                 from_val, to_val = parse_datetime_range(value.text)
@@ -574,7 +575,6 @@ class SearchVisitor(NodeVisitor):
         # we specify a specific datetime then it means a few minutes interval
         # on either side of that datetime
         (search_key, _, date_value) = children
-        date_value = date_value[0]
 
         if search_key.name not in self.date_keys:
             return self._handle_basic_filter(search_key, "=", SearchValue(date_value))
@@ -596,10 +596,7 @@ class SearchVisitor(NodeVisitor):
     def visit_operator(self, node, children):
         return node.text
 
-    def visit_date_format(self, node, children):
-        return node.text
-
-    def visit_alt_date_format(self, node, children):
+    def visit_iso_8601_date_format(self, node, children):
         return node.text
 
     def is_negated(self, node):
@@ -611,18 +608,21 @@ class SearchVisitor(NodeVisitor):
         return node.text == "!"
 
     def visit_text_filter(self, node, children):
-        (negation, search_key, _, (search_value,)) = children
+        (negation, search_key, _, search_value) = children
         operator = "="
-        if isinstance(search_value, list):
-            operator = "IN"
-            search_value = SearchValue(
-                self.process_list(search_value[1], [(_, _, val) for _, _, val in search_value[2]])
-            )
-        else:
-            # XXX: We check whether the text in the node itself is actually empty, so
-            # we can tell the difference between an empty quoted string and no string
-            if not search_value.raw_value and not node.children[3].text:
-                raise InvalidSearchQuery(f"Empty string after '{search_key.name}:'")
+        # XXX: We check whether the text in the node itself is actually empty, so
+        # we can tell the difference between an empty quoted string and no string
+        if not search_value.raw_value and not node.children[3].text:
+            raise InvalidSearchQuery(f"Empty string after '{search_key.name}:'")
+
+        operator = self.handle_negation(negation, operator)
+
+        return self._handle_basic_filter(search_key, operator, search_value)
+
+    def visit_text_in_filter(self, node, children):
+        (negation, search_key, _, search_value) = children
+        operator = "IN"
+        search_value = SearchValue(self.process_list(search_value[1], search_value[2]))
 
         operator = self.handle_negation(negation, operator)
 
@@ -667,7 +667,6 @@ class SearchVisitor(NodeVisitor):
         return SearchKey(self.key_mappings_lookup.get(key, key))
 
     def visit_aggregate_key(self, node, children):
-        children = self.flatten(children)
         children = self.remove_optional_nodes(children)
         children = self.remove_space(children)
 
@@ -676,17 +675,13 @@ class SearchVisitor(NodeVisitor):
             args = ""
         else:
             (function_name, open_paren, args, close_paren) = children
-
-        if isinstance(args, Node):
-            args = ""
-        elif isinstance(args, list):
-            args = "".join(args)
+            args = ", ".join(args[0])
 
         key = "".join([function_name, open_paren, args, close_paren])
         return AggregateKey(self.key_mappings_lookup.get(key, key))
 
-    def visit_function_arg(self, node, children):
-        return node.text
+    def visit_function_args(self, node, children):
+        return self.process_list(children[0], children[1])
 
     def visit_search_value(self, node, children):
         return SearchValue(children[0])
@@ -747,6 +742,9 @@ class SearchVisitor(NodeVisitor):
 
     def visit_text_value(self, node, children):
         return children[0]
+
+    def visit_spaces(self, node, children):
+        return " "
 
     def generic_visit(self, node, children):
         return children or node

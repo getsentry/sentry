@@ -1,4 +1,8 @@
-import {addErrorMessage} from 'app/actionCreators/indicator';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  clearIndicators,
+} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
 import {t} from 'app/locale';
 
@@ -6,9 +10,12 @@ export function toggleKeyTransaction(
   api: Client,
   isKeyTransaction: boolean,
   orgId: string,
-  projects: number[],
-  transactionName: string
+  projects: Readonly<number[]>,
+  transactionName: string,
+  teamIds?: string[] // TODO(txiao): make this required
 ): Promise<undefined> {
+  addLoadingMessage(t('Saving changes\u2026'));
+
   const promise: Promise<undefined> = api.requestPromise(
     `/organizations/${orgId}/key-transactions/`,
     {
@@ -16,9 +23,14 @@ export function toggleKeyTransaction(
       query: {
         project: projects.map(id => String(id)),
       },
-      data: {transaction: transactionName},
+      data: {
+        transaction: transactionName,
+        team: teamIds,
+      },
     }
   );
+
+  promise.then(clearIndicators);
 
   promise.catch(response => {
     const non_field_errors = response?.responseJSON?.non_field_errors;

@@ -12,6 +12,7 @@ from sentry.attachments import attachment_cache
 from sentry.constants import DEFAULT_STORE_NORMALIZER_ARGS
 from sentry.datascrubbing import scrub_data
 from sentry.eventstore.processing import event_processing_store
+from sentry.killswitches import killswitch_matches_context
 from sentry.models import Activity, Organization, Project, ProjectOption
 from sentry.stacktraces.processing import process_stacktraces, should_process_for_stacktraces
 from sentry.tasks.base import instrumented_task
@@ -208,6 +209,16 @@ def _do_symbolicate_event(cache_key, start_time, event_id, symbolicate_task, dat
 
     event_id = data["event_id"]
 
+    if killswitch_matches_context(
+        "store.load-shed-symbolicate-event-projects",
+        {
+            "project_id": project_id,
+            "event_id": event_id,
+            "platform": data.get("platform") or "null",
+        },
+    ):
+        return
+
     symbolication_function = get_symbolication_function(data)
 
     has_changed = False
@@ -395,6 +406,16 @@ def _do_process_event(
     set_current_event_project(project_id)
 
     event_id = data["event_id"]
+
+    if killswitch_matches_context(
+        "store.load-shed-process-event-projects",
+        {
+            "project_id": project_id,
+            "event_id": event_id,
+            "platform": data.get("platform") or "null",
+        },
+    ):
+        return
 
     with sentry_sdk.start_span(op="tasks.store.process_event.get_project_from_cache"):
         project = Project.objects.get_from_cache(id=project_id)
@@ -675,7 +696,7 @@ def create_failed_event(
             type=issue["type"],
             data=issue["data"],
         )
-    event_processing_store.delete_by_key(cache_key)
+
     event_processing_store.delete_by_key(cache_key)
 
     return True

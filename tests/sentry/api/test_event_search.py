@@ -275,7 +275,7 @@ class ParseSearchQueryTest(unittest.TestCase):
 
     def test_timestamp(self):
         # test date format
-        assert parse_search_query("timestamp>2015-05-18") == [
+        assert parse_search_query("timestamp:>2015-05-18") == [
             SearchFilter(
                 key=SearchKey(name="timestamp"),
                 operator=">",
@@ -285,7 +285,7 @@ class ParseSearchQueryTest(unittest.TestCase):
             )
         ]
         # test date time format
-        assert parse_search_query("timestamp>2015-05-18T10:15:01") == [
+        assert parse_search_query("timestamp:>2015-05-18T10:15:01") == [
             SearchFilter(
                 key=SearchKey(name="timestamp"),
                 operator=">",
@@ -296,7 +296,7 @@ class ParseSearchQueryTest(unittest.TestCase):
         ]
 
         # test date time format w microseconds
-        assert parse_search_query("timestamp>2015-05-18T10:15:01.103") == [
+        assert parse_search_query("timestamp:>2015-05-18T10:15:01.103") == [
             SearchFilter(
                 key=SearchKey(name="timestamp"),
                 operator=">",
@@ -319,17 +319,6 @@ class ParseSearchQueryTest(unittest.TestCase):
 
     def test_other_dates(self):
         # test date format with other name
-        assert parse_search_query("first_seen>2015-05-18") == [
-            SearchFilter(
-                key=SearchKey(name="first_seen"),
-                operator=">",
-                value=SearchValue(
-                    raw_value=datetime.datetime(2015, 5, 18, 0, 0, tzinfo=timezone.utc)
-                ),
-            )
-        ]
-
-        # test colon format
         assert parse_search_query("first_seen:>2015-05-18") == [
             SearchFilter(
                 key=SearchKey(name="first_seen"),
@@ -809,6 +798,13 @@ class ParseSearchQueryTest(unittest.TestCase):
                 operator="IN",
                 value=SearchValue(raw_value=[500, 501, 502]),
             )
+        ]
+        assert parse_search_query("project_id:[500, 501 ,502]") == [
+            SearchFilter(
+                key=SearchKey(name="project_id"),
+                operator="IN",
+                value=SearchValue(raw_value=[500, 501, 502]),
+            ),
         ]
         assert parse_search_query("project_id:[500,501,502] issue.id:[100]") == [
             SearchFilter(
