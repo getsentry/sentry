@@ -9,8 +9,6 @@ import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import List from 'app/components/list';
-import ListItem from 'app/components/list/listItem';
-import {Panel} from 'app/components/panels';
 import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -18,6 +16,7 @@ import {Organization, Project} from 'app/types';
 import withApi from 'app/utils/withApi';
 import AppStoreConnectContext from 'app/views/settings/project/appStoreConnectContext';
 
+import Accordion from './accordion';
 import AppStoreCredentials from './appStoreCredentials';
 import ItunesCredentials from './itunesCredentials';
 import {AppStoreCredentialsData, ItunesCredentialsData} from './types';
@@ -194,8 +193,12 @@ function AppStoreConnect({
     <Fragment>
       <Body>
         <StyledList symbol="colored-numeric">
-          <ListItem>
-            <ItemTitle>{t('App Store Connect credentials')}</ItemTitle>
+          <Accordion
+            summary={t('App Store Connect credentials')}
+            defaultExpanded={
+              !isUpdating || !!appStoreConnenctContext?.appstoreCredentialsValid
+            }
+          >
             {!!appStoreConnenctContext?.appstoreCredentialsValid && (
               <StyledAlert type="warning" icon={<IconWarning />}>
                 {t(
@@ -203,20 +206,20 @@ function AppStoreConnect({
                 )}
               </StyledAlert>
             )}
-            <ItemContent>
-              <AppStoreCredentials
-                api={api}
-                orgSlug={orgSlug}
-                projectSlug={projectSlug}
-                data={appStoreCredentialsData}
-                onChange={setAppStoreCredentialsData}
-                onReset={() => setAppStoreCredentialsData(appStoreCredentialsInitialData)}
-                isUpdating={isUpdating}
-              />
-            </ItemContent>
-          </ListItem>
-          <ListItem>
-            <ItemTitle>{t('iTunes credentials')}</ItemTitle>
+            <AppStoreCredentials
+              api={api}
+              orgSlug={orgSlug}
+              projectSlug={projectSlug}
+              data={appStoreCredentialsData}
+              onChange={setAppStoreCredentialsData}
+              onReset={() => setAppStoreCredentialsData(appStoreCredentialsInitialData)}
+              isUpdating={isUpdating}
+            />
+          </Accordion>
+          <Accordion
+            summary={t('iTunes credentials')}
+            defaultExpanded={!!appStoreConnenctContext?.itunesSessionValid}
+          >
             {!!appStoreConnenctContext?.itunesSessionValid && (
               <StyledAlert type="warning" icon={<IconWarning />}>
                 {t(
@@ -224,18 +227,16 @@ function AppStoreConnect({
                 )}
               </StyledAlert>
             )}
-            <ItemContent>
-              <ItunesCredentials
-                api={api}
-                orgSlug={orgSlug}
-                projectSlug={projectSlug}
-                data={iTunesCredentialsData}
-                onChange={setItunesCredentialsData}
-                onReset={() => setItunesCredentialsData(iTunesCredentialsInitialData)}
-                isUpdating={isUpdating}
-              />
-            </ItemContent>
-          </ListItem>
+            <ItunesCredentials
+              api={api}
+              orgSlug={orgSlug}
+              projectSlug={projectSlug}
+              data={iTunesCredentialsData}
+              onChange={setItunesCredentialsData}
+              onReset={() => setItunesCredentialsData(iTunesCredentialsInitialData)}
+              isUpdating={isUpdating}
+            />
+          </Accordion>
         </StyledList>
       </Body>
       <Footer>
@@ -257,21 +258,15 @@ function AppStoreConnect({
 export default withApi(AppStoreConnect);
 
 const StyledList = styled(List)`
-  grid-gap: 0;
+  grid-gap: ${space(2)};
   & > li {
     padding-left: 0;
-    display: grid;
-    grid-gap: ${space(1)};
+    :before {
+      z-index: 1;
+      left: 9px;
+      top: ${space(1.5)};
+    }
   }
-`;
-
-const ItemTitle = styled('div')`
-  padding-left: ${space(4)};
-  margin-bottom: ${space(1)};
-`;
-
-const ItemContent = styled(Panel)`
-  padding: ${space(3)} ${space(3)} ${space(2)} ${space(1)};
 `;
 
 const StyledButton = styled(Button)`
@@ -279,5 +274,5 @@ const StyledButton = styled(Button)`
 `;
 
 const StyledAlert = styled(Alert)`
-  margin-bottom: ${space(1)};
+  margin: ${space(1)} 0 ${space(2)} 0;
 `;

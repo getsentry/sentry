@@ -56,7 +56,6 @@ from .endpoints.assistant import AssistantEndpoint
 from .endpoints.auth_config import AuthConfigEndpoint
 from .endpoints.auth_index import AuthIndexEndpoint
 from .endpoints.auth_login import AuthLoginEndpoint
-from .endpoints.auth_register import AuthRegisterEndpoint
 from .endpoints.authenticator_index import AuthenticatorIndexEndpoint
 from .endpoints.broadcast_details import BroadcastDetailsEndpoint
 from .endpoints.broadcast_index import BroadcastIndexEndpoint
@@ -327,6 +326,7 @@ from .endpoints.project_tagkey_values import ProjectTagKeyValuesEndpoint
 from .endpoints.project_tags import ProjectTagsEndpoint
 from .endpoints.project_team_details import ProjectTeamDetailsEndpoint
 from .endpoints.project_teams import ProjectTeamsEndpoint
+from .endpoints.project_transaction_threshold import ProjectTransactionThresholdEndpoint
 from .endpoints.project_transfer import ProjectTransferEndpoint
 from .endpoints.project_user_details import ProjectUserDetailsEndpoint
 from .endpoints.project_user_reports import ProjectUserReportsEndpoint
@@ -523,11 +523,6 @@ urlpatterns = [
                 url(r"^$", AuthIndexEndpoint.as_view(), name="sentry-api-0-auth"),
                 url(r"^config/$", AuthConfigEndpoint.as_view(), name="sentry-api-0-auth-config"),
                 url(r"^login/$", AuthLoginEndpoint.as_view(), name="sentry-api-0-auth-login"),
-                url(
-                    r"^register/$",
-                    AuthRegisterEndpoint.as_view(),
-                    name="sentry-api-0-auth-register",
-                ),
             ]
         ),
     ),
@@ -1790,6 +1785,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/codeowners/(?P<codeowners_id>[^\/]+)/$",
                     ProjectCodeOwnersDetailsEndpoint.as_view(),
                     name="sentry-api-0-project-codeowners-details",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/transaction-threshold/configure/$",
+                    ProjectTransactionThresholdEndpoint.as_view(),
+                    name="sentry-api-0-project-transaction-threshold",
                 ),
                 # Load plugin project urls
                 url(

@@ -135,15 +135,13 @@ function DashboardList({
             <WidgetGrid>
               {dashboard.widgetDisplay.map((displayType, i) => {
                 return displayType === DisplayType.BIG_NUMBER ? (
-                  <BigNumberWidgetWrapper
-                    key={`${i}-${displayType}`}
-                    src={miniWidget(displayType)}
-                  />
+                  <BigNumberWidgetWrapper key={`${i}-${displayType}`}>
+                    <WidgetImage src={miniWidget(displayType)} />
+                  </BigNumberWidgetWrapper>
                 ) : (
-                  <MiniWidgetWrapper
-                    key={`${i}-${displayType}`}
-                    src={miniWidget(displayType)}
-                  />
+                  <MiniWidgetWrapper key={`${i}-${displayType}`}>
+                    <WidgetImage src={miniWidget(displayType)} />
+                  </MiniWidgetWrapper>
                 );
               })}
             </WidgetGrid>
@@ -222,7 +220,7 @@ const DashboardGrid = styled('div')`
   display: grid;
   grid-template-columns: minmax(100px, 1fr);
   grid-template-rows: repeat(3, max-content);
-  grid-gap: ${space(3)};
+  grid-gap: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
     grid-template-columns: repeat(2, minmax(100px, 1fr));
@@ -252,9 +250,12 @@ const WidgetGrid = styled('div')`
   }
 `;
 
-const BigNumberWidgetWrapper = styled('img')`
+const BigNumberWidgetWrapper = styled('div')`
+  display: flex;
+  align-items: flex-start;
   width: 100%;
   height: 100%;
+
   /* 2 cols */
   grid-area: span 1 / span 2;
 
@@ -269,10 +270,17 @@ const BigNumberWidgetWrapper = styled('img')`
   }
 `;
 
-const MiniWidgetWrapper = styled('img')`
+const MiniWidgetWrapper = styled('div')`
+  display: flex;
+  align-items: flex-start;
   width: 100%;
   height: 100%;
   grid-area: span 2 / span 2;
+`;
+
+const WidgetImage = styled('img')`
+  width: 100%;
+  height: 100%;
 `;
 
 const PaginationRow = styled(Pagination)`

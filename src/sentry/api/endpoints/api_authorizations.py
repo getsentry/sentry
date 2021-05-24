@@ -2,15 +2,14 @@ from django.db import transaction
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from sentry.api.authentication import ImprovedSessionAuthentication
-from sentry.api.base import Endpoint
+from sentry.api.base import Endpoint, SessionAuthentication
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.models import ApiApplicationStatus, ApiAuthorization, ApiToken
 
 
 class ApiAuthorizationsEndpoint(Endpoint):
-    authentication_classes = (ImprovedSessionAuthentication,)
+    authentication_classes = (SessionAuthentication,)
     permission_classes = (IsAuthenticated,)
 
     def get(self, request):
