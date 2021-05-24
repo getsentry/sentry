@@ -70,6 +70,6 @@ class OrganizationCodeMappingDetailsEndpoint(
             return self.respond(status=status.HTTP_204_NO_CONTENT)
         except ProtectedError:
             return self.respond(
-                "Cannot delete Code Mapping. There is a Code Owners that depends on it.",
+                "Cannot delete Code Mapping. Must delete Code Owner that uses this mapping first.",
                 status=status.HTTP_409_CONFLICT,
             )
