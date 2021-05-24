@@ -1,12 +1,9 @@
-import hashlib
-import hmac
 import logging
 
-from django.utils.crypto import constant_time_compare
 from django.views.decorators.csrf import csrf_exempt
 from requests.exceptions import RequestException
 
-from sentry import VERSION, http, options
+from sentry import VERSION, http
 from sentry.api.base import Endpoint
 from sentry.models import (
     OrganizationIntegration,
@@ -14,31 +11,12 @@ from sentry.models import (
     SentryAppInstallationForProvider,
     SentryAppInstallationToken,
 )
-from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils.compat import filter
 from sentry.utils.http import absolute_uri
 
+from .uninstall import NoCommitFoundError, get_payload_and_token, safe_json_parse, verify_signature
+
 logger = logging.getLogger("sentry.integrations.vercel.webhooks")
-
-
-class NoCommitFoundError(IntegrationError):
-    pass
-
-
-def verify_signature(request):
-    signature = request.META["HTTP_X_ZEIT_SIGNATURE"]
-    secret = options.get("vercel.client-secret")
-
-    expected = hmac.new(
-        key=secret.encode("utf-8"), msg=bytes(request.body), digestmod=hashlib.sha1
-    ).hexdigest()
-    return constant_time_compare(expected, signature)
-
-
-def safe_json_parse(resp):
-    if resp.headers.get("content-type") == "application/json":
-        return resp.json()
-    return None
 
 
 class VercelWebhookEndpoint(Endpoint):
@@ -50,63 +28,10 @@ class VercelWebhookEndpoint(Endpoint):
     def dispatch(self, request, *args, **kwargs):
         return super().dispatch(request, *args, **kwargs)
 
-    # given the webhook payload and sentry_project_id, return
-    # the payload we use for generating the release with the token
-    def get_payload_and_token(self, payload, organization_id, sentry_project_id):
-        meta = payload["deployment"]["meta"]
-
-        # look up the project so we can get the slug
-        project = Project.objects.get(id=sentry_project_id)
-
-        # find the connected sentry app installation
-        installation_for_provider = SentryAppInstallationForProvider.objects.select_related(
-            "sentry_app_installation"
-        ).get(organization_id=organization_id, provider=self.provider)
-        sentry_app_installation = installation_for_provider.sentry_app_installation
-
-        # find a token associated with the installation so we can use it for authentication
-        sentry_app_installation_token = (
-            SentryAppInstallationToken.objects.select_related("api_token")
-            .filter(sentry_app_installation=sentry_app_installation)
-            .first()
-        )
-        if not sentry_app_installation_token:
-            raise SentryAppInstallationToken.DoesNotExist()
-
-        # find the commmit sha so we can  use it as as the release
-        commit_sha = (
-            meta.get("githubCommitSha")
-            or meta.get("gitlabCommitSha")
-            or meta.get("bitbucketCommitSha")
-        )
-
-        # contruct the repo depeding what provider we use
-        if meta.get("githubCommitSha"):
-            # we use these instead of githubOrg and githubRepo since it's the repo the user has access to
-            repository = "{}/{}".format(meta["githubCommitOrg"], meta["githubCommitRepo"])
-        elif meta.get("gitlabCommitSha"):
-            # gitlab repos are formatted with a space for some reason
-            repository = "{} / {}".format(
-                meta["gitlabProjectNamespace"],
-                meta["gitlabProjectName"],
-            )
-        elif meta.get("bitbucketCommitSha"):
-            repository = "{}/{}".format(meta["bitbucketRepoOwner"], meta["bitbucketRepoName"])
-        else:
-            # this can happen with manual builds
-            raise NoCommitFoundError("No commit found")
-
-        release_payload = {
-            "version": commit_sha,
-            "projects": [project.slug],
-            "refs": [{"repository": repository, "commit": commit_sha}],
-        }
-        return [release_payload, sentry_app_installation_token.api_token.token]
-
     def post(self, request):
         if not request.META.get("HTTP_X_ZEIT_SIGNATURE"):
             logger.error("vercel.webhook.missing-signature")
-            self.respond(status=401)
+            return self.respond(status=401)
 
         is_valid = verify_signature(request)
 
@@ -157,7 +82,7 @@ class VercelWebhookEndpoint(Endpoint):
                 logging_params["project_id"] = sentry_project_id
 
                 try:
-                    [release_payload, token] = self.get_payload_and_token(
+                    [release_payload, token] = get_payload_and_token(
                         payload, organization.id, sentry_project_id
                     )
                 except Project.DoesNotExist:

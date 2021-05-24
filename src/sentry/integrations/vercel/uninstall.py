@@ -30,7 +30,11 @@ class NoCommitFoundError(IntegrationError):
 
 
 def verify_signature(request):
-    signature = request.META["HTTP_X_VERCEL_SIGNATURE"]
+    # TODO(meredith): Pretty sure they always send both, but once we
+    # get rid of old webhooks can update to just check VERCEL_SIGNATURE
+    signature = request.META.get("HTTP_X_VERCEL_SIGNATURE") or request.META.get(
+        "HTTP_X_ZEIT_SIGNATURE"
+    )
     secret = options.get("vercel.client-secret")
 
     expected = hmac.new(
@@ -111,7 +115,7 @@ class VercelUninstallEndpoint(Endpoint):
         # https://vercel.com/docs/integrations?query=event%20paylo#webhooks/events
         if not request.META.get("HTTP_X_VERCEL_SIGNATURE"):
             logger.error("vercel.webhook.missing-signature")
-            self.respond(status=401)
+            return self.respond(status=401)
 
         is_valid = verify_signature(request)
 

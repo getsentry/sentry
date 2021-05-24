@@ -107,7 +107,6 @@ class VercelUninstallWithConfigurationsTest(APITestCase):
         """
 
         assert len(OrganizationIntegration.objects.all()) == 2
-
         response = self.client.delete(
             path=self.url,
             data=PRIMARY_UNINSTALL_RESPONSE,
