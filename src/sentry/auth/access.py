@@ -19,12 +19,6 @@ from sentry.models import (
     Team,
     UserPermission,
 )
-from sentry.utils.request_cache import request_cache
-
-
-@request_cache
-def get_cached_organization_member(user_id, organization_id):
-    return OrganizationMember.objects.get(user_id=user_id, organization_id=organization_id)
 
 
 def _sso_params(member):
@@ -285,7 +279,7 @@ def from_request(request, organization=None, scopes=None):
         # we special case superuser so that if they're a member of the org
         # they must still follow SSO checks, but they gain global access
         try:
-            member = get_cached_organization_member(request.user.id, organization.id)
+            member = OrganizationMember.objects.get(user=request.user, organization=organization)
         except OrganizationMember.DoesNotExist:
             requires_sso, sso_is_valid = False, True
         else:
@@ -351,7 +345,7 @@ def from_user(user, organization=None, scopes=None):
         return OrganizationlessAccess(permissions=UserPermission.for_user(user.id))
 
     try:
-        om = get_cached_organization_member(user.id, organization.id)
+        om = OrganizationMember.objects.get(user=user, organization=organization)
     except OrganizationMember.DoesNotExist:
         return OrganizationlessAccess(permissions=UserPermission.for_user(user.id))
 
