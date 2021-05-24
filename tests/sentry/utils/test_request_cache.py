@@ -6,7 +6,7 @@ from django.utils import timezone
 from sentry import app
 from sentry.testutils import TestCase
 from sentry.utils.compat.mock import patch
-from sentry.utils.request_cache import request_cache
+from sentry.utils.request_cache import clear_cache, request_cache
 
 
 @request_cache
@@ -21,7 +21,8 @@ def cached_fn(arg1, arg2=None):
 class RequestCacheTest(TestCase):
     def setUp(self):
         self.original_receivers = request_finished.receivers
-        request_finished.receivers = [request_finished.receivers[-1]]
+        request_finished.receivers = []
+        request_finished.connect(clear_cache)
         super().setUp()
 
     def tearDown(self):
