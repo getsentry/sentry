@@ -367,7 +367,8 @@ class OrganizationSerializer(serializers.Serializer):
             features.has("organizations:required-email-verification", org)
             and "requireEmailVerification" in self.initial_data
         ):
-            org.flags.require_email_verification = self.initial_data["requireEmailVerification"]
+            # TODO: Set as persistent org flag after migration
+            require_email_verification = self.initial_data["requireEmailVerification"]  # noqa
         if "name" in self.initial_data:
             org.name = self.initial_data["name"]
         if "slug" in self.initial_data:
