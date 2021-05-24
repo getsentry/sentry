@@ -44,7 +44,7 @@ const FeaturedBadge = ({
       <React.Fragment>
         {variant === 'badge' && <StyledTag priority={type}>{labels[type]}</StyledTag>}
         {variant === 'indicator' && (
-          <CircleIndicator color={theme.badge[type].indicatorColor} size={8} />
+          <CircleIndicator color={theme?.badge[type].indicatorColor} size={8} />
         )}
       </React.Fragment>
     </Tooltip>
