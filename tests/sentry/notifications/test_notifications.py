@@ -117,9 +117,7 @@ class ActivityNotificationTest(APITestCase):
         the expected values when an issue is assigned.
         """
 
-        # assign the issue
         url = f"/api/0/issues/{self.group.id}/"
-
         with self.tasks():
             response = self.client.put(url, format="json", data={"assignedTo": self.user.username})
         assert response.status_code == 200, response.content
@@ -145,7 +143,6 @@ class ActivityNotificationTest(APITestCase):
         Test that an email AND Slack notification are sent with
         the expected values when an issue is unassigned.
         """
-        # assign the issue
         url = f"/api/0/issues/{self.group.id}/"
         GroupAssignee.objects.create(
             group=self.group, project=self.project, user=self.user, date_added=timezone.now()
@@ -175,7 +172,6 @@ class ActivityNotificationTest(APITestCase):
         Test that an email AND Slack notification are sent with
         the expected values when an issue is resolved.
         """
-        # resolve the issue
         url = f"/api/0/issues/{self.group.id}/"
         with self.tasks():
             response = self.client.put(url, format="json", data={"status": "resolved"})
@@ -237,17 +233,93 @@ class ActivityNotificationTest(APITestCase):
         )
 
     @responses.activate
-    def test_sends_processing_issue_notification(self):
-        pass
-
-    @responses.activate
     def test_sends_resolved_in_release_notification(self):
-        pass
+        """
+        Test that an email AND Slack notification are sent with
+        the expected values when an issue is resolved by a release.
+        """
+        release = self.create_release()
+        url = f"/api/0/issues/{self.group.id}/"
+        with self.tasks():
+            response = self.client.put(
+                url,
+                format="json",
+                data={"status": "resolved", "statusDetails": {"inRelease": release.version}},
+            )
+        assert response.status_code == 200, response.content
+
+        msg = mail.outbox[0]
+        # check the txt version
+        assert (
+            f"Resolved Issue\n\n{self.user.username} marked {self.short_id} as resolved in {release.version}"
+            in msg.body
+        )
+        # check the html version
+        assert (
+            f'text-decoration: none">{self.short_id}</a> as resolved in' in msg.alternatives[0][0]
+        )
+
+        attachment = get_attachment()
+        assert attachment["title"] == "Resolved Issue"
+        assert (
+            attachment["text"]
+            == f"{self.name} marked {self.short_id} as resolved in {release.version}"
+        )
+        assert (
+            attachment["footer"]
+            == f"<http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=ResolvedInReleaseActivitySlack|{self.short_id}> via <http://testserver/settings/account/notifications/?referrer=ResolvedInReleaseActivitySlack|Notification Settings>"
+        )
 
     @responses.activate
     def test_sends_deployment_notification(self):
+        """
+        Test that an email AND Slack notification are sent with
+        the expected values when a release is deployed.
+        """
+
+        release = self.create_release()
+        url = f"/api/0/organizations/{self.organization.slug}/releases/{release.version}/deploys/"
+        with self.tasks():
+            response = self.client.post(
+                url, format="json", data={"environment": self.environment.name}
+            )
+        assert response.status_code == 201, response.content
+
+        msg = mail.outbox[0]
+        # check the txt version
+        assert f"Version {release.version} was deployed to {self.environment.name} on" in msg.body
+        # check the html version
+        assert (
+            f"Version {release.version} was deployed to {self.environment.name}\n    </h2>\n"
+            in msg.alternatives[0][0]
+        )
+
+        attachment = get_attachment()
+
+        assert (
+            attachment["title"] == f"Deployed version {release.version} to {self.environment.name}"
+        )
+        assert (
+            attachment["text"]
+            == f"Version {release.version} was deployed to {self.environment.name}"
+        )
+        assert (
+            attachment["footer"]
+            == "<http://testserver/settings/account/notifications/?referrer=ReleaseActivitySlack|Notification Settings>"
+        )
+
+    @responses.activate
+    def test_sends_processing_issue_notification(self):
+        """
+        Test that an email AND Slack notification are sent with
+        the expected values when an issue is held back for reprocessing
+        """
         pass
 
     @responses.activate
     def test_sends_issue_notification(self):
+        """
+        Test that an email AND Slack notification are sent with
+        the expected values when an issue comes in that triggers an alert rule.
+        """
         pass
