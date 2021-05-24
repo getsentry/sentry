@@ -57,7 +57,9 @@ class IngestConsumerWorker(AbstractBatchWorker):
         if self.__process_event_executor is None:
             self.__process_event = process_event
         else:
-            raise NotImplementedError
+            self.__process_event = functools.partial(
+                process_event_async, self.__process_event_executor
+            )
 
     def process_message(self, message):
         message = msgpack.unpackb(message.value(), use_list=False)
@@ -283,6 +285,16 @@ def _store_event(data) -> str:
 @trace_func(name="ingest_consumer.process_event")
 def process_event(message: Message, projects: Mapping[int, Project]) -> None:
     return _do_process_event(message, projects)
+
+
+def process_event_async(
+    executor: ThreadPoolExecutor, message: Message, projects: Mapping[int, Project]
+) -> "AsyncResult[str]":
+    data, callback = _load_event(message, projects)
+    return AsyncResult(
+        executor.submit(_store_event, data),
+        lambda future: callback(future.result()),
+    )
 
 
 @trace_func(name="ingest_consumer.process_attachment_chunk")
