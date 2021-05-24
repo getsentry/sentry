@@ -384,7 +384,9 @@ def process_userreport(message, projects) -> None:
         return False
 
 
-def get_ingest_consumer(consumer_types, once=False, **options):
+def get_ingest_consumer(
+    consumer_types, once=False, executor: Optional[ThreadPoolExecutor] = None, **options
+):
     """
     Handles events coming via a kafka queue.
 
@@ -392,5 +394,5 @@ def get_ingest_consumer(consumer_types, once=False, **options):
     """
     topic_names = {ConsumerType.get_topic_name(consumer_type) for consumer_type in consumer_types}
     return create_batching_kafka_consumer(
-        topic_names=topic_names, worker=IngestConsumerWorker(), **options
+        topic_names=topic_names, worker=IngestConsumerWorker(executor), **options
     )
