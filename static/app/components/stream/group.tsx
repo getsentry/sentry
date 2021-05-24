@@ -41,7 +41,12 @@ import {queryToObj} from 'app/utils/stream';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import {TimePeriodType} from 'app/views/alerts/rules/details/constants';
-import {getTabs, isForReviewQuery, Query} from 'app/views/issueList/utils';
+import {
+  getTabs,
+  isForReviewQuery,
+  IssueDisplayOptions,
+  Query,
+} from 'app/views/issueList/utils';
 
 const DiscoveryExclusionFields: string[] = [
   'query',
@@ -59,6 +64,7 @@ const DiscoveryExclusionFields: string[] = [
 ];
 
 export const DEFAULT_STREAM_GROUP_STATS_PERIOD = '24h';
+const DEFAULT_DISPLAY = IssueDisplayOptions.EVENTS;
 
 const defaultProps = {
   statsPeriod: DEFAULT_STREAM_GROUP_STATS_PERIOD,
@@ -66,6 +72,7 @@ const defaultProps = {
   withChart: true,
   useFilteredStats: false,
   useTintRow: true,
+  display: DEFAULT_DISPLAY,
 };
 
 type Props = {
@@ -79,6 +86,7 @@ type Props = {
   showInboxTime?: boolean;
   index?: number;
   customStatsPeriod?: TimePeriodType;
+  display?: IssueDisplayOptions;
   // TODO(ts): higher order functions break defaultprops export types
 } & Partial<typeof defaultProps>;
 
@@ -349,6 +357,7 @@ class StreamGroup extends React.Component<Props, State> {
       useFilteredStats,
       useTintRow,
       customStatsPeriod,
+      display,
     } = this.props;
 
     const {period, start, end} = selection.datetime || {};
@@ -372,6 +381,13 @@ class StreamGroup extends React.Component<Props, State> {
 
     const hasInbox = organization.features.includes('inbox');
     const unresolved = data.status === 'unresolved' ? true : false;
+
+    const showSessions = display === IssueDisplayOptions.SESSIONS;
+    // calculate a percentage count based on session data if the user has selected sessions display
+    const primaryPercent =
+      showSessions &&
+      data.sessionCount &&
+      (Number(primaryCount) / Number(data.sessionCount)) * 100;
 
     return (
       <Wrapper
@@ -443,7 +459,8 @@ class StreamGroup extends React.Component<Props, State> {
                         >
                           <span {...getActorProps({})}>
                             <div className="dropdown-actor-title">
-                              <PrimaryCount value={primaryCount} />
+                              <PrimaryCount value={primaryPercent || primaryCount} />
+                              {primaryPercent && '%'}
                               {secondaryCount !== undefined && useFilteredStats && (
                                 <SecondaryCount value={secondaryCount} />
                               )}
