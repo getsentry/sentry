@@ -34,18 +34,7 @@ const IssueListDisplayOptions = ({
         disabled = true;
       }
     }
-    const item = tooltipText ? (
-      <StyledTooltip
-        containerDisplayMode="block"
-        position="top"
-        delay={500}
-        title={tooltipText}
-      >
-        {getDisplayLabel(key)}
-      </StyledTooltip>
-    ) : (
-      getDisplayLabel(key)
-    );
+
     return (
       <DropdownItem
         onSelect={onDisplayChange}
@@ -53,7 +42,15 @@ const IssueListDisplayOptions = ({
         isActive={key === display}
         disabled={disabled}
       >
-        {item}
+        <StyledTooltip
+          containerDisplayMode="block"
+          position="top"
+          delay={500}
+          title={tooltipText}
+          disabled={!tooltipText}
+        >
+          {getDisplayLabel(key)}
+        </StyledTooltip>
       </DropdownItem>
     );
   };
