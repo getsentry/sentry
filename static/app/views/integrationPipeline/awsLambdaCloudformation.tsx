@@ -81,7 +81,7 @@ export default class AwsLambdaCloudformation extends React.Component<Props, Stat
   }
 
   get cloudformationUrl() {
-    // generarate the cloudformation URL using the params we get from the server
+    // generate the cloudformation URL using the params we get from the server
     // and the external id we generate
     const {baseCloudformationUrl, templateUrl, stackName} = this.props;
     //always us the generated AWS External ID in local storage

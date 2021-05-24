@@ -73,14 +73,14 @@ class VercelWebhookEndpoint(Endpoint):
         if not sentry_app_installation_token:
             raise SentryAppInstallationToken.DoesNotExist()
 
-        # find the commmit sha so we can  use it as as the release
+        # find the commit sha so we can  use it as as the release
         commit_sha = (
             meta.get("githubCommitSha")
             or meta.get("gitlabCommitSha")
             or meta.get("bitbucketCommitSha")
         )
 
-        # contruct the repo depeding what provider we use
+        # construct the repo depending what provider we use
         if meta.get("githubCommitSha"):
             # we use these instead of githubOrg and githubRepo since it's the repo the user has access to
             repository = "{}/{}".format(meta["githubCommitOrg"], meta["githubCommitRepo"])

@@ -299,7 +299,7 @@ def clean_event(event_json):
 
 def fix_spans(event_json, old_span_id):
     """
-    This function does the folowing:
+    This function does the following:
     1. Give spans fresh span_ids & update the parent span ids accordingly
     2. Update span offsets and durations based on transaction duration and some randomness
     """
@@ -320,7 +320,7 @@ def fix_spans(event_json, old_span_id):
                 # set the new parent
                 span["parent_span_id"] = new_parent_id
 
-                # generate a new id and set the replacement mappping
+                # generate a new id and set the replacement mapping
                 new_id = uuid4().hex[:16]
                 update_id_map[span["span_id"]] = new_id
 
@@ -377,22 +377,20 @@ def fix_spans(event_json, old_span_id):
             if i == last_index:
                 duration = remaining_time
             else:
-                # the max duration should give some breathging room to the remaining spans
+                # the max duration should give some breathing room to the remaining spans
                 max_duration = remaining_time - (avg_span_length / 4.0) * (last_index - i)
                 # pick a random length for the span that's at most 2x the average span length
                 duration = min(max_duration, random.uniform(0, 2 * avg_span_length))
             span["data"]["duration"] = duration
             span["start_timestamp"] = event_json["start_timestamp"] + span_offset
             span.setdefault("timestamp", span["start_timestamp"] + duration)
-            # calcualate the next span offset
+            # calculate the next span offset
             span_offset = duration + span_offset
             id_list.append(span["span_id"])
 
 
 def fix_measurements(event_json):
-    """
-    Convert measurment data from durations into timestamps
-    """
+    """ Convert measurement data from durations into timestamps. """
     measurements = event_json.get("measurements")
 
     if measurements:
@@ -410,7 +408,7 @@ def update_context(event, trace=None):
     # delete device since we aren't mocking it (yet)
     if "device" in context:
         del context["device"]
-    # generate ranndom browser and os
+    # generate random browser and os
     context.update(**gen_base_context())
     # add our trace info
     base_trace = context.get("trace", {})
@@ -503,7 +501,7 @@ class DataPopulation:
     def fix_timestamps(self, event_json):
         """
         Convert a time zone aware datetime timestamps to a POSIX timestamp
-        for an evnet
+        for an event.
         """
         event_json["timestamp"] = to_timestamp(event_json["timestamp"])
         start_timestamp = event_json.get("start_timestamp")
