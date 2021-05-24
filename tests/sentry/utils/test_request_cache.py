@@ -64,7 +64,6 @@ class RequestCacheTest(TestCase):
     def test_different_request(self, mock_now):
         app.env.request = HttpRequest()
         assert cached_fn("cat") == "cat"
-        request_finished.receivers = [request_finished.receivers[-1]]
         request_finished.send(sender=WSGIHandler)
         app.env.request = HttpRequest()
         assert cached_fn("cat") == "cat"
