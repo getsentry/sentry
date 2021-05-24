@@ -126,7 +126,12 @@ def trace_func(**span_kwargs):
 
 
 @metrics.wraps("ingest_consumer.process_event")
-def _do_process_event(message, projects):
+def _do_process_event(message: Message, projects: Mapping[int, Project]) -> None:
+    data, callback = _load_event(message, projects)
+    callback(_store_event(data))
+
+
+def _load_event(message: Message, projects: Mapping[int, Project]):
     payload = message["payload"]
     start_time = float(message["start_time"])
     event_id = message["event_id"]
@@ -206,38 +211,45 @@ def _do_process_event(message, projects):
     ):
         return
 
-    cache_key = event_processing_store.store(data)
+    def dispatch_task(cache_key: str) -> None:
+        if attachments:
+            with sentry_sdk.start_span(op="ingest_consumer.set_attachment_cache"):
+                attachment_objects = [
+                    CachedAttachment(type=attachment.pop("attachment_type"), **attachment)
+                    for attachment in attachments
+                ]
 
-    if attachments:
-        with sentry_sdk.start_span(op="ingest_consumer.set_attachment_cache"):
-            attachment_objects = [
-                CachedAttachment(type=attachment.pop("attachment_type"), **attachment)
-                for attachment in attachments
-            ]
+                attachment_cache.set(
+                    cache_key, attachments=attachment_objects, timeout=CACHE_TIMEOUT
+                )
 
-            attachment_cache.set(cache_key, attachments=attachment_objects, timeout=CACHE_TIMEOUT)
+        # Preprocess this event, which spawns either process_event or
+        # save_event. Pass data explicitly to avoid fetching it again from the
+        # cache.
+        with sentry_sdk.start_span(op="ingest_consumer.process_event.preprocess_event"):
+            preprocess_event(
+                cache_key=cache_key,
+                data=data,
+                start_time=start_time,
+                event_id=event_id,
+                project=project,
+            )
 
-    # Preprocess this event, which spawns either process_event or
-    # save_event. Pass data explicitly to avoid fetching it again from the
-    # cache.
-    with sentry_sdk.start_span(op="ingest_consumer.process_event.preprocess_event"):
-        preprocess_event(
-            cache_key=cache_key,
-            data=data,
-            start_time=start_time,
-            event_id=event_id,
-            project=project,
-        )
+        # remember for an 1 hour that we saved this event (deduplication protection)
+        cache.set(deduplication_key, "", CACHE_TIMEOUT)
 
-    # remember for an 1 hour that we saved this event (deduplication protection)
-    cache.set(deduplication_key, "", CACHE_TIMEOUT)
+        # emit event_accepted once everything is done
+        event_accepted.send_robust(ip=remote_addr, data=data, project=project, sender=process_event)
 
-    # emit event_accepted once everything is done
-    event_accepted.send_robust(ip=remote_addr, data=data, project=project, sender=process_event)
+    return data, dispatch_task
+
+
+def _store_event(data) -> str:
+    return event_processing_store.store(data)
 
 
 @trace_func(name="ingest_consumer.process_event")
-def process_event(message, projects) -> None:
+def process_event(message: Message, projects: Mapping[int, Project]) -> None:
     return _do_process_event(message, projects)
 
 
