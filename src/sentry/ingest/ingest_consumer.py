@@ -13,6 +13,7 @@ from typing import (
     Sequence,
     Tuple,
     TypeVar,
+    Union,
 )
 
 import msgpack
@@ -77,16 +78,16 @@ class IngestConsumerWorker(AbstractBatchWorker):
         attachment_chunks = []
 
         # Processing functions may be either synchronous or asynchronous.
-        # Functions that return ``None`` are assumed to have completed
-        # successfully after they have returned. Functions that return a
-        # ``AsyncResult`` may perform a combination of synchronous and
-        # asynchronous work, and need to be explicitly waited on to ensure they
-        # have completed and callbacks have been invoked before returning.
+        # Functions that return a ``AsyncResult`` may perform a combination of
+        # synchronous and asynchronous work, and need to be explicitly waited on
+        # to ensure they have completed and callbacks have been invoked before
+        # returning.  Functions that return anything else are assumed to have
+        # completed successfully after they have returned.
         other_messages: MutableSequence[
             Tuple[
                 Callable[
                     [Message, Mapping[int, Project]],
-                    Optional[AsyncResult],
+                    Union[Any, AsyncResult],
                 ],
                 Message,
             ]
@@ -131,7 +132,7 @@ class IngestConsumerWorker(AbstractBatchWorker):
                 # Execute synchronous tasks and dispatch asynchronous tasks.
                 for processing_func, message in other_messages:
                     result = processing_func(message, projects)
-                    if result is not None:
+                    if isinstance(result, AsyncResult):
                         results[result.future] = result
 
                 # Wait for any asynchronous work to be completed, invoking
