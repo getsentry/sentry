@@ -1,7 +1,8 @@
 import functools
 import logging
 import random
-from concurrent.futures import wait
+from concurrent.futures import Future, wait
+from typing import Any, Callable, Mapping, MutableSequence, Optional, Tuple
 
 import msgpack
 import sentry_sdk
@@ -31,6 +32,9 @@ logger = logging.getLogger(__name__)
 CACHE_TIMEOUT = 3600
 
 
+Message = Any
+
+
 class IngestConsumerWorker(AbstractBatchWorker):
     def process_message(self, message):
         message = msgpack.unpackb(message.value(), use_list=False)
@@ -43,7 +47,15 @@ class IngestConsumerWorker(AbstractBatchWorker):
 
     def _flush_batch(self, batch):
         attachment_chunks = []
-        other_messages = []
+
+        # Processing functions may be either synchronous or asynchronous.
+        # Functions that return ``None`` are assumed to have completed
+        # successfully after they have returned. Functions that return a
+        # ``Future`` instance will need to wait until the future has a result
+        # value before exiting.
+        other_messages: MutableSequence[
+            Tuple[Callable[[Message, Mapping[int, Project]], Optional[Future[None]]], Message]
+        ] = []
 
         projects_to_fetch = set()
 
@@ -80,7 +92,7 @@ class IngestConsumerWorker(AbstractBatchWorker):
                 futures = []
 
                 for processing_func, message in other_messages:
-                    future = processing_func(message, projects=projects)
+                    future = processing_func(message, projects)
                     if future is not None:
                         futures.append(future)
 
