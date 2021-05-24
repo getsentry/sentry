@@ -90,7 +90,7 @@ export const initApiClientErrorHandling = () =>
     }
 
     if (code === 'member-disabled-over-limit') {
-      browserHistory.push(extra.next);
+      browserHistory.replace(extra.next);
     }
 
     // Otherwise, the user has become unauthenticated. Send them to auth
