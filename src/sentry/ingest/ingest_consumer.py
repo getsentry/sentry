@@ -48,7 +48,7 @@ Message = Any
 
 class AsyncResult(NamedTuple):  # TODO: Use Generic[T] with 3.7+
     future: "Future[T]"
-    callback: Optional[Callable[["Future[T]"], None]] = None
+    callback: Optional[Callable[["Future[T]"], Any]] = None
 
 
 class IngestConsumerWorker(AbstractBatchWorker):
