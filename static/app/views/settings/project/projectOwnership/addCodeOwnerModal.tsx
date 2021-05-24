@@ -132,7 +132,7 @@ class AddCodeOwnerModal extends Component<Props, State> {
         {codeMapping && (
           <p>
             {tct(
-              'Configure [userMappingsLink:User Mappings] or[teamMappingsLink:Team Mappings] for any missing associations.',
+              'Configure [userMappingsLink:User Mappings] or [teamMappingsLink:Team Mappings] for any missing associations.',
               {
                 userMappingsLink: (
                   <Link
