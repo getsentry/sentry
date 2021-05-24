@@ -10,6 +10,7 @@ from typing import (
     MutableSequence,
     NamedTuple,
     Optional,
+    Sequence,
     Tuple,
     TypeVar,
 )
@@ -41,14 +42,16 @@ logger = logging.getLogger(__name__)
 
 CACHE_TIMEOUT = 3600
 
-T = TypeVar("T")
 
-Message = Any
+T = TypeVar("T")
 
 
 class AsyncResult(NamedTuple):  # TODO: Use Generic[T] with 3.7+
     future: "Future[T]"
-    callback: Optional[Callable[["Future[T]"], Any]] = None
+    callback: Callable[["Future[T]"], Any]
+
+
+Message = Any
 
 
 class IngestConsumerWorker(AbstractBatchWorker):
@@ -61,7 +64,7 @@ class IngestConsumerWorker(AbstractBatchWorker):
                 process_event_async, self.__process_event_executor
             )
 
-    def process_message(self, message):
+    def process_message(self, message) -> Message:
         message = msgpack.unpackb(message.value(), use_list=False)
         return message
 
@@ -70,7 +73,7 @@ class IngestConsumerWorker(AbstractBatchWorker):
         with metrics.timer("ingest_consumer.flush_batch"):
             return self._flush_batch(batch)
 
-    def _flush_batch(self, batch):
+    def _flush_batch(self, batch: Sequence[Message]):
         attachment_chunks = []
 
         # Processing functions may be either synchronous or asynchronous.
@@ -78,8 +81,7 @@ class IngestConsumerWorker(AbstractBatchWorker):
         # successfully after they have returned. Functions that return a
         # ``AsyncResult`` may perform a combination of synchronous and
         # asynchronous work, and need to be explicitly waited on to ensure they
-        # have completed (and callback has been invoked, if provided) before
-        # this method returns.
+        # have completed and callbacks have been invoked before returning.
         other_messages: MutableSequence[
             Tuple[
                 Callable[
@@ -135,9 +137,7 @@ class IngestConsumerWorker(AbstractBatchWorker):
                 # Wait for any asynchronous work to be completed, invoking
                 # callbacks (on the main thread) as results are ready.
                 for future in as_completed(results.keys()):
-                    callback = results[future].callback
-                    if callback is not None:
-                        callback(future)
+                    results[future].callback(future)
 
     def shutdown(self):
         if self.__process_event_executor is not None:
@@ -172,6 +172,13 @@ def _do_process_event(message: Message, projects: Mapping[int, Project]) -> None
 def _load_event(
     message: Message, projects: Mapping[int, Project]
 ) -> Optional[Tuple[Any, Callable[[str], None]]]:
+    """
+    Perform some initial filtering and deserialize the message payload. If the
+    event should be stored, the deserialized payload is returned along with a
+    function that can be called with the event's storage key to resume
+    processing after the event has been persisted and is available to be read by
+    other processing components.
+    """
     payload = message["payload"]
     start_time = float(message["start_time"])
     event_id = message["event_id"]
