@@ -93,7 +93,7 @@ class OrganizationIncidentUpdateStatusTest(BaseIncidentDetailsTest, APITestCase)
     def test_comment(self):
         incident = self.create_incident()
         status = IncidentStatus.CLOSED.value
-        comment = "fixd"
+        comment = "fixed"
         with self.feature("organizations:incidents"):
             self.get_valid_response(
                 incident.organization.slug, incident.identifier, status=status, comment=comment
