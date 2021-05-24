@@ -50,14 +50,6 @@ class NotificationSettings extends AsyncComponent<Props, State> {
     ];
   }
 
-  getParentIds(notificationType: string): string[] {
-    const {notificationSettings} = this.state;
-
-    return getParentIds(notificationType, notificationSettings);
-  }
-
-  /* Methods responsible for updating state and hitting the API. */
-
   getStateToPutForDefault = (
     changedData: {[key: string]: string},
     notificationType: string
@@ -75,7 +67,7 @@ class NotificationSettings extends AsyncComponent<Props, State> {
       notificationType,
       notificationSettings,
       changedData,
-      this.getParentIds(notificationType)
+      getParentIds(notificationType, notificationSettings)
     );
 
     this.setState({

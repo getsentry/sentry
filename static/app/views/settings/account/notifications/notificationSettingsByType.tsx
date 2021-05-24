@@ -57,7 +57,7 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
     const endpoints: ReturnType<AsyncComponent['getEndpoints']> = [
       ['notificationSettings', `/users/me/notification-settings/`, {query}],
     ];
-    if (this.isGroupedByProject()) {
+    if (isGroupedByProject(notificationType)) {
       endpoints.push(['projects', '/projects/']);
     }
     return endpoints;
@@ -65,50 +65,22 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
 
   /* Helper methods that help interpret state. */
 
-  isGroupedByProject() {
-    /** We can infer the parent type by the `notificationType` key. */
-    const {notificationType} = this.props;
-    return isGroupedByProject(notificationType);
-  }
-
-  getParentKey = (): string => {
-    const {notificationType} = this.props;
-    return getParentKey(notificationType);
-  };
-
   getParents(): OrganizationSummary[] | Project[] {
     /** Use the `notificationType` key to decide which parent objects to use. */
-    const {organizations} = this.props;
+    const {notificationType, organizations} = this.props;
     const {projects} = this.state;
 
-    return this.isGroupedByProject() ? projects : organizations;
+    return isGroupedByProject(notificationType) ? projects : organizations;
   }
-
-  getParentIds(): string[] {
-    const {notificationType} = this.props;
-    const {notificationSettings} = this.state;
-
-    return getParentIds(notificationType, notificationSettings);
-  }
-
-  getUserDefaultValues = (): {[key: string]: string} => {
-    /**
-     * Get the mapping of providers to values that describe a user's parent-
-     * independent notification preferences. The data from the API uses the user
-     * ID rather than "me" so we assume the first ID is the user's.
-     */
-    const {notificationType} = this.props;
-    const {notificationSettings} = this.state;
-
-    return getUserDefaultValues(notificationType, notificationSettings);
-  };
 
   getParentValues = (parentId: string): {[key: string]: string} => {
     const {notificationType} = this.props;
     const {notificationSettings} = this.state;
 
     return (
-      notificationSettings[notificationType]?.[this.getParentKey()]?.[parentId] || {
+      notificationSettings[notificationType]?.[getParentKey(notificationType)]?.[
+        parentId
+      ] || {
         email: 'default',
       }
     );
@@ -128,9 +100,10 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
 
   getCurrentProviders = (): string[] => {
     /** Get the list of providers currently active on this page. Note: this can be empty. */
-    const userData = this.getUserDefaultValues();
+    const {notificationType} = this.props;
+    const {notificationSettings} = this.state;
 
-    return Object.entries(userData)
+    return Object.entries(getUserDefaultValues(notificationType, notificationSettings))
       .filter(([_, value]) => !['never'].includes(value))
       .map(([provider, _]) => provider);
   };
@@ -165,7 +138,7 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
       notificationType,
       notificationSettings,
       changedData,
-      this.getParentIds()
+      getParentIds(notificationType, notificationSettings)
     );
 
     this.setState({
@@ -205,10 +178,10 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
      * The UI expects projects to be grouped by organization but can also use
      * this function to make a single group with all organizations.
      */
-    const {organizations} = this.props;
+    const {notificationType, organizations} = this.props;
     const {projects: stateProjects} = this.state;
 
-    return this.isGroupedByProject()
+    return isGroupedByProject(notificationType)
       ? Object.fromEntries(
           Object.values(
             groupByOrganization(stateProjects)
@@ -229,6 +202,7 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
   };
 
   getParentField = (parent: OrganizationSummary | Project): FieldObject => {
+    /** Render each parent and add a default option to the the field choices. */
     const {notificationType} = this.props;
 
     const defaultFields = NOTIFICATION_SETTING_FIELDS[notificationType];
@@ -237,7 +211,9 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
       label: (
         <FieldLabel>
           <Avatar
-            {...{[this.isGroupedByProject() ? 'project' : 'organization']: parent}}
+            {...{
+              [isGroupedByProject(notificationType) ? 'project' : 'organization']: parent,
+            }}
           />
           <span>{parent.slug}</span>
         </FieldLabel>
@@ -271,6 +247,7 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
 
   getFields(): FieldObject[] {
     const {notificationType} = this.props;
+    const {notificationSettings} = this.state;
 
     const fields = [
       Object.assign({}, NOTIFICATION_SETTING_FIELDS[notificationType], {
@@ -278,7 +255,7 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
         getData: data => this.getStateToPutForDefault(data),
       }),
     ];
-    if (!this.isEverythingDisabled()) {
+    if (!isEverythingDisabled(notificationType, notificationSettings)) {
       fields.push(
         Object.assign(
           {
@@ -292,21 +269,10 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
     return fields as FieldObject[];
   }
 
-  isEverythingDisabled = (): boolean => {
-    /**
-     * For a given notificationType, are the parent-independent setting "never"
-     * for all providers and are the parent-specific settings "default" or
-     * "never". If so, the API is telling us that the user has opted out of
-     * all notifications.
-     */
+  renderBody() {
     const {notificationType} = this.props;
     const {notificationSettings} = this.state;
 
-    return isEverythingDisabled(notificationType, notificationSettings);
-  };
-
-  renderBody() {
-    const {notificationType} = this.props;
     const {title, description} = ACCOUNT_NOTIFICATION_FIELDS[notificationType];
 
     return (
@@ -321,11 +287,15 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
           initialData={this.getInitialData()}
         >
           <JsonForm
-            title={this.isGroupedByProject() ? t('All Projects') : t('All Organizations')}
+            title={
+              isGroupedByProject(notificationType)
+                ? t('All Projects')
+                : t('All Organizations')
+            }
             fields={this.getFields()}
           />
         </Form>
-        {!this.isEverythingDisabled() && (
+        {!isEverythingDisabled(notificationType, notificationSettings) && (
           <Form
             saveOnBlur
             apiMethod="PUT"
