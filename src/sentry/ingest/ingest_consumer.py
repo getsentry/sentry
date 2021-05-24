@@ -1,6 +1,7 @@
 import functools
 import logging
 import random
+from concurrent.futures import wait
 
 import msgpack
 import sentry_sdk
@@ -76,8 +77,14 @@ class IngestConsumerWorker(AbstractBatchWorker):
 
         if other_messages:
             with metrics.timer("ingest_consumer.process_other_messages_batch"):
+                futures = []
+
                 for processing_func, message in other_messages:
-                    processing_func(message, projects=projects)
+                    future = processing_func(message, projects=projects)
+                    if future is not None:
+                        futures.append(future)
+
+                wait(futures)
 
     def shutdown(self):
         pass
