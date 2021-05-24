@@ -3,6 +3,7 @@ from datetime import timedelta
 
 from django.utils import timezone
 
+from sentry.auth.access import get_cached_organization_member
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import OrganizationMember
 from sentry.search.utils import InvalidQuery, parse_datetime_string
@@ -99,7 +100,7 @@ def is_member_disabled_from_limit(request, organization):
 
     # must be a simple user at this point
     try:
-        member = OrganizationMember.objects.get(user_id=user.id, organization_id=organization.id)
+        member = get_cached_organization_member(user.id, organization.id)
     except OrganizationMember.DoesNotExist:
         # should never happen but if it does, don't block auth
         # but send error to logs/Sentry

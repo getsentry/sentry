@@ -14,6 +14,7 @@ from sentry.auth.access import NoAccess, from_request
 from sentry.auth.authenticators import TotpInterface
 from sentry.models import ApiKey, Organization, OrganizationMember
 from sentry.testutils import TestCase
+from sentry.utils.compat import mock
 
 
 class MockSuperUser:
@@ -97,7 +98,8 @@ class OrganizationPermissionTest(OrganizationPermissionBase):
         with self.assertRaises(TwoFactorRequired):
             self.has_object_perm("GET", self.org, user=user)
 
-    def test_member_limit_error(self):
+    @mock.patch("sentry.api.utils.get_cached_organization_member")
+    def test_member_limit_error(self, mock_get_org_member):
         user = self.create_user()
         self.create_member(
             user=user,
@@ -116,8 +118,10 @@ class OrganizationPermissionTest(OrganizationPermissionBase):
                 "extra": {"next": f"/organizations/{self.org.slug}/disabled-member/"},
             }
         }
+        assert mock_get_org_member.call_count == 1
 
-    def test_member_limit_with_superuser(self):
+    @mock.patch("sentry.api.utils.get_cached_organization_member")
+    def test_member_limit_with_superuser(self, mock_get_org_member):
         user = self.create_user(is_superuser=True)
         self.create_member(
             user=user,
@@ -126,14 +130,15 @@ class OrganizationPermissionTest(OrganizationPermissionBase):
             flags=OrganizationMember.flags["member-limit:restricted"],
         )
         assert self.has_object_perm("GET", self.org, user=user, is_superuser=True)
-        # TODO: add assertion on the org member query
+        assert mock_get_org_member.call_count == 0
 
-    def test_member_limit_sentry_app(self):
+    @mock.patch("sentry.api.utils.get_cached_organization_member")
+    def test_member_limit_sentry_app(self, mock_get_org_member):
         app = self.create_internal_integration(
             name="integration", organization=self.org, scopes=("org:admin",)
         )
         assert self.has_object_perm("GET", self.org, user=app.proxy_user)
-        # TODO: add assertion on the org member query
+        assert mock_get_org_member.call_count == 0
 
 
 class BaseOrganizationEndpointTest(TestCase):
