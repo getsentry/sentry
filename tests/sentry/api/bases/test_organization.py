@@ -8,11 +8,11 @@ from freezegun import freeze_time
 from rest_framework.exceptions import PermissionDenied
 
 from sentry.api.bases.organization import NoProjects, OrganizationEndpoint, OrganizationPermission
-from sentry.api.exceptions import ResourceDoesNotExist, TwoFactorRequired
+from sentry.api.exceptions import MemberDisabledOverLimit, ResourceDoesNotExist, TwoFactorRequired
 from sentry.api.utils import MAX_STATS_PERIOD
 from sentry.auth.access import NoAccess, from_request
 from sentry.auth.authenticators import TotpInterface
-from sentry.models import ApiKey, Organization
+from sentry.models import ApiKey, Organization, OrganizationMember
 from sentry.testutils import TestCase
 
 
@@ -96,6 +96,44 @@ class OrganizationPermissionTest(OrganizationPermissionBase):
 
         with self.assertRaises(TwoFactorRequired):
             self.has_object_perm("GET", self.org, user=user)
+
+    def test_member_limit_error(self):
+        user = self.create_user()
+        self.create_member(
+            user=user,
+            organization=self.org,
+            role="member",
+            flags=OrganizationMember.flags["member-limit:restricted"],
+        )
+
+        with self.assertRaises(MemberDisabledOverLimit) as err:
+            self.has_object_perm("GET", self.org, user=user)
+
+        assert err.exception.detail == {
+            "detail": {
+                "code": "member-disabled-over-limit",
+                "message": "Organization over member limit",
+                "extra": {"next": f"/organizations/{self.org.slug}/disabled-member/"},
+            }
+        }
+
+    def test_member_limit_with_superuser(self):
+        user = self.create_user(is_superuser=True)
+        self.create_member(
+            user=user,
+            organization=self.org,
+            role="member",
+            flags=OrganizationMember.flags["member-limit:restricted"],
+        )
+        assert self.has_object_perm("GET", self.org, user=user, is_superuser=True)
+        # TODO: add assertion on the org member query
+
+    def test_member_limit_sentry_app(self):
+        app = self.create_internal_integration(
+            name="integration", organization=self.org, scopes=("org:admin",)
+        )
+        assert self.has_object_perm("GET", self.org, user=app.proxy_user)
+        # TODO: add assertion on the org member query
 
 
 class BaseOrganizationEndpointTest(TestCase):
