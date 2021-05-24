@@ -4,7 +4,13 @@ import {ChildrenRenderFn} from 'app/components/acl/feature';
 import DateRange from 'app/components/organizations/timeRangeSelector/dateRange';
 import SelectorItems from 'app/components/organizations/timeRangeSelector/dateRange/selectorItems';
 import SidebarItem from 'app/components/sidebar/sidebarItem';
-import {IntegrationProvider, Organization, Project, User} from 'app/types';
+import {
+  IntegrationProvider,
+  Organization,
+  OrganizationSummary,
+  Project,
+  User,
+} from 'app/types';
 import {ExperimentKey} from 'app/types/experiments';
 import {NavigationItem, NavigationSection} from 'app/views/settings/types';
 
@@ -50,6 +56,7 @@ export type RouteHooks = {
 type DateRangeProps = React.ComponentProps<typeof DateRange>;
 type SelectorItemsProps = React.ComponentProps<typeof SelectorItems>;
 type GlobalNotificationProps = {className: string; organization?: Organization};
+type DisabledMemberViewProps = {organization: OrganizationSummary};
 
 /**
  * Component wrapping hooks
@@ -58,6 +65,7 @@ export type ComponentHooks = {
   'component:header-date-range': () => React.ComponentType<DateRangeProps>;
   'component:header-selector-items': () => React.ComponentType<SelectorItemsProps>;
   'component:global-notifications': () => React.ComponentType<GlobalNotificationProps>;
+  'component:disabled-member': () => React.ComponentType<DisabledMemberViewProps>;
 };
 
 /**
