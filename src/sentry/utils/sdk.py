@@ -38,7 +38,7 @@ SAMPLED_URL_NAMES = {
     # integrations
     "sentry-extensions-jira-issue-hook",
     "sentry-extensions-vercel-webhook",
-    "sentry-extensions-vercel-delete",
+    "sentry-extensions-vercel-generic-webhook",
     "sentry-extensions-vercel-configure",
     "sentry-extensions-vercel-ui-hook",
     "sentry-api-0-group-integration-details",
@@ -228,6 +228,18 @@ def patch_transport_for_instrumentation(transport, transport_name):
     if _send_envelope:
 
         def patched_send_envelope(*args, **kwargs):
+            envelope = args[0]
+            if envelope and len(envelope.items) > 0:
+                metrics.incr(f"internal.envelope_has_items.{transport_name}")
+
+                _serialize_into = envelope.serialize_into
+
+                def patched_envelope_serialize(*args, **kwargs):
+                    metrics.incr(f"internal.envelope_serialize_into.{transport_name}.count")
+                    return _serialize_into(*args, **kwargs)
+
+                envelope.serialize_into = patched_envelope_serialize
+
             metrics.incr(f"internal.send_envelope.{transport_name}.events")
             try:
                 result = _send_envelope(*args, **kwargs)
@@ -280,6 +292,7 @@ def patch_transport_for_instrumentation(transport, transport_name):
                 metrics.incr(f"internal.check_disabled.{transport_name}.bucket.{bucket}.disabled")
 
         def patched_check_disabled(*args, **kwargs):
+            metrics.incr(f"internal.pre_check_disabled.{transport_name}.events.count")
             result = _check_disabled(*args, **kwargs)
             metrics.incr(f"internal.check_disabled.{transport_name}.events.count")
             if result:
