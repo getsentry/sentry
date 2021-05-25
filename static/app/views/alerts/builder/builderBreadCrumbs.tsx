@@ -7,6 +7,7 @@ import IdBadge from 'app/components/idBadge';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Project} from 'app/types';
+import {isActiveSuperuser} from 'app/utils/isActiveSuperuser';
 import recreateRoute from 'app/utils/recreateRoute';
 import withProjects from 'app/utils/withProjects';
 import MenuItem from 'app/views/settings/components/settingsBreadcrumb/menuItem';
@@ -36,6 +37,7 @@ function BuilderBreadCrumbs(props: Props) {
     location,
   } = props;
   const project = projects.find(({slug}) => projectSlug === slug);
+  const isSuperuser = isActiveSuperuser();
 
   const projectCrumbLink = {
     to: `/settings/${orgSlug}/projects/${projectSlug}/`,
@@ -53,21 +55,23 @@ function BuilderBreadCrumbs(props: Props) {
       );
     },
     label: <IdBadge project={project} avatarSize={18} disableLink />,
-    items: projects.map((proj, index) => ({
-      index,
-      value: proj.slug,
-      label: (
-        <MenuItem>
-          <IdBadge
-            project={proj}
-            avatarProps={{consistentWidth: true}}
-            avatarSize={18}
-            disableLink
-          />
-        </MenuItem>
-      ),
-      searchKey: proj.slug,
-    })),
+    items: projects
+      .filter(proj => proj.isMember || isSuperuser)
+      .map((proj, index) => ({
+        index,
+        value: proj.slug,
+        label: (
+          <MenuItem>
+            <IdBadge
+              project={proj}
+              avatarProps={{consistentWidth: true}}
+              avatarSize={18}
+              disableLink
+            />
+          </MenuItem>
+        ),
+        searchKey: proj.slug,
+      })),
   };
   const projectCrumb = canChangeProject ? projectCrumbDropdown : projectCrumbLink;
 

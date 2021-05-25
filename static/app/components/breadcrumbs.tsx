@@ -49,12 +49,12 @@ export type CrumbDropdown = {
   /**
    * Items of the crumb dropdown
    */
-  items: BreadcrumbDropdown['props']['items'];
+  items: React.ComponentProps<typeof BreadcrumbDropdown>['items'];
 
   /**
    * Callback function for when an item is selected
    */
-  onSelect: BreadcrumbDropdown['props']['onSelect'];
+  onSelect: React.ComponentProps<typeof BreadcrumbDropdown>['onSelect'];
 };
 
 type Props = React.ComponentPropsWithoutRef<typeof BreadcrumbList> & {
