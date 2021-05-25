@@ -22,7 +22,7 @@ function DisabledMember(props: Props) {
   } = props;
   const org = organizations.find(o => o.slug === orgId);
   if (!org) {
-    return null;
+    return <NotFound />;
   }
   return <DisabledMemberComponent organization={org} />;
 }
