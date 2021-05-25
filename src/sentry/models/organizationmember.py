@@ -19,7 +19,6 @@ from sentry.db.models import (
     BaseModel,
     BoundedAutoField,
     BoundedPositiveIntegerField,
-    EncryptedJsonField,
     FlexibleForeignKey,
     Model,
     sane_repr,
@@ -125,8 +124,6 @@ class OrganizationMember(Model):
         default=InviteStatus.APPROVED.value,
         null=True,
     )
-
-    scim_data = EncryptedJsonField()
 
     # Deprecated -- no longer used
     type = BoundedPositiveIntegerField(default=50, blank=True)
