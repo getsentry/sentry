@@ -91,8 +91,11 @@ def validate_scope(
     context: Optional[List[str]] = None,
 ) -> int:
     if user and scope_type == NotificationScopeType.USER:
-        # Overwrite every user ID with the current user's ID.
-        scope_id = user.id
+        if scope_id == "me":
+            # Overwrite "me" with the current user's ID.
+            scope_id = user.id
+        elif scope_id != user.id:
+            raise ParameterValidationError(f"Incorrect user ID: {scope_id}", context)
 
     try:
         return int(scope_id)
