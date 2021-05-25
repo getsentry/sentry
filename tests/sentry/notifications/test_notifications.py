@@ -8,8 +8,19 @@ from django.core import mail
 from django.utils import timezone
 
 from sentry.event_manager import EventManager
-from sentry.models import ExternalActor, Group, GroupAssignee, GroupStatus, Integration, UserOption
+from sentry.models import (
+    ExternalActor,
+    Group,
+    GroupAssignee,
+    GroupStatus,
+    Integration,
+    Rule,
+    UserOption,
+)
+from sentry.tasks.post_process import post_process_group
 from sentry.testutils import APITestCase
+from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.eventprocessing import write_event_to_cache
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 
@@ -193,6 +204,44 @@ class ActivityNotificationTest(APITestCase):
         )
 
     @responses.activate
+    def test_sends_deployment_notification(self):
+        """
+        Test that an email AND Slack notification are sent with
+        the expected values when a release is deployed.
+        """
+
+        release = self.create_release()
+        url = f"/api/0/organizations/{self.organization.slug}/releases/{release.version}/deploys/"
+        with self.tasks():
+            response = self.client.post(
+                url, format="json", data={"environment": self.environment.name}
+            )
+        assert response.status_code == 201, response.content
+
+        msg = mail.outbox[0]
+        # check the txt version
+        assert f"Version {release.version} was deployed to {self.environment.name} on" in msg.body
+        # check the html version
+        assert (
+            f"Version {release.version} was deployed to {self.environment.name}\n    </h2>\n"
+            in msg.alternatives[0][0]
+        )
+
+        attachment = get_attachment()
+
+        assert (
+            attachment["title"] == f"Deployed version {release.version} to {self.environment.name}"
+        )
+        assert (
+            attachment["text"]
+            == f"Version {release.version} was deployed to {self.environment.name}"
+        )
+        assert (
+            attachment["footer"]
+            == "<http://testserver/settings/account/notifications/?referrer=ReleaseActivitySlack|Notification Settings>"
+        )
+
+    @responses.activate
     def test_sends_regression_notification(self):
         """
         Test that an email AND Slack notification are sent with
@@ -271,44 +320,6 @@ class ActivityNotificationTest(APITestCase):
         )
 
     @responses.activate
-    def test_sends_deployment_notification(self):
-        """
-        Test that an email AND Slack notification are sent with
-        the expected values when a release is deployed.
-        """
-
-        release = self.create_release()
-        url = f"/api/0/organizations/{self.organization.slug}/releases/{release.version}/deploys/"
-        with self.tasks():
-            response = self.client.post(
-                url, format="json", data={"environment": self.environment.name}
-            )
-        assert response.status_code == 201, response.content
-
-        msg = mail.outbox[0]
-        # check the txt version
-        assert f"Version {release.version} was deployed to {self.environment.name} on" in msg.body
-        # check the html version
-        assert (
-            f"Version {release.version} was deployed to {self.environment.name}\n    </h2>\n"
-            in msg.alternatives[0][0]
-        )
-
-        attachment = get_attachment()
-
-        assert (
-            attachment["title"] == f"Deployed version {release.version} to {self.environment.name}"
-        )
-        assert (
-            attachment["text"]
-            == f"Version {release.version} was deployed to {self.environment.name}"
-        )
-        assert (
-            attachment["footer"]
-            == "<http://testserver/settings/account/notifications/?referrer=ReleaseActivitySlack|Notification Settings>"
-        )
-
-    @responses.activate
     def test_sends_processing_issue_notification(self):
         """
         Test that an email AND Slack notification are sent with
@@ -322,4 +333,46 @@ class ActivityNotificationTest(APITestCase):
         Test that an email AND Slack notification are sent with
         the expected values when an issue comes in that triggers an alert rule.
         """
-        pass
+
+        action_data = {
+            "id": "sentry.mail.actions.NotifyEmailAction",
+            "targetType": "Member",
+            "targetIdentifier": str(self.user.id),
+        }
+        Rule.objects.create(
+            project=self.project,
+            label="a rule",
+            data={
+                "match": "all",
+                "actions": [action_data],
+            },
+        )
+        min_ago = iso_format(before_now(minutes=1))
+        event = self.store_event(
+            data={
+                "message": "Hello world",
+                "timestamp": min_ago,
+            },
+            project_id=self.project.id,
+        )
+        cache_key = write_event_to_cache(event)
+        with self.tasks():
+            post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=True,
+                group_id=event.group_id,
+                cache_key=cache_key,
+            )
+
+        msg = mail.outbox[0]
+        # check the txt version
+        assert "Details\n-------\n\n" in msg.body
+        # check the html version
+        assert "Hello world</pre>" in msg.alternatives[0][0]
+
+        attachment = get_attachment()
+
+        assert attachment["title"] == "Hello world"
+        assert attachment["text"] == ""
+        assert attachment["footer"] == event.group.qualified_short_id
