@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import ContextData from 'app/components/contextData';
@@ -19,12 +18,10 @@ function Summary({kvData, children, onToggle}: Props) {
   }
 
   return (
-    <Fragment>
-      <StyledPre>
-        <StyledCode>{children}</StyledCode>
-        {renderKvData()}
-      </StyledPre>
-    </Fragment>
+    <StyledPre>
+      <StyledCode>{children}</StyledCode>
+      {renderKvData()}
+    </StyledPre>
   );
 }
 
