@@ -5,6 +5,7 @@ from sentry.ownership.grammar import (
     Owner,
     Rule,
     convert_codeowners_syntax,
+    convert_schema_to_rules_text,
     dump_schema,
     load_schema,
     parse_code_owners,
@@ -211,4 +212,48 @@ def test_convert_codeowners_syntax():
             code_mapping,
         )
         == "\n# cool stuff comment\npath:*.js front-sentry nisanthan.nanthakumar@sentry.io\n# good comment\n\n\npath:webpack://docs/* docs-sentry ecosystem\npath:src/sentry/* anotheruser@sentry.io\npath:api/* nisanthan.nanthakumar@sentry.io\n"
+    )
+
+
+def test_convert_schema_to_rules_text():
+    assert (
+        convert_schema_to_rules_text(
+            {
+                "$version": 1,
+                "rules": [
+                    {
+                        "matcher": {"type": "path", "pattern": "*.js"},
+                        "owners": [
+                            {"type": "team", "identifier": "frontend"},
+                            {"type": "user", "identifier": "m@robenolt.com"},
+                        ],
+                    },
+                    {
+                        "matcher": {"type": "url", "pattern": "http://google.com/*"},
+                        "owners": [{"type": "team", "identifier": "backend"}],
+                    },
+                    {
+                        "matcher": {"type": "path", "pattern": "src/sentry/*"},
+                        "owners": [{"type": "user", "identifier": "david@sentry.io"}],
+                    },
+                    {
+                        "matcher": {"type": "tags.foo", "pattern": "bar"},
+                        "owners": [{"type": "user", "identifier": "tagperson@sentry.io"}],
+                    },
+                    {
+                        "matcher": {"type": "tags.foo", "pattern": "bar baz"},
+                        "owners": [{"type": "user", "identifier": "tagperson@sentry.io"}],
+                    },
+                    {
+                        "matcher": {"type": "module", "pattern": "foo.bar"},
+                        "owners": [{"type": "team", "identifier": "workflow"}],
+                    },
+                    {
+                        "matcher": {"type": "module", "pattern": "foo bar"},
+                        "owners": [{"type": "user", "identifier": "meow@sentry.io"}],
+                    },
+                ],
+            }
+        )
+        == "path:*.js #frontend m@robenolt.com\nurl:http://google.com/* #backend\npath:src/sentry/* david@sentry.io\ntags.foo:bar tagperson@sentry.io\ntags.foo:bar baz tagperson@sentry.io\nmodule:foo.bar #workflow\nmodule:foo bar meow@sentry.io\n"
     )

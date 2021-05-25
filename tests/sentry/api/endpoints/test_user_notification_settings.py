@@ -118,10 +118,9 @@ class UserNotificationSettingsTest(UserNotificationSettingsTestBase):
             == NotificationSettingOptionValues.DEFAULT
         )
 
+        data = {"deploy": {"user": {"me": {"email": "always", "slack": "always"}}}}
         with self.feature(FEATURE_NAMES):
-            self.get_success_response(
-                "me", **{"deploy": {"user": {"me": {"email": "always", "slack": "always"}}}}
-            )
+            self.get_success_response("me", **data)
 
         assert (
             NotificationSetting.objects.get_settings(
@@ -139,3 +138,9 @@ class UserNotificationSettingsTest(UserNotificationSettingsTestBase):
     def test_invalid_payload(self):
         with self.feature(FEATURE_NAMES):
             self.get_error_response("me", **{"invalid": 1}, status_code=400)
+
+    def test_wrong_user_id(self):
+        user2 = self.create_user()
+        data = {"deploy": {"user": {user2.id: {"email": "always", "slack": "always"}}}}
+        with self.feature(FEATURE_NAMES):
+            self.get_error_response("me", **data, status_code=400)

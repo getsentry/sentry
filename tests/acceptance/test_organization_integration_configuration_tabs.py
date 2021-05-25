@@ -2,7 +2,7 @@ from sentry.models import Integration
 from sentry.testutils import AcceptanceTestCase
 
 
-class OrganizationExternalMappings(AcceptanceTestCase):
+class OrganizationIntegrationConfigurationTabs(AcceptanceTestCase):
     def setUp(self):
         super().setUp()
         self.login_as(self.user)
@@ -24,6 +24,7 @@ class OrganizationExternalMappings(AcceptanceTestCase):
             name="getsentry/sentry",
             provider="integrations:github",
             integration_id=self.integration.id,
+            project=self.project,
             url="https://github.com/getsentry/sentry",
         )
 
@@ -35,6 +36,25 @@ class OrganizationExternalMappings(AcceptanceTestCase):
         self.browser.wait_until_not(".loading-indicator")
 
     def test_external_user_mappings(self):
+        # create `auth_user` records to differentiate `user_id` and `organization_member_id`
+        self.create_sentry_app()
+        self.user2 = self.create_user("user2@example.com")
+        self.user3 = self.create_user("user3@example.com")
+
+        self.team = self.create_team(
+            organization=self.organization, slug="tiger-team", members=[self.user]
+        )
+        self.team2 = self.create_team(
+            organization=self.organization, slug="tiger-team2", members=[self.user2]
+        )
+        self.team3 = self.create_team(
+            organization=self.organization, slug="tiger-team3", members=[self.user3]
+        )
+
+        self.project = self.create_project(
+            organization=self.organization, teams=[self.team, self.team2, self.team3], slug="bengal"
+        )
+
         with self.feature(
             {
                 "organizations:integrations-codeowners": True,
@@ -58,9 +78,9 @@ class OrganizationExternalMappings(AcceptanceTestCase):
 
             # Add Mapping Modal
             externalName = self.browser.find_element_by_name("externalName")
-            externalName.send_keys("@admin")
+            externalName.send_keys("user2")
             self.browser.click("#userId:first-child div")
-            self.browser.click('[id="react-select-2-option-0"]')
+            self.browser.click('[id="react-select-2-option-1"]')
             self.browser.snapshot("integrations - save new external user mapping")
 
             # List View
@@ -101,3 +121,36 @@ class OrganizationExternalMappings(AcceptanceTestCase):
             self.browser.click('[aria-label="Save Changes"]')
             self.browser.wait_until_not(".loading-indicator")
             self.browser.snapshot("integrations - one external team mapping")
+
+    def test_settings_tab(self):
+        provider = "custom_scm"
+        integration = Integration.objects.create(
+            provider=provider,
+            external_id="123456789",
+            name="Some Org",
+            metadata={
+                "domain_name": "https://github.com/some-org/",
+            },
+        )
+        integration.add_organization(self.organization, self.user)
+        with self.feature(
+            {
+                "organizations:integrations-codeowners": True,
+                "organizations:integrations-stacktrace-link": True,
+                "organizations:integrations-custom-scm": True,
+            }
+        ):
+            self.browser.get(
+                f"/settings/{self.organization.slug}/integrations/{provider}/{integration.id}/"
+            )
+            self.browser.wait_until_not(".loading-indicator")
+            self.browser.click(".nav-tabs li:nth-child(1) a")
+            self.browser.wait_until_not(".loading-indicator")
+
+            name = self.browser.find_element_by_name("name")
+            name.clear()
+            name.send_keys("New Name")
+
+            self.browser.click('[aria-label="Save Settings"]')
+            self.browser.wait_until('[data-test-id="toast-success"]')
+            self.browser.snapshot("integrations - custom scm settings")

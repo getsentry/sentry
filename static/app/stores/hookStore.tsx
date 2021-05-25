@@ -14,6 +14,7 @@ const validHookNames = new Set<HookName>([
   'analytics:track-adhoc-event',
   'analytics:track-event',
   'analytics:log-experiment',
+  'component:disabled-member',
   'component:header-date-range',
   'component:header-selector-items',
   'component:global-notifications',

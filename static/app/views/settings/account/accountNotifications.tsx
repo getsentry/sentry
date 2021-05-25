@@ -6,7 +6,10 @@ import {PanelFooter} from 'app/components/panels';
 import accountNotificationFields from 'app/data/forms/accountNotificationSettings';
 import {IconChevron, IconMail} from 'app/icons';
 import {t} from 'app/locale';
+import {OrganizationSummary} from 'app/types';
+import withOrganizations from 'app/utils/withOrganizations';
 import AsyncView from 'app/views/asyncView';
+import NotificationSettings from 'app/views/settings/account/notifications/notificationSettings';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
@@ -34,13 +37,15 @@ const FINE_TUNE_FOOTERS = {
   },
 };
 
-type Props = AsyncView['props'] & {};
+type Props = AsyncView['props'] & {
+  organizations: OrganizationSummary[];
+};
 
 type State = AsyncView['state'] & {
   data: Record<string, unknown> | null;
 };
 
-export default class AccountNotifications extends AsyncView<Props, State> {
+class AccountNotifications extends AsyncView<Props, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     return [['data', '/users/me/notifications/']];
   }
@@ -50,6 +55,15 @@ export default class AccountNotifications extends AsyncView<Props, State> {
   }
 
   renderBody() {
+    const {organizations} = this.props;
+    if (
+      organizations.some(organization =>
+        organization.features.includes('notification-platform')
+      )
+    ) {
+      return <NotificationSettings />;
+    }
+
     return (
       <div>
         <SettingsPageHeader title="Notifications" />
@@ -100,3 +114,5 @@ const FineTuningFooter = ({path, text}: FooterProps) => (
     </FineTuneLink>
   </PanelFooter>
 );
+
+export default withOrganizations(AccountNotifications);

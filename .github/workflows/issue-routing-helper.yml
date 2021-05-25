@@ -9,7 +9,12 @@ env:
 jobs:
   route:
     runs-on: ubuntu-latest
-    if: "startsWith(github.event.label.name, 'Team: ')"
+    if: >-
+      startsWith(github.event.label.name, 'Team: ')
+      &&
+      !contains(github.event.issue.labels.*.name, 'Status: Backlog')
+      &&
+      !contains(github.event.issue.labels.*.name, 'Status: In Progress')
     steps:
       - name: "Ensure a single 'Team: *' label with 'Status: Untriaged'"
         run: |
