@@ -220,7 +220,7 @@ def _get_group_filters(group: Group):
 
 def _add_hash(
     trees: List[Dict[str, Any]],
-    project_id: int,
+    group: Group,
     user,
     parent_hash: Optional[str],
     hash: str,
@@ -229,7 +229,7 @@ def _add_hash(
     last_seen,
     latest_event_id,
 ):
-    event = eventstore.get_event_by_id(project_id, latest_event_id)
+    event = eventstore.get_event_by_id(group.project_id, latest_event_id, group_id=group.id)
 
     tree = {
         "parentId": parent_hash,
@@ -397,7 +397,7 @@ def _render_trees(group: Group, user):
 
         _add_hash(
             rv,
-            group.project_id,
+            group,
             user,
             parent_hash,
             hash,

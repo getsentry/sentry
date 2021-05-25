@@ -27,7 +27,7 @@ class GroupEventsOldestEndpoint(GroupEndpoint):
             return client.get(
                 f"/projects/{event.organization.slug}/{event.project.slug}/events/{event.event_id}/",
                 request=request,
-                data={"environment": environments},
+                data={"environment": environments, "group_id": event.group_id},
             )
         except client.ApiError as e:
             return Response(e.body, status=e.status_code)

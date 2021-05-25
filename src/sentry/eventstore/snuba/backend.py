@@ -171,11 +171,12 @@ class SnubaEventStorage(EventStorage):
 
         return []
 
-    def get_event_by_id(self, project_id, event_id):
+    def get_event_by_id(self, project_id, event_id, group_id=None):
         """
         Get an event given a project ID and event ID
         Returns None if an event cannot be found
         """
+
         event_id = normalize_event_id(event_id)
 
         if not event_id:
@@ -187,8 +188,15 @@ class SnubaEventStorage(EventStorage):
         if len(event.data) == 0:
             return None
 
-        # Load group_id from Snuba if not a transaction
-        if event.get_event_type() != "transaction":
+        if group_id is not None:
+            # Set passed group_id if not a transaction
+            if event.get_event_type() == "transaction":
+                logger.warning("eventstore.passed-group-id-for-transaction")
+            else:
+                event.group_id = group_id
+
+        elif event.get_event_type() != "transaction":
+            # Load group_id from Snuba if not a transaction
             result = snuba.raw_query(
                 selected_columns=["group_id"],
                 start=event.datetime,
