@@ -21,16 +21,11 @@ describe('NumberField', function () {
     });
 
     it('renders with form context', function () {
-      const wrapper = mountWithTheme(<NumberField name="fieldName" />, {
-        context: {
-          form: {
-            data: {
-              fieldName: 5,
-            },
-            errors: {},
-          },
-        },
-      });
+      const wrapper = mountWithTheme(
+        <Form initialData={{fieldName: 5}}>
+          <NumberField name="fieldName" />
+        </Form>
+      );
       expect(wrapper).toSnapshot();
     });
 
