@@ -1,3 +1,4 @@
+import copy
 import inspect
 import random
 from datetime import datetime
@@ -38,7 +39,7 @@ SAMPLED_URL_NAMES = {
     # integrations
     "sentry-extensions-jira-issue-hook",
     "sentry-extensions-vercel-webhook",
-    "sentry-extensions-vercel-delete",
+    "sentry-extensions-vercel-generic-webhook",
     "sentry-extensions-vercel-configure",
     "sentry-extensions-vercel-ui-hook",
     "sentry-api-0-group-integration-details",
@@ -235,7 +236,7 @@ def patch_transport_for_instrumentation(transport, transport_name):
                 _serialize_into = envelope.serialize_into
 
                 def patched_envelope_serialize(*args, **kwargs):
-                    metrics.incr(f"internal.envelope_serialize_into.{transport}.count")
+                    metrics.incr(f"internal.envelope_serialize_into.{transport_name}.count")
                     return _serialize_into(*args, **kwargs)
 
                 envelope.serialize_into = patched_envelope_serialize
@@ -374,6 +375,7 @@ def configure_sdk():
             self._capture_anything("capture_event", event)
 
         def _capture_anything(self, method_name, *args, **kwargs):
+
             # Upstream should get the event first because it is most isolated from
             # the this sentry installation.
             if upstream_transport:
@@ -386,6 +388,14 @@ def configure_sdk():
                 getattr(upstream_transport, method_name)(*args, **kwargs)
 
             if relay_transport and options.get("store.use-relay-dsn-sample-rate") == 1:
+                # If this is a envelope ensure envelope and it's items are distinct references
+                if method_name == "capture_envelope":
+                    args_list = list(args)
+                    envelope = args_list[0]
+                    relay_envelope = copy.copy(envelope)
+                    relay_envelope.items = envelope.items.copy()
+                    args = tuple([relay_envelope, args_list[1:]])
+
                 if is_current_event_safe():
                     metrics.incr("internal.captured.events.relay")
                     getattr(relay_transport, method_name)(*args, **kwargs)
