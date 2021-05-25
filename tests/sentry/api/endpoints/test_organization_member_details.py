@@ -46,11 +46,6 @@ class GetOrganizationMemberTest(OrganizationMemberTestBase):
     def test_get_by_garbage(self):
         self.get_error_response(self.organization.slug, "trash", status_code=404)
 
-    def test_large_int_get(self):
-        self.get_error_response(
-            self.organization.slug, "010101001010101011001010101011", status_code=404
-        )
-
     def test_cannot_get_unapproved_invite(self):
         join_request = self.create_member(
             organization=self.organization,
