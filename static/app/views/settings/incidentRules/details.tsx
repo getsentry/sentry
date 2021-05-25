@@ -58,7 +58,7 @@ class IncidentRulesDetails extends AsyncView<Props, State> {
     const {ruleId} = this.props.params;
     const {rule} = this.state;
 
-    const userTeamIds = new Set(teams.filter(({isMember}) => isMember).map(({id}) => id));
+    const userTeamIds = teams.filter(({isMember}) => isMember).map(({id}) => id);
 
     return (
       <RuleForm
