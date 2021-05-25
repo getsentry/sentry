@@ -73,9 +73,9 @@ class ActivityNotificationTest(APITestCase):
         UserOption.objects.create(user=self.user, key="self_notifications", value="1")
         url = "/api/0/users/me/notification-settings/"
         data = {
-            "workflow": {"user": {self.user.id: {"email": "always", "slack": "always"}}},
-            "deploy": {"user": {self.user.id: {"email": "always", "slack": "always"}}},
-            "alerts": {"user": {self.user.id: {"email": "always", "slack": "always"}}},
+            "workflow": {"user": {"me": {"email": "always", "slack": "always"}}},
+            "deploy": {"user": {"me": {"email": "always", "slack": "always"}}},
+            "alerts": {"user": {"me": {"email": "always", "slack": "always"}}},
         }
         self.login_as(self.user)
         with self.feature("organizations:notification-platform"):
