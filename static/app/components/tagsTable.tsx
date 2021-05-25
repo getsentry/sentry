@@ -1,9 +1,9 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 import {LocationDescriptor} from 'history';
+import capitalize from 'lodash/capitalize';
 
 import {SectionHeading} from 'app/components/charts/styles';
-import TagErrorTooltip from 'app/components/events/meta/annotatedText/tagErrorTooltip';
 import {getMeta, withMeta} from 'app/components/events/meta/metaProxy';
 import {KeyValueTable, KeyValueTableRow} from 'app/components/keyValueTable';
 import Link from 'app/components/links/link';
@@ -11,6 +11,7 @@ import Tooltip from 'app/components/tooltip';
 import Version from 'app/components/version';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {MetaError} from 'app/types';
 import {Event, EventTag} from 'app/types/event';
 
 type Props = {
@@ -23,6 +24,25 @@ type Props = {
 const TagsTable = ({event, query, generateUrl, title = t('Tag Details')}: Props) => {
   const eventWithMeta = withMeta(event) as Event;
   const tags = eventWithMeta.tags;
+
+  const formatErrorKind = (kind: string) => {
+    return capitalize(kind.replace(/_/g, ' '));
+  };
+
+  const getErrorMessage = (error: MetaError) => {
+    if (Array.isArray(error)) {
+      if (error[1]?.reason) {
+        return formatErrorKind(error[1].reason);
+      } else {
+        return formatErrorKind(error[0]);
+      }
+    }
+    return formatErrorKind(error);
+  };
+
+  const getTooltipTitle = (errors: Array<MetaError>) => {
+    return <TooltipTitle>{getErrorMessage(errors[0])}</TooltipTitle>;
+  };
 
   return (
     <StyledTagsTable>
@@ -47,7 +67,7 @@ const TagsTable = ({event, query, generateUrl, title = t('Tag Details')}: Props)
               key={tag.key}
               keyName={
                 keyMetaData?.err?.length ? (
-                  <Tooltip title={<TagErrorTooltip errors={keyMetaData.err} />}>
+                  <Tooltip title={getTooltipTitle(keyMetaData.err)}>
                     <i>{`<${t('invalid')}>`}</i>
                   </Tooltip>
                 ) : (
@@ -56,13 +76,11 @@ const TagsTable = ({event, query, generateUrl, title = t('Tag Details')}: Props)
               }
               value={
                 valueMetaData?.err?.length ? (
-                  <Tooltip title={<TagErrorTooltip errors={valueMetaData.err} />}>
+                  <Tooltip title={getTooltipTitle(valueMetaData.err)}>
                     <i>{`<${t('invalid')}>`}</i>
                   </Tooltip>
                 ) : keyMetaData?.err?.length ? (
-                  <Tooltip title={<TagErrorTooltip errors={keyMetaData.err} />}>
-                    <span>{renderTagValue()}</span>
-                  </Tooltip>
+                  <span>{renderTagValue()}</span>
                 ) : tagInQuery ? (
                   <Tooltip title={t('This tag is in the current filter conditions')}>
                     <span>{renderTagValue()}</span>
@@ -79,8 +97,12 @@ const TagsTable = ({event, query, generateUrl, title = t('Tag Details')}: Props)
   );
 };
 
+export default TagsTable;
+
 const StyledTagsTable = styled('div')`
   margin-bottom: ${space(3)};
 `;
 
-export default TagsTable;
+const TooltipTitle = styled('div')`
+  text-align: left;
+`;
