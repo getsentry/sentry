@@ -394,7 +394,7 @@ def configure_sdk():
                     envelope = args_list[0]
                     relay_envelope = copy.copy(envelope)
                     relay_envelope.items = envelope.items.copy()
-                    args = tuple([relay_envelope, args_list[1:]])
+                    args = [relay_envelope, *args_list[1:]]
 
                 if is_current_event_safe():
                     metrics.incr("internal.captured.events.relay")
