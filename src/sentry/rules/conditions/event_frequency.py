@@ -2,6 +2,7 @@ import re
 from datetime import timedelta
 
 from django import forms
+from django.core.cache import cache
 from django.utils import timezone
 
 from sentry import tsdb
@@ -65,7 +66,6 @@ class BaseEventFrequencyCondition(EventCondition):
             return False
 
         current_value = self.get_rate(event, interval, self.rule.environment_id)
-
         return current_value > value
 
     def query(self, event, start, end, environment_id):
@@ -174,32 +174,41 @@ class SessionPercentCondition(BaseEventFrequencyCondition):
         return self.query(event, end - duration, end, environment_id=environment_id)
 
     def query_hook(self, event, start, end, environment_id):
-        # TODO: Cache the session query.
-
-        filters = {"project_id": [event.project_id]}
-        if environment_id:
-            filters["environment"] = [self.environment_id]
-
-        result_totals = raw_query(
-            selected_columns=["sessions"],
-            dataset=Dataset.Sessions,
-            start=self.start,
-            end=self.end,
-            filter_keys=filters,
-            groupby=["project_id"],
-            referrer="rules.conditions.event_frequency.SessionPercentCondition",
+        cache_key = f"r.c.spc:{environment_id}-{start.replace(minute=0, second=0, microsecond=0, tzinfo=None)}-{end.replace(minute=0, second=0, microsecond=0, tzinfo=None)}".replace(
+            " ", ""
         )
-        session_count = result_totals["data"][0]["sessions"]
+        session_count = cache.get(cache_key)
+        if session_count is None:
+            filters = {"project_id": [event.project_id]}
+            if environment_id:
+                filters["environment"] = [environment_id]
 
-        issue_count = self.tsdb.get_sums(
-            model=self.tsdb.models.group,
-            keys=[event.group_id],
-            start=start,
-            end=end,
-            environment_id=environment_id,
-            use_cache=True,
-        )[event.group_id]
+            start = start - timedelta(days=5)
+            end = end + timedelta(days=5)
+            result_totals = raw_query(
+                selected_columns=["sessions"],
+                dataset=Dataset.Sessions,
+                start=start,
+                end=end,
+                filter_keys=filters,
+                groupby=["project_id"],
+                referrer="rules.conditions.event_frequency.SessionPercentCondition",
+            )
+            if result_totals["data"]:
+                session_count = result_totals["data"][0]["sessions"]
+            else:
+                session_count = False
+            cache.set(cache_key, session_count, 3600)
 
-        if session_count != 0:
-            return round(issue_count / session_count, 4)
+        if session_count:
+            issue_count = self.tsdb.get_sums(
+                model=self.tsdb.models.group,
+                keys=[event.group_id],
+                start=start,
+                end=end,
+                environment_id=environment_id,
+                use_cache=True,
+            )[event.group_id]
+            return 100 * round(issue_count / session_count, 4)
+
         return 0
