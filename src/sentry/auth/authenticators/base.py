@@ -14,6 +14,12 @@ class ActivationMessageResult(ActivationResult):
         self.type = type
         self.message = message
 
+    def __str__(self):
+        return self.message
+
+    def __repr__(self):
+        return f"<{type(self).__name__}: {self.message}>"
+
 
 class ActivationChallengeResult(ActivationResult):
     type = "challenge"
