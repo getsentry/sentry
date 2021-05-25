@@ -173,6 +173,21 @@ class SCIMUserTests(APITestCase):
         with pytest.raises(OrganizationMember.DoesNotExist):
             OrganizationMember.objects.get(organization=self.organization, id=member.id)
 
+    def test_overflow_cases(self):
+        member = self.create_member(user=self.create_user(), organization=self.organization)
+        url = reverse(
+            "sentry-scim-organization-members-details",
+            args=[self.organization.slug, "010101001010101011001010101011"],
+        )
+        response = self.client.get(
+            url,
+        )
+        assert response.status_code == 404, response.content
+        response = self.client.patch(url, {})
+        assert response.status_code == 404, response.content
+        response = self.client.delete(url, member.id)
+        assert response.status_code == 404, response.content
+
     def test_cant_delete_only_owner_route(self):
         member_om = OrganizationMember.objects.get(
             organization=self.organization, user_id=self.user.id

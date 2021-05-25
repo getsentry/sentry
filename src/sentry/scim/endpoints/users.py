@@ -11,7 +11,6 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberSCIMSerializer
 from sentry.api.validators import AllowedEmailField
-from sentry.db.models.fields.bounded import BoundedBigAutoField
 from sentry.models import AuditLogEntryEvent, AuthIdentity, OrganizationMember
 from sentry.signals import member_invited
 
@@ -43,14 +42,14 @@ class SCIMUserSerializer(serializers.Serializer):
 
 class OrganizationSCIMUserDetails(SCIMEndpoint, OrganizationMemberDetailsEndpoint):
     def get(self, request, organization, member_id):
-        if member_id > BoundedBigAutoField.MAX_VALUE:
-            # Okta E2E tests try to break the endpoint by passing an extremely large int
-            # protect against that here
-            return Response(SCIM_404_USER_RES, status=404)
         try:
             member = OrganizationMember.objects.get(organization=organization, id=member_id)
         except OrganizationMember.DoesNotExist:
             return Response(SCIM_404_USER_RES, status=404)
+        except AssertionError as error:
+            if str(error) == "value too large":
+                return Response(SCIM_404_USER_RES, status=404)
+            raise error
 
         context = serialize(member, serializer=OrganizationMemberSCIMSerializer())
         return Response(context)
@@ -60,6 +59,9 @@ class OrganizationSCIMUserDetails(SCIMEndpoint, OrganizationMemberDetailsEndpoin
             member = OrganizationMember.objects.get(organization=organization, id=member_id)
         except OrganizationMember.DoesNotExist:
             return Response(SCIM_404_USER_RES, status=404)
+        except AssertionError as error:
+            if str(error) == "value too large":
+                return Response(SCIM_404_USER_RES, status=404)
 
         for operation in request.data.get("Operations", []):
             # we only support setting active to False which deletes the orgmember
@@ -89,6 +91,9 @@ class OrganizationSCIMUserDetails(SCIMEndpoint, OrganizationMemberDetailsEndpoin
             om = OrganizationMember.objects.get(organization=organization, id=member_id)
         except OrganizationMember.DoesNotExist:
             return Response(SCIM_404_USER_RES, status=404)
+        except AssertionError as error:
+            if str(error) == "value too large":
+                return Response(SCIM_404_USER_RES, status=404)
         audit_data = om.get_audit_log_data()
         if self._is_only_owner(om):
             return Response({"detail": ERR_ONLY_OWNER}, status=403)
@@ -159,8 +164,7 @@ class OrganizationSCIMUserIndex(SCIMEndpoint):
         )
 
         if not serializer.is_valid():
-            # TODO: other ways this could be invalid? do i need to create
-            # a new serializer?
+            # TODO: other ways this could be invalid?
             return Response(
                 {
                     "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],

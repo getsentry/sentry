@@ -37,7 +37,7 @@ class BoundedAutoField(models.AutoField):
     def get_prep_value(self, value):
         if value:
             value = int(value)
-            assert value <= self.MAX_VALUE
+            assert value <= self.MAX_VALUE, "value too large"
         return super().get_prep_value(value)
 
 
