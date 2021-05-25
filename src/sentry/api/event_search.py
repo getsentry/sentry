@@ -1,6 +1,7 @@
 import re
 from collections import namedtuple
 from datetime import datetime
+from typing import NamedTuple, Sequence, Union
 
 from django.utils.functional import cached_property
 from parsimonious.exceptions import IncompleteParseError
@@ -138,7 +139,7 @@ spaces               = " "*
 )
 
 
-def translate(pat):
+def translate(pat) -> str:
     """Translate a shell PATTERN to a regular expression.
     modified from: https://github.com/python/cpython/blob/2.7/Lib/fnmatch.py#L85
     """
@@ -176,12 +177,61 @@ class ParenExpression(namedtuple("ParenExpression", "children")):
     pass
 
 
-class SearchFilter(namedtuple("SearchFilter", "key operator value")):
+class SearchKey(NamedTuple):
+    name: str
+
+    @property
+    def is_tag(self) -> bool:
+        return TAG_KEY_RE.match(self.name) or (
+            self.name not in SEARCH_MAP
+            and self.name not in FIELD_ALIASES
+            and not self.is_measurement
+            and not self.is_span_op_breakdown
+        )
+
+    @property
+    def is_measurement(self) -> bool:
+        return is_measurement(self.name) and self.name not in SEARCH_MAP
+
+    @property
+    def is_span_op_breakdown(self) -> bool:
+        return is_span_op_breakdown(self.name) and self.name not in SEARCH_MAP
+
+
+class SearchValue(NamedTuple):
+    raw_value: Union[str, int, datetime, Sequence[int], Sequence[str]]
+
+    @property
+    def value(self):
+        if self.is_wildcard():
+            return translate(self.raw_value)
+        return self.raw_value
+
+    def is_wildcard(self) -> bool:
+        if not isinstance(self.raw_value, str):
+            return False
+        return bool(WILDCARD_CHARS.search(self.raw_value))
+
+    def is_event_id(self) -> bool:
+        """Return whether the current value is a valid event id
+
+        Empty strings are valid, so that it can be used for has:id queries
+        """
+        if not isinstance(self.raw_value, str):
+            return False
+        return is_event_id(self.raw_value) or self.raw_value == ""
+
+
+class SearchFilter(NamedTuple):
+    key: SearchKey
+    operator: str
+    value: SearchValue
+
     def __str__(self):
         return "".join(map(str, (self.key.name, self.operator, self.value.raw_value)))
 
-    @cached_property
-    def is_negation(self):
+    @property
+    def is_negation(self) -> bool:
         # Negations are mostly just using != operators. But we also have
         # negations on has: filters, which translate to = '', so handle that
         # case as well.
@@ -194,59 +244,22 @@ class SearchFilter(namedtuple("SearchFilter", "key operator value")):
             and self.value.raw_value
         )
 
-    @cached_property
-    def is_in_filter(self):
+    @property
+    def is_in_filter(self) -> bool:
         return self.operator in ("IN", "NOT IN")
 
 
-class SearchKey(namedtuple("SearchKey", "name")):
-    @cached_property
-    def is_tag(self):
-        return TAG_KEY_RE.match(self.name) or (
-            self.name not in SEARCH_MAP
-            and self.name not in FIELD_ALIASES
-            and not self.is_measurement
-            and not self.is_span_op_breakdown
-        )
+class AggregateFilter(NamedTuple):
+    key: SearchKey
+    operator: str
+    value: SearchValue
 
-    @cached_property
-    def is_measurement(self):
-        return is_measurement(self.name) and self.name not in SEARCH_MAP
-
-    @cached_property
-    def is_span_op_breakdown(self):
-        return is_span_op_breakdown(self.name) and self.name not in SEARCH_MAP
-
-
-class AggregateFilter(namedtuple("AggregateFilter", "key operator value")):
     def __str__(self):
         return "".join(map(str, (self.key.name, self.operator, self.value.raw_value)))
 
 
-class AggregateKey(namedtuple("AggregateKey", "name")):
-    pass
-
-
-class SearchValue(namedtuple("SearchValue", "raw_value")):
-    @property
-    def value(self):
-        if self.is_wildcard():
-            return translate(self.raw_value)
-        return self.raw_value
-
-    def is_wildcard(self):
-        if not isinstance(self.raw_value, str):
-            return False
-        return bool(WILDCARD_CHARS.search(self.raw_value))
-
-    def is_event_id(self):
-        """Return whether the current value is a valid event id
-
-        Empty strings are valid, so that it can be used for has:id queries
-        """
-        if not isinstance(self.raw_value, str):
-            return False
-        return is_event_id(self.raw_value) or self.raw_value == ""
+class AggregateKey(NamedTuple):
+    name: str
 
 
 class SearchVisitor(NodeVisitor):
