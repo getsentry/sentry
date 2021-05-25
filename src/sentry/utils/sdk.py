@@ -1,3 +1,4 @@
+import copy
 import inspect
 import random
 from datetime import datetime
@@ -390,7 +391,7 @@ def configure_sdk():
                 # If this is a envelope ensure envelope and it's items are distinct references
                 if method_name == "capture_envelope":
                     envelope = args[0]
-                    relay_envelope = envelope.copy()
+                    relay_envelope = copy.copy(envelope)
                     relay_envelope.items = envelope.items[:]
                     args[0] = relay_envelope
 
