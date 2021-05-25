@@ -1,6 +1,7 @@
 import React from 'react';
 import {RouteComponentProps} from 'react-router';
 
+import Feature from 'app/components/acl/feature';
 import {Organization, Project} from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
 
@@ -13,7 +14,11 @@ type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
 
 class ProjectPerformanceContainer extends React.Component<Props> {
   render() {
-    return <ProjectPerformance {...this.props} />;
+    return (
+      <Feature features={['project-transaction-thresholds']}>
+        <ProjectPerformance {...this.props} />
+      </Feature>
+    );
   }
 }
 

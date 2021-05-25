@@ -133,7 +133,7 @@ class ProjectPerformance extends AsyncView<Props, State> {
             renderFooter={() => (
               <Actions>
                 <Button onClick={() => this.handleDelete()}>
-                  {t('Restore System Default')}
+                  {t('Clear thresholds')}
                 </Button>
               </Actions>
             )}
