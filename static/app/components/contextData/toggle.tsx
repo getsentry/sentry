@@ -26,6 +26,7 @@ function Toggle({highUp, wrapClassName, onClick, children}: Props) {
   return (
     <span>
       <IconWrapper
+        isExpanded={isExpanded}
         onClick={evt => {
           setIsExpanded(!isExpanded);
           onClick?.();
@@ -33,9 +34,9 @@ function Toggle({highUp, wrapClassName, onClick, children}: Props) {
         }}
       >
         {isExpanded ? (
-          <IconSubtract size="9px" color="gray300" />
+          <IconSubtract size="9px" color="white" />
         ) : (
-          <IconAdd size="9px" color="blue300" />
+          <IconAdd size="9px" color="white" />
         )}
       </IconWrapper>
       {isExpanded && wrappedChildren}
@@ -45,12 +46,27 @@ function Toggle({highUp, wrapClassName, onClick, children}: Props) {
 
 export default Toggle;
 
-const IconWrapper = styled('div')`
+const IconWrapper = styled('div')<{isExpanded: boolean}>`
   border-radius: 2px;
   background: ${p => p.theme.white};
-  border: 1px solid ${p => p.theme.border};
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  ${p =>
+    p.isExpanded
+      ? `
+          background: ${p.theme.gray300};
+          border: 1px solid ${p.theme.gray300};
+          &:hover {
+            background: ${p.theme.gray400};
+          }
+        `
+      : `
+          background: ${p.theme.blue300};
+          border: 1px solid ${p.theme.blue300};
+          &:hover {
+            background: ${p.theme.blue200};
+          }
+        `}
 `;

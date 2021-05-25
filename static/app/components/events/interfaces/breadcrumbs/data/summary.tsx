@@ -10,24 +10,20 @@ type Props = {
 };
 
 function Summary({kvData, children, onToggle}: Props) {
-  function renderData() {
+  function renderKvData() {
     if (!kvData || !Object.keys(kvData).length) {
       return null;
     }
 
-    return (
-      <StyledPre>
-        <ContextData data={kvData} onToggle={onToggle} withAnnotatedText />
-      </StyledPre>
-    );
+    return <ContextData data={kvData} onToggle={onToggle} withAnnotatedText />;
   }
 
   return (
     <Fragment>
       <StyledPre>
         <StyledCode>{children}</StyledCode>
+        {renderKvData()}
       </StyledPre>
-      {renderData()}
     </Fragment>
   );
 }
