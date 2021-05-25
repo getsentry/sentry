@@ -237,6 +237,21 @@ def load_schema(schema):
     return [Rule.load(r) for r in schema["rules"]]
 
 
+def convert_schema_to_rules_text(schema):
+    rules = load_schema(schema)
+    text = ""
+
+    def owner_prefix(type):
+        if type == "team":
+            return "#"
+        return ""
+
+    for rule in rules:
+        text += f"{rule.matcher.type}:{rule.matcher.pattern} {' '.join([f'{owner_prefix(owner.type)}{owner.identifier}' for owner in rule.owners])}\n"
+
+    return text
+
+
 def parse_code_owners(data: str) -> Tuple[List[str], List[str], List[str]]:
     """Parse a CODEOWNERS text and returns the list of team names, list of usernames"""
     teams = []

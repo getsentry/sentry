@@ -234,7 +234,14 @@ class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectOwnershipMixin, ProjectC
                 codeowners_id=project_codeowners.id,
             )
             return Response(
-                serialize(project_codeowners, request.user), status=status.HTTP_201_CREATED
+                serialize(
+                    project_codeowners,
+                    request.user,
+                    serializer=projectcodeowners_serializers.ProjectCodeOwnersSerializer(
+                        expand=["ownershipSyntax"]
+                    ),
+                ),
+                status=status.HTTP_201_CREATED,
             )
 
         self.track_response_code("create", status.HTTP_400_BAD_REQUEST)
