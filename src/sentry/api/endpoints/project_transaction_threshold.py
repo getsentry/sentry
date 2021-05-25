@@ -5,7 +5,11 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.bases.project import ProjectEndpoint, ProjectSettingPermission
 from sentry.api.serializers import serialize
-from sentry.models.transaction_threshold import TRANSACTION_METRICS, ProjectTransactionThreshold
+from sentry.models.transaction_threshold import (
+    TRANSACTION_METRICS,
+    ProjectTransactionThreshold,
+    TransactionMetric,
+)
 
 DEFAULT_THRESHOLD = {
     "id": "",
@@ -92,7 +96,7 @@ class ProjectTransactionThresholdEndpoint(ProjectEndpoint):
                     project=project,
                     organization=project.organization,
                     threshold=data.get("threshold", 300),
-                    metric=data.get("metric", "duration"),
+                    metric=data.get("metric", TransactionMetric.DURATION.value),
                     edited_by=request.user,
                 )
 

@@ -3,17 +3,15 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
-import ExternalLink from 'app/components/links/externalLink';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {PanelItem} from 'app/components/panels';
-import {t, tct} from 'app/locale';
+import {t} from 'app/locale';
 import {Organization, Project} from 'app/types';
 import routeTitleGen from 'app/utils/routeTitle';
 import AsyncView from 'app/views/asyncView';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
-import TextBlock from 'app/views/settings/components/text/textBlock';
 
 import {Field} from '../components/forms/type';
 
@@ -81,15 +79,20 @@ class ProjectPerformance extends AsyncView<Props, State> {
       {
         name: 'threshold',
         type: 'string',
-        label: t('Threshold'),
+        label: t('Response Time Threshold'),
         placeholder: t('300'),
-        help: t('Threhsold'),
+        help: t(
+          'Set a response time threshold to help define what satisfactory and tolerable times are. These will be reflected in the calculation of your Apdex, a standard measurement in performance monitoring and the User Misery score. You can customize this per project.'
+        ),
       },
       {
         name: 'metric',
         type: 'select',
         label: t('Metric'),
         choices: () => ['duration', 'lcp', 'fcp'],
+        help: t(
+          'Set the measurement to apply the Response Time Threshold to. This metric will be used to calculate the Apdex and User Misery Scores.'
+        ),
       },
     ];
     return fields;
@@ -110,13 +113,6 @@ class ProjectPerformance extends AsyncView<Props, State> {
     return (
       <React.Fragment>
         <SettingsPageHeader title={t('Performance')} />
-
-        <TextBlock>
-          {tct(`Placeholder text.`, {
-            link: <ExternalLink href="#" />,
-          })}
-        </TextBlock>
-
         <Form
           saveOnBlur
           allowUndo
