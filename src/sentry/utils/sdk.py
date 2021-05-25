@@ -374,6 +374,7 @@ def configure_sdk():
             self._capture_anything("capture_event", event)
 
         def _capture_anything(self, method_name, *args, **kwargs):
+
             # Upstream should get the event first because it is most isolated from
             # the this sentry installation.
             if upstream_transport:
@@ -386,6 +387,13 @@ def configure_sdk():
                 getattr(upstream_transport, method_name)(*args, **kwargs)
 
             if relay_transport and options.get("store.use-relay-dsn-sample-rate") == 1:
+                # If this is a envelope ensure envelope and it's items are distinct references
+                if method_name == "capture_envelope":
+                    envelope = args[0]
+                    relay_envelope = envelope.copy()
+                    relay_envelope.items = envelope.items[:]
+                    args[0] = relay_envelope
+
                 if is_current_event_safe():
                     metrics.incr("internal.captured.events.relay")
                     getattr(relay_transport, method_name)(*args, **kwargs)
