@@ -345,9 +345,10 @@ const StyledFlex = styled('div')`
   padding-bottom: ${space(1)};
   align-items: center;
   background: ${p => p.theme.backgroundSecondary};
-  border-bottom: 1px solid ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.border};
+  border-top: none;
   border-radius: ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0 0;
-  margin-bottom: -1px;
+  margin: 0 -1px -1px;
 `;
 
 const ActionsCheckbox = styled('div')`

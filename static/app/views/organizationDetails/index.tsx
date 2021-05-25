@@ -4,14 +4,16 @@ import {browserHistory, RouteComponentProps} from 'react-router';
 import {switchOrganization} from 'app/actionCreators/organizations';
 import AlertActions from 'app/actions/alertActions';
 import {Client} from 'app/api';
+import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import ErrorBoundary from 'app/components/errorBoundary';
 import Footer from 'app/components/footer';
-import NarrowLayout from 'app/components/narrowLayout';
+import {Body, Main} from 'app/components/layouts/thirds';
+import {IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
-import SentryTypes from 'app/sentryTypes';
 import {Organization} from 'app/types';
 import getRouteStringFromRoutes from 'app/utils/getRouteStringFromRoutes';
+import withOrganization from 'app/utils/withOrganization';
 import OrganizationContext from 'app/views/organizationContext';
 
 type InProgressProps = {
@@ -20,16 +22,18 @@ type InProgressProps = {
 
 function DeletionInProgress({organization}: InProgressProps) {
   return (
-    <NarrowLayout>
-      <p>
-        {tct(
-          'The [organization] organization is currently in the process of being deleted from Sentry.',
-          {
-            organization: <strong>{organization.slug}</strong>,
-          }
-        )}
-      </p>
-    </NarrowLayout>
+    <Body>
+      <Main>
+        <Alert type="warning" icon={<IconWarning />}>
+          {tct(
+            'The [organization] organization is currently in the process of being deleted from Sentry.',
+            {
+              organization: <strong>{organization.slug}</strong>,
+            }
+          )}
+        </Alert>
+      </Main>
+    </Body>
   );
 }
 
@@ -76,73 +80,75 @@ class DeletionPending extends Component<PendingProps, PendingState> {
     const {organization} = this.props;
     const access = new Set(organization.access);
     return (
-      <NarrowLayout>
-        <h3>{t('Deletion Scheduled')}</h3>
-        <p>
-          {tct('The [organization] organization is currently scheduled for deletion.', {
-            organization: <strong>{organization.slug}</strong>,
-          })}
-        </p>
+      <Body>
+        <Main>
+          <h3>{t('Deletion Scheduled')}</h3>
+          <p>
+            {tct('The [organization] organization is currently scheduled for deletion.', {
+              organization: <strong>{organization.slug}</strong>,
+            })}
+          </p>
 
-        {access.has('org:admin') ? (
-          <div>
+          {access.has('org:admin') ? (
+            <div>
+              <p>
+                {t(
+                  'Would you like to cancel this process and restore the organization back to the original state?'
+                )}
+              </p>
+              <p>
+                <Button
+                  priority="primary"
+                  onClick={this.onRestore}
+                  disabled={this.state.submitInProgress}
+                >
+                  {t('Restore Organization')}
+                </Button>
+              </p>
+            </div>
+          ) : (
             <p>
               {t(
-                'Would you like to cancel this process and restore the organization back to the original state?'
+                'If this is a mistake, contact an organization owner and ask them to restore this organization.'
               )}
             </p>
-            <p>
-              <Button
-                priority="primary"
-                onClick={this.onRestore}
-                disabled={this.state.submitInProgress}
-              >
-                {t('Restore Organization')}
-              </Button>
-            </p>
-          </div>
-        ) : (
+          )}
           <p>
-            {t(
-              'If this is a mistake, contact an organization owner and ask them to restore this organization.'
-            )}
+            <small>
+              {t(
+                "Note: Restoration is available until the process begins. Once it does, there's no recovering the data that has been removed."
+              )}
+            </small>
           </p>
-        )}
-        <p>
-          <small>
-            {t(
-              "Note: Restoration is available until the process begins. Once it does, there's no recovering the data that has been removed."
-            )}
-          </small>
-        </p>
-      </NarrowLayout>
+        </Main>
+      </Body>
     );
   }
 }
 
-class OrganizationDetailsBody extends Component {
-  static contextTypes = {
-    organization: SentryTypes.Organization,
-  };
+type OrganizationDetailsProps = {
+  organization?: Organization;
+  children?: React.ReactNode;
+};
 
-  render() {
-    const {organization} = this.context;
-
-    if (organization && organization.status) {
-      if (organization.status.id === 'pending_deletion') {
-        return <DeletionPending organization={organization} />;
-      } else if (organization.status.id === 'deletion_in_progress') {
-        return <DeletionInProgress organization={organization} />;
-      }
-    }
-    return (
-      <Fragment>
-        <ErrorBoundary>{this.props.children}</ErrorBoundary>
-        <Footer />
-      </Fragment>
-    );
+const OrganizationDetailsBody = withOrganization(function OrganizationDetailsBody({
+  children,
+  organization,
+}: OrganizationDetailsProps) {
+  const status = organization?.status?.id;
+  if (organization && status === 'pending_deletion') {
+    return <DeletionPending organization={organization} />;
   }
-}
+  if (organization && status === 'deletion_in_progress') {
+    return <DeletionInProgress organization={organization} />;
+  }
+  return (
+    <Fragment>
+      <ErrorBoundary>{children}</ErrorBoundary>
+      <Footer />
+    </Fragment>
+  );
+});
 
 type Props = {
   detailed: boolean;

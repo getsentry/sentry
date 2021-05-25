@@ -99,6 +99,7 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
       interval: '1d',
       groupBy: ['outcome', 'project'],
       field: ['sum(quantity)'],
+      project: '-1', // get all project user has access to
       category: dataCategory.slice(0, -1), // backend is singular
     };
   }
@@ -175,7 +176,9 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
    */
   get filteredProjects() {
     const {projects, tableQuery} = this.props;
-    return tableQuery ? projects.filter(p => p.slug.includes(tableQuery)) : projects;
+    return tableQuery
+      ? projects.filter(p => p.slug.includes(tableQuery) && p.hasAccess)
+      : projects.filter(p => p.hasAccess);
   }
 
   get tableHeader() {

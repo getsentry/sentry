@@ -18,6 +18,11 @@ class VercelUninstallEndpoint(Endpoint):
         return super().dispatch(request, *args, **kwargs)
 
     def post(self, request):
+        # XXX(meredith): This is only handling the integration-configuration-removed
+        # webhook event, in the future will need to check the "type" attribute
+        # when handling more webhook event types
+        # https://vercel.com/docs/integrations?query=event%20paylo#webhooks/events
+
         # userId should always be present
         external_id = request.data.get("teamId") or request.data.get("userId")
         configuration_id = request.data["payload"]["configuration"]["id"]
@@ -46,6 +51,12 @@ class VercelUninstallEndpoint(Endpoint):
         if len(orgs) == 0:
             # we already deleted the organization integration and
             # there was only one to begin with
+            integration.delete()
+            return self.respond(status=204)
+
+        # If we never set "configurations" in the integration, then we only have one
+        # and therefore can delete it.
+        if not integration.metadata.get("configurations"):
             integration.delete()
             return self.respond(status=204)
 

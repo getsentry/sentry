@@ -38,6 +38,7 @@ export enum PERFORMANCE_TERM {
   P95 = 'p95',
   P99 = 'p99',
   LCP = 'lcp',
+  FCP = 'fcp',
   USER_MISERY = 'userMisery',
   STATUS_BREAKDOWN = 'statusBreakdown',
   DURATION_DISTRIBUTION = 'durationDistribution',
@@ -84,6 +85,7 @@ export function getAxisOptions(organization: LightWeightOrganization): TooltipOp
 
 export type AxisOption = TooltipOption & {
   field: string;
+  backupOption?: AxisOption;
   label: string;
   isDistribution?: boolean;
   isLeftDefault?: boolean;
@@ -100,6 +102,12 @@ export function getFrontendAxisOptions(
       label: t('LCP p75'),
       field: 'p75(measurements.lcp)',
       isLeftDefault: true,
+      backupOption: {
+        tooltip: getTermHelp(organization, PERFORMANCE_TERM.FCP),
+        value: `p75(fcp)`,
+        label: t('FCP p75'),
+        field: 'p75(measurements.fcp)',
+      },
     },
     {
       tooltip: getTermHelp(organization, PERFORMANCE_TERM.DURATION_DISTRIBUTION),
@@ -108,6 +116,13 @@ export function getFrontendAxisOptions(
       field: 'measurements.lcp',
       isDistribution: true,
       isRightDefault: true,
+      backupOption: {
+        tooltip: getTermHelp(organization, PERFORMANCE_TERM.DURATION_DISTRIBUTION),
+        value: 'fcp_distribution',
+        label: t('FCP Distribution'),
+        field: 'measurements.fcp',
+        isDistribution: true,
+      },
     },
     {
       tooltip: getTermHelp(organization, PERFORMANCE_TERM.TPM),
@@ -230,6 +245,8 @@ const PERFORMANCE_TERMS: Record<PERFORMANCE_TERM, TermFormatter> = {
   p99: () => t('p99 indicates the duration that 99% of transactions are faster than.'),
   lcp: () =>
     t('Largest contentful paint (LCP) is a web vital meant to represent user load times'),
+  fcp: () =>
+    t('First contentful paint (FCP) is a web vital meant to represent user load times'),
   userMisery: organization =>
     t(
       "User Misery is a score that represents the number of unique users who have experienced load times 4x your organization's apdex threshold of %sms.",
@@ -328,8 +345,9 @@ function generateBackendPerformanceEventView(
     fields: [
       'key_transaction',
       'transaction',
-      'transaction.op',
       'project',
+      'transaction.op',
+      'http.method',
       'tpm()',
       'p50()',
       'p95()',
@@ -447,8 +465,8 @@ function generateFrontendOtherPerformanceEventView(
     fields: [
       'key_transaction',
       'transaction',
-      'transaction.op',
       'project',
+      'transaction.op',
       'tpm()',
       'p50(transaction.duration)',
       'p75(transaction.duration)',

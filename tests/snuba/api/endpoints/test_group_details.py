@@ -1,3 +1,5 @@
+from rest_framework.exceptions import ErrorDetail
+
 from sentry.models import Environment, GroupInboxReason, Release
 from sentry.models.groupinbox import add_group_to_inbox, remove_group_from_inbox
 from sentry.testutils import APITestCase, SnubaTestCase
@@ -125,7 +127,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             == response.data["firstRelease"]["lastEvent"]
         )
         assert response.data["firstRelease"]["firstEvent"].ctime() == first_event.ctime()
-        assert response.data["lastRelease"] == {"version": "1.1"}
+        assert response.data["lastRelease"] is None
 
     def test_group_expand_inbox(self):
         self.login_as(user=self.user)
@@ -144,8 +146,28 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert response.data["inbox"] is not None
         assert response.data["inbox"]["reason"] == GroupInboxReason.NEW.value
         assert response.data["inbox"]["reason_details"] is None
-
         remove_group_from_inbox(event.group)
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
         assert response.data["inbox"] is None
+
+    def test_assigned_to_unknown(self):
+        with self.feature("organizations:inbox"):
+            self.login_as(user=self.user)
+            event = self.store_event(
+                data={"timestamp": iso_format(before_now(minutes=3))},
+                project_id=self.project.id,
+            )
+            group = event.group
+            url = f"/api/0/issues/{group.id}/"
+            response = self.client.put(
+                url, {"assignedTo": "admin@localhost", "status": "unresolved"}, format="json"
+            )
+            assert response.status_code == 200
+            response = self.client.put(
+                url, {"assignedTo": "user@doesntexist.com", "status": "unresolved"}, format="json"
+            )
+            assert response.status_code == 400
+            assert response.data == {
+                "assignedTo": [ErrorDetail(string="Unknown actor input", code="invalid")]
+            }

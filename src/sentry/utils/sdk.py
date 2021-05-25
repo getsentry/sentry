@@ -1,5 +1,6 @@
 import inspect
 import random
+from datetime import datetime
 
 import sentry_sdk
 from django.conf import settings
@@ -51,6 +52,8 @@ SAMPLED_URL_NAMES = {
     "sentry-api-0-organization-stats-v2",
     "sentry-api-0-project-stats",
 }
+if settings.ADDITIONAL_SAMPLED_URLS:
+    SAMPLED_URL_NAMES.update(settings.ADDITIONAL_SAMPLED_URLS)
 
 SAMPLED_TASKS = {
     "sentry.tasks.send_ping",
@@ -209,6 +212,102 @@ def traces_sampler(sampling_context):
     return float(settings.SENTRY_BACKEND_APM_SAMPLING or 0)
 
 
+# Patches transport functions to add metrics to improve resolution around events sent to our ingest
+# TODO(k-fish): Remove after backend transaction findings are in.
+def patch_transport_for_instrumentation(transport, transport_name):
+    _worker_submit = transport._worker.submit
+    if _worker_submit:
+
+        def patched_worker_submit(*args, **kwargs):
+            metrics.incr(f"internal.worker_submit.{transport_name}.events")
+            return _worker_submit(*args, **kwargs)
+
+        transport._worker.submit = patched_worker_submit
+
+    _send_envelope = transport._send_envelope
+    if _send_envelope:
+
+        def patched_send_envelope(*args, **kwargs):
+            envelope = args[0]
+            if envelope and len(envelope.items) > 0:
+                metrics.incr(f"internal.envelope_has_items.{transport_name}")
+
+                _serialize_into = envelope.serialize_into
+
+                def patched_envelope_serialize(*args, **kwargs):
+                    metrics.incr(f"internal.envelope_serialize_into.{transport}.count")
+                    return _serialize_into(*args, **kwargs)
+
+                envelope.serialize_into = patched_envelope_serialize
+
+            metrics.incr(f"internal.send_envelope.{transport_name}.events")
+            try:
+                result = _send_envelope(*args, **kwargs)
+                metrics.incr(f"internal.send_envelope.{transport_name}.sent.events")
+                return result
+            except Exception as error:
+                error_name = type(error).__name__
+                metrics.incr(
+                    f"internal.send_envelope.{transport_name}.error", tags={"error": error_name}
+                )
+
+        transport._send_envelope = patched_send_envelope
+
+    _send_request = transport._send_request
+    if _send_request:
+
+        def patched_send_request(*args, **kwargs):
+            metrics.incr(f"internal.sent_requests.{transport_name}.events")
+            return _send_request(*args, **kwargs)
+
+        transport._send_request = patched_send_request
+
+    _update_rate_limits = transport._update_rate_limits
+    if _update_rate_limits:
+
+        def patched_update_rate_limits(*args, **kwargs):
+            # Adding checks to find out which of x-rate-limit and 429 might be the cause
+            response = args[0]
+            if getattr(response, "headers", None):
+                has_rate_limit = response.headers.get("x-sentry-rate-limits")
+                if has_rate_limit:
+                    metrics.incr(f"internal.update_rate_limits.{transport_name}.x_rate_limit.count")
+            if getattr(response, "status", None):
+                if response.status == 429:
+                    metrics.incr(f"internal.update_rate_limits.{transport_name}.status_429.count")
+
+            metrics.incr(f"internal.update_rate_limits.{transport_name}.events")
+            return _update_rate_limits(*args, **kwargs)
+
+        transport._update_rate_limits = patched_update_rate_limits
+
+    _check_disabled = transport._check_disabled
+    if _check_disabled:
+
+        def check_disabled_bucket(bucket):
+            ts = transport._disabled_until.get(bucket)
+
+            # Confirm the transaction bucket is disabled
+            if ts is not None and ts > datetime.utcnow():
+                metrics.incr(f"internal.check_disabled.{transport_name}.bucket.{bucket}.disabled")
+
+        def patched_check_disabled(*args, **kwargs):
+            metrics.incr(f"internal.pre_check_disabled.{transport_name}.events.count")
+            result = _check_disabled(*args, **kwargs)
+            metrics.incr(f"internal.check_disabled.{transport_name}.events.count")
+            if result:
+
+                if getattr(transport, "_disabled_until", None):
+                    check_disabled_bucket("transaction")
+
+                metrics.incr(f"internal.check_disabled.{transport_name}.events.is_disabled")
+            return result
+
+        transport._check_disabled = patched_check_disabled
+
+    return transport
+
+
 def configure_sdk():
     from sentry_sdk.integrations.celery import CeleryIntegration
     from sentry_sdk.integrations.django import DjangoIntegration
@@ -225,16 +324,17 @@ def configure_sdk():
     sdk_options["traces_sampler"] = traces_sampler
 
     if upstream_dsn:
-        upstream_transport = make_transport(get_options(dsn=upstream_dsn, **sdk_options))
+        transport = make_transport(get_options(dsn=upstream_dsn, **sdk_options))
+        upstream_transport = patch_transport_for_instrumentation(transport, "upstream")
     else:
         upstream_transport = None
 
     if relay_dsn:
-        relay_transport = make_transport(get_options(dsn=relay_dsn, **sdk_options))
+        transport = make_transport(get_options(dsn=relay_dsn, **sdk_options))
+        relay_transport = patch_transport_for_instrumentation(transport, "relay")
     elif internal_project_key and internal_project_key.dsn_private:
-        relay_transport = make_transport(
-            get_options(dsn=internal_project_key.dsn_private, **sdk_options)
-        )
+        transport = make_transport(get_options(dsn=internal_project_key.dsn_private, **sdk_options))
+        relay_transport = patch_transport_for_instrumentation(transport, "relay")
     else:
         relay_transport = None
 

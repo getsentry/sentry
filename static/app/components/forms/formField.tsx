@@ -1,9 +1,8 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
-import PropTypes from 'prop-types';
 
-import {Context} from 'app/components/forms/form';
+import FormContext, {FormContextData} from 'app/components/forms/formContext';
 import QuestionTooltip from 'app/components/questionTooltip';
 import {Meta} from 'app/types';
 import {defined} from 'app/utils';
@@ -39,10 +38,6 @@ export default class FormField<
   Props extends FormFieldProps = FormFieldProps,
   State extends FormFieldState = FormFieldState
 > extends React.PureComponent<Props, State> {
-  static contextTypes = {
-    form: PropTypes.object,
-  };
-
   static defaultProps: DefaultProps = {
     hideErrorMessage: false,
     disabled: false,
@@ -59,7 +54,7 @@ export default class FormField<
 
   componentDidMount() {}
 
-  UNSAFE_componentWillReceiveProps(nextProps: Props, nextContext: Context) {
+  UNSAFE_componentWillReceiveProps(nextProps: Props, nextContext: FormContextData) {
     const newError = this.getError(nextProps, nextContext);
     if (newError !== this.state.error) {
       this.setState({error: newError});
@@ -74,7 +69,9 @@ export default class FormField<
 
   componentWillUnmount() {}
 
-  getValue(props: Props, context: Context) {
+  static contextType = FormContext;
+
+  getValue(props: Props, context: FormContextData) {
     const form = (context || this.context || {}).form;
     props = props || this.props;
     if (defined(props.value)) {
@@ -86,7 +83,7 @@ export default class FormField<
     return defined(props.defaultValue) ? props.defaultValue : '';
   }
 
-  getError(props: Props, context: Context) {
+  getError(props: Props, context: FormContextData) {
     const form = (context || this.context || {}).form;
     props = props || this.props;
     if (defined(props.error)) {

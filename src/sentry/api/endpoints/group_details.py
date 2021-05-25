@@ -265,9 +265,10 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             response = update_groups(
                 request, [group.id], [project], project.organization_id, search_fn
             )
-
             # if action was discard, there isn't a group to serialize anymore
-            if discard:
+            # if response isn't 200, return the response update_groups gave us (i.e. helpful error)
+            # instead of serializing the updated group
+            if discard or response.status_code != 200:
                 return response
 
             # we need to fetch the object against as the bulk mutation endpoint
