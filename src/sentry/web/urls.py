@@ -15,6 +15,7 @@ from sentry.web.frontend.auth_login import AuthLoginView
 from sentry.web.frontend.auth_logout import AuthLogoutView
 from sentry.web.frontend.auth_organization_login import AuthOrganizationLoginView
 from sentry.web.frontend.auth_provider_login import AuthProviderLoginView
+from sentry.web.frontend.disabled_member_view import DisabledMemberView
 from sentry.web.frontend.error_page_embed import ErrorPageEmbedView
 from sentry.web.frontend.group_event_json import GroupEventJsonView
 from sentry.web.frontend.group_plugin_action import GroupPluginActionView
@@ -535,6 +536,11 @@ urlpatterns += [
                     r"^(?P<organization_slug>[\w_-]+)/restore/$",
                     RestoreOrganizationView.as_view(),
                     name="sentry-restore-organization",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^/]+)/disabled-member/$",
+                    DisabledMemberView.as_view(),
+                    name="sentry-organization-disabled-member",
                 ),
                 # need to force these to React and ensure organization_slug is captured
                 # TODO(RyanSkonnord): Generalize to all pages without regressing

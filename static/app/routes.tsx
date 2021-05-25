@@ -766,7 +766,6 @@ function routes() {
           componentPromise={() => import('app/views/sentryAppExternalInstallation')}
           component={errorHandler(LazyLoad)}
         />
-
         <Redirect from="/account/" to="/settings/account/details/" />
 
         <Redirect from="/share/group/:shareId/" to="/share/issue/:shareId/" />
@@ -785,6 +784,12 @@ function routes() {
         <Route
           path="/organizations/:orgId/data-export/:dataExportId"
           componentPromise={() => import('app/views/dataExport/dataDownload')}
+          component={errorHandler(LazyLoad)}
+        />
+
+        <Route
+          path="/organizations/:orgId/disabled-member/"
+          componentPromise={() => import('app/views/disabledMember')}
           component={errorHandler(LazyLoad)}
         />
 

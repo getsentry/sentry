@@ -89,6 +89,10 @@ export const initApiClientErrorHandling = () =>
       return;
     }
 
+    if (code === 'member-disabled-over-limit') {
+      browserHistory.replace(extra.next);
+    }
+
     // Otherwise, the user has become unauthenticated. Send them to auth
     Cookies.set('session_expired', '1');
 

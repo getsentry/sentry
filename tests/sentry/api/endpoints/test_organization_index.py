@@ -165,3 +165,27 @@ class OrganizationIndex2faTest(TwoFactorAPITestCase):
         user = self.create_user(is_superuser=True)
         self.login_as(user, superuser=True)
         self.get_success_response(self.org_2fa.slug)
+
+
+class OrganizationIndexMemberLimitTest(APITestCase):
+    endpoint = "sentry-organization-index"
+
+    def setup_user(self, is_superuser=False):
+        self.organization = self.create_organization()
+        self.user = self.create_user(is_superuser=is_superuser)
+        self.create_member(
+            organization=self.organization,
+            user=self.user,
+            role="member",
+            flags=OrganizationMember.flags["member-limit:restricted"],
+        )
+        self.login_as(self.user, superuser=is_superuser)
+
+    def test_member_limit_redirect(self):
+        self.setup_user()
+        response = self.get_success_response(self.organization.slug, status_code=302)
+        assert f"/organizations/{self.organization.slug}/disabled-member/" in response.url
+
+    def test_member_limit_superuser_no_redirect(self):
+        self.setup_user(is_superuser=True)
+        self.get_success_response(self.organization.slug, status_code=200)
