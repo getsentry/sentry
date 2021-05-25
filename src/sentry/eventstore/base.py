@@ -183,7 +183,7 @@ class EventStorage(Service):
         Arguments:
         project_id (int): Project ID
         event_id (str): Event ID
-        group_id (int): If the group ID for this event is already known, pass
+        group_id (Optional[int]): If the group ID for this event is already known, pass
             it here to save one Snuba query.
         """
         raise NotImplementedError
