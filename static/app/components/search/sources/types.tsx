@@ -63,6 +63,7 @@ export type ResultItem = {
   empty?: boolean;
   // Used to store groups and events
   model?: any;
+  configUrl?: string;
 };
 
 /**

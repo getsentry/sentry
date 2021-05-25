@@ -130,7 +130,7 @@ class Search extends React.Component<Props> {
       organization_id: null,
     });
 
-    const {to, action} = item;
+    const {to, action, configUrl} = item;
 
     // `action` refers to a callback function while
     // `to` is a react-router route
@@ -160,7 +160,7 @@ class Search extends React.Component<Props> {
     const {params, router} = this.props;
     const nextPath = replaceRouterParams(to, params);
 
-    navigateTo(nextPath, router);
+    navigateTo(nextPath, router, configUrl);
   };
 
   saveQueryMetrics = debounce(query => {

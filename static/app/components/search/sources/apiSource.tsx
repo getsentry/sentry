@@ -183,6 +183,7 @@ async function createIntegrationResults(
         sourceType: 'integration',
         resultType: 'integration',
         to: `/settings/${orgId}/integrations/${provider.slug}/`,
+        configUrl: `/api/0/organizations/${orgId}/integrations/?provider_key=${provider.slug}&includeConfig=0`,
       }))) ||
     []
   );

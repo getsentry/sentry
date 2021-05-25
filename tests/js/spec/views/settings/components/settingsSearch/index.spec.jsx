@@ -135,6 +135,6 @@ describe('SettingsSearch', function () {
       .first()
       .simulate('click');
 
-    expect(navigateTo).toHaveBeenCalledWith('/billy-org/', expect.anything());
+    expect(navigateTo).toHaveBeenCalledWith('/billy-org/', expect.anything(), undefined);
   });
 });
