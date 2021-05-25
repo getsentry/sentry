@@ -168,6 +168,8 @@ describe('ProjectAlertsCreate', function () {
         const {wrapper} = createWrapper({
           organization: {features: ['incidents']},
         });
+        await tick();
+        wrapper.update();
         expect(memberActionCreators.fetchOrgMembers).toHaveBeenCalled();
         expect(wrapper.find('IssueEditor')).toHaveLength(0);
         expect(wrapper.find('IncidentRulesCreate')).toHaveLength(0);
@@ -190,8 +192,10 @@ describe('ProjectAlertsCreate', function () {
     });
 
     describe('Without Metric Alerts', function () {
-      it('loads default values', function () {
+      it('loads default values', async function () {
         const {wrapper} = createWrapper();
+        await tick();
+        wrapper.update();
         expect(memberActionCreators.fetchOrgMembers).toHaveBeenCalled();
         expect(wrapper.find('SelectControl[name="environment"]').prop('value')).toBe(
           '__all_environments__'
@@ -213,6 +217,8 @@ describe('ProjectAlertsCreate', function () {
           method: 'POST',
           body: TestStubs.ProjectAlertRule(),
         });
+        await tick();
+        wrapper.update();
 
         expect(memberActionCreators.fetchOrgMembers).toHaveBeenCalled();
         // Change target environment

@@ -107,6 +107,7 @@ class Create extends Component<Props, State> {
       project,
       params: {projectId},
       location,
+      routes,
     } = this.props;
     const {alertType, eventView, wizardTemplate} = this.state;
 
@@ -126,21 +127,23 @@ class Create extends Component<Props, State> {
         <SentryDocumentTitle title={title} projectSlug={projectId} />
 
         <Layout.Header>
-          <Layout.HeaderContent>
+          <StyledHeaderContent>
             <BuilderBreadCrumbs
               hasMetricAlerts={hasMetricAlerts}
               orgSlug={organization.slug}
               alertName={t('Set Conditions')}
               title={wizardAlertType ? t('Select Alert') : title}
               projectSlug={projectId}
+              routes={routes}
+              location={location}
+              canChangeProject
             />
-
             <Layout.Title>
               {wizardAlertType
                 ? `${t('Set Conditions for')} ${AlertWizardAlertNames[wizardAlertType]}`
                 : title}
             </Layout.Title>
-          </Layout.HeaderContent>
+          </StyledHeaderContent>
         </Layout.Header>
         <AlertConditionsBody>
           <Layout.Main fullWidth>
@@ -179,6 +182,10 @@ const AlertConditionsBody = styled(Layout.Body)`
   *:not(img) {
     max-width: 1000px;
   }
+`;
+
+const StyledHeaderContent = styled(Layout.HeaderContent)`
+  overflow: visible;
 `;
 
 export default Create;
