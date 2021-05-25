@@ -235,7 +235,7 @@ def patch_transport_for_instrumentation(transport, transport_name):
                 _serialize_into = envelope.serialize_into
 
                 def patched_envelope_serialize(*args, **kwargs):
-                    metrics.incr(f"internal.envelope_serialize_into.{transport}.count")
+                    metrics.incr(f"internal.envelope_serialize_into.{transport_name}.count")
                     return _serialize_into(*args, **kwargs)
 
                 envelope.serialize_into = patched_envelope_serialize
