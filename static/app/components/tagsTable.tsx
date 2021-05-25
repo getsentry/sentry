@@ -79,8 +79,11 @@ const TagsTable = ({event, query, generateUrl, title = t('Tag Details')}: Props)
                   <Tooltip title={getTooltipTitle(valueMetaData.err)}>
                     <i>{`<${t('invalid')}>`}</i>
                   </Tooltip>
-                ) : //</StyledTagsTable><AnnotatedText value={tag.value} meta={valueMetaData} />
-                tagInQuery ? (
+                ) : keyMetaData?.err?.length ? (
+                  <Tooltip title={getTooltipTitle(keyMetaData.err)}>
+                    <span>{renderTagValue()}</span>
+                  </Tooltip>
+                ) : tagInQuery ? (
                   <Tooltip title={t('This tag is in the current filter conditions')}>
                     <span>{renderTagValue()}</span>
                   </Tooltip>
