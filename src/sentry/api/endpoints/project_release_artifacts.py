@@ -14,7 +14,7 @@ from sentry.constants import MAX_RELEASE_FILES_OFFSET
 from sentry.models import Release, ReleaseFile
 from sentry.models.file import File
 from sentry.models.releasefile import ReleaseArchive
-from sentry.tasks.assemble import RELEASE_ARCHIVE_FILENAME
+from sentry.tasks.assemble import RELEASE_ARCHIVE_FILENAME, get_artifact_basename
 
 
 class ProjectReleaseArtifactsEndpoint(ProjectEndpoint):
@@ -80,7 +80,7 @@ class ProjectReleaseArtifactsEndpoint(ProjectEndpoint):
         else:
             file_ = ReleaseFile.cache.getfile(release_archive_file)
             with ReleaseArchive(file_.file) as archive:
-                archived_list = ReleaseArchiveQuerySet(archive.manifest, query)
+                archived_list = ReleaseArchiveQuerySet(archive, query)
 
             return self.paginate(
                 request=request,
@@ -93,31 +93,25 @@ class ProjectReleaseArtifactsEndpoint(ProjectEndpoint):
             )
 
 
-class ReleaseArchiveQuerySet:
-    """ Pseudo queryset offering a subset of QuerySet operations, """
+class ListQuerySet:
+    """ Pseudo queryset offering a subset of QuerySet operations """
 
-    def __init__(self, data, query=None):
-        if isinstance(data, dict):
-            # Assume manifest
-            self._entries = [
-                ReleaseFile(name=filename, file=File(headers=info.get("headers", {})))
-                for filename, info in data.get("files", {}).items()
-                # Mimic "or" operation applied for real querysets:
-                if not query
-                or any(search_string.lower() in filename.lower() for search_string in query)
-            ]
-        else:
-            # Assume list of sorted ArchiveEntries
-            self._entries = data
+    def __init__(self, release_files, query=None):
+        self._files = [
+            # Mimic "or" operation applied for real querysets:
+            rf
+            for rf in release_files
+            if not query or any(search_string.lower() in rf.name.lower() for search_string in query)
+        ]
 
     def get(self):
-        entries = self._entries
-        if not entries:
+        files = self._files
+        if not files:
             raise ObjectDoesNotExist
-        if len(entries) > 1:
+        if len(files) > 1:
             raise MultipleObjectsReturned
 
-        return entries[0]
+        return files[0]
 
     def annotate(self, **kwargs):
         if kwargs:
@@ -132,9 +126,24 @@ class ReleaseArchiveQuerySet:
         return self
 
     def order_by(self, key):
-        return ReleaseArchiveQuerySet(sorted(self._entries, key=lambda entry: getattr(entry, key)))
+        return ListQuerySet(sorted(self._files, key=lambda f: getattr(f, key)))
 
     def __getitem__(self, index):
         if isinstance(index, int):
-            return self._entries[index]
-        return ReleaseArchiveQuerySet(self._entries[index])
+            return self._files[index]
+        return ListQuerySet(self._files[index])
+
+
+class ReleaseArchiveQuerySet(ListQuerySet):
+    """ Pseudo queryset offering a subset of QuerySet operations, """
+
+    def __init__(self, archive: ReleaseArchive, query=None):
+        # Assume manifest
+        release_files = [
+            ReleaseFile(
+                name=get_artifact_basename(info["url"]),
+                file=File(headers=info.get("headers", {}), size=archive.get_file_size(filename)),
+            )
+            for filename, info in archive.manifest.get("files", {}).items()
+        ]
+        super().__init__(release_files, query)

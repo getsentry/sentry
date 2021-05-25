@@ -210,6 +210,10 @@ def _merge_archives(old_file: File, new_file: File, new_archive: ReleaseArchive)
     return replacement
 
 
+def get_artifact_basename(url):
+    return url.rsplit("/", 1)[-1]
+
+
 def _store_single_files(archive: ReleaseArchive, meta: dict):
     try:
         temp_dir = archive.extract()
@@ -221,7 +225,7 @@ def _store_single_files(archive: ReleaseArchive, meta: dict):
         artifacts = archive.manifest.get("files", {})
         for rel_path, artifact in artifacts.items():
             artifact_url = artifact.get("url", rel_path)
-            artifact_basename = artifact_url.rsplit("/", 1)[-1]
+            artifact_basename = get_artifact_basename(artifact_url)
 
             file = File.objects.create(
                 name=artifact_basename, type="release.file", headers=artifact.get("headers", {})
