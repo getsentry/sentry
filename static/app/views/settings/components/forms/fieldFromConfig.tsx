@@ -2,6 +2,7 @@ import {Component} from 'react';
 
 import {Scope} from 'app/types';
 
+import BlankField from './blankField';
 import BooleanField from './booleanField';
 import ChoiceMapperField from './choiceMapperField';
 import EmailField from './emailField';
@@ -51,6 +52,8 @@ export default class FieldFromConfig extends Component<Props> {
         // TODO(ts) The switch on field.type is not resolving
         // the Field union for this component. The union might be 'too big'.
         return <RangeField {...(props as any)} />;
+      case 'blank':
+        return <BlankField {...props} />;
       case 'bool':
       case 'boolean':
         return <BooleanField {...props} />;

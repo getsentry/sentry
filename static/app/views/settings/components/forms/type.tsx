@@ -9,6 +9,7 @@ import {RichListProps} from 'app/views/settings/components/forms/richListField';
 
 export const FieldType = [
   'array',
+  'blank',
   'bool',
   'boolean',
   'choice_mapper',
