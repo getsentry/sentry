@@ -36,6 +36,25 @@ class OrganizationIntegrationConfigurationTabs(AcceptanceTestCase):
         self.browser.wait_until_not(".loading-indicator")
 
     def test_external_user_mappings(self):
+        # create `auth_user` records to differentiate `user_id` and `organization_member_id`
+        self.create_sentry_app()
+        self.user2 = self.create_user("user2@example.com")
+        self.user3 = self.create_user("user3@example.com")
+
+        self.team = self.create_team(
+            organization=self.organization, slug="tiger-team", members=[self.user]
+        )
+        self.team2 = self.create_team(
+            organization=self.organization, slug="tiger-team2", members=[self.user2]
+        )
+        self.team3 = self.create_team(
+            organization=self.organization, slug="tiger-team3", members=[self.user3]
+        )
+
+        self.project = self.create_project(
+            organization=self.organization, teams=[self.team, self.team2, self.team3], slug="bengal"
+        )
+
         with self.feature(
             {
                 "organizations:integrations-codeowners": True,
@@ -59,9 +78,9 @@ class OrganizationIntegrationConfigurationTabs(AcceptanceTestCase):
 
             # Add Mapping Modal
             externalName = self.browser.find_element_by_name("externalName")
-            externalName.send_keys("@admin")
+            externalName.send_keys("user2")
             self.browser.click("#userId:first-child div")
-            self.browser.click('[id="react-select-2-option-0"]')
+            self.browser.click('[id="react-select-2-option-1"]')
             self.browser.snapshot("integrations - save new external user mapping")
 
             # List View

@@ -1,112 +1,23 @@
-import hashlib
-import hmac
 import logging
 
-from django.utils.crypto import constant_time_compare
-from django.views.decorators.csrf import csrf_exempt
-from requests.exceptions import RequestException
-
-from sentry import VERSION, http, options
-from sentry.api.base import Endpoint
-from sentry.models import (
-    OrganizationIntegration,
-    Project,
-    SentryAppInstallationForProvider,
-    SentryAppInstallationToken,
-)
-from sentry.shared_integrations.exceptions import IntegrationError
-from sentry.utils.compat import filter
-from sentry.utils.http import absolute_uri
+from .generic_webhook import VercelGenericWebhookEndpoint, verify_signature
 
 logger = logging.getLogger("sentry.integrations.vercel.webhooks")
 
 
-class NoCommitFoundError(IntegrationError):
-    pass
+class VercelWebhookEndpoint(VercelGenericWebhookEndpoint):
+    """
+    Webhooks created by the API during installation.
 
+    To be deprecated on August 20, 2021, replaced by the Generic
+    Webhook set on the Vercel app.
 
-def verify_signature(request):
-    signature = request.META["HTTP_X_ZEIT_SIGNATURE"]
-    secret = options.get("vercel.client-secret")
-
-    expected = hmac.new(
-        key=secret.encode("utf-8"), msg=bytes(request.body), digestmod=hashlib.sha1
-    ).hexdigest()
-    return constant_time_compare(expected, signature)
-
-
-def safe_json_parse(resp):
-    if resp.headers.get("content-type") == "application/json":
-        return resp.json()
-    return None
-
-
-class VercelWebhookEndpoint(Endpoint):
-    authentication_classes = ()
-    permission_classes = ()
-    provider = "vercel"
-
-    @csrf_exempt
-    def dispatch(self, request, *args, **kwargs):
-        return super().dispatch(request, *args, **kwargs)
-
-    # given the webhook payload and sentry_project_id, return
-    # the payload we use for generating the release with the token
-    def get_payload_and_token(self, payload, organization_id, sentry_project_id):
-        meta = payload["deployment"]["meta"]
-
-        # look up the project so we can get the slug
-        project = Project.objects.get(id=sentry_project_id)
-
-        # find the connected sentry app installation
-        installation_for_provider = SentryAppInstallationForProvider.objects.select_related(
-            "sentry_app_installation"
-        ).get(organization_id=organization_id, provider=self.provider)
-        sentry_app_installation = installation_for_provider.sentry_app_installation
-
-        # find a token associated with the installation so we can use it for authentication
-        sentry_app_installation_token = (
-            SentryAppInstallationToken.objects.select_related("api_token")
-            .filter(sentry_app_installation=sentry_app_installation)
-            .first()
-        )
-        if not sentry_app_installation_token:
-            raise SentryAppInstallationToken.DoesNotExist()
-
-        # find the commit sha so we can  use it as as the release
-        commit_sha = (
-            meta.get("githubCommitSha")
-            or meta.get("gitlabCommitSha")
-            or meta.get("bitbucketCommitSha")
-        )
-
-        # construct the repo depending what provider we use
-        if meta.get("githubCommitSha"):
-            # we use these instead of githubOrg and githubRepo since it's the repo the user has access to
-            repository = "{}/{}".format(meta["githubCommitOrg"], meta["githubCommitRepo"])
-        elif meta.get("gitlabCommitSha"):
-            # gitlab repos are formatted with a space for some reason
-            repository = "{} / {}".format(
-                meta["gitlabProjectNamespace"],
-                meta["gitlabProjectName"],
-            )
-        elif meta.get("bitbucketCommitSha"):
-            repository = "{}/{}".format(meta["bitbucketRepoOwner"], meta["bitbucketRepoName"])
-        else:
-            # this can happen with manual builds
-            raise NoCommitFoundError("No commit found")
-
-        release_payload = {
-            "version": commit_sha,
-            "projects": [project.slug],
-            "refs": [{"repository": repository, "commit": commit_sha}],
-        }
-        return [release_payload, sentry_app_installation_token.api_token.token]
+    """
 
     def post(self, request):
         if not request.META.get("HTTP_X_ZEIT_SIGNATURE"):
             logger.error("vercel.webhook.missing-signature")
-            self.respond(status=401)
+            return self.respond(status=401)
 
         is_valid = verify_signature(request)
 
@@ -114,110 +25,6 @@ class VercelWebhookEndpoint(Endpoint):
             logger.error("vercel.webhook.invalid-signature")
             return self.respond(status=401)
 
-        data = request.data
-        payload = data["payload"]
-        external_id = data.get("teamId") or data["userId"]
-        vercel_project_id = payload["projectId"]
+        external_id = request.data.get("teamId") or request.data["userId"]
 
-        logging_params = {"external_id": external_id, "vercel_project_id": vercel_project_id}
-
-        if payload["target"] != "production":
-            logger.info(
-                "Ignoring deployment for environment: %s" % payload["target"], extra=logging_params
-            )
-            return self.respond(status=204)
-
-        # Steps:
-        # 1. Find all org integrations that match the external id
-        # 2. Search the configs to find one that matches the vercel project of the webhook
-        # 3. Look up the Sentry project that matches
-        # 4. Look up the connected internal integration
-        # 5. Find the token associated with that installation
-        # 6. Determine the commit sha and repo based on what provider is used
-        # 7. Create the release using the token WITHOUT refs
-        # 8. Update the release with refs
-
-        # find all org integrations that match the external id
-        org_integrations = OrganizationIntegration.objects.select_related("organization").filter(
-            integration__external_id=external_id, integration__provider=self.provider
-        )
-        if not org_integrations:
-            logger.info("Integration not found", extra=logging_params)
-            return self.respond({"detail": "Integration not found"}, status=404)
-
-        # for each org integration, search the configs to find one that matches the vercel project of the webhook
-        for org_integration in org_integrations:
-            project_mappings = org_integration.config.get("project_mappings") or []
-            matched_mappings = filter(lambda x: x[1] == vercel_project_id, project_mappings)
-            if matched_mappings:
-                organization = org_integration.organization
-                sentry_project_id = matched_mappings[0][0]
-
-                logging_params["organization_id"] = organization.id
-                logging_params["project_id"] = sentry_project_id
-
-                try:
-                    [release_payload, token] = self.get_payload_and_token(
-                        payload, organization.id, sentry_project_id
-                    )
-                except Project.DoesNotExist:
-                    logger.info("Project not found", extra=logging_params)
-                    return self.respond({"detail": "Project not found"}, status=404)
-                except SentryAppInstallationForProvider.DoesNotExist:
-                    logger.info("Installation not found", extra=logging_params)
-                    return self.respond({"detail": "Installation not found"}, status=404)
-                except SentryAppInstallationToken.DoesNotExist:
-                    logger.info("Token not found", extra=logging_params)
-                    return self.respond({"detail": "Token not found"}, status=404)
-                except NoCommitFoundError:
-                    logger.info("No commit found", extra=logging_params)
-                    return self.respond({"detail": "No commit found"}, status=404)
-
-                session = http.build_session()
-                url = absolute_uri("/api/0/organizations/%s/releases/" % organization.slug)
-                headers = {
-                    "Accept": "application/json",
-                    "Authorization": "Bearer %s" % token,
-                    "User-Agent": f"sentry_vercel/{VERSION}",
-                }
-                json_error = None
-
-                # create the basic release payload without refs
-                no_ref_payload = release_payload.copy()
-                del no_ref_payload["refs"]
-                try:
-                    resp = session.post(url, json=no_ref_payload, headers=headers)
-                    json_error = safe_json_parse(resp)
-                    resp.raise_for_status()
-                except RequestException as e:
-                    # errors here should be uncommon but we should be aware of them
-                    logger.error(
-                        f"Error creating release: {e} - {json_error}",
-                        extra=logging_params,
-                        exc_info=True,
-                    )
-                    # 400 probably isn't the right status code but oh well
-                    return self.respond({"detail": "Error creating release: %s" % e}, status=400)
-
-                # set the refs
-                try:
-                    resp = session.post(
-                        url,
-                        json=release_payload,
-                        headers=headers,
-                    )
-                    json_error = safe_json_parse(resp)
-                    resp.raise_for_status()
-                except RequestException as e:
-                    # errors will probably be common if the user doesn't have repos set up
-                    logger.info(
-                        f"Error setting refs: {e} - {json_error}",
-                        extra=logging_params,
-                        exc_info=True,
-                    )
-                    # 400 probably isn't the right status code but oh well
-                    return self.respond({"detail": "Error setting refs: %s" % e}, status=400)
-
-                # we are going to quit after the first project match as there shouldn't be multiple matches
-                return self.respond(status=201)
-        return self.respond(status=204)
+        return self._deployment_created(external_id, request)
