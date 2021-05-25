@@ -34,7 +34,7 @@ class ParameterValidationError(SentryAPIException):
     code = "parameter-validation-error"
 
     def __init__(self, message: str, context: Optional[List[str]] = None) -> None:
-        super().__init__(message=message, context=".".join(context))
+        super().__init__(message=message, context=".".join(context or []))
 
 
 class ProjectMoved(SentryAPIException):
@@ -54,6 +54,17 @@ class SsoRequired(SentryAPIException):
 
     def __init__(self, organization):
         super().__init__(loginUrl=reverse("sentry-auth-organization", args=[organization.slug]))
+
+
+class MemberDisabledOverLimit(SentryAPIException):
+    status_code = status.HTTP_401_UNAUTHORIZED
+    code = "member-disabled-over-limit"
+    message = "Organization over member limit"
+
+    def __init__(self, organization):
+        super().__init__(
+            next=reverse("sentry-organization-disabled-member", args=[organization.slug])
+        )
 
 
 class SuperuserRequired(SentryAPIException):

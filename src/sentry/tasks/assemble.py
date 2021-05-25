@@ -7,7 +7,7 @@ from django.db import IntegrityError, transaction
 from sentry.api.serializers import serialize
 from sentry.cache import default_cache
 from sentry.tasks.base import instrumented_task
-from sentry.utils import json
+from sentry.utils import json, metrics
 from sentry.utils.files import get_max_file_size
 from sentry.utils.sdk import bind_organization_context, configure_scope
 
@@ -276,6 +276,9 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
                 old_file = release_file.file
                 release_file.update(file=file)
                 old_file.delete()
+
+        # Count files extracted, to compare them to release files endpoint
+        metrics.incr("tasks.assemble.extracted_files", amount=len(artifacts))
 
     except AssembleArtifactsError as e:
         set_assemble_status(

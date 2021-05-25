@@ -55,7 +55,7 @@ const StyledTag = styled(Tag)`
   padding: 3px ${space(0.75)};
 `;
 
-const StyledFeatureBadge = styled(FeaturedBadge)`
+const StyledFeatureBadge = styled(withTheme(FeaturedBadge))`
   display: inline-flex;
   align-items: center;
   margin-left: ${space(0.75)};
@@ -63,4 +63,4 @@ const StyledFeatureBadge = styled(FeaturedBadge)`
   top: -1px;
 `;
 
-export default withTheme(StyledFeatureBadge);
+export default StyledFeatureBadge;

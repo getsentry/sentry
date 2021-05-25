@@ -3,15 +3,19 @@ import * as ReactRouter from 'react-router';
 import styled from '@emotion/styled';
 
 import Alert from 'app/components/alert';
+import GuideAnchor from 'app/components/assistant/guideAnchor';
+import List from 'app/components/list';
+import ListItem from 'app/components/list/listItem';
 import {Panel} from 'app/components/panels';
 import SearchBar from 'app/components/searchBar';
 import {IconWarning} from 'app/icons';
-import {t, tn} from 'app/locale';
+import {t, tct, tn} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {EventTransaction} from 'app/types/event';
 import {objectIsEmpty} from 'app/utils';
 import * as QuickTraceContext from 'app/utils/performance/quickTrace/quickTraceContext';
+import {TraceError} from 'app/utils/performance/quickTrace/types';
 import withOrganization from 'app/utils/withOrganization';
 
 import * as AnchorLinkManager from './anchorLinkManager';
@@ -23,7 +27,7 @@ import Filter, {
 } from './filter';
 import TraceView from './traceView';
 import {ParsedTraceType} from './types';
-import {parseTrace} from './utils';
+import {parseTrace, scrollToSpan} from './utils';
 
 type Props = {
   event: EventTransaction;
@@ -58,29 +62,86 @@ class SpansInterface extends Component<Props, State> {
 
   renderTraceErrorsAlert({
     isLoading,
-    numOfErrors,
+    errors,
+    parsedTrace,
   }: {
     isLoading: boolean;
-    numOfErrors: number;
+    errors: TraceError[] | undefined;
+    parsedTrace: ParsedTraceType;
   }) {
     if (isLoading) {
       return null;
     }
 
-    if (numOfErrors === 0) {
+    if (!errors || errors.length <= 0) {
       return null;
     }
 
     const label = tn(
       'There is an error event associated with this transaction event.',
       `There are %s error events associated with this transaction event.`,
-      numOfErrors
+      errors.length
     );
+
+    // mapping from span ids to the span op and the number of errors in that span
+    const errorsMap: {
+      [spanId: string]: {operation: string; errorsCount: number};
+    } = {};
+
+    errors.forEach(error => {
+      if (!errorsMap[error.span]) {
+        // first check of the error belongs to the root span
+        if (parsedTrace.rootSpanID === error.span) {
+          errorsMap[error.span] = {
+            operation: parsedTrace.op,
+            errorsCount: 0,
+          };
+        } else {
+          // since it does not belong to the root span, check if it belongs
+          // to one of the other spans in the transaction
+          const span = parsedTrace.spans.find(s => s.span_id === error.span);
+          if (!span?.op) {
+            return;
+          }
+
+          errorsMap[error.span] = {
+            operation: span.op,
+            errorsCount: 0,
+          };
+        }
+      }
+
+      errorsMap[error.span].errorsCount++;
+    });
 
     return (
       <AlertContainer>
         <Alert type="error" icon={<IconWarning size="md" />}>
-          {label}
+          <ErrorLabel>{label}</ErrorLabel>
+          <AnchorLinkManager.Consumer>
+            {({scrollToHash}) => (
+              <List symbol="bullet">
+                {Object.entries(errorsMap).map(([spanId, {operation, errorsCount}]) => (
+                  <ListItem key={spanId}>
+                    {tct('[errors] in [link]', {
+                      errors: tn('%s error in ', '%s errors in ', errorsCount),
+                      link: (
+                        <ErrorLink
+                          onClick={scrollToSpan(
+                            spanId,
+                            scrollToHash,
+                            this.props.location
+                          )}
+                        >
+                          {operation}
+                        </ErrorLink>
+                      ),
+                    })}
+                  </ListItem>
+                ))}
+              </List>
+            )}
+          </AnchorLinkManager.Consumer>
         </Alert>
       </AlertContainer>
     );
@@ -114,7 +175,8 @@ class SpansInterface extends Component<Props, State> {
             <AnchorLinkManager.Provider>
               {this.renderTraceErrorsAlert({
                 isLoading: quickTrace?.isLoading || false,
-                numOfErrors: quickTrace?.currentEvent?.errors?.length ?? 0,
+                errors: quickTrace?.currentEvent?.errors,
+                parsedTrace,
               })}
               <Search>
                 <Filter
@@ -138,6 +200,9 @@ class SpansInterface extends Component<Props, State> {
                   parsedTrace={parsedTrace}
                   operationNameFilters={this.state.operationNameFilters}
                 />
+                <GuideAnchorWrapper>
+                  <GuideAnchor target="span_tree" position="bottom" />
+                </GuideAnchorWrapper>
               </Panel>
             </AnchorLinkManager.Provider>
           )}
@@ -146,6 +211,12 @@ class SpansInterface extends Component<Props, State> {
     );
   }
 }
+
+const GuideAnchorWrapper = styled('div')`
+  height: 0;
+  width: 0;
+  margin-left: 50%;
+`;
 
 const Container = styled('div')<{hasErrors: boolean}>`
   ${p =>
@@ -159,6 +230,13 @@ const Container = styled('div')<{hasErrors: boolean}>`
   `}
 `;
 
+const ErrorLink = styled('a')`
+  color: ${p => p.theme.textColor};
+  :hover {
+    color: ${p => p.theme.textColor};
+  }
+`;
+
 const Search = styled('div')`
   display: flex;
   width: 100%;
@@ -170,6 +248,10 @@ const StyledSearchBar = styled(SearchBar)`
 `;
 
 const AlertContainer = styled('div')`
+  margin-bottom: ${space(1)};
+`;
+
+const ErrorLabel = styled('div')`
   margin-bottom: ${space(1)};
 `;
 

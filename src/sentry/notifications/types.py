@@ -45,7 +45,7 @@ class NotificationSettingTypes(Enum):
 NOTIFICATION_SETTING_TYPES = {
     NotificationSettingTypes.DEFAULT: "default",
     NotificationSettingTypes.DEPLOY: "deploy",
-    NotificationSettingTypes.ISSUE_ALERTS: "issue",
+    NotificationSettingTypes.ISSUE_ALERTS: "alerts",
     NotificationSettingTypes.WORKFLOW: "workflow",
 }
 
@@ -76,8 +76,8 @@ class NotificationSettingOptionValues(Enum):
 
 NOTIFICATION_SETTING_OPTION_VALUES = {
     NotificationSettingOptionValues.DEFAULT: "default",
-    NotificationSettingOptionValues.NEVER: "off",
-    NotificationSettingOptionValues.ALWAYS: "on",
+    NotificationSettingOptionValues.NEVER: "never",
+    NotificationSettingOptionValues.ALWAYS: "always",
     NotificationSettingOptionValues.SUBSCRIBE_ONLY: "subscribe_only",
     NotificationSettingOptionValues.COMMITTED_ONLY: "committed_only",
 }
@@ -127,13 +127,6 @@ VALID_VALUES_FOR_KEY = {
         NotificationSettingOptionValues.SUBSCRIBE_ONLY,
         NotificationSettingOptionValues.NEVER,
     },
-}
-
-
-NOTIFICATION_SETTING_DEFAULTS = {
-    NotificationSettingTypes.DEPLOY: NotificationSettingOptionValues.COMMITTED_ONLY,
-    NotificationSettingTypes.ISSUE_ALERTS: NotificationSettingOptionValues.ALWAYS,
-    NotificationSettingTypes.WORKFLOW: NotificationSettingOptionValues.SUBSCRIBE_ONLY,
 }
 
 
