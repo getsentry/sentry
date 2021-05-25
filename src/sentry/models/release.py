@@ -738,7 +738,12 @@ class Release(Model):
         return ReleaseArchive(file_.file)
 
     def count_artifacts(self):
-        """Count release files plus files bundled in release archive. """
+        """Count release files plus files bundled in release archive.
+
+        TODO(jjbayer): This is an expensive operation, might be better to track
+        the artifact count in a similar way as `commit_count`.
+
+        """
         release_files = (
             ReleaseFile.objects.filter(release=self).exclude(name=RELEASE_ARCHIVE_FILENAME).count()
         )

@@ -4,7 +4,7 @@ import re
 
 import jsonschema
 from django.db import transaction
-from django.db.models import Count, Q
+from django.db.models import Q
 from django.http import Http404, HttpResponse, StreamingHttpResponse
 from rest_framework.response import Response
 from symbolic import SymbolicError, normalize_debug_id
@@ -428,12 +428,9 @@ class SourceMapsEndpoint(ProjectEndpoint):
             }
 
         def serialize_results(results):
-            file_counts = (
-                Release.objects.filter(id__in=[r["id"] for r in results])
-                .annotate(count=Count("releasefile"))
-                .values("count", "id")
-            )
-            file_count_map = {r["id"]: r["count"] for r in file_counts}
+            file_count_map = {
+                r["id"]: Release.objects.get(pk=r["id"]).count_artifacts() for r in results
+            }
             return serialize(
                 [expose_release(r, file_count_map[r["id"]]) for r in results], request.user
             )

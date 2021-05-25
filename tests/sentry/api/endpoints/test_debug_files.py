@@ -6,7 +6,9 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 
 from sentry.models import File, ProjectDebugFile, Release, ReleaseFile
+from sentry.models.releasefile import RELEASE_ARCHIVE_FILENAME
 from sentry.testutils import APITestCase
+from sentry.utils import json
 
 # This is obviously a freely generated UUID and not the checksum UUID.
 # This is permissible if users want to send different UUIDs
@@ -344,3 +346,50 @@ class DebugFilesUploadTest(APITestCase):
         response = self.client.delete(url + "?name=1")
         assert response.status_code == 204
         assert not ReleaseFile.objects.filter(release=release).exists()
+
+    def test_source_maps_release_archive(self):
+        project = self.create_project(name="foo")
+
+        release = Release.objects.create(organization_id=project.organization_id, version="1")
+        release.add_project(project)
+
+        manifest = {
+            "org": self.organization.slug,
+            "release": release.version,
+            "files": {
+                "files/_/_/file1.js": {
+                    "url": "http://example.com/file1.js",
+                },
+                "files/_/_/file2.js": {
+                    "url": "http://example.com/file2.js",
+                },
+            },
+        }
+        file_like = BytesIO()
+        with zipfile.ZipFile(file_like, "w") as zip:
+            zip.writestr("manifest.json", json.dumps(manifest))
+        file_like.seek(0)
+
+        file = File.objects.create(name=RELEASE_ARCHIVE_FILENAME)
+        file.putfile(file_like)
+
+        ReleaseFile.objects.create(
+            name=RELEASE_ARCHIVE_FILENAME,
+            release=release,
+            organization_id=project.organization_id,
+            file=file,
+        )
+
+        url = reverse(
+            "sentry-api-0-source-maps",
+            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+        )
+
+        self.login_as(user=self.user)
+
+        response = self.client.get(url)
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["name"] == str(release.version)
+        assert response.data[0]["fileCount"] == 2
