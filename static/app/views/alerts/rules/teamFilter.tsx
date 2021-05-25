@@ -10,11 +10,29 @@ import {Team} from 'app/types';
 
 import Filter from './filter';
 
+const ALERT_LIST_QUERY_DEFAULT_TEAMS = ['myteams', 'unassigned'];
+
 type Props = {
   teams: Team[];
   selectedTeams: Set<string>;
   handleChangeFilter: (activeFilters: Set<string>) => void;
 };
+
+export function getTeamParams(team?: string | string[]): string[] {
+  if (team === undefined) {
+    return ALERT_LIST_QUERY_DEFAULT_TEAMS;
+  }
+
+  if (team === '') {
+    return [];
+  }
+
+  if (Array.isArray(team)) {
+    return team;
+  }
+
+  return [team];
+}
 
 function TeamFilter({teams, selectedTeams, handleChangeFilter}: Props) {
   const [teamFilterSearch, setTeamFilterSearch] = useState<string | undefined>();
@@ -22,9 +40,14 @@ function TeamFilter({teams, selectedTeams, handleChangeFilter}: Props) {
     {label: t('My Teams'), value: 'myteams'},
     {label: t('Unassigned'), value: 'unassigned'},
   ];
+  const statusOptions = [
+    {label: t('Unresolved'), value: 'open'},
+    {label: t('Resolved'), value: 'closed'},
+  ];
   const optionValues = [
-    ...teams.map(({id}) => id),
-    ...additionalOptions.map(({value}) => value),
+    ...teams.map(({id}) => `team-${id}`),
+    ...additionalOptions.map(({value}) => `team-${value}`),
+    ...statusOptions.map(({value}) => value),
   ];
   const filteredTeams = teams.filter(({name}) =>
     teamFilterSearch ? name.toLowerCase().includes(teamFilterSearch.toLowerCase()) : true
@@ -45,41 +68,67 @@ function TeamFilter({teams, selectedTeams, handleChangeFilter}: Props) {
           value={teamFilterSearch || ''}
         />
       }
-      headerLabel={t('Team')}
       onFilterChange={handleChangeFilter}
       filterList={optionValues}
       selection={selectedTeams}
     >
-      {({toggleFilter}) => (
-        <List>
-          {additionalOptions.map(({label, value}) => (
-            <ListItem
-              key={value}
-              isChecked={selectedTeams.has(value)}
-              onClick={event => {
-                event.stopPropagation();
-                toggleFilter(value);
-              }}
-            >
-              <TeamName>{label}</TeamName>
-              <CheckboxFancy isChecked={selectedTeams.has(value)} />
-            </ListItem>
-          ))}
-          {filteredTeams.map(({id, name}) => (
-            <ListItem
-              key={id}
-              isChecked={selectedTeams.has(id)}
-              onClick={event => {
-                event.stopPropagation();
-                toggleFilter(id);
-              }}
-            >
-              <TeamName>{name}</TeamName>
-              <CheckboxFancy isChecked={selectedTeams.has(id)} />
-            </ListItem>
-          ))}
-        </List>
-      )}
+      {({toggleFilter}) => [
+        {
+          id: 'status',
+          label: t('Status'),
+          items: (
+            <List>
+              {statusOptions.map(({label, value}) => (
+                <ListItem
+                  key={value}
+                  isChecked={selectedTeams.has(value)}
+                  onClick={event => {
+                    event.stopPropagation();
+                    toggleFilter(value);
+                  }}
+                >
+                  <TeamName>{label}</TeamName>
+                  <CheckboxFancy isChecked={selectedTeams.has(value)} />
+                </ListItem>
+              ))}
+            </List>
+          ),
+        },
+        {
+          id: 'team',
+          label: t('Team'),
+          items: (
+            <List>
+              {additionalOptions.map(({label, value}) => (
+                <ListItem
+                  key={value}
+                  isChecked={selectedTeams.has(value)}
+                  onClick={event => {
+                    event.stopPropagation();
+                    toggleFilter(value);
+                  }}
+                >
+                  <TeamName>{label}</TeamName>
+                  <CheckboxFancy isChecked={selectedTeams.has(value)} />
+                </ListItem>
+              ))}
+              {filteredTeams.map(({id, name}) => (
+                <ListItem
+                  key={id}
+                  isChecked={selectedTeams.has(id)}
+                  onClick={event => {
+                    event.stopPropagation();
+                    toggleFilter(id);
+                  }}
+                >
+                  <TeamName>#{name}</TeamName>
+                  <CheckboxFancy isChecked={selectedTeams.has(id)} />
+                </ListItem>
+              ))}
+            </List>
+          ),
+        },
+      ]}
     </Filter>
   );
 }

@@ -17,16 +17,19 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import Pagination from 'app/components/pagination';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import SearchBar from 'app/components/searchBar';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {IconCheckmark, IconInfo} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
+import {Organization, Project, Team} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import Projects from 'app/utils/projects';
 import withOrganization from 'app/utils/withOrganization';
+import withTeams from 'app/utils/withTeams';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
+import TeamFilter, {getTeamParams} from '../rules/teamFilter';
 import {Incident} from '../types';
 
 import AlertHeader from './header';
@@ -45,6 +48,7 @@ function getQueryStatus(status: any): 'open' | 'closed' {
 
 type Props = RouteComponentProps<{orgId: string}, {}> & {
   organization: Organization;
+  teams: Team[];
 };
 
 type State = {
@@ -65,21 +69,18 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {params, location, organization} = this.props;
     const {query} = location;
-    const status = getQueryStatus(query.status);
-    const incidentsQuery = {
-      ...query,
-      ...(organization.features.includes('alert-details-redesign')
-        ? {expand: ['original_alert_rule']}
-        : {}),
-      status,
-    };
+    query.status = getQueryStatus(query.status);
+
+    if (organization.features.includes('team-alerts-ownership')) {
+      query.team = getTeamParams(query.team);
+    }
+
+    if (organization.features.includes('alert-details-redesign')) {
+      query.expand = ['original_alert_rule'];
+    }
 
     return [
-      [
-        'incidentList',
-        `/organizations/${params && params.orgId}/incidents/`,
-        {query: incidentsQuery},
-      ],
+      ['incidentList', `/organizations/${params && params.orgId}/incidents/`, {query}],
     ];
   }
 
@@ -136,6 +137,51 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
     }
 
     this.setState({hasAlertRule, firstVisitShown, loading: false});
+  }
+
+  handleChangeSearch = (title: string) => {
+    const {router, location} = this.props;
+    const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
+    router.push({
+      pathname: location.pathname,
+      query: {
+        ...currentQuery,
+        title,
+      },
+    });
+  };
+
+  handleChangeFilter = (activeFilters: Set<string>) => {
+    const {router, location} = this.props;
+    const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
+    const teams = [...activeFilters];
+    router.push({
+      pathname: location.pathname,
+      query: {
+        ...currentQuery,
+        team: teams.length ? teams : '',
+      },
+    });
+  };
+
+  renderFilterBar() {
+    const {teams, location} = this.props;
+    const selectedTeams = new Set(getTeamParams(location.query.team));
+
+    return (
+      <FilterWrapper>
+        <TeamFilter
+          teams={teams}
+          selectedTeams={selectedTeams}
+          handleChangeFilter={this.handleChangeFilter}
+        />
+        <StyledSearchBar
+          placeholder={t('Search by name')}
+          query={location.query?.name}
+          onSearch={this.handleChangeSearch}
+        />
+      </FilterWrapper>
+    );
   }
 
   tryRenderOnboarding() {
@@ -287,6 +333,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
                       {t('This page only shows metric alerts that have been triggered.')}
                     </Alert>
                   </Feature>
+                  {this.renderFilterBar()}
                   <StyledButtonBar merged active={status}>
                     <Button
                       to={{pathname, query: openIncidentsQuery}}
@@ -377,4 +424,14 @@ const StyledPanelHeader = styled(PanelHeader)`
   padding: ${space(1.5)} ${space(2)} ${space(1.5)} 0;
 `;
 
-export default withOrganization(IncidentsListContainer);
+const FilterWrapper = styled('div')`
+  display: flex;
+  margin-bottom: ${space(1.5)};
+`;
+
+const StyledSearchBar = styled(SearchBar)`
+  flex-grow: 1;
+  margin-left: ${space(1.5)};
+`;
+
+export default withOrganization(withTeams(IncidentsListContainer));

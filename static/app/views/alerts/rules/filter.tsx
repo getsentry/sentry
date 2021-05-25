@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import CheckboxFancy from 'app/components/checkboxFancy/checkboxFancy';
@@ -14,18 +14,19 @@ export type RenderProps = {
   toggleFilter: (filter: string) => void;
 };
 
-type RenderFunc = (props: RenderProps) => React.ReactElement;
+type RenderFunc = (
+  props: RenderProps
+) => Array<{id: string; label: string; items: React.ReactElement}>;
 
 type Props = {
   header: React.ReactElement;
-  headerLabel: string;
   onFilterChange: (filterSelection: Set<string>) => void;
   filterList: string[];
   children: RenderFunc;
   selection: Set<string>;
 };
 
-class Filter extends React.Component<Props> {
+class Filter extends Component<Props> {
   toggleFilter = (filter: string) => {
     const {onFilterChange, selection} = this.props;
     const newSelection = new Set(selection);
@@ -37,10 +38,10 @@ class Filter extends React.Component<Props> {
     onFilterChange(newSelection);
   };
 
-  toggleAllFilters = () => {
-    const {filterList, onFilterChange, selection} = this.props;
-    const newSelection =
-      selection.size === filterList.length ? new Set<string>() : new Set(filterList);
+  toggleSection = (sectionId: string) => {
+    const {filterList, onFilterChange} = this.props;
+    const sectionList = filterList.filter(id => id.startsWith(sectionId));
+    const newSelection = new Set(sectionList);
 
     onFilterChange(newSelection);
   };
@@ -51,17 +52,17 @@ class Filter extends React.Component<Props> {
   };
 
   render() {
-    const {children, header, headerLabel, filterList} = this.props;
+    const {children, header, filterList} = this.props;
     const checkedQuantity = this.getNumberOfActiveFilters();
 
     const dropDownButtonProps: Pick<DropdownButtonProps, 'children' | 'priority'> & {
       hasDarkBorderBottomColor: boolean;
     } = {
       children: (
-        <React.Fragment>
+        <Fragment>
           <IconFilter size="xs" />
           <FilterLabel>{t('Filter')}</FilterLabel>
-        </React.Fragment>
+        </Fragment>
       ),
       priority: 'default',
       hasDarkBorderBottomColor: false,
@@ -71,7 +72,6 @@ class Filter extends React.Component<Props> {
       dropDownButtonProps.children = (
         <span>{tn('%s Active Filter', '%s Active Filters', checkedQuantity)}</span>
       );
-      dropDownButtonProps.priority = 'primary';
       dropDownButtonProps.hasDarkBorderBottomColor = true;
     }
     return (
@@ -101,23 +101,28 @@ class Filter extends React.Component<Props> {
             width="240px"
           >
             {isOpen && (
-              <React.Fragment>
+              <Fragment>
                 {header}
-                <Header>
-                  <span>{headerLabel}</span>
-                  <CheckboxFancy
-                    isChecked={checkedQuantity > 0}
-                    isIndeterminate={
-                      checkedQuantity > 0 && checkedQuantity !== filterList.length
-                    }
-                    onClick={event => {
-                      event.stopPropagation();
-                      this.toggleAllFilters();
-                    }}
-                  />
-                </Header>
-                {children({toggleFilter: this.toggleFilter})}
-              </React.Fragment>
+
+                {children({toggleFilter: this.toggleFilter}).map(({id, label, items}) => (
+                  <Fragment key={id}>
+                    <Header>
+                      <span>{label}</span>
+                      <CheckboxFancy
+                        isChecked={checkedQuantity > 0}
+                        isIndeterminate={
+                          checkedQuantity > 0 && checkedQuantity !== filterList.length
+                        }
+                        onClick={event => {
+                          event.stopPropagation();
+                          this.toggleSection(id);
+                        }}
+                      />
+                    </Header>
+                    {items}
+                  </Fragment>
+                ))}
+              </Fragment>
             )}
           </MenuContent>
         )}
@@ -155,23 +160,6 @@ const StyledDropdownButton = styled(DropdownButton)<{hasDarkBorderBottomColor?: 
   max-width: 200px;
 
   z-index: ${p => p.theme.zIndex.dropdown};
-
-  &:hover,
-  &:active {
-    ${p =>
-      !p.isOpen &&
-      p.hasDarkBorderBottomColor &&
-      `
-          border-bottom-color: ${p.theme.button.primary.border};
-        `}
-  }
-
-  ${p =>
-    !p.isOpen &&
-    p.hasDarkBorderBottomColor &&
-    `
-      border-bottom-color: ${p.theme.button.primary.border};
-    `}
 `;
 
 export default Filter;

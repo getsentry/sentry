@@ -27,10 +27,9 @@ import {CombinedMetricIssueAlerts} from '../types';
 import {isIssueAlert} from '../utils';
 
 import RuleListRow from './row';
-import TeamFilter from './teamFilter';
+import TeamFilter, {getTeamParams} from './teamFilter';
 
 const DOCS_URL = 'https://docs.sentry.io/product/alerts-notifications/metric-alerts/';
-const ALERT_LIST_QUERY_DEFAULT_TEAMS = ['myteams', 'unassigned'];
 
 type Props = RouteComponentProps<{orgId: string}, {}> & {
   organization: Organization;
@@ -53,7 +52,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     }
 
     if (organization.features.includes('team-alerts-ownership')) {
-      query.team = this.getTeamQuery();
+      query.team = getTeamParams(query.team);
     }
 
     if (organization.features.includes('alert-details-redesign') && !query.sort) {
@@ -69,25 +68,6 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
         },
       ],
     ];
-  }
-
-  getTeamQuery(): string[] {
-    const {
-      location: {query},
-    } = this.props;
-    if (query.team === undefined) {
-      return ALERT_LIST_QUERY_DEFAULT_TEAMS;
-    }
-
-    if (query.team === '') {
-      return [];
-    }
-
-    if (Array.isArray(query.team)) {
-      return query.team;
-    }
-
-    return [query.team];
   }
 
   tryRenderEmpty() {
@@ -161,12 +141,13 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
 
   renderFilterBar() {
     const {teams, location} = this.props;
+    const selectedTeams = new Set(getTeamParams(location.query.team));
 
     return (
       <FilterWrapper>
         <TeamFilter
           teams={teams}
-          selectedTeams={new Set(this.getTeamQuery())}
+          selectedTeams={selectedTeams}
           handleChangeFilter={this.handleChangeFilter}
         />
         <StyledSearchBar
