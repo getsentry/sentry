@@ -11,7 +11,7 @@ from sentry.utils.cursors import Cursor
 SCIM_API_LIST = "urn:ietf:params:scim:api:messages:2.0:ListResponse"
 SCIM_SCHEMA_USER = "urn:ietf:params:scim:schemas:core:2.0:User"
 ERR_ONLY_OWNER = "You cannot remove the only remaining owner of the organization."
-SCIM_API_ERROR = ["urn:ietf:params:scim:api:messages:2.0:Error"]
+SCIM_API_ERROR = "urn:ietf:params:scim:api:messages:2.0:Error"
 SCIM_API_PATCH = "urn:ietf:params:scim:api:messages:2.0:PatchOp"
 SCIM_COUNT = 100
 
@@ -113,6 +113,7 @@ class SCIMEndpoint(OrganizationEndpoint):
 
 def parse_filter_conditions(raw_filters):
     # TODO: support "and" operator
+    # TODO: support email querying/filtering
     filters = []
     if raw_filters is None:
         return filters

@@ -148,7 +148,7 @@ class SCIMUserTests(APITestCase):
         assert response.status_code == 200, response.content
         assert correct_get_data == response.data
 
-        # test that directly GETing the deleted orgmember returns 404
+        # test that directly GETing and PATCHing the deleted orgmember returns 404
         url = reverse(
             "sentry-scim-organization-members-details", args=[self.organization.slug, org_member_id]
         )
@@ -159,7 +159,6 @@ class SCIMUserTests(APITestCase):
             "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
             "detail": "User not found.",
         }
-
         # # TODO: test authidentity is deleted
         # with pytest.raises(OrganizationMember.DoesNotExist):
         #     OrganizationMember.objects.get(organization=self.organization, id=2)
@@ -173,6 +172,32 @@ class SCIMUserTests(APITestCase):
         assert response.status_code == 204, response.content
         with pytest.raises(OrganizationMember.DoesNotExist):
             OrganizationMember.objects.get(organization=self.organization, id=member.id)
+
+    def test_cant_delete_only_owner_route(self):
+        member_om = OrganizationMember.objects.get(
+            organization=self.organization, user_id=self.user.id
+        )
+        url = reverse(
+            "sentry-scim-organization-members-details",
+            args=[self.organization.slug, member_om.id],
+        )
+        response = self.client.delete(url)
+        assert response.status_code == 403, response.content
+
+    def test_cant_delete_only_owner_route_patch(self):
+        member_om = OrganizationMember.objects.get(
+            organization=self.organization, user_id=self.user.id
+        )
+        patch_req = {
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+            "Operations": [{"op": "replace", "value": {"active": False}}],
+        }
+        url = reverse(
+            "sentry-scim-organization-members-details",
+            args=[self.organization.slug, member_om.id],
+        )
+        response = self.client.patch(url, patch_req)
+        assert response.status_code == 403, response.content
 
     def test_pagination(self):
         for i in range(0, 150):

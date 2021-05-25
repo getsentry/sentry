@@ -5,6 +5,7 @@ from rest_framework import serializers
 from rest_framework.response import Response
 
 from sentry import roles
+from sentry.api.endpoints.organization_member_details import OrganizationMemberDetailsEndpoint
 from sentry.api.endpoints.organization_member_index import OrganizationMemberSerializer
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import serialize
@@ -19,7 +20,7 @@ from .utils import SCIM_API_ERROR, SCIMEndpoint, parse_filter_conditions
 ERR_ONLY_OWNER = "You cannot remove the only remaining owner of the organization."
 
 SCIM_404_USER_RES = {
-    "schemas": SCIM_API_ERROR,
+    "schemas": [SCIM_API_ERROR],
     "detail": "User not found.",
 }
 
@@ -40,25 +41,9 @@ class SCIMUserSerializer(serializers.Serializer):
         return email
 
 
-class OrganizationSCIMUserDetails(SCIMEndpoint):
-    # TODO: inherit from route to get this method so we don't have to copy?
-    def _is_only_owner(self, member):
-        if member.role != roles.get_top_dog().id:
-            return False
-
-        queryset = OrganizationMember.objects.filter(
-            organization=member.organization_id,
-            role=roles.get_top_dog().id,
-            user__isnull=False,
-            user__is_active=True,
-        ).exclude(id=member.id)
-        if queryset.exists():
-            return False
-
-        return True
-
+class OrganizationSCIMUserDetails(SCIMEndpoint, OrganizationMemberDetailsEndpoint):
     def get(self, request, organization, member_id):
-        if int(member_id) > BoundedBigAutoField.MAX_VALUE:
+        if member_id > BoundedBigAutoField.MAX_VALUE:
             # Okta E2E tests try to break the endpoint by passing an extremely large int
             # protect against that here
             return Response(SCIM_404_USER_RES, status=404)
@@ -146,7 +131,7 @@ class OrganizationSCIMUserIndex(SCIMEndpoint):
                 | Q(user__emails__email__in=filter_val)
             )
 
-        # how is queryset ordered?
+        # TODO: how is queryset ordered?
 
         def data_fn(offset, limit):
             return list(queryset[offset : offset + limit])
@@ -192,7 +177,7 @@ class OrganizationSCIMUserIndex(SCIMEndpoint):
                 role=result["role"],
                 inviter=request.user,
             )
-            # TODO: what does this do in our context?
+            # TODO: are invite tokens needed for SAML orgs?
             if settings.SENTRY_ENABLE_INVITES:
                 member.token = member.generate_token()
             member.save()

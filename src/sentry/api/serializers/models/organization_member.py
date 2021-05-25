@@ -198,24 +198,6 @@ class OrganizationMemberSCIMSerializer(Serializer):  # type: ignore
     def __init__(self, expand: Optional[Sequence[str]] = None) -> None:
         self.expand = expand or []
 
-    def get_attrs(
-        self, item_list: Sequence[OrganizationMember], user: User, **kwargs: Any
-    ) -> MutableMapping[OrganizationMember, MutableMapping[str, Any]]:
-        users_set = {
-            organization_member.user
-            for organization_member in item_list
-            if organization_member.user_id
-        }
-        users_by_id = get_serialized_users_by_id(users_set, user)
-
-        attrs: MutableMapping[OrganizationMember, MutableMapping[str, Any]] = {}
-        for item in item_list:
-            user = users_by_id.get(str(item.user_id), None)
-            attrs[item] = {
-                "user": user,
-            }
-        return attrs
-
     def serialize(
         self, obj: OrganizationMember, attrs: Mapping[str, Any], user: Any, **kwargs: Any
     ) -> MutableMapping[str, JSONData]:
@@ -224,7 +206,7 @@ class OrganizationMemberSCIMSerializer(Serializer):  # type: ignore
         d = {
             "schemas": [SCIM_SCHEMA_USER],
             "id": obj.id,
-            "userName": obj.get_email(),  # does this get weird with secondary emails?
+            "userName": obj.get_email(),  # TODO: does this get weird with secondary emails?
             "name": {"givenName": "N/A", "familyName": "N/A"},
             "emails": [
                 {"primary": True, "value": obj.get_email(), "type": "work"}
