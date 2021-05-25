@@ -1,6 +1,6 @@
 from functools import wraps
 
-from sentry.api.exceptions import SudoRequired
+from sentry.api.exceptions import EmailVerificationRequired, SudoRequired
 from sentry.models import ApiKey, ApiToken
 
 
@@ -17,6 +17,11 @@ def is_considered_sudo(request):
     )
 
 
+def has_verified_email(request):
+    user = request.user
+    return request.user.get_verified_emails().filter(email=user.email).exists()
+
+
 def sudo_required(func):
     @wraps(func)
     def wrapped(self, request, *args, **kwargs):
@@ -26,6 +31,16 @@ def sudo_required(func):
             # TODO(dcramer): support some kind of auth flow to allow this
             # externally
             raise SudoRequired(request.user)
+        return func(self, request, *args, **kwargs)
+
+    return wrapped
+
+
+def email_verification_required(func):
+    @wraps(func)
+    def wrapped(self, request, *args, **kwargs):
+        if not has_verified_email(request):
+            raise EmailVerificationRequired(request.user)
         return func(self, request, *args, **kwargs)
 
     return wrapped

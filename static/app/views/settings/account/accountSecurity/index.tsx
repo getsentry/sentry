@@ -1,4 +1,5 @@
 import * as ReactRouter from 'react-router';
+import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
@@ -9,7 +10,7 @@ import NavTabs from 'app/components/navTabs';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import Tooltip from 'app/components/tooltip';
 import {IconDelete} from 'app/icons';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {Authenticator, OrganizationSummary} from 'app/types';
 import recreateRoute from 'app/utils/recreateRoute';
@@ -27,6 +28,7 @@ type Props = {
   orgsRequire2fa: OrganizationSummary[];
   countEnrolled: number;
   deleteDisabled: boolean;
+  primaryEmailVerified: boolean;
   onDisable: (auth: Authenticator) => void;
 } & AsyncView['props'] &
   ReactRouter.WithRouterProps;
@@ -66,7 +68,13 @@ class AccountSecurity extends AsyncView<Props> {
   };
 
   renderBody() {
-    const {authenticators, countEnrolled, deleteDisabled, onDisable} = this.props;
+    const {
+      authenticators,
+      countEnrolled,
+      deleteDisabled,
+      onDisable,
+      primaryEmailVerified,
+    } = this.props;
     const isEmpty = !authenticators?.length;
 
     return (
@@ -136,14 +144,30 @@ class AccountSecurity extends AsyncView<Props> {
 
                       <Actions>
                         {!isBackupInterface && !isEnrolled && (
-                          <Button
-                            to={`/settings/account/security/mfa/${id}/enroll/`}
-                            size="small"
-                            priority="primary"
-                            className="enroll-button"
+                          <Tooltip
+                            isHoverable
+                            title={tct(
+                              'you must [link:verify your primary email] to enroll a 2FA device.',
+                              {
+                                link: <Link to="/settings/account/emails/" />,
+                              }
+                            )}
+                            disabled={primaryEmailVerified}
                           >
-                            {t('Add')}
-                          </Button>
+                            <RemoveConfirm
+                              onConfirm={() => onDisable(auth)}
+                              disabled={!primaryEmailVerified}
+                            >
+                              <Button
+                                to={`/settings/account/security/mfa/${id}/enroll/`}
+                                size="small"
+                                priority="primary"
+                                className="enroll-button"
+                              >
+                                {t('Add')}
+                              </Button>
+                            </RemoveConfirm>
+                          </Tooltip>
                         )}
 
                         {isEnrolled && authId && (
