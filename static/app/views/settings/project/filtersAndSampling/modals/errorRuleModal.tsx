@@ -49,6 +49,9 @@ class ErrorRuleModal extends Form<Props, State> {
       [DynamicSamplingInnerName.EVENT_LOCALHOST, t('Localhost')],
       [DynamicSamplingInnerName.EVENT_LEGACY_BROWSER, t('Legacy Browsers')],
       [DynamicSamplingInnerName.EVENT_WEB_CRAWLERS, t('Web Crawlers')],
+      [DynamicSamplingInnerName.EVENT_IP_ADDRESSES, t('IP Addresses')],
+      [DynamicSamplingInnerName.EVENT_CSP, t('Content Security Policy')],
+      [DynamicSamplingInnerName.EVENT_ERROR_MESSAGES, t('Error Messages')],
     ];
   }
 
