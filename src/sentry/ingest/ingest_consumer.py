@@ -78,10 +78,10 @@ class IngestConsumerWorker(AbstractBatchWorker):
         attachment_chunks = []
 
         # Processing functions may be either synchronous or asynchronous.
-        # Functions that return a ``AsyncResult`` may perform a combination of
+        # Functions that return an ``AsyncResult`` may perform a combination of
         # synchronous and asynchronous work, and need to be explicitly waited on
         # to ensure they have completed and callbacks have been invoked before
-        # returning.  Functions that return anything else are assumed to have
+        # returning. Functions that return anything else are assumed to have
         # completed successfully after they have returned.
         other_messages: MutableSequence[
             Tuple[
