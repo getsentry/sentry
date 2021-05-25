@@ -15,6 +15,9 @@ from sentry.utils import json, metrics
 from sentry.utils.hashlib import sha1_text
 from sentry.utils.zip import safe_extract_zip
 
+#: Name for the bundle stored as a release file
+RELEASE_ARCHIVE_FILENAME = "release-artifacts.zip"
+
 
 class ReleaseFile(Model):
     r"""

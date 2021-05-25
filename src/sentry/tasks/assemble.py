@@ -9,17 +9,17 @@ from sentry import features
 from sentry.api.serializers import serialize
 from sentry.cache import default_cache
 from sentry.models import File, Organization, Release, ReleaseFile
-from sentry.models.releasefile import ReleaseArchive, merge_release_archives
+from sentry.models.releasefile import (
+    RELEASE_ARCHIVE_FILENAME,
+    ReleaseArchive,
+    merge_release_archives,
+)
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.files import get_max_file_size
 from sentry.utils.sdk import bind_organization_context, configure_scope
 
 logger = logging.getLogger(__name__)
-
-
-#: Name for the bundle stored as a release file
-RELEASE_ARCHIVE_FILENAME = "release-artifacts.zip"
 
 
 class ChunkFileState:

@@ -4,6 +4,7 @@ import re
 from time import time
 
 import sentry_sdk
+from django.core.exceptions import ObjectDoesNotExist
 from django.db import IntegrityError, models, transaction
 from django.db.models import F
 from django.utils import timezone
@@ -23,6 +24,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.models import CommitFileChange, GroupInboxRemoveAction, remove_group_from_inbox
+from sentry.models.releasefile import RELEASE_ARCHIVE_FILENAME, ReleaseArchive, ReleaseFile
 from sentry.signals import issue_resolved
 from sentry.utils import metrics
 from sentry.utils.cache import cache
@@ -719,3 +721,33 @@ class Release(Model):
             releasefile.file.delete()
             releasefile.delete()
         self.delete()
+
+    def get_release_archive(self):
+        """Get the release archive corresponding to this release if it exists.
+
+        The caller is responsible for closing the archive.
+        """
+        try:
+            release_archive_file = ReleaseFile.objects.select_related("file").get(
+                release=self, name=RELEASE_ARCHIVE_FILENAME
+            )
+        except ObjectDoesNotExist:
+            return None
+
+        file_ = ReleaseFile.cache.getfile(release_archive_file)
+        return ReleaseArchive(file_.file)
+
+    def count_artifacts(self):
+        """Count release files plus files bundled in release archive. """
+        release_files = (
+            ReleaseFile.objects.filter(release=self).exclude(name=RELEASE_ARCHIVE_FILENAME).count()
+        )
+
+        archive = self.get_release_archive()
+        if archive is None:
+            compressed_artifacts = 0
+        else:
+            with archive:
+                compressed_artifacts = len(archive.manifest.get("files", {}))
+
+        return release_files + compressed_artifacts

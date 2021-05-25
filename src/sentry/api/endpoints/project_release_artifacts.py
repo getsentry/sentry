@@ -63,11 +63,8 @@ class ProjectReleaseArtifactsEndpoint(ProjectEndpoint):
         on_results = lambda r: serialize(load_dist(r), request.user)
 
         # Get contents of release archive as well:
-        try:
-            release_archive_file = ReleaseFile.objects.select_related("file").get(
-                release=release, name=RELEASE_ARCHIVE_FILENAME
-            )
-        except ResourceDoesNotExist:
+        archive = release.get_release_archive()
+        if archive is None:
             # Behave like ProjectReleaseFilesEndpoint
             return self.paginate(
                 request=request,
@@ -78,8 +75,7 @@ class ProjectReleaseArtifactsEndpoint(ProjectEndpoint):
                 on_results=on_results,
             )
         else:
-            file_ = ReleaseFile.cache.getfile(release_archive_file)
-            with ReleaseArchive(file_.file) as archive:
+            with archive:
                 archived_list = ReleaseArchiveQuerySet(archive, query)
 
             return self.paginate(
