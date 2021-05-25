@@ -73,14 +73,18 @@ class AlertWizard extends Component<Props, State> {
   };
 
   renderCreateAlertButton() {
-    const {organization, project, location} = this.props;
+    const {
+      organization,
+      location,
+      params: {projectId},
+    } = this.props;
     const {alertOption} = this.state;
     const metricRuleTemplate = AlertWizardRuleTemplates[alertOption];
     const isMetricAlert = !!metricRuleTemplate;
     const isTransactionDataset = metricRuleTemplate?.dataset === Dataset.TRANSACTIONS;
 
     const to = {
-      pathname: `/organizations/${organization.slug}/alerts/${project.slug}/new/`,
+      pathname: `/organizations/${organization.slug}/alerts/${projectId}/new/`,
       query: {
         ...(metricRuleTemplate && metricRuleTemplate),
         createFromWizard: true,
@@ -131,7 +135,7 @@ class AlertWizard extends Component<Props, State> {
           >
             <CreateAlertButton
               organization={organization}
-              projectSlug={project.slug}
+              projectSlug={projectId}
               disabled={!hasFeature}
               priority="primary"
               to={to}
@@ -150,6 +154,8 @@ class AlertWizard extends Component<Props, State> {
       hasMetricAlerts,
       organization,
       params: {projectId},
+      routes,
+      location,
     } = this.props;
     const {alertOption} = this.state;
     const title = t('Alert Creation Wizard');
@@ -160,15 +166,18 @@ class AlertWizard extends Component<Props, State> {
 
         <Feature features={['organizations:alert-wizard']}>
           <Layout.Header>
-            <Layout.HeaderContent>
+            <StyledHeaderContent>
               <BuilderBreadCrumbs
                 hasMetricAlerts={hasMetricAlerts}
                 orgSlug={organization.slug}
                 projectSlug={projectId}
                 title={t('Select Alert')}
+                routes={routes}
+                location={location}
+                canChangeProject
               />
               <Layout.Title>{t('Select Alert')}</Layout.Title>
-            </Layout.HeaderContent>
+            </StyledHeaderContent>
           </Layout.Header>
           <StyledLayoutBody>
             <Layout.Main fullWidth>
@@ -225,6 +234,10 @@ class AlertWizard extends Component<Props, State> {
 
 const StyledLayoutBody = styled(Layout.Body)`
   margin-bottom: -${space(3)};
+`;
+
+const StyledHeaderContent = styled(Layout.HeaderContent)`
+  overflow: visible;
 `;
 
 const Styledh2 = styled('h2')`
