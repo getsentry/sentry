@@ -61,7 +61,9 @@ class ProjectSourceMapsDetail extends AsyncView<Props, State> {
   getArtifactsUrl() {
     const {orgId, projectId, name} = this.props.params;
 
-    return `/projects/${orgId}/${projectId}/releases/${encodeURIComponent(name)}/files/`;
+    return `/projects/${orgId}/${projectId}/releases/${encodeURIComponent(
+      name
+    )}/artifacts/`;
   }
 
   handleSearch = (query: string) => {

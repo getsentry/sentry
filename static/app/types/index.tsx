@@ -1481,6 +1481,7 @@ export type ReleaseMeta = {
   commitFilesChanged: number;
   deployCount: number;
   releaseFileCount: number;
+  releaseArtifactCount: number;
   version: string;
   projects: ReleaseProject[];
   versionInfo: VersionInfo;
