@@ -42,10 +42,24 @@ type Props = RouteComponentProps<RouteParams, {}> & {
 type State = {
   alertOption: AlertType;
 };
+
+const DEFAULT_ALERT_OPTION = 'issues';
+
 class AlertWizard extends Component<Props, State> {
   state: State = {
-    alertOption: 'issues',
+    alertOption: DEFAULT_ALERT_OPTION,
   };
+
+  componentDidMount() {
+    // capture landing on the alert wizard page and viewing the issue alert by default
+    const {organization} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'alert_wizard.option_viewed',
+      eventName: 'Alert Wizard: Option Viewed',
+      organization_id: organization.id,
+      alert_type: DEFAULT_ALERT_OPTION,
+    });
+  }
 
   handleChangeAlertOption = (alertOption: AlertType) => {
     const {organization} = this.props;
