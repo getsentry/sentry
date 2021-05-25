@@ -84,18 +84,21 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
        * In Chrome and other browsers, it is handled gracefully, where in Safari on iOS, it produces additional error, that is jumping
        * outside of the original Promise chain and bubbles up to the `unhandledRejection` handler, that we then captures as error.
        * Can be safely removed once the bug is fixed upstream.
-       * 
+       *
        * Ref: https://bugs.webkit.org/show_bug.cgi?id=215771
        */
       try {
-        if (window.navigator.userAgent.includes('iPhone') && hint.originalException.message === 'AbortError: Fetch is aborted') {
+        if (
+          window.navigator.userAgent.includes('iPhone') &&
+          hint.originalException.message === 'AbortError: Fetch is aborted'
+        ) {
           return null;
         }
       } catch {
         // Not every hint has `originalException` available.
       }
       return event;
-    }
+    },
   });
 
   // Track timeOrigin Selection by the SDK to see if it improves transaction durations
