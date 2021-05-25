@@ -122,9 +122,6 @@ def _upgrade(interactive, traceback, verbosity, repair, with_nodestore):
         interactive=interactive,
         traceback=traceback,
         verbosity=verbosity,
-        migrate=True,
-        merge=True,
-        ignore_ghost_migrations=True,
     )
 
     if with_nodestore:
