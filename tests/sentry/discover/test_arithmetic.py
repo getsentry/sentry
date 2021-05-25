@@ -54,7 +54,7 @@ def test_simple_arithmetic(a, op, b):
     ],
 )
 def test_homogenous_arithmetic(a, op1, b, op2, c):
-    """ Test that order of ops is respected assuming we don't have to worry about BEDMAS """
+    """ Test that literal order of ops is respected assuming we don't have to worry about BEDMAS """
     equation = f"{a}{op1}{b}{op2}{c}"
     result = parse_arithmetic(equation)
     assert result.operator == op_map[op2.strip()], equation
@@ -89,6 +89,35 @@ def test_four_terms():
     assert result.rhs.lhs.lhs == 2.0
     assert result.rhs.lhs.rhs == 3.0
     assert result.rhs.rhs == 4.0
+
+
+@pytest.mark.parametrize(
+    "a,op1,b,op2,c,op3,d",
+    [
+        ("12", "+", "34", "+", "56", "+", "78"),
+        ("12", "-", "34", "-", "56", "-", "78"),
+        ("12", "+", "34", "-", "56", "+", "78"),
+        ("12", "-", "34", "+", "56", "-", "78"),
+        ("12", "*", "34", "*", "56", "*", "78"),
+        ("12", "/", "34", "/", "56", "/", "78"),
+        ("12", "*", "34", "/", "56", "*", "78"),
+        ("12", "/", "34", "*", "56", "/", "78"),
+    ],
+)
+def test_homogenous_four_terms(a, op1, b, op2, c, op3, d):
+    """This basically tests flatten in the ArithmeticVisitor
+
+    flatten only kicks in when its a chain of the same operator type
+    """
+    equation = f"{a}{op1}{b}{op2}{c}{op3}{d}"
+    result = parse_arithmetic(equation)
+    assert result.operator == op_map[op3.strip()], equation
+    assert result.lhs.operator == op_map[op2.strip()], equation
+    assert result.lhs.lhs.operator == op_map[op1.strip()], equation
+    assert result.lhs.lhs.lhs == float(a), equation
+    assert result.lhs.lhs.rhs == float(b), equation
+    assert result.lhs.rhs == float(c), equation
+    assert result.rhs == float(d), equation
 
 
 def test_max_operators():

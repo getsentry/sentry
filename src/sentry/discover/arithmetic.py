@@ -29,7 +29,7 @@ class Operation:
         self.rhs = rhs
 
     def __repr__(self):
-        return repr([self.operator, repr(self.lhs), repr(self.rhs)])
+        return repr([self.operator, self.lhs, self.rhs])
 
 
 arithmetic_grammar = Grammar(
@@ -72,10 +72,14 @@ class ArithmeticVisitor(NodeVisitor):
         self.operators = 0
         self.max_operators = max_operators if max_operators else self.DEFAULT_MAX_OPERATORS
 
-    def flatten(self, terms):
-        *remaining, term = terms
-        if term.lhs is None:
-            term.lhs = remaining[0]
+    def flatten(self, remaining):
+        """ Take all the remaining terms and reduce them to a single tree """
+        term = remaining.pop(0)
+        while remaining:
+            next_term = remaining.pop(0)
+            if next_term.lhs is None:
+                next_term.lhs = term
+            term = next_term
         return term
 
     def visit_term(self, _, children):
