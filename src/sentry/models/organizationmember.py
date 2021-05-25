@@ -19,10 +19,10 @@ from sentry.db.models import (
     BaseModel,
     BoundedAutoField,
     BoundedPositiveIntegerField,
+    EncryptedJsonField,
     FlexibleForeignKey,
     Model,
     sane_repr,
-    EncryptedJsonField,
 )
 from sentry.models.team import TeamStatus
 from sentry.utils.http import absolute_uri
