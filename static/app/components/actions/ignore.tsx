@@ -115,6 +115,15 @@ const IgnoreActions = ({
 
   return (
     <ButtonBar merged>
+      <ActionLink
+        {...actionLinkProps}
+        type="button"
+        title={t('Ignore')}
+        onAction={() => onUpdate({status: ResolutionStatus.IGNORED})}
+        icon={<IconMute size="xs" />}
+      >
+        {t('Ignore')}
+      </ActionLink>
       <StyledDropdownLink
         customTitle={
           <ActionButton
@@ -312,7 +321,6 @@ const StyledForActionLink = styled(ActionLink)`
   ${actionLinkCss};
 `;
 
-// The icon with no text label needs the height reduced for row actions
 const StyledDropdownLink = styled(DropdownLink)`
   transition: none;
   border-top-left-radius: 0 !important;
