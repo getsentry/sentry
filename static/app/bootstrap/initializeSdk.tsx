@@ -90,6 +90,7 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
       try {
         if (
           window.navigator.userAgent.includes('iPhone') &&
+          hint?.originalException instanceof Error &&
           hint.originalException.message === 'AbortError: Fetch is aborted'
         ) {
           return null;
