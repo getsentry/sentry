@@ -76,7 +76,7 @@ class SCIMEndpoint(OrganizationEndpoint):
 
         input_cursor = None
         if request.GET.get("startIndex"):
-            # startIndex is 1 indexed!
+            # XXX: SCIM startIndex param is 1 indexed
             try:
                 input_cursor = Cursor(0, int(request.GET.get("startIndex")) - 1, 0)
             except ValueError:

@@ -160,6 +160,7 @@ class OrganizationSCIMUserIndex(SCIMEndpoint):
         )
 
     def post(self, request, organization):
+        # TODO: confirm mixed case emails get converted to lowercase
         serializer = OrganizationMemberSerializer(
             data={
                 "email": request.data.get("userName"),
