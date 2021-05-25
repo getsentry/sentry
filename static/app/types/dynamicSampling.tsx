@@ -56,7 +56,11 @@ export enum DynamicSamplingInnerName {
   EVENT_LOCALHOST = 'event.is_local_ip',
   EVENT_WEB_CRAWLERS = 'event.web_crawlers',
   EVENT_BROWSER_EXTENSIONS = 'event.has_bad_browser_extensions',
+  // Custom operators
+  EVENT_IP_ADDRESSES = 'event.client_ip',
   EVENT_LEGACY_BROWSER = 'event.legacy_browser',
+  EVENT_ERROR_MESSAGES = 'event.error_messages',
+  EVENT_CSP = 'event.csp',
 }
 
 export enum LegacyBrowser {
@@ -102,6 +106,15 @@ type DynamicSamplingConditionLogicalInnerEqBoolean = {
 
 type DynamicSamplingConditionLogicalInnerCustom = {
   op: DynamicSamplingInnerOperator.CUSTOM;
+  name:
+    | DynamicSamplingInnerName.EVENT_CSP
+    | DynamicSamplingInnerName.EVENT_ERROR_MESSAGES
+    | DynamicSamplingInnerName.EVENT_IP_ADDRESSES;
+  value: Array<string>;
+};
+
+type DynamicSamplingConditionLogicalInnerCustomLegacyBrowser = {
+  op: DynamicSamplingInnerOperator.CUSTOM;
   name: DynamicSamplingInnerName.EVENT_LEGACY_BROWSER;
   value: Array<LegacyBrowser>;
 };
@@ -110,7 +123,8 @@ export type DynamicSamplingConditionLogicalInner =
   | DynamicSamplingConditionLogicalInnerGlob
   | DynamicSamplingConditionLogicalInnerEq
   | DynamicSamplingConditionLogicalInnerEqBoolean
-  | DynamicSamplingConditionLogicalInnerCustom;
+  | DynamicSamplingConditionLogicalInnerCustom
+  | DynamicSamplingConditionLogicalInnerCustomLegacyBrowser;
 
 export type DynamicSamplingCondition = {
   op: DynamicSamplingConditionOperator.AND;

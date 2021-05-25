@@ -82,7 +82,7 @@ function ConditionFields({
                 // help={t('This is a description')} // TODO(PRISCILA): Add correct description
                 placeholder={getMatchFieldPlaceholder(category)}
                 name={`match-${index}`}
-                value={match}
+                value={isMatchesDisabled ? '' : match}
                 onChange={value => onChange(index, 'match', value)}
                 disabled={isMatchesDisabled}
                 inline={false}

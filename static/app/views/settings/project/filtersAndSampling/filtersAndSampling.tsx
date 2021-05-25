@@ -253,7 +253,7 @@ class FiltersAndSampling extends AsyncView<Props, State> {
         />
         <TextBlock>
           {t(
-            'The transaction order is limited. Traces must occur first and individual transactions must occur last. Any individual transaction rules before a trace rule will be disregarded. '
+            'Trace rules (Individual transactions) should precede transaction rules (transaction traces).'
           )}
         </TextBlock>
         <RulesPanel
