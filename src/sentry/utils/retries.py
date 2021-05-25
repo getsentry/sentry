@@ -72,7 +72,7 @@ class ConditionalRetryPolicy(RetryPolicy[T]):
     callable throws an exception.
 
     The test function takes two arguments: the number of times the callable
-    has unsuccesfully been invoked, and the exception instance that was
+    has unsuccessfully been invoked, and the exception instance that was
     raised during the last execution attempt. This function is expected to
     return a boolean: if the value is ``True``, the callable will be retried;
     if the value is ``False``, the callable will not be retried and the

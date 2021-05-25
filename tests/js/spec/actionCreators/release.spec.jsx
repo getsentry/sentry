@@ -10,7 +10,7 @@ describe('ReleaseActionCreator', function () {
 
   const api = new MockApiClient();
   const mockData = {id: '1'};
-  let mockReponse;
+  let mockResponse;
 
   describe('getProjectRelease', () => {
     const releaseUrl = `/projects/${orgSlug}/${projectSlug}/releases/${encodeURIComponent(
@@ -19,7 +19,7 @@ describe('ReleaseActionCreator', function () {
 
     beforeEach(() => {
       MockApiClient.clearMockResponses();
-      mockReponse = MockApiClient.addMockResponse({
+      mockResponse = MockApiClient.addMockResponse({
         url: releaseUrl,
         body: mockData,
       });
@@ -46,7 +46,7 @@ describe('ReleaseActionCreator', function () {
       await tick(); // Run Store.loadRelease and fire Action.loadReleaseSuccess
       await tick(); // Run Store.loadReleaseSuccess
 
-      expect(mockReponse).toHaveBeenCalledWith(releaseUrl, expect.anything());
+      expect(mockResponse).toHaveBeenCalledWith(releaseUrl, expect.anything());
       expect(ReleaseActions.loadReleaseSuccess).toHaveBeenCalledWith(
         projectSlug,
         releaseVersion,
@@ -75,7 +75,7 @@ describe('ReleaseActionCreator', function () {
 
     beforeEach(() => {
       MockApiClient.clearMockResponses();
-      mockReponse = MockApiClient.addMockResponse({
+      mockResponse = MockApiClient.addMockResponse({
         url: deploysUrl,
         body: [mockData],
       });
@@ -99,7 +99,7 @@ describe('ReleaseActionCreator', function () {
       await tick(); // Run Store.loadDeploys and fire Action.loadDeploysSuccess
       await tick(); // Run Store.loadDeploysSuccess
 
-      expect(mockReponse).toHaveBeenCalledWith(deploysUrl, expect.anything());
+      expect(mockResponse).toHaveBeenCalledWith(deploysUrl, expect.anything());
       expect(ReleaseActions.loadDeploysSuccess).toHaveBeenCalledWith(
         projectSlug,
         releaseVersion,

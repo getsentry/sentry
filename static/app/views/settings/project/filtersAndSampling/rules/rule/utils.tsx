@@ -7,7 +7,7 @@ export function getInnerNameLabel(name: DynamicSamplingInnerName) {
   switch (name) {
     case DynamicSamplingInnerName.TRACE_ENVIRONMENT:
     case DynamicSamplingInnerName.EVENT_ENVIRONMENT:
-      return t('Enviroment');
+      return t('Environment');
     case DynamicSamplingInnerName.TRACE_RELEASE:
     case DynamicSamplingInnerName.EVENT_RELEASE:
       return t('Release');

@@ -28,7 +28,7 @@ const TimesTag = ({lastSeen, firstSeen}: Props) => {
         />
       )}
       {firstSeen && lastSeen && (
-        <Seperator className="hidden-xs hidden-sm">&nbsp;|&nbsp;</Seperator>
+        <Separator className="hidden-xs hidden-sm">&nbsp;|&nbsp;</Separator>
       )}
       {firstSeen && (
         <TimeSince
@@ -49,7 +49,7 @@ const Wrapper = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
-const Seperator = styled('span')`
+const Separator = styled('span')`
   color: ${p => p.theme.subText};
 `;
 

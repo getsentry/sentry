@@ -37,7 +37,7 @@ class RedisRuleStatus:
 
         cluster_id = getattr(settings, "SENTRY_RULE_TASK_REDIS_CLUSTER", "default")
         self.client = redis_clusters.get(cluster_id)
-        self._set_inital_value()
+        self._set_initial_value()
 
     @property
     def uuid(self):
@@ -55,7 +55,7 @@ class RedisRuleStatus:
     def _generate_uuid(self):
         return uuid4().hex
 
-    def _set_inital_value(self):
+    def _set_initial_value(self):
         value = json.dumps({"status": "pending"})
         self.client.set(self._get_redis_key(), f"{value}", ex=60 * 60, nx=True)
 

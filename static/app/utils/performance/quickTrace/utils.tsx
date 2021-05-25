@@ -253,7 +253,7 @@ export function makeEventView({
     version: 2,
     name: '',
     // This field doesn't actually do anything,
-    // just here to satify a constraint in EventView.
+    // just here to satisfy a constraint in EventView.
     fields: ['transaction.duration'],
     projects: [ALL_ACCESS_PROJECTS],
     query: '',

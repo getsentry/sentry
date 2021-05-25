@@ -86,7 +86,7 @@ class DemoOrgManagerTest(TestCase):
     @mock.patch.object(DemoOrganization, "get_one_pending_org")
     @mock.patch.object(DemoUser, "create_user")
     @mock.patch("sentry.demo.tasks.build_up_org_buffer.apply_async")
-    def test_assign_demo_org_intregity_error(
+    def test_assign_demo_org_integrity_error(
         self, mock_build_up_org_buffer, mock_create_user, mock_get_one_pending_org
     ):
         email = create_fake_email("slug-two", "demo")
@@ -118,7 +118,7 @@ class DemoOrgManagerTest(TestCase):
 
     @mock.patch.object(DemoUser, "create_user")
     @mock.patch("sentry.demo.tasks.build_up_org_buffer.apply_async")
-    def test_assign_demo_org_intregity_error_retry_fails(
+    def test_assign_demo_org_integrity_error_retry_fails(
         self, mock_build_up_org_buffer, mock_create_user
     ):
         mock_create_user.side_effect = IntegrityError

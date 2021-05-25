@@ -241,7 +241,7 @@ class BuildIncidentAttachmentTest(TestCase):
         group_with_no_events = self.create_group(project=self.project)
         assert build_group_attachment(group_with_no_events)["color"] == "#E03E2F"
 
-    def test_build_group_attachment_color_unxpected_level_error_fallback(self):
+    def test_build_group_attachment_color_unexpected_level_error_fallback(self):
         unexpected_level_event = self.store_event(
             data={"level": "trace"}, project_id=self.project.id, assert_no_errors=False
         )

@@ -93,7 +93,7 @@ export default class ThresholdsChart extends PureComponent<Props, State> {
     const {maxValue} = this.props;
     if (typeof maxValue !== 'undefined' && threshold > maxValue) {
       // We need to force update after we set a new yAxis max because `convertToPixel`
-      // can return a negitive position (probably because yAxisMax is not synced with chart yet)
+      // can return a negative position (probably because yAxisMax is not synced with chart yet)
       this.setState({yAxisMax: Math.round(threshold * 1.1)}, this.forceUpdate);
     } else {
       this.setState({yAxisMax: null}, this.forceUpdate);

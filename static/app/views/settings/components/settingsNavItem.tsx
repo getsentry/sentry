@@ -29,10 +29,10 @@ const SettingsNavItem = ({badge, label, index, id, ...props}: Props) => {
       <FeatureBadge type="new" />
     ) : badge === 'warning' ? (
       <Tooltip title={t('This settings needs review')} position="right">
-        <SyledBadge text={badge} type="warning" />
+        <StyledBadge text={badge} type="warning" />
       </Tooltip>
     ) : (
-      <SyledBadge text={badge} />
+      <StyledBadge text={badge} />
     );
 
   return (
@@ -90,7 +90,7 @@ const StyledNavItem = styled(Link)`
   }
 `;
 
-const SyledBadge = styled(Badge)`
+const StyledBadge = styled(Badge)`
   font-weight: 400;
   height: auto;
   line-height: 1;

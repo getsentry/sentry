@@ -29,8 +29,8 @@ export default function AwsLambdaFailureDetails({
           <StyledCheckmark isCircled color="green300" />
           <h3>
             {tn(
-              'Succesfully updated %s function',
-              'Succesfully updated %s functions',
+              'successfully updated %s function',
+              'successfully updated %s functions',
               successCount
             )}
           </h3>

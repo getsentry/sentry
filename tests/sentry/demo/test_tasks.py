@@ -85,7 +85,7 @@ class BuildUpOrgBufferTest(DemoTaskBaseClass):
             status = DemoOrgStatus.INITIALIZING if i % 1 == 0 else DemoOrgStatus.PENDING
             self.create_demo_org(status=status)
 
-        # active orgs shoudn't count
+        # active orgs shouldn't count
         self.create_demo_org(status=DemoOrgStatus.ACTIVE)
 
         mock_create_demo_org.side_effect = self.create_demo_org

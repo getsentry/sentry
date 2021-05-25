@@ -24,7 +24,7 @@ org_owner_email = "james@example.com"
 
 
 @override_settings(DEMO_MODE=True, ROOT_URLCONF="sentry.demo.urls")
-class DemoStartTeset(TestCase):
+class DemoStartTest(TestCase):
     @fixture
     def path(self):
         return "/demo/start/"

@@ -65,7 +65,7 @@ export type DropdownOption = {
    */
   trendType?: TrendChangeType;
   /**
-   * overide the eventView query
+   * override the eventView query
    */
   query?: [string, string][];
 };

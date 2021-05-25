@@ -48,7 +48,7 @@ describe('TableField', function () {
       expect(wrapper.find('button[aria-label="Add Thing"]').text()).toEqual('Add Thing');
     });
 
-    it("doesn't render columns if there's no initalData", function () {
+    it("doesn't render columns if there's no initialData", function () {
       expect(wrapper.find('HeaderLabel').exists()).toBe(false);
     });
 
