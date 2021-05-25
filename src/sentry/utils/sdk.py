@@ -392,7 +392,7 @@ def configure_sdk():
                 if method_name == "capture_envelope":
                     envelope = args[0]
                     relay_envelope = copy.copy(envelope)
-                    relay_envelope.items = envelope.items[:]
+                    relay_envelope.items = envelope.items.copy()
                     args[0] = relay_envelope
 
                 if is_current_event_safe():
