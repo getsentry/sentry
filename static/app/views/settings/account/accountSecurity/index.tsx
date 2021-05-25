@@ -28,7 +28,7 @@ type Props = {
   orgsRequire2fa: OrganizationSummary[];
   countEnrolled: number;
   deleteDisabled: boolean;
-  primaryEmailVerified: boolean;
+  hasVerifiedEmail: boolean;
   onDisable: (auth: Authenticator) => void;
 } & AsyncView['props'] &
   ReactRouter.WithRouterProps;
@@ -73,7 +73,7 @@ class AccountSecurity extends AsyncView<Props> {
       countEnrolled,
       deleteDisabled,
       onDisable,
-      primaryEmailVerified,
+      hasVerifiedEmail,
     } = this.props;
     const isEmpty = !authenticators?.length;
 
@@ -147,16 +147,16 @@ class AccountSecurity extends AsyncView<Props> {
                           <Tooltip
                             isHoverable
                             title={tct(
-                              'you must [link:verify your primary email] to enroll a 2FA device.',
+                              'you must [link:verify an email address] to enroll a 2FA device.',
                               {
                                 link: <Link to="/settings/account/emails/" />,
                               }
                             )}
-                            disabled={primaryEmailVerified}
+                            disabled={hasVerifiedEmail}
                           >
                             <RemoveConfirm
                               onConfirm={() => onDisable(auth)}
-                              disabled={!primaryEmailVerified}
+                              disabled={!hasVerifiedEmail}
                             >
                               <Button
                                 to={`/settings/account/security/mfa/${id}/enroll/`}

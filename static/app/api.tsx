@@ -268,6 +268,7 @@ export class Client {
   ) {
     const code = response?.responseJSON?.detail?.code;
     const isSudoRequired = code === SUDO_REQUIRED || code === SUPERUSER_REQUIRED;
+
     let didSuccessfullyRetry = false;
 
     if (isSudoRequired) {

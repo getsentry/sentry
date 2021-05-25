@@ -17,11 +17,6 @@ def is_considered_sudo(request):
     )
 
 
-def has_verified_email(request):
-    user = request.user
-    return request.user.get_verified_emails().filter(email=user.email).exists()
-
-
 def sudo_required(func):
     @wraps(func)
     def wrapped(self, request, *args, **kwargs):
@@ -39,7 +34,7 @@ def sudo_required(func):
 def email_verification_required(func):
     @wraps(func)
     def wrapped(self, request, *args, **kwargs):
-        if not has_verified_email(request):
+        if not request.user.get_verified_emails().exists():
             raise EmailVerificationRequired(request.user)
         return func(self, request, *args, **kwargs)
 

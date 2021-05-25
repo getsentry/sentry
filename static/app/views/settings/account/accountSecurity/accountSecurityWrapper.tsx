@@ -67,9 +67,7 @@ class AccountSecurityWrapper extends AsyncComponent<Props, State> {
     const countEnrolled = enrolled.length;
     const orgsRequire2fa = organizations?.filter(org => org.require2FA) || [];
     const deleteDisabled = orgsRequire2fa.length > 0 && countEnrolled === 1;
-    const primaryEmailVerified = !!emails?.find(
-      ({isPrimary, isVerified}) => isPrimary && isVerified
-    );
+    const hasVerifiedEmail = !!emails?.find(({isVerified}) => isVerified);
 
     // This happens when you switch between children views and the next child
     // view is lazy loaded, it can potentially be `null` while the code split
@@ -85,7 +83,7 @@ class AccountSecurityWrapper extends AsyncComponent<Props, State> {
       deleteDisabled,
       orgsRequire2fa,
       countEnrolled,
-      primaryEmailVerified,
+      hasVerifiedEmail,
     });
   }
 }

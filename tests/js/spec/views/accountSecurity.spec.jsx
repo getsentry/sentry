@@ -249,7 +249,10 @@ describe('AccountSecurity', function () {
     expect(wrapper.find('TwoFactorRequired')).toHaveLength(1);
 
     expect(wrapper.find('Tooltip')).toHaveLength(1);
-    // expect(wrapper.find('Tooltip').prop('title').children()).toContain('to enable 2FA');
+    const tooltip = mountWithTheme(wrapper.find('Tooltip').prop('title'));
+    expect(tooltip.text()).toContain(
+      'you must verify an email address to enroll a 2FA device.'
+    );
     expect(wrapper.find('Tooltip').prop('disabled')).toBe(false);
   });
 
