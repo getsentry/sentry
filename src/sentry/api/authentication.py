@@ -18,13 +18,6 @@ def is_internal_relay(request, public_key):
     """
     Checks if the relay is internal (authorised for all project configs)
     """
-    # check static settings
-    relay_options = options.get("relay")
-    relay_id = get_header_relay_id(request)
-    relay_info = safe.get_path(relay_options, "static_auth", relay_id)
-
-    if relay_info is not None and relay_info.get("internal") is True:
-        return True  # the requesting relay is registered as internal
 
     # check legacy whitelisted public_key settings
     # (we can't check specific relays but we can check public keys)
