@@ -285,7 +285,7 @@ class AssembleDownloadTest(TestCase, SnubaTestCase):
         assert emailer.called
 
     @patch("sentry.data_export.models.ExportedData.email_failure")
-    def test_discover_missing_enviroment(self, emailer):
+    def test_discover_missing_environment(self, emailer):
         de = ExportedData.objects.create(
             user=self.user,
             organization=self.org,
