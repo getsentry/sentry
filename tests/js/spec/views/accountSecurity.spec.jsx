@@ -400,7 +400,6 @@ describe('AccountSecurity', function () {
       url: ENDPOINT,
       body: [TestStubs.Authenticators().Recovery({isEnrolled: false})],
     });
-
     const mock = Client.addMockResponse({
       url: AUTH_ENDPOINT,
       body: {all: true},
