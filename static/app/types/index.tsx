@@ -733,7 +733,11 @@ export interface Config {
   demoMode: boolean;
 }
 
+// https://github.com/getsentry/relay/blob/master/relay-common/src/constants.rs
+// Note: the value of the enum on the frontend is plural,
+// but the value of the enum on the backend is singular
 export enum DataCategory {
+  DEFAULT = 'default',
   ERRORS = 'errors',
   TRANSACTIONS = 'transactions',
   ATTACHMENTS = 'attachments',
@@ -987,6 +991,7 @@ type GroupFiltered = {
 export type GroupStats = GroupFiltered & {
   lifetime?: GroupFiltered;
   filtered: GroupFiltered | null;
+  sessionCount?: string | null;
   id: string;
 };
 

@@ -6,7 +6,11 @@ from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
 from sentry.api.permissions import SentryPermission
-from sentry.api.utils import InvalidParams, get_date_range_from_params
+from sentry.api.utils import (
+    InvalidParams,
+    get_date_range_from_params,
+    is_member_disabled_from_limit,
+)
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.models import (
@@ -57,6 +61,9 @@ class OrganizationPermission(SentryPermission):
         self.determine_access(request, organization)
         allowed_scopes = set(self.scope_map.get(request.method, []))
         return any(request.access.has_scope(s) for s in allowed_scopes)
+
+    def is_member_disabled_from_limit(self, request, organization):
+        return is_member_disabled_from_limit(request, organization)
 
 
 class OrganizationAuditPermission(OrganizationPermission):
@@ -208,7 +215,6 @@ class OrganizationEndpoint(Endpoint):
     ):
         qs = Project.objects.filter(organization=organization, status=ProjectStatus.VISIBLE)
         user = getattr(request, "user", None)
-
         # A project_id of -1 means 'all projects I have access to'
         # While no project_ids means 'all projects I am a member of'.
         if project_ids == ALL_ACCESS_PROJECTS:

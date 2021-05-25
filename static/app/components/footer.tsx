@@ -17,7 +17,7 @@ function Footer({className}: Props) {
   const config = ConfigStore.getConfig();
   return (
     <footer className={className}>
-      <div>
+      <LeftLinks>
         {config.isOnPremise && (
           <Fragment>
             {'Sentry '}
@@ -33,9 +33,15 @@ function Footer({className}: Props) {
             </Build>
           </Fragment>
         )}
-      </div>
+        {config.privacyUrl && (
+          <FooterLink href={config.privacyUrl}>{t('Privacy Policy')}</FooterLink>
+        )}
+        {config.termsUrl && (
+          <FooterLink href={config.termsUrl}>{t('Terms of Use')}</FooterLink>
+        )}
+      </LeftLinks>
       <LogoLink />
-      <Links>
+      <RightLinks>
         <FooterLink href="/api/">{t('API')}</FooterLink>
         <FooterLink href="/docs/">{t('Docs')}</FooterLink>
         <FooterLink href="https://github.com/getsentry/sentry">
@@ -44,13 +50,22 @@ function Footer({className}: Props) {
         {config.isOnPremise && !config.demoMode && (
           <FooterLink href="/out/">{t('Migrate to SaaS')}</FooterLink>
         )}
-      </Links>
+      </RightLinks>
       <Hook name="footer" />
     </footer>
   );
 }
 
-const Links = styled('div')`
+const LeftLinks = styled('div')`
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: max-content;
+  align-items: center;
+  justify-self: flex-start;
+  gap: ${space(2)};
+`;
+
+const RightLinks = styled('div')`
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: max-content;

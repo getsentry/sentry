@@ -13,7 +13,7 @@ import {
   ACCOUNT_NOTIFICATION_FIELDS,
   FineTuneField,
 } from 'app/views/settings/account/notifications/fields';
-import NotificationSettings from 'app/views/settings/account/notifications/notificationSettings';
+import NotificationSettingsByType from 'app/views/settings/account/notifications/notificationSettingsByType';
 import {
   groupByOrganization,
   isGroupedByProject,
@@ -174,7 +174,7 @@ class AccountNotificationFineTuning extends AsyncView<Props, State> {
         organization.features.includes('notification-platform')
       )
     ) {
-      return <NotificationSettings notificationType={fineTuneType} />;
+      return <NotificationSettingsByType notificationType={fineTuneType} />;
     }
 
     const {notifications, projects, fineTuneData, projectsPageLinks} = this.state;
