@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from sentry import roles
 from sentry.api.endpoints.organization_member_details import OrganizationMemberDetailsEndpoint
 from sentry.api.endpoints.organization_member_index import OrganizationMemberSerializer
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberSCIMSerializer
@@ -41,27 +42,31 @@ class SCIMUserSerializer(serializers.Serializer):
 
 
 class OrganizationSCIMUserDetails(SCIMEndpoint, OrganizationMemberDetailsEndpoint):
-    def get(self, request, organization, member_id):
+    def _get_member(self, organization, member_id):
         try:
             member = OrganizationMember.objects.get(organization=organization, id=member_id)
         except OrganizationMember.DoesNotExist:
-            return Response(SCIM_404_USER_RES, status=404)
+            raise ResourceDoesNotExist
         except AssertionError as error:
             if str(error) == "value too large":
-                return Response(SCIM_404_USER_RES, status=404)
+                raise ResourceDoesNotExist
             raise error
+        return member
+
+    def get(self, request, organization, member_id):
+        try:
+            member = self._get_member(organization, member_id)
+        except ResourceDoesNotExist:
+            return Response(SCIM_404_USER_RES, status=404)
 
         context = serialize(member, serializer=OrganizationMemberSCIMSerializer())
         return Response(context)
 
     def patch(self, request, organization, member_id):
         try:
-            member = OrganizationMember.objects.get(organization=organization, id=member_id)
-        except OrganizationMember.DoesNotExist:
+            member = self._get_member(organization, member_id)
+        except ResourceDoesNotExist:
             return Response(SCIM_404_USER_RES, status=404)
-        except AssertionError as error:
-            if str(error) == "value too large":
-                return Response(SCIM_404_USER_RES, status=404)
 
         for operation in request.data.get("Operations", []):
             # we only support setting active to False which deletes the orgmember
@@ -88,25 +93,23 @@ class OrganizationSCIMUserDetails(SCIMEndpoint, OrganizationMemberDetailsEndpoin
 
     def delete(self, request, organization, member_id):
         try:
-            om = OrganizationMember.objects.get(organization=organization, id=member_id)
-        except OrganizationMember.DoesNotExist:
+            member = self._get_member(organization, member_id)
+        except ResourceDoesNotExist:
             return Response(SCIM_404_USER_RES, status=404)
-        except AssertionError as error:
-            if str(error) == "value too large":
-                return Response(SCIM_404_USER_RES, status=404)
-        audit_data = om.get_audit_log_data()
-        if self._is_only_owner(om):
+
+        audit_data = member.get_audit_log_data()
+        if self._is_only_owner(member):
             return Response({"detail": ERR_ONLY_OWNER}, status=403)
         with transaction.atomic():
             AuthIdentity.objects.filter(
-                user=om.user, auth_provider__organization=organization
+                user=member.user, auth_provider__organization=organization
             ).delete()
-            om.delete()
+            member.delete()
         self.create_audit_entry(
             request=request,
             organization=organization,
-            target_object=om.id,
-            target_user=om.user,
+            target_object=member.id,
+            target_user=member.user,
             event=AuditLogEntryEvent.MEMBER_REMOVE,
             data=audit_data,
         )
