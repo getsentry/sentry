@@ -34,19 +34,19 @@ class Operation:
 
 arithmetic_grammar = Grammar(
     r"""
-term                 = spaces maybe_factor remaining_adds
+term                 = maybe_factor remaining_adds
 remaining_adds       = add_sub*
-add_sub              = add_sub_operator maybe_factor spaces
-maybe_factor         = (factor / primary)
+add_sub              = add_sub_operator maybe_factor
+maybe_factor         = spaces (factor / primary) spaces
 
-factor               = spaces primary remaining_muls
+factor               = primary remaining_muls
 remaining_muls       = mul_div+
-mul_div              = mul_div_operator primary spaces
+mul_div              = mul_div_operator primary
 
 add_sub_operator     = spaces (plus / minus) spaces
 mul_div_operator     = spaces (multiply / divide) spaces
 # TODO(wmak) allow variables
-primary              = numeric_value
+primary              = spaces numeric_value spaces
 
 # Operator names should match what's in clickhouse
 plus                 = "+"
@@ -79,7 +79,7 @@ class ArithmeticVisitor(NodeVisitor):
         return term
 
     def visit_term(self, _, children):
-        _, maybe_factor, remaining_adds = children
+        maybe_factor, remaining_adds = children
         maybe_factor = maybe_factor[0]
         # remaining_adds is either a list containing an Operation, or a Node
         if isinstance(remaining_adds, list):
@@ -91,7 +91,7 @@ class ArithmeticVisitor(NodeVisitor):
             return maybe_factor
 
     def visit_factor(self, _, children):
-        _, primary, remaining_muls = children
+        primary, remaining_muls = children
         remaining_muls[0].lhs = primary
         return self.flatten(remaining_muls)
 
@@ -102,27 +102,38 @@ class ArithmeticVisitor(NodeVisitor):
             raise MaxOperatorError("Exceeded maximum number of operations")
 
     def visit_add_sub(self, _, children):
-        add_sub_operator, maybe_factor, _ = children
+        add_sub_operator, maybe_factor = children
         self.visited_operator()
         return Operation(add_sub_operator, rhs=maybe_factor[0])
 
     def visit_mul_div(self, _, children):
-        mul_div_operator, primary, _ = children
+        mul_div_operator, primary = children
         self.visited_operator()
         return Operation(mul_div_operator, rhs=primary)
 
     @staticmethod
-    def parse_operator(children):
-        # Remove the optional spaces
-        _, operator, _ = children
-        # operator is a list but we'll only ever want the first
+    def strip_spaces(children):
+        """ Visitor for a `spaces foo spaces` node """
+        _, value, _ = children
+
+        return value
+
+    def visit_maybe_factor(self, _, children):
+        return self.strip_spaces(children)
+
+    def visit_primary(self, _, children):
+        return self.strip_spaces(children)
+
+    @staticmethod
+    def parse_operator(operator):
+        # operator is a list since the pattern is (a/b) but we'll only ever want the first value
         return operator[0].expr_name
 
     def visit_add_sub_operator(self, _, children):
-        return self.parse_operator(children)
+        return self.parse_operator(self.strip_spaces(children))
 
     def visit_mul_div_operator(self, _, children):
-        return self.parse_operator(children)
+        return self.parse_operator(self.strip_spaces(children))
 
     def visit_numeric_value(self, node, _):
         return float(node.text)
