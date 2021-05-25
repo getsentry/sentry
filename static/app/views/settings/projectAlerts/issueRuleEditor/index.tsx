@@ -517,10 +517,10 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     const environment =
       !rule || !rule.environment ? ALL_ENVIRONMENTS_KEY : rule.environment;
 
-    const userTeams = new Set(teams.filter(({isMember}) => isMember).map(({id}) => id));
+    const userTeams = teams.filter(({isMember}) => isMember).map(({id}) => id);
     const ownerId = rule?.owner?.split(':')[1];
     // check if superuser or if user is on the alert's team
-    const canEdit = isActiveSuperuser() || (ownerId ? userTeams.has(ownerId) : true);
+    const canEdit = isActiveSuperuser() || (ownerId ? userTeams.includes(ownerId) : true);
 
     const filteredTeamIds = new Set(...userTeams);
     if (ownerId) {

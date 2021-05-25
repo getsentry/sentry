@@ -12,7 +12,7 @@ type Props = {
   disabled: boolean;
   project: Project;
   organization: Organization;
-  userTeamIds: Set<string>;
+  userTeamIds: string[];
 };
 
 class RuleNameOwnerForm extends PureComponent<Props> {
