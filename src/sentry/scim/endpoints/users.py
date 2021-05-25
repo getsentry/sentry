@@ -24,6 +24,11 @@ SCIM_404_USER_RES = {
     "detail": "User not found.",
 }
 
+SCIM_409_USER_EXISTS = {
+    "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+    "detail": "User already exists in the database.",
+}
+
 
 class SCIMUserSerializer(serializers.Serializer):
     email = AllowedEmailField(max_length=75, required=True)
@@ -168,13 +173,7 @@ class OrganizationSCIMUserIndex(SCIMEndpoint):
 
         if not serializer.is_valid():
             # TODO: other ways this could be invalid?
-            return Response(
-                {
-                    "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
-                    "detail": "User already exists in the database.",
-                },
-                status=409,
-            )
+            return Response(SCIM_409_USER_EXISTS, status=409)
 
         result = serializer.validated_data
         with transaction.atomic():
