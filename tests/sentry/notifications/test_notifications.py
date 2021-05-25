@@ -71,7 +71,7 @@ class ActivityNotificationTest(APITestCase):
             external_id="UXXXXXXX1",
         )
         UserOption.objects.create(user=self.user, key="self_notifications", value="1")
-        url = f"/api/0/users/{self.user.id}/notification-settings/"
+        url = "/api/0/users/me/notification-settings/"
         data = {
             "workflow": {"user": {self.user.id: {"email": "always", "slack": "always"}}},
             "deploy": {"user": {self.user.id: {"email": "always", "slack": "always"}}},
