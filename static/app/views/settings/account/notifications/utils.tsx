@@ -1,5 +1,6 @@
 import set from 'lodash/set';
 
+import ConfigStore from 'app/stores/configStore';
 import {OrganizationSummary, Project} from 'app/types';
 
 const ALL_PROVIDERS = {
@@ -9,6 +10,16 @@ const ALL_PROVIDERS = {
 
 export type NotificationSettingsObject = {
   [key: string]: {[key: string]: {[key: string]: {[key: string]: string}}};
+};
+
+export const getUserId = (
+  notificationType: string,
+  notificationSettings: NotificationSettingsObject
+): string => {
+  return (
+    Object.keys(notificationSettings[notificationType].user).pop() ||
+    ConfigStore.get('user').id
+  );
 };
 
 // Which fine tuning parts are grouped by project
@@ -229,40 +240,26 @@ export const getStateToPutForProvider = (
   const providerList: string[] = changedData.provider.split('+');
   const fallbackValue = getFallBackValue(notificationType);
 
-  let updatedNotificationSettings;
-  if (Object.keys(notificationSettings).length) {
-    updatedNotificationSettings = {
-      [notificationType]: Object.fromEntries(
-        Object.entries(
-          notificationSettings[notificationType]
-        ).map(([scopeType, scopeTypeData]) => [
-          scopeType,
-          Object.fromEntries(
-            Object.entries(scopeTypeData).map(([scopeId, scopeIdData]) => [
-              scopeId,
-              backfillMissingProvidersWithFallback(
-                scopeIdData,
-                providerList,
-                fallbackValue,
-                scopeType
-              ),
-            ])
-          ),
-        ])
-      ),
-    };
-  } else {
-    // If the user has no settings, we need to create them.
-    updatedNotificationSettings = {
-      [notificationType]: {
-        user: {
-          me: Object.fromEntries(providerList.map(provider => [provider, fallbackValue])),
-        },
-      },
-    };
-  }
-
-  return updatedNotificationSettings;
+  return {
+    [notificationType]: Object.fromEntries(
+      Object.entries(
+        notificationSettings[notificationType]
+      ).map(([scopeType, scopeTypeData]) => [
+        scopeType,
+        Object.fromEntries(
+          Object.entries(scopeTypeData).map(([scopeId, scopeIdData]) => [
+            scopeId,
+            backfillMissingProvidersWithFallback(
+              scopeIdData,
+              providerList,
+              fallbackValue,
+              scopeType
+            ),
+          ])
+        ),
+      ])
+    ),
+  };
 };
 
 export const getStateToPutForDefault = (
@@ -278,6 +275,7 @@ export const getStateToPutForDefault = (
    * was "never", then assume providerList should be "email" only.
    */
 
+  const userId = getUserId(notificationType, notificationSettings).toString();
   const newValue = Object.values(changedData)[0];
   let providerList = getCurrentProviders(notificationType, notificationSettings);
   if (!providerList.length) {
@@ -287,7 +285,12 @@ export const getStateToPutForDefault = (
   const updatedNotificationSettings = {
     [notificationType]: {
       user: {
-        me: Object.fromEntries(providerList.map(provider => [provider, newValue])),
+        [userId]: Object.fromEntries(
+          Object.entries(ALL_PROVIDERS).map(([provider, _]) => [
+            provider,
+            providerList.includes(provider) ? newValue : 'never',
+          ])
+        ),
       },
     },
   };

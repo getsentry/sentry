@@ -191,7 +191,7 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
   };
 
   getCurrentDefault = (): string => {
-    /** Calculate the currently selected provider. */
+    /** Calculate the currently selected setting (On, off, etc.) */
     const {notificationType} = this.props;
     const {notificationSettings} = this.state;
 
@@ -253,7 +253,7 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
       Object.assign({}, NOTIFICATION_SETTING_FIELDS[notificationType], {
         help: t('This is the default for all projects.'),
         getData: data => this.getStateToPutForDefault(data),
-      }),
+      }) as FieldObject,
     ];
     if (!isEverythingDisabled(notificationType, notificationSettings)) {
       fields.push(
@@ -263,10 +263,10 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
             getData: data => this.getStateToPutForProvider(data),
           },
           NOTIFICATION_SETTING_FIELDS.provider
-        )
+        ) as FieldObject
       );
     }
-    return fields as FieldObject[];
+    return fields;
   }
 
   renderBody() {
