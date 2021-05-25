@@ -129,7 +129,7 @@ class ProjectPerformance extends AsyncView<Props, State> {
             renderFooter={() => (
               <Actions>
                 <Button onClick={() => this.handleDelete()}>
-                  {t('Clear thresholds')}
+                  {t('Clear Custom Threshold')}
                 </Button>
               </Actions>
             )}
