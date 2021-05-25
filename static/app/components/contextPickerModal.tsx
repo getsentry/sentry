@@ -392,7 +392,7 @@ class ContextPickerModal extends Component<Props> {
 
     const shouldShowProjectSelector = organization && needProject && !loading;
 
-    const shouldShowConfigSelector = integrationConfigs.length && isSuperuser;
+    const shouldShowConfigSelector = integrationConfigs.length > 0 && isSuperuser;
 
     const orgChoices = organizations
       .filter(({status}) => status.id !== 'pending_deletion')
