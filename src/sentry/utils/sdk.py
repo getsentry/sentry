@@ -390,10 +390,11 @@ def configure_sdk():
             if relay_transport and options.get("store.use-relay-dsn-sample-rate") == 1:
                 # If this is a envelope ensure envelope and it's items are distinct references
                 if method_name == "capture_envelope":
-                    envelope = args[0]
+                    args_list = list(args)
+                    envelope = args_list[0]
                     relay_envelope = copy.copy(envelope)
                     relay_envelope.items = envelope.items.copy()
-                    args[0] = relay_envelope
+                    args = tuple([relay_envelope, args_list[1:]])
 
                 if is_current_event_safe():
                     metrics.incr("internal.captured.events.relay")
