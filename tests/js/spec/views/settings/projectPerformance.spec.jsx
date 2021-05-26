@@ -5,12 +5,13 @@ import ProjectPerformance from 'app/views/settings/projectPerformance/projectPer
 describe('projectPerformance', function () {
   const org = TestStubs.Organization({features: ['project-transaction-threshold']});
   const project = TestStubs.ProjectDetails();
+  const configUrl = '/projects/org-slug/project-slug/transaction-threshold/configure/';
   let getMock, postMock, deleteMock;
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
     getMock = MockApiClient.addMockResponse({
-      url: '/projects/org-slug/project-slug/transaction-threshold/configure/',
+      url: configUrl,
       method: 'GET',
       body: {
         id: project.id,
@@ -20,7 +21,7 @@ describe('projectPerformance', function () {
       statusCode: 200,
     });
     postMock = MockApiClient.addMockResponse({
-      url: '/projects/org-slug/project-slug/transaction-threshold/configure/',
+      url: configUrl,
       method: 'POST',
       body: {
         id: project.id,
@@ -30,7 +31,7 @@ describe('projectPerformance', function () {
       statusCode: 200,
     });
     deleteMock = MockApiClient.addMockResponse({
-      url: '/projects/org-slug/project-slug/transaction-threshold/configure/',
+      url: configUrl,
       method: 'DELETE',
       statusCode: 200,
     });
@@ -48,7 +49,7 @@ describe('projectPerformance', function () {
     await tick();
     expect(wrapper.find('input[name="threshold"]').prop('value')).toBe('300');
     expect(wrapper.find('input[name="metric"]').prop('value')).toBe('duration');
-    expect(getMock).toHaveBeenCalled();
+    expect(getMock).toHaveBeenCalledTimes(1);
   });
 
   it('updates the field', async function () {
@@ -68,7 +69,12 @@ describe('projectPerformance', function () {
 
     await tick();
 
-    expect(postMock).toHaveBeenCalled();
+    expect(postMock).toHaveBeenCalledWith(
+      configUrl,
+      expect.objectContaining({
+        data: {threshold: '400'},
+      })
+    );
     expect(wrapper.find('input[name="threshold"]').prop('value')).toBe('400');
   });
 

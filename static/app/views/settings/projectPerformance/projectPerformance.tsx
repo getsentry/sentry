@@ -68,9 +68,9 @@ class ProjectPerformance extends AsyncView<Props, State> {
 
   renderLoading() {
     return (
-      <div style={{margin: '18px 18px 0'}}>
+      <LoadingIndicatorContainer>
         <LoadingIndicator />
-      </div>
+      </LoadingIndicatorContainer>
     );
   }
 
@@ -142,6 +142,10 @@ class ProjectPerformance extends AsyncView<Props, State> {
 
 const Actions = styled(PanelItem)`
   justify-content: flex-end;
+`;
+
+const LoadingIndicatorContainer = styled('div')`
+  margin: 18px 18px 0;
 `;
 
 export default ProjectPerformance;
