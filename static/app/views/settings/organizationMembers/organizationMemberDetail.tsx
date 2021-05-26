@@ -15,6 +15,7 @@ import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
 import DateTime from 'app/components/dateTime';
 import NotFound from 'app/components/errors/notFound';
+import HookOrDefault from 'app/components/hookOrDefault';
 import ExternalLink from 'app/components/links/externalLink';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import Tooltip from 'app/components/tooltip';
@@ -52,6 +53,11 @@ type State = {
   selectedRole: Member['role'];
   member: Member | null;
 } & AsyncView['state'];
+
+const DisabledMemberTooltip = HookOrDefault({
+  hookName: 'component:disabled-member-tooltip',
+  defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
+});
 
 class OrganizationMemberDetail extends AsyncView<Props, State> {
   getDefaultState(): State {
@@ -203,6 +209,32 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
     return '';
   };
 
+  get memberDeactivated() {
+    const {member} = this.state;
+    // can't be deactivated if not loaded
+    if (!member) {
+      return false;
+    }
+    return member.flags['member-limit:restricted'];
+  }
+
+  renderMemberStatus(member: Member) {
+    if (this.memberDeactivated) {
+      return (
+        <em>
+          <DisabledMemberTooltip>{t('Deactivated')}</DisabledMemberTooltip>
+        </em>
+      );
+    }
+    if (member.expired) {
+      return <em>{t('Invitation Expired')}</em>;
+    }
+    if (member.pending) {
+      <em>{t('Invitation Pending')}</em>;
+    }
+    return t('Active');
+  }
+
   renderBody() {
     const {organization} = this.props;
     const {member} = this.state;
@@ -213,7 +245,7 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
 
     const {access} = organization;
     const inviteLink = member.invite_link;
-    const canEdit = access.includes('org:write');
+    const canEdit = access.includes('org:write') && !this.memberDeactivated;
 
     const {email, expired, pending} = member;
     const canResend = !expired;
@@ -246,13 +278,7 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
                   <div>
                     <DetailLabel>{t('Status')}</DetailLabel>
                     <div data-test-id="member-status">
-                      {member.expired ? (
-                        <em>{t('Invitation Expired')}</em>
-                      ) : member.pending ? (
-                        <em>{t('Invitation Pending')}</em>
-                      ) : (
-                        t('Active')
-                      )}
+                      {this.renderMemberStatus(member)}
                     </div>
                   </div>
                   <div>
