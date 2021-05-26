@@ -459,6 +459,7 @@ def fetch_release_artifact(url, release, dist):
             archive = ReleaseArchive(release_file)
         except BaseException as exc:
             logger.error("Failed to initialize archive for release %s", release.id, exc_info=exc)
+            # TODO(jjbayer): cache error and return here
         else:
             with archive:
                 try:
@@ -470,6 +471,7 @@ def fetch_release_artifact(url, release, dist):
                     cache.set(cache_key, -1, 60)
                 except BaseException as exc:
                     logger.error("Failed to read %s from release %s", url, release.id, exc_info=exc)
+                    # TODO(jjbayer): cache error and return here
                 else:
                     result = fetch_and_cache_artifact(
                         url,

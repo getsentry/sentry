@@ -294,9 +294,12 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
             if features.has("organizations:release-archives", organization):
                 kwargs = dict(meta, name=RELEASE_ARCHIVE_FILENAME)
                 _upsert_release_file(bundle, archive, _merge_archives, **kwargs)
-            else:
-                # Every file in bundle will become a release file
-                _store_single_files(archive, meta)
+
+            # NOTE(jjbayer): Single files are still stored to enable
+            # rolling back from release archives. Once release archives run
+            # smoothely, this call can be removed / only called when feature
+            # flag is off.
+            _store_single_files(archive, meta)
 
             # Count files extracted, to compare them to release files endpoint
             metrics.incr("tasks.assemble.extracted_files", amount=len(manifest.get("files", {})))
