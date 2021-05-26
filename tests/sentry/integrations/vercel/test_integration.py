@@ -168,7 +168,7 @@ class VercelIntegrationTest(IntegrationTestCase):
                 )
             responses.add(
                 responses.POST,
-                "https://api.vercel.com/v6/projects/%s/env"
+                "https://api.vercel.com/v7/projects/%s/env"
                 % "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H",
                 json={
                     "key": env_var,
@@ -197,24 +197,24 @@ class VercelIntegrationTest(IntegrationTestCase):
         }
 
         # assert the secret was created correctly
-        req_params = json.loads(responses.calls[8].request.body)
+        req_params = json.loads(responses.calls[6].request.body)
         assert req_params["name"] == "SENTRY_AUTH_TOKEN_%s" % uuid
         assert req_params["value"] == sentry_auth_token
 
         # assert the env vars were created correctly
-        req_params = json.loads(responses.calls[5].request.body)
+        req_params = json.loads(responses.calls[7].request.body)
         assert req_params["key"] == "SENTRY_ORG"
         assert req_params["value"] == org.slug
         assert req_params["target"] == ["production"]
         assert req_params["type"] == "plain"
 
-        req_params = json.loads(responses.calls[6].request.body)
+        req_params = json.loads(responses.calls[8].request.body)
         assert req_params["key"] == "SENTRY_PROJECT"
         assert req_params["value"] == self.project.slug
         assert req_params["target"] == ["production"]
         assert req_params["type"] == "plain"
 
-        req_params = json.loads(responses.calls[7].request.body)
+        req_params = json.loads(responses.calls[9].request.body)
         assert req_params["key"] == "NEXT_PUBLIC_SENTRY_DSN"
         assert req_params["value"] == enabled_dsn
         assert req_params["target"] == ["production"]
@@ -274,7 +274,7 @@ class VercelIntegrationTest(IntegrationTestCase):
             # mock try to create env var
             responses.add(
                 responses.POST,
-                "https://api.vercel.com/v6/projects/%s/env"
+                "https://api.vercel.com/v7/projects/%s/env"
                 % "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H",
                 json={"error": {"code": "ENV_ALREADY_EXISTS"}},
                 status=400,
@@ -282,14 +282,14 @@ class VercelIntegrationTest(IntegrationTestCase):
             # mock get env var
             responses.add(
                 responses.GET,
-                "https://api.vercel.com/v6/projects/%s/env"
+                "https://api.vercel.com/v7/projects/%s/env"
                 % "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H",
                 json={"envs": [{"id": count, "key": env_var}]},
             )
             # mock update env var
             responses.add(
                 responses.PATCH,
-                "https://api.vercel.com/v6/projects/%s/env/%s"
+                "https://api.vercel.com/v7/projects/%s/env/%s"
                 % ("Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H", count),
                 json={
                     "key": env_var,
@@ -322,19 +322,19 @@ class VercelIntegrationTest(IntegrationTestCase):
             "project_mappings": [[project_id, "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H"]]
         }
 
-        req_params = json.loads(responses.calls[7].request.body)
+        req_params = json.loads(responses.calls[9].request.body)
         assert req_params["key"] == "SENTRY_ORG"
         assert req_params["value"] == org.slug
         assert req_params["target"] == ["production"]
         assert req_params["type"] == "plain"
 
-        req_params = json.loads(responses.calls[8].request.body)
+        req_params = json.loads(responses.calls[10].request.body)
         assert req_params["key"] == "SENTRY_PROJECT"
         assert req_params["value"] == self.project.slug
         assert req_params["target"] == ["production"]
         assert req_params["type"] == "plain"
 
-        req_params = json.loads(responses.calls[13].request.body)
+        req_params = json.loads(responses.calls[15].request.body)
         assert req_params["key"] == "SENTRY_DSN"
         assert req_params["value"] == enabled_dsn
         assert req_params["target"] == ["production"]

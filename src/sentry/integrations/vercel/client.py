@@ -15,10 +15,11 @@ class VercelClient(ApiClient):
     USER_URL = "/www/user"
     PROJECT_URL = "/v1/projects/%s"
     PROJECTS_URL = "/v4/projects/"
-    ENV_VAR_URL = "/v6/projects/%s/env"
-    GET_ENV_VAR_URL = "/v6/projects/%s/env"
+    WEBHOOK_URL = "/v1/integrations/webhooks"
+    ENV_VAR_URL = "/v7/projects/%s/env"
+    GET_ENV_VAR_URL = "/v7/projects/%s/env"
     SECRETS_URL = "/v2/now/secrets"
-    UPDATE_ENV_VAR_URL = "/v6/projects/%s/env/%s"
+    UPDATE_ENV_VAR_URL = "/v7/projects/%s/env/%s"
     UNINSTALL = "/v1/integrations/configuration/%s"
 
     def __init__(self, access_token, team_id=None):
