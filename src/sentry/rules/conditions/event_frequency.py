@@ -11,7 +11,7 @@ from sentry.rules.conditions.base import EventCondition
 from sentry.utils import metrics
 from sentry.utils.snuba import Dataset, raw_query
 
-intervals = {
+standard_intervals = {
     "1m": ("one minute", timedelta(minutes=1)),
     "1h": ("one hour", timedelta(hours=1)),
     "1d": ("one day", timedelta(hours=24)),
@@ -21,6 +21,7 @@ intervals = {
 
 
 class EventFrequencyForm(forms.Form):
+    intervals = standard_intervals
     interval = forms.ChoiceField(
         choices=[
             (key, label)
@@ -33,25 +34,25 @@ class EventFrequencyForm(forms.Form):
 
 
 class BaseEventFrequencyCondition(EventCondition):
+    intervals = standard_intervals
     form_cls = EventFrequencyForm
-    form_fields = {
-        "value": {"type": "number", "placeholder": 100},
-        "interval": {
-            "type": "choice",
-            "choices": [
-                (key, label)
-                for key, (label, duration) in sorted(
-                    intervals.items(),
-                    key=lambda key____label__duration: key____label__duration[1][1],
-                )
-            ],
-        },
-    }
-
     label = NotImplemented  # subclass must implement
 
     def __init__(self, *args, **kwargs):
         self.tsdb = kwargs.pop("tsdb", tsdb)
+        self.form_fields = {
+            "value": {"type": "number", "placeholder": 100},
+            "interval": {
+                "type": "choice",
+                "choices": [
+                    (key, label)
+                    for key, (label, duration) in sorted(
+                        self.intervals.items(),
+                        key=lambda key____label__duration: key____label__duration[1][1],
+                    )
+                ],
+            },
+        }
 
         super().__init__(*args, **kwargs)
 
@@ -84,7 +85,7 @@ class BaseEventFrequencyCondition(EventCondition):
         raise NotImplementedError  # subclass must implement
 
     def get_rate(self, event, interval, environment_id):
-        _, duration = intervals[interval]
+        _, duration = self.intervals[interval]
         end = timezone.now()
         return self.query(event, end - duration, end, environment_id=environment_id)
 
@@ -137,7 +138,8 @@ session_percent_intervals = {
 }
 
 
-class SessionPercentForm(forms.Form):
+class SessionPercentForm(EventFrequencyForm):
+    intervals = session_percent_intervals
     interval = forms.ChoiceField(
         choices=[
             (key, label)
@@ -151,27 +153,12 @@ class SessionPercentForm(forms.Form):
 
 
 class SessionPercentCondition(BaseEventFrequencyCondition):
-    form_cls = SessionPercentForm
-    form_fields = {
-        "value": {"type": "number", "placeholder": 100},
-        "interval": {
-            "type": "choice",
-            "choices": [
-                (key, label)
-                for key, (label, duration) in sorted(
-                    session_percent_intervals.items(),
-                    key=lambda key____label__duration: key____label__duration[1][1],
-                )
-            ],
-        },
-    }
-
     label = "The issue has more errors than {value} percent of sessions in {interval}"
 
-    def get_rate(self, event, interval, environment_id):
-        _, duration = session_percent_intervals[interval]
-        end = timezone.now()
-        return self.query(event, end - duration, end, environment_id=environment_id)
+    def __init__(self, *args, **kwargs):
+        self.intervals = session_percent_intervals
+        self.form_cls = SessionPercentForm
+        super().__init__(*args, **kwargs)
 
     def query_hook(self, event, start, end, environment_id):
         cache_key = f"r.c.spc:{environment_id}-{start.replace(minute=0, second=0, microsecond=0, tzinfo=None)}-{end.replace(minute=0, second=0, microsecond=0, tzinfo=None)}".replace(
