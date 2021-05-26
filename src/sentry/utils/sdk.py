@@ -204,6 +204,9 @@ def traces_sampler(sampling_context):
         try:
             match = resolve(sampling_context["wsgi_environ"].get("PATH_INFO"))
             if match and match.url_name in SAMPLED_URL_NAMES:
+                # TODO: turn SAMPLED_URL_NAMES into a dict and get the rate from there instead
+                if match.url_name == "sentry-api-0-project-stats":
+                    return 0.1
                 return 1.0
         except Exception:
             # On errors or 404, continue to default sampling decision
