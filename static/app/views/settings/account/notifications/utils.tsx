@@ -149,6 +149,18 @@ export const getCurrentProviders = (
     .map(([provider, _]) => provider);
 };
 
+export const getCurrentDefault = (
+  notificationType: string,
+  notificationSettings: NotificationSettingsObject
+): string => {
+  /** Calculate the currently selected provider. */
+
+  const providersList = getCurrentProviders(notificationType, notificationSettings);
+  return providersList.length
+    ? getUserDefaultValues(notificationType, notificationSettings)[providersList[0]]
+    : 'never';
+};
+
 export const decideDefault = (
   notificationType: string,
   notificationSettings: NotificationSettingsObject
