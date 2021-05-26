@@ -107,4 +107,4 @@ def is_member_disabled_from_limit(request, organization):
         logger.error("is_member_disabled_from_limit.member_missing")
         return False
     else:
-        return member.flags["member-limit:restricted"]
+        return member.flags["disabled:member-limit"]

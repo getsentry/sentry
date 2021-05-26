@@ -105,7 +105,7 @@ class OrganizationPermissionTest(OrganizationPermissionBase):
             user=user,
             organization=self.org,
             role="member",
-            flags=OrganizationMember.flags["member-limit:restricted"],
+            flags=OrganizationMember.flags["disabled:member-limit"],
         )
 
         with self.assertRaises(MemberDisabledOverLimit) as err:
@@ -127,7 +127,7 @@ class OrganizationPermissionTest(OrganizationPermissionBase):
             user=user,
             organization=self.org,
             role="member",
-            flags=OrganizationMember.flags["member-limit:restricted"],
+            flags=OrganizationMember.flags["disabled:member-limit"],
         )
         assert self.has_object_perm("GET", self.org, user=user, is_superuser=True)
         assert mock_get_org_member.call_count == 0

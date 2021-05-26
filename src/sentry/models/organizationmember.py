@@ -94,7 +94,7 @@ class OrganizationMember(Model):
         flags=(
             ("sso:linked", "sso:linked"),
             ("sso:invalid", "sso:invalid"),
-            ("member-limit:restricted", "member-limit:restricted"),
+            ("disabled:member-limit", "disabled:member-limit"),
         ),
         default=0,
     )

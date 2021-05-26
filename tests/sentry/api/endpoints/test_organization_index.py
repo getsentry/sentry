@@ -177,7 +177,7 @@ class OrganizationIndexMemberLimitTest(APITestCase):
             organization=self.organization,
             user=self.user,
             role="member",
-            flags=OrganizationMember.flags["member-limit:restricted"],
+            flags=OrganizationMember.flags["disabled:member-limit"],
         )
         self.login_as(self.user, superuser=is_superuser)
 
