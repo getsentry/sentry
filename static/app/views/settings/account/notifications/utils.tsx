@@ -1,18 +1,18 @@
 import set from 'lodash/set';
 
+import {t} from 'app/locale';
 import {OrganizationSummary, Project} from 'app/types';
+import {
+  ALL_PROVIDERS,
+  NotificationSettingsByProviderObject,
+  NotificationSettingsObject,
+  VALUE_MAPPING,
+} from 'app/views/settings/account/notifications/constants';
+import {NOTIFICATION_SETTING_FIELDS} from 'app/views/settings/account/notifications/fields2';
+import ParentLabel from 'app/views/settings/account/notifications/parentLabel';
+import {FieldObject} from 'app/views/settings/components/forms/type';
 
-const ALL_PROVIDERS = {
-  email: 'default',
-  slack: 'never',
-};
-
-export type NotificationSettingsByProviderObject = {[key: string]: string};
-export type NotificationSettingsObject = {
-  [key: string]: {[key: string]: {[key: string]: NotificationSettingsByProviderObject}};
-};
-
-// Which fine tuning parts are grouped by project
+// Which fine-tuning parts are grouped by project
 export const isGroupedByProject = (notificationType: string): boolean =>
   ['alerts', 'email', 'workflow'].includes(notificationType);
 
@@ -171,15 +171,7 @@ export const decideDefault = (
    * "never". If so, the API is telling us that the user has opted out of
    * all notifications.
    */
-  // These values are stolen from the DB.
-  const mapping = {
-    default: 0,
-    never: 10,
-    always: 20,
-    subscribe_only: 30,
-    committed_only: 40,
-  };
-  const compare = (a: string, b: string): number => mapping[a] - mapping[b];
+  const compare = (a: string, b: string): number => VALUE_MAPPING[a] - VALUE_MAPPING[b];
 
   const parentIndependentSetting =
     Object.values(getUserDefaultValues(notificationType, notificationSettings))
