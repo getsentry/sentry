@@ -10,7 +10,6 @@ from sentry import options
 from sentry.auth.system import SystemToken, is_internal_ip
 from sentry.models import ApiApplication, ApiKey, ApiToken, ProjectKey, Relay
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
-from sentry.utils import safe
 from sentry.utils.sdk import configure_scope
 
 
@@ -67,8 +66,8 @@ class RelayAuthentication(BasicAuthentication):
 
         # first see if we have a statically configured relay and therefore we don't
         # need to go to the database for it
-        relay_options = options.get("relay")
-        relay_info = safe.get_path(relay_options, "static_auth", relay_id)
+        static_relays = options.get("relay.static_auth")
+        relay_info = static_relays.get(relay_id)
 
         if relay_info is not None:
             # we have a statically configured Relay

@@ -338,4 +338,4 @@ register("store.load-shed-process-event-projects", type=Any, default=[])
 register("store.load-shed-symbolicate-event-projects", type=Any, default=[])
 
 # All Relay options (statically authenticated Relays can be registered here)
-register("relay", default={})
+register("relay.static_auth", default={})
