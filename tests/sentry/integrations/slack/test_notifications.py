@@ -11,6 +11,9 @@ from sentry.models import (
     Activity,
     Deploy,
     ExternalActor,
+    Identity,
+    IdentityProvider,
+    IdentityStatus,
     Integration,
     NotificationSetting,
     Release,
@@ -93,13 +96,13 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
             },
         )
         self.integration.add_organization(self.organization, self.user)
-        ExternalActor.objects.create(
-            actor=self.user.actor,
-            organization=self.organization,
-            integration=self.integration,
-            provider=ExternalProviders.SLACK.value,
-            external_name="hellboy",
+        self.idp = IdentityProvider.objects.create(type="slack", external_id="TXXXXXXX1", config={})
+        self.identity = Identity.objects.create(
             external_id="UXXXXXXX1",
+            idp=self.idp,
+            user=self.user,
+            status=IdentityStatus.VALID,
+            scopes=[],
         )
         responses.add(
             method=responses.POST,
@@ -416,13 +419,13 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
         # sent once (to the team, and not to each individual user)
         user2 = self.create_user(is_superuser=False)
         self.create_member(teams=[self.team], user=user2, organization=self.organization)
-        ExternalActor.objects.create(
-            actor=user2.actor,
-            organization=self.organization,
-            integration=self.integration,
-            provider=ExternalProviders.SLACK.value,
-            external_name="goma",
+        self.idp = IdentityProvider.objects.create(type="slack", external_id="TXXXXXXX2", config={})
+        self.identity = Identity.objects.create(
             external_id="UXXXXXXX2",
+            idp=self.idp,
+            user=user2,
+            status=IdentityStatus.VALID,
+            scopes=[],
         )
         NotificationSetting.objects.update_settings(
             ExternalProviders.SLACK,
@@ -489,13 +492,13 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
 
         user2 = self.create_user(is_superuser=False)
         self.create_member(teams=[self.team], user=user2, organization=self.organization)
-        ExternalActor.objects.create(
-            actor=user2.actor,
-            organization=self.organization,
-            integration=self.integration,
-            provider=ExternalProviders.SLACK.value,
-            external_name="goma",
+        self.idp = IdentityProvider.objects.create(type="slack", external_id="TXXXXXXX2", config={})
+        self.identity = Identity.objects.create(
             external_id="UXXXXXXX2",
+            idp=self.idp,
+            user=user2,
+            status=IdentityStatus.VALID,
+            scopes=[],
         )
         NotificationSetting.objects.update_settings(
             ExternalProviders.SLACK,
@@ -546,6 +549,7 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
         assert attachments[0]["title"] == "Hello world"
         assert attachments[0]["text"] == ""
         assert attachments[0]["footer"] == event.group.qualified_short_id
+        # assert False
 
     @pytest.mark.skip(reason="will be needed soon but not yet")
     @responses.activate
