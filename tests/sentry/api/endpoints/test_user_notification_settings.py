@@ -139,6 +139,10 @@ class UserNotificationSettingsTest(UserNotificationSettingsTestBase):
         with self.feature(FEATURE_NAMES):
             self.get_error_response("me", **{"invalid": 1}, status_code=400)
 
+    def test_malformed_payload(self):
+        with self.feature(FEATURE_NAMES):
+            self.get_error_response("me", **{"alerts": [1, 2]}, status_code=400)
+
     def test_wrong_user_id(self):
         user2 = self.create_user()
         data = {"deploy": {"user": {user2.id: {"email": "always", "slack": "always"}}}}
