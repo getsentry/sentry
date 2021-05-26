@@ -495,8 +495,8 @@ def ingest_consumer(consumer_types, all_consumer_types, **options):
         raise click.ClickException("Need to specify --all-consumer-types or --consumer-type")
 
     concurrency = options.pop("concurrency", None)
-    if concurrency is None:
-        executor = ThreadPoolExecutor()
+    if concurrency is not None:
+        executor = ThreadPoolExecutor(concurrency)
     else:
         executor = None
 
