@@ -343,7 +343,7 @@ function TeamKeyTransactionItem({team, isKeyed, disabled, onSelect}: ItemProps) 
         {team.name}
         <ActionItem>
           {disabled ? (
-            `Max.${MAX_TEAM_KEY_TRANSACTIONS}`
+            t('Max.%s', MAX_TEAM_KEY_TRANSACTIONS)
           ) : (
             <CheckboxFancy isChecked={isKeyed} />
           )}
