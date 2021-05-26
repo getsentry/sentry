@@ -78,11 +78,9 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
   };
 
   renderMemberRole() {
-    const {
-      member: {flags, roleName, pending, expired},
-    } = this.props;
-    const memberDisabled = flags['member-limit:restricted'];
-    if (memberDisabled) {
+    const {member} = this.props;
+    const {flags, roleName, pending, expired} = member;
+    if (flags['member-limit:restricted']) {
       return <DisabledMemberTooltip>{t('Deactivated')}</DisabledMemberTooltip>;
     }
     if (pending) {

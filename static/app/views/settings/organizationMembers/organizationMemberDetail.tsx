@@ -210,12 +210,7 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
   };
 
   get memberDeactivated() {
-    const {member} = this.state;
-    // can't be deactivated if not loaded
-    if (!member) {
-      return false;
-    }
-    return member.flags['member-limit:restricted'];
+    return this.state.member?.flags['member-limit:restricted'] ?? false;
   }
 
   renderMemberStatus(member: Member) {
@@ -230,7 +225,7 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
       return <em>{t('Invitation Expired')}</em>;
     }
     if (member.pending) {
-      <em>{t('Invitation Pending')}</em>;
+      return <em>{t('Invitation Pending')}</em>;
     }
     return t('Active');
   }
