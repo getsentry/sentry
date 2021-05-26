@@ -635,6 +635,7 @@ def create_partitioned_queues(name):
 create_partitioned_queues("counters")
 create_partitioned_queues("triggers")
 
+
 from celery.schedules import crontab
 
 # XXX: Make sure to register the monitor_id for each job in `SENTRY_CELERYBEAT_MONITORS`!
