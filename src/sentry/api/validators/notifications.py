@@ -94,7 +94,7 @@ def validate_scope(
         if scope_id == "me":
             # Overwrite "me" with the current user's ID.
             scope_id = user.id
-        elif scope_id != user.id:
+        elif scope_id != str(user.id):
             raise ParameterValidationError(f"Incorrect user ID: {scope_id}", context)
 
     try:

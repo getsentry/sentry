@@ -5,6 +5,11 @@ import AsyncComponent from 'app/components/asyncComponent';
 import Link from 'app/components/links/link';
 import {IconMail} from 'app/icons';
 import {t} from 'app/locale';
+import {
+  NOTIFICATION_SETTINGS_TYPES,
+  NotificationSettingsObject,
+  SELF_NOTIFICATION_SETTINGS_TYPES,
+} from 'app/views/settings/account/notifications/constants';
 import FeedbackAlert from 'app/views/settings/account/notifications/feedbackAlert';
 import {NOTIFICATION_SETTING_FIELDS} from 'app/views/settings/account/notifications/fields2';
 import {
@@ -12,20 +17,12 @@ import {
   getParentIds,
   getStateToPutForDefault,
   mergeNotificationSettings,
-  NotificationSettingsObject,
 } from 'app/views/settings/account/notifications/utils';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import {FieldObject} from 'app/views/settings/components/forms/type';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 import TextBlock from 'app/views/settings/components/text/textBlock';
-
-const NOTIFICATION_SETTINGS_TYPES = ['alerts', 'deploy', 'workflow', 'reports', 'email'];
-
-const SELF_NOTIFICATION_SETTINGS_TYPES = [
-  'personalActivityNotifications',
-  'selfAssignOnResolve',
-];
 
 type Props = AsyncComponent['props'];
 
