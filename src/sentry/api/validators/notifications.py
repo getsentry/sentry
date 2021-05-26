@@ -116,7 +116,9 @@ def validate_value(
     return value
 
 
-def get_valid_items(data: Mapping[Any, Any], context: Optional[List[str]] = None) -> AbstractSet:
+def get_valid_items(
+    data: Mapping[Any, Any], context: Optional[List[str]] = None
+) -> AbstractSet[Any]:
     try:
         return data.items()
     except AttributeError:
