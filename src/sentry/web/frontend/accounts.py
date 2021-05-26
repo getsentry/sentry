@@ -200,7 +200,7 @@ def confirm_email(request, user_id, hash):
         if not email.hash_is_valid():
             raise UserEmail.DoesNotExist
     except UserEmail.DoesNotExist:
-        if request.user.is_anonymous() or request.user.has_unverified_emails():
+        if request.user.is_anonymous or request.user.has_unverified_emails():
             msg = _(
                 "There was an error confirming your email. Please try again or "
                 "visit your Account Settings to resend the verification email."
