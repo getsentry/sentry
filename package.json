@@ -119,7 +119,7 @@
     "regenerator-runtime": "^0.13.3",
     "rrweb-player": "^0.4.6",
     "scroll-to-element": "^2.0.0",
-    "sprintf-js": "1.0.3",
+    "sprintf-js": "1.1.2",
     "style-loader": "^2.0.0",
     "tslib": "^2.2.0",
     "typescript": "^4.2.4",
