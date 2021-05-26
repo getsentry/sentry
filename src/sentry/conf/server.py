@@ -2207,6 +2207,8 @@ SENTRY_PROJECT_COUNTER_STATEMENT_TIMEOUT = 1000
 # Implemented in getsentry to run additional devserver workers.
 SENTRY_EXTRA_WORKERS = None
 
+SAMPLED_DEFAULT_RATE = 1.0
+
 # A set of extra URLs to sample
 ADDITIONAL_SAMPLED_URLS = {}
 
