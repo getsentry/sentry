@@ -1,5 +1,4 @@
 import * as React from 'react';
-import {css} from '@emotion/react';
 import Jed from 'jed';
 import isArray from 'lodash/isArray';
 import isObject from 'lodash/isObject';
@@ -9,10 +8,10 @@ import {sprintf} from 'sprintf-js';
 import {getTranslations} from 'app/translations';
 import localStorage from 'app/utils/localStorage';
 
-const markerCss = css`
-  background: #ff801790;
-  outline: 2px solid #ff801790;
-`;
+const markerStyles = {
+  background: '#ff801790',
+  outline: '2px solid #ff801790',
+};
 
 const LOCALE_DEBUG = localStorage.getItem('localeDebug') === '1';
 
@@ -260,7 +259,7 @@ function mark<T>(node: T): T {
     key: null,
     ref: null,
     props: {
-      className: markerCss,
+      style: markerStyles,
       children: isArray(node) ? node : [node],
     },
     _owner: null,

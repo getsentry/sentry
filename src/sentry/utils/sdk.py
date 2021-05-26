@@ -1,3 +1,4 @@
+import copy
 import inspect
 import random
 from datetime import datetime
@@ -203,6 +204,9 @@ def traces_sampler(sampling_context):
         try:
             match = resolve(sampling_context["wsgi_environ"].get("PATH_INFO"))
             if match and match.url_name in SAMPLED_URL_NAMES:
+                # TODO: turn SAMPLED_URL_NAMES into a dict and get the rate from there instead
+                if match.url_name == "sentry-api-0-project-stats":
+                    return 0.1
                 return 1.0
         except Exception:
             # On errors or 404, continue to default sampling decision
@@ -374,6 +378,7 @@ def configure_sdk():
             self._capture_anything("capture_event", event)
 
         def _capture_anything(self, method_name, *args, **kwargs):
+
             # Upstream should get the event first because it is most isolated from
             # the this sentry installation.
             if upstream_transport:
@@ -386,6 +391,14 @@ def configure_sdk():
                 getattr(upstream_transport, method_name)(*args, **kwargs)
 
             if relay_transport and options.get("store.use-relay-dsn-sample-rate") == 1:
+                # If this is a envelope ensure envelope and it's items are distinct references
+                if method_name == "capture_envelope":
+                    args_list = list(args)
+                    envelope = args_list[0]
+                    relay_envelope = copy.copy(envelope)
+                    relay_envelope.items = envelope.items.copy()
+                    args = [relay_envelope, *args_list[1:]]
+
                 if is_current_event_safe():
                     metrics.incr("internal.captured.events.relay")
                     getattr(relay_transport, method_name)(*args, **kwargs)

@@ -614,7 +614,7 @@ describe('Release Health Session Term', function () {
     // Crashed
     const crashedSessionTerm = getSessionTermDescription(SessionTerm.CRASHED, 'rust');
     expect(crashedSessionTerm).toEqual(
-      'The application had an unrecovable error (a panic)'
+      'The application had an unrecoverable error (a panic)'
     );
 
     // Crash Free Users

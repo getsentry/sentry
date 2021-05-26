@@ -140,7 +140,7 @@ def distribution_v5(hour: int) -> int:
     return 1
 
 
-distrubtion_fns = [
+distribution_fns = [
     distribution_v1,
     distribution_v2,
     distribution_v3,
@@ -299,7 +299,7 @@ def clean_event(event_json):
 
 def fix_spans(event_json, old_span_id):
     """
-    This function does the folowing:
+    This function does the following:
     1. Give spans fresh span_ids & update the parent span ids accordingly
     2. Update span offsets and durations based on transaction duration and some randomness
     """
@@ -320,7 +320,7 @@ def fix_spans(event_json, old_span_id):
                 # set the new parent
                 span["parent_span_id"] = new_parent_id
 
-                # generate a new id and set the replacement mappping
+                # generate a new id and set the replacement mapping
                 new_id = uuid4().hex[:16]
                 update_id_map[span["span_id"]] = new_id
 
@@ -377,22 +377,20 @@ def fix_spans(event_json, old_span_id):
             if i == last_index:
                 duration = remaining_time
             else:
-                # the max duration should give some breathging room to the remaining spans
+                # the max duration should give some breathing room to the remaining spans
                 max_duration = remaining_time - (avg_span_length / 4.0) * (last_index - i)
                 # pick a random length for the span that's at most 2x the average span length
                 duration = min(max_duration, random.uniform(0, 2 * avg_span_length))
             span["data"]["duration"] = duration
             span["start_timestamp"] = event_json["start_timestamp"] + span_offset
             span.setdefault("timestamp", span["start_timestamp"] + duration)
-            # calcualate the next span offset
+            # calculate the next span offset
             span_offset = duration + span_offset
             id_list.append(span["span_id"])
 
 
 def fix_measurements(event_json):
-    """
-    Convert measurment data from durations into timestamps
-    """
+    """ Convert measurement data from durations into timestamps. """
     measurements = event_json.get("measurements")
 
     if measurements:
@@ -410,7 +408,7 @@ def update_context(event, trace=None):
     # delete device since we aren't mocking it (yet)
     if "device" in context:
         del context["device"]
-    # generate ranndom browser and os
+    # generate random browser and os
     context.update(**gen_base_context())
     # add our trace info
     base_trace = context.get("trace", {})
@@ -482,7 +480,7 @@ class DataPopulation:
         beta = config["DURATION_BETA"]
         return MIN_FRONTEND_DURATION / 1000.0 + random.gammavariate(alpha, beta) / (1 + day_weight)
 
-    def fix_breadrumbs(self, event_json):
+    def fix_breadcrumbs(self, event_json):
         """
         Fixes the timestamps on breadcrumbs to match the current time
         Evenly spaces out all breadcrumbs starting at BREADCRUMB_LOOKBACK_TIME ago
@@ -503,7 +501,7 @@ class DataPopulation:
     def fix_timestamps(self, event_json):
         """
         Convert a time zone aware datetime timestamps to a POSIX timestamp
-        for an evnet
+        for an event.
         """
         event_json["timestamp"] = to_timestamp(event_json["timestamp"])
         start_timestamp = event_json.get("start_timestamp")
@@ -512,7 +510,7 @@ class DataPopulation:
 
     def fix_error_event(self, event_json):
         self.fix_timestamps(event_json)
-        self.fix_breadrumbs(event_json)
+        self.fix_breadcrumbs(event_json)
 
     def fix_transaction_event(self, event_json, old_span_id):
         self.fix_timestamps(event_json)
@@ -535,13 +533,13 @@ class DataPopulation:
         """
         Creates an envelope payload for a session and posts it to Relay
         """
-        formated_time = time.isoformat()
+        formatted_time = time.isoformat()
         envelope_headers = "{}"
         item_headers = json.dumps({"type": "session"})
         data = {
             "sid": sid,
             "did": str(user_id),
-            "started": formated_time,
+            "started": formatted_time,
             "duration": random.randrange(2, 60),
             "attrs": {
                 "release": release,
@@ -732,13 +730,13 @@ class DataPopulation:
                 member = random.choice(org_members)
                 GroupAssignee.objects.assign(group, member.user)
 
-    def iter_timestamps(self, disribution_fn_num: int, starting_release: int = 0):
+    def iter_timestamps(self, distribution_fn_num: int, starting_release: int = 0):
         """
         Yields a series of ordered timestamps and the day in a tuple
         """
 
-        # disribution_fn_num starts at 1 instead of 0
-        distribution_fn = distrubtion_fns[disribution_fn_num - 1]
+        # distribution_fn_num starts at 1 instead of 0
+        distribution_fn = distribution_fns[distribution_fn_num - 1]
 
         config = self.get_config()
         MAX_DAYS = config["MAX_DAYS"]
@@ -950,7 +948,7 @@ class DataPopulation:
         This function populates a set of two related events with the same trace id:
         - Front-end transaction
         - Back-end transaction
-        Occurrance times and durations are randomized
+        Occurrence times and durations are randomized
         """
         react_transaction = get_event_from_file("scen2/react_transaction.json")
         python_transaction = get_event_from_file("scen2/python_transaction.json")
