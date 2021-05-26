@@ -2,12 +2,14 @@ import {Component, Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import flatten from 'lodash/flatten';
+import omit from 'lodash/omit';
 
 import {promptsCheck, promptsUpdate} from 'app/actionCreators/prompts';
 import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
+import ButtonBar from 'app/components/buttonBar';
 import CreateAlertButton from 'app/components/createAlertButton';
 import * as Layout from 'app/components/layouts/thirds';
 import ExternalLink from 'app/components/links/externalLink';
@@ -35,22 +37,10 @@ import Onboarding from './onboarding';
 import AlertListRow from './row';
 import {TableLayout} from './styles';
 
-// const DEFAULT_QUERY_STATUS = 'open' as const;
+const DEFAULT_QUERY_STATUS = 'open';
 
 const DOCS_URL =
   'https://docs.sentry.io/workflow/alerts-notifications/alerts/?_ga=2.21848383.580096147.1592364314-1444595810.1582160976';
-
-function getQueryStatus(status: string | string[]): string[] {
-  if (Array.isArray(status)) {
-    return status;
-  }
-
-  if (status === '') {
-    return [];
-  }
-
-  return ['open', 'closed'].includes(status as string) ? [status as string] : [];
-}
 
 type Props = RouteComponentProps<{orgId: string}, {}> & {
   organization: Organization;
@@ -76,7 +66,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
     const {params, location, organization} = this.props;
     const {query} = location;
 
-    const status = getQueryStatus(query.status);
+    const status = this.getQueryStatus(query.status);
     // Filting by one status, both does nothing
     if (status.length === 1) {
       query.status = status;
@@ -91,6 +81,27 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
     }
 
     return [['incidentList', `/organizations/${params?.orgId}/incidents/`, {query}]];
+  }
+
+  getQueryStatus(status: string | string[]): string[] {
+    if (Array.isArray(status)) {
+      return status;
+    }
+
+    if (status === '') {
+      return [];
+    }
+
+    // No default status w/ alert-history-filters
+    const hasAlertHistoryFilters = this.props.organization.features.includes(
+      'alert-history-filters'
+    );
+
+    return ['open', 'closed'].includes(status as string)
+      ? [status as string]
+      : hasAlertHistoryFilters
+      ? []
+      : [DEFAULT_QUERY_STATUS];
   }
 
   /**
@@ -191,7 +202,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
   renderFilterBar() {
     const {teams, location} = this.props;
     const selectedTeams = new Set(getTeamParams(location.query.team));
-    const selectedStatus = new Set(getQueryStatus(location.query.status));
+    const selectedStatus = new Set(this.getQueryStatus(location.query.status));
 
     return (
       <FilterWrapper>
@@ -288,7 +299,14 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
                   <div>{t('Alert')}</div>
                   <div>{t('Alert Rule')}</div>
                   <div>{t('Project')}</div>
-                  <div>{t('Team')}</div>
+                  <div>
+                    <Feature
+                      features={['team-alerts-ownership']}
+                      organization={organization}
+                    >
+                      {t('Team')}
+                    </Feature>
+                  </div>
                 </TableLayout>
               </PanelHeader>
             )}
@@ -322,8 +340,16 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
   }
 
   renderBody() {
-    const {params, organization, router} = this.props;
+    const {params, organization, router, location} = this.props;
+    const {pathname, query} = location;
     const {orgId} = params;
+
+    const openIncidentsQuery = omit({...query, status: 'open'}, 'cursor');
+    const closedIncidentsQuery = omit({...query, status: 'closed'}, 'cursor');
+    const status = this.getQueryStatus(location.query.status)[0] || DEFAULT_QUERY_STATUS;
+    const hasAlertHistoryFilters = organization.features.includes(
+      'alert-history-filters'
+    );
 
     return (
       <SentryDocumentTitle title={t('Alerts')} orgSlug={orgId}>
@@ -341,7 +367,26 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
                       {t('This page only shows metric alerts that have been triggered.')}
                     </Alert>
                   </Feature>
-                  {this.renderFilterBar()}
+                  {hasAlertHistoryFilters ? (
+                    this.renderFilterBar()
+                  ) : (
+                    <StyledButtonBar merged active={status}>
+                      <Button
+                        to={{pathname, query: openIncidentsQuery}}
+                        barId="open"
+                        size="small"
+                      >
+                        {t('Unresolved')}
+                      </Button>
+                      <Button
+                        to={{pathname, query: closedIncidentsQuery}}
+                        barId="closed"
+                        size="small"
+                      >
+                        {t('Resolved')}
+                      </Button>
+                    </StyledButtonBar>
+                  )}
                 </Fragment>
               )}
               {this.renderList()}
@@ -365,14 +410,12 @@ class IncidentsListContainer extends Component<Props> {
   }
 
   trackView() {
-    const {location, organization} = this.props;
-    const status = getQueryStatus(location.query.status);
+    const {organization} = this.props;
 
     trackAnalyticsEvent({
       eventKey: 'alert_stream.viewed',
       eventName: 'Alert Stream: Viewed',
       organization_id: organization.id,
-      status,
     });
   }
 
@@ -401,6 +444,11 @@ class IncidentsListContainer extends Component<Props> {
     );
   }
 }
+
+const StyledButtonBar = styled(ButtonBar)`
+  width: 100px;
+  margin-bottom: ${space(1)};
+`;
 
 const FilterWrapper = styled('div')`
   display: flex;

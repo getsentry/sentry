@@ -126,19 +126,16 @@ class AlertListRow extends Component<Props> {
               project={!projectsLoaded ? {slug} : this.getProject(slug, projects)}
             />
 
-            {hasAlertOwnership && (
-              <FlexCenter>
-                {teamActor ? <ActorAvatar actor={teamActor} size={24} /> : '-'}
-              </FlexCenter>
-            )}
+            <FlexCenter>
+              {hasAlertOwnership &&
+                (teamActor ? <ActorAvatar actor={teamActor} size={24} /> : '-')}
+            </FlexCenter>
           </TableLayout>
         </IncidentPanelItem>
       </ErrorBoundary>
     );
   }
 }
-
-export default AlertListRow;
 
 const ProjectBadge = styled(IdBadge)`
   flex-shrink: 0;
@@ -160,3 +157,5 @@ const FlexCenter = styled('div')`
   display: flex;
   align-items: center;
 `;
+
+export default AlertListRow;

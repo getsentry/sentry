@@ -90,7 +90,7 @@ class Filter extends Component<Props> {
 
     const newSelection =
       section.items.length === activeItems.length
-        ? new Set()
+        ? new Set<string>()
         : new Set(section.items.map(item => item.value));
 
     onFilterChange(sectionId, newSelection);
