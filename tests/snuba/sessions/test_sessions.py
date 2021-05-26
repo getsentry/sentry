@@ -1,4 +1,5 @@
 import time
+import uuid
 from datetime import datetime
 
 import pytz
@@ -423,7 +424,48 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
         }
 
 
-class SnubaReleaseDetailPaginationOnSessionsTest(TestCase, SnubaTestCase):
+class SnubaReleaseDetailPaginationBaseTestClass:
+    @staticmethod
+    def compare_releases_list_according_to_current_release_filters(
+        project_id, org_id, release, environments, scope, releases_list, stats_period=None
+    ):
+        adj_releases_filters = {
+            "project_id": project_id,
+            "org_id": org_id,
+            "release": release,
+            "environments": environments,
+            "scope": scope,
+        }
+        if stats_period:
+            adj_releases_filters.update({"stats_period": stats_period})
+
+        adjacent_releases = get_adjacent_releases_based_on_adoption(**adj_releases_filters)
+        assert adjacent_releases == releases_list
+
+    @staticmethod
+    def generate_session_default_args(session_dict):
+        session_dict_default = {
+            "session_id": str(uuid.uuid4()),
+            "distinct_id": str(uuid.uuid4()),
+            "status": "ok",
+            "seq": 0,
+            "release": "random@1.0",
+            "environment": "prod",
+            "retention_days": 90,
+            "org_id": 0,
+            "project_id": 0,
+            "duration": 60.0,
+            "errors": 0,
+            "started": time.time() // 60 * 60,
+            "received": time.time(),
+        }
+        session_dict_default.update(session_dict)
+        return session_dict_default
+
+
+class SnubaReleaseDetailPaginationOnSessionsTest(
+    TestCase, SnubaTestCase, SnubaReleaseDetailPaginationBaseTestClass
+):
     """
     TestClass that tests getting the previous and next release to a specific release
     based on the `sessions` sort ordering
@@ -447,6 +489,11 @@ class SnubaReleaseDetailPaginationOnSessionsTest(TestCase, SnubaTestCase):
 
     def setUp(self):
         super().setUp()
+        self.common_release_filters = {
+            "project_id": self.project.id,
+            "org_id": self.project.organization_id,
+            "scope": "sessions",
+        }
         self.received = time.time()
         self.session_started = time.time() // 60 * 60
         self.session_started_gt_24h = self.session_started - 25 * 60 * 60
@@ -455,85 +502,55 @@ class SnubaReleaseDetailPaginationOnSessionsTest(TestCase, SnubaTestCase):
         self.session_release_3 = "foobar@3.0.0"
         self.session_release_4 = "foobar@4.0.0"
 
-        # Release: foobar@1.0.0
+        self.common_session_args = {
+            "project_id": self.project.id,
+            "org_id": self.project.organization_id,
+            "received": self.received,
+        }
 
+        # Release: foobar@1.0.0
         # Env: prod
         # Time: < 24h
         # Total: 1 Session
         self.store_session(
-            {
-                "session_id": "5d52fd05-fcc9-4bf3-9dc9-267783670341",
-                "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102666",
-                "status": "exited",
-                "seq": 0,
-                "release": self.session_release_1,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": 60.0,
-                "errors": 0,
-                "started": self.session_started,
-                "received": self.received,
-            }
+            self.generate_session_default_args(
+                {
+                    **self.common_session_args,
+                    "started": self.session_started,
+                    "release": self.session_release_1,
+                    "status": "exited",
+                }
+            )
         )
 
         # Env: prod
         # Time: > 24h but < 14 days
         # Total: 2 sessions
-        self.store_session(
-            {
-                "session_id": "d3fc506a-b87e-11eb-8529-0242ac130003",
-                "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102666",
-                "status": "exited",
-                "seq": 0,
-                "release": self.session_release_1,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": 60.0,
-                "errors": 0,
-                "started": self.session_started_gt_24h,
-                "received": self.received,
-            }
-        )
-        self.store_session(
-            {
-                "session_id": "e1ea448e-b87e-11eb-8529-0242ac130003",
-                "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102666",
-                "status": "exited",
-                "seq": 0,
-                "release": self.session_release_1,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": 60.0,
-                "errors": 0,
-                "started": self.session_started_gt_24h,
-                "received": self.received,
-            }
-        )
+        for _ in range(0, 2):
+            self.store_session(
+                self.generate_session_default_args(
+                    {
+                        **self.common_session_args,
+                        "started": self.session_started_gt_24h,
+                        "release": self.session_release_1,
+                        "status": "exited",
+                    }
+                )
+            )
+
         # Env: test
         # Time: < 24h
         # Total: 1 Session
         self.store_session(
-            {
-                "session_id": "138fe748-b8aa-11eb-8529-0242ac130003",
-                "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102666",
-                "status": "exited",
-                "seq": 0,
-                "release": self.session_release_1,
-                "environment": "test",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": 60.0,
-                "errors": 0,
-                "started": self.session_started,
-                "received": self.received,
-            }
+            self.generate_session_default_args(
+                {
+                    **self.common_session_args,
+                    "started": self.session_started,
+                    "release": self.session_release_1,
+                    "status": "exited",
+                    "environment": "test",
+                }
+            )
         )
 
         # Release: foobar@2.0.0
@@ -541,277 +558,172 @@ class SnubaReleaseDetailPaginationOnSessionsTest(TestCase, SnubaTestCase):
         # Time: < 24h
         # Total: 2 Sessions
         self.store_session(
-            {
-                "session_id": "5e910c1a-6941-460e-9843-24103fb6a63c",
-                "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102666",
-                "status": "ok",
-                "seq": 0,
-                "release": self.session_release_2,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": None,
-                "errors": 0,
-                "started": self.session_started,
-                "received": self.received,
-            }
+            self.generate_session_default_args(
+                {
+                    **self.common_session_args,
+                    "started": self.session_started,
+                    "release": self.session_release_2,
+                    "duration": None,
+                    "session_id": "5e910c1a-6941-460e-9843-24103fb6a63c",
+                    "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102666",
+                }
+            )
         )
         self.store_session(
-            {
-                "session_id": "5e910c1a-6941-460e-9843-24103fb6a63c",
-                "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102666",
-                "status": "exited",
-                "seq": 1,
-                "release": self.session_release_2,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": 30.0,
-                "errors": 0,
-                "started": self.session_started,
-                "received": self.received,
-            }
+            self.generate_session_default_args(
+                {
+                    **self.common_session_args,
+                    "started": self.session_started,
+                    "release": self.session_release_2,
+                    "session_id": "5e910c1a-6941-460e-9843-24103fb6a63c",
+                    "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102666",
+                    "status": "exited",
+                    "seq": 1,
+                }
+            )
         )
         self.store_session(
-            {
-                "session_id": "c9574ab4-b7c7-11eb-8529-0242ac130003",
-                "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102666",
-                "status": "exited",
-                "seq": 0,
-                "release": self.session_release_2,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": 30.0,
-                "errors": 0,
-                "started": self.session_started,
-                "received": self.received,
-            }
+            self.generate_session_default_args(
+                {
+                    **self.common_session_args,
+                    "started": self.session_started,
+                    "release": self.session_release_2,
+                    "status": "exited",
+                }
+            )
         )
 
         # Release: foobar@3.0.0
         # Env: prod
         # Time: <24h
         # Total: 3 Session
-        self.store_session(
-            {
-                "session_id": "a148c0c5-06a2-423b-8901-6b43b812cf82",
-                "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102666",
-                "status": "exited",
-                "seq": 0,
-                "release": self.session_release_3,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": 60.0,
-                "errors": 0,
-                "started": self.session_started,
-                "received": self.received,
-            }
-        )
-        self.store_session(
-            {
-                "session_id": "a11d2540-b7c3-11eb-8529-0242ac130003",
-                "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102666",
-                "status": "exited",
-                "seq": 0,
-                "release": self.session_release_3,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": 60.0,
-                "errors": 0,
-                "started": self.session_started,
-                "received": self.received,
-            }
-        )
-        self.store_session(
-            {
-                "session_id": "c14be4d2-b7c3-11eb-8529-0242ac130003",
-                "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102666",
-                "status": "exited",
-                "seq": 0,
-                "release": self.session_release_3,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": 60.0,
-                "errors": 0,
-                "started": self.session_started,
-                "received": self.received,
-            }
-        )
+        for _ in range(0, 3):
+            self.store_session(
+                self.generate_session_default_args(
+                    {
+                        **self.common_session_args,
+                        "started": self.session_started,
+                        "release": self.session_release_3,
+                        "status": "exited",
+                    }
+                )
+            )
 
         # Release: foobar@4.0.0
         # Env: prod
         # Time: <24h
         # Total: 3 Sessions
-        self.store_session(
-            {
-                "session_id": "9fceb1b2-b7c9-11eb-8529-0242ac130003",
-                "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102666",
-                "status": "exited",
-                "seq": 0,
-                "release": self.session_release_4,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": 60.0,
-                "errors": 0,
-                "started": self.session_started,
-                "received": self.received,
-            }
-        )
-        self.store_session(
-            {
-                "session_id": "afed2b00-b7c9-11eb-8529-0242ac130003",
-                "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102666",
-                "status": "exited",
-                "seq": 0,
-                "release": self.session_release_4,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": 60.0,
-                "errors": 0,
-                "started": self.session_started,
-                "received": self.received,
-            }
-        )
-        self.store_session(
-            {
-                "session_id": "bc146952-b7c9-11eb-8529-0242ac130003",
-                "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102666",
-                "status": "exited",
-                "seq": 0,
-                "release": self.session_release_4,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": 60.0,
-                "errors": 0,
-                "started": self.session_started,
-                "received": self.received,
-            }
-        )
+        for _ in range(0, 3):
+            self.store_session(
+                self.generate_session_default_args(
+                    {
+                        **self.common_session_args,
+                        "started": self.session_started,
+                        "release": self.session_release_4,
+                        "status": "exited",
+                    }
+                )
+            )
 
-    def test_get_adjacent_releases_to_last_release_on_sessions_ordering(self):
-        adjacent_releases = get_adjacent_releases_based_on_adoption(
-            project_id=self.project.id,
-            org_id=self.project.organization_id,
+    def test_get_adjacent_releases_to_last_release(self):
+        self.compare_releases_list_according_to_current_release_filters(
+            **self.common_release_filters,
             release="foobar@1.0.0",
             environments=["prod"],
-            scope="sessions",
+            releases_list={
+                "next_releases_list": [],
+                "prev_releases_list": ["foobar@2.0.0", "foobar@4.0.0", "foobar@3.0.0"],
+            },
         )
-        assert adjacent_releases == {
-            "next_releases_list": [],
-            "prev_releases_list": ["foobar@2.0.0", "foobar@4.0.0", "foobar@3.0.0"],
-        }
 
-    def test_get_adjacent_releases_to_first_release_on_sessions_ordering(self):
-        adjacent_releases = get_adjacent_releases_based_on_adoption(
-            project_id=self.project.id,
-            org_id=self.project.organization_id,
+    def test_get_adjacent_releases_to_first_release(self):
+        self.compare_releases_list_according_to_current_release_filters(
+            **self.common_release_filters,
             release="foobar@3.0.0",
             environments=["prod"],
-            scope="sessions",
+            releases_list={
+                "next_releases_list": ["foobar@4.0.0", "foobar@2.0.0", "foobar@1.0.0"],
+                "prev_releases_list": [],
+            },
         )
-        assert adjacent_releases == {
-            "next_releases_list": ["foobar@4.0.0", "foobar@2.0.0", "foobar@1.0.0"],
-            "prev_releases_list": [],
-        }
 
-    def test_get_adjacent_releases_to_middle_release_on_sessions_ordering(self):
-        adjacent_releases = get_adjacent_releases_based_on_adoption(
-            project_id=self.project.id,
-            org_id=self.project.organization_id,
+    def test_get_adjacent_releases_to_middle_release(self):
+        self.compare_releases_list_according_to_current_release_filters(
+            **self.common_release_filters,
             release="foobar@2.0.0",
             environments=["prod"],
-            scope="sessions",
+            releases_list={
+                "next_releases_list": ["foobar@1.0.0"],
+                "prev_releases_list": ["foobar@4.0.0", "foobar@3.0.0"],
+            },
         )
-        assert adjacent_releases == {
-            "next_releases_list": ["foobar@1.0.0"],
-            "prev_releases_list": ["foobar@4.0.0", "foobar@3.0.0"],
-        }
 
-    def test_get_adjacent_releases_to_middle_release_with_same_sessions_count_on_sessions_ordering(
+    def test_get_adjacent_releases_to_middle_release_with_same_sessions_count(
         self,
     ):
         """
         Test that ensures that releases with the same session count are disambiguated according to asc ordering
         of release version
         example -> Same session count releases
-        foobar@
         """
-        adjacent_releases = get_adjacent_releases_based_on_adoption(
-            project_id=self.project.id,
-            org_id=self.project.organization_id,
+        self.compare_releases_list_according_to_current_release_filters(
+            **self.common_release_filters,
             release="foobar@4.0.0",
             environments=["prod"],
-            scope="sessions",
+            releases_list={
+                "next_releases_list": ["foobar@2.0.0", "foobar@1.0.0"],
+                "prev_releases_list": ["foobar@3.0.0"],
+            },
         )
-        assert adjacent_releases == {
-            "next_releases_list": ["foobar@2.0.0", "foobar@1.0.0"],
-            "prev_releases_list": ["foobar@3.0.0"],
-        }
 
-    def test_get_adjacent_releases_to_middle_release_for_stats_period_7d_on_sessions_ordering(self):
-        adjacent_releases = get_adjacent_releases_based_on_adoption(
-            project_id=self.project.id,
-            org_id=self.project.organization_id,
+    def test_get_adjacent_releases_to_middle_release_for_stats_period_7d(self):
+        self.compare_releases_list_according_to_current_release_filters(
+            **self.common_release_filters,
             release="foobar@3.0.0",
-            stats_period="7d",
             environments=["prod"],
-            scope="sessions",
+            stats_period="7d",
+            releases_list={
+                "next_releases_list": ["foobar@4.0.0", "foobar@2.0.0"],
+                "prev_releases_list": ["foobar@1.0.0"],
+            },
         )
-        assert adjacent_releases == {
-            "next_releases_list": ["foobar@4.0.0", "foobar@2.0.0"],
-            "prev_releases_list": ["foobar@1.0.0"],
-        }
-        adjacent_releases = get_adjacent_releases_based_on_adoption(
-            project_id=self.project.id,
-            org_id=self.project.organization_id,
+        self.compare_releases_list_according_to_current_release_filters(
+            **self.common_release_filters,
             release="foobar@1.0.0",
-            stats_period="7d",
             environments=["prod"],
-            scope="sessions",
+            stats_period="7d",
+            releases_list={
+                "next_releases_list": ["foobar@3.0.0", "foobar@4.0.0", "foobar@2.0.0"],
+                "prev_releases_list": [],
+            },
         )
-        assert adjacent_releases == {
-            "next_releases_list": ["foobar@3.0.0", "foobar@4.0.0", "foobar@2.0.0"],
-            "prev_releases_list": [],
-        }
 
-    def test_get_adjacent_releases_when_current_release_is_not_found_on_sessions_ordering(self):
-        adjacent_releases = get_adjacent_releases_based_on_adoption(
-            project_id=self.project.id,
-            org_id=self.project.organization_id,
+    def test_get_adjacent_releases_when_current_release_is_not_found(self):
+        self.compare_releases_list_according_to_current_release_filters(
+            **self.common_release_filters,
             release="foobar@1.0.0",
             environments=["test-whatever"],
-            scope="sessions",
+            releases_list={
+                "next_releases_list": [],
+                "prev_releases_list": [],
+            },
         )
-        assert adjacent_releases == {"next_releases_list": [], "prev_releases_list": []}
 
-    def test_get_adjacent_releases_to_last_release_in_different_env_on_sessions_ordering(self):
-        adjacent_releases = get_adjacent_releases_based_on_adoption(
-            project_id=self.project.id,
-            org_id=self.project.organization_id,
+    def test_get_adjacent_releases_to_last_release_in_different_env(self):
+        self.compare_releases_list_according_to_current_release_filters(
+            **self.common_release_filters,
             release="foobar@1.0.0",
             environments=["test"],
-            scope="sessions",
+            releases_list={
+                "next_releases_list": [],
+                "prev_releases_list": [],
+            },
         )
-        assert adjacent_releases == {"next_releases_list": [], "prev_releases_list": []}
 
 
-class SnubaReleaseDetailPaginationOnCrashFreeSessionsTest(TestCase, SnubaTestCase):
+class SnubaReleaseDetailPaginationOnCrashFreeSessionsTest(
+    TestCase, SnubaTestCase, SnubaReleaseDetailPaginationBaseTestClass
+):
     """
     TestClass that tests getting the previous and next releases to a specific release
     based on the `crash_free_sessions` sort ordering
@@ -835,6 +747,13 @@ class SnubaReleaseDetailPaginationOnCrashFreeSessionsTest(TestCase, SnubaTestCas
 
     def setUp(self):
         super().setUp()
+
+        self.common_release_filters = {
+            "project_id": self.project.id,
+            "org_id": self.project.organization_id,
+            "scope": "crash_free_sessions",
+        }
+
         self.received = time.time()
         self.session_started = time.time() // 60 * 60
         self.session_started_gt_24h = self.session_started - 25 * 60 * 60
@@ -842,7 +761,12 @@ class SnubaReleaseDetailPaginationOnCrashFreeSessionsTest(TestCase, SnubaTestCas
         self.session_release_2 = "foobar@2.0.0"
         self.session_release_3 = "foobar@3.0.0"
         self.session_release_4 = "foobar@4.0.0"
-        self.session_crashed_release = "foobar@2.0.0"
+
+        self.common_session_args = {
+            "project_id": self.project.id,
+            "org_id": self.project.organization_id,
+            "received": self.received,
+        }
 
         # Release: foobar@1.0.0
 
@@ -850,79 +774,44 @@ class SnubaReleaseDetailPaginationOnCrashFreeSessionsTest(TestCase, SnubaTestCas
         # Time: < 24h
         # Total: 1 Session -> 100% Crash Free
         self.store_session(
-            {
-                "session_id": "5d52fd05-fcc9-4bf3-9dc9-267783670341",
-                "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102666",
-                "status": "exited",
-                "seq": 0,
-                "release": self.session_release_1,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": 60.0,
-                "errors": 0,
-                "started": self.session_started,
-                "received": self.received,
-            }
+            self.generate_session_default_args(
+                {
+                    **self.common_session_args,
+                    "started": self.session_started,
+                    "release": self.session_release_1,
+                    "status": "exited",
+                }
+            )
         )
 
         # Env: prod
         # Time: > 24h but < 14 days
         # Total: 3 sessions -> 1 Healthy + 2 Crashed -> 33.3333% Crash Free
-        self.store_session(
-            {
-                "session_id": "d3fc506a-b87e-11eb-8529-0242ac130003",
-                "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102666",
-                "status": "crashed",
-                "seq": 0,
-                "release": self.session_release_1,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": 60.0,
-                "errors": 0,
-                "started": self.session_started_gt_24h,
-                "received": self.received,
-            }
-        )
-        self.store_session(
-            {
-                "session_id": "e1ea448e-b87e-11eb-8529-0242ac130003",
-                "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102666",
-                "status": "crashed",
-                "seq": 0,
-                "release": self.session_release_1,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": 60.0,
-                "errors": 0,
-                "started": self.session_started_gt_24h,
-                "received": self.received,
-            }
-        )
+        for _ in range(0, 2):
+            self.store_session(
+                self.generate_session_default_args(
+                    {
+                        **self.common_session_args,
+                        "started": self.session_started_gt_24h,
+                        "release": self.session_release_1,
+                        "status": "crashed",
+                    }
+                )
+            )
+
         # Env: test
         # Time: < 24h
         # Total: 1 Session -> 0% Crash Free
         self.store_session(
-            {
-                "session_id": "138fe748-b8aa-11eb-8529-0242ac130003",
-                "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102666",
-                "status": "crashed",
-                "seq": 0,
-                "release": self.session_release_1,
-                "environment": "test",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": 60.0,
-                "errors": 0,
-                "started": self.session_started,
-                "received": self.received,
-            }
+            self.generate_session_default_args(
+                {
+                    **self.common_session_args,
+                    "started": self.session_started,
+                    "release": self.session_release_1,
+                    "status": "crashed",
+                    "environment": "test",
+                }
+            )
         )
 
         # Release: foobar@2.0.0
@@ -930,55 +819,39 @@ class SnubaReleaseDetailPaginationOnCrashFreeSessionsTest(TestCase, SnubaTestCas
         # Time: < 24h
         # Total: 2 Sessions -> 2 Crashed -> 0% Crash free
         self.store_session(
-            {
-                "session_id": "5e910c1a-6941-460e-9843-24103fb6a63c",
-                "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102666",
-                "status": "ok",
-                "seq": 0,
-                "release": self.session_release_2,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": None,
-                "errors": 0,
-                "started": self.session_started,
-                "received": self.received,
-            }
+            self.generate_session_default_args(
+                {
+                    **self.common_session_args,
+                    "started": self.session_started,
+                    "release": self.session_release_2,
+                    "duration": None,
+                    "session_id": "5e910c1a-6941-460e-9843-24103fb6a63c",
+                    "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102666",
+                }
+            )
         )
         self.store_session(
-            {
-                "session_id": "5e910c1a-6941-460e-9843-24103fb6a63c",
-                "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102666",
-                "status": "crashed",
-                "seq": 1,
-                "release": self.session_release_2,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": 30.0,
-                "errors": 0,
-                "started": self.session_started,
-                "received": self.received,
-            }
+            self.generate_session_default_args(
+                {
+                    **self.common_session_args,
+                    "started": self.session_started,
+                    "release": self.session_release_2,
+                    "session_id": "5e910c1a-6941-460e-9843-24103fb6a63c",
+                    "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102666",
+                    "status": "crashed",
+                    "seq": 1,
+                }
+            )
         )
         self.store_session(
-            {
-                "session_id": "c9574ab4-b7c7-11eb-8529-0242ac130003",
-                "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102666",
-                "status": "crashed",
-                "seq": 0,
-                "release": self.session_release_2,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": 30.0,
-                "errors": 0,
-                "started": self.session_started,
-                "received": self.received,
-            }
+            self.generate_session_default_args(
+                {
+                    **self.common_session_args,
+                    "started": self.session_started,
+                    "release": self.session_release_2,
+                    "status": "crashed",
+                }
+            )
         )
 
         # Release: foobar@3.0.0
@@ -986,217 +859,145 @@ class SnubaReleaseDetailPaginationOnCrashFreeSessionsTest(TestCase, SnubaTestCas
         # Time: <24h
         # Total: 3 Session -> 2 Healthy + 1 Crashed -> 66.666% Crash free
         self.store_session(
-            {
-                "session_id": "a148c0c5-06a2-423b-8901-6b43b812cf82",
-                "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102666",
-                "status": "crashed",
-                "seq": 0,
-                "release": self.session_release_3,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": 60.0,
-                "errors": 0,
-                "started": self.session_started,
-                "received": self.received,
-            }
+            self.generate_session_default_args(
+                {
+                    **self.common_session_args,
+                    "started": self.session_started,
+                    "release": self.session_release_3,
+                    "status": "crashed",
+                }
+            )
         )
-        self.store_session(
-            {
-                "session_id": "a11d2540-b7c3-11eb-8529-0242ac130003",
-                "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102666",
-                "status": "exited",
-                "seq": 0,
-                "release": self.session_release_3,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": 60.0,
-                "errors": 0,
-                "started": self.session_started,
-                "received": self.received,
-            }
-        )
-        self.store_session(
-            {
-                "session_id": "c14be4d2-b7c3-11eb-8529-0242ac130003",
-                "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102666",
-                "status": "exited",
-                "seq": 0,
-                "release": self.session_release_3,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": 60.0,
-                "errors": 0,
-                "started": self.session_started,
-                "received": self.received,
-            }
-        )
+        for _ in range(0, 2):
+            self.store_session(
+                self.generate_session_default_args(
+                    {
+                        **self.common_session_args,
+                        "started": self.session_started,
+                        "release": self.session_release_3,
+                        "status": "exited",
+                    }
+                )
+            )
 
         # Release: foobar@4.0.0
         # Env: prod
         # Time: <24h
         # Total: 3 Sessions -> 2 Healthy + 1 Crashed -> 66.666% Crash free
         self.store_session(
-            {
-                "session_id": "9fceb1b2-b7c9-11eb-8529-0242ac130003",
-                "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102666",
-                "status": "crashed",
-                "seq": 0,
-                "release": self.session_release_4,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": 60.0,
-                "errors": 0,
-                "started": self.session_started,
-                "received": self.received,
-            }
+            self.generate_session_default_args(
+                {
+                    **self.common_session_args,
+                    "started": self.session_started,
+                    "release": self.session_release_4,
+                    "status": "crashed",
+                }
+            )
         )
-        self.store_session(
-            {
-                "session_id": "afed2b00-b7c9-11eb-8529-0242ac130003",
-                "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102666",
-                "status": "exited",
-                "seq": 0,
-                "release": self.session_release_4,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": 60.0,
-                "errors": 0,
-                "started": self.session_started,
-                "received": self.received,
-            }
-        )
-        self.store_session(
-            {
-                "session_id": "bc146952-b7c9-11eb-8529-0242ac130003",
-                "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102666",
-                "status": "exited",
-                "seq": 0,
-                "release": self.session_release_4,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": 60.0,
-                "errors": 0,
-                "started": self.session_started,
-                "received": self.received,
-            }
-        )
+        for _ in range(0, 2):
+            self.store_session(
+                self.generate_session_default_args(
+                    {
+                        **self.common_session_args,
+                        "started": self.session_started,
+                        "release": self.session_release_4,
+                        "status": "exited",
+                    }
+                )
+            )
 
-    def test_get_adjacent_releases_to_last_release_on_crash_free_sessions_ordering(self):
-        adjacent_releases = get_adjacent_releases_based_on_adoption(
-            project_id=self.project.id,
-            org_id=self.project.organization_id,
+    def test_get_adjacent_releases_to_last_release(self):
+        self.compare_releases_list_according_to_current_release_filters(
+            **self.common_release_filters,
             release="foobar@2.0.0",
             environments=["prod"],
-            scope="crash_free_sessions",
+            releases_list={
+                "next_releases_list": [],
+                "prev_releases_list": ["foobar@4.0.0", "foobar@3.0.0", "foobar@1.0.0"],
+            },
         )
-        assert adjacent_releases == {
-            "next_releases_list": [],
-            "prev_releases_list": ["foobar@4.0.0", "foobar@3.0.0", "foobar@1.0.0"],
-        }
 
-    def test_get_adjacent_releases_to_first_release_on_crash_free_sessions_ordering(self):
-        adjacent_releases = get_adjacent_releases_based_on_adoption(
-            project_id=self.project.id,
-            org_id=self.project.organization_id,
+    def test_get_adjacent_releases_to_first_release(self):
+        self.compare_releases_list_according_to_current_release_filters(
+            **self.common_release_filters,
             release="foobar@1.0.0",
             environments=["prod"],
-            scope="crash_free_sessions",
+            releases_list={
+                "next_releases_list": ["foobar@3.0.0", "foobar@4.0.0", "foobar@2.0.0"],
+                "prev_releases_list": [],
+            },
         )
-        assert adjacent_releases == {
-            "next_releases_list": ["foobar@3.0.0", "foobar@4.0.0", "foobar@2.0.0"],
-            "prev_releases_list": [],
-        }
 
-    def test_get_adjacent_releases_to_middle_release_on_crash_free_sessions_ordering(self):
-        adjacent_releases = get_adjacent_releases_based_on_adoption(
-            project_id=self.project.id,
-            org_id=self.project.organization_id,
+    def test_get_adjacent_releases_to_middle_release(self):
+        self.compare_releases_list_according_to_current_release_filters(
+            **self.common_release_filters,
             release="foobar@3.0.0",
             environments=["prod"],
-            scope="crash_free_sessions",
+            releases_list={
+                "next_releases_list": ["foobar@4.0.0", "foobar@2.0.0"],
+                "prev_releases_list": ["foobar@1.0.0"],
+            },
         )
-        assert adjacent_releases == {
-            "next_releases_list": ["foobar@4.0.0", "foobar@2.0.0"],
-            "prev_releases_list": ["foobar@1.0.0"],
-        }
 
     def test_get_adjacent_releases_to_middle_release_with_same_crash_free_sessions_percentage(self):
-        adjacent_releases = get_adjacent_releases_based_on_adoption(
-            project_id=self.project.id,
-            org_id=self.project.organization_id,
+        self.compare_releases_list_according_to_current_release_filters(
+            **self.common_release_filters,
             release="foobar@4.0.0",
             environments=["prod"],
-            scope="crash_free_sessions",
+            releases_list={
+                "next_releases_list": ["foobar@2.0.0"],
+                "prev_releases_list": ["foobar@3.0.0", "foobar@1.0.0"],
+            },
         )
-        assert adjacent_releases == {
-            "next_releases_list": ["foobar@2.0.0"],
-            "prev_releases_list": ["foobar@3.0.0", "foobar@1.0.0"],
-        }
 
-    def test_get_adjacent_releases_to_middle_release_for_stats_period_7d_on_crash_free_sessions(
-        self,
-    ):
-        adjacent_releases = get_adjacent_releases_based_on_adoption(
-            project_id=self.project.id,
-            org_id=self.project.organization_id,
+    def test_get_adjacent_releases_to_middle_release_for_stats_period_7d(self):
+        self.compare_releases_list_according_to_current_release_filters(
+            **self.common_release_filters,
             release="foobar@3.0.0",
-            stats_period="7d",
             environments=["prod"],
-            scope="crash_free_sessions",
+            stats_period="7d",
+            releases_list={
+                "next_releases_list": ["foobar@4.0.0", "foobar@1.0.0", "foobar@2.0.0"],
+                "prev_releases_list": [],
+            },
         )
-        assert adjacent_releases == {
-            "next_releases_list": ["foobar@4.0.0", "foobar@1.0.0", "foobar@2.0.0"],
-            "prev_releases_list": [],
-        }
-        adjacent_releases = get_adjacent_releases_based_on_adoption(
-            project_id=self.project.id,
-            org_id=self.project.organization_id,
+        self.compare_releases_list_according_to_current_release_filters(
+            **self.common_release_filters,
             release="foobar@4.0.0",
-            stats_period="7d",
             environments=["prod"],
-            scope="crash_free_sessions",
+            stats_period="7d",
+            releases_list={
+                "next_releases_list": ["foobar@1.0.0", "foobar@2.0.0"],
+                "prev_releases_list": ["foobar@3.0.0"],
+            },
         )
-        assert adjacent_releases == {
-            "next_releases_list": ["foobar@1.0.0", "foobar@2.0.0"],
-            "prev_releases_list": ["foobar@3.0.0"],
-        }
 
-    def test_get_adjacent_releases_when_current_release_is_not_found_on_crash_free_sessions(self):
-        adjacent_releases = get_adjacent_releases_based_on_adoption(
-            project_id=self.project.id,
-            org_id=self.project.organization_id,
+    def test_get_adjacent_releases_when_current_release_is_not_found(self):
+        self.compare_releases_list_according_to_current_release_filters(
+            **self.common_release_filters,
             release="foobar@1.0.0",
             environments=["test-whatever"],
-            scope="crash_free_sessions",
+            releases_list={
+                "next_releases_list": [],
+                "prev_releases_list": [],
+            },
         )
-        assert adjacent_releases == {"next_releases_list": [], "prev_releases_list": []}
 
-    def test_get_adjacent_releases_to_last_release_on_crash_free_sessions_ordering_in_different_env(
-        self,
-    ):
-        adjacent_releases = get_adjacent_releases_based_on_adoption(
-            project_id=self.project.id,
-            org_id=self.project.organization_id,
+    def test_get_adjacent_releases_to_last_release_in_different_env(self):
+        self.compare_releases_list_according_to_current_release_filters(
+            **self.common_release_filters,
             release="foobar@1.0.0",
             environments=["test"],
-            scope="crash_free_sessions",
+            releases_list={
+                "next_releases_list": [],
+                "prev_releases_list": [],
+            },
         )
-        assert adjacent_releases == {"next_releases_list": [], "prev_releases_list": []}
 
 
-class SnubaReleaseDetailPaginationOnUsersTest(TestCase, SnubaTestCase):
+class SnubaReleaseDetailPaginationOnUsersTest(
+    TestCase, SnubaTestCase, SnubaReleaseDetailPaginationBaseTestClass
+):
     """
     TestClass that tests getting the previous and next releases to a specific release
     based on the `users` sort ordering
@@ -1220,6 +1021,12 @@ class SnubaReleaseDetailPaginationOnUsersTest(TestCase, SnubaTestCase):
 
     def setUp(self):
         super().setUp()
+
+        self.common_release_filters = {
+            "project_id": self.project.id,
+            "org_id": self.project.organization_id,
+            "scope": "users",
+        }
         self.received = time.time()
         self.session_started = time.time() // 60 * 60
         self.session_started_gt_24h = self.session_started - 25 * 60 * 60
@@ -1228,85 +1035,55 @@ class SnubaReleaseDetailPaginationOnUsersTest(TestCase, SnubaTestCase):
         self.session_release_3 = "foobar@3.0.0"
         self.session_release_4 = "foobar@4.0.0"
 
+        self.common_session_args = {
+            "project_id": self.project.id,
+            "org_id": self.project.organization_id,
+            "received": self.received,
+        }
         # Release: foobar@1.0.0
 
         # Env: prod
         # Time: < 24h
         # Total: 1 Session
         self.store_session(
-            {
-                "session_id": "5d52fd05-fcc9-4bf3-9dc9-267783670341",
-                "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102666",
-                "status": "exited",
-                "seq": 0,
-                "release": self.session_release_1,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": 60.0,
-                "errors": 0,
-                "started": self.session_started,
-                "received": self.received,
-            }
+            self.generate_session_default_args(
+                {
+                    **self.common_session_args,
+                    "started": self.session_started,
+                    "release": self.session_release_1,
+                    "status": "exited",
+                }
+            )
         )
 
         # Env: prod
         # Time: > 24h but < 14 days
         # Total: 2 sessions
-        self.store_session(
-            {
-                "session_id": "d3fc506a-b87e-11eb-8529-0242ac130003",
-                "distinct_id": "00021a1e-b97e-11eb-8529-0242ac130003",
-                "status": "exited",
-                "seq": 0,
-                "release": self.session_release_1,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": 60.0,
-                "errors": 0,
-                "started": self.session_started_gt_24h,
-                "received": self.received,
-            }
-        )
-        self.store_session(
-            {
-                "session_id": "e1ea448e-b87e-11eb-8529-0242ac130003",
-                "distinct_id": "00021c4e-b97e-11eb-8529-0242ac130003",
-                "status": "exited",
-                "seq": 0,
-                "release": self.session_release_1,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": 60.0,
-                "errors": 0,
-                "started": self.session_started_gt_24h,
-                "received": self.received,
-            }
-        )
+        for _ in range(0, 2):
+            self.store_session(
+                self.generate_session_default_args(
+                    {
+                        **self.common_session_args,
+                        "started": self.session_started_gt_24h,
+                        "release": self.session_release_1,
+                        "status": "exited",
+                    }
+                )
+            )
+
         # Env: test
         # Time: < 24h
         # Total: 1 Session
         self.store_session(
-            {
-                "session_id": "138fe748-b8aa-11eb-8529-0242ac130003",
-                "distinct_id": "00021d3e-b97e-11eb-8529-0242ac130003",
-                "status": "exited",
-                "seq": 0,
-                "release": self.session_release_1,
-                "environment": "test",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": 60.0,
-                "errors": 0,
-                "started": self.session_started,
-                "received": self.received,
-            }
+            self.generate_session_default_args(
+                {
+                    **self.common_session_args,
+                    "started": self.session_started,
+                    "release": self.session_release_1,
+                    "status": "exited",
+                    "environment": "test",
+                }
+            )
         )
 
         # Release: foobar@2.0.0
@@ -1314,269 +1091,166 @@ class SnubaReleaseDetailPaginationOnUsersTest(TestCase, SnubaTestCase):
         # Time: < 24h
         # Total: 2 Sessions
         self.store_session(
-            {
-                "session_id": "5e910c1a-6941-460e-9843-24103fb6a63c",
-                "distinct_id": "00021e06-b97e-11eb-8529-0242ac130003",
-                "status": "ok",
-                "seq": 0,
-                "release": self.session_release_2,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": None,
-                "errors": 0,
-                "started": self.session_started,
-                "received": self.received,
-            }
+            self.generate_session_default_args(
+                {
+                    **self.common_session_args,
+                    "started": self.session_started,
+                    "release": self.session_release_2,
+                    "duration": None,
+                    "session_id": "5e910c1a-6941-460e-9843-24103fb6a63c",
+                    "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102666",
+                }
+            )
         )
         self.store_session(
-            {
-                "session_id": "5e910c1a-6941-460e-9843-24103fb6a63c",
-                "distinct_id": "00021e06-b97e-11eb-8529-0242ac130003",
-                "status": "exited",
-                "seq": 1,
-                "release": self.session_release_2,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": 30.0,
-                "errors": 0,
-                "started": self.session_started,
-                "received": self.received,
-            }
+            self.generate_session_default_args(
+                {
+                    **self.common_session_args,
+                    "started": self.session_started,
+                    "release": self.session_release_2,
+                    "session_id": "5e910c1a-6941-460e-9843-24103fb6a63c",
+                    "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102666",
+                    "status": "exited",
+                    "seq": 1,
+                }
+            )
         )
+
         self.store_session(
-            {
-                "session_id": "c9574ab4-b7c7-11eb-8529-0242ac130003",
-                "distinct_id": "00021eba-b97e-11eb-8529-0242ac130003",
-                "status": "exited",
-                "seq": 0,
-                "release": self.session_release_2,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": 30.0,
-                "errors": 0,
-                "started": self.session_started,
-                "received": self.received,
-            }
+            self.generate_session_default_args(
+                {
+                    **self.common_session_args,
+                    "started": self.session_started,
+                    "release": self.session_release_2,
+                    "status": "exited",
+                }
+            )
         )
 
         # Release: foobar@3.0.0
         # Env: prod
         # Time: <24h
         # Total: 3 Session
-        self.store_session(
-            {
-                "session_id": "a148c0c5-06a2-423b-8901-6b43b812cf82",
-                "distinct_id": "674f1a0a-b97e-11eb-8529-0242ac130003",
-                "status": "exited",
-                "seq": 0,
-                "release": self.session_release_3,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": 60.0,
-                "errors": 0,
-                "started": self.session_started,
-                "received": self.received,
-            }
-        )
-        self.store_session(
-            {
-                "session_id": "a11d2540-b7c3-11eb-8529-0242ac130003",
-                "distinct_id": "674f1eec-b97e-11eb-8529-0242ac130003",
-                "status": "exited",
-                "seq": 0,
-                "release": self.session_release_3,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": 60.0,
-                "errors": 0,
-                "started": self.session_started,
-                "received": self.received,
-            }
-        )
-        self.store_session(
-            {
-                "session_id": "c14be4d2-b7c3-11eb-8529-0242ac130003",
-                "distinct_id": "674f1fe6-b97e-11eb-8529-0242ac130003",
-                "status": "exited",
-                "seq": 0,
-                "release": self.session_release_3,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": 60.0,
-                "errors": 0,
-                "started": self.session_started,
-                "received": self.received,
-            }
-        )
+        for _ in range(0, 3):
+            self.store_session(
+                self.generate_session_default_args(
+                    {
+                        **self.common_session_args,
+                        "started": self.session_started,
+                        "release": self.session_release_3,
+                        "status": "exited",
+                    }
+                )
+            )
 
         # Release: foobar@4.0.0
         # Env: prod
         # Time: <24h
         # Total: 3 Sessions
-        self.store_session(
-            {
-                "session_id": "9fceb1b2-b7c9-11eb-8529-0242ac130003",
-                "distinct_id": "674f20ae-b97e-11eb-8529-0242ac130003",
-                "status": "exited",
-                "seq": 0,
-                "release": self.session_release_4,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": 60.0,
-                "errors": 0,
-                "started": self.session_started,
-                "received": self.received,
-            }
-        )
-        self.store_session(
-            {
-                "session_id": "afed2b00-b7c9-11eb-8529-0242ac130003",
-                "distinct_id": "674f2162-b97e-11eb-8529-0242ac130003",
-                "status": "exited",
-                "seq": 0,
-                "release": self.session_release_4,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": 60.0,
-                "errors": 0,
-                "started": self.session_started,
-                "received": self.received,
-            }
-        )
-        self.store_session(
-            {
-                "session_id": "bc146952-b7c9-11eb-8529-0242ac130003",
-                "distinct_id": "923403fc-b97e-11eb-8529-0242ac130003",
-                "status": "exited",
-                "seq": 0,
-                "release": self.session_release_4,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": 60.0,
-                "errors": 0,
-                "started": self.session_started,
-                "received": self.received,
-            }
-        )
+        for _ in range(0, 3):
+            self.store_session(
+                self.generate_session_default_args(
+                    {
+                        **self.common_session_args,
+                        "started": self.session_started,
+                        "release": self.session_release_4,
+                        "status": "exited",
+                    }
+                )
+            )
 
-    def test_get_adjacent_releases_to_last_release_on_users_ordering(self):
-        adjacent_releases = get_adjacent_releases_based_on_adoption(
-            project_id=self.project.id,
-            org_id=self.project.organization_id,
+    def test_get_adjacent_releases_to_last_release(self):
+        self.compare_releases_list_according_to_current_release_filters(
+            **self.common_release_filters,
             release="foobar@1.0.0",
             environments=["prod"],
-            scope="users",
+            releases_list={
+                "next_releases_list": [],
+                "prev_releases_list": ["foobar@2.0.0", "foobar@4.0.0", "foobar@3.0.0"],
+            },
         )
-        assert adjacent_releases == {
-            "next_releases_list": [],
-            "prev_releases_list": ["foobar@2.0.0", "foobar@4.0.0", "foobar@3.0.0"],
-        }
 
-    def test_get_adjacent_releases_to_first_release_on_users_ordering(self):
-        adjacent_releases = get_adjacent_releases_based_on_adoption(
-            project_id=self.project.id,
-            org_id=self.project.organization_id,
+    def test_get_adjacent_releases_to_first_release(self):
+        self.compare_releases_list_according_to_current_release_filters(
+            **self.common_release_filters,
             release="foobar@3.0.0",
             environments=["prod"],
-            scope="users",
+            releases_list={
+                "next_releases_list": ["foobar@4.0.0", "foobar@2.0.0", "foobar@1.0.0"],
+                "prev_releases_list": [],
+            },
         )
-        assert adjacent_releases == {
-            "next_releases_list": ["foobar@4.0.0", "foobar@2.0.0", "foobar@1.0.0"],
-            "prev_releases_list": [],
-        }
 
-    def test_get_adjacent_releases_to_middle_release_on_users_ordering(self):
-        adjacent_releases = get_adjacent_releases_based_on_adoption(
-            project_id=self.project.id,
-            org_id=self.project.organization_id,
+    def test_get_adjacent_releases_to_middle_release(self):
+        self.compare_releases_list_according_to_current_release_filters(
+            **self.common_release_filters,
             release="foobar@2.0.0",
             environments=["prod"],
-            scope="users",
+            releases_list={
+                "next_releases_list": ["foobar@1.0.0"],
+                "prev_releases_list": ["foobar@4.0.0", "foobar@3.0.0"],
+            },
         )
-        assert adjacent_releases == {
-            "next_releases_list": ["foobar@1.0.0"],
-            "prev_releases_list": ["foobar@4.0.0", "foobar@3.0.0"],
-        }
 
-    def test_get_adjacent_releases_to_middle_release_with_same_users_count_on_users_ordering(self):
-        adjacent_releases = get_adjacent_releases_based_on_adoption(
-            project_id=self.project.id,
-            org_id=self.project.organization_id,
+    def test_get_adjacent_releases_to_middle_release_with_same_users_count(self):
+        self.compare_releases_list_according_to_current_release_filters(
+            **self.common_release_filters,
             release="foobar@4.0.0",
             environments=["prod"],
-            scope="users",
+            releases_list={
+                "next_releases_list": ["foobar@2.0.0", "foobar@1.0.0"],
+                "prev_releases_list": ["foobar@3.0.0"],
+            },
         )
-        assert adjacent_releases == {
-            "next_releases_list": ["foobar@2.0.0", "foobar@1.0.0"],
-            "prev_releases_list": ["foobar@3.0.0"],
-        }
 
-    def test_get_adjacent_releases_to_middle_release_for_stats_period_7d_on_users_ordering(self):
-        adjacent_releases = get_adjacent_releases_based_on_adoption(
-            project_id=self.project.id,
-            org_id=self.project.organization_id,
+    def test_get_adjacent_releases_to_middle_release_for_stats_period_7d(self):
+        self.compare_releases_list_according_to_current_release_filters(
+            **self.common_release_filters,
             release="foobar@3.0.0",
-            stats_period="7d",
             environments=["prod"],
-            scope="users",
+            stats_period="7d",
+            releases_list={
+                "next_releases_list": ["foobar@4.0.0", "foobar@2.0.0"],
+                "prev_releases_list": ["foobar@1.0.0"],
+            },
         )
-        assert adjacent_releases == {
-            "next_releases_list": ["foobar@4.0.0", "foobar@2.0.0"],
-            "prev_releases_list": ["foobar@1.0.0"],
-        }
-        adjacent_releases = get_adjacent_releases_based_on_adoption(
-            project_id=self.project.id,
-            org_id=self.project.organization_id,
+        self.compare_releases_list_according_to_current_release_filters(
+            **self.common_release_filters,
             release="foobar@1.0.0",
             stats_period="7d",
             environments=["prod"],
-            scope="users",
+            releases_list={
+                "next_releases_list": ["foobar@3.0.0", "foobar@4.0.0", "foobar@2.0.0"],
+                "prev_releases_list": [],
+            },
         )
-        assert adjacent_releases == {
-            "next_releases_list": ["foobar@3.0.0", "foobar@4.0.0", "foobar@2.0.0"],
-            "prev_releases_list": [],
-        }
 
-    def test_get_adjacent_releases_when_current_release_is_not_found_on_users_ordering(self):
-        adjacent_releases = get_adjacent_releases_based_on_adoption(
-            project_id=self.project.id,
-            org_id=self.project.organization_id,
+    def test_get_adjacent_releases_when_current_release_is_not_found(self):
+        self.compare_releases_list_according_to_current_release_filters(
+            **self.common_release_filters,
             release="foobar@1.0.0",
             environments=["test-whatever"],
-            scope="users",
+            releases_list={
+                "next_releases_list": [],
+                "prev_releases_list": [],
+            },
         )
-        assert adjacent_releases == {"next_releases_list": [], "prev_releases_list": []}
 
-    def test_get_adjacent_releases_to_last_release_in_different_env_on_users_ordering(self):
-        adjacent_releases = get_adjacent_releases_based_on_adoption(
-            project_id=self.project.id,
-            org_id=self.project.organization_id,
+    def test_get_adjacent_releases_to_last_release_in_different_env(self):
+        self.compare_releases_list_according_to_current_release_filters(
+            **self.common_release_filters,
             release="foobar@1.0.0",
             environments=["test"],
-            scope="users",
+            releases_list={
+                "next_releases_list": [],
+                "prev_releases_list": [],
+            },
         )
-        assert adjacent_releases == {"next_releases_list": [], "prev_releases_list": []}
 
 
-class SnubaReleaseDetailPaginationOnCrashFreeUsersTest(TestCase, SnubaTestCase):
+class SnubaReleaseDetailPaginationOnCrashFreeUsersTest(
+    TestCase, SnubaTestCase, SnubaReleaseDetailPaginationBaseTestClass
+):
     """
     TestClass that tests getting the previous and next releases to a specific release
     based on the `crash_free_users` sort ordering
@@ -1600,6 +1274,12 @@ class SnubaReleaseDetailPaginationOnCrashFreeUsersTest(TestCase, SnubaTestCase):
 
     def setUp(self):
         super().setUp()
+
+        self.common_release_filters = {
+            "project_id": self.project.id,
+            "org_id": self.project.organization_id,
+            "scope": "crash_free_users",
+        }
         self.received = time.time()
         self.session_started = time.time() // 60 * 60
         self.session_started_gt_24h = self.session_started - 25 * 60 * 60
@@ -1607,87 +1287,55 @@ class SnubaReleaseDetailPaginationOnCrashFreeUsersTest(TestCase, SnubaTestCase):
         self.session_release_2 = "foobar@2.0.0"
         self.session_release_3 = "foobar@3.0.0"
         self.session_release_4 = "foobar@4.0.0"
-        self.session_crashed_release = "foobar@2.0.0"
 
+        self.common_session_args = {
+            "project_id": self.project.id,
+            "org_id": self.project.organization_id,
+            "received": self.received,
+        }
         # Release: foobar@1.0.0
 
         # Env: prod
         # Time: < 24h
         # Total: 1 Session -> 100% Crash Free
         self.store_session(
-            {
-                "session_id": "5d52fd05-fcc9-4bf3-9dc9-267783670341",
-                "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102666",
-                "status": "exited",
-                "seq": 0,
-                "release": self.session_release_1,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": 60.0,
-                "errors": 0,
-                "started": self.session_started,
-                "received": self.received,
-            }
+            self.generate_session_default_args(
+                {
+                    **self.common_session_args,
+                    "started": self.session_started,
+                    "release": self.session_release_1,
+                    "status": "exited",
+                }
+            )
         )
 
         # Env: prod
         # Time: > 24h but < 14 days
         # Total: 3 sessions -> 1 Healthy + 2 Crashed -> 33.3333% Crash Free
-        self.store_session(
-            {
-                "session_id": "d3fc506a-b87e-11eb-8529-0242ac130003",
-                "distinct_id": "42c96db0-b97f-11eb-8529-0242ac130003",
-                "status": "crashed",
-                "seq": 0,
-                "release": self.session_release_1,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": 60.0,
-                "errors": 0,
-                "started": self.session_started_gt_24h,
-                "received": self.received,
-            }
-        )
-        self.store_session(
-            {
-                "session_id": "e1ea448e-b87e-11eb-8529-0242ac130003",
-                "distinct_id": "42c96fe0-b97f-11eb-8529-0242ac130003",
-                "status": "crashed",
-                "seq": 0,
-                "release": self.session_release_1,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": 60.0,
-                "errors": 0,
-                "started": self.session_started_gt_24h,
-                "received": self.received,
-            }
-        )
+        for _ in range(0, 2):
+            self.store_session(
+                self.generate_session_default_args(
+                    {
+                        **self.common_session_args,
+                        "started": self.session_started_gt_24h,
+                        "release": self.session_release_1,
+                        "status": "crashed",
+                    }
+                )
+            )
         # Env: test
         # Time: < 24h
         # Total: 1 Session -> 0% Crash Free
         self.store_session(
-            {
-                "session_id": "138fe748-b8aa-11eb-8529-0242ac130003",
-                "distinct_id": "42c970e4-b97f-11eb-8529-0242ac130003",
-                "status": "crashed",
-                "seq": 0,
-                "release": self.session_release_1,
-                "environment": "test",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": 60.0,
-                "errors": 0,
-                "started": self.session_started,
-                "received": self.received,
-            }
+            self.generate_session_default_args(
+                {
+                    **self.common_session_args,
+                    "started": self.session_started,
+                    "release": self.session_release_1,
+                    "status": "crashed",
+                    "environment": "test",
+                }
+            )
         )
 
         # Release: foobar@2.0.0
@@ -1695,55 +1343,39 @@ class SnubaReleaseDetailPaginationOnCrashFreeUsersTest(TestCase, SnubaTestCase):
         # Time: < 24h
         # Total: 2 Sessions -> 2 Crashed -> 0% Crash free
         self.store_session(
-            {
-                "session_id": "5e910c1a-6941-460e-9843-24103fb6a63c",
-                "distinct_id": "42c971ac-b97f-11eb-8529-0242ac130003",
-                "status": "ok",
-                "seq": 0,
-                "release": self.session_release_2,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": None,
-                "errors": 0,
-                "started": self.session_started,
-                "received": self.received,
-            }
+            self.generate_session_default_args(
+                {
+                    **self.common_session_args,
+                    "started": self.session_started,
+                    "release": self.session_release_2,
+                    "duration": None,
+                    "session_id": "5e910c1a-6941-460e-9843-24103fb6a63c",
+                    "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102666",
+                }
+            )
         )
         self.store_session(
-            {
-                "session_id": "5e910c1a-6941-460e-9843-24103fb6a63c",
-                "distinct_id": "42c971ac-b97f-11eb-8529-0242ac130003",
-                "status": "crashed",
-                "seq": 1,
-                "release": self.session_release_2,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": 30.0,
-                "errors": 0,
-                "started": self.session_started,
-                "received": self.received,
-            }
+            self.generate_session_default_args(
+                {
+                    **self.common_session_args,
+                    "started": self.session_started,
+                    "release": self.session_release_2,
+                    "session_id": "5e910c1a-6941-460e-9843-24103fb6a63c",
+                    "distinct_id": "39887d89-13b2-4c84-8c23-5d13d2102666",
+                    "status": "crashed",
+                    "seq": 1,
+                }
+            )
         )
         self.store_session(
-            {
-                "session_id": "c9574ab4-b7c7-11eb-8529-0242ac130003",
-                "distinct_id": "42c974a4-b97f-11eb-8529-0242ac130003",
-                "status": "crashed",
-                "seq": 0,
-                "release": self.session_release_2,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": 30.0,
-                "errors": 0,
-                "started": self.session_started,
-                "received": self.received,
-            }
+            self.generate_session_default_args(
+                {
+                    **self.common_session_args,
+                    "started": self.session_started,
+                    "release": self.session_release_2,
+                    "status": "crashed",
+                }
+            )
         )
 
         # Release: foobar@3.0.0
@@ -1751,215 +1383,139 @@ class SnubaReleaseDetailPaginationOnCrashFreeUsersTest(TestCase, SnubaTestCase):
         # Time: <24h
         # Total: 3 Session -> 2 Healthy + 1 Crashed -> 66.666% Crash free
         self.store_session(
-            {
-                "session_id": "a148c0c5-06a2-423b-8901-6b43b812cf82",
-                "distinct_id": "42c9758a-b97f-11eb-8529-0242ac130003",
-                "status": "crashed",
-                "seq": 0,
-                "release": self.session_release_3,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": 60.0,
-                "errors": 0,
-                "started": self.session_started,
-                "received": self.received,
-            }
+            self.generate_session_default_args(
+                {
+                    **self.common_session_args,
+                    "started": self.session_started,
+                    "release": self.session_release_3,
+                    "status": "crashed",
+                }
+            )
         )
-        self.store_session(
-            {
-                "session_id": "a11d2540-b7c3-11eb-8529-0242ac130003",
-                "distinct_id": "42c97648-b97f-11eb-8529-0242ac130003",
-                "status": "exited",
-                "seq": 0,
-                "release": self.session_release_3,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": 60.0,
-                "errors": 0,
-                "started": self.session_started,
-                "received": self.received,
-            }
-        )
-        self.store_session(
-            {
-                "session_id": "c14be4d2-b7c3-11eb-8529-0242ac130003",
-                "distinct_id": "42c97706-b97f-11eb-8529-0242ac130003",
-                "status": "exited",
-                "seq": 0,
-                "release": self.session_release_3,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": 60.0,
-                "errors": 0,
-                "started": self.session_started,
-                "received": self.received,
-            }
-        )
+        for _ in range(0, 2):
+            self.store_session(
+                self.generate_session_default_args(
+                    {
+                        **self.common_session_args,
+                        "started": self.session_started,
+                        "release": self.session_release_3,
+                        "status": "exited",
+                    }
+                )
+            )
 
         # Release: foobar@4.0.0
         # Env: prod
         # Time: <24h
         # Total: 3 Sessions -> 2 Healthy + 1 Crashed -> 66.666% Crash free
         self.store_session(
-            {
-                "session_id": "9fceb1b2-b7c9-11eb-8529-0242ac130003",
-                "distinct_id": "8480ef08-b97f-11eb-8529-0242ac130003",
-                "status": "crashed",
-                "seq": 0,
-                "release": self.session_release_4,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": 60.0,
-                "errors": 0,
-                "started": self.session_started,
-                "received": self.received,
-            }
+            self.generate_session_default_args(
+                {
+                    **self.common_session_args,
+                    "started": self.session_started,
+                    "release": self.session_release_4,
+                    "status": "crashed",
+                }
+            )
         )
-        self.store_session(
-            {
-                "session_id": "afed2b00-b7c9-11eb-8529-0242ac130003",
-                "distinct_id": "8480f232-b97f-11eb-8529-0242ac130003",
-                "status": "exited",
-                "seq": 0,
-                "release": self.session_release_4,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": 60.0,
-                "errors": 0,
-                "started": self.session_started,
-                "received": self.received,
-            }
-        )
-        self.store_session(
-            {
-                "session_id": "bc146952-b7c9-11eb-8529-0242ac130003",
-                "distinct_id": "8480f3ae-b97f-11eb-8529-0242ac130003",
-                "status": "exited",
-                "seq": 0,
-                "release": self.session_release_4,
-                "environment": "prod",
-                "retention_days": 90,
-                "org_id": self.project.organization_id,
-                "project_id": self.project.id,
-                "duration": 60.0,
-                "errors": 0,
-                "started": self.session_started,
-                "received": self.received,
-            }
-        )
+        for _ in range(0, 2):
+            self.store_session(
+                self.generate_session_default_args(
+                    {
+                        **self.common_session_args,
+                        "started": self.session_started,
+                        "release": self.session_release_4,
+                        "status": "exited",
+                    }
+                )
+            )
 
-    def test_get_adjacent_releases_to_last_release_on_crash_free_users_ordering(self):
-        adjacent_releases = get_adjacent_releases_based_on_adoption(
-            project_id=self.project.id,
-            org_id=self.project.organization_id,
+    def test_get_adjacent_releases_to_last_release(self):
+        self.compare_releases_list_according_to_current_release_filters(
+            **self.common_release_filters,
             release="foobar@2.0.0",
             environments=["prod"],
-            scope="crash_free_users",
+            releases_list={
+                "next_releases_list": [],
+                "prev_releases_list": ["foobar@4.0.0", "foobar@3.0.0", "foobar@1.0.0"],
+            },
         )
-        assert adjacent_releases == {
-            "next_releases_list": [],
-            "prev_releases_list": ["foobar@4.0.0", "foobar@3.0.0", "foobar@1.0.0"],
-        }
 
-    def test_get_adjacent_releases_to_first_release_on_crash_free_users_ordering(self):
-        adjacent_releases = get_adjacent_releases_based_on_adoption(
-            project_id=self.project.id,
-            org_id=self.project.organization_id,
+    def test_get_adjacent_releases_to_first_release(self):
+        self.compare_releases_list_according_to_current_release_filters(
+            **self.common_release_filters,
             release="foobar@1.0.0",
             environments=["prod"],
-            scope="crash_free_users",
+            releases_list={
+                "next_releases_list": ["foobar@3.0.0", "foobar@4.0.0", "foobar@2.0.0"],
+                "prev_releases_list": [],
+            },
         )
-        assert adjacent_releases == {
-            "next_releases_list": ["foobar@3.0.0", "foobar@4.0.0", "foobar@2.0.0"],
-            "prev_releases_list": [],
-        }
 
-    def test_get_adjacent_releases_to_middle_release_on_crash_free_users_ordering(self):
-        adjacent_releases = get_adjacent_releases_based_on_adoption(
-            project_id=self.project.id,
-            org_id=self.project.organization_id,
+    def test_get_adjacent_releases_to_middle_release(self):
+        self.compare_releases_list_according_to_current_release_filters(
+            **self.common_release_filters,
             release="foobar@3.0.0",
             environments=["prod"],
-            scope="crash_free_users",
+            releases_list={
+                "next_releases_list": ["foobar@4.0.0", "foobar@2.0.0"],
+                "prev_releases_list": ["foobar@1.0.0"],
+            },
         )
-        assert adjacent_releases == {
-            "next_releases_list": ["foobar@4.0.0", "foobar@2.0.0"],
-            "prev_releases_list": ["foobar@1.0.0"],
-        }
 
-    def test_get_adjacent_releases_to_middle_release_with_same_crash_free_percentage_on_crash_free_users_ordering(
-        self,
-    ):
-        adjacent_releases = get_adjacent_releases_based_on_adoption(
-            project_id=self.project.id,
-            org_id=self.project.organization_id,
+    def test_get_adjacent_releases_to_middle_release_with_same_crash_free_percentage(self):
+        self.compare_releases_list_according_to_current_release_filters(
+            **self.common_release_filters,
             release="foobar@4.0.0",
             environments=["prod"],
-            scope="crash_free_users",
+            releases_list={
+                "next_releases_list": ["foobar@2.0.0"],
+                "prev_releases_list": ["foobar@3.0.0", "foobar@1.0.0"],
+            },
         )
-        assert adjacent_releases == {
-            "next_releases_list": ["foobar@2.0.0"],
-            "prev_releases_list": ["foobar@3.0.0", "foobar@1.0.0"],
-        }
 
-    def test_get_adjacent_releases_to_middle_release_for_stats_period_7d_on_crash_free_users_ordering(
-        self,
-    ):
-        adjacent_releases = get_adjacent_releases_based_on_adoption(
-            project_id=self.project.id,
-            org_id=self.project.organization_id,
+    def test_get_adjacent_releases_to_middle_release_for_stats_period_7d(self):
+        self.compare_releases_list_according_to_current_release_filters(
+            **self.common_release_filters,
             release="foobar@3.0.0",
             stats_period="7d",
             environments=["prod"],
-            scope="crash_free_users",
+            releases_list={
+                "next_releases_list": ["foobar@4.0.0", "foobar@1.0.0", "foobar@2.0.0"],
+                "prev_releases_list": [],
+            },
         )
-        assert adjacent_releases == {
-            "next_releases_list": ["foobar@4.0.0", "foobar@1.0.0", "foobar@2.0.0"],
-            "prev_releases_list": [],
-        }
-        adjacent_releases = get_adjacent_releases_based_on_adoption(
-            project_id=self.project.id,
-            org_id=self.project.organization_id,
+        self.compare_releases_list_according_to_current_release_filters(
+            **self.common_release_filters,
             release="foobar@4.0.0",
             stats_period="7d",
             environments=["prod"],
-            scope="crash_free_users",
+            releases_list={
+                "next_releases_list": ["foobar@1.0.0", "foobar@2.0.0"],
+                "prev_releases_list": ["foobar@3.0.0"],
+            },
         )
-        assert adjacent_releases == {
-            "next_releases_list": ["foobar@1.0.0", "foobar@2.0.0"],
-            "prev_releases_list": ["foobar@3.0.0"],
-        }
 
-    def test_get_adjacent_releases_when_current_release_is_not_found_on_crash_free_users_ordering(
-        self,
-    ):
-        adjacent_releases = get_adjacent_releases_based_on_adoption(
-            project_id=self.project.id,
-            org_id=self.project.organization_id,
+    def test_get_adjacent_releases_when_current_release_is_not_found(self):
+        self.compare_releases_list_according_to_current_release_filters(
+            **self.common_release_filters,
             release="foobar@1.0.0",
             environments=["test-whatever"],
-            scope="crash_free_users",
+            releases_list={
+                "next_releases_list": [],
+                "prev_releases_list": [],
+            },
         )
-        assert adjacent_releases == {"next_releases_list": [], "prev_releases_list": []}
 
-    def test_get_adjacent_releases_to_last_release_in_different_env_on_crash_free_users_ordering(
+    def test_get_adjacent_releases_to_last_release_in_different_env(
         self,
     ):
-        adjacent_releases = get_adjacent_releases_based_on_adoption(
-            project_id=self.project.id,
-            org_id=self.project.organization_id,
+        self.compare_releases_list_according_to_current_release_filters(
+            **self.common_release_filters,
             release="foobar@1.0.0",
             environments=["test"],
-            scope="crash_free_users",
+            releases_list={
+                "next_releases_list": [],
+                "prev_releases_list": [],
+            },
         )
-        assert adjacent_releases == {"next_releases_list": [], "prev_releases_list": []}
