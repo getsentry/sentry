@@ -22,7 +22,7 @@ def get_context(
     shared_context: Mapping[str, Any],
     extra_context: Mapping[str, Any],
 ) -> Mapping[str, Any]:
-    """ Compose the various levels of context and add slack-specific fields. """
+    """Compose the various levels of context and add slack-specific fields."""
     return {
         **shared_context,
         **notification.get_user_context(recipient, extra_context),
@@ -72,7 +72,7 @@ def send_notification_as_slack(
     shared_context: Mapping[str, Any],
     extra_context_by_user_id: Mapping[str, Any],
 ) -> None:
-    """ Send an "activity" or "alert rule" notification to a Slack user or team. """
+    """Send an "activity" or "alert rule" notification to a Slack user or team."""
     external_actors_by_recipient = get_integrations_by_recipient_id(
         notification.organization, recipients
     )

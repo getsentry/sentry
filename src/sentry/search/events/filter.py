@@ -700,7 +700,7 @@ def format_search_filter(term, params):
             except Exception:
                 raise InvalidSearchQuery(f"Invalid value '{group_short_ids}' for 'issue:' filter")
             else:
-                filter_values.extend(sorted([g.id for g in groups]))
+                filter_values.extend(sorted(g.id for g in groups))
 
         term = SearchFilter(
             SearchKey("issue.id"),

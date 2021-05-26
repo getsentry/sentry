@@ -1189,8 +1189,8 @@ class OrganizationReleaseListEnvironmentsTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == len(releases)
 
-        response_versions = sorted([r["version"] for r in response.data])
-        releases_versions = sorted([r.version for r in releases])
+        response_versions = sorted(r["version"] for r in response.data)
+        releases_versions = sorted(r.version for r in releases)
         assert response_versions == releases_versions
 
     def test_environments_filter(self):

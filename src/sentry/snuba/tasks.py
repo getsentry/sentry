@@ -47,7 +47,7 @@ def apply_dataset_query_conditions(dataset, query, event_types, discover=False):
         return query
     if event_types:
         event_type_conditions = " OR ".join(
-            [f"event.type:{event_type.name.lower()}" for event_type in event_types]
+            f"event.type:{event_type.name.lower()}" for event_type in event_types
         )
     elif dataset in DATASET_CONDITIONS:
         event_type_conditions = DATASET_CONDITIONS[dataset]

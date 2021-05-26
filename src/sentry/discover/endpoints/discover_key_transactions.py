@@ -23,7 +23,7 @@ class IsKeyTransactionEndpoint(KeyTransactionBase):
     permission_classes = (KeyTransactionPermission,)
 
     def get(self, request, organization):
-        """ Get the Key Transactions for a user """
+        """Get the Key Transactions for a user"""
         if not self.has_feature(request, organization):
             return Response(status=404)
 
@@ -66,7 +66,7 @@ class KeyTransactionEndpoint(KeyTransactionBase):
         return Response(serialize(list(key_teams)), status=200)
 
     def post(self, request, organization):
-        """ Create a Key Transaction """
+        """Create a Key Transaction"""
         if not self.has_feature(request, organization):
             return Response(status=404)
 
@@ -138,7 +138,7 @@ class KeyTransactionEndpoint(KeyTransactionBase):
         return Response(serializer.errors, status=400)
 
     def delete(self, request, organization):
-        """ Remove a Key transaction for a user """
+        """Remove a Key transaction for a user"""
         if not self.has_feature(request, organization):
             return Response(status=404)
 

@@ -9,13 +9,13 @@ class ArithmeticError(Exception):
 
 
 class MaxOperatorError(ArithmeticError):
-    """ Exceeded the maximum allowed operators """
+    """Exceeded the maximum allowed operators"""
 
     pass
 
 
 class ArithmeticParseError(ArithmeticError):
-    """ Encountered an error trying to parse an equation """
+    """Encountered an error trying to parse an equation"""
 
     pass
 
@@ -73,7 +73,7 @@ class ArithmeticVisitor(NodeVisitor):
         self.max_operators = max_operators if max_operators else self.DEFAULT_MAX_OPERATORS
 
     def flatten(self, remaining):
-        """ Take all the remaining terms and reduce them to a single tree """
+        """Take all the remaining terms and reduce them to a single tree"""
         term = remaining.pop(0)
         while remaining:
             next_term = remaining.pop(0)
@@ -100,7 +100,7 @@ class ArithmeticVisitor(NodeVisitor):
         return self.flatten(remaining_muls)
 
     def visited_operator(self):
-        """ We visited an operator, increment the count and error if we exceed max """
+        """We visited an operator, increment the count and error if we exceed max"""
         self.operators += 1
         if self.operators > self.max_operators:
             raise MaxOperatorError("Exceeded maximum number of operations")
@@ -117,7 +117,7 @@ class ArithmeticVisitor(NodeVisitor):
 
     @staticmethod
     def strip_spaces(children):
-        """ Visitor for a `spaces foo spaces` node """
+        """Visitor for a `spaces foo spaces` node"""
         _, value, _ = children
 
         return value
@@ -147,7 +147,7 @@ class ArithmeticVisitor(NodeVisitor):
 
 
 def parse_arithmetic(equation: str, max_operators: Optional[int] = None) -> Operation:
-    """ Given a string equation try to parse it into a set of Operations """
+    """Given a string equation try to parse it into a set of Operations"""
     try:
         tree = arithmetic_grammar.parse(equation)
     except ParseError:
