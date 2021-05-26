@@ -142,12 +142,9 @@ class ParseSearchQueryTest(TestCase):
             SearchFilter(
                 key=SearchKey(name="message"),
                 operator="=",
-                value=SearchValue(raw_value="TypeError Anonymous function"),
-            ),
-            SearchFilter(
-                key=SearchKey(name="message"),
-                operator="=",
-                value=SearchValue(raw_value="(app/javascript/utils/transform-object-keys)"),
+                value=SearchValue(
+                    raw_value="TypeError Anonymous function(app/javascript/utils/transform-object-keys)"
+                ),
             ),
         ]
 
