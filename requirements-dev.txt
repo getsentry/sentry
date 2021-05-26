@@ -4,7 +4,7 @@ freezegun==1.1.0
 honcho>=1.0.0,<1.1.0
 mypy>=0.800
 openapi-core @ https://github.com/getsentry/openapi-core/archive/master.zip#egg=openapi-core
-pytest==6.1.0
+pytest==6.2.4
 pytest-cov==2.11.1
 pytest-django==3.10.0
 pytest-sentry==0.1.9
