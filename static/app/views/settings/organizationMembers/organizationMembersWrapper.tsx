@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import {openInviteMembersModal} from 'app/actionCreators/modal';
 import AlertLink from 'app/components/alertLink';
 import Badge from 'app/components/badge';
+import Button from 'app/components/button';
 import ListLink from 'app/components/links/listLink';
 import NavTabs from 'app/components/navTabs';
 import {IconMail} from 'app/icons';
@@ -104,9 +105,20 @@ class OrganizationMembersWrapper extends AsyncView<Props, State> {
     } = this.props;
     const {requestList, inviteRequests} = this.state;
 
+    const action = (
+      <Button
+        priority="primary"
+        size="small"
+        onClick={() => openInviteMembersModal({source: 'members_settings'})}
+        icon={<IconMail />}
+      >
+        {t('Invite New Members')}
+      </Button>
+    );
+
     return (
       <Fragment>
-        <SettingsPageHeader title="Members" />
+        <SettingsPageHeader title="Members" action={action} />
 
         <AlertLink
           data-test-id="email-invite"
