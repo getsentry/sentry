@@ -80,16 +80,13 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
     tracesSampleRate,
     beforeSend(event, hint) {
       /**
-       * There is a bug in iOS, that causes `AbortError` when fetch is aborted, and you are in the middle of reading the response.
-       * In Chrome and other browsers, it is handled gracefully, where in Safari on iOS, it produces additional error, that is jumping
+       * There is a bug in Safari, that causes `AbortError` when fetch is aborted, and you are in the middle of reading the response.
+       * In Chrome and other browsers, it is handled gracefully, where in Safari, it produces additional error, that is jumping
        * outside of the original Promise chain and bubbles up to the `unhandledRejection` handler, that we then captures as error.
-       * Can be safely removed once the bug is fixed upstream.
-       *
        * Ref: https://bugs.webkit.org/show_bug.cgi?id=215771
        */
       try {
         if (
-          window.navigator.userAgent.includes('iPhone') &&
           hint?.originalException instanceof Error &&
           hint.originalException.message === 'AbortError: Fetch is aborted'
         ) {
