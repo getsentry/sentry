@@ -398,7 +398,7 @@ def configure_sdk():
 
                 if is_current_event_safe():
                     metrics.incr("internal.captured.events.relay")
-                    # getattr(relay_transport, method_name)(*args, **kwargs)
+                    getattr(relay_transport, method_name)(*args, **kwargs)
                 else:
                     metrics.incr(
                         "internal.uncaptured.events.relay",
