@@ -125,13 +125,6 @@ DEVSERVICES_CONFIG_DIR = os.path.normpath(
 )
 
 SENTRY_DISTRIBUTED_CLICKHOUSE_TABLES = False
-_common_clickhouse_settings = {
-    "image": "yandex/clickhouse-server:20.3.9.70",
-    "pull": True,
-    "ports": {"9000/tcp": 9000, "9009/tcp": 9009, "8123/tcp": 8123},
-    "ulimits": [{"name": "nofile", "soft": 262144, "hard": 262144}],
-    "environment": {"MAX_MEMORY_USAGE_RATIO": "0.3"},
-}
 
 RELAY_CONFIG_DIR = os.path.join(DEVSERVICES_CONFIG_DIR, "relay")
 
@@ -420,7 +413,6 @@ CSRF_COOKIE_NAME = "sc"
 
 from django.urls import reverse_lazy
 
-
 LOGIN_REDIRECT_URL = reverse_lazy("sentry-login-redirect")
 LOGIN_URL = reverse_lazy("sentry-login")
 
@@ -502,8 +494,10 @@ AUTH_PROVIDER_LABELS = {
 
 import random
 
+
 def SOCIAL_AUTH_DEFAULT_USERNAME():
     return random.choice(["Darth Vader", "Obi-Wan Kenobi", "R2-D2", "C-3PO", "Yoda"])
+
 
 # Queue configuration
 from kombu import Exchange, Queue
@@ -958,6 +952,8 @@ SENTRY_FEATURES = {
     "organizations:performance-ops-breakdown": False,
     # Enable views for tag explorer
     "organizations:performance-tag-explorer": False,
+    # Enable landing improvements for performance
+    "organizations:performance-landing-widgets": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See
@@ -1677,24 +1673,21 @@ SENTRY_DEVSERVICES = {
         ),
     },
     "clickhouse": {
-        **_common_clickhouse_settings,
+        "image": "yandex/clickhouse-server:20.3.9.70",
+        "pull": True,
+        "ports": {"9000/tcp": 9000, "9009/tcp": 9009, "8123/tcp": 8123},
+        "ulimits": [{"name": "nofile", "soft": 262144, "hard": 262144}],
+        "environment": {"MAX_MEMORY_USAGE_RATIO": "0.3"},
         "volumes": {
-            "clickhouse": {"bind": "/var/lib/clickhouse"},
-            os.path.join(DEVSERVICES_CONFIG_DIR, "clickhouse", "loc_config.xml"): {
-                "bind": "/etc/clickhouse-server/config.d/sentry.xml"
-            },
+            "clickhouse_dist"
+            if SENTRY_DISTRIBUTED_CLICKHOUSE_TABLES
+            else "clickhouse": {"bind": "/var/lib/clickhouse"},
+            os.path.join(
+                DEVSERVICES_CONFIG_DIR,
+                "clickhouse",
+                "dist_config.xml" if SENTRY_DISTRIBUTED_CLICKHOUSE_TABLES else "loc_config.xml",
+            ): {"bind": "/etc/clickhouse-server/config.d/sentry.xml"},
         },
-        "only_if": lambda settings, options: (not settings.SENTRY_DISTRIBUTED_CLICKHOUSE_TABLES),
-    },
-    "clickhouse_dist": {
-        **_common_clickhouse_settings,
-        "volumes": {
-            "clickhouse_dist": {"bind": "/var/lib/clickhouse"},
-            os.path.join(DEVSERVICES_CONFIG_DIR, "clickhouse", "dist_config.xml"): {
-                "bind": "/etc/clickhouse-server/config.d/sentry.xml"
-            },
-        },
-        "only_if": lambda settings, options: (settings.SENTRY_DISTRIBUTED_CLICKHOUSE_TABLES),
     },
     "snuba": {
         "image": "getsentry/snuba:nightly",
