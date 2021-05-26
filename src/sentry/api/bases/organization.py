@@ -5,6 +5,7 @@ from rest_framework.exceptions import ParseError, PermissionDenied
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
+from sentry.api.helpers.teams import get_teams
 from sentry.api.permissions import SentryPermission
 from sentry.api.utils import (
     InvalidParams,
@@ -256,6 +257,9 @@ class OrganizationEndpoint(Endpoint):
     def get_environments(self, request, organization):
         return get_environments(request, organization)
 
+    def get_teams(self, request, organization):
+        return list(get_teams(request, organization))
+
     def get_filter_params(
         self, request, organization, date_filter_optional=False, project_ids=None
     ):
@@ -312,16 +316,21 @@ class OrganizationEndpoint(Endpoint):
             "<10" if len_projects < 10 else "<100" if len_projects < 100 else ">100",
         )
 
-        environments = self.get_environments(request, organization)
         params = {
             "start": start,
             "end": end,
             "project_id": [p.id for p in projects],
             "organization_id": organization.id,
         }
+
+        environments = self.get_environments(request, organization)
         if environments:
             params["environment"] = [env.name for env in environments]
             params["environment_objects"] = environments
+
+        teams = self.get_teams(request, organization)
+        if teams:
+            params["team_id"] = [team.id for team in teams]
 
         return params
 
