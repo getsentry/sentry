@@ -13,6 +13,7 @@ import {IconCheckmark, IconClose, IconFlag, IconMail, IconSubtract} from 'app/ic
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {AvatarUser, Member} from 'app/types';
+import isMemberDisabledFromLimit from 'app/utils/isMemberDisabledFromLimit';
 import recreateRoute from 'app/utils/recreateRoute';
 
 type Props = {
@@ -79,8 +80,8 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
 
   renderMemberRole() {
     const {member} = this.props;
-    const {flags, roleName, pending, expired} = member;
-    if (flags['member-limit:restricted']) {
+    const {roleName, pending, expired} = member;
+    if (isMemberDisabledFromLimit(member)) {
       return <DisabledMemberTooltip>{t('Deactivated')}</DisabledMemberTooltip>;
     }
     if (pending) {

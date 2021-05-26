@@ -23,6 +23,7 @@ import {t, tct} from 'app/locale';
 import {inputStyles} from 'app/styles/input';
 import space from 'app/styles/space';
 import {Member, Organization, Team} from 'app/types';
+import isMemberDisabledFromLimit from 'app/utils/isMemberDisabledFromLimit';
 import recreateRoute from 'app/utils/recreateRoute';
 import withOrganization from 'app/utils/withOrganization';
 import AsyncView from 'app/views/asyncView';
@@ -210,7 +211,7 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
   };
 
   get memberDeactivated() {
-    return this.state.member?.flags['member-limit:restricted'] ?? false;
+    return isMemberDisabledFromLimit(this.state.member);
   }
 
   renderMemberStatus(member: Member) {
