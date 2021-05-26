@@ -86,7 +86,6 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
     """
     Assembles uploaded chunks into a ``ProjectDebugFile``.
     """
-
     from sentry.models import BadDif, Project, debugfile
     from sentry.reprocessing import bump_reprocessing_revision
 
@@ -165,7 +164,6 @@ class AssembleArtifactsError(Exception):
 
 
 def _upsert_release_file(file: File, archive: ReleaseArchive, replacement_strategy, **kwargs):
-
     release_file = None
 
     # Release files must have unique names within their release
@@ -195,7 +193,6 @@ def _simple_replace(old_file: File, new_file: File, new_archive: ReleaseArchive)
 
 @metrics.wraps("tasks.assemble.merge_archives")
 def _merge_archives(old_file: File, new_file: File, new_archive: ReleaseArchive):
-
     with ReleaseArchive(old_file.getfile()) as old_archive:
         buffer = BytesIO()
         merge_release_archives(old_archive, new_archive, buffer)
@@ -217,7 +214,6 @@ def _store_single_files(archive: ReleaseArchive, meta: dict):
         raise AssembleArtifactsError("failed to extract bundle")
 
     with temp_dir:
-
         artifacts = archive.manifest.get("files", {})
         for rel_path, artifact in artifacts.items():
             artifact_url = artifact.get("url", rel_path)

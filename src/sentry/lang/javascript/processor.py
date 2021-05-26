@@ -308,7 +308,6 @@ def fetch_release_file(filename, release, dist=None):
 
     Caches the result of that attempt (whether successful or not).
     """
-
     dist_name = dist and dist.name or None
     cache_key, cache_key_meta = get_cache_keys(filename, release, dist)
 
@@ -506,7 +505,6 @@ def fetch_file(
     separately, whether or not those attempts are successful. Used for both
     source files and source maps.
     """
-
     # If our url has been truncated, it'd be impossible to fetch
     # so we check for this early and bail
     if url[-3:] == "...":
