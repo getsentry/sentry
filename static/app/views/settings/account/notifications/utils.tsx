@@ -222,6 +222,36 @@ export const getParentIds = (
   );
 };
 
+export const getParentValues = (
+  notificationType: string,
+  notificationSettings: NotificationSettingsObject,
+  parentId: string
+): NotificationSettingsByProviderObject => {
+  return (
+    notificationSettings[notificationType]?.[getParentKey(notificationType)]?.[
+      parentId
+    ] || {
+      email: 'default',
+    }
+  );
+};
+
+export const getParentData = (
+  notificationType: string,
+  notificationSettings: NotificationSettingsObject,
+  parents: OrganizationSummary[] | Project[]
+): NotificationSettingsByProviderObject => {
+  /** Get a mapping of all parent IDs to the notification setting for the current providers. */
+  const provider = getCurrentProviders(notificationType, notificationSettings)[0];
+
+  return Object.fromEntries(
+    parents.map(parent => [
+      parent.id,
+      getParentValues(notificationType, notificationSettings, parent.id)[provider],
+    ])
+  );
+};
+
 export const getStateToPutForProvider = (
   notificationType: string,
   notificationSettings: NotificationSettingsObject,
@@ -331,4 +361,35 @@ export const getStateToPutForParent = (
       },
     },
   };
+};
+
+export const getParentField = (
+  notificationType: string,
+  notificationSettings: NotificationSettingsObject,
+  parent: OrganizationSummary | Project,
+  onChange: (
+    changedData: NotificationSettingsByProviderObject,
+    parentId: string
+  ) => NotificationSettingsObject
+): FieldObject => {
+  /** Render each parent and add a default option to the the field choices. */
+
+  const defaultFields = NOTIFICATION_SETTING_FIELDS[notificationType];
+
+  return Object.assign({}, defaultFields, {
+    label: <ParentLabel parent={parent} notificationType={notificationType} />,
+    getData: data => onChange(data, parent.id),
+    name: parent.id,
+    choices: defaultFields.choices?.concat([
+      [
+        'default',
+        `${t('Default')} (${getChoiceString(
+          defaultFields.choices,
+          getCurrentDefault(notificationType, notificationSettings)
+        )})`,
+      ],
+    ]),
+    defaultValue: 'default',
+    help: undefined,
+  }) as any;
 };

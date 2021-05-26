@@ -2,10 +2,15 @@ import React from 'react';
 
 import AsyncComponent from 'app/components/asyncComponent';
 import {t} from 'app/locale';
+import {
+  NotificationSettingsByProviderObject,
+  NotificationSettingsObject,
+} from 'app/views/settings/account/notifications/constants';
 import FeedbackAlert from 'app/views/settings/account/notifications/feedbackAlert';
 import {ACCOUNT_NOTIFICATION_FIELDS} from 'app/views/settings/account/notifications/fields';
 import {NOTIFICATION_SETTING_FIELDS} from 'app/views/settings/account/notifications/fields2';
-import NotificationSettingsByParents from 'app/views/settings/account/notifications/notificationSettingsByParents';
+import NotificationSettingsByOrganization from 'app/views/settings/account/notifications/notificationSettingsByOrganization';
+import NotificationSettingsByProjects from 'app/views/settings/account/notifications/notificationSettingsByProjects';
 import {
   getCurrentDefault,
   getCurrentProviders,
@@ -16,8 +21,6 @@ import {
   isEverythingDisabled,
   isGroupedByProject,
   mergeNotificationSettings,
-  NotificationSettingsByProviderObject,
-  NotificationSettingsObject,
   providerListToString,
 } from 'app/views/settings/account/notifications/utils';
 import Form from 'app/views/settings/components/forms/form';
@@ -186,11 +189,20 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
             fields={this.getFields()}
           />
         </Form>
-        <NotificationSettingsByParents
-          notificationType={notificationType}
-          notificationSettings={notificationSettings}
-          onChange={this.getStateToPutForParent}
-        />
+        {!isEverythingDisabled(notificationType, notificationSettings) &&
+        isGroupedByProject(notificationType) ? (
+          <NotificationSettingsByProjects
+            notificationType={notificationType}
+            notificationSettings={notificationSettings}
+            onChange={this.getStateToPutForParent}
+          />
+        ) : (
+          <NotificationSettingsByOrganization
+            notificationType={notificationType}
+            notificationSettings={notificationSettings}
+            onChange={this.getStateToPutForParent}
+          />
+        )}
       </React.Fragment>
     );
   }
