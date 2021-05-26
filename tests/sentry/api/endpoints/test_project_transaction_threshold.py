@@ -21,14 +21,22 @@ class ProjectTransactionThresholdTest(APITestCase):
             },
         )
 
-    def test_get(self):
+    def test_get_for_project_with_custom_threshold(self):
         ProjectTransactionThreshold.objects.create(
             project=self.project,
             organization=self.project.organization,
-            threshold=300,
-            metric=TransactionMetric.DURATION.value,
+            threshold=500,
+            metric=TransactionMetric.LCP.value,
         )
 
+        with self.feature(self.feature_name):
+            response = self.client.get(self.url, format="json")
+
+        assert response.status_code == 200, response.content
+        assert response.data["threshold"] == "500"
+        assert response.data["metric"] == "lcp"
+
+    def test_get_for_project_without_custom_threshold(self):
         with self.feature(self.feature_name):
             response = self.client.get(self.url, format="json")
 
