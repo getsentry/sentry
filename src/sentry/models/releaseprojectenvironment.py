@@ -19,6 +19,9 @@ class ReleaseProjectEnvironment(Model):
     last_seen = models.DateTimeField(default=timezone.now, db_index=True)
     last_deploy_id = BoundedPositiveIntegerField(null=True, db_index=True)
 
+    adopted = models.DateTimeField(null=True, blank=True, db_index=True)
+    unadopted = models.DateTimeField(null=True, blank=True, db_index=True)
+
     class Meta:
         app_label = "sentry"
         db_table = "sentry_releaseprojectenvironment"

@@ -56,6 +56,9 @@ class ReleaseProject(Model):
     release = FlexibleForeignKey("sentry.Release")
     new_groups = BoundedPositiveIntegerField(null=True, default=0)
 
+    adopted = models.DateTimeField(null=True, blank=True, db_index=True)
+    unadopted = models.DateTimeField(null=True, blank=True, db_index=True)
+
     class Meta:
         app_label = "sentry"
         db_table = "sentry_release_project"
