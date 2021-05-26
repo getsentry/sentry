@@ -113,14 +113,14 @@ type PiiConfigPattern = {
   };
 };
 
-type PiiConfigRelaceAndPattern = Omit<PiiConfigPattern, 'redaction'> &
+type PiiConfigReplaceAndPattern = Omit<PiiConfigPattern, 'redaction'> &
   Pick<PiiConfigReplace, 'redaction'>;
 
 export type PiiConfig =
   | PiiConfigDefault
   | PiiConfigPattern
   | PiiConfigReplace
-  | PiiConfigRelaceAndPattern;
+  | PiiConfigReplaceAndPattern;
 
 export type Applications = Record<string, Array<string>>;
 
