@@ -110,7 +110,9 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
 
   /* Methods responsible for updating state and hitting the API. */
 
-  getStateToPutForProvider = changedData => {
+  getStateToPutForProvider = (
+    changedData: NotificationSettingsByProviderObject
+  ): NotificationSettingsObject => {
     const {notificationType} = this.props;
     const {notificationSettings} = this.state;
 
@@ -130,7 +132,9 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
     return updatedNotificationSettings;
   };
 
-  getStateToPutForDefault = (changedData: {[key: string]: string}) => {
+  getStateToPutForDefault = (
+    changedData: NotificationSettingsByProviderObject
+  ): NotificationSettingsObject => {
     const {notificationType} = this.props;
     const {notificationSettings} = this.state;
 
@@ -151,7 +155,10 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
     return updatedNotificationSettings;
   };
 
-  getStateToPutForParent = (changedData: {[key: string]: string}, parentId: string) => {
+  getStateToPutForParent = (
+    changedData: NotificationSettingsByProviderObject,
+    parentId: string
+  ): NotificationSettingsObject => {
     const {notificationType} = this.props;
     const {notificationSettings} = this.state;
 

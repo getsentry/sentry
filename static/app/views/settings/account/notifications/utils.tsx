@@ -7,8 +7,9 @@ const ALL_PROVIDERS = {
   slack: 'never',
 };
 
+export type NotificationSettingsByProviderObject = {[key: string]: string};
 export type NotificationSettingsObject = {
-  [key: string]: {[key: string]: {[key: string]: {[key: string]: string}}};
+  [key: string]: {[key: string]: {[key: string]: NotificationSettingsByProviderObject}};
 };
 
 // Which fine tuning parts are grouped by project
@@ -70,7 +71,7 @@ export const backfillMissingProvidersWithFallback = (
   providerList: string[],
   fallbackValue: string,
   scopeType: string
-): {[key: string]: string} => {
+): NotificationSettingsByProviderObject => {
   /**
    * Transform `data`, a mapping of providers to values, so that all providers
    * in `providerList` are "on" in the resulting object. The "on" value is
@@ -119,7 +120,7 @@ export const mergeNotificationSettings = (
 export const getUserDefaultValues = (
   notificationType: string,
   notificationSettings: NotificationSettingsObject
-): {[key: string]: string} => {
+): NotificationSettingsByProviderObject => {
   /**
    * Get the mapping of providers to values that describe a user's parent-
    * independent notification preferences. The data from the API uses the user
@@ -220,8 +221,8 @@ export const getParentIds = (
 export const getStateToPutForProvider = (
   notificationType: string,
   notificationSettings: NotificationSettingsObject,
-  changedData: {[key: string]: string}
-) => {
+  changedData: NotificationSettingsByProviderObject
+): NotificationSettingsObject => {
   /**
    * I don't need to update the provider for EVERY once of the user's projects
    * and organizations, just the user and parents that have explicit settings.
@@ -268,9 +269,9 @@ export const getStateToPutForProvider = (
 export const getStateToPutForDefault = (
   notificationType: string,
   notificationSettings: NotificationSettingsObject,
-  changedData: {[key: string]: string},
+  changedData: NotificationSettingsByProviderObject,
   parentIds: string[]
-) => {
+): NotificationSettingsObject => {
   /**
    * Update the current providers' parent-independent notification settings
    * with the new value. If the new value is "never", then also update all
@@ -309,9 +310,9 @@ export const getStateToPutForDefault = (
 export const getStateToPutForParent = (
   notificationType: string,
   notificationSettings: NotificationSettingsObject,
-  changedData: {[key: string]: string},
+  changedData: NotificationSettingsByProviderObject,
   parentId: string
-) => {
+): NotificationSettingsObject => {
   /** Get the diff of the Notification Settings for this parent ID. */
 
   const providerList = getCurrentProviders(notificationType, notificationSettings);
