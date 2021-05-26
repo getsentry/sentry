@@ -92,7 +92,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     );
   }
 
-  handleChangeFilter = (activeFilters: Set<string>) => {
+  handleChangeFilter = (_sectionId: string, activeFilters: Set<string>) => {
     const {router, location} = this.props;
     const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
     const teams = [...activeFilters];

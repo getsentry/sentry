@@ -1,11 +1,8 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import CheckboxFancy from 'app/components/checkboxFancy/checkboxFancy';
 import Input from 'app/components/forms/input';
 import {t} from 'app/locale';
-import overflowEllipsis from 'app/styles/overflowEllipsis';
-import space from 'app/styles/space';
 import {Team} from 'app/types';
 
 import Filter from './filter';
@@ -15,7 +12,9 @@ const ALERT_LIST_QUERY_DEFAULT_TEAMS = ['myteams', 'unassigned'];
 type Props = {
   teams: Team[];
   selectedTeams: Set<string>;
-  handleChangeFilter: (activeFilters: Set<string>) => void;
+  handleChangeFilter: (sectionId: string, activeFilters: Set<string>) => void;
+  showStatus?: boolean;
+  selectedStatus?: Set<string>;
 };
 
 export function getTeamParams(team?: string | string[]): string[] {
@@ -34,24 +33,52 @@ export function getTeamParams(team?: string | string[]): string[] {
   return [team];
 }
 
-function TeamFilter({teams, selectedTeams, handleChangeFilter}: Props) {
+function TeamFilter({
+  teams,
+  selectedTeams,
+  showStatus = false,
+  selectedStatus = new Set(),
+  handleChangeFilter,
+}: Props) {
   const [teamFilterSearch, setTeamFilterSearch] = useState<string | undefined>();
-  const additionalOptions = [
-    {label: t('My Teams'), value: 'myteams'},
-    {label: t('Unassigned'), value: 'unassigned'},
-  ];
+
   const statusOptions = [
-    {label: t('Unresolved'), value: 'open'},
-    {label: t('Resolved'), value: 'closed'},
+    {
+      label: t('Unresolved'),
+      value: 'open',
+      checked: selectedStatus.has('open'),
+      filtered: false,
+    },
+    {
+      label: t('Resolved'),
+      value: 'closed',
+      checked: selectedStatus.has('closed'),
+      filtered: false,
+    },
   ];
-  const optionValues = [
-    ...teams.map(({id}) => `team-${id}`),
-    ...additionalOptions.map(({value}) => `team-${value}`),
-    ...statusOptions.map(({value}) => value),
+
+  const additionalOptions = [
+    {
+      label: t('My Teams'),
+      value: 'myteams',
+      checked: selectedTeams.has('myteams'),
+      filtered: false,
+    },
+    {
+      label: t('Unassigned'),
+      value: 'unassigned',
+      checked: selectedTeams.has('unassigned'),
+      filtered: false,
+    },
   ];
-  const filteredTeams = teams.filter(({name}) =>
-    teamFilterSearch ? name.toLowerCase().includes(teamFilterSearch.toLowerCase()) : true
-  );
+  const teamItems = teams.map(({id, name}) => ({
+    label: name,
+    value: id,
+    filtered: teamFilterSearch
+      ? name.toLowerCase().includes(teamFilterSearch.toLowerCase())
+      : true,
+    checked: selectedTeams.has(id),
+  }));
 
   return (
     <Filter
@@ -69,109 +96,30 @@ function TeamFilter({teams, selectedTeams, handleChangeFilter}: Props) {
         />
       }
       onFilterChange={handleChangeFilter}
-      filterList={optionValues}
-      selection={selectedTeams}
-    >
-      {({toggleFilter}) => [
+      dropdownSections={[
+        ...(showStatus
+          ? [
+              {
+                id: 'status',
+                label: t('Status'),
+                items: statusOptions,
+              },
+            ]
+          : []),
         {
-          id: 'status',
-          label: t('Status'),
-          items: (
-            <List>
-              {statusOptions.map(({label, value}) => (
-                <ListItem
-                  key={value}
-                  isChecked={selectedTeams.has(value)}
-                  onClick={event => {
-                    event.stopPropagation();
-                    toggleFilter(value);
-                  }}
-                >
-                  <TeamName>{label}</TeamName>
-                  <CheckboxFancy isChecked={selectedTeams.has(value)} />
-                </ListItem>
-              ))}
-            </List>
-          ),
-        },
-        {
-          id: 'team',
-          label: t('Team'),
-          items: (
-            <List>
-              {additionalOptions.map(({label, value}) => (
-                <ListItem
-                  key={value}
-                  isChecked={selectedTeams.has(value)}
-                  onClick={event => {
-                    event.stopPropagation();
-                    toggleFilter(value);
-                  }}
-                >
-                  <TeamName>{label}</TeamName>
-                  <CheckboxFancy isChecked={selectedTeams.has(value)} />
-                </ListItem>
-              ))}
-              {filteredTeams.map(({id, name}) => (
-                <ListItem
-                  key={id}
-                  isChecked={selectedTeams.has(id)}
-                  onClick={event => {
-                    event.stopPropagation();
-                    toggleFilter(id);
-                  }}
-                >
-                  <TeamName>#{name}</TeamName>
-                  <CheckboxFancy isChecked={selectedTeams.has(id)} />
-                </ListItem>
-              ))}
-            </List>
-          ),
+          id: 'teams',
+          label: t('Teams'),
+          items: [...additionalOptions, ...teamItems],
         },
       ]}
-    </Filter>
+    />
   );
 }
 
 export default TeamFilter;
 
-const List = styled('ul')`
-  list-style: none;
-  margin: 0;
-  padding: 0;
-`;
-
 const StyledInput = styled(Input)`
   border: none;
   border-bottom: 1px solid ${p => p.theme.gray200};
   border-radius: 0;
-`;
-
-const ListItem = styled('li')<{isChecked?: boolean}>`
-  display: grid;
-  grid-template-columns: 1fr max-content;
-  grid-column-gap: ${space(1)};
-  align-items: center;
-  padding: ${space(1)} ${space(2)};
-  border-bottom: 1px solid ${p => p.theme.border};
-  :hover {
-    background-color: ${p => p.theme.backgroundSecondary};
-  }
-  ${CheckboxFancy} {
-    opacity: ${p => (p.isChecked ? 1 : 0.3)};
-  }
-
-  &:hover ${CheckboxFancy} {
-    opacity: 1;
-  }
-
-  &:hover span {
-    color: ${p => p.theme.blue300};
-    text-decoration: underline;
-  }
-`;
-
-const TeamName = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
-  ${overflowEllipsis};
 `;

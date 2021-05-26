@@ -2,14 +2,12 @@ import {Component, Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import flatten from 'lodash/flatten';
-import omit from 'lodash/omit';
 
 import {promptsCheck, promptsUpdate} from 'app/actionCreators/prompts';
 import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
 import CreateAlertButton from 'app/components/createAlertButton';
 import * as Layout from 'app/components/layouts/thirds';
 import ExternalLink from 'app/components/links/externalLink';
@@ -35,15 +33,23 @@ import {Incident} from '../types';
 import AlertHeader from './header';
 import Onboarding from './onboarding';
 import AlertListRow from './row';
-import {TableLayout, TitleAndSparkLine} from './styles';
+import {TableLayout} from './styles';
 
-const DEFAULT_QUERY_STATUS = 'open';
+// const DEFAULT_QUERY_STATUS = 'open' as const;
 
 const DOCS_URL =
   'https://docs.sentry.io/workflow/alerts-notifications/alerts/?_ga=2.21848383.580096147.1592364314-1444595810.1582160976';
 
-function getQueryStatus(status: any): 'open' | 'closed' {
-  return ['open', 'closed'].includes(status) ? status : DEFAULT_QUERY_STATUS;
+function getQueryStatus(status: string | string[]): string[] {
+  if (Array.isArray(status)) {
+    return status;
+  }
+
+  if (status === '') {
+    return [];
+  }
+
+  return ['open', 'closed'].includes(status as string) ? [status as string] : [];
 }
 
 type Props = RouteComponentProps<{orgId: string}, {}> & {
@@ -69,7 +75,12 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {params, location, organization} = this.props;
     const {query} = location;
-    query.status = getQueryStatus(query.status);
+
+    const status = getQueryStatus(query.status);
+    // Filting by one status, both does nothing
+    if (status.length === 1) {
+      query.status = status;
+    }
 
     if (organization.features.includes('team-alerts-ownership')) {
       query.team = getTeamParams(query.team);
@@ -79,9 +90,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
       query.expand = ['original_alert_rule'];
     }
 
-    return [
-      ['incidentList', `/organizations/${params && params.orgId}/incidents/`, {query}],
-    ];
+    return [['incidentList', `/organizations/${params?.orgId}/incidents/`, {query}]];
   }
 
   /**
@@ -151,15 +160,30 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
     });
   };
 
-  handleChangeFilter = (activeFilters: Set<string>) => {
+  handleChangeFilter = (sectionId: string, activeFilters: Set<string>) => {
     const {router, location} = this.props;
     const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
-    const teams = [...activeFilters];
+    const query = {
+      ...currentQuery,
+    };
+
+    let team = query.team;
+    if (sectionId === 'teams') {
+      team = activeFilters.size ? [...activeFilters] : '';
+    }
+
+    let status = query.status;
+    if (sectionId === 'status') {
+      status = activeFilters.size ? [...activeFilters] : '';
+    }
+
     router.push({
       pathname: location.pathname,
       query: {
         ...currentQuery,
-        team: teams.length ? teams : '',
+        status,
+        // Preserve empty team query parameter
+        team: team.length === 0 ? '' : team,
       },
     });
   };
@@ -167,11 +191,14 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
   renderFilterBar() {
     const {teams, location} = this.props;
     const selectedTeams = new Set(getTeamParams(location.query.team));
+    const selectedStatus = new Set(getQueryStatus(location.query.status));
 
     return (
       <FilterWrapper>
         <TeamFilter
+          showStatus
           teams={teams}
+          selectedStatus={selectedStatus}
           selectedTeams={selectedTeams}
           handleChangeFilter={this.handleChangeFilter}
         />
@@ -214,7 +241,6 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
 
   tryRenderEmpty() {
     const {hasAlertRule, incidentList} = this.state;
-    const status = getQueryStatus(this.props.location.query.status);
 
     if (!incidentList || incidentList.length > 0) {
       return null;
@@ -224,13 +250,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
       <EmptyMessage
         size="medium"
         icon={<IconCheckmark isCircled size="48" />}
-        title={
-          !hasAlertRule
-            ? t('No metric alert rules exist for the selected projects.')
-            : status === 'open'
-            ? t('No unresolved metric alerts in the selected projects.')
-            : t('No resolved metric alerts in the selected projects.')
-        }
+        title={!hasAlertRule && t('No metric alert rules exist for the selected query.')}
         description={tct('Learn more about [link:Metric Alerts]', {
           link: <ExternalLink href={DOCS_URL} />,
         })}
@@ -257,25 +277,20 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
         ? true
         : false;
     const showLoadingIndicator = loading || checkingForAlertRules;
-    const status = getQueryStatus(this.props.location.query.status);
 
     return (
       <Fragment>
         {this.tryRenderOnboarding() ?? (
           <Panel>
             {!loading && (
-              <StyledPanelHeader>
-                <TableLayout status={status}>
-                  <PaddedTitleAndSparkLine status={status}>
-                    <div>{t('Alert')}</div>
-                    {status === 'open' && <div>{t('Graph')}</div>}
-                  </PaddedTitleAndSparkLine>
+              <PanelHeader>
+                <TableLayout>
+                  <div>{t('Alert')}</div>
+                  <div>{t('Alert Rule')}</div>
                   <div>{t('Project')}</div>
-                  <div>{t('Triggered')}</div>
-                  {status === 'closed' && <div>{t('Duration')}</div>}
-                  {status === 'closed' && <div>{t('Resolved')}</div>}
+                  <div>{t('Team')}</div>
                 </TableLayout>
-              </StyledPanelHeader>
+              </PanelHeader>
             )}
             {showLoadingIndicator ? (
               <LoadingIndicator />
@@ -291,7 +306,6 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
                           projects={projects as Project[]}
                           incident={incident}
                           orgId={orgId}
-                          filteredStatus={status}
                           organization={organization}
                         />
                       ))
@@ -308,20 +322,14 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
   }
 
   renderBody() {
-    const {params, location, organization, router} = this.props;
-    const {pathname, query} = location;
+    const {params, organization, router} = this.props;
     const {orgId} = params;
-
-    const openIncidentsQuery = omit({...query, status: 'open'}, 'cursor');
-    const closedIncidentsQuery = omit({...query, status: 'closed'}, 'cursor');
-
-    const status = getQueryStatus(query.status);
 
     return (
       <SentryDocumentTitle title={t('Alerts')} orgSlug={orgId}>
         <GlobalSelectionHeader organization={organization} showDateSelector={false}>
           <AlertHeader organization={organization} router={router} activeTab="stream" />
-          <Layout.Body>
+          <StyledLayoutBody>
             <Layout.Main fullWidth>
               {!this.tryRenderOnboarding() && (
                 <Fragment>
@@ -334,27 +342,11 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
                     </Alert>
                   </Feature>
                   {this.renderFilterBar()}
-                  <StyledButtonBar merged active={status}>
-                    <Button
-                      to={{pathname, query: openIncidentsQuery}}
-                      barId="open"
-                      size="small"
-                    >
-                      {t('Unresolved')}
-                    </Button>
-                    <Button
-                      to={{pathname, query: closedIncidentsQuery}}
-                      barId="closed"
-                      size="small"
-                    >
-                      {t('Resolved')}
-                    </Button>
-                  </StyledButtonBar>
                 </Fragment>
               )}
               {this.renderList()}
             </Layout.Main>
-          </Layout.Body>
+          </StyledLayoutBody>
         </GlobalSelectionHeader>
       </SentryDocumentTitle>
     );
@@ -410,20 +402,6 @@ class IncidentsListContainer extends Component<Props> {
   }
 }
 
-const StyledButtonBar = styled(ButtonBar)`
-  width: 100px;
-  margin-bottom: ${space(1)};
-`;
-
-const PaddedTitleAndSparkLine = styled(TitleAndSparkLine)`
-  padding-left: ${space(2)};
-`;
-
-const StyledPanelHeader = styled(PanelHeader)`
-  /* Match table row padding for the grid to align */
-  padding: ${space(1.5)} ${space(2)} ${space(1.5)} 0;
-`;
-
 const FilterWrapper = styled('div')`
   display: flex;
   margin-bottom: ${space(1.5)};
@@ -432,6 +410,10 @@ const FilterWrapper = styled('div')`
 const StyledSearchBar = styled(SearchBar)`
   flex-grow: 1;
   margin-left: ${space(1.5)};
+`;
+
+const StyledLayoutBody = styled(Layout.Body)`
+  margin-bottom: -20px;
 `;
 
 export default withOrganization(withTeams(IncidentsListContainer));
