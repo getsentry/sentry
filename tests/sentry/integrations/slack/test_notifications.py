@@ -549,7 +549,6 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
         assert attachments[0]["title"] == "Hello world"
         assert attachments[0]["text"] == ""
         assert attachments[0]["footer"] == event.group.qualified_short_id
-        # assert False
 
     @pytest.mark.skip(reason="will be needed soon but not yet")
     @responses.activate
