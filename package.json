@@ -95,7 +95,7 @@
     "moment": "2.29.1",
     "moment-timezone": "0.5.33",
     "papaparse": "^5.2.0",
-    "platformicons": "^4.1.5",
+    "platformicons": "^4.2.0",
     "po-catalog-loader": "2.0.0",
     "prism-sentry": "^1.0.2",
     "process": "^0.11.10",
