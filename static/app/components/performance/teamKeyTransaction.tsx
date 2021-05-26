@@ -1,5 +1,6 @@
 import {Component, ComponentClass} from 'react';
 import styled from '@emotion/styled';
+import partition from 'lodash/partition';
 
 import {toggleKeyTransaction} from 'app/actionCreators/performance';
 import {Client} from 'app/api';
@@ -11,6 +12,7 @@ import MenuItem from 'app/components/menuItem';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Team} from 'app/types';
+import {MAX_TEAM_KEY_TRANSACTIONS} from 'app/utils/performance/constants';
 import withApi from 'app/utils/withApi';
 
 export type TitleProps = Partial<ReturnType<GetActorPropsFn>> & {
@@ -32,6 +34,7 @@ type State = {
   keyFetchID: symbol | undefined;
   error: null | string;
   keyedTeams: Set<string>;
+  counts: Map<string, number>;
 };
 
 type SelectionAction = {action: 'key' | 'unkey'};
@@ -43,12 +46,21 @@ function isMyTeamSelection(selection: TeamSelection): selection is MyTeamSelecti
   return selection.type === 'my teams';
 }
 
+function canKeyForTeam(team: Team, keyedTeams: Set<string>, counts: Map<string, number>) {
+  const isChecked = keyedTeams.has(team.id);
+  if (isChecked) {
+    return true;
+  }
+  return (counts.get(team.id) ?? 0) < 1;
+}
+
 class TeamKeyTransaction extends Component<Props, State> {
   state: State = {
     isLoading: true,
     keyFetchID: undefined,
     error: null,
     keyedTeams: new Set(),
+    counts: new Map(),
   };
 
   componentDidMount() {
@@ -65,27 +77,20 @@ class TeamKeyTransaction extends Component<Props, State> {
   }
 
   async fetchData() {
-    const {api, organization, project, transactionName} = this.props;
-
-    const url = `/organizations/${organization.slug}/key-transactions/`;
     const keyFetchID = Symbol('keyFetchID');
-
     this.setState({isLoading: true, keyFetchID});
 
     try {
-      const [data] = await api.requestPromise(url, {
-        method: 'GET',
-        includeAllArgs: true,
-        query: {
-          project: String(project),
-          transaction: transactionName,
-        },
-      });
+      const [keyTransactions, counts] = await Promise.all([
+        this.fetchKeyTransactionsData(),
+        this.fetchCountData(),
+      ]);
       this.setState({
         isLoading: false,
         keyFetchID: undefined,
         error: null,
-        keyedTeams: new Set(data.map(({team}) => team)),
+        keyedTeams: new Set(keyTransactions.map(({team}) => team)),
+        counts: new Map(counts.map(({team, count}) => [team, count])),
       });
     } catch (err) {
       this.setState({
@@ -96,34 +101,43 @@ class TeamKeyTransaction extends Component<Props, State> {
     }
   }
 
-  handleToggleKeyTransaction = async (selection: TeamSelection) => {
-    // TODO: handle the max 100 limit
-    const {api, organization, project, teams, transactionName} = this.props;
-    const markAsKeyTransaction = selection.action === 'key';
+  async fetchKeyTransactionsData() {
+    const {api, organization, project, transactionName} = this.props;
 
-    let teamIds;
-    let keyedTeams;
-    if (isMyTeamSelection(selection)) {
-      teamIds = teams.map(({id}) => id);
-      if (markAsKeyTransaction) {
-        keyedTeams = new Set(teamIds);
-      } else {
-        keyedTeams = new Set();
-      }
-    } else {
-      teamIds = [selection.teamId];
-      keyedTeams = new Set(this.state.keyedTeams);
-      if (markAsKeyTransaction) {
-        keyedTeams.add(selection.teamId);
-      } else {
-        keyedTeams.delete(selection.teamId);
-      }
-    }
+    const url = `/organizations/${organization.slug}/key-transactions/`;
+    const [data] = await api.requestPromise(url, {
+      method: 'GET',
+      includeAllArgs: true,
+      query: {
+        project: String(project),
+        transaction: transactionName,
+      },
+    });
+    return data;
+  }
+
+  async fetchCountData() {
+    const {api, organization, teams} = this.props;
+
+    const url = `/organizations/${organization.slug}/key-transactions-count/`;
+    const [data] = await api.requestPromise(url, {
+      method: 'GET',
+      includeAllArgs: true,
+      query: {team: teams.map(({id}) => id)},
+    });
+    return data;
+  }
+
+  handleToggleKeyTransaction = async (selection: TeamSelection) => {
+    const {api, organization, project, transactionName} = this.props;
+    const {teamIds, counts, keyedTeams} = isMyTeamSelection(selection)
+      ? this.toggleMyTeams(selection)
+      : this.toggleTeamId(selection);
 
     try {
       await toggleKeyTransaction(
         api,
-        !markAsKeyTransaction,
+        selection.action === 'unkey',
         organization.slug,
         [project],
         transactionName,
@@ -133,6 +147,7 @@ class TeamKeyTransaction extends Component<Props, State> {
         isLoading: false,
         keyFetchID: undefined,
         error: null,
+        counts,
         keyedTeams,
       });
     } catch (err) {
@@ -144,9 +159,59 @@ class TeamKeyTransaction extends Component<Props, State> {
     }
   };
 
+  toggleMyTeams(selection: MyTeamSelection) {
+    const {teams} = this.props;
+    const {counts, keyedTeams} = this.state;
+
+    const markAsKey = selection.action === 'key';
+
+    const teamIds = markAsKey
+      ? teams
+          .filter(team => !keyedTeams.has(team.id))
+          .filter(team => canKeyForTeam(team, keyedTeams, counts))
+          .map(({id}) => id)
+      : teams.filter(team => keyedTeams.has(team.id)).map(({id}) => id);
+
+    return this.toggleTeamIds(selection, teamIds);
+  }
+
+  toggleTeamId(selection: TeamIdSelection) {
+    const teamId = selection.teamId;
+    return this.toggleTeamIds(selection, [teamId]);
+  }
+
+  toggleTeamIds(selection: TeamSelection, teamIds: string[]) {
+    const {counts, keyedTeams} = this.state;
+
+    const markAsKey = selection.action === 'key';
+
+    const newCounts = new Map(counts);
+    const newKeyedTeams = new Set(keyedTeams);
+
+    if (markAsKey) {
+      teamIds.forEach(teamId => {
+        const currentCount = counts.get(teamId) || 0;
+        newCounts.set(teamId, currentCount + 1);
+        newKeyedTeams.add(teamId);
+      });
+    } else {
+      teamIds.forEach(teamId => {
+        const currentCount = counts.get(teamId) || 0;
+        newCounts.set(teamId, currentCount - 1);
+        newKeyedTeams.delete(teamId);
+      });
+    }
+
+    return {
+      teamIds,
+      counts: newCounts,
+      keyedTeams: newKeyedTeams,
+    };
+  }
+
   render() {
     const {teams, title} = this.props;
-    const {keyedTeams, isLoading} = this.state;
+    const {counts, keyedTeams, isLoading} = this.state;
 
     if (isLoading) {
       const Title = title;
@@ -158,6 +223,7 @@ class TeamKeyTransaction extends Component<Props, State> {
         title={title}
         handleToggleKeyTransaction={this.handleToggleKeyTransaction}
         teams={teams}
+        counts={counts}
         keyedTeams={keyedTeams}
       />
     );
@@ -169,18 +235,31 @@ type SelectorProps = {
   handleToggleKeyTransaction: (selection: TeamSelection) => void;
   teams: Team[];
   keyedTeams: Set<string>;
+  counts: Map<string, number>;
 };
 
 function TeamKeyTransactionSelector({
   title: Title,
   handleToggleKeyTransaction,
   teams,
+  counts,
   keyedTeams,
 }: SelectorProps) {
-  const toggleTeam = (team: TeamSelection) => e => {
-    e.stopPropagation();
+  const toggleTeam = (team: TeamSelection) => () => {
     handleToggleKeyTransaction(team);
   };
+
+  const [enabledTeams, disabledTeams] = partition(teams, team =>
+    canKeyForTeam(team, keyedTeams, counts)
+  );
+
+  const isMyTeamsEnabled = enabledTeams.length > 0;
+  const myTeamsHandler = isMyTeamsEnabled
+    ? toggleTeam({
+        type: 'my teams',
+        action: enabledTeams.length === keyedTeams.size ? 'unkey' : 'key',
+      })
+    : undefined;
 
   return (
     <DropdownControl
@@ -200,35 +279,77 @@ function TeamKeyTransactionSelector({
             <DropdownContent>
               <DropdownMenuHeader first>
                 {t('My Teams')}
-                <StyledCheckbox
-                  isChecked={teams.length === keyedTeams.size}
-                  isIndeterminate={teams.length > keyedTeams.size && keyedTeams.size > 0}
-                  onClick={toggleTeam({
-                    type: 'my teams',
-                    action: teams.length === keyedTeams.size ? 'unkey' : 'key',
-                  })}
-                />
+                <ActionItem>
+                  <CheckboxFancy
+                    isDisabled={!isMyTeamsEnabled}
+                    isChecked={teams.length === keyedTeams.size}
+                    isIndeterminate={
+                      teams.length > keyedTeams.size && keyedTeams.size > 0
+                    }
+                    onClick={myTeamsHandler}
+                  />
+                </ActionItem>
               </DropdownMenuHeader>
-              {teams.map(team => (
-                <DropdownMenuItem
+              {enabledTeams.map(team => (
+                <TeamKeyTransactionItem
                   key={team.slug}
-                  onClick={toggleTeam({
+                  team={team}
+                  isKeyed={keyedTeams.has(team.id)}
+                  disabled={false}
+                  onSelect={toggleTeam({
                     type: 'id',
                     action: keyedTeams.has(team.id) ? 'unkey' : 'key',
                     teamId: team.id,
                   })}
-                >
-                  <MenuItemContent>
-                    {team.name}
-                    <StyledCheckbox isChecked={keyedTeams.has(team.id)} />
-                  </MenuItemContent>
-                </DropdownMenuItem>
+                />
+              ))}
+              {disabledTeams.map(team => (
+                <TeamKeyTransactionItem
+                  key={team.slug}
+                  team={team}
+                  isKeyed={keyedTeams.has(team.id)}
+                  disabled
+                  onSelect={toggleTeam({
+                    type: 'id',
+                    action: keyedTeams.has(team.id) ? 'unkey' : 'key',
+                    teamId: team.id,
+                  })}
+                />
               ))}
             </DropdownContent>
           )}
         </DropdownWrapper>
       )}
     </DropdownControl>
+  );
+}
+
+type ItemProps = {
+  team: Team;
+  isKeyed: boolean;
+  disabled: boolean;
+  onSelect: () => void;
+};
+
+function TeamKeyTransactionItem({team, isKeyed, disabled, onSelect}: ItemProps) {
+  return (
+    <DropdownMenuItem
+      key={team.slug}
+      disabled={disabled}
+      onSelect={onSelect}
+      stopPropagation
+    >
+      <MenuItemContent>
+        {team.name}
+        <ActionItem>
+          {disabled ? (
+            `Max.${MAX_TEAM_KEY_TRANSACTIONS}`
+          ) : (
+            <CheckboxFancy isChecked={isKeyed} />
+          )}
+        </ActionItem>
+      </MenuItemContent>
+    </DropdownMenuItem>
   );
 }
 
@@ -308,7 +429,7 @@ const MenuItemContent = styled('div')`
   width: 100%;
 `;
 
-const StyledCheckbox = styled(CheckboxFancy)`
+const ActionItem = styled('span')`
   min-width: ${space(2)};
   margin-left: ${space(1)};
 `;
