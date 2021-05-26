@@ -147,17 +147,15 @@ class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
         assert build_action_response(self.email) in response.data
         assert build_action_response(self.sentry_app, sentry_app=sentry_app) in response.data
 
-    def test_blocked_sentry_apps(self):
-        internal_sentry_app = self.install_new_sentry_app("internal")
-        # Should not show up in available actions.
-        self.install_new_sentry_app("published", published=True)
+    def test_published_sentry_apps(self):
+        # Should show up in available actions.
+        published_app = self.install_new_sentry_app("published", published=True)
 
         with self.feature("organizations:incidents"):
             response = self.get_success_response(self.organization.slug)
 
-        assert len(resp.data) == 2
-        assert build_action_response(self.email) in resp.data
-        assert build_action_response(self.sentry_app, sentry_app=internal_sentry_app) in resp.data
+        assert len(response.data) == 2
+        assert build_action_response(self.sentry_app, sentry_app=published_app) in response.data
 
     def test_no_ticket_actions(self):
         integration = Integration.objects.create(external_id="1", provider="jira")
