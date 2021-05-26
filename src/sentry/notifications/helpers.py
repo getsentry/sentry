@@ -349,8 +349,8 @@ def get_settings_by_provider(
 
 def get_fallback_settings(
     types_to_serialize: Iterable[NotificationSettingTypes],
-    projects: Iterable[Any],
-    organizations: Iterable[Any],
+    project_ids: Iterable[int],
+    organization_ids: Iterable[int],
     user: Optional[Any] = None,
 ) -> MutableMapping[str, MutableMapping[str, MutableMapping[int, MutableMapping[str, str]]]]:
     """
@@ -376,9 +376,11 @@ def get_fallback_settings(
         for provider in NOTIFICATION_SETTING_DEFAULTS.keys():
             provider_str = EXTERNAL_PROVIDERS[provider]
 
-            parents = projects if scope_type == NotificationScopeType.PROJECT else organizations
-            for parent in parents:
-                data[type_str][scope_str][parent.id][provider_str] = parent_independent_value_str
+            parent_ids = (
+                project_ids if scope_type == NotificationScopeType.PROJECT else organization_ids
+            )
+            for parent_id in parent_ids:
+                data[type_str][scope_str][parent_id][provider_str] = parent_independent_value_str
 
             # Only users (i.e. not teams) have parent-independent notification settings.
             if user:

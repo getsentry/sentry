@@ -55,6 +55,7 @@ const Wrapper = styled('div')<{activeStep: number; isActive: boolean; height?: n
   grid-template-columns: max-content 1fr;
   position: relative;
   color: ${p => p.theme.gray200};
+  margin-left: -${space(1.5)};
 
   :not(:last-child) {
     padding-bottom: ${space(2)};

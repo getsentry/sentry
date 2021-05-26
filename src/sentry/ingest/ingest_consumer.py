@@ -1,18 +1,33 @@
 import functools
 import logging
 import random
+from concurrent.futures import Future, ThreadPoolExecutor, as_completed
+from typing import (
+    Any,
+    Callable,
+    Mapping,
+    MutableMapping,
+    MutableSequence,
+    NamedTuple,
+    Optional,
+    Sequence,
+    Tuple,
+    TypeVar,
+    Union,
+)
 
 import msgpack
 import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
 
-from sentry import eventstore, features, options
+from sentry import eventstore, features
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.event_manager import save_attachment
 from sentry.eventstore.processing import event_processing_store
 from sentry.ingest.types import ConsumerType
 from sentry.ingest.userreport import Conflict, save_userreport
+from sentry.killswitches import killswitch_matches_context
 from sentry.models import Project
 from sentry.signals import event_accepted
 from sentry.tasks.store import preprocess_event
@@ -29,8 +44,28 @@ logger = logging.getLogger(__name__)
 CACHE_TIMEOUT = 3600
 
 
+T = TypeVar("T")
+
+
+class AsyncResult(NamedTuple):  # TODO: Use Generic[T] with 3.7+
+    future: "Future[T]"
+    callback: Callable[["Future[T]"], Any]
+
+
+Message = Any
+
+
 class IngestConsumerWorker(AbstractBatchWorker):
-    def process_message(self, message):
+    def __init__(self, process_event_executor: Optional[ThreadPoolExecutor] = None) -> None:
+        self.__process_event_executor = process_event_executor
+        if self.__process_event_executor is None:
+            self.__process_event = process_event
+        else:
+            self.__process_event = functools.partial(
+                process_event_async, self.__process_event_executor
+            )
+
+    def process_message(self, message) -> Message:
         message = msgpack.unpackb(message.value(), use_list=False)
         return message
 
@@ -39,9 +74,24 @@ class IngestConsumerWorker(AbstractBatchWorker):
         with metrics.timer("ingest_consumer.flush_batch"):
             return self._flush_batch(batch)
 
-    def _flush_batch(self, batch):
+    def _flush_batch(self, batch: Sequence[Message]):
         attachment_chunks = []
-        other_messages = []
+
+        # Processing functions may be either synchronous or asynchronous.
+        # Functions that return an ``AsyncResult`` may perform a combination of
+        # synchronous and asynchronous work, and need to be explicitly waited on
+        # to ensure they have completed and callbacks have been invoked before
+        # returning. Functions that return anything else are assumed to have
+        # completed successfully after they have returned.
+        other_messages: MutableSequence[
+            Tuple[
+                Callable[
+                    [Message, Mapping[int, Project]],
+                    Union[Any, AsyncResult],
+                ],
+                Message,
+            ]
+        ] = []
 
         projects_to_fetch = set()
 
@@ -51,7 +101,7 @@ class IngestConsumerWorker(AbstractBatchWorker):
                 projects_to_fetch.add(message["project_id"])
 
                 if message_type == "event":
-                    other_messages.append((process_event, message))
+                    other_messages.append((self.__process_event, message))
                 elif message_type == "attachment_chunk":
                     attachment_chunks.append(message)
                 elif message_type == "attachment":
@@ -75,11 +125,24 @@ class IngestConsumerWorker(AbstractBatchWorker):
 
         if other_messages:
             with metrics.timer("ingest_consumer.process_other_messages_batch"):
+                # Keep a mapping of futures to their metadata so that we can
+                # easily associate a future with its callback once completed.
+                results: MutableMapping["Future[Any]", "AsyncResult[Any]"] = {}
+
+                # Execute synchronous tasks and dispatch asynchronous tasks.
                 for processing_func, message in other_messages:
-                    processing_func(message, projects=projects)
+                    result = processing_func(message, projects)
+                    if isinstance(result, AsyncResult):
+                        results[result.future] = result
+
+                # Wait for any asynchronous work to be completed, invoking
+                # callbacks (on the main thread) as results are ready.
+                for future in as_completed(results.keys()):
+                    results[future].callback(future)
 
     def shutdown(self):
-        pass
+        if self.__process_event_executor is not None:
+            self.__process_event_executor.shutdown()
 
 
 def trace_func(**span_kwargs):
@@ -98,7 +161,25 @@ def trace_func(**span_kwargs):
 
 
 @metrics.wraps("ingest_consumer.process_event")
-def _do_process_event(message, projects):
+def _do_process_event(message: Message, projects: Mapping[int, Project]) -> None:
+    result = _load_event(message, projects)
+    if result is None:
+        return
+
+    data, callback = result
+    callback(_store_event(data))
+
+
+def _load_event(
+    message: Message, projects: Mapping[int, Project]
+) -> Optional[Tuple[Any, Callable[[str], None]]]:
+    """
+    Perform some initial filtering and deserialize the message payload. If the
+    event should be stored, the deserialized payload is returned along with a
+    function that can be called with the event's storage key to resume
+    processing after the event has been persisted and is available to be read by
+    other processing components.
+    """
     payload = message["payload"]
     start_time = float(message["start_time"])
     event_id = message["event_id"]
@@ -135,7 +216,14 @@ def _do_process_event(message, projects):
         )
         return  # message already processed do not reprocess
 
-    if project_id in (options.get("store.load-shed-pipeline-projects") or ()):
+    if killswitch_matches_context(
+        "store.load-shed-pipeline-projects",
+        {
+            "project_id": project_id,
+            "event_id": event_id,
+            "has_attachments": bool(attachments),
+        },
+    ):
         # This killswitch is for the worst of scenarios and should probably not
         # cause additional load on our logging infrastructure
         return
@@ -159,39 +247,72 @@ def _do_process_event(message, projects):
             tags={"event_type": data.get("type") or "null"},
         )
 
-    cache_key = event_processing_store.store(data)
+    if killswitch_matches_context(
+        "store.load-shed-parsed-pipeline-projects",
+        {
+            "organization_id": project.organization_id,
+            "project_id": project.id,
+            "event_type": data.get("type") or "null",
+            "has_attachments": bool(attachments),
+            "event_id": event_id,
+        },
+    ):
+        return
 
-    if attachments:
-        with sentry_sdk.start_span(op="ingest_consumer.set_attachment_cache"):
-            attachment_objects = [
-                CachedAttachment(type=attachment.pop("attachment_type"), **attachment)
-                for attachment in attachments
-            ]
+    def dispatch_task(cache_key: str) -> None:
+        if attachments:
+            with sentry_sdk.start_span(op="ingest_consumer.set_attachment_cache"):
+                attachment_objects = [
+                    CachedAttachment(type=attachment.pop("attachment_type"), **attachment)
+                    for attachment in attachments
+                ]
 
-            attachment_cache.set(cache_key, attachments=attachment_objects, timeout=CACHE_TIMEOUT)
+                attachment_cache.set(
+                    cache_key, attachments=attachment_objects, timeout=CACHE_TIMEOUT
+                )
 
-    # Preprocess this event, which spawns either process_event or
-    # save_event. Pass data explicitly to avoid fetching it again from the
-    # cache.
-    with sentry_sdk.start_span(op="ingest_consumer.process_event.preprocess_event"):
-        preprocess_event(
-            cache_key=cache_key,
-            data=data,
-            start_time=start_time,
-            event_id=event_id,
-            project=project,
-        )
+        # Preprocess this event, which spawns either process_event or
+        # save_event. Pass data explicitly to avoid fetching it again from the
+        # cache.
+        with sentry_sdk.start_span(op="ingest_consumer.process_event.preprocess_event"):
+            preprocess_event(
+                cache_key=cache_key,
+                data=data,
+                start_time=start_time,
+                event_id=event_id,
+                project=project,
+            )
 
-    # remember for an 1 hour that we saved this event (deduplication protection)
-    cache.set(deduplication_key, "", CACHE_TIMEOUT)
+        # remember for an 1 hour that we saved this event (deduplication protection)
+        cache.set(deduplication_key, "", CACHE_TIMEOUT)
 
-    # emit event_accepted once everything is done
-    event_accepted.send_robust(ip=remote_addr, data=data, project=project, sender=process_event)
+        # emit event_accepted once everything is done
+        event_accepted.send_robust(ip=remote_addr, data=data, project=project, sender=process_event)
+
+    return data, dispatch_task
+
+
+def _store_event(data) -> str:
+    return event_processing_store.store(data)
 
 
 @trace_func(name="ingest_consumer.process_event")
-def process_event(message, projects):
+def process_event(message: Message, projects: Mapping[int, Project]) -> None:
     return _do_process_event(message, projects)
+
+
+def process_event_async(
+    executor: ThreadPoolExecutor, message: Message, projects: Mapping[int, Project]
+) -> Optional["AsyncResult[str]"]:
+    result = _load_event(message, projects)
+    if result is None:
+        return None
+
+    data, callback = result
+    return AsyncResult(
+        executor.submit(_store_event, data),
+        lambda future: callback(future.result()),
+    )
 
 
 @trace_func(name="ingest_consumer.process_attachment_chunk")
@@ -210,7 +331,7 @@ def process_attachment_chunk(message, projects):
 
 @trace_func(name="ingest_consumer.process_individual_attachment")
 @metrics.wraps("ingest_consumer.process_individual_attachment")
-def process_individual_attachment(message, projects):
+def process_individual_attachment(message, projects) -> None:
     event_id = message["event_id"]
     project_id = int(message["project_id"])
     cache_key = cache_key_for_event({"event_id": event_id, "project": project_id})
@@ -257,7 +378,7 @@ def process_individual_attachment(message, projects):
 
 @trace_func(name="ingest_consumer.process_userreport")
 @metrics.wraps("ingest_consumer.process_userreport")
-def process_userreport(message, projects):
+def process_userreport(message, projects) -> None:
     project_id = int(message["project_id"])
     start_time = to_datetime(message["start_time"])
     feedback = json.loads(message["payload"])
@@ -281,7 +402,9 @@ def process_userreport(message, projects):
         return False
 
 
-def get_ingest_consumer(consumer_types, once=False, **options):
+def get_ingest_consumer(
+    consumer_types, once=False, executor: Optional[ThreadPoolExecutor] = None, **options
+):
     """
     Handles events coming via a kafka queue.
 
@@ -289,5 +412,5 @@ def get_ingest_consumer(consumer_types, once=False, **options):
     """
     topic_names = {ConsumerType.get_topic_name(consumer_type) for consumer_type in consumer_types}
     return create_batching_kafka_consumer(
-        topic_names=topic_names, worker=IngestConsumerWorker(), **options
+        topic_names=topic_names, worker=IngestConsumerWorker(executor), **options
     )

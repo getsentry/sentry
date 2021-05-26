@@ -79,7 +79,7 @@ describe('recreateRoute', function () {
     );
   });
 
-  it('maintains the query strting', function () {
+  it('maintains the query string', function () {
     const withSearch = {
       search: '?key1=foo&key2=bar',
     };

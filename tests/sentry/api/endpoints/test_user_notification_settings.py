@@ -85,6 +85,25 @@ class UserNotificationSettingsGetTest(UserNotificationSettingsTestBase):
         with self.feature(FEATURE_NAMES):
             self.get_error_response(other_user.id, status_code=403)
 
+    def test_invalid_notification_setting(self):
+        other_organization = self.create_organization(name="Rowdy Tiger", owner=None)
+        other_project = self.create_project(
+            organization=other_organization, teams=[], name="Bengal"
+        )
+
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.SLACK,
+            NotificationSettingTypes.WORKFLOW,
+            NotificationSettingOptionValues.SUBSCRIBE_ONLY,
+            user=self.user,
+            project=other_project,
+        )
+
+        with self.feature(FEATURE_NAMES):
+            response = self.get_success_response("me")
+
+        assert other_project.id not in response.data["workflow"]["project"]
+
 
 class UserNotificationSettingsTest(UserNotificationSettingsTestBase):
     method = "put"
@@ -99,10 +118,9 @@ class UserNotificationSettingsTest(UserNotificationSettingsTestBase):
             == NotificationSettingOptionValues.DEFAULT
         )
 
+        data = {"deploy": {"user": {"me": {"email": "always", "slack": "always"}}}}
         with self.feature(FEATURE_NAMES):
-            self.get_success_response(
-                "me", **{"deploy": {"user": {"me": {"email": "always", "slack": "always"}}}}
-            )
+            self.get_success_response("me", **data)
 
         assert (
             NotificationSetting.objects.get_settings(
@@ -120,3 +138,9 @@ class UserNotificationSettingsTest(UserNotificationSettingsTestBase):
     def test_invalid_payload(self):
         with self.feature(FEATURE_NAMES):
             self.get_error_response("me", **{"invalid": 1}, status_code=400)
+
+    def test_wrong_user_id(self):
+        user2 = self.create_user()
+        data = {"deploy": {"user": {user2.id: {"email": "always", "slack": "always"}}}}
+        with self.feature(FEATURE_NAMES):
+            self.get_error_response("me", **data, status_code=400)

@@ -322,26 +322,6 @@ class TagStorageTest(TestCase, SnubaTestCase):
             == {}
         )
 
-    def test_get_releases(self):
-        assert (
-            self.ts.get_first_release(project_id=self.proj1.id, group_id=self.proj1group1.id)
-            == "200"
-        )
-
-        assert (
-            self.ts.get_first_release(project_id=self.proj1.id, group_id=self.proj1group2.id)
-            is None
-        )
-
-        assert (
-            self.ts.get_last_release(project_id=self.proj1.id, group_id=self.proj1group1.id)
-            == "100"
-        )
-
-        assert (
-            self.ts.get_last_release(project_id=self.proj1.id, group_id=self.proj1group2.id) is None
-        )
-
     def test_get_group_ids_for_users(self):
         assert self.ts.get_group_ids_for_users(
             [self.proj1.id], [EventUser(project_id=self.proj1.id, ident="user1")]

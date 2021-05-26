@@ -9,6 +9,7 @@ from functools import reduce
 from operator import or_
 from typing import List, Mapping, Optional, Set
 
+from django.core.cache import cache
 from django.db import models
 from django.db.models import Q
 from django.utils import timezone
@@ -27,7 +28,6 @@ from sentry.db.models import (
     Model,
     sane_repr,
 )
-from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
 from sentry.utils.numbers import base32_decode, base32_encode
 from sentry.utils.strings import strip, truncatechars
@@ -485,17 +485,39 @@ class Group(Model):
             project_id=self.project_id,
         )
 
+    def _get_cache_key(self, project_id, group_id, first):
+        return f"g-r:{group_id}-{project_id}-{first}"
+
+    def __get_release(self, project_id, group_id, first=True):
+        from sentry.models import GroupRelease, Release
+
+        orderby = "first_seen" if first else "-last_seen"
+        cache_key = self._get_cache_key(project_id, group_id, first)
+        try:
+            release_version = cache.get(cache_key)
+            if release_version is None:
+                release_version = Release.objects.get(
+                    id=GroupRelease.objects.filter(group_id=group_id, project_id=project_id)
+                    .order_by(orderby)
+                    .values("release_id")[:1]
+                ).version
+                cache.set(cache_key, release_version, 3600)
+            elif release_version is False:
+                release_version = None
+            return release_version
+        except Release.DoesNotExist:
+            cache.set(cache_key, False, 3600)
+            return None
+
     def get_first_release(self):
         if self.first_release_id is None:
-            first_release = tagstore.get_first_release(self.project_id, self.id)
-            found = "hit" if first_release is not None else "miss"
-            metrics.incr(f"group.get_first_release.tagstore.{found}")
+            first_release = self.__get_release(self.project_id, self.id, True)
             return first_release
 
         return self.first_release.version
 
     def get_last_release(self):
-        return tagstore.get_last_release(self.project_id, self.id)
+        return self.__get_release(self.project_id, self.id, False)
 
     def get_event_type(self):
         """

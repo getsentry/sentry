@@ -8,12 +8,13 @@ from freezegun import freeze_time
 from rest_framework.exceptions import PermissionDenied
 
 from sentry.api.bases.organization import NoProjects, OrganizationEndpoint, OrganizationPermission
-from sentry.api.exceptions import ResourceDoesNotExist, TwoFactorRequired
+from sentry.api.exceptions import MemberDisabledOverLimit, ResourceDoesNotExist, TwoFactorRequired
 from sentry.api.utils import MAX_STATS_PERIOD
 from sentry.auth.access import NoAccess, from_request
 from sentry.auth.authenticators import TotpInterface
-from sentry.models import ApiKey, Organization
+from sentry.models import ApiKey, Organization, OrganizationMember
 from sentry.testutils import TestCase
+from sentry.utils.compat import mock
 
 
 class MockSuperUser:
@@ -96,6 +97,48 @@ class OrganizationPermissionTest(OrganizationPermissionBase):
 
         with self.assertRaises(TwoFactorRequired):
             self.has_object_perm("GET", self.org, user=user)
+
+    @mock.patch("sentry.api.utils.get_cached_organization_member")
+    def test_member_limit_error(self, mock_get_org_member):
+        user = self.create_user()
+        self.create_member(
+            user=user,
+            organization=self.org,
+            role="member",
+            flags=OrganizationMember.flags["member-limit:restricted"],
+        )
+
+        with self.assertRaises(MemberDisabledOverLimit) as err:
+            self.has_object_perm("GET", self.org, user=user)
+
+        assert err.exception.detail == {
+            "detail": {
+                "code": "member-disabled-over-limit",
+                "message": "Organization over member limit",
+                "extra": {"next": f"/organizations/{self.org.slug}/disabled-member/"},
+            }
+        }
+        assert mock_get_org_member.call_count == 1
+
+    @mock.patch("sentry.api.utils.get_cached_organization_member")
+    def test_member_limit_with_superuser(self, mock_get_org_member):
+        user = self.create_user(is_superuser=True)
+        self.create_member(
+            user=user,
+            organization=self.org,
+            role="member",
+            flags=OrganizationMember.flags["member-limit:restricted"],
+        )
+        assert self.has_object_perm("GET", self.org, user=user, is_superuser=True)
+        assert mock_get_org_member.call_count == 0
+
+    @mock.patch("sentry.api.utils.get_cached_organization_member")
+    def test_member_limit_sentry_app(self, mock_get_org_member):
+        app = self.create_internal_integration(
+            name="integration", organization=self.org, scopes=("org:admin",)
+        )
+        assert self.has_object_perm("GET", self.org, user=app.proxy_user)
+        assert mock_get_org_member.call_count == 0
 
 
 class BaseOrganizationEndpointTest(TestCase):
