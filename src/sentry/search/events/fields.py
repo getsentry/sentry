@@ -16,8 +16,6 @@ from sentry.search.events.constants import (
     KEY_TRANSACTION_ALIAS,
     PROJECT_ALIAS,
     PROJECT_NAME_ALIAS,
-    PROJECT_TRANSACTION_THRESHOLD_ALIAS,
-    PROJECT_TRANSACTION_THRESHOLD_INDEX_ALIAS,
     RESULT_TYPES,
     SEARCH_MAP,
     TAG_KEY_RE,
@@ -115,256 +113,6 @@ def key_transaction_expression(user_id, organization_id, project_ids):
     ]
 
 
-def transaction_threshold_index(organization_id, project_ids):
-    if organization_id is None or project_ids is None:
-        raise InvalidSearchQuery("Missing necessary meta for transaction threshold field.")
-
-    thresholds = ProjectTransactionThreshold.objects.filter(
-        organization_id=organization_id,
-        project_id__in=project_ids,
-    )
-
-    return [
-        "indexOf",
-        [
-            [
-                "array",
-                [["toUInt64", [threshold.project_id]] for threshold in thresholds],
-            ],
-            "project_id",
-        ],
-    ]
-
-
-def transaction_thresholds(organization_id, project_ids):
-    if organization_id is None or project_ids is None:
-        raise InvalidSearchQuery("Missing necessary meta for transaction threshold field.")
-
-    thresholds = ProjectTransactionThreshold.objects.filter(
-        organization_id=organization_id,
-        project_id__in=project_ids,
-    )
-
-    return [
-        "if",
-        [
-            [
-                "equals",
-                [
-                    [
-                        "indexOf",
-                        [
-                            [
-                                "array",
-                                [["toUInt64", [threshold.project_id]] for threshold in thresholds],
-                            ],
-                            "project_id",
-                        ],
-                        "project_transaction_threshold_index",
-                    ],
-                    0,
-                ],
-            ],
-            ["tuple", ["'duration'", 300]],
-            [
-                "arrayElement",
-                [
-                    [
-                        "array",
-                        [
-                            [
-                                "tuple",
-                                [
-                                    "'{}'".format(TRANSACTION_METRICS[threshold.metric]),
-                                    threshold.threshold,
-                                ],
-                            ]
-                            for threshold in thresholds
-                        ],
-                    ],
-                    [
-                        "indexOf",
-                        [
-                            [
-                                "array",
-                                [["toUInt64", [threshold.project_id]] for threshold in thresholds],
-                            ],
-                            "project_id",
-                        ],
-                    ],
-                ],
-            ],
-        ],
-    ]
-
-
-def transaction_threshold_equation(organization_id, project_ids):
-    if organization_id is None or project_ids is None:
-        raise InvalidSearchQuery("Missing necessary meta for transaction threshold field.")
-
-    thresholds = ProjectTransactionThreshold.objects.filter(
-        organization_id=organization_id,
-        project_id__in=project_ids,
-    )
-
-    return [
-        "greater",
-        [
-            [
-                "multiIf",
-                [
-                    [
-                        "equals",
-                        [
-                            [
-                                "tupleElement",
-                                [
-                                    [
-                                        "if",
-                                        [
-                                            [
-                                                "equals",
-                                                [
-                                                    [
-                                                        "indexOf",
-                                                        [
-                                                            [
-                                                                "array",
-                                                                [
-                                                                    [
-                                                                        "toUInt64",
-                                                                        [threshold.project_id],
-                                                                    ]
-                                                                    for threshold in thresholds
-                                                                ],
-                                                            ],
-                                                            "project_id",
-                                                        ],
-                                                        "project_transaction_threshold_index",
-                                                    ],
-                                                    0,
-                                                ],
-                                            ],
-                                            ["tuple", ["'duration'", 300]],
-                                            [
-                                                "arrayElement",
-                                                [
-                                                    [
-                                                        "array",
-                                                        [
-                                                            [
-                                                                "tuple",
-                                                                [
-                                                                    "'{}'".format(
-                                                                        TRANSACTION_METRICS[
-                                                                            threshold.metric
-                                                                        ]
-                                                                    ),
-                                                                    threshold.threshold,
-                                                                ],
-                                                            ]
-                                                            for threshold in thresholds
-                                                        ],
-                                                    ],
-                                                    [
-                                                        "indexOf",
-                                                        [
-                                                            [
-                                                                "array",
-                                                                [
-                                                                    [
-                                                                        "toUInt64",
-                                                                        [threshold.project_id],
-                                                                    ]
-                                                                    for threshold in thresholds
-                                                                ],
-                                                            ],
-                                                            "project_id",
-                                                        ],
-                                                    ],
-                                                ],
-                                            ],
-                                        ],
-                                    ],
-                                    1,
-                                ],
-                            ],
-                            "'lcp'",
-                        ],
-                    ],
-                    "measurements.lcp",
-                    "transaction.duration",
-                ],
-            ],
-            [
-                "tupleElement",
-                [
-                    [
-                        "if",
-                        [
-                            [
-                                "equals",
-                                [
-                                    [
-                                        "indexOf",
-                                        [
-                                            [
-                                                "array",
-                                                [
-                                                    ["toUInt64", [threshold.project_id]]
-                                                    for threshold in thresholds
-                                                ],
-                                            ],
-                                            "project_id",
-                                        ],
-                                        "project_transaction_threshold_index",
-                                    ],
-                                    0,
-                                ],
-                            ],
-                            ["tuple", ["'duration'", 300]],
-                            [
-                                "arrayElement",
-                                [
-                                    [
-                                        "array",
-                                        [
-                                            [
-                                                "tuple",
-                                                [
-                                                    "'{}'".format(
-                                                        TRANSACTION_METRICS[threshold.metric]
-                                                    ),
-                                                    threshold.threshold,
-                                                ],
-                                            ]
-                                            for threshold in thresholds
-                                        ],
-                                    ],
-                                    [
-                                        "indexOf",
-                                        [
-                                            [
-                                                "array",
-                                                [
-                                                    ["toUInt64", [threshold.project_id]]
-                                                    for threshold in thresholds
-                                                ],
-                                            ],
-                                            "project_id",
-                                        ],
-                                    ],
-                                ],
-                            ],
-                        ],
-                    ],
-                    2,
-                ],
-            ],
-        ],
-    ]
-
-
 # When updating this list, also check if the following need to be updated:
 # - convert_search_filter_to_snuba_query (otherwise aliased field will be treated as tag)
 # - static/app/utils/discover/fields.tsx FIELDS (for discover column list and search box autocomplete)
@@ -396,31 +144,6 @@ FIELD_ALIASES = {
                 params.get("project_id"),
             ),
             result_type="boolean",
-        ),
-        PseudoField(
-            PROJECT_TRANSACTION_THRESHOLD_INDEX_ALIAS,
-            PROJECT_TRANSACTION_THRESHOLD_INDEX_ALIAS,
-            expression_fn=lambda params: transaction_threshold_index(
-                params.get("organization_id"),
-                params.get("project_id"),
-            ),
-            result_type="number",
-        ),
-        PseudoField(
-            PROJECT_TRANSACTION_THRESHOLD_ALIAS,
-            PROJECT_TRANSACTION_THRESHOLD_ALIAS,
-            expression_fn=lambda params: transaction_thresholds(
-                params.get("organization_id"),
-                params.get("project_id"),
-            ),
-        ),
-        PseudoField(
-            "transaction_threshold_equation",
-            "transaction_threshold_equation",
-            expression_fn=lambda params: transaction_threshold_equation(
-                params.get("organization_id"),
-                params.get("project_id"),
-            ),
         ),
     ]
 }
@@ -1261,7 +984,7 @@ class Function:
 
         # populate any computed args
         for calculation in self.calculated_args:
-            arguments[calculation["name"]] = calculation["fn"](arguments)
+            arguments[calculation["name"]] = calculation["fn"](arguments, params)
 
         return arguments
 
@@ -1432,7 +1155,9 @@ FUNCTIONS = {
         Function(
             "count_miserable",
             required_args=[CountColumn("column"), NumberRange("satisfaction", 0, None)],
-            calculated_args=[{"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0}],
+            calculated_args=[
+                {"name": "tolerated", "fn": lambda args, _: args["satisfaction"] * 4.0}
+            ],
             aggregate=[
                 "uniqIf",
                 [ArgValue("column"), ["greater", ["transaction.duration", ArgValue("tolerated")]]],
@@ -1441,16 +1166,26 @@ FUNCTIONS = {
             default_result_type="number",
         ),
         Function(
-            "transaction_threshold_index",
-            required_args=[CountColumn("column"), NumberRange("satisfaction", 0, None)],
-            calculated_args=[{"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0}],
+            "transaction_threshold_index_function",
+            calculated_args=[
+                {
+                    "name": "project_ids",
+                    "fn": lambda _, params: [
+                        "array",
+                        [
+                            ["toUInt64", [threshold.project_id]]
+                            for threshold in ProjectTransactionThreshold.objects.filter(
+                                organization_id=params.get("organization_id"),
+                                project_id__in=params.get("project_id"),
+                            ).order_by("project_id")
+                        ],
+                    ],
+                }
+            ],
             column=[
                 "indexOf",
                 [
-                    [
-                        "array",
-                        [["toUInt64", [threshold[0]]] for threshold in [(1, 1, 200)]],
-                    ],
+                    ArgValue("project_ids"),
                     "project_id",
                 ],
             ],
@@ -1458,7 +1193,31 @@ FUNCTIONS = {
         ),
         Function(
             "count_miserable_prototype",
-            required_args=[CountColumn("column"), FunctionArg("project_ids")],
+            required_args=[
+                CountColumn("column"),
+                FunctionAliasArg("threshold_index"),
+            ],
+            calculated_args=[
+                {
+                    "name": "threshold_tuple",
+                    "fn": lambda _, params: [
+                        "array",
+                        [
+                            [
+                                "tuple",
+                                [
+                                    "'{}'".format(TRANSACTION_METRICS[threshold.metric]),
+                                    threshold.threshold,
+                                ],
+                            ]
+                            for threshold in ProjectTransactionThreshold.objects.filter(
+                                organization_id=params.get("organization_id"),
+                                project_id__in=params.get("project_id"),
+                            ).order_by("project_id")
+                        ],
+                    ],
+                }
+            ],
             aggregate=[
                 "uniqIf",
                 [
@@ -1481,33 +1240,7 @@ FUNCTIONS = {
                                                             [
                                                                 "equals",
                                                                 [
-                                                                    [
-                                                                        "indexOf",
-                                                                        [
-                                                                            [
-                                                                                "array",
-                                                                                [
-                                                                                    [
-                                                                                        "toUInt64",
-                                                                                        [
-                                                                                            threshold[
-                                                                                                0
-                                                                                            ]
-                                                                                        ],
-                                                                                    ]
-                                                                                    for threshold in [
-                                                                                        (
-                                                                                            1,
-                                                                                            1,
-                                                                                            200,
-                                                                                        )
-                                                                                    ]
-                                                                                ],
-                                                                            ],
-                                                                            "project_id",
-                                                                        ],
-                                                                        "project_transaction_threshold_index",
-                                                                    ],
+                                                                    ArgValue("threshold_index"),
                                                                     0,
                                                                 ],
                                                             ],
@@ -1515,53 +1248,8 @@ FUNCTIONS = {
                                                             [
                                                                 "arrayElement",
                                                                 [
-                                                                    [
-                                                                        "array",
-                                                                        [
-                                                                            [
-                                                                                "tuple",
-                                                                                [
-                                                                                    "'{}'".format(
-                                                                                        TRANSACTION_METRICS[
-                                                                                            threshold[
-                                                                                                1
-                                                                                            ]
-                                                                                        ]
-                                                                                    ),
-                                                                                    threshold[2],
-                                                                                ],
-                                                                            ]
-                                                                            for threshold in [
-                                                                                (1, 1, 200)
-                                                                            ]
-                                                                        ],
-                                                                    ],
-                                                                    [
-                                                                        "indexOf",
-                                                                        [
-                                                                            [
-                                                                                "array",
-                                                                                [
-                                                                                    [
-                                                                                        "toUInt64",
-                                                                                        [
-                                                                                            threshold[
-                                                                                                0
-                                                                                            ]
-                                                                                        ],
-                                                                                    ]
-                                                                                    for threshold in [
-                                                                                        (
-                                                                                            1,
-                                                                                            1,
-                                                                                            200,
-                                                                                        )
-                                                                                    ]
-                                                                                ],
-                                                                            ],
-                                                                            "project_id",
-                                                                        ],
-                                                                    ],
+                                                                    ArgValue("threshold_tuple"),
+                                                                    ArgValue("threshold_index"),
                                                                 ],
                                                             ],
                                                         ],
@@ -1585,20 +1273,7 @@ FUNCTIONS = {
                                             [
                                                 "equals",
                                                 [
-                                                    [
-                                                        "indexOf",
-                                                        [
-                                                            [
-                                                                "array",
-                                                                [
-                                                                    ["toUInt64", [threshold[0]]]
-                                                                    for threshold in [(1, 1, 200)]
-                                                                ],
-                                                            ],
-                                                            "project_id",
-                                                        ],
-                                                        "project_transaction_threshold_index",
-                                                    ],
+                                                    ArgValue("threshold_index"),
                                                     0,
                                                 ],
                                             ],
@@ -1606,36 +1281,8 @@ FUNCTIONS = {
                                             [
                                                 "arrayElement",
                                                 [
-                                                    [
-                                                        "array",
-                                                        [
-                                                            [
-                                                                "tuple",
-                                                                [
-                                                                    "'{}'".format(
-                                                                        TRANSACTION_METRICS[
-                                                                            threshold[1]
-                                                                        ]
-                                                                    ),
-                                                                    threshold[2],
-                                                                ],
-                                                            ]
-                                                            for threshold in [(1, 1, 200)]
-                                                        ],
-                                                    ],
-                                                    [
-                                                        "indexOf",
-                                                        [
-                                                            [
-                                                                "array",
-                                                                [
-                                                                    ["toUInt64", [threshold[0]]]
-                                                                    for threshold in [(1, 1, 200)]
-                                                                ],
-                                                            ],
-                                                            "project_id",
-                                                        ],
-                                                    ],
+                                                    ArgValue("threshold_tuple"),
+                                                    ArgValue("threshold_index"),
                                                 ],
                                             ],
                                         ],
@@ -1664,7 +1311,7 @@ FUNCTIONS = {
                 with_default(111.8625, NumberRange("beta", 0, None)),
             ],
             calculated_args=[
-                {"name": "parameter_sum", "fn": lambda args: args["alpha"] + args["beta"]},
+                {"name": "parameter_sum", "fn": lambda args, _: args["alpha"] + args["beta"]},
             ],
             transform="ifNull(divide(plus({aggregate_alias}, {alpha}), plus(uniq(user), {parameter_sum})), 0)",
             default_result_type="number",
@@ -1683,8 +1330,8 @@ FUNCTIONS = {
                 with_default(111.8625, NumberRange("beta", 0, None)),
             ],
             calculated_args=[
-                {"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0},
-                {"name": "parameter_sum", "fn": lambda args: args["alpha"] + args["beta"]},
+                {"name": "tolerated", "fn": lambda args, _: args["satisfaction"] * 4.0},
+                {"name": "parameter_sum", "fn": lambda args, _: args["alpha"] + args["beta"]},
             ],
             transform="ifNull(divide(plus(uniqIf(user, greater(duration, {tolerated:g})), {alpha}), plus(uniq(user), {parameter_sum})), 0)",
             default_result_type="number",
