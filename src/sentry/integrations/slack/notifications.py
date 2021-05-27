@@ -1,5 +1,5 @@
 import logging
-from typing import AbstractSet, Any, Mapping, Set, Tuple, Union
+from typing import AbstractSet, Any, Mapping, Optional, Set, Tuple, Union
 
 from sentry.integrations.slack.client import SlackClient  # NOQA
 from sentry.integrations.slack.message_builder.notifications import build_notification_attachment
@@ -29,49 +29,79 @@ def get_context(
     }
 
 
-def get_integrations_by_recipient_id(
-    organization: Organization, recipients: AbstractSet[Union[User, Team]]
-) -> Mapping[Union[User, Team], Union[ExternalActor, Identity]]:
+def get_channel_and_integration_by_user(
+    user: User, organization: Organization
+) -> Tuple[Optional[str], Optional[Integration]]:
+    try:
+        identity = Identity.objects.get(
+            idp__type=EXTERNAL_PROVIDERS[ExternalProviders.SLACK],
+            user=user.id,
+        )
+    except Identity.DoesNotExist:
+        # The user may not have linked their identity so just move on
+        # since there are likely other users or teams in the list of
+        # recipients.
+        return None, None
 
+    try:
+        integration = Integration.objects.get(
+            provider=identity.idp.type,
+            organizations=organization,
+        )
+    except Integration.DoesNotExist:
+        return None, None
+
+    return identity.external_id, integration
+
+
+def get_channel_and_integration_by_team(
+    team: Team, organization: Organization
+) -> Tuple[Optional[str], Optional[Integration]]:
+    try:
+        external_actor = (
+            ExternalActor.objects.filter(
+                provider=ExternalProviders.SLACK.value,
+                actor_id=team.actor_id,
+                organization=organization,
+            )
+            .select_related("integration")
+            .get()
+        )
+    except ExternalActor.DoesNotExist:
+        return None, None
+
+    return (
+        external_actor.external_id,
+        external_actor.integration,
+    )
+
+
+def get_channel_and_token_by_recipient(
+    organization: Organization, recipients: AbstractSet[Union[User, Team]]
+) -> Mapping[Union[User, Team], Tuple[str, str]]:
     output = {}
     for recipient in recipients:
-        if isinstance(recipient, User):
-            try:
-                identity = Identity.objects.get(
-                    idp__type=EXTERNAL_PROVIDERS[ExternalProviders.SLACK],
-                    user=recipient.id,
-                )
-            except Identity.DoesNotExist:
-                # the user may not have linked their identity so just move on
-                # since there are likely other users or teams in the list of recipients
-                continue
-            output[recipient] = identity
-        else:
-            external_actor = ExternalActor.objects.filter(
-                provider=ExternalProviders.SLACK.value,
-                actor_id=recipient.actor_id,
-                organization=organization,
-            ).select_related("integration")[0]
-            output[recipient] = external_actor
-    return output
-
-
-def get_channel_and_token(
-    external_identity_by_recipient: Mapping[Union[User, Team], Union[ExternalActor, Identity]],
-    recipient: Union[User, Team],
-    notification: BaseNotification,
-) -> Tuple[str, str]:
-    external_actor = external_identity_by_recipient.get(recipient)
-    channel = external_actor.external_id
-    if isinstance(recipient, User):
-        integration = Integration.objects.get(
-            provider=external_actor.idp.type,
-            organizations=notification.organization,
+        channel, integration = (
+            get_channel_and_integration_by_user(recipient, organization)
+            if isinstance(recipient, User)
+            else get_channel_and_integration_by_team(recipient, organization)
         )
-        token = integration.metadata["access_token"]
-    else:
-        token = external_actor.integration.metadata["access_token"]
-    return channel, token
+
+        try:
+            token = integration.metadata["access_token"]
+        except AttributeError as e:
+            logger.info(
+                "notification.fail.invalid_slack",
+                extra={
+                    "error": str(e),
+                    "organization": organization,
+                    "recipient": recipient.id,
+                },
+            )
+            continue
+
+        output[recipient] = channel, token
+    return output
 
 
 def get_key(notification: BaseNotification) -> str:
@@ -91,28 +121,10 @@ def send_notification_as_slack(
     extra_context_by_user_id: Mapping[str, Any],
 ) -> None:
     """ Send an "activity" or "alert rule" notification to a Slack user or team. """
-
-    external_identity_by_recipient = get_integrations_by_recipient_id(
-        notification.organization, recipients
-    )
     client = SlackClient()
-    for recipient in recipients:
+    data = get_channel_and_token_by_recipient(notification.organization, recipients)
+    for recipient, (channel, token) in data.items():
         extra_context = (extra_context_by_user_id or {}).get(recipient.id, {})
-        try:
-            channel, token = get_channel_and_token(
-                external_identity_by_recipient, recipient, notification
-            )
-        except AttributeError as e:
-            logger.info(
-                "notification.fail.invalid_slack",
-                extra={
-                    "error": str(e),
-                    "notification": notification,
-                    "recipient": recipient.id,
-                },
-            )
-            continue
-
         context = get_context(notification, recipient, shared_context, extra_context)
         attachment = [build_notification_attachment(notification, context)]
         payload = {
