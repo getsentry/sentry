@@ -395,7 +395,7 @@ describe('TeamKeyTransaction', function () {
       expect(entries.length).toBe(2);
       entries.forEach((entry, i) => {
         expect(entry.props().disabled).toBeTruthy();
-        expect(entry.text()).toEqual(`${teams[i].name}Max.${MAX_TEAM_KEY_TRANSACTIONS}`);
+        expect(entry.text()).toEqual(`${teams[i].name}Max ${MAX_TEAM_KEY_TRANSACTIONS}`);
       });
     });
 
