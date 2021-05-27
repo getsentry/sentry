@@ -174,16 +174,13 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
   handleChangeFilter = (sectionId: string, activeFilters: Set<string>) => {
     const {router, location} = this.props;
     const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
-    const query = {
-      ...currentQuery,
-    };
 
-    let team = query.team;
+    let team = currentQuery.team;
     if (sectionId === 'teams') {
       team = activeFilters.size ? [...activeFilters] : '';
     }
 
-    let status = query.status;
+    let status = currentQuery.status;
     if (sectionId === 'status') {
       status = activeFilters.size ? [...activeFilters] : '';
     }
