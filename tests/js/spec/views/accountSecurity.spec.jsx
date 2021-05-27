@@ -1,6 +1,7 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
 
+import ModalActions from 'app/actions/modalActions';
 import {Client} from 'app/api';
 import AccountSecurity from 'app/views/settings/account/accountSecurity';
 import AccountSecurityWrapper from 'app/views/settings/account/accountSecurity/accountSecurityWrapper';
@@ -216,7 +217,7 @@ describe('AccountSecurity', function () {
     expect(deleteMock).not.toHaveBeenCalled();
   });
 
-  it('cannot enroll without verified email', function () {
+  it('cannot enroll without verified email', async function () {
     Client.addMockResponse({
       url: ENDPOINT,
       body: [TestStubs.Authenticators().Totp({isEnrolled: false})],
@@ -248,12 +249,14 @@ describe('AccountSecurity', function () {
     // user is not 2fa enrolled
     expect(wrapper.find('TwoFactorRequired')).toHaveLength(1);
 
-    expect(wrapper.find('Tooltip')).toHaveLength(1);
-    const tooltip = mountWithTheme(wrapper.find('Tooltip').prop('title'));
-    expect(tooltip.text()).toContain(
-      'you must verify an email address to enroll a 2FA device.'
-    );
-    expect(wrapper.find('Tooltip').prop('disabled')).toBe(false);
+    // expect modal to be called
+    const openEmailModalFunc = jest.spyOn(ModalActions, 'openModal');
+    const Add2FAButton = wrapper.find('Button[className="enroll-button"]').first();
+
+    Add2FAButton.simulate('click');
+    // @ts-expect-error
+    await tick();
+    expect(openEmailModalFunc).toHaveBeenCalled();
   });
 
   it('renders a backup interface that is not enrolled', function () {

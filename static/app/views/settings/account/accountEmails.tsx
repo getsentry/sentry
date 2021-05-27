@@ -4,8 +4,10 @@ import styled from '@emotion/styled';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {RequestOptions} from 'app/api';
 import AlertLink from 'app/components/alertLink';
+import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
+import LoadingIndicator from 'app/components/loadingIndicator';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import Tag from 'app/components/tag';
 import accountEmailsFields from 'app/data/forms/accountEmails';
@@ -27,10 +29,6 @@ type State = AsyncView['state'] & {
 };
 
 class AccountEmails extends AsyncView<Props, State> {
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    return [['emails', ENDPOINT]];
-  }
-
   getTitle() {
     return t('Emails');
   }
@@ -39,76 +37,15 @@ class AccountEmails extends AsyncView<Props, State> {
     if (id === undefined) {
       return;
     }
-
     model.setValue(id, '');
     this.remountComponent();
   };
 
-  doApiCall(endpoint: string, requestParams: RequestOptions) {
-    this.setState({loading: true, emails: []}, () =>
-      this.api
-        .requestPromise(endpoint, requestParams)
-        .then(() => this.remountComponent())
-        .catch(err => {
-          this.remountComponent();
-
-          if (err?.responseJSON?.email) {
-            addErrorMessage(err.responseJSON.email);
-          }
-        })
-    );
-  }
-
-  handleSetPrimary = (email: string) =>
-    this.doApiCall(ENDPOINT, {
-      method: 'PUT',
-      data: {email},
-    });
-
-  handleRemove = (email: string) =>
-    this.doApiCall(ENDPOINT, {
-      method: 'DELETE',
-      data: {email},
-    });
-
-  handleVerify = (email: string) =>
-    this.doApiCall(`${ENDPOINT}confirm/`, {
-      method: 'POST',
-      data: {email},
-    });
-
   renderBody() {
-    const {emails} = this.state;
-    const primary = emails?.find(({isPrimary}) => isPrimary);
-    const secondary = emails?.filter(({isPrimary}) => !isPrimary);
-
     return (
       <div>
         <SettingsPageHeader title={t('Email Addresses')} />
-
-        <Panel>
-          <PanelHeader>{t('Email Addresses')}</PanelHeader>
-          <PanelBody>
-            {primary && (
-              <EmailRow
-                onRemove={this.handleRemove}
-                onVerify={this.handleVerify}
-                {...primary}
-              />
-            )}
-
-            {secondary?.map(emailObj => (
-              <EmailRow
-                key={emailObj.email}
-                onSetPrimary={this.handleSetPrimary}
-                onRemove={this.handleRemove}
-                onVerify={this.handleVerify}
-                {...emailObj}
-              />
-            ))}
-          </PanelBody>
-        </Panel>
-
+        <EmailAddresses />
         <Form
           apiMethod="POST"
           apiEndpoint={ENDPOINT}
@@ -128,6 +65,83 @@ class AccountEmails extends AsyncView<Props, State> {
 }
 
 export default AccountEmails;
+export class EmailAddresses extends AsyncComponent<Props, State> {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+    return [['emails', ENDPOINT]];
+  }
+  doApiCall(endpoint: string, requestParams: RequestOptions) {
+    this.setState({loading: true, emails: []}, () =>
+      this.api
+        .requestPromise(endpoint, requestParams)
+        .then(() => this.remountComponent())
+        .catch(err => {
+          this.remountComponent();
+
+          if (err?.responseJSON?.email) {
+            addErrorMessage(err.responseJSON.email);
+          }
+        })
+    );
+  }
+  handleSetPrimary = (email: string) =>
+    this.doApiCall(ENDPOINT, {
+      method: 'PUT',
+      data: {email},
+    });
+
+  handleRemove = (email: string) =>
+    this.doApiCall(ENDPOINT, {
+      method: 'DELETE',
+      data: {email},
+    });
+
+  handleVerify = (email: string) =>
+    this.doApiCall(`${ENDPOINT}confirm/`, {
+      method: 'POST',
+      data: {email},
+    });
+
+  render() {
+    const {emails, loading} = this.state;
+    const primary = emails?.find(({isPrimary}) => isPrimary);
+    const secondary = emails?.filter(({isPrimary}) => !isPrimary);
+
+    if (loading) {
+      return (
+        <Panel>
+          <PanelHeader>{t('Email Addresses')}</PanelHeader>
+          <PanelBody>
+            <LoadingIndicator />
+          </PanelBody>
+        </Panel>
+      );
+    }
+    return (
+      <Panel>
+        <PanelHeader>{t('Email Addresses')}</PanelHeader>
+        <PanelBody>
+          {primary && (
+            <EmailRow
+              onRemove={this.handleRemove}
+              onVerify={this.handleVerify}
+              {...primary}
+            />
+          )}
+
+          {secondary?.map(emailObj => (
+            <EmailRow
+              key={emailObj.email}
+              onSetPrimary={this.handleSetPrimary}
+              onRemove={this.handleRemove}
+              onVerify={this.handleVerify}
+              {...emailObj}
+            />
+          ))}
+        </PanelBody>
+      </Panel>
+    );
+  }
+}
 
 type EmailRowProps = {
   email: string;

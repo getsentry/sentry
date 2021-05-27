@@ -58,6 +58,9 @@ class AccountSecurityWrapper extends AsyncComponent<Props, State> {
       addErrorMessage(t('Error regenerating backup codes'));
     }
   };
+  handleRefresh = () => {
+    this.fetchData();
+  };
 
   renderBody() {
     const {children} = this.props;
@@ -84,6 +87,7 @@ class AccountSecurityWrapper extends AsyncComponent<Props, State> {
       orgsRequire2fa,
       countEnrolled,
       hasVerifiedEmail,
+      handleRefresh: this.handleRefresh,
     });
   }
 }

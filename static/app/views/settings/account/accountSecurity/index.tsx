@@ -1,8 +1,8 @@
 import * as ReactRouter from 'react-router';
-import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
+import {openEmailVerification} from 'app/actionCreators/modal';
 import Button from 'app/components/button';
 import CircleIndicator from 'app/components/circleIndicator';
 import ListLink from 'app/components/links/listLink';
@@ -10,7 +10,7 @@ import NavTabs from 'app/components/navTabs';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import Tooltip from 'app/components/tooltip';
 import {IconDelete} from 'app/icons';
-import {t, tct} from 'app/locale';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Authenticator, OrganizationSummary} from 'app/types';
 import recreateRoute from 'app/utils/recreateRoute';
@@ -29,6 +29,7 @@ type Props = {
   countEnrolled: number;
   deleteDisabled: boolean;
   hasVerifiedEmail: boolean;
+  handleRefresh: () => void;
   onDisable: (auth: Authenticator) => void;
 } & AsyncView['props'] &
   ReactRouter.WithRouterProps;
@@ -67,6 +68,15 @@ class AccountSecurity extends AsyncView<Props> {
     );
   };
 
+  handleAdd2FAClicked = () => {
+    const {handleRefresh} = this.props;
+    openEmailVerification({
+      onClose: () => {
+        handleRefresh();
+      },
+    });
+  };
+
   renderBody() {
     const {
       authenticators,
@@ -76,7 +86,6 @@ class AccountSecurity extends AsyncView<Props> {
       hasVerifiedEmail,
     } = this.props;
     const isEmpty = !authenticators?.length;
-
     return (
       <div>
         <SettingsPageHeader
@@ -143,31 +152,25 @@ class AccountSecurity extends AsyncView<Props> {
                       </AuthenticatorTitle>
 
                       <Actions>
-                        {!isBackupInterface && !isEnrolled && (
-                          <Tooltip
-                            isHoverable
-                            title={tct(
-                              'you must [link:verify an email address] to enroll a 2FA device.',
-                              {
-                                link: <Link to="/settings/account/emails/" />,
-                              }
-                            )}
-                            disabled={hasVerifiedEmail}
+                        {!isBackupInterface && !isEnrolled && hasVerifiedEmail && (
+                          <Button
+                            to={`/settings/account/security/mfa/${id}/enroll/`}
+                            size="small"
+                            priority="primary"
+                            className="enroll-button"
                           >
-                            <RemoveConfirm
-                              onConfirm={() => onDisable(auth)}
-                              disabled={!hasVerifiedEmail}
-                            >
-                              <Button
-                                to={`/settings/account/security/mfa/${id}/enroll/`}
-                                size="small"
-                                priority="primary"
-                                className="enroll-button"
-                              >
-                                {t('Add')}
-                              </Button>
-                            </RemoveConfirm>
-                          </Tooltip>
+                            {t('Add')}
+                          </Button>
+                        )}
+                        {!isBackupInterface && !isEnrolled && !hasVerifiedEmail && (
+                          <Button
+                            onClick={this.handleAdd2FAClicked}
+                            size="small"
+                            priority="primary"
+                            className="enroll-button"
+                          >
+                            {t('Add')}
+                          </Button>
                         )}
 
                         {isEnrolled && authId && (
