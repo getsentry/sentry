@@ -10,7 +10,6 @@ from sentry.models import File, Release, ReleaseFile
 from sentry.tasks.assemble import RELEASE_ARCHIVE_FILENAME
 from sentry.testutils import RelayStoreHelper, SnubaTestCase, TransactionTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.helpers.features import with_feature
 from sentry.utils import json
 from sentry.utils.compat.mock import patch
 
@@ -1118,7 +1117,6 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
             {"url": "http://example.com/file2.js", "type": "js_invalid_content"},
         ]
 
-    @with_feature("organizations:release-archives")
     def _test_expansion_via_release_archive(self, link_sourcemaps: bool):
         project = self.project
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
@@ -1196,7 +1194,8 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
             },
         }
 
-        event = self.post_and_retrieve_event(data)
+        with self.options({"processing.use-release-archives-sample-rate": 1.1}):
+            event = self.post_and_retrieve_event(data)
 
         assert "errors" not in event.data
 
