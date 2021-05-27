@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from sentry.api.base import ReleaseAnalyticsMixin
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.endpoints.organization_releases import (
+    _release_suffix,
     add_environment_to_queryset,
     get_stats_period_detail,
 )
@@ -53,6 +54,21 @@ def add_status_filter_to_queryset(queryset, status_filter):
     return queryset
 
 
+def add_query_filter_to_queryset(queryset, query):
+    """
+    Function that adds a query filtering to a queryset
+    """
+    if query:
+        query_q = Q(version__icontains=query)
+
+        suffix_match = _release_suffix.match(query)
+        if suffix_match is not None:
+            query_q |= Q(version__icontains="%s+%s" % suffix_match.groups())
+
+        queryset = queryset.filter(query_q)
+    return queryset
+
+
 class OrganizationReleaseDetailsPaginationMixin:
     @staticmethod
     def __get_prev_release_date_query_q_and_order_by(release):
@@ -82,10 +98,7 @@ class OrganizationReleaseDetailsPaginationMixin:
 
     @staticmethod
     def __filter_down_snuba_primary_results_according_to_status_and_query(
-        org,
-        project_ids,
-        version_list,
-        status_filter,
+        org, project_ids, version_list, status_filter, query
     ):
         """
         Helper function used to query Release model from the primary results of a snuba query
@@ -95,6 +108,7 @@ class OrganizationReleaseDetailsPaginationMixin:
             * project_ids: list of project ids
             * version_list: list of release versions
             * status_filter: either open or archived
+            * query: query string
         Returns:-
             A list of filtered release versions in the same order it received it
         """
@@ -104,6 +118,9 @@ class OrganizationReleaseDetailsPaginationMixin:
 
         # Add status filter
         queryset = add_status_filter_to_queryset(queryset, status_filter)
+
+        # Add query filter
+        queryset = add_query_filter_to_queryset(queryset, query)
 
         # Required re ordering because django filter does not guarantee order of snuba primary order
         release_list = list(queryset)
@@ -115,9 +132,10 @@ class OrganizationReleaseDetailsPaginationMixin:
     def __get_release_according_to_filters_and_order_by_for_date_sort(
         org,
         filter_params,
-        status_filter,
         date_query_q,
         order_by,
+        status_filter,
+        query,
     ):
         """
         Helper function that executes a query on Release table based on different filters
@@ -125,9 +143,10 @@ class OrganizationReleaseDetailsPaginationMixin:
         Inputs:-
             * org: Organization object
             * filter_params:
-            * status_filter: represents ReleaseStatus i.e. open, archived
             * date_query_q: List that contains the Q expressions needed to sort based on date
             * order_by: Contains columns that are used for ordering to sort based on date
+            * status_filter: represents ReleaseStatus i.e. open, archived
+            * query
         Returns:-
             Queryset that contains one element that represents either next or previous release
             based on the inputs
@@ -140,6 +159,9 @@ class OrganizationReleaseDetailsPaginationMixin:
 
         # Add status filter
         queryset = add_status_filter_to_queryset(queryset, status_filter)
+
+        # Add query filter
+        queryset = add_query_filter_to_queryset(queryset, query)
 
         # Add env filter
         queryset = add_environment_to_queryset(queryset, filter_params)
@@ -157,6 +179,7 @@ class OrganizationReleaseDetailsPaginationMixin:
         stats_period,
         sort,
         status_filter,
+        query,
     ):
         """
         Method that returns the prev and next release to a current release based on different
@@ -168,6 +191,7 @@ class OrganizationReleaseDetailsPaginationMixin:
             * stats_period
             * sort: sort option i.e. date, sessions, users, crash_free_users and crash_free_sessions
             * status_filter
+            * query
         Returns:-
             A dictionary of two keys `prev_release_version` and `next_release_version` representing
             previous release and next release respectively
@@ -177,6 +201,7 @@ class OrganizationReleaseDetailsPaginationMixin:
                 "org": org,
                 "filter_params": filter_params,
                 "status_filter": status_filter,
+                "query": query,
             }
 
             # Get previous queryset of current release
@@ -215,6 +240,7 @@ class OrganizationReleaseDetailsPaginationMixin:
                     project_ids=filter_params["project_id"],
                     version_list=prev_and_next_releases_list["prev_releases_list"],
                     status_filter=status_filter,
+                    query=query,
                 )
             )
             # Get next queryset of current release
@@ -224,6 +250,7 @@ class OrganizationReleaseDetailsPaginationMixin:
                     project_ids=filter_params["project_id"],
                     version_list=prev_and_next_releases_list["next_releases_list"],
                     status_filter=status_filter,
+                    query=query,
                 )
             )
         else:
@@ -268,6 +295,7 @@ class OrganizationReleaseDetailsEndpoint(
         health_stats_period = request.GET.get("healthStatsPeriod") or ("24h" if with_health else "")
         sort = request.GET.get("sort") or "date"
         status_filter = request.GET.get("status", "open")
+        query = request.GET.get("query")
 
         if summary_stats_period not in STATS_PERIODS:
             raise ParseError(detail=get_stats_period_detail("summaryStatsPeriod", STATS_PERIODS))
@@ -312,9 +340,10 @@ class OrganizationReleaseDetailsEndpoint(
                             org=organization,
                             release=release,
                             filter_params=filter_params,
-                            status_filter=status_filter,
                             stats_period=summary_stats_period,
                             sort=sort,
+                            status_filter=status_filter,
+                            query=query,
                         )
                     }
                 )
