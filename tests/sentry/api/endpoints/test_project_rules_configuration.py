@@ -97,7 +97,6 @@ class ProjectRuleConfigurationTest(APITestCase):
             assert EMAIL_ACTION in action_ids
             assert JIRA_ACTION not in action_ids
 
-
     def test_percent_condition_flag(self):
         with self.feature({"organizations:issue-percent-filters": False}):
             # We should not get back the condition..
@@ -105,15 +104,21 @@ class ProjectRuleConfigurationTest(APITestCase):
             action_ids = [action["id"] for action in response.data["actions"]]
             assert len(response.data["conditions"]) == 9
             for condition in response.data["conditions"]:
-                assert condition["id"] !="sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition"
+                assert (
+                    condition["id"]
+                    != "sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition"
+                )
 
         with self.feature({"organizations:issue-percent-filters": True}):
             # We should get back the condition..
             response = self.get_valid_response(self.organization.slug, self.project.slug)
             action_ids = [action["id"] for action in response.data["actions"]]
             assert len(response.data["conditions"]) == 10
-            found=False
+            found = False
             for condition in response.data["conditions"]:
-                if condition["id"] !="sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition":
+                if (
+                    condition["id"]
+                    != "sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition"
+                ):
                     found = True
             assert found is True
