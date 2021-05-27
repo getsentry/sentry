@@ -4,6 +4,8 @@ from sentry.snuba.dataset import Dataset
 from sentry.utils.snuba import DATASETS
 
 KEY_TRANSACTION_ALIAS = "key_transaction"
+PROJECT_TRANSACTION_THRESHOLD_INDEX_ALIAS = "project_transaction_threshold_index"
+PROJECT_TRANSACTION_THRESHOLD_ALIAS = "project_transaction_threshold"
 ERROR_UNHANDLED_ALIAS = "error.unhandled"
 USER_DISPLAY_ALIAS = "user.display"
 PROJECT_ALIAS = "project"
@@ -49,6 +51,7 @@ SEARCH_MAP = {
     "start": "start",
     "end": "end",
     "project_id": "project_id",
+    "project_transaction_threshold_index": "project_transaction_threshold_index",
     "first_seen": "first_seen",
     "last_seen": "last_seen",
     "times_seen": "times_seen",
