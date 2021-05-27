@@ -15,10 +15,11 @@ type Props = {
   breadcrumb: BreadcrumbTypeDefault | BreadcrumbTypeNavigation;
   event: Event;
   orgId: string | null;
+  onToggle: () => void;
 };
 
-const Default = ({breadcrumb, event, orgId, searchTerm}: Props) => (
-  <Summary kvData={breadcrumb.data} searchTerm={searchTerm}>
+const Default = ({breadcrumb, event, orgId, searchTerm, onToggle}: Props) => (
+  <Summary kvData={breadcrumb.data} onToggle={onToggle}>
     {breadcrumb?.message && (
       <AnnotatedText
         value={
