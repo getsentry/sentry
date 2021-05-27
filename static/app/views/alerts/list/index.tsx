@@ -360,9 +360,9 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
                     features={['alert-details-redesign']}
                     organization={organization}
                   >
-                    <Alert icon={<IconInfo />}>
+                    <StyledAlert icon={<IconInfo />}>
                       {t('This page only shows metric alerts that have been triggered.')}
-                    </Alert>
+                    </StyledAlert>
                   </Feature>
                   {hasAlertHistoryFilters ? (
                     this.renderFilterBar()
@@ -445,6 +445,10 @@ class IncidentsListContainer extends Component<Props> {
 const StyledButtonBar = styled(ButtonBar)`
   width: 100px;
   margin-bottom: ${space(1)};
+`;
+
+const StyledAlert = styled(Alert)`
+  margin-bottom: ${space(1.5)};
 `;
 
 const FilterWrapper = styled('div')`
