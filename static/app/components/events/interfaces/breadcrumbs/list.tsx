@@ -22,7 +22,10 @@ type Props = {
   onSwitchTimeFormat: () => void;
   breadcrumbs: BreadcrumbsWithDetails;
   relativeTime: string;
-} & Omit<React.ComponentProps<typeof ListBody>, 'breadcrumb' | 'isLastItem' | 'column'>;
+} & Omit<
+  React.ComponentProps<typeof ListBody>,
+  'breadcrumb' | 'isLastItem' | 'column' | 'onToggle'
+>;
 
 const cache = new CellMeasurerCache({
   fixedWidth: true,
@@ -82,6 +85,7 @@ class ListContainer extends React.Component<Props, State> {
         relativeTime={relativeTime}
         displayRelativeTime={displayRelativeTime}
         isLastItem={isLastItem}
+        onToggle={this.updateGrid}
       />
     );
   }
