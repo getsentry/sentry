@@ -499,12 +499,11 @@ def SOCIAL_AUTH_DEFAULT_USERNAME():
     return random.choice(["Darth Vader", "Obi-Wan Kenobi", "R2-D2", "C-3PO", "Yoda"])
 
 
-# Queue configuration
-from kombu import Exchange, Queue
-
 SOCIAL_AUTH_PROTECTED_USER_FIELDS = ["email"]
 SOCIAL_AUTH_FORCE_POST_DISCONNECT = True
 
+# Queue configuration
+from kombu import Exchange, Queue
 
 BROKER_URL = "redis://127.0.0.1:6379"
 BROKER_TRANSPORT_OPTIONS = {}
