@@ -302,6 +302,7 @@ def result_from_cache(filename, result):
     return http.UrlResult(filename, result[0], zlib.decompress(result[1]), result[2], encoding)
 
 
+@metrics.wraps("sourcemaps.release_file")
 def fetch_release_file(filename, release, dist=None):
     """
     Attempt to retrieve a release artifact from the database.
@@ -316,49 +317,55 @@ def fetch_release_file(filename, release, dist=None):
 
     # not in the cache (meaning we haven't checked the database recently), so check the database
     if result is None:
-        filename_choices = ReleaseFile.normalize(filename)
-        filename_idents = [ReleaseFile.get_ident(f, dist_name) for f in filename_choices]
+        with metrics.timer("sourcemaps.release_artifact_from_file"):
+            filename_choices = ReleaseFile.normalize(filename)
+            filename_idents = [ReleaseFile.get_ident(f, dist_name) for f in filename_choices]
 
-        logger.debug(
-            "Checking database for release artifact %r (release_id=%s)", filename, release.id
-        )
-
-        possible_files = list(
-            ReleaseFile.objects.filter(
-                release=release, dist=dist, ident__in=filename_idents
-            ).select_related("file")
-        )
-
-        if len(possible_files) == 0:
             logger.debug(
-                "Release artifact %r not found in database (release_id=%s)", filename, release.id
-            )
-            cache.set(cache_key, -1, 60)
-            return None
-
-        elif len(possible_files) == 1:
-            releasefile = possible_files[0]
-
-        else:
-            # Pick first one that matches in priority order.
-            # This is O(N*M) but there are only ever at most 4 things here
-            # so not really worth optimizing.
-            releasefile = next(
-                rf for ident in filename_idents for rf in possible_files if rf.ident == ident
+                "Checking database for release artifact %r (release_id=%s)", filename, release.id
             )
 
-        logger.debug(
-            "Found release artifact %r (id=%s, release_id=%s)", filename, releasefile.id, release.id
-        )
+            possible_files = list(
+                ReleaseFile.objects.filter(
+                    release=release, dist=dist, ident__in=filename_idents
+                ).select_related("file")
+            )
 
-        result = fetch_and_cache_artifact(
-            filename,
-            lambda: ReleaseFile.cache.getfile(releasefile),
-            cache_key,
-            cache_key_meta,
-            releasefile.file.headers,
-            compress_file,
-        )
+            if len(possible_files) == 0:
+                logger.debug(
+                    "Release artifact %r not found in database (release_id=%s)",
+                    filename,
+                    release.id,
+                )
+                cache.set(cache_key, -1, 60)
+                return None
+
+            elif len(possible_files) == 1:
+                releasefile = possible_files[0]
+
+            else:
+                # Pick first one that matches in priority order.
+                # This is O(N*M) but there are only ever at most 4 things here
+                # so not really worth optimizing.
+                releasefile = next(
+                    rf for ident in filename_idents for rf in possible_files if rf.ident == ident
+                )
+
+            logger.debug(
+                "Found release artifact %r (id=%s, release_id=%s)",
+                filename,
+                releasefile.id,
+                release.id,
+            )
+
+            result = fetch_and_cache_artifact(
+                filename,
+                lambda: ReleaseFile.cache.getfile(releasefile),
+                cache_key,
+                cache_key_meta,
+                releasefile.file.headers,
+                compress_file,
+            )
 
     # in the cache as an unsuccessful attempt
     elif result == -1:
@@ -469,6 +476,10 @@ def fetch_release_artifact(url, release, dist):
                         "Release artifact %r not found in archive (release_id=%s)", url, release.id
                     )
                     cache.set(cache_key, -1, 60)
+                    metrics.timing(
+                        "sourcemaps.release_artifact_from_archive", time.monotonic() - start
+                    )
+                    return None
                 except BaseException as exc:
                     logger.error("Failed to read %s from release %s", url, release.id, exc_info=exc)
                     # TODO(jjbayer): cache error and return here
@@ -491,7 +502,6 @@ def fetch_release_artifact(url, release, dist):
     # Fall back to maintain compatibility with old releases and versions of
     # sentry-cli which upload files individually
     result = fetch_release_file(url, release, dist)
-    metrics.timing("sourcemaps.release_artifact_from_file", time.monotonic() - start)
 
     return result
 
@@ -515,11 +525,9 @@ def fetch_file(
     # if we've got a release to look on, try that first (incl associated cache)
     if release:
         if use_release_archive:
-            with metrics.timer("sourcemaps.release_artifact"):
-                result = fetch_release_artifact(url, release, dist)
+            result = fetch_release_artifact(url, release, dist)
         else:
-            with metrics.timer("sourcemaps.release_file"):
-                result = fetch_release_file(url, release, dist)
+            result = fetch_release_file(url, release, dist)
     else:
         result = None
 
