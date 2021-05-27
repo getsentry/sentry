@@ -26,7 +26,6 @@ describe('IncidentsList', function () {
       />,
       routerContext
     );
-    // Wait for sparklines library
     await tick();
     wrapper.update();
     return wrapper;
@@ -194,7 +193,6 @@ describe('IncidentsList', function () {
 
   it('toggles open/closed', async function () {
     wrapper = await createWrapper();
-    await tick();
 
     expect(wrapper.find('StyledButtonBar').find('Button').at(0).prop('priority')).toBe(
       'primary'
