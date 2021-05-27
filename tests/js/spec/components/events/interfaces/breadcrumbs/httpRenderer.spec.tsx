@@ -4,11 +4,14 @@ import HttpRenderer from 'app/components/events/interfaces/breadcrumbs/data/http
 import {BreadcrumbLevelType, BreadcrumbType} from 'app/types/breadcrumbs';
 
 describe('HttpRenderer', () => {
+  const handleToggle = jest.fn();
+
   describe('render', () => {
     it('should work', () => {
       const httpRendererWrapper = mountWithTheme(
         <HttpRenderer
           searchTerm=""
+          onToggle={handleToggle}
           breadcrumb={{
             type: BreadcrumbType.HTTP,
             level: BreadcrumbLevelType.INFO,
@@ -44,6 +47,7 @@ describe('HttpRenderer', () => {
       const httpRendererWrapper = mountWithTheme(
         <HttpRenderer
           searchTerm=""
+          onToggle={handleToggle}
           breadcrumb={{
             category: 'xhr',
             type: BreadcrumbType.HTTP,
@@ -61,6 +65,7 @@ describe('HttpRenderer', () => {
       const httpRendererWrapper = mountWithTheme(
         <HttpRenderer
           searchTerm=""
+          onToggle={handleToggle}
           breadcrumb={{
             category: 'xhr',
             type: BreadcrumbType.HTTP,

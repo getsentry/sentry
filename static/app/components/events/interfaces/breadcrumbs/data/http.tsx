@@ -13,9 +13,10 @@ import Summary from './summary';
 type Props = {
   searchTerm: string;
   breadcrumb: BreadcrumbTypeHTTP;
+  onToggle: () => void;
 };
 
-const Http = ({breadcrumb, searchTerm}: Props) => {
+const Http = ({breadcrumb, searchTerm, onToggle}: Props) => {
   const {data} = breadcrumb;
 
   const renderUrl = (url: any) => {
@@ -40,10 +41,7 @@ const Http = ({breadcrumb, searchTerm}: Props) => {
   const statusCode = data?.status_code;
 
   return (
-    <Summary
-      kvData={omit(data, ['method', 'url', 'status_code'])}
-      searchTerm={searchTerm}
-    >
+    <Summary kvData={omit(data, ['method', 'url', 'status_code'])} onToggle={onToggle}>
       {data?.method && (
         <AnnotatedText
           value={

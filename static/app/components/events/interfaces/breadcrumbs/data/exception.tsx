@@ -11,14 +11,15 @@ import Summary from './summary';
 type Props = {
   searchTerm: string;
   breadcrumb: BreadcrumbTypeDefault;
+  onToggle: () => void;
 };
 
-const Exception = ({breadcrumb, searchTerm}: Props) => {
+const Exception = ({breadcrumb, searchTerm, onToggle}: Props) => {
   const {data} = breadcrumb;
   const dataValue = data?.value;
 
   return (
-    <Summary kvData={omit(data, ['type', 'value'])} searchTerm={searchTerm}>
+    <Summary kvData={omit(data, ['type', 'value'])} onToggle={onToggle}>
       {data?.type && (
         <AnnotatedText
           value={

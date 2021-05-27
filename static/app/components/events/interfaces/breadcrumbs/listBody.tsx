@@ -21,6 +21,7 @@ type Props = {
   isLastItem: boolean;
   relativeTime: string;
   displayRelativeTime: boolean;
+  onToggle: () => void;
 };
 
 const ListBody = memo(
@@ -32,6 +33,7 @@ const ListBody = memo(
     displayRelativeTime,
     searchTerm,
     isLastItem,
+    onToggle,
   }: Props) => {
     const hasError = breadcrumb.type === BreadcrumbType.ERROR;
 
@@ -51,6 +53,7 @@ const ListBody = memo(
             orgId={orgId}
             breadcrumb={breadcrumb}
             searchTerm={searchTerm}
+            onToggle={onToggle}
           />
         </GridCell>
         <GridCell hasError={hasError} isLastItem={isLastItem}>

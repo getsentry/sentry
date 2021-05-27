@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import {memo, useState} from 'react';
 
 import EventDataSection from 'app/components/events/eventDataSection';
 import {t} from 'app/locale';
@@ -10,39 +10,21 @@ type Props = {
   event: Event;
 };
 
-type State = {
-  raw: boolean;
-};
-
-class EventExtraData extends Component<Props, State> {
-  state: State = {
-    raw: false,
-  };
-
-  shouldComponentUpdate(nextProps: Props, nextState: State) {
-    return this.props.event.id !== nextProps.event.id || this.state.raw !== nextState.raw;
-  }
-
-  toggleRaw = (shouldBeRaw: boolean) => {
-    this.setState({
-      raw: shouldBeRaw,
-    });
-  };
-
-  render() {
+const EventExtraData = memo(
+  ({event}: Props) => {
+    const [raw, setRaw] = useState(false);
     return (
-      <div className="extra-data">
-        <EventDataSection
-          type="extra"
-          title={t('Additional Data')}
-          toggleRaw={this.toggleRaw}
-          raw={this.state.raw}
-        >
-          <EventDataContent raw={this.state.raw} data={this.props.event.context} />
-        </EventDataSection>
-      </div>
+      <EventDataSection
+        type="extra"
+        title={t('Additional Data')}
+        toggleRaw={() => setRaw(!raw)}
+        raw={raw}
+      >
+        <EventDataContent raw={raw} data={event.context} />
+      </EventDataSection>
     );
-  }
-}
+  },
+  (prevProps: Props, nextProps: Props) => prevProps.event.id !== nextProps.event.id
+);
 
 export default EventExtraData;
