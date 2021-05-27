@@ -180,9 +180,6 @@ class OrganizationReleaseDetailsPaginationMixin:
         # Add env filter
         queryset = add_environment_to_queryset(queryset, filter_params)
 
-        # Add stats_period filter
-        queryset = add_date_added_filter_to_queryset(queryset, filter_params)
-
         # Orderby passed cols and limit to 1
         queryset = queryset.order_by(*order_by)[:1]
 
@@ -306,7 +303,6 @@ class OrganizationReleaseDetailsEndpoint(
         sort = request.GET.get("sort") or "date"
         status_filter = request.GET.get("status", "open")
         query = request.GET.get("query")
-        stats_period = request.GET.get("statsPeriod") or "14d"
 
         if summary_stats_period not in STATS_PERIODS:
             raise ParseError(detail=get_stats_period_detail("summaryStatsPeriod", STATS_PERIODS))
@@ -353,7 +349,7 @@ class OrganizationReleaseDetailsEndpoint(
                             filter_params=filter_params,
                             status_filter=status_filter,
                             query=query,
-                            stats_period=stats_period,
+                            stats_period=summary_stats_period,
                             sort=sort,
                         )
                     }

@@ -395,9 +395,7 @@ class ReleaseDetailsTest(APITestCase):
         assert response.data["currentProjectMeta"]["prevReleaseVersion"] is None
         assert response.data["currentProjectMeta"]["nextReleaseVersion"] == "foobar@1.0.0"
 
-    def test_get_prev_and_next_release_to_current_release_on_date_sort_stats_period_filter_applied(
-        self,
-    ):
+    def test_get_prev_and_next_release_on_date_sort_does_not_apply_stats_period_filter(self):
         """
         Test that ensures that stats_period filter is applied when fetching prev and next
         releases on date sort order
@@ -429,10 +427,10 @@ class ReleaseDetailsTest(APITestCase):
             "sentry-api-0-organization-release-details",
             kwargs={"organization_slug": self.organization.slug, "version": release_1.version},
         )
-        response = self.client.get(url, {"project": self.project1.id, "statsPeriod": "24h"})
+        response = self.client.get(url, {"project": self.project1.id, "summaryStatsPeriod": "24h"})
         assert response.status_code == 200
         assert response.data["currentProjectMeta"]["prevReleaseVersion"] == "foobar@2.0.0"
-        assert response.data["currentProjectMeta"]["nextReleaseVersion"] is None
+        assert response.data["currentProjectMeta"]["nextReleaseVersion"] == "foobar@3.0.0"
 
     @patch(
         "sentry.api.endpoints.organization_release_details.get_adjacent_releases_based_on_adoption"
