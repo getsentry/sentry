@@ -81,10 +81,6 @@ class IntegrationExternalTeamMappings extends AsyncComponent<Props, State> {
     return externalTeamMappings.sort((a, b) => parseInt(a.id, 10) - parseInt(b.id, 10));
   }
 
-  get sentryNames() {
-    const {teams} = this.state;
-    return this.sentryNamesMapper(teams);
-  }
   sentryNamesMapper(teams: Team[]) {
     return teams.map(({id, name}) => ({id, name}));
   }
