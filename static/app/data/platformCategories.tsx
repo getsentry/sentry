@@ -161,6 +161,51 @@ export const performance: PlatformKey[] = [
   'node-connect',
 ];
 
+export const releaseHealth: PlatformKey[] = [
+  // frontend
+  'javascript',
+  'javascript-react',
+  'javascript-angular',
+  'javascript-angularjs',
+  'javascript-backbone',
+  'javascript-ember',
+  'javascript-gatsby',
+  'javascript-vue',
+  'javascript-nextjs',
+  // mobile
+  'android',
+  'apple-ios',
+  'cordova',
+  'javascript-cordova',
+  'react-native',
+  'flutter',
+  'dart-flutter',
+  // backend
+  'native',
+  'node',
+  'node-express',
+  'node-koa',
+  'node-connect',
+  'python',
+  'python-django',
+  'python-flask',
+  'python-sanic',
+  'python-celery',
+  'python-bottle',
+  'python-pylons',
+  'python-pyramid',
+  'python-tornado',
+  'python-rq',
+  'rust',
+  // serverless
+  // desktop
+  'apple-macos',
+  'native',
+  'native-crashpad',
+  'native-breakpad',
+  'native-qt',
+];
+
 /**
  * Additional aliases used for filtering in the platform picker
  */
