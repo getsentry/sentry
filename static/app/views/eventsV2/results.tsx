@@ -118,6 +118,7 @@ class Results extends React.Component<Props, State> {
       this.hasChartParametersChanged(prevState.eventView, eventView)
     ) {
       api.clear();
+      loadOrganizationTags(api, organization.slug, selection);
       this.canLoadEvents();
     }
     if (
