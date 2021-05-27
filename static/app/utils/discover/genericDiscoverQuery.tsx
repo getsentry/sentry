@@ -4,6 +4,7 @@ import {Location} from 'history';
 import {EventQuery} from 'app/actionCreators/events';
 import {Client} from 'app/api';
 import {t} from 'app/locale';
+import sentryTypes from 'app/sentryTypes';
 import EventView, {
   isAPIPayloadSimilar,
   LocationQuery,
@@ -16,14 +17,13 @@ export type GenericChildrenProps<T> = {
   pageLinks: null | string;
 };
 
-export type DiscoverQueryProps = {
+type BaseDiscoverQueryProps = {
   api: Client;
   /**
    * Used as the default source for cursor values.
    */
   location: Location;
   eventView: EventView;
-  orgSlug: string;
   /**
    * Record limit to get.
    */
@@ -49,14 +49,21 @@ export type DiscoverQueryProps = {
   referrer?: string;
 };
 
+// TODO(k-fish): Can remove orgSlug potentially in the future.
+type DiscoverPropsWithOrgSlug = BaseDiscoverQueryProps & {
+  orgSlug?: string;
+};
+
+export type DiscoverQueryProps = DiscoverPropsWithOrgSlug;
+
 type RequestProps<P> = DiscoverQueryProps & P;
 
-type ReactProps<T> = {
-  children?: (props: GenericChildrenProps<T>) => React.ReactNode;
+export type ReactChildrenProps<T> = {
+  children: (props: GenericChildrenProps<T>) => React.ReactNode;
 };
 
 type Props<T, P> = RequestProps<P> &
-  ReactProps<T> & {
+  ReactChildrenProps<T> & {
     /**
      * Route to the endpoint
      */
@@ -91,6 +98,10 @@ type State<T> = {
  * Generic component for discover queries
  */
 class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> {
+  static contextTypes = {
+    organization: sentryTypes.Organization,
+  };
+
   state: State<T> = {
     isLoading: true,
     tableFetchID: undefined,
@@ -147,7 +158,6 @@ class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> 
       afterFetch,
       didFetch,
       eventView,
-      orgSlug,
       route,
       limit,
       cursor,
@@ -155,6 +165,8 @@ class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> 
       noPagination,
       referrer,
     } = this.props;
+
+    const orgSlug = this.props.orgSlug ?? this.context.organization.slug;
 
     if (!eventView.isValid()) {
       return;
@@ -223,8 +235,8 @@ class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> 
       tableData,
       pageLinks,
     };
-    const children: ReactProps<T>['children'] = this.props.children; // Explicitly setting type due to issues with generics and React's children
-    return children?.(childrenProps);
+    const children: ReactChildrenProps<T>['children'] = this.props.children; // Explicitly setting type due to issues with generics and React's children
+    return children(childrenProps);
   }
 }
 
