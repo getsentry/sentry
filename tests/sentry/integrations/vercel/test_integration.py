@@ -15,7 +15,6 @@ from sentry.models import (
 )
 from sentry.testutils import IntegrationTestCase
 from sentry.utils import json
-from sentry.utils.compat.mock import patch
 
 
 class VercelIntegrationTest(IntegrationTestCase):
@@ -176,8 +175,8 @@ class VercelIntegrationTest(IntegrationTestCase):
         data = {
             "project_mappings": [[project_id, "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H"]]
         }
-        with patch("sentry.integrations.vercel.integration.uuid4", new=self.get_mock_uuid()):
-            installation.update_organization_config(data)
+
+        installation.update_organization_config(data)
         org_integration = OrganizationIntegration.objects.get(
             organization_id=org.id, integration_id=integration.id
         )
@@ -286,8 +285,7 @@ class VercelIntegrationTest(IntegrationTestCase):
             organization_id=org.id, integration_id=integration.id
         )
         assert org_integration.config == {}
-        with patch("sentry.integrations.vercel.integration.uuid4", new=self.get_mock_uuid()):
-            installation.update_organization_config(data)
+        installation.update_organization_config(data)
         org_integration = OrganizationIntegration.objects.get(
             organization_id=org.id, integration_id=integration.id
         )
