@@ -48,16 +48,6 @@ class RelayRegisterTest(APITestCase):
         assert resp.status_code == 200, resp.content
         result = json.loads(resp.content)
 
-        raw_json, signature = self.private_key.pack(result)
-
-        self.client.post(
-            reverse("sentry-api-0-relay-register-response"),
-            data=raw_json,
-            content_type="application/json",
-            HTTP_X_SENTRY_RELAY_ID=relay_id,
-            HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
-        )
-
         data = {
             "token": str(result.get("token")),
             "relay_id": relay_id,
