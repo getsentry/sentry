@@ -8,12 +8,9 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.constants import SentryAppStatus
 from sentry.incidents.endpoints.bases import OrganizationEndpoint
 from sentry.incidents.endpoints.serializers import action_target_type_to_string
-from sentry.incidents.logic import (
-    get_alertable_sentry_apps,
-    get_available_action_integrations_for_org,
-    get_pagerduty_services,
-)
+from sentry.incidents.logic import get_available_action_integrations_for_org, get_pagerduty_services
 from sentry.incidents.models import AlertRuleTriggerAction
+from sentry.models import SentryApp
 
 
 def build_action_response(registered_type, integration=None, organization=None, sentry_app=None):
@@ -82,7 +79,7 @@ class OrganizationAlertRuleAvailableActionIndexEndpoint(OrganizationEndpoint):
             elif registered_type.type == AlertRuleTriggerAction.Type.SENTRY_APP:
                 actions += [
                     build_action_response(registered_type, sentry_app=app)
-                    for app in get_alertable_sentry_apps(organization.id, with_metric_alerts=True)
+                    for app in SentryApp.objects.get_alertable_sentry_apps(organization.id)
                 ]
 
             else:
