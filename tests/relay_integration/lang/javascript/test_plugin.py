@@ -159,7 +159,6 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
             release=None,
             dist=None,
             allow_scraping=True,
-            use_release_archive=False,
         )
 
         exception = event.interfaces["exception"]
@@ -218,7 +217,6 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
             release=None,
             dist=None,
             allow_scraping=True,
-            use_release_archive=False,
         )
 
         exception = event.interfaces["exception"]
