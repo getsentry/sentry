@@ -181,6 +181,7 @@ export const releaseHealth: PlatformKey[] = [
   'flutter',
   'dart-flutter',
   // backend
+  'native',
   'node',
   'node-express',
   'node-koa',
@@ -198,6 +199,11 @@ export const releaseHealth: PlatformKey[] = [
   'rust',
   // serverless
   // desktop
+  'apple-macos',
+  'native',
+  'native-crashpad',
+  'native-breakpad',
+  'native-qt',
 ];
 
 /**
