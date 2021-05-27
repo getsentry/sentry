@@ -251,7 +251,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
   }
 
   tryRenderEmpty() {
-    const {hasAlertRule, incidentList} = this.state;
+    const {incidentList} = this.state;
 
     if (!incidentList || incidentList.length > 0) {
       return null;
@@ -261,7 +261,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
       <EmptyMessage
         size="medium"
         icon={<IconCheckmark isCircled size="48" />}
-        title={!hasAlertRule && t('No metric alert rules exist for the selected query.')}
+        title={t('No incidents exist for the current query.')}
         description={tct('Learn more about [link:Metric Alerts]', {
           link: <ExternalLink href={DOCS_URL} />,
         })}

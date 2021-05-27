@@ -11,7 +11,6 @@ describe('IncidentsList', function () {
     },
   });
   let incidentsMock;
-  let statsMock;
   let projectMock;
   let wrapper;
   let projects;
@@ -50,10 +49,6 @@ describe('IncidentsList', function () {
           projects: projects2,
         }),
       ],
-    });
-    statsMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/incidents/1/stats/',
-      body: TestStubs.IncidentStats(),
     });
 
     MockApiClient.addMockResponse({
@@ -168,9 +163,7 @@ describe('IncidentsList', function () {
     wrapper.update();
 
     expect(wrapper.find('PanelItem')).toHaveLength(0);
-    expect(wrapper.text()).toContain(
-      'No metric alert rules exist for the selected projects'
-    );
+    expect(wrapper.text()).toContain('No incidents exist for the current query');
   });
 
   it('displays empty state (rules created)', async function () {
@@ -196,13 +189,12 @@ describe('IncidentsList', function () {
     wrapper.update();
 
     expect(wrapper.find('PanelItem')).toHaveLength(0);
-    expect(wrapper.text()).toContain(
-      'No unresolved metric alerts in the selected projects'
-    );
+    expect(wrapper.text()).toContain('No incidents exist for the current query.');
   });
 
   it('toggles open/closed', async function () {
     wrapper = await createWrapper();
+    await tick();
 
     expect(wrapper.find('StyledButtonBar').find('Button').at(0).prop('priority')).toBe(
       'primary'
@@ -216,28 +208,26 @@ describe('IncidentsList', function () {
 
     expect(incidentsMock).toHaveBeenCalledWith(
       '/organizations/org-slug/incidents/',
-      expect.objectContaining({query: {status: 'open'}})
+      expect.objectContaining({query: {status: ['open']}})
     );
 
-    wrapper.setProps({location: {query: {status: 'closed'}, search: '?status=closed`'}});
+    wrapper.setProps({
+      location: {query: {status: ['closed']}, search: '?status=closed`'},
+    });
 
     expect(wrapper.find('StyledButtonBar').find('Button').at(1).prop('priority')).toBe(
       'primary'
     );
 
-    expect(wrapper.find('IncidentPanelItem').at(0).find('Duration').text()).toBe(
-      '2 weeks'
-    );
+    expect(wrapper.find('IncidentPanelItem').at(0).text()).toContain('Still Active');
 
-    expect(wrapper.find('IncidentPanelItem').at(0).find('TimeSince')).toHaveLength(2);
+    expect(wrapper.find('IncidentPanelItem').at(0).find('TimeSince')).toHaveLength(1);
 
     expect(incidentsMock).toHaveBeenCalledTimes(2);
-    // Stats not called for closed incidents
-    expect(statsMock).toHaveBeenCalledTimes(1);
 
     expect(incidentsMock).toHaveBeenCalledWith(
       '/organizations/org-slug/incidents/',
-      expect.objectContaining({query: expect.objectContaining({status: 'closed'})})
+      expect.objectContaining({query: expect.objectContaining({status: ['closed']})})
     );
   });
 
