@@ -31,7 +31,7 @@ class IntegrationExternalUserMappings extends AsyncComponent<Props, State> {
       [
         'members',
         `/organizations/${organization.slug}/members/`,
-        {query: {query: 'hasExternalTeams:true', expand: 'externalUsers'}},
+        {query: {query: 'hasExternalUsers:true', expand: 'externalUsers'}},
       ],
     ];
   }

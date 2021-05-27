@@ -149,7 +149,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                         ).distinct()
                     else:
                         queryset = queryset.filter(user__authenticator__isnull=True)
-                elif key == "hasExternalTeams" and "true" in value:
+                elif key == "hasExternalUsers" and "true" in value:
                     queryset = queryset.filter(
                         user__actor_id__in=ExternalActor.objects.filter(
                             organization=organization
