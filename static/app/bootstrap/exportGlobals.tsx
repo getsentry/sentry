@@ -108,10 +108,10 @@ const makeBeaconRequest = throttle(
               // The stacktrace doesn't show it being called outside of this block either.
               // And this works fine in Chrome...
               if (key !== 'SentryApp' && stackArr.length > 1) {
-                // Limit the number of frames to include
+                // Limit the number of frames to include, as well as the total size of the string
                 _beaconComponents.push({
                   component: key,
-                  stack: stackArr.slice(0, 5).join('\n'),
+                  stack: stackArr.slice(0, 5).join('\n').slice(0, 1024),
                 });
                 makeBeaconRequest();
               }
