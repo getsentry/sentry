@@ -78,6 +78,7 @@ default_manager.add("organizations:grouping-tree-ui", OrganizationFeature, True)
 default_manager.add("organizations:images-loaded-v2", OrganizationFeature)  # NOQA
 default_manager.add("organizations:integrations-codeowners", OrganizationFeature, True)  # NOQA
 default_manager.add("organizations:inbox", OrganizationFeature, True)  # NOQA
+default_manager.add("organizations:issue-percent-filters", OrganizationFeature, False)  # NOQA
 default_manager.add("organizations:incidents", OrganizationFeature)  # NOQA
 default_manager.add("organizations:integrations-alert-rule", OrganizationFeature)  # NOQA
 default_manager.add("organizations:integrations-chat-unfurl", OrganizationFeature)  # NOQA

@@ -94,7 +94,7 @@ export function ProjectAlertRuleConfiguration(params = {}) {
           value: {placeholder: 100, type: 'number'},
         },
         enabled: true,
-        id: 'sentry.rules.conditions.event_frequency.SessionPercentCondition',
+        id: 'sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition',
         label: 'The issue has more errors than {value} percent of sessions in {interval}',
       },
       {

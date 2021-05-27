@@ -129,7 +129,7 @@ class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
         )[event.group_id]
 
 
-session_percent_intervals = {
+percent_intervals = {
     "1m": ("one minute", timedelta(minutes=1)),
     "5m": ("five minutes", timedelta(minutes=5)),
     "10m": ("ten minutes", timedelta(minutes=10)),
@@ -138,13 +138,13 @@ session_percent_intervals = {
 }
 
 
-class SessionPercentForm(EventFrequencyForm):
-    intervals = session_percent_intervals
+class EventFrequencyPercentForm(EventFrequencyForm):
+    intervals = percent_intervals
     interval = forms.ChoiceField(
         choices=[
             (key, label)
             for key, (label, duration) in sorted(
-                session_percent_intervals.items(),
+                percent_intervals.items(),
                 key=lambda key____label__duration: key____label__duration[1][1],
             )
         ]
@@ -152,12 +152,12 @@ class SessionPercentForm(EventFrequencyForm):
     value = forms.IntegerField(widget=forms.TextInput())
 
 
-class SessionPercentCondition(BaseEventFrequencyCondition):
+class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
     label = "The issue has more errors than {value} percent of sessions in {interval}"
 
     def __init__(self, *args, **kwargs):
-        self.intervals = session_percent_intervals
-        self.form_cls = SessionPercentForm
+        self.intervals = percent_intervals
+        self.form_cls = EventFrequencyPercentForm
         super().__init__(*args, **kwargs)
 
     def query_hook(self, event, start, end, environment_id):
@@ -179,7 +179,7 @@ class SessionPercentCondition(BaseEventFrequencyCondition):
                 end=end,
                 filter_keys=filters,
                 groupby=["project_id"],
-                referrer="rules.conditions.event_frequency.SessionPercentCondition",
+                referrer="rules.conditions.event_frequency.EventFrequencyPercentCondition",
             )
             if result_totals["data"]:
                 session_count = result_totals["data"][0]["sessions"]

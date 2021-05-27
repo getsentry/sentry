@@ -10,7 +10,7 @@ from sentry.models import Rule
 from sentry.rules.conditions.event_frequency import (
     EventFrequencyCondition,
     EventUniqueUserFrequencyCondition,
-    SessionPercentCondition,
+    EventFrequencyPercentCondition,
 )
 from sentry.testutils.cases import RuleTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -121,12 +121,12 @@ class EventUniqueUserFrequencyConditionTestCase(
             )
 
 
-class SessionPercentConditionTestCase(
+class EventFrequencyPercentConditionTestCase(
     FrequencyConditionMixin,
     RuleTestCase,
     SnubaTestCase,
 ):
-    rule_cls = SessionPercentCondition
+    rule_cls = EventFrequencyPercentCondition
 
     def _run_test(self, minutes, value, passes, add_events=False):
         if not self.environment or self.environment.name != "prod":
