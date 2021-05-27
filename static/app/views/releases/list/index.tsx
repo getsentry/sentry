@@ -5,8 +5,10 @@ import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
 import Feature from 'app/components/acl/feature';
+import Alert from 'app/components/alert';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
+import ExternalLink from 'app/components/links/externalLink';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import {getRelativeSummary} from 'app/components/organizations/timeRangeSelector/utils';
@@ -15,6 +17,7 @@ import Pagination from 'app/components/pagination';
 import SearchBar from 'app/components/searchBar';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
+import {IconInfo} from 'app/icons';
 import {t} from 'app/locale';
 import {PageContent, PageHeader} from 'app/styles/organization';
 import space from 'app/styles/space';
@@ -244,6 +247,53 @@ class ReleasesList extends AsyncView<Props, State> {
     );
   }
 
+  renderAlertBanner() {
+    const {selection, organization} = this.props;
+
+    const selectedProjectId =
+      selection.projects && selection.projects.length === 1 && selection.projects[0];
+    const selectedProject = organization.projects.find(
+      p => p.id === `${selectedProjectId}`
+    );
+
+    if (!selectedProject) {
+      return null;
+    }
+
+    return (
+      <Feature features={['organizations:release-adoption-chart']}>
+        <Projects orgId={organization.slug} slugs={[selectedProject.slug]}>
+          {({projects, initiallyLoaded, fetchError}) => {
+            const project = projects && projects.length === 1 && projects[0];
+            const projectHasReleases =
+              project &&
+              project.hasOwnProperty('features') &&
+              (project as Project).features.includes('releases');
+
+            if (!initiallyLoaded || fetchError || !project || projectHasReleases) {
+              return null;
+            }
+
+            return (
+              <Alert type="info" icon={<IconInfo size="md" />}>
+                <AlertText>
+                  <div>
+                    {t(
+                      'Setup Release Health for this project to view user adoption, usage of the application, percentage of crashes, and session data.'
+                    )}
+                  </div>
+                  <ExternalLink href="https://docs.sentry.io/product/releases/health/setup/">
+                    {t('Learn more')}
+                  </ExternalLink>
+                </AlertText>
+              </Alert>
+            );
+          }}
+        </Projects>
+      </Feature>
+    );
+  }
+
   renderInnerBody(activeDisplay: DisplayOption) {
     const {location, selection, organization} = this.props;
     const {releases, reloading, releasesPageLinks} = this.state;
@@ -284,12 +334,16 @@ class ReleasesList extends AsyncView<Props, State> {
                     {({projects, initiallyLoaded, fetchError}) => {
                       const project =
                         projects && projects.length === 1 ? projects[0] : null;
+                      const projectHasReleases =
+                        project &&
+                        project.hasOwnProperty('features') &&
+                        (project as Project).features.includes('releases');
 
                       if (
+                        !initiallyLoaded ||
                         fetchError ||
                         !project ||
-                        !project.hasOwnProperty('features') ||
-                        !(project as Project).features.includes('releases')
+                        !projectHasReleases
                       ) {
                         return null;
                       }
@@ -307,14 +361,11 @@ class ReleasesList extends AsyncView<Props, State> {
 
                         const totalData = timeSeries[1].data;
 
-                        totalCount = totalData
-                          .map(point => point.value)
-                          .reduce((acc, value) => acc + value);
-                      }
-
-                      // Hide the chart if the release has no total sessions
-                      if (totalCount === 0) {
-                        return null;
+                        if (totalData.length) {
+                          totalCount = totalData
+                            .map(point => point.value)
+                            .reduce((acc, value) => acc + value);
+                        }
                       }
 
                       return (
@@ -377,6 +428,8 @@ class ReleasesList extends AsyncView<Props, State> {
               <PageHeading>{t('Releases')}</PageHeading>
             </PageHeader>
 
+            {this.renderAlertBanner()}
+
             <SortAndFilterWrapper>
               <SearchBar
                 placeholder={t('Search')}
@@ -408,6 +461,13 @@ class ReleasesList extends AsyncView<Props, State> {
     );
   }
 }
+
+const AlertText = styled('div')`
+  display: flex;
+  > *:nth-child(1) {
+    flex: 1;
+  }
+`;
 
 const SortAndFilterWrapper = styled('div')`
   display: inline-grid;
