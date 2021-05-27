@@ -59,7 +59,7 @@ export type DiscoverQueryProps = DiscoverPropsWithOrgSlug;
 type RequestProps<P> = DiscoverQueryProps & P;
 
 export type ReactChildrenProps<T> = {
-  children: (props: GenericChildrenProps<T>) => React.ReactNode;
+  children?: (props: GenericChildrenProps<T>) => React.ReactNode;
 };
 
 type Props<T, P> = RequestProps<P> &
@@ -236,7 +236,7 @@ class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> 
       pageLinks,
     };
     const children: ReactChildrenProps<T>['children'] = this.props.children; // Explicitly setting type due to issues with generics and React's children
-    return children(childrenProps);
+    return children?.(childrenProps);
   }
 }
 
