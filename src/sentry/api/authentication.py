@@ -26,6 +26,37 @@ def is_internal_relay(request, public_key):
     return is_internal_ip(request)
 
 
+def relay_from_id(request, relay_id):
+    """
+    Tries to find if a Relay for a give id
+    If the id is statically registered than no DB access will be done.
+    If the id is not among the statically registered relays a lookup in the DB will be performed
+    :return: A Relay model if found None if not found
+    """
+
+    # first see if we have a statically configured relay and therefore we don't
+    # need to go to the database for it
+    static_relays = options.get("relay.static_auth")
+    relay_info = static_relays.get(relay_id)
+
+    if relay_info is not None:
+        # we have a statically configured Relay
+        static = True
+        relay = Relay(
+            relay_id=relay_id,
+            public_key=relay_info.get("public_key"),
+            is_internal=relay_info.get("internal") is True,
+        )
+    else:
+        try:
+            static = False
+            relay = Relay.objects.get(relay_id=relay_id)
+            relay.is_internal = is_internal_relay(request, relay.public_key)
+        except Relay.DoesNotExist:
+            return None, False
+    return relay, static
+
+
 class QuietBasicAuthentication(BasicAuthentication):
     def authenticate_header(self, request):
         return 'xBasic realm="%s"' % self.www_authenticate_realm
@@ -64,24 +95,10 @@ class RelayAuthentication(BasicAuthentication):
         with configure_scope() as scope:
             scope.set_tag("relay_id", relay_id)
 
-        # first see if we have a statically configured relay and therefore we don't
-        # need to go to the database for it
-        static_relays = options.get("relay.static_auth")
-        relay_info = static_relays.get(relay_id)
+        relay = relay_from_id(request, relay_id)
 
-        if relay_info is not None:
-            # we have a statically configured Relay
-            relay = Relay(
-                relay_id=relay_id,
-                public_key=relay_info.get("public_key"),
-                is_internal=relay_info.get("internal") is True,
-            )
-        else:
-            try:
-                relay = Relay.objects.get(relay_id=relay_id)
-                relay.is_internal = is_internal_relay(request, relay.public_key)
-            except Relay.DoesNotExist:
-                raise AuthenticationFailed("Unknown relay")
+        if relay is None:
+            raise AuthenticationFailed("Unknown relay")
 
         try:
             data = relay.public_key_object.unpack(request.body, relay_sig, max_age=60 * 5)
