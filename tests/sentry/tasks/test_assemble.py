@@ -1,14 +1,19 @@
 import io
 import os
 from hashlib import sha1
+from unittest.mock import patch
 
 from django.core.files.base import ContentFile
 
 from sentry.models import FileBlob, FileBlobOwner, ReleaseFile
 from sentry.models.debugfile import ProjectDebugFile
+from sentry.models.file import File
+from sentry.models.releasefile import ReleaseArchive
 from sentry.tasks.assemble import (
+    RELEASE_ARCHIVE_MAX_MERGE_ATTEMPTS,
     AssembleTask,
     ChunkFileState,
+    _merge_archives,
     assemble_artifacts,
     assemble_dif,
     assemble_file,
@@ -186,25 +191,96 @@ class AssembleArtifactsTest(BaseAssembleTest):
         blob1 = FileBlob.from_file(ContentFile(bundle_file))
         total_checksum = sha1(bundle_file).hexdigest()
 
-        assemble_artifacts(
-            org_id=self.organization.id,
-            version=self.release.version,
-            checksum=total_checksum,
-            chunks=[blob1.checksum],
+        for has_release_archives in (True, False):
+            with self.options({"processing.save-release-archives": has_release_archives}):
+
+                assemble_artifacts(
+                    org_id=self.organization.id,
+                    version=self.release.version,
+                    checksum=total_checksum,
+                    chunks=[blob1.checksum],
+                )
+
+                status, details = get_assemble_status(
+                    AssembleTask.ARTIFACTS, self.organization.id, total_checksum
+                )
+                assert status == ChunkFileState.OK
+                assert details is None
+
+                release_file = ReleaseFile.objects.get(
+                    organization=self.organization,
+                    release=self.release,
+                    name="release-artifacts.zip" if has_release_archives else "~/index.js",
+                    dist=None,
+                )
+
+                assert release_file
+
+                if has_release_archives:
+                    assert release_file.file.headers == {}
+                    # Artifact is the same as original bundle
+                    assert release_file.file.size == len(bundle_file)
+                else:
+                    assert release_file.file.headers == {"Sourcemap": "index.js.map"}
+
+    def test_merge_archives(self):
+        file1 = File.objects.create()
+        file1.putfile(ContentFile(self.create_artifact_bundle()))
+        file2 = File.objects.create()
+        file2.putfile(ContentFile(self.create_artifact_bundle()))
+
+        release_file = ReleaseFile.objects.create(
+            organization=self.organization,
+            release=self.release,
+            file=file1,
         )
 
-        status, details = get_assemble_status(
-            AssembleTask.ARTIFACTS, self.organization.id, total_checksum
-        )
-        assert status == ChunkFileState.OK
-        assert details is None
+        with ReleaseArchive(file2.getfile().file) as archive2:
+            _merge_archives(release_file, file2, archive2)
+            # Both files have disappeared, a new one has taken their place:
+            assert not File.objects.filter(pk=file1.pk).exists()
+            assert not File.objects.filter(pk=file2.pk).exists()
+            assert release_file.file.pk > 2
 
-        release_file = ReleaseFile.objects.get(
-            organization=self.organization, release=self.release, name="~/index.js", dist=None
+    @patch("sentry.tasks.assemble.logger.error")
+    @patch("sentry.tasks.assemble.ReleaseFile.refresh_from_db")
+    @patch("sentry.tasks.assemble.metrics.incr")
+    def test_merge_archives_fail(self, mock_incr, mock_refresh, mock_log_error):
+        max_attempts = RELEASE_ARCHIVE_MAX_MERGE_ATTEMPTS
+
+        file1 = File.objects.create()
+        file1.putfile(ContentFile(self.create_artifact_bundle()))
+        file2 = File.objects.create()
+        file2.putfile(ContentFile(self.create_artifact_bundle()))
+
+        release_file = ReleaseFile.objects.create(
+            organization=self.organization,
+            release=self.release,
+            file=file1,
         )
 
-        assert release_file
-        assert release_file.file.headers == {"Sourcemap": "index.js.map"}
+        with ReleaseArchive(file2.getfile().file) as archive2:
+
+            def change_file_id():
+                # Create another file
+                release_file.file = File.objects.create()
+                release_file.file.putfile(ContentFile(self.create_artifact_bundle()))
+
+            mock_refresh.side_effect = change_file_id
+
+            _merge_archives(release_file, file2, archive2)
+            assert mock_refresh.called
+            # Failed to update
+            assert File.objects.filter(pk=file1.pk).exists()
+            assert ReleaseFile.objects.get(pk=release_file.pk).file == file1
+            assert not File.objects.filter(pk=file2.pk).exists()
+            for attempt in range(max_attempts):
+                assert mock_incr.called_with(
+                    "tasks.assemble.merge_archives_retry", instance=str(attempt)
+                )
+            assert mock_log_error.called_with(
+                f"Failed to merge archive in {max_attempts} attempts, giving up."
+            )
 
     def test_artifacts_invalid_org(self):
         bundle_file = self.create_artifact_bundle(org="invalid")
