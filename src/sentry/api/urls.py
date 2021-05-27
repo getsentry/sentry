@@ -1,5 +1,8 @@
 from django.conf.urls import include, url
 
+from sentry.api.endpoints.project_release_artifact_details import (
+    ProjectReleaseArtifactDetailsEndpoint,
+)
 from sentry.api.endpoints.project_release_artifacts import ProjectReleaseArtifactsEndpoint
 from sentry.data_export.endpoints.data_export import DataExportEndpoint
 from sentry.data_export.endpoints.data_export_details import DataExportDetailsEndpoint
@@ -1671,11 +1674,11 @@ urlpatterns = [
                     ProjectReleaseArtifactsEndpoint.as_view(),
                     name="sentry-api-0-project-release-files",
                 ),
-                # url(
-                #     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/artifacts/(?P<file_id>\d+)/$",
-                #     ProjectReleaseArtifactDetailsEndpoint.as_view(),
-                #     name="sentry-api-0-project-release-file-details",
-                # ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/artifacts/(?P<file_id>[^/]+)/$",
+                    ProjectReleaseArtifactDetailsEndpoint.as_view(),
+                    name="sentry-api-0-project-release-file-details",
+                ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rules/$",
                     ProjectRulesEndpoint.as_view(),

@@ -137,8 +137,14 @@ class ReleaseArchiveQuerySet(ListQuerySet):
         # Assume manifest
         release_files = [
             ReleaseFile(
+                # HACK: Django doesn't seem to support forward slashes in
+                # URL parameters even if they're urlencoded
+                id=filename.replace("/", "|"),
                 name=get_artifact_basename(info["url"]),
-                file=File(headers=info.get("headers", {}), size=archive.get_file_size(filename)),
+                file=File(
+                    headers=info.get("headers", {}),
+                    size=archive.get_file_size(filename),
+                ),
             )
             for filename, info in archive.manifest.get("files", {}).items()
         ]

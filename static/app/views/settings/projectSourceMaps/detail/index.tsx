@@ -142,7 +142,7 @@ class ProjectSourceMapsDetail extends AsyncView<Props, State> {
           key={artifact.id}
           artifact={artifact}
           onDelete={this.handleArtifactDelete}
-          downloadUrl={`${artifactApiUrl}${artifact.id}/?download=1`}
+          downloadUrl={`${artifactApiUrl}${encodeURIComponent(artifact.id)}/?download=1`}
           downloadRole={organization.debugFilesRole}
         />
       );
