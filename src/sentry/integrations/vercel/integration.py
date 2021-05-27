@@ -323,19 +323,6 @@ class VercelIntegrationProvider(IntegrationProvider):
             installation_type = "user"
             user = client.get_user()
             name = user.get("name") or user["username"]
-        try:
-            webhook = client.create_deploy_webhook()
-        except ApiError as err:
-            logger.info(
-                "vercel.create_webhook.failed",
-                extra={"error": str(err), "external_id": external_id},
-            )
-            try:
-                details = list(err.json["messages"][0].values()).pop()
-            except Exception:
-                details = "Unknown Error"
-            message = f"Could not create deployment webhook in Vercel: {details}"
-            raise IntegrationError(message)
 
         integration = {
             "name": name,
@@ -344,7 +331,6 @@ class VercelIntegrationProvider(IntegrationProvider):
                 "access_token": access_token,
                 "installation_id": data["installation_id"],
                 "installation_type": installation_type,
-                "webhook_id": webhook["id"],
             },
             "post_install_data": {"user_id": state["user_id"]},
         }
