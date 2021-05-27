@@ -133,6 +133,8 @@ class AlertRuleDetails extends Component<Props, State> {
       await fetchIncident(api, orgId, location.query.alert)
         .then(incident => this.setState({selectedIncident: incident}))
         .catch(() => this.setState({selectedIncident: null}));
+    } else {
+      this.setState({selectedIncident: null});
     }
 
     const timePeriod = this.getTimePeriod();
