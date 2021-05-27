@@ -9,8 +9,8 @@ from freezegun import freeze_time
 from sentry.models import Rule
 from sentry.rules.conditions.event_frequency import (
     EventFrequencyCondition,
-    EventUniqueUserFrequencyCondition,
     EventFrequencyPercentCondition,
+    EventUniqueUserFrequencyCondition,
 )
 from sentry.testutils.cases import RuleTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
