@@ -5,11 +5,9 @@ import ProjectsStore from 'app/stores/projectsStore';
 import IncidentsList from 'app/views/alerts/list';
 
 describe('IncidentsList', function () {
-  const {routerContext, organization} = initializeOrg({
-    organization: {
-      features: ['incidents'],
-    },
-  });
+  let routerContext;
+  let router;
+  let organization;
   let incidentsMock;
   let projectMock;
   let wrapper;
@@ -22,6 +20,7 @@ describe('IncidentsList', function () {
       <IncidentsList
         params={{orgId: organization.slug}}
         location={{query: {}, search: ''}}
+        router={router}
         {...props}
       />,
       routerContext
@@ -32,6 +31,15 @@ describe('IncidentsList', function () {
   };
 
   beforeEach(function () {
+    const context = initializeOrg({
+      organization: {
+        features: ['incidents'],
+      },
+    });
+    routerContext = context.routerContext;
+    router = context.router;
+    organization = context.organization;
+
     incidentsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/incidents/',
       body: [
@@ -245,5 +253,29 @@ describe('IncidentsList', function () {
 
     const addLink = wrapper.find('button[aria-label="Create Alert Rule"]');
     expect(addLink.props()['aria-disabled']).toBe(false);
+  });
+
+  it('searches by name', async () => {
+    const org = {
+      ...organization,
+      features: ['incidents', 'alert-history-filters'],
+    };
+    wrapper = await createWrapper({organization: org});
+    expect(wrapper.find('StyledSearchBar').exists()).toBe(true);
+
+    const testQuery = 'test name';
+    wrapper
+      .find('StyledSearchBar')
+      .find('input')
+      .simulate('change', {target: {value: testQuery}})
+      .simulate('submit', {preventDefault() {}});
+
+    expect(router.push).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: {
+          title: testQuery,
+        },
+      })
+    );
   });
 });
