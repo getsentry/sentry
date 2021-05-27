@@ -2,7 +2,6 @@ import re
 
 from django.db import IntegrityError
 from django.db.models import F, Q
-from django.db.models.functions import Coalesce
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
@@ -438,7 +437,7 @@ class OrganizationReleasesStatsEndpoint(OrganizationReleasesBaseEndpoint, Enviro
                 organization=organization, projects__id__in=filter_params["project_id"]
             )
             .annotate(
-                date=Coalesce("date_released", "date_added"),
+                date=F("date_added"),
             )
             .values("version", "date")
             .order_by("-date")
