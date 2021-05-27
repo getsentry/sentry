@@ -258,7 +258,7 @@ class OrganizationEndpoint(Endpoint):
         return get_environments(request, organization)
 
     def get_teams(self, request, organization):
-        return list(get_teams(request, organization))
+        return get_teams(request, organization)
 
     def get_filter_params(
         self, request, organization, date_filter_optional=False, project_ids=None
