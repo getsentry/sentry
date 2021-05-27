@@ -8,6 +8,7 @@ import {resendMemberInvite} from 'app/actionCreators/members';
 import {redirectToRemainingOrganization} from 'app/actionCreators/organizations';
 import Button from 'app/components/button';
 import DropdownMenu from 'app/components/dropdownMenu';
+import HookOrDefault from 'app/components/hookOrDefault';
 import Pagination from 'app/components/pagination';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {MEMBER_ROLES} from 'app/constants';
@@ -34,6 +35,11 @@ type State = AsyncView['state'] & {
   members: Member[];
   invited: {[key: string]: 'loading' | 'success' | null};
 };
+
+const MemberListHeader = HookOrDefault({
+  hookName: 'component:member-list-header',
+  defaultComponent: () => <PanelHeader>{t('Members')}</PanelHeader>,
+});
 
 class OrganizationMembersList extends AsyncView<Props, State> {
   getDefaultState() {
@@ -191,8 +197,7 @@ class OrganizationMembersList extends AsyncView<Props, State> {
           }
         </ClassNames>
         <Panel data-test-id="org-member-list">
-          <PanelHeader>{t('Members')}</PanelHeader>
-
+          <MemberListHeader members={members} organization={organization} />
           <PanelBody>
             {members.map(member => (
               <OrganizationMemberRow

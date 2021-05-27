@@ -6,6 +6,7 @@ import SelectorItems from 'app/components/organizations/timeRangeSelector/dateRa
 import SidebarItem from 'app/components/sidebar/sidebarItem';
 import {
   IntegrationProvider,
+  Member,
   Organization,
   OrganizationSummary,
   Project,
@@ -57,6 +58,11 @@ type DateRangeProps = React.ComponentProps<typeof DateRange>;
 type SelectorItemsProps = React.ComponentProps<typeof SelectorItems>;
 type GlobalNotificationProps = {className: string; organization?: Organization};
 type DisabledMemberViewProps = {organization: OrganizationSummary};
+type MemberListHeaderProps = {
+  members: Member[];
+  organization: Organization;
+};
+type DisabledMemberTooltipProps = {children: React.ReactNode};
 
 /**
  * Component wrapping hooks
@@ -66,6 +72,8 @@ export type ComponentHooks = {
   'component:header-selector-items': () => React.ComponentType<SelectorItemsProps>;
   'component:global-notifications': () => React.ComponentType<GlobalNotificationProps>;
   'component:disabled-member': () => React.ComponentType<DisabledMemberViewProps>;
+  'component:member-list-header': () => React.ComponentType<MemberListHeaderProps>;
+  'component:disabled-member-tooltip': () => React.ComponentType<DisabledMemberTooltipProps>;
 };
 
 /**

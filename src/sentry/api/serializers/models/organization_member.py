@@ -112,6 +112,7 @@ class OrganizationMemberSerializer(Serializer):  # type: ignore
             "flags": {
                 "sso:linked": bool(getattr(obj.flags, "sso:linked")),
                 "sso:invalid": bool(getattr(obj.flags, "sso:invalid")),
+                "member-limit:restricted": bool(getattr(obj.flags, "member-limit:restricted")),
             },
             "dateCreated": obj.date_added,
             "inviteStatus": obj.get_invite_status_name(),
