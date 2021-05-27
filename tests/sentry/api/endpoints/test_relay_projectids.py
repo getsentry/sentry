@@ -82,12 +82,8 @@ class RelayProjectIdsEndpointTest(APITestCase):
     def _call_endpoint_static_relay(self, internal):
         raw_json, signature = self.private_key.pack({"publicKeys": [str(self.public_key)]})
 
-        relay_options = {
-            "static_auth": {
-                self.relay_id: {"internal": internal, "public_key": str(self.public_key)}
-            }
-        }
-        options.set("relay", relay_options)
+        static_auth = {self.relay_id: {"internal": internal, "public_key": str(self.public_key)}}
+        options.set("relay.static_auth", static_auth)
 
         resp = self.client.post(
             self.path,

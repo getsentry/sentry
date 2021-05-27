@@ -147,9 +147,9 @@ def test_statically_configured_relay(internal):
     request.META["HTTP_X_SENTRY_RELAY_ID"] = relay_id
     request.META["REMOTE_ADDR"] = "200.200.200.200"  # something that is NOT local network
 
-    relay_options = {"static_auth": {relay_id: {"internal": internal, "public_key": str(pk)}}}
+    relay_options = {relay_id: {"internal": internal, "public_key": str(pk)}}
 
-    options.set("relay", relay_options)
+    options.set("relay.static_auth", relay_options)
     authenticator = RelayAuthentication()
     authenticator.authenticate(request)
 

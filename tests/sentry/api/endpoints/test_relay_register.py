@@ -5,6 +5,7 @@ from django.urls import reverse
 from django.utils import timezone
 from sentry_relay import generate_key_pair
 
+from sentry import options
 from sentry.models import Relay, RelayUsage
 from sentry.testutils import APITestCase
 from sentry.utils import json
@@ -555,3 +556,17 @@ class RelayRegisterTest(APITestCase):
         assert rv2.last_seen > after_first_relay
         assert rv2.first_seen < after_second_relay
         assert rv2.last_seen < after_second_relay
+
+    def test_no_db_for_static_relays(self):
+        """
+        Tests that statically authenticated relays do not access
+        the database during registration
+        """
+        key_pair = generate_key_pair()
+        relay_id = str(uuid4())
+        public_key = key_pair[1]
+        static_auth = {relay_id: {"internal": True, "public_key": str(public_key)}}
+        options.set("relay.static_auth", static_auth)
+
+        with self.assertNumQueries(0):
+            self.register_relay(key_pair, "1.1.1", relay_id)
