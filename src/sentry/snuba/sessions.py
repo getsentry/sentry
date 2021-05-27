@@ -19,6 +19,33 @@ from sentry.utils.snuba import (
 
 DATASET_BUCKET = 3600
 
+_next_op_and_direction_dict = {
+    "sessions": {
+        "scope_operation": Op.LT,
+        "scope_direction": Direction.DESC,
+        "release_direction": Direction.ASC,
+        "release_operation": Op.GT,
+    },
+    "crash_free_sessions": {
+        "scope_operation": Op.GT,
+        "scope_direction": Direction.ASC,
+        "release_direction": Direction.ASC,
+        "release_operation": Op.GT,
+    },
+    "users": {
+        "scope_operation": Op.LT,
+        "scope_direction": Direction.DESC,
+        "release_direction": Direction.ASC,
+        "release_operation": Op.GT,
+    },
+    "crash_free_users": {
+        "scope_operation": Op.GT,
+        "scope_direction": Direction.ASC,
+        "release_direction": Direction.ASC,
+        "release_operation": Op.GT,
+    },
+}
+
 
 def _convert_duration(val):
     if val != val:
@@ -793,33 +820,7 @@ def __get_prev_operation_and_direction(scope):
         that correspond to which operations and directions should be carried out in this particular scope's query and
         the direction they should be ordered in
     """
-    op_and_direction_dict = {
-        "sessions": {
-            "scope_operation": Op.GT,
-            "scope_direction": Direction.ASC,
-            "release_direction": Direction.DESC,
-            "release_operation": Op.LT,
-        },
-        "crash_free_sessions": {
-            "scope_operation": Op.LT,
-            "scope_direction": Direction.DESC,
-            "release_direction": Direction.DESC,
-            "release_operation": Op.LT,
-        },
-        "users": {
-            "scope_operation": Op.GT,
-            "scope_direction": Direction.ASC,
-            "release_direction": Direction.DESC,
-            "release_operation": Op.LT,
-        },
-        "crash_free_users": {
-            "scope_operation": Op.LT,
-            "scope_direction": Direction.DESC,
-            "release_direction": Direction.DESC,
-            "release_operation": Op.LT,
-        },
-    }
-    return op_and_direction_dict[scope]
+    return __reverse_op_and_direction_dict(_next_op_and_direction_dict[scope])
 
 
 def __get_next_operation_and_direction(scope):
@@ -833,33 +834,40 @@ def __get_next_operation_and_direction(scope):
         that correspond to which operations and directions should be carried out in this particular scope's query and
         the direction they should be ordered in
     """
-    op_and_direction_dict = {
-        "sessions": {
+    return _next_op_and_direction_dict[scope]
+
+
+def __reverse_op_and_direction_dict(op_and_direction_dict):
+    """
+    Helper function that creates a new dictionary that reverses the values of `scope_direction`,
+    `scope_operation`, `release_direction` and `release_operation` in terms of Direction and Op
+    Inputs:-
+        * op_and_direction_dict: Dictonary with the following keys `scope_direction`,
+    `scope_operation`, `release_direction` and `release_operation`
+        For example:
+        ```
+        {
             "scope_operation": Op.LT,
             "scope_direction": Direction.DESC,
             "release_direction": Direction.ASC,
             "release_operation": Op.GT,
-        },
-        "crash_free_sessions": {
-            "scope_operation": Op.GT,
-            "scope_direction": Direction.ASC,
-            "release_direction": Direction.ASC,
-            "release_operation": Op.GT,
-        },
-        "users": {
-            "scope_operation": Op.LT,
-            "scope_direction": Direction.DESC,
-            "release_direction": Direction.ASC,
-            "release_operation": Op.GT,
-        },
-        "crash_free_users": {
-            "scope_operation": Op.GT,
-            "scope_direction": Direction.ASC,
-            "release_direction": Direction.ASC,
-            "release_operation": Op.GT,
-        },
-    }
-    return op_and_direction_dict[scope]
+        }
+        ```
+    Returns a dictionary that has the opposite operation for each of the keys
+    """
+    reverse_op_and_direction_dict = {}
+    for key in op_and_direction_dict:
+        passed_dict_value = op_and_direction_dict[key]
+
+        if passed_dict_value == Direction.ASC:
+            reverse_op_and_direction_dict[key] = Direction.DESC
+        elif passed_dict_value == Direction.DESC:
+            reverse_op_and_direction_dict[key] = Direction.ASC
+        elif passed_dict_value == Op.LT:
+            reverse_op_and_direction_dict[key] = Op.GT
+        else:
+            reverse_op_and_direction_dict[key] = Op.LT
+    return reverse_op_and_direction_dict
 
 
 def __get_scope_value_for_release(
