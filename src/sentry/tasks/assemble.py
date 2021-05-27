@@ -5,7 +5,7 @@ from os import path
 
 from django.db import IntegrityError, transaction
 
-from sentry import features
+from sentry import options
 from sentry.api.serializers import serialize
 from sentry.cache import default_cache
 from sentry.models import File, Organization, Release, ReleaseFile
@@ -310,7 +310,7 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
                 "release": release,
                 "dist": dist,
             }
-            if features.has("organizations:release-archives", organization):
+            if options.get("processing.save-release-archives"):
                 kwargs = dict(meta, name=RELEASE_ARCHIVE_FILENAME)
                 _upsert_release_file(bundle, archive, _merge_archives, **kwargs)
 
