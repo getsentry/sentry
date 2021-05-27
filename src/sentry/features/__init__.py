@@ -53,6 +53,7 @@ default_manager.add("organizations:create")
 # Organization scoped features
 default_manager.add("organizations:advanced-search", OrganizationFeature)  # NOQA
 default_manager.add("organizations:alert-details-redesign", OrganizationFeature, True)  # NOQA
+default_manager.add("organizations:alert-history-filters", OrganizationFeature, True)  # NOQA
 default_manager.add("organizations:alert-filters", OrganizationFeature)  # NOQA
 default_manager.add("organizations:alert-wizard", OrganizationFeature, True)  # NOQA
 default_manager.add("organizations:api-keys", OrganizationFeature)  # NOQA
