@@ -37,6 +37,22 @@ class BitbucketServerIntegrationTest(IntegrationTestCase):
         self.assertContains(resp, "Enter a valid URL")
 
     @responses.activate
+    def test_validate_url_without_dot(self):
+        # Start pipeline and go to setup page.
+        self.client.get(self.setup_path)
+
+        # Submit credentials
+        data = {
+            "url": "http://bitbucket",
+            "verify_ssl": False,
+            "consumer_key": "sentry-bot",
+            "private_key": EXAMPLE_PRIVATE_KEY,
+        }
+        resp = self.client.post(self.setup_path, data=data)
+        assert resp.status_code == 200
+        self.assertNotContains(resp, "Enter a valid URL")
+
+    @responses.activate
     def test_validate_private_key(self):
         responses.add(
             responses.POST,

@@ -4,7 +4,6 @@ from urllib.parse import urlparse
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.serialization import load_pem_private_key
 from django import forms
-from django.core.validators import URLValidator
 from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 
@@ -16,6 +15,7 @@ from sentry.integrations import (
     IntegrationProvider,
 )
 from sentry.integrations.repositories import RepositoryMixin
+from sentry.integrations.validators.url import URLValidatorWithoutDot
 from sentry.models.repository import Repository
 from sentry.pipeline import PipelineView
 from sentry.shared_integrations.exceptions import ApiError
@@ -76,7 +76,7 @@ class InstallationForm(forms.Form):
             "The base URL for your Bitbucket Server instance, including the host and protocol."
         ),
         widget=forms.TextInput(attrs={"placeholder": "https://bitbucket.example.com"}),
-        validators=[URLValidator()],
+        validators=[URLValidatorWithoutDot()],
     )
     verify_ssl = forms.BooleanField(
         label=_("Verify SSL"),
