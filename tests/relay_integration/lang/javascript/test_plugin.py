@@ -1,12 +1,16 @@
 import os.path
+import zipfile
 from base64 import b64encode
+from io import BytesIO
 
 import responses
 from django.utils.encoding import force_bytes
 
 from sentry.models import File, Release, ReleaseFile
+from sentry.tasks.assemble import RELEASE_ARCHIVE_FILENAME
 from sentry.testutils import RelayStoreHelper, SnubaTestCase, TransactionTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.utils import json
 from sentry.utils.compat.mock import patch
 
 BASE64_SOURCEMAP = "data:application/json;base64," + (
@@ -1110,6 +1114,113 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
             {"url": "http://example.com/file1.js", "type": "js_invalid_content"},
             {"url": "http://example.com/file2.js", "type": "js_invalid_content"},
         ]
+
+    def _test_expansion_via_release_archive(self, link_sourcemaps: bool):
+        project = self.project
+        release = Release.objects.create(organization_id=project.organization_id, version="abc")
+        release.add_project(project)
+
+        manifest = {
+            "org": self.organization.slug,
+            "release": release.version,
+            "files": {
+                "files/_/_/file.min.js": {
+                    "url": "http://example.com/file.min.js",
+                },
+                "files/_/_/file1.js": {
+                    "url": "http://example.com/file1.js",
+                },
+                "files/_/_/file2.js": {
+                    "url": "http://example.com/file2.js",
+                },
+                "files/_/_/file.sourcemap.js": {
+                    "url": "http://example.com/file.sourcemap.js",
+                },
+            },
+        }
+
+        file_like = BytesIO()
+        with zipfile.ZipFile(file_like, "w") as zip:
+            for rel_path, entry in manifest["files"].items():
+                name = os.path.basename(rel_path)
+                content = load_fixture(name)
+                if name == "file.min.js" and not link_sourcemaps:
+                    # Remove link to source map, add to header instead
+                    content = content.replace(b"//@ sourceMappingURL=file.sourcemap.js", b"")
+                    entry["headers"] = {"SourceMap": "/file.sourcemap.js"}
+                zip.writestr(rel_path, content)
+            zip.writestr("manifest.json", json.dumps(manifest))
+        file_like.seek(0)
+
+        file = File.objects.create(name=RELEASE_ARCHIVE_FILENAME)
+        file.putfile(file_like)
+
+        ReleaseFile.objects.create(
+            name=RELEASE_ARCHIVE_FILENAME,
+            release=release,
+            organization_id=project.organization_id,
+            file=file,
+        )
+
+        data = {
+            "timestamp": self.min_ago,
+            "message": "hello",
+            "platform": "javascript",
+            "release": "abc",
+            "exception": {
+                "values": [
+                    {
+                        "type": "Error",
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "abs_path": "http://example.com/file.min.js",
+                                    "filename": "file.min.js",
+                                    "lineno": 1,
+                                    "colno": 39,
+                                },
+                                {
+                                    "abs_path": "http://example.com/file.min.js",
+                                    "filename": "file.min.js",
+                                    "lineno": 1,
+                                    "colno": 79,
+                                },
+                            ]
+                        },
+                    }
+                ]
+            },
+        }
+
+        with self.options({"processing.use-release-archives-sample-rate": 1.1}):
+            event = self.post_and_retrieve_event(data)
+
+        assert "errors" not in event.data
+
+        exception = event.interfaces["exception"]
+        frame_list = exception.values[0].stacktrace.frames
+
+        frame = frame_list[0]
+        assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
+        assert frame.context_line == "\treturn a + b; // fôo"
+        assert frame.post_context == ["}", ""]
+
+        frame = frame_list[1]
+        assert frame.pre_context == ["function multiply(a, b) {", '\t"use strict";']
+        assert frame.context_line == "\treturn a * b;"
+        assert frame.post_context == [
+            "}",
+            "function divide(a, b) {",
+            '\t"use strict";',
+            "\ttry {",
+            "\t\treturn multiply(add(a, b), a, b) / c;",
+        ]
+
+    def test_expansion_via_release_archive(self):
+        self._test_expansion_via_release_archive(link_sourcemaps=True)
+
+    def test_expansion_via_release_archive_no_sourcemap_link(self):
+        self._test_expansion_via_release_archive(link_sourcemaps=False)
 
     def test_node_processing(self):
         project = self.project

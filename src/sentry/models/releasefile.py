@@ -1,5 +1,8 @@
 import errno
 import os
+import zipfile
+from tempfile import TemporaryDirectory
+from typing import IO, Tuple
 from urllib.parse import urlsplit, urlunsplit
 
 from django.core.files.base import File as FileObj
@@ -8,8 +11,9 @@ from django.db import models
 from sentry import options
 from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
 from sentry.models import clear_cached_files
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 from sentry.utils.hashlib import sha1_text
+from sentry.utils.zip import safe_extract_zip
 
 
 class ReleaseFile(Model):
@@ -118,3 +122,66 @@ class ReleaseFileCache:
 
 
 ReleaseFile.cache = ReleaseFileCache()
+
+
+class ReleaseArchive:
+    """ Read-only view of uploaded ZIP-archive of release files """
+
+    def __init__(self, fileobj: IO):
+        self._fileobj = fileobj
+        self._zip_file = zipfile.ZipFile(self._fileobj)
+        self.manifest = self._read_manifest()
+        files = self.manifest.get("files", {})
+
+        self._entries_by_url = {entry["url"]: (path, entry) for path, entry in files.items()}
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc, value, tb):
+        self._zip_file.close()
+        self._fileobj.close()
+
+    def read(self, filename: str) -> bytes:
+        return self._zip_file.read(filename)
+
+    def _read_manifest(self) -> dict:
+        manifest_bytes = self.read("manifest.json")
+        return json.loads(manifest_bytes.decode("utf-8"))
+
+    def get_file_by_url(self, url: str) -> Tuple[IO, dict]:
+        """Return file-like object and headers.
+
+        The caller is responsible for closing the returned stream.
+
+        May raise ``KeyError``
+        """
+        filename, entry = self._entries_by_url[url]
+        return self._zip_file.open(filename), entry.get("headers", {})
+
+    def extract(self) -> TemporaryDirectory:
+        """Extract contents to a temporary directory.
+
+        The caller is responsible for cleanup of the temporary files.
+        """
+        temp_dir = TemporaryDirectory()
+        safe_extract_zip(self._fileobj, temp_dir.name, strip_toplevel=False)
+
+        return temp_dir
+
+
+def merge_release_archives(archive1: ReleaseArchive, archive2: ReleaseArchive, target: IO):
+    """Fields in archive2 take precedence over fields in archive1. """
+    merged_manifest = dict(archive1.manifest, **archive2.manifest)
+    files1 = archive1.manifest.get("files", {})
+    files2 = archive2.manifest.get("files", {})
+
+    merged_manifest["files"] = dict(files1, **files2)
+
+    with zipfile.ZipFile(target, mode="w", compression=zipfile.ZIP_DEFLATED) as zip_file:
+        for filename in files2.keys():
+            zip_file.writestr(filename, archive2.read(filename))
+        for filename in files1.keys() - files2.keys():
+            zip_file.writestr(filename, archive1.read(filename))
+
+        zip_file.writestr("manifest.json", json.dumps(merged_manifest))

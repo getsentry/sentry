@@ -996,6 +996,8 @@ SENTRY_FEATURES = {
     "organizations:alert-wizard": True,
     # Enable the adoption chart in the releases page
     "organizations:release-adoption-chart": False,
+    # Store release bundles as zip files instead of single files
+    "organizations:release-archives": False,
     # Enable the project level transaction thresholds
     "organizations:project-transaction-threshold": False,
     # Enable percent displays in issue stream
