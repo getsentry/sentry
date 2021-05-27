@@ -15,7 +15,7 @@ from sentry.integrations import (
     IntegrationProvider,
 )
 from sentry.integrations.repositories import RepositoryMixin
-from sentry.integrations.validators.url import URLValidatorWithoutDot
+from sentry.integrations.validators.url import SingleLevelDomainURLValidator
 from sentry.models.repository import Repository
 from sentry.pipeline import PipelineView
 from sentry.shared_integrations.exceptions import ApiError
@@ -76,7 +76,7 @@ class InstallationForm(forms.Form):
             "The base URL for your Bitbucket Server instance, including the host and protocol."
         ),
         widget=forms.TextInput(attrs={"placeholder": "https://bitbucket.example.com"}),
-        validators=[URLValidatorWithoutDot()],
+        validators=[SingleLevelDomainURLValidator()],
     )
     verify_ssl = forms.BooleanField(
         label=_("Verify SSL"),

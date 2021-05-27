@@ -40,7 +40,7 @@ class JiraServerIntegrationTest(IntegrationTestCase):
         self.assertContains(resp, "Enter a valid URL")
 
     @responses.activate
-    def test_validate_url_without_dot(self):
+    def test_validate_single_level_domain_url(self):
         # Start pipeline and go to setup page.
         self.client.get(self.setup_path)
 

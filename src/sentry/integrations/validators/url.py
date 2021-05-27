@@ -3,7 +3,7 @@ import re
 from django.core.validators import URLValidator, _lazy_re_compile
 
 
-class URLValidatorWithoutDot(URLValidator):
+class SingleLevelDomainURLValidator(URLValidator):
     host_re = (
         "("
         + URLValidator.hostname_re
