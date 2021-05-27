@@ -20,6 +20,8 @@ logger = logging.getLogger(__name__)
 
 #: Name for the bundle stored as a release file
 RELEASE_ARCHIVE_FILENAME = "release-artifacts.zip"
+#: How often should we retry merging archives when there's a conflict?
+RELEASE_ARCHIVE_MAX_MERGE_ATTEMPTS = 3
 
 
 class ChunkFileState:
@@ -163,7 +165,14 @@ class AssembleArtifactsError(Exception):
     pass
 
 
-def _upsert_release_file(file: File, archive: ReleaseArchive, replacement_strategy, **kwargs):
+def _simple_update(release_file: ReleaseFile, new_file: File, new_archive: ReleaseArchive):
+    """ Update function used in _upsert_release_file """
+    old_file = release_file.file
+    release_file.update(file=new_file)
+    old_file.delete()
+
+
+def _upsert_release_file(file: File, archive: ReleaseArchive, update_fn, **kwargs):
     release_file = None
 
     # Release files must have unique names within their release
@@ -182,29 +191,39 @@ def _upsert_release_file(file: File, archive: ReleaseArchive, replacement_strate
             # do not try again.
             file.delete()
     else:
-        old_file = release_file.file
-        release_file.update(file=replacement_strategy(old_file, file, archive))
-        old_file.delete()
-
-
-def _simple_replace(old_file: File, new_file: File, new_archive: ReleaseArchive):
-    return new_file
+        update_fn(release_file, file, archive)
 
 
 @metrics.wraps("tasks.assemble.merge_archives")
-def _merge_archives(old_file: File, new_file: File, new_archive: ReleaseArchive):
-    with ReleaseArchive(old_file.getfile()) as old_archive:
-        buffer = BytesIO()
-        merge_release_archives(old_archive, new_archive, buffer)
+def _merge_archives(release_file: ReleaseFile, new_file: File, new_archive: ReleaseArchive):
+    max_attempts = RELEASE_ARCHIVE_MAX_MERGE_ATTEMPTS
+    success = False
+    for attempt in range(max_attempts):
+        old_file = release_file.file
+        with ReleaseArchive(old_file.getfile().file) as old_archive:
+            buffer = BytesIO()
+            merge_release_archives(old_archive, new_archive, buffer)
 
-        replacement = File.objects.create(name=old_file.name, type=old_file.type)
-        buffer.seek(0)
-        replacement.putfile(buffer)
-        replacement.save()
+            replacement = File.objects.create(name=old_file.name, type=old_file.type)
+            buffer.seek(0)
+            replacement.putfile(buffer)
 
-    new_file.delete()  # old_file is deleted in _upsert_release_file
+            with transaction.atomic():
+                release_file.refresh_from_db()
+                if release_file.file == old_file:
+                    # Nothing has changed. It is safe to update
+                    release_file.update(file=replacement)
+                    success = True
+                    break
+                else:
+                    metrics.incr("tasks.assemble.merge_archives_retry", instance=str(attempt))
+    else:
+        logger.error("Failed to merge archive in %s attempts, giving up.", max_attempts)
 
-    return replacement
+    if success:
+        old_file.delete()
+
+    new_file.delete()
 
 
 def _store_single_files(archive: ReleaseArchive, meta: dict):
@@ -228,7 +247,7 @@ def _store_single_files(archive: ReleaseArchive, meta: dict):
                 file.putfile(fp, logger=logger)
 
             kwargs = dict(meta, name=artifact_url)
-            _upsert_release_file(file, None, _simple_replace, **kwargs)
+            _upsert_release_file(file, None, _simple_update, **kwargs)
 
 
 @instrumented_task(name="sentry.tasks.assemble.assemble_artifacts", queue="assemble")
