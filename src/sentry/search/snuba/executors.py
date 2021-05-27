@@ -164,7 +164,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         selected_columns = []
         if get_sample:
             query_hash = md5(json.dumps(conditions).encode("utf-8")).hexdigest()[:8]
-            selected_columns.append(("cityHash64", (f"'{query_hash}'", "group_id"), "sample"))
+            selected_columns.append(["cityHash64", [f"'{query_hash}'", "group_id"], "sample"])
             sort_field = "sample"
             orderby = [sort_field]
             referrer = "search_sample"
