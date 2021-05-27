@@ -295,13 +295,19 @@ def query_facet_performance(
 
         tag_selected_columns = [
             [
-                "sum",
+                "divide",
                 [
-                    "minus",
                     [
-                        translated_aggregate_column,
-                        str(transaction_aggregate),
+                        "sum",
+                        [
+                            "minus",
+                            [
+                                translated_aggregate_column,
+                                str(transaction_aggregate),
+                            ],
+                        ],
                     ],
+                    frequency_sample_rate,
                 ],
                 "sumdelta",
             ],
