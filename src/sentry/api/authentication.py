@@ -95,7 +95,7 @@ class RelayAuthentication(BasicAuthentication):
         with configure_scope() as scope:
             scope.set_tag("relay_id", relay_id)
 
-        relay = relay_from_id(request, relay_id)
+        relay, static = relay_from_id(request, relay_id)
 
         if relay is None:
             raise AuthenticationFailed("Unknown relay")
