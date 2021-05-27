@@ -1,6 +1,5 @@
 import logging
 from urllib.parse import urlencode
-from uuid import uuid4
 
 from django.utils.translation import ugettext_lazy as _
 from rest_framework.serializers import ValidationError
@@ -230,13 +229,18 @@ class VercelIntegration(IntegrationInstallation):
             is_next_js = vercel_project.get("framework") == "nextjs"
             dsn_env_name = "NEXT_PUBLIC_SENTRY_DSN" if is_next_js else "SENTRY_DSN"
 
+            sentry_auth_token = SentryAppInstallationForProvider.get_token(
+                sentry_project.organization.id,
+                "vercel",
+            )
+
             env_var_map = {
-                "SENTRY_ORG": {"type": "plain", "value": sentry_project.organization.slug},
-                "SENTRY_PROJECT": {"type": "plain", "value": sentry_project.slug},
-                dsn_env_name: {"type": "plain", "value": sentry_project_dsn},
+                "SENTRY_ORG": {"type": "encrypted", "value": sentry_project.organization.slug},
+                "SENTRY_PROJECT": {"type": "encrypted", "value": sentry_project.slug},
+                dsn_env_name: {"type": "encrypted", "value": sentry_project_dsn},
                 "SENTRY_AUTH_TOKEN": {
-                    "type": "secret",
-                    "value": self.get_sentry_auth_token_value(sentry_project, vercel_client),
+                    "type": "encrypted",
+                    "value": sentry_auth_token,
                 },
                 "VERCEL_GIT_COMMIT_SHA": {"type": "system", "value": "VERCEL_GIT_COMMIT_SHA"},
             }
@@ -248,19 +252,6 @@ class VercelIntegration(IntegrationInstallation):
 
         config.update(data)
         self.org_integration.update(config=config)
-
-    def get_sentry_auth_token_value(self, sentry_project, vercel_client):
-        sentry_app_installation = SentryAppInstallationForProvider.objects.get(
-            organization=sentry_project.organization.id, provider="vercel"
-        )
-        sentry_auth_token = sentry_app_installation.get_token(
-            self.organization_id, provider="vercel"
-        )
-
-        uuid = uuid4().hex
-        secret_name = "SENTRY_AUTH_TOKEN" + "_%s" % uuid
-        secret_value = vercel_client.create_secret(secret_name, sentry_auth_token)
-        return secret_value
 
     def create_env_var(self, client, vercel_project_id, key, value, type):
         data = {

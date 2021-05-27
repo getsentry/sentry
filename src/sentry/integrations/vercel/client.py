@@ -18,7 +18,6 @@ class VercelClient(ApiClient):
     WEBHOOK_URL = "/v1/integrations/webhooks"
     ENV_VAR_URL = "/v7/projects/%s/env"
     GET_ENV_VAR_URL = "/v7/projects/%s/env"
-    SECRETS_URL = "/v2/now/secrets"
     UPDATE_ENV_VAR_URL = "/v7/projects/%s/env/%s"
     UNINSTALL = "/v1/integrations/configuration/%s"
 
@@ -74,11 +73,6 @@ class VercelClient(ApiClient):
 
     def get_env_vars(self, vercel_project_id):
         return self.get(self.GET_ENV_VAR_URL % vercel_project_id)
-
-    def create_secret(self, name, value):
-        data = {"name": name, "value": value}
-        response = self.post(self.SECRETS_URL, data=data)["uid"]
-        return response
 
     def create_env_variable(self, vercel_project_id, data):
         return self.post(self.ENV_VAR_URL % vercel_project_id, data=data)
