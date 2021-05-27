@@ -2,7 +2,7 @@ export enum DeviceKnownDataType {
   ARCH = 'arch',
   ARCHS = 'archs',
   BATTERY_LEVEL = 'battery_level',
-  BATTERY_STATUS = 'baterry_status',
+  BATTERY_STATUS = 'battery_status',
   BRAND = 'brand',
   BOOT_TIME = 'boot_time',
   CONNECTION_TYPE = 'connection_type',

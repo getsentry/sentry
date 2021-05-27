@@ -62,7 +62,7 @@ class ProjectOwnership extends AsyncView<Props, State> {
       endpoints.push([
         'codeowners',
         `/projects/${organization.slug}/${project.slug}/codeowners/`,
-        {query: {expand: ['codeMapping']}},
+        {query: {expand: ['codeMapping', 'ownershipSyntax']}},
       ]);
     }
     return endpoints;
