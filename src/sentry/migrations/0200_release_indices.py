@@ -29,25 +29,6 @@ class Migration(migrations.Migration):
             database_operations=[
                 migrations.RunSQL(
                     """
-                    CREATE INDEX CONCURRENTLY IF NOT EXISTS "sentry_release_organization_id_major_mi_38715957_idx"
-                    ON "sentry_release" ("organization_id", "major" DESC, "minor" DESC, "patch" DESC, "revision" DESC);
-                    """,
-                    reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS sentry_release_organization_id_major_mi_38715957_idx",
-                ),
-                migrations.RunSQL(
-                    """
-                    CREATE INDEX CONCURRENTLY IF NOT EXISTS "sentry_release_organization_id_build_code_f93815e5_idx" ON "sentry_release" ("organization_id", "build_code");
-                    """,
-                    reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS sentry_release_organization_id_build_code_f93815e5_idx",
-                ),
-                migrations.RunSQL(
-                    """
-                    CREATE INDEX CONCURRENTLY IF NOT EXISTS "sentry_release_organization_id_build_number_e1646551_idx" ON "sentry_release" ("organization_id", "build_number");
-                    """,
-                    reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS sentry_release_organization_id_build_number_e1646551_idx",
-                ),
-                migrations.RunSQL(
-                    """
                     CREATE INDEX CONCURRENTLY IF NOT EXISTS "sentry_release_organization_id_status_3c637259_idx" ON "sentry_release" ("organization_id", "status");
                     """,
                     reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS sentry_release_organization_id_status_3c637259_idx",
