@@ -298,6 +298,12 @@ function routes() {
         component={errorHandler(LazyLoad)}
       />
       <Route
+        path="performance/"
+        name={t('Performance')}
+        componentPromise={() => import('app/views/settings/projectPerformance')}
+        component={errorHandler(LazyLoad)}
+      />
+      <Route
         path="source-maps/"
         name={t('Source Maps')}
         componentPromise={() => import('app/views/settings/projectSourceMaps')}

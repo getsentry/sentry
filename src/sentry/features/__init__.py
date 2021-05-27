@@ -110,6 +110,7 @@ default_manager.add("organizations:performance-view", OrganizationFeature)  # NO
 default_manager.add("organizations:related-events", OrganizationFeature)  # NOQA
 default_manager.add("organizations:release-adoption-chart", OrganizationFeature, True)  # NOQA
 default_manager.add("organizations:relay", OrganizationFeature)  # NOQA
+default_manager.add("organizations:release-archives", OrganizationFeature)  # NOQA
 default_manager.add("organizations:reprocessing-v2", OrganizationFeature)  # NOQA
 default_manager.add("organizations:rule-page", OrganizationFeature)  # NOQA
 default_manager.add("organizations:set-grouping-config", OrganizationFeature)  # NOQA
@@ -155,9 +156,6 @@ default_manager.add("projects:similarity-view-v2", ProjectFeature)  # NOQA
 
 # Project plugin features
 default_manager.add("projects:plugins", ProjectPluginFeature)  # NOQA
-
-# Globally scoped features
-default_manager.add("symbolicator:compare-stackwalking-methods", Feature, True)  # NOQA
 
 # This is a gross hardcoded list, but there's no
 # other sensible way to manage this right now without augmenting
