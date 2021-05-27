@@ -1,9 +1,12 @@
 import React from 'react';
+import styled from '@emotion/styled';
 
 import AsyncComponent from 'app/components/asyncComponent';
 import Pagination from 'app/components/pagination';
 import {t} from 'app/locale';
+import space from 'app/styles/space';
 import {Project} from 'app/types';
+import AsyncView from 'app/views/asyncView';
 import {
   MIN_PROJECTS_FOR_PAGINATION,
   MIN_PROJECTS_FOR_SEARCH,
@@ -72,6 +75,15 @@ class NotificationSettingsByProjects extends AsyncComponent<Props, State> {
     const canSearch = this.getProjectCount() >= MIN_PROJECTS_FOR_SEARCH;
     const shouldPaginate = projects.length >= MIN_PROJECTS_FOR_PAGINATION;
 
+    type RenderSearch = React.ComponentProps<
+      typeof AsyncView.prototype.renderSearchInput
+    >['children'];
+
+    // eslint-disable-next-line react/prop-types
+    const renderSearch: RenderSearch = ({defaultSearchBar}) => (
+      <SearchWrapper>{defaultSearchBar}</SearchWrapper>
+    );
+
     return (
       <React.Fragment>
         {canSearch &&
@@ -79,6 +91,7 @@ class NotificationSettingsByProjects extends AsyncComponent<Props, State> {
             stateKey: 'projects',
             url: '/projects/',
             placeholder: t('Search Projects'),
+            children: renderSearch,
           })}
         <Form
           saveOnBlur
@@ -107,5 +120,17 @@ class NotificationSettingsByProjects extends AsyncComponent<Props, State> {
     );
   }
 }
+
+const SearchWrapper = styled('div')`
+  display: flex;
+  * {
+    width: 100%;
+  }
+  grid-template-columns: 1fr max-content;
+  grid-gap: ${space(1.5)};
+  margin-top: ${space(4)};
+  margin-bottom: ${space(1)};
+  position: relative;
+`;
 
 export default NotificationSettingsByProjects;
