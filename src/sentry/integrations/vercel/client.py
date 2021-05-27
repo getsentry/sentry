@@ -2,7 +2,6 @@ import logging
 
 from sentry.integrations.client import ApiClient
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger("sentry.integrations.vercel.api")
 
@@ -16,7 +15,6 @@ class VercelClient(ApiClient):
     USER_URL = "/www/user"
     PROJECT_URL = "/v1/projects/%s"
     PROJECTS_URL = "/v4/projects/"
-    WEBHOOK_URL = "/v1/integrations/webhooks"
     ENV_VAR_URL = "/v6/projects/%s/env"
     GET_ENV_VAR_URL = "/v6/projects/%s/env"
     SECRETS_URL = "/v2/now/secrets"
@@ -72,15 +70,6 @@ class VercelClient(ApiClient):
 
     def get_project(self, vercel_project_id):
         return self.get(self.PROJECT_URL % vercel_project_id)
-
-    def create_deploy_webhook(self):
-        data = {
-            "name": "Sentry webhook",
-            "url": absolute_uri("/extensions/vercel/webhook/"),
-            "events": ["deployment"],
-        }
-        response = self.post(self.WEBHOOK_URL, data=data)
-        return response
 
     def get_env_vars(self, vercel_project_id):
         return self.get(self.GET_ENV_VAR_URL % vercel_project_id)

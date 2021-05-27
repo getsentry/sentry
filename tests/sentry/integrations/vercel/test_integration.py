@@ -56,12 +56,6 @@ class VercelIntegrationTest(IntegrationTestCase):
             json={"projects": [], "pagination": {"count": 0}},
         )
 
-        responses.add(
-            responses.POST,
-            f"https://api.vercel.com/v1/integrations/webhooks?{team_query}",
-            json={"id": "webhook-id"},
-        )
-
         params = {
             "configurationId": "config_id",
             "code": "oauth-code",
@@ -94,7 +88,6 @@ class VercelIntegrationTest(IntegrationTestCase):
             "access_token": "my_access_token",
             "installation_id": "my_config_id",
             "installation_type": installation_type,
-            "webhook_id": "webhook-id",
         }
         assert OrganizationIntegration.objects.get(
             integration=integration, organization=self.organization
@@ -204,36 +197,36 @@ class VercelIntegrationTest(IntegrationTestCase):
         }
 
         # assert the secret was created correctly
-        req_params = json.loads(responses.calls[9].request.body)
+        req_params = json.loads(responses.calls[8].request.body)
         assert req_params["name"] == "SENTRY_AUTH_TOKEN_%s" % uuid
         assert req_params["value"] == sentry_auth_token
 
         # assert the env vars were created correctly
-        req_params = json.loads(responses.calls[6].request.body)
+        req_params = json.loads(responses.calls[5].request.body)
         assert req_params["key"] == "SENTRY_ORG"
         assert req_params["value"] == org.slug
         assert req_params["target"] == ["production"]
         assert req_params["type"] == "plain"
 
-        req_params = json.loads(responses.calls[7].request.body)
+        req_params = json.loads(responses.calls[6].request.body)
         assert req_params["key"] == "SENTRY_PROJECT"
         assert req_params["value"] == self.project.slug
         assert req_params["target"] == ["production"]
         assert req_params["type"] == "plain"
 
-        req_params = json.loads(responses.calls[8].request.body)
+        req_params = json.loads(responses.calls[7].request.body)
         assert req_params["key"] == "NEXT_PUBLIC_SENTRY_DSN"
         assert req_params["value"] == enabled_dsn
         assert req_params["target"] == ["production"]
         assert req_params["type"] == "plain"
 
-        req_params = json.loads(responses.calls[10].request.body)
+        req_params = json.loads(responses.calls[9].request.body)
         assert req_params["key"] == "SENTRY_AUTH_TOKEN"
         assert req_params["value"] == "sec_0"
         assert req_params["target"] == ["production"]
         assert req_params["type"] == "secret"
 
-        req_params = json.loads(responses.calls[11].request.body)
+        req_params = json.loads(responses.calls[10].request.body)
         assert req_params["key"] == "VERCEL_GIT_COMMIT_SHA"
         assert req_params["value"] == "VERCEL_GIT_COMMIT_SHA"
         assert req_params["target"] == ["production"]
@@ -329,31 +322,31 @@ class VercelIntegrationTest(IntegrationTestCase):
             "project_mappings": [[project_id, "Qme9NXBpguaRxcXssZ1NWHVaM98MAL6PHDXUs1jPrgiM8H"]]
         }
 
-        req_params = json.loads(responses.calls[8].request.body)
+        req_params = json.loads(responses.calls[7].request.body)
         assert req_params["key"] == "SENTRY_ORG"
         assert req_params["value"] == org.slug
         assert req_params["target"] == ["production"]
         assert req_params["type"] == "plain"
 
-        req_params = json.loads(responses.calls[9].request.body)
+        req_params = json.loads(responses.calls[8].request.body)
         assert req_params["key"] == "SENTRY_PROJECT"
         assert req_params["value"] == self.project.slug
         assert req_params["target"] == ["production"]
         assert req_params["type"] == "plain"
 
-        req_params = json.loads(responses.calls[14].request.body)
+        req_params = json.loads(responses.calls[13].request.body)
         assert req_params["key"] == "SENTRY_DSN"
         assert req_params["value"] == enabled_dsn
         assert req_params["target"] == ["production"]
         assert req_params["type"] == "plain"
 
-        req_params = json.loads(responses.calls[18].request.body)
+        req_params = json.loads(responses.calls[17].request.body)
         assert req_params["key"] == "SENTRY_AUTH_TOKEN"
         assert req_params["value"] == "sec_0"
         assert req_params["target"] == ["production"]
         assert req_params["type"] == "secret"
 
-        req_params = json.loads(responses.calls[19].request.body)
+        req_params = json.loads(responses.calls[18].request.body)
         assert req_params["key"] == "VERCEL_GIT_COMMIT_SHA"
         assert req_params["value"] == "VERCEL_GIT_COMMIT_SHA"
         assert req_params["target"] == ["production"]
