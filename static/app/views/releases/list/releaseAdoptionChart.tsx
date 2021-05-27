@@ -151,12 +151,7 @@ class ReleaseAdoptionChart extends React.PureComponent<Props, State> {
             {zoomRenderProps => (
               <StackedAreaChart
                 {...zoomRenderProps}
-                grid={{
-                  left: '10px',
-                  right: '10px',
-                  top: '40px',
-                  bottom: '0px',
-                }}
+                grid={{left: '10px', right: '10px', top: '40px', bottom: '0px'}}
                 series={releasesSeries}
                 yAxis={{
                   min: 0,
