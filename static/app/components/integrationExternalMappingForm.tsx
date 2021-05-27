@@ -13,9 +13,11 @@ type Props = Pick<Form['props'], 'onSubmitSuccess' | 'onCancel'> &
     organization: Organization;
     integration: Integration;
     mapping?: ExternalActorMapping;
-    sentryNames: {id: string; name: string}[];
     type: 'user' | 'team';
     baseEndpoint?: string;
+    sentryNamesMapper: (v: any) => {id: string; name: string}[];
+    url: string;
+    onResults?: (data: any) => void;
   };
 
 export default class IntegrationExternalMappingForm extends Component<Props> {
@@ -34,8 +36,10 @@ export default class IntegrationExternalMappingForm extends Component<Props> {
   }
 
   get formFields(): Field[] {
-    const {sentryNames, type} = this.props;
-    const options = sentryNames.map(({name, id}) => ({value: id, label: name}));
+    const {type, sentryNamesMapper, url} = this.props;
+    const optionMapper = sentryNames =>
+      sentryNames.map(({name, id}) => ({value: id, label: name}));
+
     const fields: any[] = [
       {
         name: 'externalName',
@@ -48,21 +52,29 @@ export default class IntegrationExternalMappingForm extends Component<Props> {
     if (type === 'user') {
       fields.push({
         name: 'userId',
-        type: 'select',
+        type: 'select_async',
         required: true,
         label: tct('Sentry [type]', {type: capitalize(type)}),
         placeholder: t(`Choose your Sentry User`),
-        options,
+        url,
+        onResults: result => {
+          this.props.onResults?.(result);
+          return optionMapper(sentryNamesMapper(result));
+        },
       });
     }
     if (type === 'team') {
       fields.push({
         name: 'teamId',
-        type: 'select',
+        type: 'select_async',
         required: true,
         label: tct('Sentry [type]', {type: capitalize(type)}),
         placeholder: t(`Choose your Sentry Team`),
-        options,
+        url,
+        onResults: result => {
+          this.props.onResults?.(result);
+          return optionMapper(sentryNamesMapper(result));
+        },
       });
     }
     return fields;

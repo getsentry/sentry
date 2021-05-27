@@ -17,12 +17,27 @@ type Props = AsyncComponent['props'] & {
 
 type State = AsyncComponent['state'] & {
   teams: Team[];
+  queryResults: Team[];
 };
 
 class IntegrationExternalTeamMappings extends AsyncComponent<Props, State> {
+  getDefaultState() {
+    return {
+      ...super.getDefaultState(),
+      teams: [],
+      queryResults: [],
+    };
+  }
+
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {organization} = this.props;
-    return [['teams', `/organizations/${organization.slug}/teams/`]];
+    return [
+      [
+        'teams',
+        `/organizations/${organization.slug}/teams/`,
+        {query: {query: 'hasExternalTeams:true'}},
+      ],
+    ];
   }
 
   handleDelete = async (mapping: ExternalActorMapping) => {
@@ -68,7 +83,10 @@ class IntegrationExternalTeamMappings extends AsyncComponent<Props, State> {
 
   get sentryNames() {
     const {teams} = this.state;
-    return teams;
+    return this.sentryNamesMapper(teams);
+  }
+  sentryNamesMapper(teams: Team[]) {
+    return teams.map(({id, name}) => ({id, name}));
   }
 
   handleSubmit = (
@@ -82,8 +100,8 @@ class IntegrationExternalTeamMappings extends AsyncComponent<Props, State> {
     // We need to dynamically set the endpoint bc it requires the slug of the selected team in the form.
     try {
       const {organization} = this.props;
-      const {teams} = this.state;
-      const team = teams.find(item => item.id === data.teamId);
+      const {queryResults} = this.state;
+      const team = queryResults.find(item => item.id === data.teamId);
 
       if (!team) {
         throw new Error('Cannot find team slug.');
@@ -121,10 +139,12 @@ class IntegrationExternalTeamMappings extends AsyncComponent<Props, State> {
               closeModal();
             }}
             mapping={mapping}
-            sentryNames={this.sentryNames}
+            sentryNamesMapper={this.sentryNamesMapper}
             type="team"
+            url={`/organizations/${organization.slug}/teams/`}
             onCancel={closeModal}
             onSubmit={(...args) => this.handleSubmit(...args, mapping)}
+            onResults={results => this.setState({queryResults: results})}
           />
         </Body>
       </React.Fragment>

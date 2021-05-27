@@ -10,6 +10,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models import team as team_serializers
 from sentry.models import (
     AuditLogEntryEvent,
+    ExternalActor,
     OrganizationMember,
     OrganizationMemberTeam,
     Team,
@@ -86,7 +87,13 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
         if query:
             tokens = tokenize_query(query)
             for key, value in tokens.items():
-                if key == "query":
+                if key == "hasExternalTeams" and "true" in value:
+                    queryset = queryset.filter(
+                        actor_id__in=ExternalActor.objects.filter(
+                            organization=organization
+                        ).values_list("actor_id")
+                    )
+                elif key == "query":
                     value = " ".join(value)
                     queryset = queryset.filter(Q(name__icontains=value) | Q(slug__icontains=value))
                 else:

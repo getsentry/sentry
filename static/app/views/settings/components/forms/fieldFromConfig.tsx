@@ -14,6 +14,7 @@ import ProjectMapperField from './projectMapperField';
 import RadioField from './radioField';
 import RangeField from './rangeField';
 import RichListField from './richListField';
+import SelectAsyncField from './selectAsyncField';
 import SelectField from './selectField';
 import SentryProjectSelectorField from './sentryProjectSelectorField';
 import TableField from './tableField';
@@ -98,6 +99,8 @@ export default class FieldFromConfig extends Component<Props> {
         return <ProjectMapperField {...props} />;
       case 'sentry_project_selector':
         return <SentryProjectSelectorField {...props} />;
+      case 'select_async':
+        return <SelectAsyncField {...(props as any)} />;
       case 'custom':
         return field.Component(props);
       default:

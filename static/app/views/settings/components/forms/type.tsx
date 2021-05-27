@@ -27,6 +27,7 @@ export const FieldType = [
   'table',
   'project_mapper',
   'sentry_project_selector',
+  'select_async',
 ] as const;
 
 export type FieldValue = any;
