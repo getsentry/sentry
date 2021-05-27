@@ -38,17 +38,17 @@ class CodeOwnersPanel extends Component<Props> {
     const {codeowners} = this.props;
     return (codeowners || []).map(codeowner => {
       const {
-        raw,
         dateUpdated,
         provider,
         codeMapping: {repoName},
+        ownershipSyntax,
       } = codeowner;
       return (
         <Fragment key={codeowner.id}>
           <RulesPanel
             data-test-id="codeowners-panel"
             type="codeowners"
-            raw={raw}
+            raw={ownershipSyntax}
             dateUpdated={dateUpdated}
             provider={provider}
             repoName={repoName}

@@ -91,7 +91,7 @@ class TestDSNAuthentication(TestCase):
         assert result is not None
 
         user, auth = result
-        assert user.is_anonymous()
+        assert user.is_anonymous
         assert auth == self.project_key
 
     def test_inactive_key(self):

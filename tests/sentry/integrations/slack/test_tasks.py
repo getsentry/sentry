@@ -42,7 +42,7 @@ class SlackTasksTest(TestCase):
         )
 
     @fixture
-    def metic_alert_data(self):
+    def metric_alert_data(self):
         return {
             "aggregate": "count()",
             "query": "",
@@ -205,7 +205,7 @@ class SlackTasksTest(TestCase):
         return_value=("#", "chan-id", False),
     )
     def test_task_new_alert_rule(self, mock_get_channel_id, mock_set_value):
-        alert_rule_data = self.metic_alert_data
+        alert_rule_data = self.metric_alert_data
 
         data = {
             "data": alert_rule_data,
@@ -232,7 +232,7 @@ class SlackTasksTest(TestCase):
         return_value=("#", None, False),
     )
     def test_task_failed_id_lookup(self, mock_get_channel_id, mock_set_value):
-        alert_rule_data = self.metic_alert_data
+        alert_rule_data = self.metric_alert_data
 
         data = {
             "data": alert_rule_data,
@@ -254,7 +254,7 @@ class SlackTasksTest(TestCase):
         return_value=("#", None, True),
     )
     def test_task_timeout_id_lookup(self, mock_get_channel_id, mock_set_value):
-        alert_rule_data = self.metic_alert_data
+        alert_rule_data = self.metric_alert_data
 
         data = {
             "data": alert_rule_data,
@@ -276,7 +276,7 @@ class SlackTasksTest(TestCase):
         return_value=("#", "chan-id", False),
     )
     def test_task_existing_metric_alert(self, mock_get_channel_id, mock_set_value):
-        alert_rule_data = self.metic_alert_data
+        alert_rule_data = self.metric_alert_data
         alert_rule = self.create_alert_rule(
             organization=self.org, projects=[self.project1], name="New Rule", user=self.user
         )

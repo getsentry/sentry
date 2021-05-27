@@ -175,13 +175,16 @@ class EventStorage(Service):
         """
         raise NotImplementedError
 
-    def get_event_by_id(self, project_id, event_id):
+    def get_event_by_id(self, project_id, event_id, group_id=None):
         """
         Gets a single event given a project_id and event_id.
+        Returns None if an event cannot be found.
 
         Arguments:
         project_id (int): Project ID
         event_id (str): Event ID
+        group_id (Optional[int]): If the group ID for this event is already known, pass
+            it here to save one Snuba query.
         """
         raise NotImplementedError
 
