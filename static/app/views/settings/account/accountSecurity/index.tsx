@@ -74,6 +74,7 @@ class AccountSecurity extends AsyncView<Props> {
       onClose: () => {
         handleRefresh();
       },
+      actionMessage: 'enrolling a 2FA device',
     });
   };
 
