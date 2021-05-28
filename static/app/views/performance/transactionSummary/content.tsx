@@ -17,7 +17,7 @@ import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {generateQueryWithTag} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import DiscoverQuery, {TableDataRow} from 'app/utils/discover/discoverQuery';
+import DiscoverQuery, {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
 import {
   getAggregateAlias,
@@ -314,11 +314,12 @@ class SummaryContent extends React.Component<Props, State> {
               totalValues={totalCount}
               currentFilter={spanOperationBreakdownFilter}
             />
-            <DiscoverQuery
+            <MaxSpanQuery
               eventView={maxDurationEventView}
               orgSlug={organization.slug}
               location={location}
               referrer="api.performance.transaction-summary"
+              currentFilter={spanOperationBreakdownFilter}
             >
               {({tableData: maxSpansData}) => {
                 return (
@@ -374,12 +375,12 @@ class SummaryContent extends React.Component<Props, State> {
                     maxSpansDuration={
                       maxSpansData?.data?.[0]?.[
                         `max_spans_${spanOperationBreakdownFilter}`
-                      ]
+                      ] as number
                     }
                   />
                 );
               }}
-            </DiscoverQuery>
+            </MaxSpanQuery>
             <Feature features={['performance-tag-explorer']}>
               <TagExplorer
                 eventView={eventView}
@@ -436,6 +437,32 @@ class SummaryContent extends React.Component<Props, State> {
       </React.Fragment>
     );
   }
+}
+
+type MaxSpanQueryProps = {
+  location: Location;
+  eventView: EventView;
+  orgSlug: string;
+  referrer?: string;
+  currentFilter?: SpanOperationBreakdownFilter;
+  children?: (data: {tableData: TableData | null}) => React.ReactNode;
+};
+
+function MaxSpanQuery(props: MaxSpanQueryProps) {
+  const {location, eventView, orgSlug, referrer, currentFilter, children} = props;
+  if (currentFilter && currentFilter !== SpanOperationBreakdownFilter.None) {
+    return (
+      <DiscoverQuery
+        eventView={eventView}
+        orgSlug={orgSlug}
+        location={location}
+        referrer={referrer}
+      >
+        {children}
+      </DiscoverQuery>
+    );
+  }
+  return <React.Fragment>{children?.({tableData: null})}</React.Fragment>;
 }
 
 function generateTraceLink(dateSelection) {
