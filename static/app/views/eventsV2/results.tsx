@@ -84,8 +84,6 @@ class Results extends React.Component<Props, State> {
     return prevState;
   }
 
-  tagsApi: Client = new Client();
-
   state: State = {
     eventView: EventView.fromSavedQueryOrLocation(
       this.props.savedQuery,
@@ -132,6 +130,8 @@ class Results extends React.Component<Props, State> {
 
     if (prevState.confirmedQuery !== confirmedQuery) this.fetchTotalCount();
   }
+
+  tagsApi: Client = new Client();
 
   hasChartParametersChanged(prevEventView: EventView, eventView: EventView) {
     const prevYAxisValue = prevEventView.getYAxis();
