@@ -1,5 +1,6 @@
 import datetime
 from collections import namedtuple
+from dateutil import parser
 from typing import Optional
 
 import requests
@@ -57,10 +58,10 @@ def validate_credentials(
         return None
 
     expiration_date = None
-    if credentials.get("refreshDate") is not None:
-        expiration_date = (
-            datetime.datetime.fromisoformat(credentials.get("refreshDate")) + TOKEN_VALIDITY
-        )
+    refresh_date = credentials.get("refreshDate")
+
+    if refresh_date is not None:
+        expiration_date = parser.isoparse(refresh_date) + TOKEN_VALIDITY
 
     secrets = encrypt.decrypt_object(credentials.get("encrypted"), key)
 
