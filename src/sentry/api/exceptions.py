@@ -88,6 +88,24 @@ class TwoFactorRequired(SentryAPIException):
     message = "Organization requires two-factor authentication to be enabled"
 
 
+class AppConnectAuthenticationError(SentryAPIException):
+    status_code = status.HTTP_401_UNAUTHORIZED
+    code = "app-connect-authentication-error"
+    message = "App connect authentication error"
+
+
+class ItunesAuthenticationError(SentryAPIException):
+    status_code = status.HTTP_401_UNAUTHORIZED
+    code = "itunes-authentication-error"
+    message = "Itunes authentication error"
+
+
+class ItunesTwoFactorAuthenticationRequired(SentryAPIException):
+    status_code = status.HTTP_401_UNAUTHORIZED
+    code = "itunes-2fa-required"
+    message = "Itunes requires two-factor authentication to be enabled"
+
+
 class ConflictError(APIException):
     status_code = status.HTTP_409_CONFLICT
 

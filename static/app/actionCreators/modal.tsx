@@ -180,16 +180,25 @@ export type SentryAppDetailsModalOptions = {
 type DebugFileSourceModalOptions = {
   sourceType: DebugFileSource;
   onSave: (data: Record<string, string>) => void;
+  onClose?: () => void;
   sourceConfig?: Record<string, string>;
 };
 
-export async function openDebugFileSourceModal(options: DebugFileSourceModalOptions) {
+export async function openDebugFileSourceModal({
+  onClose,
+  sourceType,
+  ...restOptions
+}: DebugFileSourceModalOptions) {
   const mod = await import(
     /* webpackChunkName: "DebugFileCustomRepository" */ 'app/components/modals/debugFileCustomRepository'
   );
-  const {default: Modal, modalCss} = mod;
 
-  openModal(deps => <Modal {...deps} {...options} />, {backdrop: 'static', modalCss});
+  const {default: Modal, modalCss} = mod;
+  openModal(deps => <Modal {...deps} sourceType={sourceType} {...restOptions} />, {
+    backdrop: sourceType === 'appStoreConnect' ? 'static' : undefined,
+    modalCss,
+    onClose,
+  });
 }
 
 export async function openInviteMembersModal(options = {}) {

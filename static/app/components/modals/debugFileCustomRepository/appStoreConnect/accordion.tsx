@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import ListItem from 'app/components/list/listItem';
@@ -14,6 +14,10 @@ type Props = {
 
 function Accordion({summary, defaultExpanded, children}: Props) {
   const [isExpanded, setIsExpanded] = useState(!!defaultExpanded);
+
+  useEffect(() => {
+    setIsExpanded(!!defaultExpanded);
+  }, [defaultExpanded]);
 
   return (
     <ListItem>

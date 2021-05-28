@@ -1,5 +1,7 @@
-import {Fragment, useContext} from 'react';
+import {Fragment, useContext, useEffect} from 'react';
+import {InjectedRouter} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 import omit from 'lodash/omit';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
@@ -31,10 +33,24 @@ type Props = {
   organization: Organization;
   projectSlug: Project['slug'];
   symbolSources: Item[];
+  router: InjectedRouter;
+  location: Location;
 };
 
-function SymbolSources({api, organization, symbolSources, projectSlug}: Props) {
+function SymbolSources({
+  api,
+  organization,
+  symbolSources,
+  projectSlug,
+  router,
+  location,
+}: Props) {
   const appStoreConnectContext = useContext(AppStoreConnectContext);
+
+  useEffect(() => {
+    openDebugFileSourceDialog();
+  }, [location.query]);
+
   const hasAppConnectStoreFeatureFlag = !!organization.features?.includes(
     'app-store-connect'
   );
@@ -70,6 +86,29 @@ function SymbolSources({api, organization, symbolSources, projectSlug}: Props) {
       value: 'appStoreConnect',
       label: t(DEBUG_SOURCE_TYPES.appStoreConnect),
       searchKey: t('apple store connect itunes ios'),
+    });
+  }
+
+  const {value, errors = []} = getRichListFieldValue();
+
+  function openDebugFileSourceDialog() {
+    const {customRepository} = location.query;
+
+    if (!customRepository) {
+      return;
+    }
+
+    const item = value.find(v => v.id === customRepository);
+
+    if (!item) {
+      return;
+    }
+
+    openDebugFileSourceModal({
+      sourceConfig: item,
+      sourceType: item.type,
+      onSave: updatedData => handleUpdateSymbolSource(updatedData as Item, item.index),
+      onClose: handleCloseImageDetailsModal,
     });
   }
 
@@ -196,6 +235,23 @@ function SymbolSources({api, organization, symbolSources, projectSlug}: Props) {
     handleChange(items);
   }
 
+  function handleOpenDebugFileSourceModalToEdit(repositoryId: string) {
+    router.push({
+      ...location,
+      query: {
+        ...location.query,
+        customRepository: repositoryId,
+      },
+    });
+  }
+
+  function handleCloseImageDetailsModal() {
+    router.push({
+      ...location,
+      query: {...location.query, customRepository: undefined},
+    });
+  }
+
   function editSymbolSourceModal(item: Item, index: number) {
     return openDebugFileSourceModal({
       sourceConfig: item,
@@ -203,8 +259,6 @@ function SymbolSources({api, organization, symbolSources, projectSlug}: Props) {
       onSave: updatedData => handleUpdateSymbolSource(updatedData as Item, index),
     });
   }
-
-  const {value, errors = []} = getRichListFieldValue();
 
   return (
     <Fragment>
@@ -259,13 +313,7 @@ function SymbolSources({api, organization, symbolSources, projectSlug}: Props) {
               onSave: addItem,
             })
           }
-          onEditItem={(item, updateItem) =>
-            openDebugFileSourceModal({
-              sourceConfig: item,
-              sourceType: item.type,
-              onSave: updateItem,
-            })
-          }
+          onEditItem={item => handleOpenDebugFileSourceModalToEdit(item.id)}
           removeConfirm={{
             confirmText: t('Remove Repository'),
             message: (
