@@ -2,8 +2,10 @@ import {Component} from 'react';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
 
-import TeamKeyTransaction from 'app/components/performance/teamKeyTransaction';
+import TeamStore from 'app/stores/teamStore';
+import EventView from 'app/utils/discover/eventView';
 import {MAX_TEAM_KEY_TRANSACTIONS} from 'app/utils/performance/constants';
+import TeamKeyTransactionButton from 'app/views/performance/transactionSummary/teamKeyTransactionButton';
 
 class TestButton extends Component {
   render() {
@@ -25,9 +27,22 @@ describe('TeamKeyTransaction', function () {
     TestStubs.Team({id: '1', slug: 'team1', name: 'Team 1'}),
     TestStubs.Team({id: '2', slug: 'team2', name: 'Team 2'}),
   ];
+  const eventView = new EventView({
+    id: '1',
+    name: 'my query',
+    fields: [{field: 'count()'}],
+    sorts: [{field: 'count', kind: 'desc'}],
+    query: '',
+    project: [project.id],
+    start: '2019-10-01T00:00:00',
+    end: '2019-10-02T00:00:00',
+    statsPeriod: '14d',
+    environment: [],
+  });
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
+    TeamStore.loadInitialData(teams);
   });
 
   describe('With no disabled', function () {
@@ -47,10 +62,9 @@ describe('TeamKeyTransaction', function () {
       });
 
       const wrapper = mountWithTheme(
-        <TeamKeyTransaction
-          project={project.id}
+        <TeamKeyTransactionButton
+          eventView={eventView}
           organization={organization}
-          teams={teams}
           transactionName="transaction"
           title={TestButton}
         />
@@ -85,10 +99,9 @@ describe('TeamKeyTransaction', function () {
       });
 
       const wrapper = mountWithTheme(
-        <TeamKeyTransaction
-          project={project.id}
+        <TeamKeyTransactionButton
+          eventView={eventView}
           organization={organization}
-          teams={teams}
           transactionName="transaction"
           title={TestButton}
         />
@@ -123,10 +136,9 @@ describe('TeamKeyTransaction', function () {
       });
 
       const wrapper = mountWithTheme(
-        <TeamKeyTransaction
-          project={project.id}
+        <TeamKeyTransactionButton
+          eventView={eventView}
           organization={organization}
-          teams={teams}
           transactionName="transaction"
           title={TestButton}
         />
@@ -176,10 +188,9 @@ describe('TeamKeyTransaction', function () {
       );
 
       const wrapper = mountWithTheme(
-        <TeamKeyTransaction
-          project={project.id}
+        <TeamKeyTransactionButton
+          eventView={eventView}
           organization={organization}
-          teams={teams}
           transactionName="transaction"
           title={TestButton}
         />
@@ -223,10 +234,9 @@ describe('TeamKeyTransaction', function () {
       );
 
       const wrapper = mountWithTheme(
-        <TeamKeyTransaction
-          project={project.id}
+        <TeamKeyTransactionButton
+          eventView={eventView}
           organization={organization}
-          teams={teams}
           transactionName="transaction"
           title={TestButton}
         />
@@ -271,10 +281,9 @@ describe('TeamKeyTransaction', function () {
       );
 
       const wrapper = mountWithTheme(
-        <TeamKeyTransaction
-          project={project.id}
+        <TeamKeyTransactionButton
+          eventView={eventView}
           organization={organization}
-          teams={teams}
           transactionName="transaction"
           title={TestButton}
         />
@@ -329,10 +338,9 @@ describe('TeamKeyTransaction', function () {
       );
 
       const wrapper = mountWithTheme(
-        <TeamKeyTransaction
-          project={project.id}
+        <TeamKeyTransactionButton
+          eventView={eventView}
           organization={organization}
-          teams={teams}
           transactionName="transaction"
           title={TestButton}
         />
@@ -378,10 +386,9 @@ describe('TeamKeyTransaction', function () {
       });
 
       const wrapper = mountWithTheme(
-        <TeamKeyTransaction
-          project={project.id}
+        <TeamKeyTransactionButton
+          eventView={eventView}
           organization={organization}
-          teams={teams}
           transactionName="transaction"
           title={TestButton}
         />
@@ -413,10 +420,9 @@ describe('TeamKeyTransaction', function () {
       });
 
       const wrapper = mountWithTheme(
-        <TeamKeyTransaction
-          project={project.id}
+        <TeamKeyTransactionButton
+          eventView={eventView}
           organization={organization}
-          teams={teams}
           transactionName="transaction"
           title={TestButton}
         />
