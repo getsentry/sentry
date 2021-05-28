@@ -312,7 +312,10 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
         resp = session.get(
             "https://{}/api/v3/user/installations".format(installation_data["url"]),
             params={"access_token": access_token},
-            headers={"Accept": "application/vnd.github.machine-man-preview+json"},
+            headers={
+                "Accept": "application/vnd.github.machine-man-preview+json",
+                "Authorization": "token {}".format(access_token)
+            },
             verify=installation_data["verify_ssl"],
         )
         resp.raise_for_status()
