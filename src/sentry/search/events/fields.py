@@ -1357,7 +1357,7 @@ FUNCTIONS = {
             ],
             calculated_args=[
                 {"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0},
-                {"name": "parameter_sum", "fn": lambda args, _: args["alpha"] + args["beta"]},
+                {"name": "parameter_sum", "fn": lambda args: args["alpha"] + args["beta"]},
             ],
             transform="ifNull(divide(plus(uniqIf(user, greater(duration, {tolerated:g})), {alpha}), plus(uniq(user), {parameter_sum})), 0)",
             default_result_type="number",
