@@ -23,16 +23,10 @@ from sentry.utils.snuba import Dataset, resolve_column
 
 # TODO: this should be a TypedDict instead
 ParamsType = Mapping[str, Union[List[int], int, str, datetime]]
-AggregateType = Union[Function, CurriedFunction]
+# Function is a subclass of CurriedFunction
+AggregateType = Union[CurriedFunction]
 WhereType = Union[Condition, BooleanCondition]
-SelectType = Union[Column, CurriedFunction, Function]
-
-OPERATOR_MAP: Mapping[str, Op] = {
-    "=": Op.EQ,
-    "!=": Op.NEQ,
-    "IN": Op.IN,
-    "NOT IN": Op.NOT_IN,
-}
+SelectType = Union[Column, Function, CurriedFunction]
 
 
 class QueryBuilder:
@@ -139,7 +133,7 @@ class QueryBuilder:
 
         # We want to use group_id elsewhere so shouldn't be removed from the dataset
         # but if a user has a tag with the same name we want to make sure that works
-        if name in {"group_id"}:
+        if name == {"group_id"}:
             name = f"tags[{name}]"
 
         if name in NO_CONVERSION_FIELDS:
@@ -152,21 +146,19 @@ class QueryBuilder:
             # Handle checks for existence
             if search_filter.operator in ("=", "!=") and search_filter.value.value == "":
                 if search_filter.key.is_tag:
-                    return Condition(lhs, OPERATOR_MAP[search_filter.operator], value)
+                    return Condition(lhs, Op(search_filter.operator), value)
                 else:
                     # If not a tag, we can just check that the column is null.
-                    return Condition(
-                        Function("ifNull", [lhs]), OPERATOR_MAP[search_filter.operator], 1
-                    )
+                    return Condition(Function("ifNull", [lhs]), Op(search_filter.operator), 1)
 
             if search_filter.value.is_wildcard():
                 condition = Condition(
                     Function("match", [lhs, f"'(?i){value}'"]),
-                    OPERATOR_MAP[search_filter.operator],
+                    Op(search_filter.operator),
                     1,
                 )
             else:
-                condition = Condition(lhs, OPERATOR_MAP[search_filter.operator], value)
+                condition = Condition(lhs, Op(search_filter.operator), value)
 
             return condition
         else:
@@ -259,6 +251,8 @@ class QueryBuilder:
         if len(validated) == len(self.orderby_columns):
             return validated
 
+        # TODO: This is not true, can order by fields that aren't selected, keeping
+        # for now so we're consistent with the existing functionality
         raise InvalidSearchQuery("Cannot order by a field that is not selected.")
 
     def get_snql_query(self) -> Query:
