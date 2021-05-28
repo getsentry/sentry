@@ -31,9 +31,19 @@ type Props = Pick<CommonSidebarProps, 'orientation' | 'collapsed'> & {
   org: Organization;
   user: User;
   config: Config;
+  //set to true for deactivated members so we can hide links they cannot access
+  hideInternalLinks?: boolean;
 };
 
-const SidebarDropdown = ({api, org, orientation, collapsed, config, user}: Props) => {
+const SidebarDropdown = ({
+  api,
+  org,
+  orientation,
+  collapsed,
+  config,
+  user,
+  hideInternalLinks,
+}: Props) => {
   const handleLogout = async () => {
     await logout(api);
     window.location.assign('/auth/login/');
@@ -93,24 +103,26 @@ const SidebarDropdown = ({api, org, orientation, collapsed, config, user}: Props
               {hasOrganization && (
                 <Fragment>
                   <SidebarOrgSummary organization={org} />
-                  {hasOrgRead && (
+                  {hasOrgRead && !hideInternalLinks && (
                     <SidebarMenuItem to={`/settings/${org.slug}/`}>
                       {t('Organization settings')}
                     </SidebarMenuItem>
                   )}
-                  {hasMemberRead && (
+                  {hasMemberRead && !hideInternalLinks && (
                     <SidebarMenuItem to={`/settings/${org.slug}/members/`}>
                       {t('Members')}
                     </SidebarMenuItem>
                   )}
 
-                  {hasTeamRead && (
+                  {hasTeamRead && !hideInternalLinks && (
                     <SidebarMenuItem to={`/settings/${org.slug}/teams/`}>
                       {t('Teams')}
                     </SidebarMenuItem>
                   )}
 
-                  <Hook name="sidebar:organization-dropdown-menu" organization={org} />
+                  {!hideInternalLinks && (
+                    <Hook name="sidebar:organization-dropdown-menu" organization={org} />
+                  )}
 
                   {!config.singleOrganization && (
                     <SidebarMenuItem>
@@ -130,18 +142,22 @@ const SidebarDropdown = ({api, org, orientation, collapsed, config, user}: Props
                     </UserSummary>
 
                     <div>
-                      <SidebarMenuItem to="/settings/account/">
-                        {t('User settings')}
-                      </SidebarMenuItem>
-                      <SidebarMenuItem to="/settings/account/api/">
-                        {t('API keys')}
-                      </SidebarMenuItem>
-                      <Hook
-                        name="sidebar:organization-dropdown-menu-bottom"
-                        organization={org}
-                      />
-                      {user.isSuperuser && (
-                        <SidebarMenuItem to="/manage/">{t('Admin')}</SidebarMenuItem>
+                      {!hideInternalLinks && (
+                        <Fragment>
+                          <SidebarMenuItem to="/settings/account/">
+                            {t('User settings')}
+                          </SidebarMenuItem>
+                          <SidebarMenuItem to="/settings/account/api/">
+                            {t('API keys')}
+                          </SidebarMenuItem>
+                          <Hook
+                            name="sidebar:organization-dropdown-menu-bottom"
+                            organization={org}
+                          />
+                          {user.isSuperuser && (
+                            <SidebarMenuItem to="/manage/">{t('Admin')}</SidebarMenuItem>
+                          )}
+                        </Fragment>
                       )}
                       <SidebarMenuItem
                         data-test-id="sidebarSignout"
