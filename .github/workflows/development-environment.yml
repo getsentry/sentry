@@ -42,7 +42,7 @@ jobs:
         # Sometimes, brew needs to be updated before brew bundle would work
         # After installing Docker (via homebrew) we need to make sure that it is properly initialized on Mac
         run: |
-          brew update -q && brew bundle -q
+          HOMEBREW_NO_AUTO_UPDATE=1 brew bundle -q --no-upgrade || brew update && brew bundle
           SENTRY_NO_VENV_CHECK=1 ./scripts/do.sh init-docker
 
       - name: Install Python (via Pyenv)

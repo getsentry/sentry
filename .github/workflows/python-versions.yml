@@ -1,5 +1,6 @@
 name: python versions
 on:
+  workflow_dispatch:
   schedule:
     # Notifications will be sent to whoever touches this last
     # You will be able to trigger this workflow manually if need be
