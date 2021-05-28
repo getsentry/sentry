@@ -505,6 +505,15 @@ class SymbolicatorSession:
                 if response.ok:
                     json = response.json()
                 else:
+                    if response.status_code == 400:
+                        logger.error(
+                            "Received 400 Bad Request from symbolicator",
+                            extra={
+                                "request_kwargs": kwargs,
+                                "request_url": url,
+                                "response": response.text,
+                            },
+                        )
                     json = {"status": "failed", "message": "internal server error"}
 
                 return self._process_response(json)
