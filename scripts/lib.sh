@@ -49,6 +49,10 @@ install-py-dev() {
     # This helps when getsentry calls into this script
     cd "${HERE}/.." || exit
     echo "--> Installing Sentry (for development)"
+    if [ "$(uname -s)" = "Linux" ]; then
+        # Only until a new release of xmlsec is produced
+        pip install git+https://github.com/mehcode/python-xmlsec.git@f6a574ff1490f7cbec7e4ab86dbdc6d099b8bf62
+    fi
     # In Big Sur, versions of pip before 20.3 require SYSTEM_VERSION_COMPAT set
     if query_big_sur && python -c 'from sys import exit; import pip; from pip._vendor.packaging.version import parse; exit(1 if parse(pip.__version__) < parse("20.3") else 0)'; then
         SENTRY_LIGHT_BUILD=1 SYSTEM_VERSION_COMPAT=1 pip install -e '.[dev]'
