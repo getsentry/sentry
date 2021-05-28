@@ -46,10 +46,8 @@ class OrganizationReleaseDetailsPaginationMixin:
         sorting
         """
         return {
-            "date_query_q": [
-                Q(date_added__gte=release.date_added),
-                Q(date_added__gt=release.date_added) | Q(id__gt=release.id),
-            ],
+            "date_query_q": Q(date_added__gt=release.date_added)
+            | Q(date_added=release.date_added, id__gt=release.id),
             "order_by": ["date_added", "id"],
         }
 
@@ -61,10 +59,8 @@ class OrganizationReleaseDetailsPaginationMixin:
         sorting
         """
         return {
-            "date_query_q": [
-                Q(date_added__lte=release.date_added),
-                Q(date_added__lt=release.date_added) | Q(id__lt=release.id),
-            ],
+            "date_query_q": Q(date_added__lt=release.date_added)
+            | Q(date_added=release.date_added, id__lt=release.id),
             "order_by": ["-date_added", "-id"],
         }
 
@@ -87,9 +83,9 @@ class OrganizationReleaseDetailsPaginationMixin:
             based on the inputs
         """
         queryset = Release.objects.filter(
+            date_query_q,
             organization=org,
             projects__id__in=filter_params["project_id"],
-            *date_query_q,
         )
 
         # Add env filter
