@@ -140,10 +140,16 @@ def _query_snuba(group: Group, unparsed_id: str, offset=None, limit=None):
 
     levels_overview = get_levels_overview(group)
 
+    # These conditions are always valid
+    common_where = [
+        Condition(Column("primary_hash"), Op.EQ, levels_overview.only_primary_hash),
+        Condition(Column("project_id"), Op.EQ, group.project_id),
+    ]
+
     if id >= levels_overview.current_level:
         # Good path: Since we increase the level we can easily constrain the
         # entire query by group_id and timerange
-        query = query.set_where(_get_group_filters(group))
+        query = query.set_where(common_where + _get_group_filters(group))
     else:
         # Bad path: We decreased the level and now we need to count events from
         # other groups. If we cannot filter by group_id, we can also not
@@ -156,14 +162,13 @@ def _query_snuba(group: Group, unparsed_id: str, offset=None, limit=None):
         now = datetime.datetime.now()
         new_materialized_hash = _get_hash_for_parent_level(group, id, levels_overview)
         query = query.set_where(
-            [
+            common_where
+            + [
                 Condition(
                     Function("arrayElement", [Column("hierarchical_hashes"), id + 1]),
                     Op.EQ,
                     new_materialized_hash,
                 ),
-                Condition(Column("primary_hash"), Op.EQ, levels_overview.only_primary_hash),
-                Condition(Column("project_id"), Op.EQ, group.project_id),
                 Condition(Column("timestamp"), Op.GTE, now - datetime.timedelta(days=90)),
                 Condition(Column("timestamp"), Op.LT, now + datetime.timedelta(seconds=10)),
             ]
