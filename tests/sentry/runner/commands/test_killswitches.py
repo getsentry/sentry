@@ -22,21 +22,24 @@ class KillswitchesTest(CliTestCase):
             "\n" "store.load-shed-group-creation-projects\n" "  # hey\n" "<disabled entirely>\n"
         )
 
-        assert self.invoke("pull", OPTION, "-").output == (
+        PREAMBLE = (
             "# store.load-shed-group-creation-projects: hey\n"
             "# \n"
             "# After saving and exiting, your killswitch conditions will be printed\n"
             "# in faux-SQL for you to confirm.\n"
             "# \n"
-            "# Below a template is given for a single block. The block's fields will\n"
-            "# be joined with AND, while all blocks will be joined with OR. All\n"
-            "# fields need to be set, but can be set to null/~, which is a wildcard.\n"
+            "# Below a template is given for a single condition. The condition's\n"
+            "# fields will be joined with AND, while all conditions will be joined\n"
+            "# with OR. All fields need to be set, but can be set to null/~, which is\n"
+            "# a wildcard.\n"
             "# \n"
             "# - # ho\n"
-            "#   event_type: ~\n"
+            "#   event_type: null\n"
             "#   # hey\n"
-            "#   project_id: ~"
+            "#   project_id: null"
         )
+
+        assert self.invoke("pull", OPTION, "-").output == PREAMBLE
 
         rv = self.invoke(
             "push", "--yes", OPTION, "-", input=("- project_id: 42\n  event_type: transaction\n")
@@ -50,23 +53,8 @@ class KillswitchesTest(CliTestCase):
             "  (project_id = 42 AND event_type = transaction)\n"
         )
 
-        assert self.invoke("pull", OPTION, "-").output == (
-            "# store.load-shed-group-creation-projects: hey\n"
-            "# \n"
-            "# After saving and exiting, your killswitch conditions will be printed\n"
-            "# in faux-SQL for you to confirm.\n"
-            "# \n"
-            "# Below a template is given for a single block. The block's fields will\n"
-            "# be joined with AND, while all blocks will be joined with OR. All\n"
-            "# fields need to be set, but can be set to null/~, which is a wildcard.\n"
-            "# \n"
-            "# - # ho\n"
-            "#   event_type: ~\n"
-            "#   # hey\n"
-            "#   project_id: ~\n"
-            "\n"
-            "- event_type: transaction\n"
-            "  project_id: 42\n"
+        assert self.invoke("pull", OPTION, "-").output == PREAMBLE + (
+            "\n" "\n" "- event_type: transaction\n" "  project_id: 42\n"
         )
 
         rv = self.invoke(
@@ -91,20 +79,8 @@ class KillswitchesTest(CliTestCase):
             "  (project_id = 43)\n"
         )
 
-        assert self.invoke("pull", OPTION, "-").output == (
-            "# store.load-shed-group-creation-projects: hey\n"
-            "# \n"
-            "# After saving and exiting, your killswitch conditions will be printed\n"
-            "# in faux-SQL for you to confirm.\n"
-            "# \n"
-            "# Below a template is given for a single block. The block's fields will\n"
-            "# be joined with AND, while all blocks will be joined with OR. All\n"
-            "# fields need to be set, but can be set to null/~, which is a wildcard.\n"
-            "# \n"
-            "# - # ho\n"
-            "#   event_type: ~\n"
-            "#   # hey\n"
-            "#   project_id: ~\n"
+        assert self.invoke("pull", OPTION, "-").output == PREAMBLE + (
+            "\n"
             "\n"
             "- event_type: transaction\n"
             "  project_id: 42\n"
@@ -123,3 +99,5 @@ class KillswitchesTest(CliTestCase):
         assert self.invoke("list").output == (
             "\n" "store.load-shed-group-creation-projects\n" "  # hey\n" "<disabled entirely>\n"
         )
+
+        assert self.invoke("pull", OPTION, "-").output == PREAMBLE

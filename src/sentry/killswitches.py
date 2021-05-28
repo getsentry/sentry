@@ -79,7 +79,7 @@ def normalize_value(
     killswitch_name: str, option_value: Any, strict: bool = False
 ) -> KillswitchConfig:
     rv = []
-    for condition in option_value or ():
+    for i, condition in enumerate(option_value or ()):
         if not condition:
             continue
         elif isinstance(condition, int):
@@ -88,14 +88,14 @@ def normalize_value(
             for k in ALL_KILLSWITCH_OPTIONS[killswitch_name].fields:
                 if k not in condition:
                     if strict:
-                        raise ValueError(f"Missing field {k}")
+                        raise ValueError(f"Condition {i}: Missing field {k}")
                     else:
                         condition[k] = None
 
             if strict:
                 for k in list(condition):
                     if k not in ALL_KILLSWITCH_OPTIONS[killswitch_name].fields:
-                        raise ValueError(f"Unknown field: {k}")
+                        raise ValueError(f"Condition {i}: Unknown field: {k}")
 
             if any(v is not None for v in condition.values()):
                 rv.append(condition)

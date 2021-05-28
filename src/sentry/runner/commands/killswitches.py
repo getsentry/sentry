@@ -19,8 +19,8 @@ def _get_edit_template(killswitch_name: str, option_value) -> str:
         f"{killswitch_name}: {killswitches.ALL_KILLSWITCH_OPTIONS[killswitch_name].description}",
         "After saving and exiting, your killswitch conditions will be printed in faux-SQL "
         "for you to confirm.",
-        "Below a template is given for a single block. The block's fields "
-        "will be joined with AND, while all blocks will be joined with OR. "
+        "Below a template is given for a single condition. The condition's fields "
+        "will be joined with AND, while all conditions will be joined with OR. "
         "All fields need to be set, but can be set to null/~, which is a wildcard.",
     ]
 
@@ -88,12 +88,16 @@ def _push(killswitch_name, infile, yes):
     option_value = options.get(killswitch_name)
 
     edited_text = infile.read()
-    new_option_value = killswitches.validate_user_input(
-        killswitch_name, yaml.safe_load(edited_text)
-    )
+    try:
+        new_option_value = killswitches.validate_user_input(
+            killswitch_name, yaml.safe_load(edited_text)
+        )
+    except ValueError as e:
+        click.echo(f"Invalid data: {e}")
+        raise click.Abort()
 
     if option_value == new_option_value:
-        click.echo("No changes!")
+        click.echo("No changes!", err=True)
         raise click.Abort()
 
     click.echo("Before:")
