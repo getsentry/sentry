@@ -1,5 +1,5 @@
 import unittest
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import pytz
 from django.urls import reverse
@@ -24,42 +24,45 @@ from sentry.utils.compat.mock import patch
 
 
 class ReleaseDetailsTest(APITestCase):
+    def setUp(self):
+        super().setUp()
+        self.user1 = self.create_user(is_staff=False, is_superuser=False)
+
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        self.team1 = self.create_team(organization=self.organization)
+        self.project1 = self.create_project(teams=[self.team1], organization=self.organization)
+
     def test_simple(self):
-        user = self.create_user(is_staff=False, is_superuser=False)
-        org = self.organization
-        org.flags.allow_joinleave = False
-        org.save()
+        team2 = self.create_team(organization=self.organization)
 
-        team1 = self.create_team(organization=org)
-        team2 = self.create_team(organization=org)
+        project2 = self.create_project(teams=[team2], organization=self.organization)
 
-        project = self.create_project(teams=[team1], organization=org)
-        project2 = self.create_project(teams=[team2], organization=org)
-
-        release = Release.objects.create(organization_id=org.id, version="abcabcabc")
-        release2 = Release.objects.create(organization_id=org.id, version="12345678")
-        release.add_project(project)
+        release = Release.objects.create(organization_id=self.organization.id, version="abcabcabc")
+        release2 = Release.objects.create(organization_id=self.organization.id, version="12345678")
+        release.add_project(self.project1)
         release2.add_project(project2)
 
-        environment = Environment.objects.create(organization_id=org.id, name="prod")
-        environment.add_project(project)
+        environment = Environment.objects.create(organization_id=self.organization.id, name="prod")
+        environment.add_project(self.project1)
         environment.add_project(project2)
 
-        self.create_member(teams=[team1], user=user, organization=org)
+        self.create_member(teams=[self.team1], user=self.user1, organization=self.organization)
 
-        self.login_as(user=user)
+        self.login_as(user=self.user1)
 
         ReleaseProjectEnvironment.objects.create(
-            project_id=project.id,
+            project_id=self.project1.id,
             release_id=release.id,
             environment_id=environment.id,
             new_issues_count=5,
         )
-        ReleaseProject.objects.filter(project=project, release=release).update(new_groups=5)
+        ReleaseProject.objects.filter(project=self.project1, release=release).update(new_groups=5)
 
         url = reverse(
             "sentry-api-0-organization-release-details",
-            kwargs={"organization_slug": org.slug, "version": release.version},
+            kwargs={"organization_slug": self.organization.slug, "version": release.version},
         )
         response = self.client.get(url)
 
@@ -73,98 +76,275 @@ class ReleaseDetailsTest(APITestCase):
         # no access
         url = reverse(
             "sentry-api-0-organization-release-details",
-            kwargs={"organization_slug": org.slug, "version": release2.version},
+            kwargs={"organization_slug": self.organization.slug, "version": release2.version},
         )
         response = self.client.get(url)
         assert response.status_code == 404
 
     def test_multiple_projects(self):
-        user = self.create_user(is_staff=False, is_superuser=False)
-        org = self.organization
-        org.flags.allow_joinleave = False
-        org.save()
+        team2 = self.create_team(organization=self.organization)
 
-        team1 = self.create_team(organization=org)
-        team2 = self.create_team(organization=org)
+        project2 = self.create_project(teams=[team2], organization=self.organization)
 
-        project = self.create_project(teams=[team1], organization=org)
-        project2 = self.create_project(teams=[team2], organization=org)
-
-        release = Release.objects.create(organization_id=org.id, version="abcabcabc")
-        release.add_project(project)
+        release = Release.objects.create(organization_id=self.organization.id, version="abcabcabc")
+        release.add_project(self.project1)
         release.add_project(project2)
 
-        self.create_member(teams=[team1, team2], user=user, organization=org)
+        self.create_member(
+            teams=[self.team1, team2], user=self.user1, organization=self.organization
+        )
 
-        self.login_as(user=user)
+        self.login_as(user=self.user1)
 
         url = reverse(
             "sentry-api-0-organization-release-details",
-            kwargs={"organization_slug": org.slug, "version": release.version},
+            kwargs={"organization_slug": self.organization.slug, "version": release.version},
         )
         response = self.client.get(url)
 
         assert response.status_code == 200, response.content
 
     def test_wrong_project(self):
-        user = self.create_user(is_staff=False, is_superuser=False)
-        org = self.organization
-        org.flags.allow_joinleave = False
-        org.save()
+        project2 = self.create_project(teams=[self.team1], organization=self.organization)
 
-        team1 = self.create_team(organization=org)
+        release = Release.objects.create(organization_id=self.organization.id, version="abcabcabc")
+        release.add_project(self.project1)
 
-        project = self.create_project(teams=[team1], organization=org)
-        project2 = self.create_project(teams=[team1], organization=org)
+        self.create_member(teams=[self.team1], user=self.user1, organization=self.organization)
 
-        release = Release.objects.create(organization_id=org.id, version="abcabcabc")
-        release.add_project(project)
-
-        self.create_member(teams=[team1], user=user, organization=org)
-
-        self.login_as(user=user)
+        self.login_as(user=self.user1)
 
         url = reverse(
             "sentry-api-0-organization-release-details",
-            kwargs={"organization_slug": org.slug, "version": release.version},
+            kwargs={"organization_slug": self.organization.slug, "version": release.version},
         )
 
         response = self.client.get(url, {"project": project2.id})
         assert response.status_code == 404
 
-        response = self.client.get(url, {"project": project.id})
+        response = self.client.get(url, {"project": self.project1.id})
         assert response.status_code == 200
 
     def test_correct_project_contains_current_project_meta(self):
         """
-        Test that shows when correct project id is passed to the request, `sessionsLowerBound`
-        and `sessionsUpperBound` are present in `currentProjectMeta` key
+        Test that shows when correct project id is passed to the request, `sessionsLowerBound`,
+        `sessionsUpperBound`, `prevReleaseVersion` and `nextReleaseVersion` are present
+        in `currentProjectMeta` key
         """
-        user = self.create_user(is_staff=False, is_superuser=False)
-        org = self.organization
-        org.flags.allow_joinleave = False
-        org.save()
+        release = Release.objects.create(organization_id=self.organization.id, version="abcabcabc")
+        release.add_project(self.project1)
 
-        team1 = self.create_team(organization=org)
+        self.create_member(teams=[self.team1], user=self.user1, organization=self.organization)
 
-        project = self.create_project(teams=[team1], organization=org)
-
-        release = Release.objects.create(organization_id=org.id, version="abcabcabc")
-        release.add_project(project)
-
-        self.create_member(teams=[team1], user=user, organization=org)
-
-        self.login_as(user=user)
+        self.login_as(user=self.user1)
 
         url = reverse(
             "sentry-api-0-organization-release-details",
-            kwargs={"organization_slug": org.slug, "version": release.version},
+            kwargs={"organization_slug": self.organization.slug, "version": release.version},
         )
 
-        response = self.client.get(url, {"project": project.id})
+        response = self.client.get(url, {"project": self.project1.id})
         assert response.status_code == 200
         assert "sessionsLowerBound" in response.data["currentProjectMeta"]
         assert "sessionsUpperBound" in response.data["currentProjectMeta"]
+        assert "prevReleaseVersion" in response.data["currentProjectMeta"]
+        assert "nextReleaseVersion" in response.data["currentProjectMeta"]
+
+    def test_incorrect_sort_option_should_return_invalid_sort_response(self):
+        """
+        Test that ensures a 400 response is returned when an invalid sort option
+        is provided
+        """
+        release = Release.objects.create(organization_id=self.organization.id, version="abcabcabc")
+        release.add_project(self.project1)
+
+        self.create_member(teams=[self.team1], user=self.user1, organization=self.organization)
+
+        self.login_as(user=self.user1)
+
+        url = reverse(
+            "sentry-api-0-organization-release-details",
+            kwargs={"organization_slug": self.organization.slug, "version": release.version},
+        )
+        response = self.client.get(url, {"project": self.project1.id, "sort": "invalid_sort"})
+        assert response.status_code == 400
+
+    def test_get_prev_and_next_release_to_current_release_on_date_sort(self):
+        release_1 = Release.objects.create(
+            organization_id=self.organization.id, version="foobar@1.0.0"
+        )
+        release_1.add_project(self.project1)
+
+        release_2 = Release.objects.create(
+            organization_id=self.organization.id, version="foobar@2.0.0"
+        )
+        release_2.add_project(self.project1)
+
+        release_3 = Release.objects.create(
+            organization_id=self.organization.id, version="foobar@3.0.0"
+        )
+        release_3.add_project(self.project1)
+
+        self.create_member(teams=[self.team1], user=self.user1, organization=self.organization)
+
+        self.login_as(user=self.user1)
+
+        # Test for middle release of the list
+        url = reverse(
+            "sentry-api-0-organization-release-details",
+            kwargs={"organization_slug": self.organization.slug, "version": release_2.version},
+        )
+        response = self.client.get(url, {"project": self.project1.id})
+        assert response.status_code == 200
+        assert response.data["currentProjectMeta"]["prevReleaseVersion"] == "foobar@3.0.0"
+        assert response.data["currentProjectMeta"]["nextReleaseVersion"] == "foobar@1.0.0"
+
+        # Test for first release of the list
+        url = reverse(
+            "sentry-api-0-organization-release-details",
+            kwargs={"organization_slug": self.organization.slug, "version": release_3.version},
+        )
+        response = self.client.get(url, {"project": self.project1.id})
+        assert response.status_code == 200
+        assert response.data["currentProjectMeta"]["prevReleaseVersion"] is None
+        assert response.data["currentProjectMeta"]["nextReleaseVersion"] == "foobar@2.0.0"
+
+        # Test for last release of the list
+        url = reverse(
+            "sentry-api-0-organization-release-details",
+            kwargs={"organization_slug": self.organization.slug, "version": release_1.version},
+        )
+        response = self.client.get(url, {"project": self.project1.id})
+        assert response.status_code == 200
+        assert response.data["currentProjectMeta"]["prevReleaseVersion"] == "foobar@2.0.0"
+        assert response.data["currentProjectMeta"]["nextReleaseVersion"] is None
+
+    def test_get_prev_and_next_release_to_current_release_on_date_sort_with_same_date(self):
+        """
+        Test that ensures that in the case we are trying to get prev and next release to a current
+        release with exact same date then we fallback to id comparison
+        """
+        date_now = datetime.utcnow()
+        release_1 = Release.objects.create(
+            date_added=date_now, organization_id=self.organization.id, version="foobar@1.0.0"
+        )
+        release_1.add_project(self.project1)
+
+        release_2 = Release.objects.create(
+            date_added=date_now, organization_id=self.organization.id, version="foobar@2.0.0"
+        )
+        release_2.add_project(self.project1)
+
+        self.create_member(teams=[self.team1], user=self.user1, organization=self.organization)
+
+        self.login_as(user=self.user1)
+
+        # Test for middle release of the list
+        url = reverse(
+            "sentry-api-0-organization-release-details",
+            kwargs={"organization_slug": self.organization.slug, "version": release_1.version},
+        )
+        response = self.client.get(url, {"project": self.project1.id})
+        assert response.status_code == 200
+        assert response.data["currentProjectMeta"]["prevReleaseVersion"] == "foobar@2.0.0"
+        assert response.data["currentProjectMeta"]["nextReleaseVersion"] is None
+
+        # Test for first release of the list
+        url = reverse(
+            "sentry-api-0-organization-release-details",
+            kwargs={"organization_slug": self.organization.slug, "version": release_2.version},
+        )
+        response = self.client.get(url, {"project": self.project1.id})
+        assert response.status_code == 200
+        assert response.data["currentProjectMeta"]["prevReleaseVersion"] is None
+        assert response.data["currentProjectMeta"]["nextReleaseVersion"] == "foobar@1.0.0"
+
+    def test_get_prev_and_next_release_to_current_release_on_date_sort_env_filter_applied(self):
+        """
+        Test that ensures that environment filter is applied when fetching prev and next
+        releases on date sort order
+        """
+        release_1 = Release.objects.create(
+            organization_id=self.organization.id, version="foobar@1.0.0"
+        )
+        release_1.add_project(self.project1)
+
+        release_2 = Release.objects.create(
+            organization_id=self.organization.id, version="foobar@2.0.0"
+        )
+        release_2.add_project(self.project1)
+
+        release_3 = Release.objects.create(
+            organization_id=self.organization.id, version="foobar@3.0.0"
+        )
+        release_3.add_project(self.project1)
+
+        environment = Environment.objects.create(organization_id=self.organization.id, name="prod")
+        environment.add_project(self.project1)
+
+        ReleaseProjectEnvironment.objects.create(
+            project_id=self.project1.id,
+            release_id=release_3.id,
+            environment_id=environment.id,
+            new_issues_count=5,
+        )
+        ReleaseProjectEnvironment.objects.create(
+            project_id=self.project1.id,
+            release_id=release_1.id,
+            environment_id=environment.id,
+            new_issues_count=5,
+        )
+
+        self.create_member(teams=[self.team1], user=self.user1, organization=self.organization)
+
+        self.login_as(user=self.user1)
+
+        # Test for middle release of the list
+        url = reverse(
+            "sentry-api-0-organization-release-details",
+            kwargs={"organization_slug": self.organization.slug, "version": release_3.version},
+        )
+        response = self.client.get(url, {"project": self.project1.id, "environment": ["prod"]})
+        assert response.status_code == 200
+        assert response.data["currentProjectMeta"]["prevReleaseVersion"] is None
+        assert response.data["currentProjectMeta"]["nextReleaseVersion"] == "foobar@1.0.0"
+
+    def test_get_prev_and_next_release_on_date_sort_does_not_apply_stats_period_filter(self):
+        """
+        Test that ensures that stats_period filter is applied when fetching prev and next
+        releases on date sort order
+        """
+        release_1 = Release.objects.create(
+            organization_id=self.organization.id, version="foobar@1.0.0"
+        )
+        release_1.add_project(self.project1)
+
+        release_2 = Release.objects.create(
+            organization_id=self.organization.id, version="foobar@2.0.0"
+        )
+        release_2.add_project(self.project1)
+
+        date_added_from_8d = datetime.utcnow() - timedelta(days=8)
+        release_3 = Release.objects.create(
+            organization_id=self.organization.id,
+            version="foobar@3.0.0",
+            date_added=date_added_from_8d,
+        )
+        release_3.add_project(self.project1)
+
+        self.create_member(teams=[self.team1], user=self.user1, organization=self.organization)
+
+        self.login_as(user=self.user1)
+
+        # Test for middle release of the list
+        url = reverse(
+            "sentry-api-0-organization-release-details",
+            kwargs={"organization_slug": self.organization.slug, "version": release_1.version},
+        )
+        response = self.client.get(url, {"project": self.project1.id, "summaryStatsPeriod": "24h"})
+        assert response.status_code == 200
+        assert response.data["currentProjectMeta"]["prevReleaseVersion"] == "foobar@2.0.0"
+        assert response.data["currentProjectMeta"]["nextReleaseVersion"] == "foobar@3.0.0"
 
 
 class UpdateReleaseDetailsTest(APITestCase):
