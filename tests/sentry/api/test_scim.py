@@ -1,7 +1,7 @@
 import pytest
 from django.urls import reverse
 
-from sentry.models import AuthProvider, OrganizationMember
+from sentry.models import AuthProvider, InviteStatus, OrganizationMember
 from sentry.testutils import APITestCase
 
 CREATE_USER_POST_DATA = {
@@ -28,6 +28,12 @@ class SCIMUserTestsPermissions(APITestCase):
         response = self.client.get(url)
         assert response.status_code == 403
 
+    def test_cant_use_scim_even_with_authprovider(self):
+        AuthProvider.objects.create(organization=self.organization, provider="dummy")
+        url = reverse("sentry-scim-organization-members-index", args=[self.organization.slug])
+        response = self.client.get(url)
+        assert response.status_code == 403
+
 
 class SCIMUserTests(APITestCase):
     def setUp(self):
@@ -35,7 +41,7 @@ class SCIMUserTests(APITestCase):
         auth_provider = AuthProvider.objects.create(
             organization=self.organization, provider="dummy"
         )
-        with self.feature({"organizations:sso-basic": True, "organizations:sso-scim": True}):
+        with self.feature({"organizations:sso-scim": True}):
             auth_provider.enable_scim(self.user)
             auth_provider.save()
         self.login_as(user=self.user)
@@ -56,7 +62,7 @@ class SCIMUserTests(APITestCase):
             "Resources": [],
         }
         assert response.status_code == 200, response.content
-        assert correct_get_data == response.data
+        assert response.data == correct_get_data
 
         # test that post creates an OM
 
@@ -115,7 +121,23 @@ class SCIMUserTests(APITestCase):
             ],
         }
         assert response.status_code == 200, response.content
-        assert correct_get_data == response.data
+        assert response.data == correct_get_data
+
+        # test that the OM exists when querying the id directly
+        url = reverse(
+            "sentry-scim-organization-members-details", args=[self.organization.slug, org_member_id]
+        )
+        response = self.client.get(url)
+        assert response.status_code == 200, response.content
+        assert response.data == {
+            "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+            "id": org_member_id,
+            "userName": "test.user@okta.local",
+            "emails": [{"primary": True, "value": "test.user@okta.local", "type": "work"}],
+            "name": {"familyName": "N/A", "givenName": "N/A"},
+            "active": True,
+            "meta": {"resourceType": "User"},
+        }
 
         # test that the OM is deleted after setting inactive to false
 
@@ -146,7 +168,7 @@ class SCIMUserTests(APITestCase):
             "Resources": [],
         }
         assert response.status_code == 200, response.content
-        assert correct_get_data == response.data
+        assert response.data == correct_get_data
 
         # test that directly GETing and PATCHing the deleted orgmember returns 404
         url = reverse(
@@ -172,6 +194,36 @@ class SCIMUserTests(APITestCase):
         assert response.status_code == 204, response.content
         with pytest.raises(OrganizationMember.DoesNotExist):
             OrganizationMember.objects.get(organization=self.organization, id=member.id)
+
+    def test_request_invite_members_not_in_requests(self):
+        member1 = self.create_member(user=self.create_user(), organization=self.organization)
+        member1.invite_status = InviteStatus.REQUESTED_TO_BE_INVITED.value
+        member1.save()
+
+        member2 = self.create_member(user=self.create_user(), organization=self.organization)
+        member2.invite_status = InviteStatus.REQUESTED_TO_JOIN.value
+        member2.save()
+
+        member3 = self.create_member(user=self.create_user(), organization=self.organization)
+        member3.invite_status = InviteStatus.APPROVED.value  # default val
+        member3.save()
+
+        url = reverse("sentry-scim-organization-members-index", args=[self.organization.slug])
+        response = self.client.get(f"{url}?startIndex=1&count=100")
+        assert response.status_code == 200, response.content
+        assert response.data["totalResults"] == 2
+
+        url = reverse(
+            "sentry-scim-organization-members-details", args=[self.organization.slug, member1.id]
+        )
+        response = self.client.get(url)
+        assert response.status_code == 404, response.content
+
+        url = reverse(
+            "sentry-scim-organization-members-details", args=[self.organization.slug, member2.id]
+        )
+        response = self.client.get(url)
+        assert response.status_code == 404, response.content
 
     def test_overflow_cases(self):
         member = self.create_member(user=self.create_user(), organization=self.organization)
@@ -239,3 +291,5 @@ class SCIMUserTests(APITestCase):
         assert response.data["totalResults"] == 151
         assert response.data["itemsPerPage"] == 51
         assert response.data["startIndex"] == 101
+
+    # TODO: test patch with bad op

@@ -11,6 +11,7 @@ from sentry.models import (
     TeamStatus,
     User,
 )
+from sentry.scim.endpoints.constants import SCIM_SCHEMA_USER  # type: ignore
 from sentry.utils.json import JSONData
 
 
@@ -201,7 +202,6 @@ class OrganizationMemberSCIMSerializer(Serializer):  # type: ignore
     def serialize(
         self, obj: OrganizationMember, attrs: Mapping[str, Any], user: Any, **kwargs: Any
     ) -> MutableMapping[str, JSONData]:
-        from sentry.scim.endpoints.utils import SCIM_SCHEMA_USER  # type: ignore
 
         d = {
             "schemas": [SCIM_SCHEMA_USER],

@@ -12,22 +12,13 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberSCIMSerializer
 from sentry.api.validators import AllowedEmailField
-from sentry.models import AuditLogEntryEvent, AuthIdentity, OrganizationMember
+from sentry.models import AuditLogEntryEvent, AuthIdentity, InviteStatus, OrganizationMember
 from sentry.signals import member_invited
 
-from .utils import SCIM_API_ERROR, SCIMEndpoint, parse_filter_conditions
+from .constants import SCIM_404_USER_RES, SCIM_409_USER_EXISTS
+from .utils import SCIMEndpoint, parse_filter_conditions
 
 ERR_ONLY_OWNER = "You cannot remove the only remaining owner of the organization."
-
-SCIM_404_USER_RES = {
-    "schemas": [SCIM_API_ERROR],
-    "detail": "User not found.",
-}
-
-SCIM_409_USER_EXISTS = {
-    "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
-    "detail": "User already exists in the database.",
-}
 
 
 class SCIMUserSerializer(serializers.Serializer):
@@ -49,7 +40,11 @@ class SCIMUserSerializer(serializers.Serializer):
 class OrganizationSCIMUserDetails(SCIMEndpoint, OrganizationMemberDetailsEndpoint):
     def _get_member(self, organization, member_id):
         try:
-            member = OrganizationMember.objects.get(organization=organization, id=member_id)
+            member = OrganizationMember.objects.get(
+                organization=organization,
+                id=member_id,
+                invite_status=InviteStatus.APPROVED.value,
+            )
         except OrganizationMember.DoesNotExist:
             raise ResourceDoesNotExist
         except AssertionError as error:
@@ -131,7 +126,7 @@ class OrganizationSCIMUserIndex(SCIMEndpoint):
 
         queryset = (
             OrganizationMember.objects.filter(
-                # Q(user__is_active=True) | Q(user__isnull=True),
+                Q(invite_status=InviteStatus.APPROVED.value),
                 organization=organization,
             )
             .select_related("user")
