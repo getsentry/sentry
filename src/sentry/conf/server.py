@@ -988,6 +988,8 @@ SENTRY_FEATURES = {
     "organizations:inbox": True,
     # Enable the new alert details ux design
     "organizations:alert-details-redesign": True,
+    # Enable the new alert history filters
+    "organizations:alert-history-filters": False,
     # Enable the new images loaded design and features
     "organizations:images-loaded-v2": True,
     # Enable teams to have ownership of alert rules
@@ -996,6 +998,8 @@ SENTRY_FEATURES = {
     "organizations:alert-wizard": True,
     # Enable the adoption chart in the releases page
     "organizations:release-adoption-chart": False,
+    # Store release bundles as zip files instead of single files
+    "organizations:release-archives": False,
     # Enable the project level transaction thresholds
     "organizations:project-transaction-threshold": False,
     # Enable percent displays in issue stream

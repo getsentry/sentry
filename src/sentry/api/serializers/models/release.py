@@ -454,6 +454,10 @@ class ReleaseSerializer(Serializer):
                 rv["sessionsLowerBound"] = current_project_meta["sessions_lower_bound"]
             if "sessions_upper_bound" in current_project_meta:
                 rv["sessionsUpperBound"] = current_project_meta["sessions_upper_bound"]
+            if "next_release_version" in current_project_meta:
+                rv["nextReleaseVersion"] = current_project_meta["next_release_version"]
+            if "next_release_version" in current_project_meta:
+                rv["prevReleaseVersion"] = current_project_meta["prev_release_version"]
             return rv
 
         d = {

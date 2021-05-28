@@ -213,7 +213,8 @@ DEFAULT_EVENT_DATA = {
 
 
 def _patch_artifact_manifest(path, org, release, project=None):
-    manifest = json.loads(open(path, "rb").read())
+    with open(path, "rb") as fp:
+        manifest = json.load(fp)
     manifest["org"] = org
     manifest["release"] = release
     if project:
