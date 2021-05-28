@@ -1,3 +1,6 @@
+import itertools
+import textwrap
+
 import click
 import yaml
 
@@ -9,81 +12,105 @@ def killswitches():
     "Manage killswitches for ingestion pipeline."
 
 
-def _safe_modify(killswitch_name, modify_func):
+def _get_edit_template(killswitch_name: str, option_value) -> str:
+    from sentry import killswitches
+
+    comments = [
+        f"{killswitch_name}: {killswitches.ALL_KILLSWITCH_OPTIONS[killswitch_name].description}",
+        "After saving and exiting, your killswitch conditions will be printed in faux-SQL "
+        "for you to confirm.",
+        "Below a template is given for a single block. The block's fields "
+        "will be joined with AND, while all blocks will be joined with OR. "
+        "All fields need to be set, but can be set to null/~, which is a wildcard.",
+    ]
+
+    comments = list(itertools.chain.from_iterable(textwrap.wrap(line) + [""] for line in comments))
+
+    for i, (field, description) in enumerate(
+        sorted(killswitches.ALL_KILLSWITCH_OPTIONS[killswitch_name].fields.items())
+    ):
+        for j, line in enumerate(textwrap.wrap(description)):
+            comments.append(f"{' ' if i or j else '-'} # {line}")
+        comments.append(f"  {field}: ~")
+
+    edit_text = "\n".join(f"# {line}" for line in comments)
+
+    if option_value:
+        edit_text += "\n\n"
+        edit_text += yaml.dump(option_value)
+
+    return edit_text
+
+
+@killswitches.command("pull")
+@click.argument("killswitch_name", required=True)
+@click.argument("outfile", type=click.File("w"), required=True)
+@configuration
+def _pull(killswitch_name, outfile):
+    """
+    Save the current state of the given killswitch in a file.
+
+        sentry killswitches pull store.load-shed-pipeline-projects ./killswitch.yml
+
+    The (edited) file can be passed back into:
+
+        sentry killswitches push store.load-shed-pipeline-projects ./killswitch.yml
+
+    Note that in Docker you need to provide absolute paths to your killswitch
+    file.
+    """
+
+    from sentry import options
+
+    option_value = options.get(killswitch_name)
+    outfile.write(_get_edit_template(killswitch_name, option_value))
+
+
+@killswitches.command("push")
+@click.argument("killswitch_name", required=True)
+@click.argument("infile", type=click.File("r"), required=True)
+@click.option("--yes", is_flag=True, help="skip confirmation prompts, very dangerous")
+@configuration
+def _push(killswitch_name, infile, yes):
+    """
+    Write back a killswitch into the DB.
+
+    For a list of killswitches to write, use `sentry killswitches list`.
+
+    For example:
+
+        sentry killswitches pull store.load-shed-pipeline-projects file.txt
+        <edit file.txt>
+        sentry killswitches push store.load-shed-pipeline-projects file.txt
+    """
     from sentry import killswitches, options
 
     option_value = options.get(killswitch_name)
-    new_option_value = modify_func(option_value)
+
+    edited_text = infile.read()
+    new_option_value = killswitches.validate_user_input(
+        killswitch_name, yaml.safe_load(edited_text)
+    )
 
     if option_value == new_option_value:
         click.echo("No changes!")
         raise click.Abort()
 
     click.echo("Before:")
-    click.echo(killswitches.print_conditions(option_value))
+    click.echo(killswitches.print_conditions(killswitch_name, option_value))
     click.echo("After:")
-    click.echo(killswitches.print_conditions(new_option_value))
+    click.echo(killswitches.print_conditions(killswitch_name, new_option_value))
 
-    click.confirm("Should the changes be applied?", default=False, show_default=True, abort=True)
+    if not yes:
+        click.confirm(
+            "Should the changes be applied?", default=False, show_default=True, abort=True
+        )
     options.set(killswitch_name, new_option_value)
 
 
-@killswitches.command()
-@click.argument("killswitch", required=True)
+@killswitches.command("list")
 @configuration
-def edit(killswitch):
-    """
-    Edit killswitch conditions all at once using $EDITOR.
-
-    For a list of killswitches to edit, use `sentry killswitches list`.
-
-    For example:
-
-        sentry killswitches edit store.load-shed-pipeline-projects
-    """
-
-    from sentry import killswitches
-
-    def edit(option_value):
-        edit_text = (
-            "# Example, drops transaction events from project 42 and everything from project 43:\n"
-            "#\n"
-            "# - project_id: 42\n"
-            "#   event_type: transaction\n"
-            "# - project_id: 43\n"
-            "#\n"
-            "# After saving and exiting, your killswitch conditions will be printed in faux-SQL\n"
-            "# for you to confirm. The above conditions' preview would be:\n"
-            "#\n"
-            "# DROP DATA WHERE\n"
-            "#   (project_id = 42 AND event_type = transaction) OR\n"
-            "#   (project_id = 43)\n"
-            "#\n"
-            f"# {killswitch}: {killswitches.ALL_KILLSWITCH_OPTIONS[killswitch].description}\n"
-            f"# Required fields:\n"
-        )
-
-        for field in killswitches.ALL_KILLSWITCH_OPTIONS[killswitch].fields:
-            edit_text += f"#  - {field}\n"
-
-        edit_text += "# Wildcards can be specified such as `project_id: ~`"
-
-        if option_value:
-            edit_text += "\n"
-            edit_text += yaml.dump(option_value)
-
-        edited_text = click.edit(edit_text)
-        if edited_text is None:
-            return option_value
-
-        return killswitches.validate_user_input(killswitch, yaml.safe_load(edited_text))
-
-    _safe_modify(killswitch, edit)
-
-
-@killswitches.command()
-@configuration
-def list():
+def _list():
     """
     List all killswitches and whether they are enabled (and how).
     """
@@ -94,5 +121,5 @@ def list():
         click.echo()
         click.echo(f"{name}")
         click.echo(f"  # {info.description}")
-        conditions = killswitches.print_conditions(options.get(name))
+        conditions = killswitches.print_conditions(name, options.get(name))
         click.echo(f"{conditions}")
