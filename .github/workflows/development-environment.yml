@@ -5,7 +5,6 @@ on:
     - 'Brewfile'
     - 'Makefile'
     - '.github/workflows/development-environment.yml'
-    - '.github/workflows/scripts/docker-setup.sh'
     - 'scripts/*'
     - 'src/sentry/runner/commands/devserver.py'
     - 'src/sentry/runner/commands/devservices.py'
@@ -39,11 +38,13 @@ jobs:
 
       - name: Install prerequisites
         # Xcode CLI & brew are already installed, thus, no need to call xcode-select install
+        # XXX: Can the Brew set up be cached?
         # Sometimes, brew needs to be updated before brew bundle would work
         # After installing Docker (via homebrew) we need to make sure that it is properly initialized on Mac
         run: |
           brew update -q && brew bundle -q
-          ./.github/workflows/scripts/docker-setup.sh
+          # XXX: Remove temporarily
+          # SENTRY_NO_VENV_CHECK=1 ./scripts/do.sh init-docker
 
       - name: Install Python (via Pyenv)
         id: python-version
