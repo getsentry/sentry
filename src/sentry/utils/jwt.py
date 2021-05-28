@@ -4,9 +4,10 @@ This is an attempt to have all the interactions with JWT in once place, so that 
 central place which handles JWT in a uniform way.
 """
 
-from typing import Mapping, Union
+from typing import List, Mapping, Optional, Union
 
-import jwt
+import jwt as pyjwt
+from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
 from jwt import DecodeError
 
 __all__ = ["peek_claims", "decode", "encode", "authorization_header", "DecodeError"]
@@ -17,22 +18,32 @@ def peek_claims(token: str) -> Mapping[str, str]:
 
     These claims can be used to look up the correct key to use in :func:`decode`.
     """
-    return jwt.decode(token, verify=False)
+    return pyjwt.decode(token, verify=False)
 
 
-def decode(token: str, key: bytes, verify_aud: bool = True) -> Mapping[str, str]:
+def decode(
+    token: str,
+    key: bytes,
+    *,
+    audience: Union[None, str, bool] = None,
+    algorithms: Optional[List[str]] = None,
+) -> Mapping[str, str]:
     """Returns the claims (payload) in the JWT token.
 
     This will raise an exception if the claims can not be validated with the provided key.
 
-    :param verify_aud: By default if the claims in the token contain an audience ("aud")
-       then we would have to provide the audience at decode time to verify it matches.  If
-       your claims include an audience claim you can use this to ignore it.
+    :param audience: Set this to the audience you expect to be present in the claims.  Set
+       this to ``False`` to disable verifying the audience.
     """
     options = dict()
-    if not verify_aud:
+    kwargs = dict()
+    if audience is False:
         options["verify_aud"] = False
-    return jwt.decode(token, key, options=options)
+    elif audience is True:
+        raise ValueError("audience can not be True")
+    elif audience is not None:
+        kwargs["audience"] = audience
+    return pyjwt.decode(token, key, options=options, algorithms=algorithms, **kwargs)
 
 
 def encode(
@@ -48,7 +59,7 @@ def encode(
     """
     if headers is None:
         headers = {}
-    return jwt.encode(payload, key, algorithm=algorithm, headers=headers).decode("UTF-8")
+    return pyjwt.encode(payload, key, algorithm=algorithm, headers=headers).decode("UTF-8")
 
 
 def authorization_header(token: str, *, scheme: str = "Bearer") -> Mapping[str, str]:
@@ -62,3 +73,12 @@ def authorization_header(token: str, *, scheme: str = "Bearer") -> Mapping[str, 
     you need to use a differnt scheme use the `scheme` argument to change this.
     """
     return {"Authorization": f"{scheme} {token}"}
+
+
+def rsa_key_from_jwk(jwk: str) -> RSAPrivateKey:
+    """Returns an RSA key from a serialised JWK.
+
+    This constructs an RSA key from a JSON Web Key, the result can be used as key to
+    :func:`encode`.
+    """
+    return pyjwt.algorithms.RSAAlgorithm.from_jwk(jwk)
