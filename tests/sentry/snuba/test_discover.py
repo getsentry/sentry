@@ -3,6 +3,8 @@ from datetime import datetime, timedelta
 import pytest
 
 from sentry.exceptions import InvalidSearchQuery
+from sentry.models import ProjectTransactionThreshold
+from sentry.models.transaction_threshold import TransactionMetric
 from sentry.snuba import discover
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -951,6 +953,13 @@ class QueryTransformTest(TestCase):
             ],
         }
 
+        ProjectTransactionThreshold.objects.create(
+            project_id=self.project.id,
+            organization_id=self.organization.id,
+            threshold=200,
+            metric=TransactionMetric.DURATION.value,
+        )
+
         discover.query(
             selected_columns=[
                 "transaction",
@@ -978,11 +987,26 @@ class QueryTransformTest(TestCase):
                 [
                     "if",
                     [
-                        ["equals", [["indexOf", [["array", []], "project_id"]], 0]],
+                        [
+                            "equals",
+                            [
+                                [
+                                    "indexOf",
+                                    [["array", [["toUInt64", [self.project.id]]]], "project_id"],
+                                ],
+                                0,
+                            ],
+                        ],
                         ["tuple", ["'duration'", 300]],
                         [
                             "arrayElement",
-                            [["array", []], ["indexOf", [["array", []], "project_id"]]],
+                            [
+                                ["array", [["tuple", ["'duration'", 200]]]],
+                                [
+                                    "indexOf",
+                                    [["array", [["toUInt64", [self.project.id]]]], "project_id"],
+                                ],
+                            ],
                         ],
                     ],
                     "project_threshold_config",
