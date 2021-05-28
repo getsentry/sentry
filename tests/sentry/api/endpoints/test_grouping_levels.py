@@ -73,6 +73,7 @@ def _render_all_previews(client):
 @pytest.mark.snuba
 def test_downwards(default_project, store_stacktrace, reset_snuba, _render_all_previews):
     events = [
+        # store events with a common crashing frame `foo` and diverging threadbases
         store_stacktrace(["bam", "baz2", "bar2", "foo"]),
         store_stacktrace(["baz", "bar", "foo"]),
         store_stacktrace(["baz2", "bar2", "foo"]),
