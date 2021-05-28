@@ -9,6 +9,7 @@ import Breadcrumbs from 'app/components/breadcrumbs';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import CreateAlertButton from 'app/components/createAlertButton';
+import GlobalAppStoreConnectUpdateAlert from 'app/components/globalAppStoreConnectUpdateAlert';
 import GlobalSdkUpdateAlert from 'app/components/globalSdkUpdateAlert';
 import IdBadge from 'app/components/idBadge';
 import * as Layout from 'app/components/layouts/thirds';
@@ -25,6 +26,7 @@ import routeTitleGen from 'app/utils/routeTitle';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withProjects from 'app/utils/withProjects';
 import AsyncView from 'app/views/asyncView';
+import * as AppStoreConnectContext from 'app/views/settings/project/appStoreConnectContext';
 
 import ProjectScoreCards from './projectScoreCards/projectScoreCards';
 import ProjectCharts from './projectCharts';
@@ -81,6 +83,7 @@ class ProjectDetail extends AsyncView<Props, State> {
   async fetchSessionsExistence() {
     const {organization, location} = this.props;
     const projectId = location.query.project;
+
     if (!projectId) {
       return;
     }
@@ -203,6 +206,8 @@ class ProjectDetail extends AsyncView<Props, State> {
       return this.renderNoAccess(project);
     }
 
+    console.log('project', project);
+
     return (
       <GlobalSelectionHeader
         disableMultipleProjectSelection
@@ -210,117 +215,120 @@ class ProjectDetail extends AsyncView<Props, State> {
         onUpdateProjects={this.handleProjectChange}
       >
         <LightWeightNoProjectMessage organization={organization}>
-          <StyledPageContent>
-            <Layout.Header>
-              <Layout.HeaderContent>
-                <Breadcrumbs
-                  crumbs={[
-                    {
-                      to: `/organizations/${params.orgId}/projects/`,
-                      label: t('Projects'),
-                    },
-                    {label: t('Project Details')},
-                  ]}
-                />
-                <Layout.Title>
-                  <TextOverflow>
-                    {project && (
-                      <IdBadge
-                        project={project}
-                        avatarSize={28}
-                        displayName={params.projectId}
-                        disableLink
-                      />
-                    )}
-                  </TextOverflow>
-                </Layout.Title>
-              </Layout.HeaderContent>
-
-              <Layout.HeaderActions>
-                <ButtonBar gap={1}>
-                  <Button
-                    to={
-                      // if we are still fetching project, we can use project slug to build issue stream url and let the redirect handle it
-                      project?.id
-                        ? `/organizations/${params.orgId}/issues/?project=${project.id}`
-                        : `/${params.orgId}/${params.projectId}`
-                    }
-                  >
-                    {t('View All Issues')}
-                  </Button>
-                  <CreateAlertButton
-                    organization={organization}
-                    projectSlug={params.projectId}
+          <AppStoreConnectContext.Provider orgSlug={organization.slug}>
+            <StyledPageContent>
+              <Layout.Header>
+                <Layout.HeaderContent>
+                  <Breadcrumbs
+                    crumbs={[
+                      {
+                        to: `/organizations/${params.orgId}/projects/`,
+                        label: t('Projects'),
+                      },
+                      {label: t('Project Details')},
+                    ]}
                   />
-                  <Button
-                    icon={<IconSettings />}
-                    label={t('Settings')}
-                    to={`/settings/${params.orgId}/projects/${params.projectId}/`}
-                  />
-                </ButtonBar>
-              </Layout.HeaderActions>
-            </Layout.Header>
+                  <Layout.Title>
+                    <TextOverflow>
+                      {project && (
+                        <IdBadge
+                          project={project}
+                          avatarSize={28}
+                          displayName={params.projectId}
+                          disableLink
+                        />
+                      )}
+                    </TextOverflow>
+                  </Layout.Title>
+                </Layout.HeaderContent>
 
-            <Layout.Body>
-              <StyledSdkUpdatesAlert />
-              <Layout.Main>
-                <ProjectScoreCards
-                  organization={organization}
-                  isProjectStabilized={isProjectStabilized}
-                  selection={selection}
-                  hasSessions={hasSessions}
-                  hasTransactions={hasTransactions}
-                />
-                {isProjectStabilized && (
-                  <Fragment>
-                    {visibleCharts.map((id, index) => (
-                      <ProjectCharts
-                        location={location}
-                        organization={organization}
-                        router={router}
-                        key={`project-charts-${id}`}
-                        chartId={id}
-                        chartIndex={index}
-                        projectId={project?.id}
-                        hasSessions={hasSessions}
-                        hasTransactions={!!hasTransactions}
-                        visibleCharts={visibleCharts}
-                      />
-                    ))}
-                    <ProjectIssues
+                <Layout.HeaderActions>
+                  <ButtonBar gap={1}>
+                    <Button
+                      to={
+                        // if we are still fetching project, we can use project slug to build issue stream url and let the redirect handle it
+                        project?.id
+                          ? `/organizations/${params.orgId}/issues/?project=${project.id}`
+                          : `/${params.orgId}/${params.projectId}`
+                      }
+                    >
+                      {t('View All Issues')}
+                    </Button>
+                    <CreateAlertButton
                       organization={organization}
-                      location={location}
-                      projectId={selection.projects[0]}
-                      api={this.api}
+                      projectSlug={params.projectId}
                     />
-                  </Fragment>
-                )}
-              </Layout.Main>
-              <Layout.Side>
-                <ProjectTeamAccess organization={organization} project={project} />
-                <Feature features={['incidents']}>
-                  <ProjectLatestAlerts
+                    <Button
+                      icon={<IconSettings />}
+                      label={t('Settings')}
+                      to={`/settings/${params.orgId}/projects/${params.projectId}/`}
+                    />
+                  </ButtonBar>
+                </Layout.HeaderActions>
+              </Layout.Header>
+
+              <Layout.Body>
+                <StyledSdkUpdatesAlert />
+                <StyledGlobalAppStoreConnectUpdateAlert />
+                <Layout.Main>
+                  <ProjectScoreCards
+                    organization={organization}
+                    isProjectStabilized={isProjectStabilized}
+                    selection={selection}
+                    hasSessions={hasSessions}
+                    hasTransactions={hasTransactions}
+                  />
+                  {isProjectStabilized && (
+                    <Fragment>
+                      {visibleCharts.map((id, index) => (
+                        <ProjectCharts
+                          location={location}
+                          organization={organization}
+                          router={router}
+                          key={`project-charts-${id}`}
+                          chartId={id}
+                          chartIndex={index}
+                          projectId={project?.id}
+                          hasSessions={hasSessions}
+                          hasTransactions={!!hasTransactions}
+                          visibleCharts={visibleCharts}
+                        />
+                      ))}
+                      <ProjectIssues
+                        organization={organization}
+                        location={location}
+                        projectId={selection.projects[0]}
+                        api={this.api}
+                      />
+                    </Fragment>
+                  )}
+                </Layout.Main>
+                <Layout.Side>
+                  <ProjectTeamAccess organization={organization} project={project} />
+                  <Feature features={['incidents']}>
+                    <ProjectLatestAlerts
+                      organization={organization}
+                      projectSlug={params.projectId}
+                      location={location}
+                      isProjectStabilized={isProjectStabilized}
+                    />
+                  </Feature>
+                  <ProjectLatestReleases
                     organization={organization}
                     projectSlug={params.projectId}
+                    projectId={project?.id}
                     location={location}
                     isProjectStabilized={isProjectStabilized}
                   />
-                </Feature>
-                <ProjectLatestReleases
-                  organization={organization}
-                  projectSlug={params.projectId}
-                  projectId={project?.id}
-                  location={location}
-                  isProjectStabilized={isProjectStabilized}
-                />
-                <ProjectQuickLinks
-                  organization={organization}
-                  project={project}
-                  location={location}
-                />
-              </Layout.Side>
-            </Layout.Body>
-          </StyledPageContent>
+                  <ProjectQuickLinks
+                    organization={organization}
+                    project={project}
+                    location={location}
+                  />
+                </Layout.Side>
+              </Layout.Body>
+            </StyledPageContent>
+          </AppStoreConnectContext.Provider>
         </LightWeightNoProjectMessage>
       </GlobalSelectionHeader>
     );
@@ -338,6 +346,16 @@ const StyledSdkUpdatesAlert = styled(GlobalSdkUpdateAlert)`
 `;
 
 StyledSdkUpdatesAlert.defaultProps = {
+  Wrapper: p => <Layout.Main fullWidth {...p} />,
+};
+
+const StyledGlobalAppStoreConnectUpdateAlert = styled(GlobalAppStoreConnectUpdateAlert)`
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    margin-bottom: 0;
+  }
+`;
+
+StyledGlobalAppStoreConnectUpdateAlert.defaultProps = {
   Wrapper: p => <Layout.Main fullWidth {...p} />,
 };
 

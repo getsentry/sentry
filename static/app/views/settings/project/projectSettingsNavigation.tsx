@@ -15,10 +15,8 @@ type Props = {
 const ProjectSettingsNavigation = ({organization, project}: Props) => {
   const appStoreConnectContext = useContext(AppStoreConnectContext);
 
-  console.log('appStoreConnectContext', appStoreConnectContext);
-
   const debugFilesNeedsReview = appStoreConnectContext
-    ? Object.keys(appStoreConnectContext ?? {}).some(key => !appStoreConnectContext[key])
+    ? Object.keys(appStoreConnectContext).some(key => !appStoreConnectContext[key])
     : false;
 
   return (

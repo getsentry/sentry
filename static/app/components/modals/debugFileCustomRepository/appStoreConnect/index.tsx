@@ -1,4 +1,4 @@
-import {Fragment, useContext, useState} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
@@ -9,30 +9,34 @@ import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import List from 'app/components/list';
-import {IconWarning} from 'app/icons';
+import {IconInfo, IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
+import {AppStoreConnectValidationData} from 'app/types/debugFiles';
 import withApi from 'app/utils/withApi';
-import AppStoreConnectContext from 'app/views/settings/project/appStoreConnectContext';
 
 import Accordion from './accordion';
 import AppStoreCredentials from './appStoreCredentials';
 import ItunesCredentials from './itunesCredentials';
 import {AppStoreCredentialsData, ItunesCredentialsData} from './types';
 
-type IntialData = {
+type InitialData = {
   appId: string;
   appName: string;
   appconnectIssuer: string;
   appconnectKey: string;
+  appconnectPrivateKey: string;
   encrypted: string;
   id: string;
+  itunesPassword: string;
   itunesUser: string;
   name: string;
   orgId: number;
   orgName: string;
+  refreshDate: string;
   type: string;
+  error?: string;
 };
 
 type Props = Pick<ModalRenderProps, 'Body' | 'Footer' | 'closeModal'> & {
@@ -40,7 +44,9 @@ type Props = Pick<ModalRenderProps, 'Body' | 'Footer' | 'closeModal'> & {
   orgSlug: Organization['slug'];
   projectSlug: Project['slug'];
   onSubmit: (data: Record<string, any>) => void;
-  initialData?: IntialData;
+  revalidateItunesSession: boolean;
+  appStoreConnectValidationData?: AppStoreConnectValidationData;
+  initialData?: InitialData;
 };
 
 function AppStoreConnect({
@@ -52,23 +58,27 @@ function AppStoreConnect({
   orgSlug,
   projectSlug,
   onSubmit,
+  revalidateItunesSession,
+  appStoreConnectValidationData,
 }: Props) {
   const isUpdating = !!initialData;
-
-  const appStoreConnectContext = useContext(AppStoreConnectContext);
+  const appStoreCredentialsInvalid =
+    appStoreConnectValidationData?.appstoreCredentialsValid === false;
+  const itunesSessionInvalid =
+    appStoreConnectValidationData?.itunesSessionValid === false;
 
   const [isLoading, setIsLoading] = useState(false);
   const [isEditingAppStoreCredentials, setIsEditingAppStoreCredentials] = useState(
-    !isUpdating
+    appStoreCredentialsInvalid
   );
   const [isEditingItunesCredentials, setIsEditingItunesCredentials] = useState(
-    isUpdating
+    itunesSessionInvalid
   );
 
   const appStoreCredentialsInitialData = {
     issuer: initialData?.appconnectIssuer,
     keyId: initialData?.appconnectKey,
-    privateKey: undefined,
+    privateKey: initialData?.appconnectPrivateKey,
     app:
       initialData?.appName && initialData?.appId
         ? {
@@ -80,7 +90,7 @@ function AppStoreConnect({
 
   const iTunesCredentialsInitialData = {
     username: initialData?.itunesUser,
-    password: undefined,
+    password: initialData?.itunesPassword,
     authenticationCode: undefined,
     org:
       initialData?.orgId && initialData?.orgName
@@ -210,12 +220,17 @@ function AppStoreConnect({
   return (
     <Fragment>
       <Body>
+        {revalidateItunesSession && !itunesSessionInvalid && (
+          <StyledAlert type="warning" icon={<IconInfo />}>
+            {t('Your iTunes session has already been re-validated.')}
+          </StyledAlert>
+        )}
         <StyledList symbol="colored-numeric">
           <Accordion summary={t('App Store Connect credentials')} defaultExpanded>
-            {!!appStoreConnectContext?.appstoreCredentialsValid && (
+            {appStoreCredentialsInvalid && (
               <StyledAlert type="warning" icon={<IconWarning />}>
                 {t(
-                  'Your App Store Connect credentials are invalid. To reconnect, update your credentials'
+                  'Your App Store Connect credentials are invalid. To reconnect, update your credentials.'
                 )}
               </StyledAlert>
             )}
@@ -234,13 +249,13 @@ function AppStoreConnect({
           <Accordion
             summary={t('iTunes credentials')}
             defaultExpanded={
+              itunesSessionInvalid ||
               isUpdating ||
               isEditingItunesCredentials ||
-              (!isEditingItunesCredentials && !isItunesCredentialsDataInvalid()) ||
-              !!appStoreConnectContext?.itunesSessionValid
+              (!isEditingItunesCredentials && !isItunesCredentialsDataInvalid())
             }
           >
-            {!!appStoreConnectContext?.itunesSessionValid && (
+            {!revalidateItunesSession && itunesSessionInvalid && (
               <StyledAlert type="warning" icon={<IconWarning />}>
                 {t(
                   'Your iTunes session has expired. To reconnect, sign in with your Apple ID and password'
@@ -254,6 +269,7 @@ function AppStoreConnect({
               data={iTunesCredentialsData}
               isUpdating={isUpdating}
               isEditing={isEditingItunesCredentials}
+              revalidateItunesSession={revalidateItunesSession && itunesSessionInvalid}
               onChange={setItunesCredentialsData}
               onReset={() => setItunesCredentialsData(iTunesCredentialsInitialData)}
               onEdit={setIsEditingItunesCredentials}

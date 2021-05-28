@@ -107,6 +107,7 @@ function SymbolSources({
     openDebugFileSourceModal({
       sourceConfig: item,
       sourceType: item.type,
+      appStoreConnectValidationData: appStoreConnectContext,
       onSave: updatedData => handleUpdateSymbolSource(updatedData as Item, item.index),
       onClose: handleCloseImageDetailsModal,
     });

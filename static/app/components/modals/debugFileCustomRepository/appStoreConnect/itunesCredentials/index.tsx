@@ -14,6 +14,7 @@ type Props = {
   projectSlug: Project['slug'];
   isUpdating: boolean;
   isEditing: boolean;
+  revalidateItunesSession: boolean;
   data: ItunesCredentialsData;
   onChange: (data: ItunesCredentialsData) => void;
   onEdit: (isEditing: boolean) => void;
@@ -26,6 +27,7 @@ function ItunesCredentials({
   onReset,
   isEditing,
   onEdit,
+  revalidateItunesSession,
   ...props
 }: Props) {
   function handleSwitchToReadMode() {
@@ -41,6 +43,7 @@ function ItunesCredentials({
     return (
       <Form
         {...props}
+        revalidateItunesSession={revalidateItunesSession}
         data={data}
         onSwitchToReadMode={handleSwitchToReadMode}
         onCancel={isUpdating ? handleCancel : undefined}

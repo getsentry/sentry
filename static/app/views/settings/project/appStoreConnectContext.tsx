@@ -1,4 +1,4 @@
-import {createContext, useEffect, useState} from 'react';
+import {createContext, Fragment, useEffect, useState} from 'react';
 
 import {Client} from 'app/api';
 import {Organization, Project} from 'app/types';
@@ -12,13 +12,19 @@ const AppStoreConnectContext = createContext<AppStoreConnectValidationData | und
 
 type ProviderProps = {
   children: React.ReactNode;
-  project: Project;
   orgSlug: Organization['slug'];
   api: Client;
+  project?: Project;
 };
 
 const Provider = withApi(
   withProject(({api, children, project, orgSlug}: ProviderProps) => {
+    console.log('projectA', project);
+
+    if (!project) {
+      return <Fragment>{children}</Fragment>;
+    }
+
     const [appStoreConnectValidationData, setAppStoreConnectValidationData] = useState<
       AppStoreConnectValidationData | undefined
     >();
@@ -28,7 +34,7 @@ const Provider = withApi(
     }, [project]);
 
     function getAppStoreConnectSymbolSourceId() {
-      return (project.symbolSources ? JSON.parse(project.symbolSources) : []).find(
+      return (project?.symbolSources ? JSON.parse(project.symbolSources) : []).find(
         symbolSource => symbolSource.type === 'appStoreConnect'
       )?.id;
     }
@@ -42,7 +48,7 @@ const Provider = withApi(
 
       try {
         const response = await api.requestPromise(
-          `/projects/${orgSlug}/${project.slug}/appstoreconnect/validate/${appStoreConnectSymbolSourceId}/`
+          `/projects/${orgSlug}/${project?.slug}/appstoreconnect/validate/${appStoreConnectSymbolSourceId}/`
         );
         setAppStoreConnectValidationData({
           id: appStoreConnectSymbolSourceId,

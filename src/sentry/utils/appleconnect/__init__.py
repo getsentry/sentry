@@ -1,5 +1,6 @@
 import datetime
 from collections import namedtuple
+from dateutil import parser
 from typing import Optional
 
 import requests

@@ -6,6 +6,7 @@ import {ModalRenderProps} from 'app/actionCreators/modal';
 import {getDebugSourceName} from 'app/data/debugFileSources';
 import {tct} from 'app/locale';
 import {DebugFileSource} from 'app/types';
+import {AppStoreConnectValidationData} from 'app/types/debugFiles';
 import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
 import Form from 'app/views/settings/components/forms/form';
 
@@ -21,7 +22,11 @@ type RouteParams = {
   projectId: string;
 };
 
-type Props = WithRouterProps<RouteParams, {}> & {
+type Query = {
+  revalidateItunesSession?: boolean;
+};
+
+type Props = WithRouterProps<RouteParams, Query> & {
   /**
    * Callback invoked with the updated config value.
    */
@@ -30,6 +35,8 @@ type Props = WithRouterProps<RouteParams, {}> & {
    * Type of this source.
    */
   sourceType: DebugFileSource;
+
+  appStoreConnectValidationData?: AppStoreConnectValidationData;
   /**
    * The sourceConfig. May be empty to create a new one.
    */
@@ -45,6 +52,8 @@ function DebugFileCustomRepository({
   sourceConfig,
   sourceType,
   params: {orgId, projectId},
+  location,
+  appStoreConnectValidationData,
 }: Props) {
   function handleSave(data: Record<string, string>) {
     onSave({...data, type: sourceType});
@@ -53,6 +62,8 @@ function DebugFileCustomRepository({
 
   function renderForm() {
     if (sourceType === 'appStoreConnect') {
+      const {revalidateItunesSession} = location.query;
+
       return (
         <AppStoreConnect
           Body={Body}
@@ -62,6 +73,8 @@ function DebugFileCustomRepository({
           projectSlug={projectId}
           onSubmit={handleSave}
           initialData={sourceConfig as AppStoreConnectInitialData | undefined}
+          revalidateItunesSession={!!revalidateItunesSession}
+          appStoreConnectValidationData={appStoreConnectValidationData}
         />
       );
     }

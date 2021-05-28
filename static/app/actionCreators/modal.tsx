@@ -13,6 +13,7 @@ import {
   SentryApp,
   Team,
 } from 'app/types';
+import {AppStoreConnectValidationData} from 'app/types/debugFiles';
 import {Event} from 'app/types/event';
 
 type ModalProps = Required<React.ComponentProps<typeof GlobalModal>>;
@@ -180,6 +181,7 @@ export type SentryAppDetailsModalOptions = {
 type DebugFileSourceModalOptions = {
   sourceType: DebugFileSource;
   onSave: (data: Record<string, string>) => void;
+  appStoreConnectValidationData?: AppStoreConnectValidationData;
   onClose?: () => void;
   sourceConfig?: Record<string, string>;
 };
