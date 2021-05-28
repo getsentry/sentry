@@ -1894,10 +1894,6 @@ function routes() {
             from=":projectId/issues/:groupId/merged/"
             to="/organizations/:orgId/issues/:groupId/merged/"
           />
-          <Redirect
-            from=":projectId/issues/:groupId/grouping/"
-            to="/organizations/:orgId/issues/:groupId/grouping/"
-          />
           <Route
             path=":projectId/events/:eventId/"
             component={errorHandler(ProjectEventRedirect)}

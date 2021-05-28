@@ -27,7 +27,6 @@ const hoverStyle = css`
 `;
 
 const Card = styled('div')<Props>`
-  overflow: hidden;
   background: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
