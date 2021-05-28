@@ -146,8 +146,8 @@ class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):
             itunes_session = validation_context.get("itunes_session")
             encrypted = {
                 "itunesSession": itunes_session,
-                "itunesPassword": credentials.pop("itunesPassword"),
-                "appconnectPrivateKey": credentials.pop("appconnectPrivateKey"),
+                "itunesPassword": credentials.get("itunesPassword"),
+                "appconnectPrivateKey": credentials.get("appconnectPrivateKey"),
             }
             credentials["encrypted"] = encrypt.encrypt_object(encrypted, key)
             credentials["type"] = "appStoreConnect"
