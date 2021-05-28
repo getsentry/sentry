@@ -11,7 +11,6 @@ import DiscoverButton from 'app/components/discoverButton';
 import * as AnchorLinkManager from 'app/components/events/interfaces/spans/anchorLinkManager';
 import * as DividerHandlerManager from 'app/components/events/interfaces/spans/dividerHandlerManager';
 import * as ScrollbarManager from 'app/components/events/interfaces/spans/scrollbarManager';
-import FeatureBadge from 'app/components/featureBadge';
 import * as Layout from 'app/components/layouts/thirds';
 import ExternalLink from 'app/components/links/externalLink';
 import Link from 'app/components/links/link';
@@ -626,7 +625,6 @@ class TraceDetailsContent extends React.Component<Props, State> {
             />
             <Layout.Title data-test-id="trace-header">
               {t('Trace ID: %s', traceSlug)}
-              <FeatureBadge type="new" />
             </Layout.Title>
           </Layout.HeaderContent>
           <Layout.HeaderActions>

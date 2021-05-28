@@ -8,7 +8,6 @@ import {Client} from 'app/api';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import ErrorBoundary from 'app/components/errorBoundary';
-import FeatureBadge from 'app/components/featureBadge';
 import ExternalLink from 'app/components/links/externalLink';
 import Placeholder from 'app/components/placeholder';
 import QuickTrace from 'app/components/quickTrace';
@@ -82,7 +81,6 @@ class IssueQuickTrace extends Component<Props, State> {
           onClick={() => this.handleTraceLink(organization)}
         >
           {t('View Full Trace')}
-          <FeatureBadge type="new" />
         </Link>
       </LinkContainer>
     );
