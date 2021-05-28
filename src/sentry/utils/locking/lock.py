@@ -1,4 +1,5 @@
 import logging
+import time
 from contextlib import contextmanager
 
 from sentry.utils.locking import UnableToAcquireLock
@@ -40,6 +41,22 @@ class Lock:
                 self.release()
 
         return releaser()
+
+    def blocking_acquire(self, interval: int, max_attempts: int):
+        """
+        This function will try to acquire the lock in a polling loop.
+
+        :param interval:     Time between retries in seconds.
+        :param max_attempts: Number of attempts to acquire a lock, after which
+                             ``UnableToAcquireLock`` will be raised.
+        """
+        for attempt in range(max_attempts - 1):
+            try:
+                return self.acquire()
+            except UnableToAcquireLock:
+                time.sleep(interval)
+
+        return self.acquire()
 
     def release(self):
         """

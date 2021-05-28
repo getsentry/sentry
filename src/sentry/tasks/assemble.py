@@ -5,7 +5,7 @@ from os import path
 
 from django.db import IntegrityError, transaction
 
-from sentry import options
+from sentry import app, options
 from sentry.api.serializers import serialize
 from sentry.cache import default_cache
 from sentry.models import File, Organization, Release, ReleaseFile
@@ -13,6 +13,7 @@ from sentry.models.releasefile import ReleaseArchive, merge_release_archives
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.files import get_max_file_size
+from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.sdk import bind_organization_context, configure_scope
 
 logger = logging.getLogger(__name__)
@@ -20,8 +21,10 @@ logger = logging.getLogger(__name__)
 
 #: Name for the bundle stored as a release file
 RELEASE_ARCHIVE_FILENAME = "release-artifacts.zip"
-#: How often should we retry merging archives when there's a conflict?
-RELEASE_ARCHIVE_MAX_MERGE_ATTEMPTS = 3
+#: How often should we try to acquire the lock?
+RELEASE_ARCHIVE_MAX_MERGE_ATTEMPTS = 10
+#: How many seconds should we wait before retrying to acquire the lock?
+RELEASE_ARCHIVE_MERGE_INTERVAL = 10
 
 
 class ChunkFileState:
@@ -196,32 +199,30 @@ def _upsert_release_file(file: File, archive: ReleaseArchive, update_fn, **kwarg
 
 @metrics.wraps("tasks.assemble.merge_archives")
 def _merge_archives(release_file: ReleaseFile, new_file: File, new_archive: ReleaseArchive):
-    max_attempts = RELEASE_ARCHIVE_MAX_MERGE_ATTEMPTS
-    success = False
-    for attempt in range(max_attempts):
-        old_file = release_file.file
-        with ReleaseArchive(old_file.getfile().file) as old_archive:
-            buffer = BytesIO()
-            merge_release_archives(old_archive, new_archive, buffer)
+    old_file = release_file.file
+    with ReleaseArchive(old_file.getfile().file) as old_archive:
+        buffer = BytesIO()
 
-            replacement = File.objects.create(name=old_file.name, type=old_file.type)
-            buffer.seek(0)
-            replacement.putfile(buffer)
+        lock_key = f"assemble:merge_archives:{release_file.id}"
+        lock_lifetime = RELEASE_ARCHIVE_MERGE_INTERVAL * RELEASE_ARCHIVE_MAX_MERGE_ATTEMPTS + 1
+        lock = app.locks.get(lock_key, duration=lock_lifetime)
 
-            with transaction.atomic():
-                release_file.refresh_from_db()
-                if release_file.file == old_file:
-                    # Nothing has changed. It is safe to update
-                    release_file.update(file=replacement)
-                    success = True
-                    break
-                else:
-                    metrics.incr("tasks.assemble.merge_archives_retry", instance=str(attempt))
-    else:
-        logger.error("Failed to merge archive in %s attempts, giving up.", max_attempts)
+        try:
+            with lock.blocking_acquire(
+                interval=RELEASE_ARCHIVE_MERGE_INTERVAL,
+                max_attempts=RELEASE_ARCHIVE_MAX_MERGE_ATTEMPTS,
+            ):
+                merge_release_archives(old_archive, new_archive, buffer)
 
-    if success:
-        old_file.delete()
+                replacement = File.objects.create(name=old_file.name, type=old_file.type)
+                buffer.seek(0)
+                replacement.putfile(buffer)
+                release_file.update(file=replacement)
+
+                old_file.delete()
+
+        except UnableToAcquireLock as error:
+            logger.error("merge_archives.fail", extra={"error": error})
 
     new_file.delete()
 
