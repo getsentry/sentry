@@ -2,8 +2,6 @@ import {Component, ComponentClass} from 'react';
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
 
-import {toggleKeyTransaction} from 'app/actionCreators/performance';
-import {Client} from 'app/api';
 import MenuHeader from 'app/components/actions/menuHeader';
 import CheckboxFancy from 'app/components/checkboxFancy/checkboxFancy';
 import DropdownControl, {Content} from 'app/components/dropdownControl';
@@ -11,9 +9,8 @@ import {GetActorPropsFn} from 'app/components/dropdownMenu';
 import MenuItem from 'app/components/menuItem';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Organization, Team} from 'app/types';
+import {Team} from 'app/types';
 import {MAX_TEAM_KEY_TRANSACTIONS} from 'app/utils/performance/constants';
-import withApi from 'app/utils/withApi';
 
 export type TitleProps = Partial<ReturnType<GetActorPropsFn>> & {
   keyedTeamsCount: number;
@@ -21,20 +18,17 @@ export type TitleProps = Partial<ReturnType<GetActorPropsFn>> & {
 };
 
 type Props = {
-  api: Client;
-  project: number;
-  organization: Organization;
   teams: Team[];
-  transactionName: string;
   title: ComponentClass<TitleProps>;
-};
-
-type State = {
   isLoading: boolean;
-  keyFetchID: symbol | undefined;
-  error: null | string;
   keyedTeams: Set<string>;
   counts: Map<string, number>;
+  handleToggleKeyTransaction: (
+    isKey: boolean,
+    teamIds: string[],
+    counts: Map<string, number>,
+    keyedTeams: Set<string>
+  ) => void;
 };
 
 type SelectionAction = {action: 'key' | 'unkey'};
@@ -54,114 +48,18 @@ function canKeyForTeam(team: Team, keyedTeams: Set<string>, counts: Map<string, 
   return (counts.get(team.id) ?? 0) < 1;
 }
 
-class TeamKeyTransaction extends Component<Props, State> {
-  state: State = {
-    isLoading: true,
-    keyFetchID: undefined,
-    error: null,
-    keyedTeams: new Set(),
-    counts: new Map(),
-  };
-
-  componentDidMount() {
-    this.fetchData();
-  }
-
-  componentDidUpdate(prevProps: Props) {
-    const orgSlugChanged = prevProps.organization.slug !== this.props.organization.slug;
-    const projectsChanged = prevProps.project !== this.props.project;
-    const transactionChanged = prevProps.transactionName !== this.props.transactionName;
-    if (orgSlugChanged || projectsChanged || transactionChanged) {
-      this.fetchData();
-    }
-  }
-
-  async fetchData() {
-    const keyFetchID = Symbol('keyFetchID');
-    this.setState({isLoading: true, keyFetchID});
-
-    try {
-      const [keyTransactions, counts] = await Promise.all([
-        this.fetchKeyTransactionsData(),
-        this.fetchCountData(),
-      ]);
-      this.setState({
-        isLoading: false,
-        keyFetchID: undefined,
-        error: null,
-        keyedTeams: new Set(keyTransactions.map(({team}) => team)),
-        counts: new Map(counts.map(({team, count}) => [team, count])),
-      });
-    } catch (err) {
-      this.setState({
-        isLoading: false,
-        keyFetchID: undefined,
-        error: err.responseJSON?.detail ?? null,
-      });
-    }
-  }
-
-  async fetchKeyTransactionsData() {
-    const {api, organization, project, transactionName} = this.props;
-
-    const url = `/organizations/${organization.slug}/key-transactions/`;
-    const [data] = await api.requestPromise(url, {
-      method: 'GET',
-      includeAllArgs: true,
-      query: {
-        project: String(project),
-        transaction: transactionName,
-      },
-    });
-    return data;
-  }
-
-  async fetchCountData() {
-    const {api, organization, teams} = this.props;
-
-    const url = `/organizations/${organization.slug}/key-transactions-count/`;
-    const [data] = await api.requestPromise(url, {
-      method: 'GET',
-      includeAllArgs: true,
-      query: {team: teams.map(({id}) => id)},
-    });
-    return data;
-  }
-
+class TeamKeyTransaction extends Component<Props> {
   handleToggleKeyTransaction = async (selection: TeamSelection) => {
-    const {api, organization, project, transactionName} = this.props;
+    const {handleToggleKeyTransaction} = this.props;
     const {teamIds, counts, keyedTeams} = isMyTeamSelection(selection)
       ? this.toggleMyTeams(selection)
       : this.toggleTeamId(selection);
 
-    try {
-      await toggleKeyTransaction(
-        api,
-        selection.action === 'unkey',
-        organization.slug,
-        [project],
-        transactionName,
-        teamIds
-      );
-      this.setState({
-        isLoading: false,
-        keyFetchID: undefined,
-        error: null,
-        counts,
-        keyedTeams,
-      });
-    } catch (err) {
-      this.setState({
-        isLoading: false,
-        keyFetchID: undefined,
-        error: err.responseJSON?.detail ?? null,
-      });
-    }
+    handleToggleKeyTransaction(selection.action === 'unkey', teamIds, counts, keyedTeams);
   };
 
   toggleMyTeams(selection: MyTeamSelection) {
-    const {teams} = this.props;
-    const {counts, keyedTeams} = this.state;
+    const {counts, keyedTeams, teams} = this.props;
 
     const markAsKey = selection.action === 'key';
 
@@ -181,7 +79,7 @@ class TeamKeyTransaction extends Component<Props, State> {
   }
 
   toggleTeamIds(selection: TeamSelection, teamIds: string[]) {
-    const {counts, keyedTeams} = this.state;
+    const {counts, keyedTeams} = this.props;
 
     const markAsKey = selection.action === 'key';
 
@@ -210,8 +108,7 @@ class TeamKeyTransaction extends Component<Props, State> {
   }
 
   render() {
-    const {teams, title} = this.props;
-    const {counts, keyedTeams, isLoading} = this.state;
+    const {isLoading, counts, keyedTeams, teams, title} = this.props;
 
     if (isLoading) {
       const Title = title;
@@ -434,4 +331,4 @@ const ActionItem = styled('span')`
   margin-left: ${space(1)};
 `;
 
-export default withApi(TeamKeyTransaction);
+export default TeamKeyTransaction;
