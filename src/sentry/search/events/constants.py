@@ -50,7 +50,6 @@ SEARCH_MAP = {
     "start": "start",
     "end": "end",
     "project_id": "project_id",
-    "project_transaction_threshold_index": "project_transaction_threshold_index",
     "first_seen": "first_seen",
     "last_seen": "last_seen",
     "times_seen": "times_seen",

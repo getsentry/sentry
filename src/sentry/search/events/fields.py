@@ -117,13 +117,8 @@ def key_transaction_expression(user_id, organization_id, project_ids):
 
 
 def project_threshold_config_expression(organization_id, project_ids):
-    """
-    This function may be called multiple times, making for repeated data bases queries.
-    Lifting the query higher to earlier in the call stack will require a lot more changes
-    as there are numerous entry points. So we will leave the duplicate query alone for now.
-    """
     if organization_id is None or project_ids is None:
-        raise InvalidSearchQuery("Missing necessary meta for key transaction field.")
+        raise InvalidSearchQuery("Missing necessary data for project threshold config")
 
     threshold_configs = (
         ProjectTransactionThreshold.objects.filter(
