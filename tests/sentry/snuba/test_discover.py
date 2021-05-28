@@ -935,6 +935,69 @@ class QueryTransformTest(TestCase):
         )
 
     @patch("sentry.snuba.discover.raw_query")
+    def test_selected_columns_user_misery_new_alias(self, mock_query):
+        mock_query.return_value = {
+            "meta": [
+                {"name": "transaction"},
+                {"name": "project_threshold_config"},
+                {"name": "user_misery_new_project_threshold_config"},
+            ],
+            "data": [
+                {
+                    "transaction": "api.do_things",
+                    "project_threshold_config": ("duration", 400),
+                    "user_misery_new_project_threshold_config": 0.15,
+                }
+            ],
+        }
+
+        discover.query(
+            selected_columns=[
+                "transaction",
+                "project_threshold_config",
+                "user_misery_new(project_threshold_config)",
+            ],
+            query="",
+            params={"project_id": [self.project.id], "organization_id": self.organization.id},
+            auto_fields=True,
+        )
+        mock_query.assert_called_with(
+            start=None,
+            end=None,
+            groupby=["transaction", "project_threshold_config"],
+            conditions=[],
+            aggregations=[
+                [
+                    "ifNull(divide(plus(uniqIf(user, greater(multiIf(equals(tupleElement(project_threshold_config, 1), 'lcp'),if(has(measurements.key, 'lcp'), arrayElement(measurements.value, indexOf(measurements.key, 'lcp')), NULL),equals(tupleElement(project_threshold_config, 1), 'fcp'),if(has(measurements.key, 'fcp'), arrayElement(measurements.value, indexOf(measurements.key, 'fcp')), NULL),duration), multiply(tupleElement(project_threshold_config, 2), 4))), 5.8875), plus(uniq(user), 117.75)), 0)",
+                    None,
+                    "user_misery_new_project_threshold_config",
+                ]
+            ],
+            selected_columns=[
+                "transaction",
+                [
+                    "if",
+                    [
+                        ["equals", [["indexOf", [["array", []], "project_id"]], 0]],
+                        ["tuple", ["'duration'", 300]],
+                        [
+                            "arrayElement",
+                            [["array", []], ["indexOf", [["array", []], "project_id"]]],
+                        ],
+                    ],
+                    "project_threshold_config",
+                ],
+            ],
+            filter_keys={"project_id": [self.project.id]},
+            having=[],
+            orderby=None,
+            dataset=Dataset.Discover,
+            limit=50,
+            offset=None,
+            referrer=None,
+        )
+
+    @patch("sentry.snuba.discover.raw_query")
     def test_selected_columns_count_miserable_alias(self, mock_query):
         mock_query.return_value = {
             "meta": [{"name": "transaction"}, {"name": "count_miserable_user_300"}],
@@ -960,6 +1023,161 @@ class QueryTransformTest(TestCase):
             orderby=None,
             having=[],
             limit=50,
+            offset=None,
+            referrer=None,
+        )
+
+    @patch("sentry.snuba.discover.raw_query")
+    def test_selected_columns_project_threshold_config_alias(self, mock_query):
+        mock_query.return_value = {
+            "meta": [
+                {"name": "transaction"},
+                {"name": "project_threshold_config"},
+            ],
+            "data": [
+                {
+                    "transaction": "api.do_things",
+                    "project_threshold_config": ("duration", 400),
+                }
+            ],
+        }
+
+        discover.query(
+            selected_columns=[
+                "transaction",
+                "project_threshold_config",
+            ],
+            query="",
+            params={"project_id": [self.project.id], "organization_id": self.organization.id},
+            auto_fields=True,
+        )
+
+        mock_query.assert_called_with(
+            start=None,
+            end=None,
+            groupby=[],
+            conditions=[],
+            aggregations=[],
+            selected_columns=[
+                "transaction",
+                [
+                    "if",
+                    [
+                        ["equals", [["indexOf", [["array", []], "project_id"]], 0]],
+                        ["tuple", ["'duration'", 300]],
+                        [
+                            "arrayElement",
+                            [["array", []], ["indexOf", [["array", []], "project_id"]]],
+                        ],
+                    ],
+                    "project_threshold_config",
+                ],
+                "event_id",
+                "project_id",
+                [
+                    "transform",
+                    [
+                        ["toString", ["project_id"]],
+                        ["array", [f"'{self.project.id}'"]],
+                        ["array", ["'bar'"]],
+                        "''",
+                    ],
+                    "`project.name`",
+                ],
+            ],
+            filter_keys={"project_id": [self.project.id]},
+            having=[],
+            orderby=None,
+            dataset=Dataset.Discover,
+            limit=50,
+            offset=None,
+            referrer=None,
+        )
+
+    @patch("sentry.snuba.discover.raw_query")
+    def test_selected_columns_count_miserable_new_alias(self, mock_query):
+        mock_query.return_value = {
+            "meta": [
+                {"name": "transaction"},
+                {"name": "project_threshold_config"},
+                {"name": "count_miserable_new_user_project_threshold_config"},
+            ],
+            "data": [
+                {
+                    "transaction": "api.do_things",
+                    "project_threshold_config": ("duration", 400),
+                    "count_miserable_new_user_project_threshold_config": 15,
+                }
+            ],
+        }
+        discover.query(
+            selected_columns=[
+                "transaction",
+                "project_threshold_config",
+                "count_miserable_new(user, project_threshold_config)",
+            ],
+            query="",
+            params={"project_id": [self.project.id], "organization_id": self.organization.id},
+            auto_fields=True,
+        )
+
+        mock_query.assert_called_with(
+            start=None,
+            end=None,
+            groupby=["transaction", "project_threshold_config"],
+            conditions=[],
+            aggregations=[
+                [
+                    "uniqIf",
+                    [
+                        "user",
+                        [
+                            "greater",
+                            [
+                                [
+                                    "multiIf",
+                                    [
+                                        [
+                                            "equals",
+                                            [
+                                                ["tupleElement", ["project_threshold_config", 1]],
+                                                "'lcp'",
+                                            ],
+                                        ],
+                                        "measurements[lcp]",
+                                        "duration",
+                                    ],
+                                ],
+                                [
+                                    "multiply",
+                                    [["tupleElement", ["project_threshold_config", 2]], 4],
+                                ],
+                            ],
+                        ],
+                    ],
+                    "count_miserable_new_user_project_threshold_config",
+                ]
+            ],
+            selected_columns=[
+                "transaction",
+                [
+                    "if",
+                    [
+                        ["equals", [["indexOf", [["array", []], "project_id"]], 0]],
+                        ["tuple", ["'duration'", 300]],
+                        [
+                            "arrayElement",
+                            [["array", []], ["indexOf", [["array", []], "project_id"]]],
+                        ],
+                    ],
+                    "project_threshold_config",
+                ],
+            ],
+            filter_keys={"project_id": [self.project.id]},
+            having=[],
+            orderby=None,
+            limit=50,
+            dataset=Dataset.Discover,
             offset=None,
             referrer=None,
         )

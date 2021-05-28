@@ -1300,10 +1300,16 @@ FUNCTIONS = {
                                 ],
                             ],
                             [
-                                "tupleElement",
+                                "multiply",
                                 [
-                                    ArgValue("threshold_config"),
-                                    2,
+                                    [
+                                        "tupleElement",
+                                        [
+                                            ArgValue("threshold_config"),
+                                            2,
+                                        ],
+                                    ],
+                                    4,
                                 ],
                             ],
                         ],
@@ -1329,7 +1335,7 @@ FUNCTIONS = {
             calculated_args=[
                 {"name": "parameter_sum", "fn": lambda args, _: args["alpha"] + args["beta"]},
             ],
-            transform="ifNull(divide(plus(uniqIf(user, greater(multiIf(equals(tupleElement({threshold_config}, 1), 'lcp'),if(has(measurements.key, 'lcp'), arrayElement(measurements.value, indexOf(measurements.key, 'lcp')), NULL),equals(tupleElement({threshold_config}, 1), 'fcp'),if(has(measurements.key, 'fcp'), arrayElement(measurements.value, indexOf(measurements.key, 'fcp')), NULL),duration), tupleElement({threshold_config}, 2))), {alpha}), plus(uniq(user), {parameter_sum})), 0)",
+            transform="ifNull(divide(plus(uniqIf(user, greater(multiIf(equals(tupleElement({threshold_config}, 1), 'lcp'),if(has(measurements.key, 'lcp'), arrayElement(measurements.value, indexOf(measurements.key, 'lcp')), NULL),equals(tupleElement({threshold_config}, 1), 'fcp'),if(has(measurements.key, 'fcp'), arrayElement(measurements.value, indexOf(measurements.key, 'fcp')), NULL),duration), multiply(tupleElement({threshold_config}, 2), 4))), {alpha}), plus(uniq(user), {parameter_sum})), 0)",
             default_result_type="number",
         ),
         Function(
