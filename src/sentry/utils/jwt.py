@@ -7,7 +7,7 @@ central place which handles JWT in a uniform way.
 from typing import List, Mapping, Optional, Union
 
 import jwt as pyjwt
-from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
+from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey, RSAPublicKey
 from jwt import DecodeError
 
 __all__ = ["peek_claims", "decode", "encode", "authorization_header", "DecodeError"]
@@ -51,7 +51,7 @@ def encode(
     key: bytes,
     *,
     algorithm: str = "HS256",
-    headers: Union[Mapping[str, str], None] = None,
+    headers: Optional[Mapping[str, str]] = None,
 ) -> str:
     """Encode a JWT token containing the provided payload/claims.
 
@@ -75,7 +75,7 @@ def authorization_header(token: str, *, scheme: str = "Bearer") -> Mapping[str, 
     return {"Authorization": f"{scheme} {token}"}
 
 
-def rsa_key_from_jwk(jwk: str) -> RSAPrivateKey:
+def rsa_key_from_jwk(jwk: str) -> Union[RSAPrivateKey, RSAPublicKey]:
     """Returns an RSA key from a serialised JWK.
 
     This constructs an RSA key from a JSON Web Key, the result can be used as key to
