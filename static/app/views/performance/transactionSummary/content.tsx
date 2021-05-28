@@ -17,7 +17,7 @@ import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {generateQueryWithTag} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import {TableDataRow} from 'app/utils/discover/discoverQuery';
+import DiscoverQuery, {TableDataRow} from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
 import {
   getAggregateAlias,
@@ -201,6 +201,13 @@ class SummaryContent extends React.Component<Props, State> {
       t('timestamp'),
     ];
 
+    const maxDurationEventView = eventView.clone();
+    if (spanOperationBreakdownFilter !== SpanOperationBreakdownFilter.None) {
+      maxDurationEventView.fields = [
+        {field: `max(spans.${spanOperationBreakdownFilter})`},
+      ];
+    }
+
     let transactionsListEventView = eventView.clone();
 
     if (organization.features.includes('performance-ops-breakdown')) {
@@ -226,6 +233,19 @@ class SummaryContent extends React.Component<Props, State> {
 
       // add ops breakdown duration column as the 3rd column
       transactionsListTitles.splice(2, 0, operationDurationTableTitle);
+
+      if (spanOperationBreakdownFilter !== SpanOperationBreakdownFilter.None) {
+        const durationTitle = transactionsListTitles?.find(
+          row => row === t('total duration')
+        );
+        if (durationTitle) {
+          transactionsListTitles.splice(
+            transactionsListTitles.indexOf(durationTitle),
+            1,
+            t('max duration')
+          );
+        }
+      }
 
       // span_ops_breakdown.relative is a preserved name and a marker for the associated
       // field renderer to be used to generate the relative ops breakdown
@@ -294,48 +314,72 @@ class SummaryContent extends React.Component<Props, State> {
               totalValues={totalCount}
               currentFilter={spanOperationBreakdownFilter}
             />
-            <TransactionsList
+            <DiscoverQuery
+              eventView={maxDurationEventView}
+              orgSlug={organization.slug}
               location={location}
-              organization={organization}
-              eventView={transactionsListEventView}
-              generateDiscoverEventView={() => {
-                const {selected} = getTransactionsListSort(location, {
-                  p95: totalValues?.p95 ?? 0,
-                  spanOperationBreakdownFilter,
-                });
-                const sortedEventView = transactionsListEventView.withSorts([
-                  selected.sort,
-                ]);
+              referrer="api.performance.transaction-summary"
+            >
+              {({tableData: maxSpansData}) => {
+                return (
+                  <TransactionsList
+                    location={location}
+                    organization={organization}
+                    eventView={transactionsListEventView}
+                    generateDiscoverEventView={() => {
+                      const {selected} = getTransactionsListSort(location, {
+                        p95: totalValues?.p95 ?? 0,
+                        spanOperationBreakdownFilter,
+                      });
+                      const sortedEventView = transactionsListEventView.withSorts([
+                        selected.sort,
+                      ]);
 
-                if (spanOperationBreakdownFilter === SpanOperationBreakdownFilter.None) {
-                  const fields = [
-                    // Remove the extra field columns
-                    ...sortedEventView.fields.slice(0, transactionsListTitles.length),
-                  ];
+                      if (
+                        spanOperationBreakdownFilter === SpanOperationBreakdownFilter.None
+                      ) {
+                        const fields = [
+                          // Remove the extra field columns
+                          ...sortedEventView.fields.slice(
+                            0,
+                            transactionsListTitles.length
+                          ),
+                        ];
 
-                  // omit "Operation Duration" column
-                  sortedEventView.fields = fields.filter(({field}) => {
-                    return !isRelativeSpanOperationBreakdownField(field);
-                  });
-                }
-                return sortedEventView;
+                        // omit "Operation Duration" column
+                        sortedEventView.fields = fields.filter(({field}) => {
+                          return !isRelativeSpanOperationBreakdownField(field);
+                        });
+                      }
+                      return sortedEventView;
+                    }}
+                    titles={transactionsListTitles}
+                    handleDropdownChange={this.handleTransactionsListSortChange}
+                    generateLink={{
+                      id: generateTransactionLink(transactionName),
+                      trace: generateTraceLink(
+                        eventView.normalizeDateSelection(location)
+                      ),
+                    }}
+                    baseline={transactionName}
+                    handleBaselineClick={this.handleViewDetailsClick}
+                    handleCellAction={this.handleCellAction}
+                    handleOpenInDiscoverClick={this.handleDiscoverViewClick}
+                    {...getTransactionsListSort(location, {
+                      p95: totalValues?.p95 ?? 0,
+                      spanOperationBreakdownFilter,
+                    })}
+                    forceLoading={isLoading}
+                    spanOperationBreakdownFilter={spanOperationBreakdownFilter}
+                    maxSpansDuration={
+                      maxSpansData?.data?.[0]?.[
+                        `max_spans_${spanOperationBreakdownFilter}`
+                      ]
+                    }
+                  />
+                );
               }}
-              titles={transactionsListTitles}
-              handleDropdownChange={this.handleTransactionsListSortChange}
-              generateLink={{
-                id: generateTransactionLink(transactionName),
-                trace: generateTraceLink(eventView.normalizeDateSelection(location)),
-              }}
-              baseline={transactionName}
-              handleBaselineClick={this.handleViewDetailsClick}
-              handleCellAction={this.handleCellAction}
-              handleOpenInDiscoverClick={this.handleDiscoverViewClick}
-              {...getTransactionsListSort(location, {
-                p95: totalValues?.p95 ?? 0,
-                spanOperationBreakdownFilter,
-              })}
-              forceLoading={isLoading}
-            />
+            </DiscoverQuery>
             <Feature features={['performance-tag-explorer']}>
               <TagExplorer
                 eventView={eventView}

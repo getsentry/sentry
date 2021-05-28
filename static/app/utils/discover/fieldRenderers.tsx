@@ -519,13 +519,13 @@ const isDurationValue = (data: EventData, field: string): boolean => {
 const spanOperationBreakdownRenderer = (field: string) => (
   data: EventData
 ): React.ReactNode => {
-  if (!isDurationValue(data, 'transaction.duration') || !isDurationValue(data, field)) {
+  if (!isDurationValue(data, 'maxSpansDuration') || !isDurationValue(data, field)) {
     return FIELD_FORMATTERS.duration.renderFunc(field, data);
   }
-  const transactionDuration = data['transaction.duration'];
+  const maxSpanDuration = data.maxSpansDuration;
   const spanOpDuration = data[field];
 
-  const widthPercentage = spanOpDuration / transactionDuration;
+  const widthPercentage = spanOpDuration / maxSpanDuration;
   const operationName = getSpanOperationName(field) ?? 'op';
 
   return (

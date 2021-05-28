@@ -21,6 +21,7 @@ import EventView, {MetaType} from 'app/utils/discover/eventView';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import {
   Alignments,
+  explodeFieldString,
   fieldAlignment,
   getAggregateAlias,
   Sort,
@@ -37,7 +38,10 @@ import CellAction, {Actions} from 'app/views/eventsV2/table/cellAction';
 import {TableColumn} from 'app/views/eventsV2/table/types';
 import {decodeColumnOrder} from 'app/views/eventsV2/utils';
 import {GridCell, GridCellNumber} from 'app/views/performance/styles';
-import {spanOperationBreakdownSingleColumns} from 'app/views/performance/transactionSummary/filter';
+import {
+  SpanOperationBreakdownFilter,
+  spanOperationBreakdownSingleColumns,
+} from 'app/views/performance/transactionSummary/filter';
 import {
   TrendChangeType,
   TrendsDataEvents,
@@ -137,10 +141,19 @@ type Props = {
    * for generating the Discover query.
    */
   generateDiscoverEventView?: () => EventView;
+  /**
+   * The span op filter selected
+   */
+  spanOperationBreakdownFilter?: SpanOperationBreakdownFilter;
+  /**
+   * The maximum span duration to draw span bar against
+   */
+  maxSpansDuration?: number;
 };
 
 class TransactionsList extends React.Component<Props> {
   static defaultProps = {
+    spanOperationBreakdownFilter: SpanOperationBreakdownFilter.None,
     cursorName: 'transactionCursor',
     limit: DEFAULT_TRANSACTION_LIMIT,
   };
@@ -241,6 +254,8 @@ class TransactionsList extends React.Component<Props> {
       generateLink,
       baseline,
       forceLoading,
+      spanOperationBreakdownFilter,
+      maxSpansDuration,
     } = this.props;
 
     const eventView = this.getEventView();
@@ -253,31 +268,53 @@ class TransactionsList extends React.Component<Props> {
       ? baseline ?? null
       : null;
 
-    let tableRenderer = ({isLoading, pageLinks, tableData, baselineData}) => (
-      <React.Fragment>
-        <Header>
-          {this.renderHeader()}
-          <StyledPagination
-            pageLinks={pageLinks}
-            onCursor={this.handleCursor}
-            size="small"
+    let tableRenderer = ({isLoading, pageLinks, tableData, baselineData}) => {
+      // Replace transaction.duration with maxSpansDuration if exists and in an individual ops breakdown
+      if (
+        spanOperationBreakdownFilter !== SpanOperationBreakdownFilter.None &&
+        maxSpansDuration &&
+        tableData &&
+        tableData.data
+      ) {
+        tableData.data.forEach(row => {
+          row.maxSpansDuration = maxSpansDuration;
+        });
+        const durationColumn = columnOrder.find(
+          ({key}) => key === 'transaction.duration'
+        );
+        if (durationColumn) {
+          durationColumn.column = explodeFieldString('maxSpansDuration');
+          durationColumn.key = 'maxSpansDuration';
+          durationColumn.name = 'maxSpansDuration';
+        }
+        tableData.meta.maxSpansDuration = 'duration';
+      }
+      return (
+        <React.Fragment>
+          <Header>
+            {this.renderHeader()}
+            <StyledPagination
+              pageLinks={pageLinks}
+              onCursor={this.handleCursor}
+              size="small"
+            />
+          </Header>
+          <TransactionsTable
+            eventView={eventView}
+            organization={organization}
+            location={location}
+            isLoading={isLoading}
+            tableData={tableData}
+            baselineData={baselineData ?? null}
+            columnOrder={columnOrder}
+            titles={titles}
+            generateLink={generateLink}
+            baselineTransactionName={baselineTransactionName}
+            handleCellAction={handleCellAction}
           />
-        </Header>
-        <TransactionsTable
-          eventView={eventView}
-          organization={organization}
-          location={location}
-          isLoading={isLoading}
-          tableData={tableData}
-          baselineData={baselineData ?? null}
-          columnOrder={columnOrder}
-          titles={titles}
-          generateLink={generateLink}
-          baselineTransactionName={baselineTransactionName}
-          handleCellAction={handleCellAction}
-        />
-      </React.Fragment>
-    );
+        </React.Fragment>
+      );
+    };
 
     if (forceLoading) {
       return tableRenderer({
@@ -414,6 +451,7 @@ type TableProps = {
   handleCellAction?: (
     c: TableColumn<React.ReactText>
   ) => (a: Actions, v: React.ReactText) => void;
+  maxSpansDuration?: number;
 };
 
 class TransactionsTable extends React.PureComponent<TableProps> {
