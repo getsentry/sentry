@@ -31,7 +31,7 @@ def _get_edit_template(killswitch_name: str, option_value) -> str:
     ):
         for j, line in enumerate(textwrap.wrap(description)):
             comments.append(f"{' ' if i or j else '-'} # {line}")
-        comments.append(f"  {field}: ~")
+        comments.append(f"  {field}: null")
 
     edit_text = "\n".join(f"# {line}" for line in comments)
 
