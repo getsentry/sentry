@@ -1066,7 +1066,7 @@ class Function:
 
         # populate any computed args
         for calculation in self.calculated_args:
-            arguments[calculation["name"]] = calculation["fn"](arguments, params)
+            arguments[calculation["name"]] = calculation["fn"](arguments)
 
         return arguments
 
@@ -1237,9 +1237,7 @@ FUNCTIONS = {
         Function(
             "count_miserable",
             required_args=[CountColumn("column"), NumberRange("satisfaction", 0, None)],
-            calculated_args=[
-                {"name": "tolerated", "fn": lambda args, _: args["satisfaction"] * 4.0}
-            ],
+            calculated_args=[{"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0}],
             aggregate=[
                 "uniqIf",
                 [ArgValue("column"), ["greater", ["transaction.duration", ArgValue("tolerated")]]],
@@ -1328,7 +1326,7 @@ FUNCTIONS = {
                 with_default(111.8625, NumberRange("beta", 0, None)),
             ],
             calculated_args=[
-                {"name": "parameter_sum", "fn": lambda args, _: args["alpha"] + args["beta"]},
+                {"name": "parameter_sum", "fn": lambda args: args["alpha"] + args["beta"]},
             ],
             transform=(
                 "ifNull(divide(plus(uniqIf(user, greater("  # NOQA
@@ -1358,7 +1356,7 @@ FUNCTIONS = {
                 with_default(111.8625, NumberRange("beta", 0, None)),
             ],
             calculated_args=[
-                {"name": "tolerated", "fn": lambda args, _: args["satisfaction"] * 4.0},
+                {"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0},
                 {"name": "parameter_sum", "fn": lambda args, _: args["alpha"] + args["beta"]},
             ],
             transform="ifNull(divide(plus(uniqIf(user, greater(duration, {tolerated:g})), {alpha}), plus(uniq(user), {parameter_sum})), 0)",
