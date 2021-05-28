@@ -1,6 +1,5 @@
 import logging
 from urllib.parse import urlencode
-from uuid import uuid4
 
 from django.utils.translation import ugettext_lazy as _
 from rest_framework.serializers import ValidationError
@@ -203,13 +202,18 @@ class VercelIntegration(IntegrationInstallation):
             # skip any mappings that already exist
             if mapping in old_mappings:
                 continue
+
             [sentry_project_id, vercel_project_id] = mapping
             sentry_project = Project.objects.get(id=sentry_project_id)
+
             enabled_dsn = ProjectKey.get_default(project=sentry_project)
             if not enabled_dsn:
                 raise ValidationError(
                     {"project_mappings": ["You must have an enabled DSN to continue!"]}
                 )
+
+            sentry_project_dsn = enabled_dsn.get_dsn(public=True)
+
             vercel_project = vercel_client.get_project(vercel_project_id)
             source_code_provider = vercel_project.get("link", {}).get("type")
 
@@ -221,32 +225,27 @@ class VercelIntegration(IntegrationInstallation):
                         ]
                     }
                 )
-            sentry_project_dsn = enabled_dsn.get_dsn(public=True)
-            uuid = uuid4().hex
-
-            sentry_app_installation = SentryAppInstallationForProvider.objects.get(
-                organization=sentry_project.organization.id, provider="vercel"
-            )
-            sentry_auth_token = sentry_app_installation.get_token(
-                self.organization_id, provider="vercel"
-            )
 
             is_next_js = vercel_project.get("framework") == "nextjs"
             dsn_env_name = "NEXT_PUBLIC_SENTRY_DSN" if is_next_js else "SENTRY_DSN"
 
+            sentry_auth_token = SentryAppInstallationForProvider.get_token(
+                sentry_project.organization.id,
+                "vercel",
+            )
+
             env_var_map = {
-                "SENTRY_ORG": {"type": "plain", "value": sentry_project.organization.slug},
-                "SENTRY_PROJECT": {"type": "plain", "value": sentry_project.slug},
-                dsn_env_name: {"type": "plain", "value": sentry_project_dsn},
-                "SENTRY_AUTH_TOKEN": {"type": "secret", "value": sentry_auth_token},
+                "SENTRY_ORG": {"type": "encrypted", "value": sentry_project.organization.slug},
+                "SENTRY_PROJECT": {"type": "encrypted", "value": sentry_project.slug},
+                dsn_env_name: {"type": "encrypted", "value": sentry_project_dsn},
+                "SENTRY_AUTH_TOKEN": {
+                    "type": "encrypted",
+                    "value": sentry_auth_token,
+                },
                 "VERCEL_GIT_COMMIT_SHA": {"type": "system", "value": "VERCEL_GIT_COMMIT_SHA"},
             }
 
             for env_var, details in env_var_map.items():
-                if details["type"] == "secret":
-                    secret_name = env_var + "_%s" % uuid
-                    secret_value = vercel_client.create_secret(secret_name, details["value"])
-                    details["value"] = secret_value
                 self.create_env_var(
                     vercel_client, vercel_project_id, env_var, details["value"], details["type"]
                 )
