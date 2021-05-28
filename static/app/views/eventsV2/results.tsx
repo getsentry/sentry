@@ -84,6 +84,8 @@ class Results extends React.Component<Props, State> {
     return prevState;
   }
 
+  tagsApi: Client = new Client();
+
   state: State = {
     eventView: EventView.fromSavedQueryOrLocation(
       this.props.savedQuery,
@@ -99,8 +101,8 @@ class Results extends React.Component<Props, State> {
   };
 
   componentDidMount() {
-    const {api, organization, selection} = this.props;
-    loadOrganizationTags(api, organization.slug, selection);
+    const {organization, selection} = this.props;
+    loadOrganizationTags(this.tagsApi, organization.slug, selection);
     addRoutePerformanceContext(selection);
     this.checkEventView();
     this.canLoadEvents();
@@ -124,7 +126,7 @@ class Results extends React.Component<Props, State> {
       !isEqual(prevProps.selection.datetime, selection.datetime) ||
       !isEqual(prevProps.selection.projects, selection.projects)
     ) {
-      loadOrganizationTags(api, organization.slug, selection);
+      loadOrganizationTags(this.tagsApi, organization.slug, selection);
       addRoutePerformanceContext(selection);
     }
 
