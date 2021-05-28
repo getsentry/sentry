@@ -39,11 +39,10 @@ jobs:
 
       - name: Install prerequisites
         # Xcode CLI & brew are already installed, thus, no need to call xcode-select install
-        # XXX: Can the Brew set up be cached?
         # Sometimes, brew needs to be updated before brew bundle would work
         # After installing Docker (via homebrew) we need to make sure that it is properly initialized on Mac
         run: |
-          HOMEBREW_NO_AUTO_UPDATE=1 brew bundle -q --no-upgrade || brew update && brew bundle
+          brew update && brew bundle -q
           ./.github/workflows/scripts/docker-setup.sh
 
       - name: Install Python (via Pyenv)
@@ -52,7 +51,7 @@ jobs:
         # We echo to $GITHUB_ENV to make the PATH changes by pyenv init permanent for the rest of the execution
         run: |
           make setup-pyenv
-          eval "$(pyenv init -)"
+          eval "$(pyenv init --path)"
           echo "PATH=$PATH" >> $GITHUB_ENV
           echo "::set-output name=python-version::$(python -V  | sed s/Python\ //g)"
 
