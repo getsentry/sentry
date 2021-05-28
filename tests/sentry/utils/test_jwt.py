@@ -1,6 +1,8 @@
-import jwt
+import jwt as pyjwt
 import pytest
+from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
 
+from sentry.utils import json
 from sentry.utils import jwt as jwt_utils
 
 RS256_KEY = """
@@ -57,6 +59,18 @@ Rt4IpcVVl+gvmjsV4PWILGI3EbCP6WOCbJPGjdVmRxl/8Ng4HYwU8DCveiQ=
 -----END RSA PRIVATE KEY-----
 """
 
+RSA_JWK = {
+    "n": "wcYWTDju_-S7dgFLMp6VQHbCMHTQD7RxoaTWKY8_NizzW7QX82QZWGyc2-1EpYgza82Joy3IQ78FRV5NHjZONgeot-ZsnznFRokXvzdrshFCv4i-4Jeo9RJW_32T53dM3f7kYJ-n6cDouExHIg03TpQKiB_SiAR8f6K-qa9xOCbFRv5McKvLWxHsSMOx034MQKseSokX-BtPrBrCNzPeor92jljKlamIBvgtJQj_Vi4WvaFloXAZ-4BOZwe51ojujYWuLUHxo4khe5Yd_auV5tKtOIBPFQRgcOOFfVc9J2BiwAk1KkraO4zd-s7GYvQeTd2pVLXUIQO9lLzoCtI_f4e0NAUKNo1CY6UePsxs3Q-RdvxmO09mvq7E8BzqM5rKmpGc7xxuk9R1lZ6aHGe3PIVKfYgPUBn8IIspoZjLhxxhk9BCmwKDRofHqtmVBOk7wWgwebDqEed99pPO63vsctlci1MwUo5OvUDQtd3ULCZr-5TKGPtM33rmDIrGgCOJvhp2jM54KvZpt9IyC2jvwrrcnJV7_9Sipy1Ns-jKvGntcPJbUThjMQGqREFi8G4L8sYMYC5vJz4R1vHcysY3k0hLqyfokkW5eNveba31yzprhUFlikfxHWIZipMb2CFxYN1bukMWnkRJU4ZhUoRWNYg4Kl5rg3_rE-CVfboSGvc",
+    "e": "AQAB",
+    "d": "HhZj3_H3KkSZ1vjcdD-rbRcDkAKTS9z4x-CQYGOdrQvNva95CJHCXbh_oqZ0wj8jvNltRakWL265osvBra9A9aK6z9M3ioGt4AXpagdw8XU8qADToovp8COo3oLhNE-R3-Z0D4y6xdDuUa-GXAMxU0IpYHmQdw47RpY-hJp5Of7LIvrZY6VJLhraVXINaoln3aK0UV54Gk4jUNXW0jt7lkmkXvXqftKUDID8gYOkIf2GCmvFHAwL_MEva1AHywf4AoF_SgezPXFNgaMNhRXfcLfFrcA-h0TmtKCfWZbyJ-sPakIDv01gFV8KGKeCplrBWdXRNRYGmhm6lh2-6e87bIy0YsIisq5FlOti3EwKIkTGlIVVHwHyaZ8D0j7sO979OMu4VW8w5Um2hZlct0H4aVWdzaRuCC37SfKBFoU6bUEGppIvuyXbmeqwWlaCsobB60DCWZiTPGbW3DjME8I6efmwp9Z07vJoOA8EdvaTA6RjLl88tRXkj32tasP32Dg-RaD4tBnFyRJMYmbfa4-NZ3rkihD-jzriw0e8orimrCrYz_f84fm3yfUiDs--SF1BTBC-WVhFUGQqdrl3-JCzDKQwW7P-alnwf5ldCzaGIESfuqSVnBLJtzD191xn_IhI8Q0gwHbJCU5PcFq3eqQ9TxGpRN609y_n72j3WK-AOgE",
+    "p": "5PHbJWX2TflCgRediVZSVehKW7iW5KjjOUUe85rvGlOqQD66vOMjJfEJU83srhpI6tfJ3roib2NK9XCEuXhQmeC74kZiLxVQFF8wY6j5mGAGMz6j_EGcoxZNhatLIbKNUtyKhFSo9-buVM5SZNG69WP5jIvGYR586EQv8_OlBB3ubcLYOT49oB7Z-onkIaeeYboXv-TrXJ_JY7DAx0ZKIL8Dvg4kdJtRqFVi5jKfOENnV8Rj90wRcMbBAV7dDDvZhFju0uBm3O1y8sSIw8xBWkA4zgZl-Voscrruepp3MSceOczAtbwFcUwKymWucZ69FSr20iyG3ym6oMR2X4ZBcw",
+    "q": "2Kw46Soq47TsYwZvx8GnVM8t8CJDO5yPWPwppVKeYgwTg6du84Lf6WP2KB992J144rioVbfhSefuMZ8f7v_UaQvsPFE4SGRO2JVvBHy49vxI0zGTBAiIvKzQ6bQ3VqXdxdR-NsnQ2XICqhWPEbbqKZ1FmBC6ydaATXoz5nTDX0IAzPH3vaG0YQXrCyIN8iAdsv75BazPZqcjj6cm7CYi87kFvNVghfNAbsPgGnTxhgsgtnjWnWjnrTiy0lYHRPYoRnBSw3gcTlxJSPv-LvVxdEuEscFW0A3VsqlEsKw5FS8Oj8o0iEjiTLtOHTHYggN2dnbmEG0gu1foHqPnyQOPbQ",
+    "dp": "zDG6V3y9VYY_fovlghxvixeHWo8kZgULxISVuogxQbXlXy-TteyP6MM2onxD4HSpHGwiLHivRdG1hXs5pYJdwSDj8kj8QSotJj5QFlMbaoAah5ITCGYsoni9476HYCK0UXdKRASOP6zEXPc4HZvBuCPW6zevU-exWCeY7WgdgbKAeX0TBNsyc6GQoRhjVHD_ngIwNIKkORR6tmNrTVCvxM0ZNWW_thDhn9WoQ9Bamf_kKC-NSX-a_o8GjYZieQrYUmZPe92RYPKXV1da8-c1Up19DKRAR0nZ4uo-0TL7o-dT2hF4v55W7Fn6NdLC56vA0SRkx8fW8ytwvPr86O4BaQ",
+    "dq": "EmpAxABjeMrttFTdtzqMQDcDjn86-5wIyuVTnMtyzp58Ihpe4a9j3HA0gaB7j6eCmLJdDDv-l8twgSMnEacIpIzw3QeCIxTzZpD8yILZLZSvk9OIzTT0eiSt9M7uTRz3xlKTD5EDgRehhlciu7yyFitZuNzjIzhp2yvhsVqHKFdxvflqtuFBdWWNXnrceJGmNIpbG9JeJjlaWmE4e6WaHuDAzhXMiFXuSfu31kfOJzhW5WtLwkEiP6Sr_hh1sbTCI4p0XkydC0Porp1MMy2FIP8yHfFysWgbm32rauCYUWaYdDwZTuPy59abgvuzjQlCTjs4vnin6YRFJCWGE52L2Q",
+    "qi": "G3KQHXu-g2jUpUBDPakzKDRDZu4tZR2TWopcXVUDgaVMCjKW9ffc3d_etPXvpNGtIB8PemO5GJYQJZDdlrK5tOYQwCZm-m_3SMSfUd9F1P1iaJzjnTpy2_Tvj-d9AlZftNHmB83ztWXEf4hKqRqqOFRxceRu4FD3ejP-cQ2L7BaRM62i5DpDNHosiqZH8Sh8wMeL--AIwWSDj7WRJKo54O9YsYRYbkn8Umb9hj1zUbSRjsIzCrVYbIZSCl3Re2rN7S_uqojenCKVGjtH_f7058BLnyxG3gilxVWX6C-aOxXg9YgsYjcRsI_pY4Jsk8aN1WZHGX_w2DgdjBTwMK96JA",
+    "kty": "RSA",
+}
+
 
 @pytest.fixture
 def token():
@@ -68,7 +82,7 @@ def token():
         "iss": "me",
     }
     key = "secret"
-    encoded = jwt.encode(claims, key, algorithm="HS256", headers=headers)
+    encoded = pyjwt.encode(claims, key, algorithm="HS256", headers=headers)
 
     # PyJWT < 2.0 returns bytes, not strings
     token = encoded.decode("UTF-8")
@@ -97,11 +111,28 @@ def test_decode(token):
     claims["aud"] = "you"
     token = jwt_utils.encode(claims, "secret")
 
-    with pytest.raises(jwt.InvalidAudience):
+    with pytest.raises(pyjwt.InvalidAudience):
         jwt_utils.decode(token, "secret")
 
-    claims = jwt_utils.decode(token, "secret", verify_aud=False)
-    assert claims == {"iss": "me", "aud": "you"}
+
+def test_decode_audience():
+    payload = {
+        "iss": "me",
+        "aud": "you",
+    }
+    token = jwt_utils.encode(payload, "secret")
+
+    with pytest.raises(pyjwt.InvalidAudience):
+        jwt_utils.decode(token, "secret")
+
+    claims = jwt_utils.decode(token, "secret", audience="you")
+    assert claims == payload
+
+    with pytest.raises(pyjwt.InvalidAudience):
+        jwt_utils.decode(token, "secret", audience="wrong")
+
+    claims = jwt_utils.decode(token, "secret", audience=False)
+    assert claims == payload
 
 
 def test_encode(token):
@@ -145,3 +176,14 @@ def test_authorization_header(token):
 
     header = jwt_utils.authorization_header(token, scheme="JWT")
     assert header == {"Authorization": f"JWT {token}"}
+
+
+def test_rsa_key_from_jwk():
+    key = jwt_utils.rsa_key_from_jwk(json.dumps(RSA_JWK))
+    assert key
+    assert isinstance(key, RSAPrivateKey)
+
+    # Ensure we can use the key to create a token
+    claims = {"iss": "me"}
+    token = jwt_utils.encode(claims, key)
+    assert token
