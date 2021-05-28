@@ -213,8 +213,8 @@ def _get_group_filters(group: Group):
         #
         # We add both conditions because Snuba query API requires us to, and
         # because it does bring a significant performance boost.
-        Condition(Column("timestamp"), Op.GTE, group.first_seen),
-        Condition(Column("timestamp"), Op.LT, group.last_seen + datetime.timedelta(seconds=1)),
+        Condition(Column("timestamp"), Op.GTE, group.first_seen - datetime.timedelta(seconds=10)),
+        Condition(Column("timestamp"), Op.LT, group.last_seen + datetime.timedelta(seconds=10)),
     ]
 
 
