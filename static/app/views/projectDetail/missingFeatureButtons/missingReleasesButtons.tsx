@@ -73,4 +73,5 @@ const StyledButtonBar = styled(ButtonBar)`
   grid-template-columns: minmax(auto, max-content) minmax(auto, max-content);
 `;
 
+export {StyledButtonBar};
 export default MissingReleasesButtons;

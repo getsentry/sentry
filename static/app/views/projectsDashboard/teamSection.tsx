@@ -53,10 +53,6 @@ const ProjectCards = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints[2]}) {
     grid-template-columns: repeat(3, minmax(100px, 1fr));
   }
-
-  @media (min-width: ${p => p.theme.breakpoints[3]}) {
-    grid-template-columns: repeat(4, minmax(100px, 1fr));
-  }
 `;
 
 const TeamSectionWrapper = styled('div')<{showBorder: boolean}>`

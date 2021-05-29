@@ -36,6 +36,19 @@ describe('ProjectsDashboard', function () {
       url: `/teams/${org.slug}/${team.slug}/members/`,
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/sessions/`,
+      body: [
+        {
+          query: {
+            project: 3,
+            field: 'sum(session)',
+            statsPeriod: '90d',
+            interval: '1d',
+          },
+        },
+      ],
+    });
     ProjectsStatsStore.reset();
   });
 
