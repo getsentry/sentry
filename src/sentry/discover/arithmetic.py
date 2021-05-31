@@ -3,8 +3,6 @@ from typing import List, Optional, Tuple, Union
 from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar, NodeVisitor
 
-from sentry.utils.snuba import is_measurement, is_span_op_breakdown
-
 SUPPORTED_OPERATORS = {"plus", "minus", "multiply", "divide"}
 
 
@@ -45,6 +43,7 @@ class Operation:
         self.operator = operator
         self.lhs: Optional[OperationSideType] = lhs
         self.rhs: Optional[OperationSideType] = rhs
+        self.validate()
 
     def validate(self) -> None:
         # This shouldn't really happen, but the operator value is based on the grammar so enforcing it to be safe
@@ -94,7 +93,20 @@ class ArithmeticVisitor(NodeVisitor):
     # Don't wrap in VisitationErrors
     unwrapped_exceptions = (ArithmeticError,)
 
-    allowlist = {"transaction.duration"}
+    allowlist = {
+        "transaction.duration",
+        "spans.http",
+        "spans.db",
+        "spans.resource",
+        "spans.browser",
+        "spans.total.time",
+        "measurements.fp",
+        "measurements.fcp",
+        "measurements.lcp",
+        "measurements.fid",
+        "measurements.ttfb",
+        "measurements.ttfb.requesttime",
+    }
 
     def __init__(self, max_operators):
         super().__init__()
@@ -175,11 +187,10 @@ class ArithmeticVisitor(NodeVisitor):
 
     def visit_field_value(self, node, _):
         field = node.text
-        if is_measurement(field) or is_span_op_breakdown(field) or field in self.allowlist:
-            self.fields.add(field)
-            return field
-        else:
+        if field not in self.allowlist:
             raise ArithmeticValidationError(f"{field} not allowed in arithmetic")
+        self.fields.add(field)
+        return field
 
     def generic_visit(self, node, children):
         return children or node

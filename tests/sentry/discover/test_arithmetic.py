@@ -2,6 +2,7 @@ import pytest
 
 from sentry.discover.arithmetic import (
     ArithmeticParseError,
+    ArithmeticValidationError,
     MaxOperatorError,
     Operation,
     parse_arithmetic,
@@ -190,5 +191,5 @@ def test_unparseable_arithmetic(equation):
     ],
 )
 def test_invalid_arithmetic(equation):
-    with pytest.raises(ArithmeticParseError):
+    with pytest.raises(ArithmeticValidationError):
         parse_arithmetic(equation)
