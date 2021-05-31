@@ -62,10 +62,13 @@ _append_to_startup_script() {
 
 append_to_config() {
   if [[ -n "$1" ]]; then
-    echo "Adding pyenv init --path (if missing) to ${1}..."
-    # XXX: Ask user to remove old style from their file
-    # shellcheck disable=SC2016
+    if grep -qF "(pyenv init -)" "${1}"; then
+      echo >&2 "!!! Please remove the old-style pyenv initialization and try again:"
+      echo "sed -i.bak 's/(pyenv init -)/(pyenv init --path)/' ${1}"
+      exit 1
+    fi
     if ! grep -qF "pyenv init --path" "${1}"; then
+      echo "Adding pyenv init --path to ${1}..."
       # pyenv init --path is needed to include the pyenv shims in your PATH
       _append_to_startup_script "${1}"
     fi
