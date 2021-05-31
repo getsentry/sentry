@@ -2,12 +2,19 @@ import re
 from collections import defaultdict, namedtuple
 from copy import deepcopy
 from datetime import datetime
+from typing import List, Union
 
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
+from snuba_sdk.column import Column as SnqlColumn
+
+# TODO remove import aliases on snql Functions&Columns
+from snuba_sdk.function import Function as SnqlFunction
+from snuba_sdk.orderby import Direction, OrderBy
 
 from sentry.discover.models import KeyTransaction
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Project
+from sentry.search.events.base import QueryBase
 from sentry.search.events.constants import (
     ALIAS_PATTERN,
     ERROR_UNHANDLED_ALIAS,
@@ -1553,3 +1560,59 @@ for alias, name in FUNCTION_ALIASES.items():
 
 
 FUNCTION_ALIAS_PATTERN = re.compile(r"^({}).*".format("|".join(list(FUNCTIONS.keys()))))
+
+
+class QueryFields(QueryBase):
+    """ Field logic for a snql query """
+
+    def resolve_select(self, selected_columns: List[str]) -> None:
+        for field in selected_columns:
+            if isinstance(field, str) and field.strip() == "":
+                continue
+            field = self.resolve_field(field)
+            if isinstance(field, SnqlColumn) and field not in self.columns:
+                self.columns.append(field)
+
+    def resolve_field(self, field) -> Union[SnqlColumn, SnqlFunction]:
+        if not isinstance(field, str):
+            raise InvalidSearchQuery("Field names must be strings")
+
+        match = is_function(field)
+        if match:
+            raise NotImplementedError(f"{field} not implemented in snql field parsing yet")
+
+        if field in FIELD_ALIASES:
+            raise NotImplementedError(f"{field} not implemented in snql field parsing yet")
+
+        tag_match = TAG_KEY_RE.search(field)
+        field = tag_match.group("tag") if tag_match else field
+
+        if VALID_FIELD_PATTERN.match(field):
+            if field in self.field_allowlist:
+                return self.column(field)
+            else:
+                raise NotImplementedError(f"{field} not implemented in snql field parsing yet")
+        else:
+            raise InvalidSearchQuery(f"Invalid characters in field {field}")
+
+    @property
+    def orderby(self) -> List[OrderBy]:
+        validated = []
+        for column in self.orderby_columns:
+            bare_column = self.column(column.lstrip("-"))
+            direction = Direction.DESC if column.startswith("-") else Direction.ASC
+
+            if bare_column in self.columns:
+                validated.append(OrderBy(bare_column, direction))
+                continue
+
+            # TODO: orderby aggregations
+
+            # TODO: orderby field aliases
+
+        if len(validated) == len(self.orderby_columns):
+            return validated
+
+        # TODO: This is no longer true, can order by fields that aren't selected, keeping
+        # for now so we're consistent with the existing functionality
+        raise InvalidSearchQuery("Cannot order by a field that is not selected.")

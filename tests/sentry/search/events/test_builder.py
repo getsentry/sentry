@@ -31,8 +31,8 @@ class QueryBuilderTest(unittest.TestCase):
         query = QueryBuilder(
             Dataset.Discover,
             self.params,
-            ["user.email", "release"],
             "user.email:foo@example.com release:1.2.1",
+            ["user.email", "release"],
         )
 
         assert query.where == [
@@ -50,7 +50,7 @@ class QueryBuilderTest(unittest.TestCase):
         query = QueryBuilder(
             Dataset.Discover,
             self.params,
-            ["user.email", "release"],
+            selected_columns=["user.email", "release"],
             orderby=["user.email"],
         )
 
@@ -61,7 +61,7 @@ class QueryBuilderTest(unittest.TestCase):
         query = QueryBuilder(
             Dataset.Discover,
             self.params,
-            ["user.email", "release"],
+            selected_columns=["user.email", "release"],
             orderby=["-user.email"],
         )
 
@@ -73,8 +73,8 @@ class QueryBuilderTest(unittest.TestCase):
         query = QueryBuilder(
             Dataset.Discover,
             self.params,
+            "environment:prod",
             ["environment"],
-            query="environment:prod",
         )
 
         assert query.where == [
@@ -86,8 +86,8 @@ class QueryBuilderTest(unittest.TestCase):
         query = QueryBuilder(
             Dataset.Discover,
             self.params,
+            "environment:[dev, prod]",
             ["environment"],
-            query="environment:[dev, prod]",
         )
 
         assert query.where == [
@@ -98,7 +98,7 @@ class QueryBuilderTest(unittest.TestCase):
 
     def test_environment_param(self):
         self.params["environment"] = ["", "prod"]
-        query = QueryBuilder(Dataset.Discover, self.params, ["environment"])
+        query = QueryBuilder(Dataset.Discover, self.params, selected_columns=["environment"])
 
         assert query.where == [
             *self.default_conditions,
@@ -112,7 +112,7 @@ class QueryBuilderTest(unittest.TestCase):
         query.get_snql_query().validate()
 
         self.params["environment"] = ["dev", "prod"]
-        query = QueryBuilder(Dataset.Discover, self.params, ["environment"])
+        query = QueryBuilder(Dataset.Discover, self.params, selected_columns=["environment"])
 
         assert query.where == [
             *self.default_conditions,
