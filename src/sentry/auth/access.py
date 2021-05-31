@@ -344,7 +344,7 @@ def _from_sentry_app(user, organization=None):
 
 
 def from_user(user, organization=None, scopes=None):
-    if not user or user.is_anonymous() or not user.is_active:
+    if not user or user.is_anonymous or not user.is_active:
         return DEFAULT
 
     if not organization:

@@ -172,6 +172,8 @@ class Release(Model):
             ("organization", "major", "minor", "patch", "revision"),
             ("organization", "build_code"),
             ("organization", "build_number"),
+            ("organization", "date_added"),
+            ("organization", "status"),
         )
 
     __repr__ = sane_repr("organization_id", "version")
