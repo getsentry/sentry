@@ -85,7 +85,9 @@ install_pyenv() {
     if [[ "$pyenv_version" < 2.0.0 ]]; then
       echo >&2 "!!! We've dropped support for pyenv v1." \
         "Run the following (this is slow) and try again."
-      echo >&2 "brew update && brew upgrade pyenv"
+      # brew upgrade does not quite do the right thing
+      # > ~/.pyenv/shims/python: line 8: /usr/local/Cellar/pyenv/1.2.26/libexec/pyenv: No such file or directory
+      echo >&2 "brew update && brew uninstall pyenv && brew install pyenv"
       exit 1
     fi
 
