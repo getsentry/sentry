@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 from django.db import IntegrityError, transaction
 from django.db.models import Count
 from rest_framework.exceptions import ParseError
@@ -6,6 +8,7 @@ from rest_framework.response import Response
 from sentry.api.bases import KeyTransactionBase
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.helpers.teams import get_teams
+from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.utils import InvalidParams
 from sentry.discover.endpoints import serializers
@@ -186,7 +189,7 @@ class KeyTransactionEndpoint(KeyTransactionBase):
         return Response(serializer.errors, status=400)
 
 
-class KeyTransactionCountEndpoint(KeyTransactionBase):
+class KeyTransactionListEndpoint(KeyTransactionBase):
     permission_classes = (KeyTransactionPermission,)
 
     def has_feature(self, request, organization):
@@ -203,8 +206,14 @@ class KeyTransactionCountEndpoint(KeyTransactionBase):
         except InvalidParams as err:
             return Response(str(err), status=400)
 
-        return Response(
-            serialize(list(teams), serializer=KeyTransactionTeamSerializer()), status=200
+        serializer = KeyTransactionTeamSerializer
+
+        return self.paginate(
+            request=request,
+            queryset=teams,
+            order_by="slug",
+            on_results=lambda x: serialize(x, request.user, serializer()),
+            paginator_cls=OffsetPaginator,
         )
 
 
@@ -218,22 +227,22 @@ class TeamKeyTransactionSerializer(Serializer):
 
 class KeyTransactionTeamSerializer(Serializer):
     def get_attrs(self, item_list, user, **kwargs):
-        counts = (
-            TeamKeyTransaction.objects.values("team_id")
-            .filter(team__in=[item.id for item in item_list])
-            .annotate(count=Count("team_id"))
-        )
-        count_map = {}
-        for count in counts:
-            count_map[count["team_id"]] = count["count"]
+        team_key_transactions = TeamKeyTransaction.objects.filter(
+            team__in=[item.id for item in item_list]
+        ).order_by("transaction", "project_id")
 
-        attrs = {}
-        for item in item_list:
-            attrs[item] = {"count": count_map.get(item.id, 0)}
+        attrs = defaultdict(lambda: {"key_transactions": []})
+
+        for kt in team_key_transactions:
+            attrs[kt.team]["key_transactions"].append({
+                "project_id": str(kt.project_id),
+                "transaction": kt.transaction,
+            })
+
         return attrs
 
     def serialize(self, obj, attrs, user, **kwargs):
         return {
             "team": str(obj.id),
-            "count": attrs["count"],
+            "keyed": attrs.get("key_transactions", []),
         }

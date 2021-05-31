@@ -5,6 +5,54 @@ import {
 } from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
 import {t} from 'app/locale';
+import parseLinkHeader from 'app/utils/parseLinkHeader';
+
+type TeamKeyTransaction = {
+  team: string;
+  keyed: {
+    project_id: string;
+    transaction: string;
+  }[];
+};
+
+export async function fetchTeamKeyTransactions(
+  api: Client,
+  orgSlug: string,
+  teams: string | string[]
+): Promise<TeamKeyTransaction[]> {
+  const url = `/organizations/${orgSlug}/key-transactions-list/`;
+
+  const datas: TeamKeyTransaction[][] = [];
+  let cursor: string | undefined = undefined;
+  let hasMore = true;
+
+  while (hasMore) {
+    try {
+      const [data, , xhr] = await api.requestPromise(url, {
+        method: 'GET',
+        includeAllArgs: true,
+        query: {cursor, team: teams},
+      });
+      datas.push(data);
+
+      const pageLinks = xhr && xhr.getResponseHeader('Link');
+      if (pageLinks) {
+        const paginationObject = parseLinkHeader(pageLinks);
+        hasMore = paginationObject?.next?.results ?? false;
+        cursor = paginationObject.next?.cursor;
+      } else {
+        hasMore = false;
+      }
+    } catch (err) {
+      addErrorMessage(
+        err.responseJSON?.detail ?? t('Error fetching team key transactions')
+      );
+      throw err;
+    }
+  }
+
+  return datas.flat();
+}
 
 export function toggleKeyTransaction(
   api: Client,
