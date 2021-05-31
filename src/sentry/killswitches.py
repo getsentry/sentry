@@ -9,12 +9,12 @@ features and more performant.
 
 import copy
 from dataclasses import dataclass
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
 
 from sentry import options
 from sentry.utils import metrics
 
-Condition = Dict[str, str]
+Condition = Dict[str, Optional[str]]
 KillswitchConfig = List[Condition]
 LegacyKillswitchConfig = Union[KillswitchConfig, List[int]]
 Context = Dict[str, Any]
@@ -78,7 +78,7 @@ def validate_user_input(killswitch_name: str, option_value: Any) -> KillswitchCo
 def normalize_value(
     killswitch_name: str, option_value: Any, strict: bool = False
 ) -> KillswitchConfig:
-    rv = []
+    rv: KillswitchConfig = []
     for i, condition in enumerate(option_value or ()):
         if not condition:
             continue
