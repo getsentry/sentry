@@ -331,6 +331,13 @@ def resolve_field_list(
         if "project.id" not in fields:
             fields.append("project.id")
 
+    # Both `count_miserable_new` and `user_misery_new` requre the project_threshold_config column
+    if "project_threshold_config" not in fields:
+        for field in fields[:]:
+            if field.startswith("count_miserable_new") or field.startswith("user_misery_new"):
+                fields.append("project_threshold_config")
+                break
+
     for field in fields:
         if isinstance(field, str) and field.strip() == "":
             continue
@@ -1252,7 +1259,6 @@ FUNCTIONS = {
             "count_miserable_new",
             required_args=[
                 CountColumn("column"),
-                FunctionAliasArg("threshold_config"),
             ],
             aggregate=[
                 "uniqIf",
@@ -1270,7 +1276,7 @@ FUNCTIONS = {
                                             [
                                                 "tupleElement",
                                                 [
-                                                    ArgValue("threshold_config"),
+                                                    "project_threshold_config",
                                                     1,
                                                 ],
                                             ],
@@ -1278,20 +1284,6 @@ FUNCTIONS = {
                                         ],
                                     ],
                                     "measurements[lcp]",
-                                    # [
-                                    #     "equals",
-                                    #     [
-                                    #         [
-                                    #             "tupleElement",
-                                    #             [
-                                    #                 ArgValue("threshold_config"),
-                                    #                 1,
-                                    #             ],
-                                    #         ],
-                                    #         "'fcp'",
-                                    #     ],
-                                    # ],
-                                    # "measurements[fcp]",
                                     "duration",
                                 ],
                             ],
@@ -1301,7 +1293,7 @@ FUNCTIONS = {
                                     [
                                         "tupleElement",
                                         [
-                                            ArgValue("threshold_config"),
+                                            "project_threshold_config",
                                             2,
                                         ],
                                     ],
@@ -1323,7 +1315,6 @@ FUNCTIONS = {
             # with the user misery being adjusted for each fast/slow unique transaction. See:
             # https://stats.stackexchange.com/questions/47771/what-is-the-intuition-behind-beta-distribution
             # for an intuitive explanation of the Beta Distribution Function.
-            required_args=[FunctionAliasArg("threshold_config")],
             optional_args=[
                 with_default(5.8875, NumberRange("alpha", 0, None)),
                 with_default(111.8625, NumberRange("beta", 0, None)),
@@ -1334,13 +1325,11 @@ FUNCTIONS = {
             transform=(
                 "ifNull(divide(plus(uniqIf(user, greater("
                 "multiIf("
-                "equals(tupleElement({threshold_config}, 1), 'lcp'),"
+                "equals(tupleElement(project_threshold_config, 1), 'lcp'),"
                 "if(has(measurements.key, 'lcp'), arrayElement(measurements.value, indexOf(measurements.key, 'lcp')), NULL),"
-                "equals(tupleElement({threshold_config}, 1), 'fcp'),"
-                "if(has(measurements.key, 'fcp'), arrayElement(measurements.value, indexOf(measurements.key, 'fcp')), NULL),"
                 "duration"
                 "), "
-                "multiply(tupleElement({threshold_config}, 2), 4)"
+                "multiply(tupleElement(project_threshold_config, 2), 4)"
                 ")), {alpha}), plus(uniq(user), {parameter_sum})), 0)"
             ),
             default_result_type="number",

@@ -930,8 +930,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         query = {
             "field": [
                 "transaction",
-                "project_threshold_config",
-                "count_miserable_new(user, project_threshold_config)",
+                "count_miserable_new(user)",
             ],
             "query": "event.type:transaction",
             project: [project.id],
@@ -952,13 +951,11 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 3
         data = response.data["data"]
-        assert data[0]["count_miserable_new_user_project_threshold_config"] == 0
-        assert data[1]["count_miserable_new_user_project_threshold_config"] == 2
-        assert data[2]["count_miserable_new_user_project_threshold_config"] == 1
+        assert data[0]["count_miserable_new_user"] == 0
+        assert data[1]["count_miserable_new_user"] == 2
+        assert data[2]["count_miserable_new_user"] == 1
 
-        query[
-            "query"
-        ] = "event.type:transaction count_miserable_new(user, project_threshold_config):>0"
+        query["query"] = "event.type:transaction count_miserable_new(user):>0"
 
         response = self.do_request(
             query,
@@ -971,8 +968,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 2
         data = response.data["data"]
-        assert abs(data[0]["count_miserable_new_user_project_threshold_config"]) == 2
-        assert abs(data[1]["count_miserable_new_user_project_threshold_config"]) == 1
+        assert abs(data[0]["count_miserable_new_user"]) == 2
+        assert abs(data[1]["count_miserable_new_user"]) == 1
 
     def test_user_misery_alias_field(self):
         project = self.create_project()
@@ -1035,8 +1032,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         query = {
             "field": [
                 "transaction",
-                "project_threshold_config",
-                "user_misery_new(project_threshold_config)",
+                "user_misery_new()",
             ],
             "query": "event.type:transaction",
             project: [project.id],
@@ -1057,11 +1053,11 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 3
         data = response.data["data"]
-        assert abs(data[0]["user_misery_new_project_threshold_config"] - 0.04916) < 0.0001
-        assert abs(data[1]["user_misery_new_project_threshold_config"] - 0.06586) < 0.0001
-        assert abs(data[2]["user_misery_new_project_threshold_config"] - 0.05751) < 0.0001
+        assert abs(data[0]["user_misery_new"] - 0.04916) < 0.0001
+        assert abs(data[1]["user_misery_new"] - 0.06586) < 0.0001
+        assert abs(data[2]["user_misery_new"] - 0.05751) < 0.0001
 
-        query["query"] = "event.type:transaction user_misery_new(project_threshold_config):>0.050"
+        query["query"] = "event.type:transaction user_misery_new():>0.050"
 
         response = self.do_request(
             query,
@@ -1074,8 +1070,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 2
         data = response.data["data"]
-        assert abs(data[0]["user_misery_new_project_threshold_config"] - 0.06586) < 0.0001
-        assert abs(data[1]["user_misery_new_project_threshold_config"] - 0.05751) < 0.0001
+        assert abs(data[0]["user_misery_new"] - 0.06586) < 0.0001
+        assert abs(data[1]["user_misery_new"] - 0.05751) < 0.0001
 
     def test_aggregation(self):
         project = self.create_project()
@@ -2176,9 +2172,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 "count_miserable(user, 300)",
                 "user_misery(300)",
                 "failure_rate()",
-                "project_threshold_config",
-                "count_miserable_new(user, project_threshold_config)",
-                "user_misery_new(project_threshold_config)",
+                "count_miserable_new(user)",
+                "user_misery_new()",
             ],
             "query": "event.type:transaction",
             "project": [project.id],
@@ -2197,8 +2192,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert meta["user_misery_300"] == "number"
         assert meta["count_miserable_user_300"] == "number"
         assert meta["project_threshold_config"] == "string"
-        assert meta["user_misery_new_project_threshold_config"] == "number"
-        assert meta["count_miserable_new_user_project_threshold_config"] == "number"
+        assert meta["user_misery_new"] == "number"
+        assert meta["count_miserable_new_user"] == "number"
 
         data = response.data["data"]
         assert len(data) == 1
@@ -2213,8 +2208,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["user_misery_300"] == 0.058
         assert data[0]["failure_rate"] == 0.5
         assert data[0]["project_threshold_config"] == ["duration", 300]
-        assert data[0]["user_misery_new_project_threshold_config"] == 0.058
-        assert data[0]["count_miserable_new_user_project_threshold_config"] == 1
+        assert data[0]["user_misery_new"] == 0.058
+        assert data[0]["count_miserable_new_user"] == 1
 
         query = {
             "field": ["event.type", "last_seen()", "latest_event()"],
@@ -2296,16 +2291,16 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         }
 
         query = {
-            "field": ["project_threshold_config", "user_misery_new(project_threshold_config)"],
+            "field": ["user_misery_new()"],
             "query": "event.type:transaction",
         }
 
         response = self.do_request(query, features=features)
         assert response.status_code == 200, response.content
         meta = response.data["meta"]
-        assert meta["user_misery_new_project_threshold_config"] == "number"
+        assert meta["user_misery_new"] == "number"
         data = response.data["data"]
-        assert data[0]["user_misery_new_project_threshold_config"] == 0
+        assert data[0]["user_misery_new"] == 0
 
     def test_all_aggregates_in_query(self):
         project = self.create_project()

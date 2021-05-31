@@ -942,13 +942,13 @@ class QueryTransformTest(TestCase):
             "meta": [
                 {"name": "transaction"},
                 {"name": "project_threshold_config"},
-                {"name": "user_misery_new_project_threshold_config"},
+                {"name": "user_misery_new"},
             ],
             "data": [
                 {
                     "transaction": "api.do_things",
                     "project_threshold_config": ("duration", 300),
-                    "user_misery_new_project_threshold_config": 0.15,
+                    "user_misery_new": 0.15,
                 }
             ],
         }
@@ -957,7 +957,7 @@ class QueryTransformTest(TestCase):
             selected_columns=[
                 "transaction",
                 "project_threshold_config",
-                "user_misery_new(project_threshold_config)",
+                "user_misery_new()",
             ],
             query="",
             params={"project_id": [self.project.id], "organization_id": self.organization.id},
@@ -970,9 +970,9 @@ class QueryTransformTest(TestCase):
             conditions=[],
             aggregations=[
                 [
-                    "ifNull(divide(plus(uniqIf(user, greater(multiIf(equals(tupleElement(project_threshold_config, 1), 'lcp'),if(has(measurements.key, 'lcp'), arrayElement(measurements.value, indexOf(measurements.key, 'lcp')), NULL),equals(tupleElement(project_threshold_config, 1), 'fcp'),if(has(measurements.key, 'fcp'), arrayElement(measurements.value, indexOf(measurements.key, 'fcp')), NULL),duration), multiply(tupleElement(project_threshold_config, 2), 4))), 5.8875), plus(uniq(user), 117.75)), 0)",
+                    "ifNull(divide(plus(uniqIf(user, greater(multiIf(equals(tupleElement(project_threshold_config, 1), 'lcp'),if(has(measurements.key, 'lcp'), arrayElement(measurements.value, indexOf(measurements.key, 'lcp')), NULL),duration), multiply(tupleElement(project_threshold_config, 2), 4))), 5.8875), plus(uniq(user), 117.75)), 0)",
                     None,
-                    "user_misery_new_project_threshold_config",
+                    "user_misery_new",
                 ]
             ],
             selected_columns=[
@@ -1185,7 +1185,7 @@ class QueryTransformTest(TestCase):
                 {
                     "transaction": "api.do_things",
                     "project_threshold_config": ("duration", 400),
-                    "count_miserable_new_user_project_threshold_config": 15,
+                    "count_miserable_new_user": 15,
                 }
             ],
         }
@@ -1193,7 +1193,7 @@ class QueryTransformTest(TestCase):
             selected_columns=[
                 "transaction",
                 "project_threshold_config",
-                "count_miserable_new(user, project_threshold_config)",
+                "count_miserable_new(user)",
             ],
             query="",
             params={"project_id": [self.project.id], "organization_id": self.organization.id},
@@ -1234,7 +1234,7 @@ class QueryTransformTest(TestCase):
                             ],
                         ],
                     ],
-                    "count_miserable_new_user_project_threshold_config",
+                    "count_miserable_new_user",
                 ]
             ],
             selected_columns=[
