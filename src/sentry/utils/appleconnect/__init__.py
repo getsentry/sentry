@@ -1,9 +1,9 @@
 import datetime
 from collections import namedtuple
-from dateutil import parser
 from typing import Optional
 
 import requests
+from dateutil import parser
 
 from sentry.models.project import Project
 from sentry.utils import fernet_encrypt as encrypt
