@@ -15,7 +15,7 @@ from sentry.utils.sdk import configure_scope
 
 def is_internal_relay(request, public_key):
     """
-    Checks if the relay is internal (authorised for all project configs)
+    Checks if the relay is trusted (authorized for all project configs)
     """
 
     # check legacy whitelisted public_key settings
