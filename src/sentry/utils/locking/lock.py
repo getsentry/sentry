@@ -43,7 +43,7 @@ class Lock:
 
         return releaser()
 
-    def blocking_acquire(self, initial_delay: float, timeout: float):
+    def blocking_acquire(self, initial_delay: float, timeout: float, exp_base=1.6):
         """
         Try to acquire the lock in a polling loop.
 
@@ -59,7 +59,7 @@ class Lock:
             try:
                 return self.acquire()
             except UnableToAcquireLock:
-                delay = 2 ** attempt * random.random() * initial_delay
+                delay = (exp_base ** attempt) * random.random() * initial_delay
                 # Redundant check to prevent futile sleep in last iteration:
                 if time.monotonic() + delay > stop:
                     break

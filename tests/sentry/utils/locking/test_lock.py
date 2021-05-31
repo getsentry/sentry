@@ -65,7 +65,7 @@ class LockTestCase(unittest.TestCase):
             "sentry.utils.locking.lock.time.monotonic", side_effect=lambda: MockTime.time
         ), patch("sentry.utils.locking.lock.time.sleep", side_effect=MockTime.incr) as mock_sleep:
             with self.assertRaises(UnableToAcquireLock):
-                lock.blocking_acquire(initial_delay=0.1, timeout=1)
+                lock.blocking_acquire(initial_delay=0.1, timeout=1, exp_base=2)
 
             # 0.0, 0.05, 0.15, 0.35, 0.75
             assert len(mock_acquire.mock_calls) == 5
