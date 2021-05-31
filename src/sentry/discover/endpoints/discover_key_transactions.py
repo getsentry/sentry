@@ -1,7 +1,6 @@
 from collections import defaultdict
 
 from django.db import IntegrityError, transaction
-from django.db.models import Count
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
