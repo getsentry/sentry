@@ -642,3 +642,29 @@ class SetRefsTest(SetRefsTestCase):
     def test_invalid_version(self):
         release = Release.objects.create(organization=self.org)
         assert not release.is_valid_version(None)
+
+    @staticmethod
+    def test_invalid_chars_in_version():
+        version = (
+            "\n> rfrontend@0.1.0 release:version\n> echo "
+            "'dev-19be1b7e-dirty'\n\ndev-19be1b7e-dirty"
+        )
+        assert not Release.is_valid_version(version)
+
+        version = "\t hello world"
+        assert not Release.is_valid_version(version)
+
+        version = "\f hello world again"
+        assert not Release.is_valid_version(version)
+
+        version = "/ helo"
+        assert not Release.is_valid_version(version)
+
+        version = "\r hello world again"
+        assert not Release.is_valid_version(version)
+
+        version = "\x0c dogs and rabbits"
+        assert not Release.is_valid_version(version)
+
+        version = "\\ hello world again"
+        assert not Release.is_valid_version(version)
