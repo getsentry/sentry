@@ -142,11 +142,11 @@ type Props = {
    */
   generateDiscoverEventView?: () => EventView;
   /**
-   * The span op filter selected
+   * The span op filter selected.
    */
   spanOperationBreakdownFilter?: SpanOperationBreakdownFilter;
   /**
-   * The maximum span duration to draw span bar against
+   * The maximum span duration to draw span bar against.
    */
   maxSpansDuration?: number;
 };
