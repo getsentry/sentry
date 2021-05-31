@@ -28,7 +28,7 @@ def is_internal_relay(request, public_key):
 
 def relay_from_id(request, relay_id):
     """
-    Tries to find if a Relay for a give id
+    Tries to find if a Relay for a given id
     If the id is statically registered than no DB access will be done.
     If the id is not among the statically registered relays a lookup in the DB will be performed
     :return: A Relay model if found None if not found
