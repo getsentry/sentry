@@ -10,7 +10,7 @@ from sentry_relay import (
 )
 
 from sentry import options
-from sentry.api.authentication import is_internal_relay, relay_from_id
+from sentry.api.authentication import is_internal_relay, is_static_relay, relay_from_id
 from sentry.api.base import Endpoint
 from sentry.api.serializers import serialize
 from sentry.models import Relay, RelayUsage
@@ -66,8 +66,8 @@ class RelayRegisterChallengeEndpoint(Endpoint):
         if not public_key:
             return Response({"detail": "Missing public key"}, status=status.HTTP_400_FORBIDDEN)
 
-        if not settings.SENTRY_RELAY_OPEN_REGISTRATION and not is_internal_relay(
-            request, public_key
+        if not settings.SENTRY_RELAY_OPEN_REGISTRATION and not (
+            is_internal_relay(request, public_key) or is_static_relay(request)
         ):
             return Response(
                 {"detail": "Relay is not allowed to register"}, status=status.HTTP_403_FORBIDDEN
