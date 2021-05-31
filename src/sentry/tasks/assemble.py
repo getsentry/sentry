@@ -21,10 +21,11 @@ logger = logging.getLogger(__name__)
 
 #: Name for the bundle stored as a release file
 RELEASE_ARCHIVE_FILENAME = "release-artifacts.zip"
-#: How often should we try to acquire the lock?
-RELEASE_ARCHIVE_MAX_MERGE_ATTEMPTS = 10
-#: How many seconds should we wait before retrying to acquire the lock?
-RELEASE_ARCHIVE_MERGE_INTERVAL = 10
+
+#: Parameter used for `blocking_acquire`
+RELEASE_ARCHIVE_MERGE_INITIAL_DELAY = 0.2  # seconds
+#: How long should we try to acquire the lock?
+RELEASE_ARCHIVE_MERGE_TIMEOUT = 60  # seconds
 
 
 class ChunkFileState:
@@ -204,13 +205,11 @@ def _merge_archives(release_file: ReleaseFile, new_file: File, new_archive: Rele
         buffer = BytesIO()
 
         lock_key = f"assemble:merge_archives:{release_file.id}"
-        lock_lifetime = RELEASE_ARCHIVE_MERGE_INTERVAL * RELEASE_ARCHIVE_MAX_MERGE_ATTEMPTS + 1
-        lock = app.locks.get(lock_key, duration=lock_lifetime)
+        lock = app.locks.get(lock_key, duration=60)
 
         try:
             with lock.blocking_acquire(
-                interval=RELEASE_ARCHIVE_MERGE_INTERVAL,
-                max_attempts=RELEASE_ARCHIVE_MAX_MERGE_ATTEMPTS,
+                RELEASE_ARCHIVE_MERGE_INITIAL_DELAY, RELEASE_ARCHIVE_MERGE_TIMEOUT
             ):
                 merge_release_archives(old_archive, new_archive, buffer)
 

@@ -1,4 +1,5 @@
 import logging
+import random
 import time
 from contextlib import contextmanager
 
@@ -42,21 +43,32 @@ class Lock:
 
         return releaser()
 
-    def blocking_acquire(self, interval: int, max_attempts: int):
+    def blocking_acquire(self, initial_delay: float, timeout: float):
         """
-        This function will try to acquire the lock in a polling loop.
+        Try to acquire the lock in a polling loop.
 
-        :param interval:     Time between retries in seconds.
-        :param max_attempts: Number of attempts to acquire a lock, after which
-                             ``UnableToAcquireLock`` will be raised.
+        :param initial_delay: A random retry delay will be picked between 0
+            and this value (in seconds). The range from which we pick doubles
+            in every iteration.
+        :param timeout: Time in seconds after which ``UnableToAcquireLock``
+            will be raised.
         """
-        for attempt in range(max_attempts - 1):
+        stop = time.monotonic() + timeout
+        attempt = 0
+        while time.monotonic() < stop:
             try:
                 return self.acquire()
             except UnableToAcquireLock:
-                time.sleep(interval)
+                delay = 2 ** attempt * random.random() * initial_delay
+                # Redundant check to prevent futile sleep in last iteration:
+                if time.monotonic() + delay > stop:
+                    break
 
-        return self.acquire()
+                time.sleep(delay)
+
+            attempt += 1
+
+        raise UnableToAcquireLock(f"Unable to acquire {self!r} because of timeout")
 
     def release(self):
         """
