@@ -1,5 +1,4 @@
 from datetime import datetime, timedelta
-from uuid import uuid4
 
 import pytz
 from croniter import croniter
@@ -25,10 +24,6 @@ SCHEDULE_INTERVAL_MAP = {
     "hour": rrule.HOURLY,
     "minute": rrule.MINUTELY,
 }
-
-
-def generate_secret():
-    return uuid4().hex + uuid4().hex
 
 
 def get_next_schedule(base_datetime, schedule_type, schedule):

@@ -1,5 +1,5 @@
 from datetime import timedelta
-from uuid import uuid4
+from secrets import token_urlsafe
 
 from django.db import models, transaction
 from django.utils import timezone
@@ -16,7 +16,7 @@ def default_expiration():
 
 
 def generate_token():
-    return uuid4().hex + uuid4().hex
+    return 'sentry_at_' + token_urlsafe(40).replace('-', '0').replace('_', '0')
 
 
 @python_2_unicode_compatible

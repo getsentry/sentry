@@ -1,5 +1,6 @@
 from urllib.parse import urlparse
 from uuid import uuid4
+from secrets import token_urlsafe
 
 import petname
 from django.db import models
@@ -20,9 +21,12 @@ def generate_name():
     return petname.Generate(2, " ", letters=10).title()
 
 
-def generate_token():
+def generate_id():
     return uuid4().hex + uuid4().hex
 
+
+def generate_secret():
+    return 'sentry_cs_' + token_urlsafe(40).replace('-', '0').replace('_', '0')
 
 class ApiApplicationStatus:
     active = 0
@@ -34,8 +38,8 @@ class ApiApplicationStatus:
 class ApiApplication(Model):
     __core__ = True
 
-    client_id = models.CharField(max_length=64, unique=True, default=generate_token)
-    client_secret = EncryptedTextField(default=generate_token)
+    client_id = models.CharField(max_length=64, unique=True, default=generate_id)
+    client_secret = EncryptedTextField(default=generate_secret)
     owner = FlexibleForeignKey("sentry.User")
     name = models.CharField(max_length=64, blank=True, default=generate_name)
     status = BoundedPositiveIntegerField(
