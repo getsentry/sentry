@@ -11,7 +11,7 @@ from snuba_sdk.column import Column as SnqlColumn
 from snuba_sdk.function import Function as SnqlFunction
 from snuba_sdk.orderby import Direction, OrderBy
 
-from sentry.discover.models import KeyTransaction
+from sentry.discover.models import KeyTransaction, TeamKeyTransaction
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Project
 from sentry.search.events.base import QueryBase
@@ -25,6 +25,7 @@ from sentry.search.events.constants import (
     RESULT_TYPES,
     SEARCH_MAP,
     TAG_KEY_RE,
+    TEAM_KEY_TRANSACTION_ALIAS,
     USER_DISPLAY_ALIAS,
     VALID_FIELD_PATTERN,
 )
@@ -119,6 +120,46 @@ def key_transaction_expression(user_id, organization_id, project_ids):
     ]
 
 
+def team_key_transaction_expression(organization_id, team_ids, project_ids):
+    if organization_id is None or team_ids is None or project_ids is None:
+        raise TypeError("Team key transactions parameters cannot be None")
+
+    team_key_transactions = (
+        TeamKeyTransaction.objects.filter(
+            organization_id=organization_id,
+            project_id__in=project_ids,
+            team_id__in=team_ids,
+        )
+        .order_by("transaction", "project_id")
+        .values("project_id", "transaction")
+        .distinct("transaction", "project_id")
+    )
+
+    # There are team key transactions marked, so hard code false into the query.
+    if len(team_key_transactions) == 0:
+        return ["toInt8", [0]]
+
+    return [
+        "in",
+        [
+            ["tuple", ["project_id", "transaction"]],
+            [
+                "tuple",
+                [
+                    [
+                        "tuple",
+                        [
+                            transaction["project_id"],
+                            "'{}'".format(transaction["transaction"]),
+                        ],
+                    ]
+                    for transaction in team_key_transactions
+                ],
+            ],
+        ],
+    ]
+
+
 # When updating this list, also check if the following need to be updated:
 # - convert_search_filter_to_snuba_query (otherwise aliased field will be treated as tag)
 # - static/app/utils/discover/fields.tsx FIELDS (for discover column list and search box autocomplete)
@@ -147,6 +188,16 @@ FIELD_ALIASES = {
             expression_fn=lambda params: key_transaction_expression(
                 params.get("user_id"),
                 params.get("organization_id"),
+                params.get("project_id"),
+            ),
+            result_type="boolean",
+        ),
+        PseudoField(
+            TEAM_KEY_TRANSACTION_ALIAS,
+            TEAM_KEY_TRANSACTION_ALIAS,
+            expression_fn=lambda params: team_key_transaction_expression(
+                params.get("organization_id"),
+                params.get("team_id"),
                 params.get("project_id"),
             ),
             result_type="boolean",

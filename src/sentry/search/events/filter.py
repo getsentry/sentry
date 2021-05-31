@@ -31,6 +31,7 @@ from sentry.search.events.constants import (
     PROJECT_ALIAS,
     PROJECT_NAME_ALIAS,
     RELEASE_ALIAS,
+    TEAM_KEY_TRANSACTION_ALIAS,
     USER_DISPLAY_ALIAS,
 )
 from sentry.search.events.fields import FIELD_ALIASES, FUNCTIONS, resolve_field
@@ -300,6 +301,26 @@ def _key_transaction_filter_converter(
     )
 
 
+def _team_key_transaction_filter_converter(
+    search_filter: SearchFilter,
+    name: str,
+    params: Optional[Mapping[str, Union[int, str, datetime]]],
+):
+    value = search_filter.value.value
+    key_transaction_expr = FIELD_ALIASES[TEAM_KEY_TRANSACTION_ALIAS].get_field(params)
+
+    if search_filter.value.raw_value == "":
+        operator = "!=" if search_filter.operator == "!=" else "="
+        return [key_transaction_expr, operator, 0]
+    if value in ("1", 1):
+        return [key_transaction_expr, "=", 1]
+    if value in ("0", 0):
+        return [key_transaction_expr, "=", 0]
+    raise InvalidSearchQuery(
+        "Invalid value for key_transaction condition. Accepted values are 1, 0"
+    )
+
+
 key_conversion_map: Mapping[
     str,
     Callable[[SearchFilter, str, Mapping[str, Union[int, str, datetime]]], Optional[Sequence[any]]],
@@ -312,6 +333,7 @@ key_conversion_map: Mapping[
     ERROR_UNHANDLED_ALIAS: _error_unhandled_filter_converter,
     "error.handled": _error_handled_filter_converter,
     KEY_TRANSACTION_ALIAS: _key_transaction_filter_converter,
+    TEAM_KEY_TRANSACTION_ALIAS: _team_key_transaction_filter_converter,
 }
 
 
@@ -574,6 +596,7 @@ def get_filter(query=None, params=None):
         "having": [],
         "user_id": None,
         "organization_id": None,
+        "team_id": [],
         "project_ids": [],
         "group_ids": [],
         "condition_aggregates": [],
@@ -631,11 +654,13 @@ def get_filter(query=None, params=None):
     if params:
         for key in ("start", "end"):
             kwargs[key] = params.get(key, None)
-        # OrganizationEndpoint.get_filter() uses project_id, but eventstore.Filter uses project_ids
         if "user_id" in params:
             kwargs["user_id"] = params["user_id"]
         if "organization_id" in params:
             kwargs["organization_id"] = params["organization_id"]
+        if "team_id" in params:
+            kwargs["team_id"] = params["team_id"]
+        # OrganizationEndpoint.get_filter() uses project_id, but eventstore.Filter uses project_ids
         if "project_id" in params:
             if projects_to_filter:
                 kwargs["project_ids"] = projects_to_filter

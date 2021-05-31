@@ -1,19 +1,18 @@
-import {Component, ComponentClass} from 'react';
+import {Component, ComponentClass, ReactPortal} from 'react';
+import ReactDOM from 'react-dom';
+import {Manager, Popper, Reference} from 'react-popper';
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
+import * as PopperJS from 'popper.js';
 
-import {toggleKeyTransaction} from 'app/actionCreators/performance';
-import {Client} from 'app/api';
 import MenuHeader from 'app/components/actions/menuHeader';
 import CheckboxFancy from 'app/components/checkboxFancy/checkboxFancy';
-import DropdownControl, {Content} from 'app/components/dropdownControl';
 import {GetActorPropsFn} from 'app/components/dropdownMenu';
 import MenuItem from 'app/components/menuItem';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Organization, Team} from 'app/types';
+import {Team} from 'app/types';
 import {MAX_TEAM_KEY_TRANSACTIONS} from 'app/utils/performance/constants';
-import withApi from 'app/utils/withApi';
 
 export type TitleProps = Partial<ReturnType<GetActorPropsFn>> & {
   keyedTeamsCount: number;
@@ -21,20 +20,17 @@ export type TitleProps = Partial<ReturnType<GetActorPropsFn>> & {
 };
 
 type Props = {
-  api: Client;
-  project: number;
-  organization: Organization;
   teams: Team[];
-  transactionName: string;
   title: ComponentClass<TitleProps>;
-};
-
-type State = {
   isLoading: boolean;
-  keyFetchID: symbol | undefined;
-  error: null | string;
   keyedTeams: Set<string>;
   counts: Map<string, number>;
+  handleToggleKeyTransaction: (
+    isKey: boolean,
+    teamIds: string[],
+    counts: Map<string, number>,
+    keyedTeams: Set<string>
+  ) => void;
 };
 
 type SelectionAction = {action: 'key' | 'unkey'};
@@ -51,117 +47,21 @@ function canKeyForTeam(team: Team, keyedTeams: Set<string>, counts: Map<string, 
   if (isChecked) {
     return true;
   }
-  return (counts.get(team.id) ?? 0) < 1;
+  return (counts.get(team.id) ?? 0) < MAX_TEAM_KEY_TRANSACTIONS;
 }
 
-class TeamKeyTransaction extends Component<Props, State> {
-  state: State = {
-    isLoading: true,
-    keyFetchID: undefined,
-    error: null,
-    keyedTeams: new Set(),
-    counts: new Map(),
-  };
-
-  componentDidMount() {
-    this.fetchData();
-  }
-
-  componentDidUpdate(prevProps: Props) {
-    const orgSlugChanged = prevProps.organization.slug !== this.props.organization.slug;
-    const projectsChanged = prevProps.project !== this.props.project;
-    const transactionChanged = prevProps.transactionName !== this.props.transactionName;
-    if (orgSlugChanged || projectsChanged || transactionChanged) {
-      this.fetchData();
-    }
-  }
-
-  async fetchData() {
-    const keyFetchID = Symbol('keyFetchID');
-    this.setState({isLoading: true, keyFetchID});
-
-    try {
-      const [keyTransactions, counts] = await Promise.all([
-        this.fetchKeyTransactionsData(),
-        this.fetchCountData(),
-      ]);
-      this.setState({
-        isLoading: false,
-        keyFetchID: undefined,
-        error: null,
-        keyedTeams: new Set(keyTransactions.map(({team}) => team)),
-        counts: new Map(counts.map(({team, count}) => [team, count])),
-      });
-    } catch (err) {
-      this.setState({
-        isLoading: false,
-        keyFetchID: undefined,
-        error: err.responseJSON?.detail ?? null,
-      });
-    }
-  }
-
-  async fetchKeyTransactionsData() {
-    const {api, organization, project, transactionName} = this.props;
-
-    const url = `/organizations/${organization.slug}/key-transactions/`;
-    const [data] = await api.requestPromise(url, {
-      method: 'GET',
-      includeAllArgs: true,
-      query: {
-        project: String(project),
-        transaction: transactionName,
-      },
-    });
-    return data;
-  }
-
-  async fetchCountData() {
-    const {api, organization, teams} = this.props;
-
-    const url = `/organizations/${organization.slug}/key-transactions-count/`;
-    const [data] = await api.requestPromise(url, {
-      method: 'GET',
-      includeAllArgs: true,
-      query: {team: teams.map(({id}) => id)},
-    });
-    return data;
-  }
-
+class TeamKeyTransaction extends Component<Props> {
   handleToggleKeyTransaction = async (selection: TeamSelection) => {
-    const {api, organization, project, transactionName} = this.props;
+    const {handleToggleKeyTransaction} = this.props;
     const {teamIds, counts, keyedTeams} = isMyTeamSelection(selection)
       ? this.toggleMyTeams(selection)
       : this.toggleTeamId(selection);
 
-    try {
-      await toggleKeyTransaction(
-        api,
-        selection.action === 'unkey',
-        organization.slug,
-        [project],
-        transactionName,
-        teamIds
-      );
-      this.setState({
-        isLoading: false,
-        keyFetchID: undefined,
-        error: null,
-        counts,
-        keyedTeams,
-      });
-    } catch (err) {
-      this.setState({
-        isLoading: false,
-        keyFetchID: undefined,
-        error: err.responseJSON?.detail ?? null,
-      });
-    }
+    handleToggleKeyTransaction(selection.action === 'unkey', teamIds, counts, keyedTeams);
   };
 
   toggleMyTeams(selection: MyTeamSelection) {
-    const {teams} = this.props;
-    const {counts, keyedTeams} = this.state;
+    const {counts, keyedTeams, teams} = this.props;
 
     const markAsKey = selection.action === 'key';
 
@@ -181,7 +81,7 @@ class TeamKeyTransaction extends Component<Props, State> {
   }
 
   toggleTeamIds(selection: TeamSelection, teamIds: string[]) {
-    const {counts, keyedTeams} = this.state;
+    const {counts, keyedTeams} = this.props;
 
     const markAsKey = selection.action === 'key';
 
@@ -210,8 +110,7 @@ class TeamKeyTransaction extends Component<Props, State> {
   }
 
   render() {
-    const {teams, title} = this.props;
-    const {counts, keyedTeams, isLoading} = this.state;
+    const {isLoading, counts, keyedTeams, teams, title} = this.props;
 
     if (isLoading) {
       const Title = title;
@@ -238,90 +137,169 @@ type SelectorProps = {
   counts: Map<string, number>;
 };
 
-function TeamKeyTransactionSelector({
-  title: Title,
-  handleToggleKeyTransaction,
-  teams,
-  counts,
-  keyedTeams,
-}: SelectorProps) {
-  const toggleTeam = (team: TeamSelection) => () => {
+type SelectorState = {
+  isOpen: boolean;
+};
+
+class TeamKeyTransactionSelector extends Component<SelectorProps, SelectorState> {
+  constructor(props: SelectorProps) {
+    super(props);
+
+    let portal = document.getElementById('team-key-transaction-portal');
+    if (!portal) {
+      portal = document.createElement('div');
+      portal.setAttribute('id', 'team-key-transaction-portal');
+      document.body.appendChild(portal);
+    }
+    this.portalEl = portal;
+    this.menuEl = null;
+  }
+
+  state: SelectorState = {
+    isOpen: false,
+  };
+
+  componentDidUpdate(_props: SelectorProps, prevState: SelectorState) {
+    if (this.state.isOpen && prevState.isOpen === false) {
+      document.addEventListener('click', this.handleClickOutside, true);
+    }
+    if (this.state.isOpen === false && prevState.isOpen) {
+      document.removeEventListener('click', this.handleClickOutside, true);
+    }
+  }
+
+  componentWillUnmount() {
+    document.removeEventListener('click', this.handleClickOutside, true);
+    this.portalEl.remove();
+  }
+
+  private portalEl: Element;
+  private menuEl: Element | null;
+
+  handleClickOutside = (event: MouseEvent) => {
+    if (!this.menuEl) {
+      return;
+    }
+    if (!(event.target instanceof Element)) {
+      return;
+    }
+    if (this.menuEl.contains(event.target)) {
+      return;
+    }
+    this.setState({isOpen: false});
+  };
+
+  toggleOpen = () => {
+    this.setState(({isOpen}) => ({isOpen: !isOpen}));
+  };
+
+  toggleTeam = (team: TeamSelection) => () => {
+    const {handleToggleKeyTransaction} = this.props;
     handleToggleKeyTransaction(team);
   };
 
-  const [enabledTeams, disabledTeams] = partition(teams, team =>
-    canKeyForTeam(team, keyedTeams, counts)
-  );
+  render() {
+    const {title: Title, teams, counts, keyedTeams} = this.props;
+    const {isOpen} = this.state;
 
-  const isMyTeamsEnabled = enabledTeams.length > 0;
-  const myTeamsHandler = isMyTeamsEnabled
-    ? toggleTeam({
-        type: 'my teams',
-        action: enabledTeams.length === keyedTeams.size ? 'unkey' : 'key',
-      })
-    : undefined;
+    const [enabledTeams, disabledTeams] = partition(teams, team =>
+      canKeyForTeam(team, keyedTeams, counts)
+    );
 
-  return (
-    <DropdownControl
-      button={({getActorProps}) => (
-        <Title keyedTeamsCount={keyedTeams.size} {...getActorProps()} />
-      )}
-    >
-      {({isOpen, getMenuProps}) => (
-        <DropdownWrapper
-          {...getMenuProps()}
-          isOpen={isOpen}
-          blendCorner
-          alignMenu="right"
-          width="220px"
-        >
-          {isOpen && (
-            <DropdownContent>
-              <DropdownMenuHeader first>
-                {t('My Teams')}
-                <ActionItem>
-                  <CheckboxFancy
-                    isDisabled={!isMyTeamsEnabled}
-                    isChecked={teams.length === keyedTeams.size}
-                    isIndeterminate={
-                      teams.length > keyedTeams.size && keyedTeams.size > 0
-                    }
-                    onClick={myTeamsHandler}
+    const isMyTeamsEnabled = enabledTeams.length > 0;
+    const myTeamsHandler = isMyTeamsEnabled
+      ? this.toggleTeam({
+          type: 'my teams',
+          action: enabledTeams.length === keyedTeams.size ? 'unkey' : 'key',
+        })
+      : undefined;
+
+    let menu: ReactPortal | null = null;
+
+    if (isOpen) {
+      const modifiers: PopperJS.Modifiers = {
+        hide: {
+          enabled: false,
+        },
+        preventOverflow: {
+          padding: 10,
+          enabled: true,
+          boundariesElement: 'viewport',
+        },
+      };
+
+      menu = ReactDOM.createPortal(
+        <Popper placement="top" modifiers={modifiers}>
+          {({ref: popperRef, style, placement}) => (
+            <DropdownWrapper
+              ref={ref => {
+                (popperRef as Function)(ref);
+                this.menuEl = ref;
+              }}
+              style={style}
+              data-placement={placement}
+            >
+              <DropdownContent>
+                <DropdownMenuHeader first>
+                  {t('My Teams')}
+                  <ActionItem>
+                    <CheckboxFancy
+                      isDisabled={!isMyTeamsEnabled}
+                      isChecked={teams.length === keyedTeams.size}
+                      isIndeterminate={
+                        teams.length > keyedTeams.size && keyedTeams.size > 0
+                      }
+                      onClick={myTeamsHandler}
+                    />
+                  </ActionItem>
+                </DropdownMenuHeader>
+                {enabledTeams.map(team => (
+                  <TeamKeyTransactionItem
+                    key={team.slug}
+                    team={team}
+                    isKeyed={keyedTeams.has(team.id)}
+                    disabled={false}
+                    onSelect={this.toggleTeam({
+                      type: 'id',
+                      action: keyedTeams.has(team.id) ? 'unkey' : 'key',
+                      teamId: team.id,
+                    })}
                   />
-                </ActionItem>
-              </DropdownMenuHeader>
-              {enabledTeams.map(team => (
-                <TeamKeyTransactionItem
-                  key={team.slug}
-                  team={team}
-                  isKeyed={keyedTeams.has(team.id)}
-                  disabled={false}
-                  onSelect={toggleTeam({
-                    type: 'id',
-                    action: keyedTeams.has(team.id) ? 'unkey' : 'key',
-                    teamId: team.id,
-                  })}
-                />
-              ))}
-              {disabledTeams.map(team => (
-                <TeamKeyTransactionItem
-                  key={team.slug}
-                  team={team}
-                  isKeyed={keyedTeams.has(team.id)}
-                  disabled
-                  onSelect={toggleTeam({
-                    type: 'id',
-                    action: keyedTeams.has(team.id) ? 'unkey' : 'key',
-                    teamId: team.id,
-                  })}
-                />
-              ))}
-            </DropdownContent>
+                ))}
+                {disabledTeams.map(team => (
+                  <TeamKeyTransactionItem
+                    key={team.slug}
+                    team={team}
+                    isKeyed={keyedTeams.has(team.id)}
+                    disabled
+                    onSelect={this.toggleTeam({
+                      type: 'id',
+                      action: keyedTeams.has(team.id) ? 'unkey' : 'key',
+                      teamId: team.id,
+                    })}
+                  />
+                ))}
+              </DropdownContent>
+            </DropdownWrapper>
           )}
-        </DropdownWrapper>
-      )}
-    </DropdownControl>
-  );
+        </Popper>,
+        this.portalEl
+      );
+    }
+
+    return (
+      <Manager>
+        <Reference>
+          {({ref}) => (
+            <div ref={ref}>
+              <Title keyedTeamsCount={keyedTeams.size} onClick={this.toggleOpen} />
+            </div>
+          )}
+        </Reference>
+        {menu}
+      </Manager>
+    );
+  }
 }
 
 type ItemProps = {
@@ -353,47 +331,63 @@ function TeamKeyTransactionItem({team, isKeyed, disabled, onSelect}: ItemProps) 
   );
 }
 
-const DropdownWrapper = styled(Content)`
-  margin-top: 9px;
-  left: auto;
-  right: 50%;
-  transform: translateX(calc(50%));
-
+const DropdownWrapper = styled('div')`
   /* Adapted from the dropdown-menu class */
   border: none;
   border-radius: 2px;
   box-shadow: 0 0 0 1px rgba(52, 60, 69, 0.2), 0 1px 3px rgba(70, 82, 98, 0.25);
   background-clip: padding-box;
+  background-color: ${p => p.theme.background};
+  width: 220px;
   overflow: visible;
+  z-index: ${p => p.theme.zIndex.tooltip};
 
-  &:before {
+  &:before,
+  &:after {
     width: 0;
     height: 0;
-    border-left: 9px solid transparent;
-    border-right: 9px solid transparent;
-    border-bottom: 9px solid ${p => p.theme.border};
     content: '';
     display: block;
     position: absolute;
-    top: -9px;
-    left: calc(50% - 9px);
     right: auto;
+  }
+
+  &:before {
+    border-left: 9px solid transparent;
+    border-right: 9px solid transparent;
+    left: calc(50% - 9px);
     z-index: -2;
   }
 
   &:after {
-    width: 0;
-    height: 0;
     border-left: 8px solid transparent;
     border-right: 8px solid transparent;
-    border-bottom: 8px solid ${p => p.theme.background};
-    content: '';
-    display: block;
-    position: absolute;
-    top: -8px;
     left: calc(50% - 8px);
-    right: auto;
     z-index: -1;
+  }
+
+  &[data-placement*='bottom'] {
+    &:before {
+      border-bottom: 9px solid ${p => p.theme.border};
+      top: -9px;
+    }
+
+    &:after {
+      border-bottom: 8px solid ${p => p.theme.background};
+      top: -8px;
+    }
+  }
+
+  &[data-placement*='top'] {
+    &:before {
+      border-top: 9px solid ${p => p.theme.border};
+      bottom: -9px;
+    }
+
+    &:after {
+      border-top: 8px solid ${p => p.theme.background};
+      bottom: -8px;
+    }
   }
 `;
 
@@ -434,4 +428,4 @@ const ActionItem = styled('span')`
   margin-left: ${space(1)};
 `;
 
-export default withApi(TeamKeyTransaction);
+export default TeamKeyTransaction;
