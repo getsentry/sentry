@@ -31,10 +31,10 @@ class GroupCheckBox extends Component<Props, State> {
   }
 
   componentWillUnmount() {
-    this.listener();
+    this.unsubscribe();
   }
 
-  listener = SelectedGroupStore.listen(() => {
+  unsubscribe = SelectedGroupStore.listen(() => {
     this.onSelectedGroupChange();
   }, undefined);
 
