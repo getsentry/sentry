@@ -49,9 +49,10 @@ jobs:
         id: info
         # Upgrade pip because older versions don't have `pip cache dir`
         run: |
-          pip3 install --upgrade pip
+          make upgrade-pip
           echo "::set-output name=python-version::$(cat .python-version)"
-          echo "::set-output name=pip-cache-dir::$(pip3 cache dir)"
+          echo "::set-output name=pip-cache-dir::$(pip cache dir)"
+          echo "::set-output name=pip-version::$(pip -V | awk -F ' ' '{print $2}')"
           echo "::set-output name=yarn-cache-dir::$(yarn cache dir)"
 
       # In a sense, we set up Python two times (once here and once via pyenv). Setting
@@ -65,26 +66,26 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ~/.pyenv
-          key: ${{ matrix.os }}-pyenv-${{ hashFiles('.python-version') }}
+          key: devenv-${{ matrix.os }}-pyenv-${{ hashFiles('.python-version') }}
           restore-keys: |
-            ${{ matrix.os }}-pyenv-
+            devenv-${{ matrix.os }}-pyenv-
 
       - name: Cache (pip)
         uses: actions/cache@v2
         with:
           path: ${{ steps.info.outputs.pip-cache-dir }}
-          key: ${{ matrix.os }}-py${{ steps.info.outputs.python-version }}-${{ hashFiles('**/requirements.txt') }}
+          key: devenv-${{ matrix.os }}-py${{ steps.info.outputs.python-version }}-pip${{ steps.info.outputs.pip-version }}-${{ hashFiles('**/requirements.txt') }}
           restore-keys: |
-            ${{ matrix.os }}-py${{ steps.info.outputs.python-version }}-
+            devenv-${{ matrix.os }}-py${{ steps.info.outputs.python-version }}-pip${{ steps.info.outputs.pip-version }}-
 
       - name: Cache (yarn)
         uses: actions/cache@v2
         id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
         with:
           path: ${{ steps.info.outputs.yarn-cache-dir }}
-          key: ${{ matrix.os }}-yarn-${{ hashFiles('yarn.lock') }}
+          key: devenv-${{ matrix.os }}-yarn-${{ hashFiles('yarn.lock') }}
           restore-keys: |
-            ${{ matrix.os }}-yarn-
+            devenv-${{ matrix.os }}-yarn-
 
       - name: Set up development environment (mostly as per docs)
         working-directory: getsentry
