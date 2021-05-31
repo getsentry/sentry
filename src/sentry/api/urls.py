@@ -4,8 +4,8 @@ from sentry.data_export.endpoints.data_export import DataExportEndpoint
 from sentry.data_export.endpoints.data_export_details import DataExportDetailsEndpoint
 from sentry.discover.endpoints.discover_key_transactions import (
     IsKeyTransactionEndpoint,
-    KeyTransactionListEndpoint,
     KeyTransactionEndpoint,
+    KeyTransactionListEndpoint,
 )
 from sentry.discover.endpoints.discover_query import DiscoverQueryEndpoint
 from sentry.discover.endpoints.discover_saved_queries import DiscoverSavedQueriesEndpoint
