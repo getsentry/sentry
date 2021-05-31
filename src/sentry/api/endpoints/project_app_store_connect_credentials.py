@@ -5,14 +5,13 @@ import requests
 from rest_framework import serializers
 from rest_framework.response import Response
 
-from sentry.api.exceptions import (
-    ItunesTwoFactorAuthenticationRequired,
-    ItunesAuthenticationError,
-    AppConnectAuthenticationError,
-)
-
 from sentry import features
 from sentry.api.bases.project import ProjectEndpoint, StrictProjectPermission
+from sentry.api.exceptions import (
+    AppConnectAuthenticationError,
+    ItunesAuthenticationError,
+    ItunesTwoFactorAuthenticationRequired,
+)
 from sentry.utils import fernet_encrypt as encrypt
 from sentry.utils.appleconnect import (
     appstore_connect,
