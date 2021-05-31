@@ -1,7 +1,5 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
-import createReactClass from 'create-react-class';
-import Reflux from 'reflux';
 
 import {bulkUpdate} from 'app/actionCreators/group';
 import {addLoadingMessage, clearIndicators} from 'app/actionCreators/indicator';
@@ -10,12 +8,11 @@ import EventOrGroupTitle from 'app/components/eventOrGroupTitle';
 import ErrorLevel from 'app/components/events/errorLevel';
 import Link from 'app/components/links/link';
 import {PanelItem} from 'app/components/panels';
-import GroupChart from 'app/components/stream/groupChart';
 import {IconChat, IconMute, IconStar} from 'app/icons';
 import {t} from 'app/locale';
 import GroupStore from 'app/stores/groupStore';
 import space from 'app/styles/space';
-import {Group, LightWeightOrganization} from 'app/types';
+import {BaseGroup, LightWeightOrganization} from 'app/types';
 import {getMessage} from 'app/utils/events';
 import {Aliases} from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
@@ -24,7 +21,7 @@ import withOrganization from 'app/utils/withOrganization';
 type HeaderProps = {
   organization: LightWeightOrganization;
   projectId: string;
-  data: Group;
+  data: BaseGroup;
   eventId?: string;
 };
 
@@ -74,29 +71,33 @@ class CompactIssueHeader extends Component<HeaderProps> {
   }
 }
 
+type GroupTypes = ReturnType<typeof GroupStore.get>;
+
+/**
+ * Type assertion to disambiguate GroupTypes
+ *
+ * The GroupCollapseRelease type isn't compatible with BaseGroup
+ */
+function isGroup(maybe: GroupTypes): maybe is BaseGroup {
+  return (maybe as BaseGroup).status !== undefined;
+}
+
 type Props = {
   api: Client;
   id: string;
   organization: LightWeightOrganization;
-  statsPeriod?: string;
   eventId?: string;
-  data?: Group;
+  data?: BaseGroup;
 };
 
 type State = {
-  issue: Group;
+  issue?: GroupTypes;
 };
 
-const CompactIssue = createReactClass<Props, State>({
-  displayName: 'CompactIssue',
-
-  mixins: [Reflux.listenTo(GroupStore, 'onGroupChange') as any],
-
-  getInitialState() {
-    return {
-      issue: this.props.data || GroupStore.get(this.props.id),
-    };
-  },
+class CompactIssue extends Component<Props, State> {
+  state = {
+    issue: this.props.data || GroupStore.get(this.props.id),
+  };
 
   componentWillReceiveProps(nextProps: Props) {
     if (nextProps.id !== this.props.id) {
@@ -104,7 +105,16 @@ const CompactIssue = createReactClass<Props, State>({
         issue: GroupStore.get(this.props.id),
       });
     }
-  },
+  }
+
+  componentWillUnmount() {
+    this.listener();
+  }
+
+  listener = GroupStore.listen(
+    (itemIds: Set<string>) => this.onGroupChange(itemIds),
+    undefined
+  );
 
   onGroupChange(itemIds: Set<string>) {
     if (!itemIds.has(this.props.id)) {
@@ -115,22 +125,13 @@ const CompactIssue = createReactClass<Props, State>({
     this.setState({
       issue,
     });
-  },
-
-  onSnooze(duration) {
-    const data: Record<string, string> = {
-      status: 'ignored',
-    };
-
-    if (duration) {
-      data.ignoreDuration = duration;
-    }
-
-    this.onUpdate(data);
-  },
+  }
 
   onUpdate(data: Record<string, string>) {
     const issue = this.state.issue;
+    if (!issue) {
+      return;
+    }
     addLoadingMessage(t('Saving changes\u2026'));
 
     bulkUpdate(
@@ -147,11 +148,14 @@ const CompactIssue = createReactClass<Props, State>({
         },
       }
     );
-  },
+  }
 
   render() {
     const issue = this.state.issue;
     const {organization} = this.props;
+    if (!isGroup(issue)) {
+      return null;
+    }
 
     let className = 'issue';
     if (issue.isBookmarked) {
@@ -166,28 +170,20 @@ const CompactIssue = createReactClass<Props, State>({
     if (issue.status === 'ignored') {
       className += ' isIgnored';
     }
-    if (this.props.statsPeriod) {
-      className += ' with-graph';
-    }
 
     return (
-      <IssueRow className={className} onClick={this.toggleSelect}>
+      <IssueRow className={className}>
         <CompactIssueHeader
           data={issue}
           organization={organization}
           projectId={issue.project.slug}
           eventId={this.props.eventId}
         />
-        {this.props.statsPeriod && (
-          <div className="event-graph">
-            <GroupChart statsPeriod={this.props.statsPeriod} data={this.props.data} />
-          </div>
-        )}
         {this.props.children}
       </IssueRow>
     );
-  },
-});
+  }
+}
 
 export {CompactIssue};
 export default withApi(withOrganization(CompactIssue));

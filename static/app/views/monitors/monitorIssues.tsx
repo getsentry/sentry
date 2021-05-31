@@ -16,7 +16,6 @@ const MonitorIssues = ({orgId, monitor}: Props) => (
       project: monitor.project.id,
       limit: 5,
     }}
-    statsPeriod="0"
     pagination={false}
     emptyText={t('No issues found')}
     noBorder
