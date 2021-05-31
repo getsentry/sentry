@@ -297,7 +297,7 @@ def query_facet_performance(
             [
                 "divide",
                 [
-                    ["sum", ["minus", [translated_aggregate_column, transaction_aggregate]]],
+                    ["sum", [["minus", [translated_aggregate_column, transaction_aggregate]]]],
                     frequency_sample_rate,
                 ],
                 "sumdelta",
