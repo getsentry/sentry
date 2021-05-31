@@ -150,7 +150,7 @@ function getTermDescriptions(platform: PlatformKey | null) {
       return {
         ...commonTermsDescription,
         ...desktopTermDescriptions,
-        [SessionTerm.CRASHED]: t('The application had an unrecovable error (a panic)'),
+        [SessionTerm.CRASHED]: t('The application had an unrecoverable error (a panic)'),
       };
     default:
       return {

@@ -336,3 +336,9 @@ register("store.load-shed-process-event-projects", type=Any, default=[])
 
 # Killswitch for dropping events in symbolicate_event
 register("store.load-shed-symbolicate-event-projects", type=Any, default=[])
+
+# Store release files bundled as zip files
+register("processing.save-release-archives", default=False)
+
+# Try to read release artifacts from zip archives
+register("processing.use-release-archives-sample-rate", default=0.0)

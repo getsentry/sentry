@@ -53,7 +53,7 @@ describe('Resource Subscriptions', () => {
     });
   });
 
-  describe('inital access to permissions', () => {
+  describe('initial access to permissions', () => {
     beforeEach(() => {
       onChange = jest.fn();
       wrapper = mountWithTheme(

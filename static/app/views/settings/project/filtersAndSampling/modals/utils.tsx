@@ -98,6 +98,12 @@ export function getMatchFieldPlaceholder(category: DynamicSamplingInnerName) {
     case DynamicSamplingInnerName.TRACE_RELEASE:
     case DynamicSamplingInnerName.EVENT_RELEASE:
       return t('ex. 1* or [I3].[0-9].* (Multiline)');
+    case DynamicSamplingInnerName.EVENT_IP_ADDRESSES:
+      return t('ex. 127.0.0.1 or 10.0.0.0/8 (Multiline)');
+    case DynamicSamplingInnerName.EVENT_CSP:
+      return t('ex. file://* or example.com (Multiline)');
+    case DynamicSamplingInnerName.EVENT_ERROR_MESSAGES:
+      return t('ex. TypeError* (Multiline)');
     default:
       return '';
   }

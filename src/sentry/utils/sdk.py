@@ -1,5 +1,5 @@
+import copy
 import inspect
-import random
 from datetime import datetime
 
 import sentry_sdk
@@ -24,59 +24,44 @@ UNSAFE_FILES = (
 # URLs that should always be sampled
 SAMPLED_URL_NAMES = {
     # codeowners
-    "sentry-api-0-project-codeowners",
-    "sentry-api-0-project-codeowners-details",
+    "sentry-api-0-project-codeowners": settings.SAMPLED_DEFAULT_RATE,
+    "sentry-api-0-project-codeowners-details": settings.SAMPLED_DEFAULT_RATE,
     # external teams POST, PUT, DELETE
-    "sentry-api-0-external-team",
-    "sentry-api-0-external-team-details",
+    "sentry-api-0-external-team": settings.SAMPLED_DEFAULT_RATE,
+    "sentry-api-0-external-team-details": settings.SAMPLED_DEFAULT_RATE,
     # external users POST, PUT, DELETE
-    "sentry-api-0-organization-external-user",
-    "sentry-api-0-organization-external-user-details",
+    "sentry-api-0-organization-external-user": settings.SAMPLED_DEFAULT_RATE,
+    "sentry-api-0-organization-external-user-details": settings.SAMPLED_DEFAULT_RATE,
     # integration platform
-    "external-issues",
-    "sentry-api-0-sentry-app-authorizations",
+    "external-issues": settings.SAMPLED_DEFAULT_RATE,
+    "sentry-api-0-sentry-app-authorizations": settings.SAMPLED_DEFAULT_RATE,
     # integrations
-    "sentry-extensions-jira-issue-hook",
-    "sentry-extensions-vercel-webhook",
-    "sentry-extensions-vercel-delete",
-    "sentry-extensions-vercel-configure",
-    "sentry-extensions-vercel-ui-hook",
-    "sentry-api-0-group-integration-details",
+    "sentry-extensions-jira-issue-hook": 0.05,
+    "sentry-extensions-vercel-webhook": settings.SAMPLED_DEFAULT_RATE,
+    "sentry-extensions-vercel-generic-webhook": settings.SAMPLED_DEFAULT_RATE,
+    "sentry-extensions-vercel-configure": settings.SAMPLED_DEFAULT_RATE,
+    "sentry-extensions-vercel-ui-hook": settings.SAMPLED_DEFAULT_RATE,
+    "sentry-api-0-group-integration-details": settings.SAMPLED_DEFAULT_RATE,
     # releases
-    "sentry-api-0-organization-releases",
-    "sentry-api-0-organization-release-details",
-    "sentry-api-0-project-releases",
-    "sentry-api-0-project-release-details",
+    "sentry-api-0-organization-releases": settings.SAMPLED_DEFAULT_RATE,
+    "sentry-api-0-organization-release-details": settings.SAMPLED_DEFAULT_RATE,
+    "sentry-api-0-project-releases": settings.SAMPLED_DEFAULT_RATE,
+    "sentry-api-0-project-release-details": settings.SAMPLED_DEFAULT_RATE,
     # stats
-    "sentry-api-0-organization-stats",
-    "sentry-api-0-organization-stats-v2",
-    "sentry-api-0-project-stats",
+    "sentry-api-0-organization-stats": settings.SAMPLED_DEFAULT_RATE,
+    "sentry-api-0-organization-stats-v2": settings.SAMPLED_DEFAULT_RATE,
+    "sentry-api-0-project-stats": 0.1,  # lower rate because of high TPM
 }
 if settings.ADDITIONAL_SAMPLED_URLS:
     SAMPLED_URL_NAMES.update(settings.ADDITIONAL_SAMPLED_URLS)
 
 SAMPLED_TASKS = {
-    "sentry.tasks.send_ping",
+    "sentry.tasks.send_ping": settings.SAMPLED_DEFAULT_RATE,
+    "sentry.tasks.store.symbolicate_event": settings.SENTRY_SYMBOLICATE_EVENT_APM_SAMPLING,
+    "sentry.tasks.store.symbolicate_event_from_reprocessing": settings.SENTRY_SYMBOLICATE_EVENT_APM_SAMPLING,
+    "sentry.tasks.store.process_event": settings.SENTRY_PROCESS_EVENT_APM_SAMPLING,
+    "sentry.tasks.store.process_event_from_reprocessing": settings.SENTRY_PROCESS_EVENT_APM_SAMPLING,
 }
-
-_SYMBOLICATE_EVENT_TASKS = {
-    "sentry.tasks.store.symbolicate_event",
-    "sentry.tasks.store.symbolicate_event_from_reprocessing",
-}
-
-
-def _sample_process_event_tasks():
-    return random.random() < settings.SENTRY_PROCESS_EVENT_APM_SAMPLING
-
-
-_PROCESS_EVENT_TASKS = {
-    "sentry.tasks.store.process_event",
-    "sentry.tasks.store.process_event_from_reprocessing",
-}
-
-
-def _sample_symbolicate_event_tasks():
-    return random.random() < settings.SENTRY_SYMBOLICATE_EVENT_APM_SAMPLING
 
 
 UNSAFE_TAG = "_unsafe"
@@ -190,20 +175,14 @@ def traces_sampler(sampling_context):
         task_name = sampling_context["celery_job"].get("task")
 
         if task_name in SAMPLED_TASKS:
-            return 1.0
-
-        if task_name in _PROCESS_EVENT_TASKS:
-            return _sample_process_event_tasks()
-
-        if task_name in _SYMBOLICATE_EVENT_TASKS:
-            return _sample_symbolicate_event_tasks()
+            return SAMPLED_TASKS[task_name]
 
     # Resolve the url, and see if we want to set our own sampling
     if "wsgi_environ" in sampling_context:
         try:
             match = resolve(sampling_context["wsgi_environ"].get("PATH_INFO"))
             if match and match.url_name in SAMPLED_URL_NAMES:
-                return 1.0
+                return SAMPLED_URL_NAMES[match.url_name]
         except Exception:
             # On errors or 404, continue to default sampling decision
             pass
@@ -228,6 +207,18 @@ def patch_transport_for_instrumentation(transport, transport_name):
     if _send_envelope:
 
         def patched_send_envelope(*args, **kwargs):
+            envelope = args[0]
+            if envelope and len(envelope.items) > 0:
+                metrics.incr(f"internal.envelope_has_items.{transport_name}")
+
+                _serialize_into = envelope.serialize_into
+
+                def patched_envelope_serialize(*args, **kwargs):
+                    metrics.incr(f"internal.envelope_serialize_into.{transport_name}.count")
+                    return _serialize_into(*args, **kwargs)
+
+                envelope.serialize_into = patched_envelope_serialize
+
             metrics.incr(f"internal.send_envelope.{transport_name}.events")
             try:
                 result = _send_envelope(*args, **kwargs)
@@ -280,6 +271,7 @@ def patch_transport_for_instrumentation(transport, transport_name):
                 metrics.incr(f"internal.check_disabled.{transport_name}.bucket.{bucket}.disabled")
 
         def patched_check_disabled(*args, **kwargs):
+            metrics.incr(f"internal.pre_check_disabled.{transport_name}.events.count")
             result = _check_disabled(*args, **kwargs)
             metrics.incr(f"internal.check_disabled.{transport_name}.events.count")
             if result:
@@ -361,6 +353,7 @@ def configure_sdk():
             self._capture_anything("capture_event", event)
 
         def _capture_anything(self, method_name, *args, **kwargs):
+
             # Upstream should get the event first because it is most isolated from
             # the this sentry installation.
             if upstream_transport:
@@ -373,6 +366,14 @@ def configure_sdk():
                 getattr(upstream_transport, method_name)(*args, **kwargs)
 
             if relay_transport and options.get("store.use-relay-dsn-sample-rate") == 1:
+                # If this is a envelope ensure envelope and it's items are distinct references
+                if method_name == "capture_envelope":
+                    args_list = list(args)
+                    envelope = args_list[0]
+                    relay_envelope = copy.copy(envelope)
+                    relay_envelope.items = envelope.items.copy()
+                    args = [relay_envelope, *args_list[1:]]
+
                 if is_current_event_safe():
                     metrics.incr("internal.captured.events.relay")
                     getattr(relay_transport, method_name)(*args, **kwargs)
