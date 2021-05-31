@@ -234,10 +234,12 @@ class KeyTransactionTeamSerializer(Serializer):
         attrs = defaultdict(lambda: {"key_transactions": []})
 
         for kt in team_key_transactions:
-            attrs[kt.team]["key_transactions"].append({
-                "project_id": str(kt.project_id),
-                "transaction": kt.transaction,
-            })
+            attrs[kt.team]["key_transactions"].append(
+                {
+                    "project_id": str(kt.project_id),
+                    "transaction": kt.transaction,
+                }
+            )
 
         return attrs
 
