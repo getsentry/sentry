@@ -170,6 +170,7 @@ class TeamKeyTransactionSelector extends Component<SelectorProps, SelectorState>
 
   componentWillUnmount() {
     document.removeEventListener('click', this.handleClickOutside, true);
+    this.portalEl.remove();
   }
 
   private portalEl: Element;
