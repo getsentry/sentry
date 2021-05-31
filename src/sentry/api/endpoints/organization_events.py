@@ -49,10 +49,35 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
             referrer if referrer in ALLOWED_EVENTS_V2_REFERRERS else "api.organization-events-v2"
         )
 
+        columns = request.GET.getlist("field")[:]
+        query = request.GET.get("query")
+        has_configurable_project_threshold = features.has(
+            "organizations:project-transaction-threshold", organization, actor=request.user
+        )
+
+        if not has_configurable_project_threshold:
+            for column in columns:
+
+                if any(
+                    [
+                        column.startswith("project_threshold_config"),
+                        column.startswith("count_miserable_new"),
+                        column.startswith("user_misery_new"),
+                    ]
+                ):
+                    return Response(status=404)
+
+            if query and (
+                "project_threshold_config" in query
+                or "count_miserable_new" in query
+                or "user_misery_new" in query
+            ):
+                return Response(status=404)
+
         def data_fn(offset, limit):
             return discover.query(
-                selected_columns=request.GET.getlist("field")[:],
-                query=request.GET.get("query"),
+                selected_columns=columns,
+                query=query,
                 params=params,
                 orderby=self.get_orderby(request),
                 offset=offset,

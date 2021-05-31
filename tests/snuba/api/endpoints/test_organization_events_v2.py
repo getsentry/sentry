@@ -5,7 +5,8 @@ from django.urls import reverse
 from pytz import utc
 
 from sentry.discover.models import KeyTransaction
-from sentry.models import ApiKey
+from sentry.models import ApiKey, ProjectTransactionThreshold
+from sentry.models.transaction_threshold import TransactionMetric
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -897,6 +898,82 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         data = response.data["data"]
         assert data[0]["count_miserable_user_300"] == 2
 
+    def test_count_miserable_new_alias_field(self):
+        project = self.create_project()
+
+        ProjectTransactionThreshold.objects.create(
+            project=project,
+            organization=project.organization,
+            threshold=400,
+            metric=TransactionMetric.DURATION.value,
+        )
+
+        events = [
+            ("one", 400),
+            ("one", 400),
+            ("two", 3000),
+            ("two", 3000),
+            ("three", 300),
+            ("three", 3000),
+        ]
+        for idx, event in enumerate(events):
+            data = load_data(
+                "transaction",
+                timestamp=before_now(minutes=(1 + idx)),
+                start_timestamp=before_now(minutes=(1 + idx), milliseconds=event[1]),
+            )
+            data["event_id"] = f"{idx}" * 32
+            data["transaction"] = f"/count_miserable/horribilis/{event[0]}"
+            data["user"] = {"email": f"{idx}@example.com"}
+            self.store_event(data, project_id=project.id)
+
+        query = {
+            "field": [
+                "transaction",
+                "project_threshold_config",
+                "count_miserable_new(user, project_threshold_config)",
+            ],
+            "query": "event.type:transaction",
+            project: [project.id],
+        }
+
+        # Cannot access it without feature enabled
+        response = self.do_request(query)
+        assert response.status_code == 404
+
+        response = self.do_request(
+            query,
+            features={
+                "organizations:discover-basic": True,
+                "organizations:project-transaction-threshold": True,
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 3
+        data = response.data["data"]
+        assert data[0]["count_miserable_new_user_project_threshold_config"] == 0
+        assert data[1]["count_miserable_new_user_project_threshold_config"] == 2
+        assert data[2]["count_miserable_new_user_project_threshold_config"] == 1
+
+        query[
+            "query"
+        ] = "event.type:transaction count_miserable_new(user, project_threshold_config):>0"
+
+        response = self.do_request(
+            query,
+            features={
+                "organizations:discover-basic": True,
+                "organizations:project-transaction-threshold": True,
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 2
+        data = response.data["data"]
+        assert abs(data[0]["count_miserable_new_user_project_threshold_config"]) == 2
+        assert abs(data[1]["count_miserable_new_user_project_threshold_config"]) == 1
+
     def test_user_misery_alias_field(self):
         project = self.create_project()
 
@@ -925,6 +1002,80 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert len(response.data["data"]) == 1
         data = response.data["data"]
         assert abs(data[0]["user_misery_300"] - 0.0653) < 0.0001
+
+    def test_user_misery_new_alias_field(self):
+        project = self.create_project()
+
+        ProjectTransactionThreshold.objects.create(
+            project=project,
+            organization=project.organization,
+            threshold=400,
+            metric=TransactionMetric.DURATION.value,
+        )
+
+        events = [
+            ("one", 400),
+            ("one", 400),
+            ("two", 3000),
+            ("two", 3000),
+            ("three", 300),
+            ("three", 3000),
+        ]
+        for idx, event in enumerate(events):
+            data = load_data(
+                "transaction",
+                timestamp=before_now(minutes=(1 + idx)),
+                start_timestamp=before_now(minutes=(1 + idx), milliseconds=event[1]),
+            )
+            data["event_id"] = f"{idx}" * 32
+            data["transaction"] = f"/count_miserable/horribilis/{event[0]}"
+            data["user"] = {"email": f"{idx}@example.com"}
+            self.store_event(data, project_id=project.id)
+
+        query = {
+            "field": [
+                "transaction",
+                "project_threshold_config",
+                "user_misery_new(project_threshold_config)",
+            ],
+            "query": "event.type:transaction",
+            project: [project.id],
+        }
+
+        # Cannot access it without feature enabled
+        response = self.do_request(query)
+        assert response.status_code == 404
+
+        response = self.do_request(
+            query,
+            features={
+                "organizations:discover-basic": True,
+                "organizations:project-transaction-threshold": True,
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 3
+        data = response.data["data"]
+        assert abs(data[0]["user_misery_new_project_threshold_config"] - 0.04916) < 0.0001
+        assert abs(data[1]["user_misery_new_project_threshold_config"] - 0.06586) < 0.0001
+        assert abs(data[2]["user_misery_new_project_threshold_config"] - 0.05751) < 0.0001
+
+        query["query"] = "event.type:transaction user_misery_new(project_threshold_config):>0.050"
+
+        response = self.do_request(
+            query,
+            features={
+                "organizations:discover-basic": True,
+                "organizations:project-transaction-threshold": True,
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 2
+        data = response.data["data"]
+        assert abs(data[0]["user_misery_new_project_threshold_config"] - 0.06586) < 0.0001
+        assert abs(data[1]["user_misery_new_project_threshold_config"] - 0.05751) < 0.0001
 
     def test_aggregation(self):
         project = self.create_project()
@@ -2006,6 +2157,65 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["user_misery_300"] == 0.058
         assert data[0]["failure_rate"] == 0.5
 
+        features = {
+            "organizations:discover-basic": True,
+            "organizations:global-views": True,
+            "organizations:project-transaction-threshold": True,
+        }
+
+        query = {
+            "field": [
+                "event.type",
+                "p50()",
+                "p75()",
+                "p95()",
+                "p99()",
+                "p100()",
+                "percentile(transaction.duration, 0.99)",
+                "apdex(300)",
+                "count_miserable(user, 300)",
+                "user_misery(300)",
+                "failure_rate()",
+                "project_threshold_config",
+                "count_miserable_new(user, project_threshold_config)",
+                "user_misery_new(project_threshold_config)",
+            ],
+            "query": "event.type:transaction",
+            "project": [project.id],
+        }
+        response = self.do_request(query, features=features)
+        assert response.status_code == 200, response.content
+        meta = response.data["meta"]
+        assert meta["p50"] == "duration"
+        assert meta["p75"] == "duration"
+        assert meta["p95"] == "duration"
+        assert meta["p99"] == "duration"
+        assert meta["p100"] == "duration"
+        assert meta["percentile_transaction_duration_0_99"] == "duration"
+        assert meta["apdex_300"] == "number"
+        assert meta["failure_rate"] == "percentage"
+        assert meta["user_misery_300"] == "number"
+        assert meta["count_miserable_user_300"] == "number"
+        assert meta["project_threshold_config"] == "string"
+        assert meta["user_misery_new_project_threshold_config"] == "number"
+        assert meta["count_miserable_new_user_project_threshold_config"] == "number"
+
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["p50"] == 5000
+        assert data[0]["p75"] == 5000
+        assert data[0]["p95"] == 5000
+        assert data[0]["p99"] == 5000
+        assert data[0]["p100"] == 5000
+        assert data[0]["percentile_transaction_duration_0_99"] == 5000
+        assert data[0]["apdex_300"] == 0.0
+        assert data[0]["count_miserable_user_300"] == 1
+        assert data[0]["user_misery_300"] == 0.058
+        assert data[0]["failure_rate"] == 0.5
+        assert data[0]["project_threshold_config"] == ["duration", 300]
+        assert data[0]["user_misery_new_project_threshold_config"] == 0.058
+        assert data[0]["count_miserable_new_user_project_threshold_config"] == 1
+
         query = {
             "field": ["event.type", "last_seen()", "latest_event()"],
             "query": "event.type:transaction",
@@ -2069,6 +2279,33 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert meta["user_misery_300"] == "number"
         data = response.data["data"]
         assert data[0]["user_misery_300"] == 0
+
+    def test_null_user_misery_new_returns_zero(self):
+        project = self.create_project()
+        data = load_data(
+            "transaction",
+            timestamp=before_now(minutes=2),
+            start_timestamp=before_now(minutes=2, seconds=5),
+        )
+        data["user"] = None
+        data["transaction"] = "/no_users/1"
+        self.store_event(data, project_id=project.id)
+        features = {
+            "organizations:discover-basic": True,
+            "organizations:project-transaction-threshold": True,
+        }
+
+        query = {
+            "field": ["project_threshold_config", "user_misery_new(project_threshold_config)"],
+            "query": "event.type:transaction",
+        }
+
+        response = self.do_request(query, features=features)
+        assert response.status_code == 200, response.content
+        meta = response.data["meta"]
+        assert meta["user_misery_new_project_threshold_config"] == "number"
+        data = response.data["data"]
+        assert data[0]["user_misery_new_project_threshold_config"] == 0
 
     def test_all_aggregates_in_query(self):
         project = self.create_project()

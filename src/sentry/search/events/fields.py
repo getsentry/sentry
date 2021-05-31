@@ -129,6 +129,9 @@ def project_threshold_config_expression(organization_id, project_ids):
         .values("project_id", "threshold", "metric")
     )
 
+    if not threshold_configs.count():
+        return ["tuple", [f"'{DEFAULT_PROJECT_THRESHOLD_METRIC}'", DEFAULT_PROJECT_THRESHOLD]]
+
     return [
         "if",
         [
