@@ -273,8 +273,7 @@ class TransactionsList extends React.Component<Props> {
       if (
         spanOperationBreakdownFilter !== SpanOperationBreakdownFilter.None &&
         maxSpansDuration &&
-        tableData &&
-        tableData.data
+        tableData?.data
       ) {
         tableData.data.forEach(row => {
           row.maxSpansDuration = maxSpansDuration;

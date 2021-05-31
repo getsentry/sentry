@@ -434,15 +434,15 @@ type MaxSpanQueryProps = {
   orgSlug: string;
   referrer?: string;
   currentFilter?: SpanOperationBreakdownFilter;
-  children?: (data: number | undefined) => React.ReactNode;
+  children: (data: number | undefined) => React.ReactNode;
 };
 
 function MaxSpanQuery(props: MaxSpanQueryProps) {
   const {location, eventView, orgSlug, referrer, currentFilter, children} = props;
   if (currentFilter && currentFilter !== SpanOperationBreakdownFilter.None) {
-    const maxDurationEventView = eventView
-      .clone()
-      .withSorts([{kind: 'desc', field: 'timestamp'}]);
+    const maxDurationEventView = eventView.withSorts([
+      {kind: 'desc', field: 'timestamp'},
+    ]);
     maxDurationEventView.fields = [
       {field: `spans.${currentFilter}`},
       {field: `timestamp`},
@@ -459,12 +459,12 @@ function MaxSpanQuery(props: MaxSpanQueryProps) {
           const maxSpan = maxSpansData?.data
             ? Math.max(...maxSpansData.data.map(data => data[`spans.${currentFilter}`]))
             : undefined;
-          return children?.(maxSpan);
+          return children(maxSpan);
         }}
       </DiscoverQuery>
     );
   }
-  return <React.Fragment>{children?.(undefined)}</React.Fragment>;
+  return <React.Fragment>{children(undefined)}</React.Fragment>;
 }
 
 function generateTraceLink(dateSelection) {
