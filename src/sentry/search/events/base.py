@@ -2,19 +2,13 @@ from typing import List, Optional
 
 from snuba_sdk.column import Column
 
+from sentry.search.events.constants import SNQL_FIELD_ALLOWLIST
 from sentry.search.events.types import AggregateType, ParamsType, SelectType, WhereType
 from sentry.utils.snuba import Dataset, resolve_column
 
 
 class QueryBase:
-    # Allow list of fields that are handled by this class. Once we reach a
-    # certain threshold of fields handled should turn this into a denylist
-    # use public facing field/function names for this list
-    field_allowlist = {
-        "user.email",
-        "release",
-        "environment",
-    }
+    field_allowlist = SNQL_FIELD_ALLOWLIST
 
     def __init__(
         self,

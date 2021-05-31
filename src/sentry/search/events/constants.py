@@ -55,3 +55,12 @@ SEARCH_MAP = {
 }
 SEARCH_MAP.update(**DATASETS[Dataset.Events])
 SEARCH_MAP.update(**DATASETS[Dataset.Discover])
+
+# Allow list of fields that are compatible with the Snql Query Builder.
+# Once we reach a certain threshold of fields handled should turn this into a denylist
+# use public facing field/function names for this list
+SNQL_FIELD_ALLOWLIST = {
+    "user.email",
+    "release",
+    "environment",
+}

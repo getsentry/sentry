@@ -5,9 +5,9 @@ from datetime import datetime
 from typing import List, Union
 
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
-from snuba_sdk.column import Column as SnqlColumn
 
 # TODO remove import aliases on snql Functions&Columns
+from snuba_sdk.column import Column as SnqlColumn
 from snuba_sdk.function import Function as SnqlFunction
 from snuba_sdk.orderby import Direction, OrderBy
 
