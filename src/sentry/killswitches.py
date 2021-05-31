@@ -109,7 +109,7 @@ def killswitch_matches_context(killswitch_name: str, context: Context) -> bool:
     option_value = options.get(killswitch_name)
     rv = _value_matches(killswitch_name, option_value, context)
     metrics.incr(
-        "sentry.killswitches.run",
+        "killswitches.run",
         tags={"killswitch_name": killswitch_name, "decision": "matched" if rv else "passed"},
     )
 

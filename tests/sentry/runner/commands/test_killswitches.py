@@ -13,17 +13,20 @@ class KillswitchesTest(CliTestCase):
         "sentry.killswitches.ALL_KILLSWITCH_OPTIONS",
         {
             OPTION: KillswitchInfo(
-                description="hey", fields={"project_id": "hey", "event_type": "ho"}
+                description="the description", fields={"project_id": "hey", "event_type": "ho"}
             )
         },
     )
     def test_basic(self):
         assert self.invoke("list").output == (
-            "\n" "store.load-shed-group-creation-projects\n" "  # hey\n" "<disabled entirely>\n"
+            "\n"
+            "store.load-shed-group-creation-projects\n"
+            "  # the description\n"
+            "<disabled entirely>\n"
         )
 
         PREAMBLE = (
-            "# store.load-shed-group-creation-projects: hey\n"
+            "# store.load-shed-group-creation-projects: the description\n"
             "# \n"
             "# After saving and exiting, your killswitch conditions will be printed\n"
             "# in faux-SQL for you to confirm.\n"
@@ -48,7 +51,7 @@ class KillswitchesTest(CliTestCase):
         assert self.invoke("list").output == (
             "\n"
             "store.load-shed-group-creation-projects\n"
-            "  # hey\n"
+            "  # the description\n"
             "DROP DATA WHERE\n"
             "  (project_id = 42 AND event_type = transaction)\n"
         )
@@ -73,7 +76,7 @@ class KillswitchesTest(CliTestCase):
         assert self.invoke("list").output == (
             "\n"
             "store.load-shed-group-creation-projects\n"
-            "  # hey\n"
+            "  # the description\n"
             "DROP DATA WHERE\n"
             "  (project_id = 42 AND event_type = transaction) OR\n"
             "  (project_id = 43)\n"
@@ -97,7 +100,10 @@ class KillswitchesTest(CliTestCase):
         )
         assert rv.exit_code == 0
         assert self.invoke("list").output == (
-            "\n" "store.load-shed-group-creation-projects\n" "  # hey\n" "<disabled entirely>\n"
+            "\n"
+            "store.load-shed-group-creation-projects\n"
+            "  # the description\n"
+            "<disabled entirely>\n"
         )
 
         assert self.invoke("pull", OPTION, "-").output == PREAMBLE
