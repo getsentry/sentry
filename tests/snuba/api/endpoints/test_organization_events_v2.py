@@ -4,7 +4,7 @@ import pytest
 from django.urls import reverse
 from pytz import utc
 
-from sentry.discover.models import KeyTransaction
+from sentry.discover.models import KeyTransaction, TeamKeyTransaction
 from sentry.models import ApiKey
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
@@ -3231,6 +3231,245 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         data = response.data["data"]
         assert len(data) == 1
         assert data[0]["key_transaction"] == 0
+        assert data[0]["transaction"] == "/blah_transaction/"
+
+    def test_no_team_key_transactions(self):
+        transactions = [
+            "/blah_transaction/",
+            "/foo_transaction/",
+            "/zoo_transaction/",
+        ]
+
+        for transaction in transactions:
+            self.transaction_data["transaction"] = transaction
+            self.store_event(self.transaction_data, self.project.id)
+
+        query = {
+            "team": "myteams",
+            "project": [self.project.id],
+            # use the order by to ensure the result order
+            "orderby": "transaction",
+            "field": [
+                "team_key_transaction",
+                "transaction",
+                "transaction.status",
+                "project",
+                "epm()",
+                "failure_rate()",
+                "percentile(transaction.duration, 0.95)",
+            ],
+        }
+        response = self.do_request(query)
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 3
+        assert data[0]["team_key_transaction"] == 0
+        assert data[0]["transaction"] == "/blah_transaction/"
+        assert data[1]["team_key_transaction"] == 0
+        assert data[1]["transaction"] == "/foo_transaction/"
+        assert data[2]["team_key_transaction"] == 0
+        assert data[2]["transaction"] == "/zoo_transaction/"
+
+    def test_team_key_transactions_my_teams(self):
+        team1 = self.create_team(organization=self.organization, name="Team A")
+        self.create_team_membership(team1, user=self.user)
+        self.project.add_team(team1)
+
+        team2 = self.create_team(organization=self.organization, name="Team B")
+
+        transactions = ["/blah_transaction/"]
+        key_transactions = [
+            (team1, "/foo_transaction/"),
+            (team2, "/zoo_transaction/"),
+        ]
+
+        for transaction in transactions:
+            self.transaction_data["transaction"] = transaction
+            self.store_event(self.transaction_data, self.project.id)
+
+        for team, transaction in key_transactions:
+            self.transaction_data["transaction"] = transaction
+            self.store_event(self.transaction_data, self.project.id)
+            TeamKeyTransaction.objects.create(
+                team=team,
+                organization=self.organization,
+                transaction=transaction,
+                project=self.project,
+            )
+
+        query = {
+            "team": "myteams",
+            "project": [self.project.id],
+            "field": [
+                "team_key_transaction",
+                "transaction",
+                "transaction.status",
+                "project",
+                "epm()",
+                "failure_rate()",
+                "percentile(transaction.duration, 0.95)",
+            ],
+        }
+
+        query["orderby"] = ["team_key_transaction", "transaction"]
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 3
+        assert data[0]["team_key_transaction"] == 0
+        assert data[0]["transaction"] == "/blah_transaction/"
+        assert data[1]["team_key_transaction"] == 0
+        assert data[1]["transaction"] == "/zoo_transaction/"
+        assert data[2]["team_key_transaction"] == 1
+        assert data[2]["transaction"] == "/foo_transaction/"
+
+    def test_team_key_transactions_orderby(self):
+        team1 = self.create_team(organization=self.organization, name="Team A")
+        team2 = self.create_team(organization=self.organization, name="Team B")
+
+        transactions = ["/blah_transaction/"]
+        key_transactions = [
+            (team1, "/foo_transaction/"),
+            (team2, "/zoo_transaction/"),
+        ]
+
+        for transaction in transactions:
+            self.transaction_data["transaction"] = transaction
+            self.store_event(self.transaction_data, self.project.id)
+
+        for team, transaction in key_transactions:
+            self.create_team_membership(team, user=self.user)
+            self.project.add_team(team)
+            self.transaction_data["transaction"] = transaction
+            self.store_event(self.transaction_data, self.project.id)
+            TeamKeyTransaction.objects.create(
+                team=team,
+                organization=self.organization,
+                transaction=transaction,
+                project=self.project,
+            )
+
+        query = {
+            "team": "myteams",
+            "project": [self.project.id],
+            "field": [
+                "team_key_transaction",
+                "transaction",
+                "transaction.status",
+                "project",
+                "epm()",
+                "failure_rate()",
+                "percentile(transaction.duration, 0.95)",
+            ],
+        }
+
+        # test ascending order
+        query["orderby"] = ["team_key_transaction", "transaction"]
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 3
+        assert data[0]["team_key_transaction"] == 0
+        assert data[0]["transaction"] == "/blah_transaction/"
+        assert data[1]["team_key_transaction"] == 1
+        assert data[1]["transaction"] == "/foo_transaction/"
+        assert data[2]["team_key_transaction"] == 1
+        assert data[2]["transaction"] == "/zoo_transaction/"
+
+        # test descending order
+        query["orderby"] = ["-team_key_transaction", "-transaction"]
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 3
+        assert data[0]["team_key_transaction"] == 1
+        assert data[0]["transaction"] == "/zoo_transaction/"
+        assert data[1]["team_key_transaction"] == 1
+        assert data[1]["transaction"] == "/foo_transaction/"
+        assert data[2]["team_key_transaction"] == 0
+        assert data[2]["transaction"] == "/blah_transaction/"
+
+    def test_team_key_transactions_query(self):
+        team1 = self.create_team(organization=self.organization, name="Team A")
+        team2 = self.create_team(organization=self.organization, name="Team B")
+
+        transactions = ["/blah_transaction/"]
+        key_transactions = [
+            (team1, "/foo_transaction/"),
+            (team2, "/zoo_transaction/"),
+        ]
+
+        for transaction in transactions:
+            self.transaction_data["transaction"] = transaction
+            self.store_event(self.transaction_data, self.project.id)
+
+        for team, transaction in key_transactions:
+            self.create_team_membership(team, user=self.user)
+            self.project.add_team(team)
+            self.transaction_data["transaction"] = transaction
+            self.store_event(self.transaction_data, self.project.id)
+            TeamKeyTransaction.objects.create(
+                team=team,
+                organization=self.organization,
+                transaction=transaction,
+                project=self.project,
+            )
+
+        query = {
+            "team": "myteams",
+            "project": [self.project.id],
+            # use the order by to ensure the result order
+            "orderby": "transaction",
+            "field": [
+                "team_key_transaction",
+                "transaction",
+                "transaction.status",
+                "project",
+                "epm()",
+                "failure_rate()",
+                "percentile(transaction.duration, 0.95)",
+            ],
+        }
+
+        # key transactions
+        query["query"] = "has:team_key_transaction"
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 2
+        assert data[0]["team_key_transaction"] == 1
+        assert data[0]["transaction"] == "/foo_transaction/"
+        assert data[1]["team_key_transaction"] == 1
+        assert data[1]["transaction"] == "/zoo_transaction/"
+
+        # key transactions
+        query["query"] = "team_key_transaction:true"
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 2
+        assert data[0]["team_key_transaction"] == 1
+        assert data[0]["transaction"] == "/foo_transaction/"
+        assert data[1]["team_key_transaction"] == 1
+        assert data[1]["transaction"] == "/zoo_transaction/"
+
+        # not key transactions
+        query["query"] = "!has:team_key_transaction"
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["team_key_transaction"] == 0
+        assert data[0]["transaction"] == "/blah_transaction/"
+
+        # not key transactions
+        query["query"] = "team_key_transaction:false"
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["team_key_transaction"] == 0
         assert data[0]["transaction"] == "/blah_transaction/"
 
     def test_no_pagination_param(self):
