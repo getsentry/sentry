@@ -99,8 +99,8 @@ class Results extends React.Component<Props, State> {
   };
 
   componentDidMount() {
-    const {api, organization, selection} = this.props;
-    loadOrganizationTags(api, organization.slug, selection);
+    const {organization, selection} = this.props;
+    loadOrganizationTags(this.tagsApi, organization.slug, selection);
     addRoutePerformanceContext(selection);
     this.checkEventView();
     this.canLoadEvents();
@@ -124,12 +124,14 @@ class Results extends React.Component<Props, State> {
       !isEqual(prevProps.selection.datetime, selection.datetime) ||
       !isEqual(prevProps.selection.projects, selection.projects)
     ) {
-      loadOrganizationTags(api, organization.slug, selection);
+      loadOrganizationTags(this.tagsApi, organization.slug, selection);
       addRoutePerformanceContext(selection);
     }
 
     if (prevState.confirmedQuery !== confirmedQuery) this.fetchTotalCount();
   }
+
+  tagsApi: Client = new Client();
 
   hasChartParametersChanged(prevEventView: EventView, eventView: EventView) {
     const prevYAxisValue = prevEventView.getYAxis();
