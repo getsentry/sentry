@@ -655,13 +655,19 @@ class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
             {
                 "team": str(self.team2.id),
                 "keyed": [
-                    {"project_id": str(self.project.id), "transaction": self.event_data["transaction"]},
+                    {
+                        "project_id": str(self.project.id),
+                        "transaction": self.event_data["transaction"],
+                    },
                 ],
             },
             {
                 "team": str(self.team3.id),
                 "keyed": [
-                    {"project_id": str(self.project.id), "transaction": self.event_data["transaction"]},
+                    {
+                        "project_id": str(self.project.id),
+                        "transaction": self.event_data["transaction"],
+                    },
                     {"project_id": str(self.project.id), "transaction": "other-transaction"},
                 ],
             },
@@ -706,13 +712,19 @@ class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
             {
                 "team": str(self.team2.id),
                 "keyed": [
-                    {"project_id": str(self.project.id), "transaction": self.event_data["transaction"]},
+                    {
+                        "project_id": str(self.project.id),
+                        "transaction": self.event_data["transaction"],
+                    },
                 ],
             },
             {
                 "team": str(self.team3.id),
                 "keyed": [
-                    {"project_id": str(self.project.id), "transaction": self.event_data["transaction"]},
+                    {
+                        "project_id": str(self.project.id),
+                        "transaction": self.event_data["transaction"],
+                    },
                     {"project_id": str(self.project.id), "transaction": "other-transaction"},
                 ],
             },
@@ -736,7 +748,7 @@ class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
 
         teams = []
         for i in range(123):
-            team = self.create_team(organization=org, name="Team {:02d}".format(i))
+            team = self.create_team(organization=org, name=f"Team {i:02d}")
             self.create_team_membership(team, user=user)
             project.add_team(team)
             teams.append(team)
@@ -755,8 +767,8 @@ class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
             link["rel"]: {"url": url, **link}
             for url, link in parse_link_header(response["Link"]).items()
         }
-        assert links["previous"]["results"] == 'false'
-        assert links["next"]["results"] == 'true'
+        assert links["previous"]["results"] == "false"
+        assert links["next"]["results"] == "true"
 
         # get the second page
         with self.feature(self.features):
@@ -772,8 +784,8 @@ class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
             link["rel"]: {"url": url, **link}
             for url, link in parse_link_header(response["Link"]).items()
         }
-        assert links["previous"]["results"] == 'true'
-        assert links["next"]["results"] == 'false'
+        assert links["previous"]["results"] == "true"
+        assert links["next"]["results"] == "false"
 
 
 class KeyTransactionTest(APITestCase, SnubaTestCase):
