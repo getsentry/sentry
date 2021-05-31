@@ -1,4 +1,6 @@
 import logging
+import random
+import time
 from contextlib import contextmanager
 
 from sentry.utils.locking import UnableToAcquireLock
@@ -40,6 +42,33 @@ class Lock:
                 self.release()
 
         return releaser()
+
+    def blocking_acquire(self, initial_delay: float, timeout: float, exp_base=1.6):
+        """
+        Try to acquire the lock in a polling loop.
+
+        :param initial_delay: A random retry delay will be picked between 0
+            and this value (in seconds). The range from which we pick doubles
+            in every iteration.
+        :param timeout: Time in seconds after which ``UnableToAcquireLock``
+            will be raised.
+        """
+        stop = time.monotonic() + timeout
+        attempt = 0
+        while time.monotonic() < stop:
+            try:
+                return self.acquire()
+            except UnableToAcquireLock:
+                delay = (exp_base ** attempt) * random.random() * initial_delay
+                # Redundant check to prevent futile sleep in last iteration:
+                if time.monotonic() + delay > stop:
+                    break
+
+                time.sleep(delay)
+
+            attempt += 1
+
+        raise UnableToAcquireLock(f"Unable to acquire {self!r} because of timeout")
 
     def release(self):
         """

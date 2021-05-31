@@ -10,7 +10,6 @@ from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.file import File
 from sentry.models.releasefile import ReleaseArchive
 from sentry.tasks.assemble import (
-    RELEASE_ARCHIVE_MAX_MERGE_ATTEMPTS,
     AssembleTask,
     ChunkFileState,
     _merge_archives,
@@ -20,6 +19,7 @@ from sentry.tasks.assemble import (
     get_assemble_status,
 )
 from sentry.testutils import TestCase
+from sentry.utils.locking import UnableToAcquireLock
 
 
 class BaseAssembleTest(TestCase):
@@ -242,12 +242,9 @@ class AssembleArtifactsTest(BaseAssembleTest):
             assert not File.objects.filter(pk=file2.pk).exists()
             assert release_file.file.pk > 2
 
+    @patch("sentry.utils.locking.lock.Lock.blocking_acquire", side_effect=UnableToAcquireLock)
     @patch("sentry.tasks.assemble.logger.error")
-    @patch("sentry.tasks.assemble.ReleaseFile.refresh_from_db")
-    @patch("sentry.tasks.assemble.metrics.incr")
-    def test_merge_archives_fail(self, mock_incr, mock_refresh, mock_log_error):
-        max_attempts = RELEASE_ARCHIVE_MAX_MERGE_ATTEMPTS
-
+    def test_merge_archives_fail(self, mock_log_error, _):
         file1 = File.objects.create()
         file1.putfile(ContentFile(self.create_artifact_bundle()))
         file2 = File.objects.create()
@@ -261,26 +258,13 @@ class AssembleArtifactsTest(BaseAssembleTest):
 
         with ReleaseArchive(file2.getfile().file) as archive2:
 
-            def change_file_id():
-                # Create another file
-                release_file.file = File.objects.create()
-                release_file.file.putfile(ContentFile(self.create_artifact_bundle()))
-
-            mock_refresh.side_effect = change_file_id
-
             _merge_archives(release_file, file2, archive2)
-            assert mock_refresh.called
             # Failed to update
             assert File.objects.filter(pk=file1.pk).exists()
             assert ReleaseFile.objects.get(pk=release_file.pk).file == file1
             assert not File.objects.filter(pk=file2.pk).exists()
-            for attempt in range(max_attempts):
-                assert mock_incr.called_with(
-                    "tasks.assemble.merge_archives_retry", instance=str(attempt)
-                )
-            assert mock_log_error.called_with(
-                f"Failed to merge archive in {max_attempts} attempts, giving up."
-            )
+
+            assert mock_log_error.called_with("merge_archives.fail")
 
     def test_artifacts_invalid_org(self):
         bundle_file = self.create_artifact_bundle(org="invalid")
