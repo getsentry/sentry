@@ -72,7 +72,7 @@ export type Fingerprint = {
   children: Array<ChildFingerprint>;
 };
 
-type ChildFingerprint = {
+export type ChildFingerprint = {
   childId: string;
   childLabel?: string;
   eventCount?: number;
@@ -475,7 +475,7 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupingStoreInterface =
         success: () => {
           addSuccessMessage(successMessage);
 
-          // Busy rows after successful merge
+          // Busy rows after successful Unmerge
           this.setStateForId(this.unmergeState, ids, {
             checked: false,
             busy: true,
@@ -639,6 +639,8 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupingStoreInterface =
         'unmergeState',
         'loading',
         'error',
+        'enableFingerprintCompare',
+        'unmergeList',
       ]),
     };
     this.trigger(state);

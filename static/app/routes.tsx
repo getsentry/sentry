@@ -1019,6 +1019,17 @@ function routes() {
                 isEventRoute: false,
               }}
             />
+            <Route
+              path="/organizations/:orgId/issues/:groupId/grouping/"
+              componentPromise={() =>
+                import('app/views/organizationGroupDetails/grouping')
+              }
+              component={errorHandler(LazyLoad)}
+              props={{
+                currentTab: TAB.GROUPING,
+                isEventRoute: false,
+              }}
+            />
             <Route path="/organizations/:orgId/issues/:groupId/events/:eventId/">
               <IndexRoute
                 componentPromise={() =>

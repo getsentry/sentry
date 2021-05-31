@@ -44,6 +44,7 @@ const TAB = {
   TAGS: 'tags',
   EVENTS: 'events',
   MERGED: 'merged',
+  GROUPING: 'grouping',
   SIMILAR_ISSUES: 'similar-issues',
 };
 
@@ -97,6 +98,7 @@ class GroupHeader extends React.Component<Props, State> {
         TAB.ATTACHMENTS,
         TAB.EVENTS,
         TAB.MERGED,
+        TAB.GROUPING,
         TAB.SIMILAR_ISSUES,
         TAB.TAGS,
       ];
@@ -108,6 +110,7 @@ class GroupHeader extends React.Component<Props, State> {
         TAB.ATTACHMENTS,
         TAB.EVENTS,
         TAB.MERGED,
+        TAB.GROUPING,
         TAB.SIMILAR_ISSUES,
         TAB.TAGS,
         TAB.USER_FEEDBACK,
@@ -131,6 +134,7 @@ class GroupHeader extends React.Component<Props, State> {
     const organizationFeatures = new Set(organization ? organization.features : []);
     const userCount = group.userCount;
 
+    const hasGroupingTreeUI = organizationFeatures.has('grouping-tree-ui');
     const hasSimilarView = projectFeatures.has('similarity-view');
     const hasEventAttachments = organizationFeatures.has('event-attachments');
 
@@ -332,6 +336,15 @@ class GroupHeader extends React.Component<Props, State> {
           >
             {t('Merged Issues')}
           </ListLink>
+          {hasGroupingTreeUI && (
+            <ListLink
+              to={`${baseUrl}grouping/${location.search}`}
+              isActive={() => currentTab === TAB.GROUPING}
+              disabled={disabledTabs.includes(TAB.GROUPING)}
+            >
+              {t('Grouping')}
+            </ListLink>
+          )}
           {hasSimilarView && (
             <ListLink
               to={`${baseUrl}similar/${location.search}`}
