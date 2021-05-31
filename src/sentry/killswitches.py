@@ -27,14 +27,14 @@ class KillswitchInfo:
 
 
 ALL_KILLSWITCH_OPTIONS = {
-    "store.load-shed-group-creation-projects": KillswitchInfo(  # type: ignore
+    "store.load-shed-group-creation-projects": KillswitchInfo(
         description="Drop event in save_event before entering transaction to create group",
         fields={
             "project_id": "A project ID to filter events by.",
             "platform": "The event platform as defined in the event payload's platform field.",
         },
     ),
-    "store.load-shed-pipeline-projects": KillswitchInfo(  # type: ignore
+    "store.load-shed-pipeline-projects": KillswitchInfo(
         description="Drop event in ingest consumer. Available fields are severely restricted because nothing is parsed yet.",
         fields={
             "project_id": "A project ID to filter events by.",
@@ -42,7 +42,7 @@ ALL_KILLSWITCH_OPTIONS = {
             "has_attachments": "Filter events by whether they have been sent together with attachments or not. Note that attachments can be sent completely separately as well.",
         },
     ),
-    "store.load-shed-parsed-pipeline-projects": KillswitchInfo(  # type: ignore
+    "store.load-shed-parsed-pipeline-projects": KillswitchInfo(
         description="Drop events in ingest consumer after parsing them. Available fields are more but a bunch of stuff can go wrong before that.",
         fields={
             "organization_id": "Numeric organization ID to filter events by.",
@@ -52,7 +52,7 @@ ALL_KILLSWITCH_OPTIONS = {
             "event_id": "An event ID as given in the event payload.",
         },
     ),
-    "store.load-shed-process-event-projects": KillswitchInfo(  # type: ignore
+    "store.load-shed-process-event-projects": KillswitchInfo(
         description="Drop events in process_event.",
         fields={
             "project_id": "A project ID to filter events by.",
@@ -60,7 +60,7 @@ ALL_KILLSWITCH_OPTIONS = {
             "platform": "The event platform as defined in the event payload's platform field.",
         },
     ),
-    "store.load-shed-symbolicate-event-projects": KillswitchInfo(  # type: ignore
+    "store.load-shed-symbolicate-event-projects": KillswitchInfo(
         description="Drop events in symbolicate_event.",
         fields={
             "project_id": "A project ID to filter events by.",
