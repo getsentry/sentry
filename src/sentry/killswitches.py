@@ -123,6 +123,9 @@ def _value_matches(
 
     for condition in option_value:
         for field, matching_value in condition.items():
+            if matching_value is None:
+                continue
+
             value = context.get(field)
             if value is None:
                 break
