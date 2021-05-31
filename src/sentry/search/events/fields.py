@@ -115,7 +115,7 @@ def key_transaction_expression(user_id, organization_id, project_ids):
 
 def team_key_transaction_expression(organization_id, team_ids, project_ids):
     if organization_id is None or team_ids is None or project_ids is None:
-        raise InvalidSearchQuery("Missing necessary meta for key transaction field.")
+        raise TypeError("Team key transactions parameters cannot be None")
 
     team_key_transactions = (
         TeamKeyTransaction.objects.filter(
@@ -128,8 +128,9 @@ def team_key_transaction_expression(organization_id, team_ids, project_ids):
         .distinct("transaction", "project_id")
     )
 
-    if not len(team_key_transactions):
-        return ["toInt64", [0]]
+    # There are team key transactions marked, so hard code false into the query.
+    if len(team_key_transactions) == 0:
+        return ["toInt8", [0]]
 
     return [
         "in",
