@@ -297,8 +297,6 @@ describe('TeamKeyTransaction', function () {
       await tick();
       wrapper.update();
 
-      clickTeamKeyTransactionDropdown(wrapper);
-
       // header should be checked now
       const headerCheckbox = wrapper.find('DropdownMenuHeader CheckboxFancy');
       expect(headerCheckbox.props().isChecked).toBeTruthy();
@@ -353,8 +351,6 @@ describe('TeamKeyTransaction', function () {
       wrapper.find('DropdownMenuHeader CheckboxFancy').simulate('click');
       await tick();
       wrapper.update();
-
-      clickTeamKeyTransactionDropdown(wrapper);
 
       // header should be unchecked now
       const headerCheckbox = wrapper.find('DropdownMenuHeader CheckboxFancy');

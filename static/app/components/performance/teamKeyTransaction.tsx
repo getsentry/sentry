@@ -1,10 +1,12 @@
-import {Component, ComponentClass} from 'react';
+import {Component, ComponentClass, ReactPortal} from 'react';
+import ReactDOM from 'react-dom';
+import {Manager, Popper, Reference} from 'react-popper';
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
+import * as PopperJS from 'popper.js';
 
 import MenuHeader from 'app/components/actions/menuHeader';
 import CheckboxFancy from 'app/components/checkboxFancy/checkboxFancy';
-import DropdownControl, {Content} from 'app/components/dropdownControl';
 import {GetActorPropsFn} from 'app/components/dropdownMenu';
 import MenuItem from 'app/components/menuItem';
 import {t} from 'app/locale';
@@ -45,7 +47,7 @@ function canKeyForTeam(team: Team, keyedTeams: Set<string>, counts: Map<string, 
   if (isChecked) {
     return true;
   }
-  return (counts.get(team.id) ?? 0) < 1;
+  return (counts.get(team.id) ?? 0) < MAX_TEAM_KEY_TRANSACTIONS;
 }
 
 class TeamKeyTransaction extends Component<Props> {
@@ -135,90 +137,169 @@ type SelectorProps = {
   counts: Map<string, number>;
 };
 
-function TeamKeyTransactionSelector({
-  title: Title,
-  handleToggleKeyTransaction,
-  teams,
-  counts,
-  keyedTeams,
-}: SelectorProps) {
-  const toggleTeam = (team: TeamSelection) => () => {
+type SelectorState = {
+  isOpen: boolean;
+};
+
+class TeamKeyTransactionSelector extends Component<SelectorProps, SelectorState> {
+  constructor(props: SelectorProps) {
+    super(props);
+
+    let portal = document.getElementById('team-key-transaction-portal');
+    if (!portal) {
+      portal = document.createElement('div');
+      portal.setAttribute('id', 'team-key-transaction-portal');
+      document.body.appendChild(portal);
+    }
+    this.portalEl = portal;
+    this.menuEl = null;
+  }
+
+  state: SelectorState = {
+    isOpen: false,
+  };
+
+  componentDidUpdate(_props: SelectorProps, prevState: SelectorState) {
+    if (this.state.isOpen && prevState.isOpen === false) {
+      document.addEventListener('click', this.handleClickOutside, true);
+    }
+    if (this.state.isOpen === false && prevState.isOpen) {
+      document.removeEventListener('click', this.handleClickOutside, true);
+    }
+  }
+
+  componentWillUnmount() {
+    document.removeEventListener('click', this.handleClickOutside, true);
+    this.portalEl.remove();
+  }
+
+  private portalEl: Element;
+  private menuEl: Element | null;
+
+  handleClickOutside = (event: MouseEvent) => {
+    if (!this.menuEl) {
+      return;
+    }
+    if (!(event.target instanceof Element)) {
+      return;
+    }
+    if (this.menuEl.contains(event.target)) {
+      return;
+    }
+    this.setState({isOpen: false});
+  };
+
+  toggleOpen = () => {
+    this.setState(({isOpen}) => ({isOpen: !isOpen}));
+  };
+
+  toggleTeam = (team: TeamSelection) => () => {
+    const {handleToggleKeyTransaction} = this.props;
     handleToggleKeyTransaction(team);
   };
 
-  const [enabledTeams, disabledTeams] = partition(teams, team =>
-    canKeyForTeam(team, keyedTeams, counts)
-  );
+  render() {
+    const {title: Title, teams, counts, keyedTeams} = this.props;
+    const {isOpen} = this.state;
 
-  const isMyTeamsEnabled = enabledTeams.length > 0;
-  const myTeamsHandler = isMyTeamsEnabled
-    ? toggleTeam({
-        type: 'my teams',
-        action: enabledTeams.length === keyedTeams.size ? 'unkey' : 'key',
-      })
-    : undefined;
+    const [enabledTeams, disabledTeams] = partition(teams, team =>
+      canKeyForTeam(team, keyedTeams, counts)
+    );
 
-  return (
-    <DropdownControl
-      button={({getActorProps}) => (
-        <Title keyedTeamsCount={keyedTeams.size} {...getActorProps()} />
-      )}
-    >
-      {({isOpen, getMenuProps}) => (
-        <DropdownWrapper
-          {...getMenuProps()}
-          isOpen={isOpen}
-          blendCorner
-          alignMenu="right"
-          width="220px"
-        >
-          {isOpen && (
-            <DropdownContent>
-              <DropdownMenuHeader first>
-                {t('My Teams')}
-                <ActionItem>
-                  <CheckboxFancy
-                    isDisabled={!isMyTeamsEnabled}
-                    isChecked={teams.length === keyedTeams.size}
-                    isIndeterminate={
-                      teams.length > keyedTeams.size && keyedTeams.size > 0
-                    }
-                    onClick={myTeamsHandler}
+    const isMyTeamsEnabled = enabledTeams.length > 0;
+    const myTeamsHandler = isMyTeamsEnabled
+      ? this.toggleTeam({
+          type: 'my teams',
+          action: enabledTeams.length === keyedTeams.size ? 'unkey' : 'key',
+        })
+      : undefined;
+
+    let menu: ReactPortal | null = null;
+
+    if (isOpen) {
+      const modifiers: PopperJS.Modifiers = {
+        hide: {
+          enabled: false,
+        },
+        preventOverflow: {
+          padding: 10,
+          enabled: true,
+          boundariesElement: 'viewport',
+        },
+      };
+
+      menu = ReactDOM.createPortal(
+        <Popper placement="top" modifiers={modifiers}>
+          {({ref: popperRef, style, placement}) => (
+            <DropdownWrapper
+              ref={ref => {
+                (popperRef as Function)(ref);
+                this.menuEl = ref;
+              }}
+              style={style}
+              data-placement={placement}
+            >
+              <DropdownContent>
+                <DropdownMenuHeader first>
+                  {t('My Teams')}
+                  <ActionItem>
+                    <CheckboxFancy
+                      isDisabled={!isMyTeamsEnabled}
+                      isChecked={teams.length === keyedTeams.size}
+                      isIndeterminate={
+                        teams.length > keyedTeams.size && keyedTeams.size > 0
+                      }
+                      onClick={myTeamsHandler}
+                    />
+                  </ActionItem>
+                </DropdownMenuHeader>
+                {enabledTeams.map(team => (
+                  <TeamKeyTransactionItem
+                    key={team.slug}
+                    team={team}
+                    isKeyed={keyedTeams.has(team.id)}
+                    disabled={false}
+                    onSelect={this.toggleTeam({
+                      type: 'id',
+                      action: keyedTeams.has(team.id) ? 'unkey' : 'key',
+                      teamId: team.id,
+                    })}
                   />
-                </ActionItem>
-              </DropdownMenuHeader>
-              {enabledTeams.map(team => (
-                <TeamKeyTransactionItem
-                  key={team.slug}
-                  team={team}
-                  isKeyed={keyedTeams.has(team.id)}
-                  disabled={false}
-                  onSelect={toggleTeam({
-                    type: 'id',
-                    action: keyedTeams.has(team.id) ? 'unkey' : 'key',
-                    teamId: team.id,
-                  })}
-                />
-              ))}
-              {disabledTeams.map(team => (
-                <TeamKeyTransactionItem
-                  key={team.slug}
-                  team={team}
-                  isKeyed={keyedTeams.has(team.id)}
-                  disabled
-                  onSelect={toggleTeam({
-                    type: 'id',
-                    action: keyedTeams.has(team.id) ? 'unkey' : 'key',
-                    teamId: team.id,
-                  })}
-                />
-              ))}
-            </DropdownContent>
+                ))}
+                {disabledTeams.map(team => (
+                  <TeamKeyTransactionItem
+                    key={team.slug}
+                    team={team}
+                    isKeyed={keyedTeams.has(team.id)}
+                    disabled
+                    onSelect={this.toggleTeam({
+                      type: 'id',
+                      action: keyedTeams.has(team.id) ? 'unkey' : 'key',
+                      teamId: team.id,
+                    })}
+                  />
+                ))}
+              </DropdownContent>
+            </DropdownWrapper>
           )}
-        </DropdownWrapper>
-      )}
-    </DropdownControl>
-  );
+        </Popper>,
+        this.portalEl
+      );
+    }
+
+    return (
+      <Manager>
+        <Reference>
+          {({ref}) => (
+            <div ref={ref}>
+              <Title keyedTeamsCount={keyedTeams.size} onClick={this.toggleOpen} />
+            </div>
+          )}
+        </Reference>
+        {menu}
+      </Manager>
+    );
+  }
 }
 
 type ItemProps = {
@@ -250,47 +331,63 @@ function TeamKeyTransactionItem({team, isKeyed, disabled, onSelect}: ItemProps) 
   );
 }
 
-const DropdownWrapper = styled(Content)`
-  margin-top: 9px;
-  left: auto;
-  right: 50%;
-  transform: translateX(calc(50%));
-
+const DropdownWrapper = styled('div')`
   /* Adapted from the dropdown-menu class */
   border: none;
   border-radius: 2px;
   box-shadow: 0 0 0 1px rgba(52, 60, 69, 0.2), 0 1px 3px rgba(70, 82, 98, 0.25);
   background-clip: padding-box;
+  background-color: ${p => p.theme.background};
+  width: 220px;
   overflow: visible;
+  z-index: ${p => p.theme.zIndex.tooltip};
 
-  &:before {
+  &:before,
+  &:after {
     width: 0;
     height: 0;
-    border-left: 9px solid transparent;
-    border-right: 9px solid transparent;
-    border-bottom: 9px solid ${p => p.theme.border};
     content: '';
     display: block;
     position: absolute;
-    top: -9px;
-    left: calc(50% - 9px);
     right: auto;
+  }
+
+  &:before {
+    border-left: 9px solid transparent;
+    border-right: 9px solid transparent;
+    left: calc(50% - 9px);
     z-index: -2;
   }
 
   &:after {
-    width: 0;
-    height: 0;
     border-left: 8px solid transparent;
     border-right: 8px solid transparent;
-    border-bottom: 8px solid ${p => p.theme.background};
-    content: '';
-    display: block;
-    position: absolute;
-    top: -8px;
     left: calc(50% - 8px);
-    right: auto;
     z-index: -1;
+  }
+
+  &[data-placement*='bottom'] {
+    &:before {
+      border-bottom: 9px solid ${p => p.theme.border};
+      top: -9px;
+    }
+
+    &:after {
+      border-bottom: 8px solid ${p => p.theme.background};
+      top: -8px;
+    }
+  }
+
+  &[data-placement*='top'] {
+    &:before {
+      border-top: 9px solid ${p => p.theme.border};
+      bottom: -9px;
+    }
+
+    &:after {
+      border-top: 8px solid ${p => p.theme.background};
+      bottom: -8px;
+    }
   }
 `;
 
