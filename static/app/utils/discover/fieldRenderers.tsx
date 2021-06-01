@@ -55,6 +55,7 @@ import {
   UserIcon,
   VersionContainer,
 } from './styles';
+import TeamKeyTransactionField from './teamKeyTransactionField';
 
 /**
  * Types, functions and definitions for rendering fields in discover results.
@@ -201,6 +202,7 @@ type SpecialFields = {
   issue: SpecialField;
   release: SpecialField;
   key_transaction: SpecialField;
+  team_key_transaction: SpecialField;
   'trend_percentage()': SpecialField;
   'timestamp.to_hour': SpecialField;
   'timestamp.to_day': SpecialField;
@@ -377,11 +379,24 @@ const SPECIAL_FIELDS: SpecialFields = {
     },
   },
   key_transaction: {
-    sortField: 'key_transaction',
+    sortField: null,
     renderFunc: (data, {organization}) => (
       <Container>
         <KeyTransactionField
           isKeyTransaction={(data.key_transaction ?? 0) !== 0}
+          organization={organization}
+          projectSlug={data.project}
+          transactionName={data.transaction}
+        />
+      </Container>
+    ),
+  },
+  team_key_transaction: {
+    sortField: null,
+    renderFunc: (data, {organization}) => (
+      <Container>
+        <TeamKeyTransactionField
+          isKeyTransaction={(data.team_key_transaction ?? 0) !== 0}
           organization={organization}
           projectSlug={data.project}
           transactionName={data.transaction}

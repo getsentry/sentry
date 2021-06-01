@@ -12,17 +12,19 @@ import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
 import SearchBar from 'app/components/events/searchBar';
 import * as Layout from 'app/components/layouts/thirds';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
+import * as TeamKeyTransactionManager from 'app/components/performance/teamKeyTransactionsManager';
 import {IconChevron} from 'app/icons';
 import {IconFlag} from 'app/icons/iconFlag';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Organization, Project} from 'app/types';
+import {Organization, Project, Team} from 'app/types';
 import {generateQueryWithTag} from 'app/utils';
 import EventView from 'app/utils/discover/eventView';
 import {WebVital} from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 import withProjects from 'app/utils/withProjects';
+import withTeams from 'app/utils/withTeams';
 
 import Breadcrumb from '../breadcrumb';
 import {getTransactionSearchQuery} from '../utils';
@@ -39,6 +41,7 @@ type Props = {
   eventView: EventView;
   organization: Organization;
   projects: Project[];
+  teams: Team[];
   router: InjectedRouter;
 
   vitalName: WebVital;
@@ -174,7 +177,7 @@ class VitalDetailContent extends React.Component<Props, State> {
   }
 
   render() {
-    const {location, eventView, organization, vitalName, projects} = this.props;
+    const {location, eventView, organization, vitalName, projects, teams} = this.props;
     const {incompatibleAlertNotice} = this.state;
     const query = decodeScalar(location.query.query, '');
 
@@ -183,6 +186,7 @@ class VitalDetailContent extends React.Component<Props, State> {
     const filterString = getTransactionSearchQuery(location);
     const summaryConditions = getSummaryConditions(filterString);
     const description = vitalDescription[vitalName];
+    const userTeams = teams.filter(({isMember}) => isMember);
 
     return (
       <React.Fragment>
@@ -235,14 +239,21 @@ class VitalDetailContent extends React.Component<Props, State> {
                 vital={vital}
               />
             </StyledVitalInfo>
-            <Table
-              eventView={eventView}
-              projects={projects}
+            <TeamKeyTransactionManager.Provider
               organization={organization}
-              location={location}
-              setError={this.setError}
-              summaryConditions={summaryConditions}
-            />
+              teams={userTeams}
+              selectedTeams={['myteams']}
+              selectedProjects={eventView.project.map(String)}
+            >
+              <Table
+                eventView={eventView}
+                projects={projects}
+                organization={organization}
+                location={location}
+                setError={this.setError}
+                summaryConditions={summaryConditions}
+              />
+            </TeamKeyTransactionManager.Provider>
           </Layout.Main>
         </Layout.Body>
       </React.Fragment>
@@ -263,4 +274,4 @@ const StyledVitalInfo = styled('div')`
   margin-bottom: ${space(3)};
 `;
 
-export default withProjects(VitalDetailContent);
+export default withTeams(withProjects(VitalDetailContent));
