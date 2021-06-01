@@ -59,7 +59,7 @@ class BaseEventFrequencyCondition(EventCondition):
     def passes(self, event, state):
         interval = self.get_option("interval")
         try:
-            value = int(self.get_option("value"))
+            value = float(self.get_option("value"))
         except (TypeError, ValueError):
             return False
 
