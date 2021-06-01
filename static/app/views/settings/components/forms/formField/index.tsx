@@ -1,7 +1,6 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
-import PropTypes from 'prop-types';
 
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
@@ -14,6 +13,7 @@ import {sanitizeQuerySelector} from 'app/utils/sanitizeQuerySelector';
 import Field from 'app/views/settings/components/forms/field';
 import FieldControl from 'app/views/settings/components/forms/field/fieldControl';
 import FieldErrorReason from 'app/views/settings/components/forms/field/fieldErrorReason';
+import FormContext from 'app/views/settings/components/forms/formContext';
 import FormFieldControlState from 'app/views/settings/components/forms/formField/controlState';
 import FormModel, {MockModel} from 'app/views/settings/components/forms/model';
 import ReturnButton from 'app/views/settings/components/forms/returnButton';
@@ -147,11 +147,6 @@ type PassthroughProps<P> = Omit<
 >;
 
 class FormField<P extends {} = {}> extends React.Component<Props<P>> {
-  static contextTypes = {
-    location: PropTypes.object,
-    form: PropTypes.object,
-  };
-
   static defaultProps = {
     hideErrorMessage: false,
     flexibleControlStateSize: false,
@@ -165,6 +160,8 @@ class FormField<P extends {} = {}> extends React.Component<Props<P>> {
   componentWillUnmount() {
     this.getModel().removeField(this.props.name);
   }
+
+  static contextType = FormContext;
 
   getError() {
     return this.getModel().getError(this.props.name);
@@ -189,7 +186,8 @@ class FormField<P extends {} = {}> extends React.Component<Props<P>> {
    */
   handleInputMount = (node: HTMLElement | null) => {
     if (node && !this.input) {
-      const hash = this.context.location && this.context.location.hash;
+      // TODO(mark) Clean this up. FormContext could include the location
+      const hash = window.location?.hash;
 
       if (!hash) {
         return;

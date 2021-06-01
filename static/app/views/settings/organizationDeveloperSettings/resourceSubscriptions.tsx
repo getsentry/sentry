@@ -1,9 +1,9 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
-import PropTypes from 'prop-types';
 
 import {Context} from 'app/components/forms/form';
 import {Permissions, WebhookEvent} from 'app/types';
+import FormContext from 'app/views/settings/components/forms/formContext';
 import {
   EVENT_CHOICES,
   PERMISSIONS_MAP,
@@ -23,11 +23,6 @@ type Props = DefaultProps & {
 };
 
 export default class Subscriptions extends Component<Props> {
-  static contextTypes = {
-    router: PropTypes.object.isRequired,
-    form: PropTypes.object,
-  };
-
   static defaultProps: DefaultProps = {
     webhookDisabled: false,
   };
@@ -55,6 +50,8 @@ export default class Subscriptions extends Component<Props> {
       this.save(permittedEvents);
     }
   }
+
+  static contextType = FormContext;
 
   onChange = (resource: Resource, checked: boolean) => {
     const events = new Set(this.props.events);
