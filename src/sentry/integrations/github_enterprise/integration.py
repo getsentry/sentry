@@ -313,7 +313,7 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
             "https://{}/api/v3/user/installations".format(installation_data["url"]),
             headers={
                 "Accept": "application/vnd.github.machine-man-preview+json",
-                f"Authorization": "token {access_token}",
+                "Authorization": f"token {access_token}",
             },
             verify=installation_data["verify_ssl"],
         )
