@@ -4,9 +4,12 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {mountGlobalModal} from 'sentry-test/modal';
 import {selectByValue} from 'sentry-test/select-new';
 
+import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
 import ProjectsStore from 'app/stores/projectsStore';
 import ProjectContext from 'app/views/projects/projectContext';
 import ProjectGeneralSettings from 'app/views/settings/projectGeneralSettings';
+
+jest.mock('app/actionCreators/indicator');
 
 describe('projectGeneralSettings', function () {
   const org = TestStubs.Organization();
@@ -59,6 +62,9 @@ describe('projectGeneralSettings', function () {
 
   afterEach(function () {
     window.location.assign.mockRestore();
+    MockApiClient.clearMockResponses();
+    addSuccessMessage.mockReset();
+    addErrorMessage.mockReset();
   });
 
   it('renders form fields', function () {
@@ -145,7 +151,10 @@ describe('projectGeneralSettings', function () {
       .find('input[name="email"]')
       .simulate('change', {target: {value: 'billy@sentry.io'}});
     modal.find('Modal Button[priority="danger"]').simulate('click');
+    await tick();
+    await modal.update();
 
+    expect(addSuccessMessage).toHaveBeenCalled();
     expect(deleteMock).toHaveBeenCalledWith(
       `/projects/${org.slug}/${project.slug}/transfer/`,
       expect.objectContaining({
@@ -154,6 +163,45 @@ describe('projectGeneralSettings', function () {
           email: 'billy@sentry.io',
         },
       })
+    );
+  });
+
+  it('handles errors on transfer project', async function () {
+    const deleteMock = MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/transfer/`,
+      method: 'POST',
+      statusCode: 400,
+      body: {detail: 'An organization owner could not be found'},
+    });
+
+    const wrapper = mountWithTheme(
+      <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />,
+      TestStubs.routerContext()
+    );
+
+    const removeBtn = wrapper.find('.ref-transfer-project').first();
+
+    expect(removeBtn.prop('children')).toBe('Transfer Project');
+
+    // Click button
+    removeBtn.simulate('click');
+
+    // Confirm Modal
+    const modal = await mountGlobalModal();
+    modal
+      .find('input[name="email"]')
+      .simulate('change', {target: {value: 'billy@sentry.io'}});
+    modal.find('Modal Button[priority="danger"]').simulate('click');
+    await tick();
+    await modal.update();
+
+    expect(deleteMock).toHaveBeenCalled();
+    expect(addSuccessMessage).not.toHaveBeenCalled();
+
+    expect(addErrorMessage).toHaveBeenCalled();
+    const content = mountWithTheme(addErrorMessage.mock.calls[0][0]);
+    expect(content.text()).toEqual(
+      expect.stringContaining('An organization owner could not be found')
     );
   });
 
