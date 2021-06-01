@@ -344,4 +344,4 @@ register("processing.save-release-archives", default=False)
 register("processing.use-release-archives-sample-rate", default=0.0)
 
 # All Relay options (statically authenticated Relays can be registered here)
-register("relay.static_auth", default={})
+register("relay.static_auth", default={}, flags=FLAG_NOSTORE)
