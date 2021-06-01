@@ -195,7 +195,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
             with self.options(
                 {
                     "processing.save-release-archives": has_release_archives,
-                    "processing.release-archive-min-size": 1,
+                    "processing.release-archive-min-files": 1,
                 }
             ):
 

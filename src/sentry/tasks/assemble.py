@@ -314,7 +314,7 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
             num_files = len(manifest.get("files", {}))
 
             if options.get("processing.save-release-archives"):
-                min_size = options.get("processing.release-archive-min-size")
+                min_size = options.get("processing.release-archive-min-files")
                 if num_files >= min_size:
                     kwargs = dict(meta, name=RELEASE_ARCHIVE_FILENAME)
                     _upsert_release_file(bundle, archive, _merge_archives, **kwargs)
