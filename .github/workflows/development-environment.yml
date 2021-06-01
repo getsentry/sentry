@@ -43,7 +43,11 @@ jobs:
         # Sometimes, brew needs to be updated before brew bundle would work
         # After installing Docker (via homebrew) we need to make sure that it is properly initialized on Mac
         run: |
-          HOMEBREW_NO_AUTO_UPDATE=1 brew bundle -q --no-upgrade || brew update && brew bundle
+          # brew update -q && brew bundle -q --file .github/workflows/files/Brewfile.${{ runner.os }}.lock.json
+          brew update -q && brew bundle -q
+          sleep 2
+          cat Brewfile.lock.json
+          echo "Brewfile.${{ runner.os }}.lock.json"
           ./.github/workflows/scripts/docker-setup.sh
 
       # XXX: This is a temporary change. There's another PR that will bring this workflow up-to-date
