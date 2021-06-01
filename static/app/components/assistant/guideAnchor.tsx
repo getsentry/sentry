@@ -1,9 +1,7 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import createReactClass from 'create-react-class';
 import {Query} from 'history';
-import Reflux from 'reflux';
 
 import {
   closeGuide,
@@ -37,8 +35,8 @@ type Props = {
 type State = {
   active: boolean;
   orgId: string | null;
+  step: number;
   currentGuide?: Guide;
-  step?: number;
 };
 
 /**
@@ -47,25 +45,22 @@ type State = {
  * from one or more anchors on the page to determine which guides can
  * be shown on the page.
  */
-export const GuideAnchor = createReactClass<Props, State>({
-  mixins: [Reflux.listenTo(GuideStore, 'onGuideStateChange') as any],
-
-  getInitialState() {
-    return {
-      active: false,
-      orgId: null,
-    };
-  },
+class GuideAnchor extends React.Component<Props, State> {
+  state: State = {
+    active: false,
+    step: 0,
+    orgId: null,
+  };
 
   componentDidMount() {
     const {target} = this.props;
     target && registerAnchor(target);
-  },
+  }
 
   componentDidUpdate(_prevProps, prevState) {
-    if (this.containerElement && !prevState.active && this.state.active) {
+    if (this.containerElement.current && !prevState.active && this.state.active) {
       try {
-        const {top} = this.containerElement.getBoundingClientRect();
+        const {top} = this.containerElement.current.getBoundingClientRect();
         const scrollTop = window.pageYOffset;
         const centerElement = top + scrollTop - window.innerHeight / 2;
         window.scrollTo({top: centerElement});
@@ -73,25 +68,32 @@ export const GuideAnchor = createReactClass<Props, State>({
         Sentry.captureException(err);
       }
     }
-  },
+  }
 
   componentWillUnmount() {
     const {target} = this.props;
     target && unregisterAnchor(target);
-  },
+    this.unsubscribe();
+  }
+
+  unsubscribe = GuideStore.listen(
+    (data: GuideStoreState) => this.onGuideStateChange(data),
+    undefined
+  );
+
+  containerElement = React.createRef<HTMLSpanElement>();
 
   onGuideStateChange(data: GuideStoreState) {
     const active =
-      data.currentGuide &&
-      data.currentGuide.steps[data.currentStep]?.target === this.props.target;
+      data.currentGuide?.steps[data.currentStep]?.target === this.props.target ?? false;
 
     this.setState({
       active,
-      currentGuide: data.currentGuide,
+      currentGuide: data.currentGuide ?? undefined,
       step: data.currentStep,
       orgId: data.orgId,
     });
-  },
+  }
 
   /**
    * Terminology:
@@ -100,31 +102,38 @@ export const GuideAnchor = createReactClass<Props, State>({
    *  - A guide can be DISMISSED by x-ing out of it at any step except the last (where there is no x)
    *  - In both cases we consider it CLOSED
    */
-  handleFinish(e: React.MouseEvent) {
+  handleFinish = (e: React.MouseEvent) => {
     e.stopPropagation();
     const {onFinish} = this.props;
     if (onFinish) {
       onFinish();
     }
     const {currentGuide, orgId} = this.state;
-    recordFinish(currentGuide.guide, orgId);
+    if (currentGuide) {
+      recordFinish(currentGuide.guide, orgId);
+    }
     closeGuide();
-  },
+  };
 
-  handleNextStep(e: React.MouseEvent) {
+  handleNextStep = (e: React.MouseEvent) => {
     e.stopPropagation();
     nextStep();
-  },
+  };
 
-  handleDismiss(e: React.MouseEvent) {
+  handleDismiss = (e: React.MouseEvent) => {
     e.stopPropagation();
     const {currentGuide, step, orgId} = this.state;
-    dismissGuide(currentGuide.guide, step, orgId);
-  },
+    if (currentGuide) {
+      dismissGuide(currentGuide.guide, step, orgId);
+    }
+  };
 
   getHovercardBody() {
     const {to} = this.props;
     const {currentGuide, step} = this.state;
+    if (!currentGuide) {
+      return null;
+    }
 
     const totalStepCount = currentGuide.steps.length;
     const currentStepCount = step + 1;
@@ -183,7 +192,7 @@ export const GuideAnchor = createReactClass<Props, State>({
         </GuideAction>
       </GuideContainer>
     );
-  },
+  }
 
   render() {
     const {children, position, offset, containerClassName} = this.props;
@@ -202,18 +211,20 @@ export const GuideAnchor = createReactClass<Props, State>({
         offset={offset}
         containerClassName={containerClassName}
       >
-        <span ref={el => (this.containerElement = el)}>{children}</span>
+        <span ref={this.containerElement}>{children}</span>
       </StyledHovercard>
     );
-  },
-});
+  }
+}
+
+export {GuideAnchor};
 
 /**
  * Wraps the GuideAnchor so we don't have to render it if it's disabled
  * Using a class so we automatically have children as a typed prop
  */
-
 type WrapperProps = {disabled?: boolean} & Props;
+
 export default class GuideAnchorWrapper extends React.Component<WrapperProps> {
   render() {
     const {disabled, children, ...rest} = this.props;
