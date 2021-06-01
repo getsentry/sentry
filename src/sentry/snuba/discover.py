@@ -297,9 +297,10 @@ def prepare_discover_query(
 
         snuba_filter.update_with(resolved_fields)
 
-        resolved_equations = resolve_equation_list(equations, snuba_filter)
+        if equations is not None:
+            resolved_equations = resolve_equation_list(equations, snuba_filter)
 
-        snuba_filter.update_with(resolved_equations)
+            snuba_filter.update_with(resolved_equations)
 
         # Resolve the public aliases into the discover dataset names.
         snuba_filter, translated_columns = resolve_discover_aliases(snuba_filter)
