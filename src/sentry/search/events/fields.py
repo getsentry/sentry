@@ -1307,7 +1307,20 @@ FUNCTIONS = {
         ),
         Function(
             "apdex_new",
-            transform="apdex(multiIf(equals(tupleElement(project_threshold_config, 1), 'lcp'),if(has(measurements.key, 'lcp'), arrayElement(measurements.value, indexOf(measurements.key, 'lcp')), NULL),duration), tupleElement(project_threshold_config, 2))",
+            transform="""
+                apdex(
+                    multiIf(
+                        equals(tupleElement(project_threshold_config, 1), 'lcp'),
+                        if(has(measurements.key, 'lcp'), arrayElement(measurements.value, indexOf(measurements.key, 'lcp')), NULL),
+                        duration
+                    ),
+                    tupleElement(project_threshold_config, 2)
+                )
+            """.replace(
+                "\n", ""
+            ).replace(
+                " ", ""
+            ),
             default_result_type="number",
         ),
         Function(

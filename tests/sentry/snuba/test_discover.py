@@ -935,7 +935,7 @@ class QueryTransformTest(TestCase):
             conditions=[],
             aggregations=[
                 [
-                    "apdex(multiIf(equals(tupleElement(project_threshold_config, 1), 'lcp'),if(has(measurements.key, 'lcp'), arrayElement(measurements.value, indexOf(measurements.key, 'lcp')), NULL),duration), tupleElement(project_threshold_config, 2))",
+                    "apdex(multiIf(equals(tupleElement(project_threshold_config,1),'lcp'),if(has(measurements.key,'lcp'),arrayElement(measurements.value,indexOf(measurements.key,'lcp')),NULL),duration),tupleElement(project_threshold_config,2))",
                     None,
                     "apdex_new",
                 ]
