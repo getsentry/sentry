@@ -192,7 +192,12 @@ class AssembleArtifactsTest(BaseAssembleTest):
         total_checksum = sha1(bundle_file).hexdigest()
 
         for has_release_archives in (True, False):
-            with self.options({"processing.save-release-archives": has_release_archives}):
+            with self.options(
+                {
+                    "processing.save-release-archives": has_release_archives,
+                    "processing.release-archive-min-files": 1,
+                }
+            ):
 
                 assemble_artifacts(
                     org_id=self.organization.id,
