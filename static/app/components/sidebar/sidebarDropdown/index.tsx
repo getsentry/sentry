@@ -26,13 +26,16 @@ import {CommonSidebarProps} from '../types';
 import Divider from './divider.styled';
 import SwitchOrganization from './switchOrganization';
 
+//TODO: make org and user optional props
 type Props = Pick<CommonSidebarProps, 'orientation' | 'collapsed'> & {
   api: Client;
   org: Organization;
   user: User;
   config: Config;
-  //set to true for deactivated members so we can hide links they cannot access
-  hideInternalLinks?: boolean;
+  /**
+   * Set to true to hide links within the organization
+   */
+  hideOrgLinks?: boolean;
 };
 
 const SidebarDropdown = ({
@@ -42,7 +45,7 @@ const SidebarDropdown = ({
   collapsed,
   config,
   user,
-  hideInternalLinks,
+  hideOrgLinks,
 }: Props) => {
   const handleLogout = async () => {
     await logout(api);
@@ -103,25 +106,30 @@ const SidebarDropdown = ({
               {hasOrganization && (
                 <Fragment>
                   <SidebarOrgSummary organization={org} />
-                  {hasOrgRead && !hideInternalLinks && (
-                    <SidebarMenuItem to={`/settings/${org.slug}/`}>
-                      {t('Organization settings')}
-                    </SidebarMenuItem>
-                  )}
-                  {hasMemberRead && !hideInternalLinks && (
-                    <SidebarMenuItem to={`/settings/${org.slug}/members/`}>
-                      {t('Members')}
-                    </SidebarMenuItem>
-                  )}
+                  {!hideOrgLinks && (
+                    <Fragment>
+                      {hasOrgRead && (
+                        <SidebarMenuItem to={`/settings/${org.slug}/`}>
+                          {t('Organization settings')}
+                        </SidebarMenuItem>
+                      )}
+                      {hasMemberRead && (
+                        <SidebarMenuItem to={`/settings/${org.slug}/members/`}>
+                          {t('Members')}
+                        </SidebarMenuItem>
+                      )}
 
-                  {hasTeamRead && !hideInternalLinks && (
-                    <SidebarMenuItem to={`/settings/${org.slug}/teams/`}>
-                      {t('Teams')}
-                    </SidebarMenuItem>
-                  )}
+                      {hasTeamRead && (
+                        <SidebarMenuItem to={`/settings/${org.slug}/teams/`}>
+                          {t('Teams')}
+                        </SidebarMenuItem>
+                      )}
 
-                  {!hideInternalLinks && (
-                    <Hook name="sidebar:organization-dropdown-menu" organization={org} />
+                      <Hook
+                        name="sidebar:organization-dropdown-menu"
+                        organization={org}
+                      />
+                    </Fragment>
                   )}
 
                   {!config.singleOrganization && (
@@ -142,23 +150,21 @@ const SidebarDropdown = ({
                     </UserSummary>
 
                     <div>
-                      {!hideInternalLinks && (
-                        <Fragment>
-                          <SidebarMenuItem to="/settings/account/">
-                            {t('User settings')}
-                          </SidebarMenuItem>
-                          <SidebarMenuItem to="/settings/account/api/">
-                            {t('API keys')}
-                          </SidebarMenuItem>
-                          <Hook
-                            name="sidebar:organization-dropdown-menu-bottom"
-                            organization={org}
-                          />
-                          {user.isSuperuser && (
-                            <SidebarMenuItem to="/manage/">{t('Admin')}</SidebarMenuItem>
-                          )}
-                        </Fragment>
-                      )}
+                      <Fragment>
+                        <SidebarMenuItem to="/settings/account/">
+                          {t('User settings')}
+                        </SidebarMenuItem>
+                        <SidebarMenuItem to="/settings/account/api/">
+                          {t('API keys')}
+                        </SidebarMenuItem>
+                        <Hook
+                          name="sidebar:organization-dropdown-menu-bottom"
+                          organization={org}
+                        />
+                        {user.isSuperuser && (
+                          <SidebarMenuItem to="/manage/">{t('Admin')}</SidebarMenuItem>
+                        )}
+                      </Fragment>
                       <SidebarMenuItem
                         data-test-id="sidebarSignout"
                         onClick={handleLogout}
