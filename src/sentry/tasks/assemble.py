@@ -310,9 +310,14 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
                 "release": release,
                 "dist": dist,
             }
+
+            num_files = len(manifest.get("files", {}))
+
             if options.get("processing.save-release-archives"):
-                kwargs = dict(meta, name=RELEASE_ARCHIVE_FILENAME)
-                _upsert_release_file(bundle, archive, _merge_archives, **kwargs)
+                min_size = options.get("processing.release-archive-min-size")
+                if num_files >= min_size:
+                    kwargs = dict(meta, name=RELEASE_ARCHIVE_FILENAME)
+                    _upsert_release_file(bundle, archive, _merge_archives, **kwargs)
 
             # NOTE(jjbayer): Single files are still stored to enable
             # rolling back from release archives. Once release archives run
@@ -321,7 +326,7 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
             _store_single_files(archive, meta)
 
             # Count files extracted, to compare them to release files endpoint
-            metrics.incr("tasks.assemble.extracted_files", amount=len(manifest.get("files", {})))
+            metrics.incr("tasks.assemble.extracted_files", amount=num_files)
 
     except AssembleArtifactsError as e:
         set_assemble_status(
