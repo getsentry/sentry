@@ -16,11 +16,14 @@ import {IconSliders} from 'app/icons';
 import {t, tct} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
 import {Member, MemberRole, Organization} from 'app/types';
-import {RenderSearch, SearchWrapper} from 'app/types/defaultSearchBar';
 import routeTitleGen from 'app/utils/routeTitle';
 import theme from 'app/utils/theme';
 import withOrganization from 'app/utils/withOrganization';
 import AsyncView from 'app/views/asyncView';
+import {
+  RenderSearch,
+  SearchWrapper,
+} from 'app/views/settings/components/defaultSearchBar';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 import MembersFilter from './components/membersFilter';

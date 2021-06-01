@@ -4,7 +4,6 @@ import AsyncComponent from 'app/components/asyncComponent';
 import Pagination from 'app/components/pagination';
 import {t} from 'app/locale';
 import {Project} from 'app/types';
-import {RenderSearch, SearchWrapper} from 'app/types/defaultSearchBar';
 import {
   MIN_PROJECTS_FOR_PAGINATION,
   MIN_PROJECTS_FOR_SEARCH,
@@ -16,6 +15,10 @@ import {
   getParentField,
   groupByOrganization,
 } from 'app/views/settings/account/notifications/utils';
+import {
+  RenderSearch,
+  SearchWrapper,
+} from 'app/views/settings/components/defaultSearchBar';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
