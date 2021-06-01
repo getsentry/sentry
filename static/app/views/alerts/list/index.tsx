@@ -361,7 +361,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
                     organization={organization}
                   >
                     <StyledAlert icon={<IconInfo />}>
-                      {t('This page only shows metric alerts that have been triggered.')}
+                      {t('This page only shows metric alerts.')}
                     </StyledAlert>
                   </Feature>
                   {hasAlertHistoryFilters ? (
