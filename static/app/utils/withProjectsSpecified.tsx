@@ -1,6 +1,6 @@
 import * as React from 'react';
 import createReactClass from 'create-react-class';
-import xor from 'lodash/xor'; /* eslint-disable react/prop-types */
+import xor from 'lodash/xor';
 import Reflux from 'reflux';
 
 import ProjectsStore from 'app/stores/projectsStore';
