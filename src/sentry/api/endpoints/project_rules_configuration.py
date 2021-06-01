@@ -66,7 +66,6 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
             elif rule_type.startswith("action/"):
                 action_list.append(context)
 
-        print("returning:", condition_list)
         context = {"actions": action_list, "conditions": condition_list, "filters": filter_list}
 
         return Response(context)
