@@ -2,11 +2,9 @@ import * as React from 'react';
 import {browserHistory} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import createReactClass from 'create-react-class';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import * as queryString from 'query-string';
-import Reflux from 'reflux';
 
 import {hideSidebar, showSidebar} from 'app/actionCreators/preferences';
 import SidebarPanelActions from 'app/actions/sidebarPanelActions';
@@ -47,9 +45,11 @@ import SidebarDropdown from './sidebarDropdown';
 import SidebarItem from './sidebarItem';
 import {SidebarOrientation, SidebarPanelKey} from './types';
 
+type ActivePanelType = SidebarPanelKey | '';
+
 type Props = {
   organization: Organization;
-  activePanel: SidebarPanelKey | '';
+  activePanel: ActivePanelType;
   collapsed: boolean;
   location?: Location;
   children?: never;
@@ -516,36 +516,52 @@ class Sidebar extends React.Component<Props, State> {
   }
 }
 
-const SidebarContainer = createReactClass<Omit<Props, 'collapsed' | 'activePanel'>>({
-  displayName: 'SidebarContainer',
-  mixins: [
-    Reflux.listenTo(PreferencesStore, 'onPreferenceChange') as any,
-    Reflux.listenTo(SidebarPanelStore, 'onSidebarPanelChange') as any,
-  ],
-  getInitialState() {
-    return {
-      collapsed: PreferencesStore.getInitialState().collapsed,
-      activePanel: '',
-    };
-  },
+type ContainerProps = Omit<Props, 'collapsed' | 'activePanel'>;
 
-  onPreferenceChange(preferences: typeof PreferencesStore.prefs) {
+type ContainerState = {
+  collapsed: boolean;
+  activePanel: ActivePanelType;
+};
+type Preferences = typeof PreferencesStore.prefs;
+
+class SidebarContainer extends React.Component<ContainerProps, ContainerState> {
+  state: ContainerState = {
+    collapsed: PreferencesStore.getInitialState().collapsed,
+    activePanel: '',
+  };
+
+  componentWillUnmount() {
+    this.preferenceUnsubscribe();
+    this.sidebarUnsubscribe();
+  }
+
+  preferenceUnsubscribe = PreferencesStore.listen(
+    (preferences: Preferences) => this.onPreferenceChange(preferences),
+    undefined
+  );
+
+  sidebarUnsubscribe = SidebarPanelStore.listen(
+    (activePanel: ActivePanelType) => this.onSidebarPanelChange(activePanel),
+    undefined
+  );
+
+  onPreferenceChange(preferences: Preferences) {
     if (preferences.collapsed === this.state.collapsed) {
       return;
     }
 
     this.setState({collapsed: preferences.collapsed});
-  },
+  }
 
-  onSidebarPanelChange(activePanel: SidebarPanelKey | '') {
+  onSidebarPanelChange(activePanel: ActivePanelType) {
     this.setState({activePanel});
-  },
+  }
 
   render() {
     const {activePanel, collapsed} = this.state;
     return <Sidebar {...this.props} {...{activePanel, collapsed}} />;
-  },
-});
+  }
+}
 
 export default withOrganization(SidebarContainer);
 
