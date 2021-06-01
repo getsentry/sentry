@@ -183,7 +183,7 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
                 session_count = result_totals["data"][0]["sessions"]
             else:
                 session_count = False
-            cache.set(cache_key, session_count, 3600)
+            cache.set(cache_key, session_count, 600)
 
         if session_count:
             issue_count = self.tsdb.get_sums(
