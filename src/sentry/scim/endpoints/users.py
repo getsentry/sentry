@@ -1,7 +1,6 @@
 from django.conf import settings
 from django.db import transaction
 from django.db.models import Q
-from rest_framework import serializers
 from rest_framework.response import Response
 
 from sentry import roles
@@ -11,7 +10,6 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberSCIMSerializer
-from sentry.api.validators import AllowedEmailField
 from sentry.models import AuditLogEntryEvent, AuthIdentity, InviteStatus, OrganizationMember
 from sentry.signals import member_invited
 
@@ -19,22 +17,6 @@ from .constants import SCIM_404_USER_RES, SCIM_409_USER_EXISTS
 from .utils import SCIMEndpoint, parse_filter_conditions
 
 ERR_ONLY_OWNER = "You cannot remove the only remaining owner of the organization."
-
-
-class SCIMUserSerializer(serializers.Serializer):
-    email = AllowedEmailField(max_length=75, required=True)
-    role = serializers.ChoiceField(choices=roles.get_choices(), required=True)
-    sendInvite = serializers.BooleanField(required=False, default=True, write_only=True)
-
-    def validate_email(self, email):
-        queryset = OrganizationMember.objects.filter(
-            Q(email=email) | Q(user__email__iexact=email, user__is_active=True),
-            organization=self.context["organization"],
-        )
-
-        if queryset.filter.exists():
-            raise serializers.ValidationError("User already exists in the database.")
-        return email
 
 
 class OrganizationSCIMUserDetails(SCIMEndpoint, OrganizationMemberDetailsEndpoint):

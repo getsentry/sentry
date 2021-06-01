@@ -211,7 +211,6 @@ class OrganizationMemberSCIMSerializer(Serializer):  # type: ignore
             "emails": [
                 {"primary": True, "value": obj.get_email(), "type": "work"}
             ],  # TODO: secondary emails?
-            # "externalId": #TODO: add support for this, potentially add to om / authident?
             "active": True,
             "meta": {"resourceType": "User"},
         }
