@@ -31,6 +31,8 @@ sudo-askpass() {
     fi
 }
 
+# After using homebrew to install docker, we need to do some magic to remove the need to interact with the GUI
+# See: https://github.com/docker/for-mac/issues/2359#issuecomment-607154849 for why we need to do things below
 init-docker() {
     if [[ $(uname -s) = 'Darwin' ]]; then
         if ! require docker && [ -d "/Applications/Docker.app" ]; then
