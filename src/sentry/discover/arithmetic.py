@@ -1,7 +1,9 @@
-from typing import Optional
+from typing import List, Optional, Tuple, Union
 
 from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar, NodeVisitor
+
+SUPPORTED_OPERATORS = {"plus", "minus", "multiply", "divide"}
 
 
 class ArithmeticError(Exception):
@@ -20,15 +22,38 @@ class ArithmeticParseError(ArithmeticError):
     pass
 
 
+class ArithmeticValidationError(ArithmeticError):
+    """ The math itself isn't valid """
+
+    pass
+
+
+OperationSideType = Union["Operation", float, str]
+
+
 class Operation:
     __slots__ = "operator", "lhs", "rhs"
 
-    def __init__(self, operator, lhs=None, rhs=None):
+    def __init__(
+        self,
+        operator: str,
+        lhs: Optional[OperationSideType] = None,
+        rhs: Optional[OperationSideType] = None,
+    ) -> None:
         self.operator = operator
-        self.lhs = lhs
-        self.rhs = rhs
+        self.lhs: Optional[OperationSideType] = lhs
+        self.rhs: Optional[OperationSideType] = rhs
+        self.validate()
 
-    def __repr__(self):
+    def validate(self) -> None:
+        # This shouldn't really happen, but the operator value is based on the grammar so enforcing it to be safe
+        if self.operator not in SUPPORTED_OPERATORS:
+            raise ArithmeticParseError(f"{self.operator} is not a supported operator")
+
+        if self.operator == "divide" and self.rhs == 0:
+            raise ArithmeticValidationError("division by 0 is not allowed")
+
+    def __repr__(self) -> str:
         return repr([self.operator, self.lhs, self.rhs])
 
 
@@ -46,7 +71,7 @@ mul_div              = mul_div_operator primary
 add_sub_operator     = spaces (plus / minus) spaces
 mul_div_operator     = spaces (multiply / divide) spaces
 # TODO(wmak) allow variables
-primary              = spaces numeric_value spaces
+primary              = spaces (numeric_value / field_value) spaces
 
 # Operator names should match what's in clickhouse
 plus                 = "+"
@@ -54,9 +79,10 @@ minus                = "-"
 multiply             = "*"
 divide               = "/"
 
-# TODO(wmak) share these with api/event_search and support decimals
-numeric_value        = ~r"[+-]?[0-9]+"
-spaces               = ~r"\ *"
+# TODO(wmak) share these with api/event_search
+numeric_value        = ~r"[+-]?[0-9]+\.?[0-9]*"
+field_value          = ~r"[a-zA-Z_.]+"
+spaces               = " "*
 """
 )
 
@@ -65,12 +91,28 @@ class ArithmeticVisitor(NodeVisitor):
     DEFAULT_MAX_OPERATORS = 10
 
     # Don't wrap in VisitationErrors
-    unwrapped_exceptions = (MaxOperatorError,)
+    unwrapped_exceptions = (ArithmeticError,)
+
+    allowlist = {
+        "transaction.duration",
+        "spans.http",
+        "spans.db",
+        "spans.resource",
+        "spans.browser",
+        "spans.total.time",
+        "measurements.fp",
+        "measurements.fcp",
+        "measurements.lcp",
+        "measurements.fid",
+        "measurements.ttfb",
+        "measurements.ttfb.requesttime",
+    }
 
     def __init__(self, max_operators):
         super().__init__()
         self.operators = 0
         self.max_operators = max_operators if max_operators else self.DEFAULT_MAX_OPERATORS
+        self.fields: set[str] = set()
 
     def flatten(self, remaining):
         """Take all the remaining terms and reduce them to a single tree"""
@@ -126,7 +168,8 @@ class ArithmeticVisitor(NodeVisitor):
         return self.strip_spaces(children)
 
     def visit_primary(self, _, children):
-        return self.strip_spaces(children)
+        # Return the 0th element since this is a (numeric/field)
+        return self.strip_spaces(children)[0]
 
     @staticmethod
     def parse_operator(operator):
@@ -142,16 +185,27 @@ class ArithmeticVisitor(NodeVisitor):
     def visit_numeric_value(self, node, _):
         return float(node.text)
 
+    def visit_field_value(self, node, _):
+        field = node.text
+        if field not in self.allowlist:
+            raise ArithmeticValidationError(f"{field} not allowed in arithmetic")
+        self.fields.add(field)
+        return field
+
     def generic_visit(self, node, children):
         return children or node
 
 
-def parse_arithmetic(equation: str, max_operators: Optional[int] = None) -> Operation:
-    """Given a string equation try to parse it into a set of Operations"""
+def parse_arithmetic(
+    equation: str, max_operators: Optional[int] = None
+) -> Tuple[Operation, List[str]]:
+    """ Given a string equation try to parse it into a set of Operations """
     try:
         tree = arithmetic_grammar.parse(equation)
     except ParseError:
         raise ArithmeticParseError(
             "Unable to parse your equation, make sure it is well formed arithmetic"
         )
-    return ArithmeticVisitor(max_operators).visit(tree)
+    visitor = ArithmeticVisitor(max_operators)
+    result = visitor.visit(tree)
+    return result, list(visitor.fields)
