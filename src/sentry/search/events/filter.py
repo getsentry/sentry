@@ -781,7 +781,9 @@ class QueryFilter(QueryBase):
 
         for term in parsed_terms:
             if isinstance(term, SearchFilter):
-                self.format_search_filter(term)
+                conditions = self.format_search_filter(term)
+                if conditions:
+                    self.where.append(conditions)
 
     def resolve_params(self) -> None:
         """Keys included as url params take precedent if same key is included in search
@@ -840,10 +842,16 @@ class QueryFilter(QueryBase):
         else:
             return env_conditions[0]
 
-    def format_search_filter(self, term: SearchFilter) -> None:
+    def format_search_filter(self, term: SearchFilter) -> Optional[WhereType]:
+        """For now this function seems a bit redundant inside QueryFilter but
+        most of the logic from hte existing format_search_filter hasn't been
+        converted over yet
+        """
         converted_filter = self.convert_search_filter_to_condition(term)
         if converted_filter:
-            self.where.append(converted_filter)
+            return converted_filter
+        else:
+            return None
 
     def convert_search_filter_to_condition(
         self,
@@ -857,7 +865,7 @@ class QueryFilter(QueryBase):
 
         # We want to use group_id elsewhere so shouldn't be removed from the dataset
         # but if a user has a tag with the same name we want to make sure that works
-        if name == {"group_id"}:
+        if name == "group_id":
             name = f"tags[{name}]"
 
         if name in NO_CONVERSION_FIELDS:

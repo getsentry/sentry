@@ -1618,7 +1618,7 @@ class QueryFields(QueryBase):
 
     def resolve_select(self, selected_columns: List[str]) -> None:
         for field in selected_columns:
-            if isinstance(field, str) and field.strip() == "":
+            if field.strip() == "":
                 continue
             field = self.resolve_field(field)
             if isinstance(field, SnqlColumn) and field not in self.columns:

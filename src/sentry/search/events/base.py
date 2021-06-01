@@ -1,9 +1,10 @@
 from typing import List, Optional
 
 from snuba_sdk.column import Column
+from snuba_sdk.function import CurriedFunction
 
 from sentry.search.events.constants import SNQL_FIELD_ALLOWLIST
-from sentry.search.events.types import AggregateType, ParamsType, SelectType, WhereType
+from sentry.search.events.types import ParamsType, SelectType, WhereType
 from sentry.utils.snuba import Dataset, resolve_column
 
 
@@ -16,7 +17,8 @@ class QueryBase:
         params: ParamsType,
         orderby: Optional[List[str]] = None,
     ):
-        self.aggregates: List[AggregateType] = []
+        # Function is a subclass of CurriedFunction
+        self.aggregates: List[CurriedFunction] = []
         self.columns: List[SelectType] = []
         self.where: List[WhereType] = []
 
