@@ -331,7 +331,7 @@ export default class DetailsBody extends React.Component<Props> {
                           {t('Time Interval')}
                           <Tooltip
                             title={t(
-                              'This is the time period which the metric is evaluated by.'
+                              'The time window over which the metric is evaluated.'
                             )}
                           >
                             <IconInfo size="xs" color="gray200" />
