@@ -39,7 +39,6 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
         has_feature = features.has(feature, organization, actor=request.user)
 
         columns = request.GET.getlist("field")[:]
-        query = request.GET.get("query")
 
         if has_feature:
             return True
@@ -47,8 +46,7 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
         if any(field in columns for field in feature_fields):
             return False
 
-        if query and any(field in query for field in feature_fields):
-            return False
+        # TODO: Check feature for search terms in the query
 
         return True
 
