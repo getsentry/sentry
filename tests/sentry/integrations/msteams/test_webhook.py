@@ -57,7 +57,7 @@ class MsTeamsWebhookTest(APITestCase):
         assert resp.status_code == 204
 
         mock_decode.assert_called_with(
-            TOKEN, mock.ANY, audience="msteams-client-id", algorithms=["RS256"]
+            TOKEN, mock.ANY, audience="msteams-client-id", algorithms=["RS256"], options={}
         )
         assert (
             responses.calls[0].request.url
