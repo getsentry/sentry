@@ -1,10 +1,9 @@
-import {createContext, Fragment, useEffect, useState} from 'react';
+import {createContext, useEffect, useState} from 'react';
 
 import {Client} from 'app/api';
 import {Organization, Project} from 'app/types';
 import {AppStoreConnectValidationData} from 'app/types/debugFiles';
 import withApi from 'app/utils/withApi';
-import withProject from 'app/utils/withProject';
 
 const AppStoreConnectContext = createContext<AppStoreConnectValidationData | undefined>(
   undefined
@@ -17,55 +16,77 @@ type ProviderProps = {
   project?: Project;
 };
 
-const Provider = withApi(
-  withProject(({api, children, project, orgSlug}: ProviderProps) => {
-    console.log('projectA', project);
+const Provider = withApi(({api, children, project, orgSlug}: ProviderProps) => {
+  const [projectDetails, setProjectDetails] = useState<undefined | Project>();
+  const [appStoreConnectValidationData, setAppStoreConnectValidationData] = useState<
+    AppStoreConnectValidationData | undefined
+  >();
 
-    if (!project) {
-      return <Fragment>{children}</Fragment>;
+  useEffect(() => {
+    fetchProjectDetails();
+  }, [project]);
+
+  useEffect(() => {
+    fetchAppStoreConnectValidationData();
+  }, [projectDetails]);
+
+  async function fetchProjectDetails() {
+    if (!project || projectDetails) {
+      return;
     }
 
-    const [appStoreConnectValidationData, setAppStoreConnectValidationData] = useState<
-      AppStoreConnectValidationData | undefined
-    >();
-
-    useEffect(() => {
-      fetchAppStoreConnectValidationData();
-    }, [project]);
-
-    function getAppStoreConnectSymbolSourceId() {
-      return (project?.symbolSources ? JSON.parse(project.symbolSources) : []).find(
-        symbolSource => symbolSource.type === 'appStoreConnect'
-      )?.id;
+    if (project.symbolSources) {
+      setProjectDetails(project);
+      return;
     }
 
-    async function fetchAppStoreConnectValidationData() {
-      const appStoreConnectSymbolSourceId = getAppStoreConnectSymbolSourceId();
+    try {
+      const response = await api.requestPromise(`/projects/${orgSlug}/${project.slug}/`);
+      setProjectDetails(response);
+    } catch {
+      // do nothing
+    }
+  }
 
-      if (!appStoreConnectSymbolSourceId) {
-        return;
-      }
+  function getAppStoreConnectSymbolSourceId(symbolSources?: string) {
+    return (symbolSources ? JSON.parse(symbolSources) : []).find(
+      symbolSource => symbolSource.type === 'appStoreConnect'
+    )?.id;
+  }
 
-      try {
-        const response = await api.requestPromise(
-          `/projects/${orgSlug}/${project?.slug}/appstoreconnect/validate/${appStoreConnectSymbolSourceId}/`
-        );
-        setAppStoreConnectValidationData({
-          id: appStoreConnectSymbolSourceId,
-          ...response,
-        });
-      } catch {
-        // do nothing
-      }
+  async function fetchAppStoreConnectValidationData() {
+    if (!projectDetails) {
+      return;
     }
 
-    return (
-      <AppStoreConnectContext.Provider value={appStoreConnectValidationData}>
-        {children}
-      </AppStoreConnectContext.Provider>
+    const appStoreConnectSymbolSourceId = getAppStoreConnectSymbolSourceId(
+      projectDetails.symbolSources
     );
-  })
-);
+
+    if (!appStoreConnectSymbolSourceId) {
+      return;
+    }
+
+    try {
+      const response = await api.requestPromise(
+        `/projects/${orgSlug}/${projectDetails.slug}/appstoreconnect/validate/${appStoreConnectSymbolSourceId}/`
+      );
+      setAppStoreConnectValidationData({
+        id: appStoreConnectSymbolSourceId,
+        ...response,
+        itunesSessionValid: false,
+      });
+    } catch {
+      // do nothing
+    }
+  }
+
+  return (
+    <AppStoreConnectContext.Provider value={appStoreConnectValidationData}>
+      {children}
+    </AppStoreConnectContext.Provider>
+  );
+});
 
 const Consumer = AppStoreConnectContext.Consumer;
 

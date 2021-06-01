@@ -89,6 +89,77 @@ function SymbolSources({
     });
   }
 
+  function getRichListFieldValue(): {value: Item[]; errors?: React.ReactNode[]} {
+    if (
+      !hasAppConnectStoreFeatureFlag ||
+      !appStoreConnectContext ||
+      (appStoreConnectContext.appstoreCredentialsValid &&
+        appStoreConnectContext.itunesSessionValid)
+    ) {
+      return {value: symbolSources};
+    }
+
+    const symbolSourcesErrors: React.ReactNode[] = [];
+
+    const symbolSourcesWithErrors = symbolSources.map((symbolSource, index) => {
+      if (symbolSource.id === appStoreConnectContext?.id) {
+        const appStoreConnectErrors: string[] = [];
+
+        if (appStoreConnectContext.itunesSessionValid) {
+          symbolSourcesErrors.push(
+            tct('Revalidate your iTunes Session for [link]', {
+              link: (
+                <Link to="" onClick={() => editSymbolSourceModal(symbolSource, index)}>
+                  {symbolSource.name}
+                </Link>
+              ),
+            })
+          );
+
+          appStoreConnectErrors.push(t('Revalidate your iTunes Session'));
+        }
+
+        if (appStoreConnectContext.appstoreCredentialsValid) {
+          symbolSourcesErrors.push(
+            tct('Recheck your App Store Credentials for [link]', {
+              link: (
+                <Link to="" onClick={() => editSymbolSourceModal(symbolSource, index)}>
+                  {symbolSource.name}
+                </Link>
+              ),
+            })
+          );
+          appStoreConnectErrors.push(t('Recheck your App Store Credentials'));
+        }
+
+        return {
+          ...symbolSource,
+          error: !!appStoreConnectErrors.length ? (
+            <Fragment>
+              {tn(
+                'There was an error connecting to the Apple Store Connect:',
+                'There were errors connecting to the Apple Store Connect:',
+                appStoreConnectErrors.length
+              )}
+              <StyledList symbol="bullet">
+                {appStoreConnectErrors.map((error, errorIndex) => (
+                  <ListItem key={errorIndex}>{error}</ListItem>
+                ))}
+              </StyledList>
+            </Fragment>
+          ) : undefined,
+        };
+      }
+
+      return symbolSource;
+    });
+
+    return {
+      value: symbolSourcesWithErrors,
+      errors: symbolSourcesErrors,
+    };
+  }
+
   const {value, errors = []} = getRichListFieldValue();
 
   function openDebugFileSourceDialog() {
@@ -111,75 +182,6 @@ function SymbolSources({
       onSave: updatedData => handleUpdateSymbolSource(updatedData as Item, item.index),
       onClose: handleCloseImageDetailsModal,
     });
-  }
-
-  function getRichListFieldValue(): {value: Item[]; errors?: React.ReactNode[]} {
-    if (
-      !hasAppConnectStoreFeatureFlag ||
-      !appStoreConnectContext ||
-      (appStoreConnectContext.appstoreCredentialsValid &&
-        appStoreConnectContext.itunesSessionValid)
-    ) {
-      return {value: symbolSources};
-    }
-
-    const symbolSourcesErrors: React.ReactNode[] = [];
-
-    const symbolSourcesWithErrors = symbolSources.map((symbolSource, index) => {
-      if (symbolSource.id !== appStoreConnectContext?.id) {
-        const errors: string[] = [];
-        if (appStoreConnectContext.itunesSessionValid) {
-          symbolSourcesErrors.push(
-            tct('Revalidate your iTunes Session for [link]', {
-              link: (
-                <Link to="" onClick={() => editSymbolSourceModal(symbolSource, index)}>
-                  {symbolSource.name}
-                </Link>
-              ),
-            })
-          );
-
-          errors.push(t('Revalidate your iTunes Session'));
-        }
-
-        if (appStoreConnectContext.appstoreCredentialsValid) {
-          symbolSourcesErrors.push(
-            tct('Recheck your App Store Credentials for [link]', {
-              link: (
-                <Link to="" onClick={() => editSymbolSourceModal(symbolSource, index)}>
-                  {symbolSource.name}
-                </Link>
-              ),
-            })
-          );
-          errors.push(t('Recheck your App Store Credentials'));
-        }
-
-        return {
-          ...symbolSource,
-          error: !!errors.length ? (
-            <Fragment>
-              {tn(
-                'There was an error connecting to the Apple Store Connect:',
-                'There were errors connecting to the Apple Store Connect:',
-                errors.length
-              )}
-              <StyledList symbol="bullet">
-                {errors.map((error, errorIndex) => (
-                  <ListItem key={errorIndex}>{error}</ListItem>
-                ))}
-              </StyledList>
-            </Fragment>
-          ) : undefined,
-        };
-      }
-      return symbolSource;
-    });
-
-    return {
-      value: symbolSourcesWithErrors,
-      errors: symbolSourcesErrors,
-    };
   }
 
   function getRequestMessages(symbolSourcesQuantity: number) {
@@ -260,6 +262,8 @@ function SymbolSources({
       onSave: updatedData => handleUpdateSymbolSource(updatedData as Item, index),
     });
   }
+
+  console.log('errors', errors);
 
   return (
     <Fragment>

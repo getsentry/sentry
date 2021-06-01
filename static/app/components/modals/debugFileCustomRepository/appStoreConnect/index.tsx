@@ -69,10 +69,10 @@ function AppStoreConnect({
 
   const [isLoading, setIsLoading] = useState(false);
   const [isEditingAppStoreCredentials, setIsEditingAppStoreCredentials] = useState(
-    appStoreCredentialsInvalid
+    appStoreCredentialsInvalid || !isUpdating
   );
   const [isEditingItunesCredentials, setIsEditingItunesCredentials] = useState(
-    itunesSessionInvalid
+    itunesSessionInvalid || !isUpdating
   );
 
   const appStoreCredentialsInitialData = {
@@ -206,8 +206,6 @@ function AppStoreConnect({
   }
 
   function handleEditAppStoreCredentials(isEditing: boolean) {
-    setIsEditingAppStoreCredentials(isEditing);
-
     if (
       !isEditing &&
       isEditingAppStoreCredentials &&
@@ -215,6 +213,8 @@ function AppStoreConnect({
     ) {
       setIsEditingItunesCredentials(true);
     }
+
+    setIsEditingAppStoreCredentials(isEditing);
   }
 
   return (
@@ -249,9 +249,9 @@ function AppStoreConnect({
           <Accordion
             summary={t('iTunes credentials')}
             defaultExpanded={
-              itunesSessionInvalid ||
               isUpdating ||
-              isEditingItunesCredentials ||
+              itunesSessionInvalid ||
+              (isItunesCredentialsDataInvalid() && !isAppStoreCredentialsDataInvalid()) ||
               (!isEditingItunesCredentials && !isItunesCredentialsDataInvalid())
             }
           >

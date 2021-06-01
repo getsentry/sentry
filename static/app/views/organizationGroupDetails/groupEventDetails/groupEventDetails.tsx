@@ -268,6 +268,7 @@ class GroupEventDetails extends Component<Props, State> {
               <div className="primary">
                 {eventWithMeta && (
                   <GroupEventToolbar
+                    project={project}
                     group={group}
                     event={eventWithMeta}
                     organization={organization}

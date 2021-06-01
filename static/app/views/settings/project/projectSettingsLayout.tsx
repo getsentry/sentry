@@ -25,22 +25,24 @@ function ProjectSettingsLayout({
 
   return (
     <ProjectContext orgId={orgId} projectId={projectId}>
-      <AppStoreConnectContext.Provider orgSlug={orgId}>
-        <SettingsLayout
-          params={params}
-          routes={routes}
-          {...props}
-          renderNavigation={() => (
-            <ProjectSettingsNavigation organization={organization} />
-          )}
-        >
-          {children && React.isValidElement(children)
-            ? React.cloneElement(children, {
-                organization,
-              })
-            : children}
-        </SettingsLayout>
-      </AppStoreConnectContext.Provider>
+      {({project}) => (
+        <AppStoreConnectContext.Provider project={project} orgSlug={orgId}>
+          <SettingsLayout
+            params={params}
+            routes={routes}
+            {...props}
+            renderNavigation={() => (
+              <ProjectSettingsNavigation organization={organization} />
+            )}
+          >
+            {children && React.isValidElement(children)
+              ? React.cloneElement(children, {
+                  organization,
+                })
+              : children}
+          </SettingsLayout>
+        </AppStoreConnectContext.Provider>
+      )}
     </ProjectContext>
   );
 }

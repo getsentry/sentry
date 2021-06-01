@@ -350,6 +350,9 @@ const StyledAlert = styled(Alert)`
   display: grid;
   grid-template-columns: max-content 1fr;
   align-items: center;
+  span:nth-child(2) {
+    margin: 0;
+  }
 `;
 
 const AlertContent = styled('div')`
