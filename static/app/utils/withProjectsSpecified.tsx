@@ -1,6 +1,6 @@
-/* eslint-disable react/prop-types */
 import * as React from 'react';
 import createReactClass from 'create-react-class';
+import xor from 'lodash/xor'; /* eslint-disable react/prop-types */
 import Reflux from 'reflux';
 
 import ProjectsStore from 'app/stores/projectsStore';
@@ -32,6 +32,14 @@ const withProjectsSpecified = <P extends InjectedProjectsProps>(
     mixins: [Reflux.listenTo(ProjectsStore, 'onProjectUpdate') as any],
     getInitialState() {
       return ProjectsStore.getState(this.props.specificProjectSlugs);
+    },
+
+    UNSAFE_componentWillReceiveProps(nextProps: Props) {
+      const {specificProjectSlugs} = this.props;
+
+      if (xor(nextProps.specificProjectSlugs, specificProjectSlugs).length) {
+        this.setState(ProjectsStore.getState(nextProps.specificProjectSlugs));
+      }
     },
 
     onProjectUpdate() {

@@ -116,6 +116,7 @@ const ReleaseHeader = ({
           release={release}
           releaseMeta={releaseMeta}
           refetchData={refetchData}
+          location={location}
         />
       </Layout.HeaderActions>
 

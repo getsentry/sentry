@@ -79,6 +79,10 @@ export function Release(params, healthParams) {
         slug: 'sentry-android-shop',
       },
     ],
+    currentProjectMeta: {
+      nextReleaseVersion: '123',
+      prevReleaseVersion: '456',
+    },
     ...params,
   };
 }

@@ -9,6 +9,14 @@ import ReleaseActions from 'app/views/releases/detail/releaseActions';
 describe('ReleaseActions', function () {
   const {organization} = initializeOrg();
   const release = TestStubs.Release({projects: [{slug: 'project1'}, {slug: 'project2'}]});
+  const location = {
+    pathname: `/organizations/sentry/releases/${release.version}/`,
+    query: {
+      project: 1,
+      statsPeriod: '24h',
+      yAxis: 'events',
+    },
+  };
   let mockUpdate;
 
   beforeEach(function () {
@@ -30,6 +38,7 @@ describe('ReleaseActions', function () {
         release={release}
         refetchData={jest.fn()}
         releaseMeta={{projects: release.projects}}
+        location={location}
       />
     );
 
@@ -78,6 +87,7 @@ describe('ReleaseActions', function () {
         release={{...release, status: 'archived'}}
         refetchData={refetchDataMock}
         releaseMeta={{projects: release.projects}}
+        location={location}
       />
     );
 
@@ -112,5 +122,61 @@ describe('ReleaseActions', function () {
     await tick();
 
     expect(refetchDataMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('navigates to a next/prev release', function () {
+    const wrapper = mountWithTheme(
+      <ReleaseActions
+        orgSlug={organization.slug}
+        projectSlug={release.projects[0].slug}
+        release={release}
+        refetchData={jest.fn()}
+        releaseMeta={{projects: release.projects}}
+        location={location}
+      />
+    );
+
+    expect(wrapper.find('Link[aria-label="Previous Release"]').prop('to')).toEqual({
+      pathname: '/organizations/sentry/releases/123/',
+      query: {
+        project: 1,
+        statsPeriod: '24h',
+        yAxis: 'events',
+        activeRepo: undefined,
+      },
+    });
+    expect(wrapper.find('Link[aria-label="Next Release"]').prop('to')).toEqual({
+      pathname: '/organizations/sentry/releases/456/',
+      query: {
+        project: 1,
+        statsPeriod: '24h',
+        yAxis: 'events',
+        activeRepo: undefined,
+      },
+    });
+
+    const wrapper2 = mountWithTheme(
+      <ReleaseActions
+        orgSlug={organization.slug}
+        projectSlug={release.projects[0].slug}
+        release={release}
+        refetchData={jest.fn()}
+        releaseMeta={{projects: release.projects}}
+        location={{
+          ...location,
+          pathname: `/organizations/sentry/releases/${release.version}/files-changed/`,
+        }}
+      />
+    );
+
+    expect(wrapper2.find('Link[aria-label="Next Release"]').prop('to')).toEqual({
+      pathname: '/organizations/sentry/releases/456/files-changed/',
+      query: {
+        project: 1,
+        statsPeriod: '24h',
+        yAxis: 'events',
+        activeRepo: undefined,
+      },
+    });
   });
 });

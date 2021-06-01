@@ -1,6 +1,7 @@
 import * as React from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 
 import {archiveRelease, restoreRelease} from 'app/actionCreators/release';
 import {Client} from 'app/api';
@@ -12,7 +13,7 @@ import ProjectBadge from 'app/components/idBadge/projectBadge';
 import MenuItem from 'app/components/menuItem';
 import TextOverflow from 'app/components/textOverflow';
 import Tooltip from 'app/components/tooltip';
-import {IconEllipsis} from 'app/icons';
+import {IconChevron, IconEllipsis} from 'app/icons';
 import {t, tct, tn} from 'app/locale';
 import space from 'app/styles/space';
 import {Release, ReleaseMeta} from 'app/types';
@@ -21,6 +22,7 @@ import {formatVersion} from 'app/utils/formatters';
 import {isReleaseArchived} from '../utils';
 
 type Props = {
+  location: Location;
   orgSlug: string;
   projectSlug: string;
   release: Release;
@@ -29,6 +31,7 @@ type Props = {
 };
 
 function ReleaseActions({
+  location,
   orgSlug,
   projectSlug,
   release,
@@ -108,8 +111,35 @@ function ReleaseActions({
     );
   }
 
+  function replaceReleaseUrl(toRelease: string | null) {
+    return toRelease
+      ? {
+          pathname: location.pathname.replace(release.version, toRelease),
+          query: {...location.query, activeRepo: undefined},
+        }
+      : undefined;
+  }
+
+  const {nextReleaseVersion, prevReleaseVersion} = release.currentProjectMeta;
+
   return (
     <ButtonBar gap={1}>
+      <ButtonBar merged>
+        <Button
+          icon={<IconChevron direction="left" />}
+          label={t('Previous Release')}
+          // API is returning these other way round
+          disabled={!nextReleaseVersion}
+          to={replaceReleaseUrl(nextReleaseVersion)}
+        />
+        <Button
+          icon={<IconChevron direction="right" />}
+          aria-label={t('Next Release')}
+          // API is returning these other way round
+          disabled={!prevReleaseVersion}
+          to={replaceReleaseUrl(prevReleaseVersion)}
+        />
+      </ButtonBar>
       <StyledDropdownLink
         caret={false}
         anchorRight={window.innerWidth > 992}
