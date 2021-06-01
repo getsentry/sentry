@@ -5,6 +5,7 @@ from sentry.utils.snuba import DATASETS
 
 KEY_TRANSACTION_ALIAS = "key_transaction"
 PROJECT_THRESHOLD_CONFIG_ALIAS = "project_threshold_config"
+TEAM_KEY_TRANSACTION_ALIAS = "team_key_transaction"
 ERROR_UNHANDLED_ALIAS = "error.unhandled"
 USER_DISPLAY_ALIAS = "user.display"
 PROJECT_ALIAS = "project"

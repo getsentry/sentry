@@ -9,7 +9,12 @@ from parsimonious.expressions import Optional
 from parsimonious.grammar import Grammar, NodeVisitor
 from parsimonious.nodes import Node, RegexNode
 
-from sentry.search.events.constants import KEY_TRANSACTION_ALIAS, SEARCH_MAP, TAG_KEY_RE
+from sentry.search.events.constants import (
+    KEY_TRANSACTION_ALIAS,
+    SEARCH_MAP,
+    TAG_KEY_RE,
+    TEAM_KEY_TRANSACTION_ALIAS,
+)
 from sentry.search.events.fields import FIELD_ALIASES, FUNCTIONS, InvalidSearchQuery, resolve_field
 from sentry.search.utils import (
     InvalidQuery,
@@ -307,7 +312,13 @@ class SearchVisitor(NodeVisitor):
         "transaction.start_time",
         "transaction.end_time",
     }
-    boolean_keys = {"error.handled", "error.unhandled", "stack.in_app", KEY_TRANSACTION_ALIAS}
+    boolean_keys = {
+        "error.handled",
+        "error.unhandled",
+        "stack.in_app",
+        KEY_TRANSACTION_ALIAS,
+        TEAM_KEY_TRANSACTION_ALIAS,
+    }
 
     unwrapped_exceptions = (InvalidSearchQuery,)
 
