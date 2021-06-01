@@ -169,16 +169,14 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
             filters = {"project_id": [event.project_id]}
             if environment_id:
                 filters["environment"] = [environment_id]
-
-            start = start - timedelta(days=5)
-            end = end + timedelta(days=5)
             result_totals = raw_query(
                 selected_columns=["sessions"],
+                rollup=60,
                 dataset=Dataset.Sessions,
                 start=start,
                 end=end,
                 filter_keys=filters,
-                groupby=["project_id"],
+                groupby=["project_id", "bucketed_started"],
                 referrer="rules.conditions.event_frequency.EventFrequencyPercentCondition",
             )
             if result_totals["data"]:
