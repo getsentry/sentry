@@ -97,7 +97,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
         responses.add(
             responses.GET,
             self.base_url + "/user/installations",
-            json={"installations": [{"id": installation_id}]},
+            json={"installations": [{"id": installation_id}], match_querystring=True},
         )
 
         resp = self.client.get(
