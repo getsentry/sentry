@@ -6,7 +6,6 @@ from django.test import RequestFactory, override_settings
 from rest_framework.exceptions import AuthenticationFailed
 from sentry_relay import generate_key_pair
 
-from sentry import options
 from sentry.api.authentication import (
     ClientIdSecretAuthentication,
     DSNAuthentication,
@@ -136,7 +135,7 @@ def test_registered_relay(internal):
 
 @pytest.mark.django_db
 @pytest.mark.parametrize("internal", [True, False])
-def test_statically_configured_relay(internal):
+def test_statically_configured_relay(settings, internal):
     sk, pk = generate_key_pair()
     relay_id = str(uuid.uuid4())
 
@@ -149,7 +148,7 @@ def test_statically_configured_relay(internal):
 
     relay_options = {relay_id: {"internal": internal, "public_key": str(pk)}}
 
-    options.set("relay.static_auth", relay_options)
+    settings.SENTRY_OPTIONS["relay.static_auth"] = relay_options
     authenticator = RelayAuthentication()
     authenticator.authenticate(request)
 

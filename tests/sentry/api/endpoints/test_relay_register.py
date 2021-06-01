@@ -5,7 +5,6 @@ from django.urls import reverse
 from django.utils import timezone
 from sentry_relay import generate_key_pair
 
-from sentry import options
 from sentry.models import Relay, RelayUsage
 from sentry.testutils import APITestCase
 from sentry.utils import json
@@ -566,7 +565,7 @@ class RelayRegisterTest(APITestCase):
         relay_id = str(uuid4())
         public_key = key_pair[1]
         static_auth = {relay_id: {"internal": True, "public_key": str(public_key)}}
-        options.set("relay.static_auth", static_auth)
 
         with self.assertNumQueries(0):
-            self.register_relay(key_pair, "1.1.1", relay_id)
+            with self.settings(SENTRY_OPTIONS={"relay.static_auth": static_auth}):
+                self.register_relay(key_pair, "1.1.1", relay_id)

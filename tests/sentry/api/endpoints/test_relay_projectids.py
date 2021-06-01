@@ -6,7 +6,6 @@ from django.test import override_settings
 from django.urls import reverse
 from sentry_relay.auth import generate_key_pair
 
-from sentry import options
 from sentry.models.relay import Relay
 from sentry.testutils import APITestCase
 from sentry.utils import json, safe
@@ -83,15 +82,14 @@ class RelayProjectIdsEndpointTest(APITestCase):
         raw_json, signature = self.private_key.pack({"publicKeys": [str(self.public_key)]})
 
         static_auth = {self.relay_id: {"internal": internal, "public_key": str(self.public_key)}}
-        options.set("relay.static_auth", static_auth)
-
-        resp = self.client.post(
-            self.path,
-            data=raw_json,
-            content_type="application/json",
-            HTTP_X_SENTRY_RELAY_ID=self.relay_id,
-            HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
-        )
+        with self.settings(SENTRY_OPTIONS={"relay.static_auth": static_auth}):
+            resp = self.client.post(
+                self.path,
+                data=raw_json,
+                content_type="application/json",
+                HTTP_X_SENTRY_RELAY_ID=self.relay_id,
+                HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
+            )
         return json.loads(resp.content), resp.status_code
 
     def test_internal_relay(self):
