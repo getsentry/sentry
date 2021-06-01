@@ -1620,14 +1620,11 @@ class QueryFields(QueryBase):
         for field in selected_columns:
             if field.strip() == "":
                 continue
-            field = self.resolve_field(field)
-            if isinstance(field, SnqlColumn) and field not in self.columns:
-                self.columns.append(field)
+            resolved_field = self.resolve_field(field)
+            if isinstance(resolved_field, SnqlColumn) and resolved_field not in self.columns:
+                self.columns.append(resolved_field)
 
-    def resolve_field(self, field) -> Union[SnqlColumn, SnqlFunction]:
-        if not isinstance(field, str):
-            raise InvalidSearchQuery("Field names must be strings")
-
+    def resolve_field(self, field: str) -> Union[SnqlColumn, SnqlFunction]:
         match = is_function(field)
         if match:
             raise NotImplementedError(f"{field} not implemented in snql field parsing yet")

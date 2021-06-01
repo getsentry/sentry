@@ -793,9 +793,18 @@ class QueryFilter(QueryBase):
         # start/end are required so that we can run a query in a reasonable amount of time
         if "start" not in self.params or "end" not in self.params:
             raise InvalidSearchQuery("Cannot query without a valid date range")
+        start, end = self.params["start"], self.params["end"]
 
-        self.where.append(Condition(self.column("timestamp"), Op.GTE, self.params["start"]))
-        self.where.append(Condition(self.column("timestamp"), Op.LT, self.params["end"]))
+        # TODO: this validation should be done when we create the params dataclass instead
+        assert isinstance(start, datetime) and isinstance(
+            end, datetime
+        ), "Both start and end params must be datetime objects"
+        assert all(
+            isinstance(project_id, int) for project_id in self.params.get("project_id", [])
+        ), "All project id params must be ints"
+
+        self.where.append(Condition(self.column("timestamp"), Op.GTE, start))
+        self.where.append(Condition(self.column("timestamp"), Op.LT, end))
 
         if "project_id" in self.params:
             self.where.append(
