@@ -315,7 +315,7 @@ function getDemoModeGuides(): GuidesContent {
           title: t('Performance'),
           target: 'performance',
           description: t(
-            `See slow faster. Trace slow-loading pages back to its API call as well as surface all related errors.`
+            `See slow faster. Trace slow-loading pages back to their API calls as well as surface all related errors.`
           ),
         },
         {
