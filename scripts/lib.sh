@@ -23,6 +23,45 @@ query_big_sur() {
     return 1
 }
 
+sudo-askpass() {
+    if [ -z "${sudo-askpass-x}" ]; then
+        sudo --askpass "$@"
+    else
+        sudo "$@"
+    fi
+}
+
+init-docker() {
+    if [[ $(uname -s) = 'Darwin' ]]; then
+        if ! require docker && [ -d "/Applications/Docker.app" ]; then
+            echo "Making some changes to complete Docker initialization"
+            # allow the app to run without confirmation
+            xattr -d -r com.apple.quarantine /Applications/Docker.app
+
+            # preemptively do docker.app's setup to avoid any gui prompts
+            sudo-askpass /bin/cp /Applications/Docker.app/Contents/Library/LaunchServices/com.docker.vmnetd /Library/PrivilegedHelperTools/
+            sudo-askpass /bin/chmod 544 /Library/PrivilegedHelperTools/com.docker.vmnetd
+
+            # This file used to be generated as part of brew's installation
+            if [ -f /Applications/Docker.app/Contents/Resources/com.docker.vmnetd.plist ]; then
+                sudo-askpass /bin/cp /Applications/Docker.app/Contents/Resources/com.docker.vmnetd.plist /Library/LaunchDaemons/
+            else
+                sudo-askpass /bin/cp .github/workflows/files/com.docker.vmnetd.plist /Library/LaunchDaemons/
+            fi
+            sudo-askpass /bin/chmod 644 /Library/LaunchDaemons/com.docker.vmnetd.plist
+            sudo-askpass /bin/launchctl load /Library/LaunchDaemons/com.docker.vmnetd.plist
+        fi
+        # We need this for Mac since the executable docker won't work properly
+        # until the app is opened once
+        if ! docker system info &>/dev/null; then
+            echo "About to open Docker.app"
+            # At a later stage in the script, we're going to execute
+            # ensure_docker_server which waits for it to be ready
+            open -g -a Docker.app
+        fi
+    fi
+}
+
 upgrade-pip() {
     # pip versions before 20.1 do not have `pip cache` as a command which is necessary for the CI
     pip install --no-cache-dir --upgrade "pip>=20.1"

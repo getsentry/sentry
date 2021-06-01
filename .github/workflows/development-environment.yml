@@ -5,7 +5,6 @@ on:
     - 'Brewfile'
     - 'Makefile'
     - '.github/workflows/development-environment.yml'
-    - '.github/workflows/scripts/docker-setup.sh'
     - 'scripts/*'
     - 'src/sentry/runner/commands/devserver.py'
     - 'src/sentry/runner/commands/devservices.py'
@@ -44,7 +43,7 @@ jobs:
         # After installing Docker (via homebrew) we need to make sure that it is properly initialized on Mac
         run: |
           HOMEBREW_NO_AUTO_UPDATE=1 brew bundle -q --no-upgrade || brew update && brew bundle
-          ./.github/workflows/scripts/docker-setup.sh
+          SENTRY_NO_VENV_CHECK=1 ./scripts/do.sh init-docker
 
       # XXX: This is a temporary change. There's another PR that will bring this workflow up-to-date
       # In a sense, we set up Python two times (once here and once via pyenv). Setting
