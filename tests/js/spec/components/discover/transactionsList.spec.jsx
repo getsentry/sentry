@@ -403,4 +403,66 @@ describe('TransactionsList', function () {
       });
     });
   });
+
+  describe('Span ops', function () {
+    let maxSpansDuration;
+    let spanOperationBreakdownFilter;
+    beforeEach(function () {
+      initialize();
+      maxSpansDuration = 12;
+      spanOperationBreakdownFilter = 'spans.db';
+      eventView = EventView.fromSavedQuery({
+        id: '',
+        name: 'span ops test query',
+        version: 2,
+        fields: ['transaction', 'spans.db'],
+        projects: [project.id],
+      });
+      options = [
+        {
+          sort: {kind: 'asc', field: 'transaction'},
+          value: 'name',
+          label: t('Transactions'),
+        },
+      ];
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/eventsv2/`,
+        body: {
+          meta: {transaction: 'string', count: 'number'},
+          data: [
+            {transaction: '/a', 'spans.db': 10},
+            {transaction: '/b', 'spans.db': 12},
+          ],
+        },
+      });
+    });
+
+    it('displays span bar when in an individual ops filter and supplied a max span duration', async function () {
+      wrapper = mountWithTheme(
+        <TransactionsList
+          location={location}
+          organization={organization}
+          eventView={eventView}
+          selected={options[0]}
+          options={options}
+          handleDropdownChange={handleDropdownChange}
+          maxSpansDuration={maxSpansDuration}
+          spanOperationBreakdownFilter={spanOperationBreakdownFilter}
+        />
+      );
+
+      await tick();
+      wrapper.update();
+
+      expect(wrapper.find('DropdownControl')).toHaveLength(1);
+      expect(wrapper.find('DropdownItem')).toHaveLength(1);
+      expect(wrapper.find('DiscoverButton')).toHaveLength(1);
+      expect(wrapper.find('Pagination')).toHaveLength(1);
+      expect(wrapper.find('PanelTable')).toHaveLength(1);
+      // 4 for the transaction names and span bar
+      expect(wrapper.find('GridCell')).toHaveLength(4);
+      // 2 for the span bar
+      expect(wrapper.find('RowRectangle')).toHaveLength(2);
+    });
+  });
 });

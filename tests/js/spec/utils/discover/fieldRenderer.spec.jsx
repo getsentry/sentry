@@ -30,6 +30,8 @@ describe('getFieldRenderer', function () {
       project: project.slug,
       release: 'F2520C43515BD1F0E8A6BD46233324641A370BF6',
       user,
+      maxSpansDuration: 12,
+      'spans.html': 10,
     };
 
     MockApiClient.addMockResponse({
@@ -218,5 +220,17 @@ describe('getFieldRenderer', function () {
     value = wrapper.find('StyledKey');
     expect(value).toHaveLength(1);
     expect(value.props().isSolid).toBeTruthy();
+  });
+
+  it('can render span ops bar', function () {
+    const renderer = getFieldRenderer('spans.html', {
+      transaction: 'string',
+      count: 'number',
+      maxSpansDuration: 'duration',
+    });
+    const wrapper = mountWithTheme(renderer(data, {location, organization}));
+    const spanBar = wrapper.find('RowRectangle');
+    expect(spanBar.text()).toEqual('10.00ms');
+    expect(spanBar.prop('style').width).toEqual('83.333%');
   });
 });
