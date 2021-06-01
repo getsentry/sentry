@@ -230,7 +230,7 @@ def resolve_equation_list(
     selected_columns = snuba_filter.selected_columns
     for index, equation in enumerate(equations):
         # only supporting 1 operation for now
-        parsed_equation, fields = parse_arithmetic(equation, max_operators=10)
+        parsed_equation, fields = parse_arithmetic(equation, max_operators=1)
         for field in fields:
             if field not in fields:
                 raise InvalidSearchQuery(f"{field} used in an equation but is not a selected field")
