@@ -117,6 +117,12 @@ def key_transaction_expression(user_id, organization_id, project_ids):
 
 
 def project_threshold_config_expression(organization_id, project_ids):
+    """
+    This function returns a column with the threshold and threshold metric
+    for each transaction based on project level settings. If no project level
+    thresholds are set, the will fallback to the default values. This column
+    is used in the `count_miserable_new` and `user_misery_new` aggregates.
+    """
     if organization_id is None or project_ids is None:
         raise InvalidSearchQuery("Missing necessary data for project threshold config")
 
@@ -331,11 +337,11 @@ def resolve_field_list(
         if "project.id" not in fields:
             fields.append("project.id")
 
-    # Both `count_miserable_new` and `user_misery_new` requre the project_threshold_config column
-    if "project_threshold_config" not in fields:
+    # Both `count_miserable_new` and `user_misery_new` require the project_threshold_config column
+    if PROJECT_THRESHOLD_CONFIG_ALIAS not in fields:
         for field in fields[:]:
             if field.startswith("count_miserable_new") or field.startswith("user_misery_new"):
-                fields.append("project_threshold_config")
+                fields.append(PROJECT_THRESHOLD_CONFIG_ALIAS)
                 break
 
     for field in fields:
@@ -1322,15 +1328,27 @@ FUNCTIONS = {
             calculated_args=[
                 {"name": "parameter_sum", "fn": lambda args: args["alpha"] + args["beta"]},
             ],
-            transform=(
-                "ifNull(divide(plus(uniqIf(user, greater("
-                "multiIf("
-                "equals(tupleElement(project_threshold_config, 1), 'lcp'),"
-                "if(has(measurements.key, 'lcp'), arrayElement(measurements.value, indexOf(measurements.key, 'lcp')), NULL),"
-                "duration"
-                "), "
-                "multiply(tupleElement(project_threshold_config, 2), 4)"
-                ")), {alpha}), plus(uniq(user), {parameter_sum})), 0)"
+            transform="""
+                ifNull(
+                    divide(
+                        plus(
+                            uniqIf(user, greater(
+                                multiIf(
+                                    equals(tupleElement(project_threshold_config, 1), 'lcp'),
+                                    if(has(measurements.key, 'lcp'), arrayElement(measurements.value, indexOf(measurements.key, 'lcp')), NULL),
+                                    duration
+                                ),
+                                multiply(tupleElement(project_threshold_config, 2), 4)
+                            )),
+                            {alpha}
+                        ),
+                        plus(uniq(user), {parameter_sum})
+                    ),
+                0)
+            """.replace(
+                " ", ""
+            ).replace(
+                "\n", ""
             ),
             default_result_type="number",
         ),

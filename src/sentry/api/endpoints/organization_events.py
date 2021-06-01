@@ -35,7 +35,7 @@ ALLOWED_EVENTS_GEO_REFERRERS = {
 
 
 class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
-    def has_feature_for_fields(self, feature, organization, request, fields):
+    def has_feature_for_fields(self, feature, organization, request, feature_fields):
         has_feature = features.has(feature, organization, actor=request.user)
 
         columns = request.GET.getlist("field")[:]
@@ -44,10 +44,10 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
         if has_feature:
             return True
 
-        if any(True for field in fields if field in columns):
+        if any(field in columns for field in feature_fields):
             return False
 
-        if query and any(True for field in fields if field in query):
+        if query and any(field in query for field in feature_fields):
             return False
 
         return True
@@ -70,7 +70,11 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
             "organizations:project-transaction-threshold",
             organization,
             request,
-            fields=["project_threshold_config", "count_miserable_new(user)", "user_misery_new()"],
+            feature_fields=[
+                "project_threshold_config",
+                "count_miserable_new(user)",
+                "user_misery_new()",
+            ],
         ):
             return Response(status=404)
 

@@ -970,7 +970,7 @@ class QueryTransformTest(TestCase):
             conditions=[],
             aggregations=[
                 [
-                    "ifNull(divide(plus(uniqIf(user, greater(multiIf(equals(tupleElement(project_threshold_config, 1), 'lcp'),if(has(measurements.key, 'lcp'), arrayElement(measurements.value, indexOf(measurements.key, 'lcp')), NULL),duration), multiply(tupleElement(project_threshold_config, 2), 4))), 5.8875), plus(uniq(user), 117.75)), 0)",
+                    "ifNull(divide(plus(uniqIf(user,greater(multiIf(equals(tupleElement(project_threshold_config,1),'lcp'),if(has(measurements.key,'lcp'),arrayElement(measurements.value,indexOf(measurements.key,'lcp')),NULL),duration),multiply(tupleElement(project_threshold_config,2),4))),5.8875),plus(uniq(user),117.75)),0)",
                     None,
                     "user_misery_new",
                 ]
