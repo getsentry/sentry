@@ -1,5 +1,4 @@
-import createReactClass from 'create-react-class';
-import Reflux from 'reflux';
+import {Component} from 'react';
 
 import Checkbox from 'app/components/checkbox';
 import {t} from 'app/locale';
@@ -14,16 +13,10 @@ type State = {
   isSelected: boolean;
 };
 
-const GroupCheckBox = createReactClass<Props, State>({
-  displayName: 'GroupCheckBox',
-
-  mixins: [Reflux.listenTo(SelectedGroupStore, 'onSelectedGroupChange') as any],
-
-  getInitialState() {
-    return {
-      isSelected: SelectedGroupStore.isSelected(this.props.id),
-    };
-  },
+class GroupCheckBox extends Component<Props, State> {
+  state = {
+    isSelected: SelectedGroupStore.isSelected(this.props.id),
+  };
 
   componentWillReceiveProps(nextProps: Props) {
     if (nextProps.id !== this.props.id) {
@@ -31,11 +24,19 @@ const GroupCheckBox = createReactClass<Props, State>({
         isSelected: SelectedGroupStore.isSelected(nextProps.id),
       });
     }
-  },
+  }
 
   shouldComponentUpdate(_nextProps, nextState) {
     return nextState.isSelected !== this.state.isSelected;
-  },
+  }
+
+  componentWillUnmount() {
+    this.unsubscribe();
+  }
+
+  unsubscribe = SelectedGroupStore.listen(() => {
+    this.onSelectedGroupChange();
+  }, undefined);
 
   onSelectedGroupChange() {
     const isSelected = SelectedGroupStore.isSelected(this.props.id);
@@ -44,12 +45,12 @@ const GroupCheckBox = createReactClass<Props, State>({
         isSelected,
       });
     }
-  },
+  }
 
-  onSelect() {
+  handleSelect = () => {
     const id = this.props.id;
     SelectedGroupStore.toggleSelect(id);
-  },
+  };
 
   render() {
     const {disabled, id} = this.props;
@@ -60,11 +61,11 @@ const GroupCheckBox = createReactClass<Props, State>({
         aria-label={t('Select Issue')}
         value={id}
         checked={isSelected}
-        onChange={this.onSelect}
+        onChange={this.handleSelect}
         disabled={disabled}
       />
     );
-  },
-});
+  }
+}
 
 export default GroupCheckBox;
