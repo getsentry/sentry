@@ -1,9 +1,13 @@
+from django.db.models import Q
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
 from sentry.api.base import ReleaseAnalyticsMixin
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
-from sentry.api.endpoints.organization_releases import get_stats_period_detail
+from sentry.api.endpoints.organization_releases import (
+    add_environment_to_queryset,
+    get_stats_period_detail,
+)
 from sentry.api.exceptions import ConflictError, InvalidRepository, ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import (
@@ -14,8 +18,16 @@ from sentry.api.serializers.rest_framework import (
 )
 from sentry.models import Activity, Project, Release, ReleaseCommitError
 from sentry.models.release import UnsafeReleaseDeletion
-from sentry.snuba.sessions import STATS_PERIODS, get_release_sessions_time_bounds
+from sentry.snuba.sessions import (
+    STATS_PERIODS,
+    get_adjacent_releases_based_on_adoption,
+    get_release_sessions_time_bounds,
+)
 from sentry.utils.sdk import bind_organization_context, configure_scope
+
+
+class InvalidSortException(Exception):
+    pass
 
 
 class OrganizationReleaseSerializer(ReleaseSerializer):
@@ -25,7 +37,145 @@ class OrganizationReleaseSerializer(ReleaseSerializer):
     refs = ListField(child=ReleaseHeadCommitSerializer(), required=False, allow_null=False)
 
 
-class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnalyticsMixin):
+class OrganizationReleaseDetailsPaginationMixin:
+    @staticmethod
+    def __get_prev_release_date_query_q_and_order_by(release):
+        """
+        Method that takes a release and returns a dictionary containing a date query Q expression
+        and order by columns required to fetch previous release to that passed in release on date
+        sorting
+        """
+        return {
+            "date_query_q": Q(date_added__gt=release.date_added)
+            | Q(date_added=release.date_added, id__gt=release.id),
+            "order_by": ["date_added", "id"],
+        }
+
+    @staticmethod
+    def __get_next_release_date_query_q_and_order_by(release):
+        """
+        Method that takes a release and returns a dictionary containing a date query Q expression
+        and order by columns required to fetch next release to that passed in release on date
+        sorting
+        """
+        return {
+            "date_query_q": Q(date_added__lt=release.date_added)
+            | Q(date_added=release.date_added, id__lt=release.id),
+            "order_by": ["-date_added", "-id"],
+        }
+
+    @staticmethod
+    def __get_release_according_to_filters_and_order_by_for_date_sort(
+        org,
+        filter_params,
+        date_query_q,
+        order_by,
+    ):
+        """
+        Helper function that executes a query on Release table based on different filters
+        provided as inputs and orders that query based on `order_by` input provided
+        Inputs:-
+            * org: Organization object
+            * filter_params:
+            * order_by: Contains columns that are used for ordering to sort based on date
+        Returns:-
+            Queryset that contains one element that represents either next or previous release
+            based on the inputs
+        """
+        queryset = Release.objects.filter(
+            date_query_q,
+            organization=org,
+            projects__id__in=filter_params["project_id"],
+        )
+
+        # Add env filter
+        queryset = add_environment_to_queryset(queryset, filter_params)
+
+        # Orderby passed cols and limit to 1
+        queryset = queryset.order_by(*order_by)[:1]
+
+        return queryset
+
+    def get_adjacent_releases_to_current_release(
+        self, release, org, filter_params, stats_period, sort
+    ):
+        """
+        Method that returns the prev and next release to a current release based on different
+        sort options
+        Inputs:-
+            * release: current release object
+            * org: organisation object
+            * filter_params
+            * stats_period
+            * sort: sort option i.e. date, sessions, users, crash_free_users and crash_free_sessions
+        Returns:-
+            A dictionary of two keys `prev_release_version` and `next_release_version` representing
+            previous release and next release respectively
+        """
+        prev_release_version = None
+        next_release_version = None
+
+        if sort == "date":
+            release_common_filters = {
+                "org": org,
+                "filter_params": filter_params,
+            }
+
+            # Get previous queryset of current release
+            prev_release_list = self.__get_release_according_to_filters_and_order_by_for_date_sort(
+                **release_common_filters,
+                **self.__get_prev_release_date_query_q_and_order_by(release),
+            )
+            # Get next queryset of current release
+            next_release_list = self.__get_release_according_to_filters_and_order_by_for_date_sort(
+                **release_common_filters,
+                **self.__get_next_release_date_query_q_and_order_by(release),
+            )
+
+            if len(prev_release_list) > 0:
+                prev_release_version = prev_release_list[0].version
+
+            if len(next_release_list) > 0:
+                next_release_version = next_release_list[0].version
+
+        elif sort in (
+            "crash_free_sessions",
+            "crash_free_users",
+            "sessions",
+            "users",
+            "sessions_24h",
+            "users_24h",
+        ):
+            # Get primary results from snuba
+            prev_and_next_releases_list = get_adjacent_releases_based_on_adoption(
+                project_id=filter_params["project_id"][0],
+                org_id=org.id,
+                release=release.version,
+                scope=sort,
+                environments=filter_params.get("environment"),
+                stats_period=stats_period,
+            )
+
+            if len(prev_and_next_releases_list["prev_releases_list"]) > 0:
+                prev_release_version = prev_and_next_releases_list["prev_releases_list"][0]
+
+            if len(prev_and_next_releases_list["next_releases_list"]) > 0:
+                next_release_version = prev_and_next_releases_list["next_releases_list"][0]
+
+        else:
+            raise InvalidSortException
+
+        return {
+            "next_release_version": next_release_version,
+            "prev_release_version": prev_release_version,
+        }
+
+
+class OrganizationReleaseDetailsEndpoint(
+    OrganizationReleasesBaseEndpoint,
+    ReleaseAnalyticsMixin,
+    OrganizationReleaseDetailsPaginationMixin,
+):
     def get(self, request, organization, version):
         """
         Retrieve an Organization's Release
@@ -44,6 +194,7 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint, Relea
         with_health = request.GET.get("health") == "1"
         summary_stats_period = request.GET.get("summaryStatsPeriod") or "14d"
         health_stats_period = request.GET.get("healthStatsPeriod") or ("24h" if with_health else "")
+        sort = request.GET.get("sort") or "date"
 
         if summary_stats_period not in STATS_PERIODS:
             raise ParseError(detail=get_stats_period_detail("summaryStatsPeriod", STATS_PERIODS))
@@ -78,6 +229,23 @@ class OrganizationReleaseDetailsEndpoint(OrganizationReleasesBaseEndpoint, Relea
                     )
                 }
             )
+
+            # Get prev and next release to current release
+            try:
+                filter_params = self.get_filter_params(request, organization)
+                current_project_meta.update(
+                    {
+                        **self.get_adjacent_releases_to_current_release(
+                            org=organization,
+                            release=release,
+                            filter_params=filter_params,
+                            stats_period=summary_stats_period,
+                            sort=sort,
+                        )
+                    }
+                )
+            except InvalidSortException:
+                return Response({"detail": "invalid sort"}, status=400)
 
         return Response(
             serialize(

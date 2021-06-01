@@ -990,6 +990,8 @@ SENTRY_FEATURES = {
     "organizations:issue-percent-filters": False,
     # Enable the new alert details ux design
     "organizations:alert-details-redesign": True,
+    # Enable the new alert history filters
+    "organizations:alert-history-filters": False,
     # Enable the new images loaded design and features
     "organizations:images-loaded-v2": True,
     # Enable teams to have ownership of alert rules
