@@ -46,14 +46,15 @@ jobs:
           HOMEBREW_NO_AUTO_UPDATE=1 brew bundle -q --no-upgrade || brew update && brew bundle
           ./.github/workflows/scripts/docker-setup.sh
 
-      # XXX: This is a temporary change. There's another PR that will bring this workflow up-to-date
-      # In a sense, we set up Python two times (once here and once via pyenv). Setting
-      # it up here is instant and it helps us to get the cache primed sooner
-      - name: Setup Python
-        uses: actions/setup-python@v2
+      - name: Install Python (via Pyenv)
         id: python-version
-        with:
-          python-version: 3.6.13
+        # XXX: Can we cache the installed Python environments?
+        # We echo to $GITHUB_ENV to make the PATH changes by pyenv init permanent for the rest of the execution
+        run: |
+          make setup-pyenv
+          eval "$(pyenv init --path)"
+          echo "PATH=$PATH" >> $GITHUB_ENV
+          echo "::set-output name=python-version::$(python -V  | sed s/Python\ //g)"
 
       - name: Setup pip
         uses: ./.github/actions/setup-pip
