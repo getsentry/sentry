@@ -1,7 +1,10 @@
-from typing import List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar, NodeVisitor
+
+from sentry import eventstore
+from sentry.exceptions import InvalidSearchQuery
 
 SUPPORTED_OPERATORS = {"plus", "minus", "multiply", "divide"}
 
@@ -29,6 +32,7 @@ class ArithmeticValidationError(ArithmeticError):
 
 
 OperationSideType = Union["Operation", float, str]
+JsonQueryType = List[Union[str, float, List[Any]]]
 
 
 class Operation:
@@ -52,6 +56,15 @@ class Operation:
 
         if self.operator == "divide" and self.rhs == 0:
             raise ArithmeticValidationError("division by 0 is not allowed")
+
+    def to_snuba_json(self, alias: Optional[str] = None) -> JsonQueryType:
+        """ Convert this tree of Operations to the equivalent snuba json """
+        lhs = self.lhs.to_snuba_json() if isinstance(self.lhs, Operation) else self.lhs
+        rhs = self.rhs.to_snuba_json() if isinstance(self.rhs, Operation) else self.rhs
+        result = [self.operator, [lhs, rhs]]
+        if alias:
+            result.append(alias)
+        return result
 
     def __repr__(self) -> str:
         return repr([self.operator, self.lhs, self.rhs])
@@ -209,3 +222,17 @@ def parse_arithmetic(
     visitor = ArithmeticVisitor(max_operators)
     result = visitor.visit(tree)
     return result, list(visitor.fields)
+
+
+def resolve_equation_list(
+    equations: List[str], snuba_filter: eventstore.Filter
+) -> Dict[str, JsonQueryType]:
+    selected_columns = snuba_filter.selected_columns
+    for index, equation in enumerate(equations):
+        # only supporting 1 operation for now
+        parsed_equation, fields = parse_arithmetic(equation, max_operators=1)
+        for field in fields:
+            if field not in fields:
+                raise InvalidSearchQuery(f"{field} used in an equation but is not a selected field")
+        selected_columns.append(parsed_equation.to_snuba_json(f"equation[{index}]"))
+    return {"selected_columns": selected_columns}
