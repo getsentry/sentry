@@ -376,10 +376,13 @@ describe('projectGeneralSettings', function () {
       expect(wrapper.find('input[name="resolveAge"]').prop('value')).toBe(19);
 
       // Change value
-      wrapper
-        .find('input[name="resolveAge"]')
-        .simulate('input', {target: {value: 12}})
-        .simulate('mouseUp');
+      act(() => {
+        wrapper
+          .find('input[name="resolveAge"]')
+          .simulate('input', {target: {value: 12}})
+          .simulate('mouseUp');
+      });
+      await wrapper.update();
 
       // Has updated value
       expect(wrapper.find('input[name="resolveAge"]').prop('value')).toBe(12);
@@ -390,6 +393,8 @@ describe('projectGeneralSettings', function () {
 
       // Click cancel
       wrapper.find('MessageAndActions button[aria-label="Cancel"]').simulate('click');
+      await wrapper.update();
+
       // Cancel row should disappear
       expect(wrapper.find('MessageAndActions button[aria-label="Cancel"]')).toHaveLength(
         0
