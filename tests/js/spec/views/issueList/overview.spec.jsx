@@ -173,7 +173,7 @@ describe('IssueList', function () {
       w.find('SavedSearchSelector DropdownMenu ButtonTitle').text();
 
     const getSearchBarValue = w =>
-      w.find('SmartSearchBarContainer StyledInput').prop('value').trim();
+      w.find('SmartSearchBarContainer textarea').prop('value').trim();
 
     const createWrapper = ({params, location, ...p} = {}) => {
       const newRouter = {
@@ -539,9 +539,9 @@ describe('IssueList', function () {
       await tick();
       await wrapper.update();
 
-      // Update the search input
+      // Update the search textarea
       wrapper
-        .find('IssueListFilters SmartSearchBar StyledInput input')
+        .find('IssueListFilters SmartSearchBar textarea')
         .simulate('change', {target: {value: 'dogs'}});
       // Submit the form
       wrapper.find('IssueListFilters SmartSearchBar form').simulate('submit');
@@ -588,7 +588,7 @@ describe('IssueList', function () {
       });
 
       wrapper
-        .find('SmartSearchBar input')
+        .find('SmartSearchBar textarea')
         .simulate('change', {target: {value: 'assigned:me level:fatal'}});
       wrapper.find('SmartSearchBar form').simulate('submit');
 
@@ -846,7 +846,7 @@ describe('IssueList', function () {
       });
 
       wrapper
-        .find('SmartSearchBar input')
+        .find('SmartSearchBar textarea')
         .simulate('change', {target: {value: 'assigned:me level:fatal'}});
       wrapper.find('SmartSearchBar form').simulate('submit');
 

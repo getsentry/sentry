@@ -37,7 +37,7 @@ function getDisplayType(wrapper) {
 }
 
 async function setSearchConditions(el, query) {
-  el.find('input')
+  el.find('textarea')
     .simulate('change', {target: {value: query}})
     .getDOMNode()
     .setSelectionRange(query.length, query.length);
@@ -45,7 +45,7 @@ async function setSearchConditions(el, query) {
   await tick();
   await el.update();
 
-  el.find('input').simulate('keydown', {key: 'Enter'});
+  el.find('textarea').simulate('keydown', {key: 'Enter'});
 }
 
 describe('Modals -> AddDashboardWidgetModal', function () {

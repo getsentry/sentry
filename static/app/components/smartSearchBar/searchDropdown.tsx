@@ -108,17 +108,17 @@ class SearchDropdown extends PureComponent<Props> {
 export default SearchDropdown;
 
 const StyledSearchDropdown = styled('div')`
+  /* Container has a border that we need to account for */
+  position: absolute;
+  top: 100%;
+  left: -1px;
+  right: -1px;
+  z-index: ${p => p.theme.zIndex.dropdown};
+  overflow: hidden;
+  background: ${p => p.theme.background};
   box-shadow: ${p => p.theme.dropShadowLight};
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadiusBottom};
-  position: absolute;
-  top: 38px;
-  /* Container has a border that we need to account for */
-  right: -1px;
-  left: -1px;
-  background: ${p => p.theme.background};
-  z-index: ${p => p.theme.zIndex.dropdown};
-  overflow: hidden;
 `;
 
 const LoadingWrapper = styled('div')`

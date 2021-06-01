@@ -100,16 +100,16 @@ describe('SmartSearchBar', function () {
 
       options
     );
-    searchBar.find('input').simulate('focus');
-    searchBar.find('input').simulate('change', {target: {value: 'device:this'}});
+    searchBar.find('textarea').simulate('focus');
+    searchBar.find('textarea').simulate('change', {target: {value: 'device:this'}});
     await tick();
 
     const preventDefault = jest.fn();
-    searchBar.find('input').simulate('keyDown', {key: 'ArrowDown'});
-    searchBar.find('input').simulate('keyDown', {key: 'Enter', preventDefault});
+    searchBar.find('textarea').simulate('keyDown', {key: 'ArrowDown'});
+    searchBar.find('textarea').simulate('keyDown', {key: 'Enter', preventDefault});
     await tick();
 
-    expect(searchBar.find('input').props().value).toEqual(
+    expect(searchBar.find('textarea').props().value).toEqual(
       'device:"this is filled with spaces"'
     );
   });
@@ -135,16 +135,16 @@ describe('SmartSearchBar', function () {
 
       options
     );
-    searchBar.find('input').simulate('focus');
-    searchBar.find('input').simulate('change', {target: {value: 'device:this'}});
+    searchBar.find('textarea').simulate('focus');
+    searchBar.find('textarea').simulate('change', {target: {value: 'device:this'}});
     await tick();
 
     const preventDefault = jest.fn();
-    searchBar.find('input').simulate('keyDown', {key: 'ArrowDown'});
-    searchBar.find('input').simulate('keyDown', {key: 'Enter', preventDefault});
+    searchBar.find('textarea').simulate('keyDown', {key: 'ArrowDown'});
+    searchBar.find('textarea').simulate('keyDown', {key: 'Enter', preventDefault});
     await tick();
 
-    expect(searchBar.find('input').props().value).toEqual(
+    expect(searchBar.find('textarea').props().value).toEqual(
       'device:"this \\" is \\" filled \\" with \\" quotes"'
     );
   });
@@ -171,13 +171,13 @@ describe('SmartSearchBar', function () {
 
       options
     );
-    searchBar.find('input').simulate('focus');
-    searchBar.find('input').simulate('change', {target: {value: 'browser:'}});
+    searchBar.find('textarea').simulate('focus');
+    searchBar.find('textarea').simulate('change', {target: {value: 'browser:'}});
     await tick();
 
     // press enter
     const preventDefault = jest.fn();
-    searchBar.find('input').simulate('keyDown', {key: 'Enter', preventDefault});
+    searchBar.find('textarea').simulate('keyDown', {key: 'Enter', preventDefault});
     expect(onSearch).not.toHaveBeenCalled();
     expect(preventDefault).not.toHaveBeenCalled();
   });
@@ -204,21 +204,21 @@ describe('SmartSearchBar', function () {
 
       options
     );
-    searchBar.find('input').simulate('focus');
-    searchBar.find('input').simulate('change', {target: {value: 'bro'}});
+    searchBar.find('textarea').simulate('focus');
+    searchBar.find('textarea').simulate('change', {target: {value: 'bro'}});
     await tick();
 
     // Can't select with tab
-    searchBar.find('input').simulate('keyDown', {key: 'ArrowDown'});
-    searchBar.find('input').simulate('keyDown', {key: 'Tab'});
+    searchBar.find('textarea').simulate('keyDown', {key: 'ArrowDown'});
+    searchBar.find('textarea').simulate('keyDown', {key: 'Tab'});
     expect(onSearch).not.toHaveBeenCalled();
 
-    searchBar.find('input').simulate('change', {target: {value: 'browser:'}});
+    searchBar.find('textarea').simulate('change', {target: {value: 'browser:'}});
     await tick();
 
     // press enter
     const preventDefault = jest.fn();
-    searchBar.find('input').simulate('keyDown', {key: 'Enter', preventDefault});
+    searchBar.find('textarea').simulate('keyDown', {key: 'Enter', preventDefault});
     expect(onSearch).not.toHaveBeenCalled();
     // Prevent default since we need to select an item
     expect(preventDefault).toHaveBeenCalled();
@@ -255,7 +255,7 @@ describe('SmartSearchBar', function () {
       expect(searchBar.state().query).toEqual('two ');
     });
 
-    it('should not reset user input if a noop props change happens', function () {
+    it('should not reset user textarea if a noop props change happens', function () {
       const searchBar = mountWithTheme(
         <SmartSearchBar
           organization={organization}
@@ -272,7 +272,7 @@ describe('SmartSearchBar', function () {
       expect(searchBar.state().query).toEqual('two');
     });
 
-    it('should reset user input if a meaningful props change happens', function () {
+    it('should reset user textarea if a meaningful props change happens', function () {
       const searchBar = mountWithTheme(
         <SmartSearchBar
           organization={organization}
@@ -412,7 +412,7 @@ describe('SmartSearchBar', function () {
 
   describe('onKeyUp()', function () {
     describe('escape', function () {
-      it('blurs the input', function () {
+      it('blurs the textarea', function () {
         const wrapper = mountWithTheme(
           <SmartSearchBar
             organization={organization}
@@ -426,7 +426,7 @@ describe('SmartSearchBar', function () {
         const instance = wrapper.instance();
         jest.spyOn(instance, 'blur');
 
-        wrapper.find('input').simulate('keyup', {key: 'Escape'});
+        wrapper.find('textarea').simulate('keyup', {key: 'Escape'});
 
         expect(instance.blur).toHaveBeenCalledTimes(1);
       });
@@ -561,7 +561,7 @@ describe('SmartSearchBar', function () {
       expect(searchBar.state.activeSearchItem).toEqual(-1);
     });
 
-    it('sets state when incomplete tag as second input', async function () {
+    it('sets state when incomplete tag as second textarea', async function () {
       const props = {
         query: 'is:unresolved fu',
         organization,
@@ -718,9 +718,9 @@ describe('SmartSearchBar', function () {
       };
       const smartSearchBar = mountWithTheme(<SmartSearchBar {...props} />, options);
       const searchBar = smartSearchBar.instance();
-      const input = smartSearchBar.find('input');
+      const textarea = smartSearchBar.find('textarea');
       // start typing part of the tag prefixed by the negation operator!
-      input.simulate('change', {target: {value: 'event.type:error !ti'}});
+      textarea.simulate('change', {target: {value: 'event.type:error !ti'}});
       searchBar.getCursorPosition = jest.fn().mockReturnValueOnce(20);
       // use autocompletion to do the rest
       searchBar.onAutoComplete('title:', {});
@@ -736,17 +736,17 @@ describe('SmartSearchBar', function () {
       };
       const smartSearchBar = mountWithTheme(<SmartSearchBar {...props} />, options);
       const searchBar = smartSearchBar.instance();
-      const input = smartSearchBar.find('input');
+      const textarea = smartSearchBar.find('textarea');
 
       // leading wildcard
-      input.simulate('change', {target: {value: 'event.type:*err'}});
+      textarea.simulate('change', {target: {value: 'event.type:*err'}});
       searchBar.getCursorPosition = jest.fn().mockReturnValueOnce(20);
       // use autocompletion to do the rest
       searchBar.onAutoComplete('error', {});
       expect(searchBar.state.query).toEqual('event.type:error');
 
       // trailing wildcard
-      input.simulate('change', {target: {value: 'event.type:err*'}});
+      textarea.simulate('change', {target: {value: 'event.type:err*'}});
       searchBar.getCursorPosition = jest.fn().mockReturnValueOnce(20);
       // use autocompletion to do the rest
       searchBar.onAutoComplete('error', {});
@@ -762,15 +762,15 @@ describe('SmartSearchBar', function () {
       };
       const smartSearchBar = mountWithTheme(<SmartSearchBar {...props} />, options);
       const searchBar = smartSearchBar.instance();
-      const input = smartSearchBar.find('input');
+      const textarea = smartSearchBar.find('textarea');
 
-      input.simulate('change', {target: {value: 'user:'}});
+      textarea.simulate('change', {target: {value: 'user:'}});
       searchBar.getCursorPosition = jest.fn().mockReturnValueOnce(5);
       searchBar.onAutoComplete('id:1', {});
       expect(searchBar.state.query).toEqual('user:"id:1"');
 
       // try it with the SEARCH_WILDCARD
-      input.simulate('change', {target: {value: 'user:1*'}});
+      textarea.simulate('change', {target: {value: 'user:1*'}});
       searchBar.getCursorPosition = jest.fn().mockReturnValueOnce(5);
       searchBar.onAutoComplete('ip:127.0.0.1', {});
       expect(searchBar.state.query).toEqual('user:"ip:127.0.0.1"');
