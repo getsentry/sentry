@@ -23,7 +23,7 @@ class ArithmeticParseError(ArithmeticError):
 
 
 class ArithmeticValidationError(ArithmeticError):
-    """ The math itself isn't valid """
+    """The math itself isn't valid"""
 
     pass
 
@@ -199,7 +199,7 @@ class ArithmeticVisitor(NodeVisitor):
 def parse_arithmetic(
     equation: str, max_operators: Optional[int] = None
 ) -> Tuple[Operation, List[str]]:
-    """ Given a string equation try to parse it into a set of Operations """
+    """Given a string equation try to parse it into a set of Operations"""
     try:
         tree = arithmetic_grammar.parse(equation)
     except ParseError:

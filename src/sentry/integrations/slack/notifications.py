@@ -120,7 +120,7 @@ def send_notification_as_slack(
     shared_context: Mapping[str, Any],
     extra_context_by_user_id: Mapping[str, Any],
 ) -> None:
-    """ Send an "activity" or "alert rule" notification to a Slack user or team. """
+    """Send an "activity" or "alert rule" notification to a Slack user or team."""
     client = SlackClient()
     data = get_channel_and_token_by_recipient(notification.organization, recipients)
     for recipient, (channel, token) in data.items():
