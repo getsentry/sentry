@@ -668,3 +668,77 @@ class SetRefsTest(SetRefsTestCase):
 
         version = "\\ hello world again"
         assert not Release.is_valid_version(version)
+
+
+class SemverReleaseParseTestCase(TestCase):
+    def setUp(self):
+        self.org = self.create_organization()
+
+    def test_parse_release_into_semver_cols(self):
+        """
+        Test that ensures that release version is parsed into the semver cols on Release model
+        and that if build code can be parsed as a 64 bit integer then it is stored in build_number
+        """
+        version = "org.example.FooApp@1.0rc1+20200101100"
+        release = Release.objects.create(organization=self.org, version=version)
+        assert release.major == 1
+        assert release.minor == 0
+        assert release.patch == 0
+        assert release.revision == 0
+        assert release.prerelease == "rc1"
+        assert release.build_code == "20200101100"
+        assert release.build_number == 20200101100
+
+    def test_parse_release_into_semver_cols_using_custom_get_or_create(self):
+        """
+        Test that ensures that release version is parsed into the semver cols on Release model
+        when using the custom `Release.get_or_create` method
+        """
+        version = "org.example.FooApp@1.0rc1+20200101100"
+        project = self.create_project(organization=self.org, name="foo")
+        release = Release.get_or_create(project=project, version=version)
+        assert release.major == 1
+        assert release.minor == 0
+        assert release.patch == 0
+        assert release.revision == 0
+        assert release.prerelease == "rc1"
+        assert release.build_code == "20200101100"
+        assert release.build_number == 20200101100
+
+    def test_parse_release_into_semver_cols_with_non_int_build_code(self):
+        """
+        Test that ensures that if the build_code passed as part of the semver version cannot be
+        parsed as a 64 bit integer due to non int release then build number is left empty
+        """
+        version = "org.example.FooApp@1.0rc1+whatever"
+        release = Release.objects.create(organization=self.org, version=version)
+        assert release.major == 1
+        assert release.minor == 0
+        assert release.patch == 0
+        assert release.revision == 0
+        assert release.prerelease == "rc1"
+        assert release.build_code == "whatever"
+        assert release.build_number is None
+
+    def test_parse_release_into_semver_cols_with_int_build_code_gt_64_int(self):
+        """
+        Test that ensures that if the build_code passed as part of the semver version cannot be
+        parsed as a 64 bit integer due to bigger than 64 bit integer then build number is left empty
+        """
+        version = "org.example.FooApp@1.0rc1+202001011005464576758979789794566455464746"
+        release = Release.objects.create(organization=self.org, version=version)
+        assert release.major == 1
+        assert release.minor == 0
+        assert release.patch == 0
+        assert release.revision == 0
+        assert release.prerelease == "rc1"
+        assert release.build_code == "202001011005464576758979789794566455464746"
+        assert release.build_number is None
+
+    def test_parse_non_semver_should_not_fail(self):
+        """
+        Test that ensures nothing breaks when sending a non semver compatible release
+        """
+        version = "hello world"
+        release = Release.objects.create(organization=self.org, version=version)
+        assert release.version == "hello world"
