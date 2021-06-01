@@ -525,7 +525,9 @@ const spanOperationBreakdownRenderer = (field: string) => (
   const maxSpanDuration = data.maxSpansDuration;
   const spanOpDuration = data[field];
 
-  const widthPercentage = Math.min(spanOpDuration / maxSpanDuration, 1);
+  const widthPercentage = !!maxSpanDuration
+    ? Math.min(spanOpDuration / maxSpanDuration, 1)
+    : 0;
   const operationName = getSpanOperationName(field) ?? 'op';
 
   return (

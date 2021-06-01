@@ -440,13 +440,12 @@ type MaxSpanQueryProps = {
 function MaxSpanQuery(props: MaxSpanQueryProps) {
   const {location, eventView, orgSlug, referrer, currentFilter, children} = props;
   if (currentFilter && currentFilter !== SpanOperationBreakdownFilter.None) {
-    const maxDurationEventView = eventView.withSorts([
-      {kind: 'desc', field: 'timestamp'},
-    ]);
-    maxDurationEventView.fields = [
-      {field: `spans.${currentFilter}`},
-      {field: `timestamp`},
-    ];
+    const maxDurationEventView = eventView
+      .withSorts([{kind: 'desc', field: 'timestamp'}])
+      .withColumns([
+        {kind: 'field', field: `spans.${currentFilter}`},
+        {kind: 'field', field: `timestamp`},
+      ]);
     return (
       <DiscoverQuery
         eventView={maxDurationEventView}
