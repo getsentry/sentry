@@ -7,8 +7,11 @@ import Button from 'app/components/button';
 import KeyValueList from 'app/components/events/interfaces/keyValueList';
 import {getMeta} from 'app/components/events/meta/metaProxy';
 import ListItem from 'app/components/list/listItem';
-import {t} from 'app/locale';
+import {JavascriptProcessingErrors} from 'app/constants/eventErrors';
+import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
+
+import ExternalLink from '../links/externalLink';
 
 type Error = {
   type: string;
@@ -104,6 +107,31 @@ class ErrorItem extends React.Component<Props, State> {
     );
   }
 
+  renderTroubleshootingLink(error: Error) {
+    if (
+      Object.values(JavascriptProcessingErrors).includes(
+        error.type as JavascriptProcessingErrors
+      )
+    ) {
+      return (
+        <React.Fragment>
+          {' '}
+          (
+          {tct('see [docsLink]', {
+            docsLink: (
+              <StyledExternalLink href="https://docs.sentry.io/platforms/javascript/sourcemaps/troubleshooting_js/">
+                {t('Troubleshooting for JavaScript')}
+              </StyledExternalLink>
+            ),
+          })}
+          )
+        </React.Fragment>
+      );
+    }
+
+    return null;
+  }
+
   render() {
     const {error} = this.props;
     const {isOpen} = this.state;
@@ -117,6 +145,7 @@ class ErrorItem extends React.Component<Props, State> {
           <div>
             {this.renderPath(data)}
             {error.message}
+            {this.renderTroubleshootingLink(error)}
           </div>
           {!!cleanedData.length && (
             <ToggleButton onClick={this.handleToggle} priority="link">
@@ -144,6 +173,15 @@ const ToggleButton = styled(Button)`
 
 const StyledListItem = styled(ListItem)`
   margin-bottom: ${space(0.75)};
+`;
+
+const StyledExternalLink = styled(ExternalLink)`
+  /* && is here to increase specificity to override default styles*/
+  && {
+    font-weight: inherit;
+    color: inherit;
+    text-decoration: underline;
+  }
 `;
 
 const OverallInfo = styled('div')`
