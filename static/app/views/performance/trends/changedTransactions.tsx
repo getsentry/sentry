@@ -545,6 +545,7 @@ const ChartContainer = styled('div')`
 `;
 
 const StyledHeaderTitleLegend = styled(HeaderTitleLegend)`
+  border-radius: ${p => p.theme.borderRadius};
   padding: ${space(2)} ${space(3)};
 `;
 

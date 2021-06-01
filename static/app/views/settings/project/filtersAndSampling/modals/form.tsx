@@ -107,15 +107,6 @@ class Form<P extends Props = Props, S extends State = State> extends React.Compo
   }
 
   getNewCondition(condition: Conditions[0]): DynamicSamplingConditionLogicalInner {
-    // DynamicSamplingConditionLogicalInnerCustom
-    if (condition.category === DynamicSamplingInnerName.EVENT_LEGACY_BROWSER) {
-      return {
-        op: DynamicSamplingInnerOperator.CUSTOM,
-        name: condition.category,
-        value: condition.legacyBrowsers ?? [],
-      };
-    }
-
     // DynamicSamplingConditionLogicalInnerEqBoolean
     if (
       condition.category === DynamicSamplingInnerName.EVENT_BROWSER_EXTENSIONS ||
@@ -129,10 +120,31 @@ class Form<P extends Props = Props, S extends State = State> extends React.Compo
       };
     }
 
+    // DynamicSamplingConditionLogicalInnerCustom
+    if (condition.category === DynamicSamplingInnerName.EVENT_LEGACY_BROWSER) {
+      return {
+        op: DynamicSamplingInnerOperator.CUSTOM,
+        name: condition.category,
+        value: condition.legacyBrowsers ?? [],
+      };
+    }
+
     const newValue = condition.match
       .split('\n')
       .filter(match => !!match.trim())
       .map(match => match.trim());
+
+    if (
+      condition.category === DynamicSamplingInnerName.EVENT_IP_ADDRESSES ||
+      condition.category === DynamicSamplingInnerName.EVENT_ERROR_MESSAGES ||
+      condition.category === DynamicSamplingInnerName.EVENT_CSP
+    ) {
+      return {
+        op: DynamicSamplingInnerOperator.CUSTOM,
+        name: condition.category,
+        value: newValue,
+      };
+    }
 
     // DynamicSamplingConditionLogicalInnerGlob
     if (
@@ -214,6 +226,13 @@ class Form<P extends Props = Props, S extends State = State> extends React.Compo
 
   handleChange = <T extends keyof S>(field: T, value: S[T]) => {
     this.setState(prevState => ({...prevState, [field]: value}));
+  };
+
+  handleChangeTransaction = (value: Transaction) => {
+    this.setState(prevState => ({
+      transaction: value,
+      conditions: value === Transaction.ALL ? [] : prevState.conditions,
+    }));
   };
 
   handleSubmit = (): never | void => {
@@ -340,7 +359,7 @@ class Form<P extends Props = Props, S extends State = State> extends React.Compo
               {...transactionField}
               name="transaction"
               choices={transactionChoices}
-              onChange={value => this.handleChange('transaction', value)}
+              onChange={this.handleChangeTransaction}
               value={transaction}
               inline={false}
               hideControlState
@@ -361,7 +380,10 @@ class Form<P extends Props = Props, S extends State = State> extends React.Compo
               // help={t('this is a description')}  TODO(Priscila): Add correct descriptions
               name="sampleRate"
               onChange={value => {
-                this.handleChange('sampleRate', value ? Number(value) : undefined);
+                this.handleChange(
+                  'sampleRate',
+                  defined(value) ? Number(value) : undefined
+                );
                 if (!!errors.sampleRate) {
                   this.clearError('sampleRate');
                 }

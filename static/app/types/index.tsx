@@ -733,7 +733,11 @@ export interface Config {
   demoMode: boolean;
 }
 
+// https://github.com/getsentry/relay/blob/master/relay-common/src/constants.rs
+// Note: the value of the enum on the frontend is plural,
+// but the value of the enum on the backend is singular
 export enum DataCategory {
+  DEFAULT = 'default',
   ERRORS = 'errors',
   TRANSACTIONS = 'transactions',
   ATTACHMENTS = 'attachments',
@@ -987,6 +991,7 @@ type GroupFiltered = {
 export type GroupStats = GroupFiltered & {
   lifetime?: GroupFiltered;
   filtered: GroupFiltered | null;
+  sessionCount?: string | null;
   id: string;
 };
 
@@ -1045,6 +1050,7 @@ export type BaseGroup = {
   type: EventOrGroupType;
   userReportCount: number;
   subscriptionDetails: {disabled?: boolean; reason?: string} | null;
+  status: string;
   inbox?: InboxDetails | null | false;
   owners?: SuggestedOwner[] | null;
 } & GroupRelease;
@@ -1102,6 +1108,7 @@ export type Member = {
   flags: {
     'sso:linked': boolean;
     'sso:invalid': boolean;
+    'member-limit:restricted': boolean;
   };
   id: string;
   inviteStatus: 'approved' | 'requested_to_be_invited' | 'requested_to_join';

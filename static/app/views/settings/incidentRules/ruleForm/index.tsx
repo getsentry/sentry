@@ -23,6 +23,7 @@ import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {defined} from 'app/utils';
 import {metric, trackAnalyticsEvent} from 'app/utils/analytics';
+import {isActiveSuperuser} from 'app/utils/isActiveSuperuser';
 import {AlertWizardAlertNames} from 'app/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'app/views/alerts/wizard/utils';
 import Form from 'app/views/settings/components/forms/form';
@@ -60,7 +61,7 @@ type Props = {
   project: Project;
   routes: PlainRoute[];
   rule: IncidentRule;
-  userTeamIds: Set<string>;
+  userTeamIds: string[];
   ruleId?: string;
   sessionId?: string;
   isCustomMetric?: boolean;
@@ -634,7 +635,8 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     const chart = <TriggersChart {...chartProps} />;
 
     const ownerId = rule.owner?.split(':')[1];
-    const canEdit = ownerId ? userTeamIds.has(ownerId) : true;
+    const canEdit =
+      isActiveSuperuser() || (ownerId ? userTeamIds.includes(ownerId) : true);
 
     const triggerForm = (hasAccess: boolean) => (
       <Triggers
@@ -717,7 +719,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                       disabled={!hasAccess || !canEdit}
                       thresholdChart={wizardBuilderChart}
                       onFilterSearch={this.handleFilterUpdate}
-                      allowChangeEventTypes={dataset === Dataset.ERRORS}
+                      allowChangeEventTypes={isCustomMetric || dataset === Dataset.ERRORS}
                       alertType={isCustomMetric ? 'custom' : alertType}
                     />
                     <AlertListItem>{t('Set thresholds to trigger alert')}</AlertListItem>

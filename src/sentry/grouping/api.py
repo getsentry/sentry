@@ -1,5 +1,6 @@
 import re
 
+from sentry import options
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.enhancer import LATEST_VERSION, Enhancements, InvalidEnhancerConfig
 from sentry.grouping.strategies.base import DEFAULT_GROUPING_ENHANCEMENTS_BASE, GroupingContext
@@ -26,7 +27,81 @@ class GroupingConfigNotFound(LookupError):
     pass
 
 
-def get_grouping_config_dict_for_project(project, silent=True, secondary=False):
+class GroupingConfigLoader:
+    """ Load a grouping config based on global or project options """
+
+    cache_prefix: str  # Set in subclasses
+
+    def get_config_dict(self, project):
+        return {
+            "id": self._get_config_id(project),
+            "enhancements": self._get_enhancements(project),
+        }
+
+    def _get_enhancements(self, project):
+        enhancements = project.get_option("sentry:grouping_enhancements")
+
+        config_id = self._get_config_id(project)
+        enhancements_base = CONFIGURATIONS[config_id].enhancements_base
+
+        # Instead of parsing and dumping out config here, we can make a
+        # shortcut
+        from sentry.utils.cache import cache
+        from sentry.utils.hashlib import md5_text
+
+        cache_prefix = self.cache_prefix
+        cache_prefix += f"{LATEST_VERSION}:"
+        cache_key = cache_prefix + md5_text(f"{enhancements_base}|{enhancements}").hexdigest()
+        rv = cache.get(cache_key)
+        if rv is not None:
+            return rv
+
+        try:
+            rv = Enhancements.from_config_string(enhancements, bases=[enhancements_base]).dumps()
+        except InvalidEnhancerConfig:
+            rv = get_default_enhancements()
+        cache.set(cache_key, rv)
+        return rv
+
+    def _get_config_id(self, project):
+        raise NotImplementedError
+
+
+class ProjectGroupingConfigLoader(GroupingConfigLoader):
+
+    option_name: str  # Set in subclasses
+
+    def _get_config_id(self, project):
+        return project.get_option(
+            self.option_name,
+            validate=lambda x: x in CONFIGURATIONS,
+        )
+
+
+class PrimaryGroupingConfigLoader(ProjectGroupingConfigLoader):
+    """ The currently active grouping config """
+
+    option_name = "sentry:grouping_config"
+    cache_prefix = "grouping-enhancements:"
+
+
+class SecondaryGroupingConfigLoader(ProjectGroupingConfigLoader):
+    """  Secondary config to find old groups after config change """
+
+    option_name = "sentry:secondary_grouping_config"
+    cache_prefix = "secondary-grouping-enhancements:"
+
+
+class BackgroundGroupingConfigLoader(GroupingConfigLoader):
+    """ Does not affect grouping, runs in addition to measure performance impact """
+
+    cache_prefix = "background-grouping-enhancements:"
+
+    def _get_config_id(self, project):
+        return options.get("store.background-grouping-config-id")
+
+
+def get_grouping_config_dict_for_project(project, silent=True):
     """Fetches all the information necessary for grouping from the project
     settings.  The return value of this is persisted with the event on
     ingestion so that the grouping algorithm can be re-run later.
@@ -34,48 +109,13 @@ def get_grouping_config_dict_for_project(project, silent=True, secondary=False):
     This is called early on in normalization so that everything that is needed
     to group the project is pulled into the event.
     """
-    config_id = project.get_option(
-        "sentry:grouping_config" if not secondary else "sentry:secondary_grouping_config",
-        validate=lambda x: x in CONFIGURATIONS,
-    )
-
-    # At a later point we might want to store additional information here
-    # such as frames that mark the end of a stacktrace and more.
-    return {"id": config_id, "enhancements": _get_project_enhancements_config(project, secondary)}
+    loader = PrimaryGroupingConfigLoader()
+    return loader.get_config_dict(project)
 
 
 def get_grouping_config_dict_for_event_data(data, project):
     """Returns the grouping config for an event dictionary."""
     return data.get("grouping_config") or get_grouping_config_dict_for_project(project)
-
-
-def _get_project_enhancements_config(project, secondary=False):
-    enhancements = project.get_option("sentry:grouping_enhancements")
-
-    config_id = project.get_option(
-        "sentry:grouping_config" if not secondary else "sentry:secondary_grouping_config",
-        validate=lambda x: x in CONFIGURATIONS,
-    )
-    enhancements_base = CONFIGURATIONS[config_id].enhancements_base
-
-    # Instead of parsing and dumping out config here, we can make a
-    # shortcut
-    from sentry.utils.cache import cache
-    from sentry.utils.hashlib import md5_text
-
-    cache_prefix = "grouping-enhancements:" if not secondary else "secondary-grouping-enhancements:"
-    cache_prefix += f"{LATEST_VERSION}:"
-    cache_key = cache_prefix + md5_text(f"{enhancements_base}|{enhancements}").hexdigest()
-    rv = cache.get(cache_key)
-    if rv is not None:
-        return rv
-
-    try:
-        rv = Enhancements.from_config_string(enhancements, bases=[enhancements_base]).dumps()
-    except InvalidEnhancerConfig:
-        rv = get_default_enhancements()
-    cache.set(cache_key, rv)
-    return rv
 
 
 def get_default_enhancements(config_id=None):

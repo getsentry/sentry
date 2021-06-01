@@ -2,6 +2,7 @@ import * as React from 'react';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import Feature from 'app/components/acl/feature';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import PageHeading from 'app/components/pageHeading';
 import QueryCount from 'app/components/queryCount';
@@ -11,10 +12,12 @@ import space from 'app/styles/space';
 import {Organization, SavedSearch} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 
+import IssueListDisplayOptions from './displayOptions';
 import SavedSearchSelector from './savedSearchSelector';
 import IssueListSearchBar from './searchBar';
 import IssueListSortOptions from './sortOptions';
 import {TagValueLoader} from './types';
+import {IssueDisplayOptions} from './utils';
 
 type IssueListSearchBarProps = React.ComponentProps<typeof IssueListSearchBar>;
 
@@ -22,12 +25,16 @@ type Props = {
   organization: Organization;
   savedSearchList: SavedSearch[];
   savedSearch: SavedSearch;
+  display: IssueDisplayOptions;
   sort: string;
   query: string;
   isSearchDisabled: boolean;
   queryCount: number;
   queryMaxCount: number;
+  hasSessions: boolean;
+  selectedProjects: number[];
 
+  onDisplayChange: (display: string) => void;
   onSortChange: (sort: string) => void;
   onSearch: (query: string) => void;
   onSidebarToggle: (event: React.MouseEvent) => void;
@@ -64,11 +71,15 @@ class IssueListFilters extends React.Component<Props> {
       savedSearchList,
       isSearchDisabled,
       sort,
+      display,
+      hasSessions,
+      selectedProjects,
 
       onSidebarToggle,
       onSearch,
       onSavedSearchDelete,
       onSortChange,
+      onDisplayChange,
       tagValueLoader,
       tags,
       isInbox,
@@ -85,6 +96,14 @@ class IssueListFilters extends React.Component<Props> {
 
         <SearchContainer isInbox={isInbox}>
           <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
+          <Feature features={['issue-percent-display']} organization={organization}>
+            <IssueListDisplayOptions
+              onDisplayChange={onDisplayChange}
+              display={display}
+              hasSessions={hasSessions}
+              hasMultipleProjectsSelected={selectedProjects.length !== 1}
+            />
+          </Feature>
 
           <SearchSelectorContainer isInbox={isInbox}>
             {!isInbox && (

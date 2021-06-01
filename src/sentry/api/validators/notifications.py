@@ -1,9 +1,12 @@
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Set, Tuple, Union
+from typing import AbstractSet, Any, Dict, Iterable, List, Mapping, Optional, Set, Tuple, Union
 
 from sentry.api.exceptions import ParameterValidationError
 from sentry.api.validators.integrations import validate_provider
 from sentry.notifications.helpers import validate as helper_validate
 from sentry.notifications.types import (
+    NOTIFICATION_SCOPE_TYPE,
+    NOTIFICATION_SETTING_OPTION_VALUES,
+    NOTIFICATION_SETTING_TYPES,
     NotificationScopeType,
     NotificationSettingOptionValues,
     NotificationSettingTypes,
@@ -67,7 +70,7 @@ def validate_type_option(type: Optional[str]) -> Optional[NotificationSettingTyp
 
 def validate_type(type: str, context: Optional[List[str]] = None) -> NotificationSettingTypes:
     try:
-        return NotificationSettingTypes[type.upper()]
+        return {v: k for k, v in NOTIFICATION_SETTING_TYPES.items()}[type]
     except KeyError:
         raise ParameterValidationError(f"Unknown type: {type}", context)
 
@@ -76,7 +79,7 @@ def validate_scope_type(
     scope_type: str, context: Optional[List[str]] = None
 ) -> NotificationScopeType:
     try:
-        return NotificationScopeType[scope_type.upper()]
+        return {v: k for k, v in NOTIFICATION_SCOPE_TYPE.items()}[scope_type]
     except KeyError:
         raise ParameterValidationError(f"Unknown scope_type: {scope_type}", context)
 
@@ -88,8 +91,11 @@ def validate_scope(
     context: Optional[List[str]] = None,
 ) -> int:
     if user and scope_type == NotificationScopeType.USER:
-        # Overwrite every user ID with the current user's ID.
-        scope_id = user.id
+        if scope_id == "me":
+            # Overwrite "me" with the current user's ID.
+            scope_id = user.id
+        elif scope_id != str(user.id):
+            raise ParameterValidationError(f"Incorrect user ID: {scope_id}", context)
 
     try:
         return int(scope_id)
@@ -101,13 +107,22 @@ def validate_value(
     type: NotificationSettingTypes, value_param: str, context: Optional[List[str]] = None
 ) -> NotificationSettingOptionValues:
     try:
-        value = NotificationSettingOptionValues[value_param.upper()]
+        value = {v: k for k, v in NOTIFICATION_SETTING_OPTION_VALUES.items()}[value_param]
     except KeyError:
         raise ParameterValidationError(f"Unknown value: {value_param}", context)
 
-    if not helper_validate(type, value):
+    if value != NotificationSettingOptionValues.DEFAULT and not helper_validate(type, value):
         raise ParameterValidationError(f"Invalid value for type {type}: {value}", context)
     return value
+
+
+def get_valid_items(
+    data: Mapping[Any, Any], context: Optional[List[str]] = None
+) -> AbstractSet[Any]:
+    try:
+        return data.items()
+    except AttributeError:
+        raise ParameterValidationError("Malformed JSON in payload", context)
 
 
 def validate(
@@ -144,14 +159,18 @@ def validate(
     ] = {}
     project_ids_to_look_up: Set[int] = set()
     organization_ids_to_look_up: Set[int] = set()
-    for type_key, notifications_by_type in data.items():
+    for type_key, notifications_by_type in get_valid_items(data, context):
         type = validate_type(type_key, context)
         context = parent_context + [type_key]
 
-        for scope_type_key, notifications_by_scope_type in notifications_by_type.items():
+        for scope_type_key, notifications_by_scope_type in get_valid_items(
+            notifications_by_type, context
+        ):
             scope_type = validate_scope_type(scope_type_key, context)
             context = parent_context + [type_key, scope_type_key]
-            for scope_id, notifications_by_scope_id in notifications_by_scope_type.items():
+            for scope_id, notifications_by_scope_id in get_valid_items(
+                notifications_by_scope_type, context
+            ):
                 scope_id = validate_scope(scope_id, scope_type, user, context)
 
                 if scope_type == NotificationScopeType.PROJECT:
@@ -160,7 +179,7 @@ def validate(
                     organization_ids_to_look_up.add(scope_id)
 
                 context = parent_context + [type_key, scope_type_key, str(scope_id)]
-                for provider_key, value_key in notifications_by_scope_id.items():
+                for provider_key, value_key in get_valid_items(notifications_by_scope_id, context):
                     provider = validate_provider(provider_key, context=context)
                     value = validate_value(type, value_key, context)
 

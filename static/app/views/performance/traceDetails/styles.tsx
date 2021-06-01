@@ -38,7 +38,7 @@ export const TraceViewHeaderContainer = styled(SecondaryHeader)`
 
 export const TraceDetailHeader = styled('div')`
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: 1fr;
   grid-gap: ${space(2)};
   margin-bottom: ${space(2)};
 
@@ -110,7 +110,6 @@ export function Tags({
                 tag={tag}
                 projectId={transaction.project_slug}
                 organization={organization}
-                location={location}
                 query={query}
                 streamPath={streamPath}
                 releasesPath={releasesPath}
