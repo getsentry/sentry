@@ -110,19 +110,16 @@ class Filter extends Component<Props> {
     const dropDownButtonProps: Pick<DropdownButtonProps, 'children' | 'priority'> & {
       hasDarkBorderBottomColor: boolean;
     } = {
-      children: (
-        <Fragment>
-          <IconFilter size="xs" />
-          <FilterLabel>{t('Filter')}</FilterLabel>
-        </Fragment>
-      ),
+      children: t('Filter'),
       priority: 'default',
       hasDarkBorderBottomColor: false,
     };
 
     if (checkedQuantity > 0) {
-      dropDownButtonProps.children = (
-        <span>{tn('%s Active Filter', '%s Active Filters', checkedQuantity)}</span>
+      dropDownButtonProps.children = tn(
+        '%s Active Filter',
+        '%s Active Filters',
+        checkedQuantity
       );
       dropDownButtonProps.hasDarkBorderBottomColor = true;
     }
@@ -137,6 +134,7 @@ class Filter extends Component<Props> {
             {...getActorProps()}
             showChevron={false}
             isOpen={isOpen}
+            icon={<IconFilter size="xs" />}
             hasDarkBorderBottomColor={dropDownButtonProps.hasDarkBorderBottomColor}
             priority={dropDownButtonProps.priority as DropdownButtonProps['priority']}
             data-test-id="filter-button"
@@ -189,10 +187,6 @@ const Header = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   padding: ${space(1)} ${space(2)};
   border-bottom: 1px solid ${p => p.theme.border};
-`;
-
-const FilterLabel = styled('span')`
-  margin-left: ${space(1)};
 `;
 
 const StyledDropdownButton = styled(DropdownButton)<{hasDarkBorderBottomColor?: boolean}>`
