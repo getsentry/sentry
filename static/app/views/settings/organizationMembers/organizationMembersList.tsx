@@ -15,8 +15,8 @@ import {MEMBER_ROLES} from 'app/constants';
 import {IconSliders} from 'app/icons';
 import {t, tct} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
-import space from 'app/styles/space';
 import {Member, MemberRole, Organization} from 'app/types';
+import {RenderSearch, SearchWrapper} from 'app/types/defaultSearchBar';
 import routeTitleGen from 'app/utils/routeTitle';
 import theme from 'app/utils/theme';
 import withOrganization from 'app/utils/withOrganization';
@@ -155,13 +155,9 @@ class OrganizationMembersList extends AsyncView<Props, State> {
     // Only admins/owners can remove members
     const requireLink = !!this.state.authProvider && this.state.authProvider.require_link;
 
-    type RenderSearch = React.ComponentProps<
-      typeof AsyncView.prototype.renderSearchInput
-    >['children'];
-
     // eslint-disable-next-line react/prop-types
     const renderSearch: RenderSearch = ({defaultSearchBar, value, handleChange}) => (
-      <SearchWrapper>
+      <SearchWrapperWithFilter>
         {defaultSearchBar}
         <DropdownMenu closeOnEscape>
           {({getActorProps, isOpen}) => (
@@ -179,7 +175,7 @@ class OrganizationMembersList extends AsyncView<Props, State> {
             </FilterWrapper>
           )}
         </DropdownMenu>
-      </SearchWrapper>
+      </SearchWrapperWithFilter>
     );
 
     return (
@@ -229,12 +225,8 @@ class OrganizationMembersList extends AsyncView<Props, State> {
   }
 }
 
-const SearchWrapper = styled('div')`
+const SearchWrapperWithFilter = styled(SearchWrapper)`
   display: grid;
-  grid-template-columns: 1fr max-content;
-  grid-gap: ${space(1.5)};
-  margin-bottom: ${space(3)};
-  position: relative;
 `;
 
 const FilterWrapper = styled('div')`
