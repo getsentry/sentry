@@ -34,6 +34,8 @@ sudo-askpass() {
 # After using homebrew to install docker, we need to do some magic to remove the need to interact with the GUI
 # See: https://github.com/docker/for-mac/issues/2359#issuecomment-607154849 for why we need to do things below
 init-docker() {
+    # Need to start docker if it was freshly installed or updated
+    # You will know that Docker is ready for devservices when the icon on the menu bar stops flashing
     if [[ $(uname -s) = 'Darwin' ]]; then
         if ! require docker && [ -d "/Applications/Docker.app" ]; then
             echo "Making some changes to complete Docker initialization"
