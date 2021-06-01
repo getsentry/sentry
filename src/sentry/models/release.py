@@ -108,8 +108,9 @@ class ReleaseModelManager(models.Manager):
         build_number = None
         if build_code is not None:
             try:
-                if int(build_code).bit_length() <= 63:
-                    build_number = int(build_code)
+                build_code_as_int = int(build_code)
+                if build_code_as_int >= 0 and build_code_as_int.bit_length() <= 63:
+                    build_number = build_code_as_int
             except ValueError:
                 pass
         return build_number

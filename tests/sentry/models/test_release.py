@@ -735,6 +735,22 @@ class SemverReleaseParseTestCase(TestCase):
         assert release.build_code == "202001011005464576758979789794566455464746"
         assert release.build_number is None
 
+    def test_parse_release_into_semver_cols_with_negative_build_code(self):
+        """
+        Test that ensures that if the build_code passed as part of the semver version can be
+        parsed as a 64 bit integer but has a negative sign then build number is left
+        empty
+        """
+        version = "org.example.FooApp@1.0rc1+-2020"
+        release = Release.objects.create(organization=self.org, version=version)
+        assert release.major == 1
+        assert release.minor == 0
+        assert release.patch == 0
+        assert release.revision == 0
+        assert release.prerelease == "rc1"
+        assert release.build_code == "-2020"
+        assert release.build_number is None
+
     def test_parse_non_semver_should_not_fail(self):
         """
         Test that ensures nothing breaks when sending a non semver compatible release
