@@ -416,6 +416,9 @@ describe('projectGeneralSettings', function () {
 
       // Click "Save"
       wrapper.find('MessageAndActions button[aria-label="Save"]').simulate('click');
+      await tick();
+      await wrapper.update();
+
       // API endpoint should have been called
       expect(putMock).toHaveBeenCalledWith(
         expect.anything(),
