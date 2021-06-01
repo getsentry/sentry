@@ -391,7 +391,11 @@ def resolve_field_list(
     # Both `count_miserable_new` and `user_misery_new` require the project_threshold_config column
     if PROJECT_THRESHOLD_CONFIG_ALIAS not in fields:
         for field in fields[:]:
-            if field.startswith("count_miserable_new") or field.startswith("user_misery_new"):
+            if (
+                field.startswith("count_miserable_new")
+                or field == "user_misery_new()"
+                or field == "apdex_new()"
+            ):
                 fields.append(PROJECT_THRESHOLD_CONFIG_ALIAS)
                 break
 
@@ -1299,6 +1303,11 @@ FUNCTIONS = {
             "apdex",
             required_args=[NumberRange("satisfaction", 0, None)],
             transform="apdex(duration, {satisfaction:g})",
+            default_result_type="number",
+        ),
+        Function(
+            "apdex_new",
+            transform="apdex(multiIf(equals(tupleElement(project_threshold_config, 1), 'lcp'),if(has(measurements.key, 'lcp'), arrayElement(measurements.value, indexOf(measurements.key, 'lcp')), NULL),duration), tupleElement(project_threshold_config, 2))",
             default_result_type="number",
         ),
         Function(
