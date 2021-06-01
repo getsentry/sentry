@@ -1,3 +1,4 @@
+import {act} from 'react-dom/test-utils';
 import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
@@ -349,16 +350,19 @@ describe('projectGeneralSettings', function () {
           slug: 'new-project',
         },
       });
-      wrapper = mountWithTheme(
-        <ProjectContext orgId={org.slug} projectId={project.slug}>
-          <ProjectGeneralSettings
-            routes={[]}
-            location={routerContext.context.location}
-            params={params}
-          />
-        </ProjectContext>,
-        routerContext
-      );
+      // act() prevents warnings about animations running.
+      act(() => {
+        wrapper = mountWithTheme(
+          <ProjectContext orgId={org.slug} projectId={project.slug}>
+            <ProjectGeneralSettings
+              routes={[]}
+              location={routerContext.context.location}
+              params={params}
+            />
+          </ProjectContext>,
+          routerContext
+        );
+      });
     });
 
     it('can cancel unsaved changes for a field', async function () {
@@ -398,15 +402,20 @@ describe('projectGeneralSettings', function () {
 
     it('saves when value is changed and "Save" clicked', async function () {
       await tick();
-      wrapper.update();
+      await wrapper.update();
+
       // Initially does not have "Save" button
       expect(wrapper.find('MessageAndActions button[aria-label="Save"]')).toHaveLength(0);
 
-      // Change value
-      wrapper
-        .find('input[name="resolveAge"]')
-        .simulate('input', {target: {value: 12}})
-        .simulate('mouseUp');
+      act(() => {
+        // Change value
+        wrapper
+          .find('input[name="resolveAge"]')
+          .simulate('input', {target: {value: 12}})
+          .simulate('mouseUp');
+      });
+      await wrapper.update();
+      await wrapper.update();
 
       // Has "Save" button visible
       expect(wrapper.find('MessageAndActions button[aria-label="Save"]')).toHaveLength(1);
@@ -415,7 +424,9 @@ describe('projectGeneralSettings', function () {
       expect(putMock).not.toHaveBeenCalled();
 
       // Click "Save"
-      wrapper.find('MessageAndActions button[aria-label="Save"]').simulate('click');
+      act(() => {
+        wrapper.find('MessageAndActions button[aria-label="Save"]').simulate('click');
+      });
       await tick();
       await wrapper.update();
 
@@ -431,7 +442,7 @@ describe('projectGeneralSettings', function () {
 
       // Should hide "Save" button after saving
       await tick();
-      wrapper.update();
+      await wrapper.update();
       expect(wrapper.find('MessageAndActions button[aria-label="Save"]')).toHaveLength(0);
     });
   });
