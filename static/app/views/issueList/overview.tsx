@@ -227,6 +227,9 @@ class IssueListOverview extends React.Component<Props, State> {
     if (!isEqual(prevProps.selection.projects, this.props.selection.projects)) {
       this.fetchMemberList();
       this.fetchTags();
+      if (this.getDisplay() !== DEFAULT_DISPLAY) {
+        this.transitionTo({display: DEFAULT_DISPLAY});
+      }
     }
 
     // Wait for saved searches to load before we attempt to fetch stream data
@@ -371,6 +374,11 @@ class IssueListOverview extends React.Component<Props, State> {
     const sort = this.getSort();
     if (sort !== DEFAULT_SORT) {
       params.sort = sort;
+    }
+
+    const display = this.getDisplay();
+    if (display !== DEFAULT_DISPLAY) {
+      params.display = display;
     }
 
     const groupStatsPeriod = this.getGroupStatsPeriod();

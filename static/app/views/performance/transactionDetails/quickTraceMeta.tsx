@@ -142,7 +142,6 @@ export function QuickTraceMetaBase({body, footer}: {body: ReactNode; footer: Rea
   return (
     <MetaData
       headingText={t('Quick Trace')}
-      badge="new"
       tooltipText={t(
         'A minified version of the full trace. Related frontend and backend services can be added to provide further visibility.'
       )}

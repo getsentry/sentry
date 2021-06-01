@@ -1168,7 +1168,7 @@ def _find_existing_group_id(
         # tombstone may get ignored entirely if there is another hash *before*
         # that happens to have a group_id. This bug may not have been noticed
         # for a long time because most events only ever have 1-2 hashes. It
-        # will definetly get more noticeable with hierarchical grouping and
+        # will definitely get more noticeable with hierarchical grouping and
         # it's not clear what good behavior would look like. Do people want to
         # be able to tombstone `hierarchical_hashes[4]` while still having a
         # group attached to `hierarchical_hashes[0]`? Maybe.

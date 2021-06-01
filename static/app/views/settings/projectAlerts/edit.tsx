@@ -44,7 +44,7 @@ class ProjectAlertsEditor extends Component<Props, State> {
   }
 
   render() {
-    const {hasMetricAlerts, location, organization, project} = this.props;
+    const {hasMetricAlerts, location, organization, project, routes} = this.props;
 
     const alertType = location.pathname.includes('/alerts/metric-rules/')
       ? 'metric'
@@ -64,6 +64,8 @@ class ProjectAlertsEditor extends Component<Props, State> {
               orgSlug={organization.slug}
               title={t('Edit Alert Rule')}
               projectSlug={project.slug}
+              routes={routes}
+              location={location}
             />
             <Layout.Title>{this.getTitle()}</Layout.Title>
           </Layout.HeaderContent>

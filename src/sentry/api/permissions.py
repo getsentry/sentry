@@ -1,6 +1,11 @@
 from rest_framework import permissions
 
-from sentry.api.exceptions import SsoRequired, SuperuserRequired, TwoFactorRequired
+from sentry.api.exceptions import (
+    MemberDisabledOverLimit,
+    SsoRequired,
+    SuperuserRequired,
+    TwoFactorRequired,
+)
 from sentry.auth import access
 from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import is_system_auth
@@ -64,6 +69,9 @@ class SentryPermission(ScopedPermission):
     def needs_sso(self, request, organization):
         return False
 
+    def is_member_disabled_from_limit(self, request, organization):
+        return False
+
     def determine_access(self, request, organization):
         from sentry.api.base import logger
 
@@ -78,12 +86,14 @@ class SentryPermission(ScopedPermission):
         else:
             request.access = access.from_request(request, organization)
 
+            extra = {"organization_id": organization.id, "user_id": request.user.id}
+
             if auth.is_user_signed_request(request):
                 # if the user comes from a signed request
                 # we let them pass if sso is enabled
                 logger.info(
                     "access.signed-sso-passthrough",
-                    extra={"organization_id": organization.id, "user_id": request.user.id},
+                    extra=extra,
                 )
             elif request.user.is_authenticated:
                 # session auth needs to confirm various permissions
@@ -91,7 +101,7 @@ class SentryPermission(ScopedPermission):
 
                     logger.info(
                         "access.must-sso",
-                        extra={"organization_id": organization.id, "user_id": request.user.id},
+                        extra=extra,
                     )
 
                     raise SsoRequired(organization)
@@ -99,6 +109,13 @@ class SentryPermission(ScopedPermission):
                 if self.is_not_2fa_compliant(request, organization):
                     logger.info(
                         "access.not-2fa-compliant",
-                        extra={"organization_id": organization.id, "user_id": request.user.id},
+                        extra=extra,
                     )
                     raise TwoFactorRequired()
+
+                if self.is_member_disabled_from_limit(request, organization):
+                    logger.info(
+                        "access.member-disabled-from-limit",
+                        extra=extra,
+                    )
+                    raise MemberDisabledOverLimit(organization)
