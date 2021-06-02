@@ -89,12 +89,12 @@ class DocumentationSetup extends React.Component<Props, State> {
       const platformDocs = await loadDocs(api, organization.slug, project.slug, platform);
       this.setState({platformDocs, loadedPlatform: platform, hasError: false});
     } catch (error) {
-      if (platform === 'other') {
-        // TODO(epurkhiser): There are currently no docs for the other
-        // platform. We should add generic documentation, in which case, this
-        // check should go away.
-        return;
-      }
+      // if (platform === 'other') {
+      //   // TODO(epurkhiser): There are currently no docs for the other
+      //   // platform. We should add generic documentation, in which case, this
+      //   // check should go away.
+      //   return;
+      // }
 
       this.setState({hasError: error});
       throw error;
