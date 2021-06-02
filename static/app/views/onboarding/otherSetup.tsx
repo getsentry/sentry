@@ -110,10 +110,7 @@ class OtherSetup extends AsyncComponent<Props, State> {
           {t('Once your SDK is set up, use the following DSN and send your first event!')}
         </p>
 
-        <p>
-          {'Here is the DSN : '}
-          <b> {keyList?.[0].dsn.public}</b>
-        </p>
+        <p>{tct('Here is the DSN: [DSN]', {DSN: <b> {keyList?.[0].dsn.public}</b>})}</p>
       </React.Fragment>
     );
 
