@@ -744,19 +744,38 @@ class Release(Model):
             releasefile.delete()
         self.delete()
 
-    def get_release_archive(self):
-        """Get the release archive corresponding to this release if it exists.
-        The caller is responsible for closing the archive.
-        """
+    def get_archive_release_file(self):
+        """ Get ReleaseFile instance containing the release archive """
         try:
-            release_archive_file = ReleaseFile.objects.select_related("file").get(
+            return ReleaseFile.objects.select_related("file").get(
                 release=self, name=RELEASE_ARCHIVE_FILENAME
             )
         except ReleaseFile.DoesNotExist:
             return None
 
-        file_ = ReleaseFile.cache.getfile(release_archive_file)
-        return ReleaseArchive(file_.file)
+    def get_release_archive(self):
+        """Get the release archive corresponding to this release if it exists.
+        The caller is responsible for closing the archive.
+        """
+        release_file = self.get_archive_release_file()
+        if release_file is not None:
+            file_ = ReleaseFile.cache.getfile(release_file)
+            return ReleaseArchive(file_.file)
+
+        return None
+
+    def count_release_files(self):
+        return (
+            ReleaseFile.objects.filter(release=self).exclude(name=RELEASE_ARCHIVE_FILENAME).count()
+        )
+
+    def count_archived_artifacts(self):
+        archive = self.get_release_archive()
+        if archive is None:
+            return 0
+        else:
+            with archive:
+                return len(archive.manifest.get("files", {}))
 
     def count_artifacts(self):
         """Count release files plus files bundled in release archive.
@@ -768,15 +787,8 @@ class Release(Model):
               store *both* archives and individual files.
 
         """
-        release_files = (
-            ReleaseFile.objects.filter(release=self).exclude(name=RELEASE_ARCHIVE_FILENAME).count()
-        )
 
-        archive = self.get_release_archive()
-        if archive is None:
-            compressed_artifacts = 0
-        else:
-            with archive:
-                compressed_artifacts = len(archive.manifest.get("files", {}))
+        release_files = self.count_release_files()
+        archived = self.count_archived_artifacts()
 
-        return release_files + compressed_artifacts
+        return release_files + archived
