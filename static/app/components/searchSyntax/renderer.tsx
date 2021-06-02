@@ -105,7 +105,6 @@ export default function renderQuery(query: string) {
 }
 
 const SearchQuery = styled('span')`
-  line-height: 24px;
   font-size: ${p => p.theme.fontSizeSmall};
   font-family: ${p => p.theme.text.familyMono};
 `;
