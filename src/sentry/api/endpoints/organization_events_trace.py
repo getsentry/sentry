@@ -457,7 +457,7 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
         event_id: Optional[str],
         detailed: bool = False,
     ) -> Sequence[LightResponse]:
-        """ Because the light endpoint could potentially have gaps between root and event we return a flattened list """
+        """Because the light endpoint could potentially have gaps between root and event we return a flattened list"""
         if event_id is None:
             raise ParseError(detail="An event_id is required for the light trace")
         snuba_event, nodestore_event = self.get_current_transaction(transactions, errors, event_id)

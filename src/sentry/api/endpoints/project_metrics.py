@@ -8,7 +8,7 @@ from sentry.snuba.metrics import DATA_SOURCE, InvalidField, InvalidParams, Query
 
 
 class ProjectMetricsEndpoint(ProjectEndpoint):
-    """ Get metric name, available operations and the metric unit """
+    """Get metric name, available operations and the metric unit"""
 
     def get(self, request, project):
 
@@ -20,7 +20,7 @@ class ProjectMetricsEndpoint(ProjectEndpoint):
 
 
 class ProjectMetricDetailsEndpoint(ProjectEndpoint):
-    """ Get metric name, available operations, metric unit and available tags """
+    """Get metric name, available operations, metric unit and available tags"""
 
     def get(self, request, project, metric_name):
 
@@ -65,7 +65,7 @@ class ProjectMetricsTagsEndpoint(ProjectEndpoint):
 
 
 class ProjectMetricsTagDetailsEndpoint(ProjectEndpoint):
-    """ Get all existing tag values for a metric """
+    """Get all existing tag values for a metric"""
 
     def get(self, request, project, tag_name):
 

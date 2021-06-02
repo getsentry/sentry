@@ -861,8 +861,8 @@ def to_context(organization, interval, reports):
         "series": {
             "points": series,
             "maximum": max(sum(point) for timestamp, point in series),
-            "all": sum([sum(point) for timestamp, point in series]),
-            "resolved": sum([point.resolved for timestamp, point in series]),
+            "all": sum(sum(point) for timestamp, point in series),
+            "resolved": sum(point.resolved for timestamp, point in series),
         },
         "distribution": {
             "types": list(

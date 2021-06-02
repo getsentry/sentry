@@ -11,7 +11,7 @@ from sentry.utils.snuba import Dataset
 
 
 class QueryBuilder(QueryFields, QueryFilter):
-    """ Builds a snql query """
+    """Builds a snql query"""
 
     def __init__(
         self,

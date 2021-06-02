@@ -22,7 +22,7 @@ registry: MutableMapping[Any, Any] = {}
 
 
 def register(type: Any) -> Callable[[Type[K]], Type[K]]:
-    """ A wrapper that adds the wrapped Serializer to the Serializer registry (see above) for the key `type`. """
+    """A wrapper that adds the wrapped Serializer to the Serializer registry (see above) for the key `type`."""
 
     def wrapped(cls: Type[K]) -> Type[K]:
         registry[type] = cls()
@@ -86,12 +86,12 @@ def serialize(
 
 
 class Serializer:
-    """ A Serializer class contains the logic to serialize a specific type of object. """
+    """A Serializer class contains the logic to serialize a specific type of object."""
 
     def __call__(
         self, obj: Any, attrs: Mapping[Any, Any], user: Any, **kwargs: Any
     ) -> Optional[MutableMapping[str, Any]]:
-        """ See documentation for `serialize`. """
+        """See documentation for `serialize`."""
         if obj is None:
             return None
         return self.serialize(obj, attrs, user, **kwargs)

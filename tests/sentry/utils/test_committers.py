@@ -174,7 +174,7 @@ class MatchCommitsPathTestCase(CommitTestCase):
             self.create_commitfilechange(filename="template/hello/app.py", type="A"),
         ]
 
-        commits = sorted([(fc.commit, 2) for fc in file_changes], key=lambda fc: fc[0].id)
+        commits = sorted(((fc.commit, 2) for fc in file_changes), key=lambda fc: fc[0].id)
         assert commits == sorted(
             _match_commits_path(file_changes, "hello/app.py"), key=lambda fc: fc[0].id
         )

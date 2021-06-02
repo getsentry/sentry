@@ -70,7 +70,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
     @property
     @abstractmethod
     def dataset(self):
-        """"This function should return an enum from snuba.Dataset (like snuba.Dataset.Events)"""
+        """ "This function should return an enum from snuba.Dataset (like snuba.Dataset.Events)"""
         raise NotImplementedError
 
     @abstractmethod
@@ -328,11 +328,9 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         # retention date, which may be closer than 90 days in the past, but
         # apparently `retention_window_start` can be None(?), so we need a
         # fallback.
-        retention_date = max(
-            [_f for _f in [retention_window_start, now - timedelta(days=90)] if _f]
-        )
+        retention_date = max(_f for _f in [retention_window_start, now - timedelta(days=90)] if _f)
         start_params = [date_from, retention_date, get_search_filter(search_filters, "date", ">")]
-        start = max([_f for _f in start_params if _f])
+        start = max(_f for _f in start_params if _f)
         end = max([retention_date, end])
 
         if start == retention_date and end == retention_date:

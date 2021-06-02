@@ -14,19 +14,19 @@ class ArithmeticError(Exception):
 
 
 class MaxOperatorError(ArithmeticError):
-    """ Exceeded the maximum allowed operators """
+    """Exceeded the maximum allowed operators"""
 
     pass
 
 
 class ArithmeticParseError(ArithmeticError):
-    """ Encountered an error trying to parse an equation """
+    """Encountered an error trying to parse an equation"""
 
     pass
 
 
 class ArithmeticValidationError(ArithmeticError):
-    """ The math itself isn't valid """
+    """The math itself isn't valid"""
 
     pass
 
@@ -58,7 +58,7 @@ class Operation:
             raise ArithmeticValidationError("division by 0 is not allowed")
 
     def to_snuba_json(self, alias: Optional[str] = None) -> JsonQueryType:
-        """ Convert this tree of Operations to the equivalent snuba json """
+        """Convert this tree of Operations to the equivalent snuba json"""
         lhs = self.lhs.to_snuba_json() if isinstance(self.lhs, Operation) else self.lhs
         rhs = self.rhs.to_snuba_json() if isinstance(self.rhs, Operation) else self.rhs
         result = [self.operator, [lhs, rhs]]
@@ -128,7 +128,7 @@ class ArithmeticVisitor(NodeVisitor):
         self.fields: set[str] = set()
 
     def flatten(self, remaining):
-        """ Take all the remaining terms and reduce them to a single tree """
+        """Take all the remaining terms and reduce them to a single tree"""
         term = remaining.pop(0)
         while remaining:
             next_term = remaining.pop(0)
@@ -155,7 +155,7 @@ class ArithmeticVisitor(NodeVisitor):
         return self.flatten(remaining_muls)
 
     def visited_operator(self):
-        """ We visited an operator, increment the count and error if we exceed max """
+        """We visited an operator, increment the count and error if we exceed max"""
         self.operators += 1
         if self.operators > self.max_operators:
             raise MaxOperatorError("Exceeded maximum number of operations")
@@ -172,7 +172,7 @@ class ArithmeticVisitor(NodeVisitor):
 
     @staticmethod
     def strip_spaces(children):
-        """ Visitor for a `spaces foo spaces` node """
+        """Visitor for a `spaces foo spaces` node"""
         _, value, _ = children
 
         return value
@@ -212,7 +212,7 @@ class ArithmeticVisitor(NodeVisitor):
 def parse_arithmetic(
     equation: str, max_operators: Optional[int] = None
 ) -> Tuple[Operation, List[str]]:
-    """ Given a string equation try to parse it into a set of Operations """
+    """Given a string equation try to parse it into a set of Operations"""
     try:
         tree = arithmetic_grammar.parse(equation)
     except ParseError:

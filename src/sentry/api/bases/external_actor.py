@@ -82,7 +82,7 @@ class ExternalUserSerializer(ExternalActorSerializerBase):
     user_id = serializers.IntegerField(required=True)
 
     def validate_user_id(self, user_id: int) -> User:
-        """ Ensure that this user exists and that they belong to the organization. """
+        """Ensure that this user exists and that they belong to the organization."""
 
         try:
             return User.objects.get(
@@ -102,7 +102,7 @@ class ExternalTeamSerializer(ExternalActorSerializerBase):
     team_id = serializers.IntegerField(required=True)
 
     def validate_team_id(self, team_id: int) -> Team:
-        """ Ensure that this team exists and that they belong to the organization. """
+        """Ensure that this team exists and that they belong to the organization."""
         try:
             return Team.objects.get(id=team_id, organization=self.organization)
         except Team.DoesNotExist:

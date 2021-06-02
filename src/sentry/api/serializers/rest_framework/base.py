@@ -15,7 +15,7 @@ def snake_to_camel_case(value):
     Converts a string from snake_case to camelCase
     """
     words = value.strip("_").split("_")
-    return words[0].lower() + "".join([word.capitalize() for word in words[1:]])
+    return words[0].lower() + "".join(word.capitalize() for word in words[1:])
 
 
 def convert_dict_key_case(obj, converter):

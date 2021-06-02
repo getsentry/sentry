@@ -366,7 +366,7 @@ class SnubaTagStorage(TagStorage):
     def get_group_tag_keys(
         self, project_id, group_id, environment_ids, limit=None, keys=None, **kwargs
     ):
-        """ Get tag keys for a specific group """
+        """Get tag keys for a specific group"""
         return self.__get_tag_keys(
             project_id,
             group_id,
@@ -604,7 +604,7 @@ class SnubaTagStorage(TagStorage):
         return set(result.keys())
 
     def get_group_tag_values_for_users(self, event_users, limit=100):
-        """ While not specific to a group_id, this is currently only used in issues, so the Events dataset is used """
+        """While not specific to a group_id, this is currently only used in issues, so the Events dataset is used"""
         filters = {"project_id": [eu.project_id for eu in event_users]}
         conditions = [
             ["tags[sentry:user]", "IN", [_f for _f in [eu.tag_value for eu in event_users] if _f]]

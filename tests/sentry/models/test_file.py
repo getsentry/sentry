@@ -128,7 +128,7 @@ class FileTest(TestCase):
             fp.read()
 
     def test_seek(self):
-        """ Test behavior of seek with difference values for whence """
+        """Test behavior of seek with difference values for whence"""
         bytes = BytesIO(b"abcdefghijklmnopqrstuvwxyz")
         file1 = File.objects.create(name="baz.js", type="default", size=26)
         results = file1.putfile(bytes, 5)

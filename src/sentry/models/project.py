@@ -52,7 +52,7 @@ class ProjectTeam(Model):
 
 class ProjectManager(BaseManager):
     def get_for_user_ids(self, user_ids: Sequence[int]) -> QuerySet:
-        """ Returns the QuerySet of all projects that a set of Users have access to. """
+        """Returns the QuerySet of all projects that a set of Users have access to."""
         from sentry.models import ProjectStatus
 
         return self.filter(
@@ -61,7 +61,7 @@ class ProjectManager(BaseManager):
         )
 
     def get_for_team_ids(self, team_ids: Sequence[int]) -> QuerySet:
-        """ Returns the QuerySet of all organizations that a set of Teams have access to. """
+        """Returns the QuerySet of all organizations that a set of Teams have access to."""
         from sentry.models import ProjectStatus
 
         return self.filter(status=ProjectStatus.VISIBLE, teams__in=team_ids)
@@ -214,7 +214,7 @@ class Project(Model, PendingDeletionMixin):
 
     @property
     def member_set(self):
-        """ :returns a QuerySet of all Users that belong to this Project """
+        """:returns a QuerySet of all Users that belong to this Project"""
         from sentry.models import OrganizationMember
 
         return self.organization.member_set.filter(

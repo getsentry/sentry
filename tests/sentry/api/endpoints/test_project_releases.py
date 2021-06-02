@@ -187,8 +187,8 @@ class ProjectReleaseListEnvironmentsTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == len(releases)
 
-        response_versions = sorted([r["version"] for r in response.data])
-        releases_versions = sorted([r.version for r in releases])
+        response_versions = sorted(r["version"] for r in response.data)
+        releases_versions = sorted(r.version for r in releases)
         assert response_versions == releases_versions
 
     def assert_release_details(self, release, new_issues_count, first_seen, last_seen):

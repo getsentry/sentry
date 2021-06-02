@@ -309,7 +309,7 @@ def _format_rows(rows: ResultSet, query: QueryDefinition) -> ResultSet:
         if TS_COL in row:
             grouping_key = "-".join([row[TS_COL]] + [str(row[col]) for col in query.query_groupby])
         else:
-            grouping_key = "-".join([str(row[col]) for col in query.query_groupby])
+            grouping_key = "-".join(str(row[col]) for col in query.query_groupby)
 
         if grouping_key in category_grouping:
             for field_name, field in query.fields.items():

@@ -79,7 +79,7 @@ def inbox_search(
     # can be.
     earliest_date = now - timedelta(days=7)
     start_params = [date_from, earliest_date, get_search_filter(search_filters, "date", ">")]
-    start = max([_f for _f in start_params if _f])
+    start = max(_f for _f in start_params if _f)
     end = max([earliest_date, end])
 
     if start >= end:

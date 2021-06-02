@@ -45,7 +45,7 @@ class BaseJiraWidgetView(View):
             self.request.GET.get("xdm_e"),
             options.get("system.url-prefix"),
         ]
-        sources_string = " ".join([s for s in sources if s])
+        sources_string = " ".join(s for s in sources if s)
         res["Content-Security-Policy"] = "frame-ancestors 'self' %s" % sources_string
 
         return res

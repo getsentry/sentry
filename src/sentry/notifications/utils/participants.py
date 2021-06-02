@@ -222,7 +222,7 @@ def get_users_for_teams_to_resolve(teams_to_resolve: Set[int]) -> Set[User]:
 
 
 def disabled_users_from_project(project: Project) -> Mapping[ExternalProviders, Set[User]]:
-    """ Get a set of users that have disabled Issue Alert notifications for a given project. """
+    """Get a set of users that have disabled Issue Alert notifications for a given project."""
     user_ids = project.member_set.values_list("user", flat=True)
     users = User.objects.filter(id__in=user_ids)
     notification_settings = NotificationSetting.objects.get_for_users_by_parent(

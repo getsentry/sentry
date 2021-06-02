@@ -58,7 +58,7 @@ def _get_function_name(frame_data: dict, platform: Optional[str]):
 
 
 def create_match_frame(frame_data: dict, platform: Optional[str]) -> dict:
-    """ Create flat dict of values relevant to matchers """
+    """Create flat dict of values relevant to matchers"""
     match_frame = dict(
         category=get_path(frame_data, "data", "category"),
         family=get_behavior_family_for_platform(frame_data.get("platform") or platform),
@@ -105,7 +105,7 @@ class Match:
             negated = False
         key = SHORT_MATCH_KEYS[val[0]]
         if key == "family":
-            arg = ",".join([_f for _f in [REVERSE_FAMILIES.get(x) for x in val[1:]] if _f])
+            arg = ",".join(_f for _f in [REVERSE_FAMILIES.get(x) for x in val[1:]] if _f)
         else:
             arg = val[1:]
 
@@ -176,7 +176,7 @@ class FrameMatch(Match):
 
     def _to_config_structure(self, version):
         if self.key == "family":
-            arg = "".join([_f for _f in [FAMILIES.get(x) for x in self.pattern.split(",")] if _f])
+            arg = "".join(_f for _f in [FAMILIES.get(x) for x in self.pattern.split(",")] if _f)
         elif self.key == "app":
             arg = {True: "1", False: "0"}.get(get_rule_bool(self.pattern), "")
         else:
@@ -185,7 +185,7 @@ class FrameMatch(Match):
 
 
 def path_like_match(pattern, value):
-    """ Stand-alone function for use with ``cached`` """
+    """Stand-alone function for use with ``cached``"""
     if glob_match(value, pattern, ignorecase=False, doublestar=True, path_normalize=True):
         return True
     if not value.startswith(b"/") and glob_match(

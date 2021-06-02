@@ -400,7 +400,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         if data.get("errors"):
             if message:
                 message += " "
-            message += " ".join([f"{k}: {v}" for k, v in data.get("errors").items()])
+            message += " ".join(f"{k}: {v}" for k, v in data.get("errors").items())
         return message
 
     def error_fields_from_json(self, data):
@@ -516,7 +516,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
 
         jira_project_ids = "no projects"
         if len(jira_projects):
-            jira_project_ids = ",".join([project["key"] for project in jira_projects])
+            jira_project_ids = ",".join(project["key"] for project in jira_projects)
 
         logger.info(
             "jira.get-issue-create-meta.no-metadata",

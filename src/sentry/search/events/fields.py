@@ -1833,7 +1833,7 @@ FUNCTION_ALIAS_PATTERN = re.compile(r"^({}).*".format("|".join(list(FUNCTIONS.ke
 
 
 class QueryFields(QueryBase):
-    """ Field logic for a snql query """
+    """Field logic for a snql query"""
 
     def resolve_select(self, selected_columns: List[str]) -> None:
         for field in selected_columns:

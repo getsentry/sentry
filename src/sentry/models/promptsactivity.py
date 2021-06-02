@@ -12,7 +12,7 @@ from sentry.db.models import (
 
 
 class PromptsActivity(Model):
-    """ Records user interaction with various feature prompts in product"""
+    """Records user interaction with various feature prompts in product"""
 
     __core__ = False
 

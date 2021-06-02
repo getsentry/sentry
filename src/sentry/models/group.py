@@ -571,7 +571,7 @@ class Group(Model):
 
     @staticmethod
     def issues_mapping(group_ids, project_ids, organization):
-        """ Create a dictionary of group_ids to their qualified_short_ids """
+        """Create a dictionary of group_ids to their qualified_short_ids"""
         return {
             i.id: i.qualified_short_id
             for i in Group.objects.filter(

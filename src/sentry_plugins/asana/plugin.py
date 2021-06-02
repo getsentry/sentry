@@ -143,7 +143,7 @@ class AsanaPlugin(CorePluginMixin, IssuePlugin2):
     def error_message_from_json(self, data):
         errors = data.get("errors")
         if errors:
-            return " ".join([e["message"] for e in errors])
+            return " ".join(e["message"] for e in errors)
         return "unknown error"
 
     def create_issue(self, request, group, form_data, **kwargs):

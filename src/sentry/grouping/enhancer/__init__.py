@@ -298,12 +298,12 @@ class Rule:
 
     @property
     def is_modifier(self):
-        """ Does this rule modify the frame? """
+        """Does this rule modify the frame?"""
         return self._is_modifier
 
     @property
     def is_updater(self):
-        """ Does this rule update grouping components? """
+        """Does this rule update grouping components?"""
         return self._is_updater
 
     def as_dict(self):

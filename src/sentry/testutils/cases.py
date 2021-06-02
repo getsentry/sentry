@@ -403,7 +403,7 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
         return getattr(self.client, method)(url, format="json", data=params)
 
     def get_valid_response(self, *args, **params):
-        """ Deprecated. Calls `get_response` (see above) and asserts a specific status code. """
+        """Deprecated. Calls `get_response` (see above) and asserts a specific status code."""
         status_code = params.pop("status_code", 200)
         resp = self.get_response(*args, **params)
         assert resp.status_code == status_code, (resp.status_code, resp.content)

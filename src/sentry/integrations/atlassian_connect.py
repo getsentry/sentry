@@ -25,7 +25,7 @@ def get_query_hash(uri, method, query_params=None):
         # don't include jwt query param
         if k != "jwt":
             if isinstance(v, list):
-                param_val = ",".join([percent_encode(val) for val in v])
+                param_val = ",".join(percent_encode(val) for val in v)
             else:
                 param_val = percent_encode(v)
             sorted_query.append(f"{percent_encode(k)}={param_val}")

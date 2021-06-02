@@ -30,7 +30,7 @@ class InternalWarningsEndpoint(Endpoint):
 
         data = {
             "groups": sorted(
-                [(groupings[key], sort_by_message(values)) for key, values in groups.items()]
+                (groupings[key], sort_by_message(values)) for key, values in groups.items()
             ),
             "warnings": sort_by_message(warnings),
         }

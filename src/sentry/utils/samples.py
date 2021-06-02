@@ -307,7 +307,7 @@ def create_sample_event_basic(data, project_id, raw=True):
 
 
 def create_trace(slow, start_timestamp, timestamp, user, trace_id, parent_span_id, data):
-    """ A recursive function that creates the events of a trace """
+    """A recursive function that creates the events of a trace"""
     frontend = data.get("frontend")
     current_span_id = uuid4().hex[:16]
     spans = []

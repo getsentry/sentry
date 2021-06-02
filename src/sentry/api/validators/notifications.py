@@ -15,7 +15,7 @@ from sentry.types.integrations import ExternalProviders
 
 
 def intersect_dict_set(d: Dict[int, Any], s: Set[int]) -> Dict[int, Any]:
-    """ Get the sub-dictionary where the keys are in the intersections the original keys and the set. """
+    """Get the sub-dictionary where the keys are in the intersections the original keys and the set."""
     # TODO(mgaeta): Genericize the key type and move to sentry.utils.
     return {k: v for k, v in d.items() if k in s}
 

@@ -1,5 +1,5 @@
-pre-commit==2.9.3
-black==20.8b1
+pre-commit==2.13.0
+black==21.5b1
 sentry-flake8==1.0.0
-pyupgrade==2.10.0
+pyupgrade==2.18.3
 isort==5.8.0

@@ -545,7 +545,7 @@ class ResolveFieldListTest(unittest.TestCase):
         assert "stddev(): expected 1 argument(s)" in str(err)
 
     def test_tpm_function_alias(self):
-        """ TPM should be functionally identical to EPM except in name """
+        """TPM should be functionally identical to EPM except in name"""
         fields = ["tpm()"]
         result = resolve_field_list(
             fields, eventstore.Filter(start=before_now(hours=2), end=before_now(hours=1))
@@ -1133,7 +1133,7 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["groupby"] == []
 
     def test_orderby_field_aggregate(self):
-        """ When there's only aggregates don't sort """
+        """When there's only aggregates don't sort"""
         fields = ["count(id)", "count_unique(user)"]
         result = resolve_field_list(fields, eventstore.Filter(orderby="-count(id)"))
         assert result["orderby"] is None

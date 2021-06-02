@@ -64,7 +64,7 @@ def test_callee_recursion():
 
 
 def _get_matching_frame_actions(rule, frames, platform, exception_data=None, cache=None):
-    """ Convenience function for rule tests """
+    """Convenience function for rule tests"""
     if cache is None:
         cache = {}
 

@@ -127,7 +127,7 @@ class MessageBuilderTest(TestCase):
 
         assert len(mail.outbox) == 3
 
-        assert sorted([out.to[0] for out in mail.outbox]) == [
+        assert sorted(out.to[0] for out in mail.outbox) == [
             "bar@example.com",
             "bazzer@example.com",
             "foo@example.com",

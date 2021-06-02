@@ -2947,7 +2947,7 @@ class TimeseriesQueryTest(TimeseriesBase):
 class TopEventsTimeseriesQueryTest(TimeseriesBase):
     @patch("sentry.snuba.discover.raw_query")
     def test_project_filter_adjusts_filter(self, mock_query):
-        """ While the function is called with 2 project_ids, we should limit it down to the 1 in top_events """
+        """While the function is called with 2 project_ids, we should limit it down to the 1 in top_events"""
         project2 = self.create_project(organization=self.organization)
         top_events = {
             "data": [

@@ -27,7 +27,7 @@ class DiscoverProcessorTest(TestCase, SnubaTestCase):
         projects = DiscoverProcessor.get_projects(
             organization_id=self.org.id, query={"project": [self.project1.id, self.project2.id]}
         )
-        assert sorted([p.id for p in projects]) == sorted([self.project1.id, self.project2.id])
+        assert sorted(p.id for p in projects) == sorted([self.project1.id, self.project2.id])
         with self.assertRaises(ExportError):
             DiscoverProcessor.get_projects(organization_id=self.org.id, query={"project": [-1]})
 

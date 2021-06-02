@@ -173,7 +173,7 @@ class MockDataSource:
     }
 
     def get_metrics(self, project: Project) -> List[dict]:
-        """ Get metrics metadata, without tags """
+        """Get metrics metadata, without tags"""
         return [
             dict(
                 name=name,
@@ -183,7 +183,7 @@ class MockDataSource:
         ]
 
     def get_single_metric(self, project: Project, metric_name: str) -> dict:
-        """ Get metadata for a single metric, without tag values """
+        """Get metadata for a single metric, without tag values"""
         try:
             metric = self._metrics[metric_name]
         except KeyError:
@@ -238,7 +238,7 @@ class MockDataSource:
         }
 
     def get_series(self, query: QueryDefinition) -> dict:
-        """ Get time series for the given query """
+        """Get time series for the given query"""
 
         intervals = list(query.get_intervals())
 
