@@ -17,6 +17,7 @@ import Pagination from 'app/components/pagination';
 import SearchBar from 'app/components/searchBar';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
+import {releaseHealth} from 'app/data/platformCategories';
 import {IconInfo} from 'app/icons';
 import {t} from 'app/locale';
 import {PageContent, PageHeader} from 'app/styles/organization';
@@ -269,8 +270,16 @@ class ReleasesList extends AsyncView<Props, State> {
               project &&
               project.hasOwnProperty('features') &&
               (project as Project).features.includes('releases');
+            const projectCanHaveReleases =
+              project && project.platform && releaseHealth.includes(project.platform);
 
-            if (!initiallyLoaded || fetchError || !project || projectHasReleases) {
+            if (
+              !initiallyLoaded ||
+              fetchError ||
+              !project ||
+              projectHasReleases ||
+              !projectCanHaveReleases
+            ) {
               return null;
             }
 
