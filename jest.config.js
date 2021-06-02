@@ -64,6 +64,7 @@ module.exports = {
   transform: {
     '^.+\\.jsx?$': 'babel-jest',
     '^.+\\.tsx?$': 'babel-jest',
+    '^.+\\.pegjs?$': '<rootDir>/tests/js/jest-pegjs-transform.js',
   },
   moduleFileExtensions: ['js', 'ts', 'jsx', 'tsx'],
   globals: {},

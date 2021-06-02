@@ -887,6 +887,8 @@ SENTRY_FEATURES = {
     "organizations:custom-event-title": True,
     # Enable rule page.
     "organizations:rule-page": False,
+    # Enable experimental syntax highlightign on unified search
+    "organizations:search-syntax-highlight": False,
     # Enable incidents feature
     "organizations:incidents": False,
     # Enable the new Metrics page

@@ -1,6 +1,7 @@
 import * as React from 'react';
 import TextareaAutosize from 'react-autosize-textarea';
 import {browserHistory, withRouter, WithRouterProps} from 'react-router';
+import isPropValid from '@emotion/is-prop-valid';
 import {ClassNames, withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -20,6 +21,7 @@ import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import DropdownLink from 'app/components/dropdownLink';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
+import renderQuery from 'app/components/searchSyntax/renderer';
 import {
   DEFAULT_DEBOUNCE_DURATION,
   MAX_AUTOCOMPLETE_RELEASES,
@@ -1096,6 +1098,8 @@ class SmartSearchBar extends React.Component<Props, State> {
     const pinIcon = <IconPin isSolid={!!pinnedSearch} size="xs" />;
     const hasQuery = !!this.state.query;
 
+    const hasSyntaxHighlight = organization.features.includes('search-syntax-highlight');
+
     const input = (
       <SearchInput
         type="text"
@@ -1114,6 +1118,7 @@ class SmartSearchBar extends React.Component<Props, State> {
         disabled={disabled}
         maxLength={maxQueryLength}
         spellCheck={false}
+        hiddenText={hasSyntaxHighlight}
       />
     );
 
@@ -1125,6 +1130,7 @@ class SmartSearchBar extends React.Component<Props, State> {
         </SearchLabel>
 
         <InputWrapper>
+          {hasSyntaxHighlight && <Highlight>{renderQuery(this.state.query)}</Highlight>}
           {useFormWrapper ? <form onSubmit={this.onSubmit}>{input}</form> : input}
         </InputWrapper>
         <ActionsBar gap={0.5}>
@@ -1317,7 +1323,23 @@ const InputWrapper = styled('div')`
   position: relative;
 `;
 
-const SearchInput = styled(TextareaAutosize)`
+const Highlight = styled('div')`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  user-select: none;
+  white-space: pre-wrap;
+  line-height: 24px;
+  font-size: ${p => p.theme.fontSizeSmall};
+  font-family: ${p => p.theme.text.familyMono};
+`;
+
+const SearchInput = styled(TextareaAutosize, {
+  shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop),
+})<{hiddenText: boolean}>`
+  position: relative;
   display: flex;
   resize: none;
   outline: none;
@@ -1331,6 +1353,11 @@ const SearchInput = styled(TextareaAutosize)`
   font-family: ${p => p.theme.text.familyMono};
   caret-color: ${p => p.theme.subText};
 
+  ${p => p.hiddenText && 'color: transparent'};
+
+  &::selection {
+    background: rgba(0, 0, 0, 0.2);
+  }
   &::placeholder {
     color: ${p => p.theme.formPlaceholder};
   }

@@ -220,10 +220,21 @@ const lightAliases = {
    */
   tagBarHover: colors.purple200,
   tagBar: colors.gray200,
+
   /**
    * Color for badge text
    */
   badgeText: colors.white,
+
+  /**
+   * Search filter "token" background
+   */
+  searchTokenBackground: '#E8F3FE',
+
+  /**
+   * Search filter "token" border
+   */
+  searchTokenBorder: '#B5DAFF',
 };
 
 const dataCategory = {
@@ -626,6 +637,8 @@ const darkAliases = {
   tagBar: colors.gray400,
   businessIconColors: [colors.pink100, colors.pink300],
   badgeText: colors.black,
+  searchTokenBackground: '#1F1A3D',
+  searchTokenBorder: '#554E80',
 };
 
 export const lightTheme = {
