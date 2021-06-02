@@ -2,7 +2,7 @@ import {Component, createContext, ReactNode} from 'react';
 
 import {
   fetchTeamKeyTransactions,
-  TeamKeyTransaction,
+  TeamKeyTransactions,
   toggleKeyTransaction,
 } from 'app/actionCreators/performance';
 import {Client} from 'app/api';
@@ -59,7 +59,7 @@ type State = Omit<
   'teams' | 'counts' | 'getKeyedTeams' | 'handleToggleKeyTransaction'
 > & {
   keyFetchID: symbol | null;
-  teamKeyTransactions: TeamKeyTransaction[];
+  teamKeyTransactions: TeamKeyTransactions;
 };
 
 class UnwrappedProvider extends Component<Props> {
@@ -93,7 +93,7 @@ class UnwrappedProvider extends Component<Props> {
     const keyFetchID = Symbol('keyFetchID');
     this.setState({isLoading: true, keyFetchID});
 
-    let teamKeyTransactions: TeamKeyTransaction[] = [];
+    let teamKeyTransactions: TeamKeyTransactions = [];
     let error: string | null = null;
 
     try {
@@ -158,36 +158,33 @@ class UnwrappedProvider extends Component<Props> {
     const teamIdSet = new Set(teamIds);
 
     const newTeamKeyTransactions = teamKeyTransactions.map(({team, count, keyed}) => {
-      if (teamIdSet.has(team)) {
-        if (isKeyTransaction) {
-          return {
-            team,
-            count: count - 1,
-            keyed: keyed.filter(
-              keyTransaction =>
-                keyTransaction.project_id !== String(project) &&
-                keyTransaction.transaction !== transactionName
-            ),
-          };
-        } else {
-          return {
-            team,
-            count: count + 1,
-            keyed: [
-              ...keyed,
-              {
-                project_id: String(project),
-                transaction: transactionName,
-              },
-            ],
-          };
-        }
+      if (!teamIdSet.has(team)) {
+        return {team, count, keyed};
       }
-      return {
-        team,
-        count,
-        keyed,
-      };
+
+      if (isKeyTransaction) {
+        return {
+          team,
+          count: count - 1,
+          keyed: keyed.filter(
+            keyTransaction =>
+              keyTransaction.project_id !== String(project) &&
+              keyTransaction.transaction !== transactionName
+          ),
+        };
+      } else {
+        return {
+          team,
+          count: count + 1,
+          keyed: [
+            ...keyed,
+            {
+              project_id: String(project),
+              transaction: transactionName,
+            },
+          ],
+        };
+      }
     });
 
     try {

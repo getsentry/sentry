@@ -12,11 +12,13 @@ type KeyTransaction = {
   transaction: string;
 };
 
-export type TeamKeyTransaction = {
+type TeamKeyTransaction = {
   team: string;
   count: number;
   keyed: KeyTransaction[];
 };
+
+export type TeamKeyTransactions = TeamKeyTransaction[];
 
 export async function fetchTeamKeyTransactions(
   api: Client,
@@ -26,10 +28,9 @@ export async function fetchTeamKeyTransactions(
 ): Promise<TeamKeyTransaction[]> {
   const url = `/organizations/${orgSlug}/key-transactions-list/`;
 
+  const datas: TeamKeyTransactions[] = [];
   let cursor: string | undefined = undefined;
   let hasMore = true;
-
-  const teamKeyTransactions: TeamKeyTransaction[][] = [];
 
   while (hasMore) {
     try {
@@ -47,7 +48,7 @@ export async function fetchTeamKeyTransactions(
         query: payload,
       });
 
-      teamKeyTransactions.push(data);
+      datas.push(data);
 
       const pageLinks = xhr && xhr.getResponseHeader('Link');
       if (pageLinks) {
@@ -65,7 +66,7 @@ export async function fetchTeamKeyTransactions(
     }
   }
 
-  return teamKeyTransactions.flat();
+  return datas.flat();
 }
 
 export function toggleKeyTransaction(
