@@ -4,97 +4,67 @@ from django.db.models import Q
 from rest_framework.response import Response
 
 from sentry import roles
+from sentry.api.bases.organizationmember import OrganizationMemberEndpoint
 from sentry.api.endpoints.organization_member_details import OrganizationMemberDetailsEndpoint
 from sentry.api.endpoints.organization_member_index import OrganizationMemberSerializer
-from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberSCIMSerializer
 from sentry.models import AuditLogEntryEvent, AuthIdentity, InviteStatus, OrganizationMember
 from sentry.signals import member_invited
 
-from .constants import SCIM_404_USER_RES, SCIM_409_USER_EXISTS
+from .constants import SCIM_409_USER_EXISTS
 from .utils import SCIMEndpoint, parse_filter_conditions
 
 ERR_ONLY_OWNER = "You cannot remove the only remaining owner of the organization."
 
 
-class OrganizationSCIMUserDetails(SCIMEndpoint, OrganizationMemberDetailsEndpoint):
-    def _get_member(self, organization, member_id):
-        try:
-            member = OrganizationMember.objects.get(
-                organization=organization,
-                id=member_id,
-                invite_status=InviteStatus.APPROVED.value,
-            )
-        except OrganizationMember.DoesNotExist:
-            raise ResourceDoesNotExist
-        except AssertionError as error:
-            if str(error) == "value too large":
-                raise ResourceDoesNotExist
-            raise error
-        return member
-
-    def get(self, request, organization, member_id):
-        try:
-            member = self._get_member(organization, member_id)
-        except ResourceDoesNotExist:
-            return Response(SCIM_404_USER_RES, status=404)
-
+class OrganizationSCIMUserDetails(SCIMEndpoint, OrganizationMemberEndpoint):
+    def get(self, request, organization, member):
         context = serialize(member, serializer=OrganizationMemberSCIMSerializer())
         return Response(context)
 
-    def patch(self, request, organization, member_id):
-        try:
-            member = self._get_member(organization, member_id)
-        except ResourceDoesNotExist:
-            return Response(SCIM_404_USER_RES, status=404)
-
+    def patch(self, request, organization, member):
         for operation in request.data.get("Operations", []):
             # we only support setting active to False which deletes the orgmember
             if operation["value"]["active"] is False:
                 audit_data = member.get_audit_log_data()
-                if self._is_only_owner(member):
+                if OrganizationMemberDetailsEndpoint._is_only_owner(member):
                     return Response({"detail": ERR_ONLY_OWNER}, status=403)
                 with transaction.atomic():
                     AuthIdentity.objects.filter(
                         user=member.user, auth_provider__organization=organization
                     ).delete()
                     member.delete()
-                self.create_audit_entry(
-                    request=request,
-                    organization=organization,
-                    target_object=member.id,
-                    target_user=member.user,
-                    event=AuditLogEntryEvent.MEMBER_REMOVE,
-                    data=audit_data,
-                )
+                    self.create_audit_entry(
+                        request=request,
+                        organization=organization,
+                        target_object=member.id,
+                        target_user=member.user,
+                        event=AuditLogEntryEvent.MEMBER_REMOVE,
+                        data=audit_data,
+                    )
                 return Response(status=204)
         context = serialize(member, serializer=OrganizationMemberSCIMSerializer())
         return Response(context)
 
-    def delete(self, request, organization, member_id):
-        try:
-            member = self._get_member(organization, member_id)
-        except ResourceDoesNotExist:
-            return Response(SCIM_404_USER_RES, status=404)
-
+    def delete(self, request, organization, member):
         audit_data = member.get_audit_log_data()
-        if self._is_only_owner(member):
+        if OrganizationMemberDetailsEndpoint._is_only_owner(member):
             return Response({"detail": ERR_ONLY_OWNER}, status=403)
         with transaction.atomic():
             AuthIdentity.objects.filter(
                 user=member.user, auth_provider__organization=organization
             ).delete()
             member.delete()
-        self.create_audit_entry(
-            request=request,
-            organization=organization,
-            target_object=member.id,
-            target_user=member.user,
-            event=AuditLogEntryEvent.MEMBER_REMOVE,
-            data=audit_data,
-        )
+            self.create_audit_entry(
+                request=request,
+                organization=organization,
+                target_object=member.id,
+                target_user=member.user,
+                event=AuditLogEntryEvent.MEMBER_REMOVE,
+                data=audit_data,
+            )
 
         return Response(status=204)
 
@@ -159,6 +129,15 @@ class OrganizationSCIMUserIndex(SCIMEndpoint):
                 role=result["role"],
                 inviter=request.user,
             )
+            self.create_audit_entry(
+                request=request,
+                organization_id=organization.id,
+                target_object=member.id,
+                data=member.get_audit_log_data(),
+                event=AuditLogEntryEvent.MEMBER_INVITE
+                if settings.SENTRY_ENABLE_INVITES
+                else AuditLogEntryEvent.MEMBER_ADD,
+            )
             # TODO: are invite tokens needed for SAML orgs?
             if settings.SENTRY_ENABLE_INVITES:
                 member.token = member.generate_token()
@@ -172,16 +151,6 @@ class OrganizationSCIMUserIndex(SCIMEndpoint):
                 sender=self,
                 referrer=request.data.get("referrer"),
             )
-
-        self.create_audit_entry(
-            request=request,
-            organization_id=organization.id,
-            target_object=member.id,
-            data=member.get_audit_log_data(),
-            event=AuditLogEntryEvent.MEMBER_INVITE
-            if settings.SENTRY_ENABLE_INVITES
-            else AuditLogEntryEvent.MEMBER_ADD,
-        )
 
         context = serialize(member, serializer=OrganizationMemberSCIMSerializer())
         return Response(context, status=201)

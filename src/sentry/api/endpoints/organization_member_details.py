@@ -93,7 +93,8 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
                 raise OrganizationMember.DoesNotExist()
         return queryset.select_related("user").get()
 
-    def _is_only_owner(self, member):
+    @staticmethod
+    def _is_only_owner(member):
         if member.role != roles.get_top_dog().id:
             return False
 

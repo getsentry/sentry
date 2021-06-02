@@ -10,20 +10,27 @@ from sentry.utils.cursors import Cursor
 
 from .constants import SCIM_API_LIST
 
+SCIM_CONTENT_TYPES = ["application/json", "application/json+scim"]
 
-class IgnoreClientContentNegotiation(BaseContentNegotiation):
-    # TODO: validate scim content type
+
+class SCIMClientNegotiation(BaseContentNegotiation):
+    # SCIM uses the content type "application/json+scim"
+    # which is just json for our purposes.
     def select_parser(self, request, parsers):
         """
         Select the first parser in the `.parser_classes` list.
         """
-        return parsers[0]
+        for parser in parsers:
+            if parser.media_type in SCIM_CONTENT_TYPES:
+                return parser
 
     def select_renderer(self, request, renderers, format_suffix):
         """
         Select the first renderer in the `.renderer_classes` list.
         """
-        return (renderers[0], renderers[0].media_type)
+        for renderer in renderers:
+            if renderer.media_type in SCIM_CONTENT_TYPES:
+                return (renderer, renderer.media_type)
 
 
 class OrganizationSCIMPermission(OrganizationPermission):
@@ -52,7 +59,7 @@ class OrganizationSCIMPermission(OrganizationPermission):
 
 class SCIMEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationSCIMPermission,)
-    content_negotiation_class = IgnoreClientContentNegotiation
+    content_negotiation_class = SCIMClientNegotiation
 
     def paginate(
         self,
@@ -107,8 +114,22 @@ class SCIMEndpoint(OrganizationEndpoint):
 
 
 def parse_filter_conditions(raw_filters):
+    """
+    this function parses a scim filter, see:
+    https://datatracker.ietf.org/doc/html/rfc7644#section-3.4.2.2
+
+    right now the only subset of that filtering we support is the simple "eq"
+    operator. the input would look like so:
+    userName eq "test.user@okta.local"
+
+    the only field we support filtering on is userName, so this function
+    simply returns the email within the above quotes currently.
+    We may want to support further SCIM grammar for other IDPs and may use
+    a package to replace this functionality.
+    """
     # TODO: support "and" operator
     # TODO: support email querying/filtering
+    # TODO: graceful error handling when unsupported operators are used
     filters = []
     if raw_filters is None:
         return filters
@@ -134,5 +155,5 @@ def parse_filter_conditions(raw_filters):
     if len(filters) > 0:
         filter_val = [filters[0][1]]
     else:
-        filter_val = None
+        filter_val = []
     return filter_val

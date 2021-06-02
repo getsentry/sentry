@@ -17,7 +17,7 @@ class BoundedIntegerField(models.IntegerField):
     def get_prep_value(self, value):
         if value:
             value = int(value)
-            assert value <= self.MAX_VALUE, "value too large"
+            assert value <= self.MAX_VALUE
         return super().get_prep_value(value)
 
 
@@ -27,7 +27,7 @@ class BoundedPositiveIntegerField(models.PositiveIntegerField):
     def get_prep_value(self, value):
         if value:
             value = int(value)
-            assert value <= self.MAX_VALUE, "value too large"
+            assert value <= self.MAX_VALUE
         return super().get_prep_value(value)
 
 
@@ -37,7 +37,7 @@ class BoundedAutoField(models.AutoField):
     def get_prep_value(self, value):
         if value:
             value = int(value)
-            assert value <= self.MAX_VALUE, "value too large"
+            assert value <= self.MAX_VALUE
         return super().get_prep_value(value)
 
 
@@ -54,7 +54,7 @@ if settings.SENTRY_USE_BIG_INTS:
         def get_prep_value(self, value):
             if value:
                 value = int(value)
-                assert value <= self.MAX_VALUE, "value too large"
+                assert value <= self.MAX_VALUE
             return super().get_prep_value(value)
 
     class BoundedBigAutoField(models.AutoField):
@@ -74,7 +74,7 @@ if settings.SENTRY_USE_BIG_INTS:
         def get_prep_value(self, value):
             if value:
                 value = int(value)
-                assert value <= self.MAX_VALUE, "value too large"
+                assert value <= self.MAX_VALUE
             return super().get_prep_value(value)
 
 
