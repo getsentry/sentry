@@ -235,10 +235,12 @@ class KeyTransactionTeamSerializer(Serializer):
             team__in=[item.id for item in item_list]
         ).order_by("transaction", "project_id")
 
-        attrs = defaultdict(lambda: {
-            "count": 0,
-            "key_transactions": [],
-        })
+        attrs = defaultdict(
+            lambda: {
+                "count": 0,
+                "key_transactions": [],
+            }
+        )
 
         for kt in team_key_transactions:
             attrs[kt.team]["count"] += 1
