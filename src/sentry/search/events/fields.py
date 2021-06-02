@@ -391,7 +391,7 @@ def resolve_field_list(
     # Both `count_miserable_new` and `user_misery_new` require the project_threshold_config column
     if PROJECT_THRESHOLD_CONFIG_ALIAS not in fields:
         for field in fields[:]:
-            if (
+            if isinstance(field, str) and (
                 field.startswith("count_miserable_new")
                 or field == "user_misery_new()"
                 or field == "apdex_new()"
