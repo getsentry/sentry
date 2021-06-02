@@ -1,17 +1,10 @@
-import {Route} from 'react-router';
+import {Route, RouteComponentProps} from 'react-router';
 
 import {ChildrenRenderFn} from 'app/components/acl/feature';
 import DateRange from 'app/components/organizations/timeRangeSelector/dateRange';
 import SelectorItems from 'app/components/organizations/timeRangeSelector/dateRange/selectorItems';
 import SidebarItem from 'app/components/sidebar/sidebarItem';
-import {
-  IntegrationProvider,
-  Member,
-  Organization,
-  OrganizationSummary,
-  Project,
-  User,
-} from 'app/types';
+import {IntegrationProvider, Member, Organization, Project, User} from 'app/types';
 import {ExperimentKey} from 'app/types/experiments';
 import {NavigationItem, NavigationSection} from 'app/views/settings/types';
 
@@ -57,7 +50,7 @@ export type RouteHooks = {
 type DateRangeProps = React.ComponentProps<typeof DateRange>;
 type SelectorItemsProps = React.ComponentProps<typeof SelectorItems>;
 type GlobalNotificationProps = {className: string; organization?: Organization};
-type DisabledMemberViewProps = {organization: OrganizationSummary};
+type DisabledMemberViewProps = RouteComponentProps<{orgId: string}, {}>;
 type MemberListHeaderProps = {
   members: Member[];
   organization: Organization;

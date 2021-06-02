@@ -574,7 +574,7 @@ const responsiveFlex = css`
   }
 `;
 
-const StyledSidebar = styled('div')<{collapsed: boolean}>`
+export const StyledSidebar = styled('div')<{collapsed: boolean}>`
   background: ${p => p.theme.sidebar.background};
   background: ${p => p.theme.sidebarGradient};
   color: ${p => p.theme.sidebar.color};
