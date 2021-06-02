@@ -1331,7 +1331,7 @@ const Highlight = styled('div')`
   bottom: 0;
   user-select: none;
   white-space: pre-wrap;
-  line-height: 24px;
+  line-height: 25px;
   font-size: ${p => p.theme.fontSizeSmall};
   font-family: ${p => p.theme.text.familyMono};
 `;
