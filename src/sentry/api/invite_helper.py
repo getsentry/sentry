@@ -218,7 +218,7 @@ class ApiInviteHelper:
         organization = self.om.organization
         if not (
             features.has("organizations:required-email-verification", organization)
-            and organization.requires_email_verification()
+            and organization.flags.require_email_verification
         ):
             return False
 

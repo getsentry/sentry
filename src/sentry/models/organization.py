@@ -144,6 +144,10 @@ class Organization(Model):
                 "disable_new_visibility_features",
                 "Temporarily opt out of new visibility features and ui",
             ),
+            (
+                "require_email_verification",
+                "Require and enforce email verification for all members.",
+            ),
         ),
         default=1,
     )
@@ -432,19 +436,6 @@ class Organization(Model):
             type="org.confirm_delete",
             context=context,
         ).send_async([o.email for o in owners])
-
-    def requires_email_verification(self):
-        """Check whether the org is configured to require email verification.
-
-        TODO: Add as value to Organization.flags (analogous to require_2fa).
-        Temporarily, while behind feature flag, hard-code the switch to be "on"
-        if and only if the flag is enabled. After migrating, delete this method
-        and replace calls with references to the flag value.
-        """
-
-        from sentry import features
-
-        return features.has("organizations:required-email-verification", self)
 
     def _handle_requirement_change(self, request, task):
         from sentry.models import ApiKey
