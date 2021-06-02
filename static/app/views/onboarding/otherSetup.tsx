@@ -4,11 +4,9 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
-import {openInviteMembersModal} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
 import Alert from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
-import Button from 'app/components/button';
 import ExternalLink from 'app/components/links/externalLink';
 import {PlatformKey} from 'app/data/platformCategories';
 import {t, tct} from 'app/locale';
@@ -20,7 +18,7 @@ import withOrganization from 'app/utils/withOrganization';
 import {ProjectKey} from 'app/views/settings/project/projectKeys/types';
 
 import FirstEventFooter from './components/firstEventFooter';
-import SetupIntroduction from './components/setupIntroduction';
+import FullIntroduction from './components/fullIntroduction';
 import {StepProps} from './types';
 
 type AnalyticsOpts = {
@@ -69,34 +67,7 @@ class OtherSetup extends AsyncComponent<Props, State> {
 
     const currentPlatform = 'other';
 
-    const introduction = (
-      <React.Fragment>
-        <SetupIntroduction
-          stepHeaderText={t('Prepare the Other SDK')}
-          platform={currentPlatform}
-        />
-        <motion.p
-          variants={{
-            initial: {opacity: 0},
-            animate: {opacity: 1},
-            exit: {opacity: 0},
-          }}
-        >
-          {tct(
-            "Don't have a relationship with your terminal? [link:Invite your team instead].",
-            {
-              link: (
-                <Button
-                  priority="link"
-                  data-test-id="onboarding-getting-started-invite-members"
-                  onClick={openInviteMembersModal}
-                />
-              ),
-            }
-          )}
-        </motion.p>
-      </React.Fragment>
-    );
+    const introduction = <FullIntroduction currentPlatform={currentPlatform} />;
 
     const blurb = (
       <React.Fragment>

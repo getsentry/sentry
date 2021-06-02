@@ -5,11 +5,9 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
-import {openInviteMembersModal} from 'app/actionCreators/modal';
 import {loadDocs} from 'app/actionCreators/projects';
 import {Client} from 'app/api';
 import Alert, {alertStyles} from 'app/components/alert';
-import Button from 'app/components/button';
 import ExternalLink from 'app/components/links/externalLink';
 import LoadingError from 'app/components/loadingError';
 import {PlatformKey} from 'app/data/platformCategories';
@@ -25,7 +23,7 @@ import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
 import FirstEventFooter from './components/firstEventFooter';
-import SetupIntroduction from './components/setupIntroduction';
+import FullIntroduction from './components/fullIntroduction';
 import {StepProps} from './types';
 
 /**
@@ -134,37 +132,7 @@ class DocumentationSetup extends React.Component<Props, State> {
 
     const currentPlatform = loadedPlatform ?? platform ?? 'other';
 
-    const introduction = (
-      <React.Fragment>
-        <SetupIntroduction
-          stepHeaderText={t(
-            'Prepare the %s SDK',
-            platforms.find(p => p.id === currentPlatform)?.name ?? ''
-          )}
-          platform={currentPlatform}
-        />
-        <motion.p
-          variants={{
-            initial: {opacity: 0},
-            animate: {opacity: 1},
-            exit: {opacity: 0},
-          }}
-        >
-          {tct(
-            "Don't have a relationship with your terminal? [link:Invite your team instead].",
-            {
-              link: (
-                <Button
-                  priority="link"
-                  data-test-id="onboarding-getting-started-invite-members"
-                  onClick={openInviteMembersModal}
-                />
-              ),
-            }
-          )}
-        </motion.p>
-      </React.Fragment>
-    );
+    const introduction = <FullIntroduction currentPlatform={currentPlatform} />;
 
     const docs = platformDocs !== null && (
       <DocsWrapper key={platformDocs.html}>
