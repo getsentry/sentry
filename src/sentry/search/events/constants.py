@@ -4,6 +4,8 @@ from sentry.snuba.dataset import Dataset
 from sentry.utils.snuba import DATASETS
 
 KEY_TRANSACTION_ALIAS = "key_transaction"
+PROJECT_THRESHOLD_CONFIG_ALIAS = "project_threshold_config"
+TEAM_KEY_TRANSACTION_ALIAS = "team_key_transaction"
 ERROR_UNHANDLED_ALIAS = "error.unhandled"
 USER_DISPLAY_ALIAS = "user.display"
 PROJECT_ALIAS = "project"
@@ -55,3 +57,6 @@ SEARCH_MAP = {
 }
 SEARCH_MAP.update(**DATASETS[Dataset.Events])
 SEARCH_MAP.update(**DATASETS[Dataset.Discover])
+
+DEFAULT_PROJECT_THRESHOLD_METRIC = "duration"
+DEFAULT_PROJECT_THRESHOLD = 300

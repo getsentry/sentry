@@ -180,7 +180,27 @@ export function transferProject(
         );
       },
       err => {
-        addErrorMessage(tct('Error transferring [project]', {project: project.slug}));
+        let message = '';
+        // Handle errors with known failures
+        if (err.status >= 400 && err.status < 500 && err.responseJSON) {
+          message = err.responseJSON?.detail;
+        }
+
+        if (message) {
+          addErrorMessage(
+            tct('Error transferring [project]. [message]', {
+              project: project.slug,
+              message,
+            })
+          );
+        } else {
+          addErrorMessage(
+            tct('Error transferring [project]', {
+              project: project.slug,
+            })
+          );
+        }
+
         throw err;
       }
     );

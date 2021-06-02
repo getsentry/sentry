@@ -302,7 +302,7 @@ describe('Performance > TransactionSummary', function () {
     wrapper.update();
 
     // Fill out the search box, and submit it.
-    const searchBar = wrapper.find('SearchBar input');
+    const searchBar = wrapper.find('SearchBar textarea');
     searchBar
       .simulate('change', {target: {value: 'user.email:uhoh*'}})
       .simulate('submit', {preventDefault() {}});

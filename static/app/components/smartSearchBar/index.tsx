@@ -1,5 +1,7 @@
 import * as React from 'react';
+import TextareaAutosize from 'react-autosize-textarea';
 import {browserHistory, withRouter, WithRouterProps} from 'react-router';
+import isPropValid from '@emotion/is-prop-valid';
 import {ClassNames, withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -19,6 +21,7 @@ import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import DropdownLink from 'app/components/dropdownLink';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
+import renderQuery from 'app/components/searchSyntax/renderer';
 import {
   DEFAULT_DEBOUNCE_DURATION,
   MAX_AUTOCOMPLETE_RELEASES,
@@ -230,7 +233,7 @@ type Props = WithRouterProps & {
   /**
    * Called on key down
    */
-  onKeyDown?: (evt: React.KeyboardEvent<HTMLInputElement>) => void;
+  onKeyDown?: (evt: React.KeyboardEvent<HTMLTextAreaElement>) => void;
 
   /**
    * Called when a recent search is saved
@@ -308,7 +311,7 @@ class SmartSearchBar extends React.Component<Props, State> {
     query: null,
     onSearch: function () {},
     excludeEnvironment: false,
-    placeholder: t('Search for events, users, tags, and everything else.'),
+    placeholder: t('Search for events, users, tags, and more'),
     supportedTags: {},
     defaultSearchItems: [[], []],
     hasPinnedSearch: false,
@@ -353,7 +356,7 @@ class SmartSearchBar extends React.Component<Props, State> {
   /**
    * Ref to the search element itself
    */
-  searchInput = React.createRef<HTMLInputElement>();
+  searchInput = React.createRef<HTMLTextAreaElement>();
 
   blur = () => {
     if (!this.searchInput.current) {
@@ -415,7 +418,7 @@ class SmartSearchBar extends React.Component<Props, State> {
 
   onQueryFocus = () => this.setState({dropdownVisible: true});
 
-  onQueryBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+  onQueryBlur = (e: React.FocusEvent<HTMLTextAreaElement>) => {
     // wait before closing dropdown in case blur was a result of clicking a
     // menu option
     const value = e.target.value;
@@ -428,8 +431,10 @@ class SmartSearchBar extends React.Component<Props, State> {
     this.blurTimeout = window.setTimeout(blurHandler, DROPDOWN_BLUR_DURATION);
   };
 
-  onQueryChange = (evt: React.ChangeEvent<HTMLInputElement>) => {
-    this.setState({query: evt.target.value}, this.updateAutoCompleteItems);
+  onQueryChange = (evt: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const query = evt.target.value.replace('\n', '');
+
+    this.setState({query}, this.updateAutoCompleteItems);
     callIfFunction(this.props.onChange, evt.target.value, evt);
   };
 
@@ -438,7 +443,7 @@ class SmartSearchBar extends React.Component<Props, State> {
   /**
    * Handle keyboard navigation
    */
-  onKeyDown = (evt: React.KeyboardEvent<HTMLInputElement>) => {
+  onKeyDown = (evt: React.KeyboardEvent<HTMLTextAreaElement>) => {
     const {onKeyDown} = this.props;
     const {key} = evt;
 
@@ -448,7 +453,6 @@ class SmartSearchBar extends React.Component<Props, State> {
       return;
     }
 
-    const {useFormWrapper} = this.props;
     const isSelectingDropdownItems = this.state.activeSearchItem !== -1;
 
     if (key === 'ArrowDown' || key === 'ArrowUp') {
@@ -522,19 +526,13 @@ class SmartSearchBar extends React.Component<Props, State> {
       return;
     }
 
-    if (key === 'Enter') {
-      if (!useFormWrapper && !isSelectingDropdownItems) {
-        // If enter is pressed, and we are not wrapping input in a `<form>`,
-        // and we are not selecting an item from the dropdown, then we should
-        // consider the user as finished selecting and perform a "search" since
-        // there is no `<form>` to catch and call `this.onSubmit`
-        this.doSearch();
-      }
+    if (key === 'Enter' && !isSelectingDropdownItems) {
+      this.doSearch();
       return;
     }
   };
 
-  onKeyUp = (evt: React.KeyboardEvent<HTMLInputElement>) => {
+  onKeyUp = (evt: React.KeyboardEvent<HTMLTextAreaElement>) => {
     // Other keys are managed at onKeyDown function
     if (evt.key !== 'Escape') {
       return;
@@ -1100,37 +1098,28 @@ class SmartSearchBar extends React.Component<Props, State> {
     const pinIcon = <IconPin isSolid={!!pinnedSearch} size="xs" />;
     const hasQuery = !!this.state.query;
 
+    const hasSyntaxHighlight = organization.features.includes('search-syntax-highlight');
+
     const input = (
-      <React.Fragment>
-        <StyledInput
-          type="text"
-          placeholder={placeholder}
-          id="smart-search-input"
-          name="query"
-          ref={this.searchInput}
-          autoComplete="off"
-          value={this.state.query}
-          onFocus={this.onQueryFocus}
-          onBlur={this.onQueryBlur}
-          onKeyUp={this.onKeyUp}
-          onKeyDown={this.onKeyDown}
-          onChange={this.onQueryChange}
-          onClick={this.onInputClick}
-          disabled={disabled}
-          maxLength={maxQueryLength}
-        />
-        {(this.state.loading || this.state.searchGroups.length > 0) && (
-          <DropdownWrapper visible={this.state.dropdownVisible}>
-            <SearchDropdown
-              className={dropdownClassName}
-              items={this.state.searchGroups}
-              onClick={this.onAutoComplete}
-              loading={this.state.loading}
-              searchSubstring={this.state.searchTerm}
-            />
-          </DropdownWrapper>
-        )}
-      </React.Fragment>
+      <SearchInput
+        type="text"
+        placeholder={placeholder}
+        id="smart-search-input"
+        name="query"
+        ref={this.searchInput}
+        autoComplete="off"
+        value={this.state.query}
+        onFocus={this.onQueryFocus}
+        onBlur={this.onQueryBlur}
+        onKeyUp={this.onKeyUp}
+        onKeyDown={this.onKeyDown}
+        onChange={this.onQueryChange}
+        onClick={this.onInputClick}
+        disabled={disabled}
+        maxLength={maxQueryLength}
+        spellCheck={false}
+        hiddenText={hasSyntaxHighlight}
+      />
     );
 
     return (
@@ -1140,12 +1129,11 @@ class SmartSearchBar extends React.Component<Props, State> {
           {inlineLabel}
         </SearchLabel>
 
-        {useFormWrapper ? (
-          <StyledForm onSubmit={this.onSubmit}>{input}</StyledForm>
-        ) : (
-          input
-        )}
-        <StyledButtonBar gap={0.5}>
+        <InputWrapper>
+          {hasSyntaxHighlight && <Highlight>{renderQuery(this.state.query)}</Highlight>}
+          {useFormWrapper ? <form onSubmit={this.onSubmit}>{input}</form> : input}
+        </InputWrapper>
+        <ActionsBar gap={0.5}>
           {this.state.query !== '' && (
             <InputButton
               type="button"
@@ -1270,7 +1258,17 @@ class SmartSearchBar extends React.Component<Props, State> {
               )}
             </StyledDropdownLink>
           )}
-        </StyledButtonBar>
+        </ActionsBar>
+        {(this.state.loading || this.state.searchGroups.length > 0) && (
+          <SearchDropdown
+            css={{display: this.state.dropdownVisible ? 'block' : 'none'}}
+            className={dropdownClassName}
+            items={this.state.searchGroups}
+            onClick={this.onAutoComplete}
+            loading={this.state.loading}
+            searchSubstring={this.state.searchTerm}
+          />
+        )}
       </Container>
     );
   }
@@ -1302,52 +1300,69 @@ export {SmartSearchBar};
 
 const Container = styled('div')<{isOpen: boolean}>`
   border: 1px solid ${p => p.theme.border};
+  box-shadow: inset ${p => p.theme.dropShadowLight};
+  background: ${p => p.theme.background};
+  padding: 7px ${space(1)};
+  position: relative;
+  display: grid;
+  grid-template-columns: max-content 1fr max-content;
+  grid-gap: ${space(1)};
+  align-items: start;
+
   border-radius: ${p =>
     p.isOpen
       ? `${p.theme.borderRadius} ${p.theme.borderRadius} 0 0`
       : p.theme.borderRadius};
-  /* match button height */
-  height: 40px;
-  box-shadow: inset ${p => p.theme.dropShadowLight};
-  background: ${p => p.theme.background};
-
-  position: relative;
-
-  display: flex;
 
   .show-sidebar & {
     background: ${p => p.theme.backgroundSecondary};
   }
 `;
 
-const DropdownWrapper = styled('div')<{visible: boolean}>`
-  display: ${p => (p.visible ? 'block' : 'none')};
+const InputWrapper = styled('div')`
+  position: relative;
 `;
 
-const StyledForm = styled('form')`
-  flex-grow: 1;
+const Highlight = styled('div')`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  user-select: none;
+  white-space: pre-wrap;
+  line-height: 25px;
+  font-size: ${p => p.theme.fontSizeSmall};
+  font-family: ${p => p.theme.text.familyMono};
 `;
 
-const StyledInput = styled('input')`
-  color: ${p => p.theme.textColor};
-  background: transparent;
-  border: 0;
+const SearchInput = styled(TextareaAutosize, {
+  shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop),
+})<{hiddenText: boolean}>`
+  position: relative;
+  display: flex;
+  resize: none;
   outline: none;
-  font-size: ${p => p.theme.fontSizeMedium};
+  border: 0;
   width: 100%;
-  height: 40px;
-  line-height: 40px;
-  padding: 0 0 0 ${space(1)};
+  padding: 0;
+  line-height: 25px;
+  margin-bottom: -1px;
+  background: transparent;
+  font-size: ${p => p.theme.fontSizeSmall};
+  font-family: ${p => p.theme.text.familyMono};
+  caret-color: ${p => p.theme.subText};
 
+  ${p => p.hiddenText && 'color: transparent'};
+
+  &::selection {
+    background: rgba(0, 0, 0, 0.2);
+  }
   &::placeholder {
     color: ${p => p.theme.formPlaceholder};
   }
-  &:focus {
-    border-color: ${p => p.theme.border};
-    border-bottom-right-radius: 0;
-  }
 
-  .show-sidebar & {
+  [disabled] {
     color: ${p => p.theme.disabled};
   }
 `;
@@ -1368,10 +1383,6 @@ const DropdownElement = styled('a')<Omit<DropdownElementStylesProps, 'theme'>>`
   ${getDropdownElementStyles}
 `;
 
-const StyledButtonBar = styled(ButtonBar)`
-  margin-right: ${space(1)};
-`;
-
 const EllipsisButton = styled(InputButton)`
   /*
    * this is necessary because DropdownLink wraps the button in an unstyled
@@ -1386,8 +1397,12 @@ const VerticalEllipsisIcon = styled(IconEllipsis)`
 
 const SearchLabel = styled('label')`
   display: flex;
-  align-items: center;
+  padding: ${space(0.5)} 0;
   margin: 0;
-  padding-left: ${space(1)};
   color: ${p => p.theme.gray300};
+`;
+
+const ActionsBar = styled(ButtonBar)`
+  height: ${space(2)};
+  margin: ${space(0.5)} 0;
 `;

@@ -279,6 +279,10 @@ let appConfig = {
         },
       },
       {
+        test: /\.pegjs/,
+        use: {loader: 'pegjs-loader'},
+      },
+      {
         test: /\.css/,
         use: ['style-loader', 'css-loader'],
       },

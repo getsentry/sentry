@@ -46,11 +46,6 @@ def resolve_combined_expression(instance, node):
     return runner
 
 
-# TODO(mark) Remove these compatibility aliases once getsentry doesn't use them.
-ExpressionNode = CombinedExpression
-resolve_expression_node = resolve_combined_expression
-
-
 def slugify_instance(inst, label, reserved=(), max_length=30, field_name="slug", *args, **kwargs):
     base_value = slugify(label)[:max_length]
 

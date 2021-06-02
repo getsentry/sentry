@@ -1050,6 +1050,7 @@ export type BaseGroup = {
   type: EventOrGroupType;
   userReportCount: number;
   subscriptionDetails: {disabled?: boolean; reason?: string} | null;
+  status: string;
   inbox?: InboxDetails | null | false;
   owners?: SuggestedOwner[] | null;
 } & GroupRelease;
