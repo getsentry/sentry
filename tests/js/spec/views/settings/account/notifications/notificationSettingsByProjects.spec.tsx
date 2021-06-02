@@ -2,13 +2,9 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {Project} from 'app/types';
-import {NotificationSettingsObject} from 'app/views/settings/account/notifications/constants';
 import NotificationSettingsByProjects from 'app/views/settings/account/notifications/notificationSettingsByProjects';
 
-const createWrapper = (
-  notificationSettings: NotificationSettingsObject,
-  projects: Project[]
-) => {
+const createWrapper = (projects: Project[]) => {
   const {routerContext} = initializeOrg();
 
   // @ts-expect-error
@@ -18,6 +14,14 @@ const createWrapper = (
     body: projects,
   });
 
+  const notificationSettings = {
+    alerts: {
+      user: {me: {email: 'always', slack: 'always'}},
+      project: Object.fromEntries(
+        projects.map(project => [project.id, {email: 'never', slack: 'never'}])
+      ),
+    },
+  };
 
   return mountWithTheme(
     <NotificationSettingsByProjects
@@ -31,7 +35,7 @@ const createWrapper = (
 
 describe('NotificationSettingsByProjects', function () {
   it('should render when there are no projects', function () {
-    const wrapper = createWrapper({}, []);
+    const wrapper = createWrapper([]);
     expect(wrapper.find('EmptyMessage').text()).toEqual('No projects found');
     expect(wrapper.find('AsyncComponentSearchInput')).toHaveLength(0);
     expect(wrapper.find('Pagination')).toHaveLength(0);
