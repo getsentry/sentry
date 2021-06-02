@@ -1,4 +1,4 @@
-import React from 'react';
+import {Fragment} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import {css} from '@emotion/react';
 
@@ -51,7 +51,7 @@ function DebugFileCustomRepository({
   onSave,
   sourceConfig,
   sourceType,
-  params: {orgId, projectId},
+  params: {orgId, projectId: projectSlug},
   location,
   appStoreConnectValidationData,
 }: Props) {
@@ -60,55 +60,48 @@ function DebugFileCustomRepository({
     closeModal();
   }
 
-  function renderForm() {
-    if (sourceType === 'appStoreConnect') {
-      const {revalidateItunesSession} = location.query;
-
-      return (
-        <AppStoreConnect
-          Body={Body}
-          Footer={Footer}
-          closeModal={closeModal}
-          orgSlug={orgId}
-          projectSlug={projectId}
-          onSubmit={handleSave}
-          initialData={sourceConfig as AppStoreConnectInitialData | undefined}
-          revalidateItunesSession={!!revalidateItunesSession}
-          appStoreConnectValidationData={appStoreConnectValidationData}
-        />
-      );
-    }
-
-    const fields = getFormFields(sourceType);
-
-    if (!fields) {
-      return null;
-    }
+  if (sourceType === 'appStoreConnect') {
+    const {revalidateItunesSession} = location.query;
 
     return (
-      <Form
-        allowUndo
-        requireChanges
-        initialData={sourceConfig}
+      <AppStoreConnect
+        Header={Header}
+        Body={Body}
+        Footer={Footer}
+        closeModal={closeModal}
+        orgSlug={orgId}
+        projectSlug={projectSlug}
         onSubmit={handleSave}
-        footerClass="modal-footer"
-      >
-        {fields.map((field, i) => (
-          <FieldFromConfig key={field.name || i} field={field} inline={false} stacked />
-        ))}
-      </Form>
+        initialData={sourceConfig as AppStoreConnectInitialData | undefined}
+        revalidateItunesSession={!!revalidateItunesSession}
+        appStoreConnectValidationData={appStoreConnectValidationData}
+      />
     );
   }
 
-  const headerText = sourceConfig ? 'Update [name] Repository' : 'Add [name] Repository';
+  const fields = getFormFields(sourceType);
 
   return (
-    <React.Fragment>
+    <Fragment>
       <Header closeButton>
-        {tct(headerText, {name: getDebugSourceName(sourceType)})}
+        {sourceConfig
+          ? tct('Update [name] Repository', {name: getDebugSourceName(sourceType)})
+          : tct('Add [name] Repository', {name: getDebugSourceName(sourceType)})}
       </Header>
-      {renderForm()}
-    </React.Fragment>
+      {fields && (
+        <Form
+          allowUndo
+          requireChanges
+          initialData={sourceConfig}
+          onSubmit={handleSave}
+          footerClass="modal-footer"
+        >
+          {fields.map((field, i) => (
+            <FieldFromConfig key={field.name || i} field={field} inline={false} stacked />
+          ))}
+        </Form>
+      )}
+    </Fragment>
   );
 }
 
