@@ -1,3 +1,5 @@
+from enum import Enum
+
 SCIM_API_LIST = "urn:ietf:params:scim:api:messages:2.0:ListResponse"
 SCIM_SCHEMA_USER = "urn:ietf:params:scim:schemas:core:2.0:User"
 ERR_ONLY_OWNER = "You cannot remove the only remaining owner of the organization."
@@ -10,6 +12,11 @@ SCIM_404_USER_RES = {
     "detail": "User not found.",
 }
 
+SCIM_404_GROUP_RES = {
+    "schemas": [SCIM_API_ERROR],
+    "detail": "Group not found.",
+}
+
 SCIM_409_USER_EXISTS = {
     "schemas": [SCIM_API_ERROR],
     "detail": "User already exists in the database.",
@@ -18,3 +25,12 @@ SCIM_400_INVALID_FILTER = {
     "schemas": [SCIM_API_ERROR],
     "scimType": "invalidFilter",
 }
+
+
+class GroupPatchOps(str, Enum):
+    ADD = "add"
+    REMOVE = "remove"
+    REPLACE = "replace"
+
+
+SCIM_SCHEMA_GROUP = "urn:ietf:params:scim:schemas:core:2.0:Group"

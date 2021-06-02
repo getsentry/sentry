@@ -34,14 +34,6 @@ class SCIMClientNegotiation(BaseContentNegotiation):
 
 
 class OrganizationSCIMPermission(OrganizationPermission):
-    scope_map = {
-        "GET": ["member:read", "member:write", "member:admin"],
-        "POST": ["member:write", "member:admin"],
-        "PATCH": ["member:write", "member:admin"],
-        "PUT": ["member:write", "member:admin"],
-        "DELETE": ["member:admin"],
-    }
-
     def has_object_permission(self, request, view, organization):
         result = super().has_object_permission(request, view, organization)
         # The scim endpoints should only be used in conjunction with a SAML2 integration
@@ -57,8 +49,26 @@ class OrganizationSCIMPermission(OrganizationPermission):
         return True
 
 
+class OrganizationSCIMMemberPermission(OrganizationSCIMPermission):
+    scope_map = {
+        "GET": ["member:read", "member:write", "member:admin"],
+        "POST": ["member:write", "member:admin"],
+        "PATCH": ["member:write", "member:admin"],
+        "PUT": ["member:write", "member:admin"],
+        "DELETE": ["member:admin"],
+    }
+
+
+class OrganizationSCIMTeamPermission(OrganizationSCIMPermission):
+    scope_map = {
+        "GET": ["team:read", "team:write", "team:admin"],
+        "POST": ["team:write", "team:admin"],
+        "PATCH": ["team:write", "team:admin"],
+        "DELETE": ["team:admin"],
+    }
+
+
 class SCIMEndpoint(OrganizationEndpoint):
-    permission_classes = (OrganizationSCIMPermission,)
     content_negotiation_class = SCIMClientNegotiation
 
     def paginate(
@@ -144,18 +154,22 @@ def parse_filter_conditions(raw_filters):
         value = value.strip()
 
         # For USERS: Unique username should always be lowercase
-        if key == "userName":
-            value = value.lower()
-        else:
-            raise ValueError  # only support the userName field right now
-
         if value[0] == '"' and value[-1] == '"':
             value = value.replace('"', "")
         if value[0] == "'" and value[-1] == "'":
             value = value.replace("'", "")
+
+        if key == "userName":
+            value = value.lower()
+        elif key == "value":
+            value = int(value)
+        elif key == "displayName":
+            pass
+        else:
+            raise ValueError  # only support above fields
         filters.append([key, value])
 
-    if len(filters) == 1 and filters[0][0] == "userName":
+    if len(filters) == 1:
         filter_val = [filters[0][1]]
     else:
         filter_val = []
