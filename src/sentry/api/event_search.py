@@ -10,6 +10,7 @@ from parsimonious.grammar import Grammar, NodeVisitor
 from parsimonious.nodes import Node, RegexNode
 
 from sentry.search.events.constants import (
+    EQUATION_KEY_RE,
     KEY_TRANSACTION_ALIAS,
     SEARCH_MAP,
     TAG_KEY_RE,
@@ -87,10 +88,10 @@ duration_filter = search_key sep operator? duration_format
 boolean_filter = negation? search_key sep boolean_value
 
 # numeric in filter
-numeric_in_filter = search_key sep numeric_in_list
+numeric_in_filter = numeric_key sep numeric_in_list
 
 # numeric comparison filter
-numeric_filter = search_key sep operator? numeric_value
+numeric_filter = numeric_key sep operator? numeric_value
 
 # aggregate numeric filter
 aggregate_filter = negation? aggregate_key sep operator? (duration_format / numeric_value / percentage_format)
@@ -116,10 +117,13 @@ text_filter = negation? text_key sep search_value
 key              = ~r"[a-zA-Z0-9_\.-]+"
 quoted_key       = ~r"\"([a-zA-Z0-9_\.:-]+)\""
 explicit_tag_key = "tags" open_bracket search_key closed_bracket
+arithmetic_key   = "equation" open_bracket digit closed_bracket
 aggregate_key    = key open_paren spaces function_args? spaces closed_paren
 function_args    = key (spaces comma spaces key)*
 search_key       = key / quoted_key
+numeric_key      = arithmetic_key / search_key
 text_key         = explicit_tag_key / search_key
+
 value            = ~r"[^()\s]*"
 quoted_value     = ~r"\"((?:\\\"|[^\"])*)?\""s
 in_value         = ~r"[^(),\s]*(?:[^\],\s)]|](?=]))"
@@ -139,6 +143,7 @@ percentage_format    = ~r"([0-9\.]+)%"
 # NOTE: the order in which these operators are listed matters because for
 # example, if < comes before <= it will match that even if the operator is <=
 operator             = ">=" / "<=" / ">" / "<" / "=" / "!="
+digit                = ~r"\d+"
 or_operator          = ~r"OR(?=\s|$)"i
 and_operator         = ~r"AND(?=\s|$)"i
 open_paren           = "("
@@ -202,6 +207,18 @@ class SearchKey(NamedTuple):
             and not self.is_measurement
             and not self.is_span_op_breakdown
         )
+
+    @property
+    def is_equation(self) -> bool:
+        return EQUATION_KEY_RE.match(self.name) is not None
+
+    @property
+    def equation_index(self) -> Union[int, None]:
+        match = EQUATION_KEY_RE.match(self.name)
+        if match:
+            return int(match.groups()[0])
+        else:
+            return None
 
     @property
     def is_measurement(self) -> bool:
@@ -363,8 +380,12 @@ class SearchVisitor(NodeVisitor):
 
         return filter(is_not_space, children)
 
-    def is_numeric_key(self, key):
-        return key in self.numeric_keys or is_measurement(key)
+    def is_numeric_key(self, search_key: SearchKey):
+        return (
+            search_key.name in self.numeric_keys
+            or is_measurement(search_key.name)
+            or search_key.is_equation
+        )
 
     def is_duration_key(self, key):
         return (
@@ -415,7 +436,7 @@ class SearchVisitor(NodeVisitor):
         is_negated = self.is_negated(negation)
 
         # Numeric and boolean filters overlap on 1 and 0 values.
-        if self.is_numeric_key(search_key.name):
+        if self.is_numeric_key(search_key):
             return self.visit_numeric_filter(
                 node,
                 (
@@ -453,7 +474,7 @@ class SearchVisitor(NodeVisitor):
         else:
             operator = operator[0]
 
-        if self.is_numeric_key(search_key.name):
+        if self.is_numeric_key(search_key):
             try:
                 search_value = SearchValue(parse_numeric_value(*search_value.match.groups()))
             except InvalidQuery as exc:
@@ -469,7 +490,7 @@ class SearchVisitor(NodeVisitor):
         operator = "IN"
         search_value = self.process_list(value[1], value[2])
 
-        if self.is_numeric_key(search_key.name):
+        if self.is_numeric_key(search_key):
             try:
                 search_value = SearchValue(
                     [parse_numeric_value(*val.match.groups()) for val in search_value]
@@ -580,7 +601,7 @@ class SearchVisitor(NodeVisitor):
             except InvalidQuery as exc:
                 raise InvalidSearchQuery(str(exc))
             return SearchFilter(search_key, operator, SearchValue(search_value))
-        elif self.is_numeric_key(search_key.name):
+        elif self.is_numeric_key(search_key):
             return self.visit_numeric_filter(node, (search_key, sep, operator, search_value))
         else:
             search_value = operator + search_value.text if operator != "=" else search_value.text
@@ -675,7 +696,7 @@ class SearchVisitor(NodeVisitor):
             raise InvalidSearchQuery(
                 f"{search_key.name}: Invalid boolean: {search_value.raw_value}. Expected true, 1, false, or 0."
             )
-        if self.is_numeric_key(search_key.name):
+        if self.is_numeric_key(search_key):
             raise InvalidSearchQuery(
                 f"{search_key.name}: Invalid number: {search_value.raw_value}. Expected number then optional k, m, or b suffix (e.g. 500k)."
             )
@@ -763,6 +784,13 @@ class SearchVisitor(NodeVisitor):
 
     def visit_explicit_tag_key(self, node, children):
         return SearchKey(f"tags[{children[2].name}]")
+
+    def visit_arithmetic_key(self, node, children):
+        equation, open_bracket, index, close_bracket = children
+        return SearchKey(f"equation[{index.text}]")
+
+    def visit_numeric_key(self, node, children):
+        return children[0]
 
     def visit_text_key(self, node, children):
         return children[0]

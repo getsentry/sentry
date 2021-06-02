@@ -1121,7 +1121,9 @@ def resolve_column(dataset):
             return col
         if isinstance(col, int) or isinstance(col, float):
             return col
-        if isinstance(col, str) and (col.startswith("tags[") or QUOTED_LITERAL_RE.match(col)):
+        if isinstance(col, str) and (
+            col.startswith("tags[") or col.startswith("equation[") or QUOTED_LITERAL_RE.match(col)
+        ):
             return col
 
         # Some dataset specific logic:

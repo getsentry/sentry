@@ -368,6 +368,8 @@ def convert_search_filter_to_snuba_query(
         ]
     elif name in ARRAY_FIELDS and search_filter.value.raw_value == "":
         return [["notEmpty", [name]], "=", 1 if search_filter.operator == "!=" else 0]
+    elif search_filter.key.is_equation:
+        return [name, search_filter.operator, value]
     else:
         # timestamp{,.to_{hour,day}} need a datetime string
         # last_seen needs an integer
@@ -572,7 +574,7 @@ def convert_search_boolean_to_snuba_query(terms, params=None):
     return condition, having, projects_to_filter, group_ids
 
 
-def get_filter(query=None, params=None):
+def get_filter(query=None, params=None, equations=None):
     """
     Returns an eventstore filter given the search text provided by the user and
     URL params
@@ -630,6 +632,15 @@ def get_filter(query=None, params=None):
         projects_to_filter = set()
         for term in parsed_terms:
             if isinstance(term, SearchFilter):
+                if term.key.is_equation:
+                    if equations is None:
+                        raise InvalidSearchQuery(
+                            "cannot filter by equations when none are included"
+                        )
+                    if term.key.equation_index + 1 > len(equations):
+                        raise InvalidSearchQuery(
+                            f"cannot filter by {term.key} because there are only {len(equations)} equations"
+                        )
                 conditions, found_projects_to_filter, group_ids = format_search_filter(term, params)
                 if len(conditions) > 0:
                     kwargs["conditions"].extend(conditions)

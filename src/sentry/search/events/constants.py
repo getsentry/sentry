@@ -14,6 +14,7 @@ ISSUE_ID_ALIAS = "issue.id"
 RELEASE_ALIAS = "release"
 
 TAG_KEY_RE = re.compile(r"^tags\[(?P<tag>.*)\]$")
+EQUATION_KEY_RE = re.compile(r"^equation\[(?P<index>.*)\]$")
 # Based on general/src/protocol/tags.rs in relay
 VALID_FIELD_PATTERN = re.compile(r"^[a-zA-Z0-9_.:-]*$")
 

@@ -3006,3 +3006,47 @@ class ArithmeticTest(SnubaTestCase, TestCase):
                 query=self.query,
                 params=self.params,
             )
+
+    def test_equation_querying(self):
+        query_params = {
+            "selected_columns": [
+                "spans.http",
+                "transaction.duration",
+            ],
+            "equations": [
+                "spans.http / transaction.duration",
+            ],
+            "query": f"{self.query} equation[0]:0.5",
+            "params": self.params,
+        }
+        results = discover.query(**query_params)
+        assert len(results["data"]) == 1
+        result = results["data"][0]
+        assert result["equation[0]"] == 0.5
+
+        query_params["query"] = f"{self.query} equation[0]:<0"
+        results = discover.query(**query_params)
+        assert len(results["data"]) == 0
+
+    def test_equation_querying_without_equations(self):
+        with self.assertRaises(InvalidSearchQuery):
+            discover.query(
+                selected_columns=[
+                    "spans.http",
+                    "transaction.duration",
+                ],
+                # There is no equation[0] so we should error here
+                query=f"{self.query} equation[0]:>0",
+                params=self.params,
+            )
+        with self.assertRaises(InvalidSearchQuery):
+            discover.query(
+                selected_columns=[
+                    "spans.http",
+                    "transaction.duration",
+                ],
+                equations=["spans.http / transaction.duration"],
+                # There is an equation this time, but its equation[0]
+                query=f"{self.query} equation[1]:>0",
+                params=self.params,
+            )

@@ -270,12 +270,15 @@ def prepare_discover_query(
     conditions=None,
     functions_acl=None,
 ):
+    with sentry_sdk.start_span(op="discover.discover", description="query.equation_translations"):
+        resolved_equations = resolve_equation_list(equations)
+
     with sentry_sdk.start_span(
         op="discover.discover", description="query.filter_transform"
     ) as span:
         span.set_data("query", query)
 
-        snuba_filter = get_filter(query, params)
+        snuba_filter = get_filter(query, params, resolved_equations)
         if not use_aggregate_conditions:
             assert (
                 not auto_aggregations
@@ -295,12 +298,10 @@ def prepare_discover_query(
             functions_acl=functions_acl,
         )
 
+        if resolved_equations:
+            resolved_fields["selected_columns"] += resolved_equations
+
         snuba_filter.update_with(resolved_fields)
-
-        if equations is not None:
-            resolved_equations = resolve_equation_list(equations, snuba_filter)
-
-            snuba_filter.update_with(resolved_equations)
 
         # Resolve the public aliases into the discover dataset names.
         snuba_filter, translated_columns = resolve_discover_aliases(snuba_filter)

@@ -1,9 +1,8 @@
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, List, Optional, Tuple, Union
 
 from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar, NodeVisitor
 
-from sentry import eventstore
 from sentry.exceptions import InvalidSearchQuery
 
 SUPPORTED_OPERATORS = {"plus", "minus", "multiply", "divide"}
@@ -224,15 +223,15 @@ def parse_arithmetic(
     return result, list(visitor.fields)
 
 
-def resolve_equation_list(
-    equations: List[str], snuba_filter: eventstore.Filter
-) -> Dict[str, JsonQueryType]:
-    selected_columns = snuba_filter.selected_columns
+def resolve_equation_list(equations: Optional[List[str]]) -> Optional[List[JsonQueryType]]:
+    if equations is None:
+        return None
+    resolved_equations = []
     for index, equation in enumerate(equations):
         # only supporting 1 operation for now
         parsed_equation, fields = parse_arithmetic(equation, max_operators=1)
         for field in fields:
             if field not in fields:
                 raise InvalidSearchQuery(f"{field} used in an equation but is not a selected field")
-        selected_columns.append(parsed_equation.to_snuba_json(f"equation[{index}]"))
-    return {"selected_columns": selected_columns}
+        resolved_equations.append(parsed_equation.to_snuba_json(f"equation[{index}]"))
+    return resolved_equations
