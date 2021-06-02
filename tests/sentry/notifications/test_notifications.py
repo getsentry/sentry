@@ -9,10 +9,12 @@ from django.utils import timezone
 
 from sentry.event_manager import EventManager
 from sentry.models import (
-    ExternalActor,
     Group,
     GroupAssignee,
     GroupStatus,
+    Identity,
+    IdentityProvider,
+    IdentityStatus,
     Integration,
     Rule,
     UserOption,
@@ -21,7 +23,6 @@ from sentry.tasks.post_process import post_process_group
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
-from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 
 
@@ -62,13 +63,13 @@ class ActivityNotificationTest(APITestCase):
             },
         )
         self.integration.add_organization(self.organization, self.user)
-        ExternalActor.objects.create(
-            actor=self.user.actor,
-            organization=self.organization,
-            integration=self.integration,
-            provider=ExternalProviders.SLACK.value,
-            external_name="hellboy",
+        self.idp = IdentityProvider.objects.create(type="slack", external_id="TXXXXXXX1", config={})
+        self.identity = Identity.objects.create(
             external_id="UXXXXXXX1",
+            idp=self.idp,
+            user=self.user,
+            status=IdentityStatus.VALID,
+            scopes=[],
         )
         UserOption.objects.create(user=self.user, key="self_notifications", value="1")
         url = "/api/0/users/me/notification-settings/"
