@@ -99,7 +99,7 @@ def verify_signature(request):
         kid = jwk["kid"]
         public_keys[kid] = jwt.rsa_key_from_jwk(json.dumps(jwk))
 
-    kid = jwt.get_unverified_header(token)["kid"]
+    kid = jwt.peek_header(token)["kid"]
     key = public_keys[kid]
 
     try:

@@ -1,6 +1,5 @@
 import jwt as pyjwt
 import pytest
-from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
 
 from sentry.utils import json
 from sentry.utils import jwt as jwt_utils
@@ -181,7 +180,7 @@ def test_authorization_header(token):
 def test_rsa_key_from_jwk():
     key = jwt_utils.rsa_key_from_jwk(json.dumps(RSA_JWK))
     assert key
-    assert isinstance(key, RSAPrivateKey)
+    assert isinstance(key, bytes)
 
     # Ensure we can use the key to create a token
     claims = {"iss": "me"}
