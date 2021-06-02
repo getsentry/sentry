@@ -8,10 +8,16 @@ from typing import List, Mapping, Optional, Union
 
 import jwt as pyjwt
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey, RSAPublicKey
-from jwt import get_unverified_header  # NOQA
 from jwt import DecodeError
 
 __all__ = ["peek_claims", "decode", "encode", "authorization_header", "DecodeError"]
+
+
+def get_unverified_header(token):
+    """
+    Just delegating to jwt
+    """
+    return pyjwt.get_unverified_header(token)
 
 
 def peek_claims(token: str) -> Mapping[str, str]:
