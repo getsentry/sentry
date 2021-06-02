@@ -41,22 +41,15 @@ describe('NotificationSettingsByProjects', function () {
     expect(wrapper.find('Pagination')).toHaveLength(0);
   });
 
-  // Warning: Cannot update during an existing state transition (such as within
-  // `render`). Render methods should be a pure function of props and state.
-  it.skip('should show search bar when there are enough projects', function () {
+  it('should show search bar when there are enough projects', function () {
     // @ts-expect-error
-    const projects = Array.from(Array(3)).map(_ => TestStubs.Project());
-    const wrapper = createWrapper(
-      {
-        alerts: {
-          user: {me: {email: 'always', slack: 'always'}},
-          project: Object.fromEntries(
-            projects.map(project => [project.id, {email: 'never', slack: 'never'}])
-          ),
-        },
-      },
-      projects
+    const organization = TestStubs.Organization();
+    const projects = [...Array(3).keys()].map(id =>
+      // @ts-expect-error
+      TestStubs.Project({organization, id})
     );
+
+    const wrapper = createWrapper(projects);
     expect(wrapper.find('AsyncComponentSearchInput')).toHaveLength(1);
   });
 });
