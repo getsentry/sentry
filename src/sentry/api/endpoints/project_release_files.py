@@ -222,7 +222,7 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint):
 
 
 class ListQuerySet:
-    """ Pseudo queryset offering a subset of QuerySet operations """
+    """Pseudo queryset offering a subset of QuerySet operations"""
 
     def __init__(self, release_files, query=None):
         self._files = [
@@ -263,7 +263,7 @@ class ListQuerySet:
 
 
 class ReleaseArchiveQuerySet(ListQuerySet):
-    """ Pseudo queryset offering a subset of QuerySet operations, """
+    """Pseudo queryset offering a subset of QuerySet operations,"""
 
     def __init__(self, archive: ReleaseArchive, timestamp, query=None):
         # Assume manifest
