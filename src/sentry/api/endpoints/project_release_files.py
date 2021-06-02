@@ -4,24 +4,25 @@ import re
 from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist
 from django.db import IntegrityError, transaction
 from django.db.models import Q
+from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.endpoints.organization_release_files import load_dist
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.paginator import (
-    CombinedQuerysetIntermediary,
-    CombinedQuerysetPaginator,
-    OffsetPaginator,
-)
+from sentry.api.paginator import CombinedQuerysetIntermediary, CombinedQuerysetPaginator
 from sentry.api.serializers import serialize
-from sentry.constants import MAX_RELEASE_FILES_OFFSET
 from sentry.models import File, Release, ReleaseFile
 from sentry.models.releasefile import ReleaseArchive
 from sentry.tasks.assemble import RELEASE_ARCHIVE_FILENAME, get_artifact_basename
 
 ERR_FILE_EXISTS = "A file matching this name already exists for the given release"
 _filename_re = re.compile(r"[\n\t\r\f\v\\]")
+
+
+class FileStorageType:
+    ARCHIVED = "archived"
+    INDIVIDUAL = "individual"
 
 
 class ProjectReleaseFilesEndpoint(ProjectEndpoint):
@@ -40,9 +41,15 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint):
                                      release files of.
         :pparam string version: the version identifier of the release.
         :qparam string query: If set, this parameter is used to search files.
+        :qparam string type: Files of which storage type to show. Can be either "archived", "individual" or omitted.
         :auth: required
         """
         query = request.GET.getlist("query")
+        type_ = request.GET.get("type")
+
+        types = (FileStorageType.ARCHIVED, FileStorageType.INDIVIDUAL)
+        if type_ and type_ not in types:
+            raise ParseError(f"Invalid value for 'type' parameter. Choose from {types}.")
 
         try:
             release = Release.objects.get(
@@ -51,55 +58,56 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint):
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
 
-        file_list = (
-            ReleaseFile.objects.filter(release=release)
-            .exclude(name=RELEASE_ARCHIVE_FILENAME)
-            .select_related("file")
-            .order_by("name")
-        )
+        data_sources = []
 
-        if query:
-            if not isinstance(query, list):
-                query = [query]
+        file_list = None
+        if not type_ or type_ == FileStorageType.INDIVIDUAL:
+            file_list = (
+                ReleaseFile.objects.filter(release=release)
+                .exclude(name=RELEASE_ARCHIVE_FILENAME)
+                .select_related("file")
+                .order_by("name")
+            )
 
-            condition = Q(name__icontains=query[0])
-            for name in query[1:]:
-                condition |= Q(name__icontains=name)
-            file_list = file_list.filter(condition)
+            if query:
+                if not isinstance(query, list):
+                    query = [query]
+
+                condition = Q(name__icontains=query[0])
+                for name in query[1:]:
+                    condition |= Q(name__icontains=name)
+                file_list = file_list.filter(condition)
+
+        if file_list is not None:
+            data_sources.append(CombinedQuerysetIntermediary(file_list, order_by=["name"]))
+
+        archive = None
+        if not type_ or type_ == FileStorageType.ARCHIVED:
+            # Get contents of release archive as well:
+            archive = release.get_release_archive()
+
+        if archive is not None:
+            with archive:
+                archived_list = ReleaseArchiveQuerySet(archive, query)
+                data_sources.append(CombinedQuerysetIntermediary(archived_list, order_by=["name"]))
 
         def on_results(r):
             results = serialize(load_dist(r), request.user)
             for result in results:
                 if result["id"] == "None":
+                    result["type"] = FileStorageType.ARCHIVED
                     result.pop("id")
+                else:
+                    result["type"] = FileStorageType.INDIVIDUAL
 
             return results
 
-        # Get contents of release archive as well:
-        archive = release.get_release_archive()
-        if archive is None:
-            # Behave like ProjectReleaseFilesEndpoint
-            return self.paginate(
-                request=request,
-                queryset=file_list,
-                order_by="name",
-                paginator_cls=OffsetPaginator,
-                max_offset=MAX_RELEASE_FILES_OFFSET,
-                on_results=on_results,
-            )
-        else:
-            with archive:
-                archived_list = ReleaseArchiveQuerySet(archive, query)
-
-            return self.paginate(
-                request=request,
-                intermediaries=[
-                    CombinedQuerysetIntermediary(file_list, order_by=["name"]),
-                    CombinedQuerysetIntermediary(archived_list, order_by=["name"]),
-                ],
-                paginator_cls=CombinedQuerysetPaginator,
-                on_results=on_results,
-            )
+        return self.paginate(
+            request=request,
+            intermediaries=data_sources,
+            paginator_cls=CombinedQuerysetPaginator,
+            on_results=on_results,
+        )
 
     def post(self, request, project, version):
         """
