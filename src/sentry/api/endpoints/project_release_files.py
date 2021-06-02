@@ -12,6 +12,7 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.constants import MAX_RELEASE_FILES_OFFSET
 from sentry.models import File, Release, ReleaseFile
+from sentry.tasks.assemble import RELEASE_ARCHIVE_FILENAME
 
 ERR_FILE_EXISTS = "A file matching this name already exists for the given release"
 _filename_re = re.compile(r"[\n\t\r\f\v\\]")
@@ -46,7 +47,7 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint):
 
         file_list = (
             ReleaseFile.objects.filter(release=release).select_related("file").order_by("name")
-        )
+        ).exclude(name=RELEASE_ARCHIVE_FILENAME)
 
         if query:
             if not isinstance(query, list):

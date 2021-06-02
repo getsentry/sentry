@@ -4,7 +4,7 @@ import re
 
 import jsonschema
 from django.db import transaction
-from django.db.models import Count, Q
+from django.db.models import Q
 from django.http import Http404, HttpResponse, StreamingHttpResponse
 from rest_framework.response import Response
 from symbolic import SymbolicError, normalize_debug_id
@@ -26,6 +26,7 @@ from sentry.models import (
     create_files_from_dif_zip,
 )
 from sentry.tasks.assemble import (
+    RELEASE_ARCHIVE_FILENAME,
     AssembleTask,
     ChunkFileState,
     get_assemble_status,
@@ -428,14 +429,15 @@ class SourceMapsEndpoint(ProjectEndpoint):
             }
 
         def serialize_results(results):
-            file_counts = (
-                Release.objects.filter(id__in=[r["id"] for r in results])
-                .annotate(count=Count("releasefile"))
-                .values("count", "id")
+            # Using raw SQL here because Django 1.11 does not support filters
+            # in ``Count`` annotation yet
+            file_counts = ReleaseFile.objects.raw(
+                "SELECT release_id AS id, count(*) FROM sentry_releasefile WHERE release_id = ANY(%s) AND name != %s GROUP BY release_id",
+                params=([r["id"] for r in results], RELEASE_ARCHIVE_FILENAME),
             )
-            file_count_map = {r["id"]: r["count"] for r in file_counts}
+            file_count_map = {r.id: r.count for r in file_counts}
             return serialize(
-                [expose_release(r, file_count_map[r["id"]]) for r in results], request.user
+                [expose_release(r, file_count_map.get(r["id"], 0)) for r in results], request.user
             )
 
         return self.paginate(
