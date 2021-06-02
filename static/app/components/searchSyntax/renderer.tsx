@@ -24,7 +24,11 @@ class ResultRenderer {
     let value: React.ReactNode = key.text;
 
     if (key.type === Token.KeyExplicitTag) {
-      value = <ExplicitKey prefix={key.prefix}>{key.key.value}</ExplicitKey>;
+      value = (
+        <ExplicitKey prefix={key.prefix}>
+          {key.key.quoted ? `"${key.key.value}"` : key.key.value}
+        </ExplicitKey>
+      );
     }
 
     return <Key negated={!!negated}>{value}:</Key>;
