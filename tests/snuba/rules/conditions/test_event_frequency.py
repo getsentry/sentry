@@ -181,7 +181,8 @@ class EventFrequencyPercentConditionTestCase(
                 retention_days=90,
                 duration=None,
                 errors=0,
-                started=session_started,
+                # The line below is crucial to spread sessions throughout the time period.
+                started=session_started - (i * (minutes / 30)),
                 received=received,
             )
 

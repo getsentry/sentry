@@ -161,12 +161,13 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
         super().__init__(*args, **kwargs)
 
     def query_hook(self, event, start, end, environment_id):
-        cache_key = f"r.c.spc:{environment_id}-{start.replace(minute=0, second=0, microsecond=0, tzinfo=None)}-{end.replace(minute=0, second=0, microsecond=0, tzinfo=None)}".replace(
+        project_id = event.project_id
+        cache_key = f"r.c.spc:{project_id}-{environment_id}-{start.replace(minute=0, second=0, microsecond=0, tzinfo=None)}-{end.replace(minute=0, second=0, microsecond=0, tzinfo=None)}".replace(
             " ", ""
         )
         session_count = cache.get(cache_key)
         if session_count is None:
-            filters = {"project_id": [event.project_id]}
+            filters = {"project_id": [project_id]}
             if environment_id:
                 filters["environment"] = [environment_id]
             result_totals = raw_query(
@@ -176,11 +177,13 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
                 start=start,
                 end=end,
                 filter_keys=filters,
-                groupby=["project_id", "bucketed_started"],
+                groupby=["bucketed_started"],
                 referrer="rules.conditions.event_frequency.EventFrequencyPercentCondition",
             )
             if result_totals["data"]:
-                session_count = result_totals["data"][0]["sessions"]
+                session_count = 0
+                for bucket in result_totals["data"]:
+                    session_count += bucket["sessions"]
             else:
                 session_count = False
             cache.set(cache_key, session_count, 600)
