@@ -4,7 +4,7 @@ import pytest
 from sentry.utils import json
 from sentry.utils import jwt as jwt_utils
 
-RS256_KEY = """
+RS256_KEY = b"""
 -----BEGIN RSA PRIVATE KEY-----
 MIIJKAIBAAKCAgEAwcYWTDju/+S7dgFLMp6VQHbCMHTQD7RxoaTWKY8/NizzW7QX
 82QZWGyc2+1EpYgza82Joy3IQ78FRV5NHjZONgeot+ZsnznFRokXvzdrshFCv4i+
@@ -90,6 +90,17 @@ def token():
     return token
 
 
+def test_peek_header(token):
+    header = jwt_utils.peek_header(token)
+
+    assert isinstance(header, dict)
+    for key, value in header.items():
+        assert isinstance(key, str)
+        assert isinstance(value, str)
+
+    assert header == {"alg": "HS256", "typ": "JWT"}
+
+
 def test_peek_claims(token):
     claims = jwt_utils.peek_claims(token)
     assert claims == {"iss": "me"}
@@ -108,10 +119,10 @@ def test_decode(token):
         assert isinstance(value, str)
 
     claims["aud"] = "you"
-    token = jwt_utils.encode(claims, "secret")
+    token = jwt_utils.encode(claims, b"secret")
 
     with pytest.raises(pyjwt.InvalidAudience):
-        jwt_utils.decode(token, "secret")
+        jwt_utils.decode(token, b"secret")
 
 
 def test_decode_audience():
@@ -119,18 +130,18 @@ def test_decode_audience():
         "iss": "me",
         "aud": "you",
     }
-    token = jwt_utils.encode(payload, "secret")
+    token = jwt_utils.encode(payload, b"secret")
 
     with pytest.raises(pyjwt.InvalidAudience):
-        jwt_utils.decode(token, "secret")
+        jwt_utils.decode(token, b"secret")
 
-    claims = jwt_utils.decode(token, "secret", audience="you")
+    claims = jwt_utils.decode(token, b"secret", audience="you")
     assert claims == payload
 
     with pytest.raises(pyjwt.InvalidAudience):
-        jwt_utils.decode(token, "secret", audience="wrong")
+        jwt_utils.decode(token, b"secret", audience="wrong")
 
-    claims = jwt_utils.decode(token, "secret", audience=False)
+    claims = jwt_utils.decode(token, b"secret", audience=False)
     assert claims == payload
 
 
@@ -162,7 +173,7 @@ def test_encode_rs256():
     claims = {
         "iss": "me",
     }
-    encoded_hs256 = jwt_utils.encode(claims, "secret", headers=headers)
+    encoded_hs256 = jwt_utils.encode(claims, b"secret", headers=headers)
     encoded_rs256 = jwt_utils.encode(claims, RS256_KEY, headers=headers, algorithm="RS256")
 
     assert encoded_rs256.count(".") == 2
