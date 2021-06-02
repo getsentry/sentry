@@ -22,7 +22,14 @@ import {IconInfo} from 'app/icons';
 import {t} from 'app/locale';
 import {PageContent, PageHeader} from 'app/styles/organization';
 import space from 'app/styles/space';
-import {GlobalSelection, Organization, Project, Release, ReleaseStatus} from 'app/types';
+import {
+  GlobalSelection,
+  Organization,
+  Project,
+  Release,
+  ReleaseStatus,
+  SessionApiResponse,
+} from 'app/types';
 import {defined} from 'app/utils';
 import Projects from 'app/utils/projects';
 import routeTitleGen from 'app/utils/routeTitle';
@@ -52,6 +59,7 @@ type Props = RouteComponentProps<RouteParams, {}> & {
 
 type State = {
   releases: Release[];
+  hasSessions: boolean | null;
 } & AsyncView['state'];
 
 class ReleasesList extends AsyncView<Props, State> {
@@ -85,8 +93,18 @@ class ReleasesList extends AsyncView<Props, State> {
     return endpoints;
   }
 
+  componentDidMount() {
+    if (this.props.location.query.project) {
+      this.fetchSessionsExistence();
+    }
+  }
+
   componentDidUpdate(prevProps: Props, prevState: State) {
     super.componentDidUpdate(prevProps, prevState);
+
+    if (prevProps.location.query.project !== this.props.location.query.project) {
+      this.fetchSessionsExistence();
+    }
 
     if (prevState.releases !== this.state.releases) {
       /**
@@ -144,6 +162,37 @@ class ReleasesList extends AsyncView<Props, State> {
         return StatusOption.ARCHIVED;
       default:
         return StatusOption.ACTIVE;
+    }
+  }
+
+  async fetchSessionsExistence() {
+    const {organization, location} = this.props;
+    const projectId = location.query.project;
+    if (!projectId) {
+      return;
+    }
+
+    this.setState({
+      hasSessions: null,
+    });
+
+    try {
+      const response: SessionApiResponse = await this.api.requestPromise(
+        `/organizations/${organization.slug}/sessions/`,
+        {
+          query: {
+            project: projectId,
+            field: 'sum(session)',
+            statsPeriod: '90d',
+            interval: '1d',
+          },
+        }
+      );
+      this.setState({
+        hasSessions: response.groups[0].totals['sum(session)'] > 0,
+      });
+    } catch {
+      // do nothing
     }
   }
 
@@ -250,6 +299,7 @@ class ReleasesList extends AsyncView<Props, State> {
 
   renderAlertBanner() {
     const {selection, organization} = this.props;
+    const {hasSessions} = this.state;
 
     const selectedProjectId =
       selection.projects && selection.projects.length === 1 && selection.projects[0];
@@ -266,19 +316,14 @@ class ReleasesList extends AsyncView<Props, State> {
         <Projects orgId={organization.slug} slugs={[selectedProject.slug]}>
           {({projects, initiallyLoaded, fetchError}) => {
             const project = projects && projects.length === 1 && projects[0];
-            const projectHasReleases =
-              project &&
-              project.hasOwnProperty('features') &&
-              (project as Project).features.includes('releases');
             const projectCanHaveReleases =
               project && project.platform && releaseHealth.includes(project.platform);
 
             if (
               !initiallyLoaded ||
               fetchError ||
-              !project ||
-              projectHasReleases ||
-              !projectCanHaveReleases
+              !projectCanHaveReleases ||
+              hasSessions
             ) {
               return null;
             }
@@ -341,19 +386,9 @@ class ReleasesList extends AsyncView<Props, State> {
                 <Feature features={['organizations:release-adoption-chart']}>
                   <Projects orgId={organization.slug} slugs={[selectedProject.slug]}>
                     {({projects, initiallyLoaded, fetchError}) => {
-                      const project =
-                        projects && projects.length === 1 ? projects[0] : null;
-                      const projectHasReleases =
-                        project &&
-                        project.hasOwnProperty('features') &&
-                        (project as Project).features.includes('releases');
+                      const project = projects && projects.length === 1 && projects[0];
 
-                      if (
-                        !initiallyLoaded ||
-                        fetchError ||
-                        !project ||
-                        !projectHasReleases
-                      ) {
+                      if (!initiallyLoaded || fetchError || !project) {
                         return null;
                       }
 
@@ -361,7 +396,7 @@ class ReleasesList extends AsyncView<Props, State> {
 
                       let totalCount = 0;
 
-                      if (releases && releases.length) {
+                      if (releases?.length) {
                         const timeSeries = getHealthData.getTimeSeries(
                           releases[0].version,
                           Number(project.id),
