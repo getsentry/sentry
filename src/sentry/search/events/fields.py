@@ -7,14 +7,18 @@ from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 
 from sentry.discover.models import KeyTransaction, TeamKeyTransaction
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import Project
+from sentry.models import Project, ProjectTransactionThreshold
+from sentry.models.transaction_threshold import TRANSACTION_METRICS
 from sentry.search.events.constants import (
     ALIAS_PATTERN,
+    DEFAULT_PROJECT_THRESHOLD,
+    DEFAULT_PROJECT_THRESHOLD_METRIC,
     ERROR_UNHANDLED_ALIAS,
     FUNCTION_PATTERN,
     KEY_TRANSACTION_ALIAS,
     PROJECT_ALIAS,
     PROJECT_NAME_ALIAS,
+    PROJECT_THRESHOLD_CONFIG_ALIAS,
     RESULT_TYPES,
     SEARCH_MAP,
     TAG_KEY_RE,
@@ -113,6 +117,86 @@ def key_transaction_expression(user_id, organization_id, project_ids):
     ]
 
 
+def project_threshold_config_expression(organization_id, project_ids):
+    """
+    This function returns a column with the threshold and threshold metric
+    for each transaction based on project level settings. If no project level
+    thresholds are set, the will fallback to the default values. This column
+    is used in the `count_miserable_new` and `user_misery_new` aggregates.
+    """
+    if organization_id is None or project_ids is None:
+        raise InvalidSearchQuery("Missing necessary data for project threshold config")
+
+    threshold_configs = (
+        ProjectTransactionThreshold.objects.filter(
+            organization_id=organization_id,
+            project_id__in=project_ids,
+        )
+        .order_by("project_id")
+        .values("project_id", "threshold", "metric")
+    )
+
+    if not threshold_configs.count():
+        return ["tuple", [f"'{DEFAULT_PROJECT_THRESHOLD_METRIC}'", DEFAULT_PROJECT_THRESHOLD]]
+
+    return [
+        "if",
+        [
+            [
+                "equals",
+                [
+                    [
+                        "indexOf",
+                        [
+                            [
+                                "array",
+                                [
+                                    ["toUInt64", [config["project_id"]]]
+                                    for config in threshold_configs
+                                ],
+                            ],
+                            "project_id",
+                        ],
+                    ],
+                    0,
+                ],
+            ],
+            ["tuple", [f"'{DEFAULT_PROJECT_THRESHOLD_METRIC}'", DEFAULT_PROJECT_THRESHOLD]],
+            [
+                "arrayElement",
+                [
+                    [
+                        "array",
+                        [
+                            [
+                                "tuple",
+                                [
+                                    "'{}'".format(TRANSACTION_METRICS[config["metric"]]),
+                                    config["threshold"],
+                                ],
+                            ]
+                            for config in threshold_configs
+                        ],
+                    ],
+                    [
+                        "indexOf",
+                        [
+                            [
+                                "array",
+                                [
+                                    ["toUInt64", [config["project_id"]]]
+                                    for config in threshold_configs
+                                ],
+                            ],
+                            "project_id",
+                        ],
+                    ],
+                ],
+            ],
+        ],
+    ]
+
+
 def team_key_transaction_expression(organization_id, team_ids, project_ids):
     if organization_id is None or team_ids is None or project_ids is None:
         raise TypeError("Team key transactions parameters cannot be None")
@@ -184,6 +268,14 @@ FIELD_ALIASES = {
                 params.get("project_id"),
             ),
             result_type="boolean",
+        ),
+        PseudoField(
+            PROJECT_THRESHOLD_CONFIG_ALIAS,
+            PROJECT_THRESHOLD_CONFIG_ALIAS,
+            expression_fn=lambda params: project_threshold_config_expression(
+                params.get("organization_id"),
+                params.get("project_id"),
+            ),
         ),
         PseudoField(
             TEAM_KEY_TRANSACTION_ALIAS,
@@ -295,6 +387,15 @@ def resolve_field_list(
     if project_key:
         if "project.id" not in fields:
             fields.append("project.id")
+
+    # Both `count_miserable_new` and `user_misery_new` require the project_threshold_config column
+    if PROJECT_THRESHOLD_CONFIG_ALIAS not in fields:
+        for field in fields[:]:
+            if isinstance(field, str) and (
+                field.startswith("count_miserable_new") or field.startswith("user_misery_new")
+            ):
+                fields.append(PROJECT_THRESHOLD_CONFIG_ALIAS)
+                break
 
     for field in fields:
         if isinstance(field, str) and field.strip() == "":
@@ -1211,6 +1312,97 @@ FUNCTIONS = {
                 [ArgValue("column"), ["greater", ["transaction.duration", ArgValue("tolerated")]]],
                 None,
             ],
+            default_result_type="number",
+        ),
+        Function(
+            "count_miserable_new",
+            required_args=[
+                CountColumn("column"),
+            ],
+            aggregate=[
+                "uniqIf",
+                [
+                    ArgValue("column"),
+                    [
+                        "greater",
+                        [
+                            [
+                                "multiIf",
+                                [
+                                    [
+                                        "equals",
+                                        [
+                                            [
+                                                "tupleElement",
+                                                [
+                                                    "project_threshold_config",
+                                                    1,
+                                                ],
+                                            ],
+                                            "'lcp'",
+                                        ],
+                                    ],
+                                    "measurements[lcp]",
+                                    "duration",
+                                ],
+                            ],
+                            [
+                                "multiply",
+                                [
+                                    [
+                                        "tupleElement",
+                                        [
+                                            "project_threshold_config",
+                                            2,
+                                        ],
+                                    ],
+                                    4,
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+                None,
+            ],
+            default_result_type="number",
+        ),
+        Function(
+            "user_misery_new",
+            # To correct for sensitivity to low counts, User Misery is modeled as a Beta Distribution Function.
+            # With prior expectations, we have picked the expected mean user misery to be 0.05 and variance
+            # to be 0.0004. This allows us to calculate the alpha (5.8875) and beta (111.8625) parameters,
+            # with the user misery being adjusted for each fast/slow unique transaction. See:
+            # https://stats.stackexchange.com/questions/47771/what-is-the-intuition-behind-beta-distribution
+            # for an intuitive explanation of the Beta Distribution Function.
+            optional_args=[
+                with_default(5.8875, NumberRange("alpha", 0, None)),
+                with_default(111.8625, NumberRange("beta", 0, None)),
+            ],
+            calculated_args=[
+                {"name": "parameter_sum", "fn": lambda args: args["alpha"] + args["beta"]},
+            ],
+            transform="""
+                ifNull(
+                    divide(
+                        plus(
+                            uniqIf(user, greater(
+                                multiIf(
+                                    equals(tupleElement(project_threshold_config, 1), 'lcp'),
+                                    if(has(measurements.key, 'lcp'), arrayElement(measurements.value, indexOf(measurements.key, 'lcp')), NULL),
+                                    duration
+                                ),
+                                multiply(tupleElement(project_threshold_config, 2), 4)
+                            )),
+                            {alpha}
+                        ),
+                        plus(uniq(user), {parameter_sum})
+                    ),
+                0)
+            """.replace(
+                " ", ""
+            ).replace(
+                "\n", ""
+            ),
             default_result_type="number",
         ),
         Function(
