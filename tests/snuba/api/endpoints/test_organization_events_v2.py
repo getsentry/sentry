@@ -1000,6 +1000,78 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         data = response.data["data"]
         assert abs(data[0]["user_misery_300"] - 0.0653) < 0.0001
 
+    def test_apdex_new_alias_field(self):
+        project = self.create_project()
+
+        ProjectTransactionThreshold.objects.create(
+            project=project,
+            organization=project.organization,
+            threshold=400,
+            metric=TransactionMetric.DURATION.value,
+        )
+
+        events = [
+            ("one", 400),
+            ("one", 400),
+            ("two", 3000),
+            ("two", 3000),
+            ("three", 300),
+            ("three", 3000),
+        ]
+        for idx, event in enumerate(events):
+            data = load_data(
+                "transaction",
+                timestamp=before_now(minutes=(1 + idx)),
+                start_timestamp=before_now(minutes=(1 + idx), milliseconds=event[1]),
+            )
+            data["event_id"] = f"{idx}" * 32
+            data["transaction"] = f"/apdex/new/{event[0]}"
+            data["user"] = {"email": f"{idx}@example.com"}
+            self.store_event(data, project_id=project.id)
+
+        query = {
+            "field": [
+                "transaction",
+                "apdex_new()",
+            ],
+            "query": "event.type:transaction",
+            project: [project.id],
+        }
+
+        # Cannot access it without feature enabled
+        response = self.do_request(query)
+        assert response.status_code == 404
+
+        response = self.do_request(
+            query,
+            features={
+                "organizations:discover-basic": True,
+                "organizations:project-transaction-threshold": True,
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 3
+        data = response.data["data"]
+        assert data[0]["apdex_new"] == 1.0
+        assert data[1]["apdex_new"] == 0.5
+        assert data[2]["apdex_new"] == 0.0
+
+        query["query"] = "event.type:transaction apdex_new():>0.50"
+
+        response = self.do_request(
+            query,
+            features={
+                "organizations:discover-basic": True,
+                "organizations:project-transaction-threshold": True,
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        assert data[0]["apdex_new"] == 1.0
+
     def test_user_misery_new_alias_field(self):
         project = self.create_project()
 
@@ -2169,6 +2241,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 "p100()",
                 "percentile(transaction.duration, 0.99)",
                 "apdex(300)",
+                "apdex_new()",
                 "count_miserable(user, 300)",
                 "user_misery(300)",
                 "failure_rate()",
@@ -2188,6 +2261,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert meta["p100"] == "duration"
         assert meta["percentile_transaction_duration_0_99"] == "duration"
         assert meta["apdex_300"] == "number"
+        assert meta["apdex_new"] == "number"
         assert meta["failure_rate"] == "percentage"
         assert meta["user_misery_300"] == "number"
         assert meta["count_miserable_user_300"] == "number"
@@ -2204,6 +2278,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["p100"] == 5000
         assert data[0]["percentile_transaction_duration_0_99"] == 5000
         assert data[0]["apdex_300"] == 0.0
+        assert data[0]["apdex_new"] == 0.0
         assert data[0]["count_miserable_user_300"] == 1
         assert data[0]["user_misery_300"] == 0.058
         assert data[0]["failure_rate"] == 0.5
