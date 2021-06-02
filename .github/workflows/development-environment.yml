@@ -4,6 +4,7 @@ on:
     paths:
     - 'Makefile'
     - '.github/workflows/development-environment.yml'
+    - '.envrc'
     - 'requirements*'
     - 'Brewfile'
     - 'scripts/*'
@@ -85,7 +86,6 @@ jobs:
             devenv-${{ matrix.os }}-yarn-
 
       - name: Set up development environment (mostly as per docs)
-        # At the moment we can only test installing the Python and JS dependencies
         run: |
           curl https://get.volta.sh | bash
           export VOLTA_HOME="$HOME/.volta"
@@ -96,3 +96,8 @@ jobs:
           source .venv/bin/activate
           pip install wheel
           make bootstrap
+
+      - name: Test direnv
+        run: |
+          brew install direnv
+          direnv allow
