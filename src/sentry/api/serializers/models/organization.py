@@ -169,7 +169,7 @@ class OrganizationSerializer(Serializer):
             "dateCreated": obj.date_added,
             "isEarlyAdopter": bool(obj.flags.early_adopter),
             "require2FA": bool(obj.flags.require_2fa),
-            "requireEmailVerification": bool(obj.requires_email_verification()),
+            "requireEmailVerification": bool(obj.flags.require_email_verification),
             "avatar": avatar,
             "features": feature_list,
         }
@@ -240,7 +240,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 "availableRoles": [{"id": r.id, "name": r.name} for r in roles.get_all()],
                 "openMembership": bool(obj.flags.allow_joinleave),
                 "require2FA": bool(obj.flags.require_2fa),
-                "requireEmailVerification": bool(obj.requires_email_verification()),
+                "requireEmailVerification": bool(obj.flags.require_email_verification),
                 "allowSharedIssues": not obj.flags.disable_shared_issues,
                 "enhancedPrivacy": bool(obj.flags.enhanced_privacy),
                 "dataScrubber": bool(
