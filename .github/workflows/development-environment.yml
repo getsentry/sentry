@@ -95,7 +95,11 @@ jobs:
           python -m venv .venv
           source .venv/bin/activate
           pip install wheel
-          make bootstrap
+          if ! docker system info &>/dev/null; then
+            make bootstrap
+          else
+            make develop init-config
+          fi
 
       - name: Test direnv
         run: |

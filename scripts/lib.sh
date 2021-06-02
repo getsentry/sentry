@@ -38,7 +38,6 @@ sudo-askpass() {
 # After using homebrew to install docker, we need to do some magic to remove the need to interact with the GUI
 # See: https://github.com/docker/for-mac/issues/2359#issuecomment-607154849 for why we need to do things below
 init-docker() {
-    set -x
     # Need to start docker if it was freshly installed or updated
     # You will know that Docker is ready for devservices when the icon on the menu bar stops flashing
     if query-mac && ! require docker && [ -d "/Applications/Docker.app" ]; then
@@ -59,13 +58,6 @@ init-docker() {
         sudo-askpass /bin/chmod 644 /Library/LaunchDaemons/com.docker.vmnetd.plist
         sudo-askpass /bin/launchctl load /Library/LaunchDaemons/com.docker.vmnetd.plist
     fi
-    sudo-askpass ls -l /Library/PrivilegedHelperTools/
-    sudo-askpass ls -l /Library/LaunchDaemons/
-    sudo-askpass cat /Library/LaunchDaemons/com.docker.vmnetd.plist
-    sudo-askpass ls -l /Library/PrivilegedHelperTools/com.docker.vmnetd
-    sudo-askpass ls -l /Applications/ | grep Docker
-    sudo-askpass ls -l /Applications/Docker.app
-    # which docker
     start-docker
 }
 
@@ -78,6 +70,16 @@ start-docker() {
         # At a later stage in the script, we're going to execute
         # ensure_docker_server which waits for it to be ready
         open -g -a Docker.app
+        exit_code=$?
+        # If the step above fails, at least we can get some debugging information to determine why
+        if [ $exit_code != 0 ]; then
+            sudo-askpass ls -l /Library/PrivilegedHelperTools/
+            sudo-askpass ls -l /Library/LaunchDaemons/
+            sudo-askpass cat /Library/LaunchDaemons/com.docker.vmnetd.plist
+            sudo-askpass ls -l /Library/PrivilegedHelperTools/com.docker.vmnetd
+            sudo-askpass ls -l /Applications/ | grep Docker
+            sudo-askpass ls -l /Applications/Docker.app
+        fi
     fi
 }
 
