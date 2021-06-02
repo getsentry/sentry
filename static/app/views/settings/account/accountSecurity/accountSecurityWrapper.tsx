@@ -4,7 +4,7 @@ import {RouteComponentProps} from 'react-router';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import AsyncComponent from 'app/components/asyncComponent';
 import {t} from 'app/locale';
-import {Authenticator, OrganizationSummary} from 'app/types';
+import {Authenticator, OrganizationSummary, UserEmail} from 'app/types';
 import {defined} from 'app/utils';
 
 const ENDPOINT = '/users/me/authenticators/';
@@ -17,6 +17,7 @@ type Props = {
 type State = {
   authenticators?: Authenticator[] | null;
   organizations?: OrganizationSummary[];
+  emails: UserEmail[];
 } & AsyncComponent['state'];
 
 class AccountSecurityWrapper extends AsyncComponent<Props, State> {
@@ -24,6 +25,7 @@ class AccountSecurityWrapper extends AsyncComponent<Props, State> {
     return [
       ['authenticators', ENDPOINT],
       ['organizations', '/organizations/'],
+      ['emails', '/users/me/emails/'],
     ];
   }
 
@@ -56,16 +58,19 @@ class AccountSecurityWrapper extends AsyncComponent<Props, State> {
       addErrorMessage(t('Error regenerating backup codes'));
     }
   };
+  handleRefresh = () => {
+    this.fetchData();
+  };
 
   renderBody() {
     const {children} = this.props;
-    const {authenticators, organizations} = this.state;
-
+    const {authenticators, organizations, emails} = this.state;
     const enrolled =
       authenticators?.filter(auth => auth.isEnrolled && !auth.isBackupInterface) || [];
     const countEnrolled = enrolled.length;
     const orgsRequire2fa = organizations?.filter(org => org.require2FA) || [];
     const deleteDisabled = orgsRequire2fa.length > 0 && countEnrolled === 1;
+    const hasVerifiedEmail = !!emails?.find(({isVerified}) => isVerified);
 
     // This happens when you switch between children views and the next child
     // view is lazy loaded, it can potentially be `null` while the code split
@@ -81,6 +86,8 @@ class AccountSecurityWrapper extends AsyncComponent<Props, State> {
       deleteDisabled,
       orgsRequire2fa,
       countEnrolled,
+      hasVerifiedEmail,
+      handleRefresh: this.handleRefresh,
     });
   }
 }
