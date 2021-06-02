@@ -6,14 +6,12 @@ import NotificationSettingsByOrganization from 'app/views/settings/account/notif
 
 const createWrapper = (notificationSettings: NotificationSettingsObject) => {
   const {organization, routerContext} = initializeOrg();
-  const aSpy = jest.fn();
-
   return mountWithTheme(
     <NotificationSettingsByOrganization
       notificationType="alerts"
       notificationSettings={notificationSettings}
       organizations={[organization]}
-      onChange={aSpy}
+      onChange={jest.fn()}
     />,
     routerContext
   );

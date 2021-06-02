@@ -18,13 +18,12 @@ const createWrapper = (
     body: projects,
   });
 
-  const aSpy = jest.fn();
 
   return mountWithTheme(
     <NotificationSettingsByProjects
       notificationType="alerts"
       notificationSettings={notificationSettings}
-      onChange={aSpy}
+      onChange={jest.fn()}
     />,
     routerContext
   );
