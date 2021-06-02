@@ -23,6 +23,7 @@ from sentry.search.events.constants import (
     ERROR_UNHANDLED_ALIAS,
     FUNCTION_PATTERN,
     KEY_TRANSACTION_ALIAS,
+    MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS,
     PROJECT_ALIAS,
     PROJECT_NAME_ALIAS,
     PROJECT_THRESHOLD_CONFIG_ALIAS,
@@ -219,9 +220,15 @@ def team_key_transaction_expression(organization_id, team_ids, project_ids):
         .distinct("transaction", "project_id")
     )
 
-    # There are team key transactions marked, so hard code false into the query.
-    if len(team_key_transactions) == 0:
+    count = len(team_key_transactions)
+
+    # There are no team key transactions marked, so hard code false into the query.
+    if count == 0:
         return ["toInt8", [0]]
+    elif count > MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS:
+        raise InvalidSearchQuery(
+            f"You have selected teams with too many transactions. The limit is {MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS}. Change the active filters to try again."
+        )
 
     return [
         "in",
