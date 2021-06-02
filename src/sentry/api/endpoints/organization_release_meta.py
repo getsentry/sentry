@@ -13,6 +13,7 @@ from sentry.models import (
     ReleaseFile,
     ReleaseProject,
 )
+from sentry.tasks.assemble import RELEASE_ARCHIVE_FILENAME
 
 
 class OrganizationReleaseMetaEndpoint(OrganizationReleasesBaseEndpoint):
@@ -77,7 +78,11 @@ class OrganizationReleaseMetaEndpoint(OrganizationReleasesBaseEndpoint):
             for pr in project_releases
         ]
 
-        release_file_count = ReleaseFile.objects.filter(release=release).count()
+        release_file_count = (
+            ReleaseFile.objects.filter(release=release)
+            .exclude(name=RELEASE_ARCHIVE_FILENAME)
+            .count()
+        )
 
         return Response(
             {
