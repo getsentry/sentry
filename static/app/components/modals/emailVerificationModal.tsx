@@ -16,13 +16,15 @@ type Props = WithRouterProps &
     actionMessage?: string;
   };
 
-type State = {};
-
-class EmailVerificationModal extends React.Component<Props, State> {
-  renderBodyContent() {
-    const {actionMessage = 'taking this action'} = this.props;
-    return (
-      <React.Fragment>
+function EmailVerificationModal({
+  Header,
+  Body,
+  actionMessage = 'taking this action',
+}: Props) {
+  return (
+    <React.Fragment>
+      <Header closeButton>{t('Action Required')}</Header>
+      <Body>
         <TextBlock>
           {tct('Please verify your email before [actionMessage], or [link].', {
             actionMessage,
@@ -34,19 +36,9 @@ class EmailVerificationModal extends React.Component<Props, State> {
           })}
         </TextBlock>
         <EmailAddresses />
-      </React.Fragment>
-    );
-  }
-
-  render() {
-    const {Header, Body} = this.props;
-    return (
-      <React.Fragment>
-        <Header closeButton>{t('Action Required')}</Header>
-        <Body>{this.renderBodyContent()}</Body>
-      </React.Fragment>
-    );
-  }
+      </Body>
+    </React.Fragment>
+  );
 }
 
 export default withRouter(withApi(EmailVerificationModal));

@@ -10,6 +10,7 @@ describe('Email Verification Modal', function () {
       TestStubs.routerContext()
     );
   });
+
   it('renders', async function () {
     expect(wrapper.find('TextBlock').text()).toEqual(
       'Please verify your email before taking this action, or go to your email settings.'
@@ -19,6 +20,7 @@ describe('Email Verification Modal', function () {
     ).toEqual('/settings/account/emails/');
     expect(wrapper.find('EmailAddresses')).toHaveLength(1);
   });
+
   it('renders with action param', async function () {
     wrapper = mountWithTheme(
       <EmailVerificationModal

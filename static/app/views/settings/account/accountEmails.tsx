@@ -43,7 +43,7 @@ class AccountEmails extends AsyncView<Props, State> {
 
   renderBody() {
     return (
-      <div>
+      <React.Fragment>
         <SettingsPageHeader title={t('Email Addresses')} />
         <EmailAddresses />
         <Form
@@ -59,7 +59,7 @@ class AccountEmails extends AsyncView<Props, State> {
         <AlertLink to="/settings/account/notifications" icon={<IconStack />}>
           {t('Want to change how many emails you get? Use the notifications panel.')}
         </AlertLink>
-      </div>
+      </React.Fragment>
     );
   }
 }
