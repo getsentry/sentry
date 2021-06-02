@@ -63,8 +63,6 @@ APP_STORE_CONNECT_SCHEMA = {
         "name": {"type": "string"},
         "orgId": {"type": "integer"},
         "orgName": {"type": "string", "minLength": 1, "maxLength": 512},
-        "refreshDate": {"type": "string"},
-        "type": {"type": "string", "enum": ["appStoreConnect"]},
     },
     "required": [
         "appId",
