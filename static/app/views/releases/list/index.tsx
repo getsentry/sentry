@@ -271,7 +271,8 @@ class ReleasesList extends AsyncView<Props, State> {
             selection.projects &&
             selection.projects.length === 1 &&
             selection.projects[0];
-          const selectedProject = organization.projects.find(
+          // TODO(releases): I think types here need adjusting as this can also be a lightweight organization without projects
+          const selectedProject = organization.projects?.find(
             p => p.id === `${selectedProjectId}`
           );
 
