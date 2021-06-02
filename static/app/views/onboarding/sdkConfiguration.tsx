@@ -8,6 +8,7 @@ import IntegrationSetup from './integrationSetup';
 import OtherSetup from './otherSetup';
 
 type Props = React.ComponentProps<typeof DocumentationSetup> &
+  React.ComponentProps<typeof OtherSetup> &
   Omit<React.ComponentProps<typeof IntegrationSetup>, 'integrationSlug'>;
 
 const SdkConfiguration = (props: Props) => {
@@ -19,7 +20,8 @@ const SdkConfiguration = (props: Props) => {
     return <IntegrationSetup integrationSlug={integrationSlug} {...props} />;
   } else if (platform === 'other') {
     return <OtherSetup {...props} />;
-  } else return <DocumentationSetup {...props} />;
+  }
+  return <DocumentationSetup {...props} />;
 };
 
 export default SdkConfiguration;

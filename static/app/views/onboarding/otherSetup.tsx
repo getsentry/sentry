@@ -10,9 +10,7 @@ import Alert from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import ExternalLink from 'app/components/links/externalLink';
-import LoadingError from 'app/components/loadingError';
 import {PlatformKey} from 'app/data/platformCategories';
-import platforms from 'app/data/platforms';
 import {t, tct} from 'app/locale';
 import {Organization, Project} from 'app/types';
 import {analytics} from 'app/utils/analytics';
@@ -44,9 +42,6 @@ type Props = StepProps & {
 } & AsyncComponent['props'];
 
 type State = {
-  platformDocs: {html: string; link: string} | null;
-  loadedPlatform: PlatformKey | null;
-  hasError: boolean;
   keyList: Array<ProjectKey> | null;
 } & AsyncComponent['state'];
 
@@ -54,9 +49,6 @@ class OtherSetup extends AsyncComponent<Props, State> {
   getDefaultState() {
     return {
       ...super.getDefaultState(),
-      platformDocs: null,
-      loadedPlatform: null,
-      hasError: false,
       keyList: null,
     };
   }
@@ -72,18 +64,15 @@ class OtherSetup extends AsyncComponent<Props, State> {
   };
 
   render() {
-    const {organization, project, platform} = this.props;
-    const {loadedPlatform, hasError, keyList} = this.state;
+    const {organization, project} = this.props;
+    const {keyList} = this.state;
 
-    const currentPlatform = loadedPlatform ?? platform ?? 'other';
+    const currentPlatform = 'other';
 
     const introduction = (
       <React.Fragment>
         <SetupIntroduction
-          stepHeaderText={t(
-            'Prepare the %s SDK',
-            platforms.find(p => p.id === currentPlatform)?.name ?? ''
-          )}
+          stepHeaderText={t('Prepare the Other SDK')}
           platform={currentPlatform}
         />
         <motion.p
@@ -114,7 +103,6 @@ class OtherSetup extends AsyncComponent<Props, State> {
         <p>
           {tct(`Prepare the SDK for your language following this [docsLink:guide].`, {
             docsLink: <ExternalLink href="https://develop.sentry.dev/sdk/overview/" />,
-            platform: platforms.find(p => p.id === loadedPlatform)?.name,
           })}
         </p>
 
@@ -143,13 +131,6 @@ class OtherSetup extends AsyncComponent<Props, State> {
       </DocsWrapper>
     );
 
-    const loadingError = (
-      <LoadingError
-        message={t('Failed to load documentation for the %s platform.', platform)}
-        onRetry={this.fetchData}
-      />
-    );
-
     const testOnlyAlert = (
       <Alert type="warning">
         Platform documentation is not rendered in for tests in CI
@@ -160,7 +141,7 @@ class OtherSetup extends AsyncComponent<Props, State> {
       <React.Fragment>
         {introduction}
         {getDynamicText({
-          value: !hasError ? docs : loadingError,
+          value: docs,
           fixed: testOnlyAlert,
         })}
       </React.Fragment>
