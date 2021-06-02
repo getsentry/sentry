@@ -1,6 +1,4 @@
 import * as React from 'react';
-import createReactClass from 'create-react-class';
-import Reflux from 'reflux';
 
 import HookStore from 'app/stores/hookStore';
 import {HookName, Hooks} from 'app/types/hooks';
@@ -20,14 +18,6 @@ type Params<H extends HookName> = {
    * use React.Suspense and React.lazy to render the component.
    */
   defaultComponentPromise?: () => Promise<ReturnType<Hooks[H]>>;
-  /**
-   * Parameters to pass into the hook callback
-   */
-  params?: Parameters<Hooks[H]>;
-};
-
-type State<H extends HookName> = {
-  hooks: Array<Hooks[H]>;
 };
 
 /**
@@ -56,28 +46,28 @@ function HookOrDefault<H extends HookName>({
   hookName,
   defaultComponent,
   defaultComponentPromise,
-  params,
 }: Params<H>) {
   type Props = React.ComponentProps<ReturnType<Hooks[H]>>;
+  type State = {hooks: Hooks[H][]};
 
-  return createReactClass<Props, State<H>>({
-    displayName: `HookOrDefaultComponent(${hookName})`,
-    mixins: [Reflux.listenTo(HookStore, 'handleHooks') as any],
+  class HookOrDefaultComponent extends React.Component<Props, State> {
+    static displayName = `HookOrDefaultComponent(${hookName})`;
 
-    getInitialState() {
-      return {hooks: HookStore.get(hookName)};
-    },
+    state: State = {
+      hooks: HookStore.get(hookName),
+    };
 
-    handleHooks(hookNameFromStore: HookName, hooks: Array<Hooks[H]>) {
-      // Make sure that the incoming hook update matches this component's hook name
-      if (hookName !== hookNameFromStore) {
-        return;
-      }
+    componentWillUnmount() {
+      this.unlistener?.();
+    }
 
-      this.setState({hooks});
-    },
+    unlistener = HookStore.listen(
+      (name: string, hooks: Hooks[HookName][]) =>
+        name === hookName && this.setState({hooks}),
+      undefined
+    );
 
-    getDefaultComponent() {
+    get defaultComponent() {
       // If `defaultComponentPromise` is passed, then return a Suspended component
       if (defaultComponentPromise) {
         const Component = React.lazy(defaultComponentPromise);
@@ -90,18 +80,19 @@ function HookOrDefault<H extends HookName>({
       }
 
       return defaultComponent;
-    },
+    }
 
     render() {
       const hookExists = this.state.hooks && this.state.hooks.length;
+      const componentFromHook = this.state.hooks[0]?.();
       const HookComponent =
-        hookExists && this.state.hooks[0]({params})
-          ? this.state.hooks[0]({params})
-          : this.getDefaultComponent();
+        hookExists && componentFromHook ? componentFromHook : this.defaultComponent;
 
-      return <HookComponent {...this.props} />;
-    },
-  });
+      return HookComponent ? <HookComponent {...this.props} /> : null;
+    }
+  }
+
+  return HookOrDefaultComponent;
 }
 
 export default HookOrDefault;
