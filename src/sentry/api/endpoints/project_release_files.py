@@ -84,11 +84,20 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint):
         archive = None
         if not type_ or type_ == FileStorageType.ARCHIVED:
             # Get contents of release archive as well:
-            archive = release.get_release_archive()
+            try:
+                release_archive_file = ReleaseFile.objects.select_related("file").get(
+                    release=release, name=RELEASE_ARCHIVE_FILENAME
+                )
+                file_ = ReleaseFile.cache.getfile(release_archive_file)
+                archive = ReleaseArchive(file_.file)
+            except ReleaseFile.DoesNotExist:
+                archive = None
 
         if archive is not None:
             with archive:
-                archived_list = ReleaseArchiveQuerySet(archive, query)
+                archived_list = ReleaseArchiveQuerySet(
+                    archive, release_archive_file.file.timestamp, query
+                )
                 data_sources.append(CombinedQuerysetIntermediary(archived_list, order_by=["name"]))
 
         def on_results(r):
@@ -256,7 +265,7 @@ class ListQuerySet:
 class ReleaseArchiveQuerySet(ListQuerySet):
     """ Pseudo queryset offering a subset of QuerySet operations, """
 
-    def __init__(self, archive: ReleaseArchive, query=None):
+    def __init__(self, archive: ReleaseArchive, timestamp, query=None):
         # Assume manifest
         release_files = [
             ReleaseFile(
@@ -264,6 +273,8 @@ class ReleaseArchiveQuerySet(ListQuerySet):
                 file=File(
                     headers=info.get("headers", {}),
                     size=archive.get_file_size(filename),
+                    timestamp=timestamp,  # archived artifacts do not have their own
+                    # TODO: sha1
                 ),
             )
             for filename, info in archive.manifest.get("files", {}).items()
