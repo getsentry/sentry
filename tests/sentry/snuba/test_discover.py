@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 
 import pytest
 
+from sentry.discover.arithmetic import ArithmeticValidationError
 from sentry.exceptions import InvalidSearchQuery
 from sentry.snuba import discover
 from sentry.testutils import SnubaTestCase, TestCase
@@ -2943,3 +2944,65 @@ def test_zerofill():
 
     assert results[0]["time"] == 1546387200
     assert results[7]["time"] == 1546992000
+
+
+class ArithmeticTest(SnubaTestCase, TestCase):
+    def setUp(self):
+        super().setUp()
+
+        self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
+        event_data = load_data("transaction")
+        # Half of duration so we don't get weird rounding differences when comparing the results
+        event_data["breakdowns"]["span_ops"]["ops.http"]["value"] = 1500
+        event_data["start_timestamp"] = iso_format(self.day_ago + timedelta(minutes=30))
+        event_data["timestamp"] = iso_format(self.day_ago + timedelta(minutes=30, seconds=3))
+        self.store_event(data=event_data, project_id=self.project.id)
+        self.params = {"project_id": [self.project.id]}
+        self.query = "event.type:transaction"
+
+    def test_simple(self):
+        results = discover.query(
+            selected_columns=[
+                "spans.http",
+                "transaction.duration",
+            ],
+            equations=["spans.http / transaction.duration"],
+            query=self.query,
+            params=self.params,
+        )
+        assert len(results["data"]) == 1
+        result = results["data"][0]
+        assert result["equation[0]"] == result["spans.http"] / result["transaction.duration"]
+
+    def test_multiple_equations(self):
+        results = discover.query(
+            selected_columns=[
+                "spans.http",
+                "transaction.duration",
+            ],
+            equations=[
+                "spans.http / transaction.duration",
+                "transaction.duration / spans.http",
+                "1500 + transaction.duration",
+            ],
+            query=self.query,
+            params=self.params,
+        )
+        assert len(results["data"]) == 1
+        result = results["data"][0]
+        assert result["equation[0]"] == result["spans.http"] / result["transaction.duration"]
+        assert result["equation[1]"] == result["transaction.duration"] / result["spans.http"]
+        assert result["equation[2]"] == 1500 + result["transaction.duration"]
+
+    def test_invalid_field(self):
+        with self.assertRaises(ArithmeticValidationError):
+            discover.query(
+                selected_columns=[
+                    "spans.http",
+                    "transaction.duration",
+                ],
+                # while transaction_status is a uint8, there's no reason we should allow arith on it
+                equations=["spans.http / transaction.status"],
+                query=self.query,
+                params=self.params,
+            )
