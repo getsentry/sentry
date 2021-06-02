@@ -159,7 +159,9 @@ class RuleListRow extends React.Component<Props, State> {
     const canEdit = ownerId ? userTeams.has(ownerId) : true;
     const hasAlertOwnership = organization.features.includes('team-alerts-ownership');
     const hasAlertList = organization.features.includes('alert-details-redesign');
-    const alertLink = (
+    const alertLink = isIssueAlert(rule) ? (
+      rule.name
+    ) : (
       <TitleLink to={hasRedesign ? detailsLink : editLink}>{rule.name}</TitleLink>
     );
 
@@ -185,9 +187,12 @@ class RuleListRow extends React.Component<Props, State> {
                   title={
                     isIssueAlert(rule)
                       ? t('Issue Alert')
-                      : IssueStatusText[
-                          rule?.latestIncident?.status ?? IncidentStatus.CLOSED
-                        ]
+                      : tct('Metric Alert Status: [status]', {
+                          status:
+                            IssueStatusText[
+                              rule?.latestIncident?.status ?? IncidentStatus.CLOSED
+                            ],
+                        })
                   }
                 >
                   <AlertBadge
@@ -333,16 +338,6 @@ const Title = styled('div')`
 
 const TitleLink = styled(Link)`
   ${overflowEllipsis}
-
-  @media (max-width: ${p => p.theme.breakpoints[3]}) {
-    max-width: 300px;
-  }
-  @media (max-width: ${p => p.theme.breakpoints[2]}) {
-    max-width: 165px;
-  }
-  @media (max-width: ${p => p.theme.breakpoints[1]}) {
-    max-width: 100px;
-  }
 `;
 
 const CreatedBy = styled('div')`
@@ -366,7 +361,18 @@ const AlertNameAndStatus = styled('div')`
 `;
 
 const AlertName = styled('div')`
+  ${overflowEllipsis}
   font-size: ${p => p.theme.fontSizeLarge};
+
+  @media (max-width: ${p => p.theme.breakpoints[3]}) {
+    max-width: 300px;
+  }
+  @media (max-width: ${p => p.theme.breakpoints[2]}) {
+    max-width: 165px;
+  }
+  @media (max-width: ${p => p.theme.breakpoints[1]}) {
+    max-width: 100px;
+  }
 `;
 
 const ProjectBadgeContainer = styled('div')`
