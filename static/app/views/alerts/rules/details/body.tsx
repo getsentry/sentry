@@ -387,7 +387,12 @@ export default class DetailsBody extends React.Component<Props> {
                 </Layout.Main>
                 <Layout.Side>
                   {this.renderMetricStatus()}
-                  <Timeline api={api} orgId={orgId} rule={rule} incidents={incidents} />
+                  <Timeline
+                    api={api}
+                    organization={organization}
+                    rule={rule}
+                    incidents={incidents}
+                  />
                   {this.renderRuleDetails()}
                 </Layout.Side>
               </StyledLayoutBodyWrapper>
