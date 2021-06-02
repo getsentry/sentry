@@ -605,7 +605,10 @@ class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
         with self.feature(self.base_features):
             response = self.client.get(
                 self.url,
-                data={"team": ["myteam"]},
+                data={
+                    "project": [self.project.id],
+                    "team": ["myteam"],
+                },
                 format="json",
             )
         assert response.status_code == 404, response.content
@@ -631,7 +634,10 @@ class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
         with self.feature(self.features):
             response = self.client.get(
                 reverse("sentry-api-0-organization-key-transactions-list", args=[org.slug]),
-                data={"team": ["myteams", other_team.id]},
+                data={
+                    "project": [self.project.id],
+                    "team": ["myteams", other_team.id],
+                },
                 format="json",
             )
 
@@ -642,7 +648,10 @@ class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
         with self.feature(self.features):
             response = self.client.get(
                 self.url,
-                data={"team": ["myteams"]},
+                data={
+                    "project": [self.project.id],
+                    "team": ["myteams"],
+                },
                 format="json",
             )
 
@@ -650,10 +659,12 @@ class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
         assert response.data == [
             {
                 "team": str(self.team1.id),
+                "count": 0,
                 "keyed": [],
             },
             {
                 "team": str(self.team2.id),
+                "count": 1,
                 "keyed": [
                     {
                         "project_id": str(self.project.id),
@@ -663,6 +674,7 @@ class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
             },
             {
                 "team": str(self.team3.id),
+                "count": 2,
                 "keyed": [
                     {
                         "project_id": str(self.project.id),
@@ -677,7 +689,10 @@ class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
         with self.feature(self.features):
             response = self.client.get(
                 self.url,
-                data={"team": [self.team4.id, self.team5.id]},
+                data={
+                    "project": [self.project.id],
+                    "team": [self.team4.id, self.team5.id],
+                },
                 format="json",
             )
 
@@ -685,12 +700,14 @@ class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
         assert response.data == [
             {
                 "team": str(self.team4.id),
+                "count": 1,
                 "keyed": [
                     {"project_id": str(self.project.id), "transaction": "other-transaction"},
                 ],
             },
             {
                 "team": str(self.team5.id),
+                "count": 0,
                 "keyed": [],
             },
         ]
@@ -699,7 +716,10 @@ class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
         with self.feature(self.features):
             response = self.client.get(
                 self.url,
-                data={"team": ["myteams", self.team4.id, self.team5.id]},
+                data={
+                    "project": [self.project.id],
+                    "team": ["myteams", self.team4.id, self.team5.id],
+                },
                 format="json",
             )
 
@@ -707,10 +727,12 @@ class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
         assert response.data == [
             {
                 "team": str(self.team1.id),
+                "count": 0,
                 "keyed": [],
             },
             {
                 "team": str(self.team2.id),
+                "count": 1,
                 "keyed": [
                     {
                         "project_id": str(self.project.id),
@@ -720,6 +742,7 @@ class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
             },
             {
                 "team": str(self.team3.id),
+                "count": 2,
                 "keyed": [
                     {
                         "project_id": str(self.project.id),
@@ -730,12 +753,14 @@ class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
             },
             {
                 "team": str(self.team4.id),
+                "count": 1,
                 "keyed": [
                     {"project_id": str(self.project.id), "transaction": "other-transaction"},
                 ],
             },
             {
                 "team": str(self.team5.id),
+                "count": 0,
                 "keyed": [],
             },
         ]
@@ -757,7 +782,10 @@ class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
         with self.feature(self.features):
             response = self.client.get(
                 reverse("sentry-api-0-organization-key-transactions-list", args=[org.slug]),
-                data={"team": ["myteams"]},
+                data={
+                    "project": [project.id],
+                    "team": ["myteams"],
+                },
                 format="json",
             )
 
@@ -774,7 +802,11 @@ class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
         with self.feature(self.features):
             response = self.client.get(
                 reverse("sentry-api-0-organization-key-transactions-list", args=[org.slug]),
-                data={"team": ["myteams"], "cursor": links["next"]["cursor"]},
+                data={
+                    "project": [project.id],
+                    "team": ["myteams"],
+                    "cursor": links["next"]["cursor"],
+                },
                 format="json",
             )
 
@@ -786,6 +818,43 @@ class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
         }
         assert links["previous"]["results"] == "true"
         assert links["next"]["results"] == "false"
+
+    def test_get_key_transaction_list_partial_project(self):
+        another_project = self.create_project(organization=self.org)
+        another_project.add_team(self.team2)
+
+        TeamKeyTransaction.objects.create(
+            team=self.team2,
+            organization=self.org,
+            transaction="another-transaction",
+            project=another_project,
+        )
+
+        with self.feature(self.features):
+            response = self.client.get(
+                self.url,
+                data={
+                    "project": [another_project.id],
+                    "team": [self.team2.id],
+                },
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+        assert response.data == [
+            {
+                "team": str(self.team2.id),
+                # the key transaction in self.project is counted but not in
+                # the list because self.project is not in the project param
+                "count": 2,
+                "keyed": [
+                    {
+                        "project_id": str(another_project.id),
+                        "transaction": "another-transaction",
+                    },
+                ],
+            },
+        ]
 
 
 class KeyTransactionTest(APITestCase, SnubaTestCase):

@@ -89,7 +89,12 @@ class TeamKeyTransactionButton extends Component<Props, State> {
     let error: string | null = null;
 
     try {
-      const teams = await fetchTeamKeyTransactions(api, organization.slug, 'myteams');
+      const teams = await fetchTeamKeyTransactions(
+        api,
+        organization.slug,
+        ['myteams'],
+        [String(project)]
+      );
 
       keyedTeams = new Set(
         teams
@@ -101,7 +106,7 @@ class TeamKeyTransactionButton extends Component<Props, State> {
           )
           .map(({team}) => team)
       );
-      counts = new Map(teams.map(({team, keyed}) => [team, keyed.length]));
+      counts = new Map(teams.map(({team, count}) => [team, count]));
     } catch (err) {
       error = err.responseJSON?.detail ?? t('Error fetching team key transactions');
     }

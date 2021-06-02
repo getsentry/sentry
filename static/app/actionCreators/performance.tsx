@@ -9,6 +9,7 @@ import parseLinkHeader from 'app/utils/parseLinkHeader';
 
 type TeamKeyTransaction = {
   team: string;
+  count: number;
   keyed: {
     project_id: string;
     transaction: string;
@@ -18,7 +19,8 @@ type TeamKeyTransaction = {
 export async function fetchTeamKeyTransactions(
   api: Client,
   orgSlug: string,
-  teams: string | string[]
+  teams: string[],
+  projects?: string[]
 ): Promise<TeamKeyTransaction[]> {
   const url = `/organizations/${orgSlug}/key-transactions-list/`;
 
@@ -28,10 +30,18 @@ export async function fetchTeamKeyTransactions(
 
   while (hasMore) {
     try {
+      const payload = {cursor, team: teams, project: projects};
+      if (!payload.cursor) {
+        delete payload.cursor;
+      }
+      if (!payload.project?.length) {
+        delete payload.project;
+      }
+
       const [data, , xhr] = await api.requestPromise(url, {
         method: 'GET',
         includeAllArgs: true,
-        query: {cursor, team: teams},
+        query: payload,
       });
       datas.push(data);
 

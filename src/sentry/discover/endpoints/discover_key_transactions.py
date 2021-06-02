@@ -205,13 +205,15 @@ class KeyTransactionListEndpoint(KeyTransactionBase):
         except InvalidParams as err:
             return Response(str(err), status=400)
 
-        serializer = KeyTransactionTeamSerializer
+        projects = self.get_projects(request, organization)
+
+        serializer = KeyTransactionTeamSerializer(projects)
 
         return self.paginate(
             request=request,
             queryset=teams,
             order_by="slug",
-            on_results=lambda x: serialize(x, request.user, serializer()),
+            on_results=lambda x: serialize(x, request.user, serializer),
             paginator_cls=OffsetPaginator,
         )
 
@@ -225,25 +227,34 @@ class TeamKeyTransactionSerializer(Serializer):
 
 
 class KeyTransactionTeamSerializer(Serializer):
+    def __init__(self, projects):
+        self.project_ids = {project.id for project in projects}
+
     def get_attrs(self, item_list, user, **kwargs):
         team_key_transactions = TeamKeyTransaction.objects.filter(
             team__in=[item.id for item in item_list]
         ).order_by("transaction", "project_id")
 
-        attrs = defaultdict(lambda: {"key_transactions": []})
+        attrs = defaultdict(lambda: {
+            "count": 0,
+            "key_transactions": [],
+        })
 
         for kt in team_key_transactions:
-            attrs[kt.team]["key_transactions"].append(
-                {
-                    "project_id": str(kt.project_id),
-                    "transaction": kt.transaction,
-                }
-            )
+            attrs[kt.team]["count"] += 1
+            if kt.project_id in self.project_ids:
+                attrs[kt.team]["key_transactions"].append(
+                    {
+                        "project_id": str(kt.project_id),
+                        "transaction": kt.transaction,
+                    }
+                )
 
         return attrs
 
     def serialize(self, obj, attrs, user, **kwargs):
         return {
             "team": str(obj.id),
+            "count": attrs.get("count", 0),
             "keyed": attrs.get("key_transactions", []),
         }

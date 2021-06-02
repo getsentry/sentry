@@ -1,5 +1,3 @@
-import {Component} from 'react';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import TeamStore from 'app/stores/teamStore';
@@ -7,15 +5,8 @@ import EventView from 'app/utils/discover/eventView';
 import {MAX_TEAM_KEY_TRANSACTIONS} from 'app/utils/performance/constants';
 import TeamKeyTransactionButton from 'app/views/performance/transactionSummary/teamKeyTransactionButton';
 
-class TestButton extends Component {
-  render() {
-    const {keyedTeamsCount, ...props} = this.props;
-    return <button {...props}>{`count: ${keyedTeamsCount}`}</button>;
-  }
-}
-
 async function clickTeamKeyTransactionDropdown(wrapper) {
-  wrapper.find('TestButton').simulate('click');
+  wrapper.find('TitleButton').simulate('click');
   await tick();
   wrapper.update();
 }
@@ -45,12 +36,47 @@ describe('TeamKeyTransaction', function () {
     TeamStore.loadInitialData(teams);
   });
 
+  it('fetches key transactions with project param', async function () {
+    const getTeamKeyTransactionsMock = MockApiClient.addMockResponse(
+      {
+        method: 'GET',
+        url: '/organizations/org-slug/key-transactions-list/',
+        body: teams.map(({id}) => ({
+          team: id,
+          count: 1,
+          keyed: [{project_id: String(project.id), transaction: 'transaction'}],
+        })),
+      },
+      {
+        predicate: (_, options) =>
+          options.method === 'GET' &&
+          options.query.project.length === 1 &&
+          options.query.project[0] === project.id &&
+          options.query.team.length === 1 &&
+          options.query.team[0] === 'myteams',
+      }
+    );
+
+    const wrapper = mountWithTheme(
+      <TeamKeyTransactionButton
+        eventView={eventView}
+        organization={organization}
+        transactionName="transaction"
+      />
+    );
+    await tick();
+    wrapper.update();
+
+    expect(getTeamKeyTransactionsMock).toHaveBeenCalledTimes(1);
+  });
+
   it('renders with all teams checked', async function () {
-    const getTeamKeyTransactionsMock = MockApiClient.addMockResponse({
+    MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/key-transactions-list/',
       body: teams.map(({id}) => ({
         team: id,
+        count: 1,
         keyed: [{project_id: String(project.id), transaction: 'transaction'}],
       })),
     });
@@ -60,7 +86,6 @@ describe('TeamKeyTransaction', function () {
         eventView={eventView}
         organization={organization}
         transactionName="transaction"
-        title={TestButton}
       />
     );
     await tick();
@@ -69,8 +94,7 @@ describe('TeamKeyTransaction', function () {
     clickTeamKeyTransactionDropdown(wrapper);
 
     // header should show the checked state
-    expect(getTeamKeyTransactionsMock).toHaveBeenCalledTimes(1);
-    expect(wrapper.find('TestButton').exists()).toBeTruthy();
+    expect(wrapper.find('TitleButton').exists()).toBeTruthy();
     const header = wrapper.find('DropdownMenuHeader');
     expect(header.exists()).toBeTruthy();
     expect(header.find('CheckboxFancy').props().isChecked).toBeTruthy();
@@ -91,6 +115,7 @@ describe('TeamKeyTransaction', function () {
       url: '/organizations/org-slug/key-transactions-list/',
       body: teams.map(({id}) => ({
         team: id,
+        count: id === teams[0].id ? 1 : 0,
         keyed:
           id === teams[0].id
             ? [{project_id: String(project.id), transaction: 'transaction'}]
@@ -103,7 +128,6 @@ describe('TeamKeyTransaction', function () {
         eventView={eventView}
         organization={organization}
         transactionName="transaction"
-        title={TestButton}
       />
     );
 
@@ -134,6 +158,7 @@ describe('TeamKeyTransaction', function () {
       url: '/organizations/org-slug/key-transactions-list/',
       body: teams.map(({id}) => ({
         team: id,
+        count: 0,
         keyed: [],
       })),
     });
@@ -143,7 +168,6 @@ describe('TeamKeyTransaction', function () {
         eventView={eventView}
         organization={organization}
         transactionName="transaction"
-        title={TestButton}
       />
     );
     await tick();
@@ -172,6 +196,7 @@ describe('TeamKeyTransaction', function () {
       url: '/organizations/org-slug/key-transactions-list/',
       body: teams.map(({id}) => ({
         team: id,
+        count: 0,
         keyed: [],
       })),
     });
@@ -198,7 +223,6 @@ describe('TeamKeyTransaction', function () {
         eventView={eventView}
         organization={organization}
         transactionName="transaction"
-        title={TestButton}
       />
     );
     await tick();
@@ -221,6 +245,7 @@ describe('TeamKeyTransaction', function () {
       url: '/organizations/org-slug/key-transactions-list/',
       body: teams.map(({id}) => ({
         team: id,
+        count: 1,
         keyed: [{project_id: String(project.id), transaction: 'transaction'}],
       })),
     });
@@ -247,7 +272,6 @@ describe('TeamKeyTransaction', function () {
         eventView={eventView}
         organization={organization}
         transactionName="transaction"
-        title={TestButton}
       />
     );
     await tick();
@@ -270,6 +294,7 @@ describe('TeamKeyTransaction', function () {
       url: '/organizations/org-slug/key-transactions-list/',
       body: teams.map(({id}) => ({
         team: id,
+        count: 0,
         keyed: [],
       })),
     });
@@ -297,7 +322,6 @@ describe('TeamKeyTransaction', function () {
         eventView={eventView}
         organization={organization}
         transactionName="transaction"
-        title={TestButton}
       />
     );
     await tick();
@@ -328,6 +352,7 @@ describe('TeamKeyTransaction', function () {
       url: '/organizations/org-slug/key-transactions-list/',
       body: teams.map(({id}) => ({
         team: id,
+        count: 1,
         keyed: [{project_id: String(project.id), transaction: 'transaction'}],
       })),
     });
@@ -355,7 +380,6 @@ describe('TeamKeyTransaction', function () {
         eventView={eventView}
         organization={organization}
         transactionName="transaction"
-        title={TestButton}
       />
     );
     await tick();
@@ -387,8 +411,9 @@ describe('TeamKeyTransaction', function () {
       url: '/organizations/org-slug/key-transactions-list/',
       body: teams.map(({id}) => ({
         team: id,
+        count: MAX_TEAM_KEY_TRANSACTIONS,
         keyed: Array.from({length: MAX_TEAM_KEY_TRANSACTIONS}, (_, i) => ({
-          project_id: '1',
+          project_id: String(project.id),
           transaction: `transaction-${i}`,
         })),
       })),
@@ -399,7 +424,6 @@ describe('TeamKeyTransaction', function () {
         eventView={eventView}
         organization={organization}
         transactionName="transaction"
-        title={TestButton}
       />
     );
     await tick();
@@ -421,10 +445,11 @@ describe('TeamKeyTransaction', function () {
       url: '/organizations/org-slug/key-transactions-list/',
       body: teams.map(({id}) => ({
         team: id,
+        count: MAX_TEAM_KEY_TRANSACTIONS,
         keyed: [
           {project_id: String(project.id), transaction: 'transaction'},
           ...Array.from({length: MAX_TEAM_KEY_TRANSACTIONS - 1}, (_, i) => ({
-            project_id: '1',
+            project_id: String(project.id),
             transaction: `transaction-${i}`,
           })),
         ],
@@ -436,7 +461,6 @@ describe('TeamKeyTransaction', function () {
         eventView={eventView}
         organization={organization}
         transactionName="transaction"
-        title={TestButton}
       />
     );
     await tick();
