@@ -302,7 +302,6 @@ from .endpoints.project_processingissues import (
     ProjectProcessingIssuesEndpoint,
     ProjectProcessingIssuesFixEndpoint,
 )
-from .endpoints.project_release_archived_artifacts import ProjectArchivedArtifactsEndpoint
 from .endpoints.project_release_commits import ProjectReleaseCommitsEndpoint
 from .endpoints.project_release_details import ProjectReleaseDetailsEndpoint
 from .endpoints.project_release_file_details import ProjectReleaseFileDetailsEndpoint
@@ -1679,11 +1678,6 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/files/(?P<file_id>\d+)/$",
                     ProjectReleaseFileDetailsEndpoint.as_view(),
                     name="sentry-api-0-project-release-file-details",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/archived-artifacts/$",
-                    ProjectArchivedArtifactsEndpoint.as_view(),
-                    name="sentry-api-0-project-release-files",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rules/$",

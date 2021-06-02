@@ -1,6 +1,7 @@
 import logging
 import re
 
+from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist
 from django.db import IntegrityError, transaction
 from django.db.models import Q
 from rest_framework.response import Response
@@ -8,11 +9,16 @@ from rest_framework.response import Response
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.endpoints.organization_release_files import load_dist
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.paginator import OffsetPaginator
+from sentry.api.paginator import (
+    CombinedQuerysetIntermediary,
+    CombinedQuerysetPaginator,
+    OffsetPaginator,
+)
 from sentry.api.serializers import serialize
 from sentry.constants import MAX_RELEASE_FILES_OFFSET
 from sentry.models import File, Release, ReleaseFile
-from sentry.tasks.assemble import RELEASE_ARCHIVE_FILENAME
+from sentry.models.releasefile import ReleaseArchive
+from sentry.tasks.assemble import RELEASE_ARCHIVE_FILENAME, get_artifact_basename
 
 ERR_FILE_EXISTS = "A file matching this name already exists for the given release"
 _filename_re = re.compile(r"[\n\t\r\f\v\\]")
@@ -46,8 +52,11 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint):
             raise ResourceDoesNotExist
 
         file_list = (
-            ReleaseFile.objects.filter(release=release).select_related("file").order_by("name")
-        ).exclude(name=RELEASE_ARCHIVE_FILENAME)
+            ReleaseFile.objects.filter(release=release)
+            .exclude(name=RELEASE_ARCHIVE_FILENAME)
+            .select_related("file")
+            .order_by("name")
+        )
 
         if query:
             if not isinstance(query, list):
@@ -58,14 +67,39 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint):
                 condition |= Q(name__icontains=name)
             file_list = file_list.filter(condition)
 
-        return self.paginate(
-            request=request,
-            queryset=file_list,
-            order_by="name",
-            paginator_cls=OffsetPaginator,
-            max_offset=MAX_RELEASE_FILES_OFFSET,
-            on_results=lambda r: serialize(load_dist(r), request.user),
-        )
+        def on_results(r):
+            results = serialize(load_dist(r), request.user)
+            for result in results:
+                if result["id"] == "None":
+                    result.pop("id")
+
+            return results
+
+        # Get contents of release archive as well:
+        archive = release.get_release_archive()
+        if archive is None:
+            # Behave like ProjectReleaseFilesEndpoint
+            return self.paginate(
+                request=request,
+                queryset=file_list,
+                order_by="name",
+                paginator_cls=OffsetPaginator,
+                max_offset=MAX_RELEASE_FILES_OFFSET,
+                on_results=on_results,
+            )
+        else:
+            with archive:
+                archived_list = ReleaseArchiveQuerySet(archive, query)
+
+            return self.paginate(
+                request=request,
+                intermediaries=[
+                    CombinedQuerysetIntermediary(file_list, order_by=["name"]),
+                    CombinedQuerysetIntermediary(archived_list, order_by=["name"]),
+                ],
+                paginator_cls=CombinedQuerysetPaginator,
+                on_results=on_results,
+            )
 
     def post(self, request, project, version):
         """
@@ -168,3 +202,62 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint):
             return Response({"detail": ERR_FILE_EXISTS}, status=409)
 
         return Response(serialize(releasefile, request.user), status=201)
+
+
+class ListQuerySet:
+    """ Pseudo queryset offering a subset of QuerySet operations """
+
+    def __init__(self, release_files, query=None):
+        self._files = [
+            # Mimic "or" operation applied for real querysets:
+            rf
+            for rf in release_files
+            if not query or any(search_string.lower() in rf.name.lower() for search_string in query)
+        ]
+
+    def get(self):
+        files = self._files
+        if not files:
+            raise ObjectDoesNotExist
+        if len(files) > 1:
+            raise MultipleObjectsReturned
+
+        return files[0]
+
+    def annotate(self, **kwargs):
+        if kwargs:
+            raise NotImplementedError
+
+        return self
+
+    def filter(self, **kwargs):
+        if kwargs:
+            raise NotImplementedError
+
+        return self
+
+    def order_by(self, key):
+        return ListQuerySet(sorted(self._files, key=lambda f: getattr(f, key)))
+
+    def __getitem__(self, index):
+        if isinstance(index, int):
+            return self._files[index]
+        return ListQuerySet(self._files[index])
+
+
+class ReleaseArchiveQuerySet(ListQuerySet):
+    """ Pseudo queryset offering a subset of QuerySet operations, """
+
+    def __init__(self, archive: ReleaseArchive, query=None):
+        # Assume manifest
+        release_files = [
+            ReleaseFile(
+                name=get_artifact_basename(info["url"]),
+                file=File(
+                    headers=info.get("headers", {}),
+                    size=archive.get_file_size(filename),
+                ),
+            )
+            for filename, info in archive.manifest.get("files", {}).items()
+        ]
+        super().__init__(release_files, query)
