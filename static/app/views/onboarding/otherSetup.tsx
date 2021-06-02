@@ -67,8 +67,6 @@ class OtherSetup extends AsyncComponent<Props, State> {
 
     const currentPlatform = 'other';
 
-    const introduction = <FullIntroduction currentPlatform={currentPlatform} />;
-
     const blurb = (
       <React.Fragment>
         <p>
@@ -107,7 +105,7 @@ class OtherSetup extends AsyncComponent<Props, State> {
 
     return (
       <React.Fragment>
-        {introduction}
+        <FullIntroduction currentPlatform={currentPlatform} />
         {getDynamicText({
           value: docs,
           fixed: testOnlyAlert,

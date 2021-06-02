@@ -132,8 +132,6 @@ class DocumentationSetup extends React.Component<Props, State> {
 
     const currentPlatform = loadedPlatform ?? platform ?? 'other';
 
-    const introduction = <FullIntroduction currentPlatform={currentPlatform} />;
-
     const docs = platformDocs !== null && (
       <DocsWrapper key={platformDocs.html}>
         <Content dangerouslySetInnerHTML={{__html: platformDocs.html}} />
@@ -165,7 +163,7 @@ class DocumentationSetup extends React.Component<Props, State> {
 
     return (
       <React.Fragment>
-        {introduction}
+        <FullIntroduction currentPlatform={currentPlatform} />
         {getDynamicText({
           value: !hasError ? docs : loadingError,
           fixed: testOnlyAlert,
