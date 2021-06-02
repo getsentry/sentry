@@ -85,7 +85,7 @@ function SymbolSources({api, organization, symbolSources, projectSlug}: Props) {
     const symbolSourcesErrors: React.ReactNode[] = [];
 
     const symbolSourcesWithErrors = symbolSources.map((symbolSource, index) => {
-      if (symbolSource.id !== appStoreConnectContext?.id) {
+      if (symbolSource.id === appStoreConnectContext?.id) {
         const errors: string[] = [];
         if (appStoreConnectContext.itunesSessionValid) {
           symbolSourcesErrors.push(
