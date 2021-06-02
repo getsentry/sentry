@@ -200,8 +200,11 @@ class Endpoint(APIView):
 
         try:
             with sentry_sdk.start_span(op="base.dispatch.request", description=type(self).__name__):
-                if origin and request.auth:
-                    allowed_origins = request.auth.get_allowed_origins()
+                if origin:
+                    if request.auth:
+                        allowed_origins = request.auth.get_allowed_origins()
+                    else:
+                        allowed_origins = None
                     if not is_valid_origin(origin, allowed=allowed_origins):
                         response = Response(f"Invalid origin: {origin}", status=400)
                         self.response = self.finalize_response(request, response, *args, **kwargs)

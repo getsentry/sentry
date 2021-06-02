@@ -67,12 +67,12 @@ class GetOriginsTestCase(TestCase):
 
         with self.settings(SENTRY_ALLOW_ORIGIN="http://example.com"):
             result = get_origins(project)
-            self.assertEquals(result, frozenset(["http://foo.example", "http://example.com"]))
+            self.assertEquals(result, frozenset(["http://foo.example"]))
 
     def test_setting_empty(self):
         with self.settings(SENTRY_ALLOW_ORIGIN=None):
             result = get_origins(None)
-            self.assertEquals(result, frozenset([]))
+            self.assertEquals(result, frozenset(["*"]))
 
     def test_setting_all(self):
         with self.settings(SENTRY_ALLOW_ORIGIN="*"):
