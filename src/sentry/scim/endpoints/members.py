@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.db import transaction
 from django.db.models import Q
+from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
 from sentry import roles
@@ -15,7 +16,7 @@ from sentry.signals import member_invited
 from sentry.utils.cursors import SCIMCursor
 
 from .constants import SCIM_400_INVALID_FILTER, SCIM_409_USER_EXISTS, SCIM_API_LIST
-from .utils import SCIMEndpoint, parse_filter_conditions
+from .utils import OrganizationSCIMMemberPermission, SCIMEndpoint, parse_filter_conditions
 
 ERR_ONLY_OWNER = "You cannot remove the only remaining owner of the organization."
 from rest_framework.exceptions import PermissionDenied
@@ -23,7 +24,9 @@ from rest_framework.exceptions import PermissionDenied
 from sentry.api.exceptions import ConflictError
 
 
-class OrganizationSCIMUserDetails(SCIMEndpoint, OrganizationMemberEndpoint):
+class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
+    permission_classes = (OrganizationSCIMMemberPermission,)
+
     def _delete_member(self, request, organization, member):
         audit_data = member.get_audit_log_data()
         if OrganizationMemberDetailsEndpoint.is_only_owner(member):
@@ -60,14 +63,16 @@ class OrganizationSCIMUserDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         return Response(status=204)
 
 
-class OrganizationSCIMUserIndex(SCIMEndpoint):
+class OrganizationSCIMMemberIndex(SCIMEndpoint):
+    permission_classes = (OrganizationSCIMMemberPermission,)
+
     def get(self, request, organization):
         # note that SCIM doesn't care about changing results as they're queried
         # TODO: sanitize get parameter inputs?
         try:
             filter_val = parse_filter_conditions(request.GET.get("filter"))
         except Exception:
-            return Response(detail=SCIM_400_INVALID_FILTER, status=400)
+            raise ParseError(detail=SCIM_400_INVALID_FILTER)
 
         queryset = (
             OrganizationMember.objects.filter(
