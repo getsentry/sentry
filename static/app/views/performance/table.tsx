@@ -316,7 +316,9 @@ class Table extends React.Component<Props, State> {
       // via a prepended column
       .filter(
         (col: TableColumn<React.ReactText>) =>
-          col.name !== 'key_transaction' && !col.name.startsWith('count_miserable')
+          col.name !== 'key_transaction' &&
+          !col.name.startsWith('count_miserable') &&
+          col.name !== 'project_threshold_config'
       )
       .map((col: TableColumn<React.ReactText>, i: number) => {
         if (typeof widths[i] === 'number') {

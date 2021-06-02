@@ -42,6 +42,8 @@ export enum PERFORMANCE_TERM {
   USER_MISERY = 'userMisery',
   STATUS_BREAKDOWN = 'statusBreakdown',
   DURATION_DISTRIBUTION = 'durationDistribution',
+  USER_MISERY_NEW = 'userMiseryNew',
+  APDEX_NEW = 'apdexNew',
 }
 
 export type TooltipOption = SelectValue<string> & {
@@ -260,6 +262,8 @@ const PERFORMANCE_TERMS: Record<PERFORMANCE_TERM, TermFormatter> = {
     t(
       'Distribution buckets counts of transactions at specifics times for your current date range'
     ),
+  userMiseryNew: () => t('TBD'),
+  apdexNew: () => t('TBD'),
 };
 
 export function getTermHelp(
@@ -278,25 +282,37 @@ function generateGenericPerformanceEventView(
 ): EventView {
   const {query} = location;
 
+  const fields = [
+    'key_transaction',
+    'transaction',
+    'project',
+    'tpm()',
+    'p50()',
+    'p95()',
+    'failure_rate()',
+  ];
+
+  const featureFields = organization.features.includes('project-transaction-threshold')
+    ? [
+        `apdex_new()`,
+        'count_unique(user)',
+        `count_miserable_new(user)`,
+        `user_misery_new()`,
+      ]
+    : [
+        `apdex(${organization.apdexThreshold})`,
+        'count_unique(user)',
+        `count_miserable(user,${organization.apdexThreshold})`,
+        `user_misery(${organization.apdexThreshold})`,
+      ];
+
   const hasStartAndEnd = query.start && query.end;
   const savedQuery: NewQuery = {
     id: undefined,
     name: t('Performance'),
     query: 'event.type:transaction',
     projects: [],
-    fields: [
-      'key_transaction',
-      'transaction',
-      'project',
-      'tpm()',
-      'p50()',
-      'p95()',
-      'failure_rate()',
-      `apdex(${organization.apdexThreshold})`,
-      'count_unique(user)',
-      `count_miserable(user,${organization.apdexThreshold})`,
-      `user_misery(${organization.apdexThreshold})`,
-    ],
+    fields: [...fields, ...featureFields],
     version: 2,
   };
 
@@ -336,27 +352,39 @@ function generateBackendPerformanceEventView(
 ): EventView {
   const {query} = location;
 
+  const fields = [
+    'key_transaction',
+    'transaction',
+    'project',
+    'transaction.op',
+    'http.method',
+    'tpm()',
+    'p50()',
+    'p95()',
+    'failure_rate()',
+  ];
+
+  const featureFields = organization.features.includes('project-transaction-threshold')
+    ? [
+        `apdex_new()`,
+        'count_unique(user)',
+        `count_miserable_new(user)`,
+        `user_misery_new()`,
+      ]
+    : [
+        `apdex(${organization.apdexThreshold})`,
+        'count_unique(user)',
+        `count_miserable(user,${organization.apdexThreshold})`,
+        `user_misery(${organization.apdexThreshold})`,
+      ];
+
   const hasStartAndEnd = query.start && query.end;
   const savedQuery: NewQuery = {
     id: undefined,
     name: t('Performance'),
     query: 'event.type:transaction',
     projects: [],
-    fields: [
-      'key_transaction',
-      'transaction',
-      'project',
-      'transaction.op',
-      'http.method',
-      'tpm()',
-      'p50()',
-      'p95()',
-      'failure_rate()',
-      `apdex(${organization.apdexThreshold})`,
-      'count_unique(user)',
-      `count_miserable(user,${organization.apdexThreshold})`,
-      `user_misery(${organization.apdexThreshold})`,
-    ],
+    fields: [...fields, ...featureFields],
     version: 2,
   };
 
@@ -396,25 +424,32 @@ function generateFrontendPageloadPerformanceEventView(
 ): EventView {
   const {query} = location;
 
+  const fields = [
+    'key_transaction',
+    'transaction',
+    'project',
+    'tpm()',
+    'p75(measurements.fcp)',
+    'p75(measurements.lcp)',
+    'p75(measurements.fid)',
+    'p75(measurements.cls)',
+  ];
+
+  const featureFields = organization.features.includes('project-transaction-threshold')
+    ? ['count_unique(user)', `count_miserable_new(user)`, `user_misery_new()`]
+    : [
+        'count_unique(user)',
+        `count_miserable(user,${organization.apdexThreshold})`,
+        `user_misery(${organization.apdexThreshold})`,
+      ];
+
   const hasStartAndEnd = query.start && query.end;
   const savedQuery: NewQuery = {
     id: undefined,
     name: t('Performance'),
     query: 'event.type:transaction',
     projects: [],
-    fields: [
-      'key_transaction',
-      'transaction',
-      'project',
-      'tpm()',
-      'p75(measurements.fcp)',
-      'p75(measurements.lcp)',
-      'p75(measurements.fid)',
-      'p75(measurements.cls)',
-      'count_unique(user)',
-      `count_miserable(user,${organization.apdexThreshold})`,
-      `user_misery(${organization.apdexThreshold})`,
-    ],
+    fields: [...fields, ...featureFields],
     version: 2,
   };
 
@@ -456,25 +491,32 @@ function generateFrontendOtherPerformanceEventView(
 ): EventView {
   const {query} = location;
 
+  const fields = [
+    'key_transaction',
+    'transaction',
+    'project',
+    'transaction.op',
+    'tpm()',
+    'p50(transaction.duration)',
+    'p75(transaction.duration)',
+    'p95(transaction.duration)',
+  ];
+
+  const featureFields = organization.features.includes('project-transaction-threshold')
+    ? ['count_unique(user)', `count_miserable_new(user)`, `user_misery_new()`]
+    : [
+        'count_unique(user)',
+        `count_miserable(user,${organization.apdexThreshold})`,
+        `user_misery(${organization.apdexThreshold})`,
+      ];
+
   const hasStartAndEnd = query.start && query.end;
   const savedQuery: NewQuery = {
     id: undefined,
     name: t('Performance'),
     query: 'event.type:transaction',
     projects: [],
-    fields: [
-      'key_transaction',
-      'transaction',
-      'project',
-      'transaction.op',
-      'tpm()',
-      'p50(transaction.duration)',
-      'p75(transaction.duration)',
-      'p95(transaction.duration)',
-      'count_unique(user)',
-      `count_miserable(user,${organization.apdexThreshold})`,
-      `user_misery(${organization.apdexThreshold})`,
-    ],
+    fields: [...fields, ...featureFields],
     version: 2,
   };
 
