@@ -38,6 +38,7 @@ sudo-askpass() {
 # After using homebrew to install docker, we need to do some magic to remove the need to interact with the GUI
 # See: https://github.com/docker/for-mac/issues/2359#issuecomment-607154849 for why we need to do things below
 init-docker() {
+    set -x
     # Need to start docker if it was freshly installed or updated
     # You will know that Docker is ready for devservices when the icon on the menu bar stops flashing
     if query-mac && ! require docker && [ -d "/Applications/Docker.app" ]; then
@@ -58,6 +59,13 @@ init-docker() {
         sudo-askpass /bin/chmod 644 /Library/LaunchDaemons/com.docker.vmnetd.plist
         sudo-askpass /bin/launchctl load /Library/LaunchDaemons/com.docker.vmnetd.plist
     fi
+    sudo-askpass ls /Library/PrivilegedHelperTools/
+    sudo-askpass ls /Library/LaunchDaemons/
+    sudo-askpass cat /Library/LaunchDaemons/com.docker.vmnetd.plist
+    sudo-askpass cat /Library/PrivilegedHelperTools/com.docker.vmnetd
+    sudo-askpass ls -l /Applications/ | grep Docker
+    sudo-askpass ls -l /Applications/Docker.app
+    which docker
     start-docker
 }
 
