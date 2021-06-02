@@ -1,4 +1,5 @@
 from collections import namedtuple
+from django.utils import timezone
 
 from django.utils.translation import ugettext_lazy as _
 
@@ -13,7 +14,6 @@ from sentry.integrations import (
 from sentry.models import Identity, IdentityProvider, IdentityStatus
 from sentry.pipeline import NestedPipelineView
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
-from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils.http import absolute_uri
 
 from .client import SlackClient
@@ -158,7 +158,7 @@ class SlackIntegrationProvider(IntegrationProvider):
 
     def post_install(self, integration, organization, extra=None):
         """
-        Create an Identity record for an org's users if their emails match
+        Create Identity records for an organizations's users if their emails match in Sentry and Slack
         """
         access_token = (
             integration.metadata.get("user_access_token") or integration.metadata["access_token"]
@@ -166,63 +166,83 @@ class SlackIntegrationProvider(IntegrationProvider):
         headers = {"Authorization": "Bearer %s" % access_token}
         client = SlackClient()
         # TODO put this all in a task
-        for org in integration.organizations.all():
-            for member in org.members.all():
-                # skip the API call if they already have an identity
-                # however in tests there is already an identity so not sure what to do there yet
-                # probably make this a tighter lookup including idp (not just idp__type)
-                # try:
-                #     identity = Identity.objects.get(
-                #         idp__type=EXTERNAL_PROVIDERS[ExternalProviders.SLACK],
-                #         user=member.id,
-                #     )
-                # except Identity.DoesNotExist:
+        for member in organization.members.all():
+            print("~~~ member: ", member.email)
+            try:
+                # TODO batch get
+                idp = IdentityProvider.objects.get(
+                    type=integration.provider,
+                    external_id=integration.external_id,
+                )
+            except IdentityProvider.DoesNotExist:
+                idp = None
+            print("~~~ idp: ", idp)
+            if idp:
                 try:
-                    # TODO what if they have more than one email? or none? can they have none?
-                    resp = client.get(
-                        "/users.lookupByEmail/", headers=headers, params={"email": member.email}
+                    identity = Identity.objects.get(
+                        idp=idp,
+                        user=member.id,
                     )
-                except ApiError as e:
-                    logger.info(
-                        "post_install.fail.slack_lookupByEmail",
-                        extra={
-                            "error": str(e),
-                            "organization": org.slug,
-                            "integration_id": integration.id,
-                            "email": member.email,
-                        },
-                    )
-                    # probably just keep going, but commenting out now so I don't get false positives in tests
-                    # continue
-                # import pdb; pdb.set_trace()
-                if resp["ok"] is True:
-                    if member.email != resp["user"]["profile"]["email"]:
-                        continue
-                    else:
-                        idp = IdentityProvider.objects.create(
-                            type=EXTERNAL_PROVIDERS[ExternalProviders.SLACK],
-                            external_id=resp["user"]["team_id"],
-                            config={},
-                        )
-                        identity, created = Identity.objects.get_or_create(
-                            external_id=resp["user"]["id"],
-                            idp=idp,
-                            user=member,
-                            status=IdentityStatus.VALID,
-                            scopes=[],
-                        )
-                        # identity_model, created = Identity.objects.get_or_create(
-                        #     idp=idp,
-                        #     user=self.request.user,
-                        #     external_id=identity["external_id"],
-                        #     defaults=identity_data,
-                        # )
-                else:
-                    logger.info(
-                        "post_install.no_match.slack_lookupByEmail",
-                        extra={
-                            "organization": org.slug,
-                            "integration_id": integration.id,
-                            "email": member.email,
-                        },
-                    )
+                    print("~~~ identity: ", identity)
+                    print("identity: ", identity.external_id, identity.user)
+                    # they already have an identity, move onto the next user
+                    continue
+                except Identity.DoesNotExist:
+                    # TODO look into more lookups for email if this is missing
+                    if member.email:  
+                        try:
+                            resp = client.get(
+                                "/users.lookupByEmail/", headers=headers, params={"email": member.email}
+                            )
+                        except ApiError as e:
+                            logger.info(
+                                "post_install.fail.slack_lookupByEmail",
+                                extra={
+                                    "error": str(e),
+                                    "organization": organization.slug,
+                                    "integration_id": integration.id,
+                                    "email": member.email,
+                                },
+                            )
+                            # probably just keep going, but commenting out now so I don't get false positives in tests
+                            # continue
+                        print("member email: ", member.email)
+                        print("resp email: ", resp["user"]["profile"]["email"])
+                        if resp["ok"] is True:
+                            print("here we are inside the okay")
+                            if member.email != resp["user"]["profile"]["email"]:
+                                print("not a match")
+                                # not a match, move onto the next user
+                                continue
+                            else:
+                                print("is a match")
+                                idp, created = IdentityProvider.objects.get_or_create(
+                                    type=integration.provider,
+                                    external_id=integration.external_id,
+                                    config={},
+                                )
+                                print("~~~idp created? ", created)
+                                identities = Identity.objects.all()
+                                # import pdb; pdb.set_trace()
+                                print("**existing identities**: ", identities)
+                                # identity_data = {
+                                #     "status": IdentityStatus.VALID, 
+                                #     "date_verified": timezone.now()
+                                # }
+                                # identity_model, created = Identity.objects.get_or_create(
+                                #     idp=idp,
+                                #     user=self.request.user,
+                                #     external_id=identity["external_id"],
+                                #     defaults=identity_data,
+                                # )
+                                # print("!#$#@$ identity created?", created)
+                                identity = Identity.objects.create(
+                                    idp=idp,
+                                    user=member,
+                                    external_id=resp["user"]["id"],
+                                    status=IdentityStatus.VALID,
+                                    date_verified=timezone.now(),
+                                )
+                                print("identity user: ", identity.user)
+                                print("identity ext id: ", identity.external_id)
+
