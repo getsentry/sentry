@@ -168,7 +168,7 @@ class UnwrappedProvider extends Component<Props> {
           count: count - 1,
           keyed: keyed.filter(
             keyTransaction =>
-              keyTransaction.project_id !== String(project) &&
+              keyTransaction.project_id !== String(project) ||
               keyTransaction.transaction !== transactionName
           ),
         };
