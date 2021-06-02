@@ -76,14 +76,20 @@ class UnwrappedProvider extends Component<Props> {
 
   componentDidUpdate(prevProps: Props) {
     const orgSlugChanged = prevProps.organization.slug !== this.props.organization.slug;
-
     const selectedTeamsChanged =
       prevProps.selectedTeams.length !== this.props.selectedTeams.length ||
       prevProps.selectedTeams.every(
         (teamId, i) => this.props.selectedTeams[i] !== teamId
       );
+    const selectedProjectsChanged =
+      prevProps.selectedProjects &&
+      this.props.selectedProjects &&
+      prevProps.selectedProjects.length !== this.props.selectedProjects.length &&
+      prevProps.selectedProjects.every(
+        (projectId, i) => this.props.selectedProjects?.[i] !== projectId
+      );
 
-    if (orgSlugChanged || selectedTeamsChanged) {
+    if (orgSlugChanged || selectedTeamsChanged || selectedProjectsChanged) {
       this.fetchData();
     }
   }
