@@ -186,7 +186,7 @@ class TransactionSummary extends Component<Props, State> {
           },
           {
             kind: 'function',
-            function: ['apdex_new', '', undefined],
+            function: ['apdex_new' as AggregationKey, '', undefined],
           },
         ]
       : [
