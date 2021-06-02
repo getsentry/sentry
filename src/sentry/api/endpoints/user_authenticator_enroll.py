@@ -7,7 +7,7 @@ from rest_framework.fields import SkipField
 from rest_framework.response import Response
 
 from sentry.api.bases.user import UserEndpoint
-from sentry.api.decorators import sudo_required
+from sentry.api.decorators import email_verification_required, sudo_required
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie
 from sentry.api.serializers import serialize
 from sentry.app import ratelimiter
@@ -140,6 +140,7 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
         return Response(response)
 
     @sudo_required
+    @email_verification_required
     def post(self, request, user, interface_id):
         """
         Enroll in authenticator interface

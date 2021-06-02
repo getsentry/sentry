@@ -4,8 +4,10 @@ import styled from '@emotion/styled';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {RequestOptions} from 'app/api';
 import AlertLink from 'app/components/alertLink';
+import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
+import LoadingIndicator from 'app/components/loadingIndicator';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import Tag from 'app/components/tag';
 import accountEmailsFields from 'app/data/forms/accountEmails';
@@ -27,10 +29,6 @@ type State = AsyncView['state'] & {
 };
 
 class AccountEmails extends AsyncView<Props, State> {
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    return [['emails', ENDPOINT]];
-  }
-
   getTitle() {
     return t('Emails');
   }
@@ -39,11 +37,38 @@ class AccountEmails extends AsyncView<Props, State> {
     if (id === undefined) {
       return;
     }
-
     model.setValue(id, '');
     this.remountComponent();
   };
 
+  renderBody() {
+    return (
+      <React.Fragment>
+        <SettingsPageHeader title={t('Email Addresses')} />
+        <EmailAddresses />
+        <Form
+          apiMethod="POST"
+          apiEndpoint={ENDPOINT}
+          saveOnBlur
+          allowUndo={false}
+          onSubmitSuccess={this.handleSubmitSuccess}
+        >
+          <JsonForm forms={accountEmailsFields} />
+        </Form>
+
+        <AlertLink to="/settings/account/notifications" icon={<IconStack />}>
+          {t('Want to change how many emails you get? Use the notifications panel.')}
+        </AlertLink>
+      </React.Fragment>
+    );
+  }
+}
+
+export default AccountEmails;
+export class EmailAddresses extends AsyncComponent<Props, State> {
+  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
+    return [['emails', ENDPOINT]];
+  }
   doApiCall(endpoint: string, requestParams: RequestOptions) {
     this.setState({loading: true, emails: []}, () =>
       this.api
@@ -58,7 +83,6 @@ class AccountEmails extends AsyncView<Props, State> {
         })
     );
   }
-
   handleSetPrimary = (email: string) =>
     this.doApiCall(ENDPOINT, {
       method: 'PUT',
@@ -77,57 +101,47 @@ class AccountEmails extends AsyncView<Props, State> {
       data: {email},
     });
 
-  renderBody() {
-    const {emails} = this.state;
+  render() {
+    const {emails, loading} = this.state;
     const primary = emails?.find(({isPrimary}) => isPrimary);
     const secondary = emails?.filter(({isPrimary}) => !isPrimary);
 
-    return (
-      <div>
-        <SettingsPageHeader title={t('Email Addresses')} />
-
+    if (loading) {
+      return (
         <Panel>
           <PanelHeader>{t('Email Addresses')}</PanelHeader>
           <PanelBody>
-            {primary && (
-              <EmailRow
-                onRemove={this.handleRemove}
-                onVerify={this.handleVerify}
-                {...primary}
-              />
-            )}
-
-            {secondary?.map(emailObj => (
-              <EmailRow
-                key={emailObj.email}
-                onSetPrimary={this.handleSetPrimary}
-                onRemove={this.handleRemove}
-                onVerify={this.handleVerify}
-                {...emailObj}
-              />
-            ))}
+            <LoadingIndicator />
           </PanelBody>
         </Panel>
+      );
+    }
+    return (
+      <Panel>
+        <PanelHeader>{t('Email Addresses')}</PanelHeader>
+        <PanelBody>
+          {primary && (
+            <EmailRow
+              onRemove={this.handleRemove}
+              onVerify={this.handleVerify}
+              {...primary}
+            />
+          )}
 
-        <Form
-          apiMethod="POST"
-          apiEndpoint={ENDPOINT}
-          saveOnBlur
-          allowUndo={false}
-          onSubmitSuccess={this.handleSubmitSuccess}
-        >
-          <JsonForm forms={accountEmailsFields} />
-        </Form>
-
-        <AlertLink to="/settings/account/notifications" icon={<IconStack />}>
-          {t('Want to change how many emails you get? Use the notifications panel.')}
-        </AlertLink>
-      </div>
+          {secondary?.map(emailObj => (
+            <EmailRow
+              key={emailObj.email}
+              onSetPrimary={this.handleSetPrimary}
+              onRemove={this.handleRemove}
+              onVerify={this.handleVerify}
+              {...emailObj}
+            />
+          ))}
+        </PanelBody>
+      </Panel>
     );
   }
 }
-
-export default AccountEmails;
 
 type EmailRowProps = {
   email: string;
