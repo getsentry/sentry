@@ -1,7 +1,7 @@
 import {generatePerformanceEventView} from 'app/views/performance/data';
 
 describe('generatePerformanceEventView()', function () {
-  const organization = TestStubs.Organization();
+  const organization = TestStubs.Organization({apdexThreshold: 300});
 
   it('generates default values', function () {
     const result = generatePerformanceEventView(organization, {
@@ -88,6 +88,74 @@ describe('generatePerformanceEventView()', function () {
     expect(result.query).toEqual(expect.stringContaining('tag:value'));
     expect(result.getQueryWithAdditionalConditions()).toEqual(
       expect.stringContaining('event.type:transaction')
+    );
+  });
+
+  it('gets the right column', function () {
+    const result = generatePerformanceEventView(organization, {
+      query: {
+        query: 'key:value tag:value',
+      },
+    });
+    expect(result.fields).toEqual(
+      expect.arrayContaining([expect.objectContaining({field: 'user_misery(300)'})])
+    );
+    expect(result.fields).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({field: 'count_miserable(user,300)'}),
+      ])
+    );
+    expect(result.fields).toEqual(
+      expect.arrayContaining([expect.objectContaining({field: 'apdex(300)'})])
+    );
+
+    expect(result.fields).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({field: 'uuser_misery_new()'})])
+    );
+    expect(result.fields).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({field: 'count_miserable_new(user)'}),
+      ])
+    );
+    expect(result.fields).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({field: 'apdex_new()'})])
+    );
+
+    const newOrganization = TestStubs.Organization({
+      apdexThreshold: 300,
+      features: [
+        'transaction-event',
+        'performance-view',
+        'project-transaction-threshold',
+      ],
+    });
+    const newResult = generatePerformanceEventView(newOrganization, {
+      query: {
+        query: 'key:value tag:value',
+      },
+    });
+    expect(newResult.fields).toEqual(
+      expect.arrayContaining([expect.objectContaining({field: 'user_misery_new()'})])
+    );
+    expect(newResult.fields).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({field: 'count_miserable_new(user)'}),
+      ])
+    );
+    expect(newResult.fields).toEqual(
+      expect.arrayContaining([expect.objectContaining({field: 'apdex_new()'})])
+    );
+
+    expect(newResult.fields).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({field: 'user_misery(300)'})])
+    );
+    expect(newResult.fields).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({field: 'count_miserable(user,300)'}),
+      ])
+    );
+    expect(newResult.fields).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({field: 'apdex(300)'})])
     );
   });
 });
