@@ -80,3 +80,16 @@ filestore.options:
 #   access_key: 'AKIXXXXXX'
 #   secret_key: 'XXXXXXX'
 #   bucket_name: 's3-bucket-name'
+
+#########
+# Relay #
+#########
+
+# statically configured relays have the following structure
+#  relay:
+#    static_auth:
+#      7a4905dd-0eeb-497c-aa49-fb9949906388:   # the relay id
+#        public_key: "SMSesqan65THCV6M4qs4kBzPai60LzuDn-xNsvYpuP8"
+#        internal: true   # if true the relay is internal and will have access to all project configs
+relay:
+  static_auth: {}
