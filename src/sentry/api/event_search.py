@@ -297,6 +297,8 @@ class SearchVisitor(NodeVisitor):
         "failure_rate",
         "count_miserable",
         "user_misery",
+        "count_miserable_new",
+        "user_miser_new",
     }
     date_keys = {
         "start",
