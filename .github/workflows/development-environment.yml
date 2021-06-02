@@ -43,17 +43,17 @@ jobs:
         # After installing Docker (via homebrew) we need to make sure that it is properly initialized on Mac
         run: |
           HOMEBREW_NO_AUTO_UPDATE=1 brew bundle -q --no-upgrade || brew update && brew bundle
+          # This code is mentioned in our dev docs. Only remove if you adjust the docs as well
           SENTRY_NO_VENV_CHECK=1 ./scripts/do.sh init-docker
 
-      - name: Install Python (via Pyenv)
+      # XXX: This is a temporary change. There's another PR that will bring this workflow up-to-date
+      # In a sense, we set up Python two times (once here and once via pyenv). Setting
+      # it up here is instant and it helps us to get the cache primed sooner
+      - name: Setup Python
+        uses: actions/setup-python@v2
         id: python-version
-        # XXX: Can we cache the installed Python environments?
-        # We echo to $GITHUB_ENV to make the PATH changes by pyenv init permanent for the rest of the execution
-        run: |
-          make setup-pyenv
-          eval "$(pyenv init -)"
-          echo "PATH=$PATH" >> $GITHUB_ENV
-          echo "::set-output name=python-version::$(python -V  | sed s/Python\ //g)"
+        with:
+          python-version: 3.6.13
 
       - name: Setup pip
         uses: ./.github/actions/setup-pip
