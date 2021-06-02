@@ -128,8 +128,8 @@ class ReleaseDetailsTest(APITestCase):
     def test_correct_project_contains_current_project_meta(self):
         """
         Test that shows when correct project id is passed to the request, `sessionsLowerBound`,
-        `sessionsUpperBound`, `prevReleaseVersion` and `nextReleaseVersion` are present
-        in `currentProjectMeta` key
+        `sessionsUpperBound`, `prevReleaseVersion`, `nextReleaseVersion`, `firstReleaseVersion`
+        and `lastReleaseVersion` are present in `currentProjectMeta` key
         """
         release = Release.objects.create(organization_id=self.organization.id, version="abcabcabc")
         release.add_project(self.project1)
@@ -149,6 +149,8 @@ class ReleaseDetailsTest(APITestCase):
         assert "sessionsUpperBound" in response.data["currentProjectMeta"]
         assert "prevReleaseVersion" in response.data["currentProjectMeta"]
         assert "nextReleaseVersion" in response.data["currentProjectMeta"]
+        assert "firstReleaseVersion" in response.data["currentProjectMeta"]
+        assert "lastReleaseVersion" in response.data["currentProjectMeta"]
 
     def test_incorrect_sort_option_should_return_invalid_sort_response(self):
         """
@@ -547,6 +549,156 @@ class ReleaseDetailsTest(APITestCase):
         assert response2.status_code == 200
         assert response2.data["currentProjectMeta"]["prevReleaseVersion"] == "foobar@1.2.0"
         assert response2.data["currentProjectMeta"]["nextReleaseVersion"] == "foobar@1.0.5"
+
+    def test_get_first_and_last_release_on_date_sort(self):
+        """
+        Test that ensures that the first release and the last release in terms of `date_added` are
+        retrieved correctly
+        """
+        release_1 = Release.objects.create(
+            organization_id=self.organization.id, version="foobar@1.0.0"
+        )
+        release_1.add_project(self.project1)
+
+        release_2 = Release.objects.create(
+            organization_id=self.organization.id, version="foobar@2.0.0"
+        )
+        release_2.add_project(self.project1)
+
+        release_3 = Release.objects.create(
+            organization_id=self.organization.id, version="foobar@3.0.0"
+        )
+        release_3.add_project(self.project1)
+
+        self.create_member(teams=[self.team1], user=self.user1, organization=self.organization)
+
+        self.login_as(user=self.user1)
+
+        # Test for middle release of the list
+        url = reverse(
+            "sentry-api-0-organization-release-details",
+            kwargs={"organization_slug": self.organization.slug, "version": release_1.version},
+        )
+        response = self.client.get(url, {"project": self.project1.id})
+        assert response.status_code == 200
+        assert response.data["currentProjectMeta"]["firstReleaseVersion"] == "foobar@1.0.0"
+        assert response.data["currentProjectMeta"]["lastReleaseVersion"] == "foobar@3.0.0"
+
+    def test_get_first_and_last_release_on_date_sort_with_exact_same_date(self):
+        """
+        Test that ensures that the first release and the last release in terms of `date_added` are
+        retrieved correctly in the case when all releases have the same exact datetime and we
+        need to fallback to comparison with id
+        """
+        date_now = datetime.utcnow()
+        release_2 = Release.objects.create(
+            organization_id=self.organization.id, version="foobar@2.0.0", date_added=date_now
+        )
+        release_2.add_project(self.project1)
+
+        release_1 = Release.objects.create(
+            organization_id=self.organization.id, version="foobar@1.0.0", date_added=date_now
+        )
+        release_1.add_project(self.project1)
+
+        release_3 = Release.objects.create(
+            organization_id=self.organization.id, version="foobar@3.0.0", date_added=date_now
+        )
+        release_3.add_project(self.project1)
+
+        self.create_member(teams=[self.team1], user=self.user1, organization=self.organization)
+
+        self.login_as(user=self.user1)
+
+        # Test for middle release of the list
+        url = reverse(
+            "sentry-api-0-organization-release-details",
+            kwargs={"organization_slug": self.organization.slug, "version": release_1.version},
+        )
+        response = self.client.get(url, {"project": self.project1.id})
+        assert response.status_code == 200
+        assert response.data["currentProjectMeta"]["firstReleaseVersion"] == "foobar@2.0.0"
+        assert response.data["currentProjectMeta"]["lastReleaseVersion"] == "foobar@3.0.0"
+
+    def test_get_first_and_last_release_on_date_sort_env_filter_applied(self):
+        """
+        Test that ensures that environment filter is applied when fetching first and last
+        releases on date sort order
+        """
+        release_1 = Release.objects.create(
+            organization_id=self.organization.id, version="foobar@1.0.0"
+        )
+        release_1.add_project(self.project1)
+
+        release_2 = Release.objects.create(
+            organization_id=self.organization.id, version="foobar@2.0.0"
+        )
+        release_2.add_project(self.project1)
+
+        release_3 = Release.objects.create(
+            organization_id=self.organization.id, version="foobar@3.0.0"
+        )
+        release_3.add_project(self.project1)
+
+        release_4 = Release.objects.create(
+            organization_id=self.organization.id, version="foobar@4.0.0"
+        )
+        release_4.add_project(self.project1)
+
+        environment = Environment.objects.create(organization_id=self.organization.id, name="prod")
+        environment.add_project(self.project1)
+
+        ReleaseProjectEnvironment.objects.create(
+            project_id=self.project1.id,
+            release_id=release_2.id,
+            environment_id=environment.id,
+            new_issues_count=5,
+        )
+        ReleaseProjectEnvironment.objects.create(
+            project_id=self.project1.id,
+            release_id=release_3.id,
+            environment_id=environment.id,
+            new_issues_count=5,
+        )
+
+        self.create_member(teams=[self.team1], user=self.user1, organization=self.organization)
+
+        self.login_as(user=self.user1)
+
+        # Test for middle release of the list
+        url = reverse(
+            "sentry-api-0-organization-release-details",
+            kwargs={"organization_slug": self.organization.slug, "version": release_3.version},
+        )
+        response = self.client.get(url, {"project": self.project1.id, "environment": ["prod"]})
+        assert response.status_code == 200
+        assert response.data["currentProjectMeta"]["firstReleaseVersion"] == "foobar@2.0.0"
+        assert response.data["currentProjectMeta"]["lastReleaseVersion"] == "foobar@3.0.0"
+
+    def test_get_first_and_last_release_on_non_date_sort(self):
+        """
+        Test that ensures that when trying to fetch first and last releases on a sort option that
+        is not `date`, then the values of `firstReleaseVersion` and `lastReleaseVersion` are None
+        values
+        """
+        release_1 = Release.objects.create(
+            organization_id=self.organization.id, version="foobar@1.0.0"
+        )
+        release_1.add_project(self.project1)
+
+        self.create_member(teams=[self.team1], user=self.user1, organization=self.organization)
+
+        self.login_as(user=self.user1)
+
+        # Test for middle release of the list
+        url = reverse(
+            "sentry-api-0-organization-release-details",
+            kwargs={"organization_slug": self.organization.slug, "version": release_1.version},
+        )
+        response = self.client.get(url, {"project": self.project1.id, "sort": "sessions"})
+        assert response.status_code == 200
+        assert response.data["currentProjectMeta"]["firstReleaseVersion"] is None
+        assert response.data["currentProjectMeta"]["lastReleaseVersion"] is None
 
 
 class UpdateReleaseDetailsTest(APITestCase):
