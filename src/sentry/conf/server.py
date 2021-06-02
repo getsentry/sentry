@@ -887,6 +887,8 @@ SENTRY_FEATURES = {
     "organizations:custom-event-title": True,
     # Enable rule page.
     "organizations:rule-page": False,
+    # Enable experimental syntax highlightign on unified search
+    "organizations:search-syntax-highlight": False,
     # Enable incidents feature
     "organizations:incidents": False,
     # Enable the new Metrics page
@@ -933,15 +935,10 @@ SENTRY_FEATURES = {
     "organizations:enterprise-perf": False,
     # Enable the API to importing CODEOWNERS for a project
     "organizations:integrations-codeowners": False,
-    # Special feature flag primarily used on the sentry.io SAAS product for
-    # easily enabling features while in early development.
-    "organizations:internal-catchall": False,
     # Enable inviting members to organizations.
     "organizations:invite-members": True,
     # Enable rate limits for inviting members.
     "organizations:invite-members-rate-limits": True,
-    # Enable org-wide saved searches and user pinned search
-    "organizations:org-saved-searches": False,
     # Prefix host with organization ID when giving users DSNs (can be
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
@@ -1997,6 +1994,8 @@ SENTRY_BUILTIN_SOURCES = {
 # Relay
 # List of PKs explicitly allowed by Sentry.  All relays here are always
 # registered as internal relays.
+# DEPRECATED !!! (18.May.2021) This entry has been deprecated in favour of
+# ~/.sentry/conf.yml (relay.static_auth)
 SENTRY_RELAY_WHITELIST_PK = [
     # NOTE (RaduW) This is the relay key for the relay instance used by devservices.
     # This should NOT be part of any production environment.
