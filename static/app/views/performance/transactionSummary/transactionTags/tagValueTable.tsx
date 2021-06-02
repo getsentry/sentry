@@ -211,7 +211,7 @@ export class TagValueTable extends Component<Props, State> {
     dataRow: TableDataRow
   ): React.ReactNode => {
     const value = dataRow[column.key];
-    const {location} = parentProps;
+    const {location, eventView} = parentProps;
 
     if (column.key === 'key') {
       return dataRow.tags_key;
@@ -238,8 +238,11 @@ export class TagValueTable extends Component<Props, State> {
     }
 
     if (column.key === 'action') {
+      const searchConditions = tokenizeSearch(eventView.query);
+      const disabled = searchConditions.hasTag(dataRow.tags_key);
       return (
         <Link
+          disabled={disabled}
           to=""
           onClick={() =>
             this.handleTagValueClick(location, dataRow.tags_key, dataRow.tags_value)

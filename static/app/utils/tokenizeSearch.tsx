@@ -152,9 +152,9 @@ export class QueryResults {
     return Object.keys(this.tagValues);
   }
 
-  hasTag(tag: string) {
+  hasTag(tag: string): boolean {
     const tags = this.getTagValues(tag);
-    return tags && tags.length;
+    return !!(tags && tags.length);
   }
 
   removeTag(key: string) {
