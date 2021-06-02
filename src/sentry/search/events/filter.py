@@ -833,7 +833,7 @@ class QueryFilter(QueryBase):
         value = search_filter.value.value
         values = set(value if isinstance(value, (list, tuple)) else [value])
         # sorted for consistency
-        values = sorted(str(value) for value in values)
+        values = sorted(f"{value}" for value in values)
         environment = self.column("environment")
         # the "no environment" environment is null in snuba
         if "" in values:
