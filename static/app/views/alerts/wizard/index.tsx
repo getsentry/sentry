@@ -42,10 +42,24 @@ type Props = RouteComponentProps<RouteParams, {}> & {
 type State = {
   alertOption: AlertType;
 };
+
+const DEFAULT_ALERT_OPTION = 'issues';
+
 class AlertWizard extends Component<Props, State> {
   state: State = {
-    alertOption: 'issues',
+    alertOption: DEFAULT_ALERT_OPTION,
   };
+
+  componentDidMount() {
+    // capture landing on the alert wizard page and viewing the issue alert by default
+    const {organization} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'alert_wizard.option_viewed',
+      eventName: 'Alert Wizard: Option Viewed',
+      organization_id: organization.id,
+      alert_type: DEFAULT_ALERT_OPTION,
+    });
+  }
 
   handleChangeAlertOption = (alertOption: AlertType) => {
     const {organization} = this.props;
@@ -59,14 +73,18 @@ class AlertWizard extends Component<Props, State> {
   };
 
   renderCreateAlertButton() {
-    const {organization, project, location} = this.props;
+    const {
+      organization,
+      location,
+      params: {projectId},
+    } = this.props;
     const {alertOption} = this.state;
     const metricRuleTemplate = AlertWizardRuleTemplates[alertOption];
     const isMetricAlert = !!metricRuleTemplate;
     const isTransactionDataset = metricRuleTemplate?.dataset === Dataset.TRANSACTIONS;
 
     const to = {
-      pathname: `/organizations/${organization.slug}/alerts/${project.slug}/new/`,
+      pathname: `/organizations/${organization.slug}/alerts/${projectId}/new/`,
       query: {
         ...(metricRuleTemplate && metricRuleTemplate),
         createFromWizard: true,
@@ -117,7 +135,7 @@ class AlertWizard extends Component<Props, State> {
           >
             <CreateAlertButton
               organization={organization}
-              projectSlug={project.slug}
+              projectSlug={projectId}
               disabled={!hasFeature}
               priority="primary"
               to={to}
@@ -136,6 +154,8 @@ class AlertWizard extends Component<Props, State> {
       hasMetricAlerts,
       organization,
       params: {projectId},
+      routes,
+      location,
     } = this.props;
     const {alertOption} = this.state;
     const title = t('Alert Creation Wizard');
@@ -146,15 +166,18 @@ class AlertWizard extends Component<Props, State> {
 
         <Feature features={['organizations:alert-wizard']}>
           <Layout.Header>
-            <Layout.HeaderContent>
+            <StyledHeaderContent>
               <BuilderBreadCrumbs
                 hasMetricAlerts={hasMetricAlerts}
                 orgSlug={organization.slug}
                 projectSlug={projectId}
                 title={t('Select Alert')}
+                routes={routes}
+                location={location}
+                canChangeProject
               />
               <Layout.Title>{t('Select Alert')}</Layout.Title>
-            </Layout.HeaderContent>
+            </StyledHeaderContent>
           </Layout.Header>
           <StyledLayoutBody>
             <Layout.Main fullWidth>
@@ -211,6 +234,10 @@ class AlertWizard extends Component<Props, State> {
 
 const StyledLayoutBody = styled(Layout.Body)`
   margin-bottom: -${space(3)};
+`;
+
+const StyledHeaderContent = styled(Layout.HeaderContent)`
+  overflow: visible;
 `;
 
 const Styledh2 = styled('h2')`

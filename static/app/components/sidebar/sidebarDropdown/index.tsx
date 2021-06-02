@@ -26,14 +26,27 @@ import {CommonSidebarProps} from '../types';
 import Divider from './divider.styled';
 import SwitchOrganization from './switchOrganization';
 
+//TODO: make org and user optional props
 type Props = Pick<CommonSidebarProps, 'orientation' | 'collapsed'> & {
   api: Client;
   org: Organization;
   user: User;
   config: Config;
+  /**
+   * Set to true to hide links within the organization
+   */
+  hideOrgLinks?: boolean;
 };
 
-const SidebarDropdown = ({api, org, orientation, collapsed, config, user}: Props) => {
+const SidebarDropdown = ({
+  api,
+  org,
+  orientation,
+  collapsed,
+  config,
+  user,
+  hideOrgLinks,
+}: Props) => {
   const handleLogout = async () => {
     await logout(api);
     window.location.assign('/auth/login/');
@@ -93,24 +106,31 @@ const SidebarDropdown = ({api, org, orientation, collapsed, config, user}: Props
               {hasOrganization && (
                 <Fragment>
                   <SidebarOrgSummary organization={org} />
-                  {hasOrgRead && (
-                    <SidebarMenuItem to={`/settings/${org.slug}/`}>
-                      {t('Organization settings')}
-                    </SidebarMenuItem>
-                  )}
-                  {hasMemberRead && (
-                    <SidebarMenuItem to={`/settings/${org.slug}/members/`}>
-                      {t('Members')}
-                    </SidebarMenuItem>
-                  )}
+                  {!hideOrgLinks && (
+                    <Fragment>
+                      {hasOrgRead && (
+                        <SidebarMenuItem to={`/settings/${org.slug}/`}>
+                          {t('Organization settings')}
+                        </SidebarMenuItem>
+                      )}
+                      {hasMemberRead && (
+                        <SidebarMenuItem to={`/settings/${org.slug}/members/`}>
+                          {t('Members')}
+                        </SidebarMenuItem>
+                      )}
 
-                  {hasTeamRead && (
-                    <SidebarMenuItem to={`/settings/${org.slug}/teams/`}>
-                      {t('Teams')}
-                    </SidebarMenuItem>
-                  )}
+                      {hasTeamRead && (
+                        <SidebarMenuItem to={`/settings/${org.slug}/teams/`}>
+                          {t('Teams')}
+                        </SidebarMenuItem>
+                      )}
 
-                  <Hook name="sidebar:organization-dropdown-menu" organization={org} />
+                      <Hook
+                        name="sidebar:organization-dropdown-menu"
+                        organization={org}
+                      />
+                    </Fragment>
+                  )}
 
                   {!config.singleOrganization && (
                     <SidebarMenuItem>

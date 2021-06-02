@@ -4,6 +4,7 @@ from sentry.data_export.endpoints.data_export import DataExportEndpoint
 from sentry.data_export.endpoints.data_export_details import DataExportDetailsEndpoint
 from sentry.discover.endpoints.discover_key_transactions import (
     IsKeyTransactionEndpoint,
+    KeyTransactionCountEndpoint,
     KeyTransactionEndpoint,
 )
 from sentry.discover.endpoints.discover_query import DiscoverQueryEndpoint
@@ -107,6 +108,8 @@ from .endpoints.group_tombstone import GroupTombstoneEndpoint
 from .endpoints.group_tombstone_details import GroupTombstoneDetailsEndpoint
 from .endpoints.group_user_reports import GroupUserReportsEndpoint
 from .endpoints.grouping_configs import GroupingConfigsEndpoint
+from .endpoints.grouping_level_new_issues import GroupingLevelNewIssuesEndpoint
+from .endpoints.grouping_levels import GroupingLevelsEndpoint
 from .endpoints.index import IndexEndpoint
 from .endpoints.internal_beacon import InternalBeaconEndpoint
 from .endpoints.internal_environment import InternalEnvironmentEndpoint
@@ -414,6 +417,11 @@ GROUP_URLS = [
         GroupNotesDetailsEndpoint.as_view(),
     ),
     url(r"^(?P<issue_id>[^\/]+)/hashes/$", GroupHashesEndpoint.as_view()),
+    url(r"^(?P<issue_id>[^\/]+)/grouping/levels/$", GroupingLevelsEndpoint.as_view()),
+    url(
+        r"^(?P<issue_id>[^\/]+)/grouping/levels/(?P<id>[^\/]+)/new-issues/$",
+        GroupingLevelNewIssuesEndpoint.as_view(),
+    ),
     url(r"^(?P<issue_id>[^\/]+)/hashes/split/$", GroupHashesSplitEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/reprocessing/$", GroupReprocessingEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/stats/$", GroupStatsEndpoint.as_view()),
@@ -786,6 +794,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/key-transactions/$",
                     KeyTransactionEndpoint.as_view(),
                     name="sentry-api-0-organization-key-transactions",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/key-transactions-count/$",
+                    KeyTransactionCountEndpoint.as_view(),
+                    name="sentry-api-0-organization-key-transactions-count",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/is-key-transactions/$",

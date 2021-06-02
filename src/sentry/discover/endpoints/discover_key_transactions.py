@@ -1,10 +1,13 @@
 from django.db import IntegrityError, transaction
+from django.db.models import Count
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
 from sentry.api.bases import KeyTransactionBase
 from sentry.api.bases.organization import OrganizationPermission
+from sentry.api.helpers.teams import get_teams
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.api.utils import InvalidParams
 from sentry.discover.endpoints import serializers
 from sentry.discover.models import KeyTransaction, TeamKeyTransaction
 from sentry.models import Team
@@ -163,7 +166,6 @@ class KeyTransactionEndpoint(KeyTransactionBase):
         serializer = serializers.TeamKeyTransactionSerializer(
             data=request.data,
             context={
-                "mode": "create",
                 "request": request,
                 "organization": organization,
             },
@@ -184,9 +186,54 @@ class KeyTransactionEndpoint(KeyTransactionBase):
         return Response(serializer.errors, status=400)
 
 
+class KeyTransactionCountEndpoint(KeyTransactionBase):
+    permission_classes = (KeyTransactionPermission,)
+
+    def has_feature(self, request, organization):
+        return super().has_feature(request, organization) and super().has_team_feature(
+            request, organization
+        )
+
+    def get(self, request, organization):
+        if not self.has_feature(request, organization):
+            return Response(status=404)
+
+        try:
+            teams = get_teams(request, organization)
+        except InvalidParams as err:
+            return Response(str(err), status=400)
+
+        return Response(
+            serialize(list(teams), serializer=KeyTransactionTeamSerializer()), status=200
+        )
+
+
 @register(TeamKeyTransaction)
 class TeamKeyTransactionSerializer(Serializer):
     def serialize(self, obj, attrs, user, **kwargs):
         return {
             "team": str(obj.team_id),
+        }
+
+
+class KeyTransactionTeamSerializer(Serializer):
+    def get_attrs(self, item_list, user, **kwargs):
+        counts = (
+            TeamKeyTransaction.objects.values("team_id")
+            .filter(team__in=[item.id for item in item_list])
+            .annotate(count=Count("team_id"))
+        )
+        count_map = {}
+        for count in counts:
+            count_map[count["team_id"]] = count["count"]
+
+        attrs = {}
+        for item in item_list:
+            attrs[item] = {"count": count_map.get(item.id, 0)}
+        return attrs
+
+    def serialize(self, obj, attrs, user, **kwargs):
+        return {
+            "team": str(obj.id),
+            "count": attrs["count"],
         }

@@ -1050,6 +1050,7 @@ export type BaseGroup = {
   type: EventOrGroupType;
   userReportCount: number;
   subscriptionDetails: {disabled?: boolean; reason?: string} | null;
+  status: string;
   inbox?: InboxDetails | null | false;
   owners?: SuggestedOwner[] | null;
 } & GroupRelease;
@@ -1107,6 +1108,7 @@ export type Member = {
   flags: {
     'sso:linked': boolean;
     'sso:invalid': boolean;
+    'member-limit:restricted': boolean;
   };
   id: string;
   inviteStatus: 'approved' | 'requested_to_be_invited' | 'requested_to_join';

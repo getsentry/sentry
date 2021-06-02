@@ -1,0 +1,1 @@
+export const MAX_TEAM_KEY_TRANSACTIONS = 100;

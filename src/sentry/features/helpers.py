@@ -17,7 +17,7 @@ def requires_feature(feature, any_org=None):
     If any failure case, the API returns a 404.
 
     Example:
-        >>> @requires_feature('organizations:internal-catchall')
+        >>> @requires_feature('organizations:performance-view')
         >>> def get(self, request, organization):
         >>>     return Response()
     """

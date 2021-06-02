@@ -15,6 +15,7 @@ from sudo.views import redirect_to_sudo
 
 from sentry import roles
 from sentry.api.serializers import serialize
+from sentry.api.utils import is_member_disabled_from_limit
 from sentry.auth import access
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
@@ -115,6 +116,9 @@ class OrganizationMixin:
             and not is_active_superuser(request)
         )
 
+    def is_member_disabled_from_limit(self, request, organization):
+        return is_member_disabled_from_limit(request, organization)
+
     def get_active_team(self, request, organization, team_slug):
         """
         Returns the currently selected team for the request or None
@@ -211,8 +215,12 @@ class BaseView(View, OrganizationMixin):
         if not self.has_permission(request, *args, **kwargs):
             return self.handle_permission_required(request, *args, **kwargs)
 
-        if "organization" in kwargs and self.is_not_2fa_compliant(request, kwargs["organization"]):
-            return self.handle_not_2fa_compliant(request, *args, **kwargs)
+        if "organization" in kwargs:
+            org = kwargs["organization"]
+            if self.is_member_disabled_from_limit(request, org):
+                return self.handle_disabled_member(org)
+            if self.is_not_2fa_compliant(request, org):
+                return self.handle_not_2fa_compliant(request, *args, **kwargs)
 
         self.request = request
         self.default_context = self.get_context_data(request, *args, **kwargs)
@@ -289,6 +297,10 @@ class BaseView(View, OrganizationMixin):
 
     def create_audit_entry(self, request, transaction_id=None, **kwargs):
         return create_audit_entry(request, transaction_id, audit_logger, **kwargs)
+
+    def handle_disabled_member(self, organization):
+        redirect_uri = reverse("sentry-organization-disabled-member", args=[organization.slug])
+        return self.redirect(redirect_uri)
 
 
 class OrganizationView(BaseView):

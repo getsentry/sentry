@@ -18,6 +18,9 @@ class Filter:
     end (DateTime): Start datetime - default None
     conditions (Sequence[Sequence[str, str, Any]]): List of conditions to fetch - default None
     having (Sequence[str, str, Any]]): List of having conditions to filter by - default None
+    user_id (int): The user ID to fetch - default None
+    organization_id (int): The organization ID to fetch - default None
+    team_id (Sequence[int]): List of team IDs to fetch - default None
     project_ids (Sequence[int]): List of project IDs to fetch - default None
     group_ids (Sequence[int]): List of group IDs to fetch - default None
     event_ids (Sequence[int]): List of event IDs to fetch - default None
@@ -38,6 +41,7 @@ class Filter:
         having=None,
         user_id=None,
         organization_id=None,
+        team_id=None,
         project_ids=None,
         group_ids=None,
         event_ids=None,
@@ -55,6 +59,7 @@ class Filter:
         self.having = having
         self.user_id = user_id
         self.organization_id = organization_id
+        self.team_id = team_id
         self.project_ids = project_ids
         self.group_ids = group_ids
         self.event_ids = event_ids
@@ -96,6 +101,8 @@ class Filter:
             # needed for the key transaction column
             "user_id": self.user_id,
             "organization_id": self.organization_id,
+            # needed for the team key transaction column
+            "team_id": self.team_id,
             "project_id": self.project_ids,
         }
 
@@ -175,13 +182,16 @@ class EventStorage(Service):
         """
         raise NotImplementedError
 
-    def get_event_by_id(self, project_id, event_id):
+    def get_event_by_id(self, project_id, event_id, group_id=None):
         """
         Gets a single event given a project_id and event_id.
+        Returns None if an event cannot be found.
 
         Arguments:
         project_id (int): Project ID
         event_id (str): Event ID
+        group_id (Optional[int]): If the group ID for this event is already known, pass
+            it here to save one Snuba query.
         """
         raise NotImplementedError
 
