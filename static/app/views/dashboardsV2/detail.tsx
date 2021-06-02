@@ -22,12 +22,13 @@ import {trackAnalyticsEvent} from 'app/utils/analytics';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
+import Banner from './banner';
 import Controls from './controls';
 import Dashboard from './dashboard';
 import {DEFAULT_STATS_PERIOD, EMPTY_DASHBOARD} from './data';
 import DashboardTitle from './title';
 import {DashboardDetails, DashboardListItem, DashboardState, Widget} from './types';
-import {cloneDashboard} from './utils';
+import {cloneDashboard, isBannerHidden, setBannerHidden} from './utils';
 
 const UNSAVED_MESSAGE = t('You have unsaved changes, are you sure you want to leave?');
 
@@ -51,12 +52,14 @@ type State = {
   dashboardState: DashboardState;
   modifiedDashboard: DashboardDetails | null;
   widgetToBeUpdated?: Widget;
+  isBannerHidden: boolean;
 };
 
 class DashboardDetail extends Component<Props, State> {
   state: State = {
     dashboardState: this.props.initialState,
     modifiedDashboard: this.updateModifiedDashboard(this.props.initialState),
+    isBannerHidden: isBannerHidden(),
   };
 
   componentDidMount() {
@@ -67,6 +70,14 @@ class DashboardDetail extends Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
+    const isHidden = isBannerHidden();
+    if (isHidden !== this.state.isBannerHidden) {
+      // eslint-disable-next-line react/no-did-update-set-state
+      this.setState({
+        isBannerHidden: isHidden,
+      });
+    }
+
     if (prevProps.location.pathname !== this.props.location.pathname) {
       this.checkStateRoute();
     }
@@ -75,6 +86,11 @@ class DashboardDetail extends Component<Props, State> {
   componentWillUnmount() {
     window.removeEventListener('beforeunload', this.onUnload);
   }
+
+  handleBannerClick = () => {
+    setBannerHidden(true);
+    this.setState({isBannerHidden: true});
+  };
 
   checkStateRoute() {
     const {router, organization, params} = this.props;
@@ -392,6 +408,16 @@ class DashboardDetail extends Component<Props, State> {
       : children;
   }
 
+  renderBanner() {
+    const bannerDismissed = this.state.isBannerHidden;
+
+    if (bannerDismissed) {
+      return null;
+    }
+
+    return <Banner onHideBanner={this.handleBannerClick} />;
+  }
+
   renderDefaultDashboardDetail() {
     const {organization, dashboard, dashboards, params, router, location} = this.props;
     const {modifiedDashboard, dashboardState} = this.state;
@@ -429,6 +455,7 @@ class DashboardDetail extends Component<Props, State> {
                 dashboardState={dashboardState}
               />
             </StyledPageHeader>
+            {this.renderBanner()}
             <Dashboard
               paramDashboardId={dashboardId}
               dashboard={modifiedDashboard ?? dashboard}

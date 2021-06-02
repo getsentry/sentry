@@ -32,3 +32,12 @@ export function eventViewFromWidget(
     environment: environments,
   });
 }
+
+const BANNER_DISMISSED_KEY = 'dashboard-banner-dismissed';
+
+export function isBannerHidden(): boolean {
+  return localStorage.getItem(BANNER_DISMISSED_KEY) === 'true';
+}
+export function setBannerHidden(value: boolean) {
+  localStorage.setItem(BANNER_DISMISSED_KEY, value ? 'true' : 'false');
+}
