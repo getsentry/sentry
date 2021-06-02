@@ -140,7 +140,7 @@ class ReleaseModelManager(models.Manager):
                             "minor": version_parsed.get("minor"),
                             "patch": version_parsed.get("patch"),
                             "revision": version_parsed.get("revision"),
-                            "prerelease": version_parsed.get("pre"),
+                            "prerelease": version_parsed.get("pre") or "",
                             "build_code": build_code,
                             "build_number": build_number,
                         }

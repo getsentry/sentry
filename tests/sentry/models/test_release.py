@@ -751,6 +751,21 @@ class SemverReleaseParseTestCase(TestCase):
         assert release.build_code == "-2020"
         assert release.build_number is None
 
+    def test_parse_release_into_semver_cols_with_no_prerelease(self):
+        """
+        Test that ensures that prerelease is stores as an empty string if not included
+        in the version.
+        """
+        version = "org.example.FooApp@1.0+whatever"
+        release = Release.objects.create(organization=self.org, version=version)
+        assert release.major == 1
+        assert release.minor == 0
+        assert release.patch == 0
+        assert release.revision == 0
+        assert release.prerelease == ""
+        assert release.build_code == "whatever"
+        assert release.build_number is None
+
     def test_parse_non_semver_should_not_fail(self):
         """
         Test that ensures nothing breaks when sending a non semver compatible release
