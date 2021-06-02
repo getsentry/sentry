@@ -21,7 +21,6 @@ type Props = WithRouterProps & {
   query?: Record<string, any>;
   pagination?: boolean;
   renderEmpty?: () => React.ReactElement;
-  statsPeriod?: string;
   noBorder?: boolean;
   noMargin?: boolean;
 };
@@ -129,7 +128,7 @@ class IssueList extends React.Component<Props, State> {
   }
 
   renderResults() {
-    const {noBorder, noMargin, statsPeriod, renderEmpty} = this.props;
+    const {noBorder, noMargin, renderEmpty} = this.props;
     const {loading, error, issueIds, data} = this.state;
 
     if (loading) {
@@ -152,12 +151,7 @@ class IssueList extends React.Component<Props, State> {
         <Panel style={panelStyle}>
           <PanelBody className="issue-list">
             {data.map(issue => (
-              <CompactIssue
-                key={issue.id}
-                id={issue.id}
-                data={issue}
-                statsPeriod={statsPeriod}
-              />
+              <CompactIssue key={issue.id} id={issue.id} data={issue} />
             ))}
           </PanelBody>
         </Panel>

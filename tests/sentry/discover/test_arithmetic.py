@@ -1,6 +1,12 @@
 import pytest
 
-from sentry.discover.arithmetic import ArithmeticParseError, MaxOperatorError, parse_arithmetic
+from sentry.discover.arithmetic import (
+    ArithmeticParseError,
+    ArithmeticValidationError,
+    MaxOperatorError,
+    Operation,
+    parse_arithmetic,
+)
 
 op_map = {
     "+": "plus",
@@ -11,7 +17,7 @@ op_map = {
 
 
 def test_single_term():
-    result = parse_arithmetic("12")
+    result, _ = parse_arithmetic("12")
     assert result == 12.0
 
 
@@ -30,11 +36,15 @@ def test_single_term():
         ("+12", "+", "+34"),
         ("-12", "+", "+34"),
         ("+12", "+", "-34"),
+        (1.2345, "+", 6.7890),
+        (1.2345, "-", 6.7890),
+        (1.2345, "*", 6.7890),
+        (1.2345, "/", 6.7890),
     ],
 )
 def test_simple_arithmetic(a, op, b):
     equation = f"{a}{op}{b}"
-    result = parse_arithmetic(equation)
+    result, _ = parse_arithmetic(equation)
     assert result.operator == op_map[op.strip()], equation
     assert result.lhs == float(a), equation
     assert result.rhs == float(b), equation
@@ -54,10 +64,11 @@ def test_simple_arithmetic(a, op, b):
     ],
 )
 def test_homogenous_arithmetic(a, op1, b, op2, c):
-    """ Test that literal order of ops is respected assuming we don't have to worry about BEDMAS """
+    """Test that literal order of ops is respected assuming we don't have to worry about BEDMAS"""
     equation = f"{a}{op1}{b}{op2}{c}"
-    result = parse_arithmetic(equation)
+    result, _ = parse_arithmetic(equation)
     assert result.operator == op_map[op2.strip()], equation
+    assert isinstance(result.lhs, Operation), equation
     assert result.lhs.operator == op_map[op1.strip()], equation
     assert result.lhs.lhs == float(a), equation
     assert result.lhs.rhs == float(b), equation
@@ -65,26 +76,30 @@ def test_homogenous_arithmetic(a, op1, b, op2, c):
 
 
 def test_mixed_arithmetic():
-    result = parse_arithmetic("12 + 34 * 56")
-    result.operator == "plus"
-    result.lhs = 12.0
-    result.rhs.operator = "multiply"
-    result.rhs.lhs = 34.0
-    result.rhs.rhs = 56.0
+    result, _ = parse_arithmetic("12 + 34 * 56")
+    assert result.operator == "plus"
+    assert result.lhs == 12.0
+    assert isinstance(result.rhs, Operation)
+    assert result.rhs.operator == "multiply"
+    assert result.rhs.lhs == 34.0
+    assert result.rhs.rhs == 56.0
 
-    result = parse_arithmetic("12 / 34 - 56")
-    result.operator == "subtract"
-    result.lhs.operator = "divide"
-    result.lhs.lhs = 12.0
-    result.lhs.rhs = 34.0
-    result.rhs = 56.0
+    result, _ = parse_arithmetic("12 / 34 - 56")
+    assert result.operator == "minus"
+    assert isinstance(result.lhs, Operation)
+    assert result.lhs.operator == "divide"
+    assert result.lhs.lhs == 12.0
+    assert result.lhs.rhs == 34.0
+    assert result.rhs == 56.0
 
 
 def test_four_terms():
-    result = parse_arithmetic("1 + 2 / 3 * 4")
+    result, _ = parse_arithmetic("1 + 2 / 3 * 4")
     assert result.operator == "plus"
     assert result.lhs == 1.0
+    assert isinstance(result.rhs, Operation)
     assert result.rhs.operator == "multiply"
+    assert isinstance(result.rhs.lhs, Operation)
     assert result.rhs.lhs.operator == "divide"
     assert result.rhs.lhs.lhs == 2.0
     assert result.rhs.lhs.rhs == 3.0
@@ -110,9 +125,11 @@ def test_homogenous_four_terms(a, op1, b, op2, c, op3, d):
     flatten only kicks in when its a chain of the same operator type
     """
     equation = f"{a}{op1}{b}{op2}{c}{op3}{d}"
-    result = parse_arithmetic(equation)
+    result, _ = parse_arithmetic(equation)
     assert result.operator == op_map[op3.strip()], equation
+    assert isinstance(result.lhs, Operation), equation
     assert result.lhs.operator == op_map[op2.strip()], equation
+    assert isinstance(result.lhs.lhs, Operation), equation
     assert result.lhs.lhs.operator == op_map[op1.strip()], equation
     assert result.lhs.lhs.lhs == float(a), equation
     assert result.lhs.lhs.rhs == float(b), equation
@@ -129,6 +146,26 @@ def test_max_operators():
 
 
 @pytest.mark.parametrize(
+    "a,op,b",
+    [
+        ("spans.http", "+", "spans.db"),
+        ("transaction.duration", "*", 2),
+        (3.1415, "+", "spans.resource"),
+    ],
+)
+def test_field_values(a, op, b):
+    equation = f"{a}{op}{b}"
+    result, fields = parse_arithmetic(equation)
+    assert result.operator == op_map[op.strip()], equation
+    assert result.lhs == a, equation
+    assert result.rhs == b, equation
+    if isinstance(a, str):
+        assert a in fields, equation
+    if isinstance(b, str):
+        assert b in fields, equation
+
+
+@pytest.mark.parametrize(
     "equation",
     [
         "1 +",
@@ -139,6 +176,20 @@ def test_max_operators():
         "hello world",
     ],
 )
-def test_bad_arithmetic(equation):
+def test_unparseable_arithmetic(equation):
     with pytest.raises(ArithmeticParseError):
+        parse_arithmetic(equation)
+
+
+@pytest.mark.parametrize(
+    "equation",
+    [
+        "5/0",
+        "spans.http/0",
+        # Transaction status isn't something we want arithmetic on
+        "1 + transaction.status",
+    ],
+)
+def test_invalid_arithmetic(equation):
+    with pytest.raises(ArithmeticValidationError):
         parse_arithmetic(equation)

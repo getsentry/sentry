@@ -1,6 +1,8 @@
 from django import VERSION
+from django.db import models
 
 from sentry.new_migrations.monkey.executor import SentryMigrationExecutor
+from sentry.new_migrations.monkey.fields import deconstruct
 from sentry.new_migrations.monkey.writer import SENTRY_MIGRATION_TEMPLATE
 
 LAST_VERIFIED_DJANGO_VERSION = (2, 0)  # temporary; unblocking tests
@@ -33,3 +35,4 @@ def monkey_migrations():
     executor.MigrationExecutor = SentryMigrationExecutor
     migration.Migration.initial = None
     writer.MIGRATION_TEMPLATE = SENTRY_MIGRATION_TEMPLATE
+    models.Field.deconstruct = deconstruct

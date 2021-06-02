@@ -298,6 +298,12 @@ function routes() {
         component={errorHandler(LazyLoad)}
       />
       <Route
+        path="performance/"
+        name={t('Performance')}
+        componentPromise={() => import('app/views/settings/projectPerformance')}
+        component={errorHandler(LazyLoad)}
+      />
+      <Route
         path="source-maps/"
         name={t('Source Maps')}
         componentPromise={() => import('app/views/settings/projectSourceMaps')}
@@ -1010,6 +1016,17 @@ function routes() {
               component={errorHandler(LazyLoad)}
               props={{
                 currentTab: TAB.MERGED,
+                isEventRoute: false,
+              }}
+            />
+            <Route
+              path="/organizations/:orgId/issues/:groupId/grouping/"
+              componentPromise={() =>
+                import('app/views/organizationGroupDetails/grouping')
+              }
+              component={errorHandler(LazyLoad)}
+              props={{
+                currentTab: TAB.GROUPING,
                 isEventRoute: false,
               }}
             />

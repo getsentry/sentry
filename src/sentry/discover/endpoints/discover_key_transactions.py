@@ -1,10 +1,15 @@
+from collections import defaultdict
+
 from django.db import IntegrityError, transaction
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
 from sentry.api.bases import KeyTransactionBase
 from sentry.api.bases.organization import OrganizationPermission
+from sentry.api.helpers.teams import get_teams
+from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.api.utils import InvalidParams
 from sentry.discover.endpoints import serializers
 from sentry.discover.models import KeyTransaction, TeamKeyTransaction
 from sentry.models import Team
@@ -23,7 +28,7 @@ class IsKeyTransactionEndpoint(KeyTransactionBase):
     permission_classes = (KeyTransactionPermission,)
 
     def get(self, request, organization):
-        """ Get the Key Transactions for a user """
+        """Get the Key Transactions for a user"""
         if not self.has_feature(request, organization):
             return Response(status=404)
 
@@ -66,7 +71,7 @@ class KeyTransactionEndpoint(KeyTransactionBase):
         return Response(serialize(list(key_teams)), status=200)
 
     def post(self, request, organization):
-        """ Create a Key Transaction """
+        """Create a Key Transaction"""
         if not self.has_feature(request, organization):
             return Response(status=404)
 
@@ -138,7 +143,7 @@ class KeyTransactionEndpoint(KeyTransactionBase):
         return Response(serializer.errors, status=400)
 
     def delete(self, request, organization):
-        """ Remove a Key transaction for a user """
+        """Remove a Key transaction for a user"""
         if not self.has_feature(request, organization):
             return Response(status=404)
 
@@ -163,7 +168,6 @@ class KeyTransactionEndpoint(KeyTransactionBase):
         serializer = serializers.TeamKeyTransactionSerializer(
             data=request.data,
             context={
-                "mode": "create",
                 "request": request,
                 "organization": organization,
             },
@@ -184,9 +188,75 @@ class KeyTransactionEndpoint(KeyTransactionBase):
         return Response(serializer.errors, status=400)
 
 
+class KeyTransactionListEndpoint(KeyTransactionBase):
+    permission_classes = (KeyTransactionPermission,)
+
+    def has_feature(self, request, organization):
+        return super().has_feature(request, organization) and super().has_team_feature(
+            request, organization
+        )
+
+    def get(self, request, organization):
+        if not self.has_feature(request, organization):
+            return Response(status=404)
+
+        try:
+            teams = get_teams(request, organization)
+        except InvalidParams as err:
+            return Response(str(err), status=400)
+
+        projects = self.get_projects(request, organization)
+
+        serializer = KeyTransactionTeamSerializer(projects)
+
+        return self.paginate(
+            request=request,
+            queryset=teams,
+            order_by="slug",
+            on_results=lambda x: serialize(x, request.user, serializer),
+            paginator_cls=OffsetPaginator,
+        )
+
+
 @register(TeamKeyTransaction)
 class TeamKeyTransactionSerializer(Serializer):
     def serialize(self, obj, attrs, user, **kwargs):
         return {
             "team": str(obj.team_id),
+        }
+
+
+class KeyTransactionTeamSerializer(Serializer):
+    def __init__(self, projects):
+        self.project_ids = {project.id for project in projects}
+
+    def get_attrs(self, item_list, user, **kwargs):
+        team_key_transactions = TeamKeyTransaction.objects.filter(
+            team__in=[item.id for item in item_list]
+        ).order_by("transaction", "project_id")
+
+        attrs = defaultdict(
+            lambda: {
+                "count": 0,
+                "key_transactions": [],
+            }
+        )
+
+        for kt in team_key_transactions:
+            attrs[kt.team]["count"] += 1
+            if kt.project_id in self.project_ids:
+                attrs[kt.team]["key_transactions"].append(
+                    {
+                        "project_id": str(kt.project_id),
+                        "transaction": kt.transaction,
+                    }
+                )
+
+        return attrs
+
+    def serialize(self, obj, attrs, user, **kwargs):
+        return {
+            "team": str(obj.id),
+            "count": attrs.get("count", 0),
+            "keyed": attrs.get("key_transactions", []),
         }
