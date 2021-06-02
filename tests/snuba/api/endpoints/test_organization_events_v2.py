@@ -3797,3 +3797,45 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         assert len(response.data["data"]) == 1
         assert response.data["data"][0]["apdex_300"] == 0
+
+    def test_equation_simple(self):
+        event_data = load_data("transaction", timestamp=before_now(minutes=1))
+        event_data["breakdowns"]["span_ops"]["ops.http"]["value"] = 1500
+        self.store_event(data=event_data, project_id=self.project.id)
+
+        query = {
+            "field": ["spans.http"],
+            "equation": ["spans.http / 3"],
+            "project": [self.project.id],
+            "query": "event.type:transaction",
+        }
+        response = self.do_request(
+            query,
+            {
+                "organizations:discover-basic": True,
+                "organizations:discover-arithmetic": True,
+            },
+        )
+        assert response.status_code == 200
+        assert len(response.data["data"]) == 1
+        assert (
+            response.data["data"][0]["equation[0]"]
+            == event_data["breakdowns"]["span_ops"]["ops.http"]["value"] / 3
+        )
+
+    def test_equation_operation_limit(self):
+        query = {
+            "field": ["spans.http"],
+            "equation": [f"spans.http{' * 2' * 2}"],
+            "project": [self.project.id],
+            "query": "event.type:transaction",
+        }
+        response = self.do_request(
+            query,
+            {
+                "organizations:discover-basic": True,
+                "organizations:discover-arithmetic": True,
+            },
+        )
+
+        assert response.status_code == 400
