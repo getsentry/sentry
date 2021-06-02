@@ -66,6 +66,20 @@ class SlackIntegrationTest(IntegrationTestCase):
             },
         )
 
+        responses.add(
+            responses.GET,
+            "https://slack.com/api/users.lookupByEmail/",
+            json={
+                "ok": True,
+                "user": {
+                    "id": "UXXXXXXXX",
+                    "team_id": "TXXXXXXXX",
+                    "profile": {
+                        "email": "admin@localhost",
+                    },
+                },
+            },
+        )
         resp = self.client.get(
             "{}?{}".format(
                 self.setup_path,
@@ -83,6 +97,9 @@ class SlackIntegrationTest(IntegrationTestCase):
 
         assert resp.status_code == 200
         self.assertDialogSuccess(resp)
+
+        identity = Identity.objects.get(external_id="UXXXXXXXX", user=self.user)
+        assert identity
 
     @responses.activate
     def test_bot_flow(self):

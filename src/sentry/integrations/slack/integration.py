@@ -10,8 +10,10 @@ from sentry.integrations import (
     IntegrationMetadata,
     IntegrationProvider,
 )
+from sentry.models import Identity, IdentityProvider, IdentityStatus
 from sentry.pipeline import NestedPipelineView
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils.http import absolute_uri
 
 from .client import SlackClient
@@ -153,3 +155,74 @@ class SlackIntegrationProvider(IntegrationProvider):
         }
 
         return integration
+
+    def post_install(self, integration, organization, extra=None):
+        """
+        Create an Identity record for an org's users if their emails match
+        """
+        access_token = (
+            integration.metadata.get("user_access_token") or integration.metadata["access_token"]
+        )
+        headers = {"Authorization": "Bearer %s" % access_token}
+        client = SlackClient()
+        # TODO put this all in a task
+        for org in integration.organizations.all():
+            for member in org.members.all():
+                # skip the API call if they already have an identity
+                # however in tests there is already an identity so not sure what to do there yet
+                # probably make this a tighter lookup including idp (not just idp__type)
+                # try:
+                #     identity = Identity.objects.get(
+                #         idp__type=EXTERNAL_PROVIDERS[ExternalProviders.SLACK],
+                #         user=member.id,
+                #     )
+                # except Identity.DoesNotExist:
+                try:
+                    # TODO what if they have more than one email? or none? can they have none?
+                    resp = client.get(
+                        "/users.lookupByEmail/", headers=headers, params={"email": member.email}
+                    )
+                except ApiError as e:
+                    logger.info(
+                        "post_install.fail.slack_lookupByEmail",
+                        extra={
+                            "error": str(e),
+                            "organization": org.slug,
+                            "integration_id": integration.id,
+                            "email": member.email,
+                        },
+                    )
+                    # probably just keep going, but commenting out now so I don't get false positives in tests
+                    # continue
+                # import pdb; pdb.set_trace()
+                if resp["ok"] is True:
+                    if member.email != resp["user"]["profile"]["email"]:
+                        continue
+                    else:
+                        idp = IdentityProvider.objects.create(
+                            type=EXTERNAL_PROVIDERS[ExternalProviders.SLACK],
+                            external_id=resp["user"]["team_id"],
+                            config={},
+                        )
+                        identity, created = Identity.objects.get_or_create(
+                            external_id=resp["user"]["id"],
+                            idp=idp,
+                            user=member,
+                            status=IdentityStatus.VALID,
+                            scopes=[],
+                        )
+                        # identity_model, created = Identity.objects.get_or_create(
+                        #     idp=idp,
+                        #     user=self.request.user,
+                        #     external_id=identity["external_id"],
+                        #     defaults=identity_data,
+                        # )
+                else:
+                    logger.info(
+                        "post_install.no_match.slack_lookupByEmail",
+                        extra={
+                            "organization": org.slug,
+                            "integration_id": integration.id,
+                            "email": member.email,
+                        },
+                    )
