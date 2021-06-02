@@ -96,7 +96,12 @@ jobs:
     name: bootstrap
     runs-on: macos-11.0
     timeout-minutes: 35
+    env:
+      # This makes the script to git clone from https, thus, not requirying github access check
+      # On the other hand, it will not clone getsentry for lack of access
+      STRAP_CI: on
     steps:
       - name: Run bootstrap scripts
         run: |
-          bash <(curl -s https://raw.githubusercontent.com/getsentry/bootstrap-sentry/main/bootstrap.sh)
+          # XXX: Point to dev branch until merged
+          bash <(curl -s https://raw.githubusercontent.com/getsentry/bootstrap-sentry/github_action/bootstrap.sh)
