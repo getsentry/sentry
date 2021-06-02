@@ -58,8 +58,8 @@ const ProjectReleaseDetails = ({release, releaseMeta, orgSlug, projectSlug}: Pro
                 version
               )}/`}
             >
-              <Count value={releaseMeta.releaseArtifactCount} />{' '}
-              {tn('artifact', 'artifacts', releaseMeta.releaseArtifactCount)}
+              <Count value={releaseMeta.releaseFileCount} />{' '}
+              {tn('artifact', 'artifacts', releaseMeta.releaseFileCount)}
             </Link>
           }
         />

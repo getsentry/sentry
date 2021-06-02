@@ -87,7 +87,6 @@ class ReleaseMetaTest(APITestCase):
         assert data["newGroups"] == 42
         assert data["commitFilesChanged"] == 2
         assert data["releaseFileCount"] == 1
-        assert data["releaseArtifactCount"] == 1
         assert len(data["projects"]) == 2
 
     def test_artifact_count(self):
@@ -142,5 +141,4 @@ class ReleaseMetaTest(APITestCase):
         assert response.status_code == 200, response.content
 
         data = json.loads(response.content)
-        assert data["releaseFileCount"] == 0
-        assert data["releaseArtifactCount"] == 2
+        assert data["releaseFileCount"] == 2

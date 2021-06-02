@@ -78,12 +78,6 @@ class OrganizationReleaseMetaEndpoint(OrganizationReleasesBaseEndpoint):
             for pr in project_releases
         ]
 
-        release_file_count = (
-            ReleaseFile.objects.filter(release=release)
-            .exclude(name=RELEASE_ARCHIVE_FILENAME)
-            .count()
-        )
-
         return Response(
             {
                 "version": release.version,
@@ -94,7 +88,6 @@ class OrganizationReleaseMetaEndpoint(OrganizationReleasesBaseEndpoint):
                 "commitCount": release.commit_count,
                 "released": release.date_released or release.date_added,
                 "commitFilesChanged": commit_files_changed,
-                "releaseFileCount": release_file_count,
-                "releaseArtifactCount": release.count_artifacts(),
+                "releaseFileCount": release.count_artifacts(),
             }
         )

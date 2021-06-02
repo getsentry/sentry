@@ -273,7 +273,9 @@ class ReleaseArchiveQuerySet(ListQuerySet):
                 file=File(
                     headers=info.get("headers", {}),
                     size=archive.get_file_size(filename),
-                    timestamp=timestamp,  # archived artifacts do not have their own
+                    # archived artifacts do not have their own
+                    # TODO(jjbayer): On archive merge, write dateAdded into manifest
+                    timestamp=timestamp,
                     # TODO: sha1
                 ),
             )
