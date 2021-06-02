@@ -70,7 +70,7 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
     }, handleXhrErrorResponse('Unable to remove project'));
   };
 
-  handleTransferProject = () => {
+  handleTransferProject = async () => {
     const {orgId} = this.props.params;
     const project = this.state.data;
     if (!project) {
@@ -80,10 +80,15 @@ class ProjectGeneralSettings extends AsyncView<Props, State> {
       return;
     }
 
-    transferProject(this.api, orgId, project, this._form.email).then(() => {
+    try {
+      await transferProject(this.api, orgId, project, this._form.email);
       // Need to hard reload because lots of components do not listen to Projects Store
       window.location.assign('/');
-    }, handleXhrErrorResponse('Unable to transfer project'));
+    } catch (err) {
+      if (err.status >= 500) {
+        handleXhrErrorResponse('Unable to transfer project')(err);
+      }
+    }
   };
 
   isProjectAdmin = () => new Set(this.props.organization.access).has('project:admin');
