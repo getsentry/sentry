@@ -262,8 +262,14 @@ const PERFORMANCE_TERMS: Record<PERFORMANCE_TERM, TermFormatter> = {
     t(
       'Distribution buckets counts of transactions at specifics times for your current date range'
     ),
-  userMiseryNew: () => t('TBD'),
-  apdexNew: () => t('TBD'),
+  userMiseryNew: () =>
+    t(
+      "User Misery is a score that represents the number of unique users who have experienced load times 4x the project's configured threshold. Adjust project threshold in project performance settings."
+    ),
+  apdexNew: () =>
+    t(
+      'Apdex is the ratio of both satisfactory and tolerable response times to all response times. To adjust the tolerable threshold, go to project performance settings.'
+    ),
 };
 
 export function getTermHelp(
@@ -290,18 +296,13 @@ function generateGenericPerformanceEventView(
     'p50()',
     'p95()',
     'failure_rate()',
+    'count_unique(user)',
   ];
 
   const featureFields = organization.features.includes('project-transaction-threshold')
-    ? [
-        `apdex_new()`,
-        'count_unique(user)',
-        `count_miserable_new(user)`,
-        `user_misery_new()`,
-      ]
+    ? [`apdex_new()`, `count_miserable_new(user)`, `user_misery_new()`]
     : [
         `apdex(${organization.apdexThreshold})`,
-        'count_unique(user)',
         `count_miserable(user,${organization.apdexThreshold})`,
         `user_misery(${organization.apdexThreshold})`,
       ];
@@ -362,18 +363,13 @@ function generateBackendPerformanceEventView(
     'p50()',
     'p95()',
     'failure_rate()',
+    'count_unique(user)',
   ];
 
   const featureFields = organization.features.includes('project-transaction-threshold')
-    ? [
-        `apdex_new()`,
-        'count_unique(user)',
-        `count_miserable_new(user)`,
-        `user_misery_new()`,
-      ]
+    ? [`apdex_new()`, `count_miserable_new(user)`, `user_misery_new()`]
     : [
         `apdex(${organization.apdexThreshold})`,
-        'count_unique(user)',
         `count_miserable(user,${organization.apdexThreshold})`,
         `user_misery(${organization.apdexThreshold})`,
       ];
@@ -433,12 +429,12 @@ function generateFrontendPageloadPerformanceEventView(
     'p75(measurements.lcp)',
     'p75(measurements.fid)',
     'p75(measurements.cls)',
+    'count_unique(user)',
   ];
 
   const featureFields = organization.features.includes('project-transaction-threshold')
-    ? ['count_unique(user)', `count_miserable_new(user)`, `user_misery_new()`]
+    ? [`count_miserable_new(user)`, `user_misery_new()`]
     : [
-        'count_unique(user)',
         `count_miserable(user,${organization.apdexThreshold})`,
         `user_misery(${organization.apdexThreshold})`,
       ];
@@ -500,12 +496,12 @@ function generateFrontendOtherPerformanceEventView(
     'p50(transaction.duration)',
     'p75(transaction.duration)',
     'p95(transaction.duration)',
+    'count_unique(user)',
   ];
 
   const featureFields = organization.features.includes('project-transaction-threshold')
-    ? ['count_unique(user)', `count_miserable_new(user)`, `user_misery_new()`]
+    ? [`count_miserable_new(user)`, `user_misery_new()`]
     : [
-        'count_unique(user)',
         `count_miserable(user,${organization.apdexThreshold})`,
         `user_misery(${organization.apdexThreshold})`,
       ];
