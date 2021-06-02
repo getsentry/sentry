@@ -473,8 +473,16 @@ class ReleasesList extends AsyncView<Props, State> {
 
 const AlertText = styled('div')`
   display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: ${space(2)};
+
   > *:nth-child(1) {
     flex: 1;
+  }
+  flex-direction: column;
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    flex-direction: row;
   }
 `;
 
