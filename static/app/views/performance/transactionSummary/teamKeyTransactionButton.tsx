@@ -1,7 +1,10 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
-import {toggleKeyTransaction} from 'app/actionCreators/performance';
+import {
+  fetchTeamKeyTransactions,
+  toggleKeyTransaction,
+} from 'app/actionCreators/performance';
 import {Client} from 'app/api';
 import Button from 'app/components/button';
 import TeamKeyTransaction, {
@@ -76,55 +79,45 @@ class TeamKeyTransactionButton extends Component<Props, State> {
   }
 
   async fetchData() {
+    const {api, organization, project, transactionName} = this.props;
     const keyFetchID = Symbol('keyFetchID');
     this.setState({isLoading: true, keyFetchID});
 
+    let keyedTeams: Set<string> = new Set();
+    let counts: Map<string, number> = new Map();
+
+    let error: string | null = null;
+
     try {
-      const [keyTransactions, counts] = await Promise.all([
-        this.fetchKeyTransactionsData(),
-        this.fetchCountData(),
-      ]);
-      this.setState({
-        isLoading: false,
-        keyFetchID: undefined,
-        error: null,
-        keyedTeams: new Set(keyTransactions.map(({team}) => team)),
-        counts: new Map(counts.map(({team, count}) => [team, count])),
-      });
+      const teams = await fetchTeamKeyTransactions(
+        api,
+        organization.slug,
+        ['myteams'],
+        [String(project)]
+      );
+
+      keyedTeams = new Set(
+        teams
+          .filter(({keyed}) =>
+            keyed.find(
+              ({project_id, transaction}) =>
+                project_id === String(project) && transaction === transactionName
+            )
+          )
+          .map(({team}) => team)
+      );
+      counts = new Map(teams.map(({team, count}) => [team, count]));
     } catch (err) {
-      this.setState({
-        isLoading: false,
-        keyFetchID: undefined,
-        error: err.responseJSON?.detail ?? null,
-      });
+      error = err.responseJSON?.detail ?? t('Error fetching team key transactions');
     }
-  }
 
-  async fetchKeyTransactionsData() {
-    const {api, organization, project, transactionName} = this.props;
-
-    const url = `/organizations/${organization.slug}/key-transactions/`;
-    const [data] = await api.requestPromise(url, {
-      method: 'GET',
-      includeAllArgs: true,
-      query: {
-        project: String(project),
-        transaction: transactionName,
-      },
+    this.setState({
+      isLoading: false,
+      keyFetchID: undefined,
+      error,
+      keyedTeams,
+      counts,
     });
-    return data;
-  }
-
-  async fetchCountData() {
-    const {api, organization, teams} = this.props;
-
-    const url = `/organizations/${organization.slug}/key-transactions-count/`;
-    const [data] = await api.requestPromise(url, {
-      method: 'GET',
-      includeAllArgs: true,
-      query: {team: teams.map(({id}) => id)},
-    });
-    return data;
   }
 
   handleToggleKeyTransaction = async (
@@ -155,10 +148,11 @@ class TeamKeyTransactionButton extends Component<Props, State> {
   };
 
   render() {
-    const {isLoading, counts, keyedTeams} = this.state;
+    const {isLoading, error, counts, keyedTeams} = this.state;
     return (
       <TeamKeyTransaction
         isLoading={isLoading}
+        error={error}
         counts={counts}
         keyedTeams={keyedTeams}
         handleToggleKeyTransaction={this.handleToggleKeyTransaction}
