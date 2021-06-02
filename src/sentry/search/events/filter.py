@@ -729,7 +729,7 @@ def format_search_filter(term, params):
             except Exception:
                 raise InvalidSearchQuery(f"Invalid value '{group_short_ids}' for 'issue:' filter")
             else:
-                filter_values.extend(sorted([g.id for g in groups]))
+                filter_values.extend(sorted(g.id for g in groups))
 
         term = SearchFilter(
             SearchKey("issue.id"),
@@ -771,7 +771,7 @@ def format_search_filter(term, params):
 
 
 class QueryFilter(QueryBase):
-    """ Filter logic for a snql query """
+    """Filter logic for a snql query"""
 
     def resolve_where(self, query: str) -> None:
         try:
@@ -833,7 +833,7 @@ class QueryFilter(QueryBase):
         value = search_filter.value.value
         values = set(value if isinstance(value, (list, tuple)) else [value])
         # sorted for consistency
-        values = sorted([str(value) for value in values])
+        values = sorted(f"{value}" for value in values)
         environment = self.column("environment")
         # the "no environment" environment is null in snuba
         if "" in values:

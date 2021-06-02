@@ -28,7 +28,7 @@ def _get_user_from_email(group, email):
     max_retries=None,
 )
 def process_inbound_email(mailfrom, group_id, payload):
-    """"""
+    """ """
     from sentry.models import Group
     from sentry.web.forms import NewNoteForm
 

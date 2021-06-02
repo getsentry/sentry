@@ -1,4 +1,5 @@
 from django.db import migrations, models
+
 import sentry.db.models.fields.bounded
 import sentry.db.models.fields.foreignkey
 
