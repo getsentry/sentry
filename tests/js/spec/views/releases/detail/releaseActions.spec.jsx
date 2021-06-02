@@ -33,7 +33,7 @@ describe('ReleaseActions', function () {
   it('archives a release', async function () {
     const wrapper = mountWithTheme(
       <ReleaseActions
-        orgSlug={organization.slug}
+        organization={organization}
         projectSlug={release.projects[0].slug}
         release={release}
         refetchData={jest.fn()}
@@ -82,7 +82,7 @@ describe('ReleaseActions', function () {
 
     const wrapper = mountWithTheme(
       <ReleaseActions
-        orgSlug={organization.slug}
+        organization={organization}
         projectSlug={release.projects[0].slug}
         release={{...release, status: 'archived'}}
         refetchData={refetchDataMock}
@@ -127,7 +127,7 @@ describe('ReleaseActions', function () {
   it('navigates to a next/prev release', function () {
     const wrapper = mountWithTheme(
       <ReleaseActions
-        orgSlug={organization.slug}
+        organization={organization}
         projectSlug={release.projects[0].slug}
         release={release}
         refetchData={jest.fn()}
@@ -136,7 +136,16 @@ describe('ReleaseActions', function () {
       />
     );
 
-    expect(wrapper.find('Link[aria-label="Previous Release"]').prop('to')).toEqual({
+    expect(wrapper.find('Link[aria-label="Oldest"]').prop('to')).toEqual({
+      pathname: '/organizations/sentry/releases/0/',
+      query: {
+        project: 1,
+        statsPeriod: '24h',
+        yAxis: 'events',
+        activeRepo: undefined,
+      },
+    });
+    expect(wrapper.find('Link[aria-label="Older"]').prop('to')).toEqual({
       pathname: '/organizations/sentry/releases/123/',
       query: {
         project: 1,
@@ -145,8 +154,17 @@ describe('ReleaseActions', function () {
         activeRepo: undefined,
       },
     });
-    expect(wrapper.find('Link[aria-label="Next Release"]').prop('to')).toEqual({
+    expect(wrapper.find('Link[aria-label="Newer"]').prop('to')).toEqual({
       pathname: '/organizations/sentry/releases/456/',
+      query: {
+        project: 1,
+        statsPeriod: '24h',
+        yAxis: 'events',
+        activeRepo: undefined,
+      },
+    });
+    expect(wrapper.find('Link[aria-label="Newest"]').prop('to')).toEqual({
+      pathname: '/organizations/sentry/releases/999/',
       query: {
         project: 1,
         statsPeriod: '24h',
@@ -157,7 +175,7 @@ describe('ReleaseActions', function () {
 
     const wrapper2 = mountWithTheme(
       <ReleaseActions
-        orgSlug={organization.slug}
+        organization={organization}
         projectSlug={release.projects[0].slug}
         release={release}
         refetchData={jest.fn()}
@@ -169,7 +187,7 @@ describe('ReleaseActions', function () {
       />
     );
 
-    expect(wrapper2.find('Link[aria-label="Next Release"]').prop('to')).toEqual({
+    expect(wrapper2.find('Link[aria-label="Newer"]').prop('to')).toEqual({
       pathname: '/organizations/sentry/releases/456/files-changed/',
       query: {
         project: 1,

@@ -11,19 +11,21 @@ import Confirm from 'app/components/confirm';
 import DropdownLink from 'app/components/dropdownLink';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
 import MenuItem from 'app/components/menuItem';
+import NavigationButtonGroup from 'app/components/navigationButtonGroup';
 import TextOverflow from 'app/components/textOverflow';
 import Tooltip from 'app/components/tooltip';
-import {IconChevron, IconEllipsis} from 'app/icons';
+import {IconEllipsis} from 'app/icons';
 import {t, tct, tn} from 'app/locale';
 import space from 'app/styles/space';
-import {Release, ReleaseMeta} from 'app/types';
+import {Organization, Release, ReleaseMeta} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {formatVersion} from 'app/utils/formatters';
 
 import {isReleaseArchived} from '../utils';
 
 type Props = {
   location: Location;
-  orgSlug: string;
+  organization: Organization;
   projectSlug: string;
   release: Release;
   releaseMeta: ReleaseMeta;
@@ -32,7 +34,7 @@ type Props = {
 
 function ReleaseActions({
   location,
-  orgSlug,
+  organization,
   projectSlug,
   release,
   releaseMeta,
@@ -41,11 +43,11 @@ function ReleaseActions({
   async function handleArchive() {
     try {
       await archiveRelease(new Client(), {
-        orgSlug,
+        orgSlug: organization.slug,
         projectSlug,
         releaseVersion: release.version,
       });
-      browserHistory.push(`/organizations/${orgSlug}/releases/`);
+      browserHistory.push(`/organizations/${organization.slug}/releases/`);
     } catch {
       // do nothing, action creator is already displaying error message
     }
@@ -54,7 +56,7 @@ function ReleaseActions({
   async function handleRestore() {
     try {
       await restoreRelease(new Client(), {
-        orgSlug,
+        orgSlug: organization.slug,
         projectSlug,
         releaseVersion: release.version,
       });
@@ -117,29 +119,41 @@ function ReleaseActions({
           pathname: location.pathname.replace(release.version, toRelease),
           query: {...location.query, activeRepo: undefined},
         }
-      : undefined;
+      : '';
   }
 
-  const {nextReleaseVersion, prevReleaseVersion} = release.currentProjectMeta;
+  function handleNavigationClick(direction: string) {
+    trackAnalyticsEvent({
+      eventKey: `release_detail.pagination`,
+      eventName: `Release Detail: Pagination`,
+      organization_id: parseInt(organization.id, 10),
+      direction,
+    });
+  }
+
+  const {
+    nextReleaseVersion,
+    prevReleaseVersion,
+    firstReleaseVersion,
+    lastReleaseVersion,
+  } = release.currentProjectMeta;
 
   return (
     <ButtonBar gap={1}>
-      <ButtonBar merged>
-        <Button
-          icon={<IconChevron direction="left" />}
-          label={t('Previous Release')}
-          // API is returning these other way round
-          disabled={!nextReleaseVersion}
-          to={replaceReleaseUrl(nextReleaseVersion)}
-        />
-        <Button
-          icon={<IconChevron direction="right" />}
-          aria-label={t('Next Release')}
-          // API is returning these other way round
-          disabled={!prevReleaseVersion}
-          to={replaceReleaseUrl(prevReleaseVersion)}
-        />
-      </ButtonBar>
+      <NavigationButtonGroup
+        hasPrevious={!!prevReleaseVersion}
+        hasNext={!!nextReleaseVersion}
+        links={[
+          replaceReleaseUrl(firstReleaseVersion),
+          replaceReleaseUrl(prevReleaseVersion),
+          replaceReleaseUrl(nextReleaseVersion),
+          replaceReleaseUrl(lastReleaseVersion),
+        ]}
+        onOldestClick={() => handleNavigationClick('oldest')}
+        onOlderClick={() => handleNavigationClick('older')}
+        onNewerClick={() => handleNavigationClick('newer')}
+        onNewestClick={() => handleNavigationClick('newest')}
+      />
       <StyledDropdownLink
         caret={false}
         anchorRight={window.innerWidth > 992}

@@ -1445,6 +1445,8 @@ type ReleaseData = {
     prevReleaseVersion: string | null;
     sessionsLowerBound: string | null;
     sessionsUpperBound: string | null;
+    firstReleaseVersion: string | null;
+    lastReleaseVersion: string | null;
   };
 };
 
