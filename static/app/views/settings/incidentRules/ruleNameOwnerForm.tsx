@@ -39,7 +39,7 @@ class RuleNameOwnerForm extends PureComponent<Props> {
               {({model}) => {
                 const owner = model.getValue('owner');
                 const ownerId = owner && owner.split(':')[1];
-                const filteredTeamIds = new Set(...userTeamIds);
+                const filteredTeamIds = new Set(userTeamIds);
                 // Add the current team that owns the alert
                 if (ownerId) {
                   filteredTeamIds.add(ownerId);
