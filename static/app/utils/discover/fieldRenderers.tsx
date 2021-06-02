@@ -585,7 +585,23 @@ const spanOperationRelativeBreakdownRenderer = (
         }
         return (
           <div key={operationName} style={{width: toPercent(widthPercentage || 0)}}>
-            <Tooltip title={<div>{operationName}</div>} containerDisplayMode="block">
+            <Tooltip
+              title={
+                <div>
+                  <div>{`${operationName} ${formatPercentage(widthPercentage, 0)}`}</div>
+                  <div>
+                    (
+                    <Duration
+                      seconds={spanOpDuration / 1000}
+                      fixedDigits={2}
+                      abbreviation
+                    />
+                    )
+                  </div>
+                </div>
+              }
+              containerDisplayMode="block"
+            >
               <RectangleRelativeOpsBreakdown
                 spanBarHatch={false}
                 style={{
