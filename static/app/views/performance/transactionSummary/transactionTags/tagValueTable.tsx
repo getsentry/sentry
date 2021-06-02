@@ -239,7 +239,7 @@ export class TagValueTable extends Component<Props, State> {
 
     if (column.key === 'action') {
       const searchConditions = tokenizeSearch(eventView.query);
-      const disabled = searchConditions.hasTag(dataRow.tags_key);
+      const disabled = !!searchConditions.hasTag(dataRow.tags_key);
       return (
         <Link
           disabled={disabled}
