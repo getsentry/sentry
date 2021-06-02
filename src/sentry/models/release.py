@@ -762,6 +762,11 @@ class Release(Model):
         """Count release files plus files bundled in release archive.
         TODO(jjbayer): This is an expensive operation, might be better to persist
         the artifact count in the same way as `commit_count`.
+
+
+        NOTE: This will result in artifacts being counted 2x as long as we
+              store *both* archives and individual files.
+
         """
         release_files = (
             ReleaseFile.objects.filter(release=self).exclude(name=RELEASE_ARCHIVE_FILENAME).count()

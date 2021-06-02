@@ -95,5 +95,6 @@ class OrganizationReleaseMetaEndpoint(OrganizationReleasesBaseEndpoint):
                 "released": release.date_released or release.date_added,
                 "commitFilesChanged": commit_files_changed,
                 "releaseFileCount": release_file_count,
+                "releaseArtifactCount": release.count_artifacts(),
             }
         )

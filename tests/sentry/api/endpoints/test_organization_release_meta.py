@@ -1,3 +1,6 @@
+import zipfile
+from io import BytesIO
+
 from django.urls import reverse
 
 from sentry.models import (
@@ -9,6 +12,7 @@ from sentry.models import (
     ReleaseFile,
     Repository,
 )
+from sentry.models.releasefile import RELEASE_ARCHIVE_FILENAME
 from sentry.testutils import APITestCase
 from sentry.utils import json
 
@@ -83,4 +87,60 @@ class ReleaseMetaTest(APITestCase):
         assert data["newGroups"] == 42
         assert data["commitFilesChanged"] == 2
         assert data["releaseFileCount"] == 1
+        assert data["releaseArtifactCount"] == 1
         assert len(data["projects"]) == 2
+
+    def test_artifact_count(self):
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.organization
+        org.flags.allow_joinleave = False
+        org.save()
+
+        team1 = self.create_team(organization=org)
+        project = self.create_project(teams=[team1], organization=org)
+
+        release = Release.objects.create(organization_id=org.id, version="abcabcabc")
+        release.add_project(project)
+
+        manifest = {
+            "org": self.organization.slug,
+            "release": release.version,
+            "files": {
+                "files/_/_/file1.js": {
+                    "url": "http://example.com/file1.js",
+                },
+                "files/_/_/file2.js": {
+                    "url": "http://example.com/file2.js",
+                },
+            },
+        }
+        file_like = BytesIO()
+        with zipfile.ZipFile(file_like, "w") as zip:
+            zip.writestr("manifest.json", json.dumps(manifest))
+        file_like.seek(0)
+
+        file = File.objects.create(name=RELEASE_ARCHIVE_FILENAME)
+        file.putfile(file_like)
+
+        ReleaseFile.objects.create(
+            name=RELEASE_ARCHIVE_FILENAME,
+            release=release,
+            organization_id=project.organization_id,
+            file=file,
+        )
+
+        self.create_member(teams=[team1], user=user, organization=org)
+
+        self.login_as(user=user)
+
+        url = reverse(
+            "sentry-api-0-organization-release-meta",
+            kwargs={"organization_slug": org.slug, "version": release.version},
+        )
+        response = self.client.get(url)
+
+        assert response.status_code == 200, response.content
+
+        data = json.loads(response.content)
+        assert data["releaseFileCount"] == 0
+        assert data["releaseArtifactCount"] == 2
