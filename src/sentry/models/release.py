@@ -745,7 +745,7 @@ class Release(Model):
         self.delete()
 
     def get_archive_release_file(self):
-        """ Get ReleaseFile instance containing the release archive """
+        """Get ReleaseFile instance containing the release archive"""
         try:
             return ReleaseFile.objects.select_related("file").get(
                 release=self, name=RELEASE_ARCHIVE_FILENAME
