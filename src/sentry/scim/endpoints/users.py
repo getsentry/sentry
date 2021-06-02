@@ -109,6 +109,7 @@ class OrganizationSCIMUserIndex(SCIMEndpoint):
         queryset = (
             OrganizationMember.objects.filter(
                 Q(invite_status=InviteStatus.APPROVED.value),
+                Q(user__is_active=True) | Q(user__isnull=True),
                 organization=organization,
             )
             .select_related("user")
@@ -116,10 +117,8 @@ class OrganizationSCIMUserIndex(SCIMEndpoint):
         )
         if filter_val:
             queryset = queryset.filter(
-                Q(email__in=filter_val)
-                | Q(user__email__in=filter_val)
-                | Q(user__emails__email__in=filter_val)
-            )
+                Q(email__in=filter_val) | Q(user__email__in=filter_val)
+            )  # not including secondary email vals (dups, etc.)
 
         # TODO: how is queryset ordered?
 
