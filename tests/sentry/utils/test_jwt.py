@@ -1,7 +1,7 @@
 import jwt as pyjwt
 import pytest
 
-from sentry.utils import json
+from sentry.utils import json  # type: ignore
 from sentry.utils import jwt as jwt_utils
 
 RS256_KEY = b"""
@@ -71,8 +71,8 @@ RSA_JWK = {
 }
 
 
-@pytest.fixture
-def token():
+@pytest.fixture  # type: ignore
+def token() -> str:
     headers = {
         "alg": "HS256",
         "typ": "JWT",
@@ -90,7 +90,7 @@ def token():
     return token
 
 
-def test_peek_header(token):
+def test_peek_header(token: str) -> None:
     header = jwt_utils.peek_header(token)
 
     assert isinstance(header, dict)
@@ -101,7 +101,7 @@ def test_peek_header(token):
     assert header == {"alg": "HS256", "typ": "JWT"}
 
 
-def test_peek_claims(token):
+def test_peek_claims(token: str) -> None:
     claims = jwt_utils.peek_claims(token)
     assert claims == {"iss": "me"}
 
@@ -110,7 +110,7 @@ def test_peek_claims(token):
         assert isinstance(value, str)
 
 
-def test_decode(token):
+def test_decode(token: str) -> None:
     claims = jwt_utils.decode(token, "secret")
     assert claims == {"iss": "me"}
 
@@ -125,7 +125,7 @@ def test_decode(token):
         jwt_utils.decode(token, b"secret")
 
 
-def test_decode_audience():
+def test_decode_audience() -> None:
     payload = {
         "iss": "me",
         "aud": "you",
@@ -145,7 +145,7 @@ def test_decode_audience():
     assert claims == payload
 
 
-def test_encode(token):
+def test_encode(token: str) -> None:
     headers = {
         "alg": "HS256",
         "typ": "JWT",
@@ -165,7 +165,7 @@ def test_encode(token):
     assert decoded_claims == claims
 
 
-def test_encode_rs256():
+def test_encode_rs256() -> None:
     headers = {
         "alg": "RS256",
         "typ": "JWT",
@@ -180,7 +180,7 @@ def test_encode_rs256():
     assert encoded_rs256 != encoded_hs256
 
 
-def test_authorization_header(token):
+def test_authorization_header(token: str) -> None:
     header = jwt_utils.authorization_header(token)
     assert header == {"Authorization": f"Bearer {token}"}
 
@@ -188,7 +188,7 @@ def test_authorization_header(token):
     assert header == {"Authorization": f"JWT {token}"}
 
 
-def test_rsa_key_from_jwk():
+def test_rsa_key_from_jwk() -> None:
     key = jwt_utils.rsa_key_from_jwk(json.dumps(RSA_JWK))
     assert key
     assert isinstance(key, bytes)
