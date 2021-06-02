@@ -59,13 +59,13 @@ init-docker() {
         sudo-askpass /bin/chmod 644 /Library/LaunchDaemons/com.docker.vmnetd.plist
         sudo-askpass /bin/launchctl load /Library/LaunchDaemons/com.docker.vmnetd.plist
     fi
-    sudo-askpass ls /Library/PrivilegedHelperTools/
-    sudo-askpass ls /Library/LaunchDaemons/
+    sudo-askpass ls -l /Library/PrivilegedHelperTools/
+    sudo-askpass ls -l /Library/LaunchDaemons/
     sudo-askpass cat /Library/LaunchDaemons/com.docker.vmnetd.plist
     sudo-askpass ls -l /Library/PrivilegedHelperTools/com.docker.vmnetd
     sudo-askpass ls -l /Applications/ | grep Docker
     sudo-askpass ls -l /Applications/Docker.app
-    which docker
+    # which docker
     start-docker
 }
 
