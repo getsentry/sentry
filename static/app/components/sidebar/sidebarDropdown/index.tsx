@@ -150,21 +150,19 @@ const SidebarDropdown = ({
                     </UserSummary>
 
                     <div>
-                      <Fragment>
-                        <SidebarMenuItem to="/settings/account/">
-                          {t('User settings')}
-                        </SidebarMenuItem>
-                        <SidebarMenuItem to="/settings/account/api/">
-                          {t('API keys')}
-                        </SidebarMenuItem>
-                        <Hook
-                          name="sidebar:organization-dropdown-menu-bottom"
-                          organization={org}
-                        />
-                        {user.isSuperuser && (
-                          <SidebarMenuItem to="/manage/">{t('Admin')}</SidebarMenuItem>
-                        )}
-                      </Fragment>
+                      <SidebarMenuItem to="/settings/account/">
+                        {t('User settings')}
+                      </SidebarMenuItem>
+                      <SidebarMenuItem to="/settings/account/api/">
+                        {t('API keys')}
+                      </SidebarMenuItem>
+                      <Hook
+                        name="sidebar:organization-dropdown-menu-bottom"
+                        organization={org}
+                      />
+                      {user.isSuperuser && (
+                        <SidebarMenuItem to="/manage/">{t('Admin')}</SidebarMenuItem>
+                      )}
                       <SidebarMenuItem
                         data-test-id="sidebarSignout"
                         onClick={handleLogout}
