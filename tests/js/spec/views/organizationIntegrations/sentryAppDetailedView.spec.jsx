@@ -25,7 +25,7 @@ describe('SentryAppDetailedView', function () {
       {isMember: true, slug: 'new-project', id: 3},
     ],
     organization: {
-      features: ['events', 'internal-catchall'],
+      features: ['events'],
     },
     router: {
       location: {
