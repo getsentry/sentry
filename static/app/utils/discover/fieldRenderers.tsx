@@ -590,13 +590,11 @@ const spanOperationRelativeBreakdownRenderer = (
                 <div>
                   <div>{`${operationName} ${formatPercentage(widthPercentage, 0)}`}</div>
                   <div>
-                    (
                     <Duration
                       seconds={spanOpDuration / 1000}
                       fixedDigits={2}
                       abbreviation
                     />
-                    )
                   </div>
                 </div>
               }
