@@ -15,6 +15,9 @@ from sentry.utils import json, metrics
 from sentry.utils.hashlib import sha1_text
 from sentry.utils.zip import safe_extract_zip
 
+#: Name for the bundle stored as a release file
+RELEASE_ARCHIVE_FILENAME = "release-artifacts.zip"
+
 
 class ReleaseFile(Model):
     r"""
@@ -141,6 +144,9 @@ class ReleaseArchive:
     def __exit__(self, exc, value, tb):
         self._zip_file.close()
         self._fileobj.close()
+
+    def get_file_size(self, filename: str) -> int:
+        return self._zip_file.getinfo(filename).file_size
 
     def read(self, filename: str) -> bytes:
         return self._zip_file.read(filename)

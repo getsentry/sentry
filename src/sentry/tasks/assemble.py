@@ -9,7 +9,11 @@ from sentry import app, options
 from sentry.api.serializers import serialize
 from sentry.cache import default_cache
 from sentry.models import File, Organization, Release, ReleaseFile
-from sentry.models.releasefile import ReleaseArchive, merge_release_archives
+from sentry.models.releasefile import (
+    RELEASE_ARCHIVE_FILENAME,
+    ReleaseArchive,
+    merge_release_archives,
+)
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.files import get_max_file_size
@@ -18,9 +22,6 @@ from sentry.utils.sdk import bind_organization_context, configure_scope
 
 logger = logging.getLogger(__name__)
 
-
-#: Name for the bundle stored as a release file
-RELEASE_ARCHIVE_FILENAME = "release-artifacts.zip"
 
 #: Parameter used for `blocking_acquire`
 RELEASE_ARCHIVE_MERGE_INITIAL_DELAY = 0.2  # seconds
@@ -226,6 +227,10 @@ def _merge_archives(release_file: ReleaseFile, new_file: File, new_archive: Rele
     new_file.delete()
 
 
+def get_artifact_basename(url):
+    return url.rsplit("/", 1)[-1]
+
+
 def _store_single_files(archive: ReleaseArchive, meta: dict):
     try:
         temp_dir = archive.extract()
@@ -236,7 +241,7 @@ def _store_single_files(archive: ReleaseArchive, meta: dict):
         artifacts = archive.manifest.get("files", {})
         for rel_path, artifact in artifacts.items():
             artifact_url = artifact.get("url", rel_path)
-            artifact_basename = artifact_url.rsplit("/", 1)[-1]
+            artifact_basename = get_artifact_basename(artifact_url)
 
             file = File.objects.create(
                 name=artifact_basename, type="release.file", headers=artifact.get("headers", {})
