@@ -162,11 +162,9 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
 
     def query_hook(self, event, start, end, environment_id):
         project_id = event.project_id
-        cache_key = f"r.c.spc:{project_id}-{environment_id}-{start.replace(minute=0, second=0, microsecond=0, tzinfo=None)}-{end.replace(minute=0, second=0, microsecond=0, tzinfo=None)}".replace(
-            " ", ""
-        )
-        session_count = cache.get(cache_key)
-        if session_count is None:
+        cache_key = f"r.c.spc:{project_id}-{environment_id}".replace(" ", "")
+        session_count_last_hour = cache.get(cache_key)
+        if session_count_last_hour is None:
             filters = {"project_id": [project_id]}
             if environment_id:
                 filters["environment"] = [environment_id]
@@ -174,21 +172,25 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
                 selected_columns=["sessions"],
                 rollup=60,
                 dataset=Dataset.Sessions,
-                start=start,
+                start=end - timedelta(minutes=60),
                 end=end,
                 filter_keys=filters,
                 groupby=["bucketed_started"],
                 referrer="rules.conditions.event_frequency.EventFrequencyPercentCondition",
             )
             if result_totals["data"]:
-                session_count = 0
+                session_count_last_hour = 0
                 for bucket in result_totals["data"]:
-                    session_count += bucket["sessions"]
+                    session_count_last_hour += bucket["sessions"]
             else:
-                session_count = False
-            cache.set(cache_key, session_count, 600)
+                session_count_last_hour = False
+            cache.set(cache_key, session_count_last_hour, 600)
 
-        if session_count:
+        if session_count_last_hour:
+            interval_in_minutes = (
+                end - start
+            ).total_seconds() / 60  # percent_intervals[self.get_option("interval")][1].total_seconds() / 60
+            avg_sessions_in_interval = session_count_last_hour / (60 / interval_in_minutes)
             issue_count = self.tsdb.get_sums(
                 model=self.tsdb.models.group,
                 keys=[event.group_id],
@@ -197,6 +199,6 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
                 environment_id=environment_id,
                 use_cache=True,
             )[event.group_id]
-            return 100 * round(issue_count / session_count, 4)
+            return 100 * round(issue_count / avg_sessions_in_interval, 4)
 
         return 0
