@@ -11,7 +11,6 @@ import UserBadge from 'app/components/idBadge/userBadge';
 import {DurationPill, RowRectangle} from 'app/components/performance/waterfall/rowBar';
 import {
   getDurationDisplay,
-  getHumanDuration,
   pickBarColour,
   toPercent,
 } from 'app/components/performance/waterfall/utils';
@@ -546,7 +545,7 @@ const spanOperationBreakdownRenderer = (field: string) => (
           showDetail={false}
           spanBarHatch={false}
         >
-          {getHumanDuration(spanOpDuration / 1000)}
+          <Duration seconds={spanOpDuration / 1000} fixedDigits={2} abbreviation />
         </DurationPill>
       </RowRectangle>
     </div>
