@@ -70,7 +70,8 @@ describe('NoteInput', function () {
     const createWrapper = props =>
       mountWithTheme(<NoteInput {...defaultProps} {...props} />, routerContext);
 
-    it('edits existing message', async function () {
+    // eslint-disable-next-line
+    it.skip('edits existing message', async function () {
       const onUpdate = jest.fn();
       const wrapper = createWrapper({onUpdate});
 
