@@ -19,8 +19,8 @@ class SlackIntegrationTest(IntegrationTestCase):
     provider = SlackIntegrationProvider
 
     def setUp(self):
-        # create a second user for whom to create an Identity in post_install
         super().setUp()
+        # create a second user for whom to create an Identity in post_install
         self.user2 = self.create_user("foo@example.com")
         self.member = self.create_member(
             user=self.user2,
@@ -36,6 +36,7 @@ class SlackIntegrationTest(IntegrationTestCase):
         authorizing_user_id="UXXXXXXX1",
         expected_client_id="slack-client-id",
         expected_client_secret="slack-client-secret",
+        multiple_users=False,
     ):
         responses.reset()
 
@@ -91,6 +92,21 @@ class SlackIntegrationTest(IntegrationTestCase):
                 },
             },
         )
+        if multiple_users:
+            responses.add(
+                responses.GET,
+                "https://slack.com/api/users.lookupByEmail/",
+                json={
+                    "ok": True,
+                    "user": {
+                        "id": "UXXXXXXX2",
+                        "team_id": "TXXXXXXX1",
+                        "profile": {
+                            "email": self.user2.email,
+                        },
+                    },
+                },
+            )
         resp = self.client.get(
             "{}?{}".format(
                 self.setup_path,
@@ -169,13 +185,6 @@ class SlackIntegrationTest(IntegrationTestCase):
         (who also installed it the first time?)
         has a different external ID, their Identity is updated to reflect that
         """
-        # self.assert_setup_flow()
-        # identity = Identity.objects.get()
-        # assert identity.external_id == "UXXXXXXX1"
-
-        # self.assert_setup_flow(authorizing_user_id="UXXXXXXX2")
-        # identity = Identity.objects.get()
-        # assert identity.external_id == "UXXXXXXX2"
         self.assert_setup_flow()
         identity = Identity.objects.get(external_id="UXXXXXXX1")
         assert identity.user == self.user
@@ -183,6 +192,22 @@ class SlackIntegrationTest(IntegrationTestCase):
         self.assert_setup_flow(authorizing_user_id="UXXXXXXX2")
         identity = Identity.objects.get(external_id="UXXXXXXX2")
         assert identity.user == self.user
+
+    @responses.activate
+    def test_link_multiple_users(self):
+        """
+        Test that when an organization has multiple users, we create Identity records for them
+        if their Sentry email matches their Slack email
+        """
+        self.assert_setup_flow(multiple_users=True)
+        self_user_identity = Identity.objects.get(user=self.user)
+        assert self_user_identity
+        assert self_user_identity.external_id == "UXXXXXXX1"
+        assert self_user_identity.user.email == "admin@localhost"
+        user2_identity = Identity.objects.get(user=self.user2)
+        assert user2_identity
+        assert user2_identity.external_id == "UXXXXXXX2"
+        assert user2_identity.user.email == "foo@example.com"
 
 
 class SlackIntegrationConfigTest(TestCase):

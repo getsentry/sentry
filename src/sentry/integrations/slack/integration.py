@@ -171,6 +171,7 @@ class SlackIntegrationProvider(IntegrationProvider):
             # TODO look into more lookups for email if member.email is missing such as in UserOption
             if member.email:
                 try:
+                    # TODO use users.list instead to reduce API calls
                     resp = client.get(
                         "/users.lookupByEmail/", headers=headers, params={"email": member.email}
                     )
@@ -234,7 +235,7 @@ class SlackIntegrationProvider(IntegrationProvider):
                                     )
                                 else:
                                     logger.info(
-                                        "finish_pipeline.identity_linked_different_user",
+                                        "post_install.identity_linked_different_user",
                                         extra={
                                             "idp_id": idp.id,
                                             "external_id": resp["user"]["id"],
