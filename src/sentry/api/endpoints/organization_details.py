@@ -29,6 +29,7 @@ from sentry.models import (
     OrganizationAvatar,
     OrganizationOption,
     OrganizationStatus,
+    UserEmail,
 )
 from sentry.tasks.deletion import delete_organization
 from sentry.utils.cache import memoize
@@ -37,6 +38,7 @@ ERR_DEFAULT_ORG = "You cannot remove the default organization."
 ERR_NO_USER = "This request requires an authenticated user."
 ERR_NO_2FA = "Cannot require two-factor authentication without personal two-factor enabled."
 ERR_SSO_ENABLED = "Cannot require two-factor authentication with SSO enabled"
+ERR_EMAIL_VERIFICATION = "Cannot require email verification before verifying your email address."
 
 ORG_OPTIONS = (
     # serializer field name, option key name, type, default value
@@ -219,6 +221,13 @@ class OrganizationSerializer(serializers.Serializer):
 
         if value and self._has_sso_enabled():
             raise serializers.ValidationError(ERR_SSO_ENABLED)
+        return value
+
+    def validate_requireEmailVerification(self, value):
+        user = self.context["user"]
+        has_verified = UserEmail.get_primary_email(user).is_verified
+        if value and not has_verified:
+            raise serializers.ValidationError(ERR_EMAIL_VERIFICATION)
         return value
 
     def validate_trustedRelays(self, value):
