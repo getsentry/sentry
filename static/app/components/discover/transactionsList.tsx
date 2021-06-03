@@ -8,12 +8,10 @@ import DiscoverButton from 'app/components/discoverButton';
 import DropdownButton from 'app/components/dropdownButton';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import SortLink from 'app/components/gridEditable/sortLink';
-import ExternalLink from 'app/components/links/externalLink';
 import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
 import PanelTable from 'app/components/panels/panelTable';
-import {IconQuestion} from 'app/icons';
 import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
@@ -447,18 +445,7 @@ class TransactionsTable extends React.PureComponent<TableProps> {
             <GuideAnchor target="span_op_relative_breakdowns">
               <SortLink
                 align={align}
-                title={
-                  title === t('operation duration') ? (
-                    <span>
-                      {title}
-                      <ExternalLink href="https://docs.sentry.io/product/performance/event-detail/#operations-breakdown">
-                        <StyledIconQuestion size="xs" color="gray400" />
-                      </ExternalLink>
-                    </span>
-                  ) : (
-                    title
-                  )
-                }
+                title={title}
                 direction={undefined}
                 canSort={false}
                 generateSortLink={generateSortLink}
@@ -678,12 +665,6 @@ const BodyCellContainer = styled('div')`
 
 const StyledPagination = styled(Pagination)`
   margin: 0 0 0 ${space(1)};
-`;
-
-const StyledIconQuestion = styled(IconQuestion)`
-  position: relative;
-  top: 2px;
-  left: 4px;
 `;
 
 export default TransactionsList;
