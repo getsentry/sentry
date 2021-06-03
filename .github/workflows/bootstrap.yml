@@ -4,7 +4,7 @@ on:
     paths:
     - 'Brewfile'
     - 'Makefile'
-    - '.github/workflows/development-environment.yml'
+    - '.github/workflows/bootstrap.yml'
     - 'scripts/*'
     - 'src/sentry/runner/commands/devserver.py'
     - 'src/sentry/runner/commands/devservices.py'
