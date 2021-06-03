@@ -7,6 +7,7 @@ import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
+import Banner from 'app/components/banner';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
@@ -21,7 +22,6 @@ import EventView from 'app/utils/discover/eventView';
 import {getDiscoverLandingUrl} from 'app/utils/discover/urls';
 import withApi from 'app/utils/withApi';
 import withProjects from 'app/utils/withProjects';
-import {setBannerHidden} from 'app/views/eventsV2/utils';
 import InputControl from 'app/views/settings/components/forms/controls/input';
 
 import {handleCreateQuery, handleDeleteQuery, handleUpdateQuery} from './utils';
@@ -161,7 +161,7 @@ class SavedQueryButtonGroup extends React.PureComponent<Props, State> {
       (savedQuery: SavedQuery) => {
         const view = EventView.fromSavedQuery(savedQuery);
 
-        setBannerHidden(true);
+        Banner.dismiss('discover');
         this.setState({queryName: ''});
         browserHistory.push(view.getResultsViewUrlTarget(organization.slug));
       }
