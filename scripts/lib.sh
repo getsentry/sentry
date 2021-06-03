@@ -69,10 +69,8 @@ start-docker() {
         echo "About to open Docker.app"
         # At a later stage in the script, we're going to execute
         # ensure_docker_server which waits for it to be ready
-        open -g -a Docker.app
-        exit_code=$?
-        # If the step above fails, at least we can get some debugging information to determine why
-        if [ $exit_code != 0 ]; then
+        if ! open -g -a Docker.app; then
+            # If the step above fails, at least we can get some debugging information to determine why
             sudo-askpass ls -l /Library/PrivilegedHelperTools/com.docker.vmnetd
             ls -l /Library/LaunchDaemons/
             cat /Library/LaunchDaemons/com.docker.vmnetd.plist
