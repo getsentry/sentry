@@ -18,6 +18,18 @@ from sentry.testutils import IntegrationTestCase, TestCase
 class SlackIntegrationTest(IntegrationTestCase):
     provider = SlackIntegrationProvider
 
+    def setUp(self):
+        # create a second user for whom to create an Identity in post_install
+        super().setUp()
+        self.user2 = self.create_user("foo@example.com")
+        self.member = self.create_member(
+            user=self.user2,
+            email="foo@example.com",
+            organization=self.organization,
+            role="manager",
+            teams=[self.team],
+        )
+
     def assert_setup_flow(
         self,
         team_id="TXXXXXXX1",
@@ -25,20 +37,7 @@ class SlackIntegrationTest(IntegrationTestCase):
         expected_client_id="slack-client-id",
         expected_client_secret="slack-client-secret",
     ):
-        print("hello I am in assert_setup_flow")
         responses.reset()
-
-        # create a second user for whom to create an Identity in post_install
-        # this email is just there to make sure the email is unique
-        email = f'{authorizing_user_id}@example.com'
-        user2 = self.create_user(email)
-        self.member = self.create_member(
-            user=user2,
-            email=email,
-            organization=self.organization,
-            role="manager",
-            teams=[self.team],
-        )
 
         resp = self.client.get(self.init_path)
         assert resp.status_code == 302
@@ -78,7 +77,6 @@ class SlackIntegrationTest(IntegrationTestCase):
                 },
             },
         )
-
         responses.add(
             responses.GET,
             "https://slack.com/api/users.lookupByEmail/",
@@ -88,7 +86,7 @@ class SlackIntegrationTest(IntegrationTestCase):
                     "id": authorizing_user_id,
                     "team_id": team_id,
                     "profile": {
-                        "email": email,
+                        "email": self.user.email,
                     },
                 },
             },
@@ -110,9 +108,6 @@ class SlackIntegrationTest(IntegrationTestCase):
 
         assert resp.status_code == 200
         self.assertDialogSuccess(resp)
-
-        identity = Identity.objects.get(external_id=authorizing_user_id, user=user2)
-        assert identity
 
     @responses.activate
     def test_bot_flow(self):
@@ -170,13 +165,24 @@ class SlackIntegrationTest(IntegrationTestCase):
 
     @responses.activate
     def test_reassign_user(self):
+        """Test that when you install and then later re-install and the user who installs it(?)
+        (who also installed it the first time?)
+        has a different external ID, their Identity is updated to reflect that
+        """
+        # self.assert_setup_flow()
+        # identity = Identity.objects.get()
+        # assert identity.external_id == "UXXXXXXX1"
+
+        # self.assert_setup_flow(authorizing_user_id="UXXXXXXX2")
+        # identity = Identity.objects.get()
+        # assert identity.external_id == "UXXXXXXX2"
         self.assert_setup_flow()
         identity = Identity.objects.get(external_id="UXXXXXXX1")
         assert identity.user == self.user
 
         self.assert_setup_flow(authorizing_user_id="UXXXXXXX2")
         identity = Identity.objects.get(external_id="UXXXXXXX2")
-        assert identity.external_id == self.user
+        assert identity.user == self.user
 
 
 class SlackIntegrationConfigTest(TestCase):
