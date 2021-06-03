@@ -23,5 +23,5 @@ class CommitFileChange(Model):
     __repr__ = sane_repr("commit_id", "filename")
 
     @staticmethod
-    def is_valid_type(value):
+    def is_valid_type(value: str) -> bool:
         return value in COMMIT_FILE_CHANGE_TYPES
