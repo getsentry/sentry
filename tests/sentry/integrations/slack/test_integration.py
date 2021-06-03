@@ -186,12 +186,12 @@ class SlackIntegrationTest(IntegrationTestCase):
         has a different external ID, their Identity is updated to reflect that
         """
         self.assert_setup_flow()
-        identity = Identity.objects.get(external_id="UXXXXXXX1")
-        assert identity.user == self.user
+        identity = Identity.objects.get()
+        assert identity.external_id == "UXXXXXXX1"
 
         self.assert_setup_flow(authorizing_user_id="UXXXXXXX2")
-        identity = Identity.objects.get(external_id="UXXXXXXX2")
-        assert identity.user == self.user
+        identity = Identity.objects.get()
+        assert identity.external_id == "UXXXXXXX2"
 
     @responses.activate
     def test_link_multiple_users(self):
