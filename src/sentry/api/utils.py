@@ -102,9 +102,8 @@ def is_member_disabled_from_limit(request, organization):
     try:
         member = get_cached_organization_member(user.id, organization.id)
     except OrganizationMember.DoesNotExist:
-        # should never happen but if it does, don't block auth
-        # but send error to logs/Sentry
-        logger.error("is_member_disabled_from_limit.member_missing")
+        # this happens for yet unknown reasons
+        # if it happens, don't block auth
         return False
     else:
         return member.flags["member-limit:restricted"]
