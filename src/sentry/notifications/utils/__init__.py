@@ -22,7 +22,6 @@ from sentry.integrations import IntegrationFeatures, IntegrationProvider
 from sentry.models import (
     Activity,
     Commit,
-    CommitFileChange,
     Deploy,
     Environment,
     EventError,
@@ -144,15 +143,6 @@ def get_environment_for_deploy(deploy: Optional[Deploy]) -> str:
         if environment and environment.name:
             return str(environment.name)
     return "Default Environment"
-
-
-def get_file_count(commits: Iterable[Commit], organization: Organization) -> int:
-    return int(
-        CommitFileChange.objects.filter(commit__in=commits, organization_id=organization.id)
-        .values("filename")
-        .distinct()
-        .count()
-    )
 
 
 def summarize_issues(issues: Iterable[Any]) -> Iterable[Mapping[str, str]]:
