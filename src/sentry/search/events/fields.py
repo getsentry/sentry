@@ -2,22 +2,34 @@ import re
 from collections import defaultdict, namedtuple
 from copy import deepcopy
 from datetime import datetime
+from typing import List, Union
 
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 
-from sentry.discover.models import KeyTransaction
+# TODO remove import aliases on snql Functions&Columns
+from snuba_sdk.column import Column as SnqlColumn
+from snuba_sdk.function import Function as SnqlFunction
+from snuba_sdk.orderby import Direction, OrderBy
+
+from sentry.discover.models import KeyTransaction, TeamKeyTransaction
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import Project
+from sentry.models import Project, ProjectTransactionThreshold
+from sentry.models.transaction_threshold import TRANSACTION_METRICS
+from sentry.search.events.base import QueryBase
 from sentry.search.events.constants import (
     ALIAS_PATTERN,
+    DEFAULT_PROJECT_THRESHOLD,
+    DEFAULT_PROJECT_THRESHOLD_METRIC,
     ERROR_UNHANDLED_ALIAS,
     FUNCTION_PATTERN,
     KEY_TRANSACTION_ALIAS,
     PROJECT_ALIAS,
     PROJECT_NAME_ALIAS,
+    PROJECT_THRESHOLD_CONFIG_ALIAS,
     RESULT_TYPES,
     SEARCH_MAP,
     TAG_KEY_RE,
+    TEAM_KEY_TRANSACTION_ALIAS,
     USER_DISPLAY_ALIAS,
     VALID_FIELD_PATTERN,
 )
@@ -112,6 +124,126 @@ def key_transaction_expression(user_id, organization_id, project_ids):
     ]
 
 
+def project_threshold_config_expression(organization_id, project_ids):
+    """
+    This function returns a column with the threshold and threshold metric
+    for each transaction based on project level settings. If no project level
+    thresholds are set, the will fallback to the default values. This column
+    is used in the `count_miserable_new` and `user_misery_new` aggregates.
+    """
+    if organization_id is None or project_ids is None:
+        raise InvalidSearchQuery("Missing necessary data for project threshold config")
+
+    threshold_configs = (
+        ProjectTransactionThreshold.objects.filter(
+            organization_id=organization_id,
+            project_id__in=project_ids,
+        )
+        .order_by("project_id")
+        .values("project_id", "threshold", "metric")
+    )
+
+    if not threshold_configs.count():
+        return ["tuple", [f"'{DEFAULT_PROJECT_THRESHOLD_METRIC}'", DEFAULT_PROJECT_THRESHOLD]]
+
+    return [
+        "if",
+        [
+            [
+                "equals",
+                [
+                    [
+                        "indexOf",
+                        [
+                            [
+                                "array",
+                                [
+                                    ["toUInt64", [config["project_id"]]]
+                                    for config in threshold_configs
+                                ],
+                            ],
+                            "project_id",
+                        ],
+                    ],
+                    0,
+                ],
+            ],
+            ["tuple", [f"'{DEFAULT_PROJECT_THRESHOLD_METRIC}'", DEFAULT_PROJECT_THRESHOLD]],
+            [
+                "arrayElement",
+                [
+                    [
+                        "array",
+                        [
+                            [
+                                "tuple",
+                                [
+                                    "'{}'".format(TRANSACTION_METRICS[config["metric"]]),
+                                    config["threshold"],
+                                ],
+                            ]
+                            for config in threshold_configs
+                        ],
+                    ],
+                    [
+                        "indexOf",
+                        [
+                            [
+                                "array",
+                                [
+                                    ["toUInt64", [config["project_id"]]]
+                                    for config in threshold_configs
+                                ],
+                            ],
+                            "project_id",
+                        ],
+                    ],
+                ],
+            ],
+        ],
+    ]
+
+
+def team_key_transaction_expression(organization_id, team_ids, project_ids):
+    if organization_id is None or team_ids is None or project_ids is None:
+        raise TypeError("Team key transactions parameters cannot be None")
+
+    team_key_transactions = (
+        TeamKeyTransaction.objects.filter(
+            organization_id=organization_id,
+            project_id__in=project_ids,
+            team_id__in=team_ids,
+        )
+        .order_by("transaction", "project_id")
+        .values("project_id", "transaction")
+        .distinct("transaction", "project_id")
+    )
+
+    # There are team key transactions marked, so hard code false into the query.
+    if len(team_key_transactions) == 0:
+        return ["toInt8", [0]]
+
+    return [
+        "in",
+        [
+            ["tuple", ["project_id", "transaction"]],
+            [
+                "tuple",
+                [
+                    [
+                        "tuple",
+                        [
+                            transaction["project_id"],
+                            "'{}'".format(transaction["transaction"]),
+                        ],
+                    ]
+                    for transaction in team_key_transactions
+                ],
+            ],
+        ],
+    ]
+
+
 # When updating this list, also check if the following need to be updated:
 # - convert_search_filter_to_snuba_query (otherwise aliased field will be treated as tag)
 # - static/app/utils/discover/fields.tsx FIELDS (for discover column list and search box autocomplete)
@@ -140,6 +272,24 @@ FIELD_ALIASES = {
             expression_fn=lambda params: key_transaction_expression(
                 params.get("user_id"),
                 params.get("organization_id"),
+                params.get("project_id"),
+            ),
+            result_type="boolean",
+        ),
+        PseudoField(
+            PROJECT_THRESHOLD_CONFIG_ALIAS,
+            PROJECT_THRESHOLD_CONFIG_ALIAS,
+            expression_fn=lambda params: project_threshold_config_expression(
+                params.get("organization_id"),
+                params.get("project_id"),
+            ),
+        ),
+        PseudoField(
+            TEAM_KEY_TRANSACTION_ALIAS,
+            TEAM_KEY_TRANSACTION_ALIAS,
+            expression_fn=lambda params: team_key_transaction_expression(
+                params.get("organization_id"),
+                params.get("team_id"),
                 params.get("project_id"),
             ),
             result_type="boolean",
@@ -244,6 +394,17 @@ def resolve_field_list(
     if project_key:
         if "project.id" not in fields:
             fields.append("project.id")
+
+    # Both `count_miserable_new` and `user_misery_new` require the project_threshold_config column
+    if PROJECT_THRESHOLD_CONFIG_ALIAS not in fields:
+        for field in fields[:]:
+            if isinstance(field, str) and (
+                field.startswith("count_miserable_new")
+                or field == "user_misery_new()"
+                or field == "apdex_new()"
+            ):
+                fields.append(PROJECT_THRESHOLD_CONFIG_ALIAS)
+                break
 
     for field in fields:
         if isinstance(field, str) and field.strip() == "":
@@ -1152,6 +1313,31 @@ FUNCTIONS = {
             default_result_type="number",
         ),
         Function(
+            "apdex_new",
+            transform="""
+                apdex(
+                    multiIf(
+                        equals(
+                            tupleElement(project_threshold_config, 1),
+                            'lcp'
+                        ),
+                        if(
+                            has(measurements.key, 'lcp'),
+                            arrayElement(measurements.value, indexOf(measurements.key, 'lcp')),
+                            NULL
+                        ),
+                        duration
+                    ),
+                    tupleElement(project_threshold_config, 2)
+                )
+            """.replace(
+                "\n", ""
+            ).replace(
+                " ", ""
+            ),
+            default_result_type="number",
+        ),
+        Function(
             "count_miserable",
             required_args=[CountColumn("column"), NumberRange("satisfaction", 0, None)],
             calculated_args=[{"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0}],
@@ -1160,6 +1346,97 @@ FUNCTIONS = {
                 [ArgValue("column"), ["greater", ["transaction.duration", ArgValue("tolerated")]]],
                 None,
             ],
+            default_result_type="number",
+        ),
+        Function(
+            "count_miserable_new",
+            required_args=[
+                CountColumn("column"),
+            ],
+            aggregate=[
+                "uniqIf",
+                [
+                    ArgValue("column"),
+                    [
+                        "greater",
+                        [
+                            [
+                                "multiIf",
+                                [
+                                    [
+                                        "equals",
+                                        [
+                                            [
+                                                "tupleElement",
+                                                [
+                                                    "project_threshold_config",
+                                                    1,
+                                                ],
+                                            ],
+                                            "'lcp'",
+                                        ],
+                                    ],
+                                    "measurements[lcp]",
+                                    "duration",
+                                ],
+                            ],
+                            [
+                                "multiply",
+                                [
+                                    [
+                                        "tupleElement",
+                                        [
+                                            "project_threshold_config",
+                                            2,
+                                        ],
+                                    ],
+                                    4,
+                                ],
+                            ],
+                        ],
+                    ],
+                ],
+                None,
+            ],
+            default_result_type="number",
+        ),
+        Function(
+            "user_misery_new",
+            # To correct for sensitivity to low counts, User Misery is modeled as a Beta Distribution Function.
+            # With prior expectations, we have picked the expected mean user misery to be 0.05 and variance
+            # to be 0.0004. This allows us to calculate the alpha (5.8875) and beta (111.8625) parameters,
+            # with the user misery being adjusted for each fast/slow unique transaction. See:
+            # https://stats.stackexchange.com/questions/47771/what-is-the-intuition-behind-beta-distribution
+            # for an intuitive explanation of the Beta Distribution Function.
+            optional_args=[
+                with_default(5.8875, NumberRange("alpha", 0, None)),
+                with_default(111.8625, NumberRange("beta", 0, None)),
+            ],
+            calculated_args=[
+                {"name": "parameter_sum", "fn": lambda args: args["alpha"] + args["beta"]},
+            ],
+            transform="""
+                ifNull(
+                    divide(
+                        plus(
+                            uniqIf(user, greater(
+                                multiIf(
+                                    equals(tupleElement(project_threshold_config, 1), 'lcp'),
+                                    if(has(measurements.key, 'lcp'), arrayElement(measurements.value, indexOf(measurements.key, 'lcp')), NULL),
+                                    duration
+                                ),
+                                multiply(tupleElement(project_threshold_config, 2), 4)
+                            )),
+                            {alpha}
+                        ),
+                        plus(uniq(user), {parameter_sum})
+                    ),
+                0)
+            """.replace(
+                " ", ""
+            ).replace(
+                "\n", ""
+            ),
             default_result_type="number",
         ),
         Function(
@@ -1553,3 +1830,56 @@ for alias, name in FUNCTION_ALIASES.items():
 
 
 FUNCTION_ALIAS_PATTERN = re.compile(r"^({}).*".format("|".join(list(FUNCTIONS.keys()))))
+
+
+class QueryFields(QueryBase):
+    """Field logic for a snql query"""
+
+    def resolve_select(self, selected_columns: List[str]) -> None:
+        for field in selected_columns:
+            if field.strip() == "":
+                continue
+            resolved_field = self.resolve_field(field)
+            if isinstance(resolved_field, SnqlColumn) and resolved_field not in self.columns:
+                self.columns.append(resolved_field)
+
+    def resolve_field(self, field: str) -> Union[SnqlColumn, SnqlFunction]:
+        match = is_function(field)
+        if match:
+            raise NotImplementedError(f"{field} not implemented in snql field parsing yet")
+
+        if field in FIELD_ALIASES:
+            raise NotImplementedError(f"{field} not implemented in snql field parsing yet")
+
+        tag_match = TAG_KEY_RE.search(field)
+        field = tag_match.group("tag") if tag_match else field
+
+        if VALID_FIELD_PATTERN.match(field):
+            if field in self.field_allowlist:
+                return self.column(field)
+            else:
+                raise NotImplementedError(f"{field} not implemented in snql field parsing yet")
+        else:
+            raise InvalidSearchQuery(f"Invalid characters in field {field}")
+
+    @property
+    def orderby(self) -> List[OrderBy]:
+        validated = []
+        for column in self.orderby_columns:
+            bare_column = self.column(column.lstrip("-"))
+            direction = Direction.DESC if column.startswith("-") else Direction.ASC
+
+            if bare_column in self.columns:
+                validated.append(OrderBy(bare_column, direction))
+                continue
+
+            # TODO: orderby aggregations
+
+            # TODO: orderby field aliases
+
+        if len(validated) == len(self.orderby_columns):
+            return validated
+
+        # TODO: This is no longer true, can order by fields that aren't selected, keeping
+        # for now so we're consistent with the existing functionality
+        raise InvalidSearchQuery("Cannot order by a field that is not selected.")

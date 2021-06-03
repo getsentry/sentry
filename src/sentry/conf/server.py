@@ -887,6 +887,8 @@ SENTRY_FEATURES = {
     "organizations:custom-event-title": True,
     # Enable rule page.
     "organizations:rule-page": False,
+    # Enable experimental syntax highlightign on unified search
+    "organizations:search-syntax-highlight": False,
     # Enable incidents feature
     "organizations:incidents": False,
     # Enable the new Metrics page
@@ -933,15 +935,10 @@ SENTRY_FEATURES = {
     "organizations:enterprise-perf": False,
     # Enable the API to importing CODEOWNERS for a project
     "organizations:integrations-codeowners": False,
-    # Special feature flag primarily used on the sentry.io SAAS product for
-    # easily enabling features while in early development.
-    "organizations:internal-catchall": False,
     # Enable inviting members to organizations.
     "organizations:invite-members": True,
     # Enable rate limits for inviting members.
     "organizations:invite-members-rate-limits": True,
-    # Enable org-wide saved searches and user pinned search
-    "organizations:org-saved-searches": False,
     # Prefix host with organization ID when giving users DSNs (can be
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
@@ -988,6 +985,8 @@ SENTRY_FEATURES = {
     "organizations:inbox": True,
     # Enable the new alert details ux design
     "organizations:alert-details-redesign": True,
+    # Enable the new alert history filters
+    "organizations:alert-history-filters": False,
     # Enable the new images loaded design and features
     "organizations:images-loaded-v2": True,
     # Enable teams to have ownership of alert rules
@@ -996,6 +995,8 @@ SENTRY_FEATURES = {
     "organizations:alert-wizard": True,
     # Enable the adoption chart in the releases page
     "organizations:release-adoption-chart": False,
+    # Store release bundles as zip files instead of single files
+    "organizations:release-archives": False,
     # Enable the project level transaction thresholds
     "organizations:project-transaction-threshold": False,
     # Enable percent displays in issue stream
@@ -1027,8 +1028,6 @@ SENTRY_FEATURES = {
     "projects:servicehooks": False,
     # Use Kafka (instead of Celery) for ingestion pipeline.
     "projects:kafka-ingest": False,
-    # Enable stackwalking comparison
-    "symbolicator:compare-stackwalking-methods": False,
     # Don't add feature defaults down here! Please add them in their associated
     # group sorted alphabetically.
 }
@@ -1174,7 +1173,7 @@ SENTRY_ALLOW_PUBLIC_PROJECTS = True
 # Will an invite be sent when a member is added to an organization?
 SENTRY_ENABLE_INVITES = True
 
-# Default to not sending the Access-Control-Allow-Origin header on api/store
+# Origins allowed for session-based API access (via the Access-Control-Allow-Origin header)
 SENTRY_ALLOW_ORIGIN = None
 
 # Enable scraping of javascript context for source code
@@ -1995,6 +1994,8 @@ SENTRY_BUILTIN_SOURCES = {
 # Relay
 # List of PKs explicitly allowed by Sentry.  All relays here are always
 # registered as internal relays.
+# DEPRECATED !!! (18.May.2021) This entry has been deprecated in favour of
+# ~/.sentry/conf.yml (relay.static_auth)
 SENTRY_RELAY_WHITELIST_PK = [
     # NOTE (RaduW) This is the relay key for the relay instance used by devservices.
     # This should NOT be part of any production environment.
@@ -2206,6 +2207,8 @@ SENTRY_PROJECT_COUNTER_STATEMENT_TIMEOUT = 1000
 
 # Implemented in getsentry to run additional devserver workers.
 SENTRY_EXTRA_WORKERS = None
+
+SAMPLED_DEFAULT_RATE = 1.0
 
 # A set of extra URLs to sample
 ADDITIONAL_SAMPLED_URLS = {}

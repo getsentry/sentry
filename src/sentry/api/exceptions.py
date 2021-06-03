@@ -56,6 +56,17 @@ class SsoRequired(SentryAPIException):
         super().__init__(loginUrl=reverse("sentry-auth-organization", args=[organization.slug]))
 
 
+class MemberDisabledOverLimit(SentryAPIException):
+    status_code = status.HTTP_401_UNAUTHORIZED
+    code = "member-disabled-over-limit"
+    message = "Organization over member limit"
+
+    def __init__(self, organization):
+        super().__init__(
+            next=reverse("sentry-organization-disabled-member", args=[organization.slug])
+        )
+
+
 class SuperuserRequired(SentryAPIException):
     status_code = status.HTTP_403_FORBIDDEN
     code = "superuser-required"
@@ -66,6 +77,15 @@ class SudoRequired(SentryAPIException):
     status_code = status.HTTP_401_UNAUTHORIZED
     code = "sudo-required"
     message = "Account verification required."
+
+    def __init__(self, user):
+        super().__init__(username=user.username)
+
+
+class EmailVerificationRequired(SentryAPIException):
+    status_code = status.HTTP_401_UNAUTHORIZED
+    code = "email-verification-required"
+    message = "Email verification required."
 
     def __init__(self, user):
         super().__init__(username=user.username)

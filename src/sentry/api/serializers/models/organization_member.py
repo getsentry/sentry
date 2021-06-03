@@ -22,7 +22,7 @@ def get_serialized_users_by_id(users_set: Set[User], user: User) -> Mapping[str,
 def get_team_slugs_by_organization_member_id(
     organization_members: Sequence[OrganizationMember],
 ) -> Mapping[int, List[str]]:
-    """ @returns a map of member id -> team_slug[] """
+    """@returns a map of member id -> team_slug[]"""
     organization_member_tuples = list(
         OrganizationMemberTeam.objects.filter(
             team__status=TeamStatus.VISIBLE, organizationmember__in=organization_members
@@ -42,7 +42,7 @@ def get_team_slugs_by_organization_member_id(
 
 
 def get_organization_id(organization_members: Sequence[OrganizationMember]) -> int:
-    """ Ensure all organization_members have the same organization ID and then return that ID. """
+    """Ensure all organization_members have the same organization ID and then return that ID."""
     organization_ids = {
         organization_member.organization_id for organization_member in organization_members
     }
@@ -112,6 +112,7 @@ class OrganizationMemberSerializer(Serializer):  # type: ignore
             "flags": {
                 "sso:linked": bool(getattr(obj.flags, "sso:linked")),
                 "sso:invalid": bool(getattr(obj.flags, "sso:invalid")),
+                "member-limit:restricted": bool(getattr(obj.flags, "member-limit:restricted")),
             },
             "dateCreated": obj.date_added,
             "inviteStatus": obj.get_invite_status_name(),

@@ -1,10 +1,10 @@
-import {Route} from 'react-router';
+import {Route, RouteComponentProps} from 'react-router';
 
 import {ChildrenRenderFn} from 'app/components/acl/feature';
 import DateRange from 'app/components/organizations/timeRangeSelector/dateRange';
 import SelectorItems from 'app/components/organizations/timeRangeSelector/dateRange/selectorItems';
 import SidebarItem from 'app/components/sidebar/sidebarItem';
-import {IntegrationProvider, Organization, Project, User} from 'app/types';
+import {IntegrationProvider, Member, Organization, Project, User} from 'app/types';
 import {ExperimentKey} from 'app/types/experiments';
 import {NavigationItem, NavigationSection} from 'app/views/settings/types';
 
@@ -50,6 +50,13 @@ export type RouteHooks = {
 type DateRangeProps = React.ComponentProps<typeof DateRange>;
 type SelectorItemsProps = React.ComponentProps<typeof SelectorItems>;
 type GlobalNotificationProps = {className: string; organization?: Organization};
+type DisabledMemberViewProps = RouteComponentProps<{orgId: string}, {}>;
+type MemberListHeaderProps = {
+  members: Member[];
+  organization: Organization;
+};
+type DisabledMemberTooltipProps = {children: React.ReactNode};
+type DashboardHeadersProps = {organization: Organization};
 
 /**
  * Component wrapping hooks
@@ -58,6 +65,10 @@ export type ComponentHooks = {
   'component:header-date-range': () => React.ComponentType<DateRangeProps>;
   'component:header-selector-items': () => React.ComponentType<SelectorItemsProps>;
   'component:global-notifications': () => React.ComponentType<GlobalNotificationProps>;
+  'component:disabled-member': () => React.ComponentType<DisabledMemberViewProps>;
+  'component:member-list-header': () => React.ComponentType<MemberListHeaderProps>;
+  'component:disabled-member-tooltip': () => React.ComponentType<DisabledMemberTooltipProps>;
+  'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
 };
 
 /**

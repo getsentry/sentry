@@ -5,8 +5,13 @@ from rest_framework.exceptions import ParseError, PermissionDenied
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environments
+from sentry.api.helpers.teams import get_teams
 from sentry.api.permissions import SentryPermission
-from sentry.api.utils import InvalidParams, get_date_range_from_params
+from sentry.api.utils import (
+    InvalidParams,
+    get_date_range_from_params,
+    is_member_disabled_from_limit,
+)
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.models import (
@@ -57,6 +62,9 @@ class OrganizationPermission(SentryPermission):
         self.determine_access(request, organization)
         allowed_scopes = set(self.scope_map.get(request.method, []))
         return any(request.access.has_scope(s) for s in allowed_scopes)
+
+    def is_member_disabled_from_limit(self, request, organization):
+        return is_member_disabled_from_limit(request, organization)
 
 
 class OrganizationAuditPermission(OrganizationPermission):
@@ -249,6 +257,9 @@ class OrganizationEndpoint(Endpoint):
     def get_environments(self, request, organization):
         return get_environments(request, organization)
 
+    def get_teams(self, request, organization):
+        return get_teams(request, organization)
+
     def get_filter_params(
         self, request, organization, date_filter_optional=False, project_ids=None
     ):
@@ -305,16 +316,21 @@ class OrganizationEndpoint(Endpoint):
             "<10" if len_projects < 10 else "<100" if len_projects < 100 else ">100",
         )
 
-        environments = self.get_environments(request, organization)
         params = {
             "start": start,
             "end": end,
             "project_id": [p.id for p in projects],
             "organization_id": organization.id,
         }
+
+        environments = self.get_environments(request, organization)
         if environments:
             params["environment"] = [env.name for env in environments]
             params["environment_objects"] = environments
+
+        teams = self.get_teams(request, organization)
+        if teams:
+            params["team_id"] = [team.id for team in teams]
 
         return params
 

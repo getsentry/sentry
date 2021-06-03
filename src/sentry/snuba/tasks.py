@@ -45,16 +45,20 @@ def apply_dataset_query_conditions(dataset, query, event_types, discover=False):
     """
     if not discover and dataset == QueryDatasets.TRANSACTIONS:
         return query
+
     if event_types:
         event_type_conditions = " OR ".join(
-            [f"event.type:{event_type.name.lower()}" for event_type in event_types]
+            f"event.type:{event_type.name.lower()}" for event_type in event_types
         )
     elif dataset in DATASET_CONDITIONS:
         event_type_conditions = DATASET_CONDITIONS[dataset]
     else:
         return query
 
-    return f"({event_type_conditions}) AND ({query})"
+    if query:
+        return f"({event_type_conditions}) AND ({query})"
+
+    return event_type_conditions
 
 
 @instrumented_task(
