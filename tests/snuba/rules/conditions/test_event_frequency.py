@@ -184,8 +184,7 @@ class EventFrequencyPercentConditionTestCase(
                 received=received,
             )
 
-        for i in range(num):
-            self.store_session(make_session(i))
+        self.bulk_store_sessions([make_session(i) for i in range(num)])
 
     def _run_test(self, minutes, data, passes, add_events=False):
         if not self.environment or self.environment.name != "prod":
