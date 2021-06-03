@@ -497,10 +497,10 @@ def resolve_field_list(
     if aggregations:
         for column in columns:
             is_iterable = isinstance(column, (list, tuple))
-            if is_iterable and column[2] not in FIELD_ALIASES:
-                if column[0] == "transform":
-                    # When there's a project transform, we already group by project_id
-                    continue
+            if is_iterable and column[0] == "transform":
+                # When there's a project transform, we already group by project_id
+                continue
+            elif is_iterable and column[2] not in FIELD_ALIASES:
                 groupby.append(column[2])
             else:
                 column_key = to_tuple([column[:2]]) if is_iterable else column
