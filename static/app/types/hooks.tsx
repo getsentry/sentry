@@ -56,6 +56,7 @@ type MemberListHeaderProps = {
   organization: Organization;
 };
 type DisabledMemberTooltipProps = {children: React.ReactNode};
+type DashboardHeadersProps = {organization: Organization};
 
 /**
  * Component wrapping hooks
@@ -67,6 +68,7 @@ export type ComponentHooks = {
   'component:disabled-member': () => React.ComponentType<DisabledMemberViewProps>;
   'component:member-list-header': () => React.ComponentType<MemberListHeaderProps>;
   'component:disabled-member-tooltip': () => React.ComponentType<DisabledMemberTooltipProps>;
+  'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
 };
 
 /**
