@@ -361,9 +361,9 @@ def parse_arguments(function, columns):
     return [arg for arg in args if arg]
 
 
-def to_tuple(x):
+def format_column_as_key(x):
     if isinstance(x, list):
-        return tuple(to_tuple(y) for y in x)
+        return tuple(format_column_as_key(y) for y in x)
     return x
 
 
@@ -425,7 +425,7 @@ def resolve_field_list(
             if function.details is not None and isinstance(function.aggregate, (list, tuple)):
                 functions[function.aggregate[-1]] = function.details
                 if function.details.instance.redundant_grouping:
-                    aggregate_fields[to_tuple(function.aggregate[1])].add(field)
+                    aggregate_fields[format_column_as_key(function.aggregate[1])].add(field)
 
     # Only auto aggregate when there's one other so the group by is not unexpectedly changed
     if auto_aggregations and snuba_filter.having and len(aggregations) > 0:
@@ -440,7 +440,7 @@ def resolve_field_list(
                         functions[function.aggregate[-1]] = function.details
 
                         if function.details.instance.redundant_grouping:
-                            aggregate_fields[to_tuple(function.aggregate[1])].add(field)
+                            aggregate_fields[format_column_as_key(function.aggregate[1])].add(field)
 
     rollup = snuba_filter.rollup
     if not rollup and auto_fields:
@@ -503,7 +503,7 @@ def resolve_field_list(
             elif is_iterable and column[2] not in FIELD_ALIASES:
                 groupby.append(column[2])
             else:
-                column_key = to_tuple([column[:2]]) if is_iterable else column
+                column_key = format_column_as_key([column[:2]]) if is_iterable else column
                 if column_key in aggregate_fields:
                     conflicting_functions = list(aggregate_fields[column_key])
                     raise InvalidSearchQuery(
