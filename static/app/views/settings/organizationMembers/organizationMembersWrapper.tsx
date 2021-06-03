@@ -3,7 +3,6 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {openInviteMembersModal} from 'app/actionCreators/modal';
-import AlertLink from 'app/components/alertLink';
 import Badge from 'app/components/badge';
 import Button from 'app/components/button';
 import ListLink from 'app/components/links/listLink';
@@ -119,15 +118,6 @@ class OrganizationMembersWrapper extends AsyncView<Props, State> {
     return (
       <Fragment>
         <SettingsPageHeader title="Members" action={action} />
-
-        <AlertLink
-          data-test-id="email-invite"
-          icon={<IconMail />}
-          priority="info"
-          onClick={() => openInviteMembersModal({source: 'members_settings'})}
-        >
-          {t('Invite new members by email to join your organization')}
-        </AlertLink>
 
         {this.showNavTabs && (
           <NavTabs underlined>

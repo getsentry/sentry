@@ -191,7 +191,7 @@ describe('OrganizationMembersWrapper', function () {
       TestStubs.routerContext()
     );
 
-    const inviteButton = wrapper.find('StyledLink');
+    const inviteButton = wrapper.find('StyledButton');
     inviteButton.simulate('click');
 
     expect(openInviteMembersModal).toHaveBeenCalled();
@@ -210,7 +210,7 @@ describe('OrganizationMembersWrapper', function () {
       TestStubs.routerContext()
     );
 
-    const inviteButton = wrapper.find('StyledLink');
+    const inviteButton = wrapper.find('StyledButton');
     inviteButton.simulate('click');
 
     expect(openInviteMembersModal).toHaveBeenCalled();
