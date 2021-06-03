@@ -12,8 +12,10 @@ function isNotTransaction(span) {
 }
 
 class SentryEnvironment extends JsDomEnvironment {
-  constructor(config, context) {
-    super(config, context);
+  constructor(...args) {
+    super(...args);
+
+    const [config, context] = args;
 
     if (!config.testEnvironmentOptions || !config.testEnvironmentOptions.SENTRY_DSN) {
       return;
@@ -38,7 +40,6 @@ class SentryEnvironment extends JsDomEnvironment {
       await super.setup();
       return;
     }
-
     this.transaction = Sentry.startTransaction({
       op: 'jest test suite',
       description: this.testPath,
@@ -48,9 +49,7 @@ class SentryEnvironment extends JsDomEnvironment {
         commit: process.env.GITHUB_SHA,
       },
     });
-
     Sentry.configureScope(scope => scope.setSpan(this.transaction));
-
     const span = this.transaction.startChild({
       op: 'setup',
       description: this.testPath,
@@ -64,18 +63,15 @@ class SentryEnvironment extends JsDomEnvironment {
       await super.teardown();
       return;
     }
-
     const span = this.transaction.startChild({
       op: 'teardown',
       description: this.testPath,
     });
     await super.teardown();
     span.finish();
-
     if (this.transaction) {
       this.transaction.finish();
     }
-
     this.runDescribe = null;
     this.testContainers = null;
     this.tests = null;
@@ -84,9 +80,8 @@ class SentryEnvironment extends JsDomEnvironment {
     this.Sentry = null;
   }
 
-  runScript(script) {
-    // We are intentionally not instrumenting this as it will produce hundreds of spans.
-    return super.runScript(script);
+  getVmContext() {
+    return super.getVmContext();
   }
 
   getName(parent) {
@@ -256,6 +251,11 @@ class SentryEnvironment extends JsDomEnvironment {
         span.finish();
       });
     }
+  }
+}
+class SentryEnvironment2 extends JsDomEnvironment {
+  constructor(config) {
+    super(config);
   }
 }
 

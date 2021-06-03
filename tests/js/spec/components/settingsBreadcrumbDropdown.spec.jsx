@@ -35,10 +35,6 @@ describe('Settings Breadcrumb Dropdown', function () {
     expect(wrapper.find('BubbleWithMinWidth')).toHaveLength(1);
 
     wrapper.find('Crumb').simulate('mouseLeave');
-    // wonder what happens when this arg is negative o_O
-    jest.advanceTimersByTime(CLOSE_DELAY - 10);
-    wrapper.update();
-    expect(wrapper.find('BubbleWithMinWidth')).toHaveLength(1);
     jest.advanceTimersByTime(10);
     wrapper.update();
     expect(wrapper.find('BubbleWithMinWidth')).toHaveLength(0);
