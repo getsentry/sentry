@@ -1,7 +1,7 @@
 import {generatePerformanceEventView} from 'app/views/performance/data';
 
 describe('generatePerformanceEventView()', function () {
-  const organization = TestStubs.Organization({apdexThreshold: 300});
+  const organization = TestStubs.Organization({apdexThreshold: 400});
 
   it('generates default values', function () {
     const result = generatePerformanceEventView(organization, {
@@ -98,15 +98,15 @@ describe('generatePerformanceEventView()', function () {
       },
     });
     expect(result.fields).toEqual(
-      expect.arrayContaining([expect.objectContaining({field: 'user_misery(300)'})])
+      expect.arrayContaining([expect.objectContaining({field: 'user_misery(400)'})])
     );
     expect(result.fields).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({field: 'count_miserable(user,300)'}),
+        expect.objectContaining({field: 'count_miserable(user,400)'}),
       ])
     );
     expect(result.fields).toEqual(
-      expect.arrayContaining([expect.objectContaining({field: 'apdex(300)'})])
+      expect.arrayContaining([expect.objectContaining({field: 'apdex(400)'})])
     );
 
     expect(result.fields).not.toEqual(
@@ -122,7 +122,7 @@ describe('generatePerformanceEventView()', function () {
     );
 
     const newOrganization = TestStubs.Organization({
-      apdexThreshold: 300,
+      apdexThreshold: 400,
       features: [
         'transaction-event',
         'performance-view',
@@ -147,15 +147,15 @@ describe('generatePerformanceEventView()', function () {
     );
 
     expect(newResult.fields).not.toEqual(
-      expect.arrayContaining([expect.objectContaining({field: 'user_misery(300)'})])
+      expect.arrayContaining([expect.objectContaining({field: 'user_misery(400)'})])
     );
     expect(newResult.fields).not.toEqual(
       expect.arrayContaining([
-        expect.objectContaining({field: 'count_miserable(user,300)'}),
+        expect.objectContaining({field: 'count_miserable(user,400)'}),
       ])
     );
     expect(newResult.fields).not.toEqual(
-      expect.arrayContaining([expect.objectContaining({field: 'apdex(300)'})])
+      expect.arrayContaining([expect.objectContaining({field: 'apdex(400)'})])
     );
   });
 });
