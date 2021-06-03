@@ -350,7 +350,7 @@ class ReleasesList extends AsyncView<Props, State> {
 
   renderInnerBody(activeDisplay: DisplayOption) {
     const {location, selection, organization} = this.props;
-    const {releases, reloading, releasesPageLinks} = this.state;
+    const {hasSessions, releases, reloading, releasesPageLinks} = this.state;
 
     if (this.shouldShowLoadingIndicator()) {
       return <LoadingIndicator />;
@@ -388,7 +388,7 @@ class ReleasesList extends AsyncView<Props, State> {
                     {({projects, initiallyLoaded, fetchError}) => {
                       const project = projects && projects.length === 1 && projects[0];
 
-                      if (!initiallyLoaded || fetchError || !project) {
+                      if (!initiallyLoaded || fetchError || !project || !hasSessions) {
                         return null;
                       }
 
