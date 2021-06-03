@@ -31,6 +31,7 @@ describe('TeamKeyTransactionField', function () {
       url: `/organizations/${organization.slug}/key-transactions-list/`,
       body: teams.map(({id}) => ({
         team: id,
+        count: 1,
         keyed: [{project_id: String(project.id), transaction: 'transaction'}],
       })),
     });
@@ -79,6 +80,7 @@ describe('TeamKeyTransactionField', function () {
       url: `/organizations/${organization.slug}/key-transactions-list/`,
       body: teams.map(({id}) => ({
         team: id,
+        count: id === teams[0].id ? 1 : 0,
         keyed:
           id === teams[0].id
             ? [{project_id: String(project.id), transaction: 'transaction'}]
@@ -131,6 +133,7 @@ describe('TeamKeyTransactionField', function () {
       url: `/organizations/${organization.slug}/key-transactions-list/`,
       body: teams.map(({id}) => ({
         team: id,
+        count: 0,
         keyed: [],
       })),
     });
@@ -179,6 +182,7 @@ describe('TeamKeyTransactionField', function () {
       url: `/organizations/${organization.slug}/key-transactions-list/`,
       body: teams.map(({id}) => ({
         team: id,
+        count: 0,
         keyed: [],
       })),
     });
@@ -239,6 +243,7 @@ describe('TeamKeyTransactionField', function () {
       url: `/organizations/${organization.slug}/key-transactions-list/`,
       body: teams.map(({id}) => ({
         team: id,
+        count: 1,
         keyed: [{project_id: String(project.id), transaction: 'transaction'}],
       })),
     });
@@ -299,6 +304,7 @@ describe('TeamKeyTransactionField', function () {
       url: `/organizations/${organization.slug}/key-transactions-list/`,
       body: teams.map(({id}) => ({
         team: id,
+        count: 0,
         keyed: [],
       })),
     });
@@ -357,6 +363,7 @@ describe('TeamKeyTransactionField', function () {
       url: `/organizations/${organization.slug}/key-transactions-list/`,
       body: teams.map(({id}) => ({
         team: id,
+        count: 1,
         keyed: [{project_id: String(project.id), transaction: 'transaction'}],
       })),
     });
