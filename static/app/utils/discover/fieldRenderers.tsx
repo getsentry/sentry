@@ -435,11 +435,17 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
   user_misery: data => {
     let userMiseryField: string = '';
     let countMiserableUserField: string = '';
+    let projectThresholdConfig: string = '';
     for (const field in data) {
       if (field.startsWith('user_misery')) {
         userMiseryField = field;
-      } else if (field.startsWith('count_miserable_user')) {
+      } else if (
+        field.startsWith('count_miserable_user') ||
+        field.startsWith('count_miserable_new_user')
+      ) {
         countMiserableUserField = field;
+      } else if (field === 'project_threshold_config') {
+        projectThresholdConfig = field;
       }
     }
 
@@ -450,7 +456,10 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
     const uniqueUsers = data.count_unique_user;
     const userMisery = data[userMiseryField];
 
-    const miseryLimit = parseInt(userMiseryField.split('_').pop() || '', 10) || undefined;
+    let miseryLimit = parseInt(userMiseryField.split('_').pop() || '', 10);
+    if (isNaN(miseryLimit)) {
+      miseryLimit = projectThresholdConfig ? data[projectThresholdConfig][1] : undefined;
+    }
 
     let miserableUsers: number | undefined;
 
@@ -460,7 +469,8 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
         10
       );
       miserableUsers =
-        countMiserableMiseryLimit === miseryLimit
+        countMiserableMiseryLimit === miseryLimit ||
+        (isNaN(countMiserableMiseryLimit) && projectThresholdConfig)
           ? data[countMiserableUserField]
           : undefined;
     }
