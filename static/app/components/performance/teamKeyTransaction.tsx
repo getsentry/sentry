@@ -23,6 +23,7 @@ type Props = {
   teams: Team[];
   title: ComponentClass<TitleProps>;
   isLoading: boolean;
+  error: string | null;
   keyedTeams: Set<string>;
   counts: Map<string, number>;
   handleToggleKeyTransaction: (
@@ -110,9 +111,9 @@ class TeamKeyTransaction extends Component<Props> {
   }
 
   render() {
-    const {isLoading, counts, keyedTeams, teams, title} = this.props;
+    const {isLoading, error, counts, keyedTeams, teams, title} = this.props;
 
-    if (isLoading) {
+    if (isLoading || error) {
       const Title = title;
       return <Title disabled keyedTeamsCount={0} />;
     }
@@ -367,6 +368,8 @@ const DropdownWrapper = styled('div')`
   }
 
   &[data-placement*='bottom'] {
+    margin-top: 9px;
+
     &:before {
       border-bottom: 9px solid ${p => p.theme.border};
       top: -9px;
@@ -379,6 +382,8 @@ const DropdownWrapper = styled('div')`
   }
 
   &[data-placement*='top'] {
+    margin-bottom: 9px;
+
     &:before {
       border-top: 9px solid ${p => p.theme.border};
       bottom: -9px;

@@ -72,6 +72,7 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
                 "project_threshold_config",
                 "count_miserable_new(user)",
                 "user_misery_new()",
+                "apdex_new()",
             ],
         ):
             return Response(status=404)

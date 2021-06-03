@@ -28,7 +28,7 @@ class GroupingConfigNotFound(LookupError):
 
 
 class GroupingConfigLoader:
-    """ Load a grouping config based on global or project options """
+    """Load a grouping config based on global or project options"""
 
     cache_prefix: str  # Set in subclasses
 
@@ -79,21 +79,21 @@ class ProjectGroupingConfigLoader(GroupingConfigLoader):
 
 
 class PrimaryGroupingConfigLoader(ProjectGroupingConfigLoader):
-    """ The currently active grouping config """
+    """The currently active grouping config"""
 
     option_name = "sentry:grouping_config"
     cache_prefix = "grouping-enhancements:"
 
 
 class SecondaryGroupingConfigLoader(ProjectGroupingConfigLoader):
-    """  Secondary config to find old groups after config change """
+    """Secondary config to find old groups after config change"""
 
     option_name = "sentry:secondary_grouping_config"
     cache_prefix = "secondary-grouping-enhancements:"
 
 
 class BackgroundGroupingConfigLoader(GroupingConfigLoader):
-    """ Does not affect grouping, runs in addition to measure performance impact """
+    """Does not affect grouping, runs in addition to measure performance impact"""
 
     cache_prefix = "background-grouping-enhancements:"
 
@@ -303,7 +303,7 @@ def get_grouping_variants_for_event(event, config=None):
 
 
 def sort_grouping_variants(variants):
-    """ Sort a sequence of variants into flat and hierarchical variants """
+    """Sort a sequence of variants into flat and hierarchical variants"""
 
     flat_variants = []
     hierarchical_variants = []
