@@ -16,7 +16,7 @@ class TagType:
         )
 
     def __hash__(self):
-        return hash(tuple([getattr(self, name) for name in self.__slots__]))
+        return hash(tuple(getattr(self, name) for name in self.__slots__))
 
     def __eq__(self, other):
         return type(self) == type(other) and all(

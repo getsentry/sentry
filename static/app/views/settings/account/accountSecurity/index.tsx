@@ -2,6 +2,7 @@ import * as ReactRouter from 'react-router';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
+import {openEmailVerification} from 'app/actionCreators/modal';
 import Button from 'app/components/button';
 import CircleIndicator from 'app/components/circleIndicator';
 import ListLink from 'app/components/links/listLink';
@@ -27,6 +28,8 @@ type Props = {
   orgsRequire2fa: OrganizationSummary[];
   countEnrolled: number;
   deleteDisabled: boolean;
+  hasVerifiedEmail: boolean;
+  handleRefresh: () => void;
   onDisable: (auth: Authenticator) => void;
 } & AsyncView['props'] &
   ReactRouter.WithRouterProps;
@@ -65,10 +68,25 @@ class AccountSecurity extends AsyncView<Props> {
     );
   };
 
-  renderBody() {
-    const {authenticators, countEnrolled, deleteDisabled, onDisable} = this.props;
-    const isEmpty = !authenticators?.length;
+  handleAdd2FAClicked = () => {
+    const {handleRefresh} = this.props;
+    openEmailVerification({
+      onClose: () => {
+        handleRefresh();
+      },
+      actionMessage: 'enrolling a 2FA device',
+    });
+  };
 
+  renderBody() {
+    const {
+      authenticators,
+      countEnrolled,
+      deleteDisabled,
+      onDisable,
+      hasVerifiedEmail,
+    } = this.props;
+    const isEmpty = !authenticators?.length;
     return (
       <div>
         <SettingsPageHeader
@@ -135,9 +153,19 @@ class AccountSecurity extends AsyncView<Props> {
                       </AuthenticatorTitle>
 
                       <Actions>
-                        {!isBackupInterface && !isEnrolled && (
+                        {!isBackupInterface && !isEnrolled && hasVerifiedEmail && (
                           <Button
                             to={`/settings/account/security/mfa/${id}/enroll/`}
+                            size="small"
+                            priority="primary"
+                            className="enroll-button"
+                          >
+                            {t('Add')}
+                          </Button>
+                        )}
+                        {!isBackupInterface && !isEnrolled && !hasVerifiedEmail && (
+                          <Button
+                            onClick={this.handleAdd2FAClicked}
                             size="small"
                             priority="primary"
                             className="enroll-button"

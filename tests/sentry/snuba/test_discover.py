@@ -904,6 +904,61 @@ class QueryTransformTest(TestCase):
         )
 
     @patch("sentry.snuba.discover.raw_query")
+    def test_selected_columns_apdex_new_alias(self, mock_query):
+        mock_query.return_value = {
+            "meta": [
+                {"name": "transaction"},
+                {"name": "project_threshold_config"},
+                {"name": "apdex_new"},
+            ],
+            "data": [
+                {
+                    "transaction": "api.do_things",
+                    "project_threshold_config": ("duration", 300),
+                    "apdex_new": 0.15,
+                }
+            ],
+        }
+
+        discover.query(
+            selected_columns=[
+                "transaction",
+                "apdex_new()",
+            ],
+            query="",
+            params={"project_id": [self.project.id], "organization_id": self.organization.id},
+            auto_fields=True,
+        )
+        mock_query.assert_called_with(
+            start=None,
+            end=None,
+            groupby=["transaction", "project_threshold_config"],
+            conditions=[],
+            aggregations=[
+                [
+                    "apdex(multiIf(equals(tupleElement(project_threshold_config,1),'lcp'),if(has(measurements.key,'lcp'),arrayElement(measurements.value,indexOf(measurements.key,'lcp')),NULL),duration),tupleElement(project_threshold_config,2))",
+                    None,
+                    "apdex_new",
+                ]
+            ],
+            selected_columns=[
+                "transaction",
+                [
+                    "tuple",
+                    ["'duration'", 300],
+                    "project_threshold_config",
+                ],
+            ],
+            filter_keys={"project_id": [self.project.id]},
+            having=[],
+            orderby=None,
+            dataset=Dataset.Discover,
+            limit=50,
+            offset=None,
+            referrer=None,
+        )
+
+    @patch("sentry.snuba.discover.raw_query")
     def test_selected_columns_user_misery_alias(self, mock_query):
         mock_query.return_value = {
             "meta": [{"name": "transaction"}, {"name": "user_misery_300"}],
@@ -957,7 +1012,6 @@ class QueryTransformTest(TestCase):
         discover.query(
             selected_columns=[
                 "transaction",
-                "project_threshold_config",
                 "user_misery_new()",
             ],
             query="",
@@ -1193,7 +1247,6 @@ class QueryTransformTest(TestCase):
         discover.query(
             selected_columns=[
                 "transaction",
-                "project_threshold_config",
                 "count_miserable_new(user)",
             ],
             query="",
@@ -2894,7 +2947,7 @@ class TimeseriesQueryTest(TimeseriesBase):
 class TopEventsTimeseriesQueryTest(TimeseriesBase):
     @patch("sentry.snuba.discover.raw_query")
     def test_project_filter_adjusts_filter(self, mock_query):
-        """ While the function is called with 2 project_ids, we should limit it down to the 1 in top_events """
+        """While the function is called with 2 project_ids, we should limit it down to the 1 in top_events"""
         project2 = self.create_project(organization=self.organization)
         top_events = {
             "data": [
