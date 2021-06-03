@@ -1,8 +1,31 @@
+from typing import Any, Iterable, Optional
+
 from django.db import models
 
-from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
+from sentry.db.models import (
+    BaseManager,
+    BoundedPositiveIntegerField,
+    FlexibleForeignKey,
+    Model,
+    sane_repr,
+)
 
 COMMIT_FILE_CHANGE_TYPES = frozenset(("A", "D", "M"))
+
+
+class CommitFileChangeManager(BaseManager):
+    def get_count_for_commits(
+        self, commits: Iterable[Any], organization_id: Optional[int] = None
+    ) -> int:
+        """
+        Warning: Because `sentry_commitfilechange` has no `organization_id`
+        index, do not pass an `organization_id` if there are many commits.
+        """
+        kwargs = {"commit__in": commits}
+        if organization_id:
+            kwargs["organization_id"] = organization_id
+
+        return int(self.filter(**kwargs).values("filename").distinct().count())
 
 
 class CommitFileChange(Model):
@@ -14,6 +37,8 @@ class CommitFileChange(Model):
     type = models.CharField(
         max_length=1, choices=(("A", "Added"), ("D", "Deleted"), ("M", "Modified"))
     )
+
+    objects = CommitFileChangeManager()
 
     class Meta:
         app_label = "sentry"
