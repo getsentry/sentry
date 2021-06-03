@@ -87,12 +87,21 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
         if query:
             tokens = tokenize_query(query)
             for key, value in tokens.items():
-                if key == "hasExternalTeams" and "true" in value:
-                    queryset = queryset.filter(
-                        actor_id__in=ExternalActor.objects.filter(
-                            organization=organization
-                        ).values_list("actor_id")
-                    )
+                if key == "hasExternalTeams":
+                    hasExternalTeams = "true" in value
+                    if hasExternalTeams:
+                        queryset = queryset.filter(
+                            actor_id__in=ExternalActor.objects.filter(
+                                organization=organization
+                            ).values_list("actor_id")
+                        )
+                    else:
+                        queryset = queryset.exclude(
+                            actor_id__in=ExternalActor.objects.filter(
+                                organization=organization
+                            ).values_list("actor_id")
+                        )
+
                 elif key == "query":
                     value = " ".join(value)
                     queryset = queryset.filter(Q(name__icontains=value) | Q(slug__icontains=value))
