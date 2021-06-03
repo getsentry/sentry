@@ -37,7 +37,6 @@ import CellAction, {Actions} from 'app/views/eventsV2/table/cellAction';
 import {TableColumn} from 'app/views/eventsV2/table/types';
 import {decodeColumnOrder} from 'app/views/eventsV2/utils';
 import {GridCell, GridCellNumber} from 'app/views/performance/styles';
-import {spanOperationBreakdownSingleColumns} from 'app/views/performance/transactionSummary/filter';
 import {
   TrendChangeType,
   TrendsDataEvents,
@@ -431,13 +430,7 @@ class TransactionsTable extends React.PureComponent<TableProps> {
 
     const headers = tableTitles.map((title, index) => {
       const column = columnOrder[index];
-
-      const isIndividualSpanColumn = !!spanOperationBreakdownSingleColumns.find(
-        c => c === column.name
-      );
-      const align: Alignments = isIndividualSpanColumn
-        ? 'left'
-        : fieldAlignment(column.name, column.type, tableMeta);
+      const align: Alignments = fieldAlignment(column.name, column.type, tableMeta);
 
       if (column.key === 'span_ops_breakdown.relative') {
         return (
