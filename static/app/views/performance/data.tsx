@@ -296,13 +296,18 @@ function generateGenericPerformanceEventView(
     'p50()',
     'p95()',
     'failure_rate()',
-    'count_unique(user)',
   ];
 
   const featureFields = organization.features.includes('project-transaction-threshold')
-    ? [`apdex_new()`, `count_miserable_new(user)`, `user_misery_new()`]
+    ? [
+        `apdex_new()`,
+        'count_unique(user)',
+        `count_miserable_new(user)`,
+        `user_misery_new()`,
+      ]
     : [
         `apdex(${organization.apdexThreshold})`,
+        'count_unique(user)',
         `count_miserable(user,${organization.apdexThreshold})`,
         `user_misery(${organization.apdexThreshold})`,
       ];
@@ -363,13 +368,18 @@ function generateBackendPerformanceEventView(
     'p50()',
     'p95()',
     'failure_rate()',
-    'count_unique(user)',
   ];
 
   const featureFields = organization.features.includes('project-transaction-threshold')
-    ? [`apdex_new()`, `count_miserable_new(user)`, `user_misery_new()`]
+    ? [
+        `apdex_new()`,
+        'count_unique(user)',
+        `count_miserable_new(user)`,
+        `user_misery_new()`,
+      ]
     : [
         `apdex(${organization.apdexThreshold})`,
+        'count_unique(user)',
         `count_miserable(user,${organization.apdexThreshold})`,
         `user_misery(${organization.apdexThreshold})`,
       ];
@@ -429,12 +439,12 @@ function generateFrontendPageloadPerformanceEventView(
     'p75(measurements.lcp)',
     'p75(measurements.fid)',
     'p75(measurements.cls)',
-    'count_unique(user)',
   ];
 
   const featureFields = organization.features.includes('project-transaction-threshold')
-    ? [`count_miserable_new(user)`, `user_misery_new()`]
+    ? ['count_unique(user)', `count_miserable_new(user)`, `user_misery_new()`]
     : [
+        'count_unique(user)',
         `count_miserable(user,${organization.apdexThreshold})`,
         `user_misery(${organization.apdexThreshold})`,
       ];
@@ -496,12 +506,12 @@ function generateFrontendOtherPerformanceEventView(
     'p50(transaction.duration)',
     'p75(transaction.duration)',
     'p95(transaction.duration)',
-    'count_unique(user)',
   ];
 
   const featureFields = organization.features.includes('project-transaction-threshold')
-    ? [`count_miserable_new(user)`, `user_misery_new()`]
+    ? ['count_unique(user)', `count_miserable_new(user)`, `user_misery_new()`]
     : [
+        'count_unique(user)',
         `count_miserable(user,${organization.apdexThreshold})`,
         `user_misery(${organization.apdexThreshold})`,
       ];
