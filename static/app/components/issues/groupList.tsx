@@ -49,6 +49,7 @@ type Props = WithRouterProps & {
       pageDiff: number
     ) => void
   ) => void;
+  queryFilterDescription?: string;
 } & Partial<typeof defaultProps>;
 
 type State = {
@@ -195,6 +196,7 @@ class GroupList extends React.Component<Props, State> {
       useTintRow,
       customStatsPeriod,
       queryParams,
+      queryFilterDescription,
     } = this.props;
     const {loading, error, groups, memberList, pageLinks} = this.state;
 
@@ -247,6 +249,7 @@ class GroupList extends React.Component<Props, State> {
                   useTintRow={useTintRow}
                   customStatsPeriod={customStatsPeriod}
                   statsPeriod={statsPeriod}
+                  queryFilterDescription={queryFilterDescription}
                 />
               );
             })}

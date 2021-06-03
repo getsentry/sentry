@@ -89,6 +89,7 @@ type Props = {
   customStatsPeriod?: TimePeriodType;
   display?: IssueDisplayOptions;
   // TODO(ts): higher order functions break defaultprops export types
+  queryFilterDescription?: string;
 } & Partial<typeof defaultProps>;
 
 type State = {
@@ -359,6 +360,7 @@ class StreamGroup extends React.Component<Props, State> {
       useTintRow,
       customStatsPeriod,
       display,
+      queryFilterDescription,
     } = this.props;
 
     const {period, start, end} = selection.datetime || {};
@@ -482,7 +484,8 @@ class StreamGroup extends React.Component<Props, State> {
                                 <React.Fragment>
                                   <StyledMenuItem to={this.getDiscoverUrl(true)}>
                                     <MenuItemText>
-                                      {t('Matching search filters')}
+                                      {queryFilterDescription ??
+                                        t('Matching search filters')}
                                     </MenuItemText>
                                     {primaryPercent ? (
                                       <MenuItemPercent>{primaryPercent}</MenuItemPercent>
@@ -554,7 +557,8 @@ class StreamGroup extends React.Component<Props, State> {
                               <React.Fragment>
                                 <StyledMenuItem to={this.getDiscoverUrl(true)}>
                                   <MenuItemText>
-                                    {t('Matching search filters')}
+                                    {queryFilterDescription ??
+                                      t('Matching search filters')}
                                   </MenuItemText>
                                   <MenuItemCount value={data.filtered.userCount} />
                                 </StyledMenuItem>

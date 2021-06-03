@@ -41,6 +41,7 @@ type Props = {
   selection: GlobalSelection;
   location: Location;
   defaultStatsPeriod: string;
+  queryFilterDescription?: string;
   releaseBounds: ReleaseBounds;
 };
 
@@ -186,7 +187,7 @@ class Issues extends Component<Props, State> {
 
   render() {
     const {issuesType, pageLinks, onCursor} = this.state;
-    const {organization} = this.props;
+    const {organization, queryFilterDescription} = this.props;
     const {path, queryParams} = this.getIssuesEndpoint();
     const issuesTypes = [
       {value: IssuesType.NEW, label: t('New Issues')},
@@ -246,6 +247,7 @@ class Issues extends Component<Props, State> {
             endpointPath={path}
             queryParams={queryParams}
             query=""
+            queryFilterDescription={queryFilterDescription}
             canSelectGroups={false}
             withChart={false}
             renderEmptyMessage={this.renderEmptyMessage}
