@@ -143,7 +143,8 @@ class Release(Model):
 
     # Denormalized semver columns. These will be filled if `version` matches at least
     # part of our more permissive model of semver:
-    # `<major>.<minor>.<patch>.<revision>-<prerelease>+<build_code>
+    # `<package>@<major>.<minor>.<patch>.<revision>-<prerelease>+<build_code>
+    package = models.TextField(null=True)
     major = models.BigIntegerField(null=True)
     minor = models.BigIntegerField(null=True)
     patch = models.BigIntegerField(null=True)
@@ -168,8 +169,11 @@ class Release(Model):
         # TODO(django2.2): Note that we create this index with each column ordered
         # descending. Django 2.2 allows us to specify functional indexes, which should
         # allow us to specify this on the model.
+        # We also use a functional index to order `prerelease` according to semver rules,
+        # which we can't express here for now.
         index_together = (
-            ("organization", "major", "minor", "patch", "revision"),
+            ("organization", "package", "major", "minor", "patch", "revision", "prerelease"),
+            ("organization", "major", "minor", "patch", "revision", "prerelease"),
             ("organization", "build_code"),
             ("organization", "build_number"),
             ("organization", "date_added"),
