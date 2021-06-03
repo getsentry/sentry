@@ -12,7 +12,7 @@ class DisabledMemberView(ReactPageView):
 
     def handle(self, request, organization, **kwargs):
         user = request.user
-        # if org member is not restricted, redirect user out of the disablerd view
+        # if org member is not restricted, redirect user out of the disabled view
         try:
             member = get_cached_organization_member(user.id, organization.id)
             if not member.flags["member-limit:restricted"]:
@@ -21,7 +21,6 @@ class DisabledMemberView(ReactPageView):
                 )
         except OrganizationMember.DoesNotExist:
             # this shouldn't happen but we can default to basic handling
-            # if it does
             pass
 
         # otherwise, just do the basic handling
