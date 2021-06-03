@@ -3783,7 +3783,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS = 1
         with mock.patch(
             "sentry.search.events.fields.MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS",
-            MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS
+            MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS,
         ):
             team = self.create_team(organization=self.organization, name="Team A")
             self.create_team_membership(team, user=self.user)
