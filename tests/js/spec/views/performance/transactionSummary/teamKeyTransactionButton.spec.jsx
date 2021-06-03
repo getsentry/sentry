@@ -1,5 +1,3 @@
-import {Component} from 'react';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import TeamStore from 'app/stores/teamStore';
@@ -7,15 +5,8 @@ import EventView from 'app/utils/discover/eventView';
 import {MAX_TEAM_KEY_TRANSACTIONS} from 'app/utils/performance/constants';
 import TeamKeyTransactionButton from 'app/views/performance/transactionSummary/teamKeyTransactionButton';
 
-class TestButton extends Component {
-  render() {
-    const {keyedTeamsCount, ...props} = this.props;
-    return <button {...props}>{`count: ${keyedTeamsCount}`}</button>;
-  }
-}
-
 async function clickTeamKeyTransactionDropdown(wrapper) {
-  wrapper.find('TestButton').simulate('click');
+  wrapper.find('TitleButton').simulate('click');
   await tick();
   wrapper.update();
 }
@@ -45,396 +36,444 @@ describe('TeamKeyTransaction', function () {
     TeamStore.loadInitialData(teams);
   });
 
-  describe('With no disabled', function () {
-    beforeEach(function () {
-      MockApiClient.addMockResponse({
+  it('fetches key transactions with project param', async function () {
+    const getTeamKeyTransactionsMock = MockApiClient.addMockResponse(
+      {
         method: 'GET',
-        url: '/organizations/org-slug/key-transactions-count/',
-        body: teams.map(({id}) => ({team: id, count: 0})),
-      });
+        url: '/organizations/org-slug/key-transactions-list/',
+        body: teams.map(({id}) => ({
+          team: id,
+          count: 1,
+          keyed: [{project_id: String(project.id), transaction: 'transaction'}],
+        })),
+      },
+      {
+        predicate: (_, options) =>
+          options.method === 'GET' &&
+          options.query.project.length === 1 &&
+          options.query.project[0] === project.id &&
+          options.query.team.length === 1 &&
+          options.query.team[0] === 'myteams',
+      }
+    );
+
+    const wrapper = mountWithTheme(
+      <TeamKeyTransactionButton
+        eventView={eventView}
+        organization={organization}
+        transactionName="transaction"
+      />
+    );
+    await tick();
+    wrapper.update();
+
+    expect(getTeamKeyTransactionsMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders with all teams checked', async function () {
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: '/organizations/org-slug/key-transactions-list/',
+      body: teams.map(({id}) => ({
+        team: id,
+        count: 1,
+        keyed: [{project_id: String(project.id), transaction: 'transaction'}],
+      })),
     });
 
-    it('renders with all teams checked', async function () {
-      const getTeamKeyTransactionsMock = MockApiClient.addMockResponse({
-        method: 'GET',
-        url: '/organizations/org-slug/key-transactions/',
-        body: teams.map(({id}) => ({team: id})),
-      });
+    const wrapper = mountWithTheme(
+      <TeamKeyTransactionButton
+        eventView={eventView}
+        organization={organization}
+        transactionName="transaction"
+      />
+    );
+    await tick();
+    wrapper.update();
 
-      const wrapper = mountWithTheme(
-        <TeamKeyTransactionButton
-          eventView={eventView}
-          organization={organization}
-          transactionName="transaction"
-          title={TestButton}
-        />
-      );
-      await tick();
-      wrapper.update();
+    clickTeamKeyTransactionDropdown(wrapper);
 
-      clickTeamKeyTransactionDropdown(wrapper);
+    // header should show the checked state
+    expect(wrapper.find('TitleButton').exists()).toBeTruthy();
+    const header = wrapper.find('DropdownMenuHeader');
+    expect(header.exists()).toBeTruthy();
+    expect(header.find('CheckboxFancy').props().isChecked).toBeTruthy();
+    expect(header.find('CheckboxFancy').props().isIndeterminate).toBeFalsy();
 
-      // header should show the checked state
-      expect(getTeamKeyTransactionsMock).toHaveBeenCalledTimes(1);
-      expect(wrapper.find('TestButton').exists()).toBeTruthy();
-      const header = wrapper.find('DropdownMenuHeader');
-      expect(header.exists()).toBeTruthy();
-      expect(header.find('CheckboxFancy').props().isChecked).toBeTruthy();
-      expect(header.find('CheckboxFancy').props().isIndeterminate).toBeFalsy();
-
-      // all teams should be checked
-      const entries = wrapper.find('DropdownMenuItem');
-      expect(entries.length).toBe(2);
-      entries.forEach((entry, i) => {
-        expect(entry.text()).toEqual(teams[i].name);
-        expect(entry.find('CheckboxFancy').props().isChecked).toBeTruthy();
-      });
-    });
-
-    it('renders with some teams checked', async function () {
-      MockApiClient.addMockResponse({
-        method: 'GET',
-        url: '/organizations/org-slug/key-transactions/',
-        body: [{team: teams[0].id}],
-      });
-
-      const wrapper = mountWithTheme(
-        <TeamKeyTransactionButton
-          eventView={eventView}
-          organization={organization}
-          transactionName="transaction"
-          title={TestButton}
-        />
-      );
-
-      await tick();
-      wrapper.update();
-
-      clickTeamKeyTransactionDropdown(wrapper);
-
-      // header should show the indeterminate state
-      const header = wrapper.find('DropdownMenuHeader');
-      expect(header.exists()).toBeTruthy();
-      expect(header.find('CheckboxFancy').props().isChecked).toBeFalsy();
-      expect(header.find('CheckboxFancy').props().isIndeterminate).toBeTruthy();
-
-      // only team 1 should be checked
-      const entries = wrapper.find('DropdownMenuItem');
-      expect(entries.length).toBe(2);
-      entries.forEach((entry, i) => {
-        expect(entry.text()).toEqual(teams[i].name);
-      });
-      expect(entries.at(0).find('CheckboxFancy').props().isChecked).toBeTruthy();
-      expect(entries.at(1).find('CheckboxFancy').props().isChecked).toBeFalsy();
-    });
-
-    it('renders with no teams checked', async function () {
-      MockApiClient.addMockResponse({
-        method: 'GET',
-        url: '/organizations/org-slug/key-transactions/',
-        body: [],
-      });
-
-      const wrapper = mountWithTheme(
-        <TeamKeyTransactionButton
-          eventView={eventView}
-          organization={organization}
-          transactionName="transaction"
-          title={TestButton}
-        />
-      );
-      await tick();
-      wrapper.update();
-
-      clickTeamKeyTransactionDropdown(wrapper);
-
-      // header should show the unchecked state
-      const header = wrapper.find('DropdownMenuHeader');
-      expect(header.exists()).toBeTruthy();
-      expect(header.find('CheckboxFancy').props().isChecked).toBeFalsy();
-      expect(header.find('CheckboxFancy').props().isIndeterminate).toBeFalsy();
-
-      // all teams should be unchecked
-      const entries = wrapper.find('DropdownMenuItem');
-      expect(entries.length).toBe(2);
-      entries.forEach((entry, i) => {
-        expect(entry.text()).toEqual(teams[i].name);
-        expect(entry.find('CheckboxFancy').props().isChecked).toBeFalsy();
-      });
-    });
-
-    it('should be able to check one team', async function () {
-      MockApiClient.addMockResponse({
-        method: 'GET',
-        url: '/organizations/org-slug/key-transactions/',
-        body: [],
-      });
-
-      const postTeamKeyTransactionsMock = MockApiClient.addMockResponse(
-        {
-          method: 'POST',
-          url: '/organizations/org-slug/key-transactions/',
-          body: [],
-        },
-        {
-          predicate: (_, options) =>
-            options.method === 'POST' &&
-            options.query.project.length === 1 &&
-            options.query.project[0] === project.id &&
-            options.data.team.length === 1 &&
-            options.data.team[0] === teams[0].id &&
-            options.data.transaction === 'transaction',
-        }
-      );
-
-      const wrapper = mountWithTheme(
-        <TeamKeyTransactionButton
-          eventView={eventView}
-          organization={organization}
-          transactionName="transaction"
-          title={TestButton}
-        />
-      );
-      await tick();
-      wrapper.update();
-
-      clickTeamKeyTransactionDropdown(wrapper);
-
-      wrapper.find('DropdownMenuItem CheckboxFancy').first().simulate('click');
-      await tick();
-      wrapper.update();
-
-      const checkbox = wrapper.find('DropdownMenuItem CheckboxFancy').first();
-      expect(checkbox.props().isChecked).toBeTruthy();
-      expect(postTeamKeyTransactionsMock).toHaveBeenCalledTimes(1);
-    });
-
-    it('should be able to uncheck one team', async function () {
-      MockApiClient.addMockResponse({
-        method: 'GET',
-        url: '/organizations/org-slug/key-transactions/',
-        body: teams.map(({id}) => ({team: id})),
-      });
-
-      const deleteTeamKeyTransactionsMock = MockApiClient.addMockResponse(
-        {
-          method: 'DELETE',
-          url: '/organizations/org-slug/key-transactions/',
-          body: [],
-        },
-        {
-          predicate: (_, options) =>
-            options.method === 'DELETE' &&
-            options.query.project.length === 1 &&
-            options.query.project[0] === project.id &&
-            options.data.team.length === 1 &&
-            options.data.team[0] === teams[0].id &&
-            options.data.transaction === 'transaction',
-        }
-      );
-
-      const wrapper = mountWithTheme(
-        <TeamKeyTransactionButton
-          eventView={eventView}
-          organization={organization}
-          transactionName="transaction"
-          title={TestButton}
-        />
-      );
-      await tick();
-      wrapper.update();
-
-      clickTeamKeyTransactionDropdown(wrapper);
-
-      wrapper.find('DropdownMenuItem CheckboxFancy').first().simulate('click');
-      await tick();
-      wrapper.update();
-
-      const checkbox = wrapper.find('DropdownMenuItem CheckboxFancy').first();
-      expect(checkbox.props().isChecked).toBeFalsy();
-      expect(deleteTeamKeyTransactionsMock).toHaveBeenCalledTimes(1);
-    });
-
-    it('should be able to check all with my teams', async function () {
-      MockApiClient.addMockResponse({
-        method: 'GET',
-        url: '/organizations/org-slug/key-transactions/',
-        body: [],
-      });
-
-      const postTeamKeyTransactionsMock = MockApiClient.addMockResponse(
-        {
-          method: 'POST',
-          url: '/organizations/org-slug/key-transactions/',
-          body: [],
-        },
-        {
-          predicate: (_, options) =>
-            options.method === 'POST' &&
-            options.query.project.length === 1 &&
-            options.query.project[0] === project.id &&
-            options.data.team.length === 2 &&
-            options.data.team[0] === teams[0].id &&
-            options.data.team[1] === teams[1].id &&
-            options.data.transaction === 'transaction',
-        }
-      );
-
-      const wrapper = mountWithTheme(
-        <TeamKeyTransactionButton
-          eventView={eventView}
-          organization={organization}
-          transactionName="transaction"
-          title={TestButton}
-        />
-      );
-      await tick();
-      wrapper.update();
-
-      clickTeamKeyTransactionDropdown(wrapper);
-
-      wrapper.find('DropdownMenuHeader CheckboxFancy').simulate('click');
-      await tick();
-      wrapper.update();
-
-      // header should be checked now
-      const headerCheckbox = wrapper.find('DropdownMenuHeader CheckboxFancy');
-      expect(headerCheckbox.props().isChecked).toBeTruthy();
-      expect(headerCheckbox.props().isIndeterminate).toBeFalsy();
-
-      // all teams should be checked now
-      const entries = wrapper.find('DropdownMenuItem');
-      entries.forEach(entry => {
-        expect(entry.find('CheckboxFancy').props().isChecked).toBeTruthy();
-      });
-      expect(postTeamKeyTransactionsMock).toHaveBeenCalledTimes(1);
-    });
-
-    it('should be able to uncheck all with my teams', async function () {
-      MockApiClient.addMockResponse({
-        method: 'GET',
-        url: '/organizations/org-slug/key-transactions/',
-        body: teams.map(({id}) => ({team: id})),
-      });
-
-      const deleteTeamKeyTransactionsMock = MockApiClient.addMockResponse(
-        {
-          method: 'DELETE',
-          url: '/organizations/org-slug/key-transactions/',
-          body: [],
-        },
-        {
-          predicate: (_, options) =>
-            options.method === 'DELETE' &&
-            options.query.project.length === 1 &&
-            options.query.project[0] === project.id &&
-            options.data.team.length === 2 &&
-            options.data.team[0] === teams[0].id &&
-            options.data.team[1] === teams[1].id &&
-            options.data.transaction === 'transaction',
-        }
-      );
-
-      const wrapper = mountWithTheme(
-        <TeamKeyTransactionButton
-          eventView={eventView}
-          organization={organization}
-          transactionName="transaction"
-          title={TestButton}
-        />
-      );
-      await tick();
-      wrapper.update();
-
-      clickTeamKeyTransactionDropdown(wrapper);
-
-      wrapper.find('DropdownMenuHeader CheckboxFancy').simulate('click');
-      await tick();
-      wrapper.update();
-
-      // header should be unchecked now
-      const headerCheckbox = wrapper.find('DropdownMenuHeader CheckboxFancy');
-      expect(headerCheckbox.props().isChecked).toBeFalsy();
-      expect(headerCheckbox.props().isIndeterminate).toBeFalsy();
-
-      // all teams should be unchecked now
-      const entries = wrapper.find('DropdownMenuItem');
-      entries.forEach(entry => {
-        expect(entry.find('CheckboxFancy').props().isChecked).toBeFalsy();
-      });
-
-      expect(deleteTeamKeyTransactionsMock).toHaveBeenCalledTimes(1);
+    // all teams should be checked
+    const entries = wrapper.find('DropdownMenuItem');
+    expect(entries.length).toBe(2);
+    entries.forEach((entry, i) => {
+      expect(entry.text()).toEqual(teams[i].name);
+      expect(entry.find('CheckboxFancy').props().isChecked).toBeTruthy();
     });
   });
 
-  describe('With disabled', function () {
-    it('renders unkeyed as disabled if count exceeds max', async function () {
-      MockApiClient.addMockResponse({
-        method: 'GET',
-        url: '/organizations/org-slug/key-transactions/',
-        body: [],
-      });
-
-      MockApiClient.addMockResponse({
-        method: 'GET',
-        url: '/organizations/org-slug/key-transactions-count/',
-        body: teams.map(({id}) => ({team: id, count: MAX_TEAM_KEY_TRANSACTIONS})),
-      });
-
-      const wrapper = mountWithTheme(
-        <TeamKeyTransactionButton
-          eventView={eventView}
-          organization={organization}
-          transactionName="transaction"
-          title={TestButton}
-        />
-      );
-      await tick();
-      wrapper.update();
-
-      clickTeamKeyTransactionDropdown(wrapper);
-
-      const entries = wrapper.find('DropdownMenuItem');
-      expect(entries.length).toBe(2);
-      entries.forEach((entry, i) => {
-        expect(entry.props().disabled).toBeTruthy();
-        expect(entry.text()).toEqual(`${teams[i].name}Max ${MAX_TEAM_KEY_TRANSACTIONS}`);
-      });
+  it('renders with some teams checked', async function () {
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: '/organizations/org-slug/key-transactions-list/',
+      body: teams.map(({id}) => ({
+        team: id,
+        count: id === teams[0].id ? 1 : 0,
+        keyed:
+          id === teams[0].id
+            ? [{project_id: String(project.id), transaction: 'transaction'}]
+            : [],
+      })),
     });
 
-    it('renders keyed as checked even if count is maxed', async function () {
-      MockApiClient.addMockResponse({
-        method: 'GET',
+    const wrapper = mountWithTheme(
+      <TeamKeyTransactionButton
+        eventView={eventView}
+        organization={organization}
+        transactionName="transaction"
+      />
+    );
+
+    await tick();
+    wrapper.update();
+
+    clickTeamKeyTransactionDropdown(wrapper);
+
+    // header should show the indeterminate state
+    const header = wrapper.find('DropdownMenuHeader');
+    expect(header.exists()).toBeTruthy();
+    expect(header.find('CheckboxFancy').props().isChecked).toBeFalsy();
+    expect(header.find('CheckboxFancy').props().isIndeterminate).toBeTruthy();
+
+    // only team 1 should be checked
+    const entries = wrapper.find('DropdownMenuItem');
+    expect(entries.length).toBe(2);
+    entries.forEach((entry, i) => {
+      expect(entry.text()).toEqual(teams[i].name);
+    });
+    expect(entries.at(0).find('CheckboxFancy').props().isChecked).toBeTruthy();
+    expect(entries.at(1).find('CheckboxFancy').props().isChecked).toBeFalsy();
+  });
+
+  it('renders with no teams checked', async function () {
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: '/organizations/org-slug/key-transactions-list/',
+      body: teams.map(({id}) => ({
+        team: id,
+        count: 0,
+        keyed: [],
+      })),
+    });
+
+    const wrapper = mountWithTheme(
+      <TeamKeyTransactionButton
+        eventView={eventView}
+        organization={organization}
+        transactionName="transaction"
+      />
+    );
+    await tick();
+    wrapper.update();
+
+    clickTeamKeyTransactionDropdown(wrapper);
+
+    // header should show the unchecked state
+    const header = wrapper.find('DropdownMenuHeader');
+    expect(header.exists()).toBeTruthy();
+    expect(header.find('CheckboxFancy').props().isChecked).toBeFalsy();
+    expect(header.find('CheckboxFancy').props().isIndeterminate).toBeFalsy();
+
+    // all teams should be unchecked
+    const entries = wrapper.find('DropdownMenuItem');
+    expect(entries.length).toBe(2);
+    entries.forEach((entry, i) => {
+      expect(entry.text()).toEqual(teams[i].name);
+      expect(entry.find('CheckboxFancy').props().isChecked).toBeFalsy();
+    });
+  });
+
+  it('should be able to check one team', async function () {
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: '/organizations/org-slug/key-transactions-list/',
+      body: teams.map(({id}) => ({
+        team: id,
+        count: 0,
+        keyed: [],
+      })),
+    });
+
+    const postTeamKeyTransactionsMock = MockApiClient.addMockResponse(
+      {
+        method: 'POST',
         url: '/organizations/org-slug/key-transactions/',
-        body: teams.map(({id}) => ({team: id})),
-      });
+        body: [],
+      },
+      {
+        predicate: (_, options) =>
+          options.method === 'POST' &&
+          options.query.project.length === 1 &&
+          options.query.project[0] === project.id &&
+          options.data.team.length === 1 &&
+          options.data.team[0] === teams[0].id &&
+          options.data.transaction === 'transaction',
+      }
+    );
 
-      MockApiClient.addMockResponse({
-        method: 'GET',
-        url: '/organizations/org-slug/key-transactions-count/',
-        body: teams.map(({id}) => ({team: id, count: MAX_TEAM_KEY_TRANSACTIONS})),
-      });
+    const wrapper = mountWithTheme(
+      <TeamKeyTransactionButton
+        eventView={eventView}
+        organization={organization}
+        transactionName="transaction"
+      />
+    );
+    await tick();
+    wrapper.update();
 
-      const wrapper = mountWithTheme(
-        <TeamKeyTransactionButton
-          eventView={eventView}
-          organization={organization}
-          transactionName="transaction"
-          title={TestButton}
-        />
-      );
-      await tick();
-      wrapper.update();
+    clickTeamKeyTransactionDropdown(wrapper);
 
-      clickTeamKeyTransactionDropdown(wrapper);
+    wrapper.find('DropdownMenuItem CheckboxFancy').first().simulate('click');
+    await tick();
+    wrapper.update();
 
-      const entries = wrapper.find('DropdownMenuItem');
-      expect(entries.length).toBe(2);
-      entries.forEach((entry, i) => {
-        expect(entry.props().disabled).toBeFalsy();
-        expect(entry.text()).toEqual(teams[i].name);
-        expect(entry.find('CheckboxFancy').props().isChecked).toBeTruthy();
-      });
+    const checkbox = wrapper.find('DropdownMenuItem CheckboxFancy').first();
+    expect(checkbox.props().isChecked).toBeTruthy();
+    expect(postTeamKeyTransactionsMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('should be able to uncheck one team', async function () {
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: '/organizations/org-slug/key-transactions-list/',
+      body: teams.map(({id}) => ({
+        team: id,
+        count: 1,
+        keyed: [{project_id: String(project.id), transaction: 'transaction'}],
+      })),
+    });
+
+    const deleteTeamKeyTransactionsMock = MockApiClient.addMockResponse(
+      {
+        method: 'DELETE',
+        url: '/organizations/org-slug/key-transactions/',
+        body: [],
+      },
+      {
+        predicate: (_, options) =>
+          options.method === 'DELETE' &&
+          options.query.project.length === 1 &&
+          options.query.project[0] === project.id &&
+          options.data.team.length === 1 &&
+          options.data.team[0] === teams[0].id &&
+          options.data.transaction === 'transaction',
+      }
+    );
+
+    const wrapper = mountWithTheme(
+      <TeamKeyTransactionButton
+        eventView={eventView}
+        organization={organization}
+        transactionName="transaction"
+      />
+    );
+    await tick();
+    wrapper.update();
+
+    clickTeamKeyTransactionDropdown(wrapper);
+
+    wrapper.find('DropdownMenuItem CheckboxFancy').first().simulate('click');
+    await tick();
+    wrapper.update();
+
+    const checkbox = wrapper.find('DropdownMenuItem CheckboxFancy').first();
+    expect(checkbox.props().isChecked).toBeFalsy();
+    expect(deleteTeamKeyTransactionsMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('should be able to check all with my teams', async function () {
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: '/organizations/org-slug/key-transactions-list/',
+      body: teams.map(({id}) => ({
+        team: id,
+        count: 0,
+        keyed: [],
+      })),
+    });
+
+    const postTeamKeyTransactionsMock = MockApiClient.addMockResponse(
+      {
+        method: 'POST',
+        url: '/organizations/org-slug/key-transactions/',
+        body: [],
+      },
+      {
+        predicate: (_, options) =>
+          options.method === 'POST' &&
+          options.query.project.length === 1 &&
+          options.query.project[0] === project.id &&
+          options.data.team.length === 2 &&
+          options.data.team[0] === teams[0].id &&
+          options.data.team[1] === teams[1].id &&
+          options.data.transaction === 'transaction',
+      }
+    );
+
+    const wrapper = mountWithTheme(
+      <TeamKeyTransactionButton
+        eventView={eventView}
+        organization={organization}
+        transactionName="transaction"
+      />
+    );
+    await tick();
+    wrapper.update();
+
+    clickTeamKeyTransactionDropdown(wrapper);
+
+    wrapper.find('DropdownMenuHeader CheckboxFancy').simulate('click');
+    await tick();
+    wrapper.update();
+
+    // header should be checked now
+    const headerCheckbox = wrapper.find('DropdownMenuHeader CheckboxFancy');
+    expect(headerCheckbox.props().isChecked).toBeTruthy();
+    expect(headerCheckbox.props().isIndeterminate).toBeFalsy();
+
+    // all teams should be checked now
+    const entries = wrapper.find('DropdownMenuItem');
+    entries.forEach(entry => {
+      expect(entry.find('CheckboxFancy').props().isChecked).toBeTruthy();
+    });
+    expect(postTeamKeyTransactionsMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('should be able to uncheck all with my teams', async function () {
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: '/organizations/org-slug/key-transactions-list/',
+      body: teams.map(({id}) => ({
+        team: id,
+        count: 1,
+        keyed: [{project_id: String(project.id), transaction: 'transaction'}],
+      })),
+    });
+
+    const deleteTeamKeyTransactionsMock = MockApiClient.addMockResponse(
+      {
+        method: 'DELETE',
+        url: '/organizations/org-slug/key-transactions/',
+        body: [],
+      },
+      {
+        predicate: (_, options) =>
+          options.method === 'DELETE' &&
+          options.query.project.length === 1 &&
+          options.query.project[0] === project.id &&
+          options.data.team.length === 2 &&
+          options.data.team[0] === teams[0].id &&
+          options.data.team[1] === teams[1].id &&
+          options.data.transaction === 'transaction',
+      }
+    );
+
+    const wrapper = mountWithTheme(
+      <TeamKeyTransactionButton
+        eventView={eventView}
+        organization={organization}
+        transactionName="transaction"
+      />
+    );
+    await tick();
+    wrapper.update();
+
+    clickTeamKeyTransactionDropdown(wrapper);
+
+    wrapper.find('DropdownMenuHeader CheckboxFancy').simulate('click');
+    await tick();
+    wrapper.update();
+
+    // header should be unchecked now
+    const headerCheckbox = wrapper.find('DropdownMenuHeader CheckboxFancy');
+    expect(headerCheckbox.props().isChecked).toBeFalsy();
+    expect(headerCheckbox.props().isIndeterminate).toBeFalsy();
+
+    // all teams should be unchecked now
+    const entries = wrapper.find('DropdownMenuItem');
+    entries.forEach(entry => {
+      expect(entry.find('CheckboxFancy').props().isChecked).toBeFalsy();
+    });
+
+    expect(deleteTeamKeyTransactionsMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders unkeyed as disabled if count exceeds max', async function () {
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: '/organizations/org-slug/key-transactions-list/',
+      body: teams.map(({id}) => ({
+        team: id,
+        count: MAX_TEAM_KEY_TRANSACTIONS,
+        keyed: Array.from({length: MAX_TEAM_KEY_TRANSACTIONS}, (_, i) => ({
+          project_id: String(project.id),
+          transaction: `transaction-${i}`,
+        })),
+      })),
+    });
+
+    const wrapper = mountWithTheme(
+      <TeamKeyTransactionButton
+        eventView={eventView}
+        organization={organization}
+        transactionName="transaction"
+      />
+    );
+    await tick();
+    wrapper.update();
+
+    clickTeamKeyTransactionDropdown(wrapper);
+
+    const entries = wrapper.find('DropdownMenuItem');
+    expect(entries.length).toBe(2);
+    entries.forEach((entry, i) => {
+      expect(entry.props().disabled).toBeTruthy();
+      expect(entry.text()).toEqual(`${teams[i].name}Max ${MAX_TEAM_KEY_TRANSACTIONS}`);
+    });
+  });
+
+  it('renders keyed as checked even if count is maxed', async function () {
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: '/organizations/org-slug/key-transactions-list/',
+      body: teams.map(({id}) => ({
+        team: id,
+        count: MAX_TEAM_KEY_TRANSACTIONS,
+        keyed: [
+          {project_id: String(project.id), transaction: 'transaction'},
+          ...Array.from({length: MAX_TEAM_KEY_TRANSACTIONS - 1}, (_, i) => ({
+            project_id: String(project.id),
+            transaction: `transaction-${i}`,
+          })),
+        ],
+      })),
+    });
+
+    const wrapper = mountWithTheme(
+      <TeamKeyTransactionButton
+        eventView={eventView}
+        organization={organization}
+        transactionName="transaction"
+      />
+    );
+    await tick();
+    wrapper.update();
+
+    clickTeamKeyTransactionDropdown(wrapper);
+
+    const entries = wrapper.find('DropdownMenuItem');
+    expect(entries.length).toBe(2);
+    entries.forEach((entry, i) => {
+      expect(entry.props().disabled).toBeFalsy();
+      expect(entry.text()).toEqual(teams[i].name);
+      expect(entry.find('CheckboxFancy').props().isChecked).toBeTruthy();
     });
   });
 });

@@ -58,7 +58,7 @@ OrganizationStatus._labels = {
 
 class OrganizationManager(BaseManager):
     def get_for_user_ids(self, user_ids: Sequence[int]) -> QuerySet:
-        """ Returns the QuerySet of all organizations that a set of Users have access to. """
+        """Returns the QuerySet of all organizations that a set of Users have access to."""
         from sentry.models import OrganizationMember
 
         return self.filter(
@@ -67,7 +67,7 @@ class OrganizationManager(BaseManager):
         )
 
     def get_for_team_ids(self, team_ids: Sequence[int]) -> QuerySet:
-        """ Returns the QuerySet of all organizations that a set of Teams have access to. """
+        """Returns the QuerySet of all organizations that a set of Teams have access to."""
         from sentry.models import Team
 
         return self.filter(
