@@ -1,4 +1,4 @@
-from typing import Any, Iterable, Optional
+from typing import Any, Iterable
 
 from django.db import models
 
@@ -14,18 +14,8 @@ COMMIT_FILE_CHANGE_TYPES = frozenset(("A", "D", "M"))
 
 
 class CommitFileChangeManager(BaseManager):
-    def get_count_for_commits(
-        self, commits: Iterable[Any], organization_id: Optional[int] = None
-    ) -> int:
-        """
-        Warning: Because `sentry_commitfilechange` has no `organization_id`
-        index, do not pass an `organization_id` if there are many commits.
-        """
-        kwargs = {"commit__in": commits}
-        if organization_id:
-            kwargs["organization_id"] = organization_id
-
-        return int(self.filter(**kwargs).values("filename").distinct().count())
+    def get_count_for_commits(self, commits: Iterable[Any]) -> int:
+        return int(self.filter(commit__in=commits).values("filename").distinct().count())
 
 
 class CommitFileChange(Model):
