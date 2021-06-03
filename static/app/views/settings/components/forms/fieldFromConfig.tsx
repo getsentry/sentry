@@ -100,7 +100,7 @@ export default class FieldFromConfig extends Component<Props> {
       case 'sentry_project_selector':
         return <SentryProjectSelectorField {...props} />;
       case 'select_async':
-        return <SelectAsyncField {...(props as any)} />;
+        return <SelectAsyncField {...props} />;
       case 'custom':
         return field.Component(props);
       default:
