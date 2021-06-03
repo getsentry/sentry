@@ -155,7 +155,6 @@ class EventUniqueUserFrequencyConditionTestCase(
 
 
 class EventFrequencyPercentConditionTestCase(
-    FrequencyConditionMixin,
     RuleTestCase,
     SnubaTestCase,
 ):
