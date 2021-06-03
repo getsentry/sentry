@@ -123,7 +123,7 @@ class NotificationsManager(BaseManager):  # type: ignore
         scope_identifier: Optional[int] = None,
         target_ids: Optional[Iterable[int]] = None,
     ) -> QuerySet:
-        """ Wrapper for .filter that translates types to actual attributes to column types. """
+        """Wrapper for .filter that translates types to actual attributes to column types."""
         filters: Dict[str, Union[int, Iterable[int]]] = {}
         if provider:
             filters["provider"] = provider.value
@@ -143,17 +143,17 @@ class NotificationsManager(BaseManager):  # type: ignore
         return self.filter(**filters)
 
     def remove_for_user(self, user: Any, type: Optional[NotificationSettingTypes] = None) -> None:
-        """ Bulk delete all Notification Settings for a USER, optionally by type. """
+        """Bulk delete all Notification Settings for a USER, optionally by type."""
         self._filter(target_ids=[user.actor_id], type=type).delete()
 
     def remove_for_team(self, team: Any, type: Optional[NotificationSettingTypes] = None) -> None:
-        """ Bulk delete all Notification Settings for a TEAM, optionally by type. """
+        """Bulk delete all Notification Settings for a TEAM, optionally by type."""
         self._filter(target_ids=[team.actor_id], type=type).delete()
 
     def remove_for_project(
         self, project: Any, type: Optional[NotificationSettingTypes] = None
     ) -> None:
-        """ Bulk delete all Notification Settings for a PROJECT, optionally by type. """
+        """Bulk delete all Notification Settings for a PROJECT, optionally by type."""
         self._filter(
             scope_type=NotificationScopeType.PROJECT,
             scope_identifier=project.id,
@@ -163,7 +163,7 @@ class NotificationsManager(BaseManager):  # type: ignore
     def remove_for_organization(
         self, organization: Any, type: Optional[NotificationSettingTypes] = None
     ) -> None:
-        """ Bulk delete all Notification Settings for an ENTIRE ORGANIZATION, optionally by type. """
+        """Bulk delete all Notification Settings for an ENTIRE ORGANIZATION, optionally by type."""
         self._filter(
             scope_type=NotificationScopeType.ORGANIZATION,
             scope_identifier=organization.id,
@@ -179,7 +179,7 @@ class NotificationsManager(BaseManager):  # type: ignore
         project: Optional[Any] = None,
         organization: Optional[Any] = None,
     ) -> QuerySet:
-        """ Wrapper for .filter that translates object parameters to scopes and targets. """
+        """Wrapper for .filter that translates object parameters to scopes and targets."""
         user_id_option = getattr(user, "id", None)
         scope_type, scope_identifier = get_scope(
             user_id_option, project=project, organization=organization
