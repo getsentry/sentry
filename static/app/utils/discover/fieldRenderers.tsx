@@ -8,13 +8,8 @@ import Count from 'app/components/count';
 import Duration from 'app/components/duration';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
 import UserBadge from 'app/components/idBadge/userBadge';
-import {DurationPill, RowRectangle} from 'app/components/performance/waterfall/rowBar';
-import {
-  getDurationDisplay,
-  getHumanDuration,
-  pickBarColour,
-  toPercent,
-} from 'app/components/performance/waterfall/utils';
+import {RowRectangle} from 'app/components/performance/waterfall/rowBar';
+import {pickBarColour, toPercent} from 'app/components/performance/waterfall/utils';
 import Tooltip from 'app/components/tooltip';
 import UserMisery from 'app/components/userMisery';
 import Version from 'app/components/version';
@@ -27,7 +22,6 @@ import {
   getAggregateAlias,
   getSpanOperationName,
   isRelativeSpanOperationBreakdownField,
-  isSpanOperationBreakdownField,
   SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'app/utils/discover/fields';
@@ -526,43 +520,6 @@ const isDurationValue = (data: EventData, field: string): boolean => {
   return field in data && typeof data[field] === 'number';
 };
 
-const spanOperationBreakdownRenderer = (field: string) => (
-  data: EventData
-): React.ReactNode => {
-  if (!isDurationValue(data, 'transaction.duration') || !isDurationValue(data, field)) {
-    return FIELD_FORMATTERS.duration.renderFunc(field, data);
-  }
-  const transactionDuration = data['transaction.duration'];
-  const spanOpDuration = data[field];
-
-  const widthPercentage = spanOpDuration / transactionDuration;
-  const operationName = getSpanOperationName(field) ?? 'op';
-
-  return (
-    <div style={{position: 'relative'}}>
-      <RowRectangle
-        spanBarHatch={false}
-        style={{
-          backgroundColor: pickBarColour(operationName),
-          left: 0,
-          width: toPercent(widthPercentage || 0),
-        }}
-      >
-        <DurationPill
-          durationDisplay={getDurationDisplay({
-            left: 0,
-            width: widthPercentage,
-          })}
-          showDetail={false}
-          spanBarHatch={false}
-        >
-          {getHumanDuration(spanOpDuration / 1000)}
-        </DurationPill>
-      </RowRectangle>
-    </div>
-  );
-};
-
 const spanOperationRelativeBreakdownRenderer = (
   data: EventData,
   {location, organization}: RenderFunctionBaggage
@@ -668,10 +625,6 @@ export function getFieldRenderer(
 
   if (isRelativeSpanOperationBreakdownField(field)) {
     return spanOperationRelativeBreakdownRenderer;
-  }
-
-  if (isSpanOperationBreakdownField(field)) {
-    return spanOperationBreakdownRenderer(field);
   }
 
   const fieldName = getAggregateAlias(field);
