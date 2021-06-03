@@ -1,14 +1,12 @@
 import * as React from 'react';
 
-import SelectAsyncControl, {
-  Props as SelectAsyncControlProps,
-} from 'app/components/forms/selectAsyncControl';
+import SelectAsyncControl from 'app/components/forms/selectAsyncControl';
 import InputField from 'app/views/settings/components/forms/inputField';
 
 //projects can be passed as a direct prop as well
 type Props = InputField['props'];
 
-export type SelectAsyncFieldProps = SelectAsyncControlProps & Props;
+export type SelectAsyncFieldProps = React.ComponentPropsWithoutRef<typeof SelectAsyncControl> & Props;
 
 class SelectAsyncField extends React.Component<SelectAsyncFieldProps> {
   state = {

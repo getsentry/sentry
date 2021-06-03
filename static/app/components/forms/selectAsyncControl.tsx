@@ -13,7 +13,7 @@ type Result = {
   label: string;
 };
 
-export type Props = {
+type Props = {
   url: string;
   onResults: (data: any) => Result[]; //TODO(ts): Improve data type
   onQuery: (query: string | undefined) => {};
