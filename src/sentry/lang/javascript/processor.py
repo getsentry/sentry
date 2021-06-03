@@ -436,7 +436,7 @@ def fetch_release_archive(release, dist) -> Optional[IO]:
 
 
 def compress(fp: IO) -> Tuple[bytes, bytes]:
-    """ Alternative for compress_file when fp does not support chunks """
+    """Alternative for compress_file when fp does not support chunks"""
     content = fp.read()
     return zlib.compress(content), content
 

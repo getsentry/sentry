@@ -430,7 +430,7 @@ def report(request):
                 id=next(id_sequence),
                 project=p,
                 organization_id=p.organization_id,
-                version="".join([random.choice("0123456789abcdef") for _ in range(40)]),
+                version="".join(random.choice("0123456789abcdef") for _ in range(40)),
                 date_added=dt,
             )
 

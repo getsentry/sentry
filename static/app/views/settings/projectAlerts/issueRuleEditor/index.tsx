@@ -522,7 +522,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
     // check if superuser or if user is on the alert's team
     const canEdit = isActiveSuperuser() || (ownerId ? userTeams.includes(ownerId) : true);
 
-    const filteredTeamIds = new Set(...userTeams);
+    const filteredTeamIds = new Set(userTeams);
     if (ownerId) {
       filteredTeamIds.add(ownerId);
     }

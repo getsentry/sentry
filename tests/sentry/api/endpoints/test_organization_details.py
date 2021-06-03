@@ -689,7 +689,7 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
 
     def assert_2fa_email_equal(self, outbox, expected):
         assert len(outbox) == len(expected)
-        assert sorted([email.to[0] for email in outbox]) == sorted(expected)
+        assert sorted(email.to[0] for email in outbox) == sorted(expected)
 
     def test_cannot_enforce_2fa_without_2fa_enabled(self):
         assert not Authenticator.objects.user_has_2fa(self.owner)

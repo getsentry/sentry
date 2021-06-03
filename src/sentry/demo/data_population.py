@@ -390,7 +390,7 @@ def fix_spans(event_json, old_span_id):
 
 
 def fix_measurements(event_json):
-    """ Convert measurement data from durations into timestamps. """
+    """Convert measurement data from durations into timestamps."""
     measurements = event_json.get("measurements")
 
     if measurements:
