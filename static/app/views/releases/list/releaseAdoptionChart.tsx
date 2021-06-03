@@ -90,7 +90,7 @@ class ReleaseAdoptionChart extends React.PureComponent<Props, State> {
           <Placeholder height="200px" />
         </PanelBody>
         <ChartFooter>
-          <Placeholder height="24px" />
+          <Placeholder height="34px" />
         </ChartFooter>
       </Panel>
     );
