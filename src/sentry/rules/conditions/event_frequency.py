@@ -188,8 +188,8 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
 
         if session_count_last_hour:
             interval_in_minutes = (
-                end - start
-            ).total_seconds() // 60  # percent_intervals[self.get_option("interval")][1].total_seconds() / 60
+                percent_intervals[self.get_option("interval")][1].total_seconds() // 60
+            )
             avg_sessions_in_interval = session_count_last_hour / (60 / interval_in_minutes)
             issue_count = self.tsdb.get_sums(
                 model=self.tsdb.models.group,
