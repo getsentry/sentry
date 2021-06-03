@@ -43,6 +43,7 @@ type Props = {
   defaultStatsPeriod: string;
   queryFilterDescription?: string;
   releaseBounds: ReleaseBounds;
+  withChart?: boolean;
 };
 
 type State = {
@@ -108,6 +109,7 @@ class Issues extends Component<Props, State> {
       }),
       limit: 10,
       sort: IssueSortOptions.FREQ,
+      groupStatsPeriod: 'auto',
     };
 
     switch (issuesType) {
@@ -187,7 +189,7 @@ class Issues extends Component<Props, State> {
 
   render() {
     const {issuesType, pageLinks, onCursor} = this.state;
-    const {organization, queryFilterDescription} = this.props;
+    const {organization, queryFilterDescription, withChart} = this.props;
     const {path, queryParams} = this.getIssuesEndpoint();
     const issuesTypes = [
       {value: IssuesType.NEW, label: t('New Issues')},
@@ -249,7 +251,7 @@ class Issues extends Component<Props, State> {
             query=""
             queryFilterDescription={queryFilterDescription}
             canSelectGroups={false}
-            withChart={false}
+            withChart={Boolean(withChart)}
             renderEmptyMessage={this.renderEmptyMessage}
             withPagination={false}
             onFetchSuccess={this.handleFetchSuccess}
