@@ -3,7 +3,7 @@ import {tct} from 'app/locale';
 import {extractMultilineFields} from 'app/utils';
 import {Field} from 'app/views/settings/components/forms/type';
 
-let getPublicFormFields = (): Field[] => [
+const getPublicFormFields = (): Field[] => [
   {
     name: 'name',
     type: 'string',
