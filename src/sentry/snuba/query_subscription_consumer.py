@@ -176,7 +176,7 @@ class QuerySubscriptionConsumer:
             with sentry_sdk.start_transaction(
                 op="handle_message",
                 name="query_subscription_consumer_process_message",
-                sampled=random.random() <= CONSUMER_TRANSACTION_SAMPLE_RATE,
+                sampled=random() <= CONSUMER_TRANSACTION_SAMPLE_RATE,
             ), metrics.timer("snuba_query_subscriber.handle_message"):
                 self.handle_message(message)
 
