@@ -3780,48 +3780,48 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["transaction"] == "/blah_transaction/"
 
     def test_too_many_team_key_transactions(self):
-        teams = [
-            self.create_team(organization=self.organization, name=f"Team {i}") for i in range(10)
-        ]
-
-        for team in teams:
+        MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS = 1
+        with mock.patch(
+            "sentry.search.events.fields.MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS",
+            MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS
+        ):
+            team = self.create_team(organization=self.organization, name="Team A")
             self.create_team_membership(team, user=self.user)
             self.project.add_team(team)
 
-        TeamKeyTransaction.objects.bulk_create(
-            [
-                TeamKeyTransaction(
-                    team=team,
-                    organization=self.organization,
-                    transaction=f"transaction-{team.id}-{i}",
-                    project=self.project,
-                )
-                for team in teams
-                for i in range(MAX_TEAM_KEY_TRANSACTIONS)
-            ]
-        )
+            TeamKeyTransaction.objects.bulk_create(
+                [
+                    TeamKeyTransaction(
+                        team=team,
+                        organization=self.organization,
+                        transaction=f"transaction-{team.id}-{i}",
+                        project=self.project,
+                    )
+                    for i in range(MAX_TEAM_KEY_TRANSACTIONS + 1)
+                ]
+            )
 
-        query = {
-            "team": "myteams",
-            "project": [self.project.id],
-            "orderby": "transaction",
-            "field": [
-                "team_key_transaction",
-                "transaction",
-                "transaction.status",
-                "project",
-                "epm()",
-                "failure_rate()",
-                "percentile(transaction.duration, 0.95)",
-            ],
-        }
+            query = {
+                "team": "myteams",
+                "project": [self.project.id],
+                "orderby": "transaction",
+                "field": [
+                    "team_key_transaction",
+                    "transaction",
+                    "transaction.status",
+                    "project",
+                    "epm()",
+                    "failure_rate()",
+                    "percentile(transaction.duration, 0.95)",
+                ],
+            }
 
-        response = self.do_request(query)
-        assert response.status_code == 400, response.content
-        assert (
-            response.data["detail"]
-            == "You have selected teams with too many transactions. The limit is 500. Change the active filters to try again."
-        )
+            response = self.do_request(query)
+            assert response.status_code == 400, response.content
+            assert (
+                response.data["detail"]
+                == f"You have selected teams with too many transactions. The limit is {MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS}. Change the active filters to try again."
+            )
 
     def test_no_pagination_param(self):
         self.store_event(

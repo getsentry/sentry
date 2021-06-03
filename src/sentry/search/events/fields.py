@@ -23,7 +23,6 @@ from sentry.search.events.constants import (
     ERROR_UNHANDLED_ALIAS,
     FUNCTION_PATTERN,
     KEY_TRANSACTION_ALIAS,
-    MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS,
     PROJECT_ALIAS,
     PROJECT_NAME_ALIAS,
     PROJECT_THRESHOLD_CONFIG_ALIAS,
@@ -41,6 +40,8 @@ from sentry.utils.snuba import (
     is_measurement,
     is_span_op_breakdown,
 )
+
+MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS = 500
 
 FunctionDetails = namedtuple("FunctionDetails", "field instance arguments")
 ResolvedFunction = namedtuple("ResolvedFunction", "details column aggregate")

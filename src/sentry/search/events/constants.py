@@ -69,5 +69,3 @@ SNQL_FIELD_ALLOWLIST = {
     "release",
     "environment",
 }
-
-MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS = 500
