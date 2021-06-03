@@ -4,7 +4,7 @@ import logging
 from django.db import IntegrityError
 from django.db.models import F
 
-from sentry import options
+from sentry import features, options
 from sentry.auth import manager
 from sentry.auth.exceptions import ProviderNotRegistered
 from sentry.models import (
@@ -177,6 +177,8 @@ class VerifiedEmailComplianceTask(OrganizationComplianceTask):
 def remove_email_verification_non_compliant_members(
     org_id, actor_id=None, actor_key_id=None, ip_address=None
 ):
-    VerifiedEmailComplianceTask().remove_non_compliant_members(
-        org_id, actor_id, actor_key_id, ip_address
-    )
+    org = Organization.objects.get_from_cache(id=org_id)
+    if features.has("organizations:required-email-verification", org):
+        VerifiedEmailComplianceTask().remove_non_compliant_members(
+            org_id, actor_id, actor_key_id, ip_address
+        )

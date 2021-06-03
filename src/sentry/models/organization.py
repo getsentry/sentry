@@ -11,7 +11,7 @@ from django.utils import timezone
 from django.utils.functional import cached_property
 
 from bitfield import BitField
-from sentry import roles
+from sentry import features, roles
 from sentry.app import locks
 from sentry.constants import RESERVED_ORGANIZATION_SLUGS, RESERVED_PROJECT_SLUGS
 from sentry.db.models import BaseManager, BoundedPositiveIntegerField, Model, sane_repr
@@ -458,7 +458,10 @@ class Organization(Model):
     def handle_email_verification_required(self, request):
         from sentry.tasks.auth import remove_email_verification_non_compliant_members
 
-        self._handle_requirement_change(request, remove_email_verification_non_compliant_members)
+        if features.has("organizations:required-email-verification", self):
+            self._handle_requirement_change(
+                request, remove_email_verification_non_compliant_members
+            )
 
     def get_url_viewname(self):
         return "sentry-organization-issue-list"
