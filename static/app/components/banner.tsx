@@ -2,6 +2,7 @@ import * as React from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import ButtonBar from 'app/components/buttonBar';
 import {IconClose} from 'app/icons/iconClose';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -32,11 +33,7 @@ class Banner extends React.Component<Props> {
     } = this.props;
 
     return (
-      <BannerWrapper
-        backgroundComponent={backgroundComponent}
-        backgroundImg={backgroundImg}
-        className={className}
-      >
+      <BannerWrapper backgroundImg={backgroundImg} className={className}>
         {backgroundComponent}
         {isDismissable ? (
           <StyledIconClose aria-label={t('Close')} onClick={onCloseClick} />
@@ -44,7 +41,7 @@ class Banner extends React.Component<Props> {
         <BannerContent>
           <BannerTitle>{title}</BannerTitle>
           <BannerSubtitle>{subtitle}</BannerSubtitle>
-          <BannerActions>{children}</BannerActions>
+          <StyledButtonBar gap={1}>{children}</StyledButtonBar>
         </BannerContent>
       </BannerWrapper>
     );
@@ -66,77 +63,52 @@ const BannerWrapper = styled('div')<BannerWrapperProps>`
           background-position: center center;
         `
       : css`
-          background: ${p.theme.gray500};
+          background-color: ${p.theme.gray500};
         `}
-
-  ${p =>
-    p.backgroundComponent &&
-    css`
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    `}
+  display: flex;
+  overflow: hidden;
+  align-items: center;
+  justify-content: center;
   position: relative;
-  margin-bottom: ${space(3)};
+  margin-bottom: ${space(2)};
   box-shadow: ${p => p.theme.dropShadowLight};
   border-radius: ${p => p.theme.borderRadius};
+  height: 180px;
   color: ${p => p.theme.white};
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    height: 220px;
+  }
 `;
 
 const BannerContent = styled('div')`
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
+  display: grid;
+  justify-items: center;
+  grid-template-rows: repeat(3, max-content);
   text-align: center;
   padding: ${space(4)};
-
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    padding: ${space(0)};
-  }
 `;
 
 const BannerTitle = styled('h1')`
-  margin-bottom: ${space(0.25)};
+  margin: 0;
 
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    font-size: 24px;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    margin-top: ${space(2)};
-    margin-bottom: ${space(0.5)};
-    font-size: 42px;
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    font-size: 40px;
   }
 `;
 
 const BannerSubtitle = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+  margin: 0;
 
-  @media (max-width: ${p => p.theme.breakpoints[0]}) {
-    font-size: ${p => p.theme.fontSizeSmall};
-  }
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
     font-size: ${p => p.theme.fontSizeExtraLarge};
-    margin-bottom: ${space(1)};
-    flex-direction: row;
-    min-width: 650px;
   }
 `;
 
-const BannerActions = styled('div')`
-  display: flex;
-  justify-content: center;
-  width: 100%;
-
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    width: auto;
-  }
+const StyledButtonBar = styled(ButtonBar)`
+  margin-top: ${space(2)};
+  width: fit-content;
 `;
 
 const StyledIconClose = styled(IconClose)`

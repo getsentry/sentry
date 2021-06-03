@@ -35,7 +35,7 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
 
 class OrganizationEventBaseline(OrganizationEventsEndpointBase):
     def get(self, request, organization):
-        """ Find the event id with the closest value to an aggregate for a given query """
+        """Find the event id with the closest value to an aggregate for a given query"""
         if not self.has_feature(organization, request):
             return Response(status=404)
 
