@@ -7,14 +7,18 @@ import {Client} from 'app/api';
 import {t} from 'app/locale';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
 
+type KeyTransaction = {
+  project_id: string;
+  transaction: string;
+};
+
 type TeamKeyTransaction = {
   team: string;
   count: number;
-  keyed: {
-    project_id: string;
-    transaction: string;
-  }[];
+  keyed: KeyTransaction[];
 };
+
+export type TeamKeyTransactions = TeamKeyTransaction[];
 
 export async function fetchTeamKeyTransactions(
   api: Client,
@@ -24,7 +28,7 @@ export async function fetchTeamKeyTransactions(
 ): Promise<TeamKeyTransaction[]> {
   const url = `/organizations/${orgSlug}/key-transactions-list/`;
 
-  const datas: TeamKeyTransaction[][] = [];
+  const datas: TeamKeyTransactions[] = [];
   let cursor: string | undefined = undefined;
   let hasMore = true;
 
@@ -43,6 +47,7 @@ export async function fetchTeamKeyTransactions(
         includeAllArgs: true,
         query: payload,
       });
+
       datas.push(data);
 
       const pageLinks = xhr && xhr.getResponseHeader('Link');

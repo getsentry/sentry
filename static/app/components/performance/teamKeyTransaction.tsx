@@ -9,39 +9,17 @@ import MenuHeader from 'app/components/actions/menuHeader';
 import CheckboxFancy from 'app/components/checkboxFancy/checkboxFancy';
 import {GetActorPropsFn} from 'app/components/dropdownMenu';
 import MenuItem from 'app/components/menuItem';
+import {TeamSelection} from 'app/components/performance/teamKeyTransactionsManager';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Team} from 'app/types';
+import {defined} from 'app/utils';
 import {MAX_TEAM_KEY_TRANSACTIONS} from 'app/utils/performance/constants';
 
 export type TitleProps = Partial<ReturnType<GetActorPropsFn>> & {
   keyedTeamsCount: number;
   disabled?: boolean;
 };
-
-type Props = {
-  teams: Team[];
-  title: ComponentClass<TitleProps>;
-  isLoading: boolean;
-  error: string | null;
-  keyedTeams: Set<string>;
-  counts: Map<string, number>;
-  handleToggleKeyTransaction: (
-    isKey: boolean,
-    teamIds: string[],
-    counts: Map<string, number>,
-    keyedTeams: Set<string>
-  ) => void;
-};
-
-type SelectionAction = {action: 'key' | 'unkey'};
-type MyTeamSelection = SelectionAction & {type: 'my teams'};
-type TeamIdSelection = SelectionAction & {type: 'id'; teamId: string};
-type TeamSelection = MyTeamSelection | TeamIdSelection;
-
-function isMyTeamSelection(selection: TeamSelection): selection is MyTeamSelection {
-  return selection.type === 'my teams';
-}
 
 function canKeyForTeam(team: Team, keyedTeams: Set<string>, counts: Map<string, number>) {
   const isChecked = keyedTeams.has(team.id);
@@ -51,99 +29,25 @@ function canKeyForTeam(team: Team, keyedTeams: Set<string>, counts: Map<string, 
   return (counts.get(team.id) ?? 0) < MAX_TEAM_KEY_TRANSACTIONS;
 }
 
-class TeamKeyTransaction extends Component<Props> {
-  handleToggleKeyTransaction = async (selection: TeamSelection) => {
-    const {handleToggleKeyTransaction} = this.props;
-    const {teamIds, counts, keyedTeams} = isMyTeamSelection(selection)
-      ? this.toggleMyTeams(selection)
-      : this.toggleTeamId(selection);
-
-    handleToggleKeyTransaction(selection.action === 'unkey', teamIds, counts, keyedTeams);
-  };
-
-  toggleMyTeams(selection: MyTeamSelection) {
-    const {counts, keyedTeams, teams} = this.props;
-
-    const markAsKey = selection.action === 'key';
-
-    const teamIds = markAsKey
-      ? teams
-          .filter(team => !keyedTeams.has(team.id))
-          .filter(team => canKeyForTeam(team, keyedTeams, counts))
-          .map(({id}) => id)
-      : teams.filter(team => keyedTeams.has(team.id)).map(({id}) => id);
-
-    return this.toggleTeamIds(selection, teamIds);
-  }
-
-  toggleTeamId(selection: TeamIdSelection) {
-    const teamId = selection.teamId;
-    return this.toggleTeamIds(selection, [teamId]);
-  }
-
-  toggleTeamIds(selection: TeamSelection, teamIds: string[]) {
-    const {counts, keyedTeams} = this.props;
-
-    const markAsKey = selection.action === 'key';
-
-    const newCounts = new Map(counts);
-    const newKeyedTeams = new Set(keyedTeams);
-
-    if (markAsKey) {
-      teamIds.forEach(teamId => {
-        const currentCount = counts.get(teamId) || 0;
-        newCounts.set(teamId, currentCount + 1);
-        newKeyedTeams.add(teamId);
-      });
-    } else {
-      teamIds.forEach(teamId => {
-        const currentCount = counts.get(teamId) || 0;
-        newCounts.set(teamId, currentCount - 1);
-        newKeyedTeams.delete(teamId);
-      });
-    }
-
-    return {
-      teamIds,
-      counts: newCounts,
-      keyedTeams: newKeyedTeams,
-    };
-  }
-
-  render() {
-    const {isLoading, error, counts, keyedTeams, teams, title} = this.props;
-
-    if (isLoading || error) {
-      const Title = title;
-      return <Title disabled keyedTeamsCount={0} />;
-    }
-
-    return (
-      <TeamKeyTransactionSelector
-        title={title}
-        handleToggleKeyTransaction={this.handleToggleKeyTransaction}
-        teams={teams}
-        counts={counts}
-        keyedTeams={keyedTeams}
-      />
-    );
-  }
-}
-
-type SelectorProps = {
+type Props = {
+  isLoading: boolean;
+  error: string | null;
   title: ComponentClass<TitleProps>;
   handleToggleKeyTransaction: (selection: TeamSelection) => void;
   teams: Team[];
-  keyedTeams: Set<string>;
-  counts: Map<string, number>;
+  project: number;
+  transactionName: string;
+  keyedTeams: Set<string> | null;
+  counts: Map<string, number> | null;
+  initialValue?: number;
 };
 
-type SelectorState = {
+type State = {
   isOpen: boolean;
 };
 
-class TeamKeyTransactionSelector extends Component<SelectorProps, SelectorState> {
-  constructor(props: SelectorProps) {
+class TeamKeyTransaction extends Component<Props, State> {
+  constructor(props: Props) {
     super(props);
 
     let portal = document.getElementById('team-key-transaction-portal');
@@ -156,11 +60,11 @@ class TeamKeyTransactionSelector extends Component<SelectorProps, SelectorState>
     this.menuEl = null;
   }
 
-  state: SelectorState = {
+  state: State = {
     isOpen: false,
   };
 
-  componentDidUpdate(_props: SelectorProps, prevState: SelectorState) {
+  componentDidUpdate(_props: Props, prevState: State) {
     if (this.state.isOpen && prevState.isOpen === false) {
       document.addEventListener('click', this.handleClickOutside, true);
     }
@@ -194,106 +98,126 @@ class TeamKeyTransactionSelector extends Component<SelectorProps, SelectorState>
     this.setState(({isOpen}) => ({isOpen: !isOpen}));
   };
 
-  toggleTeam = (team: TeamSelection) => () => {
+  toggleSelection = (enabled: boolean, selection: TeamSelection) => () => {
     const {handleToggleKeyTransaction} = this.props;
-    handleToggleKeyTransaction(team);
+    return enabled ? handleToggleKeyTransaction(selection) : undefined;
   };
 
-  render() {
-    const {title: Title, teams, counts, keyedTeams} = this.props;
-    const {isOpen} = this.state;
+  renderMenuContent(counts: Map<string, number>, keyedTeams: Set<string>) {
+    const {teams, project, transactionName} = this.props;
 
     const [enabledTeams, disabledTeams] = partition(teams, team =>
       canKeyForTeam(team, keyedTeams, counts)
     );
 
     const isMyTeamsEnabled = enabledTeams.length > 0;
-    const myTeamsHandler = isMyTeamsEnabled
-      ? this.toggleTeam({
-          type: 'my teams',
-          action: enabledTeams.length === keyedTeams.size ? 'unkey' : 'key',
-        })
-      : undefined;
+    const myTeamsHandler = this.toggleSelection(isMyTeamsEnabled, {
+      type: 'my teams',
+      action: enabledTeams.length === keyedTeams.size ? 'unkey' : 'key',
+      project,
+      transactionName,
+    });
 
-    let menu: ReactPortal | null = null;
+    return (
+      <DropdownContent>
+        <DropdownMenuHeader first>
+          {t('My Teams')}
+          <ActionItem>
+            <CheckboxFancy
+              isDisabled={!isMyTeamsEnabled}
+              isChecked={teams.length === keyedTeams.size}
+              isIndeterminate={teams.length > keyedTeams.size && keyedTeams.size > 0}
+              onClick={myTeamsHandler}
+            />
+          </ActionItem>
+        </DropdownMenuHeader>
+        {enabledTeams.map(team => (
+          <TeamKeyTransactionItem
+            key={team.slug}
+            team={team}
+            isKeyed={keyedTeams.has(team.id)}
+            disabled={false}
+            onSelect={this.toggleSelection(true, {
+              type: 'id',
+              action: keyedTeams.has(team.id) ? 'unkey' : 'key',
+              teamId: team.id,
+              project,
+              transactionName,
+            })}
+          />
+        ))}
+        {disabledTeams.map(team => (
+          <TeamKeyTransactionItem
+            key={team.slug}
+            team={team}
+            isKeyed={keyedTeams.has(team.id)}
+            disabled
+            onSelect={this.toggleSelection(true, {
+              type: 'id',
+              action: keyedTeams.has(team.id) ? 'unkey' : 'key',
+              teamId: team.id,
+              project,
+              transactionName,
+            })}
+          />
+        ))}
+      </DropdownContent>
+    );
+  }
 
-    if (isOpen) {
-      const modifiers: PopperJS.Modifiers = {
-        hide: {
-          enabled: false,
-        },
-        preventOverflow: {
-          padding: 10,
-          enabled: true,
-          boundariesElement: 'viewport',
-        },
-      };
+  renderMenu(): ReactPortal | null {
+    const {isLoading, counts, keyedTeams} = this.props;
 
-      menu = ReactDOM.createPortal(
-        <Popper placement="top" modifiers={modifiers}>
-          {({ref: popperRef, style, placement}) => (
-            <DropdownWrapper
-              ref={ref => {
-                (popperRef as Function)(ref);
-                this.menuEl = ref;
-              }}
-              style={style}
-              data-placement={placement}
-            >
-              <DropdownContent>
-                <DropdownMenuHeader first>
-                  {t('My Teams')}
-                  <ActionItem>
-                    <CheckboxFancy
-                      isDisabled={!isMyTeamsEnabled}
-                      isChecked={teams.length === keyedTeams.size}
-                      isIndeterminate={
-                        teams.length > keyedTeams.size && keyedTeams.size > 0
-                      }
-                      onClick={myTeamsHandler}
-                    />
-                  </ActionItem>
-                </DropdownMenuHeader>
-                {enabledTeams.map(team => (
-                  <TeamKeyTransactionItem
-                    key={team.slug}
-                    team={team}
-                    isKeyed={keyedTeams.has(team.id)}
-                    disabled={false}
-                    onSelect={this.toggleTeam({
-                      type: 'id',
-                      action: keyedTeams.has(team.id) ? 'unkey' : 'key',
-                      teamId: team.id,
-                    })}
-                  />
-                ))}
-                {disabledTeams.map(team => (
-                  <TeamKeyTransactionItem
-                    key={team.slug}
-                    team={team}
-                    isKeyed={keyedTeams.has(team.id)}
-                    disabled
-                    onSelect={this.toggleTeam({
-                      type: 'id',
-                      action: keyedTeams.has(team.id) ? 'unkey' : 'key',
-                      teamId: team.id,
-                    })}
-                  />
-                ))}
-              </DropdownContent>
-            </DropdownWrapper>
-          )}
-        </Popper>,
-        this.portalEl
-      );
+    if (isLoading || !defined(counts) || !defined(keyedTeams)) {
+      return null;
     }
+
+    const modifiers: PopperJS.Modifiers = {
+      hide: {
+        enabled: false,
+      },
+      preventOverflow: {
+        padding: 10,
+        enabled: true,
+        boundariesElement: 'viewport',
+      },
+    };
+
+    return ReactDOM.createPortal(
+      <Popper placement="top" modifiers={modifiers}>
+        {({ref: popperRef, style, placement}) => (
+          <DropdownWrapper
+            ref={ref => {
+              (popperRef as Function)(ref);
+              this.menuEl = ref;
+            }}
+            style={style}
+            data-placement={placement}
+          >
+            {this.renderMenuContent(counts, keyedTeams)}
+          </DropdownWrapper>
+        )}
+      </Popper>,
+      this.portalEl
+    );
+  }
+
+  render() {
+    const {isLoading, error, title: Title, keyedTeams, initialValue} = this.props;
+    const {isOpen} = this.state;
+
+    const menu: ReactPortal | null = isOpen ? this.renderMenu() : null;
 
     return (
       <Manager>
         <Reference>
           {({ref}) => (
             <div ref={ref}>
-              <Title keyedTeamsCount={keyedTeams.size} onClick={this.toggleOpen} />
+              <Title
+                disabled={isLoading || Boolean(error)}
+                keyedTeamsCount={keyedTeams?.size ?? initialValue ?? 0}
+                onClick={this.toggleOpen}
+              />
             </div>
           )}
         </Reference>
