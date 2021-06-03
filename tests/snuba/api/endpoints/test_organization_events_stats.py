@@ -205,6 +205,43 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert [attrs for time, attrs in response.data["data"]] == [[{"count": 1}], [{"count": 2}]]
 
+    def test_aggregate_function_apdex(self):
+        events = [
+            ("one", 400),
+            ("one", 400),
+            ("two", 3000),
+            ("two", 1000),
+            ("three", 3000),
+        ]
+        for idx, event in enumerate(events):
+            data = load_data(
+                "transaction",
+                start_timestamp=self.day_ago + timedelta(minutes=(1 + idx)),
+                timestamp=self.day_ago + timedelta(minutes=(1 + idx), milliseconds=event[1]),
+            )
+            data["event_id"] = f"{idx}" * 32
+            data["transaction"] = f"/apdex/new/{event[0]}"
+            data["user"] = {"email": f"{idx}@example.com"}
+            self.store_event(data, project_id=self.project.id)
+
+        with self.feature("organizations:discover-basic"):
+            response = self.client.get(
+                self.url,
+                format="json",
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "interval": "1h",
+                    "yAxis": "apdex_new()",
+                },
+            )
+        assert response.status_code == 200, response.content
+
+        assert [attrs for time, attrs in response.data["data"]] == [
+            [{"count": 0.3}],
+            [{"count": 0}],
+        ]
+
     def test_invalid_aggregate(self):
         with self.feature("organizations:discover-basic"):
             response = self.client.get(
