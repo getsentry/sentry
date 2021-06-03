@@ -303,7 +303,7 @@ class ReleasesList extends AsyncView<Props, State> {
 
     const selectedProjectId =
       selection.projects && selection.projects.length === 1 && selection.projects[0];
-    const selectedProject = organization.projects.find(
+    const selectedProject = organization.projects?.find(
       p => p.id === `${selectedProjectId}`
     );
 
