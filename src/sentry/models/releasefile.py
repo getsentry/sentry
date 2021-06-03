@@ -125,7 +125,7 @@ ReleaseFile.cache = ReleaseFileCache()
 
 
 class ReleaseArchive:
-    """ Read-only view of uploaded ZIP-archive of release files """
+    """Read-only view of uploaded ZIP-archive of release files"""
 
     def __init__(self, fileobj: IO):
         self._fileobj = fileobj
@@ -171,7 +171,7 @@ class ReleaseArchive:
 
 
 def merge_release_archives(archive1: ReleaseArchive, archive2: ReleaseArchive, target: IO):
-    """Fields in archive2 take precedence over fields in archive1. """
+    """Fields in archive2 take precedence over fields in archive1."""
     merged_manifest = dict(archive1.manifest, **archive2.manifest)
     files1 = archive1.manifest.get("files", {})
     files2 = archive2.manifest.get("files", {})
