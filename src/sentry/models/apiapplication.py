@@ -1,6 +1,6 @@
+from secrets import token_urlsafe
 from urllib.parse import urlparse
 from uuid import uuid4
-from secrets import token_urlsafe
 
 import petname
 from django.db import models
