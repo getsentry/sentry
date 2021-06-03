@@ -36,7 +36,7 @@ export default class IntegrationExternalMappingForm extends Component<Props> {
   }
 
   get formFields(): Field[] {
-    const {type, sentryNamesMapper, url} = this.props;
+    const {type, sentryNamesMapper, url, mapping} = this.props;
     const optionMapper = sentryNames =>
       sentryNames.map(({name, id}) => ({value: id, label: name}));
 
@@ -58,6 +58,10 @@ export default class IntegrationExternalMappingForm extends Component<Props> {
         placeholder: t(`Choose your Sentry User`),
         url,
         onResults: result => {
+          // check if mapping is in result, else add it
+          if (mapping && !result.find(({id}) => id === mapping.userId)) {
+            result = [{id: mapping.userId, name: mapping.sentryName}, ...result];
+          }
           this.props.onResults?.(result);
           return optionMapper(sentryNamesMapper(result));
         },
@@ -72,6 +76,10 @@ export default class IntegrationExternalMappingForm extends Component<Props> {
         placeholder: t(`Choose your Sentry Team`),
         url,
         onResults: result => {
+          // check if mapping is in result, else add it
+          if (mapping && !result.find(({id}) => id === mapping.teamId)) {
+            result = [{id: mapping.teamId, name: mapping.sentryName}, ...result];
+          }
           this.props.onResults?.(result);
           return optionMapper(sentryNamesMapper(result));
         },

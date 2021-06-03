@@ -15,7 +15,8 @@ class SelectAsyncField extends React.Component<SelectAsyncFieldProps> {
   state = {
     results: [],
   };
-  //need to map the option object to the value
+  // need to map the option object to the value
+  // this is essentially the same code from ./selectField handleChange()
   handleChange = (
     onBlur: Props['onBlur'],
     onChange: Props['onChange'],
