@@ -2041,6 +2041,70 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         # because we're ordering by `user.display`, we expect the results in sorted order
         assert result == ["catherine", "cathy@example.com"]
 
+    def test_any_field_alias(self):
+        day_ago = before_now(days=1).replace(hour=10, minute=11, second=12, microsecond=13)
+        project1 = self.create_project()
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "transaction": "/example",
+                "message": "how to make fast",
+                "timestamp": iso_format(day_ago),
+                "user": {"email": "cathy@example.com"},
+            },
+            project_id=project1.id,
+        )
+
+        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        query = {
+            "field": [
+                "event.type",
+                "any(user.display)",
+                "any(timestamp.to_day)",
+                "any(timestamp.to_hour)",
+            ],
+            "statsPeriod": "7d",
+        }
+        response = self.do_request(query, features=features)
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        result = {r["any_user_display"] for r in data}
+        assert result == {"cathy@example.com"}
+        result = {r["any_timestamp_to_day"][:19] for r in data}
+        assert result == {iso_format(day_ago.replace(hour=0, minute=0, second=0, microsecond=0))}
+        result = {r["any_timestamp_to_hour"][:19] for r in data}
+        assert result == {iso_format(day_ago.replace(minute=0, second=0, microsecond=0))}
+
+    def test_field_aliases_in_conflicting_functions(self):
+        day_ago = before_now(days=1).replace(hour=10, minute=11, second=12, microsecond=13)
+        project1 = self.create_project()
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "transaction": "/example",
+                "message": "how to make fast",
+                "timestamp": iso_format(day_ago),
+                "user": {"email": "cathy@example.com"},
+            },
+            project_id=project1.id,
+        )
+
+        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+
+        field_aliases = ["user.display", "timestamp.to_day", "timestamp.to_hour"]
+        for alias in field_aliases:
+            query = {
+                "field": [alias, f"any({alias})"],
+                "statsPeriod": "7d",
+            }
+            response = self.do_request(query, features=features)
+            assert response.status_code == 400, response.content
+            assert (
+                response.data["detail"]
+                == f"A single field cannot be used both inside and outside a function in the same query. To use {alias} you must first remove the function(s): any({alias})"
+            )
+
     @pytest.mark.skip(
         """
          For some reason ClickHouse errors when there are two of the same string literals
