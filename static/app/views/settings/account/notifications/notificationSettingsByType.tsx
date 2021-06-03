@@ -190,19 +190,19 @@ class NotificationSettingsByType extends AsyncComponent<Props, State> {
           />
         </Form>
         {!isEverythingDisabled(notificationType, notificationSettings) &&
-        isGroupedByProject(notificationType) ? (
-          <NotificationSettingsByProjects
-            notificationType={notificationType}
-            notificationSettings={notificationSettings}
-            onChange={this.getStateToPutForParent}
-          />
-        ) : (
-          <NotificationSettingsByOrganization
-            notificationType={notificationType}
-            notificationSettings={notificationSettings}
-            onChange={this.getStateToPutForParent}
-          />
-        )}
+          (isGroupedByProject(notificationType) ? (
+            <NotificationSettingsByProjects
+              notificationType={notificationType}
+              notificationSettings={notificationSettings}
+              onChange={this.getStateToPutForParent}
+            />
+          ) : (
+            <NotificationSettingsByOrganization
+              notificationType={notificationType}
+              notificationSettings={notificationSettings}
+              onChange={this.getStateToPutForParent}
+            />
+          ))}
       </React.Fragment>
     );
   }

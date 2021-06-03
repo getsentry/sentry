@@ -20,7 +20,9 @@ export const getParentKey = (notificationType: string): string => {
   return isGroupedByProject(notificationType) ? 'project' : 'organization';
 };
 
-export const groupByOrganization = (projects: Project[]) => {
+export const groupByOrganization = (
+  projects: Project[]
+): Record<string, {organization: OrganizationSummary; projects: Project[]}> => {
   return projects.reduce<
     Record<string, {organization: OrganizationSummary; projects: Project[]}>
   >((acc, project) => {
