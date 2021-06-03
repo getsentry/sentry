@@ -27,6 +27,15 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             "organizations:discover-basic", organization, actor=request.user
         ) or features.has("organizations:performance-view", organization, actor=request.user)
 
+    def has_arithmetic(self, organization, request):
+        return features.has("organizations:discover-arithmetic", organization, actor=request.user)
+
+    def get_equation_list(self, organization, request):
+        if self.has_arithmetic(organization, request):
+            return request.GET.getlist("equation")[:]
+        else:
+            return []
+
     def get_snuba_filter(self, request, organization, params=None):
         if params is None:
             params = self.get_snuba_params(request, organization)
@@ -38,7 +47,10 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
     def get_snuba_params(self, request, organization, check_global_views=True):
         with sentry_sdk.start_span(op="discover.endpoint", description="filter_params"):
-            if len(request.GET.getlist("field")) > MAX_FIELDS:
+            if (
+                len(request.GET.getlist("field") + self.get_equation_list(organization, request))
+                > MAX_FIELDS
+            ):
                 raise ParseError(
                     detail=f"You can view up to {MAX_FIELDS} fields at a time. Please delete some and try again."
                 )
@@ -153,9 +165,6 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
 
 class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
-    def has_arithmetic(self, organization, request):
-        return features.has("organizations:discover-arithmetic", organization, actor=request.user)
-
     def build_cursor_link(self, request, name, cursor):
         # The base API function only uses the last query parameter, but this endpoint
         # needs all the parameters, particularly for the "field" query param.

@@ -3839,3 +3839,21 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         )
 
         assert response.status_code == 400
+
+    @mock.patch("sentry.api.bases.organization_events.MAX_FIELDS", 2)
+    def test_equation_field_limit(self):
+        query = {
+            "field": ["spans.http", "transaction.duration"],
+            "equation": ["5 * 2"],
+            "project": [self.project.id],
+            "query": "event.type:transaction",
+        }
+        response = self.do_request(
+            query,
+            {
+                "organizations:discover-basic": True,
+                "organizations:discover-arithmetic": True,
+            },
+        )
+
+        assert response.status_code == 400
