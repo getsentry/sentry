@@ -205,7 +205,7 @@ class Migration(migrations.Migration):
                 (
                     "client_id",
                     models.CharField(
-                        default=sentry.models.apiapplication.generate_token,
+                        default=sentry.models.apiapplication.generate_id,
                         unique=True,
                         max_length=64,
                     ),
@@ -213,7 +213,7 @@ class Migration(migrations.Migration):
                 (
                     "client_secret",
                     sentry.db.models.fields.encrypted.EncryptedTextField(
-                        default=sentry.models.apiapplication.generate_token
+                        default=sentry.models.apiapplication.generate_secret
                     ),
                 ),
                 (

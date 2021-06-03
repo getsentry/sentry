@@ -16,7 +16,7 @@ def default_expiration():
 
 
 def generate_token():
-    return 'sentry_at_' + token_urlsafe(40).replace('-', '0').replace('_', '0')
+    return "sentry_at_" + token_urlsafe(40).replace("-", "0").replace("_", "0")
 
 
 @python_2_unicode_compatible
