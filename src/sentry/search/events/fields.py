@@ -361,6 +361,12 @@ def parse_arguments(function, columns):
     return [arg for arg in args if arg]
 
 
+def to_tuple(x):
+    if isinstance(x, list):
+        return tuple(to_tuple(y) for y in x)
+    return x
+
+
 def resolve_field_list(
     fields, snuba_filter, auto_fields=True, auto_aggregations=False, functions_acl=None
 ):
@@ -419,7 +425,7 @@ def resolve_field_list(
             if function.details is not None and isinstance(function.aggregate, (list, tuple)):
                 functions[function.aggregate[-1]] = function.details
                 if function.details.instance.redundant_grouping:
-                    aggregate_fields[function.aggregate[1]].add(field)
+                    aggregate_fields[to_tuple(function.aggregate[1])].add(field)
 
     # Only auto aggregate when there's one other so the group by is not unexpectedly changed
     if auto_aggregations and snuba_filter.having and len(aggregations) > 0:
@@ -434,7 +440,7 @@ def resolve_field_list(
                         functions[function.aggregate[-1]] = function.details
 
                         if function.details.instance.redundant_grouping:
-                            aggregate_fields[function.aggregate[1]].add(field)
+                            aggregate_fields[to_tuple(function.aggregate[1])].add(field)
 
     rollup = snuba_filter.rollup
     if not rollup and auto_fields:
@@ -490,21 +496,19 @@ def resolve_field_list(
     # need to be added to the group by so that the query is valid.
     if aggregations:
         for column in columns:
-            if isinstance(column, (list, tuple)):
+            is_iterable = isinstance(column, (list, tuple))
+            if is_iterable and column[2] not in FIELD_ALIASES:
                 if column[0] == "transform":
                     # When there's a project transform, we already group by project_id
                     continue
-                if column[2] == USER_DISPLAY_ALIAS:
-                    # user.display needs to be grouped by its coalesce function
-                    groupby.append(column)
-                    continue
                 groupby.append(column[2])
             else:
-                if column in aggregate_fields:
-                    conflicting_functions = list(aggregate_fields[column])
+                column_key = to_tuple([column[:2]]) if is_iterable else column
+                if column_key in aggregate_fields:
+                    conflicting_functions = list(aggregate_fields[column_key])
                     raise InvalidSearchQuery(
                         "A single field cannot be used both inside and outside a function in the same query. To use {field} you must first remove the function(s): {function_msg}".format(
-                            field=column,
+                            field=column[2] if is_iterable else column,
                             function_msg=", ".join(conflicting_functions[:2])
                             + (
                                 f" and {len(conflicting_functions) - 2} more."
