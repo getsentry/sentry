@@ -239,21 +239,36 @@ class VitalDetailContent extends React.Component<Props, State> {
                 vital={vital}
               />
             </StyledVitalInfo>
-            <TeamKeyTransactionManager.Provider
-              organization={organization}
-              teams={userTeams}
-              selectedTeams={['myteams']}
-              selectedProjects={eventView.project.map(String)}
-            >
-              <Table
-                eventView={eventView}
-                projects={projects}
-                organization={organization}
-                location={location}
-                setError={this.setError}
-                summaryConditions={summaryConditions}
-              />
-            </TeamKeyTransactionManager.Provider>
+            <Feature organization={organization} features={['team-key-transactions']}>
+              {({hasFeature}) =>
+                hasFeature ? (
+                  <TeamKeyTransactionManager.Provider
+                    organization={organization}
+                    teams={userTeams}
+                    selectedTeams={['myteams']}
+                    selectedProjects={eventView.project.map(String)}
+                  >
+                    <Table
+                      eventView={eventView}
+                      projects={projects}
+                      organization={organization}
+                      location={location}
+                      setError={this.setError}
+                      summaryConditions={summaryConditions}
+                    />
+                  </TeamKeyTransactionManager.Provider>
+                ) : (
+                  <Table
+                    eventView={eventView}
+                    projects={projects}
+                    organization={organization}
+                    location={location}
+                    setError={this.setError}
+                    summaryConditions={summaryConditions}
+                  />
+                )
+              }
+            </Feature>
           </Layout.Main>
         </Layout.Body>
       </React.Fragment>

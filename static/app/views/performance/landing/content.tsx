@@ -3,6 +3,7 @@ import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import Feature from 'app/components/acl/feature';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import SearchBar from 'app/components/events/searchBar';
 import * as TeamKeyTransactionManager from 'app/components/performance/teamKeyTransactionsManager';
@@ -254,14 +255,22 @@ class LandingContent extends Component<Props, State> {
             ))}
           </DropdownControl>
         </SearchContainer>
-        <TeamKeyTransactionManager.Provider
-          organization={organization}
-          teams={userTeams}
-          selectedTeams={['myteams']}
-          selectedProjects={eventView.project.map(String)}
-        >
-          {this.renderSelectedDisplay(currentLandingDisplay.field)}
-        </TeamKeyTransactionManager.Provider>
+        <Feature organization={organization} features={['team-key-transactions']}>
+          {({hasFeature}) =>
+            hasFeature ? (
+              <TeamKeyTransactionManager.Provider
+                organization={organization}
+                teams={userTeams}
+                selectedTeams={['myteams']}
+                selectedProjects={eventView.project.map(String)}
+              >
+                {this.renderSelectedDisplay(currentLandingDisplay.field)}
+              </TeamKeyTransactionManager.Provider>
+            ) : (
+              this.renderSelectedDisplay(currentLandingDisplay.field)
+            )
+          }
+        </Feature>
       </Fragment>
     );
   }
