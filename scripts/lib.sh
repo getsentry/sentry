@@ -81,7 +81,7 @@ start-docker() {
 
 upgrade-pip() {
     # pip versions before 20.1 do not have `pip cache` as a command which is necessary for the CI
-    pip3 install --no-cache-dir --upgrade "pip==21.1.2"
+    pip install --no-cache-dir --upgrade "pip==21.1.2"
     # The Python version installed via pyenv does not come with wheel pre-installed
     # Installing wheel will speed up installation of Python dependencies
     require wheel || pip install wheel
