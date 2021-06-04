@@ -11,6 +11,8 @@ from sentry.utils import metrics
 
 intervals = {
     "1m": ("one minute", timedelta(minutes=1)),
+    "5m": ("5 minutes", timedelta(minutes=5)),
+    "15m": ("15 minutes", timedelta(minutes=15)),
     "1h": ("one hour", timedelta(hours=1)),
     "1d": ("one day", timedelta(hours=24)),
     "1w": ("one week", timedelta(days=7)),
