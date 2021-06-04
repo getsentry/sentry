@@ -54,7 +54,7 @@ const SourceMapsArchiveRow = ({archive, orgId, projectId, onDelete}: Props) => {
                 <Confirm
                   onConfirm={() => onDelete(name)}
                   message={t(
-                    'Are you sure you want to remove all artifacts in this archive?'
+                    'Are you sure you want to remove all artifacts in this release?'
                   )}
                   disabled={!hasAccess}
                 >

@@ -72,6 +72,7 @@ class ProjectSourceMapsDetail extends AsyncView<Props, State> {
         this.getArtifactsUrl(),
         {query: {query: this.getQuery(), type: this.getType()}},
       ],
+      ['filesMeta', this.getFilesMetaUrl()],
     ];
   }
 

@@ -118,6 +118,11 @@ describe('ProjectSourceMapsDetail', function () {
     router,
   };
 
+  MockApiClient.addMockResponse({
+    url: `/projects/${organization.slug}/${project.slug}/releases/${archiveName}/files-meta/`,
+    body: {},
+  });
+
   it('renders', function () {
     MockApiClient.addMockResponse({
       url: endpoint,
