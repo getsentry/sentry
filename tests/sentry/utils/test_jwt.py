@@ -58,6 +58,23 @@ Rt4IpcVVl+gvmjsV4PWILGI3EbCP6WOCbJPGjdVmRxl/8Ng4HYwU8DCveiQ=
 -----END RSA PRIVATE KEY-----
 """
 
+RS256_PUB_KEY = b"""
+-----BEGIN PUBLIC KEY-----
+MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAwcYWTDju/+S7dgFLMp6V
+QHbCMHTQD7RxoaTWKY8/NizzW7QX82QZWGyc2+1EpYgza82Joy3IQ78FRV5NHjZO
+Ngeot+ZsnznFRokXvzdrshFCv4i+4Jeo9RJW/32T53dM3f7kYJ+n6cDouExHIg03
+TpQKiB/SiAR8f6K+qa9xOCbFRv5McKvLWxHsSMOx034MQKseSokX+BtPrBrCNzPe
+or92jljKlamIBvgtJQj/Vi4WvaFloXAZ+4BOZwe51ojujYWuLUHxo4khe5Yd/auV
+5tKtOIBPFQRgcOOFfVc9J2BiwAk1KkraO4zd+s7GYvQeTd2pVLXUIQO9lLzoCtI/
+f4e0NAUKNo1CY6UePsxs3Q+RdvxmO09mvq7E8BzqM5rKmpGc7xxuk9R1lZ6aHGe3
+PIVKfYgPUBn8IIspoZjLhxxhk9BCmwKDRofHqtmVBOk7wWgwebDqEed99pPO63vs
+ctlci1MwUo5OvUDQtd3ULCZr+5TKGPtM33rmDIrGgCOJvhp2jM54KvZpt9IyC2jv
+wrrcnJV7/9Sipy1Ns+jKvGntcPJbUThjMQGqREFi8G4L8sYMYC5vJz4R1vHcysY3
+k0hLqyfokkW5eNveba31yzprhUFlikfxHWIZipMb2CFxYN1bukMWnkRJU4ZhUoRW
+NYg4Kl5rg3/rE+CVfboSGvcCAwEAAQ==
+-----END PUBLIC KEY-----
+"""
+
 RSA_JWK = {
     "n": "wcYWTDju_-S7dgFLMp6VQHbCMHTQD7RxoaTWKY8_NizzW7QX82QZWGyc2-1EpYgza82Joy3IQ78FRV5NHjZONgeot-ZsnznFRokXvzdrshFCv4i-4Jeo9RJW_32T53dM3f7kYJ-n6cDouExHIg03TpQKiB_SiAR8f6K-qa9xOCbFRv5McKvLWxHsSMOx034MQKseSokX-BtPrBrCNzPeor92jljKlamIBvgtJQj_Vi4WvaFloXAZ-4BOZwe51ojujYWuLUHxo4khe5Yd_auV5tKtOIBPFQRgcOOFfVc9J2BiwAk1KkraO4zd-s7GYvQeTd2pVLXUIQO9lLzoCtI_f4e0NAUKNo1CY6UePsxs3Q-RdvxmO09mvq7E8BzqM5rKmpGc7xxuk9R1lZ6aHGe3PIVKfYgPUBn8IIspoZjLhxxhk9BCmwKDRofHqtmVBOk7wWgwebDqEed99pPO63vsctlci1MwUo5OvUDQtd3ULCZr-5TKGPtM33rmDIrGgCOJvhp2jM54KvZpt9IyC2jvwrrcnJV7_9Sipy1Ns-jKvGntcPJbUThjMQGqREFi8G4L8sYMYC5vJz4R1vHcysY3k0hLqyfokkW5eNveba31yzprhUFlikfxHWIZipMb2CFxYN1bukMWnkRJU4ZhUoRWNYg4Kl5rg3_rE-CVfboSGvc",
     "e": "AQAB",
@@ -70,9 +87,16 @@ RSA_JWK = {
     "kty": "RSA",
 }
 
+RSA_PUB_JWK = {
+    "n": "wcYWTDju_-S7dgFLMp6VQHbCMHTQD7RxoaTWKY8_NizzW7QX82QZWGyc2-1EpYgza82Joy3IQ78FRV5NHjZONgeot-ZsnznFRokXvzdrshFCv4i-4Jeo9RJW_32T53dM3f7kYJ-n6cDouExHIg03TpQKiB_SiAR8f6K-qa9xOCbFRv5McKvLWxHsSMOx034MQKseSokX-BtPrBrCNzPeor92jljKlamIBvgtJQj_Vi4WvaFloXAZ-4BOZwe51ojujYWuLUHxo4khe5Yd_auV5tKtOIBPFQRgcOOFfVc9J2BiwAk1KkraO4zd-s7GYvQeTd2pVLXUIQO9lLzoCtI_f4e0NAUKNo1CY6UePsxs3Q-RdvxmO09mvq7E8BzqM5rKmpGc7xxuk9R1lZ6aHGe3PIVKfYgPUBn8IIspoZjLhxxhk9BCmwKDRofHqtmVBOk7wWgwebDqEed99pPO63vsctlci1MwUo5OvUDQtd3ULCZr-5TKGPtM33rmDIrGgCOJvhp2jM54KvZpt9IyC2jvwrrcnJV7_9Sipy1Ns-jKvGntcPJbUThjMQGqREFi8G4L8sYMYC5vJz4R1vHcysY3k0hLqyfokkW5eNveba31yzprhUFlikfxHWIZipMb2CFxYN1bukMWnkRJU4ZhUoRWNYg4Kl5rg3_rE-CVfboSGvc",
+    "e": "AQAB",
+    "kty": "RSA",
+}
+
 
 @pytest.fixture  # type: ignore
 def token() -> str:
+    """A JWT token, signed with symmetric key."""
     headers = {
         "alg": "HS256",
         "typ": "JWT",
@@ -86,7 +110,24 @@ def token() -> str:
     # PyJWT < 2.0 returns bytes, not strings
     token = encoded.decode("UTF-8")
     assert isinstance(token, str)
+    return token
 
+
+@pytest.fixture  # type: ignore
+def rsa_token() -> str:
+    """A JWT token, signed with RSA key."""
+    headers = {
+        "alg": "RS256",
+        "typ": "JWT",
+    }
+    claims = {
+        "iss": "me",
+    }
+    token = pyjwt.encode(claims, RS256_KEY, algorithm="RS256", headers=headers)
+
+    # PyJWT < 2.0 returns bytes, not strings
+    token = token.decode("UTF-8")
+    assert isinstance(token, str)
     return token
 
 
@@ -123,6 +164,11 @@ def test_decode(token: str) -> None:
 
     with pytest.raises(pyjwt.InvalidAudience):
         jwt_utils.decode(token, b"secret")
+
+
+def test_decode_pub(rsa_token: str) -> None:
+    claims = jwt_utils.decode(rsa_token, RS256_PUB_KEY, algorithms=["RS256"])
+    assert claims == {"iss": "me"}
 
 
 def test_decode_audience() -> None:
@@ -205,6 +251,10 @@ def test_rsa_key_from_jwk() -> None:
     assert token_from_jwk == token
 
 
-# TODO: add tests which only have a public key and verify we can decode with that.  We do
-# not currently have type-safety of the keys to distinguish between keys suitable for
-# encoding and decoding or those only suitable for decoding.
+def test_rsa_key_from_jwk_pubkey(rsa_token: str) -> None:
+    key = jwt_utils.rsa_key_from_jwk(json.dumps(RSA_PUB_JWK))
+    assert key
+    assert isinstance(key, bytes)
+
+    claims = jwt_utils.decode(rsa_token, key, algorithms=["RS256"])
+    assert claims == {"iss": "me"}

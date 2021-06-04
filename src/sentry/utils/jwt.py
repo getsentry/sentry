@@ -28,7 +28,7 @@ def peek_header(token: str) -> Mapping[str, str]:
 
     :param token: The JWT token to extract the headers from.
     """
-    return pyjwt.get_unverified_header(token)  # type: ignore
+    return pyjwt.get_unverified_header(token.encode("UTF-8"))  # type: ignore
 
 
 def peek_claims(token: str) -> Mapping[str, str]:
@@ -120,7 +120,8 @@ def rsa_key_from_jwk(jwk: str) -> bytes:
     """
     key = pyjwt.algorithms.RSAAlgorithm.from_jwk(jwk)
     if isinstance(key, RSAPrivateKey):
-        return key.private_bytes(Encoding.PEM, PrivateFormat.PKCS8, NoEncryption())
+        # The return type is verified in our own tests, this is fine.
+        return key.private_bytes(Encoding.PEM, PrivateFormat.PKCS8, NoEncryption())  # type: ignore
     elif isinstance(key, RSAPublicKey):
         return key.public_bytes(Encoding.PEM, PublicFormat.SubjectPublicKeyInfo)
     else:
