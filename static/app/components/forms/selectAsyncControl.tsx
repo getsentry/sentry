@@ -99,9 +99,11 @@ class SelectAsyncControl extends React.Component<Props> {
 
   render() {
     const {value, forwardedRef, ...props} = this.props;
-
     return (
       <SelectControl
+        // The key is used as a way to force a reload of the options:
+        // https://github.com/JedWatson/react-select/issues/1879#issuecomment-316871520
+        key={value}
         ref={forwardedRef}
         value={value}
         defaultOptions
