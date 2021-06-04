@@ -7,6 +7,13 @@ central place which handles JWT in a uniform way.
 from typing import List, Mapping, Optional, Union
 
 import jwt as pyjwt
+from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey, RSAPublicKey
+from cryptography.hazmat.primitives.serialization import (
+    Encoding,
+    NoEncryption,
+    PrivateFormat,
+    PublicFormat,
+)
 from jwt import DecodeError
 
 __all__ = ["peek_claims", "decode", "encode", "authorization_header", "DecodeError"]
@@ -112,4 +119,9 @@ def rsa_key_from_jwk(jwk: str) -> bytes:
     :param jwk: The JSON Web Key as encoded JSON.
     """
     key = pyjwt.algorithms.RSAAlgorithm.from_jwk(jwk)
-    return bytes(str(key), encoding="UTF-8")
+    if isinstance(key, RSAPrivateKey):
+        return key.private_bytes(Encoding.PEM, PrivateFormat.PKCS8, NoEncryption())
+    elif isinstance(key, RSAPublicKey):
+        return key.public_bytes(Encoding.PEM, PublicFormat.SubjectPublicKeyInfo)
+    else:
+        raise ValueError("Unknown RSA JWK key")

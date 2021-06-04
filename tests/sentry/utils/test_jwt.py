@@ -193,7 +193,17 @@ def test_rsa_key_from_jwk() -> None:
     assert key
     assert isinstance(key, bytes)
 
+    # assert key == RS256_KEY.lstrip()
+
     # Ensure we can use the key to create a token
     claims = {"iss": "me"}
     token = jwt_utils.encode(claims, key)
     assert token
+
+    token2 = jwt_utils.encode(claims, RS256_KEY)
+    assert token == token2
+
+
+# TODO: add tests which only have a public key and verify we can decode with that.  We do
+# not currently have type-safety of the keys to distinguish between keys suitable for
+# encoding and decoding or those only suitable for decoding.

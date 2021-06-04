@@ -1,11 +1,11 @@
 from copy import deepcopy
 from urllib.parse import urlencode
 
-import jwt
 import responses
 
 from sentry.models import Identity, IdentityProvider, Integration
 from sentry.testutils import APITestCase
+from sentry.utils import jwt
 from sentry.utils.compat import mock
 
 from .test_helpers import (
