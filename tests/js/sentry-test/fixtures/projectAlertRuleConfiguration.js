@@ -81,6 +81,24 @@ export function ProjectAlertRuleConfiguration(params = {}) {
       },
       {
         formFields: {
+          interval: {
+            type: 'choice',
+            choices: [
+              ['1m', 'one minute'],
+              ['5m', 'five minutes'],
+              ['10m', 'ten minutes'],
+              ['30m', '30 minutes'],
+              ['1h', 'one hour'],
+            ],
+          },
+          value: {placeholder: 100, type: 'number'},
+        },
+        enabled: true,
+        id: 'sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition',
+        label: 'The issue has more errors than {value} percent of sessions in {interval}',
+      },
+      {
+        formFields: {
           attribute: {
             placeholder: 'i.e. exception.type',
             type: 'choice',
