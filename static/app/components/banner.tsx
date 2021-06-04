@@ -2,56 +2,80 @@ import * as React from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
-import {IconClose} from 'app/icons/iconClose';
+import {IconClose} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 
-type Props = {
-  title?: string;
-  subtitle?: string;
-  isDismissable?: boolean;
-  onCloseClick?: () => void;
-  className?: string;
-} & BannerWrapperProps;
+const makeKey = (prefix: string) => `${prefix}-banner-dismissed`;
 
-class Banner extends React.Component<Props> {
-  static defaultProps: Partial<Props> = {
-    isDismissable: true,
+function dismissBanner(bannerKey: string) {
+  localStorage.setItem(makeKey(bannerKey), 'true');
+}
+
+function useDismissable(bannerKey: string) {
+  const key = makeKey(bannerKey);
+  const [value, setValue] = React.useState(localStorage.getItem(key));
+
+  const dismiss = () => {
+    setValue('true');
+    dismissBanner(bannerKey);
   };
 
-  render() {
-    const {
-      title,
-      subtitle,
-      isDismissable,
-      onCloseClick,
-      children,
-      backgroundImg,
-      backgroundComponent,
-      className,
-    } = this.props;
-
-    return (
-      <BannerWrapper backgroundImg={backgroundImg} className={className}>
-        {backgroundComponent}
-        {isDismissable ? (
-          <StyledIconClose aria-label={t('Close')} onClick={onCloseClick} />
-        ) : null}
-        <BannerContent>
-          <BannerTitle>{title}</BannerTitle>
-          <BannerSubtitle>{subtitle}</BannerSubtitle>
-          <StyledButtonBar gap={1}>{children}</StyledButtonBar>
-        </BannerContent>
-      </BannerWrapper>
-    );
-  }
+  return [value === 'true', dismiss] as const;
 }
 
 type BannerWrapperProps = {
   backgroundImg?: string;
   backgroundComponent?: React.ReactNode;
 };
+
+type Props = BannerWrapperProps & {
+  title?: string;
+  subtitle?: string;
+  isDismissable?: boolean;
+  dismissKey?: string;
+  className?: string;
+};
+
+type BannerType = React.FC<Props> & {
+  /**
+   * Helper function to hide banners outside of their usage
+   */
+  dismiss: typeof dismissBanner;
+};
+
+const Banner: BannerType = ({
+  title,
+  subtitle,
+  isDismissable = true,
+  dismissKey = 'generic-banner',
+  className,
+  backgroundImg,
+  backgroundComponent,
+  children,
+}) => {
+  const [dismissed, dismiss] = useDismissable(dismissKey);
+
+  if (dismissed) {
+    return null;
+  }
+
+  return (
+    <BannerWrapper backgroundImg={backgroundImg} className={className}>
+      {backgroundComponent}
+      {isDismissable ? <CloseButton onClick={dismiss} /> : null}
+      <BannerContent>
+        <BannerTitle>{title}</BannerTitle>
+        <BannerSubtitle>{subtitle}</BannerSubtitle>
+        <StyledButtonBar gap={1}>{children}</StyledButtonBar>
+      </BannerContent>
+    </BannerWrapper>
+  );
+};
+
+Banner.dismiss = dismissBanner;
 
 const BannerWrapper = styled('div')<BannerWrapperProps>`
   ${p =>
@@ -111,7 +135,7 @@ const StyledButtonBar = styled(ButtonBar)`
   width: fit-content;
 `;
 
-const StyledIconClose = styled(IconClose)`
+const CloseButton = styled(Button)`
   position: absolute;
   display: block;
   top: ${space(2)};
@@ -120,5 +144,13 @@ const StyledIconClose = styled(IconClose)`
   cursor: pointer;
   z-index: 1;
 `;
+
+CloseButton.defaultProps = {
+  icon: <IconClose />,
+  label: t('Close'),
+  priority: 'link',
+  borderless: true,
+  size: 'xsmall',
+};
 
 export default Banner;
