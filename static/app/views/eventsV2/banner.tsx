@@ -13,6 +13,8 @@ import FeatureTourModal, {
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
+import theme from 'app/utils/theme';
+import useMedia from 'app/utils/useMedia';
 
 import BackgroundSpace from './backgroundSpace';
 
@@ -75,11 +77,9 @@ const TOUR_STEPS: TourStep[] = [
 type Props = {
   organization: Organization;
   resultsUrl: string;
-  isSmallBanner: boolean;
-  onHideBanner: () => void;
 };
 
-function DiscoverBanner({organization, resultsUrl, isSmallBanner, onHideBanner}: Props) {
+function DiscoverBanner({organization, resultsUrl}: Props) {
   function onAdvance(step: number, duration: number) {
     trackAnalyticsEvent({
       eventKey: 'discover_v2.tour.advance',
@@ -99,6 +99,8 @@ function DiscoverBanner({organization, resultsUrl, isSmallBanner, onHideBanner}:
     });
   }
 
+  const isSmallBanner = useMedia(`(max-width: ${theme.breakpoints[1]})`);
+
   return (
     <Banner
       title={t('Discover Trends')}
@@ -106,7 +108,7 @@ function DiscoverBanner({organization, resultsUrl, isSmallBanner, onHideBanner}:
         'Customize and save queries by search conditions, event fields, and tags'
       )}
       backgroundComponent={<BackgroundSpace />}
-      onCloseClick={onHideBanner}
+      dismissKey="discover"
     >
       <Button
         size={isSmallBanner ? 'xsmall' : undefined}

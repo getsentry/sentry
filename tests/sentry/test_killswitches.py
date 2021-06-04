@@ -8,6 +8,10 @@ def test_normalize_value():
         {"project_id": "3"},
     ]
 
+    assert normalize_value("store.load-shed-group-creation-projects", [{"project_id": 123}]) == [
+        {"project_id": "123"},
+    ]
+
 
 def test_value_matches():
     assert _value_matches(
@@ -16,6 +20,16 @@ def test_value_matches():
             {"project_id": "1"},
             {"project_id": "2"},
             {"project_id": "3"},
+        ],
+        {"project_id": 2},
+    )
+
+    assert _value_matches(
+        "store.load-shed-group-creation-projects",
+        [
+            {"project_id": 1},
+            {"project_id": 2},
+            {"project_id": 3},
         ],
         {"project_id": 2},
     )

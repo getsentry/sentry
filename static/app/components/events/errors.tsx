@@ -174,7 +174,7 @@ class Errors extends Component<Props, State> {
                     return false;
                   });
 
-                  if (releaseArtifact && !releaseArtifact.dist) {
+                  if (releaseArtifact && !!releaseArtifact.dist) {
                     error.message = t(
                       'Source code was not found because the distribution did not match'
                     );
