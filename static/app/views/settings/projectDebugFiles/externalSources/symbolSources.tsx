@@ -263,8 +263,6 @@ function SymbolSources({
     });
   }
 
-  console.log('errors', errors);
-
   return (
     <Fragment>
       {!!errors.length && (

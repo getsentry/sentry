@@ -45,8 +45,24 @@ type OpenSudoModalOptions = {
   retryRequest?: () => Promise<any>;
 };
 
+type emailVerificationModalOptions = {
+  onClose?: () => void;
+  emailVerified?: boolean;
+  actionMessage?: string;
+};
+
 export async function openSudo({onClose, ...args}: OpenSudoModalOptions = {}) {
   const mod = await import('app/components/modals/sudoModal');
+  const {default: Modal} = mod;
+
+  openModal(deps => <Modal {...deps} {...args} />, {onClose});
+}
+
+export async function openEmailVerification({
+  onClose,
+  ...args
+}: emailVerificationModalOptions = {}) {
+  const mod = await import('app/components/modals/emailVerificationModal');
   const {default: Modal} = mod;
 
   openModal(deps => <Modal {...deps} {...args} />, {onClose});
