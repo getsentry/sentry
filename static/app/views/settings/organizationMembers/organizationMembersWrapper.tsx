@@ -111,7 +111,7 @@ class OrganizationMembersWrapper extends AsyncView<Props, State> {
         onClick={() => openInviteMembersModal({source: 'members_settings'})}
         icon={<IconMail />}
       >
-        {t('Invite New Members')}
+        {t('Invite Members')}
       </Button>
     );
 
