@@ -40,7 +40,6 @@ const SourceMapsArchiveRow = ({archive, orgId, projectId, onDelete}: Props) => {
       <ArtifactsColumn>
         <Count value={fileCount} />
       </ArtifactsColumn>
-      <Column>{t('release')}</Column>
       <Column>
         <DateTime date={date} />
       </Column>

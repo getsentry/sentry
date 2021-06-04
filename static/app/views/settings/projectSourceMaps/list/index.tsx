@@ -86,10 +86,10 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
 
   getEmptyMessage() {
     if (this.getQuery()) {
-      return t('There are no archives that match your search.');
+      return t('There are no releases that match your search.');
     }
 
-    return t('There are no archives for this project.');
+    return t('There are no releases for this project.');
   }
 
   renderLoading() {
@@ -127,7 +127,7 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
           title={t('Source Maps')}
           action={
             <SearchBar
-              placeholder={t('Filter Archives')}
+              placeholder={t('Filter Releases')}
               onSearch={this.handleSearch}
               query={this.getQuery()}
               width="280px"
@@ -137,7 +137,7 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
 
         <TextBlock>
           {tct(
-            `These source map archives help Sentry identify where to look when Javascript is minified. By providing this information, you can get better context for your stack traces when debugging. To learn more about source maps, [link: read the docs].`,
+            `Source maps help Sentry identify where to look when Javascript is minified. By providing this information, you can get better context for your stack traces when debugging. To learn more about source maps, [link: read the docs].`,
             {
               link: (
                 <ExternalLink href="https://docs.sentry.io/platforms/javascript/sourcemaps/" />
@@ -148,9 +148,8 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
 
         <StyledPanelTable
           headers={[
-            t('Archive'),
+            t('Release'),
             <ArtifactsColumn key="artifacts">{t('Artifacts')}</ArtifactsColumn>,
-            t('Type'),
             t('Date Created'),
             '',
           ]}
@@ -168,7 +167,7 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
 
 const StyledPanelTable = styled(PanelTable)`
   grid-template-columns:
-    minmax(120px, 1fr) max-content minmax(85px, max-content) minmax(265px, max-content)
+    minmax(120px, 1fr) max-content minmax(265px, max-content)
     75px;
 `;
 

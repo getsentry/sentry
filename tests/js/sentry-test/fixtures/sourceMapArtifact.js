@@ -7,6 +7,7 @@ export function SourceMapArtifact(params) {
     headers: {'Content-Type': ''},
     id: '5678',
     size: 8276,
+    type: 'individual',
     ...params,
   };
 }

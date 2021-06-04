@@ -13,7 +13,7 @@ import Tooltip from 'app/components/tooltip';
 import {IconClock, IconDelete, IconDownload} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Artifact} from 'app/types';
+import {Artifact, ArtifactType} from 'app/types';
 
 type Props = {
   artifact: Artifact;
@@ -28,10 +28,20 @@ const SourceMapsArtifactRow = ({
   downloadUrl,
   downloadRole,
 }: Props) => {
-  const {name, size, dateCreated, id, dist} = artifact;
+  const {name, size, dateCreated, id, dist, type} = artifact;
 
   const handleDeleteClick = () => {
     onDelete(id);
+  };
+
+  const getTypeTooltip = (tooltipType: ArtifactType) => {
+    if (tooltipType === ArtifactType.INDIVIDUAL) {
+      return t('This artifact has been uploaded individually.');
+    }
+    if (tooltipType === ArtifactType.ARCHIVED) {
+      return t('This artifact is part of a zip archive.');
+    }
+    return undefined;
   };
 
   return (
@@ -49,53 +59,56 @@ const SourceMapsArtifactRow = ({
           >
             {dist ?? t('none')}
           </StyledTag>
+          {type && <StyledTag tooltipText={getTypeTooltip(type)}>{type}</StyledTag>}
         </TimeAndDistWrapper>
       </NameColumn>
       <SizeColumn>
         <FileSize bytes={size} />
       </SizeColumn>
       <ActionsColumn>
-        <ButtonBar gap={0.5}>
-          <Role role={downloadRole}>
-            {({hasRole}) => (
-              <Tooltip
-                title={t('You do not have permission to download artifacts.')}
-                disabled={hasRole}
-              >
-                <Button
-                  size="small"
-                  icon={<IconDownload size="sm" />}
-                  disabled={!hasRole}
-                  href={downloadUrl}
-                  title={hasRole ? t('Download Artifact') : undefined}
-                />
-              </Tooltip>
-            )}
-          </Role>
-
-          <Access access={['project:releases']}>
-            {({hasAccess}) => (
-              <Tooltip
-                disabled={hasAccess}
-                title={t('You do not have permission to delete artifacts.')}
-              >
-                <Confirm
-                  message={t('Are you sure you want to remove this artifact?')}
-                  onConfirm={handleDeleteClick}
-                  disabled={!hasAccess}
+        {type === ArtifactType.INDIVIDUAL && (
+          <ButtonBar gap={0.5}>
+            <Role role={downloadRole}>
+              {({hasRole}) => (
+                <Tooltip
+                  title={t('You do not have permission to download artifacts.')}
+                  disabled={hasRole}
                 >
                   <Button
                     size="small"
-                    icon={<IconDelete size="sm" />}
-                    title={hasAccess ? t('Remove Artifact') : undefined}
-                    label={t('Remove Artifact')}
-                    disabled={!hasAccess}
+                    icon={<IconDownload size="sm" />}
+                    disabled={!hasRole}
+                    href={downloadUrl}
+                    title={hasRole ? t('Download Artifact') : undefined}
                   />
-                </Confirm>
-              </Tooltip>
-            )}
-          </Access>
-        </ButtonBar>
+                </Tooltip>
+              )}
+            </Role>
+
+            <Access access={['project:releases']}>
+              {({hasAccess}) => (
+                <Tooltip
+                  disabled={hasAccess}
+                  title={t('You do not have permission to delete artifacts.')}
+                >
+                  <Confirm
+                    message={t('Are you sure you want to remove this artifact?')}
+                    onConfirm={handleDeleteClick}
+                    disabled={!hasAccess}
+                  >
+                    <Button
+                      size="small"
+                      icon={<IconDelete size="sm" />}
+                      title={hasAccess ? t('Remove Artifact') : undefined}
+                      label={t('Remove Artifact')}
+                      disabled={!hasAccess}
+                    />
+                  </Confirm>
+                </Tooltip>
+              )}
+            </Access>
+          </ButtonBar>
+        )}
       </ActionsColumn>
     </Fragment>
   );

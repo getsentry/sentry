@@ -8,19 +8,22 @@ import {
   addSuccessMessage,
 } from 'app/actionCreators/indicator';
 import Access from 'app/components/acl/access';
+import Role from 'app/components/acl/role';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import Confirm from 'app/components/confirm';
+import SelectControl from 'app/components/forms/selectControl';
+import Link from 'app/components/links/link';
 import Pagination from 'app/components/pagination';
 import {PanelTable} from 'app/components/panels';
 import SearchBar from 'app/components/searchBar';
 import TextOverflow from 'app/components/textOverflow';
 import Tooltip from 'app/components/tooltip';
 import Version from 'app/components/version';
-import {IconDelete} from 'app/icons';
-import {t} from 'app/locale';
+import {IconDelete, IconDownload} from 'app/icons';
+import {t, tct, tn} from 'app/locale';
 import space from 'app/styles/space';
-import {Artifact, Organization, Project} from 'app/types';
+import {Artifact, ArtifactType, Organization, Project} from 'app/types';
 import {formatVersion} from 'app/utils/formatters';
 import {decodeScalar} from 'app/utils/queryString';
 import routeTitleGen from 'app/utils/routeTitle';
@@ -28,6 +31,12 @@ import AsyncView from 'app/views/asyncView';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
 
 import SourceMapsArtifactRow from './sourceMapsArtifactRow';
+
+type FilesMeta = {
+  individualCount: number;
+  archivedCount: number;
+  archiveId: number | string | null;
+};
 
 type RouteParams = {orgId: string; projectId: string; name: string};
 
@@ -38,24 +47,32 @@ type Props = RouteComponentProps<RouteParams, {}> & {
 
 type State = AsyncView['state'] & {
   artifacts: Artifact[];
+  filesMeta: FilesMeta | null;
 };
 
 class ProjectSourceMapsDetail extends AsyncView<Props, State> {
   getTitle() {
     const {projectId, name} = this.props.params;
 
-    return routeTitleGen(t('Archive %s', formatVersion(name)), projectId, false);
+    return routeTitleGen(t('Release %s', formatVersion(name)), projectId, false);
   }
 
   getDefaultState(): State {
     return {
       ...super.getDefaultState(),
       artifacts: [],
+      filesMeta: null,
     };
   }
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    return [['artifacts', this.getArtifactsUrl(), {query: {query: this.getQuery()}}]];
+    return [
+      [
+        'artifacts',
+        this.getArtifactsUrl(),
+        {query: {query: this.getQuery(), type: this.getType()}},
+      ],
+    ];
   }
 
   getArtifactsUrl() {
@@ -64,12 +81,36 @@ class ProjectSourceMapsDetail extends AsyncView<Props, State> {
     return `/projects/${orgId}/${projectId}/releases/${encodeURIComponent(name)}/files/`;
   }
 
+  getFilesMetaUrl() {
+    const {orgId, projectId, name} = this.props.params;
+
+    return `/projects/${orgId}/${projectId}/releases/${encodeURIComponent(
+      name
+    )}/files-meta/`;
+  }
+
+  getZipDownloadUrl() {
+    const {filesMeta} = this.state;
+    return `${
+      this.api.baseUrl + this.getArtifactsUrl() + filesMeta?.archiveId
+    }/?download=1`;
+  }
+
   handleSearch = (query: string) => {
     const {location, router} = this.props;
 
     router.push({
       ...location,
       query: {...location.query, cursor: undefined, query},
+    });
+  };
+
+  handleTypeChange = ({value}) => {
+    const {location, router} = this.props;
+
+    router.push({
+      ...location,
+      query: {...location.query, cursor: undefined, type: value},
     });
   };
 
@@ -113,12 +154,18 @@ class ProjectSourceMapsDetail extends AsyncView<Props, State> {
     return decodeScalar(query);
   }
 
+  getType() {
+    const {type} = this.props.location.query;
+
+    return decodeScalar(type);
+  }
+
   getEmptyMessage() {
     if (this.getQuery()) {
       return t('There are no artifacts that match your search.');
     }
 
-    return t('There are no artifacts in this archive.');
+    return t('There are no artifacts in this release.');
   }
 
   renderLoading() {
@@ -134,30 +181,32 @@ class ProjectSourceMapsDetail extends AsyncView<Props, State> {
       return null;
     }
 
-    return artifacts.map(artifact => {
-      return (
-        <SourceMapsArtifactRow
-          key={artifact.id}
-          artifact={artifact}
-          onDelete={this.handleArtifactDelete}
-          downloadUrl={`${artifactApiUrl}${artifact.id}/?download=1`}
-          downloadRole={organization.debugFilesRole}
-        />
-      );
-    });
+    return artifacts
+      .filter(artifact => artifact.type !== ArtifactType.ZIP)
+      .map(artifact => {
+        return (
+          <SourceMapsArtifactRow
+            key={artifact.id}
+            artifact={artifact}
+            onDelete={this.handleArtifactDelete}
+            downloadUrl={`${artifactApiUrl}${artifact.id}/?download=1`}
+            downloadRole={organization.debugFilesRole}
+          />
+        );
+      });
   }
 
   renderBody() {
-    const {loading, artifacts, artifactsPageLinks} = this.state;
-    const {name, orgId} = this.props.params;
-    const {project} = this.props;
+    const {loading, artifacts, artifactsPageLinks, filesMeta} = this.state;
+    const {name, orgId, projectId} = this.props.params;
+    const {project, organization} = this.props;
 
     return (
       <Fragment>
         <StyledSettingsPageHeader
           title={
             <Title>
-              {t('Archive')}&nbsp;
+              {t('Release')}&nbsp;
               <TextOverflow>
                 <Version version={name} tooltipRawVersion anchor={false} truncate />
               </TextOverflow>
@@ -180,7 +229,7 @@ class ProjectSourceMapsDetail extends AsyncView<Props, State> {
                   >
                     <Confirm
                       message={t(
-                        'Are you sure you want to remove all artifacts in this archive?'
+                        'Are you sure you want to remove all artifacts in this release?'
                       )}
                       onConfirm={this.handleArchiveDelete}
                       disabled={!hasAccess}
@@ -195,6 +244,75 @@ class ProjectSourceMapsDetail extends AsyncView<Props, State> {
                   </Tooltip>
                 )}
               </Access>
+              <Role role={organization.debugFilesRole}>
+                {({hasRole}) => {
+                  const disableBatchDownload = !hasRole || !filesMeta?.archivedCount;
+                  const bypassDownloadConfirm = filesMeta?.individualCount === 0;
+
+                  return (
+                    <Tooltip
+                      title={
+                        !hasRole
+                          ? t('You do not have permission to download artifacts.')
+                          : !artifacts.length
+                          ? undefined
+                          : !filesMeta?.archivedCount
+                          ? t(
+                              'Batch download is not possible with individually uploaded files.'
+                            )
+                          : t('Download ZIP Archive')
+                      }
+                    >
+                      <Confirm
+                        message={tct(
+                          `You are about to download zip archive with [archivedFiles]. Additional [individualFiles] won't be included as they were uploaded individually.`,
+                          {
+                            archivedFiles: tn(
+                              '%s file',
+                              '%s files',
+                              filesMeta?.archivedCount ?? 0
+                            ),
+                            individualFiles: (
+                              <Link
+                                to={`/settings/${orgId}/projects/${projectId}/source-maps/${name}/?type=${ArtifactType.INDIVIDUAL}`}
+                              >
+                                {tn(
+                                  '%s file',
+                                  '%s files',
+                                  filesMeta?.individualCount ?? 0
+                                )}
+                              </Link>
+                            ),
+                          }
+                        )}
+                        onConfirm={() =>
+                          (window.location.href = this.getZipDownloadUrl())
+                        }
+                        disabled={disableBatchDownload}
+                        bypass={bypassDownloadConfirm}
+                      >
+                        <Button
+                          icon={<IconDownload size="sm" />}
+                          disabled={disableBatchDownload}
+                          href={
+                            bypassDownloadConfirm ? this.getZipDownloadUrl() : undefined
+                          }
+                        />
+                      </Confirm>
+                    </Tooltip>
+                  );
+                }}
+              </Role>
+
+              <StyledSelectControl
+                onChange={this.handleTypeChange}
+                value={this.getType()}
+                choices={[
+                  [undefined, t('All Types')],
+                  ['archived', 'Archived'],
+                  ['individual', 'Individual'],
+                ]}
+              />
 
               <SearchBar
                 placeholder={t('Filter artifacts')}
@@ -248,6 +366,10 @@ const Title = styled('div')`
 
 const StyledButtonBar = styled(ButtonBar)`
   justify-content: flex-start;
+`;
+
+const StyledSelectControl = styled(SelectControl)`
+  width: 120px;
 `;
 
 const StyledPanelTable = styled(PanelTable)`

@@ -1891,6 +1891,12 @@ export type SourceMapsArchive = {
   fileCount: number;
 };
 
+export enum ArtifactType {
+  INDIVIDUAL = 'individual',
+  ARCHIVED = 'archived',
+  ZIP = 'zip',
+}
+
 export type Artifact = {
   dateCreated: string;
   dist: string | null;
@@ -1899,6 +1905,7 @@ export type Artifact = {
   sha1: string;
   size: number;
   headers: {'Content-Type': string};
+  type: ArtifactType;
 };
 
 export type EventGroupInfo = Record<EventGroupVariantKey, EventGroupVariant>;

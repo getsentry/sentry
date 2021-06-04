@@ -42,7 +42,7 @@ describe('ProjectSourceMaps', function () {
     const wrapper = mountWithTheme(<ProjectSourceMaps {...props} />);
 
     expect(wrapper.find('EmptyStateWarning').text()).toBe(
-      'There are no archives for this project.'
+      'There are no releases for this project.'
     );
   });
 
@@ -144,7 +144,7 @@ describe('ProjectSourceMapsDetail', function () {
     const wrapper = mountWithTheme(<ProjectSourceMapsDetail {...props} />);
 
     expect(wrapper.find('EmptyStateWarning').text()).toBe(
-      'There are no artifacts in this archive.'
+      'There are no artifacts in this release.'
     );
   });
 
