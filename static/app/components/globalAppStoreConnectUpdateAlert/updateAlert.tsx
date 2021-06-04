@@ -7,6 +7,7 @@ import {Client} from 'app/api';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import Link from 'app/components/links/link';
+import AppStoreConnectContext from 'app/components/projects/appStoreConnectContext';
 import {IconClose, IconRefresh} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
@@ -14,7 +15,6 @@ import {Organization, Project} from 'app/types';
 import {AppStoreConnectValidationData} from 'app/types/debugFiles';
 import {promptIsDismissed} from 'app/utils/promptIsDismissed';
 import withApi from 'app/utils/withApi';
-import AppStoreConnectContext from 'app/views/settings/project/appStoreConnectContext';
 
 const APP_STORE_CONNECT_UPDATES = 'app_store_connect_updates';
 
@@ -153,7 +153,7 @@ function UpdateAlert({api, Wrapper, isCompact, project, organization, className}
   if (
     !hasAppConnectStoreFeatureFlag ||
     !project ||
-    !appStoreConnectContext ||
+    !!appStoreConnectContext.isLoading ||
     isDismissed ||
     (appStoreConnectContext.appstoreCredentialsValid &&
       appStoreConnectContext.itunesSessionValid)

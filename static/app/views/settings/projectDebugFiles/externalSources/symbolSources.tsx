@@ -15,6 +15,7 @@ import {Item} from 'app/components/dropdownAutoComplete/types';
 import Link from 'app/components/links/link';
 import List from 'app/components/list';
 import ListItem from 'app/components/list/listItem';
+import AppStoreConnectContext from 'app/components/projects/appStoreConnectContext';
 import TextOverflow from 'app/components/textOverflow';
 import {DEBUG_SOURCE_TYPES} from 'app/data/debugFileSources';
 import {IconWarning} from 'app/icons';
@@ -24,7 +25,6 @@ import {Organization, Project} from 'app/types';
 import Field from 'app/views/settings/components/forms/field';
 import RichListField from 'app/views/settings/components/forms/richListField';
 import TextBlock from 'app/views/settings/components/text/textBlock';
-import AppStoreConnectContext from 'app/views/settings/project/appStoreConnectContext';
 
 import {expandKeys} from './utils';
 
@@ -49,7 +49,7 @@ function SymbolSources({
 
   useEffect(() => {
     openDebugFileSourceDialog();
-  }, [location.query]);
+  }, [location.query, appStoreConnectContext]);
 
   const hasAppConnectStoreFeatureFlag = !!organization.features?.includes(
     'app-store-connect'
@@ -92,7 +92,7 @@ function SymbolSources({
   function getRichListFieldValue(): {value: Item[]; errors?: React.ReactNode[]} {
     if (
       !hasAppConnectStoreFeatureFlag ||
-      !appStoreConnectContext ||
+      !!appStoreConnectContext.isLoading ||
       (appStoreConnectContext.appstoreCredentialsValid &&
         appStoreConnectContext.itunesSessionValid)
     ) {
@@ -101,15 +101,16 @@ function SymbolSources({
 
     const symbolSourcesErrors: React.ReactNode[] = [];
 
-    const symbolSourcesWithErrors = symbolSources.map((symbolSource, index) => {
-      if (symbolSource.id === appStoreConnectContext?.id) {
+    const symbolSourcesWithErrors = symbolSources.map(symbolSource => {
+      if (symbolSource.id === appStoreConnectContext.id) {
         const appStoreConnectErrors: string[] = [];
+        const customRepositoryLink = `/settings/${organization.slug}/projects/${projectSlug}/debug-symbols/?customRepository=${symbolSource.id}`;
 
-        if (appStoreConnectContext.itunesSessionValid) {
+        if (appStoreConnectContext.itunesSessionValid === false) {
           symbolSourcesErrors.push(
             tct('Revalidate your iTunes Session for [link]', {
               link: (
-                <Link to="" onClick={() => editSymbolSourceModal(symbolSource, index)}>
+                <Link to={`${customRepositoryLink}&revalidateItunesSession=true`}>
                   {symbolSource.name}
                 </Link>
               ),
@@ -119,14 +120,10 @@ function SymbolSources({
           appStoreConnectErrors.push(t('Revalidate your iTunes Session'));
         }
 
-        if (appStoreConnectContext.appstoreCredentialsValid) {
+        if (appStoreConnectContext.appstoreCredentialsValid === false) {
           symbolSourcesErrors.push(
             tct('Recheck your App Store Credentials for [link]', {
-              link: (
-                <Link to="" onClick={() => editSymbolSourceModal(symbolSource, index)}>
-                  {symbolSource.name}
-                </Link>
-              ),
+              link: <Link to={customRepositoryLink}>{symbolSource.name}</Link>,
             })
           );
           appStoreConnectErrors.push(t('Recheck your App Store Credentials'));
@@ -178,7 +175,7 @@ function SymbolSources({
     openDebugFileSourceModal({
       sourceConfig: item,
       sourceType: item.type,
-      appStoreConnectValidationData: appStoreConnectContext,
+      appStoreConnectContext,
       onSave: updatedData => handleUpdateSymbolSource(updatedData as Item, item.index),
       onClose: handleCloseImageDetailsModal,
     });
@@ -251,15 +248,11 @@ function SymbolSources({
   function handleCloseImageDetailsModal() {
     router.push({
       ...location,
-      query: {...location.query, customRepository: undefined},
-    });
-  }
-
-  function editSymbolSourceModal(item: Item, index: number) {
-    return openDebugFileSourceModal({
-      sourceConfig: item,
-      sourceType: item.type,
-      onSave: updatedData => handleUpdateSymbolSource(updatedData as Item, index),
+      query: {
+        ...location.query,
+        customRepository: undefined,
+        revalidateItunesSession: undefined,
+      },
     });
   }
 

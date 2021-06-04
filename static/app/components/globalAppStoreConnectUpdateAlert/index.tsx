@@ -1,5 +1,5 @@
+import * as AppStoreConnectContext from 'app/components/projects/appStoreConnectContext';
 import {Organization, Project} from 'app/types';
-import * as AppStoreConnectContext from 'app/views/settings/project/appStoreConnectContext';
 
 import UpdateAlert from './updateAlert';
 

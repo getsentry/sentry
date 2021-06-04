@@ -3,10 +3,10 @@ import {withRouter, WithRouterProps} from 'react-router';
 import {css} from '@emotion/react';
 
 import {ModalRenderProps} from 'app/actionCreators/modal';
+import {AppStoreConnectContextProps} from 'app/components/projects/appStoreConnectContext';
 import {getDebugSourceName} from 'app/data/debugFileSources';
 import {tct} from 'app/locale';
 import {DebugFileSource} from 'app/types';
-import {AppStoreConnectValidationData} from 'app/types/debugFiles';
 import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig';
 import Form from 'app/views/settings/components/forms/form';
 
@@ -36,7 +36,7 @@ type Props = WithRouterProps<RouteParams, Query> & {
    */
   sourceType: DebugFileSource;
 
-  appStoreConnectValidationData?: AppStoreConnectValidationData;
+  appStoreConnectContext?: AppStoreConnectContextProps;
   /**
    * The sourceConfig. May be empty to create a new one.
    */
@@ -53,7 +53,7 @@ function DebugFileCustomRepository({
   sourceType,
   params: {orgId, projectId: projectSlug},
   location,
-  appStoreConnectValidationData,
+  appStoreConnectContext,
 }: Props) {
   function handleSave(data: Record<string, string>) {
     onSave({...data, type: sourceType});
@@ -74,7 +74,7 @@ function DebugFileCustomRepository({
         onSubmit={handleSave}
         initialData={sourceConfig as AppStoreConnectInitialData | undefined}
         revalidateItunesSession={!!revalidateItunesSession}
-        appStoreConnectValidationData={appStoreConnectValidationData}
+        appStoreConnectContext={appStoreConnectContext}
       />
     );
   }

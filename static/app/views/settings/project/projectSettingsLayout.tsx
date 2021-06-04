@@ -1,13 +1,12 @@
 import * as React from 'react';
 import {RouteComponentProps} from 'react-router';
 
+import * as AppStoreConnectContext from 'app/components/projects/appStoreConnectContext';
 import {Organization} from 'app/types';
 import withOrganization from 'app/utils/withOrganization';
 import ProjectContext from 'app/views/projects/projectContext';
 import SettingsLayout from 'app/views/settings/components/settingsLayout';
 import ProjectSettingsNavigation from 'app/views/settings/project/projectSettingsNavigation';
-
-import * as AppStoreConnectContext from './appStoreConnectContext';
 
 type Props = {
   organization: Organization;

@@ -1,11 +1,10 @@
 import {useContext} from 'react';
 
+import AppStoreConnectContext from 'app/components/projects/appStoreConnectContext';
 import {Organization, Project} from 'app/types';
 import withProject from 'app/utils/withProject';
 import SettingsNavigation from 'app/views/settings/components/settingsNavigation';
 import getConfiguration from 'app/views/settings/project/navigationConfiguration';
-
-import AppStoreConnectContext from './appStoreConnectContext';
 
 type Props = {
   organization: Organization;
@@ -15,9 +14,9 @@ type Props = {
 const ProjectSettingsNavigation = ({organization, project}: Props) => {
   const appStoreConnectContext = useContext(AppStoreConnectContext);
 
-  const debugFilesNeedsReview = appStoreConnectContext
-    ? Object.keys(appStoreConnectContext).some(key => !appStoreConnectContext[key])
-    : false;
+  const debugFilesNeedsReview =
+    appStoreConnectContext.appstoreCredentialsValid === false ||
+    appStoreConnectContext.itunesSessionValid === false;
 
   return (
     <SettingsNavigation

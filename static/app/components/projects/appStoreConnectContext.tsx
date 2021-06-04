@@ -5,8 +5,20 @@ import {Organization, Project} from 'app/types';
 import {AppStoreConnectValidationData} from 'app/types/debugFiles';
 import withApi from 'app/utils/withApi';
 
-const AppStoreConnectContext = createContext<AppStoreConnectValidationData | undefined>(
-  undefined
+export type AppStoreConnectContextProps = AppStoreConnectValidationData & {
+  isLoading?: boolean;
+};
+
+const appStoreConnectContextInitialData = {
+  isLoading: undefined,
+  id: undefined,
+  appstoreCredentialsValid: undefined,
+  itunesSessionValid: undefined,
+  expirationDate: undefined,
+};
+
+const AppStoreConnectContext = createContext<AppStoreConnectContextProps>(
+  appStoreConnectContextInitialData
 );
 
 type ProviderProps = {
@@ -17,10 +29,12 @@ type ProviderProps = {
 };
 
 const Provider = withApi(({api, children, project, orgSlug}: ProviderProps) => {
+  const [isLoading, setIsLoading] = useState(false);
   const [projectDetails, setProjectDetails] = useState<undefined | Project>();
-  const [appStoreConnectValidationData, setAppStoreConnectValidationData] = useState<
-    AppStoreConnectValidationData | undefined
-  >();
+  const [
+    appStoreConnectValidationData,
+    setAppStoreConnectValidationData,
+  ] = useState<AppStoreConnectContextProps>(appStoreConnectContextInitialData);
 
   useEffect(() => {
     fetchProjectDetails();
@@ -40,10 +54,14 @@ const Provider = withApi(({api, children, project, orgSlug}: ProviderProps) => {
       return;
     }
 
+    setIsLoading(true);
+
     try {
       const response = await api.requestPromise(`/projects/${orgSlug}/${project.slug}/`);
       setProjectDetails(response);
+      setIsLoading(false);
     } catch {
+      setIsLoading(false);
       // do nothing
     }
   }
@@ -67,6 +85,8 @@ const Provider = withApi(({api, children, project, orgSlug}: ProviderProps) => {
       return;
     }
 
+    setIsLoading(true);
+
     try {
       const response = await api.requestPromise(
         `/projects/${orgSlug}/${projectDetails.slug}/appstoreconnect/validate/${appStoreConnectSymbolSourceId}/`
@@ -74,15 +94,18 @@ const Provider = withApi(({api, children, project, orgSlug}: ProviderProps) => {
       setAppStoreConnectValidationData({
         id: appStoreConnectSymbolSourceId,
         ...response,
-        itunesSessionValid: false,
       });
+      setIsLoading(false);
     } catch {
+      setIsLoading(false);
       // do nothing
     }
   }
 
   return (
-    <AppStoreConnectContext.Provider value={appStoreConnectValidationData}>
+    <AppStoreConnectContext.Provider
+      value={{isLoading, ...appStoreConnectValidationData}}
+    >
       {children}
     </AppStoreConnectContext.Provider>
   );

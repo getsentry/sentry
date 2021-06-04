@@ -34,9 +34,9 @@ export type DebugFile = {
 };
 
 export type AppStoreConnectValidationData = {
-  id: string;
-  appstoreCredentialsValid: boolean;
-  itunesSessionValid: boolean;
+  id?: string;
+  appstoreCredentialsValid?: boolean;
+  itunesSessionValid?: boolean;
   /** Approximate expiration Date of AppStore Credentials as an ISO DateTime */
   expirationDate?: string;
 };

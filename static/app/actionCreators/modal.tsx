@@ -4,6 +4,7 @@ import ModalActions from 'app/actions/modalActions';
 import GlobalModal from 'app/components/globalModal';
 import type {DashboardWidgetModalOptions} from 'app/components/modals/addDashboardWidgetModal';
 import type {ReprocessEventModalOptions} from 'app/components/modals/reprocessEventModal';
+import {AppStoreConnectContextProps} from 'app/components/projects/appStoreConnectContext';
 import {
   DebugFileSource,
   Group,
@@ -13,7 +14,6 @@ import {
   SentryApp,
   Team,
 } from 'app/types';
-import {AppStoreConnectValidationData} from 'app/types/debugFiles';
 import {Event} from 'app/types/event';
 
 type ModalProps = Required<React.ComponentProps<typeof GlobalModal>>;
@@ -197,7 +197,7 @@ export type SentryAppDetailsModalOptions = {
 type DebugFileSourceModalOptions = {
   sourceType: DebugFileSource;
   onSave: (data: Record<string, string>) => void;
-  appStoreConnectValidationData?: AppStoreConnectValidationData;
+  appStoreConnectContext?: AppStoreConnectContextProps;
   onClose?: () => void;
   sourceConfig?: Record<string, string>;
 };
