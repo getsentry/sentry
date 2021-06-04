@@ -60,6 +60,7 @@ function DropdownFilter({
   options,
   pinnedOptions,
   onSelectionChange,
+  enableSearch,
   searchPlaceholder,
 }: Props) {
   const [filter, setFilter] = useState('');
@@ -71,16 +72,11 @@ function DropdownFilter({
   const hasChecked = selection.size > 0;
 
   const searchFilter = filter.toLowerCase();
-  const allOptions = !pinnedOptions
-    ? options
-    : [
-        // make sure the `pinnedOptions` are on top
-        ...pinnedOptions,
-        // only apply the search to the `options` and NOT `pinnedOptions`
-        ...options.filter(({label}) =>
-          searchFilter ? label.toLowerCase().includes(searchFilter) : true
-        ),
-      ];
+  const allOptions = (pinnedOptions ?? []).concat(
+    options.filter(({label}) =>
+      searchFilter ? label.toLowerCase().includes(searchFilter) : true
+    )
+  );
 
   return (
     <DropdownControl
@@ -117,15 +113,17 @@ function DropdownFilter({
         >
           {isOpen && (
             <Fragment>
-              <StyledInput
-                autoFocus
-                placeholder={searchPlaceholder}
-                onClick={event => event.stopPropagation()}
-                onChange={(event: ChangeEvent<HTMLInputElement>) =>
-                  setFilter(event.target.value)
-                }
-                value={filter || ''}
-              />
+              {enableSearch && (
+                <StyledInput
+                  autoFocus
+                  placeholder={searchPlaceholder}
+                  onClick={event => event.stopPropagation()}
+                  onChange={(event: ChangeEvent<HTMLInputElement>) =>
+                    setFilter(event.target.value)
+                  }
+                  value={filter || ''}
+                />
+              )}
               <Header>
                 <span>{headerLabel}</span>
                 <CheckboxFancy
