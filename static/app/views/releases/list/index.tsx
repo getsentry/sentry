@@ -307,7 +307,7 @@ class ReleasesList extends AsyncView<Props, State> {
       p => p.id === `${selectedProjectId}`
     );
 
-    if (!selectedProject) {
+    if (!selectedProject || hasSessions !== false) {
       return null;
     }
 
@@ -319,12 +319,7 @@ class ReleasesList extends AsyncView<Props, State> {
             const projectCanHaveReleases =
               project && project.platform && releaseHealth.includes(project.platform);
 
-            if (
-              !initiallyLoaded ||
-              fetchError ||
-              !projectCanHaveReleases ||
-              hasSessions
-            ) {
+            if (!initiallyLoaded || fetchError || !projectCanHaveReleases) {
               return null;
             }
 
