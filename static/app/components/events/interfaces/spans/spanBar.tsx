@@ -11,6 +11,7 @@ import {
   DividerContainer,
   DividerLine,
   DividerLineGhostContainer,
+  EmbeddedTransactionBadge,
   ErrorBadge,
 } from 'app/components/performance/waterfall/rowDivider';
 import {
@@ -714,6 +715,15 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     return errors?.length ? <ErrorBadge /> : null;
   }
 
+  renderEmbeddedTransactionsBadge(
+    transactions: QuickTraceEvent[] | null
+  ): React.ReactNode {
+    if (transactions && transactions.length === 1) {
+      return <EmbeddedTransactionBadge expanded />;
+    }
+    return null;
+  }
+
   renderWarningText({warningText}: {warningText?: string} = {}) {
     if (!warningText) {
       return null;
@@ -730,10 +740,12 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     scrollbarManagerChildrenProps,
     dividerHandlerChildrenProps,
     errors,
+    transactions,
   }: {
     dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps;
     scrollbarManagerChildrenProps: ScrollbarManager.ScrollbarManagerChildrenProps;
     errors: TraceError[] | null;
+    transactions: QuickTraceEvent[] | null;
   }) {
     const {span, spanBarColour, spanBarHatch, spanNumber} = this.props;
     const startTimestamp: number = span.start_timestamp;
@@ -763,6 +775,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
         <DividerContainer>
           {this.renderDivider(dividerHandlerChildrenProps)}
           {this.renderErrorBadge(errors)}
+          {this.renderEmbeddedTransactionsBadge(transactions)}
         </DividerContainer>
         <RowCell
           data-type="span-row-cell"
@@ -853,6 +866,7 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
                           dividerHandlerChildrenProps,
                           scrollbarManagerChildrenProps,
                           errors,
+                          transactions,
                         })
                       }
                     </DividerHandlerManager.Consumer>
