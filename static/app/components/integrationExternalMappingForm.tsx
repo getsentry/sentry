@@ -58,7 +58,9 @@ export default class IntegrationExternalMappingForm extends Component<Props> {
         placeholder: t(`Choose your Sentry User`),
         url,
         onResults: result => {
-          // check if mapping is in result, else add it
+          // For organizations with >100 users, we want to make sure their
+          // saved mapping gets populated in the results if it wouldn't have
+          // been in the inital 100 API results, which is why we add it here
           if (mapping && !result.find(({id}) => id === mapping.userId)) {
             result = [{id: mapping.userId, name: mapping.sentryName}, ...result];
           }
@@ -76,10 +78,15 @@ export default class IntegrationExternalMappingForm extends Component<Props> {
         placeholder: t(`Choose your Sentry Team`),
         url,
         onResults: result => {
-          // check if mapping is in result, else add it
+          // For organizations with >100 teams, we want to make sure their
+          // saved mapping gets populated in the results if it wouldn't have
+          // been in the inital 100 API results, which is why we add it here
           if (mapping && !result.find(({id}) => id === mapping.teamId)) {
             result = [{id: mapping.teamId, name: mapping.sentryName}, ...result];
           }
+          // The team needs `this.props.onResults` so that we have team slug
+          // when a user submits a team mapping, the endpoint needs the slug
+          // as a path param: /teams/${organization.slug}/${team.slug}/external-teams/
           this.props.onResults?.(result);
           return optionMapper(sentryNamesMapper(result));
         },

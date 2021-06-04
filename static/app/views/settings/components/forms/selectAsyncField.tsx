@@ -38,17 +38,10 @@ class SelectAsyncField extends React.Component<SelectAsyncFieldProps> {
 
   findValue(propsValue) {
     /**
-     * When this component first loads, this.state.results will get set to the
-     * first 100 results from the API.
+     * The propsValue is the `id` of the object (user, team, etc), and
+     * react-select expects a full value object: {value: "id", label: "name"}
      *
-     * The propsValue is the `id` of the object (user, team, etc), and so if that
-     * `id` doesn't match the first 100 results, react-select won't be able to
-     *  return the full value object: {value: "id", label: "name"}
-     *
-     * We return {} here instead of the propsValue (the `id`) because react-select
-     * expects there to be an object and there seems to be weirdness if it isn't.
-     * This will affect large orgs who are editing form fields that may have saved
-     * data outside of the first 100 results. :(
+     * Returning {} here will show the user a dropdown with "No options".
      **/
     return this.state.results.find(({value}) => value === propsValue) || {};
   }
