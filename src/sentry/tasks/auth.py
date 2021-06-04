@@ -3,6 +3,7 @@ import logging
 
 from django.db import IntegrityError
 from django.db.models import F
+from django.urls import reverse
 
 from sentry import features, options
 from sentry.auth import manager
@@ -19,6 +20,7 @@ from sentry.models import (
 )
 from sentry.tasks.base import instrumented_task
 from sentry.utils.email import MessageBuilder
+from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger("sentry.auth")
 
@@ -161,11 +163,27 @@ class VerifiedEmailComplianceTask(OrganizationComplianceTask):
         user = member.user
         if isinstance(user, User):
             email = UserEmail.get_primary_email(user).email
+            org = member.organization
 
-            # TODO: Need to send different email with additional info
-            #  that the user has been removed from the org and needs
-            #  to redo the invite flow?
-            user.send_confirm_email_singular(email)
+            email_context = {
+                "confirm_url": absolute_uri(
+                    reverse("sentry-account-confirm-email", args=[user.id, email.validation_hash])
+                ),
+                "invite_url": member.get_invite_link(),
+                "email": email,
+                "organization": org,
+            }
+            subject = "{} {} Mandatory: Verify Email Address".format(
+                options.get("mail.subject-prefix"), org.name.capitalize()
+            )
+            message = MessageBuilder(
+                subject=subject,
+                template="sentry/emails/setup_email.txt",
+                html_template="sentry/emails/setup_email.html",
+                type="user.setup_email",
+                context=email_context,
+            )
+            message.send_async([email])
 
 
 @instrumented_task(
