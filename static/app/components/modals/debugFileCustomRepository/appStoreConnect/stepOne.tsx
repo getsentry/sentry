@@ -55,7 +55,6 @@ function StepOne({stepOneData, onSetStepOneData}: Props) {
           placeholder={t('Private Key')}
           value={stepOneData.privateKey}
           rows={5}
-          maxRows={5}
           autosize
           onChange={e =>
             onSetStepOneData({

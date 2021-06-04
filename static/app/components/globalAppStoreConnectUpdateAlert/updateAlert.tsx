@@ -173,3 +173,9 @@ const Content = styled('div')`
 const ButtonClose = styled(Button)`
   color: ${p => p.theme.textColor};
 `;
+
+const ExpirationMessage = styled('span')`
+  display: inline-grid;
+  grid-gap: ${space(0.25)};
+  grid-template-columns: max-content 1fr;
+`;

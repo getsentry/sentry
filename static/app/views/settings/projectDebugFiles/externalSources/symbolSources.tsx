@@ -386,3 +386,9 @@ const StyledRichListField = styled(RichListField)`
 const StyledList = styled(List)`
   margin-top: ${space(1)};
 `;
+
+const ExpirationMessage = styled('span')`
+  display: inline-grid;
+  grid-gap: ${space(0.25)};
+  grid-template-columns: max-content 1fr;
+`;
