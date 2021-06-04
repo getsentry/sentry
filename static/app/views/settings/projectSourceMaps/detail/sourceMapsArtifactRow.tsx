@@ -66,49 +66,59 @@ const SourceMapsArtifactRow = ({
         <FileSize bytes={size} />
       </SizeColumn>
       <ActionsColumn>
-        {type === ArtifactType.INDIVIDUAL && (
-          <ButtonBar gap={0.5}>
-            <Role role={downloadRole}>
-              {({hasRole}) => (
-                <Tooltip
-                  title={t('You do not have permission to download artifacts.')}
-                  disabled={hasRole}
+        <ButtonBar gap={0.5}>
+          <Role role={downloadRole}>
+            {({hasRole}) => (
+              <Tooltip
+                title={
+                  !hasRole
+                    ? t('You do not have permission to download artifacts.')
+                    : type !== ArtifactType.INDIVIDUAL
+                    ? t(
+                        'This artifact is part of an archive. Only individual artifacts can be downloaded one by one.'
+                      )
+                    : t('Download Artifact')
+                }
+              >
+                <Button
+                  size="small"
+                  icon={<IconDownload size="sm" />}
+                  label={t('Download Artifact')}
+                  disabled={!hasRole || type !== ArtifactType.INDIVIDUAL}
+                  href={downloadUrl}
+                />
+              </Tooltip>
+            )}
+          </Role>
+
+          <Access access={['project:releases']}>
+            {({hasAccess}) => (
+              <Tooltip
+                title={
+                  !hasAccess
+                    ? t('You do not have permission to delete artifacts.')
+                    : type !== ArtifactType.INDIVIDUAL
+                    ? t(
+                        'This artifact is part of an archive. Only individual artifacts can be removed one by one.'
+                      )
+                    : t('Remove Artifact')
+                }
+              >
+                <Confirm
+                  message={t('Are you sure you want to remove this artifact?')}
+                  onConfirm={handleDeleteClick}
+                  disabled={!hasAccess || type !== ArtifactType.INDIVIDUAL}
                 >
                   <Button
                     size="small"
-                    icon={<IconDownload size="sm" />}
-                    disabled={!hasRole}
-                    href={downloadUrl}
-                    title={hasRole ? t('Download Artifact') : undefined}
+                    icon={<IconDelete size="sm" />}
+                    label={t('Remove Artifact')}
                   />
-                </Tooltip>
-              )}
-            </Role>
-
-            <Access access={['project:releases']}>
-              {({hasAccess}) => (
-                <Tooltip
-                  disabled={hasAccess}
-                  title={t('You do not have permission to delete artifacts.')}
-                >
-                  <Confirm
-                    message={t('Are you sure you want to remove this artifact?')}
-                    onConfirm={handleDeleteClick}
-                    disabled={!hasAccess}
-                  >
-                    <Button
-                      size="small"
-                      icon={<IconDelete size="sm" />}
-                      title={hasAccess ? t('Remove Artifact') : undefined}
-                      label={t('Remove Artifact')}
-                      disabled={!hasAccess}
-                    />
-                  </Confirm>
-                </Tooltip>
-              )}
-            </Access>
-          </ButtonBar>
-        )}
+                </Confirm>
+              </Tooltip>
+            )}
+          </Access>
+        </ButtonBar>
       </ActionsColumn>
     </Fragment>
   );

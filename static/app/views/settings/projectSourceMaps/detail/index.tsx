@@ -367,6 +367,15 @@ const Title = styled('div')`
 
 const StyledButtonBar = styled(ButtonBar)`
   justify-content: flex-start;
+  margin: ${space(1)} 0;
+
+  @media (max-width: ${p => p.theme.breakpoints[0]}) {
+    display: flex;
+    flex-wrap: wrap;
+    > * {
+      margin-bottom: ${space(1)};
+    }
+  }
 `;
 
 const StyledSelectControl = styled(SelectControl)`
