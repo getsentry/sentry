@@ -6,6 +6,8 @@ import pytest
 from django.urls import reverse
 from pytz import utc
 
+from sentry.models import ProjectTransactionThreshold
+from sentry.models.transaction_threshold import TransactionMetric
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.compat import mock, zip
@@ -206,12 +208,22 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
         assert [attrs for time, attrs in response.data["data"]] == [[{"count": 1}], [{"count": 2}]]
 
     def test_aggregate_function_apdex(self):
+        project1 = self.create_project()
+        project2 = self.create_project()
+
+        ProjectTransactionThreshold.objects.create(
+            project=project1,
+            organization=project1.organization,
+            threshold=100,
+            metric=TransactionMetric.DURATION.value,
+        )
+
         events = [
-            ("one", 400),
-            ("one", 400),
-            ("two", 3000),
-            ("two", 1000),
-            ("three", 3000),
+            ("one", 400, project1.id),
+            ("one", 400, project1.id),
+            ("two", 3000, project2.id),
+            ("two", 1000, project2.id),
+            ("three", 3000, project2.id),
         ]
         for idx, event in enumerate(events):
             data = load_data(
@@ -222,7 +234,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             data["event_id"] = f"{idx}" * 32
             data["transaction"] = f"/apdex/new/{event[0]}"
             data["user"] = {"email": f"{idx}@example.com"}
-            self.store_event(data, project_id=self.project.id)
+            self.store_event(data, project_id=event[2])
 
         with self.feature("organizations:discover-basic"):
             response = self.client.get(
