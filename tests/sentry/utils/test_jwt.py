@@ -193,15 +193,16 @@ def test_rsa_key_from_jwk() -> None:
     assert key
     assert isinstance(key, bytes)
 
+    # The PEM keys are not equal, and by more than just the header and footer ("BEGIN RSA
+    # PRIVATE KEY" vs "BEGIN PRIVATE KEY").  There might be some more metadata in there that
+    # is not relevant.  However below we assert the generated tokens are identical.
     # assert key == RS256_KEY.lstrip()
 
     # Ensure we can use the key to create a token
     claims = {"iss": "me"}
-    token = jwt_utils.encode(claims, key)
-    assert token
-
-    token2 = jwt_utils.encode(claims, RS256_KEY)
-    assert token == token2
+    token_from_jwk = jwt_utils.encode(claims, key, algorithm="RS256")
+    token = jwt_utils.encode(claims, RS256_KEY, algorithm="RS256")
+    assert token_from_jwk == token
 
 
 # TODO: add tests which only have a public key and verify we can decode with that.  We do
