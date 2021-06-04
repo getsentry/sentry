@@ -21,8 +21,15 @@ type ChartData = Record<string, Series>;
 
 const SESSIONS_CHART_PALETTE = CHART_PALETTE[3];
 
-export function getInterval(datetimeObj: DateTimeObject) {
+export function getInterval(datetimeObj: DateTimeObject, organization?: Organization) {
   const diffInMinutes = getDiffInMinutes(datetimeObj);
+
+  if (
+    organization?.features.includes('minute-resolution-sessions') &&
+    diffInMinutes < 360 // limit on backend is set to six hour
+  ) {
+    return '5m';
+  }
 
   if (diffInMinutes > TWO_WEEKS) {
     return '6h';
