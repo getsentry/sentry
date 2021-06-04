@@ -268,7 +268,7 @@ function AppStoreConnect({
     const newActiveStep = activeStep - 1;
 
     switch (newActiveStep) {
-      case 2:
+      case 3:
         startItunesAuthentication(false);
         setStepFourData({authenticationCode: undefined});
         break;
@@ -294,9 +294,6 @@ function AppStoreConnect({
         startTwoFactorAuthentication();
         break;
       case 4:
-        goNext();
-        break;
-      case 5:
         persistData();
         break;
       default:
@@ -393,7 +390,7 @@ function AppStoreConnect({
             onStartSmsAuthentication={handleStartTwoFactorAuthentication}
           />
         );
-      case 5:
+      case 4:
         return (
           <StepFifth
             appleStoreOrgs={appleStoreOrgs}
@@ -457,7 +454,7 @@ function AppStoreConnect({
 
   return (
     <Fragment>
-      <Header>
+      <Header closeButton>
         <HeaderContent>
           <NumericSymbol>{activeStep + 1}</NumericSymbol>
           <HeaderContentTitle>{steps[activeStep]}</HeaderContentTitle>
