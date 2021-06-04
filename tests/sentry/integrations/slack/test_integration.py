@@ -127,7 +127,8 @@ class SlackIntegrationTest(IntegrationTestCase):
 
     @responses.activate
     def test_bot_flow(self):
-        self.assert_setup_flow()
+        with self.tasks():
+            self.assert_setup_flow()
 
         integration = Integration.objects.get(provider=self.provider.key)
         assert integration.external_id == "TXXXXXXX1"
@@ -153,8 +154,10 @@ class SlackIntegrationTest(IntegrationTestCase):
 
     @responses.activate
     def test_multiple_integrations(self):
-        self.assert_setup_flow()
-        self.assert_setup_flow(team_id="TXXXXXXX2", authorizing_user_id="UXXXXXXX2")
+        with self.tasks():
+            self.assert_setup_flow()
+        with self.tasks():
+            self.assert_setup_flow(team_id="TXXXXXXX2", authorizing_user_id="UXXXXXXX2")
 
         integrations = Integration.objects.filter(provider=self.provider.key).order_by(
             "external_id"
@@ -185,11 +188,12 @@ class SlackIntegrationTest(IntegrationTestCase):
         (who also installed it the first time?)
         has a different external ID, their Identity is updated to reflect that
         """
-        self.assert_setup_flow()
+        with self.tasks():
+            self.assert_setup_flow()
         identity = Identity.objects.get()
         assert identity.external_id == "UXXXXXXX1"
-
-        self.assert_setup_flow(authorizing_user_id="UXXXXXXX2")
+        with self.tasks():
+            self.assert_setup_flow(authorizing_user_id="UXXXXXXX2")
         identity = Identity.objects.get()
         assert identity.external_id == "UXXXXXXX2"
 
@@ -199,7 +203,8 @@ class SlackIntegrationTest(IntegrationTestCase):
         Test that when an organization has multiple users, we create Identity records for them
         if their Sentry email matches their Slack email
         """
-        self.assert_setup_flow(multiple_users=True)
+        with self.tasks():
+            self.assert_setup_flow(multiple_users=True)
         self_user_identity = Identity.objects.get(user=self.user)
         assert self_user_identity
         assert self_user_identity.external_id == "UXXXXXXX1"

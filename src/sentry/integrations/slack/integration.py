@@ -1,7 +1,5 @@
 from collections import namedtuple
 
-from django.db import IntegrityError, transaction
-from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.identity.pipeline import IdentityProviderPipeline
@@ -12,7 +10,7 @@ from sentry.integrations import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.models import Identity, IdentityProvider, IdentityStatus
+from sentry.integrations.slack import tasks
 from sentry.pipeline import NestedPipelineView
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.http import absolute_uri
@@ -161,90 +159,5 @@ class SlackIntegrationProvider(IntegrationProvider):
         """
         Create Identity records for an organizations's users if their emails match in Sentry and Slack
         """
-        access_token = (
-            integration.metadata.get("user_access_token") or integration.metadata["access_token"]
-        )
-        headers = {"Authorization": "Bearer %s" % access_token}
-        client = SlackClient()
-        # TODO put this all in a task
-        for member in organization.members.all():
-            # TODO look into more lookups for email if member.email is missing such as in UserOption
-            if member.email:
-                try:
-                    # TODO use users.list instead to reduce API calls
-                    resp = client.get(
-                        "/users.lookupByEmail/", headers=headers, params={"email": member.email}
-                    )
-                except ApiError as e:
-                    logger.info(
-                        "post_install.fail.slack_lookupByEmail",
-                        extra={
-                            "error": str(e),
-                            "organization": organization.slug,
-                            "integration_id": integration.id,
-                            "email": member.email,
-                        },
-                    )
-                    # comment out so I don't get false positives in tests
-                    continue
-
-                if resp["ok"] is True:
-                    # TODO batch get
-                    idp, created = IdentityProvider.objects.get_or_create(
-                        type=integration.provider,
-                        external_id=integration.external_id,
-                    )
-                    if not created and resp["user"]["team_id"] != integration.external_id:
-                        # an idp already exists and the Slack team ID has changed, update it
-                        idp.update(external_id=resp["user"]["team_id"])
-
-                    identity_data = {
-                        "status": IdentityStatus.VALID,
-                        "date_verified": timezone.now(),
-                    }
-                    try:
-                        identity_model = Identity.objects.get(
-                            idp=idp,
-                            user=member,
-                            status=IdentityStatus.VALID,
-                        )
-                    except Identity.DoesNotExist:
-                        if resp["user"]["profile"]["email"] == member.email:
-                            try:
-                                with transaction.atomic():
-                                    identity_model = Identity.objects.create(
-                                        idp=idp,
-                                        user=member,
-                                        status=IdentityStatus.VALID,
-                                        date_verified=timezone.now(),
-                                        external_id=resp["user"]["id"],
-                                    )
-                            except IntegrityError:
-                                # If the external_id is already used for a different user then throw an error
-                                # otherwise we have the same user with a new external id
-                                # and we update the identity with the new external_id and identity data
-                                try:
-                                    matched_identity = Identity.objects.get(
-                                        idp=idp, external_id=resp["user"]["id"]
-                                    )
-                                except Identity.DoesNotExist:
-                                    # The user is linked to a different external_id. It's ok to relink
-                                    # here because they'll still be able to log in with the new external_id.
-                                    identity_model = Identity.update_external_id_and_defaults(
-                                        idp, resp["user"]["id"], member, identity_data
-                                    )
-                                else:
-                                    logger.info(
-                                        "post_install.identity_linked_different_user",
-                                        extra={
-                                            "idp_id": idp.id,
-                                            "external_id": resp["user"]["id"],
-                                            "object_id": matched_identity.id,
-                                            "user_id": member.id,
-                                            "type": idp.type,
-                                        },
-                                    )
-                    else:
-                        if resp["user"]["id"] != identity_model.external_id:
-                            # an identity already exists but the Slack user ID has changed
-                            identity_model.update(external_id=resp["user"]["id"])
+        run_args = {"integration": integration, "organization": organization}
+        tasks.link_slack_user_identities.apply_async(kwargs=run_args)

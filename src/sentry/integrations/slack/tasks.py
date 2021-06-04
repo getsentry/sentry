@@ -2,6 +2,8 @@ import logging
 from uuid import uuid4
 
 from django.conf import settings
+from django.db import IntegrityError, transaction
+from django.utils import timezone
 from rest_framework import serializers
 
 from sentry.auth.access import SystemAccess
@@ -15,6 +17,9 @@ from sentry.incidents.models import AlertRule
 from sentry.integrations.slack.utils import get_channel_id_with_timeout, strip_channel_name
 from sentry.mediators import project_rules
 from sentry.models import (
+    Identity,
+    IdentityProvider,
+    IdentityStatus,
     Integration,
     Organization,
     Project,
@@ -23,10 +28,12 @@ from sentry.models import (
     RuleActivityType,
     User,
 )
-from sentry.shared_integrations.exceptions import DuplicateDisplayNameError
+from sentry.shared_integrations.exceptions import ApiError, DuplicateDisplayNameError
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json
 from sentry.utils.redis import redis_clusters
+
+from .client import SlackClient
 
 logger = logging.getLogger("sentry.integrations.slack.tasks")
 
@@ -229,3 +236,94 @@ def find_channel_id_for_alert_rule(organization_id, uuid, data, alert_rule_id=No
     # some other error
     redis_rule_status.set_value("failed")
     return
+
+
+@instrumented_task(name="sentry.integrations.slack.link_users_identities", queue="integrations")
+def link_slack_user_identities(integration, organization):
+    access_token = (
+        integration.metadata.get("user_access_token") or integration.metadata["access_token"]
+    )
+    headers = {"Authorization": "Bearer %s" % access_token}
+    client = SlackClient()
+
+    for member in organization.members.all():
+        if member.email:
+            try:
+                # TODO use users.list instead to reduce API calls
+                resp = client.get(
+                    "/users.lookupByEmail/", headers=headers, params={"email": member.email}
+                )
+            except ApiError as e:
+                logger.info(
+                    "post_install.fail.slack_lookupByEmail",
+                    extra={
+                        "error": str(e),
+                        "organization": organization.slug,
+                        "integration_id": integration.id,
+                        "email": member.email,
+                    },
+                )
+                continue
+
+            if resp["ok"] is True:
+                # TODO batch get
+                idp, created = IdentityProvider.objects.get_or_create(
+                    type=integration.provider,
+                    external_id=integration.external_id,
+                )
+                if not created and resp["user"]["team_id"] != integration.external_id:
+                    # an idp already exists and the Slack team ID has changed, update it
+                    idp.update(external_id=resp["user"]["team_id"])
+
+                identity_data = {
+                    "status": IdentityStatus.VALID,
+                    "date_verified": timezone.now(),
+                }
+                try:
+                    identity_model = Identity.objects.get(
+                        idp=idp,
+                        user=member,
+                        status=IdentityStatus.VALID,
+                    )
+                except Identity.DoesNotExist:
+                    if resp["user"]["profile"]["email"] in [
+                        member.email for member in member.emails.all()
+                    ]:
+                        try:
+                            with transaction.atomic():
+                                identity_model = Identity.objects.create(
+                                    idp=idp,
+                                    user=member,
+                                    status=IdentityStatus.VALID,
+                                    date_verified=timezone.now(),
+                                    external_id=resp["user"]["id"],
+                                )
+                        except IntegrityError:
+                            # If the external_id is already used for a different user then throw an error
+                            # otherwise we have the same user with a new external id
+                            # and we update the identity with the new external_id and identity data
+                            try:
+                                matched_identity = Identity.objects.get(
+                                    idp=idp, external_id=resp["user"]["id"]
+                                )
+                            except Identity.DoesNotExist:
+                                # The user is linked to a different external_id. It's ok to relink
+                                # here because they'll still be able to log in with the new external_id.
+                                identity_model = Identity.update_external_id_and_defaults(
+                                    idp, resp["user"]["id"], member, identity_data
+                                )
+                            else:
+                                logger.info(
+                                    "post_install.identity_linked_different_user",
+                                    extra={
+                                        "idp_id": idp.id,
+                                        "external_id": resp["user"]["id"],
+                                        "object_id": matched_identity.id,
+                                        "user_id": member.id,
+                                        "type": idp.type,
+                                    },
+                                )
+                else:
+                    if resp["user"]["id"] != identity_model.external_id:
+                        # an identity already exists but the Slack user ID has changed
+                        identity_model.update(external_id=resp["user"]["id"])
