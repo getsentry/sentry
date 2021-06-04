@@ -6,20 +6,13 @@ on:
     - 'Makefile'
     - '.github/workflows/bootstrap.yml'
     - 'scripts/*'
-    - 'src/sentry/runner/commands/devserver.py'
-    - 'src/sentry/runner/commands/devservices.py'
 
 jobs:
   bootstrap-script:
     name: bootstrap
     runs-on: macos-11.0
-    timeout-minutes: 35
-    env:
-      # This makes the script to git clone from https, thus, not requirying github access check
-      # On the other hand, it will not clone getsentry for lack of access
-      STRAP_CI: on
+    timeout-minutes: 45
     steps:
       - name: Run bootstrap scripts
         run: |
-          # XXX: Point to dev branch until merged
-          bash <(curl -s https://raw.githubusercontent.com/getsentry/bootstrap-sentry/github_action/bootstrap.sh)
+          bash <(curl -s https://raw.githubusercontent.com/getsentry/bootstrap-sentry/master/bootstrap.sh)
