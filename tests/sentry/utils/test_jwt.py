@@ -123,10 +123,10 @@ def rsa_token() -> str:
     claims = {
         "iss": "me",
     }
-    token = pyjwt.encode(claims, RS256_KEY, algorithm="RS256", headers=headers)
+    encoded = pyjwt.encode(claims, RS256_KEY, algorithm="RS256", headers=headers)
 
     # PyJWT < 2.0 returns bytes, not strings
-    token = token.decode("UTF-8")
+    token = encoded.decode("UTF-8")
     assert isinstance(token, str)
     return token
 
