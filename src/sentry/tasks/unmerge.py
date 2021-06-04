@@ -4,7 +4,7 @@ from functools import reduce
 
 from django.db import transaction
 
-from sentry import eventstore, eventstream, similarity
+from sentry import eventstore, similarity
 from sentry.app import tsdb
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS_MAP
 from sentry.event_manager import generate_culprit
@@ -22,6 +22,7 @@ from sentry.models import (
     UserReport,
 )
 from sentry.tasks.base import instrumented_task
+from sentry.unmerge import InitialUnmergeArgs, SuccessiveUnmergeArgs, UnmergeArgs, UnmergeArgsBase
 from sentry.utils.query import celery_run_batch_query
 
 logger = logging.getLogger(__name__)
@@ -150,18 +151,19 @@ def get_fingerprint(event):
     return event.get_primary_hash()
 
 
-def migrate_events(
-    caches, project, source_id, destination_id, fingerprints, events, actor_id, eventstream_state
-):
+def migrate_events(caches, project, args: UnmergeArgs, events, locked_primary_hashes):
     # XXX: This is only actually able to create a destination group and migrate
     # the group hashes if there are events that can be migrated. How do we
     # handle this if there aren't any events? We can't create a group (there
     # isn't any data to derive the aggregates from), so we'd have to mark the
     # hash as in limbo somehow...?)
     if not events:
-        return (destination_id, eventstream_state)
+        eventstream_state = (
+            args.eventstream_state if not isinstance(args, InitialUnmergeArgs) else None
+        )
+        return (args.destination_id, eventstream_state)
 
-    if destination_id is None:
+    if args.destination_id is None:
         # XXX: There is a race condition here between the (wall clock) time
         # that the migration is started by the user and when we actually
         # get to this block where the new destination is created and we've
@@ -180,39 +182,37 @@ def migrate_events(
         )
 
         destination_id = destination.id
-
     else:
         # Update the existing destination group.
-        destination = Group.objects.get(id=destination_id)
+        destination = Group.objects.get(id=args.destination_id)
         destination.update(**get_group_backfill_attributes(caches, destination, events))
+        destination_id = args.destination_id
 
-    if eventstream_state is None:
-
-        eventstream_state = eventstream.start_unmerge(
-            project.id, fingerprints, source_id, destination_id
+    if isinstance(args, InitialUnmergeArgs) or args.eventstream_state is None:
+        eventstream_state = args.replacement.start_snuba_replacement(
+            project, args.source_id, destination_id
         )
 
-        # Move the group hashes to the destination.
-        GroupHash.objects.filter(project_id=project.id, hash__in=fingerprints).update(
-            group=destination_id
-        )
+        args.replacement.run_postgres_replacement(project, destination_id, locked_primary_hashes)
 
         # Create activity records for the source and destination group.
         Activity.objects.create(
             project_id=project.id,
             group_id=destination_id,
             type=Activity.UNMERGE_DESTINATION,
-            user_id=actor_id,
-            data={"fingerprints": fingerprints, "source_id": source_id},
+            user_id=args.actor_id,
+            data={"source_id": args.source_id, **args.replacement.get_activity_args()},
         )
 
         Activity.objects.create(
             project_id=project.id,
-            group_id=source_id,
+            group_id=args.source_id,
             type=Activity.UNMERGE_SOURCE,
-            user_id=actor_id,
-            data={"fingerprints": fingerprints, "destination_id": destination_id},
+            user_id=args.actor_id,
+            data={"destination_id": destination_id, **args.replacement.get_activity_args()},
         )
+    else:
+        eventstream_state = args.eventstream_state
 
     event_id_set = {event.event_id for event in events}
 
@@ -438,60 +438,63 @@ def lock_hashes(project_id, source_id, fingerprints):
     return [h.hash for h in eligible_hashes]
 
 
-def unlock_hashes(project_id, fingerprints):
+def unlock_hashes(project_id, locked_primary_hashes):
     GroupHash.objects.filter(
-        project_id=project_id, hash__in=fingerprints, state=GroupHash.State.LOCKED_IN_MIGRATION
+        project_id=project_id,
+        hash__in=locked_primary_hashes,
+        state=GroupHash.State.LOCKED_IN_MIGRATION,
     ).update(state=GroupHash.State.UNLOCKED)
 
 
 @instrumented_task(name="sentry.tasks.unmerge", queue="unmerge")
-def unmerge(
-    project_id,
-    source_id,
-    destination_id,
-    fingerprints,
-    actor_id,
-    last_event=None,
-    batch_size=500,
-    source_fields_reset=False,
-    eventstream_state=None,
-):
-    source = Group.objects.get(project_id=project_id, id=source_id)
+def unmerge(*posargs, **kwargs):
+    args = UnmergeArgsBase.parse_arguments(*posargs, **kwargs)
+
+    source = Group.objects.get(project_id=args.project_id, id=args.source_id)
 
     caches = get_caches()
 
-    project = caches["Project"](project_id)
+    project = caches["Project"](args.project_id)
 
     # On the first iteration of this loop, we clear out all of the
     # denormalizations from the source group so that we can have a clean slate
     # for the new, repaired data.
-    if last_event is None:
-        fingerprints = lock_hashes(project_id, source_id, fingerprints)
+    if isinstance(args, InitialUnmergeArgs):
+        locked_primary_hashes = lock_hashes(
+            args.project_id, args.source_id, args.replacement.primary_hashes_to_lock
+        )
         truncate_denormalizations(project, source)
+        last_event = None
+    else:
+        last_event = args.last_event
+        locked_primary_hashes = args.locked_primary_hashes
 
     last_event, events = celery_run_batch_query(
-        filter=eventstore.Filter(project_ids=[project_id], group_ids=[source.id]),
-        batch_size=batch_size,
+        filter=eventstore.Filter(project_ids=[args.project_id], group_ids=[source.id]),
+        batch_size=args.batch_size,
         state=last_event,
         referrer="unmerge",
     )
 
     # If there are no more events to process, we're done with the migration.
     if not events:
-        unlock_hashes(project_id, fingerprints)
-        logger.warning("Unmerge complete (eventstream state: %s)", eventstream_state)
-        if eventstream_state:
-            eventstream.end_unmerge(eventstream_state)
-
-        return destination_id
+        unlock_hashes(args.project_id, locked_primary_hashes)
+        if isinstance(args, SuccessiveUnmergeArgs):
+            logger.warning("Unmerge complete (eventstream state: %s)", args.eventstream_state)
+            args.replacement.stop_snuba_replacement(args.eventstream_state)
+        return
 
     source_events = []
     destination_events = []
 
     for event in events:
-        (destination_events if get_fingerprint(event) in fingerprints else source_events).append(
-            event
-        )
+        (
+            destination_events
+            if args.replacement.should_move(event, locked_primary_hashes)
+            else source_events
+        ).append(event)
+
+    source_fields_reset = isinstance(args, SuccessiveUnmergeArgs) and args.source_fields_reset
 
     if source_events:
         if not source_fields_reset:
@@ -501,26 +504,22 @@ def unmerge(
             source.update(**get_group_backfill_attributes(caches, source, source_events))
 
     (destination_id, eventstream_state) = migrate_events(
-        caches,
-        project,
-        source_id,
-        destination_id,
-        fingerprints,
-        destination_events,
-        actor_id,
-        eventstream_state,
+        caches, project, args, destination_events, locked_primary_hashes
     )
 
     repair_denormalizations(caches, project, events)
 
-    unmerge.delay(
-        project_id,
-        source_id,
-        destination_id,
-        fingerprints,
-        actor_id,
+    new_args = SuccessiveUnmergeArgs(
+        project_id=args.project_id,
+        source_id=args.source_id,
+        replacement=args.replacement,
+        actor_id=args.actor_id,
+        batch_size=args.batch_size,
         last_event=last_event,
-        batch_size=batch_size,
-        source_fields_reset=source_fields_reset,
+        destination_id=destination_id,
         eventstream_state=eventstream_state,
+        locked_primary_hashes=locked_primary_hashes,
+        source_fields_reset=source_fields_reset,
     )
+
+    unmerge.delay(**new_args.dump_arguments())
