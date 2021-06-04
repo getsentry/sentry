@@ -57,7 +57,7 @@ class KillswitchesTest(CliTestCase):
         )
 
         assert self.invoke("pull", OPTION, "-").output == PREAMBLE + (
-            "\n" "\n" "- event_type: transaction\n" "  project_id: 42\n"
+            "\n" "\n" "- event_type: transaction\n" "  project_id: '42'\n"
         )
 
         rv = self.invoke(
@@ -86,9 +86,9 @@ class KillswitchesTest(CliTestCase):
             "\n"
             "\n"
             "- event_type: transaction\n"
-            "  project_id: 42\n"
+            "  project_id: '42'\n"
             "- event_type: null\n"
-            "  project_id: 43\n"
+            "  project_id: '43'\n"
         )
 
         rv = self.invoke(
