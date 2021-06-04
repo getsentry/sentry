@@ -469,6 +469,8 @@ class SourceMapsEndpoint(ProjectEndpoint):
                 if release is not None:
                     release_files = ReleaseFile.objects.filter(release=release)
                     release_files.delete()
+                    release.artifact_count = 0
+                    release.save()
                     return Response(status=204)
 
         return Response(status=404)

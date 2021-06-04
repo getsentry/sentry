@@ -141,6 +141,7 @@ class Release(Model):
     authors = ArrayField(null=True)
     total_deploys = BoundedPositiveIntegerField(null=True, default=0)
     last_deploy_id = BoundedPositiveIntegerField(null=True)
+    artifact_count = BoundedPositiveIntegerField(null=True)
 
     # Denormalized semver columns. These will be filled if `version` matches at least
     # part of our more permissive model of semver:
@@ -764,7 +765,7 @@ class Release(Model):
 
         return None
 
-    def count_release_files(self):
+    def count_individual_artifacts(self):
         return (
             ReleaseFile.objects.filter(release=self).exclude(name=RELEASE_ARCHIVE_FILENAME).count()
         )
@@ -779,16 +780,23 @@ class Release(Model):
 
     def count_artifacts(self):
         """Count release files plus files bundled in release archive.
-        TODO(jjbayer): This is an expensive operation, might be better to persist
-        the artifact count in the same way as `commit_count`.
-
 
         NOTE: This will result in artifacts being counted 2x as long as we
               store *both* archives and individual files.
 
         """
+        if self.artifact_count is None:
+            # Releases with archived artifacts always have an artifact_count,
+            # so no need to count them here:
+            return self.count_individual_artifacts()
 
-        release_files = self.count_release_files()
-        archived = self.count_archived_artifacts()
+        return self.artifact_count
 
-        return release_files + archived
+    def update_artifact_count(self, incr: int):
+        if self.artifact_count is None:
+            # Legacy releases, leave as-is
+            return
+
+        # See https://docs.djangoproject.com/en/1.11/ref/models/expressions/#avoiding-race-conditions-using-f
+        qs = Release.objects.filter(pk=self.pk)
+        qs.update(artifact_count=F("artifact_count") + incr)

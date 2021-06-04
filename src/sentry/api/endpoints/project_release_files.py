@@ -82,16 +82,25 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint):
             data_sources.append(CombinedQuerysetIntermediary(file_list, order_by=["name"]))
 
         archive = None
+
         if not type_ or type_ == FileStorageType.ARCHIVED:
-            # Get contents of release archive as well:
-            try:
-                release_archive_file = ReleaseFile.objects.select_related("file").get(
-                    release=release, name=RELEASE_ARCHIVE_FILENAME
-                )
-                file_ = ReleaseFile.cache.getfile(release_archive_file)
-                archive = ReleaseArchive(file_.file)
-            except ReleaseFile.DoesNotExist:
-                archive = None
+            # In order to hide archived artifacts during the transition phase
+            # (where artifacts are stored individually and in archive),
+            # only show archived items if the artifact count surpasses the individual file count
+            archived_exist = (
+                release.artifact_count is not None
+                and release.artifact_count > release.count_individual_artifacts()
+            )
+            if archived_exist:
+                # Get contents of release archive as well:
+                try:
+                    release_archive_file = ReleaseFile.objects.select_related("file").get(
+                        release=release, name=RELEASE_ARCHIVE_FILENAME
+                    )
+                    file_ = ReleaseFile.cache.getfile(release_archive_file)
+                    archive = ReleaseArchive(file_.file)
+                except ReleaseFile.DoesNotExist:
+                    archive = None
 
         if archive is not None:
             with archive:
@@ -214,6 +223,7 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint):
                     name=full_name,
                     dist=dist,
                 )
+                release.update_artifact_count(1)
         except IntegrityError:
             file.delete()
             return Response({"detail": ERR_FILE_EXISTS}, status=409)

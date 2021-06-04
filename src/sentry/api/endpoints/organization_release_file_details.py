@@ -1,5 +1,6 @@
 import posixpath
 
+from django.db import transaction
 from django.http import StreamingHttpResponse
 from rest_framework import serializers
 from rest_framework.response import Response
@@ -135,7 +136,9 @@ class OrganizationReleaseFileDetailsEndpoint(OrganizationReleasesBaseEndpoint):
 
         # TODO(dcramer): this doesnt handle a failure from file.deletefile() to
         # the actual deletion of the db row
-        releasefile.delete()
+        with transaction.atomic():
+            releasefile.delete()
+            release.update_artifact_count(-1)
         file.delete()
 
         return Response(status=204)

@@ -177,7 +177,9 @@ def _simple_update(release_file: ReleaseFile, new_file: File, new_archive: Relea
     old_file.delete()
 
 
-def _upsert_release_file(file: File, archive: ReleaseArchive, update_fn, **kwargs):
+def _upsert_release_file(
+    file: File, archive: ReleaseArchive, update_fn, post_create=None, **kwargs
+):
     release_file = None
 
     # Release files must have unique names within their release
@@ -189,6 +191,8 @@ def _upsert_release_file(file: File, archive: ReleaseArchive, update_fn, **kwarg
         try:
             with transaction.atomic():
                 release_file = ReleaseFile.objects.create(file=file, **kwargs)
+                if post_create:
+                    post_create()
         except IntegrityError:
             # NB: This indicates a race, where another assemble task or
             # file upload job has just created a conflicting file. Since
@@ -212,12 +216,14 @@ def _merge_archives(release_file: ReleaseFile, new_file: File, new_archive: Rele
             with lock.blocking_acquire(
                 RELEASE_ARCHIVE_MERGE_INITIAL_DELAY, RELEASE_ARCHIVE_MERGE_TIMEOUT
             ):
-                merge_release_archives(old_archive, new_archive, buffer)
+                num_artifacts = merge_release_archives(old_archive, new_archive, buffer)
 
                 replacement = File.objects.create(name=old_file.name, type=old_file.type)
                 buffer.seek(0)
                 replacement.putfile(buffer)
-                release_file.update(file=replacement)
+                with transaction.atomic():
+                    release_file.update(file=replacement)
+                    release_file.release.update(artifact_count=num_artifacts)
 
                 old_file.delete()
 
@@ -322,7 +328,13 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
                 min_size = options.get("processing.release-archive-min-files")
                 if num_files >= min_size:
                     kwargs = dict(meta, name=RELEASE_ARCHIVE_FILENAME)
-                    _upsert_release_file(bundle, archive, _merge_archives, **kwargs)
+
+                    def post_create():
+                        release.update(artifact_count=num_files)
+
+                    _upsert_release_file(
+                        bundle, archive, _merge_archives, post_create=post_create, **kwargs
+                    )
 
             # NOTE(jjbayer): Single files are still stored to enable
             # rolling back from release archives. Once release archives run

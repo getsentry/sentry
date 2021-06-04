@@ -176,8 +176,11 @@ class ReleaseArchive:
         return temp_dir
 
 
-def merge_release_archives(archive1: ReleaseArchive, archive2: ReleaseArchive, target: IO):
-    """Fields in archive2 take precedence over fields in archive1. """
+def merge_release_archives(archive1: ReleaseArchive, archive2: ReleaseArchive, target: IO) -> int:
+    """Fields in archive2 take precedence over fields in archive1.
+
+    :returns: The number of files in the merged archive
+    """
     merged_manifest = dict(archive1.manifest, **archive2.manifest)
     files1 = archive1.manifest.get("files", {})
     files2 = archive2.manifest.get("files", {})
@@ -191,3 +194,5 @@ def merge_release_archives(archive1: ReleaseArchive, archive2: ReleaseArchive, t
             zip_file.writestr(filename, archive1.read(filename))
 
         zip_file.writestr("manifest.json", json.dumps(merged_manifest))
+
+    return len(merged_manifest["files"])
