@@ -6,6 +6,7 @@ import {AvatarProject, Project} from 'app/types';
 import {ChoiceMapperProps} from 'app/views/settings/components/forms/choiceMapperField';
 import RangeSlider from 'app/views/settings/components/forms/controls/rangeSlider';
 import {RichListProps} from 'app/views/settings/components/forms/richListField';
+import {SelectAsyncFieldProps} from 'app/views/settings/components/forms/selectAsyncField';
 
 export const FieldType = [
   'array',
@@ -27,6 +28,7 @@ export const FieldType = [
   'table',
   'project_mapper',
   'sentry_project_selector',
+  'select_async',
 ] as const;
 
 export type FieldValue = any;
@@ -173,6 +175,9 @@ export type SentryProjectSelectorType = {
   avatarSize?: number;
 };
 
+export type SelectAsyncType = {
+  type: 'select_async';
+} & SelectAsyncFieldProps;
 /**
  * Json field configuration makes using generics hard.
  * This isn't the ideal type to use, but it will cover
@@ -200,6 +205,7 @@ export type Field = (
   | TableType
   | ProjectMapperType
   | SentryProjectSelectorType
+  | SelectAsyncType
   | RichListType
   | ChoiceMapperType
   | {type: typeof FieldType[number]}
