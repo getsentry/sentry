@@ -2924,7 +2924,7 @@ class TimeseriesQueryTest(TimeseriesBase):
         )
 
         result = discover.timeseries_query(
-            selected_columns=["release", "count()"],
+            selected_columns=["count()"],
             query="(release:{} OR release:{}) AND project:{}".format(
                 "a" * 32, "b" * 32, self.project.slug
             ),
