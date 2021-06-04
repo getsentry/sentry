@@ -48,6 +48,7 @@ COMMON_SOURCE_PROPERTIES = {
     "filetypes": {"type": "array", "items": {"type": "string", "enum": list(VALID_FILE_TYPES)}},
 }
 
+
 APP_STORE_CONNECT_SCHEMA = {
     "type": "object",
     "properties": {
@@ -57,12 +58,11 @@ APP_STORE_CONNECT_SCHEMA = {
         "appconnectIssuer": {"type": "string", "minLength": 36, "maxLength": 36},
         "appconnectKey": {"type": "string", "minLength": 2, "maxLength": 20},
         "itunesUser": {"type": "string", "minLength": 1, "maxLength": 100},
+        "itunesCreated": {"type": "string"},
         "appName": {"type": "string", "minLength": 1, "maxLength": 512},
         "appId": {"type": "string", "minLength": 1, "maxLength": 512},
         "orgId": {"type": "integer"},
         "orgName": {"type": "string", "minLength": 1, "maxLength": 512},
-        "encrypted": {"type": "string"},
-        "refreshDate": {"type": "string"},
     },
     "required": [
         "id",
@@ -71,11 +71,12 @@ APP_STORE_CONNECT_SCHEMA = {
         "appconnectIssuer",
         "appconnectKey",
         "itunesUser",
+        "itunesCreated",
         "appName",
         "appId",
         "orgId",
         "orgName",
-        "encrypted",
+        "type",
     ],
     "additionalProperties": False,
 }
