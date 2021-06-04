@@ -935,15 +935,10 @@ SENTRY_FEATURES = {
     "organizations:enterprise-perf": False,
     # Enable the API to importing CODEOWNERS for a project
     "organizations:integrations-codeowners": False,
-    # Special feature flag primarily used on the sentry.io SAAS product for
-    # easily enabling features while in early development.
-    "organizations:internal-catchall": False,
     # Enable inviting members to organizations.
     "organizations:invite-members": True,
     # Enable rate limits for inviting members.
     "organizations:invite-members-rate-limits": True,
-    # Enable org-wide saved searches and user pinned search
-    "organizations:org-saved-searches": False,
     # Prefix host with organization ID when giving users DSNs (can be
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
@@ -1178,7 +1173,7 @@ SENTRY_ALLOW_PUBLIC_PROJECTS = True
 # Will an invite be sent when a member is added to an organization?
 SENTRY_ENABLE_INVITES = True
 
-# Default to not sending the Access-Control-Allow-Origin header on api/store
+# Origins allowed for session-based API access (via the Access-Control-Allow-Origin header)
 SENTRY_ALLOW_ORIGIN = None
 
 # Enable scraping of javascript context for source code

@@ -39,7 +39,7 @@ type Props = {
   projects: Project[];
   projectId: string;
   orgId: string;
-  children: (props: ChildFuncProps) => React.ReactNode;
+  children: ((props: ChildFuncProps) => React.ReactNode) | React.ReactNode;
 };
 
 type State = {
@@ -240,7 +240,11 @@ const ProjectContext = createReactClass<Props, State>({
     }
 
     if (!this.state.error) {
-      return this.props.children({project: this.state.project});
+      const {children} = this.props;
+
+      return typeof children === 'function'
+        ? children({project: this.state.project})
+        : children;
     }
 
     switch (this.state.errorType) {

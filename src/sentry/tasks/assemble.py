@@ -170,7 +170,7 @@ class AssembleArtifactsError(Exception):
 
 
 def _simple_update(release_file: ReleaseFile, new_file: File, new_archive: ReleaseArchive):
-    """ Update function used in _upsert_release_file """
+    """Update function used in _upsert_release_file"""
     old_file = release_file.file
     release_file.update(file=new_file)
     old_file.delete()

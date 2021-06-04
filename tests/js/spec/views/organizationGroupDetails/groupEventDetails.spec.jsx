@@ -77,6 +77,13 @@ describe('groupEventDetails', () => {
       url: `/projects/${org.slug}/${project.slug}/events/${event.id}/grouping-info/`,
       body: {},
     });
+
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/`,
+      method: 'GET',
+      statusCode: 200,
+      body: project,
+    });
   };
 
   beforeEach(() => {
