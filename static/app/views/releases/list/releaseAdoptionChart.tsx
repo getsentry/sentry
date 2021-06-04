@@ -5,8 +5,14 @@ import styled from '@emotion/styled';
 import moment from 'moment';
 
 import {Client} from 'app/api';
-import AreaChart from 'app/components/charts/areaChart';
 import ChartZoom from 'app/components/charts/chartZoom';
+import StackedAreaChart from 'app/components/charts/stackedAreaChart';
+import {
+  HeaderTitleLegend,
+  InlineContainer,
+  SectionHeading,
+  SectionValue,
+} from 'app/components/charts/styles';
 import {truncationFormatter} from 'app/components/charts/utils';
 import Count from 'app/components/count';
 import {Panel, PanelBody, PanelFooter} from 'app/components/panels';
@@ -28,6 +34,7 @@ type Props = WithRouterProps & {
   getHealthData: ReleaseHealthRequestRenderProps['getHealthData'];
   activeDisplay: DisplayOption;
   showPlaceholders: boolean;
+  totalCount: number;
 };
 
 type State = {
@@ -76,14 +83,14 @@ class ReleaseAdoptionChart extends React.PureComponent<Props, State> {
   renderEmpty() {
     return (
       <Panel>
-        <ChartBody withPadding>
+        <PanelBody withPadding>
           <ChartHeader>
             <Placeholder height="24px" />
           </ChartHeader>
           <Placeholder height="200px" />
-        </ChartBody>
+        </PanelBody>
         <ChartFooter>
-          <Placeholder height="24px" />
+          <Placeholder height="34px" />
         </ChartFooter>
       </Panel>
     );
@@ -98,17 +105,13 @@ class ReleaseAdoptionChart extends React.PureComponent<Props, State> {
       router,
       selection,
       getHealthData,
+      totalCount,
     } = this.props;
     const {start, end, period, utc} = selection.datetime;
 
     if (showPlaceholders) {
       return this.renderEmpty();
     }
-
-    const get24hCountByProject = getHealthData.get24hCountByProject(
-      Number(project.id),
-      activeDisplay
-    );
 
     const releasesSeries = releases.map(release => {
       const releaseVersion = release.version;
@@ -136,18 +139,19 @@ class ReleaseAdoptionChart extends React.PureComponent<Props, State> {
 
     return (
       <Panel>
-        <ChartBody withPadding>
+        <PanelBody withPadding>
           <ChartHeader>
             <ChartTitle>
               {activeDisplay === DisplayOption.USERS
-                ? t('Releases Adopted by Users')
-                : t('Releases Adopted by Sessions')}
+                ? t('Users Adopted')
+                : t('Sessions Adopted')}
             </ChartTitle>
           </ChartHeader>
           <ChartZoom router={router} period={period} utc={utc} start={start} end={end}>
             {zoomRenderProps => (
-              <AreaChart
+              <StackedAreaChart
                 {...zoomRenderProps}
+                grid={{left: '10px', right: '10px', top: '40px', bottom: '0px'}}
                 series={releasesSeries}
                 yAxis={{
                   min: 0,
@@ -200,15 +204,19 @@ class ReleaseAdoptionChart extends React.PureComponent<Props, State> {
               />
             )}
           </ChartZoom>
-        </ChartBody>
-        {
-          <ChartFooter>
-            {tct('Total [display] [count]', {
-              display: activeDisplay === DisplayOption.USERS ? 'Users' : 'Sessions',
-              count: <Count value={get24hCountByProject ?? 0} />,
-            })}
-          </ChartFooter>
-        }
+        </PanelBody>
+        <ChartFooter>
+          <InlineContainer>
+            <SectionHeading>
+              {tct('Total [display]', {
+                display: activeDisplay === DisplayOption.USERS ? 'Users' : 'Sessions',
+              })}
+            </SectionHeading>
+            <SectionValue>
+              <Count value={totalCount ?? 0} />
+            </SectionValue>
+          </InlineContainer>
+        </ChartFooter>
       </Panel>
     );
   }
@@ -216,17 +224,13 @@ class ReleaseAdoptionChart extends React.PureComponent<Props, State> {
 
 export default withApi(withRouter(ReleaseAdoptionChart));
 
-const ChartHeader = styled('div')`
+const ChartHeader = styled(HeaderTitleLegend)`
   margin-bottom: ${space(1)};
 `;
 
 const ChartTitle = styled('header')`
   display: flex;
   flex-direction: row;
-`;
-
-const ChartBody = styled(PanelBody)`
-  padding-bottom: 0;
 `;
 
 const ChartFooter = styled(PanelFooter)`
