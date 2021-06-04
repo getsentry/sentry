@@ -71,6 +71,8 @@ version_handlers = {
                 "end_merge",
                 "start_unmerge",
                 "end_unmerge",
+                "end_unmerge_hierarchical",
+                "start_unmerge_hierarchical",
                 "start_delete_tag",
                 "end_delete_tag",
                 "exclude_groups",

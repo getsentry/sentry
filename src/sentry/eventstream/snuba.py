@@ -191,6 +191,32 @@ class SnubaProtocolEventStream(EventStream):
         state["datetime"] = datetime.now(tz=pytz.utc)
         self._send(state["project_id"], "end_unmerge", extra_data=(state,), asynchronous=False)
 
+    def start_unmerge_hierarchical(
+        self, project_id, primary_hash, hierarchical_hash, previous_group_id, new_group_id
+    ):
+        state = {
+            "project_id": project_id,
+            "primary_hash": primary_hash,
+            "hierarchical_hash": hierarchical_hash,
+            "previous_group_id": previous_group_id,
+            "new_group_id": new_group_id,
+            "datetime": datetime.now(tz=pytz.utc),
+        }
+        self._send(
+            project_id, "start_unmerge_hierarchical", extra_data=(state,), asynchronous=False
+        )
+        return state
+
+    def end_unmerge_hierarchical(self, state):
+        """
+        Split out a subhash of the grouping tree into a new group.
+        """
+        state = state.copy()
+        state["datetime"] = datetime.now(tz=pytz.utc)
+        self._send(
+            state["project_id"], "end_unmerge_hierarchical", extra_data=(state,), asynchronous=False
+        )
+
     def start_delete_tag(self, project_id, tag):
         if not tag:
             return

@@ -50,7 +50,9 @@ class UnmergeReplacement(abc.ABC):
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def start_snuba_replacement(self, project: Project, source_id: int, destination_id: int) -> Any:
+    def start_snuba_replacement(
+        self, project: Project, source_id: int, unmerge_key: str, destination_id: int
+    ) -> Any:
         raise NotImplementedError()
 
     @abc.abstractmethod
@@ -59,13 +61,20 @@ class UnmergeReplacement(abc.ABC):
 
     @abc.abstractmethod
     def run_postgres_replacement(
-        self, project: Project, destination_id: int, locked_primary_hashes: Collection[str]
+        self,
+        project: Project,
+        unmerge_key: str,
+        destination_id: int,
+        locked_primary_hashes: Collection[str],
     ) -> None:
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def get_activity_args(self) -> Mapping[str, Any]:
+    def get_activity_args(self, unmerge_key: str) -> Mapping[str, Any]:
         raise NotImplementedError()
+
+    def on_finish(self, project: Project, source_id: int):
+        pass
 
 
 @dataclass(frozen=True)
@@ -89,7 +98,9 @@ class PrimaryHashUnmergeReplacement(UnmergeReplacement):
     def primary_hashes_to_lock(self) -> Collection[str]:
         return self.fingerprints
 
-    def start_snuba_replacement(self, project: Project, source_id: int, destination_id: int) -> Any:
+    def start_snuba_replacement(
+        self, project: Project, source_id: int, unmerge_key: str, destination_id: int
+    ) -> Any:
         return eventstream.start_unmerge(project.id, self.fingerprints, source_id, destination_id)
 
     def stop_snuba_replacement(self, eventstream_state: Any) -> None:
@@ -97,15 +108,93 @@ class PrimaryHashUnmergeReplacement(UnmergeReplacement):
             eventstream.end_unmerge(eventstream_state)
 
     def run_postgres_replacement(
-        self, project: Project, destination_id: int, locked_primary_hashes: Collection[str]
+        self,
+        project: Project,
+        unmerge_key: str,
+        destination_id: int,
+        locked_primary_hashes: Collection[str],
     ) -> None:
         # Move the group hashes to the destination.
         GroupHash.objects.filter(project_id=project.id, hash__in=locked_primary_hashes).update(
             group=destination_id
         )
 
-    def get_activity_args(self) -> Mapping[str, Any]:
+    def get_activity_args(self, unmerge_key: str) -> Mapping[str, Any]:
+        assert unmerge_key == _DEFAULT_UNMERGE_KEY
         return {"fingerprints": self.fingerprints}
+
+
+@dataclass(frozen=True)
+class HierarchicalUnmergeReplacement(UnmergeReplacement):
+    """
+    TODO
+    """
+
+    primary_hash: str
+    current_hierarchical_hash: str
+    current_level: int
+    new_level: int
+
+    def get_unmerge_key(
+        self, event: Event, locked_primary_hashes: Collection[str]
+    ) -> Optional[str]:
+        if event.get_primary_hash() != self.primary_hash:
+            return None
+
+        hierarchical_hashes = event.data.get("hierarchical_hashes")
+
+        if not hierarchical_hashes:
+            return None
+
+        try:
+            if hierarchical_hashes[self.current_level] != self.current_hierarchical_hash:
+                return None
+        except IndexError:
+            return None
+
+        try:
+            return hierarchical_hashes[self.new_level]
+        except IndexError:
+            return hierarchical_hashes[-1]
+
+    @property
+    def primary_hashes_to_lock(self) -> Collection[str]:
+        return set()
+
+    def start_snuba_replacement(
+        self, project: Project, source_id: int, unmerge_key: str, destination_id: int
+    ) -> Any:
+        return eventstream.start_unmerge_hierarchical(
+            project_id=project.id,
+            primary_hash=self.primary_hash,
+            hierarchical_hash=unmerge_key,
+            previous_group_id=source_id,
+            new_group_id=destination_id,
+        )
+
+    def stop_snuba_replacement(self, eventstream_state: Any) -> None:
+        if eventstream_state:
+            eventstream.end_unmerge_hierarchical(eventstream_state)
+
+    def run_postgres_replacement(
+        self,
+        project: Project,
+        unmerge_key: str,
+        destination_id: int,
+        locked_primary_hashes: Collection[str],
+    ) -> None:
+        GroupHash.objects.update_or_create(
+            project=project, hash=unmerge_key, defaults={"group_id": destination_id}
+        )
+
+    def get_activity_args(self, unmerge_key: str) -> Mapping[str, Any]:
+        return {
+            "previous_hierarchical_hash": self.current_hierarchical_hash,
+            "new_hierarchical_hash": unmerge_key,
+        }
+
+    def on_finish(self, project: Project, source_id: int):
+        eventstream.exclude_groups(project.id, [source_id])
 
 
 @dataclass(frozen=True)

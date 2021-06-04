@@ -108,6 +108,7 @@ from .endpoints.group_tombstone import GroupTombstoneEndpoint
 from .endpoints.group_tombstone_details import GroupTombstoneDetailsEndpoint
 from .endpoints.group_user_reports import GroupUserReportsEndpoint
 from .endpoints.grouping_configs import GroupingConfigsEndpoint
+from .endpoints.grouping_level_details import GroupingLevelDetailsEndpoint
 from .endpoints.grouping_level_new_issues import GroupingLevelNewIssuesEndpoint
 from .endpoints.grouping_levels import GroupingLevelsEndpoint
 from .endpoints.index import IndexEndpoint
@@ -418,6 +419,10 @@ GROUP_URLS = [
     ),
     url(r"^(?P<issue_id>[^\/]+)/hashes/$", GroupHashesEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/grouping/levels/$", GroupingLevelsEndpoint.as_view()),
+    url(
+        r"^(?P<issue_id>[^\/]+)/grouping/levels/(?P<id>[^\/]+)/$",
+        GroupingLevelDetailsEndpoint.as_view(),
+    ),
     url(
         r"^(?P<issue_id>[^\/]+)/grouping/levels/(?P<id>[^\/]+)/new-issues/$",
         GroupingLevelNewIssuesEndpoint.as_view(),

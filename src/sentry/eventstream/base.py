@@ -23,6 +23,8 @@ class EventStream(Service):
         "end_merge",
         "start_unmerge",
         "end_unmerge",
+        "start_unmerge_hierarchical",
+        "end_unmerge_hierarchical",
         "start_delete_tag",
         "end_delete_tag",
         "tombstone_events_unsafe",
@@ -87,6 +89,14 @@ class EventStream(Service):
         pass
 
     def end_unmerge(self, state):
+        pass
+
+    def start_unmerge_hierarchical(
+        self, project_id, primary_hash, hierarchical_hash, previous_group_id, new_group_id
+    ):
+        pass
+
+    def end_unmerge_hierarchical(self, state):
         pass
 
     def start_delete_tag(self, project_id, tag):

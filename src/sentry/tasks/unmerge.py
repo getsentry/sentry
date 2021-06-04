@@ -158,6 +158,7 @@ def migrate_events(
     args: UnmergeArgs,
     events,
     locked_primary_hashes,
+    unmerge_key: str,
     opt_destination_id: Optional[int],
     opt_eventstream_state: Optional[Mapping[str, Any]],
 ) -> Tuple[int, Mapping[str, Any]]:
@@ -188,10 +189,12 @@ def migrate_events(
 
     if isinstance(args, InitialUnmergeArgs) or opt_eventstream_state is None:
         eventstream_state = args.replacement.start_snuba_replacement(
-            project, args.source_id, destination_id
+            project, args.source_id, unmerge_key, destination_id
         )
 
-        args.replacement.run_postgres_replacement(project, destination_id, locked_primary_hashes)
+        args.replacement.run_postgres_replacement(
+            project, unmerge_key, destination_id, locked_primary_hashes
+        )
 
         # Create activity records for the source and destination group.
         Activity.objects.create(
@@ -199,7 +202,7 @@ def migrate_events(
             group_id=destination_id,
             type=Activity.UNMERGE_DESTINATION,
             user_id=args.actor_id,
-            data={"source_id": args.source_id, **args.replacement.get_activity_args()},
+            data={"source_id": args.source_id, **args.replacement.get_activity_args(unmerge_key)},
         )
 
         Activity.objects.create(
@@ -207,7 +210,10 @@ def migrate_events(
             group_id=args.source_id,
             type=Activity.UNMERGE_SOURCE,
             user_id=args.actor_id,
-            data={"destination_id": destination_id, **args.replacement.get_activity_args()},
+            data={
+                "destination_id": destination_id,
+                **args.replacement.get_activity_args(unmerge_key),
+            },
         )
     else:
         eventstream_state = opt_eventstream_state
@@ -481,6 +487,8 @@ def unmerge(*posargs, **kwargs):
             for unmerge_key, (group_id, eventstream_state) in args.destinations.items():
                 logger.warning("Unmerge complete (eventstream state: %s)", eventstream_state)
                 args.replacement.stop_snuba_replacement(eventstream_state)
+
+        args.replacement.on_finish(project, args.source_id)
         return
 
     source_events = []
@@ -518,6 +526,7 @@ def unmerge(*posargs, **kwargs):
             args,
             _destination_events,
             locked_primary_hashes,
+            unmerge_key,
             destination_id,
             eventstream_state,
         )

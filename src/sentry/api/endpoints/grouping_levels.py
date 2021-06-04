@@ -1,11 +1,12 @@
 from dataclasses import dataclass
+from typing import Sequence
 
 from rest_framework.exceptions import APIException
 from snuba_sdk.query import Column, Entity, Function, Query
 
 from sentry import features
 from sentry.api.bases import GroupEndpoint
-from sentry.api.endpoints.group_hashes_split import _construct_arraymax, _get_group_filters
+from sentry.api.endpoints.group_hashes_split import _get_group_filters
 from sentry.models import Group, GroupHash
 from sentry.utils import snuba
 
@@ -20,6 +21,18 @@ class MergedIssues(APIException):
     status_code = 403
     default_detail = "The issue can only contain one fingerprint. It needs to be fully unmerged before grouping levels can be shown."
     default_code = "merged_issues"
+
+
+class MissingFeature(APIException):
+    status_code = 403
+    default_detail = "This project does not have the grouping tree feature."
+    default_code = "missing_feature"
+
+
+class NotHierarchical(APIException):
+    status_code = 403
+    default_detail = "This issue does not have hierarchical grouping."
+    default_code = "not_hierarchical"
 
 
 class GroupingLevelsEndpoint(GroupEndpoint):
@@ -51,38 +64,20 @@ class GroupingLevelsEndpoint(GroupEndpoint):
         featureflags are missing.
         """
 
-        if not features.has(
-            "organizations:grouping-tree-ui", group.project.organization, actor=request.user
-        ):
-            return self.respond(
-                {"error": "This project does not have the grouping tree feature"},
-                status=403,
-            )
-
+        check_feature(group.project.organization, request)
         return self.respond(_list_levels(group), status=200)
 
 
-def _current_level_expr(group):
-    materialized_hashes = {
-        gh.hash for gh in GroupHash.objects.filter(project=group.project, group=group)
-    }
-
-    # Evaluates to the index of the last hash that is in materialized_hashes,
-    # or 1 otherwise.
-    find_hash_expr = _construct_arraymax(
-        [1]
-        + [  # type: ignore
-            Function("indexOf", [Column("hierarchical_hashes"), hash])
-            for hash in materialized_hashes
-        ]
-    )
-
-    return Function("max", [find_hash_expr], "current_level")
+def check_feature(organization, request):
+    if not features.has("organizations:grouping-tree-ui", organization, actor=request.user):
+        raise MissingFeature()
 
 
 @dataclass
 class LevelsOverview:
     current_level: int
+    current_hash: str
+    parent_hashes: Sequence[str]
     only_primary_hash: str
     num_levels: int
 
@@ -94,9 +89,13 @@ def get_levels_overview(group):
             [
                 Column("primary_hash"),
                 Function(
-                    "max", [Function("length", [Column("hierarchical_hashes")])], "num_levels"
+                    "argMax",
+                    [
+                        Column("hierarchical_hashes"),
+                        Function("length", [Column("hierarchical_hashes")]),
+                    ],
+                    "longest_hierarchical_hashes",
                 ),
-                _current_level_expr(group),
             ]
         )
         .set_where(_get_group_filters(group))
@@ -115,18 +114,42 @@ def get_levels_overview(group):
 
     fields = res["data"][0]
 
+    if not fields["longest_hierarchical_hashes"]:
+        raise NotHierarchical()
+
+    materialized_hashes = {
+        hash
+        for hash, in GroupHash.objects.filter(project=group.project, group=group).values_list(
+            "hash"
+        )
+    }
+
+    current_level = max(
+        i
+        for i, hash in enumerate(fields["longest_hierarchical_hashes"])
+        if hash in materialized_hashes
+    )
+
+    current_hash = fields["longest_hierarchical_hashes"][current_level]
+    parent_hashes = fields["longest_hierarchical_hashes"][:current_level]
+
     # TODO: Cache this if it takes too long. This is called from multiple
     # places, grouping overview and then again in the new-issues endpoint.
 
     return LevelsOverview(
-        current_level=fields["current_level"] - 1,
+        current_level=current_level,
+        current_hash=current_hash,
+        parent_hashes=parent_hashes,
         only_primary_hash=fields["primary_hash"],
-        num_levels=fields["num_levels"],
+        num_levels=len(fields["longest_hierarchical_hashes"]),
     )
 
 
 def _list_levels(group):
-    fields = get_levels_overview(group)
+    try:
+        fields = get_levels_overview(group)
+    except NoEvents:
+        return {"levels": []}
 
     # It is a little silly to transfer a list of integers rather than just
     # giving the UI a range, but in the future we may want to add

@@ -2,6 +2,7 @@ import time
 
 import pytest
 
+from sentry import eventstore
 from sentry.models import Group, GroupHash
 from sentry.testutils.helpers import Feature
 
@@ -15,6 +16,10 @@ def hierarchical_grouping_features():
 @pytest.fixture(autouse=True)
 def auto_login(settings, client, default_user):
     assert client.login(username=default_user.username, password="admin")
+
+
+def _reload_event(event):
+    return eventstore.get_event_by_id(event.project_id, event.event_id)
 
 
 @pytest.fixture
@@ -164,3 +169,78 @@ level 2*
 97df6b60ec530c65ab227585143a087a (1)\
 """
     )
+
+
+@pytest.mark.django_db
+@pytest.mark.snuba
+def test_increase(
+    client, default_project, store_stacktrace, reset_snuba, _render_all_previews, task_runner
+):
+    events = [
+        store_stacktrace(["baz", "bar2", "foo"]),
+        store_stacktrace(["baz", "bar", "foo"]),
+        store_stacktrace(["bam", "bar", "foo"]),
+    ]
+
+    assert len({e.group_id for e in events}) == 1
+
+    old_group = events[0].group
+
+    assert (
+        _render_all_previews(old_group)
+        == """\
+level 0*
+bab925683e73afdb4dc4047397a7b36b (3)
+level 1
+aa1c4037371150958f9ea22adb110bbc (2)
+c8ef2dd3dedeed29b4b74b9c579eea1a (1)
+level 2
+97df6b60ec530c65ab227585143a087a (1)
+b8d08a573c62ca8c84de14c12c0e19fe (1)
+7411b56aa6591edbdba71898d3a9f01c (1)\
+"""
+    )
+
+    with task_runner():
+        response = client.post(f"/api/0/issues/{events[0].group_id}/grouping/levels/2/")
+        assert response.status_code == 200
+
+    events = [_reload_event(event) for event in events]
+    assert len({e.group_id for e in events}) == 3
+
+    assert (
+        _render_all_previews(events[0].group)
+        == """\
+level 0
+bab925683e73afdb4dc4047397a7b36b (3)
+level 1
+c8ef2dd3dedeed29b4b74b9c579eea1a (1)
+level 2*
+7411b56aa6591edbdba71898d3a9f01c (1)\
+"""
+    )
+    assert (
+        _render_all_previews(events[1].group)
+        == """\
+level 0
+bab925683e73afdb4dc4047397a7b36b (3)
+level 1
+aa1c4037371150958f9ea22adb110bbc (2)
+level 2*
+b8d08a573c62ca8c84de14c12c0e19fe (1)\
+"""
+    )
+
+    assert (
+        _render_all_previews(events[2].group)
+        == """\
+level 0
+bab925683e73afdb4dc4047397a7b36b (3)
+level 1
+aa1c4037371150958f9ea22adb110bbc (2)
+level 2*
+97df6b60ec530c65ab227585143a087a (1)\
+"""
+    )
+
+    assert _render_all_previews(old_group) == ""
