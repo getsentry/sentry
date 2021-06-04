@@ -206,7 +206,7 @@ describe('OrganizationRuleList', () => {
     });
     wrapper.find('Button[data-test-id="filter-button"]').simulate('click');
     // Uncheck myteams
-    const myTeamsItem = wrapper.find('Filter').find('ListItem').at(0);
+    const myTeamsItem = wrapper.find('DropdownFilter').find('ListItem').at(0);
     expect(myTeamsItem.text()).toBe('My Teams');
     myTeamsItem.simulate('click');
 
