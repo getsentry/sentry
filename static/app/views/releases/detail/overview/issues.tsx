@@ -249,9 +249,9 @@ class Issues extends Component<Props, State> {
             endpointPath={path}
             queryParams={queryParams}
             query=""
-            queryFilterDescription={queryFilterDescription}
             canSelectGroups={false}
-            withChart={Boolean(withChart)}
+            queryFilterDescription={t('In this release')}
+            withChart
             renderEmptyMessage={this.renderEmptyMessage}
             withPagination={false}
             onFetchSuccess={this.handleFetchSuccess}
