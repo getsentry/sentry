@@ -7,9 +7,13 @@ import {Client} from 'app/api';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
+import {
+  appStoreConnectAlertMessage,
+  getAppConnectStoreUpdateAlertMessage,
+} from 'app/components/globalAppStoreConnectUpdateAlert/utils';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {AppStoreConnectContextProps} from 'app/components/projects/appStoreConnectContext';
-import {IconInfo, IconWarning} from 'app/icons';
+import {IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space, {ValidSize} from 'app/styles/space';
 import {Organization, Project} from 'app/types';
@@ -389,15 +393,15 @@ function AppStoreConnect({
   function getAlerts() {
     const alerts: React.ReactElement[] = [];
 
-    if (revalidateItunesSession && appStoreConnectContext?.itunesSessionValid === true) {
-      alerts.push(
-        <StyledAlert type="warning" icon={<IconInfo />}>
-          {t('Your iTunes session has already been re-validated.')}
-        </StyledAlert>
-      );
-    }
+    const appConnectStoreUpdateAlertMessage = getAppConnectStoreUpdateAlertMessage(
+      appStoreConnectContext ?? {}
+    );
 
-    if (appStoreConnectContext?.appstoreCredentialsValid === false && activeStep === 0) {
+    if (
+      appConnectStoreUpdateAlertMessage ===
+        appStoreConnectAlertMessage.appStoreCredentialsInvalid &&
+      activeStep === 0
+    ) {
       alerts.push(
         <StyledAlert type="warning" icon={<IconWarning />}>
           {t(
@@ -408,8 +412,8 @@ function AppStoreConnect({
     }
 
     if (
-      revalidateItunesSession &&
-      appStoreConnectContext?.itunesSessionValid === false &&
+      appConnectStoreUpdateAlertMessage ===
+        appStoreConnectAlertMessage.iTunesSessionInvalid &&
       activeStep < 3
     ) {
       alerts.push(
@@ -422,13 +426,25 @@ function AppStoreConnect({
     }
 
     if (
-      revalidateItunesSession &&
-      appStoreConnectContext?.itunesSessionValid === false &&
+      appConnectStoreUpdateAlertMessage ===
+        appStoreConnectAlertMessage.iTunesSessionInvalid &&
       activeStep === 3
     ) {
       alerts.push(
         <StyledAlert type="warning" icon={<IconWarning />}>
           {t('Enter your authentication code to re-validate your iTunes session.')}
+        </StyledAlert>
+      );
+    }
+
+    if (
+      !appConnectStoreUpdateAlertMessage &&
+      revalidateItunesSession &&
+      activeStep === 0
+    ) {
+      alerts.push(
+        <StyledAlert type="warning" icon={<IconWarning />}>
+          {t('Your iTunes session has already been re-validated.')}
         </StyledAlert>
       );
     }
@@ -467,7 +483,7 @@ function AppStoreConnect({
           </StepsOverview>
         </HeaderContent>
       </Header>
-      {appStoreConnectContext?.isLoading !== false ? (
+      {initialData && appStoreConnectContext?.isLoading !== false ? (
         <Body>
           <LoadingIndicator />
         </Body>
