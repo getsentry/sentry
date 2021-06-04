@@ -1,4 +1,5 @@
 import logging
+from random import random
 from typing import Any, Callable, Dict, Iterable, List, Optional, cast
 
 import jsonschema
@@ -20,6 +21,8 @@ logger = logging.getLogger(__name__)
 TQuerySubscriptionCallable = Callable[[Dict[str, Any], QuerySubscription], None]
 
 subscriber_registry: Dict[str, TQuerySubscriptionCallable] = {}
+
+CONSUMER_TRANSACTION_SAMPLE_RATE = 0.01
 
 
 def register_subscriber(
@@ -170,7 +173,11 @@ class QuerySubscriptionConsumer:
 
             i = i + 1
 
-            with metrics.timer("snuba_query_subscriber.handle_message"):
+            with sentry_sdk.start_transaction(
+                op="handle_message",
+                name="query_subscription_consumer_process_message",
+                sampled=random() <= CONSUMER_TRANSACTION_SAMPLE_RATE,
+            ), metrics.timer("snuba_query_subscriber.handle_message"):
                 self.handle_message(message)
 
             # Track latest completed message here, for use in `shutdown` handler.
