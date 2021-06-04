@@ -33,6 +33,10 @@ class AccountEmails extends AsyncView<Props, State> {
     return t('Emails');
   }
 
+  getEndpoints() {
+    return [];
+  }
+
   handleSubmitSuccess: Form['props']['onSubmitSuccess'] = (_change, model, id) => {
     if (id === undefined) {
       return;
@@ -65,6 +69,7 @@ class AccountEmails extends AsyncView<Props, State> {
 }
 
 export default AccountEmails;
+
 export class EmailAddresses extends AsyncComponent<Props, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     return [['emails', ENDPOINT]];
