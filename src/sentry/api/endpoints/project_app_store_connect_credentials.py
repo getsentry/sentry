@@ -49,6 +49,7 @@ To create and manage these credentials, several API endpoints exist:
    Validate if an existing ITunes session is still active or if a new one needs to be
    initiated by steps 2-4.
 """
+from datetime import datetime
 from uuid import uuid4
 
 import requests
@@ -63,13 +64,8 @@ from sentry.api.exceptions import (
     ItunesTwoFactorAuthenticationRequired,
 )
 from sentry.utils import fernet_encrypt as encrypt
-from sentry.utils.appleconnect import (
-    appstore_connect,
-    credentials_key_name,
-    get_app_store_credentials,
-    itunes_connect,
-    validate_credentials,
-)
+from sentry.utils import json
+from sentry.utils.appleconnect import appstore_connect, itunes_connect, validate_credentials
 from sentry.utils.appleconnect.itunes_connect import ITunesHeaders
 from sentry.utils.safe import get_path
 
