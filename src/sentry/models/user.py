@@ -37,7 +37,7 @@ class UserManager(BaseManager, DjangoUserManager):
         ).distinct()
 
     def get_from_group(self, group):
-        """ Get a queryset of all users in all teams in a given Group's project. """
+        """Get a queryset of all users in all teams in a given Group's project."""
         return self.filter(
             sentry_orgmember_set__teams__in=group.project.teams.all(),
             is_active=True,

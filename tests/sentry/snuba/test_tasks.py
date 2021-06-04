@@ -93,9 +93,7 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest, TestCase):
             QuerySubscription.Status.CREATING, subscription_id=uuid4().hex
         )
         create_subscription_in_snuba(sub.id)
-        self.metrics.incr.assert_called_once_with(
-            "snuba.subscriptions.create.already_created_in_snuba"
-        )
+        self.metrics.incr.assert_any_call("snuba.subscriptions.create.already_created_in_snuba")
 
     def test(self):
         sub = self.create_subscription(QuerySubscription.Status.CREATING)
@@ -426,10 +424,7 @@ class SubscriptionCheckerTest(TestCase):
                 status,
                 date_updated=timezone.now() - SUBSCRIPTION_STATUS_MAX_AGE * 2,
             )
-            sub_new = self.create_subscription(
-                status,
-                date_updated=timezone.now(),
-            )
+            sub_new = self.create_subscription(status, date_updated=timezone.now())
             with self.tasks():
                 subscription_checker()
             if status == QuerySubscription.Status.DELETING:
