@@ -12,7 +12,7 @@ import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
 import Alert from 'app/components/alert';
 import {Item} from 'app/components/dropdownAutoComplete/types';
-import {getItunesSessionExpirationMessage} from 'app/components/globalAppStoreConnectUpdateAlert/utils';
+import {getAppConnectStoreUpdateAlertMessage} from 'app/components/globalAppStoreConnectUpdateAlert/utils';
 import Link from 'app/components/links/link';
 import List from 'app/components/list';
 import ListItem from 'app/components/list/listItem';
@@ -112,14 +112,14 @@ function SymbolSources({
           appStoreConnectContext.itunesSessionValid &&
           appStoreConnectContext.appstoreCredentialsValid
         ) {
-          const expirationMessage = getItunesSessionExpirationMessage(
-            appStoreConnectContext.expirationDate
+          const appConnectStoreUpdateAlertMessage = getAppConnectStoreUpdateAlertMessage(
+            appStoreConnectContext
           );
 
-          if (expirationMessage) {
+          if (appConnectStoreUpdateAlertMessage) {
             symbolSourcesWarnings.push(
               <ExpirationMessage>
-                {expirationMessage}
+                {appConnectStoreUpdateAlertMessage}
                 {tct('Revalidate your iTunes Session for [link]', {
                   link: (
                     <Link to={`${customRepositoryLink}&revalidateItunesSession=true`}>
@@ -129,7 +129,7 @@ function SymbolSources({
                 })}
               </ExpirationMessage>
             );
-            appStoreConnectWarning = expirationMessage;
+            appStoreConnectWarning = appConnectStoreUpdateAlertMessage;
           }
         }
 

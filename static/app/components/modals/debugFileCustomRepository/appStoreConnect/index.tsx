@@ -408,11 +408,7 @@ function AppStoreConnect({
       );
     }
 
-    if (
-      revalidateItunesSession &&
-      appStoreConnectContext?.itunesSessionValid === false &&
-      activeStep < 3
-    ) {
+    if (appStoreConnectContext?.itunesSessionValid === false && activeStep < 3) {
       alerts.push(
         <StyledAlert type="warning" icon={<IconWarning />}>
           {t(
@@ -422,11 +418,7 @@ function AppStoreConnect({
       );
     }
 
-    if (
-      revalidateItunesSession &&
-      appStoreConnectContext?.itunesSessionValid === false &&
-      activeStep === 3
-    ) {
+    if (appStoreConnectContext?.itunesSessionValid === false && activeStep === 3) {
       alerts.push(
         <StyledAlert type="warning" icon={<IconWarning />}>
           {t('Enter your authentication code to re-validate your iTunes session.')}

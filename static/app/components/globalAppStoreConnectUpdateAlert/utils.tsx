@@ -1,8 +1,21 @@
 import moment from 'moment';
 
 import {t, tct} from 'app/locale';
+import {AppStoreConnectValidationData} from 'app/types/debugFiles';
 
-export function getItunesSessionExpirationMessage(expirationDate?: string) {
+export function getAppConnectStoreUpdateAlertMessage(
+  appConnectValidationData: AppStoreConnectValidationData
+) {
+  if (appConnectValidationData.itunesSessionValid === false) {
+    return t('Your iTunes session has expired.');
+  }
+
+  if (appConnectValidationData.appstoreCredentialsValid === false) {
+    return t('Your App Store Connect credentials are invalid.');
+  }
+
+  const expirationDate = appConnectValidationData.expirationDate;
+
   if (!expirationDate) {
     return undefined;
   }
@@ -26,7 +39,5 @@ export function getItunesSessionExpirationMessage(expirationDate?: string) {
     });
   }
 
-  return tct('Your App Store Connect session will expire in [days] days.', {
-    days: daysLeftForTheITunesSessionToExpire,
-  });
+  return undefined;
 }

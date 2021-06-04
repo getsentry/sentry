@@ -152,7 +152,7 @@ class RichList extends React.PureComponent<RichListProps, {}> {
         disabled={!!disabled}
         key={index}
         onClick={
-          error && onEditItem && !disabled
+          (error || warning) && onEditItem && !disabled
             ? () => this.onEditItem(item, index)
             : undefined
         }

@@ -15,7 +15,7 @@ import {AppStoreConnectValidationData} from 'app/types/debugFiles';
 import {promptIsDismissed} from 'app/utils/promptIsDismissed';
 import withApi from 'app/utils/withApi';
 
-import {getItunesSessionExpirationMessage} from './utils';
+import {getAppConnectStoreUpdateAlertMessage} from './utils';
 
 const APP_STORE_CONNECT_UPDATES = 'app_store_connect_updates';
 
@@ -69,10 +69,18 @@ function UpdateAlert({api, Wrapper, isCompact, project, organization, className}
     appConnectValidationData: AppStoreConnectValidationData,
     projectSettingsLink: string
   ) {
+    const appConnectStoreUpdateAlertMessage = getAppConnectStoreUpdateAlertMessage(
+      appConnectValidationData
+    );
+
+    if (!appConnectStoreUpdateAlertMessage) {
+      return null;
+    }
+
     if (appConnectValidationData.appstoreCredentialsValid === false) {
       return (
         <ExpirationMessage>
-          {t('Your App Store Connect credentials are invalid.')}
+          {appConnectStoreUpdateAlertMessage}
           {isCompact ? (
             <Link to={projectSettingsLink}>
               {t('Update your credentials in the project settings to reconnect.')}
@@ -92,29 +100,12 @@ function UpdateAlert({api, Wrapper, isCompact, project, organization, className}
       t('Update your session in the project settings to reconnect.')
     );
 
-    if (appConnectValidationData.itunesSessionValid === false) {
-      return (
-        <ExpirationMessage>
-          {t('Your iTunes session has expired.')}
-          {commonMessage}
-        </ExpirationMessage>
-      );
-    }
-
-    const expirationMessage = getItunesSessionExpirationMessage(
-      appStoreConnectContext.expirationDate
+    return (
+      <ExpirationMessage>
+        {appConnectStoreUpdateAlertMessage}
+        {commonMessage}
+      </ExpirationMessage>
     );
-
-    if (expirationMessage) {
-      return (
-        <ExpirationMessage>
-          {expirationMessage}
-          {commonMessage}
-        </ExpirationMessage>
-      );
-    }
-
-    return null;
   }
 
   function renderActions(projectSettingsLink: string) {
