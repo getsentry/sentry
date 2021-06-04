@@ -204,7 +204,6 @@ type DebugFileSourceModalOptions = {
 
 export async function openDebugFileSourceModal({
   onClose,
-  sourceType,
   ...restOptions
 }: DebugFileSourceModalOptions) {
   const mod = await import(
@@ -212,8 +211,7 @@ export async function openDebugFileSourceModal({
   );
 
   const {default: Modal, modalCss} = mod;
-  openModal(deps => <Modal {...deps} sourceType={sourceType} {...restOptions} />, {
-    backdrop: sourceType === 'appStoreConnect' ? 'static' : undefined,
+  openModal(deps => <Modal {...deps} {...restOptions} />, {
     modalCss,
     onClose,
   });
