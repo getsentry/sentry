@@ -81,7 +81,7 @@ type Props = {
   onClose?: () => void;
 };
 
-const getModalPortal = memoize(() => {
+export const getModalPortal = memoize(() => {
   let portal = document.getElementById('modal-portal') as HTMLDivElement;
   if (!portal) {
     portal = document.createElement('div');
@@ -111,6 +111,10 @@ function GlobalModal({visible = false, options = {}, children, onClose}: Props) 
 
   const portal = getModalPortal();
   const focusTrap = React.useRef<FocusTrap>();
+  // SentryApp might be missing on tests
+  if (window.SentryApp) {
+    window.SentryApp.modalFocusTrap = focusTrap;
+  }
 
   React.useEffect(() => {
     focusTrap.current = createFocusTrap(portal, {

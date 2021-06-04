@@ -103,6 +103,9 @@ declare global {
      * See sentry/js/ads.js for how this global is disabled.
      */
     adblockSuspected?: boolean;
+
+    //TODO: improve typing
+    SentryApp: Record<string, any>;
   }
 }
 
