@@ -45,11 +45,9 @@ jobs:
       # The next few steps are to set up the cache quickly
       - name: Set environment variables & others
         id: info
-        # Upgrade pip because older versions don't have `pip cache dir`
         run: |
-          make upgrade-pip
           echo "::set-output name=python-version::$(cat .python-version)"
-          echo "::set-output name=pip-cache-dir::$(pip cache dir)"
+          echo "::set-output name=pip-cache-dir::$(pip3 cache dir)"
           echo "::set-output name=pip-version::$(pip -V | awk -F ' ' '{print $2}')"
           echo "::set-output name=yarn-cache-dir::$(yarn cache dir)"
 
