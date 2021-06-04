@@ -15,7 +15,11 @@ import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {t} from 'app/locale';
 import {GlobalSelection, NewQuery, SavedQuery, SelectValue, User} from 'app/types';
 import {decodeList, decodeScalar} from 'app/utils/queryString';
-import {TableColumn, TableColumnSort} from 'app/views/eventsV2/table/types';
+import {
+  FieldValueKind,
+  TableColumn,
+  TableColumnSort,
+} from 'app/views/eventsV2/table/types';
 import {decodeColumnOrder} from 'app/views/eventsV2/utils';
 
 import {statsPeriodToDays} from '../dates';
@@ -29,7 +33,9 @@ import {
   Field,
   generateFieldAsString,
   getAggregateAlias,
+  getEquation,
   isAggregateField,
+  isEquation,
   isLegalYAxisType,
   Sort,
 } from './fields';
@@ -603,6 +609,12 @@ class EventView {
     return this.fields.map(field => field.field);
   }
 
+  getEquations(): string[] {
+    return this.fields
+      .filter(field => isEquation(field.field))
+      .map(field => getEquation(field.field));
+  }
+
   getAggregateFields(): Field[] {
     return this.fields.filter(field => isAggregateField(field.field));
   }
@@ -666,7 +678,7 @@ class EventView {
     const fields: Field[] = columns
       .filter(
         col =>
-          (col.kind === 'field' && col.field) ||
+          ((col.kind === 'field' || col.kind === FieldValueKind.EQUATION) && col.field) ||
           (col.kind === 'function' && col.function[0])
       )
       .map(col => generateFieldAsString(col))
@@ -941,7 +953,16 @@ class EventView {
   ): Exclude<EventQuery & LocationQuery, 'sort' | 'cursor'> {
     const payload = this.getEventsAPIPayload(location);
 
-    const remove = ['id', 'name', 'per_page', 'sort', 'cursor', 'field', 'interval'];
+    const remove = [
+      'id',
+      'name',
+      'per_page',
+      'sort',
+      'cursor',
+      'field',
+      'equation',
+      'interval',
+    ];
     for (const key of remove) {
       delete payload[key];
     }
@@ -992,7 +1013,8 @@ class EventView {
         : this.sorts.length > 1
         ? encodeSorts(this.sorts)
         : encodeSort(this.sorts[0]);
-    const fields = this.getFields();
+    const fields = this.getFields().filter(field => !isEquation(field));
+    const equations = this.getEquations();
     const project = this.project.map(proj => String(proj));
     const environment = this.environment as string[];
 
@@ -1004,6 +1026,7 @@ class EventView {
         project,
         environment,
         field: [...new Set(fields)],
+        equation: [...new Set(equations)],
         sort,
         per_page: DEFAULT_PER_PAGE,
         query: this.getQueryWithAdditionalConditions(),

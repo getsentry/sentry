@@ -2,11 +2,13 @@ import * as React from 'react';
 import ReactDOM from 'react-dom';
 import styled from '@emotion/styled';
 
+import Feature from 'app/components/acl/feature';
 import Button from 'app/components/button';
 import {SectionHeading} from 'app/components/charts/styles';
 import {IconAdd, IconDelete, IconGrabbable} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {LightWeightOrganization} from 'app/types';
 import {Column} from 'app/utils/discover/fields';
 import theme from 'app/utils/theme';
 import {getPointerPosition} from 'app/utils/touch';
@@ -15,6 +17,7 @@ import {setBodyUserSelect, UserSelectValues} from 'app/utils/userselect';
 import {generateFieldOptions} from '../utils';
 
 import {QueryField} from './queryField';
+import {FieldValueKind} from './types';
 
 type Props = {
   // Input columns
@@ -22,6 +25,7 @@ type Props = {
   fieldOptions: ReturnType<typeof generateFieldOptions>;
   // Fired when columns are added/removed/modified
   onChange: (columns: Column[]) => void;
+  organization: LightWeightOrganization;
   className?: string;
 };
 
@@ -98,6 +102,11 @@ class ColumnEditCollection extends React.Component<Props, State> {
   // Signal to the parent that a new column has been added.
   handleAddColumn = () => {
     const newColumn: Column = {kind: 'field', field: ''};
+    this.props.onChange([...this.props.columns, newColumn]);
+  };
+
+  handleAddEquation = () => {
+    const newColumn: Column = {kind: FieldValueKind.EQUATION, field: ''};
     this.props.onChange([...this.props.columns, newColumn]);
   };
 
@@ -339,7 +348,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
   }
 
   render() {
-    const {className, columns} = this.props;
+    const {className, columns, organization} = this.props;
     const canDelete = columns.length > 1;
     const canAdd = columns.length < MAX_COL_COUNT;
     const title = canAdd
@@ -368,7 +377,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
         )}
         <RowContainer>
           <Actions>
-            <Button
+            <ActionButton
               size="small"
               label={t('Add a Column')}
               onClick={this.handleAddColumn}
@@ -377,13 +386,29 @@ class ColumnEditCollection extends React.Component<Props, State> {
               icon={<IconAdd isCircled size="xs" />}
             >
               {t('Add a Column')}
-            </Button>
+            </ActionButton>
+            <Feature organization={organization} features={['discover-arithmetic']}>
+              <ActionButton
+                size="small"
+                label={t('Add an Equation')}
+                onClick={this.handleAddEquation}
+                title={title}
+                disabled={!canAdd}
+                icon={<IconAdd isCircled size="xs" />}
+              >
+                {t('Add an Equation')}
+              </ActionButton>
+            </Feature>
           </Actions>
         </RowContainer>
       </div>
     );
   }
 }
+
+const ActionButton = styled(Button)`
+  margin-right: ${space(1)};
+`;
 
 const RowContainer = styled('div')`
   display: grid;

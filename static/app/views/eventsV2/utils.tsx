@@ -20,6 +20,7 @@ import {
   Field,
   FIELDS,
   getAggregateAlias,
+  isEquation,
   isMeasurement,
   isSpanOperationBreakdownField,
   measurementType,
@@ -55,12 +56,20 @@ const TEMPLATE_TABLE_COLUMN: TableColumn<React.ReactText> = {
 export function decodeColumnOrder(
   fields: Readonly<Field[]>
 ): TableColumn<React.ReactText>[] {
+  let equations = 0;
   return fields.map((f: Field) => {
     const column: TableColumn<React.ReactText> = {...TEMPLATE_TABLE_COLUMN};
 
     const col = explodeFieldString(f.field);
-    column.key = f.field;
-    column.name = f.field;
+    if (!isEquation(f.field)) {
+      column.key = f.field;
+      column.name = f.field;
+    } else {
+      const columnName = `equation[${equations}]`;
+      equations += 1;
+      column.key = columnName;
+      column.name = columnName;
+    }
     column.width = f.width || COL_WIDTH_UNDEFINED;
 
     if (col.kind === 'function') {
