@@ -1,5 +1,6 @@
 import {useContext} from 'react';
 
+import {getItunesSessionExpirationMessage} from 'app/components/globalAppStoreConnectUpdateAlert/utils';
 import AppStoreConnectContext from 'app/components/projects/appStoreConnectContext';
 import {Organization, Project} from 'app/types';
 import withProject from 'app/utils/withProject';
@@ -14,9 +15,13 @@ type Props = {
 const ProjectSettingsNavigation = ({organization, project}: Props) => {
   const appStoreConnectContext = useContext(AppStoreConnectContext);
 
-  const debugFilesNeedsReview =
-    appStoreConnectContext.appstoreCredentialsValid === false ||
-    appStoreConnectContext.itunesSessionValid === false;
+  const hasAppConnectStoreFeatureFlag = !!organization.features?.includes(
+    'app-store-connect'
+  );
+
+  const debugFilesNeedsReview = hasAppConnectStoreFeatureFlag
+    ? !!getItunesSessionExpirationMessage(appStoreConnectContext.expirationDate)
+    : false;
 
   return (
     <SettingsNavigation

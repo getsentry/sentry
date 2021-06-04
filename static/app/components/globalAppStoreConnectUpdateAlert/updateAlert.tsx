@@ -1,6 +1,5 @@
 import {useContext, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
-import moment from 'moment';
 
 import {promptsCheck, promptsUpdate} from 'app/actionCreators/prompts';
 import {Client} from 'app/api';
@@ -9,12 +8,14 @@ import Button from 'app/components/button';
 import Link from 'app/components/links/link';
 import AppStoreConnectContext from 'app/components/projects/appStoreConnectContext';
 import {IconClose, IconRefresh} from 'app/icons';
-import {t, tct} from 'app/locale';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {AppStoreConnectValidationData} from 'app/types/debugFiles';
 import {promptIsDismissed} from 'app/utils/promptIsDismissed';
 import withApi from 'app/utils/withApi';
+
+import {getItunesSessionExpirationMessage} from './utils';
 
 const APP_STORE_CONNECT_UPDATES = 'app_store_connect_updates';
 
@@ -68,56 +69,52 @@ function UpdateAlert({api, Wrapper, isCompact, project, organization, className}
     appConnectValidationData: AppStoreConnectValidationData,
     projectSettingsLink: string
   ) {
+    if (appConnectValidationData.appstoreCredentialsValid === false) {
+      return (
+        <ExpirationMessage>
+          {t('Your App Store Connect credentials are invalid.')}
+          {isCompact ? (
+            <Link to={projectSettingsLink}>
+              {t('Update your credentials in the project settings to reconnect.')}
+            </Link>
+          ) : (
+            t('Update your credentials in the project settings to reconnect.')
+          )}
+        </ExpirationMessage>
+      );
+    }
+
     const commonMessage = isCompact ? (
-      <Link to={projectSettingsLink}>
+      <Link to={`${projectSettingsLink}&revalidateItunesSession=true`}>
         {t('Update your session in the project settings to reconnect.')}
       </Link>
     ) : (
       t('Update your session in the project settings to reconnect.')
     );
 
-    if (
-      !appConnectValidationData.itunesSessionValid ||
-      !appConnectValidationData.appstoreCredentialsValid
-    ) {
+    if (appConnectValidationData.itunesSessionValid === false) {
       return (
-        <span>
-          {t('Your App Store Connect session has expired. ')}
+        <ExpirationMessage>
+          {t('Your iTunes session has expired.')}
           {commonMessage}
-        </span>
+        </ExpirationMessage>
       );
     }
 
-    const now = moment();
-    const expirationDate = moment(appConnectValidationData.expirationDate);
-    const daysLeftForTheITunesSessionToExpire = expirationDate.diff(now, 'days');
-
-    if (daysLeftForTheITunesSessionToExpire === 0) {
-      return (
-        <span>
-          {t('Your App Store Connect session expires today. ')}
-          {commonMessage}
-        </span>
-      );
-    }
-
-    if (daysLeftForTheITunesSessionToExpire === 1) {
-      return (
-        <span>
-          {t('Your App Store Connect session will expire tomorrow. ')}
-          {commonMessage}
-        </span>
-      );
-    }
-
-    return (
-      <span>
-        {tct('Your App Store Connect session will expire in [days] days. ', {
-          days: daysLeftForTheITunesSessionToExpire,
-        })}
-        {commonMessage}
-      </span>
+    const expirationMessage = getItunesSessionExpirationMessage(
+      appStoreConnectContext.expirationDate
     );
+
+    if (expirationMessage) {
+      return (
+        <ExpirationMessage>
+          {expirationMessage}
+          {commonMessage}
+        </ExpirationMessage>
+      );
+    }
+
+    return null;
   }
 
   function renderActions(projectSettingsLink: string) {
@@ -153,15 +150,14 @@ function UpdateAlert({api, Wrapper, isCompact, project, organization, className}
   if (
     !hasAppConnectStoreFeatureFlag ||
     !project ||
-    !!appStoreConnectContext.isLoading ||
-    isDismissed ||
-    (appStoreConnectContext.appstoreCredentialsValid &&
-      appStoreConnectContext.itunesSessionValid)
+    appStoreConnectContext.isLoading !== false ||
+    appStoreConnectContext.id === undefined ||
+    isDismissed
   ) {
     return null;
   }
 
-  const projectSettingsLink = `/settings/${organization.slug}/projects/${project.slug}/`;
+  const projectSettingsLink = `/settings/${organization.slug}/projects/${project.slug}/debug-symbols/?customRepository=${appStoreConnectContext.id}`;
 
   const notice = (
     <Alert type="warning" icon={<IconRefresh />} className={className}>
@@ -181,6 +177,7 @@ const Actions = styled('div')`
   display: grid;
   grid-template-columns: repeat(3, max-content);
   grid-gap: ${space(1)};
+  align-items: center;
 `;
 
 const Content = styled('div')`
@@ -194,4 +191,10 @@ const Content = styled('div')`
 
 const ButtonClose = styled(Button)`
   color: ${p => p.theme.textColor};
+`;
+
+const ExpirationMessage = styled('span')`
+  display: inline-grid;
+  grid-gap: ${space(0.25)};
+  grid-template-columns: max-content 1fr;
 `;

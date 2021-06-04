@@ -1,4 +1,4 @@
-import {Fragment, useContext, useEffect} from 'react';
+import React, {Fragment, useContext, useEffect} from 'react';
 import {InjectedRouter} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -12,13 +12,14 @@ import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
 import Alert from 'app/components/alert';
 import {Item} from 'app/components/dropdownAutoComplete/types';
+import {getItunesSessionExpirationMessage} from 'app/components/globalAppStoreConnectUpdateAlert/utils';
 import Link from 'app/components/links/link';
 import List from 'app/components/list';
 import ListItem from 'app/components/list/listItem';
 import AppStoreConnectContext from 'app/components/projects/appStoreConnectContext';
 import TextOverflow from 'app/components/textOverflow';
 import {DEBUG_SOURCE_TYPES} from 'app/data/debugFileSources';
-import {IconWarning} from 'app/icons';
+import {IconRefresh, IconWarning} from 'app/icons';
 import {t, tct, tn} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
@@ -89,22 +90,48 @@ function SymbolSources({
     });
   }
 
-  function getRichListFieldValue(): {value: Item[]; errors?: React.ReactNode[]} {
-    if (
-      !hasAppConnectStoreFeatureFlag ||
-      !!appStoreConnectContext.isLoading ||
-      (appStoreConnectContext.appstoreCredentialsValid &&
-        appStoreConnectContext.itunesSessionValid)
-    ) {
+  function getRichListFieldValue(): {
+    value: Item[];
+    warnings?: React.ReactNode[];
+    errors?: React.ReactNode[];
+  } {
+    if (!hasAppConnectStoreFeatureFlag || appStoreConnectContext.isLoading !== false) {
       return {value: symbolSources};
     }
 
     const symbolSourcesErrors: React.ReactNode[] = [];
+    const symbolSourcesWarnings: React.ReactNode[] = [];
 
     const symbolSourcesWithErrors = symbolSources.map(symbolSource => {
       if (symbolSource.id === appStoreConnectContext.id) {
         const appStoreConnectErrors: string[] = [];
+        let appStoreConnectWarning: React.ReactNode = undefined;
         const customRepositoryLink = `/settings/${organization.slug}/projects/${projectSlug}/debug-symbols/?customRepository=${symbolSource.id}`;
+
+        if (
+          appStoreConnectContext.itunesSessionValid &&
+          appStoreConnectContext.appstoreCredentialsValid
+        ) {
+          const expirationMessage = getItunesSessionExpirationMessage(
+            appStoreConnectContext.expirationDate
+          );
+
+          if (expirationMessage) {
+            symbolSourcesWarnings.push(
+              <ExpirationMessage>
+                {expirationMessage}
+                {tct('Revalidate your iTunes Session for [link]', {
+                  link: (
+                    <Link to={`${customRepositoryLink}&revalidateItunesSession=true`}>
+                      {symbolSource.name}
+                    </Link>
+                  ),
+                })}
+              </ExpirationMessage>
+            );
+            appStoreConnectWarning = expirationMessage;
+          }
+        }
 
         if (appStoreConnectContext.itunesSessionValid === false) {
           symbolSourcesErrors.push(
@@ -145,6 +172,7 @@ function SymbolSources({
               </StyledList>
             </Fragment>
           ) : undefined,
+          warning: appStoreConnectWarning,
         };
       }
 
@@ -154,10 +182,11 @@ function SymbolSources({
     return {
       value: symbolSourcesWithErrors,
       errors: symbolSourcesErrors,
+      warnings: symbolSourcesWarnings,
     };
   }
 
-  const {value, errors = []} = getRichListFieldValue();
+  const {value, warnings = [], errors = []} = getRichListFieldValue();
 
   function openDebugFileSourceDialog() {
     const {customRepository} = location.query;
@@ -258,6 +287,20 @@ function SymbolSources({
 
   return (
     <Fragment>
+      {!!warnings.length && (
+        <Alert type="warning" icon={<IconRefresh />} system>
+          {tn(
+            'Please check the warning related to the following custom repository:',
+            'Please check the warnings related to the following custom repositories:',
+            warnings.length
+          )}
+          <StyledList symbol="bullet">
+            {warnings.map((warning, index) => (
+              <ListItem key={index}>{warning}</ListItem>
+            ))}
+          </StyledList>
+        </Alert>
+      )}
       {!!errors.length && (
         <Alert type="error" icon={<IconWarning />} system>
           {tn(
@@ -342,4 +385,10 @@ const StyledRichListField = styled(RichListField)`
 
 const StyledList = styled(List)`
   margin-top: ${space(1)};
+`;
+
+const ExpirationMessage = styled('span')`
+  display: inline-grid;
+  grid-gap: ${space(0.25)};
+  grid-template-columns: max-content 1fr;
 `;
