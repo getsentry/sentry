@@ -165,9 +165,20 @@ class OrganizationReleaseDetailsPaginationMixin:
         else:
             raise InvalidSortException
 
+        # This is reversed on purpose and the reason for that is that the prev and next releases
+        # are computed in the same order as the releases list page and so for example if you have a
+        # releases list ordered by date_created, that looks like this
+        # * Release 3.0.0 -> Created last
+        # * Release 2.0.0 -> Created before last
+        # * Release 1.0.0 -> Created first
+        # Then the prev and next for Release 2.0.0 would be Release 3.0.0 (more recent) and Release
+        # 1.0.0 (less recent) respectively. This would however result in non-intuitive behaviour
+        # in the UI because when you click on "<" (prev) you expect to go back to an "older"
+        # release, but prev here will give you a more recent release as this list is ordered
+        # in DESC order, and the same case can be made for when you click on ">" or next.
         return {
-            "next_release_version": next_release_version,
-            "prev_release_version": prev_release_version,
+            "next_release_version": prev_release_version,
+            "prev_release_version": next_release_version,
         }
 
 
