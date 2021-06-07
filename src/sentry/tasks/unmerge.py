@@ -181,6 +181,13 @@ def migrate_events(
 
         destination_id = destination.id
 
+    else:
+        # Update the existing destination group.
+        destination = Group.objects.get(id=destination_id)
+        destination.update(**get_group_backfill_attributes(caches, destination, events))
+
+    if eventstream_state is None:
+
         eventstream_state = eventstream.start_unmerge(
             project.id, fingerprints, source_id, destination_id
         )
@@ -206,10 +213,6 @@ def migrate_events(
             user_id=actor_id,
             data={"fingerprints": fingerprints, "destination_id": destination_id},
         )
-    else:
-        # Update the existing destination group.
-        destination = Group.objects.get(id=destination_id)
-        destination.update(**get_group_backfill_attributes(caches, destination, events))
 
     event_id_set = {event.event_id for event in events}
 
