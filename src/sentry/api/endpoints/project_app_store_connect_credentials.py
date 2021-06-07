@@ -83,7 +83,7 @@ SYMBOL_SOURCES_PROP_NAME = "sentry:symbol_sources"
 APP_STORE_CONNECT_FEATURE_NAME = "organizations:app-store-connect"
 
 # iTunes session token validity is 10-14 days so we like refreshing after 1 week.
-ITUNES_TOKEN_VALIDITY = datetime.timedelta(weeks=1)
+ITUNES_TOKEN_VALIDITY = datetime.datetime.timedelta(weeks=1)
 
 
 def get_app_store_config(
