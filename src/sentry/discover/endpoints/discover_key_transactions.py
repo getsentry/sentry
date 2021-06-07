@@ -132,11 +132,13 @@ class KeyTransactionEndpoint(KeyTransactionBase):
                     return Response(status=204)
 
                 try:
+                    unkeyed_project_teams = project_teams.exclude(
+                        team_id__in=keyed_transaction_team_ids
+                    )
                     TeamKeyTransaction.objects.bulk_create(
                         [
                             TeamKeyTransaction(**base_filter, project_team=project_team)
-                            for project_team in project_teams
-                            if project_team.team.id not in keyed_transaction_team_ids
+                            for project_team in unkeyed_project_teams
                         ]
                     )
                     return Response(status=201)
