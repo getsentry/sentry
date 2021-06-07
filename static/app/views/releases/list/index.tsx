@@ -24,6 +24,7 @@ import {PageContent, PageHeader} from 'app/styles/organization';
 import space from 'app/styles/space';
 import {
   GlobalSelection,
+  HealthStatsPeriodOption,
   Organization,
   Project,
   Release,
@@ -343,9 +344,82 @@ class ReleasesList extends AsyncView<Props, State> {
     );
   }
 
+  renderAdoptionChart(activeDisplay: DisplayOption) {
+    const {location, selection, organization} = this.props;
+    const {hasSessions, releases, reloading} = this.state;
+
+    const selectedProjectId =
+      selection.projects && selection.projects.length === 1 && selection.projects[0];
+    const selectedProject = organization.projects?.find(
+      p => p.id === `${selectedProjectId}`
+    );
+
+    if (this.shouldShowLoadingIndicator() || !releases?.length || !selectedProject) {
+      return null;
+    }
+
+    return (
+      <ReleaseHealthRequest
+        releases={releases.map(({version}) => version)}
+        organization={organization}
+        selection={selection}
+        location={location}
+        display={[this.getDisplay()]}
+        releasesReloading={reloading}
+        healthStatsPeriod={HealthStatsPeriodOption.AUTO}
+      >
+        {({isHealthLoading, getHealthData}) => (
+          <Feature features={['organizations:release-adoption-chart']}>
+            <Projects orgId={organization.slug} slugs={[selectedProject.slug]}>
+              {({projects, initiallyLoaded, fetchError}) => {
+                const project = projects && projects.length === 1 && projects[0];
+
+                if (!initiallyLoaded || fetchError || !project || !hasSessions) {
+                  return null;
+                }
+
+                const showPlaceholders = !initiallyLoaded || isHealthLoading;
+                let totalCount = 0;
+
+                if (releases?.length) {
+                  const timeSeries = getHealthData.getTimeSeries(
+                    releases[0].version,
+                    Number(project.id),
+                    activeDisplay
+                  );
+
+                  const totalData = timeSeries[1].data;
+
+                  if (totalData.length) {
+                    totalCount = totalData
+                      .map(point => point.value)
+                      .reduce((acc, value) => acc + value);
+                  }
+                }
+
+                return (
+                  <ReleaseAdoptionChart
+                    organization={organization}
+                    selection={selection}
+                    releases={releases}
+                    project={project as Project}
+                    getHealthData={getHealthData}
+                    activeDisplay={activeDisplay}
+                    showPlaceholders={showPlaceholders}
+                    totalCount={totalCount}
+                  />
+                );
+              }}
+            </Projects>
+          </Feature>
+        )}
+      </ReleaseHealthRequest>
+    );
+  }
+
   renderInnerBody(activeDisplay: DisplayOption) {
     const {location, selection, organization} = this.props;
-    const {hasSessions, releases, reloading, releasesPageLinks} = this.state;
+    const {releases, reloading, releasesPageLinks} = this.state;
 
     if (this.shouldShowLoadingIndicator()) {
       return <LoadingIndicator />;
@@ -366,64 +440,8 @@ class ReleasesList extends AsyncView<Props, State> {
         healthStatsPeriod={location.query.healthStatsPeriod}
       >
         {({isHealthLoading, getHealthData}) => {
-          const selectedProjectId =
-            selection.projects &&
-            selection.projects.length === 1 &&
-            selection.projects[0];
-          // TODO(releases): I think types here need adjusting as this can also be a lightweight organization without projects
-          const selectedProject = organization.projects?.find(
-            p => p.id === `${selectedProjectId}`
-          );
-
           return (
             <Fragment>
-              {selectedProject && (
-                <Feature features={['organizations:release-adoption-chart']}>
-                  <Projects orgId={organization.slug} slugs={[selectedProject.slug]}>
-                    {({projects, initiallyLoaded, fetchError}) => {
-                      const project = projects && projects.length === 1 && projects[0];
-
-                      if (!initiallyLoaded || fetchError || !project || !hasSessions) {
-                        return null;
-                      }
-
-                      const showPlaceholders = !initiallyLoaded || isHealthLoading;
-
-                      let totalCount = 0;
-
-                      if (releases?.length) {
-                        const timeSeries = getHealthData.getTimeSeries(
-                          releases[0].version,
-                          Number(project.id),
-                          activeDisplay
-                        );
-
-                        const totalData = timeSeries[1].data;
-
-                        if (totalData.length) {
-                          totalCount = totalData
-                            .map(point => point.value)
-                            .reduce((acc, value) => acc + value);
-                        }
-                      }
-
-                      return (
-                        <ReleaseAdoptionChart
-                          organization={organization}
-                          selection={selection}
-                          releases={releases}
-                          project={project as Project}
-                          getHealthData={getHealthData}
-                          activeDisplay={activeDisplay}
-                          showPlaceholders={showPlaceholders}
-                          totalCount={totalCount}
-                        />
-                      );
-                    }}
-                  </Projects>
-                </Feature>
-              )}
-
               {releases.map((release, index) => (
                 <ReleaseCard
                   key={`${release.version}-${release.projects[0].slug}`}
@@ -492,6 +510,8 @@ class ReleasesList extends AsyncView<Props, State> {
             {!reloading &&
               activeStatus === StatusOption.ARCHIVED &&
               !!releases?.length && <ReleaseArchivedNotice multi />}
+
+            {this.renderAdoptionChart(activeDisplay)}
 
             {this.renderInnerBody(activeDisplay)}
           </LightWeightNoProjectMessage>
