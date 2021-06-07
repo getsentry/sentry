@@ -187,7 +187,7 @@ class Errors extends Component<Props, State> {
                       'Source code was not found because the distribution did not match'
                     );
                     data['expected-distribution'] = eventDistribution;
-                    data['current-distribution'] = releaseArtifact?.dist;
+                    data['current-distribution'] = releaseArtifactDistribution;
                   }
                 }
 
