@@ -186,9 +186,9 @@ export function getBackendAxisOptions(
   if (organization.features.includes('project-transaction-threshold')) {
     apdexOption = {
       tooltip: getTermHelp(organization, PERFORMANCE_TERM.APDEX),
-      value: `apdex()`,
+      value: `apdex_new()`,
       label: t('Apdex'),
-      field: `apdex()`,
+      field: `apdex_new()`,
     };
   } else {
     apdexOption = {
