@@ -16,6 +16,15 @@ configure-sentry-cli() {
     fi
 }
 
+brew() {
+    echo "This can take a long time..."
+    set +x
+    # To prevent recursion
+    bin=$(which brew)
+    $bin update
+    $bin bundle --file scripts/Brewfile.lock.json
+}
+
 query-mac() {
     [[ $(uname -s) = 'Darwin' ]]
 }

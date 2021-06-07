@@ -16,6 +16,7 @@ install-js-dev \
 install-py-dev :
 	@./scripts/do.sh $@
 
+brew \
 build-platform-assets \
 direnv-help \
 upgrade-pip \
