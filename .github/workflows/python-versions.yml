@@ -2,6 +2,7 @@ name: python versions
 on:
   pull_request:
     paths:
+    - '.github/workflows/python-versions.yml'
     - 'requirements*'
 
 jobs:
