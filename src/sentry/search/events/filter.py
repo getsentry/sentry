@@ -687,7 +687,6 @@ def format_search_filter(term, params):
     group_ids = None
     name = term.key.name
     value = term.value.value
-
     if name in (PROJECT_ALIAS, PROJECT_NAME_ALIAS):
         if term.operator == "=" and value == "":
             raise InvalidSearchQuery("Invalid query for 'has' search: 'project' cannot be empty.")

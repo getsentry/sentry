@@ -14,6 +14,12 @@ ISSUE_ALIAS = "issue"
 ISSUE_ID_ALIAS = "issue.id"
 RELEASE_ALIAS = "release"
 
+AGGREGATE_ALIASES = {
+    "apdex()": ("apdex_new()", "apdex"),
+    "count_miserable(user)": ("count_miserable_new(user)", "count_miserable_user"),
+    "user_misery()": ("user_misery_new()", "user_misery"),
+}
+
 TAG_KEY_RE = re.compile(r"^tags\[(?P<tag>.*)\]$")
 # Based on general/src/protocol/tags.rs in relay
 VALID_FIELD_PATTERN = re.compile(r"^[a-zA-Z0-9_.:-]*$")

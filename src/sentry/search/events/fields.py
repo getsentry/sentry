@@ -17,6 +17,7 @@ from sentry.models import Project, ProjectTransactionThreshold
 from sentry.models.transaction_threshold import TRANSACTION_METRICS
 from sentry.search.events.base import QueryBase
 from sentry.search.events.constants import (
+    AGGREGATE_ALIASES,
     ALIAS_PATTERN,
     DEFAULT_PROJECT_THRESHOLD,
     DEFAULT_PROJECT_THRESHOLD_METRIC,
@@ -365,13 +366,6 @@ def format_column_as_key(x):
     if isinstance(x, list):
         return tuple(format_column_as_key(y) for y in x)
     return x
-
-
-AGGREGATE_ALIASES = {
-    "apdex()": ("apdex_new()", "apdex"),
-    "count_miserable(user)": ("count_miserable_new(user)", "count_miserable_user"),
-    "user_misery()": ("user_misery_new()", "user_misery"),
-}
 
 
 def resolve_field_list(
