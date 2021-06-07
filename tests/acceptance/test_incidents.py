@@ -36,7 +36,6 @@ class OrganizationIncidentsListTest(AcceptanceTestCase, SnubaTestCase):
             self.browser.get(self.path)
             self.browser.wait_until_not(".loading-indicator")
             self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
-            self.browser.wait_until_test_id("incident-sparkline")
             self.browser.snapshot("incidents - list")
 
             details_url = (
