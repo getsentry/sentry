@@ -22,7 +22,7 @@ function withOrganizations<P extends InjectedOrganizationsProps>(
   > {
     static displayName = `withOrganizations(${getDisplayName(WrappedComponent)})`;
 
-    state: State = {organizations: OrganizationsStore.state};
+    state: State = {organizations: []};
 
     componentWillUnmount() {
       this.unsubscribe();
