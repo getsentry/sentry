@@ -100,7 +100,7 @@ def encode(
     if headers is None:
         headers = {}
     # This type is checked in the tests so this is fine.
-    return pyjwt.encode(payload, key.decode("UTF-8"), algorithm=algorithm, headers=headers)  # type: ignore
+    return pyjwt.encode(payload, key, algorithm=algorithm, headers=headers)  # type: ignore
 
 
 def authorization_header(token: str, *, scheme: str = "Bearer") -> Mapping[str, str]:
