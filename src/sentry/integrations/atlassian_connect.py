@@ -56,7 +56,7 @@ def get_integration_from_jwt(token, path, provider, query_params, method="GET"):
     # alg field.  We only need the token + shared secret and do not want to provide an
     # audience to the JWT validation that is require to match.  Bitbucket does give us an
     # audience claim however, so disable verification of this.
-    decoded_verified = jwt.decode(token, integration.metadata["shared_secret"], verify_aud=False)
+    decoded_verified = jwt.decode(token, integration.metadata["shared_secret"], audience=False)
     # Verify the query has not been tampered by Creating a Query Hash
     # and comparing it against the qsh claim on the verified token.
 

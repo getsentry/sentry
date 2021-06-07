@@ -63,7 +63,7 @@ def decode(
     options = dict()
     kwargs = dict()
     if audience is False:
-        options["verify_aud"] = False
+        options["audience"] = False
     elif audience is True:
         raise ValueError("audience can not be True")
     elif audience is not None:
