@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Set, Union
 
 from snuba_sdk.column import Column
 from snuba_sdk.function import CurriedFunction
@@ -15,7 +15,7 @@ class QueryBase:
         self,
         dataset: Dataset,
         params: ParamsType,
-        orderby: Optional[List[str]] = None,
+        orderby: Optional[Union[List[str], str]] = None,
     ):
         # Function is a subclass of CurriedFunction
         self.aggregates: List[CurriedFunction] = []
@@ -24,7 +24,10 @@ class QueryBase:
 
         self.params = params
         self.dataset = dataset
+        if isinstance(orderby, str) and orderby != "":
+            orderby = [orderby]
         self.orderby_columns: List[str] = orderby if orderby else []
+        self.projects_to_filter: Set[int] = set()
 
         self.resolve_column_name = resolve_column(self.dataset)
 

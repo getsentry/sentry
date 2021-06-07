@@ -1840,12 +1840,51 @@ class QueryFields(QueryBase):
     """Field logic for a snql query"""
 
     def resolve_select(self, selected_columns: List[str]) -> None:
+        project_key = None
+        # If project is requested, we need to map ids to their names since snuba only has ids
+        if "project" in selected_columns:
+            selected_columns.remove("project")
+            project_key = "project"
+        # since project.name is more specific, if both are included use project.name instead of project
+        if PROJECT_NAME_ALIAS in selected_columns:
+            selected_columns.remove(PROJECT_NAME_ALIAS)
+            project_key = PROJECT_NAME_ALIAS
+
         for field in selected_columns:
             if field.strip() == "":
                 continue
             resolved_field = self.resolve_field(field)
             if isinstance(resolved_field, SnqlColumn) and resolved_field not in self.columns:
                 self.columns.append(resolved_field)
+
+        if project_key:
+            self.columns.append(self.project_slug_transform(project_key))
+        pass
+
+    def project_slug_transform(self, project_key: str) -> SnqlFunction:
+        """When project is a selected column we need to create a transform to turn them back into slugs"""
+        project_ids = {
+            project_id
+            for project_id in self.params.get("project_id", [])
+            if isinstance(project_id, int)
+        }
+
+        # Try to reduce the size of the transform by using any existing conditions on projects
+        if len(self.projects_to_filter) > 0:
+            project_ids &= self.projects_to_filter
+
+        projects = Project.objects.filter(id__in=project_ids).values("slug", "id")
+
+        return SnqlFunction(
+            "transform",
+            [
+                self.column("project.id"),
+                [project["id"] for project in projects],
+                [project["slug"] for project in projects],
+                "",
+            ],
+            project_key,
+        )
 
     def resolve_field(self, field: str) -> Union[SnqlColumn, SnqlFunction]:
         match = is_function(field)
@@ -1869,13 +1908,21 @@ class QueryFields(QueryBase):
     @property
     def orderby(self) -> List[OrderBy]:
         validated = []
-        for column in self.orderby_columns:
-            bare_column = self.column(column.lstrip("-"))
-            direction = Direction.DESC if column.startswith("-") else Direction.ASC
+        for orderby in self.orderby_columns:
+            bare_orderby = orderby.lstrip("-")
+            resolved_orderby = self.column(bare_orderby)
+            direction = Direction.DESC if orderby.startswith("-") else Direction.ASC
 
-            if bare_column in self.columns:
-                validated.append(OrderBy(bare_column, direction))
-                continue
+            for selected_column in self.columns:
+                if isinstance(selected_column, SnqlColumn) and selected_column == resolved_orderby:
+                    validated.append(OrderBy(selected_column, direction))
+                    continue
+                elif (
+                    isinstance(selected_column, SnqlFunction)
+                    and selected_column.alias == bare_orderby
+                ):
+                    validated.append(OrderBy(selected_column, direction))
+                    continue
 
             # TODO: orderby aggregations
 

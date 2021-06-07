@@ -65,7 +65,10 @@ DEFAULT_PROJECT_THRESHOLD = 300
 # Once we reach a certain threshold of fields handled should turn this into a denylist
 # use public facing field/function names for this list
 SNQL_FIELD_ALLOWLIST = {
-    "user.email",
-    "release",
     "environment",
+    "message",
+    "project",
+    "project.id",
+    "release",
+    "user.email",
 }

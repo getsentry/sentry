@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Callable, Mapping, Optional, Sequence, Union
+from typing import Callable, List, Mapping, Optional, Sequence, Union
 
 from parsimonious.exceptions import ParseError
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
@@ -806,7 +806,8 @@ class QueryFilter(QueryBase):
         self.where.append(Condition(self.column("timestamp"), Op.GTE, start))
         self.where.append(Condition(self.column("timestamp"), Op.LT, end))
 
-        if "project_id" in self.params:
+        # If we already have projects_to_filter, there's no need to add an additional project filter
+        if "project_id" in self.params and len(self.projects_to_filter) == 0:
             self.where.append(
                 Condition(
                     self.column("project_id"),
@@ -851,6 +852,50 @@ class QueryFilter(QueryBase):
         else:
             return env_conditions[0]
 
+    def _project_slug_filter_converter(
+        self,
+        search_filter: SearchFilter,
+        _: str,
+    ) -> Optional[WhereType]:
+        """Convert project slugs to ids and create a filter based on those
+
+        This is cause we only store project ids in clickhouse
+        """
+        value = search_filter.value.value
+
+        if search_filter.operator == "=" and value == "":
+            raise InvalidSearchQuery(
+                'Cannot query for has:project or project:"" as every event will have a project'
+            )
+
+        slugs = to_list(value)
+        projects = {
+            p.slug: p.id
+            for p in Project.objects.filter(
+                id__in=self.params.get("project_id", []), slug__in=slugs
+            )
+        }
+        missing: List[str] = [slug for slug in slugs if slug not in projects]
+        if missing and search_filter.operator in EQUALITY_OPERATORS:
+            raise InvalidSearchQuery(
+                f"Invalid query. Project(s) {', '.join(missing)} do not exist or are not actively selected."
+            )
+        # Sorted for consistent query results
+        project_ids = list(sorted(projects.values()))
+        if project_ids:
+            # Create a new search filter with the correct values
+            converted_filter = self.convert_search_filter_to_condition(
+                SearchFilter(
+                    SearchKey("project.id"),
+                    search_filter.operator,
+                    SearchValue(project_ids if search_filter.is_in_filter else project_ids[0]),
+                )
+            )
+            if converted_filter:
+                if search_filter.operator in EQUALITY_OPERATORS:
+                    self.projects_to_filter.update(project_ids)
+                return converted_filter
+
     def format_search_filter(self, term: SearchFilter) -> Optional[WhereType]:
         """For now this function seems a bit redundant inside QueryFilter but
         most of the logic from hte existing format_search_filter hasn't been
@@ -866,8 +911,10 @@ class QueryFilter(QueryBase):
         self,
         search_filter: SearchFilter,
     ) -> Optional[WhereType]:
-        key_conversion_map: Mapping[str, Callable[[SearchFilter, str], WhereType]] = {
+        key_conversion_map: Mapping[str, Callable[[SearchFilter, str], Optional[WhereType]]] = {
             "environment": self._environment_filter_converter,
+            PROJECT_ALIAS: self._project_slug_filter_converter,
+            PROJECT_NAME_ALIAS: self._project_slug_filter_converter,
         }
         name = search_filter.key.name
         value = search_filter.value.value
