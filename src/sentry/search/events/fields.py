@@ -1859,7 +1859,6 @@ class QueryFields(QueryBase):
 
         if project_key:
             self.columns.append(self.project_slug_transform(project_key))
-        pass
 
     def project_slug_transform(self, project_key: str) -> SnqlFunction:
         """When project is a selected column we need to create a transform to turn them back into slugs"""
