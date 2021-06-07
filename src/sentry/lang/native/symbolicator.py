@@ -62,7 +62,7 @@ APP_STORE_CONNECT_SCHEMA = {
         "orgId": {"type": "integer"},
         "orgName": {"type": "string", "minLength": 1, "maxLength": 512},
         "encrypted": {"type": "string"},
-        "refreshDate": {"type": "string"},
+        "itunesCreated": {"type": "string"},
         "itunesPassword": {"type": "string"},
         "appconnectPrivateKey": {"type": "string"},
     },
