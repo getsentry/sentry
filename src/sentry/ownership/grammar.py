@@ -292,8 +292,23 @@ def convert_codeowners_syntax(data, associations, code_mapping):
             continue
 
         path, *codeowners = rule.split()
-        sentry_assignees = [associations[owner] for owner in codeowners]
-        formatted_path = path.replace(code_mapping.source_root, code_mapping.stack_root, 1)
-        result += f'path:{formatted_path} {" ".join(sentry_assignees)}\n'
+        sentry_assignees = []
+
+        for owner in codeowners:
+            try:
+                sentry_assignees.append(associations[owner])
+            except KeyError:
+                # We allow users to upload an incomplete codeowner file,
+                # meaning they may not have all the associations mapped.
+                # If this is the case, we simply skip this line when
+                # converting to issue owner syntax
+
+                # TODO(meredith): log and/or collect analytics for when
+                # we skip associations
+                continue
+
+        if sentry_assignees:
+            formatted_path = path.replace(code_mapping.source_root, code_mapping.stack_root, 1)
+            result += f'path:{formatted_path} {" ".join(sentry_assignees)}\n'
 
     return result
