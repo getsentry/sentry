@@ -688,6 +688,7 @@ class SemverReleaseParseTestCase(TestCase):
         assert release.prerelease == "rc1"
         assert release.build_code == "20200101100"
         assert release.build_number == 20200101100
+        assert release.package == "org.example.FooApp"
 
     def test_parse_release_into_semver_cols_using_custom_get_or_create(self):
         """
@@ -704,6 +705,7 @@ class SemverReleaseParseTestCase(TestCase):
         assert release.prerelease == "rc1"
         assert release.build_code == "20200101100"
         assert release.build_number == 20200101100
+        assert release.package == "org.example.FooApp"
 
     def test_parse_release_into_semver_cols_with_non_int_build_code(self):
         """
@@ -719,6 +721,7 @@ class SemverReleaseParseTestCase(TestCase):
         assert release.prerelease == "rc1"
         assert release.build_code == "whatever"
         assert release.build_number is None
+        assert release.package == "org.example.FooApp"
 
     def test_parse_release_into_semver_cols_with_int_build_code_gt_64_int(self):
         """
@@ -734,6 +737,7 @@ class SemverReleaseParseTestCase(TestCase):
         assert release.prerelease == "rc1"
         assert release.build_code == "202001011005464576758979789794566455464746"
         assert release.build_number is None
+        assert release.package == "org.example.FooApp"
 
     def test_parse_release_into_semver_cols_with_negative_build_code(self):
         """
@@ -750,6 +754,7 @@ class SemverReleaseParseTestCase(TestCase):
         assert release.prerelease == "rc1"
         assert release.build_code == "-2020"
         assert release.build_number is None
+        assert release.package == "org.example.FooApp"
 
     def test_parse_release_into_semver_cols_with_no_prerelease(self):
         """
@@ -765,6 +770,7 @@ class SemverReleaseParseTestCase(TestCase):
         assert release.prerelease == ""
         assert release.build_code == "whatever"
         assert release.build_number is None
+        assert release.package == "org.example.FooApp"
 
     def test_parse_non_semver_should_not_fail(self):
         """

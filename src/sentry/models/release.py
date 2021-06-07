@@ -126,6 +126,7 @@ class ReleaseModelManager(models.Manager):
         if "version" in kwargs:
             try:
                 version_info = parse_release(kwargs["version"])
+                package = version_info.get("package")
                 version_parsed = version_info.get("version_parsed")
 
                 if version_parsed is not None:
@@ -143,6 +144,7 @@ class ReleaseModelManager(models.Manager):
                             "prerelease": version_parsed.get("pre") or "",
                             "build_code": build_code,
                             "build_number": build_number,
+                            "package": package,
                         }
                     )
             except RelayError:
