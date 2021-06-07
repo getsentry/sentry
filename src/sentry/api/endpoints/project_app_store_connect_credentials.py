@@ -49,7 +49,7 @@ To create and manage these credentials, several API endpoints exist:
    Validate if an existing ITunes session is still active or if a new one needs to be
    initiated by steps 2-4.  See :class:`AppStoreConnectCredentialsValidateEndpoint`.
 """
-from datetime import datetime
+import datetime
 from typing import Optional
 from uuid import uuid4
 
@@ -83,7 +83,7 @@ SYMBOL_SOURCES_PROP_NAME = "sentry:symbol_sources"
 APP_STORE_CONNECT_FEATURE_NAME = "organizations:app-store-connect"
 
 # iTunes session token validity is 10-14 days so we like refreshing after 1 week.
-ITUNES_TOKEN_VALIDITY = datetime.datetime.timedelta(weeks=1)
+ITUNES_TOKEN_VALIDITY = datetime.timedelta(weeks=1)
 
 
 def get_app_store_config(
@@ -766,7 +766,7 @@ class AppStoreConnect2FactorAuthEndpoint(ProjectEndpoint):
                     "scnt": headers.scnt,
                     "itunes_session": itunes_session,
                     "itunes_person_id": prs_id,
-                    "itunes_created": datetime.utcnow(),
+                    "itunes_created": datetime.datetime.utcnow(),
                 }
                 encrypted_context = encrypt.encrypt_object(session_context, key)
 
