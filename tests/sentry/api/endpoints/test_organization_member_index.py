@@ -219,6 +219,17 @@ class OrganizationMemberListTest(APITestCase):
         assert response.status_code == 200
         assert len(response.data) == 2
 
+    def test_has_external_users_query(self):
+        response = self.client.get(self.url + "?query=hasExternalUsers:true")
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]["email"] == self.user_2.email
+
+        response = self.client.get(self.url + "?query=hasExternalUsers:false")
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]["email"] == self.owner_user.email
+
     def test_cannot_get_unapproved_invites(self):
         join_request = "test@email.com"
         invite_request = "test@gmail.com"

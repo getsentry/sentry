@@ -773,7 +773,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
         self.start = None
         start_params = [_f for _f in [start, get_search_filter(search_filters, "date", ">")] if _f]
         if start_params:
-            self.start = max([_f for _f in start_params if _f])
+            self.start = max(_f for _f in start_params if _f)
 
         self.end = None
         end_params = [_f for _f in [end, get_search_filter(search_filters, "date", "<")] if _f]
