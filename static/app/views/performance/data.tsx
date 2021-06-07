@@ -54,7 +54,7 @@ export function getAxisOptions(organization: LightWeightOrganization): TooltipOp
   let apdexOption: TooltipOption;
   if (organization.features.includes('project-transaction-threshold')) {
     apdexOption = {
-      tooltip: getTermHelp(organization, PERFORMANCE_TERM.APDEX),
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.APDEX_NEW),
       value: `apdex()`,
       label: t('Apdex'),
     };

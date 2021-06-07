@@ -34,7 +34,7 @@ from sentry.search.events.constants import (
     TEAM_KEY_TRANSACTION_ALIAS,
     USER_DISPLAY_ALIAS,
 )
-from sentry.search.events.fields import AGGREGATE_ALIASES, FIELD_ALIASES, FUNCTIONS, resolve_field
+from sentry.search.events.fields import FIELD_ALIASES, FUNCTIONS, resolve_field
 from sentry.search.events.types import WhereType
 from sentry.search.utils import parse_release
 from sentry.utils.compat import filter
@@ -483,9 +483,6 @@ def convert_snuba_condition_to_function(term, params=None):
                 condition_tree = convert_array_to_tree(SNUBA_AND, conditions_to_and)
             return condition_tree, None, projects_to_filter, group_ids
     elif isinstance(term, AggregateFilter):
-        name = term.key.name
-        if name in AGGREGATE_ALIASES:
-            term.key.name, _ = AGGREGATE_ALIASES[name]
         converted_filter = convert_aggregate_filter_to_snuba_query(term, params)
         return None, convert_condition_to_function(converted_filter), projects_to_filter, group_ids
 
