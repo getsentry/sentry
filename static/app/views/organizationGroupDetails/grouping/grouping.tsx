@@ -1,6 +1,7 @@
 import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
+import * as queryString from 'query-string';
 
 import GroupingActions from 'app/actions/groupingActions';
 import LoadingError from 'app/components/loadingError';
@@ -49,9 +50,15 @@ function Grouping({groupId, location, organization, project}: Props) {
   }, []);
 
   function fetchData() {
+    const queryParams = {
+      ...location.query,
+      limit: 50,
+      query: this.state.query,
+    };
+
     GroupingActions.fetch([
       {
-        endpoint: `/issues/${groupId}/hashes/split/`,
+        endpoint: `/issues/${groupId}/hashes/?${queryString.stringify(queryParams)}`,
         dataKey: 'merged',
         queryParams: location.query,
       },
