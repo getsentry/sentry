@@ -267,7 +267,7 @@ class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):
             credentials["itunesCreated"] = validation_context.get("itunes_created")
             credentials["id"] = uuid4().hex
             credentials["name"] = "Apple App Store Connect"
-
+            # TODO(flub): validate this using the JSON schema in sentry.lang.native.symbolicator
         except ValueError:
             return Response("Invalid validation context passed.", status=400)
         return Response(credentials, status=200)
@@ -366,7 +366,7 @@ class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):
             symbol_source_config["encrypted"] = encrypt.encrypt_object(secrets, key)
             symbol_source_config["itunesCreated"] = new_itunes_created
             symbol_source_config["id"] = uuid4().hex
-
+            # TODO(flub): validate this using the JSON schema in sentry.lang.native.symbolicator
         except ValueError:
             return Response("Invalid validation context passed.", status=400)
         return Response(symbol_source_config, status=200)
