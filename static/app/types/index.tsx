@@ -2,6 +2,7 @@
 // longer need this import and can drop babel-preset-css-prop for babel-preset.
 /// <reference types="@emotion/react/types/css-prop" />
 
+import {FocusTrap} from 'focus-trap';
 import u2f from 'u2f-api';
 
 import exportGlobals from 'app/bootstrap/exportGlobals';
@@ -104,8 +105,17 @@ declare global {
      */
     adblockSuspected?: boolean;
 
+    //typing currently used for demo add on
     //TODO: improve typing
-    SentryApp: Record<string, any>;
+    SentryApp?: {
+      HookStore: any;
+      ConfigStore: any;
+      Modal: any;
+      modalFocusTrap?: {
+        current?: FocusTrap;
+      };
+      getModalPortal: () => HTMLElement;
+    };
   }
 }
 

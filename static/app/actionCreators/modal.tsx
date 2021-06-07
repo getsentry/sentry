@@ -1,9 +1,7 @@
 import * as React from 'react';
 
 import ModalActions from 'app/actions/modalActions';
-import GlobalModal, {
-  getModalPortal as getModalPortalImport,
-} from 'app/components/globalModal';
+import GlobalModal from 'app/components/globalModal';
 import type {DashboardWidgetModalOptions} from 'app/components/modals/addDashboardWidgetModal';
 import type {ReprocessEventModalOptions} from 'app/components/modals/reprocessEventModal';
 import {
@@ -234,5 +232,3 @@ export async function openReprocessEventModal({
 
   openModal(deps => <Modal {...deps} {...options} />, {onClose});
 }
-
-export const getModalPortal = getModalPortalImport;
