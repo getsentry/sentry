@@ -2,21 +2,15 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
-import TeamKeyTransaction, {
+import TeamKeyTransactionComponent, {
   TitleProps,
 } from 'app/components/performance/teamKeyTransaction';
+import * as TeamKeyTransactionManager from 'app/components/performance/teamKeyTransactionsManager';
 import {IconStar} from 'app/icons';
 import {t, tn} from 'app/locale';
 import {Organization, Team} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import withTeams from 'app/utils/withTeams';
-
-type Props = {
-  eventView: EventView;
-  organization: Organization;
-  teams: Team[];
-  transactionName: string;
-};
 
 /**
  * This can't be a function component because `TeamKeyTransaction` uses
@@ -38,19 +32,72 @@ class TitleButton extends Component<TitleProps> {
   }
 }
 
-function TeamKeyTransactionButton({eventView, teams, ...props}: Props) {
+type BaseProps = {
+  organization: Organization;
+  transactionName: string;
+  teams: Team[];
+};
+
+type Props = BaseProps &
+  TeamKeyTransactionManager.TeamKeyTransactionManagerChildrenProps & {
+    project: number;
+  };
+
+function TeamKeyTransactionButton({
+  counts,
+  getKeyedTeams,
+  project,
+  transactionName,
+  ...props
+}: Props) {
+  const keyedTeams = getKeyedTeams(String(project), transactionName);
+  return (
+    <TeamKeyTransactionComponent
+      counts={counts}
+      keyedTeams={keyedTeams}
+      title={TitleButton}
+      project={project}
+      transactionName={transactionName}
+      {...props}
+    />
+  );
+}
+
+type WrapperProps = BaseProps & {
+  eventView: EventView;
+};
+
+function TeamKeyTransactionButtonWrapper({
+  eventView,
+  organization,
+  teams,
+  ...props
+}: WrapperProps) {
   if (eventView.project.length !== 1) {
     return <TitleButton disabled keyedTeamsCount={0} />;
   }
 
+  const projectId = eventView.project[0];
   const userTeams = teams.filter(({isMember}) => isMember);
+
   return (
-    <TeamKeyTransaction
+    <TeamKeyTransactionManager.Provider
+      organization={organization}
       teams={userTeams}
-      project={eventView.project[0]}
-      title={TitleButton}
-      {...props}
-    />
+      selectedTeams={['myteams']}
+      selectedProjects={[String(projectId)]}
+    >
+      <TeamKeyTransactionManager.Consumer>
+        {results => (
+          <TeamKeyTransactionButton
+            organization={organization}
+            project={projectId}
+            {...props}
+            {...results}
+          />
+        )}
+      </TeamKeyTransactionManager.Consumer>
+    </TeamKeyTransactionManager.Provider>
   );
 }
 
@@ -58,4 +105,4 @@ const StyledButton = styled(Button)`
   width: 180px;
 `;
 
-export default withTeams(TeamKeyTransactionButton);
+export default withTeams(TeamKeyTransactionButtonWrapper);

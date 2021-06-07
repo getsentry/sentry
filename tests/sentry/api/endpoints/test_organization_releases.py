@@ -374,13 +374,68 @@ class OrganizationReleaseStatsTest(APITestCase):
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 3
-        # When available we use the released date
-        assert response.data[0]["version"] == release2.version
-        assert response.data[0]["date"] == release2.date_released
-        assert response.data[1]["version"] == release3.version
-        assert response.data[1]["date"] == release3.date_added
-        assert response.data[2]["version"] == release1.version
-        assert response.data[2]["date"] == release1.date_added
+
+        assert response.data[0]["version"] == release3.version
+        assert response.data[0]["date"] == release3.date_added
+        assert response.data[1]["version"] == release1.version
+        assert response.data[1]["date"] == release1.date_added
+        assert response.data[2]["version"] == release2.version
+        assert response.data[2]["date"] == release2.date_added
+
+    def test_release_list_order_by_date_added(self):
+        """
+        Test that ensures that by relying on the default date sorting, releases
+        will only be sorted according to `Release.date_added`, and
+        `Release.date_released` should have no effect whatsoever on that order
+        """
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.organization
+        org.flags.allow_joinleave = False
+        org.save()
+
+        team = self.create_team(organization=org)
+
+        project = self.create_project(teams=[team], organization=org)
+
+        self.create_member(teams=[team], user=user, organization=org)
+
+        self.login_as(user=user)
+
+        release6 = Release.objects.create(
+            organization_id=org.id,
+            version="6",
+            date_added=datetime(2013, 8, 10, 3, 8, 24, 880386),
+            date_released=datetime(2013, 8, 20, 3, 8, 24, 880386),
+        )
+        release6.add_project(project)
+
+        release7 = Release.objects.create(
+            organization_id=org.id,
+            version="7",
+            date_added=datetime(2013, 8, 12, 3, 8, 24, 880386),
+            date_released=datetime(2013, 8, 18, 3, 8, 24, 880386),
+        )
+        release7.add_project(project)
+
+        release8 = Release.objects.create(
+            organization_id=org.id,
+            version="8",
+            date_added=datetime(2013, 8, 14, 3, 8, 24, 880386),
+            date_released=datetime(2013, 8, 16, 3, 8, 24, 880386),
+        )
+        release8.add_project(project)
+
+        url = reverse(
+            "sentry-api-0-organization-releases-stats",
+            kwargs={"organization_slug": self.organization.slug},
+        )
+        response = self.client.get(url, format="json")
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 3
+        assert response.data[0]["version"] == release8.version
+        assert response.data[1]["version"] == release7.version
+        assert response.data[2]["version"] == release6.version
 
 
 class OrganizationReleaseCreateTest(APITestCase):
@@ -1189,8 +1244,8 @@ class OrganizationReleaseListEnvironmentsTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == len(releases)
 
-        response_versions = sorted([r["version"] for r in response.data])
-        releases_versions = sorted([r.version for r in releases])
+        response_versions = sorted(r["version"] for r in response.data)
+        releases_versions = sorted(r.version for r in releases)
         assert response_versions == releases_versions
 
     def test_environments_filter(self):

@@ -5,11 +5,9 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
-import {openInviteMembersModal} from 'app/actionCreators/modal';
 import {loadDocs} from 'app/actionCreators/projects';
 import {Client} from 'app/api';
 import Alert, {alertStyles} from 'app/components/alert';
-import Button from 'app/components/button';
 import ExternalLink from 'app/components/links/externalLink';
 import LoadingError from 'app/components/loadingError';
 import {PlatformKey} from 'app/data/platformCategories';
@@ -25,7 +23,7 @@ import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
 import FirstEventFooter from './components/firstEventFooter';
-import SetupIntroduction from './components/setupIntroduction';
+import FullIntroduction from './components/fullIntroduction';
 import {StepProps} from './types';
 
 /**
@@ -89,13 +87,6 @@ class DocumentationSetup extends React.Component<Props, State> {
       const platformDocs = await loadDocs(api, organization.slug, project.slug, platform);
       this.setState({platformDocs, loadedPlatform: platform, hasError: false});
     } catch (error) {
-      if (platform === 'other') {
-        // TODO(epurkhiser): There are currently no docs for the other
-        // platform. We should add generic documentation, in which case, this
-        // check should go away.
-        return;
-      }
-
       this.setState({hasError: error});
       throw error;
     }
@@ -141,38 +132,6 @@ class DocumentationSetup extends React.Component<Props, State> {
 
     const currentPlatform = loadedPlatform ?? platform ?? 'other';
 
-    const introduction = (
-      <React.Fragment>
-        <SetupIntroduction
-          stepHeaderText={t(
-            'Prepare the %s SDK',
-            platforms.find(p => p.id === currentPlatform)?.name ?? ''
-          )}
-          platform={currentPlatform}
-        />
-        <motion.p
-          variants={{
-            initial: {opacity: 0},
-            animate: {opacity: 1},
-            exit: {opacity: 0},
-          }}
-        >
-          {tct(
-            "Don't have a relationship with your terminal? [link:Invite your team instead].",
-            {
-              link: (
-                <Button
-                  priority="link"
-                  data-test-id="onboarding-getting-started-invite-members"
-                  onClick={openInviteMembersModal}
-                />
-              ),
-            }
-          )}
-        </motion.p>
-      </React.Fragment>
-    );
-
     const docs = platformDocs !== null && (
       <DocsWrapper key={platformDocs.html}>
         <Content dangerouslySetInnerHTML={{__html: platformDocs.html}} />
@@ -204,7 +163,7 @@ class DocumentationSetup extends React.Component<Props, State> {
 
     return (
       <React.Fragment>
-        {introduction}
+        <FullIntroduction currentPlatform={currentPlatform} />
         {getDynamicText({
           value: !hasError ? docs : loadingError,
           fixed: testOnlyAlert,

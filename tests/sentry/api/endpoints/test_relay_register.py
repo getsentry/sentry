@@ -48,16 +48,6 @@ class RelayRegisterTest(APITestCase):
         assert resp.status_code == 200, resp.content
         result = json.loads(resp.content)
 
-        raw_json, signature = self.private_key.pack(result)
-
-        self.client.post(
-            reverse("sentry-api-0-relay-register-response"),
-            data=raw_json,
-            content_type="application/json",
-            HTTP_X_SENTRY_RELAY_ID=relay_id,
-            HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
-        )
-
         data = {
             "token": str(result.get("token")),
             "relay_id": relay_id,
@@ -565,3 +555,17 @@ class RelayRegisterTest(APITestCase):
         assert rv2.last_seen > after_first_relay
         assert rv2.first_seen < after_second_relay
         assert rv2.last_seen < after_second_relay
+
+    def test_no_db_for_static_relays(self):
+        """
+        Tests that statically authenticated relays do not access
+        the database during registration
+        """
+        key_pair = generate_key_pair()
+        relay_id = str(uuid4())
+        public_key = key_pair[1]
+        static_auth = {relay_id: {"internal": True, "public_key": str(public_key)}}
+
+        with self.assertNumQueries(0):
+            with self.settings(SENTRY_OPTIONS={"relay.static_auth": static_auth}):
+                self.register_relay(key_pair, "1.1.1", relay_id)

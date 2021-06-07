@@ -1,17 +1,18 @@
 import set from 'lodash/set';
 
+import {t} from 'app/locale';
 import {OrganizationSummary, Project} from 'app/types';
+import {
+  ALL_PROVIDERS,
+  NotificationSettingsByProviderObject,
+  NotificationSettingsObject,
+  VALUE_MAPPING,
+} from 'app/views/settings/account/notifications/constants';
+import {NOTIFICATION_SETTING_FIELDS} from 'app/views/settings/account/notifications/fields2';
+import ParentLabel from 'app/views/settings/account/notifications/parentLabel';
+import {FieldObject} from 'app/views/settings/components/forms/type';
 
-const ALL_PROVIDERS = {
-  email: 'default',
-  slack: 'never',
-};
-
-export type NotificationSettingsObject = {
-  [key: string]: {[key: string]: {[key: string]: {[key: string]: string}}};
-};
-
-// Which fine tuning parts are grouped by project
+// Which fine-tuning parts are grouped by project
 export const isGroupedByProject = (notificationType: string): boolean =>
   ['alerts', 'email', 'workflow'].includes(notificationType);
 
@@ -19,7 +20,9 @@ export const getParentKey = (notificationType: string): string => {
   return isGroupedByProject(notificationType) ? 'project' : 'organization';
 };
 
-export const groupByOrganization = (projects: Project[]) => {
+export const groupByOrganization = (
+  projects: Project[]
+): Record<string, {organization: OrganizationSummary; projects: Project[]}> => {
   return projects.reduce<
     Record<string, {organization: OrganizationSummary; projects: Project[]}>
   >((acc, project) => {
@@ -70,7 +73,7 @@ export const backfillMissingProvidersWithFallback = (
   providerList: string[],
   fallbackValue: string,
   scopeType: string
-): {[key: string]: string} => {
+): NotificationSettingsByProviderObject => {
   /**
    * Transform `data`, a mapping of providers to values, so that all providers
    * in `providerList` are "on" in the resulting object. The "on" value is
@@ -119,7 +122,7 @@ export const mergeNotificationSettings = (
 export const getUserDefaultValues = (
   notificationType: string,
   notificationSettings: NotificationSettingsObject
-): {[key: string]: string} => {
+): NotificationSettingsByProviderObject => {
   /**
    * Get the mapping of providers to values that describe a user's parent-
    * independent notification preferences. The data from the API uses the user
@@ -148,6 +151,18 @@ export const getCurrentProviders = (
     .map(([provider, _]) => provider);
 };
 
+export const getCurrentDefault = (
+  notificationType: string,
+  notificationSettings: NotificationSettingsObject
+): string => {
+  /** Calculate the currently selected provider. */
+
+  const providersList = getCurrentProviders(notificationType, notificationSettings);
+  return providersList.length
+    ? getUserDefaultValues(notificationType, notificationSettings)[providersList[0]]
+    : 'never';
+};
+
 export const decideDefault = (
   notificationType: string,
   notificationSettings: NotificationSettingsObject
@@ -158,15 +173,7 @@ export const decideDefault = (
    * "never". If so, the API is telling us that the user has opted out of
    * all notifications.
    */
-  // These values are stolen from the DB.
-  const mapping = {
-    default: 0,
-    never: 10,
-    always: 20,
-    subscribe_only: 30,
-    committed_only: 40,
-  };
-  const compare = (a: string, b: string): number => mapping[a] - mapping[b];
+  const compare = (a: string, b: string): number => VALUE_MAPPING[a] - VALUE_MAPPING[b];
 
   const parentIndependentSetting =
     Object.values(getUserDefaultValues(notificationType, notificationSettings))
@@ -217,11 +224,41 @@ export const getParentIds = (
   );
 };
 
+export const getParentValues = (
+  notificationType: string,
+  notificationSettings: NotificationSettingsObject,
+  parentId: string
+): NotificationSettingsByProviderObject => {
+  return (
+    notificationSettings[notificationType]?.[getParentKey(notificationType)]?.[
+      parentId
+    ] || {
+      email: 'default',
+    }
+  );
+};
+
+export const getParentData = (
+  notificationType: string,
+  notificationSettings: NotificationSettingsObject,
+  parents: OrganizationSummary[] | Project[]
+): NotificationSettingsByProviderObject => {
+  /** Get a mapping of all parent IDs to the notification setting for the current providers. */
+  const provider = getCurrentProviders(notificationType, notificationSettings)[0];
+
+  return Object.fromEntries(
+    parents.map(parent => [
+      parent.id,
+      getParentValues(notificationType, notificationSettings, parent.id)[provider],
+    ])
+  );
+};
+
 export const getStateToPutForProvider = (
   notificationType: string,
   notificationSettings: NotificationSettingsObject,
-  changedData: {[key: string]: string}
-) => {
+  changedData: NotificationSettingsByProviderObject
+): NotificationSettingsObject => {
   /**
    * I don't need to update the provider for EVERY once of the user's projects
    * and organizations, just the user and parents that have explicit settings.
@@ -268,9 +305,9 @@ export const getStateToPutForProvider = (
 export const getStateToPutForDefault = (
   notificationType: string,
   notificationSettings: NotificationSettingsObject,
-  changedData: {[key: string]: string},
+  changedData: NotificationSettingsByProviderObject,
   parentIds: string[]
-) => {
+): NotificationSettingsObject => {
   /**
    * Update the current providers' parent-independent notification settings
    * with the new value. If the new value is "never", then also update all
@@ -309,9 +346,9 @@ export const getStateToPutForDefault = (
 export const getStateToPutForParent = (
   notificationType: string,
   notificationSettings: NotificationSettingsObject,
-  changedData: {[key: string]: string},
+  changedData: NotificationSettingsByProviderObject,
   parentId: string
-) => {
+): NotificationSettingsObject => {
   /** Get the diff of the Notification Settings for this parent ID. */
 
   const providerList = getCurrentProviders(notificationType, notificationSettings);
@@ -326,4 +363,35 @@ export const getStateToPutForParent = (
       },
     },
   };
+};
+
+export const getParentField = (
+  notificationType: string,
+  notificationSettings: NotificationSettingsObject,
+  parent: OrganizationSummary | Project,
+  onChange: (
+    changedData: NotificationSettingsByProviderObject,
+    parentId: string
+  ) => NotificationSettingsObject
+): FieldObject => {
+  /** Render each parent and add a default option to the the field choices. */
+
+  const defaultFields = NOTIFICATION_SETTING_FIELDS[notificationType];
+
+  return Object.assign({}, defaultFields, {
+    label: <ParentLabel parent={parent} notificationType={notificationType} />,
+    getData: data => onChange(data, parent.id),
+    name: parent.id,
+    choices: defaultFields.choices?.concat([
+      [
+        'default',
+        `${t('Default')} (${getChoiceString(
+          defaultFields.choices,
+          getCurrentDefault(notificationType, notificationSettings)
+        )})`,
+      ],
+    ]),
+    defaultValue: 'default',
+    help: undefined,
+  }) as any;
 };

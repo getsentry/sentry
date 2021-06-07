@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import UserAvatar from 'app/components/avatar/userAvatar';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
+import HookOrDefault from 'app/components/hookOrDefault';
 import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {PanelItem} from 'app/components/panels';
@@ -12,6 +13,7 @@ import {IconCheckmark, IconClose, IconFlag, IconMail, IconSubtract} from 'app/ic
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {AvatarUser, Member} from 'app/types';
+import isMemberDisabledFromLimit from 'app/utils/isMemberDisabledFromLimit';
 import recreateRoute from 'app/utils/recreateRoute';
 
 type Props = {
@@ -33,6 +35,11 @@ type Props = {
 type State = {
   busy: boolean;
 };
+
+const DisabledMemberTooltip = HookOrDefault({
+  hookName: 'component:disabled-member-tooltip',
+  defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
+});
 
 export default class OrganizationMemberRow extends PureComponent<Props, State> {
   state: State = {
@@ -71,6 +78,23 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
     onSendInvite(member);
   };
 
+  renderMemberRole() {
+    const {member} = this.props;
+    const {roleName, pending, expired} = member;
+    if (isMemberDisabledFromLimit(member)) {
+      return <DisabledMemberTooltip>{t('Deactivated')}</DisabledMemberTooltip>;
+    }
+    if (pending) {
+      return (
+        <InvitedRole>
+          <IconMail size="md" />
+          {expired ? t('Expired Invite') : tct('Invited [roleName]', {roleName})}
+        </InvitedRole>
+      );
+    }
+    return roleName;
+  }
+
   render() {
     const {
       params,
@@ -85,7 +109,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
       canAddMembers,
     } = this.props;
 
-    const {id, flags, email, name, roleName, pending, expired, user} = member;
+    const {id, flags, email, name, pending, user} = member;
 
     // if member is not the only owner, they can leave
     const needsSso = !flags['sso:linked'] && requireLink;
@@ -113,16 +137,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
           </MemberDescription>
         </MemberHeading>
 
-        <div data-test-id="member-role">
-          {pending ? (
-            <InvitedRole>
-              <IconMail size="md" />
-              {expired ? t('Expired Invite') : tct('Invited [roleName]', {roleName})}
-            </InvitedRole>
-          ) : (
-            roleName
-          )}
-        </div>
+        <div data-test-id="member-role">{this.renderMemberRole()}</div>
 
         <div data-test-id="member-status">
           {showResendButton ? (
@@ -132,7 +147,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
                   <LoadingIndicator mini />
                 </LoadingContainer>
               )}
-              {isInviteSuccessful && <span>Sent!</span>}
+              {isInviteSuccessful && <span>{t('Sent!')}</span>}
               {!isInviting && !isInviteSuccessful && (
                 <Button
                   disabled={!canAddMembers}

@@ -2,6 +2,7 @@
 // longer need this import and can drop babel-preset-css-prop for babel-preset.
 /// <reference types="@emotion/react/types/css-prop" />
 
+import {FocusTrap} from 'focus-trap';
 import u2f from 'u2f-api';
 
 import exportGlobals from 'app/bootstrap/exportGlobals';
@@ -103,6 +104,18 @@ declare global {
      * See sentry/js/ads.js for how this global is disabled.
      */
     adblockSuspected?: boolean;
+
+    //typing currently used for demo add on
+    //TODO: improve typing
+    SentryApp?: {
+      HookStore: any;
+      ConfigStore: any;
+      Modal: any;
+      modalFocusTrap?: {
+        current?: FocusTrap;
+      };
+      getModalPortal: () => HTMLElement;
+    };
   }
 }
 
@@ -1050,6 +1063,7 @@ export type BaseGroup = {
   type: EventOrGroupType;
   userReportCount: number;
   subscriptionDetails: {disabled?: boolean; reason?: string} | null;
+  status: string;
   inbox?: InboxDetails | null | false;
   owners?: SuggestedOwner[] | null;
 } & GroupRelease;
@@ -1107,6 +1121,7 @@ export type Member = {
   flags: {
     'sso:linked': boolean;
     'sso:invalid': boolean;
+    'member-limit:restricted': boolean;
   };
   id: string;
   inviteStatus: 'approved' | 'requested_to_be_invited' | 'requested_to_join';
@@ -1580,6 +1595,8 @@ export type NewQuery = {
   // Graph
   yAxis?: string;
   display?: string;
+
+  teams?: Readonly<('myteams' | number)[]>;
 };
 
 export type SavedQuery = NewQuery & {
@@ -2084,7 +2101,7 @@ export type KeyValueListData = {
 export type ExternalActorMapping = {
   id: string;
   externalName: string;
-  memberId?: string;
+  userId?: string;
   teamId?: string;
   sentryName: string;
 };
