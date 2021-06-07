@@ -44,7 +44,7 @@ class JiraCloud:
             "exp": datetime.datetime.utcnow() + datetime.timedelta(seconds=5 * 60),
             "qsh": get_query_hash(path, method.upper(), url_params),
         }
-        encoded_jwt = jwt.encode(jwt_payload, self.shared_secret.encode("UTF-8"))
+        encoded_jwt = jwt.encode(jwt_payload, self.shared_secret)
         params = dict(jwt=encoded_jwt, **(url_params or {}))
         request_spec = kwargs.copy()
         request_spec.update(dict(method=method, path=path, data=data, params=params))

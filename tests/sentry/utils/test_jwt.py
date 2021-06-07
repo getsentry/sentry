@@ -4,7 +4,7 @@ import pytest
 from sentry.utils import json  # type: ignore
 from sentry.utils import jwt as jwt_utils
 
-RS256_KEY = b"""
+RS256_KEY = """
 -----BEGIN RSA PRIVATE KEY-----
 MIIJKAIBAAKCAgEAwcYWTDju/+S7dgFLMp6VQHbCMHTQD7RxoaTWKY8/NizzW7QX
 82QZWGyc2+1EpYgza82Joy3IQ78FRV5NHjZONgeot+ZsnznFRokXvzdrshFCv4i+
@@ -58,7 +58,7 @@ Rt4IpcVVl+gvmjsV4PWILGI3EbCP6WOCbJPGjdVmRxl/8Ng4HYwU8DCveiQ=
 -----END RSA PRIVATE KEY-----
 """
 
-RS256_PUB_KEY = b"""
+RS256_PUB_KEY = """
 -----BEGIN PUBLIC KEY-----
 MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAwcYWTDju/+S7dgFLMp6V
 QHbCMHTQD7RxoaTWKY8/NizzW7QX82QZWGyc2+1EpYgza82Joy3IQ78FRV5NHjZO
@@ -160,10 +160,10 @@ def test_decode(token: str) -> None:
         assert isinstance(value, str)
 
     claims["aud"] = "you"
-    token = jwt_utils.encode(claims, b"secret")
+    token = jwt_utils.encode(claims, "secret")
 
     with pytest.raises(pyjwt.InvalidAudience):
-        jwt_utils.decode(token, b"secret")
+        jwt_utils.decode(token, "secret")
 
 
 def test_decode_pub(rsa_token: str) -> None:
@@ -176,18 +176,18 @@ def test_decode_audience() -> None:
         "iss": "me",
         "aud": "you",
     }
-    token = jwt_utils.encode(payload, b"secret")
+    token = jwt_utils.encode(payload, "secret")
 
     with pytest.raises(pyjwt.InvalidAudience):
-        jwt_utils.decode(token, b"secret")
+        jwt_utils.decode(token, "secret")
 
-    claims = jwt_utils.decode(token, b"secret", audience="you")
+    claims = jwt_utils.decode(token, "secret", audience="you")
     assert claims == payload
 
     with pytest.raises(pyjwt.InvalidAudience):
-        jwt_utils.decode(token, b"secret", audience="wrong")
+        jwt_utils.decode(token, "secret", audience="wrong")
 
-    claims = jwt_utils.decode(token, b"secret", audience=False)
+    claims = jwt_utils.decode(token, "secret", audience=False)
     assert claims == payload
 
 
@@ -199,7 +199,7 @@ def test_encode(token: str) -> None:
     claims = {
         "iss": "me",
     }
-    key = b"secret"
+    key = "secret"
 
     encoded = jwt_utils.encode(claims, key, headers=headers)
     assert isinstance(encoded, str)
@@ -219,7 +219,7 @@ def test_encode_rs256() -> None:
     claims = {
         "iss": "me",
     }
-    encoded_hs256 = jwt_utils.encode(claims, b"secret", headers=headers)
+    encoded_hs256 = jwt_utils.encode(claims, "secret", headers=headers)
     encoded_rs256 = jwt_utils.encode(claims, RS256_KEY, headers=headers, algorithm="RS256")
 
     assert encoded_rs256.count(".") == 2
@@ -237,7 +237,7 @@ def test_authorization_header(token: str) -> None:
 def test_rsa_key_from_jwk() -> None:
     key = jwt_utils.rsa_key_from_jwk(json.dumps(RSA_JWK))
     assert key
-    assert isinstance(key, bytes)
+    assert isinstance(key, str)
 
     # The PEM keys are not equal, and by more than just the header and footer ("BEGIN RSA
     # PRIVATE KEY" vs "BEGIN PRIVATE KEY").  There might be some more metadata in there that
@@ -254,7 +254,7 @@ def test_rsa_key_from_jwk() -> None:
 def test_rsa_key_from_jwk_pubkey(rsa_token: str) -> None:
     key = jwt_utils.rsa_key_from_jwk(json.dumps(RSA_PUB_JWK))
     assert key
-    assert isinstance(key, bytes)
+    assert isinstance(key, str)
 
     claims = jwt_utils.decode(rsa_token, key, algorithms=["RS256"])
     assert claims == {"iss": "me"}

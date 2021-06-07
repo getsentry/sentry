@@ -43,7 +43,7 @@ def peek_claims(token: str) -> Mapping[str, str]:
 
 def decode(
     token: str,
-    key: bytes,
+    key: str,
     *,  # Force passing optional arguments by keyword
     audience: Optional[Union[str, bool]] = None,
     algorithms: List[str] = ["HS256"],
@@ -73,7 +73,7 @@ def decode(
 
 def encode(
     payload: Mapping[str, str],
-    key: bytes,
+    key: str,
     *,  # Force passing optional arguments by keyword
     algorithm: str = "HS256",
     headers: Optional[Mapping[str, str]] = None,
@@ -110,7 +110,7 @@ def authorization_header(token: str, *, scheme: str = "Bearer") -> Mapping[str, 
     return {"Authorization": f"{scheme} {token}"}
 
 
-def rsa_key_from_jwk(jwk: str) -> bytes:
+def rsa_key_from_jwk(jwk: str) -> str:
     """Returns an RSA key from a serialised JWK.
 
     This constructs an RSA key from a JSON Web Key, the result can be used as key to
@@ -121,8 +121,8 @@ def rsa_key_from_jwk(jwk: str) -> bytes:
     key = pyjwt.algorithms.RSAAlgorithm.from_jwk(jwk)
     if isinstance(key, RSAPrivateKey):
         # The return type is verified in our own tests, this is fine.
-        return key.private_bytes(Encoding.PEM, PrivateFormat.PKCS8, NoEncryption())  # type: ignore
+        return key.private_bytes(Encoding.PEM, PrivateFormat.PKCS8, NoEncryption()).decode("UTF-8")  # type: ignore
     elif isinstance(key, RSAPublicKey):
-        return key.public_bytes(Encoding.PEM, PublicFormat.SubjectPublicKeyInfo)
+        return key.public_bytes(Encoding.PEM, PublicFormat.SubjectPublicKeyInfo).decode("UTF-8")
     else:
         raise ValueError("Unknown RSA JWK key")
