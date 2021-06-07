@@ -72,7 +72,7 @@ class OrganizationComplianceTask(abc.ABC):
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def call_to_action(self, member: OrganizationMember):
+    def call_to_action(self, org: Organization, user: User, member: OrganizationMember):
         """Prompt a member to comply with the new requirement."""
         raise NotImplementedError()
 
@@ -108,7 +108,7 @@ class OrganizationComplianceTask(abc.ABC):
                     target_user=user,
                 )
 
-                self.call_to_action(member)
+                self.call_to_action(org, user, member)
 
         for member in OrganizationMember.objects.select_related("user").filter(
             organization=org, user__isnull=False
@@ -123,9 +123,7 @@ class TwoFactorComplianceTask(OrganizationComplianceTask):
     def is_compliant(self, member: OrganizationMember) -> bool:
         return Authenticator.objects.user_has_2fa(member.user)
 
-    def call_to_action(self, member: OrganizationMember):
-        org = member.organization
-
+    def call_to_action(self, org: Organization, user: User, member: OrganizationMember):
         # send invite to setup 2fa
         email_context = {"url": member.get_invite_link(), "organization": org}
         subject = "{} {} Mandatory: Enable Two-Factor Authentication".format(
@@ -159,31 +157,38 @@ class VerifiedEmailComplianceTask(OrganizationComplianceTask):
     def is_compliant(self, member: OrganizationMember) -> bool:
         return UserEmail.get_primary_email(member.user).is_verified
 
-    def call_to_action(self, member: OrganizationMember):
-        user = member.user
-        if isinstance(user, User):
-            email = UserEmail.get_primary_email(user).email
-            org = member.organization
+    def call_to_action(self, org: Organization, user: User, member: OrganizationMember):
+        import django.contrib.auth.models
 
-            email_context = {
-                "confirm_url": absolute_uri(
-                    reverse("sentry-account-confirm-email", args=[user.id, email.validation_hash])
-                ),
-                "invite_url": member.get_invite_link(),
-                "email": email,
-                "organization": org,
-            }
-            subject = "{} {} Mandatory: Verify Email Address".format(
-                options.get("mail.subject-prefix"), org.name.capitalize()
+        if isinstance(user, django.contrib.auth.models.User):
+            # TODO(RyanSkonnord): Add test to repro this case (or delete check if unable)
+            logger.warning(
+                "Could not send verified email compliance notification (non-Sentry User model)"
             )
-            message = MessageBuilder(
-                subject=subject,
-                template="sentry/emails/setup_email.txt",
-                html_template="sentry/emails/setup_email.html",
-                type="user.setup_email",
-                context=email_context,
-            )
-            message.send_async([email])
+            return
+        elif not isinstance(user, User):
+            raise TypeError(user)
+
+        email = UserEmail.get_primary_email(user)
+        email_context = {
+            "confirm_url": absolute_uri(
+                reverse("sentry-account-confirm-email", args=[user.id, email.validation_hash])
+            ),
+            "invite_url": member.get_invite_link(),
+            "email": email.email,
+            "organization": org,
+        }
+        subject = "{} {} Mandatory: Verify Email Address".format(
+            options.get("mail.subject-prefix"), org.name.capitalize()
+        )
+        message = MessageBuilder(
+            subject=subject,
+            template="sentry/emails/setup_email.txt",
+            html_template="sentry/emails/setup_email.html",
+            type="user.setup_email",
+            context=email_context,
+        )
+        message.send_async([email])
 
 
 @instrumented_task(
