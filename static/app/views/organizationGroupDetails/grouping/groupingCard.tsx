@@ -9,9 +9,9 @@ import space from 'app/styles/space';
 
 type Props = {
   label: string;
-  groupings: ChildFingerprint[];
   isActive: boolean;
   onClick?: () => void;
+  groupings?: ChildFingerprint[];
 };
 
 function GroupingCard({label, groupings, onClick, isActive}: Props) {
@@ -24,14 +24,14 @@ function GroupingCard({label, groupings, onClick, isActive}: Props) {
         </Label>
         <Description>{t('This is a description')}</Description>
       </Header>
-      <Body>
+      {/* <Body>
         {groupings.map((grouping, index) => (
           <SubCard key={grouping.childId}>
             <strong>{t('Issue %s: ', index + 1)}</strong>
             {grouping.childId}
           </SubCard>
         ))}
-      </Body>
+      </Body> */}
     </StyledCard>
   );
 }
