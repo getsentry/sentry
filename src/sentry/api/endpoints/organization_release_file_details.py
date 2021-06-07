@@ -9,6 +9,7 @@ from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.models import Release, ReleaseFile
+from sentry.models.releasefile import RELEASE_ARCHIVE_FILENAME
 
 
 class ReleaseFileSerializer(serializers.Serializer):
@@ -138,7 +139,11 @@ class OrganizationReleaseFileDetailsEndpoint(OrganizationReleasesBaseEndpoint):
         # the actual deletion of the db row
         with transaction.atomic():
             releasefile.delete()
-            release.update_artifact_count(-1)
+            if releasefile.name == RELEASE_ARCHIVE_FILENAME:
+                count = release.count_archived_artifacts()
+            else:
+                count = 1
+            release.update_artifact_count(-count)
         file.delete()
 
         return Response(status=204)

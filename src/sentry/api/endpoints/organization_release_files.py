@@ -164,6 +164,7 @@ class OrganizationReleaseFilesEndpoint(OrganizationReleasesBaseEndpoint):
                     name=full_name,
                     dist=dist,
                 )
+                release.update_artifact_count(1)
         except IntegrityError:
             file.delete()
             return Response({"detail": ERR_FILE_EXISTS}, status=409)

@@ -141,7 +141,7 @@ class Release(Model):
     authors = ArrayField(null=True)
     total_deploys = BoundedPositiveIntegerField(null=True, default=0)
     last_deploy_id = BoundedPositiveIntegerField(null=True)
-    artifact_count = BoundedPositiveIntegerField(null=True)
+    artifact_count = BoundedPositiveIntegerField(null=True, default=0)
 
     # Denormalized semver columns. These will be filled if `version` matches at least
     # part of our more permissive model of semver:
@@ -746,7 +746,7 @@ class Release(Model):
         self.delete()
 
     def get_archive_release_file(self):
-        """ Get ReleaseFile instance containing the release archive """
+        """Get ReleaseFile instance containing the release archive"""
         try:
             return ReleaseFile.objects.select_related("file").get(
                 release=self, name=RELEASE_ARCHIVE_FILENAME
@@ -793,6 +793,9 @@ class Release(Model):
         return self.artifact_count
 
     def update_artifact_count(self, incr: int):
+        if incr == 0:
+            return
+
         if self.artifact_count is None:
             # Legacy releases, leave as-is
             return

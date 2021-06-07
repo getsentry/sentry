@@ -171,15 +171,16 @@ class AssembleArtifactsError(Exception):
 
 
 def _simple_update(release_file: ReleaseFile, new_file: File, new_archive: ReleaseArchive):
-    """ Update function used in _upsert_release_file """
+    """Update function used in _upsert_release_file"""
     old_file = release_file.file
     release_file.update(file=new_file)
     old_file.delete()
 
+    return 0  # Zero artifacts added by this update
 
-def _upsert_release_file(
-    file: File, archive: ReleaseArchive, update_fn, post_create=None, **kwargs
-):
+
+def _upsert_release_file(file: File, archive: ReleaseArchive, update_fn, **kwargs) -> int:
+    num_artifacts_added = 0
     release_file = None
 
     # Release files must have unique names within their release
@@ -191,8 +192,9 @@ def _upsert_release_file(
         try:
             with transaction.atomic():
                 release_file = ReleaseFile.objects.create(file=file, **kwargs)
-                if post_create:
-                    post_create()
+                if archive:
+                    num_artifacts_added = len(archive.manifest.get("files", {}))
+
         except IntegrityError:
             # NB: This indicates a race, where another assemble task or
             # file upload job has just created a conflicting file. Since
@@ -200,11 +202,14 @@ def _upsert_release_file(
             # do not try again.
             file.delete()
     else:
-        update_fn(release_file, file, archive)
+        num_artifacts_added = update_fn(release_file, file, archive)
+
+    return num_artifacts_added
 
 
 @metrics.wraps("tasks.assemble.merge_archives")
-def _merge_archives(release_file: ReleaseFile, new_file: File, new_archive: ReleaseArchive):
+def _merge_archives(release_file: ReleaseFile, new_file: File, new_archive: ReleaseArchive) -> int:
+    num_artifacts_added = 0
     old_file = release_file.file
     with ReleaseArchive(old_file.getfile().file) as old_archive:
         buffer = BytesIO()
@@ -216,14 +221,13 @@ def _merge_archives(release_file: ReleaseFile, new_file: File, new_archive: Rele
             with lock.blocking_acquire(
                 RELEASE_ARCHIVE_MERGE_INITIAL_DELAY, RELEASE_ARCHIVE_MERGE_TIMEOUT
             ):
-                num_artifacts = merge_release_archives(old_archive, new_archive, buffer)
+                num_artifacts_added = merge_release_archives(old_archive, new_archive, buffer)
 
                 replacement = File.objects.create(name=old_file.name, type=old_file.type)
                 buffer.seek(0)
                 replacement.putfile(buffer)
                 with transaction.atomic():
                     release_file.update(file=replacement)
-                    release_file.release.update(artifact_count=num_artifacts)
 
                 old_file.delete()
 
@@ -232,17 +236,20 @@ def _merge_archives(release_file: ReleaseFile, new_file: File, new_archive: Rele
 
     new_file.delete()
 
+    return num_artifacts_added
+
 
 def get_artifact_basename(url):
     return url.rsplit("/", 1)[-1]
 
 
-def _store_single_files(archive: ReleaseArchive, meta: dict):
+def _store_single_files(archive: ReleaseArchive, meta: dict) -> int:
     try:
         temp_dir = archive.extract()
     except BaseException:
         raise AssembleArtifactsError("failed to extract bundle")
 
+    num_artifacts_added = 0
     with temp_dir:
         artifacts = archive.manifest.get("files", {})
         for rel_path, artifact in artifacts.items():
@@ -258,7 +265,12 @@ def _store_single_files(archive: ReleaseArchive, meta: dict):
                 file.putfile(fp, logger=logger)
 
             kwargs = dict(meta, name=artifact_url)
-            _upsert_release_file(file, None, _simple_update, **kwargs)
+
+            added = _upsert_release_file(file, None, _simple_update, **kwargs)
+            if added:
+                num_artifacts_added += 1
+
+    return num_artifacts_added
 
 
 @instrumented_task(name="sentry.tasks.assemble.assemble_artifacts", queue="assemble")
@@ -324,23 +336,26 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
 
             num_files = len(manifest.get("files", {}))
 
+            num_created_archived = 0
             if options.get("processing.save-release-archives"):
                 min_size = options.get("processing.release-archive-min-files")
                 if num_files >= min_size:
                     kwargs = dict(meta, name=RELEASE_ARCHIVE_FILENAME)
 
-                    def post_create():
-                        release.update(artifact_count=num_files)
-
-                    _upsert_release_file(
-                        bundle, archive, _merge_archives, post_create=post_create, **kwargs
+                    num_created_archived = _upsert_release_file(
+                        bundle, archive, _merge_archives, **kwargs
                     )
 
             # NOTE(jjbayer): Single files are still stored to enable
             # rolling back from release archives. Once release archives run
             # smoothely, this call can be removed / only called when feature
             # flag is off.
-            _store_single_files(archive, meta)
+            num_created_individual = _store_single_files(archive, meta)
+
+            # When no archive was stored, use individual count
+            num_created = num_created_archived or num_created_individual
+
+            release.update_artifact_count(num_created)
 
             # Count files extracted, to compare them to release files endpoint
             metrics.incr("tasks.assemble.extracted_files", amount=num_files)
