@@ -402,7 +402,10 @@ def resolve_field_list(
         if "project.id" not in fields:
             fields.append("project.id")
 
-    # Both `count_miserable_new` and `user_misery_new` require the project_threshold_config column
+    # Here we are mapping apdex() -> apdex_new() etc so that we are able to
+    # reference apdex_new() as apdex() through out the code base. Until it's
+    # deprecated, the legacy apdex can be still called with apdex(<threshold>).
+    # These columns also need the `project_threshold_config` column to be loaded.
     add_project_threshold_config = False
     for index, field in enumerate(fields[:]):
         if isinstance(field, str) and field in AGGREGATE_ALIASES:

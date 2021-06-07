@@ -273,6 +273,10 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     "tps()": "tps(%d)" % rollup,
                 }
 
+                # For the new apdex, we need to add project threshold config as a selected
+                # column which means the group by for the time series won't work.
+                # As a temporary solution, we will calculate the mean of all the project
+                # level thresholds in the request and use the legacy apdex calculation.
                 if "apdex()" in columns:
                     project_ids = params.get("project_id")
                     threshold_configs = list(
