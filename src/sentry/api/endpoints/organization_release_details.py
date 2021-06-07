@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from sentry.api.base import ReleaseAnalyticsMixin
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.endpoints.organization_releases import (
+    _release_suffix,
     add_environment_to_queryset,
     get_stats_period_detail,
 )
@@ -16,7 +17,7 @@ from sentry.api.serializers.rest_framework import (
     ReleaseHeadCommitSerializerDeprecated,
     ReleaseSerializer,
 )
-from sentry.models import Activity, Project, Release, ReleaseCommitError
+from sentry.models import Activity, Project, Release, ReleaseCommitError, ReleaseStatus
 from sentry.models.release import UnsafeReleaseDeletion
 from sentry.snuba.sessions import (
     STATS_PERIODS,
@@ -35,6 +36,37 @@ class OrganizationReleaseSerializer(ReleaseSerializer):
         child=ReleaseHeadCommitSerializerDeprecated(), required=False, allow_null=False
     )
     refs = ListField(child=ReleaseHeadCommitSerializer(), required=False, allow_null=False)
+
+
+def add_status_filter_to_queryset(queryset, status_filter):
+    """
+    Function that adds status filter on a queryset
+    """
+    try:
+        status_int = ReleaseStatus.from_string(status_filter)
+    except ValueError:
+        raise ParseError(detail="invalid value for status")
+
+    if status_int == ReleaseStatus.OPEN:
+        queryset = queryset.filter(Q(status=status_int) | Q(status=None))
+    else:
+        queryset = queryset.filter(status=status_int)
+    return queryset
+
+
+def add_query_filter_to_queryset(queryset, query):
+    """
+    Function that adds a query filtering to a queryset
+    """
+    if query:
+        query_q = Q(version__icontains=query)
+
+        suffix_match = _release_suffix.match(query)
+        if suffix_match is not None:
+            query_q |= Q(version__icontains="%s+%s" % suffix_match.groups())
+
+        queryset = queryset.filter(query_q)
+    return queryset
 
 
 class OrganizationReleaseDetailsPaginationMixin:
@@ -65,11 +97,44 @@ class OrganizationReleaseDetailsPaginationMixin:
         }
 
     @staticmethod
+    def __filter_down_snuba_primary_results_according_to_status_and_query(
+        org, project_ids, version_list, status_filter, query
+    ):
+        """
+        Helper function used to query Release model from the primary results of a snuba query
+        which happens when sorting on sessions, users, crash_free_users and crash_free_sessions
+        Inputs:-
+            * org: organization
+            * project_ids: list of project ids
+            * version_list: list of release versions
+            * status_filter: either open or archived
+            * query: query string
+        Returns:-
+            A list of filtered release versions in the same order it received it
+        """
+        queryset = Release.objects.filter(
+            organization=org, projects__id__in=project_ids, version__in=version_list
+        )
+
+        # Add status filter
+        queryset = add_status_filter_to_queryset(queryset, status_filter)
+
+        # Add query filter
+        queryset = add_query_filter_to_queryset(queryset, query)
+
+        # Required re-ordering because django filter does not guarantee order of snuba primary order
+        release_dict = {release.version: release for release in queryset}
+
+        return list(filter(None, [release_dict.get(version) for version in version_list]))
+
+    @staticmethod
     def __get_release_according_to_filters_and_order_by_for_date_sort(
         org,
         filter_params,
         date_query_q,
         order_by,
+        status_filter,
+        query,
     ):
         """
         Helper function that executes a query on Release table based on different filters
@@ -77,7 +142,10 @@ class OrganizationReleaseDetailsPaginationMixin:
         Inputs:-
             * org: Organization object
             * filter_params:
+            * date_query_q: List that contains the Q expressions needed to sort based on date
             * order_by: Contains columns that are used for ordering to sort based on date
+            * status_filter: represents ReleaseStatus i.e. open, archived
+            * query
         Returns:-
             Queryset that contains one element that represents either next or previous release
             based on the inputs
@@ -88,6 +156,12 @@ class OrganizationReleaseDetailsPaginationMixin:
             projects__id__in=filter_params["project_id"],
         )
 
+        # Add status filter
+        queryset = add_status_filter_to_queryset(queryset, status_filter)
+
+        # Add query filter
+        queryset = add_query_filter_to_queryset(queryset, query)
+
         # Add env filter
         queryset = add_environment_to_queryset(queryset, filter_params)
 
@@ -97,7 +171,14 @@ class OrganizationReleaseDetailsPaginationMixin:
         return queryset
 
     def get_adjacent_releases_to_current_release(
-        self, release, org, filter_params, stats_period, sort
+        self,
+        release,
+        org,
+        filter_params,
+        stats_period,
+        sort,
+        status_filter,
+        query,
     ):
         """
         Method that returns the prev and next release to a current release based on different
@@ -108,17 +189,18 @@ class OrganizationReleaseDetailsPaginationMixin:
             * filter_params
             * stats_period
             * sort: sort option i.e. date, sessions, users, crash_free_users and crash_free_sessions
+            * status_filter
+            * query
         Returns:-
             A dictionary of two keys `prev_release_version` and `next_release_version` representing
             previous release and next release respectively
         """
-        prev_release_version = None
-        next_release_version = None
-
         if sort == "date":
             release_common_filters = {
                 "org": org,
                 "filter_params": filter_params,
+                "status_filter": status_filter,
+                "query": query,
             }
 
             # Get previous queryset of current release
@@ -131,12 +213,6 @@ class OrganizationReleaseDetailsPaginationMixin:
                 **release_common_filters,
                 **self.__get_next_release_date_query_q_and_order_by(release),
             )
-
-            if len(prev_release_list) > 0:
-                prev_release_version = prev_release_list[0].version
-
-            if len(next_release_list) > 0:
-                next_release_version = next_release_list[0].version
 
         elif sort in (
             "crash_free_sessions",
@@ -156,14 +232,36 @@ class OrganizationReleaseDetailsPaginationMixin:
                 stats_period=stats_period,
             )
 
-            if len(prev_and_next_releases_list["prev_releases_list"]) > 0:
-                prev_release_version = prev_and_next_releases_list["prev_releases_list"][0]
-
-            if len(prev_and_next_releases_list["next_releases_list"]) > 0:
-                next_release_version = prev_and_next_releases_list["next_releases_list"][0]
-
+            # Get previous queryset of current release
+            prev_release_list = (
+                self.__filter_down_snuba_primary_results_according_to_status_and_query(
+                    org=org.id,
+                    project_ids=filter_params["project_id"],
+                    version_list=prev_and_next_releases_list["prev_releases_list"],
+                    status_filter=status_filter,
+                    query=query,
+                )
+            )
+            # Get next queryset of current release
+            next_release_list = (
+                self.__filter_down_snuba_primary_results_according_to_status_and_query(
+                    org=org.id,
+                    project_ids=filter_params["project_id"],
+                    version_list=prev_and_next_releases_list["next_releases_list"],
+                    status_filter=status_filter,
+                    query=query,
+                )
+            )
         else:
             raise InvalidSortException
+
+        prev_release_version = None
+        if len(prev_release_list) > 0:
+            prev_release_version = prev_release_list[0].version
+
+        next_release_version = None
+        if len(next_release_list) > 0:
+            next_release_version = next_release_list[0].version
 
         # This is reversed on purpose and the reason for that is that the prev and next releases
         # are computed in the same order as the releases list page and so for example if you have a
@@ -206,6 +304,8 @@ class OrganizationReleaseDetailsEndpoint(
         summary_stats_period = request.GET.get("summaryStatsPeriod") or "14d"
         health_stats_period = request.GET.get("healthStatsPeriod") or ("24h" if with_health else "")
         sort = request.GET.get("sort") or "date"
+        status_filter = request.GET.get("status", "open")
+        query = request.GET.get("query")
 
         if summary_stats_period not in STATS_PERIODS:
             raise ParseError(detail=get_stats_period_detail("summaryStatsPeriod", STATS_PERIODS))
@@ -252,6 +352,8 @@ class OrganizationReleaseDetailsEndpoint(
                             filter_params=filter_params,
                             stats_period=summary_stats_period,
                             sort=sort,
+                            status_filter=status_filter,
+                            query=query,
                         )
                     }
                 )
