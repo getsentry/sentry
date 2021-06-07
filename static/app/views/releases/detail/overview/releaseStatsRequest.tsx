@@ -109,7 +109,9 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
 
     return {
       query: stringifyQueryObject(new QueryResults([`release:"${version}"`])),
-      interval: getInterval(selection.datetime, organization),
+      interval: getInterval(selection.datetime, {
+        highFidelity: organization.features.includes('minute-resolution-sessions'),
+      }),
       ...getParams(pick(location.query, Object.values(URL_PARAM)), {
         defaultStatsPeriod,
       }),

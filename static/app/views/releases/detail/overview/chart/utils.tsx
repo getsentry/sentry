@@ -21,11 +21,18 @@ type ChartData = Record<string, Series>;
 
 const SESSIONS_CHART_PALETTE = CHART_PALETTE[3];
 
-export function getInterval(datetimeObj: DateTimeObject, organization?: Organization) {
+type GetIntervalOptions = {
+  highFidelity?: boolean;
+};
+
+export function getInterval(
+  datetimeObj: DateTimeObject,
+  {highFidelity}: GetIntervalOptions = {}
+) {
   const diffInMinutes = getDiffInMinutes(datetimeObj);
 
   if (
-    organization?.features.includes('minute-resolution-sessions') &&
+    highFidelity &&
     diffInMinutes < 360 // limit on backend is set to six hour
   ) {
     return '5m';
