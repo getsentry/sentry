@@ -157,7 +157,7 @@ class SlackIntegrationProvider(IntegrationProvider):
 
     def post_install(self, integration, organization, extra=None):
         """
-        Create Identity records for an organizations's users if their emails match in Sentry and Slack
+        Create Identity records for an organization's users if their emails match in Sentry and Slack
         """
         run_args = {"integration": integration, "organization": organization}
         tasks.link_slack_user_identities.apply_async(kwargs=run_args)

@@ -196,11 +196,6 @@ def get_channel_id_with_timeout(integration: Integration, name: str, timeout: in
     return (prefix, None, False)
 
 
-def get_users_emails(organization, integration):
-    # use users.list
-    pass
-
-
 def send_incident_alert_notification(action, incident, metric_value, method):
     from sentry.integrations.slack.message_builder.incidents import build_incident_attachment
 
