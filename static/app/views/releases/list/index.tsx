@@ -354,7 +354,12 @@ class ReleasesList extends AsyncView<Props, State> {
       p => p.id === `${selectedProjectId}`
     );
 
-    if (this.shouldShowLoadingIndicator() || !releases?.length || !selectedProject) {
+    if (
+      this.shouldShowLoadingIndicator() ||
+      !releases?.length ||
+      !selectedProject ||
+      !hasSessions
+    ) {
       return null;
     }
 
@@ -374,7 +379,7 @@ class ReleasesList extends AsyncView<Props, State> {
               {({projects, initiallyLoaded, fetchError}) => {
                 const project = projects && projects.length === 1 && projects[0];
 
-                if (!initiallyLoaded || fetchError || !project || !hasSessions) {
+                if (!initiallyLoaded || fetchError || !project) {
                   return null;
                 }
 
