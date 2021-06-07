@@ -155,7 +155,7 @@ class ReleaseModelManager(models.Manager):
         """
         Override create method to parse semver release if it follows semver format, and updates the
         release object that is about to be created with semver columns i.e. major, minor, patch,
-        revision, prerelease, build_code and build_number
+        revision, prerelease, build_code, build_number and package
         """
         self._massage_semver_cols_into_release_object_data(kwargs)
         return super().create(*args, **kwargs)
