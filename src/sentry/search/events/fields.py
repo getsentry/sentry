@@ -542,7 +542,7 @@ def resolve_orderby(orderby, fields, aggregations, equations):
     those that are currently selected.
     """
     orderby = orderby if isinstance(orderby, (list, tuple)) else [orderby]
-    equation_aliases = [equation[-1] for equation in equations]
+    equation_aliases = [equation[-1] for equation in equations] if equations is not None else []
     validated = []
     for column in orderby:
         bare_column = column.lstrip("-")
