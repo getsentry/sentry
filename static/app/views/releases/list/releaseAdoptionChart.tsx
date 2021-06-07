@@ -19,7 +19,7 @@ import {Panel, PanelBody, PanelFooter} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import {GlobalSelection, Organization, Project, Release} from 'app/types';
+import {GlobalSelection, Organization, Project} from 'app/types';
 import {ReactEchartsRef} from 'app/types/echarts';
 import withApi from 'app/utils/withApi';
 import {DisplayOption} from 'app/views/releases/list/utils';
@@ -29,7 +29,7 @@ type Props = WithRouterProps & {
   api: Client;
   organization: Organization;
   selection: GlobalSelection;
-  releases: Release[];
+  releaseVersions: string[];
   project: Project;
   getHealthData: ReleaseHealthRequestRenderProps['getHealthData'];
   activeDisplay: DisplayOption;
@@ -99,7 +99,7 @@ class ReleaseAdoptionChart extends React.PureComponent<Props, State> {
   render() {
     const {
       showPlaceholders,
-      releases,
+      releaseVersions,
       project,
       activeDisplay,
       router,
@@ -113,9 +113,7 @@ class ReleaseAdoptionChart extends React.PureComponent<Props, State> {
       return this.renderEmpty();
     }
 
-    const releasesSeries = releases.map(release => {
-      const releaseVersion = release.version;
-
+    const releasesSeries = releaseVersions.map(releaseVersion => {
       const timeSeries = getHealthData.getTimeSeries(
         releaseVersion,
         Number(project.id),

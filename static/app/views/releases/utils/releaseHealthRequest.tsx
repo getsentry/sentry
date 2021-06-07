@@ -87,6 +87,7 @@ type Props = {
   defaultStatsPeriod?: string;
   releasesReloading?: boolean;
   healthStatsPeriod?: HealthStatsPeriodOption;
+  timeSeriesReleases?: boolean;
 };
 type State = {
   loading: boolean;
@@ -152,7 +153,7 @@ class ReleaseHealthRequest extends React.Component<Props, State> {
   }
 
   fetchData = async () => {
-    const {api, healthStatsPeriod} = this.props;
+    const {api, healthStatsPeriod, timeSeriesReleases} = this.props;
 
     api.clear();
     this.setState({
@@ -163,30 +164,33 @@ class ReleaseHealthRequest extends React.Component<Props, State> {
       totalCountByProjectIn24h: null,
     });
 
-    const promises = [
-      this.fetchStatusCountByReleaseInPeriod(),
-      this.fetchTotalCountByReleaseIn24h(),
-      this.fetchTotalCountByProjectIn24h(),
-    ];
+    const promises = [this.fetchStatusCountByReleaseInPeriod()];
 
     if (healthStatsPeriod === HealthStatsPeriodOption.AUTO) {
       promises.push(this.fetchStatusCountByProjectInPeriod());
     }
 
+    if (!timeSeriesReleases) {
+      promises.push(
+        this.fetchTotalCountByReleaseIn24h(),
+        this.fetchTotalCountByProjectIn24h()
+      );
+    }
+
     try {
       const [
         statusCountByReleaseInPeriod,
+        statusCountByProjectInPeriod,
         totalCountByReleaseIn24h,
         totalCountByProjectIn24h,
-        statusCountByProjectInPeriod,
       ] = await Promise.all(promises);
 
       this.setState({
         loading: false,
         statusCountByReleaseInPeriod,
+        statusCountByProjectInPeriod,
         totalCountByReleaseIn24h,
         totalCountByProjectIn24h,
-        statusCountByProjectInPeriod,
       });
     } catch (error) {
       addErrorMessage(error.responseJSON?.detail ?? t('Error loading health data'));
@@ -287,6 +291,13 @@ class ReleaseHealthRequest extends React.Component<Props, State> {
 
   getHealthData = () => {
     // TODO(sessions): investigate if this needs to be optimized to lower O(n) complexity
+    if (this.props.timeSeriesReleases) {
+      return {
+        getTimeSeries: this.getTimeSeries,
+        getReleaseVersions: this.getReleaseVersions,
+      };
+    }
+
     return {
       getCrashCount: this.getCrashCount,
       getCrashFreeRate: this.getCrashFreeRate,
@@ -415,6 +426,14 @@ class ReleaseHealthRequest extends React.Component<Props, State> {
         z: 0,
       },
     ];
+  };
+
+  getReleaseVersions = () => {
+    const {statusCountByReleaseInPeriod} = this.state;
+
+    return statusCountByReleaseInPeriod?.groups.map(({by}) =>
+      typeof by.release === 'string' ? by.release : by.release.toString()
+    );
   };
 
   getAdoption = (version: string, project: number, display: DisplayOption) => {

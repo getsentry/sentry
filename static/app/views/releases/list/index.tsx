@@ -346,7 +346,7 @@ class ReleasesList extends AsyncView<Props, State> {
 
   renderAdoptionChart(activeDisplay: DisplayOption) {
     const {location, selection, organization} = this.props;
-    const {hasSessions, releases, reloading} = this.state;
+    const {hasSessions, reloading} = this.state;
 
     const selectedProjectId =
       selection.projects && selection.projects.length === 1 && selection.projects[0];
@@ -354,59 +354,62 @@ class ReleasesList extends AsyncView<Props, State> {
       p => p.id === `${selectedProjectId}`
     );
 
-    if (
-      this.shouldShowLoadingIndicator() ||
-      !releases?.length ||
-      !selectedProject ||
-      !hasSessions
-    ) {
+    if (this.shouldShowLoadingIndicator() || !selectedProject || !hasSessions) {
       return null;
     }
 
     return (
       <ReleaseHealthRequest
-        releases={releases.map(({version}) => version)}
+        releases={[]}
         organization={organization}
         selection={selection}
         location={location}
         display={[this.getDisplay()]}
         releasesReloading={reloading}
         healthStatsPeriod={HealthStatsPeriodOption.AUTO}
+        timeSeriesReleases
       >
         {({isHealthLoading, getHealthData}) => (
           <Feature features={['organizations:release-adoption-chart']}>
             <Projects orgId={organization.slug} slugs={[selectedProject.slug]}>
               {({projects, initiallyLoaded, fetchError}) => {
+                const releaseVersions =
+                  getHealthData.getReleaseVersions && getHealthData.getReleaseVersions();
+
                 const project = projects && projects.length === 1 && projects[0];
 
-                if (!initiallyLoaded || fetchError || !project) {
+                if (
+                  !initiallyLoaded ||
+                  fetchError ||
+                  !project ||
+                  !releaseVersions?.length
+                ) {
                   return null;
                 }
 
                 const showPlaceholders = !initiallyLoaded || isHealthLoading;
+
                 let totalCount = 0;
 
-                if (releases?.length) {
-                  const timeSeries = getHealthData.getTimeSeries(
-                    releases[0].version,
-                    Number(project.id),
-                    activeDisplay
-                  );
+                const timeSeries = getHealthData.getTimeSeries(
+                  releaseVersions[0],
+                  Number(project.id),
+                  activeDisplay
+                );
 
-                  const totalData = timeSeries[1].data;
+                const totalData = timeSeries[1].data;
 
-                  if (totalData.length) {
-                    totalCount = totalData
-                      .map(point => point.value)
-                      .reduce((acc, value) => acc + value);
-                  }
+                if (totalData.length) {
+                  totalCount = totalData
+                    .map(point => point.value)
+                    .reduce((acc, value) => acc + value);
                 }
 
                 return (
                   <ReleaseAdoptionChart
                     organization={organization}
                     selection={selection}
-                    releases={releases}
+                    releaseVersions={releaseVersions}
                     project={project as Project}
                     getHealthData={getHealthData}
                     activeDisplay={activeDisplay}
