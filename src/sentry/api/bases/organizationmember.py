@@ -8,8 +8,24 @@ from sentry.models import OrganizationMember
 from .organization import OrganizationEndpoint
 
 
+class MemberIdField(serializers.IntegerField):
+    """
+    Allow "me" in addition to regular integers
+    """
+
+    def to_internal_value(self, data):
+        if data == "me":
+            return data
+        return super().to_internal_value(data)
+
+    def run_validation(self, data):
+        if data == "me":
+            return data
+        return super().run_validation(data)
+
+
 class MemberSerializer(serializers.Serializer):
-    id = serializers.IntegerField(min_value=0, max_value=BoundedAutoField.MAX_VALUE, required=True)
+    id = MemberIdField(min_value=0, max_value=BoundedAutoField.MAX_VALUE, required=True)
 
 
 class OrganizationMemberEndpoint(OrganizationEndpoint):
