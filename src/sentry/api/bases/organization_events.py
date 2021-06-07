@@ -48,7 +48,8 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
     def get_snuba_params(self, request, organization, check_global_views=True):
         with sentry_sdk.start_span(op="discover.endpoint", description="filter_params"):
             if (
-                len(request.GET.getlist("field") + self.get_equation_list(organization, request))
+                len(request.GET.getlist("field"))
+                + len(self.get_equation_list(organization, request))
                 > MAX_FIELDS
             ):
                 raise ParseError(
