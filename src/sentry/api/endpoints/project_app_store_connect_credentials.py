@@ -50,6 +50,7 @@ To create and manage these credentials, several API endpoints exist:
    initiated by steps 2-4.
 """
 from datetime import datetime
+from typing import Optional
 from uuid import uuid4
 
 import requests
@@ -58,13 +59,10 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.bases.project import ProjectEndpoint, StrictProjectPermission
+from sentry.models import Project
 from sentry.utils import fernet_encrypt as encrypt
-from sentry.utils.appleconnect import (
-    appstore_connect,
-    get_app_store_credentials,
-    itunes_connect,
-    validate_credentials,
-)
+from sentry.utils import json
+from sentry.utils.appleconnect import appstore_connect, itunes_connect
 from sentry.utils.appleconnect.itunes_connect import ITunesHeaders
 from sentry.utils.safe import get_path
 
@@ -82,6 +80,30 @@ SYMBOL_SOURCES_PROP_NAME = "sentry:symbol_sources"
 
 # The name of the feature flag which enables the App Store Connect symbol source.
 APP_STORE_CONNECT_FEATURE_NAME = "organizations:app-store-connect"
+
+# iTunes session token validity is 10-14 days so we like refreshing after 1 week.
+ITUNES_TOKEN_VALIDITY = datetime.timedelta(weeks=1)
+
+
+def get_app_store_credentials(
+    project: Project, credentials_id: Optional[str]
+) -> Optional[json.JSONData]:
+    """Returns the appStoreConnect symbol source config for a project."""
+    sources_config = project.get_option(SYMBOL_SOURCES_PROP_NAME)
+
+    if credentials_id is None:
+        return None
+    try:
+        sources = json.loads(sources_config)
+        for source in sources:
+            if (
+                source.get("type") == "appStoreConnect"
+                and source.get("id") == credentials_id.lower()
+            ):
+                return source
+        return None
+    except BaseException as e:
+        raise ValueError("bad sources") from e
 
 
 class AppStoreConnectCredentialsSerializer(serializers.Serializer):
@@ -360,6 +382,7 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):
     {
         "appstoreCredentialsValid": true,
         "itunesSessionValid": true,
+        "expirationDate": "YYYY-MM-DDTHH:MM:SS.SSSZ" | null
     }
     ```
     """
@@ -372,19 +395,45 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):
         ):
             return Response(status=404)
 
+        symbol_source_cfg = get_app_store_credentials(project, credentials_id)
+        key = project.get_option(CREDENTIALS_KEY_NAME)
+
+        if key is None or symbol_source_cfg is None:
+            return Response(status=404)
+
+        if symbol_source_cfg.get("refreshDate") is not None:
+            expiration_date = (
+                datetime.datetime.fromisoformat(symbol_source_cfg.get("refreshDate"))
+                + ITUNES_TOKEN_VALIDITY
+            )
+        else:
+            expiration_date = None
+
         try:
-            validity = validate_credentials(project, credentials_id)
+            secrets = encrypt.decrypt_object(symbol_source_cfg.get("encrypted"), key)
         except ValueError:
             return Response(status=500)
 
-        if validity is None:
-            return Response(status=404)
+        credentials = appstore_connect.AppConnectCredentials(
+            key_id=symbol_source_cfg.get("appconnectKey"),
+            key=secrets.get("appconnectPrivateKey"),
+            issuer_id=symbol_source_cfg.get("appconnectIssuer"),
+        )
+
+        session = requests.Session()
+        apps = appstore_connect.get_apps(session, credentials)
+
+        appstore_valid = apps is not None
+        itunes_connect.load_session_cookie(session, secrets.get("itunesSession"))
+        itunes_session_info = itunes_connect.get_session_info(session)
+
+        itunes_session_valid = itunes_session_info is not None
 
         return Response(
             {
-                "appstoreCredentialsValid": validity.appstore_credentials_valid,
-                "itunesSessionValid": validity.itunes_session_valid,
-                "expirationDate": validity.expiration_date,
+                "appstoreCredentialsValid": appstore_valid,
+                "itunesSessionValid": itunes_session_valid,
+                "expirationDate": expiration_date,
             },
             status=200,
         )
