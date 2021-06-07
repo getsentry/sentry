@@ -229,9 +229,9 @@ class AssembleArtifactsTest(BaseAssembleTest):
                     assert release_file.file.headers == {"Sourcemap": "index.js.map"}
 
     def test_merge_archives(self):
-        file1 = File.objects.create()
+        file1 = File.objects.create(name="foo")
         file1.putfile(ContentFile(self.create_artifact_bundle()))
-        file2 = File.objects.create()
+        file2 = File.objects.create(name="foo")
         file2.putfile(ContentFile(self.create_artifact_bundle()))
 
         release_file = ReleaseFile.objects.create(
