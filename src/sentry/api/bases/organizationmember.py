@@ -10,7 +10,7 @@ from .organization import OrganizationEndpoint
 
 class MemberIdField(serializers.IntegerField):
     """
-    Allow "me" in addition to regular integers
+    Allow "me" in addition to integers
     """
 
     def to_internal_value(self, data):
