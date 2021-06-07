@@ -184,8 +184,7 @@ class SlackIntegrationTest(IntegrationTestCase):
 
     @responses.activate
     def test_reassign_user(self):
-        """Test that when you install and then later re-install and the user who installs it(?)
-        (who also installed it the first time?)
+        """Test that when you install and then later re-install and the user who installs it
         has a different external ID, their Identity is updated to reflect that
         """
         with self.tasks():
@@ -200,7 +199,7 @@ class SlackIntegrationTest(IntegrationTestCase):
     @responses.activate
     def test_link_multiple_users(self):
         """
-        Test that when an organization has multiple users, we create Identity records for them
+        Test that with an organization with multiple users, we create Identity records for them
         if their Sentry email matches their Slack email
         """
         with self.tasks():
