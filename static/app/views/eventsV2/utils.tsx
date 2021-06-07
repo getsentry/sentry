@@ -61,15 +61,13 @@ export function decodeColumnOrder(
     const column: TableColumn<React.ReactText> = {...TEMPLATE_TABLE_COLUMN};
 
     const col = explodeFieldString(f.field);
-    if (!isEquation(f.field)) {
-      column.key = f.field;
-      column.name = f.field;
-    } else {
-      const columnName = `equation[${equations}]`;
+    let columnName = f.field;
+    if (isEquation(f.field)) {
+      columnName = `equation[${equations}]`;
       equations += 1;
-      column.key = columnName;
-      column.name = columnName;
     }
+    column.key = columnName;
+    column.name = columnName;
     column.width = f.width || COL_WIDTH_UNDEFINED;
 
     if (col.kind === 'function') {

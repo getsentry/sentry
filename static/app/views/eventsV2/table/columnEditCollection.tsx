@@ -377,7 +377,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
         )}
         <RowContainer>
           <Actions>
-            <ActionButton
+            <Button
               size="small"
               label={t('Add a Column')}
               onClick={this.handleAddColumn}
@@ -386,9 +386,9 @@ class ColumnEditCollection extends React.Component<Props, State> {
               icon={<IconAdd isCircled size="xs" />}
             >
               {t('Add a Column')}
-            </ActionButton>
+            </Button>
             <Feature organization={organization} features={['discover-arithmetic']}>
-              <ActionButton
+              <Button
                 size="small"
                 label={t('Add an Equation')}
                 onClick={this.handleAddEquation}
@@ -397,7 +397,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
                 icon={<IconAdd isCircled size="xs" />}
               >
                 {t('Add an Equation')}
-              </ActionButton>
+              </Button>
             </Feature>
           </Actions>
         </RowContainer>
@@ -405,10 +405,6 @@ class ColumnEditCollection extends React.Component<Props, State> {
     );
   }
 }
-
-const ActionButton = styled(Button)`
-  margin-right: ${space(1)};
-`;
 
 const RowContainer = styled('div')`
   display: grid;
@@ -450,6 +446,10 @@ const DragPlaceholder = styled('div')`
 
 const Actions = styled('div')`
   grid-column: 2 / 3;
+
+  & button {
+    margin-right: ${space(1)};
+  }
 `;
 
 const Heading = styled('div')<{gridColumns: number}>`
