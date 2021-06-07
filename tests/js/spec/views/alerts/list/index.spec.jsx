@@ -5,13 +5,10 @@ import ProjectsStore from 'app/stores/projectsStore';
 import IncidentsList from 'app/views/alerts/list';
 
 describe('IncidentsList', function () {
-  const {routerContext, organization} = initializeOrg({
-    organization: {
-      features: ['incidents'],
-    },
-  });
+  let routerContext;
+  let router;
+  let organization;
   let incidentsMock;
-  let statsMock;
   let projectMock;
   let wrapper;
   let projects;
@@ -23,17 +20,26 @@ describe('IncidentsList', function () {
       <IncidentsList
         params={{orgId: organization.slug}}
         location={{query: {}, search: ''}}
+        router={router}
         {...props}
       />,
       routerContext
     );
-    // Wait for sparklines library
     await tick();
     wrapper.update();
     return wrapper;
   };
 
   beforeEach(function () {
+    const context = initializeOrg({
+      organization: {
+        features: ['incidents'],
+      },
+    });
+    routerContext = context.routerContext;
+    router = context.router;
+    organization = context.organization;
+
     incidentsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/incidents/',
       body: [
@@ -50,10 +56,6 @@ describe('IncidentsList', function () {
           projects: projects2,
         }),
       ],
-    });
-    statsMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/incidents/1/stats/',
-      body: TestStubs.IncidentStats(),
     });
 
     MockApiClient.addMockResponse({
@@ -168,9 +170,7 @@ describe('IncidentsList', function () {
     wrapper.update();
 
     expect(wrapper.find('PanelItem')).toHaveLength(0);
-    expect(wrapper.text()).toContain(
-      'No metric alert rules exist for the selected projects'
-    );
+    expect(wrapper.text()).toContain('No incidents exist for the current query');
   });
 
   it('displays empty state (rules created)', async function () {
@@ -196,9 +196,7 @@ describe('IncidentsList', function () {
     wrapper.update();
 
     expect(wrapper.find('PanelItem')).toHaveLength(0);
-    expect(wrapper.text()).toContain(
-      'No unresolved metric alerts in the selected projects'
-    );
+    expect(wrapper.text()).toContain('No incidents exist for the current query.');
   });
 
   it('toggles open/closed', async function () {
@@ -216,28 +214,26 @@ describe('IncidentsList', function () {
 
     expect(incidentsMock).toHaveBeenCalledWith(
       '/organizations/org-slug/incidents/',
-      expect.objectContaining({query: {status: 'open'}})
+      expect.objectContaining({query: {status: ['open']}})
     );
 
-    wrapper.setProps({location: {query: {status: 'closed'}, search: '?status=closed`'}});
+    wrapper.setProps({
+      location: {query: {status: ['closed']}, search: '?status=closed`'},
+    });
 
     expect(wrapper.find('StyledButtonBar').find('Button').at(1).prop('priority')).toBe(
       'primary'
     );
 
-    expect(wrapper.find('IncidentPanelItem').at(0).find('Duration').text()).toBe(
-      '2 weeks'
-    );
+    expect(wrapper.find('IncidentPanelItem').at(0).text()).toContain('Still Active');
 
-    expect(wrapper.find('IncidentPanelItem').at(0).find('TimeSince')).toHaveLength(2);
+    expect(wrapper.find('IncidentPanelItem').at(0).find('TimeSince')).toHaveLength(1);
 
     expect(incidentsMock).toHaveBeenCalledTimes(2);
-    // Stats not called for closed incidents
-    expect(statsMock).toHaveBeenCalledTimes(1);
 
     expect(incidentsMock).toHaveBeenCalledWith(
       '/organizations/org-slug/incidents/',
-      expect.objectContaining({query: expect.objectContaining({status: 'closed'})})
+      expect.objectContaining({query: expect.objectContaining({status: ['closed']})})
     );
   });
 
@@ -257,5 +253,29 @@ describe('IncidentsList', function () {
 
     const addLink = wrapper.find('button[aria-label="Create Alert Rule"]');
     expect(addLink.props()['aria-disabled']).toBe(false);
+  });
+
+  it('searches by name', async () => {
+    const org = {
+      ...organization,
+      features: ['incidents', 'alert-history-filters'],
+    };
+    wrapper = await createWrapper({organization: org});
+    expect(wrapper.find('StyledSearchBar').exists()).toBe(true);
+
+    const testQuery = 'test name';
+    wrapper
+      .find('StyledSearchBar')
+      .find('input')
+      .simulate('change', {target: {value: testQuery}})
+      .simulate('submit', {preventDefault() {}});
+
+    expect(router.push).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: {
+          title: testQuery,
+        },
+      })
+    );
   });
 });
