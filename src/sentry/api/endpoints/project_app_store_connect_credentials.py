@@ -85,7 +85,7 @@ APP_STORE_CONNECT_FEATURE_NAME = "organizations:app-store-connect"
 ITUNES_TOKEN_VALIDITY = datetime.timedelta(weeks=1)
 
 
-def get_app_store_credentials(
+def get_app_store_config(
     project: Project, credentials_id: Optional[str]
 ) -> Optional[json.JSONData]:
     """Returns the appStoreConnect symbol source config for a project."""
@@ -318,7 +318,7 @@ class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):
             return Response(serializer.errors, status=400)
 
         # get the existing credentials
-        credentials = get_app_store_credentials(project, credentials_id)
+        credentials = get_app_store_config(project, credentials_id)
         key = project.get_option(CREDENTIALS_KEY_NAME)
 
         if key is None or credentials is None:
@@ -395,7 +395,7 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):
         ):
             return Response(status=404)
 
-        symbol_source_cfg = get_app_store_credentials(project, credentials_id)
+        symbol_source_cfg = get_app_store_config(project, credentials_id)
         key = project.get_option(CREDENTIALS_KEY_NAME)
 
         if key is None or symbol_source_cfg is None:
@@ -511,7 +511,7 @@ class AppStoreConnectStartAuthEndpoint(ProjectEndpoint):
             if user_name is None or password is None:
                 # credentials not supplied use saved credentials
 
-                credentials = get_app_store_credentials(project, credentials_id)
+                credentials = get_app_store_config(project, credentials_id)
                 if key is None or credentials is None:
                     return Response("No credentials provided.", status=400)
 
