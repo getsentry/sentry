@@ -212,9 +212,8 @@ def team_key_transaction_expression(organization_id, team_ids, project_ids):
         TeamKeyTransaction.objects.filter(
             organization_id=organization_id,
             project_team__in=ProjectTeam.objects.filter(
-                project_id__in=project_ids,
-                team_id__in=team_ids
-            )
+                project_id__in=project_ids, team_id__in=team_ids
+            ),
         )
         .order_by("transaction", "project_team__project_id")
         .values("transaction", "project_team__project_id")
