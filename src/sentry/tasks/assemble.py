@@ -200,28 +200,30 @@ def _upsert_release_file(file: File, archive: ReleaseArchive, update_fn, **kwarg
 
 @metrics.wraps("tasks.assemble.merge_archives")
 def _merge_archives(release_file: ReleaseFile, new_file: File, new_archive: ReleaseArchive):
-    old_file = release_file.file
-    with ReleaseArchive(old_file.getfile().file) as old_archive:
-        buffer = BytesIO()
 
-        lock_key = f"assemble:merge_archives:{release_file.id}"
-        lock = app.locks.get(lock_key, duration=60)
+    lock_key = f"assemble:merge_archives:{release_file.id}"
+    lock = app.locks.get(lock_key, duration=60)
 
-        try:
-            with lock.blocking_acquire(
-                RELEASE_ARCHIVE_MERGE_INITIAL_DELAY, RELEASE_ARCHIVE_MERGE_TIMEOUT
-            ):
-                merge_release_archives(old_archive, new_archive, buffer)
+    try:
+        with lock.blocking_acquire(
+            RELEASE_ARCHIVE_MERGE_INITIAL_DELAY, RELEASE_ARCHIVE_MERGE_TIMEOUT
+        ):
+            old_file = release_file.file
+            old_file_contents = ReleaseFile.cache.getfile(release_file)
+            buffer = BytesIO()
 
-                replacement = File.objects.create(name=old_file.name, type=old_file.type)
-                buffer.seek(0)
-                replacement.putfile(buffer)
-                release_file.update(file=replacement)
+            with metrics.timer("tasks.assemble.merge_archives_pure"):
+                merge_release_archives(old_file_contents, new_archive, buffer)
 
-                old_file.delete()
+            replacement = File.objects.create(name=old_file.name, type=old_file.type)
+            buffer.seek(0)
+            replacement.putfile(buffer)
+            release_file.update(file=replacement)
 
-        except UnableToAcquireLock as error:
-            logger.error("merge_archives.fail", extra={"error": error})
+            old_file.delete()
+
+    except UnableToAcquireLock as error:
+        logger.error("merge_archives.fail", extra={"error": error})
 
     new_file.delete()
 

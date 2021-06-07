@@ -88,7 +88,7 @@ class ReleaseFileCacheTest(TestCase):
 
 class ReleaseArchiveTestCase(TestCase):
     @staticmethod
-    def create_archive(fields, files):
+    def create_archive(fields, files, raw=False):
         manifest = dict(
             fields, files={filename: {"url": f"fake://{filename}"} for filename in files}
         )
@@ -98,7 +98,7 @@ class ReleaseArchiveTestCase(TestCase):
             for filename, content in files.items():
                 zf.writestr(filename, content)
 
-        return ReleaseArchive(buffer)
+        return buffer if raw else ReleaseArchive(buffer)
 
     def test_merge(self):
         archive1 = self.create_archive(
@@ -112,6 +112,7 @@ class ReleaseArchiveTestCase(TestCase):
                 "bar": "bar",
                 "baz": "baz",
             },
+            raw=True,
         )
         archive2 = self.create_archive(
             fields={
@@ -129,9 +130,10 @@ class ReleaseArchiveTestCase(TestCase):
         merge_release_archives(archive1, archive2, buffer)
 
         archive3 = ReleaseArchive(buffer)
+        print(archive3._zip_file.infolist())
 
         assert archive3.manifest["org"] == 1
-        assert archive3.manifest["release"] == 666
+        assert archive3.manifest["release"] == 2
         assert archive3.manifest["dist"] == 3
 
         assert archive3.manifest["files"].keys() == {"foo", "bar", "baz"}
@@ -141,5 +143,5 @@ class ReleaseArchiveTestCase(TestCase):
         assert peristed_manifest == archive3.manifest
 
         assert archive3.read("foo") == b"foo"
-        assert archive3.read("bar") == b"BAR"
+        assert archive3.read("bar") == b"bar"
         assert archive3.read("baz") == b"baz"

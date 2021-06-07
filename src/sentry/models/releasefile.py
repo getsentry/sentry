@@ -1,5 +1,6 @@
 import errno
 import os
+import warnings
 import zipfile
 from tempfile import TemporaryDirectory
 from typing import IO, Tuple
@@ -170,18 +171,33 @@ class ReleaseArchive:
         return temp_dir
 
 
-def merge_release_archives(archive1: ReleaseArchive, archive2: ReleaseArchive, target: IO):
-    """Fields in archive2 take precedence over fields in archive1."""
-    merged_manifest = dict(archive1.manifest, **archive2.manifest)
-    files1 = archive1.manifest.get("files", {})
+def merge_release_archives(file1: IO, archive2: ReleaseArchive, target: IO):
+    """Append contents of archive2 to copy of file1
+
+    Skip files that are already present in archive 1.
+    """
+    # Create a copy
+    target.write(file1.read())
+
+    with ReleaseArchive(file1) as archive1:
+        manifest = archive1.manifest
+
+    files = manifest.get("files", {})
     files2 = archive2.manifest.get("files", {})
 
-    merged_manifest["files"] = dict(files1, **files2)
+    with zipfile.ZipFile(target, mode="a", compression=zipfile.ZIP_DEFLATED) as zip_file:
+        changed = False
+        for filename, info in files2.items():
+            if filename not in files:
+                zip_file.writestr(filename, archive2.read(filename))
+                files[filename] = info
+                changed = True
 
-    with zipfile.ZipFile(target, mode="w", compression=zipfile.ZIP_DEFLATED) as zip_file:
-        for filename in files2.keys():
-            zip_file.writestr(filename, archive2.read(filename))
-        for filename in files1.keys() - files2.keys():
-            zip_file.writestr(filename, archive1.read(filename))
+        manifest["files"] = files
 
-        zip_file.writestr("manifest.json", json.dumps(merged_manifest))
+        if changed:
+            # This creates a duplicate entry for the manifest, which is okay-ish
+            # because the Python implementation prefers the latest version when reading
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                zip_file.writestr("manifest.json", json.dumps(manifest))
