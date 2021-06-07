@@ -151,13 +151,15 @@ const ReleaseChartControls = ({
   return (
     <ChartControls>
       <InlineContainer>
-        <SectionHeading key="total-label">{getSummaryHeading()}</SectionHeading>
+        <SectionHeading key="total-label">
+          {getSummaryHeading()}
+          <QuestionTooltip
+            position="top"
+            size="sm"
+            title={t('This value includes only the current release.')}
+          />
+        </SectionHeading>
         <SectionValue key="total-value">{summary}</SectionValue>
-        <QuestionTooltip
-          position="top"
-          size="sm"
-          title={t('This value includes only the current release.')}
-        />
       </InlineContainer>
       <InlineContainer>
         <SecondarySelector
