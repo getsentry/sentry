@@ -11,6 +11,10 @@ SCIM_404_USER_RES = {
 }
 
 SCIM_409_USER_EXISTS = {
-    "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+    "schemas": [SCIM_API_ERROR],
     "detail": "User already exists in the database.",
+}
+SCIM_400_INVALID_FILTER = {
+    "schemas": [SCIM_API_ERROR],
+    "scimType": "invalidFilter",
 }

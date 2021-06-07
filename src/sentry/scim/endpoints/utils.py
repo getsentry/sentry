@@ -146,13 +146,16 @@ def parse_filter_conditions(raw_filters):
         # For USERS: Unique username should always be lowercase
         if key == "userName":
             value = value.lower()
+        else:
+            raise ValueError  # only support the userName field right now
 
         if value[0] == '"' and value[-1] == '"':
             value = value.replace('"', "")
         if value[0] == "'" and value[-1] == "'":
             value = value.replace("'", "")
         filters.append([key, value])
-    if len(filters) > 0:
+
+    if len(filters) == 1 and filters[0][0] == "userName":
         filter_val = [filters[0][1]]
     else:
         filter_val = []

@@ -13,45 +13,20 @@ from sentry.api.serializers.models.organization_member import OrganizationMember
 from sentry.models import AuditLogEntryEvent, AuthIdentity, InviteStatus, OrganizationMember
 from sentry.signals import member_invited
 
-from .constants import SCIM_409_USER_EXISTS
+from .constants import SCIM_400_INVALID_FILTER, SCIM_409_USER_EXISTS
 from .utils import SCIMEndpoint, parse_filter_conditions
 
 ERR_ONLY_OWNER = "You cannot remove the only remaining owner of the organization."
+from rest_framework.exceptions import PermissionDenied
+
+from sentry.api.exceptions import ConflictError
 
 
 class OrganizationSCIMUserDetails(SCIMEndpoint, OrganizationMemberEndpoint):
-    def get(self, request, organization, member):
-        context = serialize(member, serializer=OrganizationMemberSCIMSerializer())
-        return Response(context)
-
-    def patch(self, request, organization, member):
-        for operation in request.data.get("Operations", []):
-            # we only support setting active to False which deletes the orgmember
-            if operation["value"]["active"] is False:
-                audit_data = member.get_audit_log_data()
-                if OrganizationMemberDetailsEndpoint._is_only_owner(member):
-                    return Response({"detail": ERR_ONLY_OWNER}, status=403)
-                with transaction.atomic():
-                    AuthIdentity.objects.filter(
-                        user=member.user, auth_provider__organization=organization
-                    ).delete()
-                    member.delete()
-                    self.create_audit_entry(
-                        request=request,
-                        organization=organization,
-                        target_object=member.id,
-                        target_user=member.user,
-                        event=AuditLogEntryEvent.MEMBER_REMOVE,
-                        data=audit_data,
-                    )
-                return Response(status=204)
-        context = serialize(member, serializer=OrganizationMemberSCIMSerializer())
-        return Response(context)
-
-    def delete(self, request, organization, member):
+    def _delete_member(self, request, organization, member):
         audit_data = member.get_audit_log_data()
         if OrganizationMemberDetailsEndpoint._is_only_owner(member):
-            return Response({"detail": ERR_ONLY_OWNER}, status=403)
+            raise PermissionDenied(detail=ERR_ONLY_OWNER)
         with transaction.atomic():
             AuthIdentity.objects.filter(
                 user=member.user, auth_provider__organization=organization
@@ -66,6 +41,21 @@ class OrganizationSCIMUserDetails(SCIMEndpoint, OrganizationMemberEndpoint):
                 data=audit_data,
             )
 
+    def get(self, request, organization, member):
+        context = serialize(member, serializer=OrganizationMemberSCIMSerializer())
+        return Response(context)
+
+    def patch(self, request, organization, member):
+        for operation in request.data.get("Operations", []):
+            # we only support setting active to False which deletes the orgmember
+            if operation["value"]["active"] is False:
+                self._delete_member(request, organization, member)
+                return Response(status=204)
+        context = serialize(member, serializer=OrganizationMemberSCIMSerializer())
+        return Response(context)
+
+    def delete(self, request, organization, member):
+        self._delete_member(request, organization, member)
         return Response(status=204)
 
 
@@ -73,8 +63,10 @@ class OrganizationSCIMUserIndex(SCIMEndpoint):
     def get(self, request, organization):
         # note that SCIM doesn't care about changing results as they're queried
         # TODO: sanitize get parameter inputs?
-
-        filter_val = parse_filter_conditions(request.GET.get("filter"))
+        try:
+            filter_val = parse_filter_conditions(request.GET.get("filter"))
+        except Exception:
+            return Response(detail=SCIM_400_INVALID_FILTER, status=400)
 
         queryset = (
             OrganizationMember.objects.filter(
@@ -118,8 +110,14 @@ class OrganizationSCIMUserIndex(SCIMEndpoint):
         )
 
         if not serializer.is_valid():
-            # TODO: other ways this could be invalid?
-            return Response(SCIM_409_USER_EXISTS, status=409)
+            if (
+                "email" in serializer.errors
+                and "is already a member" in serializer.errors["email"][0]
+            ):
+                # we include conflict logic in the serializer, check to see if that was
+                # our error and if so, return a 409 so the scim IDP knows how to handle
+                raise ConflictError(detail=SCIM_409_USER_EXISTS)
+            return Response(serializer.errors, status=400)
 
         result = serializer.validated_data
         with transaction.atomic():

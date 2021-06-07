@@ -2,7 +2,8 @@ import pytest
 from django.urls import reverse
 
 from sentry.models import AuthProvider, OrganizationMember
-from sentry.testutils import APITestCase
+from sentry.scim.endpoints.utils import parse_filter_conditions
+from sentry.testutils import APITestCase, TestCase
 
 CREATE_USER_POST_DATA = {
     "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
@@ -296,3 +297,27 @@ class SCIMUserTests(APITestCase):
         assert response.data["startIndex"] == 101
 
     # TODO: test patch with bad op
+
+
+class SCIMUtilsTests(TestCase):
+    def test_parse_filter_conditions_basic(self):
+        fil = parse_filter_conditions('userName eq "user@sentry.io"')
+        assert fil == ["user@sentry.io"]
+
+        # single quotes too
+        fil = parse_filter_conditions("userName eq 'user@sentry.io'")
+        assert fil == ["user@sentry.io"]
+
+    def test_parse_filter_conditions_upper_to_lower(self):
+        fil = parse_filter_conditions('userName eq "USER@sentry.io"')
+        assert fil == ["user@sentry.io"]
+
+    def test_parse_filter_conditions_invalids(self):
+        with pytest.raises(ValueError):
+            parse_filter_conditions("userName invalid USER@sentry.io")
+        with pytest.raises(ValueError):
+            parse_filter_conditions("blablaba eq USER@sentry.io")
+
+    def test_parse_filter_conditions_single_quote_in_email(self):
+        fil = parse_filter_conditions('userName eq "jos\'h@sentry.io"')
+        assert fil == ["jos'h@sentry.io"]
