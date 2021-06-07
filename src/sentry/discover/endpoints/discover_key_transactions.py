@@ -123,9 +123,9 @@ class KeyTransactionEndpoint(KeyTransactionBase):
                     return Response({"detail": "Team does not have access to project"}, status=400)
 
                 keyed_transaction_team_ids = set(
-                    TeamKeyTransaction.objects.values_list("project_team__team_id", flat=True).filter(
-                        **base_filter, project_team__in=project_teams
-                    )
+                    TeamKeyTransaction.objects.values_list(
+                        "project_team__team_id", flat=True
+                    ).filter(**base_filter, project_team__in=project_teams)
                 )
                 if len(keyed_transaction_team_ids) == len(data["team"]):
                     # all teams already have the specified transaction marked as key
@@ -182,10 +182,7 @@ class KeyTransactionEndpoint(KeyTransactionBase):
 
             TeamKeyTransaction.objects.filter(
                 organization=organization,
-                project_team__in=ProjectTeam.objects.filter(
-                    project=project,
-                    team__in=data["team"]
-                ),
+                project_team__in=ProjectTeam.objects.filter(project=project, team__in=data["team"]),
                 transaction=data["transaction"],
             ).delete()
 
