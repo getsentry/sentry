@@ -106,18 +106,9 @@ class OrganizationReleaseDetailsPaginationMixin:
         queryset = add_status_filter_to_queryset(queryset, status_filter)
 
         # Required re-ordering because django filter does not guarantee order of snuba primary order
-        release_dict = {}
-        for release in queryset:
-            release_dict[release.version] = release
+        release_dict = {release.version: release for release in queryset}
 
-        release_list = []
-        for version in version_list:
-            try:
-                release_list.append(release_dict[version])
-            except KeyError:
-                continue
-
-        return release_list
+        return list(filter(None, [release_dict.get(version) for version in version_list]))
 
     @staticmethod
     def __get_release_according_to_filters_and_order_by_for_date_sort(
