@@ -54,6 +54,7 @@ const SentryApp = {
   ConfigStore: require('app/stores/configStore').default,
   HookStore: require('app/stores/hookStore').default,
   Modal: require('app/actionCreators/modal'),
+  getModalPortal: require('app/utils/getModalPortal').default,
 };
 
 /**
