@@ -94,6 +94,73 @@ class ReleaseStatus:
             raise ValueError(repr(value))
 
 
+class ReleaseModelManager(models.Manager):
+    @staticmethod
+    def _convert_build_code_to_build_number(build_code):
+        """
+        Helper function that takes the build_code and checks if that build code can be parsed into
+        a 64 bit integer
+        Inputs:
+            * build_code: str
+        Returns:
+            * build_number
+        """
+        build_number = None
+        if build_code is not None:
+            try:
+                build_code_as_int = int(build_code)
+                if build_code_as_int >= 0 and build_code_as_int.bit_length() <= 63:
+                    build_number = build_code_as_int
+            except ValueError:
+                pass
+        return build_number
+
+    @staticmethod
+    def _massage_semver_cols_into_release_object_data(kwargs):
+        """
+        Helper function that takes kwargs as an argument and massages into it the release semver
+        columns (if possible)
+        Inputs:
+            * kwargs: data of the release that is about to be created
+        """
+        if "version" in kwargs:
+            try:
+                version_info = parse_release(kwargs["version"])
+                package = version_info.get("package")
+                version_parsed = version_info.get("version_parsed")
+
+                if version_parsed is not None:
+                    build_code = version_parsed.get("build_code")
+                    build_number = ReleaseModelManager._convert_build_code_to_build_number(
+                        build_code
+                    )
+
+                    kwargs.update(
+                        {
+                            "major": version_parsed.get("major"),
+                            "minor": version_parsed.get("minor"),
+                            "patch": version_parsed.get("patch"),
+                            "revision": version_parsed.get("revision"),
+                            "prerelease": version_parsed.get("pre") or "",
+                            "build_code": build_code,
+                            "build_number": build_number,
+                            "package": package,
+                        }
+                    )
+            except RelayError:
+                # This can happen on invalid legacy releases
+                pass
+
+    def create(self, *args, **kwargs):
+        """
+        Override create method to parse semver release if it follows semver format, and updates the
+        release object that is about to be created with semver columns i.e. major, minor, patch,
+        revision, prerelease, build_code and build_number
+        """
+        self._massage_semver_cols_into_release_object_data(kwargs)
+        return super().create(*args, **kwargs)
+
+
 class Release(Model):
     """
     A release is generally created when a new version is pushed into a
@@ -161,6 +228,9 @@ class Release(Model):
     # later split up releases by project again.  This is for instance used
     # by the org release listing.
     _for_project_id = None
+
+    # Custom Model Manager required to override create method
+    objects = ReleaseModelManager()
 
     class Meta:
         app_label = "sentry"
