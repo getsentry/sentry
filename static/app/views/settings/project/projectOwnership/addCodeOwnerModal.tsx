@@ -77,19 +77,28 @@ class AddCodeOwnerModal extends Component<Props, State> {
     }
   };
 
-  addFile = async () => {
+  addFile = async (ignoreMissing: boolean) => {
     const {organization, project, codeMappings} = this.props;
     const {codeownerFile, codeMappingId} = this.state;
+
     if (codeownerFile) {
+      const postData: {
+        codeMappingId: string | null;
+        raw: string;
+        ignoreMissing?: boolean;
+      } = {
+        codeMappingId,
+        raw: codeownerFile.raw,
+      };
+      if (ignoreMissing) {
+        postData.ignoreMissing = true;
+      }
       try {
         const data = await this.props.api.requestPromise(
           `/projects/${organization.slug}/${project.slug}/codeowners/`,
           {
             method: 'POST',
-            data: {
-              codeMappingId,
-              raw: codeownerFile.raw,
-            },
+            data: postData,
           }
         );
         const codeMapping = codeMappings.find(
@@ -126,9 +135,10 @@ class AddCodeOwnerModal extends Component<Props, State> {
     const {codeMappings} = this.props;
     const codeMapping = codeMappings.find(mapping => mapping.id === codeMappingId);
     const {integrationId, provider} = codeMapping as RepositoryProjectPathConfig;
+    const errActors = errorJSON?.raw?.[0].split('\n').map(el => <p>{el}</p>);
     return (
       <Alert type="error" icon={<IconNot size="md" />}>
-        <p>{errorJSON?.raw?.[0]}</p>
+        {errActors}
         {codeMapping && (
           <p>
             {tct(
@@ -147,6 +157,10 @@ class AddCodeOwnerModal extends Component<Props, State> {
               }
             )}
           </p>
+        )}
+        {tct(
+          '[addAndSkip:Add and Skip Missing Associations] will add your codeowner file and skip any rules that having missing associations. You can add associations later for any skipped rules.',
+          {addAndSkip: <strong>Add and Skip Missing Associations</strong>}
         )}
       </Alert>
     );
@@ -238,14 +252,25 @@ class AddCodeOwnerModal extends Component<Props, State> {
           )}
         </Body>
         <Footer>
-          <Button
-            disabled={codeownerFile ? false : true}
-            label={t('Add File')}
-            priority="primary"
-            onClick={this.addFile}
-          >
-            {t('Add File')}
-          </Button>
+          {error && errorJSON ? (
+            <Button
+              disabled={codeownerFile ? false : true}
+              label={t('Add and Skip Missing Associations')}
+              priority="primary"
+              onClick={() => this.addFile(true)}
+            >
+              {t('Add and Skip Missing Associations')}
+            </Button>
+          ) : (
+            <Button
+              disabled={codeownerFile ? false : true}
+              label={t('Add File')}
+              priority="primary"
+              onClick={() => this.addFile(false)}
+            >
+              {t('Add File')}
+            </Button>
+          )}
         </Footer>
       </Fragment>
     );
