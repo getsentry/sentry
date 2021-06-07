@@ -204,12 +204,12 @@ def transform_to_notification_settings_by_parent_id(
 
 
 def validate(type: NotificationSettingTypes, value: NotificationSettingOptionValues) -> bool:
-    """ :returns boolean. True if the "value" is valid for the "type". """
+    """:returns boolean. True if the "value" is valid for the "type"."""
     return value in VALID_VALUES_FOR_KEY.get(type, {})
 
 
 def get_scope_type(type: NotificationSettingTypes) -> NotificationScopeType:
-    """ In which scope (proj or org) can a user set more specific settings?"""
+    """In which scope (proj or org) can a user set more specific settings?"""
     if type in [NotificationSettingTypes.DEPLOY]:
         return NotificationScopeType.ORGANIZATION
 
@@ -240,7 +240,7 @@ def get_scope(
 
 
 def get_target_id(user: Optional[Any] = None, team: Optional[Any] = None) -> int:
-    """ :returns the actor ID from a User or Team. """
+    """:returns the actor ID from a User or Team."""
     if user:
         return int(user.actor_id)
     if team:

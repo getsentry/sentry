@@ -172,7 +172,7 @@ class MailAdapterGetSendableUsersTest(BaseMailAdapterTest, TestCase):
 
         # all members
         users = self.adapter.get_sendable_user_objects(project)
-        assert sorted({user.id, user2.id}) == sorted([user.id for user in users])
+        assert sorted({user.id, user2.id}) == sorted(user.id for user in users)
 
         # disabled user2
         NotificationSetting.objects.update_settings(

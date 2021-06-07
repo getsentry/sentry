@@ -19,7 +19,7 @@ def _get_name_from_email(email):
     Given an email return a capitalized name. Ex. john.smith@example.com would return John Smith.
     """
     name = email.rsplit("@", 1)[0]
-    name = " ".join([n_part.capitalize() for n_part in name.split(".")])
+    name = " ".join(n_part.capitalize() for n_part in name.split("."))
     return name
 
 

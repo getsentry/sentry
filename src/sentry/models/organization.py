@@ -58,7 +58,7 @@ OrganizationStatus._labels = {
 
 class OrganizationManager(BaseManager):
     def get_for_user_ids(self, user_ids: Sequence[int]) -> QuerySet:
-        """ Returns the QuerySet of all organizations that a set of Users have access to. """
+        """Returns the QuerySet of all organizations that a set of Users have access to."""
         from sentry.models import OrganizationMember
 
         return self.filter(
@@ -67,7 +67,7 @@ class OrganizationManager(BaseManager):
         )
 
     def get_for_team_ids(self, team_ids: Sequence[int]) -> QuerySet:
-        """ Returns the QuerySet of all organizations that a set of Teams have access to. """
+        """Returns the QuerySet of all organizations that a set of Teams have access to."""
         from sentry.models import Team
 
         return self.filter(
@@ -153,6 +153,8 @@ class Organization(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_organization"
+        # TODO: Once we're on a version of Django that supports functional indexes,
+        # include index on `upper((slug::text))` here.
 
     __repr__ = sane_repr("owner_id", "name", "slug")
 
