@@ -1,11 +1,10 @@
 from typing import Any, Iterable, List, Mapping, MutableMapping, Optional, Set
 
-from sentry.models import Activity, Project, User
+from sentry.models import Activity, CommitFileChange, Project, User
 from sentry.notifications.utils import (
     get_commits_for_release,
     get_deploy,
     get_environment_for_deploy,
-    get_file_count,
     get_group_counts_by_project,
     get_projects,
     get_release,
@@ -65,7 +64,7 @@ class ReleaseActivityNotification(ActivityNotification):
             **self.get_base_context(),
             "commit_count": len(self.commit_list),
             "author_count": len(self.email_list),
-            "file_count": get_file_count(self.commit_list, self.organization),
+            "file_count": CommitFileChange.objects.get_count_for_commits(self.commit_list),
             "repos": self.repos,
             "release": self.release,
             "deploy": self.deploy,

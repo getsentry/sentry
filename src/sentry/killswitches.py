@@ -98,7 +98,7 @@ def normalize_value(
                         raise ValueError(f"Condition {i}: Unknown field: {k}")
 
             if any(v is not None for v in condition.values()):
-                rv.append(condition)
+                rv.append({k: str(v) for k, v in condition.items() if v is not None})
 
     return rv
 

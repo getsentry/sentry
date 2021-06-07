@@ -5,6 +5,7 @@ from collections import namedtuple
 import sentry_sdk
 
 from sentry import options
+from sentry.discover.arithmetic import resolve_equation_list
 from sentry.models import Group
 from sentry.search.events.fields import (
     FIELD_ALIASES,
@@ -172,6 +173,7 @@ def query(
     selected_columns,
     query,
     params,
+    equations=None,
     orderby=None,
     offset=None,
     limit=50,
@@ -195,6 +197,7 @@ def query(
     selected_columns (Sequence[str]) List of public aliases to fetch.
     query (str) Filter query string to create conditions from.
     params (Dict[str, str]) Filtering parameters with start, end, project_id, environment
+    equations (Sequence[str]) List of equations to calculate for the query
     orderby (None|str|Sequence[str]) The field to order results by.
     offset (None|int) The record offset to read.
     limit (int) The number of records to fetch.
@@ -216,6 +219,7 @@ def query(
         selected_columns,
         query,
         params,
+        equations,
         orderby,
         auto_fields,
         auto_aggregations,
@@ -258,6 +262,7 @@ def prepare_discover_query(
     selected_columns,
     query,
     params,
+    equations=None,
     orderby=None,
     auto_fields=False,
     auto_aggregations=False,
@@ -291,6 +296,11 @@ def prepare_discover_query(
         )
 
         snuba_filter.update_with(resolved_fields)
+
+        if equations is not None:
+            resolved_equations = resolve_equation_list(equations, snuba_filter)
+
+            snuba_filter.update_with(resolved_equations)
 
         # Resolve the public aliases into the discover dataset names.
         snuba_filter, translated_columns = resolve_discover_aliases(snuba_filter)
