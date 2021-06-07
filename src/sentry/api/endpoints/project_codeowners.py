@@ -70,6 +70,8 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):  # type: ignore
         if not attrs.get("raw", "").strip():
             return attrs
 
+        ignore_missing = self.context["ignore_missing"]
+
         external_association_err: List[str] = []
         # Get list of team/user names from CODEOWNERS file
         team_names, usernames, emails = parse_code_owners(attrs["raw"])
@@ -83,7 +85,7 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):  # type: ignore
         user_emails_diff = validate_association(emails, user_emails, "emails")
         external_association_err.extend(user_emails_diff)
 
-        # Check if the usernames have an association
+        # Check if the usernames/teamnames have an association
         external_actors = ExternalActor.objects.filter(
             external_name__in=usernames + team_names,
             organization=self.context["project"].organization,
@@ -95,12 +97,10 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):  # type: ignore
         external_teams_diff = validate_association(team_names, external_actors, "team names")
         external_association_err.extend(external_teams_diff)
 
-        if len(external_association_err):
-            raise serializers.ValidationError({"raw": "\n".join(external_association_err)})
-
         # Convert CODEOWNERS into IssueOwner syntax
         users_dict = {}
         teams_dict = {}
+        teams_without_access = []
         for external_actor in external_actors:
             type = actor_type_to_string(external_actor.actor.type)
             if type == "user":
@@ -108,7 +108,21 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):  # type: ignore
                 users_dict[external_actor.external_name] = user.email
             elif type == "team":
                 team = external_actor.actor.resolve()
-                teams_dict[external_actor.external_name] = f"#{team.slug}"
+                # make sure the sentry team has access to the project
+                # tied to the codeowner
+                if self.context["project"] in team.get_projects():
+                    teams_dict[external_actor.external_name] = f"#{team.slug}"
+                else:
+                    teams_without_access.append(f"#{team.slug}")
+
+        if teams_without_access:
+            teams_without_access_err = [
+                f'The following teams do not have access to this project: {", ".join(teams_without_access)}.'
+            ]
+            external_association_err.extend(teams_without_access_err)
+
+        if len(external_association_err) and not ignore_missing:
+            raise serializers.ValidationError({"raw": "\n".join(external_association_err)})
 
         emails_dict = {email: email for email in emails}
         associations = {**users_dict, **teams_dict, **emails_dict}
@@ -206,21 +220,26 @@ class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectOwnershipMixin, ProjectC
 
     def post(self, request: Request, project: Project) -> Response:
         """
-        Upload a CODEWONERS for project
+        Upload a CODEOWNERS for project
         `````````````
 
         :pparam string organization_slug: the slug of the organization.
         :pparam string project_slug: the slug of the project to get.
         :param string raw: the raw CODEOWNERS text
         :param string codeMappingId: id of the RepositoryProjectPathConfig object
+        :param boolean (optional) ignoreMissing: if true, ignore errors for unassociated owners
         :auth: required
         """
         if not self.has_feature(request, project):
             self.track_response_code("create", PermissionDenied.status_code)
             raise PermissionDenied
-
+        ignore_missing = request.data.get("ignoreMissing", False)
         serializer = ProjectCodeOwnerSerializer(
-            context={"ownership": self.get_ownership(project), "project": project},
+            context={
+                "ownership": self.get_ownership(project),
+                "project": project,
+                "ignore_missing": ignore_missing,
+            },
             data={**request.data},
         )
         if serializer.is_valid():
