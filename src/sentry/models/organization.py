@@ -157,6 +157,8 @@ class Organization(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_organization"
+        # TODO: Once we're on a version of Django that supports functional indexes,
+        # include index on `upper((slug::text))` here.
 
     __repr__ = sane_repr("owner_id", "name", "slug")
 
