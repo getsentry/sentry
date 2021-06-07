@@ -1038,7 +1038,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             project: [project.id],
         }
 
-        # # Cannot access it without feature enabled
+        # Cannot access it without feature enabled
         response = self.do_request(query)
         assert response.status_code == 404
 
