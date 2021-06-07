@@ -4,7 +4,6 @@ const fs = require('fs');
 const path = require('path');
 
 const {CleanWebpackPlugin} = require('clean-webpack-plugin'); // installed via npm
-const {WebpackManifestPlugin} = require('webpack-manifest-plugin');
 const webpack = require('webpack');
 const CssMinimizerPlugin = require('css-minimizer-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
@@ -275,8 +274,6 @@ let appConfig = {
   plugins: [
     new CleanWebpackPlugin(),
 
-    new WebpackManifestPlugin({}),
-
     // Do not bundle moment's locale files as we will lazy load them using
     // dynamic imports in the application code
     new webpack.IgnorePlugin({
@@ -300,7 +297,13 @@ let appConfig = {
      * Extract CSS into separate files.
      */
     new MiniCssExtractPlugin({
-      filename: '[name].[contenthash:6].css',
+      filename: pathData => {
+        // We want the sentry css file to be unversioned for frontend-only deploys
+        // We will cache using `Cache-Control` headers
+        return pathData.chunk.name === 'sentry'
+          ? '[name].css'
+          : '[name].[contenthash:6].css';
+      },
     }),
 
     /**
@@ -481,9 +484,6 @@ if (
         '/api/{1..9}*({0..9})/**': relayAddress,
         '/api/0/relays/outcomes/': relayAddress,
         '!/_static/dist/sentry/**': backendAddress,
-      },
-      writeToDisk: filePath => {
-        return /manifest\.json/.test(filePath);
       },
     };
   }
