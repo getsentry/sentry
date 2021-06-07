@@ -392,8 +392,8 @@ class ReleaseDetailsTest(APITestCase):
         )
         response = self.client.get(url, {"project": self.project1.id, "query": "foobar@1"})
         assert response.status_code == 200
-        assert response.data["currentProjectMeta"]["prevReleaseVersion"] is None
-        assert response.data["currentProjectMeta"]["nextReleaseVersion"] == "foobar@1.0.0"
+        assert response.data["currentProjectMeta"]["prevReleaseVersion"] == "foobar@1.0.0"
+        assert response.data["currentProjectMeta"]["nextReleaseVersion"] is None
 
     def test_get_prev_and_next_release_on_date_sort_does_not_apply_stats_period_filter(self):
         """
@@ -487,8 +487,8 @@ class ReleaseDetailsTest(APITestCase):
             url, {"project": self.project1.id, "sort": "sessions", "status": "archived"}
         )
         assert response.status_code == 200
-        assert response.data["currentProjectMeta"]["prevReleaseVersion"] == "foobar@1.0.0"
-        assert response.data["currentProjectMeta"]["nextReleaseVersion"] == "foobar@1.2.0"
+        assert response.data["currentProjectMeta"]["prevReleaseVersion"] == "foobar@1.2.0"
+        assert response.data["currentProjectMeta"]["nextReleaseVersion"] == "foobar@1.0.0"
 
     @patch(
         "sentry.api.endpoints.organization_release_details.get_adjacent_releases_based_on_adoption"
@@ -538,15 +538,15 @@ class ReleaseDetailsTest(APITestCase):
         )
         response = self.client.get(url, {"project": self.project1.id, "sort": "sessions"})
         assert response.status_code == 200
-        assert response.data["currentProjectMeta"]["prevReleaseVersion"] == "foobar@1.0.5"
-        assert response.data["currentProjectMeta"]["nextReleaseVersion"] == "foobar@2.0.0"
+        assert response.data["currentProjectMeta"]["prevReleaseVersion"] == "foobar@2.0.0"
+        assert response.data["currentProjectMeta"]["nextReleaseVersion"] == "foobar@1.0.5"
 
         response2 = self.client.get(
             url, {"project": self.project1.id, "sort": "sessions", "query": "foobar@1"}
         )
         assert response2.status_code == 200
-        assert response2.data["currentProjectMeta"]["prevReleaseVersion"] == "foobar@1.0.5"
-        assert response2.data["currentProjectMeta"]["nextReleaseVersion"] == "foobar@1.2.0"
+        assert response2.data["currentProjectMeta"]["prevReleaseVersion"] == "foobar@1.2.0"
+        assert response2.data["currentProjectMeta"]["nextReleaseVersion"] == "foobar@1.0.5"
 
 
 class UpdateReleaseDetailsTest(APITestCase):
