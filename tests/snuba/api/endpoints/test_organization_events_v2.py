@@ -3666,10 +3666,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             TeamKeyTransaction.objects.create(
                 organization=self.organization,
                 transaction=transaction,
-                project_team=ProjectTeam.objects.get(
-                    project=self.project,
-                    team=team
-                )
+                project_team=ProjectTeam.objects.get(project=self.project, team=team),
             )
 
         query = {
@@ -3720,10 +3717,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             TeamKeyTransaction.objects.create(
                 organization=self.organization,
                 transaction=transaction,
-                project_team=ProjectTeam.objects.get(
-                    project=self.project,
-                    team=team
-                )
+                project_team=ProjectTeam.objects.get(project=self.project, team=team),
             )
 
         query = {
