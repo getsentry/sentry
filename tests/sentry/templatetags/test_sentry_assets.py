@@ -16,32 +16,20 @@ class AssetsTest(TestCase):
     MANIFEST_PATH = f"{DIST_PATH}/manifest.json"
 
     def test_supported_foreign_lang(self):
-        # Locale files are generated from webpack, so we need to have a manifest file,
-        # otherwise this will 404
-        locale_manifest = {
-            "locale/fr.js": "locale/fr.f00f00.js",
-        }
-        with self.static_asset_manifest(locale_manifest):
-            request = RequestFactory().get("/")
-            request.LANGUAGE_CODE = "fr"  # French, in locale/catalogs.json
-            result = self.TEMPLATE.render(request=request)
+        # Locale files are generated from webpack
+        request = RequestFactory().get("/")
+        request.LANGUAGE_CODE = "fr"  # French, in locale/catalogs.json
+        result = self.TEMPLATE.render(request=request)
 
-            assert '<script src="/_static/dist/sentry/locale/fr.f00f00.js"></script>' in result
+        assert '<script src="/_static/dist/sentry/locale/fr.js"></script>' in result
 
     def test_supported_foreign_lang_csp_nonce(self):
-        locale_manifest = {
-            "locale/fr.js": "locale/fr.f00f00.js",
-        }
-        with self.static_asset_manifest(locale_manifest):
-            request = RequestFactory().get("/")
-            request.LANGUAGE_CODE = "fr"  # French, in locale/catalogs.json
-            request.csp_nonce = "r@nD0m"
-            result = self.TEMPLATE.render(request=request)
+        request = RequestFactory().get("/")
+        request.LANGUAGE_CODE = "fr"  # French, in locale/catalogs.json
+        request.csp_nonce = "r@nD0m"
+        result = self.TEMPLATE.render(request=request)
 
-            assert (
-                '<script src="/_static/dist/sentry/locale/fr.f00f00.js" nonce="r@nD0m"></script>'
-                in result
-            )
+        assert '<script src="/_static/dist/sentry/locale/fr.js" nonce="r@nD0m"></script>' in result
 
     def test_unsupported_foreign_lang(self):
         request = RequestFactory().get("/")

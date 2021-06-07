@@ -6,6 +6,7 @@ from django.utils import timezone
 
 class UserActiveMiddleware:
     disallowed_paths = (
+        "sentry.web.frontend.generic.unversioned_static_media",
         "sentry.web.frontend.generic.static_media",
         "sentry.web.frontend.organization_avatar",
         "sentry.web.frontend.project_avatar",

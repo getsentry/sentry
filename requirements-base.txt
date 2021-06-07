@@ -8,7 +8,6 @@ confluent-kafka==1.6.0; python_version == '3.9'
 croniter==0.3.37
 datadog==0.29.3
 django-crispy-forms==1.7.2
-django-manifest-loader==1.0.0
 django-picklefield==1.0.0
 django-sudo==3.1.0
 Django==1.11.29
