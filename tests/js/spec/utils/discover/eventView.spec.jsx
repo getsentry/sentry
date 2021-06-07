@@ -52,6 +52,7 @@ describe('EventView.fromLocation()', function () {
         sort: ['title', '-count'],
         query: 'event.type:transaction',
         project: [123],
+        team: ['myteams', '1', '2'],
         start: '2019-10-01T00:00:00',
         end: '2019-10-02T00:00:00',
         statsPeriod: '14d',
@@ -73,6 +74,7 @@ describe('EventView.fromLocation()', function () {
       sorts: generateSorts(['count']),
       query: 'event.type:transaction',
       project: [123],
+      team: ['myteams', 1, 2],
       start: undefined,
       end: undefined,
       statsPeriod: '14d',
@@ -183,6 +185,7 @@ describe('EventView.fromSavedQuery()', function () {
       fields: ['count()', 'id'],
       query: 'event.type:transaction',
       projects: [123],
+      teams: ['myteams', 1],
       range: '14d',
       start: '2019-10-01T00:00:00',
       end: '2019-10-02T00:00:00',
@@ -202,6 +205,7 @@ describe('EventView.fromSavedQuery()', function () {
       sorts: [{field: 'id', kind: 'desc'}],
       query: 'event.type:transaction',
       project: [123],
+      team: ['myteams', 1],
       start: undefined,
       end: undefined,
       // statsPeriod has precedence
@@ -225,6 +229,7 @@ describe('EventView.fromSavedQuery()', function () {
       sorts: [{field: 'id', kind: 'desc'}],
       query: 'event.type:transaction',
       project: [123],
+      team: ['myteams', 1],
       start: '2019-10-01T00:00:00.000',
       end: '2019-10-02T00:00:00.000',
       statsPeriod: undefined,
@@ -539,6 +544,7 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
       query: {
         statsPeriod: '14d',
         project: ['123'],
+        team: ['myteams', '1', '2'],
         environment: ['staging'],
       },
     };
@@ -554,6 +560,7 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
       sorts: [{field: 'id', kind: 'desc'}],
       query: 'event.type:transaction',
       project: [123],
+      team: ['myteams', 1, 2],
       start: undefined,
       end: undefined,
       // statsPeriod has precedence
