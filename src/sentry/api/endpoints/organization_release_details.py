@@ -124,7 +124,7 @@ class OrganizationReleaseDetailsPaginationMixin:
 
         # Required re-ordering because django filter does not guarantee order of snuba primary order
         release_dict = {release.version: release for release in queryset}
-   
+
         return list(filter(None, [release_dict.get(version) for version in version_list]))
 
     @staticmethod
