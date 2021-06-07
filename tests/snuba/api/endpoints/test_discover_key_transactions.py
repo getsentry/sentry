@@ -101,7 +101,9 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
                     project_team=project_team,
                     transaction=self.event_data["transaction"],
                 )
-                for project_team in ProjectTeam.objects.filter(project=self.project, team__in=[team1, team2])
+                for project_team in ProjectTeam.objects.filter(
+                    project=self.project, team__in=[team1, team2]
+                )
             ]
             + [
                 TeamKeyTransaction(
@@ -109,7 +111,9 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
                     project_team=project_team,
                     transaction="other-transaction",
                 )
-                for project_team in ProjectTeam.objects.filter(project=self.project, team__in=[team2, team3])
+                for project_team in ProjectTeam.objects.filter(
+                    project=self.project, team__in=[team2, team3]
+                )
             ]
         )
 
@@ -292,10 +296,7 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
         self.create_team_membership(team2, user=self.user)
         self.project.add_team(team2)
 
-        project_teams = ProjectTeam.objects.filter(
-            project=self.project,
-            team__in=[team1, team2]
-        )
+        project_teams = ProjectTeam.objects.filter(project=self.project, team__in=[team1, team2])
 
         TeamKeyTransaction.objects.bulk_create(
             [
@@ -370,8 +371,7 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
 
         assert response.status_code == 204, response.content
         key_transactions = TeamKeyTransaction.objects.filter(
-            project_team=project_team,
-            transaction=self.event_data["transaction"]
+            project_team=project_team, transaction=self.event_data["transaction"]
         )
         assert len(key_transactions) == 1
 
@@ -398,8 +398,7 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
         assert response.status_code == 201, response.content
         key_transactions = TeamKeyTransaction.objects.filter(
             project_team__in=ProjectTeam.objects.filter(
-                project=self.project,
-                team__in=[team1, team2]
+                project=self.project, team__in=[team1, team2]
             ),
             transaction=self.event_data["transaction"],
         )
@@ -434,8 +433,7 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
         assert response.status_code == 201, response.content
         key_transactions = TeamKeyTransaction.objects.filter(
             project_team__in=ProjectTeam.objects.filter(
-                project=self.project,
-                team__in=[team1, team2]
+                project=self.project, team__in=[team1, team2]
             ),
             transaction=self.event_data["transaction"],
         )
@@ -617,7 +615,9 @@ class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
                     project_team=project_team,
                     transaction=self.event_data["transaction"],
                 )
-                for project_team in ProjectTeam.objects.filter(project=self.project, team__in=[self.team2, self.team3])
+                for project_team in ProjectTeam.objects.filter(
+                    project=self.project, team__in=[self.team2, self.team3]
+                )
             ]
             + [
                 TeamKeyTransaction(
@@ -625,7 +625,9 @@ class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
                     project_team=project_team,
                     transaction="other-transaction",
                 )
-                for project_team in ProjectTeam.objects.filter(project=self.project, team__in=[self.team3, self.team4])
+                for project_team in ProjectTeam.objects.filter(
+                    project=self.project, team__in=[self.team3, self.team4]
+                )
             ]
         )
 
