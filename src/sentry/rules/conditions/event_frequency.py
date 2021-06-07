@@ -2,15 +2,19 @@ import re
 from datetime import timedelta
 
 from django import forms
+from django.core.cache import cache
 from django.utils import timezone
 
 from sentry import tsdb
 from sentry.receivers.rules import DEFAULT_RULE_LABEL
 from sentry.rules.conditions.base import EventCondition
 from sentry.utils import metrics
+from sentry.utils.snuba import Dataset, raw_query
 
-intervals = {
+standard_intervals = {
     "1m": ("one minute", timedelta(minutes=1)),
+    "5m": ("5 minutes", timedelta(minutes=5)),
+    "15m": ("15 minutes", timedelta(minutes=15)),
     "1h": ("one hour", timedelta(hours=1)),
     "1d": ("one day", timedelta(hours=24)),
     "1w": ("one week", timedelta(days=7)),
@@ -19,6 +23,7 @@ intervals = {
 
 
 class EventFrequencyForm(forms.Form):
+    intervals = standard_intervals
     interval = forms.ChoiceField(
         choices=[
             (key, label)
@@ -31,32 +36,32 @@ class EventFrequencyForm(forms.Form):
 
 
 class BaseEventFrequencyCondition(EventCondition):
+    intervals = standard_intervals
     form_cls = EventFrequencyForm
-    form_fields = {
-        "value": {"type": "number", "placeholder": 100},
-        "interval": {
-            "type": "choice",
-            "choices": [
-                (key, label)
-                for key, (label, duration) in sorted(
-                    intervals.items(),
-                    key=lambda key____label__duration: key____label__duration[1][1],
-                )
-            ],
-        },
-    }
-
     label = NotImplemented  # subclass must implement
 
     def __init__(self, *args, **kwargs):
         self.tsdb = kwargs.pop("tsdb", tsdb)
+        self.form_fields = {
+            "value": {"type": "number", "placeholder": 100},
+            "interval": {
+                "type": "choice",
+                "choices": [
+                    (key, label)
+                    for key, (label, duration) in sorted(
+                        self.intervals.items(),
+                        key=lambda key____label__duration: key____label__duration[1][1],
+                    )
+                ],
+            },
+        }
 
         super().__init__(*args, **kwargs)
 
     def passes(self, event, state):
         interval = self.get_option("interval")
         try:
-            value = int(self.get_option("value"))
+            value = float(self.get_option("value"))
         except (TypeError, ValueError):
             return False
 
@@ -64,7 +69,6 @@ class BaseEventFrequencyCondition(EventCondition):
             return False
 
         current_value = self.get_rate(event, interval, self.rule.environment_id)
-
         return current_value > value
 
     def query(self, event, start, end, environment_id):
@@ -79,11 +83,11 @@ class BaseEventFrequencyCondition(EventCondition):
         return query_result
 
     def query_hook(self, event, start, end, environment_id):
-        """"""
+        """ """
         raise NotImplementedError  # subclass must implement
 
     def get_rate(self, event, interval, environment_id):
-        _, duration = intervals[interval]
+        _, duration = self.intervals[interval]
         end = timezone.now()
         return self.query(event, end - duration, end, environment_id=environment_id)
 
@@ -125,3 +129,78 @@ class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
             environment_id=environment_id,
             use_cache=True,
         )[event.group_id]
+
+
+percent_intervals = {
+    "1m": ("one minute", timedelta(minutes=1)),
+    "5m": ("five minutes", timedelta(minutes=5)),
+    "10m": ("ten minutes", timedelta(minutes=10)),
+    "30m": ("30 minutes", timedelta(minutes=30)),
+    "1h": ("one hour", timedelta(minutes=60)),
+}
+
+
+class EventFrequencyPercentForm(EventFrequencyForm):
+    intervals = percent_intervals
+    interval = forms.ChoiceField(
+        choices=[
+            (key, label)
+            for key, (label, duration) in sorted(
+                percent_intervals.items(),
+                key=lambda key____label__duration: key____label__duration[1][1],
+            )
+        ]
+    )
+    value = forms.IntegerField(widget=forms.TextInput())
+
+
+class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
+    label = "The issue has more errors than {value} percent of sessions in {interval}"
+
+    def __init__(self, *args, **kwargs):
+        self.intervals = percent_intervals
+        self.form_cls = EventFrequencyPercentForm
+        super().__init__(*args, **kwargs)
+
+    def query_hook(self, event, start, end, environment_id):
+        project_id = event.project_id
+        cache_key = f"r.c.spc:{project_id}-{environment_id}"
+        session_count_last_hour = cache.get(cache_key)
+        if session_count_last_hour is None:
+            filters = {"project_id": [project_id]}
+            if environment_id:
+                filters["environment"] = [environment_id]
+            result_totals = raw_query(
+                selected_columns=["sessions"],
+                rollup=60,
+                dataset=Dataset.Sessions,
+                start=end - timedelta(minutes=60),
+                end=end,
+                filter_keys=filters,
+                groupby=["bucketed_started"],
+                referrer="rules.conditions.event_frequency.EventFrequencyPercentCondition",
+            )
+            if result_totals["data"]:
+                session_count_last_hour = sum(
+                    bucket["sessions"] for bucket in result_totals["data"]
+                )
+            else:
+                session_count_last_hour = False
+            cache.set(cache_key, session_count_last_hour, 600)
+
+        if session_count_last_hour:
+            interval_in_minutes = (
+                percent_intervals[self.get_option("interval")][1].total_seconds() // 60
+            )
+            avg_sessions_in_interval = session_count_last_hour / (60 / interval_in_minutes)
+            issue_count = self.tsdb.get_sums(
+                model=self.tsdb.models.group,
+                keys=[event.group_id],
+                start=start,
+                end=end,
+                environment_id=environment_id,
+                use_cache=True,
+            )[event.group_id]
+            return 100 * round(issue_count / avg_sessions_in_interval, 4)
+
+        return 0

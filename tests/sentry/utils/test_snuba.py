@@ -323,7 +323,7 @@ class QuantizeTimeTest(unittest.TestCase):
         assert changed_on_hour == 1
 
     def test_quantize_time_matches_duration(self):
-        """ The number of seconds between keys changing should match duration """
+        """The number of seconds between keys changing should match duration"""
         previous_key = quantize_time(self.now, 0, duration=10)
         changes = []
         for i in range(21):
