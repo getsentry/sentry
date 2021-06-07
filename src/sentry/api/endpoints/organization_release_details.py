@@ -122,11 +122,10 @@ class OrganizationReleaseDetailsPaginationMixin:
         # Add query filter
         queryset = add_query_filter_to_queryset(queryset, query)
 
-        # Required re ordering because django filter does not guarantee order of snuba primary order
-        release_list = list(queryset)
-        release_list.sort(key=lambda release: version_list.index(release.version))
-
-        return release_list
+        # Required re-ordering because django filter does not guarantee order of snuba primary order
+        release_dict = {release.version: release for release in queryset}
+   
+        return list(filter(None, [release_dict.get(version) for version in version_list]))
 
     @staticmethod
     def __get_release_according_to_filters_and_order_by_for_date_sort(
