@@ -40,6 +40,8 @@ jobs:
         run: |
           brew update -q
           brew bundle
+          git diff
+          cat Brewfile.lock.json
           # This code is mentioned in our dev docs. Only remove if you adjust the docs as well
           SENTRY_NO_VENV_CHECK=1 ./scripts/do.sh init-docker
 
