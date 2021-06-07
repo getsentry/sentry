@@ -178,15 +178,15 @@ class TransactionSummary extends Component<Props, State> {
       ? [
           {
             kind: 'function',
-            function: ['count_miserable_new' as AggregationKey, 'user', undefined],
+            function: ['count_miserable' as AggregationKey, 'user', undefined],
           },
           {
             kind: 'function',
-            function: ['user_misery_new' as AggregationKey, '', undefined],
+            function: ['user_misery' as AggregationKey, '', undefined],
           },
           {
             kind: 'function',
-            function: ['apdex_new' as AggregationKey, '', undefined],
+            function: ['apdex' as AggregationKey, '', undefined],
           },
         ]
       : [

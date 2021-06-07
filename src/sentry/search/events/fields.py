@@ -367,6 +367,13 @@ def format_column_as_key(x):
     return x
 
 
+AGGREGATE_ALIASES = {
+    "apdex()": ("apdex_new()", "apdex"),
+    "count_miserable(user)": ("count_miserable_new(user)", "count_miserable_user"),
+    "user_misery()": ("user_misery_new()", "user_misery"),
+}
+
+
 def resolve_field_list(
     fields, snuba_filter, auto_fields=True, auto_aggregations=False, functions_acl=None
 ):
@@ -402,15 +409,15 @@ def resolve_field_list(
             fields.append("project.id")
 
     # Both `count_miserable_new` and `user_misery_new` require the project_threshold_config column
-    if PROJECT_THRESHOLD_CONFIG_ALIAS not in fields:
-        for field in fields[:]:
-            if isinstance(field, str) and (
-                field.startswith("count_miserable_new")
-                or field == "user_misery_new()"
-                or field == "apdex_new()"
-            ):
-                fields.append(PROJECT_THRESHOLD_CONFIG_ALIAS)
-                break
+    add_project_threshold_config = False
+    for index, field in enumerate(fields[:]):
+        if isinstance(field, str) and field in AGGREGATE_ALIASES:
+            name, alias = AGGREGATE_ALIASES[field]
+            fields[index] = f"{name} AS {alias}"
+            add_project_threshold_config = True
+
+    if add_project_threshold_config and PROJECT_THRESHOLD_CONFIG_ALIAS not in fields:
+        fields.append(PROJECT_THRESHOLD_CONFIG_ALIAS)
 
     for field in fields:
         if isinstance(field, str) and field.strip() == "":
