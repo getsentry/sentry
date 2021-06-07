@@ -7,6 +7,7 @@ on:
     - '.envrc'
     - 'requirements*'
     - 'Brewfile'
+    - 'Brewfile.lock.json'
     - 'scripts/*'
     - 'src/sentry/runner/commands/devserver.py'
     - 'src/sentry/runner/commands/devservices.py'
