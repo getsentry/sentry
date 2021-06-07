@@ -5,7 +5,7 @@ from django.urls import reverse
 from pytz import utc
 
 from sentry.discover.models import KeyTransaction, TeamKeyTransaction
-from sentry.models import ApiKey, ProjectTransactionThreshold
+from sentry.models import ApiKey, ProjectTeam, ProjectTransactionThreshold
 from sentry.models.transaction_threshold import TransactionMetric
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
@@ -3648,6 +3648,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         self.project.add_team(team1)
 
         team2 = self.create_team(organization=self.organization, name="Team B")
+        self.project.add_team(team2)
 
         transactions = ["/blah_transaction/"]
         key_transactions = [
@@ -3663,10 +3664,12 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             self.transaction_data["transaction"] = transaction
             self.store_event(self.transaction_data, self.project.id)
             TeamKeyTransaction.objects.create(
-                team=team,
                 organization=self.organization,
                 transaction=transaction,
-                project=self.project,
+                project_team=ProjectTeam.objects.get(
+                    project=self.project,
+                    team=team
+                )
             )
 
         query = {
@@ -3715,10 +3718,12 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             self.transaction_data["transaction"] = transaction
             self.store_event(self.transaction_data, self.project.id)
             TeamKeyTransaction.objects.create(
-                team=team,
                 organization=self.organization,
                 transaction=transaction,
-                project=self.project,
+                project_team=ProjectTeam.objects.get(
+                    project=self.project,
+                    team=team
+                )
             )
 
         query = {
@@ -3781,10 +3786,12 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             self.transaction_data["transaction"] = transaction
             self.store_event(self.transaction_data, self.project.id)
             TeamKeyTransaction.objects.create(
-                team=team,
                 organization=self.organization,
+                project_team=ProjectTeam.objects.get(
+                    project=self.project,
+                    team=team,
+                ),
                 transaction=transaction,
-                project=self.project,
             )
 
         query = {

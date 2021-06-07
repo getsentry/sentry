@@ -13,7 +13,7 @@ from snuba_sdk.orderby import Direction, OrderBy
 
 from sentry.discover.models import KeyTransaction, TeamKeyTransaction
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import Project, ProjectTransactionThreshold
+from sentry.models import Project, ProjectTeam, ProjectTransactionThreshold
 from sentry.models.transaction_threshold import TRANSACTION_METRICS
 from sentry.search.events.base import QueryBase
 from sentry.search.events.constants import (
@@ -211,12 +211,14 @@ def team_key_transaction_expression(organization_id, team_ids, project_ids):
     team_key_transactions = (
         TeamKeyTransaction.objects.filter(
             organization_id=organization_id,
-            project_id__in=project_ids,
-            team_id__in=team_ids,
+            project_team__in=ProjectTeam.objects.filter(
+                project_id__in=project_ids,
+                team_id__in=team_ids
+            )
         )
-        .order_by("transaction", "project_id")
-        .values("project_id", "transaction")
-        .distinct("transaction", "project_id")
+        .order_by("transaction", "project_team__project_id")
+        .values("transaction", "project_team__project_id")
+        .distinct("transaction", "project_team__project_id")
     )
 
     # There are team key transactions marked, so hard code false into the query.
@@ -233,7 +235,7 @@ def team_key_transaction_expression(organization_id, team_ids, project_ids):
                     [
                         "tuple",
                         [
-                            transaction["project_id"],
+                            transaction["project_team__project_id"],
                             "'{}'".format(transaction["transaction"]),
                         ],
                     ]
