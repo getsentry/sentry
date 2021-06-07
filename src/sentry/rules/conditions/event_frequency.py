@@ -149,7 +149,7 @@ class EventFrequencyPercentForm(EventFrequencyForm):
             )
         ]
     )
-    value = forms.FloatField(widget=forms.TextInput(), min_value=0)
+    value = forms.FloatField(widget=forms.TextInput(), min_value=0, max_value=100)
 
 
 class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
