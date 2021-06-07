@@ -21,7 +21,7 @@ brew() {
     set +x
     # To prevent recursion
     bin=$(which brew)
-    $bin update
+    $bin update -q
     $bin bundle --file scripts/Brewfile.lock.json
 }
 
