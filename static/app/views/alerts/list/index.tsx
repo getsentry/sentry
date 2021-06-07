@@ -67,7 +67,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
     const {query} = location;
 
     const status = this.getQueryStatus(query.status);
-    // Filting by one status, both does nothing
+    // Filtering by one status, both does nothing
     if (status.length === 1) {
       query.status = status;
     }

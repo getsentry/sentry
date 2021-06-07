@@ -26,7 +26,7 @@ type SectionProps = DropdownSection & {
   toggleFilter: (section: string, value: string) => void;
 };
 
-function FitlerSection({id, label, items, toggleSection, toggleFilter}: SectionProps) {
+function FilterSection({id, label, items, toggleSection, toggleFilter}: SectionProps) {
   const checkedItemsCount = items.filter(item => item.checked).length;
   return (
     <Fragment>
@@ -154,7 +154,7 @@ class Filter extends Component<Props> {
             <List>
               {header}
               {dropdownItems.map(section => (
-                <FitlerSection
+                <FilterSection
                   key={section.id}
                   {...section}
                   toggleSection={this.toggleSection}
