@@ -177,6 +177,7 @@ def merge_release_archives(file1: IO, archive2: ReleaseArchive, target: IO):
     Skip files that are already present in archive 1.
     """
     # Create a copy
+    file1.seek(0)
     target.write(file1.read())
 
     with ReleaseArchive(file1) as archive1:

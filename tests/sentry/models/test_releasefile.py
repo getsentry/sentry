@@ -130,7 +130,6 @@ class ReleaseArchiveTestCase(TestCase):
         merge_release_archives(archive1, archive2, buffer)
 
         archive3 = ReleaseArchive(buffer)
-        print(archive3._zip_file.infolist())
 
         assert archive3.manifest["org"] == 1
         assert archive3.manifest["release"] == 2
