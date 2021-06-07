@@ -43,7 +43,7 @@ def backfill_semver(apps, schema_editor):
     )
     cursor = connection.cursor()
     batch = []
-    for i, (pk, version) in enumerate(queryset):
+    for pk, version in queryset:
         try:
             version_info = parse_release(version)
         except RelayError:
