@@ -21,6 +21,7 @@ describe('getFieldRenderer', function () {
     };
     data = {
       key_transaction: 1,
+      team_key_transaction: 1,
       title: 'ValueError: something bad',
       transaction: 'api.do_things',
       boolValue: 1,
@@ -218,5 +219,41 @@ describe('getFieldRenderer', function () {
     value = wrapper.find('StyledKey');
     expect(value).toHaveLength(1);
     expect(value.props().isSolid).toBeTruthy();
+  });
+
+  it('can render team key transaction as a star with the dropdown', async function () {
+    const renderer = getFieldRenderer('team_key_transaction', {
+      team_key_transaction: 'boolean',
+    });
+
+    const wrapper = mountWithTheme(
+      renderer(data, {location, organization}),
+      context.routerContext
+    );
+
+    const value = wrapper.find('IconStar');
+    expect(value).toHaveLength(1);
+    expect(value.props().isSolid).toBeTruthy();
+
+    expect(wrapper.find('TeamKeyTransaction')).toHaveLength(1);
+  });
+
+  it('can render team key transaction as a star without the dropdown', async function () {
+    const renderer = getFieldRenderer('team_key_transaction', {
+      team_key_transaction: 'boolean',
+    });
+    delete data.project;
+
+    const wrapper = mountWithTheme(
+      renderer(data, {location, organization}),
+      context.routerContext
+    );
+
+    const value = wrapper.find('IconStar');
+    expect(value).toHaveLength(1);
+    expect(value.props().isSolid).toBeTruthy();
+
+    // Since there is no project column, it is not wrapped with the dropdown
+    expect(wrapper.find('TeamKeyTransaction')).toHaveLength(0);
   });
 });

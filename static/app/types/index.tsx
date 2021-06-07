@@ -1582,6 +1582,8 @@ export type NewQuery = {
   // Graph
   yAxis?: string;
   display?: string;
+
+  teams?: Readonly<('myteams' | number)[]>;
 };
 
 export type SavedQuery = NewQuery & {

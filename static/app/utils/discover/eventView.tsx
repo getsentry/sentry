@@ -211,6 +211,21 @@ const decodeQuery = (location: Location): string => {
   return decodeScalar(queryParameter, '').trim();
 };
 
+const decodeTeam = (value: string): 'myteams' | number => {
+  if (value === 'myteams') {
+    return value;
+  }
+  return parseInt(value, 10);
+};
+
+const decodeTeams = (location: Location): ('myteams' | number)[] => {
+  if (!location.query || !location.query.team) {
+    return [];
+  }
+  const value = location.query.team;
+  return Array.isArray(value) ? value.map(decodeTeam) : [decodeTeam(value)];
+};
+
 const decodeProjects = (location: Location): number[] => {
   if (!location.query || !location.query.project) {
     return [];
@@ -237,6 +252,7 @@ class EventView {
   fields: Readonly<Field[]>;
   sorts: Readonly<Sort[]>;
   query: string;
+  team: Readonly<('myteams' | number)[]>;
   project: Readonly<number[]>;
   start: string | undefined;
   end: string | undefined;
@@ -255,6 +271,7 @@ class EventView {
     fields: Readonly<Field[]>;
     sorts: Readonly<Sort[]>;
     query: string;
+    team: Readonly<('myteams' | number)[]>;
     project: Readonly<number[]>;
     start: string | undefined;
     end: string | undefined;
@@ -269,6 +286,7 @@ class EventView {
   }) {
     const fields: Field[] = Array.isArray(props.fields) ? props.fields : [];
     let sorts: Sort[] = Array.isArray(props.sorts) ? props.sorts : [];
+    const team = Array.isArray(props.team) ? props.team : [];
     const project = Array.isArray(props.project) ? props.project : [];
     const environment = Array.isArray(props.environment) ? props.environment : [];
 
@@ -287,6 +305,7 @@ class EventView {
     this.fields = fields;
     this.sorts = sorts;
     this.query = typeof props.query === 'string' ? props.query : '';
+    this.team = team;
     this.project = project;
     this.start = props.start;
     this.end = props.end;
@@ -309,6 +328,7 @@ class EventView {
       fields: decodeFields(location),
       sorts: decodeSorts(location),
       query: decodeQuery(location),
+      team: decodeTeams(location),
       project: decodeProjects(location),
       start: decodeScalar(start),
       end: decodeScalar(end),
@@ -374,6 +394,7 @@ class EventView {
       name: saved.name,
       fields,
       query: queryStringFromSavedQuery(saved),
+      team: saved.teams ?? [],
       project: saved.projects,
       start: decodeScalar(start),
       end: decodeScalar(end),
@@ -400,6 +421,7 @@ class EventView {
     let fields = decodeFields(location);
     const {start, end, statsPeriod} = getParams(location.query);
     const id = decodeScalar(location.query.id);
+    const teams = decodeTeams(location);
     const projects = decodeProjects(location);
     const sorts = decodeSorts(location);
     const environments = collectQueryStringByKey(location.query, 'environment');
@@ -423,6 +445,9 @@ class EventView {
         createdBy: saved.createdBy,
         expired: saved.expired,
         additionalConditions: new QueryResults([]),
+        // Always read team from location since they can be set by other parts
+        // of the UI
+        team: teams,
         // Always read project and environment from location since they can
         // be set by the GlobalSelectionHeaders.
         project: projects,
@@ -639,6 +664,7 @@ class EventView {
       fields: this.fields,
       sorts: this.sorts,
       query: this.query,
+      team: this.team,
       project: this.project,
       start: this.start,
       end: this.end,
@@ -895,6 +921,12 @@ class EventView {
     return newEventView;
   }
 
+  withTeams(teams: ('myteams' | number)[]): EventView {
+    const newEventView = this.clone();
+    newEventView.team = teams;
+    return newEventView;
+  }
+
   getSorts(): TableColumnSort<React.ReactText>[] {
     return this.sorts.map(
       sort =>
@@ -993,6 +1025,7 @@ class EventView {
         ? encodeSorts(this.sorts)
         : encodeSort(this.sorts[0]);
     const fields = this.getFields();
+    const team = this.team.map(proj => String(proj));
     const project = this.project.map(proj => String(proj));
     const environment = this.environment as string[];
 
@@ -1001,6 +1034,7 @@ class EventView {
       omit(picked, DATETIME_QUERY_STRING_KEYS),
       normalizedTimeWindowParams,
       {
+        team,
         project,
         environment,
         field: [...new Set(fields)],
@@ -1009,6 +1043,10 @@ class EventView {
         query: this.getQueryWithAdditionalConditions(),
       }
     ) as EventQuery & LocationQuery;
+
+    if (eventQuery.team && !eventQuery.team.length) {
+      delete eventQuery.team;
+    }
 
     if (!eventQuery.sort) {
       delete eventQuery.sort;
