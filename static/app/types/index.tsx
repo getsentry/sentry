@@ -1595,6 +1595,8 @@ export type NewQuery = {
   // Graph
   yAxis?: string;
   display?: string;
+
+  teams?: Readonly<('myteams' | number)[]>;
 };
 
 export type SavedQuery = NewQuery & {
@@ -2099,7 +2101,7 @@ export type KeyValueListData = {
 export type ExternalActorMapping = {
   id: string;
   externalName: string;
-  memberId?: string;
+  userId?: string;
   teamId?: string;
   sentryName: string;
 };

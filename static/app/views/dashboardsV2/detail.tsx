@@ -11,6 +11,7 @@ import {
 import {addSuccessMessage} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
 import Breadcrumbs from 'app/components/breadcrumbs';
+import HookOrDefault from 'app/components/hookOrDefault';
 import * as Layout from 'app/components/layouts/thirds';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
@@ -30,6 +31,8 @@ import {DashboardDetails, DashboardListItem, DashboardState, Widget} from './typ
 import {cloneDashboard} from './utils';
 
 const UNSAVED_MESSAGE = t('You have unsaved changes, are you sure you want to leave?');
+
+const HookHeader = HookOrDefault({hookName: 'component:dashboards-header'});
 
 type RouteParams = {
   orgId: string;
@@ -429,6 +432,7 @@ class DashboardDetail extends Component<Props, State> {
                 dashboardState={dashboardState}
               />
             </StyledPageHeader>
+            <HookHeader organization={organization} />
             <Dashboard
               paramDashboardId={dashboardId}
               dashboard={modifiedDashboard ?? dashboard}

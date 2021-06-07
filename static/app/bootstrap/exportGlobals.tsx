@@ -89,6 +89,43 @@ const makeBeaconRequest = throttle(
   {trailing: true, leading: false}
 );
 
+/**
+ * First checks if stacktrace should be ignored, and then returns
+ * a scrubbed and limited stacktrace.
+ *
+ * Returns `null` if it should be ignored
+ */
+export function getCleanStack(stack: string): string | null {
+  // Scrub out any hostnames
+  const scrubbedStack = stack.replace(/https?:\/\/.*?\//, '/');
+
+  // This is an exclude list of strings. If any of these appear in the stack,
+  // then it should be ignored.
+  const excludeList = [
+    '__puppeteer_evaluation_script__',
+    '-extension',
+    'papaparse',
+    'AdGuard',
+  ];
+
+  if (excludeList.some(str => scrubbedStack.includes(str))) {
+    return null;
+  }
+
+  // Split stack by lines and filter out empty strings
+  const stackArr = scrubbedStack?.split('\n').filter(s => !!s) || [];
+
+  // There's an issue with Firefox where this getter for jQuery gets called many times (> 100)
+  // The stacktrace doesn't show it being called outside of this block either.
+  // (this works fine in Chrome...)
+  if (stackArr.length <= 1) {
+    return null;
+  }
+
+  // First limit to last 5 frames and limit to first 1024 characters
+  return stackArr.slice(0, 5).join('\n').slice(0, 1024);
+}
+
 [
   [SentryApp, globals.SentryApp],
   [globals, window],
@@ -102,17 +139,11 @@ const makeBeaconRequest = throttle(
           enumerable: false,
           get() {
             try {
-              const stack = new Error().stack;
-              // Split stack by lines and filter out empty strings
-              const stackArr = stack?.split('\n').filter(s => !!s) || [];
-              // There's an issue with Firefox where this getter for jQuery gets called many times (> 100)
-              // The stacktrace doesn't show it being called outside of this block either.
-              // And this works fine in Chrome...
-              if (key !== 'SentryApp' && stackArr.length > 1) {
-                // Limit the number of frames to include, as well as the total size of the string
+              const stack = getCleanStack(new Error().stack ?? '');
+              if (key !== 'SentryApp' && stack !== null) {
                 _beaconComponents.push({
                   component: key,
-                  stack: stackArr.slice(0, 5).join('\n').slice(0, 1024),
+                  stack,
                 });
                 makeBeaconRequest();
               }
