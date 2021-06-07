@@ -57,7 +57,7 @@ class BitbucketApiClient(ApiClient):
             "qsh": get_query_hash(path, method.upper(), params),
             "sub": self.subject,
         }
-        encoded_jwt = jwt.encode(jwt_payload, self.shared_secret.encode("UTF-8"))
+        encoded_jwt = jwt.encode(jwt_payload, self.shared_secret)
         headers = jwt.authorization_header(encoded_jwt, scheme="JWT")
         return self._request(method, path, data=data, params=params, headers=headers, **kwargs)
 
