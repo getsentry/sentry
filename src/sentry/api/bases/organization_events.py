@@ -289,7 +289,8 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     threshold_configs.extend(
                         [DEFAULT_PROJECT_THRESHOLD] * projects_without_threshold
                     )
-                    threshold = mean(threshold_configs)
+
+                    threshold = int(mean(threshold_configs))
                     column_map["apdex_new()"] = f"apdex({threshold})"
 
                 query_columns = [column_map.get(column, column) for column in columns]
