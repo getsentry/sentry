@@ -9,6 +9,7 @@ import {Client} from 'app/api';
 import Button from 'app/components/button';
 import ErrorItem from 'app/components/events/errorItem';
 import List from 'app/components/list';
+import {JavascriptProcessingErrors} from 'app/constants/eventErrors';
 import {IconWarning} from 'app/icons';
 import {t, tn} from 'app/locale';
 import space from 'app/styles/space';
@@ -127,7 +128,7 @@ class Errors extends Component<Props, State> {
   render() {
     const {event, proGuardErrors} = this.props;
     const {isOpen, releaseArtifacts} = this.state;
-    const {dist, errors: eventErrors = []} = event;
+    const {dist: eventDistribution, errors: eventErrors = []} = event;
 
     // XXX: uniqWith returns unique errors and is not performant with large datasets
     const otherErrors: Array<Error> =
@@ -161,7 +162,7 @@ class Errors extends Component<Props, State> {
               {errors.map((error, errorIdx) => {
                 const data = error.data ?? {};
                 if (
-                  error.type === 'js_no_source' &&
+                  error.type === JavascriptProcessingErrors.JS_MISSING_SOURCE &&
                   data.url &&
                   !!releaseArtifacts?.length
                 ) {
@@ -174,14 +175,22 @@ class Errors extends Component<Props, State> {
                     return false;
                   });
 
-                  if (releaseArtifact && !!releaseArtifact.dist) {
+                  const releaseArtifactDistribution = releaseArtifact?.dist ?? null;
+
+                  // Neither event nor file have dist -> matching
+                  // Event has dist, file doesn’t -> not matching
+                  // File has dist, event doesn’t -> not matching
+                  // Both have dist, same value -> matching
+                  // Both have dist, different values -> not matching
+                  if (releaseArtifactDistribution !== eventDistribution) {
                     error.message = t(
                       'Source code was not found because the distribution did not match'
                     );
-                    data['expected-distribution'] = dist;
-                    data['current-distribution'] = t('none');
+                    data['expected-distribution'] = eventDistribution;
+                    data['current-distribution'] = releaseArtifact?.dist;
                   }
                 }
+
                 return <ErrorItem key={errorIdx} error={{...error, data}} />;
               })}
             </ErrorList>
