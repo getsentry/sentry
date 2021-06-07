@@ -18,8 +18,13 @@ type WithPluginProps = {
   organizations: OrganizationSummary[];
 };
 
+type LatestContextState = typeof LatestContextStore.state;
+
 type State = {
-  latestContext: Omit<InjectedLatestContextProps, 'organizations'>;
+  latestContext: Pick<
+    InjectedLatestContextProps,
+    'organization' | 'project' | 'lastRoute'
+  >;
 };
 
 function withLatestContext<P extends InjectedLatestContextProps>(
@@ -33,21 +38,35 @@ function withLatestContext<P extends InjectedLatestContextProps>(
   > {
     static displayName = `withLatestContext(${getDisplayName(WrappedComponent)})`;
 
-    state = {
-      latestContext: {
-        organization: undefined,
-        project: undefined,
-        lastRoute: undefined,
-      },
-    };
+    constructor(props) {
+      super(props);
+
+      const contextData = LatestContextStore.state;
+      this.state = {
+        latestContext: {
+          // TODO(ts) The context data can also be LightWeightOrganization. The cast
+          // should be removed when downstream components have their types updated.
+          organization: (contextData.organization as Organization) ?? undefined,
+          project: contextData.project ?? undefined,
+          lastRoute: contextData.lastRoute ?? undefined,
+        },
+      };
+    }
 
     componentWillUnmount() {
       this.unsubscribe();
     }
-    unsubscribe = LatestContextStore.listen(
-      (latestContext: State['latestContext']) => this.setState({latestContext}),
-      undefined
-    );
+
+    unsubscribe = LatestContextStore.listen((latestContext: LatestContextState) => {
+      this.setState(prevState => {
+        return {
+          ...prevState,
+          organization: latestContext.organization ?? undefined,
+          project: latestContext.project ?? undefined,
+          lastRoute: latestContext.lastRoute ?? undefined,
+        };
+      });
+    }, undefined);
 
     render() {
       const {organizations} = this.props;
@@ -79,7 +98,7 @@ function withLatestContext<P extends InjectedLatestContextProps>(
           project={project}
           lastRoute={lastRoute}
           {...(this.props as P)}
-          organization={(this.props.organization || latestOrganization) as Organization}
+          organization={this.props.organization || latestOrganization}
         />
       );
     }
