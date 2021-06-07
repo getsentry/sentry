@@ -29,12 +29,24 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AlterIndexTogether(
-            name="group",
-            index_together={
-                ("project", "id"),
-                ("project", "status", "last_seen", "id"),
-                ("project", "first_release"),
-            },
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunSQL(
+                    """
+                    CREATE INDEX CONCURRENTLY IF NOT EXISTS "sentry_groupedmessage_project_id_status_last_s_6b8195a7_idx" ON "sentry_groupedmessage" ("project_id", "status", "last_seen", "id");
+                    """,
+                    reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS sentry_groupedmessage_project_id_status_last_s_6b8195a7_idx",
+                ),
+            ],
+            state_operations=[
+                migrations.AlterIndexTogether(
+                    name="group",
+                    index_together={
+                        ("project", "id"),
+                        ("project", "status", "last_seen", "id"),
+                        ("project", "first_release"),
+                    },
+                ),
+            ],
         ),
     ]
