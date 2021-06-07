@@ -65,49 +65,74 @@ class Migration(migrations.Migration):
                 ),
                 migrations.RunSQL(
                     """
-                    CREATE INDEX CONCURRENTLY IF NOT EXISTS "sentry_release_project_adopted_4ce765fa" ON "sentry_release_project" ("adopted");
+                    CREATE INDEX CONCURRENTLY IF NOT EXISTS "sentry_release_project_proj_id_adopted_4ce765fa" ON "sentry_release_project" ("project_id", "adopted");
                     """,
-                    reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS sentry_release_project_adopted_4ce765fa",
+                    reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS sentry_release_project_proj_id_adopted_4ce765fa",
                 ),
                 migrations.RunSQL(
                     """
-                    CREATE INDEX CONCURRENTLY IF NOT EXISTS "sentry_release_project_unadopted_e75bc7b9" ON "sentry_release_project" ("unadopted");
+                    CREATE INDEX CONCURRENTLY IF NOT EXISTS "sentry_release_project_proj_id_unadopted_8h5g84ee" ON "sentry_release_project" ("project_id", "unadopted");
                     """,
-                    reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS sentry_release_project_unadopted_e75bc7b9",
+                    reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS sentry_release_project_proj_id_unadopted_8h5g84ee",
                 ),
                 migrations.RunSQL(
                     """
-                    CREATE INDEX CONCURRENTLY IF NOT EXISTS "sentry_releaseprojectenvironment_adopted_cf1f902b" ON "sentry_releaseprojectenvironment" ("adopted");
+                    CREATE INDEX CONCURRENTLY IF NOT EXISTS "sentry_releaseprojectenvironment_proj_id_adopted_cf1f902b" ON "sentry_releaseprojectenvironment" ("project_id", "adopted");
                     """,
-                    reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS sentry_releaseprojectenvironment_adopted_cf1f902b",
+                    reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS sentry_releaseprojectenvironment_proj_id_adopted_cf1f902b",
                 ),
                 migrations.RunSQL(
                     """
-                    CREATE INDEX CONCURRENTLY IF NOT EXISTS "sentry_releaseprojectenvironment_unadopted_bac2355c" ON "sentry_releaseprojectenvironment" ("unadopted");
+                    CREATE INDEX CONCURRENTLY IF NOT EXISTS "sentry_releaseprojectenvironment_proj_id_unadopted_bac2355c" ON "sentry_releaseprojectenvironment" ("project_id", "unadopted");
                     """,
-                    reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS sentry_releaseprojectenvironment_unadopted_bac2355c",
+                    reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS sentry_releaseprojectenvironment_proj_id_unadopted_bac2355c",
+                ),
+                migrations.RunSQL(
+                    """
+                    CREATE INDEX CONCURRENTLY IF NOT EXISTS "sentry_releaseprojectenvironment_proj_id_env_id_adopted_j6h89s3f" ON "sentry_releaseprojectenvironment" ("project_id", "environment_id", "adopted");
+                    """,
+                    reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS sentry_releaseprojectenvironment_proj_id_env_id_adopted_j6h89s3f",
+                ),
+                migrations.RunSQL(
+                    """
+                    CREATE INDEX CONCURRENTLY IF NOT EXISTS "sentry_releaseprojectenvironment_proj_id_env_id_unadopted_kyh5m8s3" ON "sentry_releaseprojectenvironment" ("project_id", "environment_id", "unadopted");
+                    """,
+                    reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS sentry_releaseprojectenvironment_proj_id_env_id_unadopted_kyh5m8s3",
                 ),
             ],
             state_operations=[
                 migrations.AddField(
                     model_name="releaseproject",
                     name="adopted",
-                    field=models.DateTimeField(blank=True, db_index=True, null=True),
+                    field=models.DateTimeField(blank=True, db_index=False, null=True),
                 ),
                 migrations.AddField(
                     model_name="releaseproject",
                     name="unadopted",
-                    field=models.DateTimeField(blank=True, db_index=True, null=True),
+                    field=models.DateTimeField(blank=True, db_index=False, null=True),
                 ),
                 migrations.AddField(
                     model_name="releaseprojectenvironment",
                     name="adopted",
-                    field=models.DateTimeField(blank=True, db_index=True, null=True),
+                    field=models.DateTimeField(blank=True, db_index=False, null=True),
                 ),
                 migrations.AddField(
                     model_name="releaseprojectenvironment",
                     name="unadopted",
-                    field=models.DateTimeField(blank=True, db_index=True, null=True),
+                    field=models.DateTimeField(blank=True, db_index=False, null=True),
+                ),
+                migrations.AlterIndexTogether(
+                    name="releaseproject",
+                    index_together={("project", "adopted"), ("project", "unadopted")},
+                ),
+                migrations.AlterIndexTogether(
+                    name="releaseprojectenvironment",
+                    index_together={
+                        ("project", "unadopted", "environment"),
+                        ("project", "adopted"),
+                        ("project", "unadopted"),
+                        ("project", "adopted", "environment"),
+                    },
                 ),
             ],
         ),

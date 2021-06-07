@@ -56,12 +56,16 @@ class ReleaseProject(Model):
     release = FlexibleForeignKey("sentry.Release")
     new_groups = BoundedPositiveIntegerField(null=True, default=0)
 
-    adopted = models.DateTimeField(null=True, blank=True, db_index=True)
-    unadopted = models.DateTimeField(null=True, blank=True, db_index=True)
+    adopted = models.DateTimeField(null=True, blank=True)
+    unadopted = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_release_project"
+        index_together = (
+            ("project", "adopted"),
+            ("project", "unadopted"),
+        )
         unique_together = (("project", "release"),)
 
 
