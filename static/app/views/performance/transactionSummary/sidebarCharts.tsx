@@ -159,6 +159,16 @@ function SidebarCharts({
   const environment = eventView.environment;
   const threshold = organization.apdexThreshold;
 
+  let apdexKey: string;
+  let apdexPerformanceTerm: PERFORMANCE_TERM;
+  if (organization.features.includes('project-transaction-threshold')) {
+    apdexKey = 'apdex_new';
+    apdexPerformanceTerm = PERFORMANCE_TERM.APDEX_NEW;
+  } else {
+    apdexKey = `apdex_${threshold}`;
+    apdexPerformanceTerm = PERFORMANCE_TERM.APDEX;
+  }
+
   return (
     <RelativeBox>
       <ChartLabel top="0px">
@@ -166,14 +176,14 @@ function SidebarCharts({
           {t('Apdex')}
           <QuestionTooltip
             position="top"
-            title={getTermHelp(organization, PERFORMANCE_TERM.APDEX)}
+            title={getTermHelp(organization, apdexPerformanceTerm)}
             size="sm"
           />
         </ChartTitle>
         <ChartSummaryValue
           isLoading={isLoading}
           error={error}
-          value={totals ? formatFloat(totals[`apdex_${threshold}`], 4) : null}
+          value={totals ? formatFloat(totals[apdexKey], 4) : null}
         />
       </ChartLabel>
 

@@ -23,6 +23,7 @@ type Props = {
 };
 
 const TAG_VALUE_LIMIT = 10;
+const HISTOGRAM_BUCKET_LIMIT = 20;
 
 const TagsDisplay = (props: Props) => {
   const {eventView, location, organization, projects, tagKey} = props;
@@ -41,7 +42,7 @@ const TagsDisplay = (props: Props) => {
         orgSlug={organization.slug}
         location={location}
         aggregateColumn={aggregateColumn}
-        limit={TAG_VALUE_LIMIT}
+        limit={HISTOGRAM_BUCKET_LIMIT}
         tagKey={tagKey}
         sort="-frequency"
       >
