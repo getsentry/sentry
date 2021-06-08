@@ -1,13 +1,15 @@
 import datetime
 import re
 import unittest
+from unittest.mock import patch
 
 import pytest
 from django.utils import timezone
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 
+from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.search.events.fields import Function, FunctionArg, InvalidSearchQuery, with_default
-from sentry.search.events.filter import get_filter
+from sentry.search.events.filter import get_filter, parse_semver_search
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.snuba import OPERATOR_TO_FUNCTION
@@ -1416,3 +1418,104 @@ class FunctionTest(unittest.TestCase):
         assert fn.is_accessible([]) is False
         assert fn.is_accessible(["other_fn"]) is False
         assert fn.is_accessible(["fn"]) is True
+
+
+class ParseSemverSearchTest(TestCase):
+    def test_invalid_params(self):
+        key = "semver"
+        filter = SearchFilter(SearchKey(key), ">", SearchValue("1.2.3"))
+        with pytest.raises(ValueError, match="organization_id is a required param"):
+            parse_semver_search(filter, key, None)
+        with pytest.raises(ValueError, match="organization_id is a required param"):
+            parse_semver_search(filter, key, {"something": 1})
+
+    def test_invalid_query(self):
+        key = "semver"
+        filter = SearchFilter(SearchKey(key), ">", SearchValue("1.2.*"))
+        with pytest.raises(InvalidSearchQuery, match="Invalid format for semver query"):
+            parse_semver_search(filter, key, {"organization_id": self.organization.id})
+
+    def run_test(
+        self, operator, version, expected_operator, expected_releases, organization_id=None
+    ):
+        organization_id = organization_id if organization_id else self.organization.id
+        key = "semver"
+        filter = SearchFilter(SearchKey(key), operator, SearchValue(version))
+        assert parse_semver_search(filter, key, {"organization_id": organization_id}) == [
+            "release",
+            expected_operator,
+            expected_releases,
+        ]
+
+    def test(self):
+        release = self.create_release(version="test@1.2.3")
+        release_2 = self.create_release(version="test@1.2.4")
+        self.run_test(">", "1.2.3", "IN", [release_2.version])
+        self.run_test(">=", "1.2.4", "IN", [release_2.version])
+        self.run_test("<", "1.2.4", "IN", [release.version])
+        self.run_test("<=", "1.2.3", "IN", [release.version])
+
+    def test_invert_query(self):
+        # Tests that flipping the query works and uses a NOT IN. Test all operators to
+        # make sure the inversion works correctly.
+        release = self.create_release(version="test@1.2.3")
+        self.create_release(version="test@1.2.4")
+        release_2 = self.create_release(version="test@1.2.5")
+
+        with patch("sentry.search.events.filter.MAX_SEMVER_SEARCH_RELEASES", 2):
+            self.run_test(">", "1.2.3", "NOT IN", [release.version])
+            self.run_test(">=", "1.2.4", "NOT IN", [release.version])
+            self.run_test("<", "1.2.5", "NOT IN", [release_2.version])
+            self.run_test("<=", "1.2.4", "NOT IN", [release_2.version])
+
+    def test_invert_fails(self):
+        # Tests that when we invert and still receive too many records that we return
+        # as many records we can using IN that are as close to the specified filter as
+        # possible.
+        self.create_release(version="test@1.2.1")
+        release_1 = self.create_release(version="test@1.2.2")
+        release_2 = self.create_release(version="test@1.2.3")
+        release_3 = self.create_release(version="test@1.2.4")
+        self.create_release(version="test@1.2.5")
+
+        with patch("sentry.search.events.filter.MAX_SEMVER_SEARCH_RELEASES", 2):
+            self.run_test(">", "1.2.2", "IN", [release_2.version, release_3.version])
+            self.run_test(">=", "1.2.3", "IN", [release_2.version, release_3.version])
+            self.run_test("<", "1.2.4", "IN", [release_2.version, release_1.version])
+            self.run_test("<=", "1.2.3", "IN", [release_2.version, release_1.version])
+
+    def test_prerelease(self):
+        # Prerelease has weird sorting rules, where an empty string is higher priority
+        # than a non-empty string. Make sure this sorting works
+        release = self.create_release(version="test@1.2.3-alpha")
+        release_1 = self.create_release(version="test@1.2.3-beta")
+        release_2 = self.create_release(version="test@1.2.3")
+        release_3 = self.create_release(version="test@1.2.4-alpha")
+        release_4 = self.create_release(version="test@1.2.4")
+        self.run_test(
+            ">=", "1.2.3", "IN", [release_2.version, release_3.version, release_4.version]
+        )
+        self.run_test(
+            ">=",
+            "1.2.3-beta",
+            "IN",
+            [release_1.version, release_2.version, release_3.version, release_4.version],
+        )
+        self.run_test("<", "1.2.3", "IN", [release_1.version, release.version])
+
+    def test_granularity(self):
+        self.create_release(version="test@1.0.0.0")
+        release_2 = self.create_release(version="test@1.2.0.0")
+        release_3 = self.create_release(version="test@1.2.3.0")
+        release_4 = self.create_release(version="test@1.2.3.4")
+        release_5 = self.create_release(version="test@2.0.0.0")
+        self.run_test(
+            ">",
+            "1",
+            "IN",
+            [release_2.version, release_3.version, release_4.version, release_5.version],
+        )
+        self.run_test(">", "1.2", "IN", [release_3.version, release_4.version, release_5.version])
+        self.run_test(">", "1.2.3", "IN", [release_4.version, release_5.version])
+        self.run_test(">", "1.2.3.4", "IN", [release_5.version])
+        self.run_test(">", "2", "IN", [])

@@ -69,3 +69,13 @@ SNQL_FIELD_ALLOWLIST = {
     "release",
     "environment",
 }
+
+OPERATOR_NEGATION_MAP = {
+    "=": "!=",
+    "<": ">=",
+    "<=": ">",
+    ">": "<=",
+    ">=": "<",
+    "IN": "NOT IN",
+}
+OPERATOR_TO_DJANGO = {">=": "gte", "<=": "lte", ">": "gt", "<": "lt"}
