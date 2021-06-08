@@ -29,6 +29,7 @@ jest.mock('app/utils/localStorage', () => ({
 }));
 
 describe('GlobalSelectionHeader', function () {
+  let wrapper;
   const {organization, router, routerContext} = initializeOrg({
     organization: {features: ['global-views']},
     projects: [
@@ -71,6 +72,7 @@ describe('GlobalSelectionHeader', function () {
   });
 
   afterEach(function () {
+    wrapper.unmount();
     [
       globalActions.updateDateTime,
       globalActions.updateProjects,
@@ -85,7 +87,7 @@ describe('GlobalSelectionHeader', function () {
   });
 
   it('does not update router if there is custom routing', function () {
-    mountWithTheme(
+    wrapper = mountWithTheme(
       <GlobalSelectionHeader organization={organization} hasCustomRouting />,
       routerContext
     );
@@ -93,7 +95,7 @@ describe('GlobalSelectionHeader', function () {
   });
 
   it('does not update router if org in URL params is different than org in context/props', function () {
-    mountWithTheme(
+    wrapper = mountWithTheme(
       <GlobalSelectionHeader organization={organization} hasCustomRouting />,
       {
         ...routerContext,
@@ -107,13 +109,16 @@ describe('GlobalSelectionHeader', function () {
   });
 
   it('does not replace URL with values from store when mounted with no query params', function () {
-    mountWithTheme(<GlobalSelectionHeader organization={organization} />, routerContext);
+    wrapper = mountWithTheme(
+      <GlobalSelectionHeader organization={organization} />,
+      routerContext
+    );
 
     expect(router.replace).not.toHaveBeenCalled();
   });
 
   it('only updates GlobalSelection store when mounted with query params', async function () {
-    mountWithTheme(
+    wrapper = mountWithTheme(
       <GlobalSelectionHeader
         organization={organization}
         params={{orgId: organization.slug}}
@@ -140,7 +145,7 @@ describe('GlobalSelectionHeader', function () {
   });
 
   it('updates environments when switching projects', async function () {
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <GlobalSelectionHeader
         organization={organization}
         projects={organization.projects}
@@ -231,7 +236,7 @@ describe('GlobalSelectionHeader', function () {
       loading: false,
     }));
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <GlobalSelectionHeader
         router={initialData.router}
         organization={initialData.organization}
@@ -251,7 +256,7 @@ describe('GlobalSelectionHeader', function () {
   });
 
   it('updates GlobalSelection store with default period', async function () {
-    mountWithTheme(
+    wrapper = mountWithTheme(
       <GlobalSelectionHeader organization={organization} />,
       changeQuery(routerContext, {
         environment: 'prod',
@@ -278,7 +283,7 @@ describe('GlobalSelectionHeader', function () {
   });
 
   it('updates GlobalSelection store with empty dates in URL', async function () {
-    mountWithTheme(
+    wrapper = mountWithTheme(
       <GlobalSelectionHeader organization={organization} />,
       changeQuery(routerContext, {
         statsPeriod: null,
@@ -303,7 +308,7 @@ describe('GlobalSelectionHeader', function () {
   });
 
   it('resets start&end if showAbsolute prop is false', async function () {
-    mountWithTheme(
+    wrapper = mountWithTheme(
       <GlobalSelectionHeader organization={organization} showAbsolute={false} />,
       changeQuery(routerContext, {
         start: '2020-05-05T07:26:53.000',
@@ -332,7 +337,7 @@ describe('GlobalSelectionHeader', function () {
    * I don't think this test is really applicable anymore
    */
   it('does not update store if url params have not changed', async function () {
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <GlobalSelectionHeader organization={organization} />,
       changeQuery(routerContext, {
         statsPeriod: '7d',
@@ -386,7 +391,7 @@ describe('GlobalSelectionHeader', function () {
       },
     });
 
-    mountWithTheme(
+    wrapper = mountWithTheme(
       <GlobalSelectionHeader organization={initializationObj.organization} />,
       initializationObj.routerContext
     );
@@ -421,7 +426,7 @@ describe('GlobalSelectionHeader', function () {
       },
     });
 
-    mountWithTheme(
+    wrapper = mountWithTheme(
       <GlobalSelectionHeader organization={initializationObj.organization} />,
       initializationObj.routerContext
     );
@@ -445,7 +450,7 @@ describe('GlobalSelectionHeader', function () {
       },
     });
 
-    mountWithTheme(
+    wrapper = mountWithTheme(
       <GlobalSelectionHeader organization={initializationObj.organization} />,
       initializationObj.routerContext
     );
@@ -469,7 +474,7 @@ describe('GlobalSelectionHeader', function () {
       },
     });
 
-    mountWithTheme(
+    wrapper = mountWithTheme(
       <GlobalSelectionHeader organization={initializationObj.organization} />,
       initializationObj.routerContext
     );
@@ -517,7 +522,7 @@ describe('GlobalSelectionHeader', function () {
 
       // This can happen when you switch organization so params.orgId !== the current org in context
       // In this case params.orgId = 'org-slug'
-      const wrapper = mountWithTheme(
+      wrapper = mountWithTheme(
         <GlobalSelectionHeader organization={initialData.organization} />,
         initialData.routerContext
       );
@@ -565,7 +570,7 @@ describe('GlobalSelectionHeader', function () {
         },
       });
 
-      mountWithTheme(
+      wrapper = mountWithTheme(
         <GlobalSelectionHeader organization={initializationObj.organization} />,
         initializationObj.routerContext
       );
@@ -592,7 +597,7 @@ describe('GlobalSelectionHeader', function () {
         },
       });
 
-      mountWithTheme(
+      wrapper = mountWithTheme(
         <GlobalSelectionHeader organization={initializationObj.organization} />,
         initializationObj.routerContext
       );
@@ -606,7 +611,6 @@ describe('GlobalSelectionHeader', function () {
   });
 
   describe('forceProject selection mode', function () {
-    let wrapper;
     beforeEach(function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
@@ -655,7 +659,6 @@ describe('GlobalSelectionHeader', function () {
 
   describe('without global-views (multi-project feature)', function () {
     describe('without existing URL params', function () {
-      let wrapper;
       const initialData = initializeOrg({
         projects: [
           {id: 0, slug: 'random project', isMember: true},
@@ -669,7 +672,7 @@ describe('GlobalSelectionHeader', function () {
       });
 
       const createWrapper = props => {
-        wrapper = mountWithTheme(
+        wrapper = wrapper = mountWithTheme(
           <GlobalSelectionHeader
             params={{orgId: initialData.organization.slug}}
             organization={initialData.organization}
@@ -773,7 +776,6 @@ describe('GlobalSelectionHeader', function () {
     });
 
     describe('with existing URL params', function () {
-      let wrapper;
       const initialData = initializeOrg({
         projects: [
           {id: 0, slug: 'random project', isMember: true},
@@ -790,7 +792,7 @@ describe('GlobalSelectionHeader', function () {
         .mockImplementation(() => initialData.organization.projects);
 
       const createWrapper = props => {
-        wrapper = mountWithTheme(
+        wrapper = wrapper = mountWithTheme(
           <GlobalSelectionHeader
             params={{orgId: initialData.organization.slug}}
             organization={initialData.organization}
@@ -825,7 +827,6 @@ describe('GlobalSelectionHeader', function () {
 
   describe('with global-views (multi-project feature)', function () {
     describe('without existing URL params', function () {
-      let wrapper;
       const initialData = initializeOrg({
         organization: {features: ['global-views']},
         projects: [
@@ -840,7 +841,7 @@ describe('GlobalSelectionHeader', function () {
       });
 
       const createWrapper = (props, ctx) => {
-        wrapper = mountWithTheme(
+        wrapper = wrapper = mountWithTheme(
           <GlobalSelectionHeader
             params={{orgId: initialData.organization.slug}}
             organization={initialData.organization}
@@ -947,7 +948,7 @@ describe('GlobalSelectionHeader', function () {
   });
 
   describe('projects list', function () {
-    let wrapper, memberProject, nonMemberProject, initialData;
+    let memberProject, nonMemberProject, initialData;
     beforeEach(function () {
       memberProject = TestStubs.Project({id: '3', isMember: true});
       nonMemberProject = TestStubs.Project({id: '4', isMember: false});
@@ -968,7 +969,7 @@ describe('GlobalSelectionHeader', function () {
         loading: false,
       }));
 
-      wrapper = mountWithTheme(
+      wrapper = wrapper = mountWithTheme(
         <GlobalSelectionHeader organization={initialData.organization} />,
         initialData.routerContext
       );
@@ -987,7 +988,7 @@ describe('GlobalSelectionHeader', function () {
         },
       };
 
-      wrapper = mountWithTheme(
+      wrapper = wrapper = mountWithTheme(
         <GlobalSelectionHeader organization={initialData.organization} />,
         initialData.routerContext
       );
@@ -1003,7 +1004,7 @@ describe('GlobalSelectionHeader', function () {
 
     it('shows "My Projects" button', async function () {
       initialData.organization.features.push('global-views');
-      wrapper = mountWithTheme(
+      wrapper = wrapper = mountWithTheme(
         <GlobalSelectionHeader
           organization={initialData.organization}
           projects={initialData.organization.projects}
@@ -1029,7 +1030,7 @@ describe('GlobalSelectionHeader', function () {
     it('shows "All Projects" button based on features', async function () {
       initialData.organization.features.push('global-views');
       initialData.organization.features.push('open-membership');
-      wrapper = mountWithTheme(
+      wrapper = wrapper = mountWithTheme(
         <GlobalSelectionHeader
           organization={initialData.organization}
           projects={initialData.organization.projects}
@@ -1054,7 +1055,7 @@ describe('GlobalSelectionHeader', function () {
     it('shows "All Projects" button based on role', async function () {
       initialData.organization.features.push('global-views');
       initialData.organization.role = 'owner';
-      wrapper = mountWithTheme(
+      wrapper = wrapper = mountWithTheme(
         <GlobalSelectionHeader
           organization={initialData.organization}
           projects={initialData.organization.projects}
@@ -1080,7 +1081,7 @@ describe('GlobalSelectionHeader', function () {
       initialData.organization.features.push('global-views');
       initialData.organization.role = 'owner';
 
-      wrapper = mountWithTheme(
+      wrapper = wrapper = mountWithTheme(
         <GlobalSelectionHeader
           organization={initialData.organization}
           projects={initialData.organization.projects}
@@ -1124,7 +1125,7 @@ describe('GlobalSelectionHeader', function () {
     });
 
     it('shows IconProject when no projects are selected', async function () {
-      const wrapper = mountWithTheme(
+      wrapper = mountWithTheme(
         <GlobalSelectionHeader
           organization={initialData.organization}
           projects={initialData.organization.projects}
@@ -1144,7 +1145,7 @@ describe('GlobalSelectionHeader', function () {
     });
 
     it('shows PlatformIcon when one project is selected', async function () {
-      const wrapper = mountWithTheme(
+      wrapper = mountWithTheme(
         <GlobalSelectionHeader
           organization={initialData.organization}
           projects={initialData.organization.projects}
@@ -1165,7 +1166,7 @@ describe('GlobalSelectionHeader', function () {
     });
 
     it('shows multiple PlatformIcons when multiple projects are selected, no more than 5', async function () {
-      const wrapper = mountWithTheme(
+      wrapper = mountWithTheme(
         <GlobalSelectionHeader
           organization={initialData.organization}
           projects={initialData.organization.projects}
