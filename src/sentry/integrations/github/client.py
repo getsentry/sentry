@@ -4,7 +4,6 @@ import sentry_sdk
 
 from sentry.integrations.client import ApiClient
 from sentry.integrations.github.utils import get_jwt
-from sentry.utils import jwt
 
 
 class GitHubClientMixin(ApiClient):
@@ -150,14 +149,13 @@ class GitHubClientMixin(ApiClient):
         return token
 
     def create_token(self):
-        headers = {
-            # TODO(jess): remove this whenever it's out of preview
-            "Accept": "application/vnd.github.machine-man-preview+json",
-        }
-        headers.update(jwt.authorization_header(self.get_jwt()))
         return self.post(
             f"/app/installations/{self.integration.external_id}/access_tokens",
-            headers=headers,
+            headers={
+                "Authorization": b"Bearer %s" % self.get_jwt(),
+                # TODO(jess): remove this whenever it's out of preview
+                "Accept": "application/vnd.github.machine-man-preview+json",
+            },
         )
 
     def check_file(self, repo, path, version):

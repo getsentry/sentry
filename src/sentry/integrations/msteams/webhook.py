@@ -1,6 +1,7 @@
 import logging
 import time
 
+import jwt
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.exceptions import AuthenticationFailed, NotAuthenticated
 
@@ -17,7 +18,7 @@ from sentry.models import (
     Project,
     Rule,
 )
-from sentry.utils import json, jwt
+from sentry.utils import json
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.compat import filter
 from sentry.utils.signing import sign
@@ -82,7 +83,7 @@ def verify_signature(request):
         raise NotAuthenticated("Authorization header required")
 
     try:
-        jwt.peek_claims(token)
+        jwt.decode(token, verify=False)
     except jwt.DecodeError:
         logger.error("msteams.webhook.invalid-token-no-verify")
         raise AuthenticationFailed("Could not decode JWT token")
@@ -97,9 +98,9 @@ def verify_signature(request):
     public_keys = {}
     for jwk in jwks["keys"]:
         kid = jwk["kid"]
-        public_keys[kid] = jwt.rsa_key_from_jwk(json.dumps(jwk))
+        public_keys[kid] = jwt.algorithms.RSAAlgorithm.from_jwk(json.dumps(jwk))
 
-    kid = jwt.peek_header(token)["kid"]
+    kid = jwt.get_unverified_header(token)["kid"]
     key = public_keys[kid]
 
     try:

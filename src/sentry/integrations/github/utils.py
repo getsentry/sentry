@@ -2,8 +2,9 @@ import calendar
 import datetime
 import time
 
+import jwt
+
 from sentry import options
-from sentry.utils import jwt
 
 
 def get_jwt(github_id=None, github_private_key=None):

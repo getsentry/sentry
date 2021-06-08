@@ -1,8 +1,9 @@
 import hashlib
 from urllib.parse import quote
 
+import jwt
+
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.utils import jwt
 
 
 def percent_encode(val):
@@ -41,7 +42,7 @@ def get_jira_auth_from_request(request):
         raise ApiError("No token parameter")
     # Decode the JWT token, without verification. This gives
     # you a header JSON object, a claims JSON object, and a signature.
-    decoded = jwt.peek_claims(token)
+    decoded = jwt.decode(token, verify=False)
     # Extract the issuer ('iss') claim from the decoded, unverified
     # claims object. This is the clientKey for the tenant - an identifier
     # for the Atlassian application making the call

@@ -17,7 +17,6 @@ from sentry.pipeline import PipelineView
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.integrations import migrate_repo
-from sentry.utils import jwt
 
 from .client import GitHubAppsClient
 from .issues import GitHubIssueBasic
@@ -200,13 +199,12 @@ class GitHubIntegrationProvider(IntegrationProvider):
 
     def get_installation_info(self, installation_id):
         session = http.build_session()
-        headers = {
-            # TODO(jess): remove this whenever it's out of preview
-            "Accept": "application/vnd.github.machine-man-preview+json",
-        }
-        headers.update(jwt.authorization_header(get_jwt()))
         resp = session.get(
-            "https://api.github.com/app/installations/%s" % installation_id, headers=headers
+            "https://api.github.com/app/installations/%s" % installation_id,
+            headers={
+                "Authorization": b"Bearer %s" % get_jwt(),
+                "Accept": "application/vnd.github.machine-man-preview+json",
+            },
         )
         resp.raise_for_status()
         installation_resp = resp.json()

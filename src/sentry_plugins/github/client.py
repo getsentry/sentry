@@ -2,8 +2,9 @@ import calendar
 import datetime
 import time
 
+import jwt
+
 from sentry import options
-from sentry.utils import jwt
 from sentry_plugins.client import ApiClient, AuthApiClient
 
 
@@ -116,14 +117,13 @@ class GitHubAppsClient(GitHubClientMixin, ApiClient):
         return self._request(method, path, headers=headers, data=data, params=params)
 
     def create_token(self):
-        headers = {
-            # TODO(jess): remove this whenever it's out of preview
-            "Accept": "application/vnd.github.machine-man-preview+json",
-        }
-        headers.update(jwt.authorization_header(self.get_jwt()))
         return self.post(
             f"/app/installations/{self.integration.external_id}/access_tokens",
-            headers=headers,
+            headers={
+                "Authorization": b"Bearer %s" % self.get_jwt(),
+                # TODO(jess): remove this whenever it's out of preview
+                "Accept": "application/vnd.github.machine-man-preview+json",
+            },
         )
 
     def get_repositories(self):
