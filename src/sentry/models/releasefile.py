@@ -34,6 +34,10 @@ class ReleaseFile(Model):
     name = models.TextField()
     dist = FlexibleForeignKey("sentry.Distribution", null=True)
 
+    #: For release archives, this field contains the number of files within
+    #: the archive.
+    artifact_count = BoundedPositiveIntegerField(null=True, default=1)
+
     __repr__ = sane_repr("release", "ident")
 
     class Meta:
@@ -171,7 +175,10 @@ class ReleaseArchive:
 
 
 def merge_release_archives(archive1: ReleaseArchive, archive2: ReleaseArchive, target: IO):
-    """Fields in archive2 take precedence over fields in archive1."""
+    """Fields in archive2 take precedence over fields in archive1.
+
+    :returns: Number of files in merged archive
+    """
     merged_manifest = dict(archive1.manifest, **archive2.manifest)
     files1 = archive1.manifest.get("files", {})
     files2 = archive2.manifest.get("files", {})
@@ -185,3 +192,5 @@ def merge_release_archives(archive1: ReleaseArchive, archive2: ReleaseArchive, t
             zip_file.writestr(filename, archive1.read(filename))
 
         zip_file.writestr("manifest.json", json.dumps(merged_manifest))
+
+    return len(merged_manifest["files"])

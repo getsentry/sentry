@@ -211,12 +211,12 @@ def _merge_archives(release_file: ReleaseFile, new_file: File, new_archive: Rele
             with lock.blocking_acquire(
                 RELEASE_ARCHIVE_MERGE_INITIAL_DELAY, RELEASE_ARCHIVE_MERGE_TIMEOUT
             ):
-                merge_release_archives(old_archive, new_archive, buffer)
+                file_count = merge_release_archives(old_archive, new_archive, buffer)
 
                 replacement = File.objects.create(name=old_file.name, type=old_file.type)
                 buffer.seek(0)
                 replacement.putfile(buffer)
-                release_file.update(file=replacement)
+                release_file.update(file=replacement, artifact_count=file_count)
 
                 old_file.delete()
 
@@ -305,18 +305,22 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
             if dist_name:
                 dist = release.add_dist(dist_name)
 
+            num_files = len(manifest.get("files", {}))
+
             meta = {  # Required for release file creation
                 "organization_id": organization.id,
                 "release": release,
                 "dist": dist,
             }
 
-            num_files = len(manifest.get("files", {}))
-
             if options.get("processing.save-release-archives"):
                 min_size = options.get("processing.release-archive-min-files")
                 if num_files >= min_size:
-                    kwargs = dict(meta, name=RELEASE_ARCHIVE_FILENAME)
+                    kwargs = dict(
+                        meta,
+                        name=RELEASE_ARCHIVE_FILENAME,
+                        defaults={"artifact_count": num_files},
+                    )
                     _upsert_release_file(bundle, archive, _merge_archives, **kwargs)
 
             # NOTE(jjbayer): Single files are still stored to enable

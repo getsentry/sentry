@@ -5,7 +5,7 @@ from time import time
 
 import sentry_sdk
 from django.db import IntegrityError, models, transaction
-from django.db.models import F
+from django.db.models import F, Func, Sum
 from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
@@ -816,3 +816,18 @@ class Release(Model):
             releasefile.file.delete()
             releasefile.delete()
         self.delete()
+
+    @classmethod
+    def with_artifact_counts(cls, *args, **kwargs):
+        # FIXME: Returns 1 instead of 0 for empty releases
+        return cls.objects.filter(*args, **kwargs).annotate(
+            count=Sum(Func(F("releasefile__artifact_count"), 1, function="COALESCE"))
+        )
+
+    def count_artifacts(self):
+        """Sum the artifact_counts of all release files.
+
+        An artifact count of NULL is interpreted as 1.
+        """
+        qs = Release.with_artifact_counts(pk=self.pk)
+        return qs[0].count

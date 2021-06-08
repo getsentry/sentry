@@ -35,6 +35,20 @@ class ReleaseFileTestCase(TestCase):
         # world, but worth documenting the behavior
         assert n("foo.js") == ["foo.js", "~foo.js"]
 
+    def test_count_artifacts(self):
+        assert self.release.count_artifacts() == 0
+        for count in (3, 1, None, 0):
+            file = self.create_file(name=f"dummy-{count}.txt")
+            ReleaseFile.objects.create(
+                file=file,
+                name=f"dummy-{count}.txt",
+                organization=self.organization,
+                release=self.release,
+                artifact_count=count,
+            )
+
+        assert self.release.count_artifacts() == 5
+
 
 class ReleaseFileCacheTest(TestCase):
     def test_getfile_fs_cache(self):
