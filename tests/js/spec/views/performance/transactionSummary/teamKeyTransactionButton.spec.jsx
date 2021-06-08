@@ -109,7 +109,7 @@ describe('TeamKeyTransactionButton', function () {
     const entries = wrapper.find('DropdownMenuItem');
     expect(entries.length).toBe(2);
     entries.forEach((entry, i) => {
-      expect(entry.text()).toEqual(teams[i].name);
+      expect(entry.text()).toEqual(teams[i].slug);
       expect(entry.find('CheckboxFancy').props().isChecked).toBeTruthy();
     });
   });
@@ -151,7 +151,7 @@ describe('TeamKeyTransactionButton', function () {
     const entries = wrapper.find('DropdownMenuItem');
     expect(entries.length).toBe(2);
     entries.forEach((entry, i) => {
-      expect(entry.text()).toEqual(teams[i].name);
+      expect(entry.text()).toEqual(teams[i].slug);
     });
     expect(entries.at(0).find('CheckboxFancy').props().isChecked).toBeTruthy();
     expect(entries.at(1).find('CheckboxFancy').props().isChecked).toBeFalsy();
@@ -190,7 +190,7 @@ describe('TeamKeyTransactionButton', function () {
     const entries = wrapper.find('DropdownMenuItem');
     expect(entries.length).toBe(2);
     entries.forEach((entry, i) => {
-      expect(entry.text()).toEqual(teams[i].name);
+      expect(entry.text()).toEqual(teams[i].slug);
       expect(entry.find('CheckboxFancy').props().isChecked).toBeFalsy();
     });
   });
@@ -440,7 +440,7 @@ describe('TeamKeyTransactionButton', function () {
     expect(entries.length).toBe(2);
     entries.forEach((entry, i) => {
       expect(entry.props().disabled).toBeTruthy();
-      expect(entry.text()).toEqual(`${teams[i].name}Max ${MAX_TEAM_KEY_TRANSACTIONS}`);
+      expect(entry.text()).toEqual(`${teams[i].slug}Max ${MAX_TEAM_KEY_TRANSACTIONS}`);
     });
   });
 
@@ -477,7 +477,7 @@ describe('TeamKeyTransactionButton', function () {
     expect(entries.length).toBe(2);
     entries.forEach((entry, i) => {
       expect(entry.props().disabled).toBeFalsy();
-      expect(entry.text()).toEqual(teams[i].name);
+      expect(entry.text()).toEqual(teams[i].slug);
       expect(entry.find('CheckboxFancy').props().isChecked).toBeTruthy();
     });
   });
