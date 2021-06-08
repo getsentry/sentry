@@ -11,7 +11,7 @@ async function clickTeamKeyTransactionDropdown(wrapper) {
   wrapper.update();
 }
 
-describe('TeamKeyTransaction', function () {
+describe('TeamKeyTransactionButton', function () {
   const organization = TestStubs.Organization({features: ['performance-view']});
   const project = TestStubs.Project();
   const teams = [

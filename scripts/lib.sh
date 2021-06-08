@@ -69,13 +69,19 @@ start-docker() {
         echo "About to open Docker.app"
         # At a later stage in the script, we're going to execute
         # ensure_docker_server which waits for it to be ready
-        open -g -a Docker.app
+        if ! open -g -a Docker.app; then
+            # If the step above fails, at least we can get some debugging information to determine why
+            sudo-askpass ls -l /Library/PrivilegedHelperTools/com.docker.vmnetd
+            ls -l /Library/LaunchDaemons/
+            cat /Library/LaunchDaemons/com.docker.vmnetd.plist
+            ls -l /Applications/Docker.app
+        fi
     fi
 }
 
 upgrade-pip() {
     # pip versions before 20.1 do not have `pip cache` as a command which is necessary for the CI
-    pip install --no-cache-dir --upgrade "pip>=20.1"
+    pip install --no-cache-dir --upgrade "pip==21.1.2"
     # The Python version installed via pyenv does not come with wheel pre-installed
     # Installing wheel will speed up installation of Python dependencies
     require wheel || pip install wheel
