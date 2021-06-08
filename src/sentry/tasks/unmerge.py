@@ -1,6 +1,7 @@
 import logging
 from collections import OrderedDict, defaultdict
 from functools import reduce
+from typing import Any, Mapping, Optional, Tuple
 
 from django.db import transaction
 
@@ -151,19 +152,16 @@ def get_fingerprint(event):
     return event.get_primary_hash()
 
 
-def migrate_events(caches, project, args: UnmergeArgs, events, locked_primary_hashes):
-    # XXX: This is only actually able to create a destination group and migrate
-    # the group hashes if there are events that can be migrated. How do we
-    # handle this if there aren't any events? We can't create a group (there
-    # isn't any data to derive the aggregates from), so we'd have to mark the
-    # hash as in limbo somehow...?)
-    if not events:
-        eventstream_state = (
-            args.eventstream_state if not isinstance(args, InitialUnmergeArgs) else None
-        )
-        return (args.destination_id, eventstream_state)
-
-    if args.destination_id is None:
+def migrate_events(
+    caches,
+    project,
+    args: UnmergeArgs,
+    events,
+    locked_primary_hashes,
+    opt_destination_id: Optional[int],
+    opt_eventstream_state: Optional[Mapping[str, Any]],
+) -> Tuple[int, Mapping[str, Any]]:
+    if opt_destination_id is None:
         # XXX: There is a race condition here between the (wall clock) time
         # that the migration is started by the user and when we actually
         # get to this block where the new destination is created and we've
@@ -184,11 +182,11 @@ def migrate_events(caches, project, args: UnmergeArgs, events, locked_primary_ha
         destination_id = destination.id
     else:
         # Update the existing destination group.
-        destination = Group.objects.get(id=args.destination_id)
+        destination_id = opt_destination_id
+        destination = Group.objects.get(id=destination_id)
         destination.update(**get_group_backfill_attributes(caches, destination, events))
-        destination_id = args.destination_id
 
-    if isinstance(args, InitialUnmergeArgs) or args.eventstream_state is None:
+    if isinstance(args, InitialUnmergeArgs) or opt_eventstream_state is None:
         eventstream_state = args.replacement.start_snuba_replacement(
             project, args.source_id, destination_id
         )
@@ -212,7 +210,7 @@ def migrate_events(caches, project, args: UnmergeArgs, events, locked_primary_ha
             data={"destination_id": destination_id, **args.replacement.get_activity_args()},
         )
     else:
-        eventstream_state = args.eventstream_state
+        eventstream_state = opt_eventstream_state
 
     event_id_set = {event.event_id for event in events}
 
@@ -480,19 +478,20 @@ def unmerge(*posargs, **kwargs):
     if not events:
         unlock_hashes(args.project_id, locked_primary_hashes)
         if isinstance(args, SuccessiveUnmergeArgs):
-            logger.warning("Unmerge complete (eventstream state: %s)", args.eventstream_state)
-            args.replacement.stop_snuba_replacement(args.eventstream_state)
+            for unmerge_key, (group_id, eventstream_state) in args.destinations.items():
+                logger.warning("Unmerge complete (eventstream state: %s)", eventstream_state)
+                args.replacement.stop_snuba_replacement(eventstream_state)
         return
 
     source_events = []
-    destination_events = []
+    destination_events = {}
 
     for event in events:
-        (
-            destination_events
-            if args.replacement.should_move(event, locked_primary_hashes)
-            else source_events
-        ).append(event)
+        unmerge_key = args.replacement.get_unmerge_key(event, locked_primary_hashes)
+        if unmerge_key is not None:
+            destination_events.setdefault(unmerge_key, []).append(event)
+        else:
+            source_events.append(event)
 
     source_fields_reset = isinstance(args, SuccessiveUnmergeArgs) and args.source_fields_reset
 
@@ -503,9 +502,26 @@ def unmerge(*posargs, **kwargs):
         else:
             source.update(**get_group_backfill_attributes(caches, source, source_events))
 
-    (destination_id, eventstream_state) = migrate_events(
-        caches, project, args, destination_events, locked_primary_hashes
-    )
+    destinations = dict(args.destinations)
+
+    # XXX: This is only actually able to create a destination group and migrate
+    # the group hashes if there are events that can be migrated. How do we
+    # handle this if there aren't any events? We can't create a group (there
+    # isn't any data to derive the aggregates from), so we'd have to mark the
+    # hash as in limbo somehow...?)
+
+    for unmerge_key, _destination_events in destination_events.items():
+        destination_id, eventstream_state = destinations.get(unmerge_key) or (None, None)
+        (destination_id, eventstream_state) = migrate_events(
+            caches,
+            project,
+            args,
+            _destination_events,
+            locked_primary_hashes,
+            destination_id,
+            eventstream_state,
+        )
+        destinations[unmerge_key] = destination_id, eventstream_state
 
     repair_denormalizations(caches, project, events)
 
@@ -516,8 +532,7 @@ def unmerge(*posargs, **kwargs):
         actor_id=args.actor_id,
         batch_size=args.batch_size,
         last_event=last_event,
-        destination_id=destination_id,
-        eventstream_state=eventstream_state,
+        destinations=destinations,
         locked_primary_hashes=locked_primary_hashes,
         source_fields_reset=source_fields_reset,
     )

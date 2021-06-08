@@ -1,12 +1,14 @@
 import abc
 import dataclasses
 from dataclasses import dataclass
-from typing import Any, Collection, Mapping, Optional, Sequence, Union
+from typing import Any, Collection, Mapping, Optional, Sequence, Tuple, Union
 
 from sentry import eventstream
 from sentry.eventstore.models import Event
 from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
+
+_DEFAULT_UNMERGE_KEY = "default"
 
 
 class UnmergeReplacement(abc.ABC):
@@ -30,10 +32,15 @@ class UnmergeReplacement(abc.ABC):
             raise TypeError("Either fingerprints or replacement argument is required.")
 
     @abc.abstractmethod
-    def should_move(self, event: Event, locked_primary_hashes: Collection[str]) -> bool:
+    def get_unmerge_key(
+        self, event: Event, locked_primary_hashes: Collection[str]
+    ) -> Optional[str]:
         """
         The unmerge task iterates through all events of a group. This function
         should return which of them should land in the new group.
+
+        If the issue should be moved, a string should be returned. Events with
+        the same string are moved into the same issue.
         """
 
         raise NotImplementedError()
@@ -69,9 +76,14 @@ class PrimaryHashUnmergeReplacement(UnmergeReplacement):
 
     fingerprints: Collection[str]
 
-    def should_move(self, event: Event, locked_primary_hashes: Collection[str]) -> bool:
+    def get_unmerge_key(
+        self, event: Event, locked_primary_hashes: Collection[str]
+    ) -> Optional[str]:
         primary_hash = event.get_primary_hash()
-        return primary_hash in self.fingerprints and primary_hash in locked_primary_hashes
+        if primary_hash in self.fingerprints and primary_hash in locked_primary_hashes:
+            return _DEFAULT_UNMERGE_KEY
+
+        return None
 
     @property
     def primary_hashes_to_lock(self) -> Collection[str]:
@@ -121,16 +133,23 @@ class UnmergeArgsBase:
     def parse_arguments(
         project_id: int,
         source_id: int,
-        destination_id: int,
+        destination_id: Optional[int],
         fingerprints: Sequence[str],
-        actor_id: int,
+        actor_id: Optional[int],
         last_event: Optional[str] = None,
         batch_size: int = 500,
         source_fields_reset: bool = False,
         eventstream_state: Any = None,
         replacement: Optional[UnmergeReplacement] = None,
         locked_primary_hashes: Optional[Collection[str]] = None,
+        destinations: Optional[Mapping[str, int]] = None,
     ) -> "UnmergeArgs":
+        if destinations is None:
+            if destination_id is not None:
+                destinations = {_DEFAULT_UNMERGE_KEY: (destination_id, eventstream_state)}
+            else:
+                destinations = {}
+
         if last_event is None:
             assert eventstream_state is None
             assert not source_fields_reset
@@ -141,10 +160,10 @@ class UnmergeArgsBase:
                 replacement=UnmergeReplacement.parse_arguments(fingerprints, replacement),
                 actor_id=actor_id,
                 batch_size=batch_size,
-                destination_id=destination_id,
+                destinations=destinations,
             )
         else:
-            assert locked_primary_hashes
+            assert locked_primary_hashes or fingerprints
             return SuccessiveUnmergeArgs(
                 project_id=project_id,
                 source_id=source_id,
@@ -152,15 +171,15 @@ class UnmergeArgsBase:
                 actor_id=actor_id,
                 batch_size=batch_size,
                 last_event=last_event,
-                destination_id=destination_id,
-                eventstream_state=eventstream_state,
-                locked_primary_hashes=locked_primary_hashes,
+                destinations=destinations,
+                locked_primary_hashes=locked_primary_hashes or fingerprints,
                 source_fields_reset=source_fields_reset,
             )
 
     def dump_arguments(self) -> Mapping[str, Any]:
         rv = dataclasses.asdict(self)
         rv["fingerprints"] = None
+        rv["destination_id"] = None
         rv["replacement"] = self.replacement
         return rv
 
@@ -170,7 +189,7 @@ class InitialUnmergeArgs(UnmergeArgsBase):
     # In tests the destination task is passed in explicitly from the outside,
     # so we support unmerging into an existing destination group. In production
     # this does not happen.
-    destination_id: Optional[int]
+    destinations: Mapping[str, Tuple[int, Optional[Mapping[str, Any]]]]
 
 
 @dataclass(frozen=True)
@@ -180,8 +199,8 @@ class SuccessiveUnmergeArgs(UnmergeArgsBase):
 
     # unmerge may only start mutating data on a successive page, once it
     # actually has found an event that needs to be migrated.
-    eventstream_state: Optional[Mapping[Any, Any]]
-    destination_id: Optional[int]
+    # (unmerge_key) -> (group_id, eventstream_state)
+    destinations: Mapping[str, Tuple[int, Optional[Mapping[str, Any]]]]
 
     # likewise unmerge may only find "source" events (events that should not be
     # migrated) on the second page, only then (and only once) it can reset
