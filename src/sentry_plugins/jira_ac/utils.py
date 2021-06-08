@@ -53,7 +53,7 @@ def get_jira_auth_from_request(request):
     jira_auth = JiraTenant.objects.get(client_key=issuer)
     # Verify the signature with the sharedSecret and
     # the algorithm specified in the header's alg field.
-    decoded_verified = jwt.decode(token, jira_auth.secret, algorithms="HS256")
+    decoded_verified = jwt.decode(token, jira_auth.secret)
     # Verify the query has not been tampered by Creating a Query Hash
     # and comparing it against the qsh claim on the verified token.
 

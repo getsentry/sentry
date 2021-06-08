@@ -31,7 +31,7 @@ def get_integration_from_token(token):
     except Integration.DoesNotExist:
         raise ValueError("Could not find integration for token")
     try:
-        jwt.decode(token, integration.metadata["webhook_secret"], algorithms="HS256")
+        jwt.decode(token, integration.metadata["webhook_secret"])
     except Exception as err:
         raise ValueError("Could not validate JWT. Got %s" % err)
 
