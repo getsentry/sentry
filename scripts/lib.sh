@@ -46,6 +46,9 @@ init-docker() {
         xattr -d -r com.apple.quarantine /Applications/Docker.app
 
         # preemptively do docker.app's setup to avoid any gui prompts
+        # This path is not available for brand new MacBooks
+        sudo-askpass /bin/mkdir -p /Library/PrivilegedHelperTools
+        sudo-askpass /bin/chmod 754 /Library/PrivilegedHelperTools
         sudo-askpass /bin/cp /Applications/Docker.app/Contents/Library/LaunchServices/com.docker.vmnetd /Library/PrivilegedHelperTools/
         sudo-askpass /bin/chmod 544 /Library/PrivilegedHelperTools/com.docker.vmnetd
 
