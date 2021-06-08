@@ -90,6 +90,8 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
             "next_release_version": "foobar@2.0.0",
             "sessions_lower_bound": current_formatted_datetime,
             "sessions_upper_bound": current_formatted_datetime,
+            "first_release_version": "foobar@1.0.0",
+            "last_release_version": "foobar@2.0.0",
         }
 
         result = serialize(
@@ -114,6 +116,14 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         assert (
             result["currentProjectMeta"]["sessionsUpperBound"]
             == current_project_meta["sessions_upper_bound"]
+        )
+        assert (
+            result["currentProjectMeta"]["firstReleaseVersion"]
+            == current_project_meta["first_release_version"]
+        )
+        assert (
+            result["currentProjectMeta"]["lastReleaseVersion"]
+            == current_project_meta["last_release_version"]
         )
 
     def test_mobile_version(self):

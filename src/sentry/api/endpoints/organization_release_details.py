@@ -279,6 +279,59 @@ class OrganizationReleaseDetailsPaginationMixin:
             "prev_release_version": next_release_version,
         }
 
+    @staticmethod
+    def __get_top_of_queryset_release_version_based_on_order_by(org, proj_and_env_dict, order_by):
+        """
+        Helper function that executes a query on Release table orders that query based on `order_by`
+        input provided
+        Inputs:-
+            * org: Organization object
+            * proj_and_env_dict: contains only two keys project_id and environment
+            * order_by: Contains columns that are used for ordering to sort based on date
+        Returns:-
+            Release version of the top element of the queryset returned through ordering the Release
+            table by the order_by input
+        """
+        queryset = Release.objects.filter(
+            organization=org, projects__id__in=proj_and_env_dict["project_id"]
+        )
+
+        queryset = add_environment_to_queryset(queryset, proj_and_env_dict)
+
+        return queryset.order_by(*order_by).first().version
+
+    def get_first_and_last_releases(self, org, environment, project_id, sort):
+        """
+        Method that returns the first and last release based on `date_added`
+        Inputs:-
+            * org: organisation object
+            * environment
+            * project_id
+            * sort: sort option i.e. date, sessions, users, crash_free_users and crash_free_sessions
+        Returns:-
+            A dictionary of two keys `first_release_version` and `last_release_version` representing
+            the first ever created release and the last ever created releases respectively
+        """
+        first_release_version = None
+        last_release_version = None
+
+        if sort == "date":
+            proj_and_env_dict = {"project_id": project_id}
+            if environment is not None:
+                proj_and_env_dict["environment"] = environment
+
+            first_release_version = self.__get_top_of_queryset_release_version_based_on_order_by(
+                org=org, proj_and_env_dict=proj_and_env_dict, order_by=["date_added", "id"]
+            )
+            last_release_version = self.__get_top_of_queryset_release_version_based_on_order_by(
+                org=org, proj_and_env_dict=proj_and_env_dict, order_by=["-date_added", "-id"]
+            )
+
+        return {
+            "first_release_version": first_release_version,
+            "last_release_version": last_release_version,
+        }
+
 
 class OrganizationReleaseDetailsEndpoint(
     OrganizationReleasesBaseEndpoint,
@@ -354,7 +407,13 @@ class OrganizationReleaseDetailsEndpoint(
                             sort=sort,
                             status_filter=status_filter,
                             query=query,
-                        )
+                        ),
+                        **self.get_first_and_last_releases(
+                            org=organization,
+                            environment=filter_params.get("environment"),
+                            project_id=[project_id],
+                            sort=sort,
+                        ),
                     }
                 )
             except InvalidSortException:
