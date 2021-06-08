@@ -500,19 +500,17 @@ class Group(Model):
         try:
             release_version = cache.get(cache_key)
             if release_version is None:
-                release = (
-                    GroupRelease.objects.filter(group_id=group_id, project_id=project_id)
-                    .order_by(orderby)
-                    .first()
-                )
-                if release is None:
-                    raise Release.DoesNotExist
-                release_version = Release.objects.get(id=release.release_id).version
+                release_version = Release.objects.get(
+                    id=GroupRelease.objects.filter(group_id=group_id, project_id=project_id)
+                    .order_by(orderby)[:1]
+                    .get()
+                    .release_id
+                ).version
                 cache.set(cache_key, release_version, 3600)
             elif release_version is False:
                 release_version = None
             return release_version
-        except Release.DoesNotExist:
+        except (GroupRelease.DoesNotExist, Release.DoesNotExist):
             cache.set(cache_key, False, 3600)
             return None
 
