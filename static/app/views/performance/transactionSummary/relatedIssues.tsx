@@ -57,6 +57,7 @@ class RelatedIssues extends Component<Props> {
 
     // Filter out key_transaction from being passed to issues as it will cause an error.
     currentFilter.removeTag('key_transaction');
+    currentFilter.removeTag('team_key_transaction');
 
     return {
       path: `/organizations/${organization.slug}/issues/`,

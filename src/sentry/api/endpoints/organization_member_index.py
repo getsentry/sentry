@@ -14,6 +14,7 @@ from sentry.api.validators import AllowedEmailField
 from sentry.app import locks
 from sentry.models import (
     AuditLogEntryEvent,
+    ExternalActor,
     InviteStatus,
     OrganizationMember,
     OrganizationMemberTeam,
@@ -148,6 +149,20 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                         ).distinct()
                     else:
                         queryset = queryset.filter(user__authenticator__isnull=True)
+                elif key == "hasExternalUsers":
+                    hasExternalUsers = "true" in value
+                    if hasExternalUsers:
+                        queryset = queryset.filter(
+                            user__actor_id__in=ExternalActor.objects.filter(
+                                organization=organization
+                            ).values_list("actor_id")
+                        )
+                    else:
+                        queryset = queryset.exclude(
+                            user__actor_id__in=ExternalActor.objects.filter(
+                                organization=organization
+                            ).values_list("actor_id")
+                        )
 
                 elif key == "query":
                     value = " ".join(value)
