@@ -184,7 +184,6 @@ class AssembleDifTest(BaseAssembleTest):
 class AssembleArtifactsTest(BaseAssembleTest):
     def setUp(self):
         super().setUp()
-        self.release = self.create_release(version="my-unique-release.1")
 
     def test_artifacts(self):
         bundle_file = self.create_artifact_bundle()
@@ -198,6 +197,8 @@ class AssembleArtifactsTest(BaseAssembleTest):
                     "processing.release-archive-min-files": 1,
                 }
             ):
+
+                ReleaseFile.objects.filter(release=self.release).delete()
 
                 assert self.release.count_artifacts() == 0
 
