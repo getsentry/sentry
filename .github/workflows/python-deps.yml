@@ -53,5 +53,4 @@ jobs:
         run: |
           python -m venv .venv
           source .venv/bin/activate
-          pip install wheel
           make install-py-dev
