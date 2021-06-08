@@ -1,3 +1,54 @@
+"""Sentry API to manage the App Store Connect credentials for a project.
+
+There are currently two sets of credentials required:
+- API credentials
+- iTunes credentials
+
+Note that for the iTunes credential Sentry needs to keep a session alive, which typically
+lasts 10-14 days.  The UI may need to re-fresh these using endpoints 2-4 at regular
+intervals.
+
+To create and manage these credentials, several API endpoints exist:
+
+1. ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/apps/``
+
+   This will validate the API credentials and return the list of available applications if
+   valid, or 401 if invalid.  See :class:`AppStoreConnectAppsEndpoint`.
+
+2. ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/start/``
+
+   This starts an iTunes login, either brand new credentials or re-authenticate an existing
+   session.  The user will be prompted with a 2FA code on their device, jump to endpoint 4.
+   See :class:`AppStoreConnectStartAuthEndpoint`.
+
+3. ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/requestSms/``
+
+   If after endpoint 2 the user wants to receive the 2FA code with SMS instead, call this.
+   See :class:`AppStoreConnectRequestSmsmEndpoint`.
+
+4. ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/2fa/``
+
+   Complete the 2FA iTunes authentication stated in endpoint 2 by verifying the 2FA code.
+   See :class:`AppStoreConnect2FactorAuthEndpoint`.
+
+5. ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/``
+
+   Finalise complete authentication, returns full ``symbolSource`` settings to be saved in
+   the project details.  This includes an ``id`` which identifies this set of credentials
+   and can be used in e.g. endpoint 6 and 7.  See
+   :class:`AppStoreConnectCreateCredentialsEndpoint`.
+
+6. ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/{id}/``
+
+   Update a subset of the full credentials normally saved in endpoint 5.  Like endpoint 5 it
+   returns the entire symbol source JSON config to be saved in project details.  See
+   :class:`AppStoreConnectUpdateCredentialsEndpoint`.
+
+7. ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/validate/{id}/``
+
+   Validate if an existing iTunes session is still active or if a new one needs to be
+   initiated by steps 2-4.
+"""
 from uuid import uuid4
 
 import requests
@@ -12,21 +63,28 @@ from sentry.utils.appleconnect import appstore_connect, itunes_connect
 from sentry.utils.appleconnect.itunes_connect import ITunesHeaders
 from sentry.utils.safe import get_path
 
+# The property name of the project option which contains the encryption key.
+#
+# This key is what is used to encrypt the secrets before storing them in the project
+# options.  Specifically the ``sessionContext``, ``itunesPassword`` and
+# ``appconnectPrivateKey`` are currently encrypted using this key.
+CREDENTIALS_KEY_NAME = "sentry:appleconnect_key"
 
-def credentials_key_name():
-    return "sentry:appleconnect_key"
+
+# The key in the project options under which all symbol sources are stored.
+SYMBOL_SOURCES_PROP_NAME = "sentry:symbol_sources"
 
 
-def symbol_sources_prop_name():
-    return "sentry:symbol_sources"
-
-
-def app_store_connect_feature_name():
-    return "organizations:app-store-connect"
+# The name of the feature flag which enables the App Store Connect symbol source.
+APP_STORE_CONNECT_FEATURE_NAME = "organizations:app-store-connect"
 
 
 def get_app_store_credentials(project, credentials_id):
-    sources_config = project.get_option(symbol_sources_prop_name())
+    """Loads the appStoreConnect symbol source from project options.
+
+    Returns the JSON of the matching appStoreConnect symbol source as it was stored.
+    """
+    sources_config = project.get_option(SYMBOL_SOURCES_PROP_NAME)
 
     if credentials_id is None:
         return None
@@ -44,9 +102,7 @@ def get_app_store_credentials(project, credentials_id):
 
 
 class AppStoreConnectCredentialsSerializer(serializers.Serializer):
-    """
-    Serializer for the App Store Connect (Rest) credentials
-    """
+    """Input validation for :class:`AppStoreConnectAppsEndpoint."""
 
     # an IID with the XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX format
     appconnectIssuer = serializers.CharField(max_length=36, min_length=36, required=True)
@@ -57,7 +113,39 @@ class AppStoreConnectCredentialsSerializer(serializers.Serializer):
 
 
 class AppStoreConnectAppsEndpoint(ProjectEndpoint):
-    """
+    """Retrieves available applications with provided credentials.
+
+    ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/apps/``
+
+    ```json
+    {
+        "appconnectIssuer": "abc123de-7744-7777-b032-5b8c7aaaa4d1",
+        "appconnectKey": "ABC123DEFG",
+        "appconnectPrivateKey": "----BEGIN PRIVATE KEY-...-END PRIVATE KEY----"
+    }
+    ```
+    See :class:`AppStoreConnectCredentialsSerializer` for input validation.
+
+    Practically this is also the validation for the credentials, if they are invalid 401 is
+    returned, otherwise the applications are returned as:
+
+    ```json
+    {
+        "apps": [
+            {
+                "name":"Sentry Cocoa Sample iOS Swift",
+                "bundleId":"io.sentry.sample.iOS-Swift",
+                "appId": "1549832463",
+            },
+            {
+                "name":"Sentry React Native Test",
+                "bundleId":"io.sentry.react-native-test",
+                "appId": "1268541530",
+            },
+        ]
+    }
+    ```
+
     This endpoint returns the applications defined for an account
     It also serves to validate that credentials for App Store connect are valid
     """
@@ -66,7 +154,7 @@ class AppStoreConnectAppsEndpoint(ProjectEndpoint):
 
     def post(self, request, project):
         if not features.has(
-            app_store_connect_feature_name(), project.organization, actor=request.user
+            APP_STORE_CONNECT_FEATURE_NAME, project.organization, actor=request.user
         ):
             return Response(status=404)
 
@@ -95,9 +183,7 @@ class AppStoreConnectAppsEndpoint(ProjectEndpoint):
 
 
 class AppStoreCreateCredentialsSerializer(serializers.Serializer):
-    """
-    Serializer for the full Apple connect credentials AppStoreConnect + ITunes
-    """
+    """Input validation for :class:`AppStoreConnectCreateCredentialsEndpoint`."""
 
     # an IID with the XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX format
     appconnectIssuer = serializers.CharField(max_length=36, min_length=36, required=True)
@@ -116,11 +202,32 @@ class AppStoreCreateCredentialsSerializer(serializers.Serializer):
 
 
 class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):
+    """Returns all the App Store Connect symbol source settings ready to be saved.
+
+    ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/``
+
+    See :class:`AppStoreCreateCredentialsSerializer` for the format of the input.  Note that
+    the `sessionContext` field must be as returned from a call to
+    :class:`AppStoreConnect2FactorAuthEndpoint` aka
+    ``projects/{org_slug}/{proj_slug}/appstoreconnect/2fa/`` so you must have gone through
+    the iTunes login steps (endpoints 2-4 in module doc string).
+
+    The returned JSON contains an ``id`` field which can be used in other endpoints to refer
+    to this set of credentials.
+
+    Credentials as saved using the ``symbolSources`` field under project details page
+    (:class:`ProjectDetailsEndpoint` in :file:`src/sentry/api/endpoints/project_details.py`)
+    which contains a JSON blob containing all the symbol sources.
+
+    The UI itself is responsible for posting this blob, but this endpoint must be called
+    first with the results of authenticating to get the correct JSON format to save.
+    """
+
     permission_classes = [StrictProjectPermission]
 
     def post(self, request, project):
         if not features.has(
-            app_store_connect_feature_name(), project.organization, actor=request.user
+            APP_STORE_CONNECT_FEATURE_NAME, project.organization, actor=request.user
         ):
             return Response(status=404)
 
@@ -129,7 +236,7 @@ class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        key = project.get_option(credentials_key_name())
+        key = project.get_option(CREDENTIALS_KEY_NAME)
 
         if key is None:
             # probably stage 1 login was not called
@@ -146,8 +253,8 @@ class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):
             itunes_session = validation_context.get("itunes_session")
             encrypted = {
                 "itunesSession": itunes_session,
-                "itunesPassword": credentials.pop("itunesPassword"),
-                "appconnectPrivateKey": credentials.pop("appconnectPrivateKey"),
+                "itunesPassword": credentials.get("itunesPassword"),
+                "appconnectPrivateKey": credentials.get("appconnectPrivateKey"),
             }
             credentials["encrypted"] = encrypt.encrypt_object(encrypted, key)
             credentials["type"] = "appStoreConnect"
@@ -160,9 +267,7 @@ class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):
 
 
 class AppStoreUpdateCredentialsSerializer(serializers.Serializer):
-    """
-    Serializer for the full Apple connect credentials AppStoreConnect + ITunes
-    """
+    """Input validation for :class:`AppStoreConnectUpdateCredentialsEndpoint`."""
 
     # an IID with the XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX format
     appconnectIssuer = serializers.CharField(max_length=36, min_length=36, required=False)
@@ -181,11 +286,23 @@ class AppStoreUpdateCredentialsSerializer(serializers.Serializer):
 
 
 class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):
+    """Updates a subset of the existing credentials.
+
+    ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/{id}/``
+
+    See :class:`AppStoreUpdateCredentialsSerializer` for the input format.
+
+    This is like :class:`AppStoreConnectCreateCredentialsEndpoint` aka
+    ``projects/{org_slug}/{proj_slug}/appstoreconnect/{id}/`` but allows you to only provide
+    a sub-set.  This is most useful when you had to refresh the iTunes session using
+    endpoints 2-4 (see module docstring), as you can only supply the `sessionContext`.
+    """
+
     permission_classes = [StrictProjectPermission]
 
     def post(self, request, project, credentials_id):
         if not features.has(
-            app_store_connect_feature_name(), project.organization, actor=request.user
+            APP_STORE_CONNECT_FEATURE_NAME, project.organization, actor=request.user
         ):
             return Response(status=404)
 
@@ -196,7 +313,7 @@ class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):
 
         # get the existing credentials
         credentials = get_app_store_credentials(project, credentials_id)
-        key = project.get_option(credentials_key_name())
+        key = project.get_option(CREDENTIALS_KEY_NAME)
 
         if key is None or credentials is None:
             return Response(status=404)
@@ -246,6 +363,22 @@ class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):
 
 
 class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):
+    """Validates both API credentials and if the stored iTunes session is still active.
+
+    ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/validate/{id}/``
+
+    See :class:`AppStoreConnectCreateCredentialsEndpoint` aka
+    ``projects/{org_slug}/{proj_slug}/appstoreconnect/`` for how to retrieve the ``id``.
+
+    Response:
+    ```json
+    {
+        "appstoreCredentialsValid": true,
+        "itunesSessionValid": true,
+    }
+    ```
+    """
+
     permission_classes = [StrictProjectPermission]
 
     def get_result(self, app_store: bool, itunes: bool):
@@ -256,12 +389,12 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):
 
     def get(self, request, project, credentials_id):
         if not features.has(
-            app_store_connect_feature_name(), project.organization, actor=request.user
+            APP_STORE_CONNECT_FEATURE_NAME, project.organization, actor=request.user
         ):
             return Response(status=404)
 
         credentials = get_app_store_credentials(project, credentials_id)
-        key = project.get_option(credentials_key_name())
+        key = project.get_option(CREDENTIALS_KEY_NAME)
 
         if key is None or credentials is None:
             return Response(status=404)
@@ -296,9 +429,7 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):
 
 
 class AppStoreConnectStartAuthSerializer(serializers.Serializer):
-    """
-    Serializer for the Itunes start connect operation
-    """
+    """Input validation for :class:`AppStoreConnectStartAuthEndpoint."""
 
     itunesUser = serializers.CharField(max_length=100, min_length=1, required=False)
     itunesPassword = serializers.CharField(max_length=512, min_length=1, required=False)
@@ -306,11 +437,46 @@ class AppStoreConnectStartAuthSerializer(serializers.Serializer):
 
 
 class AppStoreConnectStartAuthEndpoint(ProjectEndpoint):
+    """Starts iTunes login sequence.
+
+    ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/start/``
+
+    When creating a brand new session:
+    ```json
+    {
+        "itunesUser": "someone@example.net",
+        "itunesPassword": "secret"
+    }
+    ```
+    If you want to refresh an existing session you can use the ``id`` as created by
+    :class:`AppStoreConnectCreateCredentialsEndpoint`
+    (``projects/{org_slug}/{proj_slug}/appstoreconnect/``) instead:
+    ```json
+    {
+        "id": "xxxx"
+    }
+    ```
+
+    After calling this the user will be prompted with a 2FA code on their device.  This code
+    must be provided using the :class:`AppStoreConnect2FactorAuthEndpoint`
+    (``projects/{org_slug}/{proj_slug}/appstoreconnect/2fa/``).  Alternatively this can be
+    followed up with a call to :class:`AppStoreConnectRequestSmsEndpoint`
+    (``projects/{org_slug}/{proj_slug}/appstoreconnect/requestSms/``) to receive the 2FA
+    code via SMS instead.
+
+    In either case both those calls **must** include the ``sessionContext`` as returned by
+    the response to this endpoint:
+    ```json
+    {
+        "sessionContext": "xxxx"
+    }
+    """
+
     permission_classes = [StrictProjectPermission]
 
     def post(self, request, project):
         if not features.has(
-            app_store_connect_feature_name(), project.organization, actor=request.user
+            APP_STORE_CONNECT_FEATURE_NAME, project.organization, actor=request.user
         ):
             return Response(status=404)
 
@@ -322,12 +488,12 @@ class AppStoreConnectStartAuthEndpoint(ProjectEndpoint):
         password = serializer.validated_data.get("itunesPassword")
         credentials_id = serializer.validated_data.get("id")
 
-        key = project.get_option(credentials_key_name())
+        key = project.get_option(CREDENTIALS_KEY_NAME)
 
         if key is None:
             # no encryption key for this project, create one
             key = encrypt.create_key()
-            project.update_option(credentials_key_name(), key)
+            project.update_option(CREDENTIALS_KEY_NAME, key)
         else:
             # we have an encryption key, see if the credentials were not
             # supplied and we just want to re validate the session
@@ -380,15 +546,34 @@ class AppStoreConnectStartAuthEndpoint(ProjectEndpoint):
 
 
 class AppStoreConnectRequestSmsSerializer(serializers.Serializer):
+    """Input validation for :class:`AppStoreConnectRequestSmsEndpoint`."""
+
     sessionContext = serializers.CharField(min_length=1, required=True)
 
 
 class AppStoreConnectRequestSmsEndpoint(ProjectEndpoint):
+    """Switches an iTunes login to using SMS for 2FA.
+
+    You must have called :class:`AppStoreConnectStartAuthEndpoint`
+    (``projects/{org_slug}/{proj_slug}/appstoreconnect/start/``) before calling this and
+    provide the ``sessionContext`` from that response in the request body:
+    ```json
+    {
+        "sessionContext": "xxxx"
+    }
+    ```
+
+    The response will contain a new ``sessionContext`` which must be used in the call to
+    :class:`AppStoreConnect2FactorAuthEndpoint`
+    (``projects/{org_slug}/{proj_slug}/appstoreconnect/2fa/``) to complete the login of this
+    iTunes session.
+    """
+
     permission_classes = [StrictProjectPermission]
 
     def post(self, request, project):
         if not features.has(
-            app_store_connect_feature_name(), project.organization, actor=request.user
+            APP_STORE_CONNECT_FEATURE_NAME, project.organization, actor=request.user
         ):
             return Response(status=404)
 
@@ -400,7 +585,7 @@ class AppStoreConnectRequestSmsEndpoint(ProjectEndpoint):
         session = requests.Session()
 
         encrypted_context = serializer.validated_data.get("sessionContext")
-        key = project.get_option(credentials_key_name())
+        key = project.get_option(CREDENTIALS_KEY_NAME)
 
         if key is None:
             return Response(
@@ -444,17 +629,59 @@ class AppStoreConnectRequestSmsEndpoint(ProjectEndpoint):
 
 
 class AppStoreConnect2FactorAuthSerializer(serializers.Serializer):
+    """Input validation for :class:`AppStoreConnect2FactorAuthEndpoint."""
+
     code = serializers.CharField(max_length=10, required=True)
     useSms = serializers.BooleanField(required=True)
     sessionContext = serializers.CharField(min_length=1, required=True)
 
 
 class AppStoreConnect2FactorAuthEndpoint(ProjectEndpoint):
+    """Completes the 2FA iTunes login, returning a valid session.
+
+    The request most contain the code provided by the user as well as the ``sessionContext``
+    provided by either the :class:`AppStoreConnectStartAuthEndpoint`
+    (``projects/{org_slug}/{proj_slug}/appstoreconnect/start/``) call or the
+    :class:`AppStoreConnectRequestSmsmEndpoint`
+    (``projects/{org_slug}/{proj_slug}/appstoreconnect/requestSms/``) call:
+    ```json
+    {
+        "code": "324784",
+        "useSms": false,
+        "sessionContext": "xxxx",
+    }
+    ```
+
+    If the login was successful this will return:
+    ```json
+    {
+        "sessionContext": "xxxx",
+        "organizations": [
+            { "name": "My org", "organizationId": 1234},
+            { "name": "Org 2", "organizationId": 4423}
+        ]
+    }
+    ```
+
+    Note that the ``sessionContext`` **is different** from the one passed in, it must be
+    passed to :class:`AppStoreConnectCreateCredentialsEndpoint`
+    (``projects/{org_slug}/{proj_slug}/appstoreconnect/``).
+
+    If multiple organisations are returned the user must choose one and this must be
+    provided as ``orgId`` and ``OrgName`` in the
+    :class:`AppStoreConnectCreateCredentialsEndpoint`
+    (``projects/{org_slug}/{proj_slug}/appstoreconnect/``)
+
+    If refreshing a session instead of creating a new one only the ``sessionContext`` needs
+    to be updated uinsg :class:`AppStoreConnectUpdateCredentialsEndpoint`
+    (``projects/{org_slug}/{proj_slug}/appstoreconnect/{id}/``).
+    """
+
     permission_classes = [StrictProjectPermission]
 
     def post(self, request, project):
         if not features.has(
-            app_store_connect_feature_name(), project.organization, actor=request.user
+            APP_STORE_CONNECT_FEATURE_NAME, project.organization, actor=request.user
         ):
             return Response(status=404)
 
@@ -463,7 +690,7 @@ class AppStoreConnect2FactorAuthEndpoint(ProjectEndpoint):
             return Response(serializer.errors, status=400)
 
         encrypted_context = serializer.validated_data.get("sessionContext")
-        key = project.get_option(credentials_key_name())
+        key = project.get_option(CREDENTIALS_KEY_NAME)
         use_sms = serializer.validated_data.get("useSms")
         code = serializer.validated_data.get("code")
 
