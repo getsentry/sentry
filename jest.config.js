@@ -36,6 +36,7 @@ module.exports = {
     'tests/js/spec/**/*.{js,jsx,tsx}',
     'static/app/**/*.{js,jsx,ts,tsx}',
   ],
+  coverageProvider: 'v8',
   coverageReporters: ['html', 'cobertura'],
   coverageDirectory: '.artifacts/coverage',
   snapshotSerializers: ['enzyme-to-json/serializer'],
