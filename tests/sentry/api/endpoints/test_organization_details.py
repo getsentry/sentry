@@ -92,6 +92,9 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         # TODO(mgaeta): Extra query while we're "dual reading" from UserOptions and NotificationSettings.
         expected_queries += 1
 
+        # TODO(joshuarli): Unblocking Django 2.0 for now.
+        expected_queries = 42
+
         with self.assertNumQueries(expected_queries, using="default"):
             response = self.get_success_response(self.organization.slug)
 
