@@ -1372,16 +1372,14 @@ describe('IssueList', function () {
   });
 
   describe('render states', function () {
-    beforeEach(function () {
-      wrapper = mountWithTheme(<IssueListOverview {...props} />);
-    });
-
     it('displays the loading icon', function () {
+      wrapper = mountWithTheme(<IssueListOverview {...props} />);
       wrapper.setState({savedSearchLoading: true});
       expect(wrapper.find('LoadingIndicator')).toHaveLength(1);
     });
 
     it('displays an error', function () {
+      wrapper = mountWithTheme(<IssueListOverview {...props} />);
       wrapper.setState({
         error: 'Things broke',
         savedSearchLoading: false,
@@ -1394,6 +1392,7 @@ describe('IssueList', function () {
     });
 
     it('displays congrats robots animation with only is:unresolved query', async function () {
+      wrapper = mountWithTheme(<IssueListOverview {...props} />);
       wrapper.setState({
         savedSearchLoading: false,
         issuesLoading: false,
