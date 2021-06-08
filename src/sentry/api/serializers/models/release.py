@@ -458,6 +458,10 @@ class ReleaseSerializer(Serializer):
                 rv["nextReleaseVersion"] = current_project_meta["next_release_version"]
             if "prev_release_version" in current_project_meta:
                 rv["prevReleaseVersion"] = current_project_meta["prev_release_version"]
+            if "first_release_version" in current_project_meta:
+                rv["firstReleaseVersion"] = current_project_meta["first_release_version"]
+            if "last_release_version" in current_project_meta:
+                rv["lastReleaseVersion"] = current_project_meta["last_release_version"]
             return rv
 
         d = {
