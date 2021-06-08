@@ -92,7 +92,6 @@ jobs:
           eval "$(pyenv init --path)"
           python -m venv .venv
           source .venv/bin/activate
-          pip install wheel
           make bootstrap
 
       - name: Test direnv
