@@ -94,6 +94,7 @@ class ColumnEditModal extends Component<Props, State> {
             columns={this.state.columns}
             fieldOptions={fieldOptions}
             onChange={this.handleChange}
+            organization={organization}
           />
         </Body>
         <Footer>

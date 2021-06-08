@@ -208,7 +208,7 @@ type CreateAlertFromViewButtonProps = React.ComponentProps<typeof Button> & {
 
 function incompatibleYAxis(eventView: EventView): boolean {
   const column = explodeFieldString(eventView.getYAxis());
-  if (column.kind === 'field') {
+  if (column.kind === 'field' || column.kind === 'equation') {
     return true;
   }
 
