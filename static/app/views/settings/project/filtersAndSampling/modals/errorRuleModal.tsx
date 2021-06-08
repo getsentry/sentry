@@ -26,10 +26,10 @@ class ErrorRuleModal extends Form<Props, State> {
     const {rule} = this.props;
 
     if (rule) {
-      return t('Edit a custom rule for errors');
+      return t('Edit Error Sampling Rule');
     }
 
-    return t('Add a custom rule for errors');
+    return t('Add Error Sampling Rule');
   }
 
   geTransactionFieldDescription() {

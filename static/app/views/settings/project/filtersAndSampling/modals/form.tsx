@@ -5,10 +5,8 @@ import omit from 'lodash/omit';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
-import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
-import {IconInfo} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
@@ -28,7 +26,7 @@ import handleXhrErrorResponse from './handleXhrErrorResponse';
 import {isLegacyBrowser, Transaction} from './utils';
 
 const transactionChoices = [
-  [Transaction.ALL, t('All')],
+  [Transaction.ALL, t('Include All')],
   [Transaction.MATCH_CONDITIONS, t('Match Conditions')],
 ] as Array<[string, string]>;
 
@@ -348,11 +346,10 @@ class Form<P extends Props = Props, S extends State = State> extends React.Compo
 
     return (
       <React.Fragment>
-        <Header closeButton>{this.getModalTitle()}</Header>
+        <Header closeButton>
+          <h4>{this.getModalTitle()}</h4>
+        </Header>
         <Body>
-          <Alert type="info" icon={<IconInfo size="md" />}>
-            {t('A new rule may take a few minutes to propagate.')}
-          </Alert>
           <Fields>
             {this.getExtraFields()}
             <RadioField
@@ -365,6 +362,7 @@ class Form<P extends Props = Props, S extends State = State> extends React.Compo
               hideControlState
               showHelpInTooltip
               stacked
+              required
             />
             {transaction !== Transaction.ALL && (
               <ConditionFields
@@ -406,7 +404,7 @@ class Form<P extends Props = Props, S extends State = State> extends React.Compo
               onClick={this.handleSubmit}
               disabled={submitDisabled}
             >
-              {t('Save')}
+              {t('Save Rule')}
             </Button>
           </ButtonBar>
         </Footer>

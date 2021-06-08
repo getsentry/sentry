@@ -67,10 +67,10 @@ class TransactionRuleModal extends Form<Props, State> {
     const {rule} = this.props;
 
     if (rule) {
-      return t('Edit a custom rule for transactions');
+      return t('Edit Transaction Sampling Rule');
     }
 
-    return t('Add a custom rule for transactions');
+    return t('Add Transaction Sampling Rule');
   }
 
   geTransactionFieldDescription() {

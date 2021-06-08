@@ -10,23 +10,7 @@ export const modalCss = css`
   }
 
   @media (min-width: ${theme.breakpoints[0]}) {
-    width: 95%;
-  }
-
-  @media (min-width: ${theme.breakpoints[1]}) {
-    width: 75%;
-  }
-
-  @media (min-width: ${theme.breakpoints[2]}) {
-    width: 65%;
-  }
-
-  @media (min-width: ${theme.breakpoints[3]}) {
-    width: 55%;
-  }
-
-  @media (min-width: ${theme.breakpoints[4]}) {
-    width: 45%;
+    width: 750px;
   }
 `;
 
