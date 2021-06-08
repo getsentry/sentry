@@ -1,15 +1,15 @@
-name: python versions
+name: python deps
 on:
   pull_request:
     paths:
-    - '.github/workflows/python-versions.yml'
+    - '.github/workflows/python-deps.yml'
     - 'requirements*'
 
 jobs:
   # This workflow makes sure that Python dependencies install correctly for
   # a) our current version b) the next version we're targetting
-  python-versions:
-    name: set up
+  python-deps:
+    name: install
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     strategy:
@@ -45,9 +45,9 @@ jobs:
           path: |
             ${{ steps.pip.outputs.pip-cache-dir }}
           key: |
-            python-versions-${{ matrix.os }}-py${{ matrix.python-version }}-${{ hashFiles('requirements-*.txt') }}
+            python-deps-${{ matrix.os }}-py${{ matrix.python-version }}-${{ hashFiles('requirements-*.txt') }}
           restore-keys: |
-            python-versions-${{ matrix.os }}-py${{ matrix.python-version }}
+            python-deps-${{ matrix.os }}-py${{ matrix.python-version }}
 
       - name: Install dependencies
         run: |
