@@ -77,7 +77,8 @@ function SymbolSources({api, organization, symbolSources, projectSlug}: Props) {
     if (
       !hasAppConnectStoreFeatureFlag ||
       !appStoreConnectContext ||
-      Object.keys(appStoreConnectContext).every(key => appStoreConnectContext[key])
+      (appStoreConnectContext.appstoreCredentialsValid &&
+        appStoreConnectContext.itunesSessionValid)
     ) {
       return {value: symbolSources};
     }
