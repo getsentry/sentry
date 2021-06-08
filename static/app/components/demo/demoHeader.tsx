@@ -1,6 +1,5 @@
 import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
-import Cookies from 'js-cookie';
 
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
@@ -12,6 +11,8 @@ import space from 'app/styles/space';
 import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
 import getCookie from 'app/utils/getCookie';
 
+type Preferences = typeof PreferencesStore.prefs;
+
 export default function DemoHeader() {
   // if the user came from a SaaS org, we should send them back to upgrade when they leave the sandbox
   const saasOrgSlug = getCookie('saas_org_slug');
@@ -20,9 +21,7 @@ export default function DemoHeader() {
     ? `https://sentry.io/settings/${saasOrgSlug}/billing/checkout/`
     : 'https://sentry.io/signup/';
 
-  const [collapsed, setCollapsed] = useState(Cookies.get('sidebar_collapsed') === '1');
-
-  type Preferences = typeof PreferencesStore.prefs;
+  const [collapsed, setCollapsed] = useState(!PreferencesStore.prefs.collapsed);
 
   const preferenceUnsubscribe = PreferencesStore.listen(
     (preferences: Preferences) => onPreferenceChange(preferences),
