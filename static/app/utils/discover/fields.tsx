@@ -615,9 +615,14 @@ export function getAggregateArg(field: string): string | null {
 
 // `|` is an invalid field character, so it is used to determine whether a field is an equation or not
 const EQUATION_PREFIX = 'equation|';
+const EQUATION_ALIAS_PATTERN = /^equation\[\d+\]$/;
 
 export function isEquation(field: string): boolean {
   return field.startsWith(EQUATION_PREFIX);
+}
+
+export function isEquationAlias(field: string): boolean {
+  return EQUATION_ALIAS_PATTERN.test(field);
 }
 
 export function getEquation(field: string): string {
