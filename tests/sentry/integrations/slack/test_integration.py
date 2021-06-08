@@ -12,23 +12,11 @@ from sentry.models import (
     Integration,
     OrganizationIntegration,
 )
-from sentry.testutils import IntegrationTestCase, TestCase
+from sentry.testutils import APITestCase, IntegrationTestCase, TestCase
 
 
 class SlackIntegrationTest(IntegrationTestCase):
     provider = SlackIntegrationProvider
-
-    def setUp(self):
-        super().setUp()
-        # create a second user for whom to create an Identity in post_install
-        self.user2 = self.create_user("foo@example.com")
-        self.member = self.create_member(
-            user=self.user2,
-            email="foo@example.com",
-            organization=self.organization,
-            role="manager",
-            teams=[self.team],
-        )
 
     def assert_setup_flow(
         self,
@@ -36,7 +24,6 @@ class SlackIntegrationTest(IntegrationTestCase):
         authorizing_user_id="UXXXXXXX1",
         expected_client_id="slack-client-id",
         expected_client_secret="slack-client-secret",
-        multiple_users=False,
     ):
         responses.reset()
 
@@ -69,17 +56,6 @@ class SlackIntegrationTest(IntegrationTestCase):
 
         responses.add(
             responses.GET,
-            "https://slack.com/api/team.info",
-            json={
-                "ok": True,
-                "team": {
-                    "domain": "test-slack-workspace",
-                    "icon": {"image_132": "http://example.com/ws_icon.jpg"},
-                },
-            },
-        )
-        responses.add(
-            responses.GET,
             "https://slack.com/api/users.lookupByEmail/",
             json={
                 "ok": True,
@@ -92,21 +68,17 @@ class SlackIntegrationTest(IntegrationTestCase):
                 },
             },
         )
-        if multiple_users:
-            responses.add(
-                responses.GET,
-                "https://slack.com/api/users.lookupByEmail/",
-                json={
-                    "ok": True,
-                    "user": {
-                        "id": "UXXXXXXX2",
-                        "team_id": "TXXXXXXX1",
-                        "profile": {
-                            "email": self.user2.email,
-                        },
-                    },
+        responses.add(
+            responses.GET,
+            "https://slack.com/api/team.info",
+            json={
+                "ok": True,
+                "team": {
+                    "domain": "test-slack-workspace",
+                    "icon": {"image_132": "http://example.com/ws_icon.jpg"},
                 },
-            )
+            },
+        )
         resp = self.client.get(
             "{}?{}".format(
                 self.setup_path,
@@ -196,6 +168,58 @@ class SlackIntegrationTest(IntegrationTestCase):
         identity = Identity.objects.get()
         assert identity.external_id == "UXXXXXXX2"
 
+
+class SlackIntegrationPostInstallTest(APITestCase):
+    def setUp(self):
+        self.user2 = self.create_user("foo@example.com")
+        self.member = self.create_member(
+            user=self.user2,
+            email="foo@example.com",
+            organization=self.organization,
+            role="manager",
+            teams=[self.team],
+        )
+        self.integration = Integration.objects.create(
+            provider="slack",
+            name="Team A",
+            external_id="TXXXXXXX1",
+            metadata={
+                "access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
+                "installation_type": "born_as_bot",
+            },
+        )
+        self.integration.add_organization(self.organization, self.user)
+        self.idp = IdentityProvider.objects.create(type="slack", external_id="TXXXXXXX1", config={})
+
+        responses.add(
+            responses.GET,
+            "https://slack.com/api/users.lookupByEmail/",
+            json={
+                "ok": True,
+                "user": {
+                    "id": "UXXXXXXX2",
+                    "team_id": "TXXXXXXX1",
+                    "profile": {
+                        "email": self.user2.email,
+                    },
+                },
+            },
+        )
+        responses.add(
+            responses.GET,
+            "https://slack.com/api/users.lookupByEmail/",
+            json={
+                "ok": True,
+                "user": {
+                    "id": "UXXXXXXX1",
+                    "team_id": "TXXXXXXX1",
+                    "profile": {
+                        "email": self.user.email,
+                    },
+                },
+            },
+        )
+
     @responses.activate
     def test_link_multiple_users(self):
         """
@@ -203,15 +227,93 @@ class SlackIntegrationTest(IntegrationTestCase):
         if their Sentry email matches their Slack email
         """
         with self.tasks():
-            self.assert_setup_flow(multiple_users=True)
-        self_user_identity = Identity.objects.get(user=self.user)
-        assert self_user_identity
-        assert self_user_identity.external_id == "UXXXXXXX1"
-        assert self_user_identity.user.email == "admin@localhost"
+            SlackIntegrationProvider().post_install(self.integration, self.organization)
+
+        user1_identity = Identity.objects.get(user=self.user)
+        assert user1_identity
+        assert user1_identity.external_id == "UXXXXXXX1"
+        assert user1_identity.user.email == "admin@localhost"
+
         user2_identity = Identity.objects.get(user=self.user2)
         assert user2_identity
         assert user2_identity.external_id == "UXXXXXXX2"
         assert user2_identity.user.email == "foo@example.com"
+
+    @responses.activate
+    def test_email_no_match(self):
+        """
+        Test that a user whose email does not match does not have an Identity created
+        """
+        user3 = self.create_user("hellboy@example.com")
+        self.member = self.create_member(
+            user=user3,
+            email="hellboy@example.com",
+            organization=self.organization,
+            role="manager",
+            teams=[self.team],
+        )
+        responses.add(
+            responses.GET,
+            "https://slack.com/api/users.lookupByEmail/",
+            json={
+                "ok": True,
+                "user": {
+                    "id": "UXXXXXXX1",
+                    "team_id": "TXXXXXXX1",
+                    "profile": {
+                        "email": "wrongemail@example.com",
+                    },
+                },
+            },
+        )
+        with self.tasks():
+            SlackIntegrationProvider().post_install(self.integration, self.organization)
+
+        identities = Identity.objects.all()
+        assert identities.count() == 2
+
+    @responses.activate
+    def test_update_identity(self):
+        """
+        Test that when an additional user who already has an Identity's Slack external ID
+        changes, that we update the Identity's external ID to match
+        """
+        user3 = self.create_user("ialreadyexist@example.com")
+        self.member = self.create_member(
+            user=user3,
+            email="ialreadyexist@example.com",
+            organization=self.organization,
+            role="manager",
+            teams=[self.team],
+        )
+        user3_identity = Identity.objects.create(
+            external_id="UXXXXXXX1",
+            idp=self.idp,
+            user=user3,
+            status=IdentityStatus.VALID,
+            scopes=[],
+        )
+        responses.add(
+            responses.GET,
+            "https://slack.com/api/users.lookupByEmail/",
+            json={
+                "ok": True,
+                "user": {
+                    "id": "UXXXXXXX3",
+                    "team_id": "TXXXXXXX1",
+                    "profile": {
+                        "email": "ialreadyexist@example.com",
+                    },
+                },
+            },
+        )
+        with self.tasks():
+            SlackIntegrationProvider().post_install(self.integration, self.organization)
+
+        user3_identity = Identity.objects.get(user=user3)
+        assert user3_identity
+        assert user3_identity.external_id == "UXXXXXXX3"
+        assert user3_identity.user.email == "ialreadyexist@example.com"
 
 
 class SlackIntegrationConfigTest(TestCase):
