@@ -1,8 +1,7 @@
 import hashlib
 
-import jwt
-
 from sentry.models import Integration
+from sentry.utils import jwt
 from sentry.utils.http import percent_encode
 
 __all__ = ["AtlassianConnectValidationError", "get_query_hash", "get_integration_from_request"]
@@ -42,7 +41,7 @@ def get_integration_from_jwt(token, path, provider, query_params, method="GET"):
         raise AtlassianConnectValidationError("No token parameter")
     # Decode the JWT token, without verification. This gives
     # you a header JSON object, a claims JSON object, and a signature.
-    decoded = jwt.decode(token, verify=False)
+    decoded = jwt.peek_claims(token)
     # Extract the issuer ('iss') claim from the decoded, unverified
     # claims object. This is the clientKey for the tenant - an identifier
     # for the Atlassian application making the call
@@ -53,16 +52,11 @@ def get_integration_from_jwt(token, path, provider, query_params, method="GET"):
         integration = Integration.objects.get(provider=provider, external_id=issuer)
     except Integration.DoesNotExist:
         raise AtlassianConnectValidationError("No integration found")
-    # Verify the signature with the sharedSecret and
-    # the algorithm specified in the header's alg field.
-    options = {}
-    # If it's BitBucket, we only need the token + shared secret
-    # it will fail on this: https://github.com/jpadilla/pyjwt/blob/d25c92ca5e9980ca7bc8b31420bf36e3f4a9e3f0/jwt/api_jwt.py#L190
-    # if we try to verify the audience
-    if provider == "bitbucket":
-        options = {"verify_aud": False}
-
-    decoded_verified = jwt.decode(token, integration.metadata["shared_secret"], options=options)
+    # Verify the signature with the sharedSecret and the algorithm specified in the header's
+    # alg field.  We only need the token + shared secret and do not want to provide an
+    # audience to the JWT validation that is require to match.  Bitbucket does give us an
+    # audience claim however, so disable verification of this.
+    decoded_verified = jwt.decode(token, integration.metadata["shared_secret"], audience=False)
     # Verify the query has not been tampered by Creating a Query Hash
     # and comparing it against the qsh claim on the verified token.
 

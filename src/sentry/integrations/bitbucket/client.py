@@ -1,11 +1,11 @@
 import datetime
 from urllib.parse import urlparse
 
-import jwt
 from unidiff import PatchSet
 
 from sentry.integrations.atlassian_connect import get_query_hash
 from sentry.integrations.client import ApiClient
+from sentry.utils import jwt
 from sentry.utils.http import absolute_uri
 
 BITBUCKET_KEY = "%s.bitbucket" % urlparse(absolute_uri()).hostname
@@ -58,7 +58,7 @@ class BitbucketApiClient(ApiClient):
             "sub": self.subject,
         }
         encoded_jwt = jwt.encode(jwt_payload, self.shared_secret)
-        headers = {"Authorization": b"JWT %s" % encoded_jwt}
+        headers = jwt.authorization_header(encoded_jwt, scheme="JWT")
         return self._request(method, path, data=data, params=params, headers=headers, **kwargs)
 
     def get_issue(self, repo, issue_id):
