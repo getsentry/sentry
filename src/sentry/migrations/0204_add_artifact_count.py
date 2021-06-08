@@ -31,9 +31,22 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name="releasefile",
-            name="artifact_count",
-            field=sentry.db.models.fields.bounded.BoundedPositiveIntegerField(null=True),
-        ),
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.AddField(
+                    model_name="releasefile",
+                    name="artifact_count",
+                    field=sentry.db.models.fields.bounded.BoundedPositiveIntegerField(null=True),
+                ),
+            ],
+            state_operations=[
+                migrations.AddField(
+                    model_name="releasefile",
+                    name="artifact_count",
+                    field=sentry.db.models.fields.bounded.BoundedPositiveIntegerField(
+                        null=True, default=1
+                    ),
+                ),
+            ],
+        )
     ]
