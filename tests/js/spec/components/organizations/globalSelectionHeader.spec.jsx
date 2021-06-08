@@ -672,7 +672,7 @@ describe('GlobalSelectionHeader', function () {
       });
 
       const createWrapper = props => {
-        wrapper = wrapper = mountWithTheme(
+        wrapper = mountWithTheme(
           <GlobalSelectionHeader
             params={{orgId: initialData.organization.slug}}
             organization={initialData.organization}
@@ -792,7 +792,7 @@ describe('GlobalSelectionHeader', function () {
         .mockImplementation(() => initialData.organization.projects);
 
       const createWrapper = props => {
-        wrapper = wrapper = mountWithTheme(
+        wrapper = mountWithTheme(
           <GlobalSelectionHeader
             params={{orgId: initialData.organization.slug}}
             organization={initialData.organization}
@@ -841,7 +841,7 @@ describe('GlobalSelectionHeader', function () {
       });
 
       const createWrapper = (props, ctx) => {
-        wrapper = wrapper = mountWithTheme(
+        wrapper = mountWithTheme(
           <GlobalSelectionHeader
             params={{orgId: initialData.organization.slug}}
             organization={initialData.organization}
@@ -969,7 +969,7 @@ describe('GlobalSelectionHeader', function () {
         loading: false,
       }));
 
-      wrapper = wrapper = mountWithTheme(
+      wrapper = mountWithTheme(
         <GlobalSelectionHeader organization={initialData.organization} />,
         initialData.routerContext
       );
@@ -988,7 +988,7 @@ describe('GlobalSelectionHeader', function () {
         },
       };
 
-      wrapper = wrapper = mountWithTheme(
+      wrapper = mountWithTheme(
         <GlobalSelectionHeader organization={initialData.organization} />,
         initialData.routerContext
       );
@@ -1004,7 +1004,7 @@ describe('GlobalSelectionHeader', function () {
 
     it('shows "My Projects" button', async function () {
       initialData.organization.features.push('global-views');
-      wrapper = wrapper = mountWithTheme(
+      wrapper = mountWithTheme(
         <GlobalSelectionHeader
           organization={initialData.organization}
           projects={initialData.organization.projects}
@@ -1030,7 +1030,7 @@ describe('GlobalSelectionHeader', function () {
     it('shows "All Projects" button based on features', async function () {
       initialData.organization.features.push('global-views');
       initialData.organization.features.push('open-membership');
-      wrapper = wrapper = mountWithTheme(
+      wrapper = mountWithTheme(
         <GlobalSelectionHeader
           organization={initialData.organization}
           projects={initialData.organization.projects}
@@ -1055,7 +1055,7 @@ describe('GlobalSelectionHeader', function () {
     it('shows "All Projects" button based on role', async function () {
       initialData.organization.features.push('global-views');
       initialData.organization.role = 'owner';
-      wrapper = wrapper = mountWithTheme(
+      wrapper = mountWithTheme(
         <GlobalSelectionHeader
           organization={initialData.organization}
           projects={initialData.organization.projects}
@@ -1081,7 +1081,7 @@ describe('GlobalSelectionHeader', function () {
       initialData.organization.features.push('global-views');
       initialData.organization.role = 'owner';
 
-      wrapper = wrapper = mountWithTheme(
+      wrapper = mountWithTheme(
         <GlobalSelectionHeader
           organization={initialData.organization}
           projects={initialData.organization.projects}
