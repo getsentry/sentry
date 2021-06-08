@@ -99,19 +99,18 @@ def get_group_with_redirect(id_or_qualified_short_id, queryset=None, organizatio
     except Group.DoesNotExist as error:
         from sentry.models import GroupRedirect
 
-        try:
-            if short_id:
-                params = {
-                    "id": GroupRedirect.objects.get(
-                        organization_id=organization.id,
-                        previous_short_id=short_id.short_id,
-                        previous_project_slug=short_id.project_slug,
-                    ).group_id
-                }
-            else:
-                params["id"] = GroupRedirect.objects.get(previous_group_id=params["id"]).group_id
-        except GroupRedirect.DoesNotExist:
-            raise error
+        if short_id:
+            params = {
+                "id__in": GroupRedirect.objects.filter(
+                    organization_id=organization.id,
+                    previous_short_id=short_id.short_id,
+                    previous_project_slug=short_id.project_slug,
+                ).values_list("group_id", flat=True)[:1]
+            }
+        else:
+            params["id__in"] = GroupRedirect.objects.filter(
+                previous_group_id=params["id"]
+            ).values_list("group_id", flat=True)[:1]
 
         try:
             return queryset.get(**params), True
@@ -457,12 +456,9 @@ class Group(Model):
 
         from sentry.models import GroupShare
 
-        try:
-            gs = GroupShare.objects.get(uuid=share_id)
-        except GroupShare.DoesNotExist:
-            raise cls.DoesNotExist
-
-        return cls.objects.get(id=gs.group.id)
+        return cls.objects.get(
+            id__in=GroupShare.objects.filter(uuid=share_id).values_list("group_id")[:1]
+        )
 
     def get_score(self):
         return type(self).calculate_score(self.times_seen, self.last_seen)
@@ -501,16 +497,15 @@ class Group(Model):
             release_version = cache.get(cache_key)
             if release_version is None:
                 release_version = Release.objects.get(
-                    id=GroupRelease.objects.filter(group_id=group_id, project_id=project_id)
-                    .order_by(orderby)[:1]
-                    .get()
-                    .release_id
+                    id__in=GroupRelease.objects.filter(group_id=group_id, project_id=project_id)
+                    .order_by(orderby)
+                    .values("release_id")[:1]
                 ).version
                 cache.set(cache_key, release_version, 3600)
             elif release_version is False:
                 release_version = None
             return release_version
-        except (GroupRelease.DoesNotExist, Release.DoesNotExist):
+        except Release.DoesNotExist:
             cache.set(cache_key, False, 3600)
             return None
 
