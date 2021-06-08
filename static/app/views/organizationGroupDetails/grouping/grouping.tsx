@@ -1,25 +1,24 @@
-import {useEffect, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import GroupingActions from 'app/actions/groupingActions';
 import {Client} from 'app/api';
-import Alert from 'app/components/alert';
 import Button from 'app/components/button';
-import Confirm from 'app/components/confirm';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import List from 'app/components/list';
 import ListItem from 'app/components/list/listItem';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
-import {t, tn} from 'app/locale';
+import {IconFlag} from 'app/icons';
+import {t, tct, tn} from 'app/locale';
 import space from 'app/styles/space';
 import {Group, Organization, Project} from 'app/types';
+import {Event} from 'app/types/event';
 import withApi from 'app/utils/withApi';
-import RadioGroup from 'app/views/settings/components/forms/controls/radioGroup';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
+import RangeSlider from 'app/views/settings/components/forms/controls/rangeSlider';
 
-import GroupingCard from './groupingCard';
-import HeaderTitle from './headerTitle';
+import NewIssue from './newIssue';
 
 type Props = {
   organization: Organization;
@@ -29,19 +28,37 @@ type Props = {
   api: Client;
 };
 
+type Error = {
+  status: number;
+  responseJSON?: {
+    detail: string;
+  };
+};
+
+type GroupingLevelDetails = {
+  eventCount: number;
+  hash: string;
+  latestEvent: Event;
+};
+
 type GroupingLevel = {
   id: string;
   isCurrent: boolean;
 };
 
-function Grouping({api, groupId, location, organization, project}: Props) {
+function Grouping({api, groupId, location}: Props) {
   const [isLoading, setIsLoading] = useState(false);
-  const [hasError, setHasError] = useState(false);
+  const [isGroupingLevelDetailsLoading, setIsGroupingLevelDetailsLoading] = useState(
+    false
+  );
+  const [error, setError] = useState<undefined | Error>(undefined);
   const [groupingLevels, setGroupingLevels] = useState<GroupingLevel[]>([]);
   const [activeGroupingLevel, setActiveGroupingLevel] = useState<number | undefined>(
     undefined
   );
-  const [activeGroupingLevelDetails, setActiveGroupingLevelDetails] = useState<any[]>([]);
+  const [activeGroupingLevelDetails, setActiveGroupingLevelDetails] = useState<
+    GroupingLevelDetails[]
+  >([]);
 
   useEffect(() => {
     fetchGroupingLevels();
@@ -57,15 +74,15 @@ function Grouping({api, groupId, location, organization, project}: Props) {
 
   async function fetchGroupingLevels() {
     setIsLoading(true);
-    setHasError(false);
+    setError(undefined);
 
     try {
       const response = await api.requestPromise(`/issues/${groupId}/grouping/levels/`);
       setIsLoading(false);
       setGroupingLevels(response.levels);
-    } catch {
+    } catch (err) {
       setIsLoading(false);
-      setHasError(true);
+      setError(err);
     }
   }
 
@@ -74,17 +91,18 @@ function Grouping({api, groupId, location, organization, project}: Props) {
       return;
     }
 
-    setIsLoading(true);
-    setHasError(false);
+    setIsGroupingLevelDetailsLoading(true);
+    setError(undefined);
     try {
       const response = await api.requestPromise(
         `/issues/${groupId}/grouping/levels/${activeGroupingLevel}/new-issues/`
       );
-      setIsLoading(false);
+
       setActiveGroupingLevelDetails(response);
-    } catch {
-      setIsLoading(false);
-      setHasError(true);
+      setIsGroupingLevelDetailsLoading(false);
+    } catch (err) {
+      setIsGroupingLevelDetailsLoading(false);
+      setError(err);
     }
   }
 
@@ -100,7 +118,26 @@ function Grouping({api, groupId, location, organization, project}: Props) {
     return <LoadingIndicator />;
   }
 
-  if (hasError) {
+  if (error) {
+    if (error.status === 403 && error.responseJSON?.detail) {
+      return (
+        <Wrapper>
+          <EmptyMessage
+            icon={<IconFlag size="xl" />}
+            action={
+              <Button
+                to={`/organizations/sentry/issues/${groupId}/merged/?${location.search}`}
+              >
+                {t('Unmerged issue')}
+              </Button>
+            }
+          >
+            {error.responseJSON.detail}
+          </EmptyMessage>
+        </Wrapper>
+      );
+    }
+
     return (
       <LoadingError
         message={t('Unable to load grouping levels, please try again later')}
@@ -117,9 +154,9 @@ function Grouping({api, groupId, location, organization, project}: Props) {
     );
   }
 
-  console.log('activeGroupingLevelDetails', activeGroupingLevelDetails);
-
-  function handleSplit() {}
+  //function handleRegroup() {
+  // Todo(Priscila): Implement it
+  //}
 
   return (
     <Wrapper>
@@ -129,65 +166,62 @@ function Grouping({api, groupId, location, organization, project}: Props) {
             'Sometimes you might want to split up the errors in an issue by different frames in the stacktrace. Below you can select which frames to regroup this issue by and see how many new issues will be created in the process.'
           )}
         </p>
-        <Action>
-          <Confirm
-            disabled={activeGroupingLevel === 0}
-            onConfirm={handleSplit}
-            message={t(
-              'These events will be grouped into a new issue by more specific criteria (for instance more frames). Are you sure you want to split them out of the existing issue?'
-            )}
-          >
-            <Button
-              size="xsmall"
-              title={
-                activeGroupingLevel === 0
-                  ? t('The selection of a grouping other than the default is required')
-                  : undefined
-              }
-            >
-              {t('Regroup Errors')}
-            </Button>
-          </Confirm>
-        </Action>
       </Header>
       <Body>
-        {/* <GroupingCards>
-          {groupingLevels.map(groupingLevel => (
-            <GroupingCard
-              key={groupingLevel.id}
-              label={t('Grouping - Level %s', groupingLevel.id)}
-              onClick={undefined}
-              isActive={groupingLevel.id === String(activeGrouping)}
-            />
-          ))}
-        </GroupingCards> */}
         <StyledList symbol="colored-numeric">
           <StyledListItem>
-            <div>
-              {t('Select stacktrace frames')}
-              <GroupingSelectionInfo>
-                {activeGroupingLevel === 0
+            {t('Select levels')}
+            <StyledRangeSlider
+              name="grouping-level"
+              allowedValues={groupingLevels.map(groupingLevel =>
+                Number(groupingLevel.id)
+              )}
+              formatLabel={value => {
+                return value === 0
                   ? t('Automatically grouped')
-                  : tn('%s frame', '%s frames', 2)}
-              </GroupingSelectionInfo>
-            </div>
-            <RadioGroup
-              value={activeGroupingLevel !== undefined ? String(activeGroupingLevel) : ''}
-              label=""
-              orientInline
+                  : tn('%s leve', '%s leves', value);
+              }}
+              value={activeGroupingLevel ?? 0}
               onChange={groupingLevelId =>
                 setActiveGroupingLevel(Number(groupingLevelId))
               }
-              choices={groupingLevels.map(groupingLevel => [
-                groupingLevel.id,
-                groupingLevel.id,
-              ])}
             />
           </StyledListItem>
-          <ListItem>{t('Preview stacktrace')}</ListItem>
-          <ListItem>{t('What happens to this issue')}</ListItem>
+          <StyledListItem>
+            {isGroupingLevelDetailsLoading ? (
+              <div>
+                <div>{t('What happens to this issue')}</div>
+                <LoadingIndicator mini />
+              </div>
+            ) : (
+              <Fragment>
+                <div>
+                  {t('What happens to this issue')}
+                  <WhatHappensDescription>
+                    {tct(
+                      `This issue will be deleted and [quantity] new issues will be created.`,
+                      {quantity: activeGroupingLevelDetails.length}
+                    )}
+                  </WhatHappensDescription>
+                </div>
+                <NewIssues>
+                  {activeGroupingLevelDetails.map(activeGroupingLevelDetail => (
+                    <NewIssue
+                      key={activeGroupingLevelDetail.hash}
+                      event={activeGroupingLevelDetail.latestEvent}
+                    />
+                  ))}
+                </NewIssues>
+              </Fragment>
+            )}
+          </StyledListItem>
         </StyledList>
       </Body>
+      <Footer>
+        <Button priority="primary" disabled={isGroupingLevelDetailsLoading}>
+          {t('Regroup')}
+        </Button>
+      </Footer>
     </Wrapper>
   );
 }
@@ -211,22 +245,44 @@ const Header = styled('div')`
 
 const Body = styled('div')``;
 
-const StyledListItem = styled(ListItem)`
-  display: grid;
-  grid-gap: ${space(1)};
+const Footer = styled('div')`
+  border-top: 1px solid ${p => p.theme.innerBorder};
+  display: flex;
+  justify-content: flex-end;
+  padding: ${space(2)} 0 0;
+  margin-top: ${space(1)};
 `;
 
-const GroupingSelectionInfo = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.gray400};
+const StyledListItem = styled(ListItem)`
+  display: grid;
+  grid-gap: ${space(1.5)};
+`;
+
+const StyledRangeSlider = styled(RangeSlider)`
+  max-width: 10%;
 `;
 
 const StyledList = styled(List)`
   display: grid;
   grid-gap: ${space(2)};
+  font-size: ${p => p.theme.fontSizeExtraLarge};
 `;
 
-const Action = styled('div')`
-  display: flex;
-  justify-content: flex-end;
+const NewIssues = styled('div')`
+  display: grid;
+  grid-template-columns: minmax(100px, 1fr);
+  grid-gap: ${space(2)};
+
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    grid-template-columns: repeat(2, minmax(100px, 1fr));
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[2]}) {
+    grid-template-columns: repeat(3, minmax(100px, 1fr));
+  }
+`;
+
+const WhatHappensDescription = styled('div')`
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeLarge};
 `;
