@@ -12,13 +12,9 @@ import {PageContent} from 'app/styles/organization';
 import {GlobalSelection, Organization, Project} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import {
-  AggregationKey,
-  Column,
   isAggregateField,
-  QueryFieldValue,
   SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
-  WebVital,
 } from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
@@ -28,10 +24,6 @@ import withProjects from 'app/utils/withProjects';
 
 import {getTransactionName} from '../../utils';
 import {decodeFilterFromLocation, SpanOperationBreakdownFilter} from '../filter';
-import {
-  PERCENTILE as VITAL_PERCENTILE,
-  VITAL_GROUPS,
-} from '../transactionVitals/constants';
 
 import EventsPageContent from './content';
 
@@ -76,85 +68,6 @@ class TransactionEvents extends Component<Props> {
     }
 
     return [t('Summary'), t('Events')].join(' \u2014 ');
-  }
-
-  getTotalsEventView(organization: Organization, eventView: EventView): EventView {
-    const threshold = organization.apdexThreshold.toString();
-
-    const vitals = VITAL_GROUPS.map(({vitals: vs}) => vs).reduce(
-      (keys: WebVital[], vs) => {
-        vs.forEach(vital => keys.push(vital));
-        return keys;
-      },
-      []
-    );
-
-    const totalsColumns: QueryFieldValue[] = [
-      {
-        kind: 'function',
-        function: ['p95', '', undefined],
-      },
-      {
-        kind: 'function',
-        function: ['count', '', undefined],
-      },
-      {
-        kind: 'function',
-        function: ['count_unique', 'user', undefined],
-      },
-      {
-        kind: 'function',
-        function: ['failure_rate', '', undefined],
-      },
-      {
-        kind: 'function',
-        function: ['tpm', '', undefined],
-      },
-    ];
-
-    const featureColumns: QueryFieldValue[] = organization.features.includes(
-      'project-transaction-threshold'
-    )
-      ? [
-          {
-            kind: 'function',
-            function: ['count_miserable_new' as AggregationKey, 'user', undefined],
-          },
-          {
-            kind: 'function',
-            function: ['user_misery_new' as AggregationKey, '', undefined],
-          },
-          {
-            kind: 'function',
-            function: ['apdex_new' as AggregationKey, '', undefined],
-          },
-        ]
-      : [
-          {
-            kind: 'function',
-            function: ['count_miserable', 'user', threshold],
-          },
-          {
-            kind: 'function',
-            function: ['user_misery', threshold, undefined],
-          },
-          {
-            kind: 'function',
-            function: ['apdex', threshold, undefined],
-          },
-        ];
-
-    return eventView.withColumns([
-      ...totalsColumns,
-      ...featureColumns,
-      ...vitals.map(
-        vital =>
-          ({
-            kind: 'function',
-            function: ['percentile', vital, VITAL_PERCENTILE.toString()],
-          } as Column)
-      ),
-    ]);
   }
 
   renderNoAccess = () => {
@@ -242,6 +155,7 @@ function generateEventsEventView(
     if (isAggregateField(field)) conditions.removeTag(field);
   });
 
+  // Default fields for relative span view
   const fields = [
     'id',
     'user.display',
