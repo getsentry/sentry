@@ -216,19 +216,23 @@ def _merge_archives(
     release_file: ReleaseFile, new_file: File, new_archive: ReleaseArchive, additional_fields=None
 ) -> bool:
     success = False
-    old_file = release_file.file
-    with ReleaseArchive(old_file.getfile().file) as old_archive:
-        buffer = BytesIO()
+    lock_key = f"assemble:merge_archives:{release_file.id}"
+    lock = app.locks.get(lock_key, duration=60)
 
-        lock_key = f"assemble:merge_archives:{release_file.id}"
-        lock = app.locks.get(lock_key, duration=60)
+    try:
+        with lock.blocking_acquire(
+            RELEASE_ARCHIVE_MERGE_INITIAL_DELAY, RELEASE_ARCHIVE_MERGE_TIMEOUT
+        ):
+            old_file = release_file.file
+            old_file_contents = ReleaseFile.cache.getfile(release_file)
+            buffer = BytesIO()
 
-        try:
-            with lock.blocking_acquire(
-                RELEASE_ARCHIVE_MERGE_INITIAL_DELAY, RELEASE_ARCHIVE_MERGE_TIMEOUT
-            ):
-                file_count = merge_release_archives(old_archive, new_archive, buffer)
+            with metrics.timer("tasks.assemble.merge_archives_pure"):
+                did_merge, file_count = merge_release_archives(
+                    old_file_contents, new_archive, buffer
+                )
 
+            if did_merge:
                 replacement = File.objects.create(name=old_file.name, type=old_file.type)
                 buffer.seek(0)
                 replacement.putfile(buffer)
@@ -238,8 +242,8 @@ def _merge_archives(
 
                 old_file.delete()
 
-        except UnableToAcquireLock as error:
-            logger.error("merge_archives.fail", extra={"error": error})
+    except UnableToAcquireLock as error:
+        logger.error("merge_archives.fail", extra={"error": error})
 
     new_file.delete()
 

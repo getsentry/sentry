@@ -1,5 +1,7 @@
 import errno
+import logging
 import os
+import warnings
 import zipfile
 from tempfile import TemporaryDirectory
 from typing import IO, Tuple
@@ -14,6 +16,8 @@ from sentry.models import clear_cached_files
 from sentry.utils import json, metrics
 from sentry.utils.hashlib import sha1_text
 from sentry.utils.zip import safe_extract_zip
+
+logger = logging.getLogger(__name__)
 
 
 class ReleaseFile(Model):
@@ -146,6 +150,9 @@ class ReleaseArchive:
         self._zip_file.close()
         self._fileobj.close()
 
+    def info(self, filename: str) -> zipfile.ZipInfo:
+        return self._zip_file.getinfo(filename)
+
     def read(self, filename: str) -> bytes:
         return self._zip_file.read(filename)
 
@@ -174,23 +181,45 @@ class ReleaseArchive:
         return temp_dir
 
 
-def merge_release_archives(archive1: ReleaseArchive, archive2: ReleaseArchive, target: IO):
-    """Fields in archive2 take precedence over fields in archive1.
+def merge_release_archives(file1: IO, archive2: ReleaseArchive, target: IO) -> Tuple[bool, int]:
+    """Append contents of archive2 to copy of file1
 
-    :returns: Number of files in merged archive
+    Skip files that are already present in archive 1.
+
+    :returns: True if zip archive was written to target + number of files in resulting archive
     """
-    merged_manifest = dict(archive1.manifest, **archive2.manifest)
-    files1 = archive1.manifest.get("files", {})
-    files2 = archive2.manifest.get("files", {})
+    with ReleaseArchive(file1) as archive1:
+        manifest = archive1.manifest
 
-    merged_manifest["files"] = dict(files1, **files2)
+        files = manifest.get("files", {})
+        files2 = archive2.manifest.get("files", {})
 
-    with zipfile.ZipFile(target, mode="w", compression=zipfile.ZIP_DEFLATED) as zip_file:
-        for filename in files2.keys():
+        if any(
+            archive1.info(filename).CRC != archive2.info(filename).CRC
+            for filename in files.keys() & files2.keys()
+        ):
+            metrics.incr("release_file.archive.different_content")
+
+        new_files = files2.keys() - files.keys()
+        if not new_files:
+            # Nothing to merge
+            return False, len(files)
+
+        # Create a copy
+        file1.seek(0)
+        target.write(file1.read())
+
+    with zipfile.ZipFile(target, mode="a", compression=zipfile.ZIP_DEFLATED) as zip_file:
+        for filename in new_files:
             zip_file.writestr(filename, archive2.read(filename))
-        for filename in files1.keys() - files2.keys():
-            zip_file.writestr(filename, archive1.read(filename))
+            files[filename] = files2[filename]
 
-        zip_file.writestr("manifest.json", json.dumps(merged_manifest))
+        manifest["files"] = files
 
-    return len(merged_manifest["files"])
+        # This creates a duplicate entry for the manifest, which is okay-ish
+        # because the Python implementation prefers the latest version when reading
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            zip_file.writestr("manifest.json", json.dumps(manifest))
+
+    return True, len(files)
