@@ -19,6 +19,7 @@ type InviteDetails = {
   orgSlug: string;
   needsAuthentication: boolean;
   needs2fa: boolean;
+  needsEmailVerification: boolean;
   needsSso: boolean;
   requireSso: boolean;
   existingMember: boolean;
@@ -183,6 +184,26 @@ class AcceptOrganizationInvite extends AsyncView<Props, State> {
     );
   }
 
+  get warningEmailVerification() {
+    const {inviteDetails} = this.state;
+
+    return (
+      <Fragment>
+        <p data-test-id="email-verification-warning">
+          {tct(
+            'To continue, [orgSlug] requires all members to verify their email address.',
+            {orgSlug: inviteDetails.orgSlug}
+          )}
+        </p>
+        <Actions>
+          <Button priority="primary" to="/settings/account/emails/">
+            {t('Verify Email Address')}
+          </Button>
+        </Actions>
+      </Fragment>
+    );
+  }
+
   get acceptActions() {
     const {inviteDetails, accepting} = this.state;
 
@@ -232,6 +253,8 @@ class AcceptOrganizationInvite extends AsyncView<Props, State> {
           ? this.existingMemberAlert
           : inviteDetails.needs2fa
           ? this.warning2fa
+          : inviteDetails.needsEmailVerification
+          ? this.warningEmailVerification
           : this.acceptActions}
       </NarrowLayout>
     );
