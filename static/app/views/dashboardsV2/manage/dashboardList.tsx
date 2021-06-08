@@ -104,15 +104,6 @@ function DashboardList({
       .catch(() => addErrorMessage(t('Error duplicating Dashboard')));
   }
 
-  function handleClick(dashboard: DashboardListItem) {
-    trackAnalyticsEvent({
-      eventKey: 'dashboards_manage.change_sort',
-      eventName: 'Dashboards Manager: Sort By Changed',
-      organization_id: parseInt(organization.id, 10),
-      dashboard_id: parseInt(dashboard.id, 10),
-    });
-  }
-
   function renderMiniDashboards() {
     return dashboards?.map((dashboard, index) => {
       return (
@@ -129,7 +120,6 @@ function DashboardList({
           dateStatus={
             dashboard.dateCreated ? <TimeSince date={dashboard.dateCreated} /> : undefined
           }
-          onEventClick={() => handleClick(dashboard)}
           createdBy={dashboard.createdBy}
           renderWidgets={() => (
             <WidgetGrid>
