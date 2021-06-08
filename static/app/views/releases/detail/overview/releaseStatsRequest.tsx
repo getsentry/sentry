@@ -37,7 +37,7 @@ import {
 
 const omitIgnoredProps = (props: Props) =>
   omitBy(props, (_, key) =>
-    ['api', 'version', 'orgId', 'projectSlug', 'location', 'children'].includes(key)
+    ['api', 'orgId', 'projectSlug', 'location', 'children'].includes(key)
   );
 
 type Data = {
