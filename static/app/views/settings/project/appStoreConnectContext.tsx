@@ -29,7 +29,7 @@ const Provider = withApi(
 
     function getAppStoreConnectSymbolSourceId() {
       return (project.symbolSources ? JSON.parse(project.symbolSources) : []).find(
-        symbolSouce => symbolSouce.type === 'appStoreConnect'
+        symbolSource => symbolSource.type === 'appStoreConnect'
       )?.id;
     }
 
