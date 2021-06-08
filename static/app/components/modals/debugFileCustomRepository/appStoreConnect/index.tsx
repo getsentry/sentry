@@ -53,7 +53,7 @@ function AppStoreConnect({
   projectSlug,
   onSubmit,
 }: Props) {
-  const appStoreConnenctContext = useContext(AppStoreConnectContext);
+  const appStoreConnectContext = useContext(AppStoreConnectContext);
 
   const [isLoading, setIsLoading] = useState(false);
 
@@ -196,10 +196,10 @@ function AppStoreConnect({
           <Accordion
             summary={t('App Store Connect credentials')}
             defaultExpanded={
-              !isUpdating || !!appStoreConnenctContext?.appstoreCredentialsValid
+              !isUpdating || !!appStoreConnectContext?.appstoreCredentialsValid
             }
           >
-            {!!appStoreConnenctContext?.appstoreCredentialsValid && (
+            {!!appStoreConnectContext?.appstoreCredentialsValid && (
               <StyledAlert type="warning" icon={<IconWarning />}>
                 {t(
                   'Your App Store Connect credentials are invalid. To reconnect, update your credentials'
@@ -218,9 +218,9 @@ function AppStoreConnect({
           </Accordion>
           <Accordion
             summary={t('iTunes credentials')}
-            defaultExpanded={!!appStoreConnenctContext?.itunesSessionValid}
+            defaultExpanded={!!appStoreConnectContext?.itunesSessionValid}
           >
-            {!!appStoreConnenctContext?.itunesSessionValid && (
+            {!!appStoreConnectContext?.itunesSessionValid && (
               <StyledAlert type="warning" icon={<IconWarning />}>
                 {t(
                   'Your iTunes session has expired. To reconnect, sign in with your Apple ID and password'
