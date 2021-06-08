@@ -88,7 +88,7 @@ class ReleaseFileCacheTest(TestCase):
 
 class ReleaseArchiveTestCase(TestCase):
     @staticmethod
-    def create_archive(fields, files):
+    def create_archive(fields, files, raw=False):
         manifest = dict(
             fields, files={filename: {"url": f"fake://{filename}"} for filename in files}
         )
@@ -98,10 +98,22 @@ class ReleaseArchiveTestCase(TestCase):
             for filename, content in files.items():
                 zf.writestr(filename, content)
 
-        return ReleaseArchive(buffer)
+        return buffer if raw else ReleaseArchive(buffer)
 
     def test_merge(self):
         archive1 = self.create_archive(
+            fields={
+                "org": 1,
+                "release": 666,
+                "dist": 3,
+            },
+            files={
+                "foo": "foo",
+                "bar": "BAR",
+            },
+            raw=True,
+        )
+        archive2 = self.create_archive(
             fields={
                 "org": 1,
                 "release": 2,
@@ -113,20 +125,10 @@ class ReleaseArchiveTestCase(TestCase):
                 "baz": "baz",
             },
         )
-        archive2 = self.create_archive(
-            fields={
-                "org": 1,
-                "release": 666,
-                "dist": 3,
-            },
-            files={
-                "foo": "foo",
-                "bar": "BAR",
-            },
-        )
 
         buffer = BytesIO()
-        merge_release_archives(archive1, archive2, buffer)
+
+        assert merge_release_archives(archive1, archive2, buffer) is True
 
         archive3 = ReleaseArchive(buffer)
 
@@ -141,5 +143,36 @@ class ReleaseArchiveTestCase(TestCase):
         assert peristed_manifest == archive3.manifest
 
         assert archive3.read("foo") == b"foo"
-        assert archive3.read("bar") == b"BAR"
+        assert archive3.read("bar") == b"BAR"  # no overwrite
         assert archive3.read("baz") == b"baz"
+
+    def test_merge_nothing(self):
+        archive1 = self.create_archive(
+            fields={
+                "org": 1,
+                "release": 2,
+                "dist": 3,
+            },
+            files={
+                "foo": "foo",
+                "bar": "bar",
+                "baz": "baz",
+            },
+            raw=True,
+        )
+        archive2 = self.create_archive(
+            fields={
+                "org": 1,
+                "release": 666,
+                "dist": 3,
+            },
+            files={
+                "foo": "foo",
+                "bar": "BAR",
+            },
+        )
+
+        buffer = BytesIO()
+
+        # Nothing added:
+        assert merge_release_archives(archive1, archive2, buffer) is False
