@@ -125,6 +125,8 @@ class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> 
     if (this.props.getRequestPayload) {
       return this.props.getRequestPayload(props);
     }
+    console.log('getEventsAPIPayload');
+    console.log(props.eventView);
     return props.eventView.getEventsAPIPayload(props.location);
   }
 
@@ -163,6 +165,9 @@ class GenericDiscoverQuery<T, P> extends React.Component<Props<T, P>, State<T>> 
     const url = `/organizations/${orgSlug}/${route}/`;
     const tableFetchID = Symbol(`tableFetchID`);
     const apiPayload: Partial<EventQuery & LocationQuery> = this.getPayload(this.props);
+    console.log('--props');
+    console.log(this.props);
+    console.log(apiPayload);
 
     this.setState({isLoading: true, tableFetchID});
 
@@ -235,6 +240,9 @@ export async function doDiscoverQuery<T>(
   url: string,
   params: DiscoverQueryRequestParams
 ): Promise<[T, string | undefined, JQueryXHR | undefined]> {
+  console.log('---doing query');
+  console.log(url);
+  console.log(params);
   return api.requestPromise(url, {
     method: 'GET',
     includeAllArgs: true,

@@ -1013,7 +1013,8 @@ class EventView {
     if (!eventQuery.sort) {
       delete eventQuery.sort;
     }
-
+    console.log('event query');
+    console.log(eventQuery);
     return eventQuery;
   }
 
@@ -1173,6 +1174,8 @@ class EventView {
 
   getQueryWithAdditionalConditions() {
     const {query} = this;
+    console.log('query');
+    console.log(query);
     if (this.additionalConditions.isEmpty()) {
       return query;
     }
