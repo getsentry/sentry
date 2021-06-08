@@ -127,7 +127,11 @@ class PrimaryHashUnmergeReplacement(UnmergeReplacement):
 @dataclass(frozen=True)
 class HierarchicalUnmergeReplacement(UnmergeReplacement):
     """
-    TODO
+    Split up one issue by a particular entry in `hierarchical_hashes` into many
+    issues.
+
+    In contrast to `PrimaryHashUnmergeReplacement`, this produces multiple new
+    groups instead of just one.
     """
 
     primary_hash: str
