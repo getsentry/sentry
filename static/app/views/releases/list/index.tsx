@@ -373,8 +373,7 @@ class ReleasesList extends AsyncView<Props, State> {
           <Feature features={['organizations:release-adoption-chart']}>
             <Projects orgId={organization.slug} slugs={[selectedProject.slug]}>
               {({projects, initiallyLoaded, fetchError}) => {
-                const releaseVersions =
-                  getHealthData.getReleaseVersions && getHealthData.getReleaseVersions();
+                const releaseVersions = getHealthData.getReleaseVersions?.();
 
                 const project = projects && projects.length === 1 && projects[0];
 

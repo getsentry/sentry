@@ -95,22 +95,22 @@ const Content = ({
           {projects.map((project, index) => {
             const {id, slug, newGroups} = project;
 
-            const crashCount = getHealthData.getCrashCount(
+            const crashCount = getHealthData.getCrashCount?.(
               releaseVersion,
               id,
               DisplayOption.SESSIONS
             );
-            const crashFreeRate = getHealthData.getCrashFreeRate(
+            const crashFreeRate = getHealthData.getCrashFreeRate?.(
               releaseVersion,
               id,
               activeDisplay
             );
-            const get24hCountByRelease = getHealthData.get24hCountByRelease(
+            const get24hCountByRelease = getHealthData.get24hCountByRelease?.(
               releaseVersion,
               id,
               activeDisplay
             );
-            const get24hCountByProject = getHealthData.get24hCountByProject(
+            const get24hCountByProject = getHealthData.get24hCountByProject?.(
               id,
               activeDisplay
             );
@@ -119,7 +119,11 @@ const Content = ({
               id,
               activeDisplay
             );
-            const adoption = getHealthData.getAdoption(releaseVersion, id, activeDisplay);
+            const adoption = getHealthData.getAdoption?.(
+              releaseVersion,
+              id,
+              activeDisplay
+            );
             // we currently don't support sub-hour session intervals, we rather hide the count histogram than to show only two bars
             const hasCountHistogram =
               timeSeries?.[0].data.length > 7 &&

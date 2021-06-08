@@ -55,45 +55,45 @@ function ReleaseStats({
 }: Props) {
   const {lastDeploy, dateCreated, version} = release;
 
-  const crashCount = getHealthData.getCrashCount(
+  const crashCount = getHealthData.getCrashCount?.(
     version,
     project.id,
     DisplayOption.SESSIONS
   );
-  const crashFreeSessions = getHealthData.getCrashFreeRate(
+  const crashFreeSessions = getHealthData.getCrashFreeRate?.(
     version,
     project.id,
     DisplayOption.SESSIONS
   );
-  const crashFreeUsers = getHealthData.getCrashFreeRate(
+  const crashFreeUsers = getHealthData.getCrashFreeRate?.(
     version,
     project.id,
     DisplayOption.USERS
   );
-  const get24hSessionCountByRelease = getHealthData.get24hCountByRelease(
+  const get24hSessionCountByRelease = getHealthData.get24hCountByRelease?.(
     version,
     project.id,
     DisplayOption.SESSIONS
   );
-  const get24hSessionCountByProject = getHealthData.get24hCountByProject(
+  const get24hSessionCountByProject = getHealthData.get24hCountByProject?.(
     project.id,
     DisplayOption.SESSIONS
   );
-  const get24hUserCountByRelease = getHealthData.get24hCountByRelease(
+  const get24hUserCountByRelease = getHealthData.get24hCountByRelease?.(
     version,
     project.id,
     DisplayOption.USERS
   );
-  const get24hUserCountByProject = getHealthData.get24hCountByProject(
+  const get24hUserCountByProject = getHealthData.get24hCountByProject?.(
     project.id,
     DisplayOption.USERS
   );
-  const sessionAdoption = getHealthData.getAdoption(
+  const sessionAdoption = getHealthData.getAdoption?.(
     version,
     project.id,
     DisplayOption.SESSIONS
   );
-  const userAdoption = getHealthData.getAdoption(
+  const userAdoption = getHealthData.getAdoption?.(
     version,
     project.id,
     DisplayOption.USERS
