@@ -286,9 +286,9 @@ class TeamKeyTransactionSerializer(serializers.Serializer):
         if self.context.get("mode") == "create":
             team = data["team"]
             count = (
-                TeamKeyTransaction.objects.values("team_id")
-                .filter(team__in=[item.id for item in team])
-                .annotate(total=Count("team_id"))
+                TeamKeyTransaction.objects.values("project_team")
+                .filter(project_team__team_id__in=[item.id for item in team])
+                .annotate(total=Count("project_team"))
                 .aggregate(max=Max("total"))
             )
             # Limit the number of key transactions for a team

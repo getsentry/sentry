@@ -6,6 +6,7 @@ from sentry.discover.models import (
     KeyTransaction,
     TeamKeyTransaction,
 )
+from sentry.models import ProjectTeam
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -96,21 +97,23 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
         TeamKeyTransaction.objects.bulk_create(
             [
                 TeamKeyTransaction(
-                    team=team,
                     organization=self.org,
+                    project_team=project_team,
                     transaction=self.event_data["transaction"],
-                    project=self.project,
                 )
-                for team in [team1, team2]
+                for project_team in ProjectTeam.objects.filter(
+                    project=self.project, team__in=[team1, team2]
+                )
             ]
             + [
                 TeamKeyTransaction(
-                    team=team,
                     organization=self.org,
+                    project_team=project_team,
                     transaction="other-transaction",
-                    project=self.project,
                 )
-                for team in [team2, team3]
+                for project_team in ProjectTeam.objects.filter(
+                    project=self.project, team__in=[team2, team3]
+                )
             ]
         )
 
@@ -226,18 +229,41 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
             "team": [f"You do not have permission to access {other_team.name}"]
         }
 
+    def test_post_key_transaction_no_access_project(self):
+        team1 = self.create_team(organization=self.org, name="Team Foo")
+        self.create_team_membership(team1, user=self.user)
+        self.project.add_team(team1)
+
+        team2 = self.create_team(organization=self.org, name="Team Bar")
+        self.create_team_membership(team2, user=self.user)
+
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                data={
+                    "project": [self.project.id],
+                    "transaction": self.event_data["transaction"],
+                    "team": [team2.id],
+                },
+                format="json",
+            )
+
+        assert response.status_code == 400, response.content
+        assert response.data == {"detail": "Team does not have access to project"}
+
     def test_post_key_transactions_exceed_limit(self):
         team = self.create_team(organization=self.org, name="Team Foo")
         self.create_team_membership(team, user=self.user)
         self.project.add_team(team)
 
+        project_team = ProjectTeam.objects.get(project=self.project, team=team)
+
         TeamKeyTransaction.objects.bulk_create(
             [
                 TeamKeyTransaction(
-                    team=team,
                     organization=self.org,
+                    project_team=project_team,
                     transaction=f"{self.event_data['transaction']}-{i}",
-                    project=self.project,
                 )
                 for i in range(MAX_TEAM_KEY_TRANSACTIONS)
             ]
@@ -270,15 +296,16 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
         self.create_team_membership(team2, user=self.user)
         self.project.add_team(team2)
 
+        project_teams = ProjectTeam.objects.filter(project=self.project, team__in=[team1, team2])
+
         TeamKeyTransaction.objects.bulk_create(
             [
                 TeamKeyTransaction(
-                    team=team,
                     organization=self.org,
+                    project_team=project_team,
                     transaction=f"{self.event_data['transaction']}-{i}",
-                    project=self.project,
                 )
-                for team in [team1, team2]
+                for project_team in project_teams
                 for i in range(MAX_TEAM_KEY_TRANSACTIONS - 1)
             ]
         )
@@ -295,7 +322,7 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
             )
 
         assert response.status_code == 201, response.content
-        key_transactions = TeamKeyTransaction.objects.filter(team__in=[team1, team2])
+        key_transactions = TeamKeyTransaction.objects.filter(project_team__team__in=[team1, team2])
         assert len(key_transactions) == 2 * MAX_TEAM_KEY_TRANSACTIONS
 
     def test_post_key_transactions(self):
@@ -315,7 +342,7 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
             )
 
         assert response.status_code == 201, response.content
-        key_transactions = TeamKeyTransaction.objects.filter(team=team)
+        key_transactions = TeamKeyTransaction.objects.filter(project_team__team=team)
         assert len(key_transactions) == 1
 
     def test_post_key_transactions_duplicate(self):
@@ -323,11 +350,12 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
         self.create_team_membership(team, user=self.user)
         self.project.add_team(team)
 
+        project_team = ProjectTeam.objects.get(project=self.project, team=team)
+
         TeamKeyTransaction.objects.create(
-            team=team,
             organization=self.org,
+            project_team=project_team,
             transaction=self.event_data["transaction"],
-            project=self.project,
         )
 
         with self.feature(self.features):
@@ -343,7 +371,7 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
 
         assert response.status_code == 204, response.content
         key_transactions = TeamKeyTransaction.objects.filter(
-            project_id=self.project.id, transaction=self.event_data["transaction"], team_id=team.id
+            project_team=project_team, transaction=self.event_data["transaction"]
         )
         assert len(key_transactions) == 1
 
@@ -369,9 +397,10 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
 
         assert response.status_code == 201, response.content
         key_transactions = TeamKeyTransaction.objects.filter(
-            project_id=self.project.id,
+            project_team__in=ProjectTeam.objects.filter(
+                project=self.project, team__in=[team1, team2]
+            ),
             transaction=self.event_data["transaction"],
-            team_id__in=[team1.id, team2.id],
         )
         assert len(key_transactions) == 2
 
@@ -385,10 +414,9 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
         self.project.add_team(team2)
 
         TeamKeyTransaction.objects.create(
-            team=team1,
             organization=self.org,
+            project_team=ProjectTeam.objects.get(project=self.project, team=team1),
             transaction=self.event_data["transaction"],
-            project=self.project,
         )
 
         with self.feature(self.features):
@@ -404,9 +432,10 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
 
         assert response.status_code == 201, response.content
         key_transactions = TeamKeyTransaction.objects.filter(
-            project_id=self.project.id,
+            project_team__in=ProjectTeam.objects.filter(
+                project=self.project, team__in=[team1, team2]
+            ),
             transaction=self.event_data["transaction"],
-            team_id__in=[team1.id, team2.id],
         )
         assert len(key_transactions) == 2
 
@@ -463,7 +492,7 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
             )
 
         assert response.status_code == 204, response.content
-        key_transactions = TeamKeyTransaction.objects.filter(team=team)
+        key_transactions = TeamKeyTransaction.objects.filter(project_team__team=team)
         assert len(key_transactions) == 0
 
     def test_delete_key_transaction_no_access_team(self):
@@ -485,10 +514,9 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
         project.add_team(other_team)
 
         TeamKeyTransaction.objects.create(
-            team=other_team,
             organization=org,
+            project_team=ProjectTeam.objects.get(project=project, team=team),
             transaction=self.event_data["transaction"],
-            project=project,
         )
 
         with self.feature(self.features):
@@ -513,10 +541,9 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
         self.project.add_team(team)
 
         TeamKeyTransaction.objects.create(
-            team=team,
             organization=self.org,
+            project_team=ProjectTeam.objects.get(project=self.project, team=team),
             transaction=self.event_data["transaction"],
-            project=self.project,
         )
 
         with self.feature(self.features):
@@ -531,7 +558,7 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
             )
 
         assert response.status_code == 204, response.content
-        key_transactions = TeamKeyTransaction.objects.filter(team=team)
+        key_transactions = TeamKeyTransaction.objects.filter(project_team__team=team)
         assert len(key_transactions) == 0
 
     def test_delete_key_transaction_partially_existing_teams(self):
@@ -544,10 +571,9 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
         self.project.add_team(team2)
 
         TeamKeyTransaction.objects.create(
-            team=team1,
             organization=self.org,
+            project_team=ProjectTeam.objects.get(project=self.project, team=team1),
             transaction=self.event_data["transaction"],
-            project=self.project,
         )
 
         with self.feature(self.features):
@@ -575,29 +601,33 @@ class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
         self.team4 = self.create_team(organization=self.org, name="Team D")
         self.team5 = self.create_team(organization=self.org, name="Team E")
 
+        for team in [self.team1, self.team2, self.team3, self.team4, self.team5]:
+            self.project.add_team(team)
+
         # only join teams 1,2,3
         for team in [self.team1, self.team2, self.team3]:
             self.create_team_membership(team, user=self.user)
-            self.project.add_team(team)
 
         TeamKeyTransaction.objects.bulk_create(
             [
                 TeamKeyTransaction(
-                    team=team,
                     organization=self.org,
+                    project_team=project_team,
                     transaction=self.event_data["transaction"],
-                    project=self.project,
                 )
-                for team in [self.team2, self.team3]
+                for project_team in ProjectTeam.objects.filter(
+                    project=self.project, team__in=[self.team2, self.team3]
+                )
             ]
             + [
                 TeamKeyTransaction(
-                    team=team,
                     organization=self.org,
+                    project_team=project_team,
                     transaction="other-transaction",
-                    project=self.project,
                 )
-                for team in [self.team3, self.team4]
+                for project_team in ProjectTeam.objects.filter(
+                    project=self.project, team__in=[self.team3, self.team4]
+                )
             ]
         )
 
@@ -824,10 +854,9 @@ class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
         another_project.add_team(self.team2)
 
         TeamKeyTransaction.objects.create(
-            team=self.team2,
             organization=self.org,
+            project_team=ProjectTeam.objects.get(project=another_project, team=self.team2),
             transaction="another-transaction",
-            project=another_project,
         )
 
         with self.feature(self.features):
