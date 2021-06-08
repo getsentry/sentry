@@ -2,26 +2,32 @@ import * as React from 'react';
 import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import {Location, LocationDescriptor, Query} from 'history';
 import omit from 'lodash/omit';
 
 import SearchBar from 'app/components/events/searchBar';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
+import Pagination from 'app/components/pagination';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
-import DiscoverQuery from 'app/utils/discover/discoverQuery';
+import DiscoverQuery, {TableDataRow} from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
+import {generateEventSlug} from 'app/utils/discover/urls';
 import {decodeScalar} from 'app/utils/queryString';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 import {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
 import {TableColumn} from 'app/views/eventsV2/table/types';
+import {getTraceDetailsUrl} from 'app/views/performance/traceDetails/utils';
 
 import {getCurrentLandingDisplay, LandingDisplayField} from '../../landing/utils';
+import {getTransactionDetailsUrl} from '../../utils';
 import {SpanOperationBreakdownFilter} from '../filter';
 import TransactionHeader, {Tab} from '../header';
 
 import TransactionsTable from './transactionsTable';
+
+const DEFAULT_TRANSACTION_LIMIT = 12;
 
 type Props = {
   location: Location;
@@ -32,9 +38,24 @@ type Props = {
   totalValues: Record<string, number> | null;
   projects: Project[];
   spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
+  cursorName: string;
+  limit: number;
 };
 
 class EventsPageContent extends React.Component<Props> {
+  static defaultProps = {
+    cursorName: 'transactionCursor',
+    limit: DEFAULT_TRANSACTION_LIMIT,
+  };
+
+  handleCursor = (cursor: string, pathname: string, query: Query) => {
+    const {cursorName} = this.props;
+    browserHistory.push({
+      pathname,
+      query: {...query, [cursorName]: cursor},
+    });
+  };
+
   handleTransactionsListSortChange = (value: string) => {
     const {location} = this.props;
     const target = {
@@ -70,7 +91,15 @@ class EventsPageContent extends React.Component<Props> {
   };
 
   render() {
-    const {eventView, location, organization, projects, transactionName} = this.props;
+    const {
+      eventView,
+      location,
+      organization,
+      projects,
+      transactionName,
+      limit,
+      cursorName,
+    } = this.props;
 
     const handleIncompatibleQuery = () => {};
 
@@ -79,6 +108,7 @@ class EventsPageContent extends React.Component<Props> {
     const transactionsListTitles = [
       t('event id'),
       t('user'),
+      t('operation duration'),
       t('total duration'),
       t('trace id'),
       t('timestamp'),
@@ -100,37 +130,76 @@ class EventsPageContent extends React.Component<Props> {
           }
           handleIncompatibleQuery={handleIncompatibleQuery}
         />
-        <LayoutBody>
+        <StyledLayoutBody>
           <Search {...this.props} />
-          <DiscoverQuery
-            location={location}
-            eventView={transactionsListEventView}
-            orgSlug={organization.slug}
-            limit={10}
-            cursor={cursor}
-            referrer="api.discover.transactions-list"
-          >
-            {({isLoading, _pageLinks, tableData}) => {
-              console.log('-QUIERY');
-              console.log(tableData);
-              return (
-                <TransactionsTable
-                  eventView={eventView}
-                  organization={organization}
-                  location={location}
-                  isLoading={isLoading}
-                  tableData={tableData}
-                  columnOrder={eventView.getColumns()}
-                  titles={transactionsListTitles}
-                  handleCellAction={this.handleCellAction}
-                />
-              );
-            }}
-          </DiscoverQuery>
-        </LayoutBody>
+          <StyledTable>
+            <DiscoverQuery
+              location={location}
+              eventView={transactionsListEventView}
+              orgSlug={organization.slug}
+              limit={limit}
+              cursor={cursor}
+              referrer="api.discover.transactions-list"
+            >
+              {({isLoading, pageLinks, tableData}) => {
+                return (
+                  <React.Fragment>
+                    <TransactionsTable
+                      eventView={eventView}
+                      organization={organization}
+                      location={location}
+                      isLoading={isLoading}
+                      tableData={tableData}
+                      columnOrder={eventView.getColumns()}
+                      titles={transactionsListTitles}
+                      handleCellAction={this.handleCellAction}
+                      generateLink={{
+                        id: generateTransactionLink(transactionName),
+                        trace: generateTraceLink(
+                          eventView.normalizeDateSelection(location)
+                        ),
+                      }}
+                    />
+                    <Pagination
+                      pageLinks={pageLinks}
+                      onCursor={this.handleCursor}
+                      size="small"
+                    />
+                  </React.Fragment>
+                );
+              }}
+            </DiscoverQuery>
+          </StyledTable>
+        </StyledLayoutBody>
       </Fragment>
     );
   }
+}
+
+function generateTraceLink(dateSelection) {
+  return (
+    organization: Organization,
+    tableRow: TableDataRow,
+    _query: Query
+  ): LocationDescriptor => {
+    const traceId = `${tableRow.trace}`;
+    if (!traceId) {
+      return {};
+    }
+
+    return getTraceDetailsUrl(organization, traceId, dateSelection, {});
+  };
+}
+
+function generateTransactionLink(transactionName: string) {
+  return (
+    organization: Organization,
+    tableRow: TableDataRow,
+    query: Query
+  ): LocationDescriptor => {
+    const eventSlug = generateEventSlug(tableRow);
+    return getTransactionDetailsUrl(organization, eventSlug, transactionName, query);
+  };
 }
 
 const Search = (props: Props) => {
@@ -164,21 +233,19 @@ const Search = (props: Props) => {
 };
 
 // TODO(k-fish): Adjust thirds layout to allow for this instead.
-const LayoutBody = styled('div')`
+const StyledLayoutBody = styled('div')`
   padding: ${space(2)};
   margin: 0;
   background-color: ${p => p.theme.background};
   flex-grow: 1;
 `;
 
-// const Search = styled('div')`
-//   display: flex;
-//   width: 100%;
-//   margin-bottom: ${space(3)};
-// `;
-
 const StyledSearchBar = styled(SearchBar)`
   flex-grow: 1;
+`;
+const StyledTable = styled('div')`
+  flex-grow: 1;
+  padding-top: ${space(2)};
 `;
 
 export default EventsPageContent;

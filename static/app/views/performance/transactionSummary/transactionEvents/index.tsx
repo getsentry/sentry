@@ -16,6 +16,8 @@ import {
   Column,
   isAggregateField,
   QueryFieldValue,
+  SPAN_OP_BREAKDOWN_FIELDS,
+  SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
   WebVital,
 } from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
@@ -240,7 +242,16 @@ function generateEventsEventView(
     if (isAggregateField(field)) conditions.removeTag(field);
   });
 
-  const fields = ['id', 'user.display', 'transaction.duration', 'trace', 'timestamp'];
+  const fields = [
+    'id',
+    'user.display',
+    SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
+    'transaction.duration',
+    'trace',
+    'timestamp',
+    'spans.total.time',
+  ];
+  fields.push(...SPAN_OP_BREAKDOWN_FIELDS);
 
   return EventView.fromNewQueryWithLocation(
     {
