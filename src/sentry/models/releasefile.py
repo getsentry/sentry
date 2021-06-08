@@ -1,4 +1,5 @@
 import errno
+import logging
 import os
 import warnings
 import zipfile
@@ -15,6 +16,8 @@ from sentry.models import clear_cached_files
 from sentry.utils import json, metrics
 from sentry.utils.hashlib import sha1_text
 from sentry.utils.zip import safe_extract_zip
+
+logger = logging.getLogger(__name__)
 
 
 class ReleaseFile(Model):
@@ -143,6 +146,9 @@ class ReleaseArchive:
         self._zip_file.close()
         self._fileobj.close()
 
+    def info(self, filename: str) -> zipfile.ZipInfo:
+        return self._zip_file.getinfo(filename)
+
     def read(self, filename: str) -> bytes:
         return self._zip_file.read(filename)
 
@@ -184,7 +190,15 @@ def merge_release_archives(file1: IO, archive2: ReleaseArchive, target: IO) -> b
         files = manifest.get("files", {})
         files2 = archive2.manifest.get("files", {})
 
-        if not files2.keys() - files.keys():
+        if any(
+            archive1.info(filename).CRC != archive2.info(filename).CRC
+            for filename in files.keys() & files2.keys()
+        ):
+            # TODO: Get release ID or something to associate this log line with
+            logger.info("Archives have different content for one or more files")
+
+        new_files = files2.keys() - files.keys()
+        if not new_files:
             # Nothing to merge
             return False
 
@@ -193,10 +207,9 @@ def merge_release_archives(file1: IO, archive2: ReleaseArchive, target: IO) -> b
         target.write(file1.read())
 
     with zipfile.ZipFile(target, mode="a", compression=zipfile.ZIP_DEFLATED) as zip_file:
-        for filename, info in files2.items():
-            if filename not in files:
-                zip_file.writestr(filename, archive2.read(filename))
-                files[filename] = info
+        for filename in new_files:
+            zip_file.writestr(filename, archive2.read(filename))
+            files[filename] = files2[filename]
 
         manifest["files"] = files
 
