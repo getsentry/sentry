@@ -411,7 +411,7 @@ class OrganizationReleaseDetailsEndpoint(
                         **self.get_first_and_last_releases(
                             org=organization,
                             environment=filter_params.get("environment"),
-                            project_id=filter_params["project_id"],
+                            project_id=[project_id],
                             sort=sort,
                         ),
                     }
