@@ -26,7 +26,6 @@ from sentry.models import (
     create_files_from_dif_zip,
 )
 from sentry.tasks.assemble import (
-    RELEASE_ARCHIVE_FILENAME,
     AssembleTask,
     ChunkFileState,
     get_assemble_status,
@@ -429,8 +428,6 @@ class SourceMapsEndpoint(ProjectEndpoint):
             }
 
         def serialize_results(results):
-            # Using raw SQL here because Django 1.11 does not support filters
-            # in ``Count`` annotation yet
             file_counts = Release.with_artifact_counts(id__in=[r["id"] for r in results])
             file_count_map = {r.id: r.count for r in file_counts}
             return serialize(

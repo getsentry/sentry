@@ -819,9 +819,12 @@ class Release(Model):
 
     @classmethod
     def with_artifact_counts(cls, *args, **kwargs):
-        # FIXME: Returns 1 instead of 0 for empty releases
-        return cls.objects.filter(*args, **kwargs).annotate(
-            count=Sum(Func(F("releasefile__artifact_count"), 1, function="COALESCE"))
+        # Have to exclude Releases without release files because COALESCE would
+        # give them an artifact count of 1
+        return (
+            cls.objects.filter(*args, **kwargs)
+            .exclude(releasefile__isnull=True)
+            .annotate(count=Sum(Func(F("releasefile__artifact_count"), 1, function="COALESCE")))
         )
 
     def count_artifacts(self):
@@ -830,4 +833,7 @@ class Release(Model):
         An artifact count of NULL is interpreted as 1.
         """
         qs = Release.with_artifact_counts(pk=self.pk)
-        return qs[0].count
+        try:
+            return qs[0].count
+        except IndexError:
+            return 0

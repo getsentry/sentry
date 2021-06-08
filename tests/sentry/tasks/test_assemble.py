@@ -199,6 +199,8 @@ class AssembleArtifactsTest(BaseAssembleTest):
                 }
             ):
 
+                assert self.release.count_artifacts() == 0
+
                 assemble_artifacts(
                     org_id=self.organization.id,
                     version=self.release.version,
@@ -227,6 +229,8 @@ class AssembleArtifactsTest(BaseAssembleTest):
                     assert release_file.file.size == len(bundle_file)
                 else:
                     assert release_file.file.headers == {"Sourcemap": "index.js.map"}
+
+                assert self.release.count_artifacts() == 2
 
     def test_merge_archives(self):
         file1 = File.objects.create()
