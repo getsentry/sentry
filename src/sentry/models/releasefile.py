@@ -194,8 +194,7 @@ def merge_release_archives(file1: IO, archive2: ReleaseArchive, target: IO) -> b
             archive1.info(filename).CRC != archive2.info(filename).CRC
             for filename in files.keys() & files2.keys()
         ):
-            # TODO: Get release ID or something to associate this log line with
-            logger.info("Archives have different content for one or more files")
+            metrics.incr("release_file.archive.different_content")
 
         new_files = files2.keys() - files.keys()
         if not new_files:
