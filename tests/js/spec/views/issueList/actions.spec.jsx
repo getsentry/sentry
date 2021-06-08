@@ -346,9 +346,7 @@ describe('IssueListActions', function () {
   describe('with inbox feature', function () {
     let issuesApiMock;
     beforeEach(async () => {
-      GroupStore.init();
-      SelectedGroupStore.init();
-      await tick();
+      SelectedGroupStore.records = {};
       const {organization} = TestStubs.routerContext().context;
       wrapper = mountWithTheme(
         <IssueListActions
