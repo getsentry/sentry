@@ -77,25 +77,13 @@ class Migration(migrations.Migration):
                 ),
                 migrations.RunSQL(
                     """
-                    CREATE INDEX CONCURRENTLY IF NOT EXISTS "sentry_releaseprojectenvironment_proj_id_adopted_cf1f902b" ON "sentry_releaseprojectenvironment" ("project_id", "adopted");
-                    """,
-                    reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS sentry_releaseprojectenvironment_proj_id_adopted_cf1f902b",
-                ),
-                migrations.RunSQL(
-                    """
-                    CREATE INDEX CONCURRENTLY IF NOT EXISTS "sentry_releaseprojectenvironment_proj_id_unadopted_bac2355c" ON "sentry_releaseprojectenvironment" ("project_id", "unadopted");
-                    """,
-                    reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS sentry_releaseprojectenvironment_proj_id_unadopted_bac2355c",
-                ),
-                migrations.RunSQL(
-                    """
-                    CREATE INDEX CONCURRENTLY IF NOT EXISTS "sentry_releaseprojectenvironment_proj_id_env_id_adopted_j6h89s3f" ON "sentry_releaseprojectenvironment" ("project_id", "environment_id", "adopted");
+                    CREATE INDEX CONCURRENTLY IF NOT EXISTS "sentry_releaseprojectenvironment_proj_id_env_id_adopted_j6h89s3f" ON "sentry_releaseprojectenvironment" ("project_id", "adopted", "environment_id");
                     """,
                     reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS sentry_releaseprojectenvironment_proj_id_env_id_adopted_j6h89s3f",
                 ),
                 migrations.RunSQL(
                     """
-                    CREATE INDEX CONCURRENTLY IF NOT EXISTS "sentry_releaseprojectenvironment_proj_id_env_id_unadopted_kyh5m8s3" ON "sentry_releaseprojectenvironment" ("project_id", "environment_id", "unadopted");
+                    CREATE INDEX CONCURRENTLY IF NOT EXISTS "sentry_releaseprojectenvironment_proj_id_env_id_unadopted_kyh5m8s3" ON "sentry_releaseprojectenvironment" ("project_id", "unadopted", "environment_id");
                     """,
                     reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS sentry_releaseprojectenvironment_proj_id_env_id_unadopted_kyh5m8s3",
                 ),
@@ -129,8 +117,6 @@ class Migration(migrations.Migration):
                     name="releaseprojectenvironment",
                     index_together={
                         ("project", "unadopted", "environment"),
-                        ("project", "adopted"),
-                        ("project", "unadopted"),
                         ("project", "adopted", "environment"),
                     },
                 ),

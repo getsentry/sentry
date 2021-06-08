@@ -26,9 +26,7 @@ class ReleaseProjectEnvironment(Model):
         app_label = "sentry"
         db_table = "sentry_releaseprojectenvironment"
         index_together = (
-            ("project", "adopted"),
             ("project", "adopted", "environment"),
-            ("project", "unadopted"),
             ("project", "unadopted", "environment"),
         )
         unique_together = (("project", "release", "environment"),)
