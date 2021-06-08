@@ -10,8 +10,6 @@ import {t, tn} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 
-import {ParsedTraceType} from './types';
-
 type DropdownButtonProps = React.ComponentProps<typeof DropdownButton>;
 
 type NoFilter = {
@@ -30,34 +28,13 @@ export const noFilter: NoFilter = {
 export type ActiveOperationFilter = NoFilter | ActiveFilter;
 
 type Props = {
-  parsedTrace: ParsedTraceType;
+  operationNameCounts: Map<string, number>;
   operationNameFilter: ActiveOperationFilter;
   toggleOperationNameFilter: (operationName: string) => void;
-  toggleAllOperationNameFilters: (operationNames: string[]) => void;
+  toggleAllOperationNameFilters: () => void;
 };
 
 class Filter extends React.Component<Props> {
-  getOperationNameCounts(): Map<string, number> {
-    const {parsedTrace} = this.props;
-
-    const result = new Map<string, number>();
-    result.set(parsedTrace.op, 1);
-    for (const span of parsedTrace.spans) {
-      const operationName = span.op;
-
-      if (typeof operationName === 'string' && operationName.length > 0) {
-        result.set(operationName, (result.get(operationName) ?? 0) + 1);
-      }
-    }
-
-    // sort alphabetically using case insensitive comparison
-    return new Map(
-      [...result].sort((a, b) =>
-        String(a[0]).localeCompare(b[0], undefined, {sensitivity: 'base'})
-      )
-    );
-  }
-
   isOperationNameActive(operationName: string) {
     const {operationNameFilter} = this.props;
 
@@ -81,7 +58,7 @@ class Filter extends React.Component<Props> {
   }
 
   render() {
-    const operationNameCounts = this.getOperationNameCounts();
+    const {operationNameCounts} = this.props;
 
     if (operationNameCounts.size === 0) {
       return null;
@@ -143,9 +120,7 @@ class Filter extends React.Component<Props> {
                 }
                 onClick={event => {
                   event.stopPropagation();
-                  this.props.toggleAllOperationNameFilters(
-                    Array.from(operationNameCounts.keys())
-                  );
+                  this.props.toggleAllOperationNameFilters();
                 }}
               />
             </Header>
