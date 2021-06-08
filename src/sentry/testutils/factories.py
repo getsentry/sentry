@@ -212,13 +212,15 @@ DEFAULT_EVENT_DATA = {
 }
 
 
-def _patch_artifact_manifest(path, org, release, project=None):
+def _patch_artifact_manifest(path, org, release, project=None, extra_files=None):
     with open(path, "rb") as fp:
         manifest = json.load(fp)
     manifest["org"] = org
     manifest["release"] = release
     if project:
         manifest["project"] = project
+    for path in extra_files or {}:
+        manifest["files"][path] = {"url": path}
     return json.dumps(manifest)
 
 
@@ -413,18 +415,22 @@ class Factories:
         )
 
     @staticmethod
-    def create_artifact_bundle(org, release, project=None):
+    def create_artifact_bundle(org, release, project=None, extra_files=None):
         import zipfile
 
         bundle = io.BytesIO()
         bundle_dir = get_fixture_path("artifact_bundle")
         with zipfile.ZipFile(bundle, "w", zipfile.ZIP_DEFLATED) as zipfile:
+            for path, content in (extra_files or {}).items():
+                zipfile.writestr(path, content)
             for path, _, files in os.walk(bundle_dir):
                 for filename in files:
                     fullpath = os.path.join(path, filename)
                     relpath = os.path.relpath(fullpath, bundle_dir)
                     if filename == "manifest.json":
-                        manifest = _patch_artifact_manifest(fullpath, org, release, project)
+                        manifest = _patch_artifact_manifest(
+                            fullpath, org, release, project, extra_files
+                        )
                         zipfile.writestr(relpath, manifest)
                     else:
                         zipfile.write(fullpath, relpath)
