@@ -171,34 +171,39 @@ class ReleaseArchive:
         return temp_dir
 
 
-def merge_release_archives(file1: IO, archive2: ReleaseArchive, target: IO):
+def merge_release_archives(file1: IO, archive2: ReleaseArchive, target: IO) -> bool:
     """Append contents of archive2 to copy of file1
 
     Skip files that are already present in archive 1.
-    """
-    # Create a copy
-    file1.seek(0)
-    target.write(file1.read())
 
+    :returns: True if zip archive was written to target
+    """
     with ReleaseArchive(file1) as archive1:
         manifest = archive1.manifest
 
-    files = manifest.get("files", {})
-    files2 = archive2.manifest.get("files", {})
+        files = manifest.get("files", {})
+        files2 = archive2.manifest.get("files", {})
+
+        if not files2.keys() - files.keys():
+            # Nothing to merge
+            return False
+
+        # Create a copy
+        file1.seek(0)
+        target.write(file1.read())
 
     with zipfile.ZipFile(target, mode="a", compression=zipfile.ZIP_DEFLATED) as zip_file:
-        changed = False
         for filename, info in files2.items():
             if filename not in files:
                 zip_file.writestr(filename, archive2.read(filename))
                 files[filename] = info
-                changed = True
 
         manifest["files"] = files
 
-        if changed:
-            # This creates a duplicate entry for the manifest, which is okay-ish
-            # because the Python implementation prefers the latest version when reading
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                zip_file.writestr("manifest.json", json.dumps(manifest))
+        # This creates a duplicate entry for the manifest, which is okay-ish
+        # because the Python implementation prefers the latest version when reading
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            zip_file.writestr("manifest.json", json.dumps(manifest))
+
+    return True

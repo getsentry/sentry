@@ -213,14 +213,14 @@ def _merge_archives(release_file: ReleaseFile, new_file: File, new_archive: Rele
             buffer = BytesIO()
 
             with metrics.timer("tasks.assemble.merge_archives_pure"):
-                merge_release_archives(old_file_contents, new_archive, buffer)
+                did_merge = merge_release_archives(old_file_contents, new_archive, buffer)
 
-            replacement = File.objects.create(name=old_file.name, type=old_file.type)
-            buffer.seek(0)
-            replacement.putfile(buffer)
-            release_file.update(file=replacement)
-
-            old_file.delete()
+            if did_merge:
+                replacement = File.objects.create(name=old_file.name, type=old_file.type)
+                buffer.seek(0)
+                replacement.putfile(buffer)
+                release_file.update(file=replacement)
+                old_file.delete()
 
     except UnableToAcquireLock as error:
         logger.error("merge_archives.fail", extra={"error": error})

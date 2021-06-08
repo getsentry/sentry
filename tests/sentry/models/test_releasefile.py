@@ -104,6 +104,52 @@ class ReleaseArchiveTestCase(TestCase):
         archive1 = self.create_archive(
             fields={
                 "org": 1,
+                "release": 666,
+                "dist": 3,
+            },
+            files={
+                "foo": "foo",
+                "bar": "BAR",
+            },
+            raw=True,
+        )
+        archive2 = self.create_archive(
+            fields={
+                "org": 1,
+                "release": 2,
+                "dist": 3,
+            },
+            files={
+                "foo": "foo",
+                "bar": "bar",
+                "baz": "baz",
+            },
+        )
+
+        buffer = BytesIO()
+
+        assert merge_release_archives(archive1, archive2, buffer) is True
+
+        archive3 = ReleaseArchive(buffer)
+
+        assert archive3.manifest["org"] == 1
+        assert archive3.manifest["release"] == 666
+        assert archive3.manifest["dist"] == 3
+
+        assert archive3.manifest["files"].keys() == {"foo", "bar", "baz"}
+
+        # Make sure everything was saved:
+        peristed_manifest = archive3._read_manifest()
+        assert peristed_manifest == archive3.manifest
+
+        assert archive3.read("foo") == b"foo"
+        assert archive3.read("bar") == b"BAR"  # no overwrite
+        assert archive3.read("baz") == b"baz"
+
+    def test_merge_nothing(self):
+        archive1 = self.create_archive(
+            fields={
+                "org": 1,
                 "release": 2,
                 "dist": 3,
             },
@@ -127,20 +173,6 @@ class ReleaseArchiveTestCase(TestCase):
         )
 
         buffer = BytesIO()
-        merge_release_archives(archive1, archive2, buffer)
 
-        archive3 = ReleaseArchive(buffer)
-
-        assert archive3.manifest["org"] == 1
-        assert archive3.manifest["release"] == 2
-        assert archive3.manifest["dist"] == 3
-
-        assert archive3.manifest["files"].keys() == {"foo", "bar", "baz"}
-
-        # Make sure everything was saved:
-        peristed_manifest = archive3._read_manifest()
-        assert peristed_manifest == archive3.manifest
-
-        assert archive3.read("foo") == b"foo"
-        assert archive3.read("bar") == b"bar"
-        assert archive3.read("baz") == b"baz"
+        # Nothing added:
+        assert merge_release_archives(archive1, archive2, buffer) is False
