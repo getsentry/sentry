@@ -1,24 +1,21 @@
-name: python versions
+name: python deps
 on:
-  schedule:
-    # Notifications will be sent to whoever touches this last
-    # You will be able to trigger this workflow manually if need be
-    # This runs at 4:00 every Saturday, where GHA should in theory be less busy.
-    - cron:  '0 4 * * 6'
+  pull_request:
+    paths:
+    - '.github/workflows/python-deps.yml'
+    - 'requirements*'
 
 jobs:
   # This workflow makes sure that Python dependencies install correctly for
-  # a) our current version b) the next version we're targetting and c) a futher along version
-  python-versions:
-    name: set up
+  # a) our current version b) the next version we're targetting
+  python-deps:
+    name: install
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 10
+    timeout-minutes: 20
     strategy:
       matrix:
-        # macosx-10.15 is Catalina
-        # macosx-11.0 is Big Sur, however, it takes long for jobs to get started
-        os: [ macos-10.15, macos-11.0, ubuntu-20.04 ]
-        python-version: [ 3.6, 3.8, 3.9 ]
+        os: [ macos-11.0, ubuntu-20.04 ]
+        python-version: [ 3.6.13, 3.8.10 ]
       fail-fast: false
     env:
       PIP_DISABLE_PIP_VERSION_CHECK: on
@@ -48,9 +45,9 @@ jobs:
           path: |
             ${{ steps.pip.outputs.pip-cache-dir }}
           key: |
-            ${{ matrix.os }}-py${{ matrix.python-version }}-pip${{ steps.pip.outputs.pip-version }}-${{ hashFiles('requirements-*.txt') }}
+            python-deps-${{ matrix.os }}-py${{ matrix.python-version }}-${{ hashFiles('requirements-*.txt') }}
           restore-keys: |
-            ${{ matrix.os }}-py${{ matrix.python-version }}-pip${{ steps.pip.outputs.pip-version }}
+            python-deps-${{ matrix.os }}-py${{ matrix.python-version }}
 
       - name: Install dependencies
         run: |
