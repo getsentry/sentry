@@ -82,9 +82,7 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
                 selected_columns=request.GET.getlist("field")[:],
                 query=request.GET.get("query"),
                 params=params,
-                equations=request.GET.getlist("equation")[:]
-                if self.has_arithmetic(organization, request)
-                else [],
+                equations=self.get_equation_list(organization, request),
                 orderby=self.get_orderby(request),
                 offset=offset,
                 limit=limit,
