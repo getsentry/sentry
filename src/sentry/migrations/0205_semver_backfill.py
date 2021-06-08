@@ -98,7 +98,7 @@ class Migration(migrations.Migration):
     atomic = False
 
     dependencies = [
-        ("sentry", "0202_org_slug_upper_idx"),
+        ("sentry", "0204_use_project_team_for_team_key_transactions"),
     ]
 
     operations = [
