@@ -3853,14 +3853,14 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             team = self.create_team(organization=self.organization, name="Team A")
             self.create_team_membership(team, user=self.user)
             self.project.add_team(team)
+            project_team = ProjectTeam.objects.get(project=self.project, team=team)
 
             TeamKeyTransaction.objects.bulk_create(
                 [
                     TeamKeyTransaction(
-                        team=team,
                         organization=self.organization,
+                        project_team=project_team,
                         transaction=f"transaction-{team.id}-{i}",
-                        project=self.project,
                     )
                     for i in range(MAX_TEAM_KEY_TRANSACTIONS + 1)
                 ]
