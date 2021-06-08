@@ -197,13 +197,12 @@ describe('EventsV2 > EventDetails', function () {
     // Get the second link
     const deviceUUIDTagLink = wrapper.find('EventDetails KeyValueTable Value Link').at(2);
 
-    // Should append tag value wrapped with tags[] as device.uuid is part of our fields
     const deviceUUIDTagTarget = deviceUUIDTagLink.props().to;
     expect(deviceUUIDTagTarget.pathname).toEqual(
       '/organizations/org-slug/discover/results/'
     );
     expect(deviceUUIDTagTarget.query.query).toEqual(
-      'tags[device.uuid]:test-uuid title:"Oh no something bad"'
+      'device.uuid:test-uuid title:"Oh no something bad"'
     );
   });
 
@@ -245,13 +244,12 @@ describe('EventsV2 > EventDetails', function () {
     // Get the second link
     const deviceUUIDTagLink = wrapper.find('EventDetails KeyValueTable Value Link').at(2);
 
-    // Should append tag value wrapped with tags[] as device.uuid is part of our fields
     const deviceUUIDTagTarget = deviceUUIDTagLink.props().to;
     expect(deviceUUIDTagTarget.pathname).toEqual(
       '/organizations/org-slug/discover/results/'
     );
     expect(deviceUUIDTagTarget.query.query).toEqual(
-      'Dumpster tags[device.uuid]:test-uuid title:"Oh no something bad"'
+      'Dumpster device.uuid:test-uuid title:"Oh no something bad"'
     );
   });
 });
