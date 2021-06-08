@@ -27,7 +27,7 @@ class Migration(migrations.Migration):
     atomic = True
 
     dependencies = [
-        ("sentry", "0202_org_slug_upper_idx"),
+        ("sentry", "0203_groupedmessage_status_index"),
     ]
 
     operations = [

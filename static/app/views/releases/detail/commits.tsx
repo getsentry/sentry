@@ -4,6 +4,7 @@ import {Location} from 'history';
 
 import CommitRow from 'app/components/commitRow';
 import {Body, Main} from 'app/components/layouts/thirds';
+import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {t} from 'app/locale';
@@ -50,6 +51,12 @@ class Commits extends AsyncView<Props, State> {
     };
   }
 
+  componentDidUpdate(prevProps: Props) {
+    if (prevProps.activeReleaseRepo?.name !== this.props.activeReleaseRepo?.name) {
+      this.remountComponent();
+    }
+  }
+
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {
       projectSlug,
@@ -72,9 +79,17 @@ class Commits extends AsyncView<Props, State> {
     ];
   }
 
+  renderLoading() {
+    return this.renderBody();
+  }
+
   renderContent() {
-    const {commits, commitsPageLinks} = this.state;
+    const {commits, commitsPageLinks, loading} = this.state;
     const {activeReleaseRepo} = this.props;
+
+    if (loading) {
+      return <LoadingIndicator />;
+    }
 
     if (!commits.length) {
       return (
