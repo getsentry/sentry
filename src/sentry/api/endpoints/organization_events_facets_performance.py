@@ -174,8 +174,8 @@ class OrganizationEventsFacetsPerformanceHistogramEndpoint(
                 on_results=lambda results: self.handle_results_with_meta(
                     request, organization, params["project_id"], results
                 ),
-                default_per_page=5,
-                max_per_page=10,
+                default_per_page=10,
+                max_per_page=50,
             )
 
 

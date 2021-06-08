@@ -81,11 +81,10 @@ class TeamKeyTransaction(Model):
 
     # max_length here is based on the maximum for transactions in relay
     transaction = models.CharField(max_length=200)
-    project = FlexibleForeignKey("sentry.Project", db_constraint=False)
-    team = FlexibleForeignKey("sentry.Team")
+    project_team = FlexibleForeignKey("sentry.ProjectTeam", null=True, db_constraint=False)
     organization = FlexibleForeignKey("sentry.Organization")
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_performanceteamkeytransaction"
-        unique_together = (("project", "team", "transaction"),)
+        unique_together = (("project_team", "transaction"),)

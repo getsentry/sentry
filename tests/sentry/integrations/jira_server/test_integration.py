@@ -1,4 +1,3 @@
-import jwt
 import responses
 from django.test.utils import override_settings
 from requests.exceptions import ReadTimeout
@@ -6,7 +5,7 @@ from requests.exceptions import ReadTimeout
 from sentry.integrations.jira_server import JiraServerIntegrationProvider
 from sentry.models import Identity, IdentityProvider, Integration, OrganizationIntegration
 from sentry.testutils import IntegrationTestCase
-from sentry.utils import json
+from sentry.utils import json, jwt
 
 from .testutils import EXAMPLE_PRIVATE_KEY
 
@@ -305,7 +304,7 @@ class JiraServerIntegrationTest(IntegrationTestCase):
             data = json.loads(request.body)
             url = data["url"]
             token = url.split("/")[-2]
-            token_data = jwt.decode(token, options={"verify_signature": False})
+            token_data = jwt.peek_claims(token)
             assert "id" in token_data
             assert token_data["id"] == expected_id
 

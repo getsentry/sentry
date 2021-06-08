@@ -80,11 +80,7 @@ start-docker() {
 }
 
 upgrade-pip() {
-    # pip versions before 20.1 do not have `pip cache` as a command which is necessary for the CI
-    pip install --no-cache-dir --upgrade "pip>=20.1"
-    # The Python version installed via pyenv does not come with wheel pre-installed
-    # Installing wheel will speed up installation of Python dependencies
-    require wheel || pip install wheel
+    pip install --upgrade "pip==21.1.2" "wheel==0.36.2"
 }
 
 install-py-dev() {
@@ -93,15 +89,10 @@ install-py-dev() {
     # This helps when getsentry calls into this script
     cd "${HERE}/.." || exit
     echo "--> Installing Sentry (for development)"
-    # In Big Sur, versions of pip before 20.3 require SYSTEM_VERSION_COMPAT set
-    if query_big_sur && python -c 'from sys import exit; import pip; from pip._vendor.packaging.version import parse; exit(1 if parse(pip.__version__) < parse("20.3") else 0)'; then
-        SENTRY_LIGHT_BUILD=1 SYSTEM_VERSION_COMPAT=1 pip install -e '.[dev]'
-    else
-        # SENTRY_LIGHT_BUILD=1 disables webpacking during setup.py.
-        # Webpacked assets are only necessary for devserver (which does it lazily anyways)
-        # and acceptance tests, which webpack automatically if run.
-        SENTRY_LIGHT_BUILD=1 pip install -e '.[dev]'
-    fi
+    # SENTRY_LIGHT_BUILD=1 disables webpacking during setup.py.
+    # Webpacked assets are only necessary for devserver (which does it lazily anyways)
+    # and acceptance tests, which webpack automatically if run.
+    SENTRY_LIGHT_BUILD=1 pip install -e '.[dev]'
 }
 
 setup-git-config() {
