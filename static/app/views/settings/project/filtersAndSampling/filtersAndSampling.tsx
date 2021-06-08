@@ -236,7 +236,7 @@ class FiltersAndSampling extends AsyncView<Props, State> {
         <PermissionAlert />
         <TextBlock>
           {tct(
-            'Manage the inbound data you want to store. To change the sampling rate or rate limits, [link:update your SDK configuration]. The rules added below will apply on top of your SDK configuration.',
+            'Manage the inbound data you want to store. To change the sampling rate or rate limits, [link:update your SDK configuration]. The rules added below will apply on top of your SDK configuration. Any new rule may take a few minutes to propogate.',
             {
               link: <ExternalLink href={DYNAMIC_SAMPLING_DOC_LINK} />,
             }
@@ -252,9 +252,7 @@ class FiltersAndSampling extends AsyncView<Props, State> {
           isErrorPanel
         />
         <TextBlock>
-          {t(
-            'Trace rules (Individual transactions) should precede transaction rules (transaction traces).'
-          )}
+          {t('Rules for traces should precede rules for individual transactions.')}
         </TextBlock>
         <RulesPanel
           rules={transactionRules}

@@ -26,8 +26,8 @@ import handleXhrErrorResponse from './handleXhrErrorResponse';
 import {isLegacyBrowser, Transaction} from './utils';
 
 const transactionChoices = [
-  [Transaction.ALL, t('Include All')],
-  [Transaction.MATCH_CONDITIONS, t('Match Conditions')],
+  [Transaction.ALL, t('Apply to all')],
+  [Transaction.MATCH_CONDITIONS, t('Match custom conditions')],
 ] as Array<[string, string]>;
 
 type Conditions = React.ComponentProps<typeof ConditionFields>['conditions'];
@@ -393,6 +393,7 @@ class Form<P extends Props = Props, S extends State = State> extends React.Compo
               error={errors.sampleRate}
               showHelpInTooltip
               stacked
+              required
             />
           </Fields>
         </Body>
