@@ -9,6 +9,7 @@ import List from 'app/components/list';
 import ListItem from 'app/components/list/listItem';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
+import Pagination from 'app/components/pagination';
 import {IconFlag} from 'app/icons';
 import {t, tct, tn} from 'app/locale';
 import space from 'app/styles/space';
@@ -60,6 +61,8 @@ function Grouping({api, groupId, location}: Props) {
     GroupingLevelDetails[]
   >([]);
 
+  const [pagination, setPagination] = useState('');
+
   useEffect(() => {
     fetchGroupingLevels();
   }, []);
@@ -70,7 +73,7 @@ function Grouping({api, groupId, location}: Props) {
 
   useEffect(() => {
     fetchGroupingLevelDetails();
-  }, [activeGroupingLevel]);
+  }, [activeGroupingLevel, location.query]);
 
   async function fetchGroupingLevels() {
     setIsLoading(true);
@@ -93,12 +96,23 @@ function Grouping({api, groupId, location}: Props) {
 
     setIsGroupingLevelDetailsLoading(true);
     setError(undefined);
+
     try {
-      const response = await api.requestPromise(
-        `/issues/${groupId}/grouping/levels/${activeGroupingLevel}/new-issues/`
+      const [response, , xhr] = await api.requestPromise(
+        `/issues/${groupId}/grouping/levels/${activeGroupingLevel}/new-issues/`,
+        {
+          method: 'GET',
+          includeAllArgs: true,
+          query: {
+            ...location.query,
+            per_page: 10,
+          },
+        }
       );
 
-      setActiveGroupingLevelDetails(response);
+      const pageLinks = xhr && xhr.getResponseHeader?.('Link');
+      setPagination(pageLinks ?? '');
+      setActiveGroupingLevelDetails(Array.isArray(response) ? response : [response]);
       setIsGroupingLevelDetailsLoading(false);
     } catch (err) {
       setIsGroupingLevelDetailsLoading(false);
@@ -128,7 +142,7 @@ function Grouping({api, groupId, location}: Props) {
               <Button
                 to={`/organizations/sentry/issues/${groupId}/merged/?${location.search}`}
               >
-                {t('Unmerged issue')}
+                {t('Unmerge issue')}
               </Button>
             }
           >
@@ -216,6 +230,7 @@ function Grouping({api, groupId, location}: Props) {
             )}
           </StyledListItem>
         </StyledList>
+        <Pagination pageLinks={pagination} />
       </Body>
       <Footer>
         <Button priority="primary" disabled={isGroupingLevelDetailsLoading}>
