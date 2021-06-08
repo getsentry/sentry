@@ -54,6 +54,10 @@ export type QueryFieldValue =
       field: string;
     }
   | {
+      kind: 'equation';
+      field: string;
+    }
+  | {
       kind: 'function';
       function: [AggregationKey, string, AggregationRefinement];
     };
@@ -609,6 +613,17 @@ export function getAggregateArg(field: string): string | null {
   return null;
 }
 
+// `|` is an invalid field character, so it is used to determine whether a field is an equation or not
+const EQUATION_PREFIX = 'equation|';
+
+export function isEquation(field: string): boolean {
+  return field.startsWith(EQUATION_PREFIX);
+}
+
+export function getEquation(field: string): string {
+  return field.slice(EQUATION_PREFIX.length);
+}
+
 export function generateAggregateFields(
   organization: LightWeightOrganization,
   eventFields: readonly Field[] | Field[],
@@ -653,6 +668,9 @@ export function explodeFieldString(field: string): Column {
       ],
     };
   }
+  if (isEquation(field)) {
+    return {kind: 'equation', field: getEquation(field)};
+  }
 
   return {kind: 'field', field};
 }
@@ -660,6 +678,8 @@ export function explodeFieldString(field: string): Column {
 export function generateFieldAsString(value: QueryFieldValue): string {
   if (value.kind === 'field') {
     return value.field;
+  } else if (value.kind === 'equation') {
+    return `${EQUATION_PREFIX}${value.field}`;
   }
 
   const aggregation = value.function[0];
