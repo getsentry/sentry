@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import Cookies from 'js-cookie';
 
@@ -41,16 +41,6 @@ export default function DemoHeader() {
       preferenceUnsubscribe();
     };
   });
-
-  const [show, setShow] = React.useState(false);
-
-  useEffect(() => {
-    setTimeout(() => {
-      setShow(true);
-    }, 650);
-  }, [show]);
-
-  if (!show) return null;
 
   return (
     <Wrapper collapsed={collapsed}>
