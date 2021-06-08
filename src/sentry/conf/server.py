@@ -124,7 +124,7 @@ DEVSERVICES_CONFIG_DIR = os.path.normpath(
     os.path.join(PROJECT_ROOT, os.pardir, os.pardir, "config")
 )
 
-CLICKHOUSE_CONFIG_PATH = os.path.join(DEVSERVICES_CONFIG_DIR, "clickhouse", "config.xml")
+SENTRY_DISTRIBUTED_CLICKHOUSE_TABLES = False
 
 RELAY_CONFIG_DIR = os.path.join(DEVSERVICES_CONFIG_DIR, "relay")
 
@@ -848,6 +848,8 @@ SENTRY_FEATURES = {
     "organizations:advanced-search": True,
     # Enable obtaining and using API keys.
     "organizations:api-keys": False,
+    # Enable Apple app-store-connect dsym symbol file collection.
+    "organizations:app-store-connect": False,
     # Enable explicit use of AND and OR in search.
     "organizations:boolean-search": False,
     # Enable unfurling charts using the Chartcuterie service
@@ -875,10 +877,6 @@ SENTRY_FEATURES = {
     "organizations:discover-query": True,
     # Enable Performance view
     "organizations:performance-view": False,
-    # Enable the quick trace view on event details
-    "organizations:trace-view-quick": False,
-    # Enable the trace view summary
-    "organizations:trace-view-summary": False,
     # Enable multi project selection
     "organizations:global-views": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
@@ -889,6 +887,8 @@ SENTRY_FEATURES = {
     "organizations:custom-event-title": True,
     # Enable rule page.
     "organizations:rule-page": False,
+    # Enable experimental syntax highlightign on unified search
+    "organizations:search-syntax-highlight": False,
     # Enable incidents feature
     "organizations:incidents": False,
     # Enable the new Metrics page
@@ -935,15 +935,10 @@ SENTRY_FEATURES = {
     "organizations:enterprise-perf": False,
     # Enable the API to importing CODEOWNERS for a project
     "organizations:integrations-codeowners": False,
-    # Special feature flag primarily used on the sentry.io SAAS product for
-    # easily enabling features while in early development.
-    "organizations:internal-catchall": False,
     # Enable inviting members to organizations.
     "organizations:invite-members": True,
     # Enable rate limits for inviting members.
     "organizations:invite-members-rate-limits": True,
-    # Enable org-wide saved searches and user pinned search
-    "organizations:org-saved-searches": False,
     # Prefix host with organization ID when giving users DSNs (can be
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
@@ -953,6 +948,8 @@ SENTRY_FEATURES = {
     "organizations:performance-ops-breakdown": False,
     # Enable views for tag explorer
     "organizations:performance-tag-explorer": False,
+    # Enable landing improvements for performance
+    "organizations:performance-landing-widgets": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See
@@ -974,25 +971,38 @@ SENTRY_FEATURES = {
     "organizations:sso-saml2": True,
     # Enable Rippling SSO functionality.
     "organizations:sso-rippling": False,
+    # Enable SCIM Provisioning functionality.
+    "organizations:sso-scim": False,
     # Enable workaround for migrating IdP instances
     "organizations:sso-migration": False,
+    # Enable team based key transactions for performance
+    "organizations:team-key-transactions": False,
     # Enable transaction comparison view for performance.
     "organizations:transaction-comparison": False,
     # Return unhandled information on the issue level
     "organizations:unhandled-issue-flag": True,
-    # Enable graph for subscription quota for errors, transactions and
-    # attachments
-    "organizations:usage-stats-graph": False,
     # Enable inbox support in the issue stream
     "organizations:inbox": True,
+    # Enable percent-based conditions on issue rules
+    "organizations:issue-percent-filters": False,
     # Enable the new alert details ux design
     "organizations:alert-details-redesign": True,
+    # Enable the new alert history filters
+    "organizations:alert-history-filters": False,
     # Enable the new images loaded design and features
     "organizations:images-loaded-v2": True,
     # Enable teams to have ownership of alert rules
     "organizations:team-alerts-ownership": False,
     # Enable the new alert creation wizard
     "organizations:alert-wizard": True,
+    # Enable the adoption chart in the releases page
+    "organizations:release-adoption-chart": False,
+    # Store release bundles as zip files instead of single files
+    "organizations:release-archives": False,
+    # Enable the project level transaction thresholds
+    "organizations:project-transaction-threshold": False,
+    # Enable percent displays in issue stream
+    "organizations:issue-percent-display": False,
     # Adds additional filters and a new section to issue alert rules.
     "projects:alert-filters": True,
     # Enable functionality to specify custom inbound filters on events.
@@ -1165,7 +1175,7 @@ SENTRY_ALLOW_PUBLIC_PROJECTS = True
 # Will an invite be sent when a member is added to an organization?
 SENTRY_ENABLE_INVITES = True
 
-# Default to not sending the Access-Control-Allow-Origin header on api/store
+# Origins allowed for session-based API access (via the Access-Control-Allow-Origin header)
 SENTRY_ALLOW_ORIGIN = None
 
 # Enable scraping of javascript context for source code
@@ -1667,19 +1677,17 @@ SENTRY_DEVSERVICES = {
         "pull": True,
         "ports": {"9000/tcp": 9000, "9009/tcp": 9009, "8123/tcp": 8123},
         "ulimits": [{"name": "nofile", "soft": 262144, "hard": 262144}],
+        "environment": {"MAX_MEMORY_USAGE_RATIO": "0.3"},
         "volumes": {
-            "clickhouse": {"bind": "/var/lib/clickhouse"},
-            CLICKHOUSE_CONFIG_PATH: {"bind": "/etc/clickhouse-server/config.d/sentry.xml"},
+            "clickhouse_dist"
+            if SENTRY_DISTRIBUTED_CLICKHOUSE_TABLES
+            else "clickhouse": {"bind": "/var/lib/clickhouse"},
+            os.path.join(
+                DEVSERVICES_CONFIG_DIR,
+                "clickhouse",
+                "dist_config.xml" if SENTRY_DISTRIBUTED_CLICKHOUSE_TABLES else "loc_config.xml",
+            ): {"bind": "/etc/clickhouse-server/config.d/sentry.xml"},
         },
-        "environment": {
-            # This limits Clickhouse's memory to 30% of the host memory
-            # If you have high volume and your search return incomplete results
-            # You might want to change this to a higher value (and ensure your host has enough memory)
-            "MAX_MEMORY_USAGE_RATIO": "0.3"
-        },
-        "only_if": lambda settings, options: (
-            "snuba" in settings.SENTRY_EVENTSTREAM or "kafka" in settings.SENTRY_EVENTSTREAM
-        ),
     },
     "snuba": {
         "image": "getsentry/snuba:nightly",
@@ -1988,6 +1996,8 @@ SENTRY_BUILTIN_SOURCES = {
 # Relay
 # List of PKs explicitly allowed by Sentry.  All relays here are always
 # registered as internal relays.
+# DEPRECATED !!! (18.May.2021) This entry has been deprecated in favour of
+# ~/.sentry/conf.yml (relay.static_auth)
 SENTRY_RELAY_WHITELIST_PK = [
     # NOTE (RaduW) This is the relay key for the relay instance used by devservices.
     # This should NOT be part of any production environment.
@@ -2199,6 +2209,11 @@ SENTRY_PROJECT_COUNTER_STATEMENT_TIMEOUT = 1000
 
 # Implemented in getsentry to run additional devserver workers.
 SENTRY_EXTRA_WORKERS = None
+
+SAMPLED_DEFAULT_RATE = 1.0
+
+# A set of extra URLs to sample
+ADDITIONAL_SAMPLED_URLS = {}
 
 # This controls whether Sentry is run in a demo mode.
 # Enabling this will allow users to create accounts without an email or password.

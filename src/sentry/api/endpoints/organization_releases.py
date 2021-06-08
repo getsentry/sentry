@@ -1,8 +1,7 @@
 import re
 
 from django.db import IntegrityError
-from django.db.models import Q
-from django.db.models.functions import Coalesce
+from django.db.models import F, Q
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
@@ -58,7 +57,7 @@ def add_environment_to_queryset(queryset, filter_params):
 
 
 def add_date_filter_to_queryset(queryset, filter_params):
-    """ Once date has been coalesced over released and added, use it to filter releases """
+    """Once date has been coalesced over released and added, use it to filter releases"""
     if filter_params["start"] and filter_params["end"]:
         return queryset.filter(date__gte=filter_params["start"], date__lte=filter_params["end"])
     return queryset
@@ -185,9 +184,7 @@ class OrganizationReleasesEndpoint(
             else:
                 queryset = queryset.filter(status=status_int)
 
-        queryset = queryset.select_related("owner").annotate(
-            date=Coalesce("date_released", "date_added"),
-        )
+        queryset = queryset.select_related("owner").annotate(date=F("date_added"))
 
         queryset = add_environment_to_queryset(queryset, filter_params)
 
@@ -440,7 +437,7 @@ class OrganizationReleasesStatsEndpoint(OrganizationReleasesBaseEndpoint, Enviro
                 organization=organization, projects__id__in=filter_params["project_id"]
             )
             .annotate(
-                date=Coalesce("date_released", "date_added"),
+                date=F("date_added"),
             )
             .values("version", "date")
             .order_by("-date")

@@ -366,7 +366,7 @@ class SnubaTagStorage(TagStorage):
     def get_group_tag_keys(
         self, project_id, group_id, environment_ids, limit=None, keys=None, **kwargs
     ):
-        """ Get tag keys for a specific group """
+        """Get tag keys for a specific group"""
         return self.__get_tag_keys(
             project_id,
             group_id,
@@ -534,35 +534,6 @@ class SnubaTagStorage(TagStorage):
 
         return keys_with_counts
 
-    def __get_release(self, project_id, group_id, first=True):
-        filters = {"project_id": get_project_list(project_id)}
-        conditions = [["tags[sentry:release]", "IS NOT NULL", None], DEFAULT_TYPE_CONDITION]
-        if group_id is not None:
-            filters["group_id"] = [group_id]
-        aggregations = [["min" if first else "max", SEEN_COLUMN, "seen"]]
-        orderby = "seen" if first else "-seen"
-
-        result = snuba.query(
-            dataset=Dataset.Events,
-            groupby=["tags[sentry:release]"],
-            conditions=conditions,
-            filter_keys=filters,
-            aggregations=aggregations,
-            limit=1,
-            orderby=orderby,
-            referrer="tagstore.__get_release",
-        )
-        if not result:
-            return None
-        else:
-            return list(result.keys())[0]
-
-    def get_first_release(self, project_id, group_id):
-        return self.__get_release(project_id, group_id, True)
-
-    def get_last_release(self, project_id, group_id):
-        return self.__get_release(project_id, group_id, False)
-
     def get_release_tags(self, organization_id, project_ids, environment_id, versions):
         filters = {"project_id": project_ids}
         if environment_id:
@@ -633,7 +604,7 @@ class SnubaTagStorage(TagStorage):
         return set(result.keys())
 
     def get_group_tag_values_for_users(self, event_users, limit=100):
-        """ While not specific to a group_id, this is currently only used in issues, so the Events dataset is used """
+        """While not specific to a group_id, this is currently only used in issues, so the Events dataset is used"""
         filters = {"project_id": [eu.project_id for eu in event_users]}
         conditions = [
             ["tags[sentry:user]", "IN", [_f for _f in [eu.tag_value for eu in event_users] if _f]]

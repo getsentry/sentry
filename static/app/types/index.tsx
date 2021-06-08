@@ -2,6 +2,7 @@
 // longer need this import and can drop babel-preset-css-prop for babel-preset.
 /// <reference types="@emotion/react/types/css-prop" />
 
+import {FocusTrap} from 'focus-trap';
 import u2f from 'u2f-api';
 
 import exportGlobals from 'app/bootstrap/exportGlobals';
@@ -103,6 +104,18 @@ declare global {
      * See sentry/js/ads.js for how this global is disabled.
      */
     adblockSuspected?: boolean;
+
+    //typing currently used for demo add on
+    //TODO: improve typing
+    SentryApp?: {
+      HookStore: any;
+      ConfigStore: any;
+      Modal: any;
+      modalFocusTrap?: {
+        current?: FocusTrap;
+      };
+      getModalPortal: () => HTMLElement;
+    };
   }
 }
 
@@ -280,6 +293,7 @@ export type Project = {
   groupingConfig: string;
   latestDeploys?: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
   builtinSymbolSources?: string[];
+  symbolSources?: string;
   stats?: TimeseriesValue[];
   transactionStats?: TimeseriesValue[];
   latestRelease?: Release;
@@ -732,7 +746,11 @@ export interface Config {
   demoMode: boolean;
 }
 
+// https://github.com/getsentry/relay/blob/master/relay-common/src/constants.rs
+// Note: the value of the enum on the frontend is plural,
+// but the value of the enum on the backend is singular
 export enum DataCategory {
+  DEFAULT = 'default',
   ERRORS = 'errors',
   TRANSACTIONS = 'transactions',
   ATTACHMENTS = 'attachments',
@@ -986,6 +1004,7 @@ type GroupFiltered = {
 export type GroupStats = GroupFiltered & {
   lifetime?: GroupFiltered;
   filtered: GroupFiltered | null;
+  sessionCount?: string | null;
   id: string;
 };
 
@@ -1044,6 +1063,7 @@ export type BaseGroup = {
   type: EventOrGroupType;
   userReportCount: number;
   subscriptionDetails: {disabled?: boolean; reason?: string} | null;
+  status: string;
   inbox?: InboxDetails | null | false;
   owners?: SuggestedOwner[] | null;
 } & GroupRelease;
@@ -1101,6 +1121,7 @@ export type Member = {
   flags: {
     'sso:linked': boolean;
     'sso:invalid': boolean;
+    'member-limit:restricted': boolean;
   };
   id: string;
   inviteStatus: 'approved' | 'requested_to_be_invited' | 'requested_to_join';
@@ -1432,6 +1453,14 @@ type ReleaseData = {
   newGroups: number;
   versionInfo: VersionInfo;
   fileCount: number | null;
+  currentProjectMeta: {
+    nextReleaseVersion: string | null;
+    prevReleaseVersion: string | null;
+    sessionsLowerBound: string | null;
+    sessionsUpperBound: string | null;
+    firstReleaseVersion: string | null;
+    lastReleaseVersion: string | null;
+  };
 };
 
 type BaseRelease = {
@@ -1574,6 +1603,8 @@ export type NewQuery = {
   // Graph
   yAxis?: string;
   display?: string;
+
+  teams?: Readonly<('myteams' | number)[]>;
 };
 
 export type SavedQuery = NewQuery & {
@@ -2019,7 +2050,7 @@ export type ServerlessFunction = {
 /**
  * File storage service options for debug files
  */
-export type DebugFileSource = 'http' | 's3' | 'gcs';
+export type DebugFileSource = 'http' | 's3' | 'gcs' | 'appStoreConnect';
 
 /**
  * Base type for series   style API response
@@ -2078,7 +2109,7 @@ export type KeyValueListData = {
 export type ExternalActorMapping = {
   id: string;
   externalName: string;
-  memberId?: string;
+  userId?: string;
   teamId?: string;
   sentryName: string;
 };

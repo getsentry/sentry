@@ -6,7 +6,6 @@ import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import {EventTransaction} from 'app/types/event';
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
-import {TableData} from 'app/utils/discover/discoverQuery';
 
 import * as CursorGuideHandler from './cursorGuideHandler';
 import * as DividerHandlerManager from './dividerHandlerManager';
@@ -38,12 +37,10 @@ export type FilterSpans = {
 };
 
 type Props = {
-  orgId: string;
   organization: Organization;
   event: Readonly<EventTransaction>;
   parsedTrace: ParsedTraceType;
   searchQuery: string | undefined;
-  spansWithErrors: TableData | null | undefined;
   operationNameFilters: ActiveOperationFilter;
 };
 
@@ -179,6 +176,7 @@ class TraceView extends PureComponent<Props, State> {
       trace={parsedTrace}
       event={this.props.event}
       virtualScrollBarContainerRef={this.virtualScrollBarContainerRef}
+      operationNameFilters={this.props.operationNameFilters}
     />
   );
 
@@ -193,7 +191,7 @@ class TraceView extends PureComponent<Props, State> {
       );
     }
 
-    const {orgId, organization, spansWithErrors, operationNameFilters} = this.props;
+    const {organization, operationNameFilters} = this.props;
 
     return (
       <DragManager interactiveLayerRef={this.minimapInteractiveRef}>
@@ -219,9 +217,7 @@ class TraceView extends PureComponent<Props, State> {
                         trace={parsedTrace}
                         dragProps={dragProps}
                         filterSpans={this.state.filterSpans}
-                        orgId={orgId}
                         organization={organization}
-                        spansWithErrors={spansWithErrors}
                         operationNameFilters={operationNameFilters}
                       />
                     </ScrollbarManager.Provider>

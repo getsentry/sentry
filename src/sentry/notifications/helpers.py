@@ -2,14 +2,32 @@ from collections import defaultdict
 from typing import Any, Dict, Iterable, List, Mapping, MutableMapping, Optional, Set, Tuple, Union
 
 from sentry.notifications.types import (
-    NOTIFICATION_SETTING_DEFAULTS,
+    NOTIFICATION_SCOPE_TYPE,
+    NOTIFICATION_SETTING_OPTION_VALUES,
+    NOTIFICATION_SETTING_TYPES,
     SUBSCRIPTION_REASON_MAP,
     VALID_VALUES_FOR_KEY,
     NotificationScopeType,
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
-from sentry.types.integrations import ExternalProviders
+from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
+
+# This mapping represents how to interpret the absence of a DB row for a given
+# provider. For example, a user with no NotificationSettings should be opted
+# into receiving emails but no Slack messages.
+NOTIFICATION_SETTING_DEFAULTS = {
+    ExternalProviders.EMAIL: {
+        NotificationSettingTypes.DEPLOY: NotificationSettingOptionValues.COMMITTED_ONLY,
+        NotificationSettingTypes.ISSUE_ALERTS: NotificationSettingOptionValues.ALWAYS,
+        NotificationSettingTypes.WORKFLOW: NotificationSettingOptionValues.SUBSCRIBE_ONLY,
+    },
+    ExternalProviders.SLACK: {
+        NotificationSettingTypes.DEPLOY: NotificationSettingOptionValues.NEVER,
+        NotificationSettingTypes.ISSUE_ALERTS: NotificationSettingOptionValues.NEVER,
+        NotificationSettingTypes.WORKFLOW: NotificationSettingOptionValues.NEVER,
+    },
+}
 
 
 def _get_setting_mapping_from_mapping(
@@ -31,7 +49,10 @@ def _get_setting_mapping_from_mapping(
         if notification_setting_option:
             return notification_setting_option
 
-    return {ExternalProviders.EMAIL: NOTIFICATION_SETTING_DEFAULTS[type]}
+    return {
+        provider: NOTIFICATION_SETTING_DEFAULTS[provider][type]
+        for provider in [ExternalProviders.EMAIL]
+    }
 
 
 def where_should_user_be_notified(
@@ -95,29 +116,30 @@ def where_should_be_participating(
     ]
 
 
-def get_deploy_values_by_provider(
+def get_values_by_provider_by_type(
     notification_settings_by_scope: Mapping[
         NotificationScopeType, Mapping[ExternalProviders, NotificationSettingOptionValues]
     ],
     all_providers: Iterable[ExternalProviders],
+    type: NotificationSettingTypes,
 ) -> Mapping[ExternalProviders, NotificationSettingOptionValues]:
     """
     Given a mapping of scopes to a mapping of default and specific notification
     settings by provider, determine the notification setting by provider for
-    DEPLOY notifications.
+    the given notification type.
     """
-    organization_specific_mapping = notification_settings_by_scope.get(
-        NotificationScopeType.ORGANIZATION, {}
-    )
+    parent_scope = get_scope_type(type)
+
+    parent_specific_mapping = notification_settings_by_scope.get(parent_scope, {})
     organization_independent_mapping = notification_settings_by_scope.get(
         NotificationScopeType.USER, {}
     )
 
     return {
         provider: (
-            organization_specific_mapping.get(provider)
+            parent_specific_mapping.get(provider)
             or organization_independent_mapping.get(provider)
-            or NotificationSettingOptionValues.COMMITTED_ONLY
+            or NOTIFICATION_SETTING_DEFAULTS[provider][type]
         )
         for provider in all_providers
     }
@@ -182,19 +204,19 @@ def transform_to_notification_settings_by_parent_id(
 
 
 def validate(type: NotificationSettingTypes, value: NotificationSettingOptionValues) -> bool:
-    """ :returns boolean. True if the "value" is valid for the "type". """
+    """:returns boolean. True if the "value" is valid for the "type"."""
     return value in VALID_VALUES_FOR_KEY.get(type, {})
 
 
 def get_scope_type(type: NotificationSettingTypes) -> NotificationScopeType:
-    """ In which scope (proj or org) can a user set more specific settings?"""
+    """In which scope (proj or org) can a user set more specific settings?"""
     if type in [NotificationSettingTypes.DEPLOY]:
         return NotificationScopeType.ORGANIZATION
 
     if type in [NotificationSettingTypes.WORKFLOW, NotificationSettingTypes.ISSUE_ALERTS]:
         return NotificationScopeType.PROJECT
 
-    raise Exception("type must be issue_alert, deploy, or workflow")
+    raise Exception(f"type {type}, must be alerts, deploy, or workflow")
 
 
 def get_scope(
@@ -218,7 +240,7 @@ def get_scope(
 
 
 def get_target_id(user: Optional[Any] = None, team: Optional[Any] = None) -> int:
-    """ :returns the actor ID from a User or Team. """
+    """:returns the actor ID from a User or Team."""
     if user:
         return int(user.actor_id)
     if team:
@@ -323,3 +345,49 @@ def get_settings_by_provider(
             output[provider][scope_type] = value
 
     return output
+
+
+def get_fallback_settings(
+    types_to_serialize: Iterable[NotificationSettingTypes],
+    project_ids: Iterable[int],
+    organization_ids: Iterable[int],
+    user: Optional[Any] = None,
+) -> MutableMapping[str, MutableMapping[str, MutableMapping[int, MutableMapping[str, str]]]]:
+    """
+    The API is responsible for calculating the implied setting values when a
+    user or team does not have explicit notification settings. This function
+    creates a "dummy" version of the nested object of notification settings that
+    can be overridden by explicit settings.
+    """
+    data: MutableMapping[
+        str, MutableMapping[str, MutableMapping[int, MutableMapping[str, str]]]
+    ] = defaultdict(lambda: defaultdict(lambda: defaultdict(dict)))
+
+    parent_independent_value_str = NOTIFICATION_SETTING_OPTION_VALUES[
+        NotificationSettingOptionValues.DEFAULT
+    ]
+
+    # Set the application-wide defaults in case they aren't set.
+    for type_enum in types_to_serialize:
+        scope_type = get_scope_type(type_enum)
+        scope_str = NOTIFICATION_SCOPE_TYPE[scope_type]
+        type_str = NOTIFICATION_SETTING_TYPES[type_enum]
+
+        for provider in NOTIFICATION_SETTING_DEFAULTS.keys():
+            provider_str = EXTERNAL_PROVIDERS[provider]
+
+            parent_ids = (
+                project_ids if scope_type == NotificationScopeType.PROJECT else organization_ids
+            )
+            for parent_id in parent_ids:
+                data[type_str][scope_str][parent_id][provider_str] = parent_independent_value_str
+
+            # Only users (i.e. not teams) have parent-independent notification settings.
+            if user:
+                # Each provider has it's own defaults by type.
+                value = NOTIFICATION_SETTING_DEFAULTS[provider][type_enum]
+                value_str = NOTIFICATION_SETTING_OPTION_VALUES[value]
+                user_scope_str = NOTIFICATION_SCOPE_TYPE[NotificationScopeType.USER]
+
+                data[type_str][user_scope_str][user.id][provider_str] = value_str
+    return data

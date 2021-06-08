@@ -13,6 +13,7 @@ from sentry.models import Group, GroupSubscription, NotificationSetting, Project
 from sentry.notifications.activity import EMAIL_CLASSES_BY_TYPE
 from sentry.notifications.rules import AlertRuleNotification, get_send_to
 from sentry.notifications.types import ActionTargetType, GroupSubscriptionReason
+from sentry.notifications.utils import get_integration_link, has_alert_integration
 from sentry.plugins.base.structs import Notification
 from sentry.tasks.digests import deliver_digest
 from sentry.types.integrations import ExternalProviders
@@ -25,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 
 class MailAdapter:
-    """ This class contains generic logic for notifying users via Email. """
+    """This class contains generic logic for notifying users via Email."""
 
     mail_option_key = "mail:subject_prefix"
 
@@ -143,7 +144,7 @@ class MailAdapter:
         return [user.id for user in users]
 
     def get_sendable_users(self, project):
-        """ @deprecated Do not change this function, it is being used in getsentry. """
+        """@deprecated Do not change this function, it is being used in getsentry."""
         users = self.get_sendable_user_objects(project)
         return [user.id for user in users]
 
@@ -197,6 +198,7 @@ class MailAdapter:
                 "user_ids": user_ids,
             },
         )
+        org = project.organization
         for user_id, digest in get_personalized_digests(target_type, project.id, digest, user_ids):
             start, end, counts = get_digest_metadata(digest)
 
@@ -221,6 +223,8 @@ class MailAdapter:
                 "project": project,
                 "digest": digest,
                 "counts": counts,
+                "slack_link": get_integration_link(org, "slack"),
+                "has_alert_integration": has_alert_integration(project),
             }
 
             headers = {

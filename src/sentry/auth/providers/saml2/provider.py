@@ -10,7 +10,7 @@ from django.utils.decorators import method_decorator
 from django.utils.translation import ugettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
 
-from sentry import options
+from sentry import features, options
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.provider import Provider
 from sentry.auth.view import AuthView
@@ -310,7 +310,7 @@ class SAML2Provider(Provider):
             )
 
         name = (attributes[k] for k in (Attributes.FIRST_NAME, Attributes.LAST_NAME))
-        name = " ".join([_f for _f in name if _f])
+        name = " ".join(_f for _f in name if _f)
 
         return {
             "id": attributes[Attributes.IDENTIFIER],
@@ -321,6 +321,13 @@ class SAML2Provider(Provider):
     def refresh_identity(self, auth_identity):
         # Nothing to refresh
         return
+
+
+class SCIMMixin:
+    def can_use_scim(self, organization, user):
+        if features.has("organizations:sso-scim", organization, actor=user):
+            return True
+        return False
 
 
 def build_saml_config(provider_config, org):

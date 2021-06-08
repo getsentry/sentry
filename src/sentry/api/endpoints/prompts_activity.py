@@ -31,7 +31,7 @@ class PromptsActivityEndpoint(Endpoint):
     permission_classes = (IsAuthenticated,)
 
     def get(self, request):
-        """ Return feature prompt status if dismissed or in snoozed period"""
+        """Return feature prompt status if dismissed or in snoozed period"""
 
         feature = request.GET.get("feature")
 

@@ -144,6 +144,11 @@ class Table extends React.Component<Props, State> {
       return rendered;
     }
 
+    if (field.startsWith('team_key_transaction')) {
+      // don't display per cell actions for team_key_transaction
+      return rendered;
+    }
+
     const fieldName = getAggregateAlias(field);
     const value = dataRow[fieldName];
     if (tableMeta[fieldName] === 'integer' && defined(value) && value > 999) {
@@ -219,8 +224,7 @@ class Table extends React.Component<Props, State> {
       };
     }
     const currentSort = eventView.sortForField(field, tableMeta);
-    const canSort =
-      isFieldSortable(field, tableMeta) && field.field !== 'key_transaction';
+    const canSort = isFieldSortable(field, tableMeta);
 
     const currentSortKind = currentSort ? currentSort.kind : undefined;
     const currentSortField = currentSort ? currentSort.field : undefined;
@@ -256,24 +260,40 @@ class Table extends React.Component<Props, State> {
     const keyTransactionColumn = eventView
       .getColumns()
       .find((col: TableColumn<React.ReactText>) => col.name === 'key_transaction');
+    const teamKeyTransactionColumn = eventView
+      .getColumns()
+      .find((col: TableColumn<React.ReactText>) => col.name === 'team_key_transaction');
     return (isHeader: boolean, dataRow?: any) => {
-      if (!keyTransactionColumn) {
-        return [];
+      if (keyTransactionColumn) {
+        if (isHeader) {
+          const star = (
+            <IconStar
+              key="keyTransaction"
+              color="yellow300"
+              isSolid
+              data-test-id="key-transaction-header"
+            />
+          );
+          return [this.renderHeadCell(tableData?.meta, keyTransactionColumn, star)];
+        } else {
+          return [this.renderBodyCell(tableData, keyTransactionColumn, dataRow)];
+        }
+      } else if (teamKeyTransactionColumn) {
+        if (isHeader) {
+          const star = (
+            <IconStar
+              key="keyTransaction"
+              color="yellow300"
+              isSolid
+              data-test-id="team-key-transaction-header"
+            />
+          );
+          return [this.renderHeadCell(tableData?.meta, teamKeyTransactionColumn, star)];
+        } else {
+          return [this.renderBodyCell(tableData, teamKeyTransactionColumn, dataRow)];
+        }
       }
-
-      if (isHeader) {
-        const star = (
-          <IconStar
-            key="keyTransaction"
-            color="yellow300"
-            isSolid
-            data-test-id="key-transaction-header"
-          />
-        );
-        return [this.renderHeadCell(tableData?.meta, keyTransactionColumn, star)];
-      } else {
-        return [this.renderBodyCell(tableData, keyTransactionColumn, dataRow)];
-      }
+      return [];
     };
   };
 
@@ -295,11 +315,13 @@ class Table extends React.Component<Props, State> {
   };
 
   getSortedEventView() {
-    const {eventView} = this.props;
+    const {eventView, organization} = this.props;
 
     return eventView.withSorts([
       {
-        field: 'key_transaction',
+        field: organization.features.includes('team-key-transactions')
+          ? 'team_key_transaction'
+          : 'key_transaction',
         kind: 'desc',
       },
       ...eventView.sorts,
@@ -316,7 +338,10 @@ class Table extends React.Component<Props, State> {
       // via a prepended column
       .filter(
         (col: TableColumn<React.ReactText>) =>
-          col.name !== 'key_transaction' && !col.name.startsWith('count_miserable')
+          col.name !== 'key_transaction' &&
+          col.name !== 'team_key_transaction' &&
+          !col.name.startsWith('count_miserable') &&
+          col.name !== 'project_threshold_config'
       )
       .map((col: TableColumn<React.ReactText>, i: number) => {
         if (typeof widths[i] === 'number') {

@@ -11,9 +11,10 @@ import Link from 'app/components/links/link';
 import {Panel, PanelBody} from 'app/components/panels';
 import SeenByList from 'app/components/seenByList';
 import TimeSince from 'app/components/timeSince';
-import {IconEllipse} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
+import {Organization} from 'app/types';
+import {alertDetailsLink} from 'app/views/alerts/details';
 import {getTriggerName} from 'app/views/alerts/details/activity/statusItem';
 import {
   ActivityType,
@@ -26,7 +27,7 @@ import {IncidentRule} from 'app/views/settings/incidentRules/types';
 
 type IncidentProps = {
   api: Client;
-  orgId: string;
+  organization: Organization;
   incident: Incident;
   rule: IncidentRule;
 };
@@ -115,10 +116,7 @@ class TimelineIncident extends React.Component<IncidentProps> {
 
     return (
       <Activity key={activity.id}>
-        <ActivityTrack>
-          <IconEllipse size="sm" color="gray300" />
-          {!last && <VerticalDivider />}
-        </ActivityTrack>
+        <ActivityTrack>{!last && <VerticalDivider />}</ActivityTrack>
 
         <ActivityBody>
           <ActivityTime>
@@ -135,12 +133,16 @@ class TimelineIncident extends React.Component<IncidentProps> {
   }
 
   render() {
-    const {incident, orgId} = this.props;
+    const {incident, organization} = this.props;
+
     return (
       <IncidentSection key={incident.identifier}>
         <IncidentHeader>
           <Link
-            to={`/organizations/${orgId}/alerts/${incident.identifier}/?redirect=false`}
+            to={{
+              pathname: alertDetailsLink(organization, incident),
+              query: {alert: incident.identifier},
+            }}
           >
             {tct('Alert #[id]', {id: incident.identifier})}
           </Link>
@@ -169,7 +171,7 @@ class TimelineIncident extends React.Component<IncidentProps> {
 type Props = {
   api: Client;
   rule?: IncidentRule;
-  orgId: string;
+  organization: Organization;
   incidents?: Incident[];
 };
 
@@ -183,7 +185,7 @@ class Timeline extends React.Component<Props> {
   };
 
   render() {
-    const {api, incidents, orgId, rule} = this.props;
+    const {api, incidents, organization, rule} = this.props;
 
     return (
       <History>
@@ -195,7 +197,7 @@ class Timeline extends React.Component<Props> {
                   <TimelineIncident
                     key={incident.identifier}
                     api={api}
-                    orgId={orgId}
+                    organization={organization}
                     incident={incident}
                     rule={rule}
                   />
@@ -271,6 +273,14 @@ const ActivityTrack = styled('div')`
   flex-direction: column;
   align-items: center;
   margin-right: ${space(1)};
+
+  &:before {
+    content: '';
+    width: ${space(1)};
+    height: ${space(1)};
+    background-color: ${p => p.theme.gray300};
+    border-radius: ${space(1)};
+  }
 `;
 
 const ActivityBody = styled('div')`

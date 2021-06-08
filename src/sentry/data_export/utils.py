@@ -34,6 +34,7 @@ def handle_snuba_errors(logger):
                 logger.warn("dataexport.error: %s", str(error))
                 capture_exception(error)
                 message = "Internal error. Please try again."
+                recoverable = False
                 if isinstance(
                     error,
                     (
@@ -44,6 +45,7 @@ def handle_snuba_errors(logger):
                     ),
                 ):
                     message = "Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects."
+                    recoverable = True
                 elif isinstance(
                     error,
                     (
@@ -56,7 +58,7 @@ def handle_snuba_errors(logger):
                     ),
                 ):
                     message = "Internal error. Your query failed to run."
-                raise ExportError(message)
+                raise ExportError(message, recoverable=recoverable)
 
         return wrapped
 

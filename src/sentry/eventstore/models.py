@@ -130,11 +130,9 @@ class Event:
         # Nodestore implementation
         try:
             rv = sorted(
-                [
-                    (t, v)
-                    for t, v in get_path(self.data, "tags", filter=True) or ()
-                    if t is not None and v is not None
-                ]
+                (t, v)
+                for t, v in get_path(self.data, "tags", filter=True) or ()
+                if t is not None and v is not None
             )
             return rv
         except ValueError:
@@ -373,7 +371,7 @@ class Event:
         return flat_hashes, hierarchical_hashes
 
     def get_sorted_grouping_variants(self, force_config=None):
-        """ Get grouping variants sorted into flat and hierarchical variants """
+        """Get grouping variants sorted into flat and hierarchical variants"""
         from sentry.grouping.api import sort_grouping_variants
 
         variants = self.get_grouping_variants(force_config)
@@ -381,9 +379,18 @@ class Event:
 
     @staticmethod
     def _hashes_from_sorted_grouping_variants(variants):
-        """ Create hashes from variants and filter out None values """
-        hashes = (variant.get_hash() for variant in variants)
-        return [hash_ for hash_ in hashes if hash_ is not None]
+        """Create hashes from variants and filter out duplicates and None values"""
+        filtered_hashes = []
+        seen_hashes = set()
+        for variant in variants:
+            hash_ = variant.get_hash()
+            if hash_ is None or hash_ in seen_hashes:
+                continue
+
+            seen_hashes.add(hash_)
+            filtered_hashes.append(hash_)
+
+        return filtered_hashes
 
     def get_grouping_variants(self, force_config=None, normalize_stacktraces=False):
         """

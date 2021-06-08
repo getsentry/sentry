@@ -131,6 +131,10 @@ type Props = {
    */
   grid?: EChartOption.Grid | EChartOption.Grid[];
   /**
+   * ECharts Visual Map Options.
+   */
+  visualMap?: EChartOption.VisualMap | EChartOption.VisualMap[];
+  /**
    * Chart legend
    */
   legend?: EChartOption.Legend & Truncateable;

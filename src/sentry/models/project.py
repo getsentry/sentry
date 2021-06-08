@@ -1,11 +1,13 @@
 import logging
 import warnings
 from collections import defaultdict
+from typing import Sequence
 from uuid import uuid1
 
 import sentry_sdk
 from django.conf import settings
 from django.db import IntegrityError, models, transaction
+from django.db.models import QuerySet
 from django.db.models.signals import pre_delete
 from django.utils import timezone
 from django.utils.http import urlencode
@@ -45,8 +47,25 @@ class ProjectTeam(Model):
         db_table = "sentry_projectteam"
         unique_together = (("project", "team"),)
 
+    __repr__ = sane_repr("project_id", "team_id")
+
 
 class ProjectManager(BaseManager):
+    def get_for_user_ids(self, user_ids: Sequence[int]) -> QuerySet:
+        """Returns the QuerySet of all projects that a set of Users have access to."""
+        from sentry.models import ProjectStatus
+
+        return self.filter(
+            status=ProjectStatus.VISIBLE,
+            teams__organizationmember__user_id__in=user_ids,
+        )
+
+    def get_for_team_ids(self, team_ids: Sequence[int]) -> QuerySet:
+        """Returns the QuerySet of all organizations that a set of Teams have access to."""
+        from sentry.models import ProjectStatus
+
+        return self.filter(status=ProjectStatus.VISIBLE, teams__in=team_ids)
+
     # TODO(dcramer): we might want to cache this per user
     def get_for_user(self, team, user, scope=None, _skip_team_check=False):
         from sentry.models import Team
@@ -195,7 +214,7 @@ class Project(Model, PendingDeletionMixin):
 
     @property
     def member_set(self):
-        """ :returns a QuerySet of all Users that belong to this Project """
+        """:returns a QuerySet of all Users that belong to this Project"""
         from sentry.models import OrganizationMember
 
         return self.organization.member_set.filter(

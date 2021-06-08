@@ -5,6 +5,7 @@ import {NavigationSection} from 'app/views/settings/types';
 type ConfigParams = {
   organization?: Organization;
   project?: Project;
+  debugFilesNeedsReview?: boolean;
 };
 
 const pathPrefix = '/settings/:orgId/projects/:projectId';
@@ -12,6 +13,7 @@ const pathPrefix = '/settings/:orgId/projects/:projectId';
 export default function getConfiguration({
   project,
   organization,
+  debugFilesNeedsReview,
 }: ConfigParams): NavigationSection[] {
   const plugins = ((project && project.plugins) || []).filter(plugin => plugin.enabled);
   return [
@@ -100,6 +102,7 @@ export default function getConfiguration({
         {
           path: `${pathPrefix}/debug-symbols/`,
           title: t('Debug Files'),
+          badge: debugFilesNeedsReview ? () => 'warning' : undefined,
         },
         {
           path: `${pathPrefix}/proguard/`,
@@ -108,6 +111,11 @@ export default function getConfiguration({
         {
           path: `${pathPrefix}/source-maps/`,
           title: t('Source Maps'),
+        },
+        {
+          path: `${pathPrefix}/performance/`,
+          title: t('Performance'),
+          show: () => !!organization?.features?.includes('project-transaction-threshold'),
         },
       ],
     },

@@ -5,6 +5,7 @@ from sentry.data_export.endpoints.data_export_details import DataExportDetailsEn
 from sentry.discover.endpoints.discover_key_transactions import (
     IsKeyTransactionEndpoint,
     KeyTransactionEndpoint,
+    KeyTransactionListEndpoint,
 )
 from sentry.discover.endpoints.discover_query import DiscoverQueryEndpoint
 from sentry.discover.endpoints.discover_saved_queries import DiscoverSavedQueriesEndpoint
@@ -107,7 +108,10 @@ from .endpoints.group_tombstone import GroupTombstoneEndpoint
 from .endpoints.group_tombstone_details import GroupTombstoneDetailsEndpoint
 from .endpoints.group_user_reports import GroupUserReportsEndpoint
 from .endpoints.grouping_configs import GroupingConfigsEndpoint
+from .endpoints.grouping_level_new_issues import GroupingLevelNewIssuesEndpoint
+from .endpoints.grouping_levels import GroupingLevelsEndpoint
 from .endpoints.index import IndexEndpoint
+from .endpoints.internal_beacon import InternalBeaconEndpoint
 from .endpoints.internal_environment import InternalEnvironmentEndpoint
 from .endpoints.internal_mail import InternalMailEndpoint
 from .endpoints.internal_packages import InternalPackagesEndpoint
@@ -153,6 +157,7 @@ from .endpoints.organization_events import (
 from .endpoints.organization_events_facets import OrganizationEventsFacetsEndpoint
 from .endpoints.organization_events_facets_performance import (
     OrganizationEventsFacetsPerformanceEndpoint,
+    OrganizationEventsFacetsPerformanceHistogramEndpoint,
 )
 from .endpoints.organization_events_histogram import OrganizationEventsHistogramEndpoint
 from .endpoints.organization_events_meta import (
@@ -252,6 +257,15 @@ from .endpoints.organization_user_reports import OrganizationUserReportsEndpoint
 from .endpoints.organization_user_teams import OrganizationUserTeamsEndpoint
 from .endpoints.organization_users import OrganizationUsersEndpoint
 from .endpoints.project_agnostic_rule_conditions import ProjectAgnosticRuleConditionsEndpoint
+from .endpoints.project_app_store_connect_credentials import (
+    AppStoreConnect2FactorAuthEndpoint,
+    AppStoreConnectAppsEndpoint,
+    AppStoreConnectCreateCredentialsEndpoint,
+    AppStoreConnectCredentialsValidateEndpoint,
+    AppStoreConnectRequestSmsEndpoint,
+    AppStoreConnectStartAuthEndpoint,
+    AppStoreConnectUpdateCredentialsEndpoint,
+)
 from .endpoints.project_avatar import ProjectAvatarEndpoint
 from .endpoints.project_codeowners import ProjectCodeOwnersEndpoint
 from .endpoints.project_codeowners_details import ProjectCodeOwnersDetailsEndpoint
@@ -315,6 +329,7 @@ from .endpoints.project_tagkey_values import ProjectTagKeyValuesEndpoint
 from .endpoints.project_tags import ProjectTagsEndpoint
 from .endpoints.project_team_details import ProjectTeamDetailsEndpoint
 from .endpoints.project_teams import ProjectTeamsEndpoint
+from .endpoints.project_transaction_threshold import ProjectTransactionThresholdEndpoint
 from .endpoints.project_transfer import ProjectTransferEndpoint
 from .endpoints.project_user_details import ProjectUserDetailsEndpoint
 from .endpoints.project_user_reports import ProjectUserReportsEndpoint
@@ -402,6 +417,11 @@ GROUP_URLS = [
         GroupNotesDetailsEndpoint.as_view(),
     ),
     url(r"^(?P<issue_id>[^\/]+)/hashes/$", GroupHashesEndpoint.as_view()),
+    url(r"^(?P<issue_id>[^\/]+)/grouping/levels/$", GroupingLevelsEndpoint.as_view()),
+    url(
+        r"^(?P<issue_id>[^\/]+)/grouping/levels/(?P<id>[^\/]+)/new-issues/$",
+        GroupingLevelNewIssuesEndpoint.as_view(),
+    ),
     url(r"^(?P<issue_id>[^\/]+)/hashes/split/$", GroupHashesSplitEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/reprocessing/$", GroupReprocessingEndpoint.as_view()),
     url(r"^(?P<issue_id>[^\/]+)/stats/$", GroupStatsEndpoint.as_view()),
@@ -776,6 +796,11 @@ urlpatterns = [
                     name="sentry-api-0-organization-key-transactions",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/key-transactions-list/$",
+                    KeyTransactionListEndpoint.as_view(),
+                    name="sentry-api-0-organization-key-transactions-list",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/is-key-transactions/$",
                     IsKeyTransactionEndpoint.as_view(),
                     name="sentry-api-0-organization-is-key-transactions",
@@ -921,6 +946,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/events-facets-performance/$",
                     OrganizationEventsFacetsPerformanceEndpoint.as_view(),
                     name="sentry-api-0-organization-events-facets-performance",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/events-facets-performance-histogram/$",
+                    OrganizationEventsFacetsPerformanceHistogramEndpoint.as_view(),
+                    name="sentry-api-0-organization-events-facets-performance-histogram",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/events-meta/$",
@@ -1350,7 +1380,7 @@ urlpatterns = [
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/notification-settings/$",
                     TeamNotificationSettingsDetailsEndpoint.as_view(),
-                    name="sentry-api-0-user-notification-settings",
+                    name="sentry-api-0-team-notification-settings",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<team_slug>[^\/]+)/members/$",
@@ -1769,6 +1799,11 @@ urlpatterns = [
                     ProjectCodeOwnersDetailsEndpoint.as_view(),
                     name="sentry-api-0-project-codeowners-details",
                 ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/transaction-threshold/configure/$",
+                    ProjectTransactionThresholdEndpoint.as_view(),
+                    name="sentry-api-0-project-transaction-threshold",
+                ),
                 # Load plugin project urls
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/plugins/$",
@@ -1804,6 +1839,41 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/repo-path-parsing/$",
                     ProjectRepoPathParsingEndpoint.as_view(),
                     name="sentry-api-0-project-repo-path-parsing",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/appstoreconnect/$",
+                    AppStoreConnectCreateCredentialsEndpoint.as_view(),
+                    name="sentry-api-0-project-appstoreconnect-credentials-create",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/appstoreconnect/apps/$",
+                    AppStoreConnectAppsEndpoint.as_view(),
+                    name="sentry-api-0-project-appstoreconnect-apps",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/appstoreconnect/validate/(?P<credentials_id>[^\/]+)/$",
+                    AppStoreConnectCredentialsValidateEndpoint.as_view(),
+                    name="sentry-api-0-project-appstoreconnect-validate",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/appstoreconnect/start/$",
+                    AppStoreConnectStartAuthEndpoint.as_view(),
+                    name="sentry-api-0-project-appstoreconnect-start",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/appstoreconnect/requestSms/$",
+                    AppStoreConnectRequestSmsEndpoint.as_view(),
+                    name="sentry-api-0-project-appstoreconnect-requestSms",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/appstoreconnect/2fa/$",
+                    AppStoreConnect2FactorAuthEndpoint.as_view(),
+                    name="sentry-api-0-project-appstoreconnect-2fa",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/appstoreconnect/(?P<credentials_id>[^\/]+)/$",
+                    AppStoreConnectUpdateCredentialsEndpoint.as_view(),
+                    name="sentry-api-0-project-appstoreconnect-credentials-update",
                 ),
             ]
         ),
@@ -1906,6 +1976,11 @@ urlpatterns = [
                     r"^options/$",
                     SystemOptionsEndpoint.as_view(),
                     name="sentry-api-0-system-options",
+                ),
+                url(
+                    r"^beacon/$",
+                    InternalBeaconEndpoint.as_view(),
+                    name="sentry-api-0-internal-beacon",
                 ),
                 url(r"^quotas/$", InternalQuotasEndpoint.as_view()),
                 url(r"^queue/tasks/$", InternalQueueTasksEndpoint.as_view()),

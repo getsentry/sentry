@@ -9,6 +9,7 @@ from sentry import features
 from sentry.api.base import LINK_HEADER
 from sentry.api.bases import NoProjects, OrganizationEndpoint
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
+from sentry.discover.arithmetic import ArithmeticError
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.group import Group
 from sentry.search.events.fields import get_function_alias
@@ -106,6 +107,10 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             message = str(error)
             sentry_sdk.set_tag("query.error_reason", message)
             raise ParseError(detail=message)
+        except ArithmeticError as error:
+            message = str(error)
+            sentry_sdk.set_tag("query.error_reason", message)
+            raise ParseError(detail=message)
         except snuba.QueryOutsideRetentionError as error:
             sentry_sdk.set_tag("query.error_reason", "QueryOutsideRetentionError")
             raise ParseError(detail=str(error))
@@ -148,6 +153,9 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
 
 class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
+    def has_arithmetic(self, organization, request):
+        return features.has("organizations:discover-arithmetic", organization, actor=request.user)
+
     def build_cursor_link(self, request, name, cursor):
         # The base API function only uses the last query parameter, but this endpoint
         # needs all the parameters, particularly for the "field" query param.
@@ -315,6 +323,9 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
 class KeyTransactionBase(OrganizationEventsV2EndpointBase):
     def has_feature(self, request, organization):
         return features.has("organizations:performance-view", organization, actor=request.user)
+
+    def has_team_feature(self, request, organization):
+        return features.has("organizations:team-key-transactions", organization, actor=request.user)
 
     def get_project(self, request, organization):
         projects = self.get_projects(request, organization)

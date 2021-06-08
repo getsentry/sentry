@@ -14,8 +14,8 @@ from sentry.models import (
     UserOption,
 )
 from sentry.notifications.helpers import (
-    get_deploy_values_by_provider,
     get_settings_by_provider,
+    get_values_by_provider_by_type,
     transform_to_notification_settings_by_user,
 )
 from sentry.notifications.notify import notification_providers
@@ -68,7 +68,6 @@ def get_participants_for_group(
     # TODO(dcramer): not used yet today except by Release's
     if not group:
         return {}
-
     participants_by_provider: MutableMapping[
         ExternalProviders, MutableMapping[User, int]
     ] = GroupSubscription.objects.get_participants(group)
@@ -118,8 +117,10 @@ def get_participants_for_release(
     ] = defaultdict(dict)
     for user in users:
         notification_settings_by_scope = notification_settings_by_user.get(user, {})
-        values_by_provider = get_deploy_values_by_provider(
-            notification_settings_by_scope, notification_providers()
+        values_by_provider = get_values_by_provider_by_type(
+            notification_settings_by_scope,
+            notification_providers(),
+            NotificationSettingTypes.DEPLOY,
         )
         for provider, value in values_by_provider.items():
             reason_option = get_reason(user, value, user_ids)
@@ -144,7 +145,7 @@ def get_send_to(
     target_type: ActionTargetType,
     target_identifier: Optional[int] = None,
     event: Optional[Any] = None,
-) -> Mapping[ExternalProviders, Set[User]]:
+) -> Mapping[ExternalProviders, Union[Set[User], Set[Team]]]:
     """
     Returns a mapping of providers to a list of user IDs for the users that
     should receive notifications for the provided project. This result may come
@@ -153,7 +154,6 @@ def get_send_to(
     if not (project and project.teams.exists()):
         logger.debug("Tried to send notification to invalid project: %r", project)
         return {}
-
     if target_type == ActionTargetType.ISSUE_OWNERS:
         if not event:
             return get_send_to_all_in_project(project)
@@ -222,7 +222,7 @@ def get_users_for_teams_to_resolve(teams_to_resolve: Set[int]) -> Set[User]:
 
 
 def disabled_users_from_project(project: Project) -> Mapping[ExternalProviders, Set[User]]:
-    """ Get a set of users that have disabled Issue Alert notifications for a given project. """
+    """Get a set of users that have disabled Issue Alert notifications for a given project."""
     user_ids = project.member_set.values_list("user", flat=True)
     users = User.objects.filter(id__in=user_ids)
     notification_settings = NotificationSetting.objects.get_for_users_by_parent(
@@ -253,7 +253,7 @@ def get_send_to_team(
     project: Project, target_identifier: Optional[Union[str, int]]
 ) -> Mapping[ExternalProviders, Set[User]]:
     """
-    TODO(mgaeta): Use team notification settings instead of iterating over users.
+    Get a team's notification settings. If not present, get settings for each subscribed user in the team.
     :param project:
     :param target_identifier: Optional. String or int representation of a team_id.
     :returns: Mapping[ExternalProvider, Iterable[User]] A mapping of provider to
@@ -266,6 +266,18 @@ def get_send_to_team(
     except Team.DoesNotExist:
         return {}
 
+    team_notification_settings = NotificationSetting.objects.get_for_recipient_by_parent(
+        NotificationSettingTypes.ISSUE_ALERTS, parent=project, recipient=team
+    )
+
+    if team_notification_settings:
+        team_mapping = {
+            ExternalProviders(notification_setting.provider): {team}
+            for notification_setting in team_notification_settings
+        }
+        return team_mapping
+
+    # fallback to notifying each subscribed user if there aren't team notification settings
     member_list = team.member_set.values_list("user_id", flat=True)
     users = User.objects.filter(id__in=member_list)
 

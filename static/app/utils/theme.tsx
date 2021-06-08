@@ -3,6 +3,7 @@ import '@emotion/react';
 import color from 'color';
 
 import CHART_PALETTE from 'app/constants/chartPalette';
+import {DataCategory} from 'app/types';
 
 const colors = {
   white: '#FFFFFF',
@@ -219,6 +220,28 @@ const lightAliases = {
    */
   tagBarHover: colors.purple200,
   tagBar: colors.gray200,
+
+  /**
+   * Color for badge text
+   */
+  badgeText: colors.white,
+
+  /**
+   * Search filter "token" background
+   */
+  searchTokenBackground: '#E8F3FE',
+
+  /**
+   * Search filter "token" border
+   */
+  searchTokenBorder: '#B5DAFF',
+};
+
+const dataCategory = {
+  [DataCategory.ERRORS]: CHART_PALETTE[4][3],
+  [DataCategory.TRANSACTIONS]: CHART_PALETTE[4][2],
+  [DataCategory.ATTACHMENTS]: CHART_PALETTE[4][1],
+  [DataCategory.DEFAULT]: CHART_PALETTE[4][0],
 };
 
 const generateAlertTheme = (alias: Aliases) => ({
@@ -259,22 +282,32 @@ const generateBadgeTheme = (alias: Aliases) => ({
   default: {
     background: alias.badgeBackground,
     indicatorColor: alias.badgeBackground,
+    color: alias.badgeText,
   },
   alpha: {
     background: colors.orange400,
     indicatorColor: colors.orange400,
+    color: alias.badgeText,
   },
   beta: {
     background: `linear-gradient(90deg, ${colors.pink300}, ${colors.purple300})`,
     indicatorColor: colors.purple300,
+    color: alias.badgeText,
   },
   new: {
     background: colors.green300,
     indicatorColor: colors.green300,
+    color: alias.badgeText,
   },
   review: {
     background: colors.purple300,
     indicatorColor: colors.purple300,
+    color: alias.badgeText,
+  },
+  warning: {
+    background: colors.yellow300,
+    indicatorColor: colors.yellow300,
+    color: alias.badgeText,
   },
 });
 
@@ -524,6 +557,8 @@ const commonTheme = {
     lineHeightBody: '1.4',
   },
 
+  dataCategory,
+
   tag,
 
   level,
@@ -601,6 +636,9 @@ const darkAliases = {
   tagBarHover: colors.purple300,
   tagBar: colors.gray400,
   businessIconColors: [colors.pink100, colors.pink300],
+  badgeText: colors.black,
+  searchTokenBackground: '#1F1A3D',
+  searchTokenBorder: '#554E80',
 };
 
 export const lightTheme = {

@@ -77,6 +77,11 @@ const DEPLOY_PREVIEW_CONFIG = IS_DEPLOY_PREVIEW && {
 const SENTRY_EXPERIMENTAL_SPA =
   !DEPLOY_PREVIEW_CONFIG && !IS_UI_DEV_ONLY ? env.SENTRY_EXPERIMENTAL_SPA : true;
 
+// We should only read from the SENTRY_SPA_DSN env variable if SENTRY_EXPERIMENTAL_SPA
+// is true. This is to make sure we can validate that the experimental SPA mode is
+// working properly.
+const SENTRY_SPA_DSN = SENTRY_EXPERIMENTAL_SPA ? env.SENTRY_SPA_DSN : undefined;
+
 // this is the path to the django "sentry" app, we output the webpack build here to `dist`
 // so that `django collectstatic` and so that we can serve the post-webpack bundles
 const sentryDjangoAppPath = path.join(__dirname, 'src/sentry/static/sentry');
@@ -244,11 +249,6 @@ let appConfig = {
      * for use on Django-powered pages.
      */
     sentry: 'less/sentry.less',
-
-    /**
-     * Old plugins that use select2 when creating a new issue e.g. Trello, Teamwork*
-     */
-    select2: 'less/select2.less',
   },
   context: staticPrefix,
   module: {
@@ -272,6 +272,10 @@ let appConfig = {
             domain: 'sentry',
           },
         },
+      },
+      {
+        test: /\.pegjs/,
+        use: {loader: 'pegjs-loader'},
       },
       {
         test: /\.css/,
@@ -337,7 +341,7 @@ let appConfig = {
         IS_ACCEPTANCE_TEST: JSON.stringify(IS_ACCEPTANCE_TEST),
         DEPLOY_PREVIEW_CONFIG: JSON.stringify(DEPLOY_PREVIEW_CONFIG),
         EXPERIMENTAL_SPA: JSON.stringify(SENTRY_EXPERIMENTAL_SPA),
-        SPA_DSN: JSON.stringify(env.SENTRY_SPA_DSN),
+        SPA_DSN: JSON.stringify(SENTRY_SPA_DSN),
       },
     }),
 

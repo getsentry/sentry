@@ -335,7 +335,7 @@ class RedisTSDB(BaseTSDB):
                 for rollup, series in data.items():
                     for timestamp, results in series.items():
                         for environment_id, promises in results.items():
-                            total = sum([int(p.value) for p in promises if p.value])
+                            total = sum(int(p.value) for p in promises if p.value)
                             if total:
                                 (
                                     destination_hash_key,

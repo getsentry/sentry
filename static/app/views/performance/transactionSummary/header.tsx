@@ -17,14 +17,16 @@ import EventView from 'app/utils/discover/eventView';
 import {decodeScalar} from 'app/utils/queryString';
 import Breadcrumb from 'app/views/performance/breadcrumb';
 
-import {vitalsRouteWithQuery} from '../transactionVitals/utils';
-
+import {tagsRouteWithQuery} from './transactionTags/utils';
+import {vitalsRouteWithQuery} from './transactionVitals/utils';
 import KeyTransactionButton from './keyTransactionButton';
+import TeamKeyTransactionButton from './teamKeyTransactionButton';
 import {transactionSummaryRouteWithQuery} from './utils';
 
 export enum Tab {
   TransactionSummary,
   RealUserMonitoring,
+  Tags,
 }
 
 type Props = {
@@ -62,6 +64,10 @@ class TransactionHeader extends React.Component<Props> {
     });
   };
 
+  trackTagsTabClick = () => {
+    // TODO(k-fish): Add analytics for tags
+  };
+
   handleIncompatibleQuery: React.ComponentProps<
     typeof CreateAlertFromViewButton
   >['onIncompatibleQuery'] = (incompatibleAlertNoticeFn, errors) => {
@@ -92,11 +98,23 @@ class TransactionHeader extends React.Component<Props> {
     const {eventView, organization, transactionName} = this.props;
 
     return (
-      <KeyTransactionButton
-        transactionName={transactionName}
-        eventView={eventView}
-        organization={organization}
-      />
+      <Feature organization={organization} features={['team-key-transactions']}>
+        {({hasFeature}) =>
+          hasFeature ? (
+            <TeamKeyTransactionButton
+              transactionName={transactionName}
+              eventView={eventView}
+              organization={organization}
+            />
+          ) : (
+            <KeyTransactionButton
+              transactionName={transactionName}
+              eventView={eventView}
+              organization={organization}
+            />
+          )
+        }
+      </Feature>
     );
   }
 
@@ -117,6 +135,13 @@ class TransactionHeader extends React.Component<Props> {
     });
 
     const vitalsTarget = vitalsRouteWithQuery({
+      orgSlug: organization.slug,
+      transaction: transactionName,
+      projectID: decodeScalar(location.query.project),
+      query: location.query,
+    });
+
+    const tagsTarget = tagsRouteWithQuery({
       orgSlug: organization.slug,
       transaction: transactionName,
       projectID: decodeScalar(location.query.project),
@@ -164,6 +189,15 @@ class TransactionHeader extends React.Component<Props> {
                 {t('Web Vitals')}
               </ListLink>
             )}
+            <Feature features={['organizations:performance-tag-page']}>
+              <ListLink
+                to={tagsTarget}
+                isActive={() => currentTab === Tab.Tags}
+                onClick={this.trackTagsTabClick}
+              >
+                {t('Tags')}
+              </ListLink>
+            </Feature>
           </StyledNavTabs>
         </React.Fragment>
       </Layout.Header>

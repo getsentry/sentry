@@ -117,16 +117,13 @@ class ManageDashboards extends AsyncView<Props, State> {
 
     return (
       <StyledActions>
-        <StyledSearchBar
+        <SearchBar
           defaultQuery=""
           query={this.getQuery()}
           placeholder={t('Search Dashboards')}
           onSearch={query => this.handleSearch(query)}
         />
-        <StyledDropdownControl
-          buttonProps={{prefix: t('Sort By')}}
-          label={activeSort.label}
-        >
+        <DropdownControl buttonProps={{prefix: t('Sort By')}} label={activeSort.label}>
           {SORT_OPTIONS.map(({label, value}) => (
             <DropdownItem
               key={value}
@@ -137,7 +134,7 @@ class ManageDashboards extends AsyncView<Props, State> {
               {label}
             </DropdownItem>
           ))}
-        </StyledDropdownControl>
+        </DropdownControl>
       </StyledActions>
     );
   }
@@ -166,7 +163,7 @@ class ManageDashboards extends AsyncView<Props, State> {
   }
 
   getTitle() {
-    return t('Manage Dashboards');
+    return t('Dashboards');
   }
 
   onCreate() {
@@ -196,7 +193,7 @@ class ManageDashboards extends AsyncView<Props, State> {
             <LightWeightNoProjectMessage organization={organization}>
               <PageContent>
                 <StyledPageHeader>
-                  {t('Manage Dashboards')}
+                  {t('Dashboards')}
                   <Button
                     data-test-id="dashboard-create"
                     onClick={event => {
@@ -224,12 +221,6 @@ const StyledPageContent = styled(PageContent)`
   padding: 0;
 `;
 
-const StyledSearchBar = styled(SearchBar)`
-  flex-grow: 1;
-  margin-right: ${space(2)};
-  margin-bottom: ${space(2)};
-`;
-
 const StyledPageHeader = styled('div')`
   display: flex;
   align-items: flex-end;
@@ -239,21 +230,15 @@ const StyledPageHeader = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
-const StyledDropdownControl = styled(DropdownControl)`
-  margin-bottom: ${space(2)};
-`;
-
 const StyledActions = styled('div')`
   display: grid;
-  grid-template-columns: auto max-content min-content;
-  width: 100%;
+  grid-template-columns: auto max-content;
+  grid-gap: ${space(2)};
+  margin-bottom: ${space(2)};
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     grid-template-columns: auto;
   }
-
-  margin-bottom: ${space(1)};
-  align-items: center;
 `;
 
 export default withApi(withOrganization(ManageDashboards));

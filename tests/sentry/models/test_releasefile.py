@@ -1,10 +1,12 @@
 import errno
 import os
 from io import BytesIO
+from zipfile import ZipFile
 
 from sentry import options
-from sentry.models import ReleaseFile
+from sentry.models import ReleaseArchive, ReleaseFile, merge_release_archives
 from sentry.testutils import TestCase
+from sentry.utils import json
 
 
 class ReleaseFileTestCase(TestCase):
@@ -82,3 +84,95 @@ class ReleaseFileCacheTest(TestCase):
             assert e.errno == errno.ENOENT
         else:
             assert False, "file should not exist"
+
+
+class ReleaseArchiveTestCase(TestCase):
+    @staticmethod
+    def create_archive(fields, files, raw=False):
+        manifest = dict(
+            fields, files={filename: {"url": f"fake://{filename}"} for filename in files}
+        )
+        buffer = BytesIO()
+        with ZipFile(buffer, mode="w") as zf:
+            zf.writestr("manifest.json", json.dumps(manifest))
+            for filename, content in files.items():
+                zf.writestr(filename, content)
+
+        return buffer if raw else ReleaseArchive(buffer)
+
+    def test_merge(self):
+        archive1 = self.create_archive(
+            fields={
+                "org": 1,
+                "release": 666,
+                "dist": 3,
+            },
+            files={
+                "foo": "foo",
+                "bar": "BAR",
+            },
+            raw=True,
+        )
+        archive2 = self.create_archive(
+            fields={
+                "org": 1,
+                "release": 2,
+                "dist": 3,
+            },
+            files={
+                "foo": "foo",
+                "bar": "bar",
+                "baz": "baz",
+            },
+        )
+
+        buffer = BytesIO()
+
+        assert merge_release_archives(archive1, archive2, buffer) is True
+
+        archive3 = ReleaseArchive(buffer)
+
+        assert archive3.manifest["org"] == 1
+        assert archive3.manifest["release"] == 666
+        assert archive3.manifest["dist"] == 3
+
+        assert archive3.manifest["files"].keys() == {"foo", "bar", "baz"}
+
+        # Make sure everything was saved:
+        peristed_manifest = archive3._read_manifest()
+        assert peristed_manifest == archive3.manifest
+
+        assert archive3.read("foo") == b"foo"
+        assert archive3.read("bar") == b"BAR"  # no overwrite
+        assert archive3.read("baz") == b"baz"
+
+    def test_merge_nothing(self):
+        archive1 = self.create_archive(
+            fields={
+                "org": 1,
+                "release": 2,
+                "dist": 3,
+            },
+            files={
+                "foo": "foo",
+                "bar": "bar",
+                "baz": "baz",
+            },
+            raw=True,
+        )
+        archive2 = self.create_archive(
+            fields={
+                "org": 1,
+                "release": 666,
+                "dist": 3,
+            },
+            files={
+                "foo": "foo",
+                "bar": "BAR",
+            },
+        )
+
+        buffer = BytesIO()
+
+        # Nothing added:
+        assert merge_release_archives(archive1, archive2, buffer) is False

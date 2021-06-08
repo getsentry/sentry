@@ -44,8 +44,24 @@ type OpenSudoModalOptions = {
   retryRequest?: () => Promise<any>;
 };
 
+type emailVerificationModalOptions = {
+  onClose?: () => void;
+  emailVerified?: boolean;
+  actionMessage?: string;
+};
+
 export async function openSudo({onClose, ...args}: OpenSudoModalOptions = {}) {
   const mod = await import('app/components/modals/sudoModal');
+  const {default: Modal} = mod;
+
+  openModal(deps => <Modal {...deps} {...args} />, {onClose});
+}
+
+export async function openEmailVerification({
+  onClose,
+  ...args
+}: emailVerificationModalOptions = {}) {
+  const mod = await import('app/components/modals/emailVerificationModal');
   const {default: Modal} = mod;
 
   openModal(deps => <Modal {...deps} {...args} />, {onClose});
@@ -184,10 +200,12 @@ type DebugFileSourceModalOptions = {
 };
 
 export async function openDebugFileSourceModal(options: DebugFileSourceModalOptions) {
-  const mod = await import('app/components/modals/debugFileSourceModal');
-  const {default: Modal} = mod;
+  const mod = await import(
+    /* webpackChunkName: "DebugFileCustomRepository" */ 'app/components/modals/debugFileCustomRepository'
+  );
+  const {default: Modal, modalCss} = mod;
 
-  openModal(deps => <Modal {...deps} {...options} />);
+  openModal(deps => <Modal {...deps} {...options} />, {backdrop: 'static', modalCss});
 }
 
 export async function openInviteMembersModal(options = {}) {

@@ -14,7 +14,7 @@ import {HistogramData} from 'app/utils/performance/histogram/types';
 import {decodeScalar} from 'app/utils/queryString';
 
 import {AxisOption, getTermHelp, PERFORMANCE_TERM} from '../data';
-import {Rectangle} from '../transactionVitals/types';
+import {Rectangle} from '../transactionSummary/transactionVitals/types';
 import {platformToPerformanceType, PROJECT_PERFORMANCE_TYPE} from '../utils';
 
 export const LEFT_AXIS_QUERY_KEY = 'left';

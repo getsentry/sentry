@@ -4,7 +4,7 @@ from uuid import uuid4
 
 from django.utils import timezone
 
-from sentry.models import Commit, CommitAuthor, CommitFileChange, Release, Repository
+from sentry.models import Commit, CommitAuthor, CommitFileChange, GroupRelease, Release, Repository
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.committers import (
@@ -174,7 +174,7 @@ class MatchCommitsPathTestCase(CommitTestCase):
             self.create_commitfilechange(filename="template/hello/app.py", type="A"),
         ]
 
-        commits = sorted([(fc.commit, 2) for fc in file_changes], key=lambda fc: fc[0].id)
+        commits = sorted(((fc.commit, 2) for fc in file_changes), key=lambda fc: fc[0].id)
         assert commits == sorted(
             _match_commits_path(file_changes, "hello/app.py"), key=lambda fc: fc[0].id
         )
@@ -271,6 +271,9 @@ class GetEventFileCommitters(CommitTestCase):
                 }
             ]
         )
+        GroupRelease.objects.create(
+            group_id=event.group.id, project_id=self.project.id, release_id=self.release.id
+        )
 
         result = get_serialized_event_file_committers(self.project, event)
         assert len(result) == 1
@@ -320,6 +323,9 @@ class GetEventFileCommitters(CommitTestCase):
                 }
             ]
         )
+        GroupRelease.objects.create(
+            group_id=event.group.id, project_id=self.project.id, release_id=self.release.id
+        )
 
         result = get_serialized_event_file_committers(self.project, event)
         assert len(result) == 1
@@ -359,6 +365,9 @@ class GetEventFileCommitters(CommitTestCase):
                     "patch_set": [{"path": "app/tigermachine.cpp", "type": "M"}],
                 }
             ]
+        )
+        GroupRelease.objects.create(
+            group_id=event.group.id, project_id=self.project.id, release_id=self.release.id
         )
 
         result = get_serialized_event_file_committers(self.project, event)
@@ -408,6 +417,9 @@ class GetEventFileCommitters(CommitTestCase):
                 }
             ]
         )
+        GroupRelease.objects.create(
+            group_id=event.group.id, project_id=self.project.id, release_id=self.release.id
+        )
 
         result = get_serialized_event_file_committers(self.project, event)
         assert len(result) == 0
@@ -440,6 +452,9 @@ class GetEventFileCommitters(CommitTestCase):
                 "tags": {"sentry:release": self.release.version},
             },
             project_id=self.project.id,
+        )
+        GroupRelease.objects.create(
+            group_id=event.group.id, project_id=self.project.id, release_id=self.release.id
         )
 
         with self.assertRaises(Commit.DoesNotExist):

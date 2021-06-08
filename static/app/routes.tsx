@@ -298,6 +298,12 @@ function routes() {
         component={errorHandler(LazyLoad)}
       />
       <Route
+        path="performance/"
+        name={t('Performance')}
+        componentPromise={() => import('app/views/settings/projectPerformance')}
+        component={errorHandler(LazyLoad)}
+      />
+      <Route
         path="source-maps/"
         name={t('Source Maps')}
         componentPromise={() => import('app/views/settings/projectSourceMaps')}
@@ -766,7 +772,6 @@ function routes() {
           componentPromise={() => import('app/views/sentryAppExternalInstallation')}
           component={errorHandler(LazyLoad)}
         />
-
         <Redirect from="/account/" to="/settings/account/details/" />
 
         <Redirect from="/share/group/:shareId/" to="/share/issue/:shareId/" />
@@ -785,6 +790,12 @@ function routes() {
         <Route
           path="/organizations/:orgId/data-export/:dataExportId"
           componentPromise={() => import('app/views/dataExport/dataDownload')}
+          component={errorHandler(LazyLoad)}
+        />
+
+        <Route
+          path="/organizations/:orgId/disabled-member/"
+          componentPromise={() => import('app/views/disabledMember')}
           component={errorHandler(LazyLoad)}
         />
 
@@ -1005,6 +1016,17 @@ function routes() {
               component={errorHandler(LazyLoad)}
               props={{
                 currentTab: TAB.MERGED,
+                isEventRoute: false,
+              }}
+            />
+            <Route
+              path="/organizations/:orgId/issues/:groupId/grouping/"
+              componentPromise={() =>
+                import('app/views/organizationGroupDetails/grouping')
+              }
+              component={errorHandler(LazyLoad)}
+              props={{
+                currentTab: TAB.GROUPING,
                 isEventRoute: false,
               }}
             />
@@ -1273,7 +1295,11 @@ function routes() {
 
           <Route
             path="/organizations/:orgId/stats/"
-            componentPromise={() => import('app/views/organizationStats')}
+            componentPromise={() =>
+              import(
+                /* webpackChunkName: "OrganizationStats" */ 'app/views/organizationStats'
+              )
+            }
             component={errorHandler(LazyLoad)}
           />
 
@@ -1343,7 +1369,16 @@ function routes() {
             />
             <Route
               path="/organizations/:orgId/performance/summary/vitals/"
-              componentPromise={() => import('app/views/performance/transactionVitals')}
+              componentPromise={() =>
+                import('app/views/performance/transactionSummary/transactionVitals')
+              }
+              component={errorHandler(LazyLoad)}
+            />
+            <Route
+              path="/organizations/:orgId/performance/summary/tags/"
+              componentPromise={() =>
+                import('app/views/performance/transactionSummary/transactionTags')
+              }
               component={errorHandler(LazyLoad)}
             />
           </Route>

@@ -377,7 +377,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):  # 
                 return Response(status=404)
             self.record_analytics(transactions, trace_id, self.request.user.id, organization.id)
 
-        warning_extra: Dict[str, str] = {"trace": trace_id, "organization": organization}
+        warning_extra: Dict[str, str] = {"trace": trace_id, "organization": organization.slug}
 
         # Look for the roots
         roots: List[SnubaTransaction] = []
@@ -457,7 +457,7 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
         event_id: Optional[str],
         detailed: bool = False,
     ) -> Sequence[LightResponse]:
-        """ Because the light endpoint could potentially have gaps between root and event we return a flattened list """
+        """Because the light endpoint could potentially have gaps between root and event we return a flattened list"""
         if event_id is None:
             raise ParseError(detail="An event_id is required for the light trace")
         snuba_event, nodestore_event = self.get_current_transaction(transactions, errors, event_id)
@@ -698,6 +698,11 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         # We sort orphans and roots separately because we always want the root(s) as the first element(s)
         root_traces.sort(key=child_sort_key)
         orphans.sort(key=child_sort_key)
+
+        if len(orphans) > 0:
+            sentry_sdk.set_tag("discover.trace-view.contains-orphans", "yes")
+            logger.warning("discover.trace-view.contains-orphans", extra=warning_extra)
+
         return [trace.full_dict(detailed) for trace in root_traces] + [
             orphan.full_dict(detailed) for orphan in orphans
         ]

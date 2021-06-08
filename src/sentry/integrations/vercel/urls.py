@@ -2,8 +2,7 @@ from django.conf.urls import url
 
 from sentry.web.frontend.vercel_extension_configuration import VercelExtensionConfigurationView
 
-from .uihook import VercelUIHook
-from .uninstall import VercelUninstallEndpoint
+from .generic_webhook import VercelGenericWebhookEndpoint
 from .webhook import VercelWebhookEndpoint
 
 urlpatterns = [
@@ -13,6 +12,11 @@ urlpatterns = [
         VercelExtensionConfigurationView.as_view(),
         name="sentry-extensions-vercel-configure",
     ),
-    url(r"^delete/$", VercelUninstallEndpoint.as_view(), name="sentry-extensions-vercel-delete"),
-    url(r"^ui-hook/$", VercelUIHook.as_view(), name="sentry-extensions-vercel-ui-hook"),
+    # XXX(meredith): This route has become our generic hook, in
+    # the future we'll need to update the route name to reflect that.
+    url(
+        r"^delete/$",
+        VercelGenericWebhookEndpoint.as_view(),
+        name="sentry-extensions-vercel-generic-webhook",
+    ),
 ]

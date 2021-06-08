@@ -203,11 +203,39 @@ class ParseBooleanSearchQueryTest(TestCase):
             ]
         ]
 
-    def test_grouping_without_boolean_terms(self):
+        result = get_filter("test (item1 OR item2)")
+        assert result.conditions == [
+            _om("test"),
+            [
+                _or(
+                    _m("item1"),
+                    _m("item2"),
+                ),
+                "=",
+                1,
+            ],
+        ]
+
+    def test_grouping_edge_cases(self):
+        result = get_filter("()")
+        assert result.conditions == [
+            _om("()"),
+        ]
+
+        result = get_filter("(test)")
+        assert result.conditions == [
+            _om("test"),
+        ]
+
+    def test_grouping_within_free_text(self):
         result = get_filter("undefined is not an object (evaluating 'function.name')")
         assert result.conditions == [
-            _om("undefined is not an object"),
-            _om("evaluating 'function.name'"),
+            _om("undefined is not an object (evaluating 'function.name')"),
+        ]
+        result = get_filter("combined (free text) AND (grouped)")
+        assert result.conditions == [
+            _om("combined (free text)"),
+            _om("grouped"),
         ]
 
     def test_malformed_groups(self):
@@ -579,19 +607,13 @@ class ParseBooleanSearchQueryTest(TestCase):
         ):
             get_filter("(OR a:b) AND c:d")
 
-    # TODO (evanh): The situation with the next two tests is not ideal, since we should
-    # be matching the entire query instead of splitting on the brackets. However it's
-    # very difficult to write a regex that can tell the difference between a ParenExpression
-    # and a arbitrary search with parens in it. Once we switch tokenizers we can have something
-    # that can correctly classify these expressions.
     def test_empty_parens_in_message_not_boolean_search(self):
         result = get_filter(
             "failure_rate():>0.003&& users:>10 event.type:transaction",
             params={"organization_id": self.organization.id, "project_id": [self.project.id]},
         )
         assert result.conditions == [
-            _om("failure_rate"),
-            _om(":>0.003&&"),
+            _om("failure_rate():>0.003&&"),
             [["ifNull", ["users", "''"]], "=", ">10"],
             ["event.type", "=", "transaction"],
         ]
@@ -602,8 +624,7 @@ class ParseBooleanSearchQueryTest(TestCase):
             params={"organization_id": self.organization.id, "project_id": [self.project.id]},
         )
         assert result.conditions == [
-            _om("TypeError Anonymous function"),
-            _om("app/javascript/utils/transform-object-keys"),
+            _om("TypeError Anonymous function(app/javascript/utils/transform-object-keys)"),
         ]
 
     def test_or_does_not_match_organization(self):
@@ -786,6 +807,21 @@ class GetSnubaQueryArgsTest(TestCase):
     def test_wildcard_event_id(self):
         with self.assertRaises(InvalidSearchQuery):
             get_filter("id:deadbeef*")
+
+    def test_event_id(self):
+        event_id = "a" * 32
+        results = get_filter(f"id:{event_id}")
+        assert results.conditions == [["id", "=", event_id]]
+
+        event_id = "a" * 16 + "-" * 16 + "b" * 16
+        results = get_filter(f"id:{event_id}")
+        assert results.conditions == [["id", "=", event_id]]
+
+        with self.assertRaises(InvalidSearchQuery):
+            get_filter("id:deadbeef")
+
+        with self.assertRaises(InvalidSearchQuery):
+            get_filter(f"id:{'g' * 32}")
 
     def test_negated_wildcard(self):
         _filter = get_filter("!release:3.1.* user.email:*@example.com")
@@ -1169,9 +1205,7 @@ class GetSnubaQueryArgsTest(TestCase):
 
         result = get_filter("percentile    (transaction.duration, 0.75):>100")
         assert result.conditions == [
-            _om("percentile"),
-            _om("transaction.duration, 0.75"),
-            _om(":>100"),
+            _om("percentile    (transaction.duration, 0.75):>100"),
         ]
         assert result.having == []
 
@@ -1187,6 +1221,11 @@ class GetSnubaQueryArgsTest(TestCase):
     def test_function_with_negative_arguments(self):
         result = get_filter("apdex(300):>-0.5")
         assert result.having == [["apdex_300", ">", -0.5]]
+
+    def test_function_with_bad_arguments(self):
+        result = get_filter("percentile(transaction.duration 0.75):>100")
+        assert result.having == []
+        assert result.conditions == [_om("percentile(transaction.duration 0.75):>100")]
 
     def test_function_with_date_arguments(self):
         result = get_filter("last_seen():2020-04-01T19:34:52+00:00")
@@ -1244,6 +1283,16 @@ class GetSnubaQueryArgsTest(TestCase):
                 1,
             ]
         ]
+
+    def test_shorthand_overflow(self):
+        with self.assertRaises(InvalidSearchQuery):
+            get_filter(f"transaction.duration:<{'9'*13}m")
+
+        with self.assertRaises(InvalidSearchQuery):
+            get_filter(f"transaction.duration:<{'9'*11}h")
+
+        with self.assertRaises(InvalidSearchQuery):
+            get_filter(f"transaction.duration:<{'9'*10}d")
 
 
 def with_type(type, argument):

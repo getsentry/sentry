@@ -1,14 +1,84 @@
-import {addErrorMessage} from 'app/actionCreators/indicator';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  clearIndicators,
+} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
 import {t} from 'app/locale';
+import parseLinkHeader from 'app/utils/parseLinkHeader';
+
+type KeyTransaction = {
+  project_id: string;
+  transaction: string;
+};
+
+type TeamKeyTransaction = {
+  team: string;
+  count: number;
+  keyed: KeyTransaction[];
+};
+
+export type TeamKeyTransactions = TeamKeyTransaction[];
+
+export async function fetchTeamKeyTransactions(
+  api: Client,
+  orgSlug: string,
+  teams: string[],
+  projects?: string[]
+): Promise<TeamKeyTransaction[]> {
+  const url = `/organizations/${orgSlug}/key-transactions-list/`;
+
+  const datas: TeamKeyTransactions[] = [];
+  let cursor: string | undefined = undefined;
+  let hasMore = true;
+
+  while (hasMore) {
+    try {
+      const payload = {cursor, team: teams, project: projects};
+      if (!payload.cursor) {
+        delete payload.cursor;
+      }
+      if (!payload.project?.length) {
+        delete payload.project;
+      }
+
+      const [data, , xhr] = await api.requestPromise(url, {
+        method: 'GET',
+        includeAllArgs: true,
+        query: payload,
+      });
+
+      datas.push(data);
+
+      const pageLinks = xhr && xhr.getResponseHeader('Link');
+      if (pageLinks) {
+        const paginationObject = parseLinkHeader(pageLinks);
+        hasMore = paginationObject?.next?.results ?? false;
+        cursor = paginationObject.next?.cursor;
+      } else {
+        hasMore = false;
+      }
+    } catch (err) {
+      addErrorMessage(
+        err.responseJSON?.detail ?? t('Error fetching team key transactions')
+      );
+      throw err;
+    }
+  }
+
+  return datas.flat();
+}
 
 export function toggleKeyTransaction(
   api: Client,
   isKeyTransaction: boolean,
   orgId: string,
-  projects: number[],
-  transactionName: string
+  projects: Readonly<number[]>,
+  transactionName: string,
+  teamIds?: string[] // TODO(txiao): make this required
 ): Promise<undefined> {
+  addLoadingMessage(t('Saving changes\u2026'));
+
   const promise: Promise<undefined> = api.requestPromise(
     `/organizations/${orgId}/key-transactions/`,
     {
@@ -16,9 +86,14 @@ export function toggleKeyTransaction(
       query: {
         project: projects.map(id => String(id)),
       },
-      data: {transaction: transactionName},
+      data: {
+        transaction: transactionName,
+        team: teamIds,
+      },
     }
   );
+
+  promise.then(clearIndicators);
 
   promise.catch(response => {
     const non_field_errors = response?.responseJSON?.non_field_errors;

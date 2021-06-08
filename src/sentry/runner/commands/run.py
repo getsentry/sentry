@@ -1,5 +1,6 @@
 import signal
 import sys
+from concurrent.futures import ThreadPoolExecutor
 from multiprocessing import cpu_count
 
 import click
@@ -469,7 +470,7 @@ def batching_kafka_options(group):
     "--concurrency",
     type=int,
     default=None,
-    help="(Deprecated) Ingest consumers no longer use multiple processing threads.",
+    help="Thread pool size (only utilitized for message types that support concurrent processing)",
 )
 @configuration
 def ingest_consumer(consumer_types, all_consumer_types, **options):
@@ -495,9 +496,11 @@ def ingest_consumer(consumer_types, all_consumer_types, **options):
 
     concurrency = options.pop("concurrency", None)
     if concurrency is not None:
-        click.echo("Warning: `concurrency` argument is deprecated and will be removed.", err=True)
+        executor = ThreadPoolExecutor(concurrency)
+    else:
+        executor = None
 
     with metrics.global_tags(
         ingest_consumer_types=",".join(sorted(consumer_types)), _all_threads=True
     ):
-        get_ingest_consumer(consumer_types=consumer_types, **options).run()
+        get_ingest_consumer(consumer_types=consumer_types, executor=executor, **options).run()

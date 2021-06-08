@@ -1,9 +1,11 @@
 import logging
 from datetime import timedelta
 from enum import IntEnum
+from typing import Sequence
 
 from django.conf import settings
 from django.db import IntegrityError, models, transaction
+from django.db.models import QuerySet
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.functional import cached_property
@@ -55,8 +57,23 @@ OrganizationStatus._labels = {
 
 
 class OrganizationManager(BaseManager):
-    # def get_by_natural_key(self, slug):
-    #     return self.get(slug=slug)
+    def get_for_user_ids(self, user_ids: Sequence[int]) -> QuerySet:
+        """Returns the QuerySet of all organizations that a set of Users have access to."""
+        from sentry.models import OrganizationMember
+
+        return self.filter(
+            status=OrganizationStatus.VISIBLE,
+            id__in=OrganizationMember.objects.filter(user_id__in=user_ids).values("organization"),
+        )
+
+    def get_for_team_ids(self, team_ids: Sequence[int]) -> QuerySet:
+        """Returns the QuerySet of all organizations that a set of Teams have access to."""
+        from sentry.models import Team
+
+        return self.filter(
+            status=OrganizationStatus.VISIBLE,
+            id__in=Team.objects.filter(id__in=team_ids).values("organization"),
+        )
 
     def get_for_user(self, user, scope=None, only_visible=True):
         """
@@ -136,6 +153,8 @@ class Organization(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_organization"
+        # TODO: Once we're on a version of Django that supports functional indexes,
+        # include index on `upper((slug::text))` here.
 
     __repr__ = sane_repr("owner_id", "name", "slug")
 

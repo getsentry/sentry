@@ -99,8 +99,8 @@ class Results extends React.Component<Props, State> {
   };
 
   componentDidMount() {
-    const {api, organization, selection} = this.props;
-    loadOrganizationTags(api, organization.slug, selection);
+    const {organization, selection} = this.props;
+    loadOrganizationTags(this.tagsApi, organization.slug, selection);
     addRoutePerformanceContext(selection);
     this.checkEventView();
     this.canLoadEvents();
@@ -113,7 +113,10 @@ class Results extends React.Component<Props, State> {
     this.checkEventView();
     const currentQuery = eventView.getEventsAPIPayload(location);
     const prevQuery = prevState.eventView.getEventsAPIPayload(prevProps.location);
-    if (!isAPIPayloadSimilar(currentQuery, prevQuery)) {
+    if (
+      !isAPIPayloadSimilar(currentQuery, prevQuery) ||
+      this.hasChartParametersChanged(prevState.eventView, eventView)
+    ) {
       api.clear();
       this.canLoadEvents();
     }
@@ -121,11 +124,27 @@ class Results extends React.Component<Props, State> {
       !isEqual(prevProps.selection.datetime, selection.datetime) ||
       !isEqual(prevProps.selection.projects, selection.projects)
     ) {
-      loadOrganizationTags(api, organization.slug, selection);
+      loadOrganizationTags(this.tagsApi, organization.slug, selection);
       addRoutePerformanceContext(selection);
     }
 
     if (prevState.confirmedQuery !== confirmedQuery) this.fetchTotalCount();
+  }
+
+  tagsApi: Client = new Client();
+
+  hasChartParametersChanged(prevEventView: EventView, eventView: EventView) {
+    const prevYAxisValue = prevEventView.getYAxis();
+    const yAxisValue = eventView.getYAxis();
+
+    if (prevYAxisValue !== yAxisValue) {
+      return true;
+    }
+
+    const prevDisplay = prevEventView.getDisplayMode();
+    const display = eventView.getDisplayMode();
+
+    return prevDisplay !== display;
   }
 
   canLoadEvents = async () => {
