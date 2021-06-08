@@ -1,10 +1,13 @@
+import React, {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import Cookies from 'js-cookie';
 
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import ExternalLink from 'app/components/links/externalLink';
 import LogoSentry from 'app/components/logoSentry';
 import {t} from 'app/locale';
+import PreferencesStore from 'app/stores/preferencesStore';
 import space from 'app/styles/space';
 import {trackAdvancedAnalyticsEvent} from 'app/utils/advancedAnalytics';
 import getCookie from 'app/utils/getCookie';
@@ -16,8 +19,41 @@ export default function DemoHeader() {
   const getStartedUrl = saasOrgSlug
     ? `https://sentry.io/settings/${saasOrgSlug}/billing/checkout/`
     : 'https://sentry.io/signup/';
+
+  const [collapsed, setCollapsed] = useState(Cookies.get('sidebar_collapsed') === '1');
+
+  type Preferences = typeof PreferencesStore.prefs;
+
+  const preferenceUnsubscribe = PreferencesStore.listen(
+    (preferences: Preferences) => onPreferenceChange(preferences),
+    undefined
+  );
+
+  function onPreferenceChange(preferences: Preferences) {
+    if (preferences.collapsed === collapsed) {
+      return;
+    }
+    setCollapsed(collapsed ? false : true);
+  }
+
+  useEffect(() => {
+    return () => {
+      preferenceUnsubscribe();
+    };
+  });
+
+  const [show, setShow] = React.useState(false);
+
+  useEffect(() => {
+    setTimeout(() => {
+      setShow(true);
+    }, 650);
+  }, [show]);
+
+  if (!show) return null;
+
   return (
-    <Wrapper>
+    <Wrapper collapsed={collapsed}>
       <StyledLogoSentry />
       <ButtonBar gap={4}>
         <StyledExternalLink
@@ -55,14 +91,18 @@ export default function DemoHeader() {
 }
 
 //Note many of the colors don't come from the theme as they come from the marketing site
-const Wrapper = styled('div')`
+const Wrapper = styled('div')<{collapsed: boolean}>`
   padding-right: ${space(3)};
   background-color: ${p => p.theme.white};
   height: ${p => p.theme.demo.headerSize};
   display: flex;
   justify-content: space-between;
   text-transform: uppercase;
-  margin-left: calc(-1 * ${p => p.theme.sidebar.expandedWidth});
+
+  margin-left: calc(
+    -1 * ${p => (p.collapsed ? p.theme.sidebar.collapsedWidth : p.theme.sidebar.expandedWidth)}
+  );
+
   position: fixed;
   width: 100%;
   border-bottom: 1px solid ${p => p.theme.border};
