@@ -129,12 +129,7 @@ function UpdateAlert({api, Wrapper, isCompact, project, organization, className}
     );
   }
 
-  const hasAppConnectStoreFeatureFlag = !!organization.features?.includes(
-    'app-store-connect'
-  );
-
   if (
-    !hasAppConnectStoreFeatureFlag ||
     !project ||
     appStoreConnectContext.isLoading !== false ||
     appStoreConnectContext.id === undefined ||
