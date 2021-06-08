@@ -25,7 +25,7 @@ class Migration(migrations.Migration):
     atomic = False
 
     dependencies = [
-        ("sentry", "0204_use_project_team_for_team_key_transactions"),
+        ("sentry", "0205_semver_backfill"),
     ]
 
     operations = [
