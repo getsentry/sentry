@@ -367,7 +367,7 @@ class ReleasesList extends AsyncView<Props, State> {
         display={[this.getDisplay()]}
         releasesReloading={reloading}
         healthStatsPeriod={HealthStatsPeriodOption.AUTO}
-        timeSeriesReleases
+        timeSeriesReleasesOnly
       >
         {({isHealthLoading, getHealthData}) => (
           <Feature features={['organizations:release-adoption-chart']}>
