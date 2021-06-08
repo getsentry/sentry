@@ -232,7 +232,6 @@ const Search = (props: Props) => {
   );
 };
 
-// TODO(k-fish): Adjust thirds layout to allow for this instead.
 const StyledLayoutBody = styled('div')`
   padding: ${space(2)};
   margin: 0;
