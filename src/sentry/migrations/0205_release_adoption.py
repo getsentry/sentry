@@ -25,7 +25,7 @@ class Migration(migrations.Migration):
     atomic = False
 
     dependencies = [
-        ("sentry", "0203_groupedmessage_status_index"),
+        ("sentry", "0204_use_project_team_for_team_key_transactions"),
     ]
 
     operations = [
