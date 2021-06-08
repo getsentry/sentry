@@ -16,7 +16,7 @@ type NoFilter = {
   type: 'no_filter';
 };
 
-type ActiveFilter = {
+export type ActiveFilter = {
   type: 'active_filter';
   operationNames: Set<string>;
 };
