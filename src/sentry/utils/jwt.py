@@ -38,8 +38,7 @@ def peek_claims(token: str) -> Mapping[str, str]:
 
     :param token: The JWT token to extract the payload from.
     """
-    # This type is checked in the tests so this is fine.
-    return pyjwt.decode(token, options={"verify_signature": False})  # type: ignore
+    return pyjwt.decode(token, verify=False)
 
 
 def decode(
@@ -61,9 +60,7 @@ def decode(
        this to ``False`` to disable verifying the audience.
     :param algorithms: The algorithms which should be tried to verify the payload.
     """
-    # TODO: We do not currently have type-safety for keys suitable for decoding *and*
-    # encoding vs those only suitable for decoding.
-    options = {"verify": True}
+    options = dict()
     kwargs = dict()
     if audience is False:
         options["verify_aud"] = False
@@ -71,10 +68,7 @@ def decode(
         raise ValueError("audience can not be True")
     elif audience is not None:
         kwargs["audience"] = audience
-    if algorithms is None:
-        algorithms = ["HS256"]
-    # This type is checked in the tests so this is fine.
-    return pyjwt.decode(token, key, options=options, algorithms=algorithms, **kwargs)  # type: ignore
+    return pyjwt.decode(token, key, verify=True, options=options, algorithms=algorithms, **kwargs)
 
 
 def encode(
@@ -95,12 +89,9 @@ def encode(
        needs to be used to verify the payload, as long as the payload contains enough
        information to also validate the key used was correct.
     """
-    # TODO: We do not currently have type-safety for keys suitable for decoding *and*
-    # encoding vs those only suitable for decoding.
     if headers is None:
         headers = {}
-    # This type is checked in the tests so this is fine.
-    return pyjwt.encode(payload, key, algorithm=algorithm, headers=headers)  # type: ignore
+    return pyjwt.encode(payload, key, algorithm=algorithm, headers=headers).decode("UTF-8")
 
 
 def authorization_header(token: str, *, scheme: str = "Bearer") -> Mapping[str, str]:

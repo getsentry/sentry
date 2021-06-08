@@ -105,7 +105,10 @@ def token() -> str:
         "iss": "me",
     }
     key = "secret"
-    token = pyjwt.encode(claims, key, algorithm="HS256", headers=headers)
+    encoded = pyjwt.encode(claims, key, algorithm="HS256", headers=headers)
+
+    # PyJWT < 2.0 returns bytes, not strings
+    token = encoded.decode("UTF-8")
     assert isinstance(token, str)
     return token
 
@@ -120,7 +123,10 @@ def rsa_token() -> str:
     claims = {
         "iss": "me",
     }
-    token = pyjwt.encode(claims, RS256_KEY, algorithm="RS256", headers=headers)
+    encoded = pyjwt.encode(claims, RS256_KEY, algorithm="RS256", headers=headers)
+
+    # PyJWT < 2.0 returns bytes, not strings
+    token = encoded.decode("UTF-8")
     assert isinstance(token, str)
     return token
 
@@ -156,7 +162,7 @@ def test_decode(token: str) -> None:
     claims["aud"] = "you"
     token = jwt_utils.encode(claims, "secret")
 
-    with pytest.raises(pyjwt.exceptions.InvalidAudienceError):
+    with pytest.raises(pyjwt.InvalidAudience):
         jwt_utils.decode(token, "secret")
 
 
@@ -172,13 +178,13 @@ def test_decode_audience() -> None:
     }
     token = jwt_utils.encode(payload, "secret")
 
-    with pytest.raises(pyjwt.exceptions.InvalidAudienceError):
+    with pytest.raises(pyjwt.InvalidAudience):
         jwt_utils.decode(token, "secret")
 
     claims = jwt_utils.decode(token, "secret", audience="you")
     assert claims == payload
 
-    with pytest.raises(pyjwt.exceptions.InvalidAudienceError):
+    with pytest.raises(pyjwt.InvalidAudience):
         jwt_utils.decode(token, "secret", audience="wrong")
 
     claims = jwt_utils.decode(token, "secret", audience=False)
