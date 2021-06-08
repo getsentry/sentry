@@ -194,7 +194,9 @@ class MiniGraph extends React.Component<Props> {
           }));
 
           const chartOptions = {
-            colors: [...theme.charts.getColorPalette(allSeries.length - 2)],
+            colors: allSeries.length
+              ? [...theme.charts.getColorPalette(allSeries.length - 2)]
+              : undefined,
             height: 100,
             series: [...data],
             xAxis: {
