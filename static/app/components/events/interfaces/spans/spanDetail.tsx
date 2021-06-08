@@ -75,7 +75,7 @@ class SpanDetail extends React.Component<Props, State> {
 
   renderTraversalButton(): React.ReactNode {
     if (!this.props.childTransactions) {
-      // TODO: Amend size to use theme when we evetually refactor LoadingIndicator
+      // TODO: Amend size to use theme when we eventually refactor LoadingIndicator
       // 12px is consistent with theme.iconSizes['xs'] but theme returns a string.
       return (
         <StyledDiscoverButton size="xsmall" disabled>

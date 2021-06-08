@@ -34,7 +34,7 @@ progressbar2==3.32.0
 # If we bump it to 2.8.4 or greater then Python 3.6 & 3.8 would use the same version
 psycopg2-binary==2.7.7; python_version == '3.6'
 psycopg2-binary==2.8.6; python_version > '3.6'
-PyJWT==1.5.3
+PyJWT==2.1.0
 python-dateutil==2.8.1
 python-memcached==1.59
 python-u2flib-server==5.0.0
@@ -49,12 +49,12 @@ requests==2.25.1
 rfc3339-validator==0.1.2
 rfc3986-validator==0.1.1
 # [end] jsonschema format validators
-sentry-relay==0.8.5
+sentry-relay==0.8.7
 sentry-sdk>=1.0.0,<1.2.0
-snuba-sdk>=0.0.14,<1.0.0
+snuba-sdk>=0.0.15,<1.0.0
 simplejson==3.17.2
 statsd==3.3
-structlog==17.1.0
+structlog==21.1.0
 symbolic==8.1.0
 toronado==0.1.0
 ua-parser==0.10.0

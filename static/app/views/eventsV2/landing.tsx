@@ -24,19 +24,12 @@ import {Organization, SavedQuery, SelectValue} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
 import {decodeScalar} from 'app/utils/queryString';
-import theme from 'app/utils/theme';
 import withOrganization from 'app/utils/withOrganization';
 
 import Banner from './banner';
 import {DEFAULT_EVENT_VIEW} from './data';
 import QueryList from './queryList';
-import {
-  getPrebuiltQueries,
-  isBannerHidden,
-  setBannerHidden,
-  setRenderPrebuilt,
-  shouldRenderPrebuilt,
-} from './utils';
+import {getPrebuiltQueries, setRenderPrebuilt, shouldRenderPrebuilt} from './utils';
 
 const SORT_OPTIONS: SelectValue<string>[] = [
   {label: t('My Queries'), value: 'myqueries'},
@@ -55,15 +48,11 @@ type Props = {
 } & AsyncComponent['props'];
 
 type State = {
-  isBannerHidden: boolean;
-  isSmallBanner: boolean;
   savedQueries: SavedQuery[] | null;
   savedQueriesPageLinks: string;
 } & AsyncComponent['state'];
 
 class DiscoverLanding extends AsyncComponent<Props, State> {
-  mq = window.matchMedia?.(`(max-width: ${theme.breakpoints[1]})`);
-
   state: State = {
     // AsyncComponent state
     loading: true,
@@ -72,29 +61,9 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
     errors: {},
 
     // local component state
-    isBannerHidden: isBannerHidden(),
     renderPrebuilt: shouldRenderPrebuilt(),
-    isSmallBanner: this.mq?.matches,
     savedQueries: null,
     savedQueriesPageLinks: '',
-  };
-
-  componentDidMount() {
-    if (this.mq) {
-      this.mq.addListener(this.handleMediaQueryChange);
-    }
-  }
-
-  componentWillUnmount() {
-    if (this.mq) {
-      this.mq.removeListener(this.handleMediaQueryChange);
-    }
-  }
-
-  handleMediaQueryChange = (changed: MediaQueryListEvent) => {
-    this.setState({
-      isSmallBanner: changed.matches,
-    });
   };
 
   shouldReload = true;
@@ -171,13 +140,6 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    const isHidden = isBannerHidden();
-    if (isHidden !== this.state.isBannerHidden) {
-      // eslint-disable-next-line react/no-did-update-set-state
-      this.setState({
-        isBannerHidden: isHidden,
-      });
-    }
     const PAYLOAD_KEYS = ['sort', 'cursor', 'query'] as const;
 
     const payloadKeysChanged = !isEqual(
@@ -194,11 +156,6 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
 
   handleQueryChange = () => {
     this.fetchData({reloading: true});
-  };
-
-  handleBannerClick = () => {
-    setBannerHidden(true);
-    this.setState({isBannerHidden: true});
   };
 
   handleSearchQuery = (searchQuery: string) => {
@@ -232,24 +189,12 @@ class DiscoverLanding extends AsyncComponent<Props, State> {
   };
 
   renderBanner() {
-    const bannerDismissed = this.state.isBannerHidden;
-
-    if (bannerDismissed) {
-      return null;
-    }
     const {location, organization} = this.props;
     const eventView = EventView.fromNewQueryWithLocation(DEFAULT_EVENT_VIEW, location);
     const to = eventView.getResultsViewUrlTarget(organization.slug);
     const resultsUrl = `${to.pathname}?${stringify(to.query)}`;
 
-    return (
-      <Banner
-        organization={organization}
-        resultsUrl={resultsUrl}
-        isSmallBanner={this.state.isSmallBanner}
-        onHideBanner={this.handleBannerClick}
-      />
-    );
+    return <Banner organization={organization} resultsUrl={resultsUrl} />;
   }
 
   renderActions() {

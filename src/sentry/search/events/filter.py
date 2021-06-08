@@ -1,7 +1,10 @@
 from datetime import datetime
+from typing import Callable, Mapping, Optional, Sequence, Union
 
 from parsimonious.exceptions import ParseError
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
+from snuba_sdk.conditions import Condition, Op, Or
+from snuba_sdk.function import Function
 
 from sentry import eventstore
 from sentry.api.event_search import (
@@ -16,6 +19,7 @@ from sentry.api.event_search import (
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Project
 from sentry.models.group import Group
+from sentry.search.events.base import QueryBase
 from sentry.search.events.constants import (
     ARRAY_FIELDS,
     EQUALITY_OPERATORS,
@@ -27,9 +31,11 @@ from sentry.search.events.constants import (
     PROJECT_ALIAS,
     PROJECT_NAME_ALIAS,
     RELEASE_ALIAS,
+    TEAM_KEY_TRANSACTION_ALIAS,
     USER_DISPLAY_ALIAS,
 )
 from sentry.search.events.fields import FIELD_ALIASES, FUNCTIONS, resolve_field
+from sentry.search.events.types import WhereType
 from sentry.search.utils import parse_release
 from sentry.utils.compat import filter
 from sentry.utils.dates import to_timestamp
@@ -112,7 +118,230 @@ def convert_function_to_condition(func):
     return [func[1][0], operator, func[1][1]]
 
 
-def convert_search_filter_to_snuba_query(search_filter, key=None, params=None):
+def _environment_filter_converter(
+    search_filter: SearchFilter,
+    name: str,
+    params: Optional[Mapping[str, Union[int, str, datetime]]],
+):
+    # conditions added to env_conditions are OR'd
+    env_conditions = []
+    value = search_filter.value.value
+    values = set(value if isinstance(value, (list, tuple)) else [value])
+    # the "no environment" environment is null in snuba
+    if "" in values:
+        values.remove("")
+        operator = "IS NULL" if search_filter.operator == "=" else "IS NOT NULL"
+        env_conditions.append(["environment", operator, None])
+    if len(values) == 1:
+        operator = "=" if search_filter.operator in EQUALITY_OPERATORS else "!="
+        env_conditions.append(["environment", operator, values.pop()])
+    elif values:
+        operator = "IN" if search_filter.operator in EQUALITY_OPERATORS else "NOT IN"
+        env_conditions.append(["environment", operator, values])
+    return env_conditions
+
+
+def _message_filter_converter(
+    search_filter: SearchFilter,
+    name: str,
+    params: Optional[Mapping[str, Union[int, str, datetime]]],
+):
+    value = search_filter.value.value
+    if search_filter.value.is_wildcard():
+        # XXX: We don't want the '^$' values at the beginning and end of
+        # the regex since we want to find the pattern anywhere in the
+        # message. Strip off here
+        value = search_filter.value.value[1:-1]
+        return [["match", ["message", f"'(?i){value}'"]], search_filter.operator, 1]
+    elif value == "":
+        operator = "=" if search_filter.operator == "=" else "!="
+        return [["equals", ["message", f"{value}"]], operator, 1]
+    else:
+        # https://clickhouse.yandex/docs/en/query_language/functions/string_search_functions/#position-haystack-needle
+        # positionCaseInsensitive returns 0 if not found and an index of 1 or more if found
+        # so we should flip the operator here
+        operator = "!=" if search_filter.operator in EQUALITY_OPERATORS else "="
+        if search_filter.is_in_filter:
+            # XXX: This `toString` usage is unnecessary, but we need it in place to
+            # trick the legacy Snuba language into not treating `message` as a
+            # function. Once we switch over to snql it can be removed.
+            return [
+                [
+                    "multiSearchFirstPositionCaseInsensitive",
+                    [["toString", ["message"]], ["array", [f"'{v}'" for v in value]]],
+                ],
+                operator,
+                0,
+            ]
+
+        # make message search case insensitive
+        return [["positionCaseInsensitive", ["message", f"'{value}'"]], operator, 0]
+
+
+def _transaction_status_filter_converter(
+    search_filter: SearchFilter,
+    name: str,
+    params: Optional[Mapping[str, Union[int, str, datetime]]],
+):
+    # Handle "has" queries
+    if search_filter.value.raw_value == "":
+        return [["isNull", [name]], search_filter.operator, 1]
+
+    if search_filter.is_in_filter:
+        internal_value = [
+            translate_transaction_status(val) for val in search_filter.value.raw_value
+        ]
+    else:
+        internal_value = translate_transaction_status(search_filter.value.raw_value)
+
+    return [name, search_filter.operator, internal_value]
+
+
+def _issue_id_filter_converter(
+    search_filter: SearchFilter,
+    name: str,
+    params: Optional[Mapping[str, Union[int, str, datetime]]],
+):
+    value = search_filter.value.value
+    # Handle "has" queries
+    if (
+        search_filter.value.raw_value == ""
+        or search_filter.is_in_filter
+        and [v for v in value if not v]
+    ):
+        # The state of having no issues is represented differently on transactions vs
+        # other events. On the transactions table, it is represented by 0 whereas it is
+        # represented by NULL everywhere else. We use coalesce here so we can treat this
+        # consistently
+        name = ["coalesce", [name, 0]]
+        if search_filter.is_in_filter:
+            value = [v if v else 0 for v in value]
+        else:
+            value = 0
+
+    # Skip isNull check on group_id value as we want to
+    # allow snuba's prewhere optimizer to find this condition.
+    return [name, search_filter.operator, value]
+
+
+def _user_display_filter_converter(
+    search_filter: SearchFilter,
+    name: str,
+    params: Optional[Mapping[str, Union[int, str, datetime]]],
+):
+    value = search_filter.value.value
+    user_display_expr = FIELD_ALIASES[USER_DISPLAY_ALIAS].get_expression(params)
+
+    # Handle 'has' condition
+    if search_filter.value.raw_value == "":
+        return [["isNull", [user_display_expr]], search_filter.operator, 1]
+    if search_filter.value.is_wildcard():
+        return [
+            ["match", [user_display_expr, f"'(?i){value}'"]],
+            search_filter.operator,
+            1,
+        ]
+    return [user_display_expr, search_filter.operator, value]
+
+
+def _error_unhandled_filter_converter(
+    search_filter: SearchFilter,
+    name: str,
+    params: Optional[Mapping[str, Union[int, str, datetime]]],
+):
+    value = search_filter.value.value
+    # This field is the inversion of error.handled, otherwise the logic is the same.
+    if search_filter.value.raw_value == "":
+        output = 0 if search_filter.operator == "!=" else 1
+        return [["isHandled", []], "=", output]
+    if value in ("1", 1):
+        return [["notHandled", []], "=", 1]
+    if value in ("0", 0):
+        return [["isHandled", []], "=", 1]
+    raise InvalidSearchQuery(
+        "Invalid value for error.unhandled condition. Accepted values are 1, 0"
+    )
+
+
+def _error_handled_filter_converter(
+    search_filter: SearchFilter,
+    name: str,
+    params: Optional[Mapping[str, Union[int, str, datetime]]],
+):
+    value = search_filter.value.value
+    # Treat has filter as equivalent to handled
+    if search_filter.value.raw_value == "":
+        output = 1 if search_filter.operator == "!=" else 0
+        return [["isHandled", []], "=", output]
+    # Null values and 1 are the same, and both indicate a handled error.
+    if value in ("1", 1):
+        return [["isHandled", []], "=", 1]
+    if value in ("0", 0):
+        return [["notHandled", []], "=", 1]
+    raise InvalidSearchQuery("Invalid value for error.handled condition. Accepted values are 1, 0")
+
+
+def _key_transaction_filter_converter(
+    search_filter: SearchFilter,
+    name: str,
+    params: Optional[Mapping[str, Union[int, str, datetime]]],
+):
+    value = search_filter.value.value
+    key_transaction_expr = FIELD_ALIASES[KEY_TRANSACTION_ALIAS].get_expression(params)
+
+    if search_filter.value.raw_value == "":
+        operator = "!=" if search_filter.operator == "!=" else "="
+        return [key_transaction_expr, operator, 0]
+    if value in ("1", 1):
+        return [key_transaction_expr, "=", 1]
+    if value in ("0", 0):
+        return [key_transaction_expr, "=", 0]
+    raise InvalidSearchQuery(
+        "Invalid value for key_transaction condition. Accepted values are 1, 0"
+    )
+
+
+def _team_key_transaction_filter_converter(
+    search_filter: SearchFilter,
+    name: str,
+    params: Optional[Mapping[str, Union[int, str, datetime]]],
+):
+    value = search_filter.value.value
+    key_transaction_expr = FIELD_ALIASES[TEAM_KEY_TRANSACTION_ALIAS].get_field(params)
+
+    if search_filter.value.raw_value == "":
+        operator = "!=" if search_filter.operator == "!=" else "="
+        return [key_transaction_expr, operator, 0]
+    if value in ("1", 1):
+        return [key_transaction_expr, "=", 1]
+    if value in ("0", 0):
+        return [key_transaction_expr, "=", 0]
+    raise InvalidSearchQuery(
+        "Invalid value for key_transaction condition. Accepted values are 1, 0"
+    )
+
+
+key_conversion_map: Mapping[
+    str,
+    Callable[[SearchFilter, str, Mapping[str, Union[int, str, datetime]]], Optional[Sequence[any]]],
+] = {
+    "environment": _environment_filter_converter,
+    "message": _message_filter_converter,
+    "transaction.status": _transaction_status_filter_converter,
+    "issue.id": _issue_id_filter_converter,
+    USER_DISPLAY_ALIAS: _user_display_filter_converter,
+    ERROR_UNHANDLED_ALIAS: _error_unhandled_filter_converter,
+    "error.handled": _error_handled_filter_converter,
+    KEY_TRANSACTION_ALIAS: _key_transaction_filter_converter,
+    TEAM_KEY_TRANSACTION_ALIAS: _team_key_transaction_filter_converter,
+}
+
+
+def convert_search_filter_to_snuba_query(
+    search_filter: SearchFilter,
+    key: Optional[str] = None,
+    params: Optional[Mapping[str, Union[int, str, datetime]]] = None,
+) -> Optional[Sequence[any]]:
     name = search_filter.key.name if key is None else key
     value = search_filter.value.value
 
@@ -123,53 +352,8 @@ def convert_search_filter_to_snuba_query(search_filter, key=None, params=None):
 
     if name in NO_CONVERSION_FIELDS:
         return
-    elif name == "environment":
-        # conditions added to env_conditions are OR'd
-        env_conditions = []
-
-        values = set(value if isinstance(value, (list, tuple)) else [value])
-        # the "no environment" environment is null in snuba
-        if "" in values:
-            values.remove("")
-            operator = "IS NULL" if search_filter.operator == "=" else "IS NOT NULL"
-            env_conditions.append(["environment", operator, None])
-        if len(values) == 1:
-            operator = "=" if search_filter.operator in EQUALITY_OPERATORS else "!="
-            env_conditions.append(["environment", operator, values.pop()])
-        elif values:
-            operator = "IN" if search_filter.operator in EQUALITY_OPERATORS else "NOT IN"
-            env_conditions.append(["environment", operator, values])
-        return env_conditions
-    elif name == "message":
-        if search_filter.value.is_wildcard():
-            # XXX: We don't want the '^$' values at the beginning and end of
-            # the regex since we want to find the pattern anywhere in the
-            # message. Strip off here
-            value = search_filter.value.value[1:-1]
-            return [["match", ["message", f"'(?i){value}'"]], search_filter.operator, 1]
-        elif value == "":
-            operator = "=" if search_filter.operator == "=" else "!="
-            return [["equals", ["message", f"{value}"]], operator, 1]
-        else:
-            # https://clickhouse.yandex/docs/en/query_language/functions/string_search_functions/#position-haystack-needle
-            # positionCaseInsensitive returns 0 if not found and an index of 1 or more if found
-            # so we should flip the operator here
-            operator = "!=" if search_filter.operator in EQUALITY_OPERATORS else "="
-            if search_filter.is_in_filter:
-                # XXX: This `toString` usage is unnecessary, but we need it in place to
-                # trick the legacy Snuba language into not treating `message` as a
-                # function. Once we switch over to snql it can be removed.
-                return [
-                    [
-                        "multiSearchFirstPositionCaseInsensitive",
-                        [["toString", ["message"]], ["array", [f"'{v}'" for v in value]]],
-                    ],
-                    operator,
-                    0,
-                ]
-
-            # make message search case insensitive
-            return [["positionCaseInsensitive", ["message", f"'{value}'"]], operator, 0]
+    elif name in key_conversion_map:
+        return key_conversion_map[name](search_filter, name, params)
     elif name in ARRAY_FIELDS and search_filter.value.is_wildcard():
         # Escape and convert meta characters for LIKE expressions.
         raw_value = search_filter.value.raw_value
@@ -186,93 +370,6 @@ def convert_search_filter_to_snuba_query(search_filter, key=None, params=None):
             operator,
             1,
         ]
-    elif name == "transaction.status":
-        # Handle "has" queries
-        if search_filter.value.raw_value == "":
-            return [["isNull", [name]], search_filter.operator, 1]
-
-        if search_filter.is_in_filter:
-            internal_value = [
-                translate_transaction_status(val) for val in search_filter.value.raw_value
-            ]
-        else:
-            internal_value = translate_transaction_status(search_filter.value.raw_value)
-
-        return [name, search_filter.operator, internal_value]
-    elif name == "issue.id":
-        # Handle "has" queries
-        if (
-            search_filter.value.raw_value == ""
-            or search_filter.is_in_filter
-            and [v for v in value if not v]
-        ):
-            # The state of having no issues is represented differently on transactions vs
-            # other events. On the transactions table, it is represented by 0 whereas it is
-            # represented by NULL everywhere else. We use coalesce here so we can treat this
-            # consistently
-            name = ["coalesce", [name, 0]]
-            if search_filter.is_in_filter:
-                value = [v if v else 0 for v in value]
-            else:
-                value = 0
-
-        # Skip isNull check on group_id value as we want to
-        # allow snuba's prewhere optimizer to find this condition.
-        return [name, search_filter.operator, value]
-    elif name == USER_DISPLAY_ALIAS:
-        user_display_expr = FIELD_ALIASES[USER_DISPLAY_ALIAS].get_expression(params)
-
-        # Handle 'has' condition
-        if search_filter.value.raw_value == "":
-            return [["isNull", [user_display_expr]], search_filter.operator, 1]
-        if search_filter.value.is_wildcard():
-            return [
-                ["match", [user_display_expr, f"'(?i){value}'"]],
-                search_filter.operator,
-                1,
-            ]
-        return [user_display_expr, search_filter.operator, value]
-    elif name == ERROR_UNHANDLED_ALIAS:
-        # This field is the inversion of error.handled, otherwise the logic is the same.
-        if search_filter.value.raw_value == "":
-            output = 0 if search_filter.operator == "!=" else 1
-            return [["isHandled", []], "=", output]
-        if value in ("1", 1):
-            return [["notHandled", []], "=", 1]
-        if value in ("0", 0):
-            return [["isHandled", []], "=", 1]
-        raise InvalidSearchQuery(
-            "Invalid value for error.unhandled condition. Accepted values are 1, 0"
-        )
-    elif name == "error.handled":
-        # Treat has filter as equivalent to handled
-        if search_filter.value.raw_value == "":
-            output = 1 if search_filter.operator == "!=" else 0
-            return [["isHandled", []], "=", output]
-        # Null values and 1 are the same, and both indicate a handled error.
-        if value in ("1", 1):
-            return [["isHandled", []], "=", 1]
-        if value in (
-            "0",
-            0,
-        ):
-            return [["notHandled", []], "=", 1]
-        raise InvalidSearchQuery(
-            "Invalid value for error.handled condition. Accepted values are 1, 0"
-        )
-    elif name == KEY_TRANSACTION_ALIAS:
-        key_transaction_expr = FIELD_ALIASES[KEY_TRANSACTION_ALIAS].get_expression(params)
-
-        if search_filter.value.raw_value == "":
-            operator = "!=" if search_filter.operator == "!=" else "="
-            return [key_transaction_expr, operator, 0]
-        if value in ("1", 1):
-            return [key_transaction_expr, "=", 1]
-        if value in ("0", 0):
-            return [key_transaction_expr, "=", 0]
-        raise InvalidSearchQuery(
-            "Invalid value for key_transaction condition. Accepted values are 1, 0"
-        )
     elif name in ARRAY_FIELDS and search_filter.value.raw_value == "":
         return [["notEmpty", [name]], "=", 1 if search_filter.operator == "!=" else 0]
     else:
@@ -499,6 +596,7 @@ def get_filter(query=None, params=None):
         "having": [],
         "user_id": None,
         "organization_id": None,
+        "team_id": [],
         "project_ids": [],
         "group_ids": [],
         "condition_aggregates": [],
@@ -556,11 +654,13 @@ def get_filter(query=None, params=None):
     if params:
         for key in ("start", "end"):
             kwargs[key] = params.get(key, None)
-        # OrganizationEndpoint.get_filter() uses project_id, but eventstore.Filter uses project_ids
         if "user_id" in params:
             kwargs["user_id"] = params["user_id"]
         if "organization_id" in params:
             kwargs["organization_id"] = params["organization_id"]
+        if "team_id" in params:
+            kwargs["team_id"] = params["team_id"]
+        # OrganizationEndpoint.get_filter() uses project_id, but eventstore.Filter uses project_ids
         if "project_id" in params:
             if projects_to_filter:
                 kwargs["project_ids"] = projects_to_filter
@@ -629,7 +729,7 @@ def format_search_filter(term, params):
             except Exception:
                 raise InvalidSearchQuery(f"Invalid value '{group_short_ids}' for 'issue:' filter")
             else:
-                filter_values.extend(sorted([g.id for g in groups]))
+                filter_values.extend(sorted(g.id for g in groups))
 
         term = SearchFilter(
             SearchKey("issue.id"),
@@ -668,3 +768,139 @@ def format_search_filter(term, params):
             conditions.append(converted_filter)
 
     return conditions, projects_to_filter, group_ids
+
+
+class QueryFilter(QueryBase):
+    """Filter logic for a snql query"""
+
+    def resolve_where(self, query: str) -> None:
+        try:
+            parsed_terms = parse_search_query(query, allow_boolean=True, params=self.params)
+        except ParseError as e:
+            raise InvalidSearchQuery(f"Parse error: {e.expr.name} (column {e.column():d})")
+
+        for term in parsed_terms:
+            if isinstance(term, SearchFilter):
+                conditions = self.format_search_filter(term)
+                if conditions:
+                    self.where.append(conditions)
+
+    def resolve_params(self) -> None:
+        """Keys included as url params take precedent if same key is included in search
+        They are also considered safe and to have had access rules applied unlike conditions
+        from the query string.
+        """
+        # start/end are required so that we can run a query in a reasonable amount of time
+        if "start" not in self.params or "end" not in self.params:
+            raise InvalidSearchQuery("Cannot query without a valid date range")
+        start, end = self.params["start"], self.params["end"]
+
+        # TODO: this validation should be done when we create the params dataclass instead
+        assert isinstance(start, datetime) and isinstance(
+            end, datetime
+        ), "Both start and end params must be datetime objects"
+        assert all(
+            isinstance(project_id, int) for project_id in self.params.get("project_id", [])
+        ), "All project id params must be ints"
+
+        self.where.append(Condition(self.column("timestamp"), Op.GTE, start))
+        self.where.append(Condition(self.column("timestamp"), Op.LT, end))
+
+        if "project_id" in self.params:
+            self.where.append(
+                Condition(
+                    self.column("project_id"),
+                    Op.IN,
+                    self.params["project_id"],
+                )
+            )
+
+        if "environment" in self.params:
+            term = SearchFilter(
+                SearchKey("environment"), "=", SearchValue(self.params["environment"])
+            )
+            condition = self._environment_filter_converter(term, "environment")
+            if condition:
+                self.where.append(condition)
+
+    def _environment_filter_converter(
+        self,
+        search_filter: SearchFilter,
+        _: str,
+    ) -> WhereType:
+        # conditions added to env_conditions can be OR'ed
+        env_conditions = []
+        value = search_filter.value.value
+        values = set(value if isinstance(value, (list, tuple)) else [value])
+        # sorted for consistency
+        values = sorted(f"{value}" for value in values)
+        environment = self.column("environment")
+        # the "no environment" environment is null in snuba
+        if "" in values:
+            values.remove("")
+            operator = Op.IS_NULL if search_filter.operator == "=" else Op.IS_NOT_NULL
+            env_conditions.append(Condition(environment, operator))
+        if len(values) == 1:
+            operator = Op.EQ if search_filter.operator in EQUALITY_OPERATORS else Op.NEQ
+            env_conditions.append(Condition(environment, operator, values.pop()))
+        elif values:
+            operator = Op.IN if search_filter.operator in EQUALITY_OPERATORS else Op.NOT_IN
+            env_conditions.append(Condition(environment, operator, values))
+        if len(env_conditions) > 1:
+            return Or(conditions=env_conditions)
+        else:
+            return env_conditions[0]
+
+    def format_search_filter(self, term: SearchFilter) -> Optional[WhereType]:
+        """For now this function seems a bit redundant inside QueryFilter but
+        most of the logic from hte existing format_search_filter hasn't been
+        converted over yet
+        """
+        converted_filter = self.convert_search_filter_to_condition(term)
+        if converted_filter:
+            return converted_filter
+        else:
+            return None
+
+    def convert_search_filter_to_condition(
+        self,
+        search_filter: SearchFilter,
+    ) -> Optional[WhereType]:
+        key_conversion_map: Mapping[str, Callable[[SearchFilter, str], WhereType]] = {
+            "environment": self._environment_filter_converter,
+        }
+        name = search_filter.key.name
+        value = search_filter.value.value
+
+        # We want to use group_id elsewhere so shouldn't be removed from the dataset
+        # but if a user has a tag with the same name we want to make sure that works
+        if name == "group_id":
+            name = f"tags[{name}]"
+
+        if name in NO_CONVERSION_FIELDS:
+            return
+        elif name in key_conversion_map:
+            return key_conversion_map[name](search_filter, name)
+        elif name in self.field_allowlist:
+            lhs = self.column(name)
+
+            # Handle checks for existence
+            if search_filter.operator in ("=", "!=") and search_filter.value.value == "":
+                if search_filter.key.is_tag:
+                    return Condition(lhs, Op(search_filter.operator), value)
+                else:
+                    # If not a tag, we can just check that the column is null.
+                    return Condition(Function("ifNull", [lhs]), Op(search_filter.operator), 1)
+
+            if search_filter.value.is_wildcard():
+                condition = Condition(
+                    Function("match", [lhs, f"'(?i){value}'"]),
+                    Op(search_filter.operator),
+                    1,
+                )
+            else:
+                condition = Condition(lhs, Op(search_filter.operator), value)
+
+            return condition
+        else:
+            raise NotImplementedError(f"{name} not implemented in snql filter parsing yet")

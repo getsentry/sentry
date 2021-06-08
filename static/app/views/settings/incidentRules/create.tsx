@@ -50,12 +50,11 @@ class IncidentRulesCreate extends Component<Props> {
       ? createRuleFromWizardTemplate(wizardTemplate)
       : createDefaultRule();
 
-    const userTeamIdArr = teams.filter(({isMember}) => isMember).map(({id}) => id);
-    const userTeamIds = new Set(userTeamIdArr);
+    const userTeamIds = teams.filter(({isMember}) => isMember).map(({id}) => id);
 
     if (props.organization.features.includes('team-alerts-ownership')) {
       const projectTeamIds = new Set(project.teams.map(({id}) => id));
-      const defaultOwnerId = userTeamIdArr.find(id => projectTeamIds.has(id)) ?? null;
+      const defaultOwnerId = userTeamIds.find(id => projectTeamIds.has(id)) ?? null;
       defaultRule.owner = defaultOwnerId && `team:${defaultOwnerId}`;
     }
 

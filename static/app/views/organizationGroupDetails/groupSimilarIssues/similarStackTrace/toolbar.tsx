@@ -15,14 +15,14 @@ type Props = {
   v2: boolean;
 };
 
-const inititalState = {
+const initialState = {
   mergeCount: 0,
 };
 
-type State = typeof inititalState;
+type State = typeof initialState;
 
 class SimilarToolbar extends Component<Props, State> {
-  state: State = inititalState;
+  state: State = initialState;
 
   componentWillUnmount() {
     callIfFunction(this.listener);

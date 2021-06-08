@@ -4,7 +4,7 @@ import AreaChart from 'app/components/charts/areaChart';
 
 type AreaChartProps = React.ComponentProps<typeof AreaChart>;
 
-type Props = Omit<AreaChartProps, 'stacked' | 'tooltip' | 'ref'>;
+type Props = Omit<AreaChartProps, 'stacked' | 'ref'>;
 
 class StackedAreaChart extends React.Component<Props> {
   render() {

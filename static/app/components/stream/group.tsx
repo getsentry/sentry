@@ -1,5 +1,5 @@
 import * as React from 'react';
-import {css} from '@emotion/react';
+import {css, Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
@@ -37,11 +37,17 @@ import {defined, percent, valueIsEqual} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import EventView from 'app/utils/discover/eventView';
+import {formatPercentage} from 'app/utils/formatters';
 import {queryToObj} from 'app/utils/stream';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import {TimePeriodType} from 'app/views/alerts/rules/details/constants';
-import {getTabs, isForReviewQuery, Query} from 'app/views/issueList/utils';
+import {
+  getTabs,
+  isForReviewQuery,
+  IssueDisplayOptions,
+  Query,
+} from 'app/views/issueList/utils';
 
 const DiscoveryExclusionFields: string[] = [
   'query',
@@ -59,6 +65,7 @@ const DiscoveryExclusionFields: string[] = [
 ];
 
 export const DEFAULT_STREAM_GROUP_STATS_PERIOD = '24h';
+const DEFAULT_DISPLAY = IssueDisplayOptions.EVENTS;
 
 const defaultProps = {
   statsPeriod: DEFAULT_STREAM_GROUP_STATS_PERIOD,
@@ -66,6 +73,7 @@ const defaultProps = {
   withChart: true,
   useFilteredStats: false,
   useTintRow: true,
+  display: DEFAULT_DISPLAY,
 };
 
 type Props = {
@@ -79,6 +87,7 @@ type Props = {
   showInboxTime?: boolean;
   index?: number;
   customStatsPeriod?: TimePeriodType;
+  display?: IssueDisplayOptions;
   // TODO(ts): higher order functions break defaultprops export types
 } & Partial<typeof defaultProps>;
 
@@ -349,6 +358,7 @@ class StreamGroup extends React.Component<Props, State> {
       useFilteredStats,
       useTintRow,
       customStatsPeriod,
+      display,
     } = this.props;
 
     const {period, start, end} = selection.datetime || {};
@@ -372,6 +382,18 @@ class StreamGroup extends React.Component<Props, State> {
 
     const hasInbox = organization.features.includes('inbox');
     const unresolved = data.status === 'unresolved' ? true : false;
+
+    const showSessions = display === IssueDisplayOptions.SESSIONS;
+    // calculate a percentage count based on session data if the user has selected sessions display
+    const primaryPercent =
+      showSessions &&
+      data.sessionCount &&
+      formatPercentage(Number(primaryCount) / Number(data.sessionCount));
+    const secondaryPercent =
+      showSessions &&
+      data.sessionCount &&
+      secondaryCount &&
+      formatPercentage(Number(secondaryCount) / Number(data.sessionCount));
 
     return (
       <Wrapper
@@ -443,10 +465,18 @@ class StreamGroup extends React.Component<Props, State> {
                         >
                           <span {...getActorProps({})}>
                             <div className="dropdown-actor-title">
-                              <PrimaryCount value={primaryCount} />
-                              {secondaryCount !== undefined && useFilteredStats && (
-                                <SecondaryCount value={secondaryCount} />
+                              {primaryPercent ? (
+                                <PrimaryPercent>{primaryPercent}</PrimaryPercent>
+                              ) : (
+                                <PrimaryCount value={primaryCount} />
                               )}
+                              {secondaryCount !== undefined &&
+                                useFilteredStats &&
+                                (secondaryPercent ? (
+                                  <SecondaryPercent>{secondaryPercent}</SecondaryPercent>
+                                ) : (
+                                  <SecondaryCount value={secondaryCount} />
+                                ))}
                             </div>
                           </span>
                           {useFilteredStats && (
@@ -459,7 +489,11 @@ class StreamGroup extends React.Component<Props, State> {
                                     <MenuItemText>
                                       {t('Matching search filters')}
                                     </MenuItemText>
-                                    <MenuItemCount value={data.filtered.count} />
+                                    {primaryPercent ? (
+                                      <MenuItemPercent>{primaryPercent}</MenuItemPercent>
+                                    ) : (
+                                      <MenuItemCount value={data.filtered.count} />
+                                    )}
                                   </StyledMenuItem>
                                   <MenuItem divider />
                                 </React.Fragment>
@@ -467,7 +501,11 @@ class StreamGroup extends React.Component<Props, State> {
 
                               <StyledMenuItem to={this.getDiscoverUrl()}>
                                 <MenuItemText>{t(`Total in ${summary}`)}</MenuItemText>
-                                <MenuItemCount value={data.count} />
+                                {secondaryPercent ? (
+                                  <MenuItemPercent>{secondaryPercent}</MenuItemPercent>
+                                ) : (
+                                  <MenuItemCount value={secondaryPercent || data.count} />
+                                )}
                               </StyledMenuItem>
 
                               {data.lifetime && (
@@ -641,19 +679,35 @@ const GroupCheckBoxWrapper = styled('div')`
   }
 `;
 
-const PrimaryCount = styled(Count)`
-  font-size: ${p => p.theme.fontSizeLarge};
+const primaryStatStyle = (theme: Theme) => css`
+  font-size: ${theme.fontSizeLarge};
 `;
 
-const SecondaryCount = styled(({value, ...p}) => <Count {...p} value={value} />)`
-  font-size: ${p => p.theme.fontSizeLarge};
+const PrimaryCount = styled(Count)`
+  ${p => primaryStatStyle(p.theme)};
+`;
+
+const PrimaryPercent = styled('div')`
+  ${p => primaryStatStyle(p.theme)};
+`;
+
+const secondaryStatStyle = (theme: Theme) => css`
+  font-size: ${theme.fontSizeLarge};
 
   :before {
     content: '/';
     padding-left: ${space(0.25)};
     padding-right: 2px;
-    color: ${p => p.theme.gray300};
+    color: ${theme.gray300};
   }
+`;
+
+const SecondaryCount = styled(({value, ...p}) => <Count {...p} value={value} />)`
+  ${p => secondaryStatStyle(p.theme)}
+`;
+
+const SecondaryPercent = styled('div')`
+  ${p => secondaryStatStyle(p.theme)}
 `;
 
 const StyledDropdownList = styled('ul')`
@@ -684,14 +738,22 @@ const StyledMenuItem = styled(({to, children, ...p}: MenuItemProps) => (
   justify-content: space-between;
 `;
 
+const menuItemStatStyles = css`
+  text-align: right;
+  font-weight: bold;
+  padding-left: ${space(1)};
+`;
+
 const MenuItemCount = styled(({value, ...p}) => (
   <div {...p}>
     <Count value={value} />
   </div>
 ))`
-  text-align: right;
-  font-weight: bold;
-  padding-left: ${space(1)};
+  ${menuItemStatStyles};
+`;
+
+const MenuItemPercent = styled('div')`
+  ${menuItemStatStyles};
 `;
 
 const MenuItemText = styled('div')`

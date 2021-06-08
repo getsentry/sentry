@@ -1,6 +1,4 @@
 import * as React from 'react';
-import createReactClass from 'create-react-class';
-import Reflux from 'reflux';
 
 import HookStore from 'app/stores/hookStore';
 import {HookName, Hooks} from 'app/types/hooks';
@@ -17,6 +15,10 @@ type Props<H extends HookName> = {
   children?: (opts: {hooks: Array<Hooks[H]>}) => React.ReactNode;
 } & Omit<Parameters<Hooks[H]>[0], 'name'>;
 
+type HookState<H extends HookName> = {
+  hooks: Array<Hooks[H]>;
+};
+
 /**
  * Instead of accessing the HookStore directly, use this.
  *
@@ -32,13 +34,16 @@ type Props<H extends HookName> = {
  *   </Hook>
  */
 function Hook<H extends HookName>({name, ...props}: Props<H>) {
-  const HookComponent = createReactClass({
-    displayName: `Hook(${name})`,
-    mixins: [Reflux.listenTo(HookStore, 'handleHooks') as any],
+  class HookComponent extends React.Component<{}, HookState<H>> {
+    static displayName = `Hook(${name})`;
 
-    getInitialState() {
-      return {hooks: HookStore.get(name).map(cb => cb(props))};
-    },
+    state = {
+      hooks: HookStore.get(name).map(cb => cb(props)),
+    };
+
+    componentWillUnmount() {
+      this.unsubscribe();
+    }
 
     handleHooks(hookName: HookName, hooks: Array<Hooks[H]>) {
       // Make sure that the incoming hook update matches this component's hook name
@@ -47,7 +52,12 @@ function Hook<H extends HookName>({name, ...props}: Props<H>) {
       }
 
       this.setState({hooks: hooks.map(cb => cb(props))});
-    },
+    }
+
+    unsubscribe = HookStore.listen(
+      (hookName: HookName, hooks: Array<Hooks[H]>) => this.handleHooks(hookName, hooks),
+      undefined
+    );
 
     render() {
       const {children} = props;
@@ -61,8 +71,8 @@ function Hook<H extends HookName>({name, ...props}: Props<H>) {
       }
 
       return this.state.hooks;
-    },
-  });
+    }
+  }
 
   return <HookComponent />;
 }

@@ -43,6 +43,10 @@ module.exports = ({config} = {config: emptyConfig}) => {
           use: ['style-loader', 'css-loader', 'less-loader'],
         },
         {
+          test: /\.pegjs/,
+          use: {loader: 'pegjs-loader'},
+        },
+        {
           test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg)($|\?)/,
           use: [
             {

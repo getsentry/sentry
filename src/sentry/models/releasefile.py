@@ -1,5 +1,10 @@
 import errno
+import logging
 import os
+import warnings
+import zipfile
+from tempfile import TemporaryDirectory
+from typing import IO, Tuple
 from urllib.parse import urlsplit, urlunsplit
 
 from django.core.files.base import File as FileObj
@@ -8,8 +13,11 @@ from django.db import models
 from sentry import options
 from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
 from sentry.models import clear_cached_files
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 from sentry.utils.hashlib import sha1_text
+from sentry.utils.zip import safe_extract_zip
+
+logger = logging.getLogger(__name__)
 
 
 class ReleaseFile(Model):
@@ -118,3 +126,96 @@ class ReleaseFileCache:
 
 
 ReleaseFile.cache = ReleaseFileCache()
+
+
+class ReleaseArchive:
+    """Read-only view of uploaded ZIP-archive of release files"""
+
+    def __init__(self, fileobj: IO):
+        self._fileobj = fileobj
+        self._zip_file = zipfile.ZipFile(self._fileobj)
+        self.manifest = self._read_manifest()
+        files = self.manifest.get("files", {})
+
+        self._entries_by_url = {entry["url"]: (path, entry) for path, entry in files.items()}
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc, value, tb):
+        self._zip_file.close()
+        self._fileobj.close()
+
+    def info(self, filename: str) -> zipfile.ZipInfo:
+        return self._zip_file.getinfo(filename)
+
+    def read(self, filename: str) -> bytes:
+        return self._zip_file.read(filename)
+
+    def _read_manifest(self) -> dict:
+        manifest_bytes = self.read("manifest.json")
+        return json.loads(manifest_bytes.decode("utf-8"))
+
+    def get_file_by_url(self, url: str) -> Tuple[IO, dict]:
+        """Return file-like object and headers.
+
+        The caller is responsible for closing the returned stream.
+
+        May raise ``KeyError``
+        """
+        filename, entry = self._entries_by_url[url]
+        return self._zip_file.open(filename), entry.get("headers", {})
+
+    def extract(self) -> TemporaryDirectory:
+        """Extract contents to a temporary directory.
+
+        The caller is responsible for cleanup of the temporary files.
+        """
+        temp_dir = TemporaryDirectory()
+        safe_extract_zip(self._fileobj, temp_dir.name, strip_toplevel=False)
+
+        return temp_dir
+
+
+def merge_release_archives(file1: IO, archive2: ReleaseArchive, target: IO) -> bool:
+    """Append contents of archive2 to copy of file1
+
+    Skip files that are already present in archive 1.
+
+    :returns: True if zip archive was written to target
+    """
+    with ReleaseArchive(file1) as archive1:
+        manifest = archive1.manifest
+
+        files = manifest.get("files", {})
+        files2 = archive2.manifest.get("files", {})
+
+        if any(
+            archive1.info(filename).CRC != archive2.info(filename).CRC
+            for filename in files.keys() & files2.keys()
+        ):
+            metrics.incr("release_file.archive.different_content")
+
+        new_files = files2.keys() - files.keys()
+        if not new_files:
+            # Nothing to merge
+            return False
+
+        # Create a copy
+        file1.seek(0)
+        target.write(file1.read())
+
+    with zipfile.ZipFile(target, mode="a", compression=zipfile.ZIP_DEFLATED) as zip_file:
+        for filename in new_files:
+            zip_file.writestr(filename, archive2.read(filename))
+            files[filename] = files2[filename]
+
+        manifest["files"] = files
+
+        # This creates a duplicate entry for the manifest, which is okay-ish
+        # because the Python implementation prefers the latest version when reading
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            zip_file.writestr("manifest.json", json.dumps(manifest))
+
+    return True

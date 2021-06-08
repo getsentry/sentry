@@ -1,6 +1,7 @@
 import re
 from collections import namedtuple
 from datetime import datetime
+from typing import NamedTuple, Sequence, Union
 
 from django.utils.functional import cached_property
 from parsimonious.exceptions import IncompleteParseError
@@ -8,7 +9,12 @@ from parsimonious.expressions import Optional
 from parsimonious.grammar import Grammar, NodeVisitor
 from parsimonious.nodes import Node, RegexNode
 
-from sentry.search.events.constants import KEY_TRANSACTION_ALIAS, SEARCH_MAP, TAG_KEY_RE
+from sentry.search.events.constants import (
+    KEY_TRANSACTION_ALIAS,
+    SEARCH_MAP,
+    TAG_KEY_RE,
+    TEAM_KEY_TRANSACTION_ALIAS,
+)
 from sentry.search.events.fields import FIELD_ALIASES, FUNCTIONS, InvalidSearchQuery, resolve_field
 from sentry.search.utils import (
     InvalidQuery,
@@ -36,84 +42,93 @@ NEGATION_MAP = {
 
 event_search_grammar = Grammar(
     r"""
-search = (boolean_operator / paren_term / search_term)*
+search = spaces term*
 
-boolean_operator = spaces (or_operator / and_operator) spaces
-paren_term       = spaces open_paren spaces (paren_term / boolean_operator / search_term)+ spaces closed_paren spaces
-search_term      = key_val_term / free_text_quoted / free_text
+term = (boolean_operator / paren_group / filter / free_text) spaces
 
-free_text        = (!key_val_term ~r"\ *(?!(?i)OR(?![^\s]))(?!(?i)AND(?![^\s]))([^\ ^\n ()]+)\ *" )*
-free_text_quoted = spaces quoted_value spaces
+boolean_operator = or_operator / and_operator
+
+paren_group = open_paren spaces term+ closed_paren
+
+free_text          = free_text_quoted / free_text_unquoted
+free_text_unquoted = (!filter !boolean_operator (free_parens / ~r"[^()\n ]+") spaces)+
+free_text_quoted   = quoted_value
+free_parens        = open_paren free_text? closed_paren
 
 # All key:value filter types
-key_val_term   = spaces key_val_filter spaces
-key_val_filter = time_filter
-               / rel_time_filter
-               / specific_time_filter
-               / duration_filter
-               / boolean_filter
-               / numeric_in_filter
-               / numeric_filter
-               / aggregate_filter
-               / aggregate_date_filter
-               / aggregate_rel_date_filter
-               / has_filter
-               / is_filter
-               / text_in_filter
-               / text_filter
-
-# standard key:val filter
-text_filter = negation? text_key sep search_value
-
-# in filter key:[val1, val2]
-text_in_filter = negation? text_key sep text_in_list
+filter = date_filter
+       / specific_date_filter
+       / rel_date_filter
+       / duration_filter
+       / boolean_filter
+       / numeric_in_filter
+       / numeric_filter
+       / aggregate_filter
+       / aggregate_date_filter
+       / aggregate_rel_date_filter
+       / has_filter
+       / is_filter
+       / text_in_filter
+       / text_filter
 
 # filter for dates
-time_filter = search_key sep operator iso_8601_date_format
+date_filter = search_key sep operator iso_8601_date_format
+
+# exact date filter for dates
+specific_date_filter = search_key sep iso_8601_date_format
 
 # filter for relative dates
-rel_time_filter = search_key sep rel_date_format
+rel_date_filter = search_key sep rel_date_format
 
 # filter for durations
 duration_filter = search_key sep operator? duration_format
 
-# exact time filter for dates
-specific_time_filter = search_key sep iso_8601_date_format
-
-# numeric comparison filter
-numeric_filter = search_key sep operator? numeric_value
+# boolean comparison filter
+boolean_filter = negation? search_key sep boolean_value
 
 # numeric in filter
 numeric_in_filter = search_key sep numeric_in_list
 
-# boolean comparison filter
-boolean_filter = negation? search_key sep boolean_value
+# numeric comparison filter
+numeric_filter = search_key sep operator? numeric_value
 
 # aggregate numeric filter
-aggregate_filter          = negation? aggregate_key sep operator? (duration_format / numeric_value / percentage_format)
-aggregate_date_filter     = negation? aggregate_key sep operator? iso_8601_date_format
+aggregate_filter = negation? aggregate_key sep operator? (duration_format / numeric_value / percentage_format)
+
+# aggregate for dates
+aggregate_date_filter = negation? aggregate_key sep operator? iso_8601_date_format
+
+# aggregate for relative dates
 aggregate_rel_date_filter = negation? aggregate_key sep operator? rel_date_format
 
 # has filter for not null type checks
 has_filter = negation? "has" sep (search_key / search_value)
+
+# is filter. Specific to issue search
 is_filter  = negation? "is" sep search_value
 
-aggregate_key    = key open_paren spaces function_args? spaces closed_paren
-search_key       = key / quoted_key
-search_value     = quoted_value / value
-value            = ~r"[^()\s]*"
-in_value         = ~r"[^(),\s]*(?:[^\],\s)]|](?=]))"
-numeric_value    = ~r"([-]?[0-9\.]+)([kmb])?(?=\s|\)|$|,|])"
-boolean_value    = ~r"(true|1|false|0)(?=\s|\)|$)"i
+# in filter key:[val1, val2]
+text_in_filter = negation? text_key sep text_in_list
+
+# standard key:val filter
+text_filter = negation? text_key sep search_value
+
 key              = ~r"[a-zA-Z0-9_\.-]+"
-function_args    = key (spaces comma spaces key)*
 quoted_key       = ~r"\"([a-zA-Z0-9_\.:-]+)\""
 explicit_tag_key = "tags" open_bracket search_key closed_bracket
+aggregate_key    = key open_paren spaces function_args? spaces closed_paren
+function_args    = key (spaces comma spaces key)*
+search_key       = key / quoted_key
 text_key         = explicit_tag_key / search_key
-text_value       = quoted_value / in_value
+value            = ~r"[^()\s]*"
 quoted_value     = ~r"\"((?:\\\"|[^\"])*)?\""s
-numeric_in_list  = open_bracket numeric_value (spaces comma spaces numeric_value)* closed_bracket
+in_value         = ~r"[^(),\s]*(?:[^\],\s)]|](?=]))"
+text_value       = quoted_value / in_value
+search_value     = quoted_value / value
+numeric_value    = ~r"([-]?[0-9\.]+)([kmb])?(?=\s|\)|$|,|])"
+boolean_value    = ~r"(true|1|false|0)(?=\s|\)|$)"i
 text_in_list     = open_bracket text_value (spaces comma spaces text_value)* closed_bracket
+numeric_in_list  = open_bracket numeric_value (spaces comma spaces numeric_value)* closed_bracket
 
 # Formats
 iso_8601_date_format = ~r"(\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{1,6})?)?(Z|([+-]\d{2}:\d{2}))?)(?=\s|\)|$)"
@@ -138,7 +153,7 @@ spaces               = " "*
 )
 
 
-def translate(pat):
+def translate(pat) -> str:
     """Translate a shell PATTERN to a regular expression.
     modified from: https://github.com/python/cpython/blob/2.7/Lib/fnmatch.py#L85
     """
@@ -176,12 +191,61 @@ class ParenExpression(namedtuple("ParenExpression", "children")):
     pass
 
 
-class SearchFilter(namedtuple("SearchFilter", "key operator value")):
+class SearchKey(NamedTuple):
+    name: str
+
+    @property
+    def is_tag(self) -> bool:
+        return TAG_KEY_RE.match(self.name) or (
+            self.name not in SEARCH_MAP
+            and self.name not in FIELD_ALIASES
+            and not self.is_measurement
+            and not self.is_span_op_breakdown
+        )
+
+    @property
+    def is_measurement(self) -> bool:
+        return is_measurement(self.name) and self.name not in SEARCH_MAP
+
+    @property
+    def is_span_op_breakdown(self) -> bool:
+        return is_span_op_breakdown(self.name) and self.name not in SEARCH_MAP
+
+
+class SearchValue(NamedTuple):
+    raw_value: Union[str, int, datetime, Sequence[int], Sequence[str]]
+
+    @property
+    def value(self):
+        if self.is_wildcard():
+            return translate(self.raw_value)
+        return self.raw_value
+
+    def is_wildcard(self) -> bool:
+        if not isinstance(self.raw_value, str):
+            return False
+        return bool(WILDCARD_CHARS.search(self.raw_value))
+
+    def is_event_id(self) -> bool:
+        """Return whether the current value is a valid event id
+
+        Empty strings are valid, so that it can be used for has:id queries
+        """
+        if not isinstance(self.raw_value, str):
+            return False
+        return is_event_id(self.raw_value) or self.raw_value == ""
+
+
+class SearchFilter(NamedTuple):
+    key: SearchKey
+    operator: str
+    value: SearchValue
+
     def __str__(self):
         return "".join(map(str, (self.key.name, self.operator, self.value.raw_value)))
 
-    @cached_property
-    def is_negation(self):
+    @property
+    def is_negation(self) -> bool:
         # Negations are mostly just using != operators. But we also have
         # negations on has: filters, which translate to = '', so handle that
         # case as well.
@@ -194,59 +258,22 @@ class SearchFilter(namedtuple("SearchFilter", "key operator value")):
             and self.value.raw_value
         )
 
-    @cached_property
-    def is_in_filter(self):
+    @property
+    def is_in_filter(self) -> bool:
         return self.operator in ("IN", "NOT IN")
 
 
-class SearchKey(namedtuple("SearchKey", "name")):
-    @cached_property
-    def is_tag(self):
-        return TAG_KEY_RE.match(self.name) or (
-            self.name not in SEARCH_MAP
-            and self.name not in FIELD_ALIASES
-            and not self.is_measurement
-            and not self.is_span_op_breakdown
-        )
+class AggregateFilter(NamedTuple):
+    key: SearchKey
+    operator: str
+    value: SearchValue
 
-    @cached_property
-    def is_measurement(self):
-        return is_measurement(self.name) and self.name not in SEARCH_MAP
-
-    @cached_property
-    def is_span_op_breakdown(self):
-        return is_span_op_breakdown(self.name) and self.name not in SEARCH_MAP
-
-
-class AggregateFilter(namedtuple("AggregateFilter", "key operator value")):
     def __str__(self):
         return "".join(map(str, (self.key.name, self.operator, self.value.raw_value)))
 
 
-class AggregateKey(namedtuple("AggregateKey", "name")):
-    pass
-
-
-class SearchValue(namedtuple("SearchValue", "raw_value")):
-    @property
-    def value(self):
-        if self.is_wildcard():
-            return translate(self.raw_value)
-        return self.raw_value
-
-    def is_wildcard(self):
-        if not isinstance(self.raw_value, str):
-            return False
-        return bool(WILDCARD_CHARS.search(self.raw_value))
-
-    def is_event_id(self):
-        """Return whether the current value is a valid event id
-
-        Empty strings are valid, so that it can be used for has:id queries
-        """
-        if not isinstance(self.raw_value, str):
-            return False
-        return is_event_id(self.raw_value) or self.raw_value == ""
+class AggregateKey(NamedTuple):
+    name: str
 
 
 class SearchVisitor(NodeVisitor):
@@ -270,6 +297,8 @@ class SearchVisitor(NodeVisitor):
         "failure_rate",
         "count_miserable",
         "user_misery",
+        "count_miserable_new",
+        "user_miser_new",
     }
     date_keys = {
         "start",
@@ -283,7 +312,13 @@ class SearchVisitor(NodeVisitor):
         "transaction.start_time",
         "transaction.end_time",
     }
-    boolean_keys = {"error.handled", "error.unhandled", "stack.in_app", KEY_TRANSACTION_ALIAS}
+    boolean_keys = {
+        "error.handled",
+        "error.unhandled",
+        "stack.in_app",
+        KEY_TRANSACTION_ALIAS,
+        TEAM_KEY_TRANSACTION_ALIAS,
+    }
 
     unwrapped_exceptions = (InvalidSearchQuery,)
 
@@ -342,29 +377,32 @@ class SearchVisitor(NodeVisitor):
         return key in self.percentage_keys
 
     def visit_search(self, node, children):
-        return self.flatten(children)
+        return self.flatten(self.remove_space(children[1]))
 
-    def visit_key_val_term(self, node, children):
-        _, key_val_term, _ = children
-        # key_val_term is a list because of group
-        return key_val_term[0]
+    def visit_term(self, node, children):
+        return self.flatten(self.remove_space(children[0]))
+
+    def visit_boolean_operator(self, node, children):
+        if not self.allow_boolean:
+            raise InvalidSearchQuery(
+                'Boolean statements containing "OR" or "AND" are not supported in this search'
+            )
+
+        children = self.flatten(self.remove_space(children))
+        return children[0].text.upper()
+
+    def visit_free_text_unquoted(self, node, children):
+        return node.text.strip(" ") or None
 
     def visit_free_text(self, node, children):
-        value = node.text.strip(" ")
-        if not value:
+        if not children[0]:
             return None
+        return SearchFilter(SearchKey("message"), "=", SearchValue(children[0]))
 
-        return SearchFilter(SearchKey("message"), "=", SearchValue(value))
-
-    def visit_free_text_quoted(self, node, children):
-        value = children[1]
-        if not value:
-            return None
-        return SearchFilter(SearchKey("message"), "=", SearchValue(value))
-
-    def visit_paren_term(self, node, children):
+    def visit_paren_group(self, node, children):
         if not self.allow_boolean:
-            # It's possible to have a valid search that includes parens, so we can't just error out when we find a paren expression.
+            # It's possible to have a valid search that includes parens, so we
+            # can't just error out when we find a paren expression.
             return self.visit_free_text(node, children)
 
         children = self.remove_space(self.remove_optional_nodes(self.flatten(children)))
@@ -521,7 +559,7 @@ class SearchVisitor(NodeVisitor):
             search_value = operator + search_value.text if operator != "=" else search_value
             return AggregateFilter(search_key, "=", SearchValue(search_value))
 
-    def visit_time_filter(self, node, children):
+    def visit_date_filter(self, node, children):
         (search_key, _, operator, search_value) = children
 
         if search_key.name in self.date_keys:
@@ -550,7 +588,7 @@ class SearchVisitor(NodeVisitor):
             search_value = operator + search_value.text if operator != "=" else search_value.text
             return self._handle_basic_filter(search_key, "=", SearchValue(search_value))
 
-    def visit_rel_time_filter(self, node, children):
+    def visit_rel_date_filter(self, node, children):
         (search_key, _, value) = children
 
         if search_key.name in self.date_keys:
@@ -570,7 +608,7 @@ class SearchVisitor(NodeVisitor):
         else:
             return self._handle_basic_filter(search_key, "=", SearchValue(value.text))
 
-    def visit_specific_time_filter(self, node, children):
+    def visit_specific_date_filter(self, node, children):
         # If we specify a specific date, it means any event on that day, and if
         # we specify a specific datetime then it means a few minutes interval
         # on either side of that datetime
@@ -691,15 +729,6 @@ class SearchVisitor(NodeVisitor):
 
     def visit_open_paren(self, node, children):
         return node.text
-
-    def visit_boolean_operator(self, node, children):
-        if not self.allow_boolean:
-            raise InvalidSearchQuery(
-                'Boolean statements containing "OR" or "AND" are not supported in this search'
-            )
-
-        children = self.flatten(self.remove_space(children))
-        return children[0].text.upper()
 
     def visit_value(self, node, children):
         # A properly quoted value will match the quoted value regex, so any unescaped

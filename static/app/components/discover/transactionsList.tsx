@@ -12,6 +12,8 @@ import Link from 'app/components/links/link';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
 import PanelTable from 'app/components/panels/panelTable';
+import Tooltip from 'app/components/tooltip';
+import {IconQuestion} from 'app/icons';
 import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
@@ -37,7 +39,6 @@ import CellAction, {Actions} from 'app/views/eventsV2/table/cellAction';
 import {TableColumn} from 'app/views/eventsV2/table/types';
 import {decodeColumnOrder} from 'app/views/eventsV2/utils';
 import {GridCell, GridCellNumber} from 'app/views/performance/styles';
-import {spanOperationBreakdownSingleColumns} from 'app/views/performance/transactionSummary/filter';
 import {
   TrendChangeType,
   TrendsDataEvents,
@@ -65,7 +66,7 @@ export type DropdownOption = {
    */
   trendType?: TrendChangeType;
   /**
-   * overide the eventView query
+   * override the eventView query
    */
   query?: [string, string][];
 };
@@ -431,13 +432,7 @@ class TransactionsTable extends React.PureComponent<TableProps> {
 
     const headers = tableTitles.map((title, index) => {
       const column = columnOrder[index];
-
-      const isIndividualSpanColumn = !!spanOperationBreakdownSingleColumns.find(
-        c => c === column.name
-      );
-      const align: Alignments = isIndividualSpanColumn
-        ? 'left'
-        : fieldAlignment(column.name, column.type, tableMeta);
+      const align: Alignments = fieldAlignment(column.name, column.type, tableMeta);
 
       if (column.key === 'span_ops_breakdown.relative') {
         return (
@@ -445,7 +440,22 @@ class TransactionsTable extends React.PureComponent<TableProps> {
             <GuideAnchor target="span_op_relative_breakdowns">
               <SortLink
                 align={align}
-                title={title}
+                title={
+                  title === t('operation duration') ? (
+                    <React.Fragment>
+                      {title}
+                      <Tooltip
+                        title={t(
+                          'Durations are calculated by summing span durations over the course of the transaction. Percentages are then calculated by dividing the individual op duration by the sum of total op durations. Overlapping/parallel spans are only counted once.'
+                        )}
+                      >
+                        <StyledIconQuestion size="xs" color="gray400" />
+                      </Tooltip>
+                    </React.Fragment>
+                  ) : (
+                    title
+                  )
+                }
                 direction={undefined}
                 canSort={false}
                 generateSortLink={generateSortLink}
@@ -665,6 +675,12 @@ const BodyCellContainer = styled('div')`
 
 const StyledPagination = styled(Pagination)`
   margin: 0 0 0 ${space(1)};
+`;
+
+const StyledIconQuestion = styled(IconQuestion)`
+  position: relative;
+  top: 2px;
+  left: 4px;
 `;
 
 export default TransactionsList;

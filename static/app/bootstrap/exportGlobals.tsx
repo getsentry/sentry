@@ -4,10 +4,12 @@ import * as Router from 'react-router';
 import * as Sentry from '@sentry/react';
 import createReactClass from 'create-react-class';
 import jQuery from 'jquery';
+import throttle from 'lodash/throttle';
 import moment from 'moment';
 import PropTypes from 'prop-types';
 import Reflux from 'reflux';
 
+import {Client} from 'app/api';
 import plugins from 'app/plugins';
 
 const globals = {
@@ -36,7 +38,7 @@ const globals = {
 
 // The SentryApp global contains exported app modules for use in javascript
 // modules that are not compiled with the sentry bundle.
-globals.SentryApp = {
+const SentryApp = {
   // The following components are used in sentry-plugins.
   Form: require('app/components/forms/form').default,
   FormState: require('app/components/forms/index').FormState,
@@ -52,9 +54,111 @@ globals.SentryApp = {
   ConfigStore: require('app/stores/configStore').default,
   HookStore: require('app/stores/hookStore').default,
   Modal: require('app/actionCreators/modal'),
+  getModalPortal: require('app/utils/getModalPortal').default,
 };
 
-// Make globals available on the window object
-Object.keys(globals).forEach(name => (window[name] = globals[name]));
+/**
+ * Wrap export so that we can track usage of these globals to determine how we want to handle deprecatation.
+ * These are sent to Sentry install, which then checks to see if SENTRY_BEACON is enabled
+ * in order to make a request to the SaaS beacon.
+ */
+let _beaconComponents: {component: string; stack: string}[] = [];
+const makeBeaconRequest = throttle(
+  async () => {
+    const api = new Client();
+
+    const components = _beaconComponents;
+    _beaconComponents = [];
+    try {
+      await api.requestPromise('/api/0/internal/beacon/', {
+        method: 'POST',
+        data: {
+          // Limit to first 20 components... if there are more than 20, then something
+          // is probably wrong.
+          batch_data: components.slice(0, 20).map(component => ({
+            description: 'SentryApp',
+            ...component,
+          })),
+        },
+      });
+    } catch (e) {
+      // Delicious failure.
+    }
+  },
+  5000,
+  {trailing: true, leading: false}
+);
+
+/**
+ * First checks if stacktrace should be ignored, and then returns
+ * a scrubbed and limited stacktrace.
+ *
+ * Returns `null` if it should be ignored
+ */
+export function getCleanStack(stack: string): string | null {
+  // Scrub out any hostnames
+  const scrubbedStack = stack.replace(/https?:\/\/.*?\//, '/');
+
+  // This is an exclude list of strings. If any of these appear in the stack,
+  // then it should be ignored.
+  const excludeList = [
+    '__puppeteer_evaluation_script__',
+    '-extension',
+    'papaparse',
+    'AdGuard',
+  ];
+
+  if (excludeList.some(str => scrubbedStack.includes(str))) {
+    return null;
+  }
+
+  // Split stack by lines and filter out empty strings
+  const stackArr = scrubbedStack?.split('\n').filter(s => !!s) || [];
+
+  // There's an issue with Firefox where this getter for jQuery gets called many times (> 100)
+  // The stacktrace doesn't show it being called outside of this block either.
+  // (this works fine in Chrome...)
+  if (stackArr.length <= 1) {
+    return null;
+  }
+
+  // First limit to last 5 frames and limit to first 1024 characters
+  return stackArr.slice(0, 5).join('\n').slice(0, 1024);
+}
+
+[
+  [SentryApp, globals.SentryApp],
+  [globals, window],
+].forEach(([obj, parent]) => {
+  const properties = Object.fromEntries(
+    Object.entries(obj).map(([key, value]) => {
+      return [
+        key,
+        {
+          configurable: false,
+          enumerable: false,
+          get() {
+            try {
+              const stack = getCleanStack(new Error().stack ?? '');
+              if (key !== 'SentryApp' && stack !== null) {
+                _beaconComponents.push({
+                  component: key,
+                  stack,
+                });
+                makeBeaconRequest();
+              }
+            } catch {
+              // Ignore errors
+            }
+
+            return value;
+          },
+        },
+      ];
+    })
+  );
+
+  Object.defineProperties(parent, properties);
+});
 
 export default globals;

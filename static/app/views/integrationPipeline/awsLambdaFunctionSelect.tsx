@@ -98,7 +98,7 @@ export default class AwsLambdaFunctionSelect extends Component<Props, State> {
     );
   };
 
-  renderLoadingScreeen = () => {
+  renderLoadingScreen = () => {
     const count = this.enabledCount;
     const text =
       count > LAMBDA_COUNT_THRESHOLD
@@ -175,7 +175,7 @@ export default class AwsLambdaFunctionSelect extends Component<Props, State> {
       <Fragment>
         <HeaderWithHelp docsUrl="https://docs.sentry.io/product/integrations/aws-lambda/" />
         <Wrapper>
-          {this.state.submitting ? this.renderLoadingScreeen() : this.renderCore()}
+          {this.state.submitting ? this.renderLoadingScreen() : this.renderCore()}
         </Wrapper>
         <Observer>
           {() => (
