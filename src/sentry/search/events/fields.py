@@ -17,7 +17,6 @@ from sentry.models import Project, ProjectTransactionThreshold
 from sentry.models.transaction_threshold import TRANSACTION_METRICS
 from sentry.search.events.base import QueryBase
 from sentry.search.events.constants import (
-    AGGREGATE_ALIASES,
     ALIAS_PATTERN,
     DEFAULT_PROJECT_THRESHOLD,
     DEFAULT_PROJECT_THRESHOLD_METRIC,
@@ -130,7 +129,7 @@ def project_threshold_config_expression(organization_id, project_ids):
     This function returns a column with the threshold and threshold metric
     for each transaction based on project level settings. If no project level
     thresholds are set, the will fallback to the default values. This column
-    is used in the `count_miserable_new` and `user_misery_new` aggregates.
+    is used in the new `count_miserable` and `user_misery` aggregates.
     """
     if organization_id is None or project_ids is None:
         raise InvalidSearchQuery("Missing necessary data for project threshold config")
@@ -402,19 +401,15 @@ def resolve_field_list(
         if "project.id" not in fields:
             fields.append("project.id")
 
-    # Here we are mapping apdex() -> apdex_new() etc so that we are able to
-    # reference apdex_new() as apdex() through out the code base. Until it's
-    # deprecated, the legacy apdex can be still called with apdex(<threshold>).
-    # These columns also need the `project_threshold_config` column to be loaded.
-    add_project_threshold_config = False
-    for index, field in enumerate(fields[:]):
-        if isinstance(field, str) and field in AGGREGATE_ALIASES:
-            name, alias = AGGREGATE_ALIASES[field]
-            fields[index] = f"{name} AS {alias}"
-            add_project_threshold_config = True
-
-    if add_project_threshold_config and PROJECT_THRESHOLD_CONFIG_ALIAS not in fields:
-        fields.append(PROJECT_THRESHOLD_CONFIG_ALIAS)
+    for field in fields[:]:
+        if isinstance(field, str) and field in [
+            "apdex()",
+            "count_miserable(user)",
+            "user_misery()",
+        ]:
+            if PROJECT_THRESHOLD_CONFIG_ALIAS not in fields:
+                fields.append(PROJECT_THRESHOLD_CONFIG_ALIAS)
+                break
 
     for field in fields:
         if isinstance(field, str) and field.strip() == "":
@@ -629,6 +624,21 @@ def resolve_function(field, match=None, params=None, functions_acl=False):
             None,
             [snuba_string, None, alias],
         )
+    elif function.conditional is not None:
+        condition, match, fallback = function.conditional
+        if alias is None:
+            alias = get_function_alias_with_columns(function.name, columns)
+
+        if arguments[condition.arg]:
+            snuba_string = match.format(**arguments)
+        else:
+            snuba_string = fallback.format(**arguments)
+        return ResolvedFunction(
+            details,
+            None,
+            [snuba_string, None, alias],
+        )
+
     elif function.aggregate is not None:
         aggregate = deepcopy(function.aggregate)
 
@@ -1051,6 +1061,7 @@ class Function:
         column=None,
         aggregate=None,
         transform=None,
+        conditional=None,
         result_type_fn=None,
         default_result_type=None,
         redundant_grouping=False,
@@ -1090,6 +1101,7 @@ class Function:
         self.column = column
         self.aggregate = aggregate
         self.transform = transform
+        self.conditional = conditional
         self.result_type_fn = result_type_fn
         self.default_result_type = default_result_type
         self.redundant_grouping = redundant_grouping
@@ -1177,7 +1189,14 @@ class Function:
         # assert that the function has only one of the following specified
         # `column`, `aggregate`, or `transform`
         assert (
-            sum([self.column is not None, self.aggregate is not None, self.transform is not None])
+            sum(
+                [
+                    self.column is not None,
+                    self.aggregate is not None,
+                    self.transform is not None,
+                    self.conditional is not None,
+                ]
+            )
             == 1
         ), f"{self.name}: only one of column, aggregate, or transform is allowed"
 
@@ -1316,100 +1335,61 @@ FUNCTIONS = {
         ),
         Function(
             "apdex",
-            required_args=[NumberRange("satisfaction", 0, None)],
-            transform="apdex(duration, {satisfaction:g})",
-            default_result_type="number",
-        ),
-        Function(
-            "apdex_new",
-            transform="""
-                apdex(
-                    multiIf(
-                        equals(
-                            tupleElement(project_threshold_config, 1),
-                            'lcp'
+            optional_args=[with_default(0, NumberRange("satisfaction", 0, None))],
+            conditional=[
+                ArgValue("satisfaction"),
+                "apdex(duration, {satisfaction:g})",
+                """
+                    apdex(
+                        multiIf(
+                            equals(
+                                tupleElement(project_threshold_config, 1),
+                                'lcp'
+                            ),
+                            if(
+                                has(measurements.key, 'lcp'),
+                                arrayElement(measurements.value, indexOf(measurements.key, 'lcp')),
+                                NULL
+                            ),
+                            duration
                         ),
-                        if(
-                            has(measurements.key, 'lcp'),
-                            arrayElement(measurements.value, indexOf(measurements.key, 'lcp')),
-                            NULL
-                        ),
-                        duration
-                    ),
-                    tupleElement(project_threshold_config, 2)
-                )
-            """.replace(
-                "\n", ""
-            ).replace(
-                " ", ""
-            ),
+                        tupleElement(project_threshold_config, 2)
+                    )
+                """.replace(
+                    "\n", ""
+                ).replace(
+                    " ", ""
+                ),
+            ],
             default_result_type="number",
         ),
         Function(
             "count_miserable",
-            required_args=[CountColumn("column"), NumberRange("satisfaction", 0, None)],
+            required_args=[CountColumn("column")],
+            optional_args=[with_default(0, NumberRange("satisfaction", 0, None))],
             calculated_args=[{"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0}],
-            aggregate=[
-                "uniqIf",
-                [ArgValue("column"), ["greater", ["transaction.duration", ArgValue("tolerated")]]],
-                None,
+            conditional=[
+                ArgValue("satisfaction"),
+                "uniqIf(user, greater(duration, {tolerated:g}))",
+                """
+                uniqIf(user, greater(
+                    multiIf(
+                        equals(tupleElement(project_threshold_config, 1), 'lcp'),
+                        if(has(measurements.key, 'lcp'), arrayElement(measurements.value, indexOf(measurements.key, 'lcp')), NULL),
+                        duration
+                    ),
+                    multiply(tupleElement(project_threshold_config, 2), 4)
+                ))
+                """.replace(
+                    "\n", ""
+                ).replace(
+                    " ", ""
+                ),
             ],
             default_result_type="number",
         ),
         Function(
-            "count_miserable_new",
-            required_args=[
-                CountColumn("column"),
-            ],
-            aggregate=[
-                "uniqIf",
-                [
-                    ArgValue("column"),
-                    [
-                        "greater",
-                        [
-                            [
-                                "multiIf",
-                                [
-                                    [
-                                        "equals",
-                                        [
-                                            [
-                                                "tupleElement",
-                                                [
-                                                    "project_threshold_config",
-                                                    1,
-                                                ],
-                                            ],
-                                            "'lcp'",
-                                        ],
-                                    ],
-                                    "measurements[lcp]",
-                                    "duration",
-                                ],
-                            ],
-                            [
-                                "multiply",
-                                [
-                                    [
-                                        "tupleElement",
-                                        [
-                                            "project_threshold_config",
-                                            2,
-                                        ],
-                                    ],
-                                    4,
-                                ],
-                            ],
-                        ],
-                    ],
-                ],
-                None,
-            ],
-            default_result_type="number",
-        ),
-        Function(
-            "user_misery_new",
+            "user_misery",
             # To correct for sensitivity to low counts, User Misery is modeled as a Beta Distribution Function.
             # With prior expectations, we have picked the expected mean user misery to be 0.05 and variance
             # to be 0.0004. This allows us to calculate the alpha (5.8875) and beta (111.8625) parameters,
@@ -1417,13 +1397,18 @@ FUNCTIONS = {
             # https://stats.stackexchange.com/questions/47771/what-is-the-intuition-behind-beta-distribution
             # for an intuitive explanation of the Beta Distribution Function.
             optional_args=[
+                with_default(0, NumberRange("satisfaction", 0, None)),
                 with_default(5.8875, NumberRange("alpha", 0, None)),
                 with_default(111.8625, NumberRange("beta", 0, None)),
             ],
             calculated_args=[
+                {"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0},
                 {"name": "parameter_sum", "fn": lambda args: args["alpha"] + args["beta"]},
             ],
-            transform="""
+            conditional=[
+                ArgValue("satisfaction"),
+                "ifNull(divide(plus(uniqIf(user, greater(duration, {tolerated:g})), {alpha}), plus(uniq(user), {parameter_sum})), 0)",
+                """
                 ifNull(
                     divide(
                         plus(
@@ -1441,30 +1426,11 @@ FUNCTIONS = {
                     ),
                 0)
             """.replace(
-                " ", ""
-            ).replace(
-                "\n", ""
-            ),
-            default_result_type="number",
-        ),
-        Function(
-            "user_misery",
-            required_args=[NumberRange("satisfaction", 0, None)],
-            # To correct for sensitivity to low counts, User Misery is modeled as a Beta Distribution Function.
-            # With prior expectations, we have picked the expected mean user misery to be 0.05 and variance
-            # to be 0.0004. This allows us to calculate the alpha (5.8875) and beta (111.8625) parameters,
-            # with the user misery being adjusted for each fast/slow unique transaction. See:
-            # https://stats.stackexchange.com/questions/47771/what-is-the-intuition-behind-beta-distribution
-            # for an intuitive explanation of the Beta Distribution Function.
-            optional_args=[
-                with_default(5.8875, NumberRange("alpha", 0, None)),
-                with_default(111.8625, NumberRange("beta", 0, None)),
+                    " ", ""
+                ).replace(
+                    "\n", ""
+                ),
             ],
-            calculated_args=[
-                {"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0},
-                {"name": "parameter_sum", "fn": lambda args: args["alpha"] + args["beta"]},
-            ],
-            transform="ifNull(divide(plus(uniqIf(user, greater(duration, {tolerated:g})), {alpha}), plus(uniq(user), {parameter_sum})), 0)",
             default_result_type="number",
         ),
         Function("failure_rate", transform="failure_rate()", default_result_type="percentage"),

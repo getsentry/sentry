@@ -279,11 +279,7 @@ class AggregateKey(NamedTuple):
 class SearchVisitor(NodeVisitor):
     # A list of mappers that map source keys to a target name. Format is
     # <target_name>: [<list of source names>],
-    key_mappings = {
-        "apdex_new()": ["apdex()"],
-        "count_miserable_new(user)": ["count_miserable(user)"],
-        "user_misery_new()": ["user_misery()"],
-    }
+    key_mappings = {}
     duration_keys = {"transaction.duration"}
     percentage_keys = {"percentage"}
     numeric_keys = {
