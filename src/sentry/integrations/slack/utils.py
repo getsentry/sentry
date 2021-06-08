@@ -7,7 +7,7 @@ from django.core.exceptions import ValidationError
 from django.http import Http404
 
 from sentry.constants import ObjectStatus
-from sentry.models import IdentityProvider, Integration, Organization
+from sentry.models import Identity, IdentityProvider, IdentityStatus, Integration, Organization
 from sentry.shared_integrations.exceptions import (
     ApiError,
     DuplicateDisplayNameError,
@@ -271,14 +271,6 @@ def parse_link(url):
     return parsed_path
 
 
-def get_emails_by_user(organization):
-    emails_by_user = {}
-    for member in organization.members.all():
-        emails_by_user[member] = [member.email for member in member.emails.all()]
-
-    return emails_by_user
-
-
 def get_slack_data_by_user(integration, organization, emails_by_user):
     access_token = (
         integration.metadata.get("user_access_token") or integration.metadata["access_token"]
@@ -311,3 +303,12 @@ def get_slack_data_by_user(integration, organization, emails_by_user):
                     "slack_id": resp["user"]["id"],
                 }
     return slack_data_by_user
+
+
+def get_identities_by_user(idp, users):
+    identity_models = Identity.objects.filter(
+        idp=idp,
+        user__in=users,
+        status=IdentityStatus.VALID,
+    )
+    return {identity.user: identity for identity in identity_models}

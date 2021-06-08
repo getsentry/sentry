@@ -16,7 +16,7 @@ from sentry.incidents.logic import (
 from sentry.incidents.models import AlertRule
 from sentry.integrations.slack.utils import (
     get_channel_id_with_timeout,
-    get_emails_by_user,
+    get_identities_by_user,
     get_slack_data_by_user,
     strip_channel_name,
 )
@@ -32,6 +32,7 @@ from sentry.models import (
     RuleActivity,
     RuleActivityType,
     User,
+    UserEmail,
 )
 from sentry.shared_integrations.exceptions import DuplicateDisplayNameError
 from sentry.tasks.base import instrumented_task
@@ -243,7 +244,7 @@ def find_channel_id_for_alert_rule(organization_id, uuid, data, alert_rule_id=No
 
 @instrumented_task(name="sentry.integrations.slack.link_users_identities", queue="integrations")
 def link_slack_user_identities(integration, organization):
-    emails_by_user = get_emails_by_user(organization)
+    emails_by_user = UserEmail.objects.get_emails_by_user(organization)
     slack_data_by_user = get_slack_data_by_user(integration, organization, emails_by_user)
 
     idp = IdentityProvider.objects.get(
@@ -254,31 +255,27 @@ def link_slack_user_identities(integration, organization):
         "status": IdentityStatus.VALID,
         "date_verified": timezone.now(),
     }
-    identity_models = Identity.objects.filter(
-        idp=idp,
-        user__in=slack_data_by_user.keys(),
-        status=IdentityStatus.VALID,
-    )
+    identities_by_user = get_identities_by_user(idp, slack_data_by_user.keys())
 
-    identities_by_user = {identity.user: identity for identity in identity_models}
     for user, data in slack_data_by_user.items():
+        if data["email"] not in emails_by_user[user]:
+            continue
+        # identity already exists, the emails match, AND the external ID has changed
         if (
             user in identities_by_user.keys()
-            and data["email"] in emails_by_user[user]
             and data["slack_id"] != identities_by_user[user].external_id
         ):
-            # identity already exists, the emails match, AND the external ID has changed
+            # replace the Identity's external_id with the new one we just got from Slack
             identities_by_user[user].update(external_id=data["slack_id"])
-        if user not in identities_by_user.keys() and data["email"] in emails_by_user[user]:
+        if user not in identities_by_user.keys():
             # the user doesn't already have an identity and one of their Sentry emails matches their Slack email
             try:
                 with transaction.atomic():
                     identity_model = Identity.objects.create(
                         idp=idp,
                         user=user,
-                        status=IdentityStatus.VALID,
-                        date_verified=timezone.now(),
                         external_id=data["slack_id"],
+                        **identity_data,
                     )
             except IntegrityError:
                 # If the external_id is already used for a different user then throw an error
