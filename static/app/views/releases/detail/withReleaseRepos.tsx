@@ -59,7 +59,10 @@ const withReleaseRepos = <P extends DependentProps>(
           }
 
           componentDidUpdate(prevProps: P & HoCsProps, prevState: State) {
-            if (!!prevProps.repositoriesLoading && !this.props.repositoriesLoading) {
+            if (
+              this.props.params.release !== prevProps.params.release ||
+              (!!prevProps.repositoriesLoading && !this.props.repositoriesLoading)
+            ) {
               this.fetchReleaseRepos();
               return;
             }
@@ -129,6 +132,7 @@ const withReleaseRepos = <P extends DependentProps>(
                 )}/repositories/`
               );
               this.setState({releaseRepos, isLoading: false});
+              this.setActiveReleaseRepo(this.props);
             } catch (error) {
               Sentry.captureException(error);
               addErrorMessage(

@@ -5,6 +5,7 @@ import {Location} from 'history';
 
 import FileChange from 'app/components/fileChange';
 import {Body, Main} from 'app/components/layouts/thirds';
+import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {t, tn} from 'app/locale';
@@ -52,6 +53,12 @@ class FilesChanged extends AsyncView<Props, State> {
     };
   }
 
+  componentDidUpdate(prevProps: Props) {
+    if (prevProps.activeReleaseRepo?.name !== this.props.activeReleaseRepo?.name) {
+      this.remountComponent();
+    }
+  }
+
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {activeReleaseRepo: activeRepository, location, release, orgSlug} = this.props;
 
@@ -66,9 +73,17 @@ class FilesChanged extends AsyncView<Props, State> {
     ];
   }
 
+  renderLoading() {
+    return this.renderBody();
+  }
+
   renderContent() {
-    const {fileList, fileListPageLinks} = this.state;
+    const {fileList, fileListPageLinks, loading} = this.state;
     const {activeReleaseRepo} = this.props;
+
+    if (loading) {
+      return <LoadingIndicator />;
+    }
 
     if (!fileList.length) {
       return (

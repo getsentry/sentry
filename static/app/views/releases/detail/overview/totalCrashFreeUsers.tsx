@@ -61,6 +61,12 @@ class TotalCrashFreeUsers extends AsyncComponent<Props, State> {
     ];
   }
 
+  componentDidUpdate(prevProps: Props) {
+    if (prevProps.version !== this.props.version) {
+      this.remountComponent();
+    }
+  }
+
   renderLoading() {
     return this.renderBody();
   }
