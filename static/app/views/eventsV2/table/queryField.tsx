@@ -160,6 +160,14 @@ class QueryField extends React.Component<Props> {
     this.triggerChange(fieldValue);
   };
 
+  handleEquationChange = (value: string) => {
+    const newColumn = cloneDeep(this.props.fieldValue);
+    if (newColumn.kind === FieldValueKind.EQUATION) {
+      newColumn.field = value;
+    }
+    this.triggerChange(newColumn);
+  };
+
   handleFieldParameterChange = ({value}) => {
     const newColumn = cloneDeep(this.props.fieldValue);
     if (newColumn.kind === 'function') {
@@ -441,6 +449,7 @@ class QueryField extends React.Component<Props> {
       className,
       takeFocus,
       filterPrimaryOptions,
+      fieldValue,
       inFieldLabels,
       disabled,
       hidePrimarySelector,
@@ -487,6 +496,21 @@ class QueryField extends React.Component<Props> {
     };
 
     const parameters = this.renderParameterInputs(parameterDescriptions);
+
+    if (fieldValue.kind === FieldValueKind.EQUATION) {
+      return (
+        <Container className={className} gridColumns={1}>
+          <BufferedInput
+            name="refinement"
+            key="parameter:text"
+            type="text"
+            required
+            value={fieldValue.field}
+            onUpdate={this.handleEquationChange}
+          />
+        </Container>
+      );
+    }
 
     return (
       <Container

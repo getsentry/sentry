@@ -977,6 +977,7 @@ describe('EventView.getEventsAPIPayload()', function () {
 
     expect(eventView.getEventsAPIPayload({})).toEqual({
       field: ['id'],
+      equation: [],
       per_page: 50,
       sort: '-id',
       query: 'event.type:csp',
@@ -1059,6 +1060,7 @@ describe('EventView.getEventsAPIPayload()', function () {
       statsPeriod: '14d',
 
       field: ['title', 'count()'],
+      equation: [],
       per_page: 50,
       query: 'event.type:csp',
       sort: '-count',
@@ -1093,6 +1095,7 @@ describe('EventView.getEventsAPIPayload()', function () {
       statsPeriod: '14d',
 
       field: ['title', 'count()'],
+      equation: [],
       per_page: 50,
       query: 'event.type:csp',
       sort: '-count',
@@ -1116,6 +1119,7 @@ describe('EventView.getEventsAPIPayload()', function () {
       statsPeriod: '14d',
 
       field: ['title', 'count()'],
+      equation: [],
       per_page: 50,
       query: 'event.type:csp',
       sort: '-count',
@@ -1148,6 +1152,7 @@ describe('EventView.getEventsAPIPayload()', function () {
       statsPeriod: '14d',
 
       field: ['title', 'count()'],
+      equation: [],
       per_page: 50,
       query: 'event.type:csp',
       sort: '-count',
@@ -1170,6 +1175,7 @@ describe('EventView.getEventsAPIPayload()', function () {
       statsPeriod: '14d',
 
       field: ['title', 'count()'],
+      equation: [],
       per_page: 50,
       query: 'event.type:csp',
       sort: '-count',
@@ -1198,6 +1204,7 @@ describe('EventView.getEventsAPIPayload()', function () {
 
     expect(eventView.getEventsAPIPayload(location)).toEqual({
       field: ['title', 'count()'],
+      equation: [],
       sort: '-count',
       query: 'event.type:csp',
       start: '2019-10-01T00:00:00.000',
@@ -1219,6 +1226,7 @@ describe('EventView.getEventsAPIPayload()', function () {
 
     const output = {
       field: ['title', 'count()'],
+      equation: [],
       sort: '-count',
       query: 'event.type:csp',
       per_page: 50,
