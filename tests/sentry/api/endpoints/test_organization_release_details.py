@@ -555,19 +555,13 @@ class ReleaseDetailsTest(APITestCase):
         Test that ensures that the first release and the last release in terms of `date_added` are
         retrieved correctly
         """
-        release_1 = Release.objects.create(
-            organization_id=self.organization.id, version="foobar@1.0.0"
-        )
+        release_1 = self.create_release(project=self.project1, version="foobar@1.0.0")
         release_1.add_project(self.project1)
 
-        release_2 = Release.objects.create(
-            organization_id=self.organization.id, version="foobar@2.0.0"
-        )
+        release_2 = self.create_release(project=self.project1, version="foobar@2.0.0")
         release_2.add_project(self.project1)
 
-        release_3 = Release.objects.create(
-            organization_id=self.organization.id, version="foobar@3.0.0"
-        )
+        release_3 = self.create_release(project=self.project1, version="foobar@3.0.0")
         release_3.add_project(self.project1)
 
         self.create_member(teams=[self.team1], user=self.user1, organization=self.organization)
@@ -591,18 +585,18 @@ class ReleaseDetailsTest(APITestCase):
         need to fallback to comparison with id
         """
         date_now = datetime.utcnow()
-        release_2 = Release.objects.create(
-            organization_id=self.organization.id, version="foobar@2.0.0", date_added=date_now
+        release_2 = self.create_release(
+            project=self.project1, version="foobar@2.0.0", date_added=date_now
         )
         release_2.add_project(self.project1)
 
-        release_1 = Release.objects.create(
-            organization_id=self.organization.id, version="foobar@1.0.0", date_added=date_now
+        release_1 = self.create_release(
+            project=self.project1, version="foobar@1.0.0", date_added=date_now
         )
         release_1.add_project(self.project1)
 
-        release_3 = Release.objects.create(
-            organization_id=self.organization.id, version="foobar@3.0.0", date_added=date_now
+        release_3 = self.create_release(
+            project=self.project1, version="foobar@3.0.0", date_added=date_now
         )
         release_3.add_project(self.project1)
 
@@ -625,24 +619,16 @@ class ReleaseDetailsTest(APITestCase):
         Test that ensures that environment filter is applied when fetching first and last
         releases on date sort order
         """
-        release_1 = Release.objects.create(
-            organization_id=self.organization.id, version="foobar@1.0.0"
-        )
+        release_1 = self.create_release(project=self.project1, version="foobar@1.0.0")
         release_1.add_project(self.project1)
 
-        release_2 = Release.objects.create(
-            organization_id=self.organization.id, version="foobar@2.0.0"
-        )
+        release_2 = self.create_release(project=self.project1, version="foobar@2.0.0")
         release_2.add_project(self.project1)
 
-        release_3 = Release.objects.create(
-            organization_id=self.organization.id, version="foobar@3.0.0"
-        )
+        release_3 = self.create_release(project=self.project1, version="foobar@3.0.0")
         release_3.add_project(self.project1)
 
-        release_4 = Release.objects.create(
-            organization_id=self.organization.id, version="foobar@4.0.0"
-        )
+        release_4 = self.create_release(project=self.project1, version="foobar@4.0.0")
         release_4.add_project(self.project1)
 
         environment = Environment.objects.create(organization_id=self.organization.id, name="prod")
@@ -681,9 +667,7 @@ class ReleaseDetailsTest(APITestCase):
         is not `date`, then the values of `firstReleaseVersion` and `lastReleaseVersion` are None
         values
         """
-        release_1 = Release.objects.create(
-            organization_id=self.organization.id, version="foobar@1.0.0"
-        )
+        release_1 = self.create_release(project=self.project1, version="foobar@1.0.0")
         release_1.add_project(self.project1)
 
         self.create_member(teams=[self.team1], user=self.user1, organization=self.organization)
