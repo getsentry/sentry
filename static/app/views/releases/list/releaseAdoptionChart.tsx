@@ -17,6 +17,8 @@ import {
 } from 'app/components/charts/styles';
 import TransitionChart from 'app/components/charts/transitionChart';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
+import TransitionChart from 'app/components/charts/transitionChart';
+import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import {
   DateTimeObject,
   getDiffInMinutes,
@@ -40,6 +42,8 @@ import {
   sessionDisplayToField,
 } from 'app/views/releases/utils/releaseHealthRequest';
 
+import {getInterval} from '../detail/overview/chart/utils';
+
 type Props = AsyncComponent['props'] & {
   api: Client;
   organization: Organization;
@@ -52,6 +56,11 @@ type Props = AsyncComponent['props'] & {
 type State = AsyncComponent['state'] & {
   sessions: SessionApiResponse | null;
 };
+class ReleaseAdoptionChart extends AsyncComponent<Props, State> {
+  shouldReload = true;
+
+  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
+    const {organization, location, activeDisplay} = this.props;
 
 type GetIntervalOptions = {
   highFidelity?: boolean;
@@ -92,7 +101,7 @@ class ReleaseAdoptionChart extends AsyncComponent<Props, State> {
             interval: getInterval(
               {
                 start: location.query.start,
-                end: location.query.end,
+                end: location.query.start,
                 period: location.query.statsPeriod,
                 utc: location.query.utc,
               },
@@ -127,19 +136,24 @@ class ReleaseAdoptionChart extends AsyncComponent<Props, State> {
       [] as number[]
     );
 
-    return releases.map(release => {
-      const releaseData = sessions?.groups.find(({by}) => by.release === release)?.series[
-        sessionDisplayToField(activeDisplay)
-      ];
-      return {
-        seriesName: formatVersion(release as string),
-        data:
-          sessions?.intervals.map((interval, index) => ({
-            name: moment(interval).valueOf(),
-            value: percent(releaseData?.[index] ?? 0, totalData?.[index] ?? 0),
-          })) ?? [],
-      };
-    });
+    return releases
+      .map(release => {
+        const releaseData = sessions?.groups.find(({by}) => by.release === release)
+          ?.series[sessionDisplayToField(activeDisplay)];
+        return {
+          seriesName: formatVersion(release as string),
+          data:
+            sessions?.intervals.map((interval, index) => ({
+              name: moment(interval).valueOf(),
+              value: percent(releaseData?.[index] ?? 0, totalData?.[index] ?? 0),
+            })) ?? [],
+        };
+      })
+      .sort(
+        (a, b) =>
+          (b.data?.findIndex(({value}) => value > 0) ?? 0) -
+          (a.data?.findIndex(({value}) => value > 0) ?? 0)
+      );
   }
 
   getTotal() {
