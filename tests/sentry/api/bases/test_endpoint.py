@@ -8,7 +8,7 @@ from sentry.utils.compat.mock import Mock
 class EndpointTest(TestCase):
     def test_simple(self):
         request = Mock()
-        request.GET = QueryDict("member=1")
+        request.GET = QueryDict("member=1&cursor=foo")
         request.method = "GET"
         request.path = "/api/0/organizations/"
         endpoint = Endpoint()
