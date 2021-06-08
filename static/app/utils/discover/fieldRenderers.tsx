@@ -539,7 +539,10 @@ const spanOperationRelativeBreakdownRenderer = (
   data: EventData,
   {location, organization}: RenderFunctionBaggage
 ): React.ReactNode => {
-  const cumulativeSpanOpBreakdown = data['spans.total.time'];
+  const cumulativeSpanOpBreakdown = SPAN_OP_BREAKDOWN_FIELDS.reduce(
+    (prev, curr) => (isDurationValue(data, curr) ? prev + data[curr] : prev),
+    0
+  );
 
   if (
     !isDurationValue(data, 'spans.total.time') ||
