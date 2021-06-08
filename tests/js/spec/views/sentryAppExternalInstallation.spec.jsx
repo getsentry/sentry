@@ -100,8 +100,6 @@ describe('SentryAppExternalInstallation', () => {
         body: install,
       });
 
-      window.location.assign = jest.fn();
-
       wrapper = getMountedComponent();
       await tick();
       wrapper.update();
@@ -120,7 +118,7 @@ describe('SentryAppExternalInstallation', () => {
       expect(window.location.assign).toHaveBeenCalledWith(
         `https://google.com/?code=${install.code}&installationId=${install.uuid}&orgSlug=${org1.slug}`
       );
-      window.location.assign.mockRestore();
+      window.location.assign.mockClear();
     });
   });
   describe('multiple organizations', () => {
