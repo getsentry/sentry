@@ -335,8 +335,8 @@ class ResolveFieldListTest(unittest.TestCase):
             "issue.id",
             ["coalesce", ["user.email", "user.username", "user.ip"], "user.display"],
             "message",
-            "timestamp.to_hour",
-            "timestamp.to_day",
+            ["toStartOfHour", ["timestamp"], "timestamp.to_hour"],
+            ["toStartOfDay", ["timestamp"], "timestamp.to_day"],
             "project.id",
         ]
 

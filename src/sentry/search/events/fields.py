@@ -13,7 +13,7 @@ from snuba_sdk.orderby import Direction, OrderBy
 
 from sentry.discover.models import KeyTransaction, TeamKeyTransaction
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import Project, ProjectTransactionThreshold
+from sentry.models import Project, ProjectTeam, ProjectTransactionThreshold
 from sentry.models.transaction_threshold import TRANSACTION_METRICS
 from sentry.search.events.base import QueryBase
 from sentry.search.events.constants import (
@@ -213,12 +213,13 @@ def team_key_transaction_expression(organization_id, team_ids, project_ids):
     team_key_transactions = (
         TeamKeyTransaction.objects.filter(
             organization_id=organization_id,
-            project_id__in=project_ids,
-            team_id__in=team_ids,
+            project_team__in=ProjectTeam.objects.filter(
+                project_id__in=project_ids, team_id__in=team_ids
+            ),
         )
-        .order_by("transaction", "project_id")
-        .values("project_id", "transaction")
-        .distinct("transaction", "project_id")
+        .order_by("transaction", "project_team__project_id")
+        .values("transaction", "project_team__project_id")
+        .distinct("transaction", "project_team__project_id")
     )
 
     count = len(team_key_transactions)
@@ -241,7 +242,7 @@ def team_key_transaction_expression(organization_id, team_ids, project_ids):
                     [
                         "tuple",
                         [
-                            transaction["project_id"],
+                            transaction["project_team__project_id"],
                             "'{}'".format(transaction["transaction"]),
                         ],
                     ]
@@ -369,6 +370,12 @@ def parse_arguments(function, columns):
     return [arg for arg in args if arg]
 
 
+def format_column_as_key(x):
+    if isinstance(x, list):
+        return tuple(format_column_as_key(y) for y in x)
+    return x
+
+
 def resolve_field_list(
     fields, snuba_filter, auto_fields=True, auto_aggregations=False, functions_acl=None
 ):
@@ -427,7 +434,7 @@ def resolve_field_list(
             if function.details is not None and isinstance(function.aggregate, (list, tuple)):
                 functions[function.aggregate[-1]] = function.details
                 if function.details.instance.redundant_grouping:
-                    aggregate_fields[function.aggregate[1]].add(field)
+                    aggregate_fields[format_column_as_key(function.aggregate[1])].add(field)
 
     # Only auto aggregate when there's one other so the group by is not unexpectedly changed
     if auto_aggregations and snuba_filter.having and len(aggregations) > 0:
@@ -442,7 +449,7 @@ def resolve_field_list(
                         functions[function.aggregate[-1]] = function.details
 
                         if function.details.instance.redundant_grouping:
-                            aggregate_fields[function.aggregate[1]].add(field)
+                            aggregate_fields[format_column_as_key(function.aggregate[1])].add(field)
 
     rollup = snuba_filter.rollup
     if not rollup and auto_fields:
@@ -498,21 +505,19 @@ def resolve_field_list(
     # need to be added to the group by so that the query is valid.
     if aggregations:
         for column in columns:
-            if isinstance(column, (list, tuple)):
-                if column[0] == "transform":
-                    # When there's a project transform, we already group by project_id
-                    continue
-                if column[2] == USER_DISPLAY_ALIAS:
-                    # user.display needs to be grouped by its coalesce function
-                    groupby.append(column)
-                    continue
+            is_iterable = isinstance(column, (list, tuple))
+            if is_iterable and column[0] == "transform":
+                # When there's a project transform, we already group by project_id
+                continue
+            elif is_iterable and column[2] not in FIELD_ALIASES:
                 groupby.append(column[2])
             else:
-                if column in aggregate_fields:
-                    conflicting_functions = list(aggregate_fields[column])
+                column_key = format_column_as_key([column[:2]]) if is_iterable else column
+                if column_key in aggregate_fields:
+                    conflicting_functions = list(aggregate_fields[column_key])
                     raise InvalidSearchQuery(
                         "A single field cannot be used both inside and outside a function in the same query. To use {field} you must first remove the function(s): {function_msg}".format(
-                            field=column,
+                            field=column[2] if is_iterable else column,
                             function_msg=", ".join(conflicting_functions[:2])
                             + (
                                 f" and {len(conflicting_functions) - 2} more."
