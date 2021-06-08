@@ -163,7 +163,7 @@ class UnmergeArgsBase:
                 destinations=destinations,
             )
         else:
-            assert locked_primary_hashes or fingerprints
+            assert locked_primary_hashes is not None or fingerprints is not None
             return SuccessiveUnmergeArgs(
                 project_id=project_id,
                 source_id=source_id,
@@ -172,7 +172,7 @@ class UnmergeArgsBase:
                 batch_size=batch_size,
                 last_event=last_event,
                 destinations=destinations,
-                locked_primary_hashes=locked_primary_hashes or fingerprints,
+                locked_primary_hashes=locked_primary_hashes or fingerprints or [],
                 source_fields_reset=source_fields_reset,
             )
 
