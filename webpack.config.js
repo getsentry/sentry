@@ -297,13 +297,9 @@ let appConfig = {
      * Extract CSS into separate files.
      */
     new MiniCssExtractPlugin({
-      filename: pathData => {
-        // We want the sentry css file to be unversioned for frontend-only deploys
-        // We will cache using `Cache-Control` headers
-        return pathData.chunk.name === 'sentry'
-          ? '[name].css'
-          : '[name].[contenthash:6].css';
-      },
+      // We want the sentry css file to be unversioned for frontend-only deploys
+      // We will cache using `Cache-Control` headers
+      filename: '[name].css',
     }),
 
     /**
