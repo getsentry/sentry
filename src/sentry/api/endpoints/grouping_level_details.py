@@ -161,6 +161,12 @@ def _decrease_level(group: Group, id: int, levels_overview: LevelsOverview, requ
     )
 
     # TODO pagination
+    # We expect this query to return <200 results, so this should still be
+    # acceptable especially considering the loop body is fast.
+    #
+    # If we move this into a paginating celery task we need to consider that
+    # we're iterating over a table that is also modified by the unmerge task at
+    # the same time.
     for row in snuba.raw_snql_query(
         query, referrer="api.grouping_levels_details.decrease_level.get_group_ids"
     )["data"]:
