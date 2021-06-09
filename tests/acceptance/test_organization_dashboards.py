@@ -15,7 +15,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()
         min_ago = iso_format(before_now(minutes=1))
-        self.default_path = f"/organizations/{self.organization.slug}/dashboards/"
+        self.default_path = f"/organizations/{self.organization.slug}/dashboard/default-overview/"
         self.store_event(
             data={"event_id": "a" * 32, "message": "oh no", "timestamp": min_ago},
             project_id=self.project.id,
@@ -34,8 +34,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
 
     def test_view_dashboard_with_manager(self):
         with self.feature(FEATURE_NAMES + EDIT_FEATURE):
-            path = f"/organizations/{self.organization.slug}/dashboard/default-overview/"
-            self.browser.get(path)
+            self.browser.get(self.default_path)
             self.wait_until_loaded()
             self.browser.snapshot("dashboards - default overview manager")
 
