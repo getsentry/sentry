@@ -12,7 +12,10 @@ import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
 import Alert from 'app/components/alert';
 import {Item} from 'app/components/dropdownAutoComplete/types';
-import {getAppConnectStoreUpdateAlertMessage} from 'app/components/globalAppStoreConnectUpdateAlert/utils';
+import {
+  appStoreConnectAlertMessage,
+  getAppConnectStoreUpdateAlertMessage,
+} from 'app/components/globalAppStoreConnectUpdateAlert/utils';
 import Link from 'app/components/links/link';
 import List from 'app/components/list';
 import ListItem from 'app/components/list/listItem';
@@ -48,6 +51,14 @@ function SymbolSources({
 }: Props) {
   const appStoreConnectContext = useContext(AppStoreConnectContext);
 
+  const hasSavedAppStoreConnect = symbolSources.find(
+    symbolSource => symbolSource.type.toLowerCase() === 'appstoreconnect'
+  );
+
+  useEffect(() => {
+    reloadPage();
+  }, [hasSavedAppStoreConnect]);
+
   useEffect(() => {
     openDebugFileSourceDialog();
   }, [location.query, appStoreConnectContext]);
@@ -74,10 +85,6 @@ function SymbolSources({
     },
   ];
 
-  const hasSavedAppStoreConnect = symbolSources.find(
-    symbolSource => symbolSource.type === 'AppStoreConnect'
-  );
-
   if (
     hasAppConnectStoreFeatureFlag &&
     !hasSavedAppStoreConnect &&
@@ -88,6 +95,20 @@ function SymbolSources({
       label: t(DEBUG_SOURCE_TYPES.appStoreConnect),
       searchKey: t('apple store connect itunes ios'),
     });
+  }
+
+  function reloadPage() {
+    if (!!hasSavedAppStoreConnect || !appStoreConnectContext) {
+      return;
+    }
+
+    const appConnectStoreUpdateAlertMessage = getAppConnectStoreUpdateAlertMessage(
+      appStoreConnectContext
+    );
+
+    if (appConnectStoreUpdateAlertMessage) {
+      window.location.reload();
+    }
   }
 
   function getRichListFieldValue(): {
@@ -105,7 +126,6 @@ function SymbolSources({
     const symbolSourcesWithErrors = symbolSources.map(symbolSource => {
       if (symbolSource.id === appStoreConnectContext.id) {
         const appStoreConnectErrors: string[] = [];
-        let appStoreConnectWarning: React.ReactNode = undefined;
         const customRepositoryLink = `/settings/${organization.slug}/projects/${projectSlug}/debug-symbols/?customRepository=${symbolSource.id}`;
 
         if (
@@ -116,7 +136,10 @@ function SymbolSources({
             appStoreConnectContext
           );
 
-          if (appConnectStoreUpdateAlertMessage) {
+          if (
+            appConnectStoreUpdateAlertMessage ===
+            appStoreConnectAlertMessage.isTodayAfterItunesSessionRefreshAt
+          ) {
             symbolSourcesWarnings.push(
               <div>
                 {appConnectStoreUpdateAlertMessage}{' '}
@@ -129,7 +152,11 @@ function SymbolSources({
                 })}
               </div>
             );
-            appStoreConnectWarning = appConnectStoreUpdateAlertMessage;
+
+            return {
+              ...symbolSource,
+              warning: appConnectStoreUpdateAlertMessage,
+            };
           }
         }
 
@@ -172,7 +199,6 @@ function SymbolSources({
               </StyledList>
             </Fragment>
           ) : undefined,
-          warning: appStoreConnectWarning,
         };
       }
 
@@ -201,8 +227,10 @@ function SymbolSources({
       return;
     }
 
+    const {_warning, _error, ...sourceConfig} = item;
+
     openDebugFileSourceModal({
-      sourceConfig: item,
+      sourceConfig,
       sourceType: item.type,
       appStoreConnectContext,
       onSave: updatedData => handleUpdateSymbolSource(updatedData as Item, item.index),

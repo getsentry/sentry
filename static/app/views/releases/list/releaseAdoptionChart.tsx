@@ -92,7 +92,7 @@ class ReleaseAdoptionChart extends AsyncComponent<Props, State> {
             interval: getInterval(
               {
                 start: location.query.start,
-                end: location.query.start,
+                end: location.query.end,
                 period: location.query.statsPeriod,
                 utc: location.query.utc,
               },
