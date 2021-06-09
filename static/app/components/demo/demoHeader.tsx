@@ -21,7 +21,7 @@ export default function DemoHeader() {
     ? `https://sentry.io/settings/${saasOrgSlug}/billing/checkout/`
     : 'https://sentry.io/signup/';
 
-  const [collapsed, setCollapsed] = useState(!PreferencesStore.prefs.collapsed);
+  const [collapsed, setCollapsed] = useState(PreferencesStore.prefs.collapsed);
 
   const preferenceUnsubscribe = PreferencesStore.listen(
     (preferences: Preferences) => onPreferenceChange(preferences),
@@ -32,7 +32,7 @@ export default function DemoHeader() {
     if (preferences.collapsed === collapsed) {
       return;
     }
-    setCollapsed(collapsed ? false : true);
+    setCollapsed(!collapsed);
   }
 
   useEffect(() => {
