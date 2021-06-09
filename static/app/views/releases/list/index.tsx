@@ -25,7 +25,6 @@ import space from 'app/styles/space';
 import {
   GlobalSelection,
   Organization,
-  Project,
   Release,
   ReleaseStatus,
   SessionApiResponse,
@@ -344,7 +343,7 @@ class ReleasesList extends AsyncView<Props, State> {
   }
 
   renderInnerBody(activeDisplay: DisplayOption) {
-    const {location, selection, organization} = this.props;
+    const {location, selection, organization, router} = this.props;
     const {hasSessions, releases, reloading, releasesPageLinks} = this.state;
 
     if (this.shouldShowLoadingIndicator()) {
@@ -366,61 +365,20 @@ class ReleasesList extends AsyncView<Props, State> {
         healthStatsPeriod={location.query.healthStatsPeriod}
       >
         {({isHealthLoading, getHealthData}) => {
-          const selectedProjectId =
-            selection.projects &&
-            selection.projects.length === 1 &&
-            selection.projects[0];
-          // TODO(releases): I think types here need adjusting as this can also be a lightweight organization without projects
-          const selectedProject = organization.projects?.find(
-            p => p.id === `${selectedProjectId}`
-          );
-
+          const singleProjectSelected =
+            selection.projects?.length === 1 &&
+            selection.projects[0] !== ALL_ACCESS_PROJECTS;
           return (
             <Fragment>
-              {selectedProject && (
+              {singleProjectSelected && hasSessions && (
                 <Feature features={['organizations:release-adoption-chart']}>
-                  <Projects orgId={organization.slug} slugs={[selectedProject.slug]}>
-                    {({projects, initiallyLoaded, fetchError}) => {
-                      const project = projects && projects.length === 1 && projects[0];
-
-                      if (!initiallyLoaded || fetchError || !project || !hasSessions) {
-                        return null;
-                      }
-
-                      const showPlaceholders = !initiallyLoaded || isHealthLoading;
-
-                      let totalCount = 0;
-
-                      if (releases?.length) {
-                        const timeSeries = getHealthData.getTimeSeries(
-                          releases[0].version,
-                          Number(project.id),
-                          activeDisplay
-                        );
-
-                        const totalData = timeSeries[1].data;
-
-                        if (totalData.length) {
-                          totalCount = totalData
-                            .map(point => point.value)
-                            .reduce((acc, value) => acc + value);
-                        }
-                      }
-
-                      return (
-                        <ReleaseAdoptionChart
-                          organization={organization}
-                          selection={selection}
-                          releases={releases}
-                          project={project as Project}
-                          getHealthData={getHealthData}
-                          activeDisplay={activeDisplay}
-                          showPlaceholders={showPlaceholders}
-                          totalCount={totalCount}
-                        />
-                      );
-                    }}
-                  </Projects>
+                  <ReleaseAdoptionChart
+                    organization={organization}
+                    selection={selection}
+                    location={location}
+                    router={router}
+                    activeDisplay={activeDisplay}
+                  />
                 </Feature>
               )}
 
