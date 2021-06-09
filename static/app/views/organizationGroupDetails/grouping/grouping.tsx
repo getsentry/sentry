@@ -11,7 +11,7 @@ import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
 import {IconFlag} from 'app/icons';
-import {t, tct, tn} from 'app/locale';
+import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {Group, Organization, Project} from 'app/types';
 import {Event} from 'app/types/event';
@@ -180,22 +180,20 @@ function Grouping({api, groupId, location}: Props) {
     <Wrapper>
       <Description>
         {t(
-          'Sometimes you might want to split up the errors in an issue by different frames in the stacktrace. Below you can select which frames to regroup this issue by and see how many new issues will be created in the process.'
+          'Sometimes you might want to split up issues by additional frames or other criteria. Select a granularity level below and see how many new issues will be created in the process.'
         )}
       </Description>
       <div>
         <StyledList symbol="colored-numeric">
           <StyledListItem>
-            {t('Select levels')}
+            {t('Select level')}
             <StyledRangeSlider
               name="grouping-level"
               allowedValues={groupingLevels.map(groupingLevel =>
                 Number(groupingLevel.id)
               )}
               formatLabel={value => {
-                return value === 0
-                  ? t('Automatically grouped')
-                  : tn('%s level', '%s levels', value);
+                return value === 0 ? t('Automatically grouped') : t('Level %s', value);
               }}
               value={activeGroupingLevel ?? 0}
               onChange={groupingLevelId =>
