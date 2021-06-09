@@ -4,7 +4,7 @@ import pytest
 from django.urls import reverse
 from pytz import utc
 
-from sentry.discover.models import KeyTransaction, TeamKeyTransaction
+from sentry.discover.models import MAX_TEAM_KEY_TRANSACTIONS, KeyTransaction, TeamKeyTransaction
 from sentry.models import ApiKey, ProjectTeam, ProjectTransactionThreshold
 from sentry.models.transaction_threshold import TransactionMetric
 from sentry.testutils import APITestCase, SnubaTestCase
@@ -3843,6 +3843,50 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert len(data) == 1
         assert data[0]["team_key_transaction"] == 0
         assert data[0]["transaction"] == "/blah_transaction/"
+
+    def test_too_many_team_key_transactions(self):
+        MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS = 1
+        with mock.patch(
+            "sentry.search.events.fields.MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS",
+            MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS,
+        ):
+            team = self.create_team(organization=self.organization, name="Team A")
+            self.create_team_membership(team, user=self.user)
+            self.project.add_team(team)
+            project_team = ProjectTeam.objects.get(project=self.project, team=team)
+
+            TeamKeyTransaction.objects.bulk_create(
+                [
+                    TeamKeyTransaction(
+                        organization=self.organization,
+                        project_team=project_team,
+                        transaction=f"transaction-{team.id}-{i}",
+                    )
+                    for i in range(MAX_TEAM_KEY_TRANSACTIONS + 1)
+                ]
+            )
+
+            query = {
+                "team": "myteams",
+                "project": [self.project.id],
+                "orderby": "transaction",
+                "field": [
+                    "team_key_transaction",
+                    "transaction",
+                    "transaction.status",
+                    "project",
+                    "epm()",
+                    "failure_rate()",
+                    "percentile(transaction.duration, 0.95)",
+                ],
+            }
+
+            response = self.do_request(query)
+            assert response.status_code == 400, response.content
+            assert (
+                response.data["detail"]
+                == f"You have selected teams with too many transactions. The limit is {MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS}. Change the active filters to try again."
+            )
 
     def test_no_pagination_param(self):
         self.store_event(
