@@ -67,16 +67,18 @@ class TransactionRuleModal extends Form<Props, State> {
     const {rule} = this.props;
 
     if (rule) {
-      return t('Edit a custom rule for transactions');
+      return t('Edit Transaction Sampling Rule');
     }
 
-    return t('Add a custom rule for transactions');
+    return t('Add Transaction Sampling Rule');
   }
 
   geTransactionFieldDescription() {
     return {
-      label: t('Transaction'),
-      // help: t('This is a description'),  TODO(Priscila): Add correct descriptions
+      label: t('Transactions'),
+      help: t(
+        'This determines if the rule applies to all transactions or only transactions that match custom conditions.'
+      ),
     };
   }
 
