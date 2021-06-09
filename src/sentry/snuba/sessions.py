@@ -135,8 +135,8 @@ def get_project_releases_by_stability(
     _, stats_start, _ = get_rollup_starts_and_buckets(stats_period)
 
     orderby = {
-        "crash_free_sessions": [["divide", ["sessions_crashed", "sessions"]]],
-        "crash_free_users": [["divide", ["users_crashed", "users"]]],
+        "crash_free_sessions": [["-divide", ["sessions_crashed", "sessions"]]],
+        "crash_free_users": [["-divide", ["users_crashed", "users"]]],
         "sessions": ["-sessions"],
         "users": ["-users"],
     }[scope]
