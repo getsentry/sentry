@@ -733,3 +733,11 @@ class SCIMGroupTests(APITestCase):
             "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
             "scimType": "invalidFilter",
         }
+
+    def test_team_detail_put_permission_denied(self):
+        url = reverse(
+            "sentry-api-0-organization-scim-team-details",
+            args=[self.organization.slug, self.team.id],
+        )
+        response = self.client.put(url)
+        assert response.status_code == 403, response.data

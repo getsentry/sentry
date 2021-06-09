@@ -19,7 +19,7 @@ from sentry.models import (
     TeamAvatar,
     User,
 )
-from sentry.scim.endpoints.constants import SCIM_SCHEMA_GROUP
+from sentry.scim.endpoints.constants import SCIM_SCHEMA_GROUP  # type: ignore
 from sentry.utils.compat import zip
 from sentry.utils.json import JSONData
 

@@ -212,3 +212,8 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
 
     def delete(self, request, organization, team):
         return super().delete(request, team)
+
+    def put(self, request, organization, team):
+        # override parents put since we dont have puts
+        # in SCIM Team routes
+        return self.http_method_not_allowed(request)
