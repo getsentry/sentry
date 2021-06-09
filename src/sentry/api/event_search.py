@@ -11,6 +11,7 @@ from parsimonious.nodes import Node, RegexNode
 
 from sentry.search.events.constants import (
     KEY_TRANSACTION_ALIAS,
+    OPERATOR_NEGATION_MAP,
     SEARCH_MAP,
     TAG_KEY_RE,
     TEAM_KEY_TRANSACTION_ALIAS,
@@ -30,15 +31,6 @@ from sentry.utils.snuba import is_duration_measurement, is_measurement, is_span_
 from sentry.utils.validators import is_event_id
 
 WILDCARD_CHARS = re.compile(r"[\*]")
-NEGATION_MAP = {
-    "=": "!=",
-    "<": ">=",
-    "<=": ">",
-    ">": "<=",
-    ">=": "<",
-    "IN": "NOT IN",
-}
-
 
 event_search_grammar = Grammar(
     r"""
@@ -489,7 +481,7 @@ class SearchVisitor(NodeVisitor):
         elif not isinstance(operator, str):
             operator = operator[0]
         if self.is_negated(negation):
-            return NEGATION_MAP.get(operator, "!=")
+            return OPERATOR_NEGATION_MAP.get(operator, "!=")
         return operator
 
     def visit_aggregate_filter(self, node, children):
