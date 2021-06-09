@@ -1,8 +1,9 @@
 from sentry.api.serializers import OrganizationMemberWithProjectsSerializer, serialize
+from sentry.api.serializers.models.organization_member import OrganizationMemberWithTeamsSerializer
 from sentry.testutils import TestCase
 
 
-class OrganizationMemberWithProjectsSerializerTest(TestCase):
+class OrganizationMemberSerializerTest(TestCase):
     def setUp(self):
         self.owner_user = self.create_user("foo@localhost", username="foo")
         self.user_2 = self.create_user("bar@localhost", username="bar")
@@ -14,13 +15,18 @@ class OrganizationMemberWithProjectsSerializerTest(TestCase):
         self.project = self.create_project(teams=[self.team])
         self.project_2 = self.create_project(teams=[self.team_2])
 
-    def test_simple(self):
-        projects_ids = [self.project.id, self.project_2.id]
-        org_members = list(
+    def _get_org_members(self):
+        return list(
             self.org.member_set.filter(user__in=[self.owner_user, self.user_2]).order_by(
                 "user__email"
             )
         )
+
+
+class OrganizationMemberWithProjectsSerializerTest(OrganizationMemberSerializerTest):
+    def test_simple(self):
+        projects_ids = [self.project.id, self.project_2.id]
+        org_members = self._get_org_members()
         result = serialize(
             org_members,
             self.user_2,
@@ -38,3 +44,14 @@ class OrganizationMemberWithProjectsSerializerTest(TestCase):
         )
         expected_projects = [[self.project_2.slug], []]
         assert [r["projects"] for r in result] == expected_projects
+
+
+class OrganizationMemberWithTeamsSerializerTest(OrganizationMemberSerializerTest):
+    def test_simple(self):
+        result = serialize(
+            self._get_org_members(),
+            self.user_2,
+            OrganizationMemberWithTeamsSerializer(),
+        )
+        expected_teams = [{self.team.slug, self.team_2.slug}, {self.team.slug}]
+        assert [set(r["teams"]) for r in result] == expected_teams

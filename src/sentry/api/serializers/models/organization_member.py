@@ -28,15 +28,12 @@ def get_team_slugs_by_organization_member_id(
             team__status=TeamStatus.VISIBLE, organizationmember__in=organization_members
         ).values_list("organizationmember_id", "team_id")
     )
-    team_ids_by_organization_member_id = {
-        organization_member_id: team_id
-        for organization_member_id, team_id in organization_member_tuples
-    }
-    teams = Team.objects.filter(id__in=team_ids_by_organization_member_id.values())
+    team_ids = {team_id for (_organization_member_id, team_id) in organization_member_tuples}
+    teams = Team.objects.filter(id__in=team_ids)
     teams_by_id = {team.id: team for team in teams}
 
     results = defaultdict(list)
-    for member_id, team_id in team_ids_by_organization_member_id.items():
+    for member_id, team_id in organization_member_tuples:
         results[member_id].append(teams_by_id[team_id].slug)
     return results
 
