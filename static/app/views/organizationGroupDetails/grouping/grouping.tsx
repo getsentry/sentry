@@ -15,6 +15,7 @@ import {t, tct, tn} from 'app/locale';
 import space from 'app/styles/space';
 import {Group, Organization, Project} from 'app/types';
 import {Event} from 'app/types/event';
+import parseLinkHeader from 'app/utils/parseLinkHeader';
 import withApi from 'app/utils/withApi';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import RangeSlider from 'app/views/settings/components/forms/controls/rangeSlider';
@@ -172,6 +173,9 @@ function Grouping({api, groupId, location}: Props) {
   // Todo(Priscila): Implement it
   //}
 
+  const links = parseLinkHeader(pagination);
+  const hasMore = links.previous?.results || links.next?.results;
+
   return (
     <Wrapper>
       <Description>
@@ -213,7 +217,7 @@ function Grouping({api, groupId, location}: Props) {
                     {tct(
                       `This issue will be deleted and [quantity] new issues will be created.`,
                       {
-                        quantity: pagination
+                        quantity: hasMore
                           ? `${activeGroupingLevelDetails.length}+`
                           : activeGroupingLevelDetails.length,
                       }
@@ -255,7 +259,7 @@ export default withApi(Grouping);
 const Wrapper = styled('div')`
   flex: 1;
   display: grid;
-  background: ${p => p.theme.white};
+  background: ${p => p.theme.background};
   grid-gap: ${space(2)};
   margin: -${space(3)} -${space(4)};
   padding: ${space(3)} ${space(4)};
@@ -266,7 +270,7 @@ const Description = styled('p')`
 `;
 
 const Action = styled('div')`
-  border-top: 1px solid ${p => p.theme.innerBorder};
+  border-top: 1px solid ${p => p.theme.border};
   display: flex;
   justify-content: flex-end;
   padding: ${space(2)} 0 0;
