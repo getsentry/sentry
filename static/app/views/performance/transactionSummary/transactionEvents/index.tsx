@@ -3,6 +3,7 @@ import {browserHistory, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
@@ -103,30 +104,36 @@ class TransactionEvents extends Component<Props> {
         orgSlug={organization.slug}
         projectSlug={forceProject?.slug}
       >
-        <GlobalSelectionHeader
-          lockedMessageSubject={t('transaction')}
-          shouldForceProject={shouldForceProject}
-          forceProject={forceProject}
-          specificProjectSlugs={projectSlugs}
-          disableMultipleProjectSelection
-          showProjectSettingsLink
+        <Feature
+          features={['performance-events-page']}
+          organization={organization}
+          renderDisabled={this.renderNoAccess}
         >
-          <StyledPageContent>
-            <LightWeightNoProjectMessage organization={organization}>
-              <EventsPageContent
-                location={location}
-                eventView={eventView}
-                transactionName={transactionName}
-                organization={organization}
-                isLoading={false}
-                totalValues={null}
-                projects={projects}
-                spanOperationBreakdownFilter={this.state.spanOperationBreakdownFilter}
-              />
-              ;
-            </LightWeightNoProjectMessage>
-          </StyledPageContent>
-        </GlobalSelectionHeader>
+          <GlobalSelectionHeader
+            lockedMessageSubject={t('transaction')}
+            shouldForceProject={shouldForceProject}
+            forceProject={forceProject}
+            specificProjectSlugs={projectSlugs}
+            disableMultipleProjectSelection
+            showProjectSettingsLink
+          >
+            <StyledPageContent>
+              <LightWeightNoProjectMessage organization={organization}>
+                <EventsPageContent
+                  location={location}
+                  eventView={eventView}
+                  transactionName={transactionName}
+                  organization={organization}
+                  isLoading={false}
+                  totalValues={null}
+                  projects={projects}
+                  spanOperationBreakdownFilter={this.state.spanOperationBreakdownFilter}
+                />
+                ;
+              </LightWeightNoProjectMessage>
+            </StyledPageContent>
+          </GlobalSelectionHeader>
+        </Feature>
       </SentryDocumentTitle>
     );
   }
