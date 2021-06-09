@@ -66,6 +66,11 @@ from sentry.utils import json
 from sentry.utils.appleconnect import appstore_connect, itunes_connect
 from sentry.utils.appleconnect.itunes_connect import ITunesHeaders
 from sentry.utils.safe import get_path
+from sentry.api.exceptions import (
+    AppConnectAuthenticationError,
+    ItunesAuthenticationError,
+    ItunesTwoFactorAuthenticationRequired,
+)
 
 # The property name of the project option which contains the encryption key.
 #
