@@ -1037,7 +1037,7 @@ class NumberRange(FunctionArg):
         return value
 
 
-class OptionalNumberRange(NumberRange):
+class NullableNumberRange(NumberRange):
     def __init__(self, name, start, end):
         super().__init__(name, start, end)
         self.has_default = True
@@ -1361,7 +1361,7 @@ FUNCTIONS = {
         ),
         Function(
             "apdex",
-            optional_args=[OptionalNumberRange("satisfaction", 0, None)],
+            optional_args=[NullableNumberRange("satisfaction", 0, None)],
             conditional_transform=ConditionalFunction(
                 ArgValue("satisfaction"),
                 "apdex(duration, {satisfaction:g})",
@@ -1392,7 +1392,7 @@ FUNCTIONS = {
         Function(
             "count_miserable",
             required_args=[CountColumn("column")],
-            optional_args=[OptionalNumberRange("satisfaction", 0, None)],
+            optional_args=[NullableNumberRange("satisfaction", 0, None)],
             calculated_args=[
                 {
                     "name": "tolerated",
@@ -1428,7 +1428,7 @@ FUNCTIONS = {
             # https://stats.stackexchange.com/questions/47771/what-is-the-intuition-behind-beta-distribution
             # for an intuitive explanation of the Beta Distribution Function.
             optional_args=[
-                OptionalNumberRange("satisfaction", 0, None),
+                NullableNumberRange("satisfaction", 0, None),
                 with_default(5.8875, NumberRange("alpha", 0, None)),
                 with_default(111.8625, NumberRange("beta", 0, None)),
             ],
