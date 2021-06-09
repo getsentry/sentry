@@ -625,8 +625,8 @@ def resolve_function(field, match=None, params=None, functions_acl=False):
             None,
             [snuba_string, None, alias],
         )
-    elif function.conditional is not None:
-        condition, match, fallback = function.conditional
+    elif function.conditional_transform is not None:
+        condition, match, fallback = function.conditional_transform
         if alias is None:
             alias = get_function_alias_with_columns(function.name, columns)
 
@@ -1014,6 +1014,8 @@ class NumberRange(FunctionArg):
         self.end = end
 
     def normalize(self, value, params):
+        if value is None:
+            return value
         try:
             value = float(value)
         except ValueError:
@@ -1062,7 +1064,7 @@ class Function:
         column=None,
         aggregate=None,
         transform=None,
-        conditional=None,
+        conditional_transform=None,
         result_type_fn=None,
         default_result_type=None,
         redundant_grouping=False,
@@ -1085,7 +1087,7 @@ class Function:
         :param str transform: NOTE: Use aggregate over transform whenever possible.
             An aggregate string to be passed to snuba once formatted. The arguments
             will be filled into the string using `.format(...)`.
-        :param ConditionalFunction conditional: Tuple of the condition to be evaluated, the
+        :param ConditionalFunction conditional_transform: Tuple of the condition to be evaluated, the
             transform string if the condition is met and the transform string if the condition
             is not met.
         :param str result_type_fn: A function to call with in order to determine the result type.
@@ -1105,7 +1107,7 @@ class Function:
         self.column = column
         self.aggregate = aggregate
         self.transform = transform
-        self.conditional = conditional
+        self.conditional_transform = conditional_transform
         self.result_type_fn = result_type_fn
         self.default_result_type = default_result_type
         self.redundant_grouping = redundant_grouping
@@ -1198,7 +1200,7 @@ class Function:
                     self.column is not None,
                     self.aggregate is not None,
                     self.transform is not None,
-                    self.conditional is not None,
+                    self.conditional_transform is not None,
                 ]
             )
             == 1
@@ -1340,7 +1342,7 @@ FUNCTIONS = {
         Function(
             "apdex",
             optional_args=[with_default(0, NumberRange("satisfaction", 0, None))],
-            conditional=ConditionalFunction(
+            conditional_transform=ConditionalFunction(
                 ArgValue("satisfaction"),
                 "apdex(duration, {satisfaction:g})",
                 """
@@ -1372,7 +1374,7 @@ FUNCTIONS = {
             required_args=[CountColumn("column")],
             optional_args=[with_default(0, NumberRange("satisfaction", 0, None))],
             calculated_args=[{"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0}],
-            conditional=ConditionalFunction(
+            conditional_transform=ConditionalFunction(
                 ArgValue("satisfaction"),
                 "uniqIf(user, greater(duration, {tolerated:g}))",
                 """
@@ -1409,7 +1411,7 @@ FUNCTIONS = {
                 {"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0},
                 {"name": "parameter_sum", "fn": lambda args: args["alpha"] + args["beta"]},
             ],
-            conditional=ConditionalFunction(
+            conditional_transform=ConditionalFunction(
                 ArgValue("satisfaction"),
                 "ifNull(divide(plus(uniqIf(user, greater(duration, {tolerated:g})), {alpha}), plus(uniq(user), {parameter_sum})), 0)",
                 """
