@@ -7,7 +7,7 @@ from django.core.exceptions import ValidationError
 from django.http import Http404
 
 from sentry.constants import ObjectStatus
-from sentry.models import IdentityProvider, Integration, Organization
+from sentry.models import Identity, IdentityProvider, IdentityStatus, Integration, Organization
 from sentry.shared_integrations.exceptions import (
     ApiError,
     DuplicateDisplayNameError,
@@ -269,3 +269,47 @@ def parse_link(url):
     parsed_path += "/" + str(url_parts[4])
 
     return parsed_path
+
+
+def get_slack_data_by_user(integration, organization, emails_by_user):
+    access_token = (
+        integration.metadata.get("user_access_token") or integration.metadata["access_token"]
+    )
+    headers = {"Authorization": "Bearer %s" % access_token}
+    client = SlackClient()
+
+    slack_data_by_user = {}
+    for user, emails in emails_by_user.items():
+        for email in emails:
+            try:
+                # TODO use users.list instead to reduce API calls
+                resp = client.get("/users.lookupByEmail/", headers=headers, params={"email": email})
+            except ApiError as e:
+                logger.info(
+                    "post_install.fail.slack_lookupByEmail",
+                    extra={
+                        "error": str(e),
+                        "organization": organization.slug,
+                        "integration_id": integration.id,
+                        "email": email,
+                    },
+                )
+                continue
+
+            if resp["ok"] is True:
+                slack_data_by_user[user] = {
+                    "email": resp["user"]["profile"]["email"],
+                    "team_id": resp["user"]["team_id"],
+                    "slack_id": resp["user"]["id"],
+                }
+                break
+    return slack_data_by_user
+
+
+def get_identities_by_user(idp, users):
+    identity_models = Identity.objects.filter(
+        idp=idp,
+        user__in=users,
+        status=IdentityStatus.VALID,
+    )
+    return {identity.user: identity for identity in identity_models}
