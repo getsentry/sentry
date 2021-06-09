@@ -277,9 +277,7 @@ def get_latest_release(projects, environments, organization_id=None):
     )
 
 
-def parse_release(
-    value: object, projects: object, environments: object, organization_id: object = None
-) -> object:
+def parse_release(value, projects, environments, organization_id=None):
     if value == "latest":
         try:
             return get_latest_release(projects, environments, organization_id)

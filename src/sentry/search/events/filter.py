@@ -35,6 +35,8 @@ from sentry.search.events.constants import (
     PROJECT_ALIAS,
     PROJECT_NAME_ALIAS,
     RELEASE_ALIAS,
+    SEMVER_FAKE_PACKAGE,
+    SEMVER_MAX_SEARCH_RELEASES,
     TEAM_KEY_TRANSACTION_ALIAS,
     USER_DISPLAY_ALIAS,
 )
@@ -325,10 +327,6 @@ def _team_key_transaction_filter_converter(
     )
 
 
-MAX_SEMVER_SEARCH_RELEASES = 1000
-FAKE_PACKAGE = "__sentry_fake__"
-
-
 def _flip_field_sort(field: str):
     return field[1:] if field.startswith("-") else f"-{field}"
 
@@ -362,14 +360,14 @@ def parse_semver_search(
     operator: str = search_filter.operator
     # Our semver parser expects a package at the start of the version, so just add a
     # dummy one here if not already provided.
-    version = version if "@" in version else f"{FAKE_PACKAGE}@{version}"
+    version = version if "@" in version else f"{SEMVER_FAKE_PACKAGE}@{version}"
     parsed = relay_parse_release(version)
     parsed_version = parsed.get("version_parsed")
     if parsed_version:
         # The version matches semver format, so we can use it for comparison
         package = parsed["package"]
         release_filter = Q(organization_id=organization_id)
-        if package and package != FAKE_PACKAGE:
+        if package and package != SEMVER_FAKE_PACKAGE:
             release_filter &= Q(package=package)
         major = parsed_version["major"]
         minor = parsed_version["minor"]
@@ -408,10 +406,10 @@ def parse_semver_search(
         )
         qs_initial = qs.filter(**{f"semver__{OPERATOR_TO_DJANGO[operator]}": filter_func}).order_by(
             *order_by
-        )[:MAX_SEMVER_SEARCH_RELEASES]
+        )[:SEMVER_MAX_SEARCH_RELEASES]
         versions = list(qs_initial)
         final_operator = "IN"
-        if len(versions) == MAX_SEMVER_SEARCH_RELEASES:
+        if len(versions) == SEMVER_MAX_SEARCH_RELEASES:
             # We want to limit how many versions we pass through to Snuba. If we've hit
             # the limit, make an extra query and see whether the inverse has fewer ids.
             # If so, we can do a NOT IN query with these ids instead. Otherwise, we just
@@ -422,7 +420,7 @@ def parse_semver_search(
             # include it even though we don't really care about order for this query
             qs_flipped = qs.filter(**{f"semver__{django_operator}": filter_func}).order_by(
                 *map(_flip_field_sort, order_by)
-            )[:MAX_SEMVER_SEARCH_RELEASES]
+            )[:SEMVER_MAX_SEARCH_RELEASES]
             exclude_versions = list(qs_flipped)
             if exclude_versions and len(exclude_versions) < len(versions):
                 # Do a negative search instead
