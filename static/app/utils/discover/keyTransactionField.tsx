@@ -34,13 +34,13 @@ class KeyTransactionField extends Component<Props, State> {
     };
   }
 
-  getProjectId(): number | null {
+  getProjectId(): string | null {
     const {projects, projectSlug} = this.props;
     const project = projects.find(proj => proj.slug === projectSlug);
     if (!project) {
       return null;
     }
-    return parseInt(project.id, 10);
+    return project.id;
   }
 
   toggleKeyTransactionHandler = () => {
