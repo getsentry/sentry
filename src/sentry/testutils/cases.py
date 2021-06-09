@@ -403,7 +403,7 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
         return getattr(self.client, method)(url, format="json", data=params)
 
     def get_valid_response(self, *args, **params):
-        """ Deprecated. Calls `get_response` (see above) and asserts a specific status code. """
+        """Deprecated. Calls `get_response` (see above) and asserts a specific status code."""
         status_code = params.pop("status_code", 200)
         resp = self.get_response(*args, **params)
         assert resp.status_code == status_code, (resp.status_code, resp.content)
@@ -824,13 +824,16 @@ class SnubaTestCase(BaseTestCase):
                 False
             ), f"Could not ensure that {total} event(s) were persisted within {attempt} attempt(s). Event count is instead currently {last_events_seen}."
 
-    def store_session(self, session):
+    def bulk_store_sessions(self, sessions):
         assert (
             requests.post(
-                settings.SENTRY_SNUBA + "/tests/sessions/insert", data=json.dumps([session])
+                settings.SENTRY_SNUBA + "/tests/sessions/insert", data=json.dumps(sessions)
             ).status_code
             == 200
         )
+
+    def store_session(self, session):
+        self.bulk_store_sessions([session])
 
     def store_group(self, group):
         data = [self.__wrap_group(group)]

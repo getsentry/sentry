@@ -11,6 +11,7 @@ from sentry.models import (
     Authenticator,
     Organization,
     OrganizationMember,
+    UserEmail,
 )
 from sentry.testutils import APITestCase
 from sentry.utils.compat import mock
@@ -150,6 +151,31 @@ class UserAuthenticatorEnrollTest(APITestCase):
             assert resp.status_code == 400
             resp = self.client.post(url, data={"secret": "secret12", "phone": "1231234", "otp": ""})
             assert resp.status_code == 400
+
+    def test_sms_no_verified_email(self):
+        user = self.create_user()
+        UserEmail.objects.filter(user=user, email=user.email).update(is_verified=False)
+
+        self.login_as(user)
+        new_options = settings.SENTRY_OPTIONS.copy()
+        new_options["sms.twilio-account"] = "twilio-account"
+
+        with self.settings(SENTRY_OPTIONS=new_options):
+            url = reverse(
+                "sentry-api-0-user-authenticator-enroll",
+                kwargs={"user_id": "me", "interface_id": "sms"},
+            )
+            resp = self.client.post(
+                url, data={"secret": "secret12", "phone": "1231234", "otp": None}
+            )
+            assert resp.status_code == 401
+            assert resp.data == {
+                "detail": {
+                    "code": "email-verification-required",
+                    "message": "Email verification required.",
+                    "extra": {"username": user.email},
+                }
+            }
 
     @mock.patch(
         "sentry.api.endpoints.user_authenticator_enroll.ratelimiter.is_limited", return_value=True

@@ -96,7 +96,7 @@ LEGACY_VALUE_TO_KEY = {
 def get_legacy_key(
     type: NotificationSettingTypes, scope_type: NotificationScopeType
 ) -> Optional[str]:
-    """ Temporary mapping from new enum types to legacy strings. """
+    """Temporary mapping from new enum types to legacy strings."""
     if scope_type == NotificationScopeType.USER and type == NotificationSettingTypes.ISSUE_ALERTS:
         return "subscribe_by_default"
 
@@ -193,7 +193,7 @@ def map_notification_settings_to_legacy(
     notification_settings: Iterable[Any],
     actor_mapping: Mapping[int, Any],
 ) -> List[Any]:
-    """ A hack for legacy serializers. Pretend a list of NotificationSettings is a list of UserOptions. """
+    """A hack for legacy serializers. Pretend a list of NotificationSettings is a list of UserOptions."""
     project_mapping, organization_mapping = get_parent_mappings(notification_settings)
     return [
         get_legacy_object(
@@ -206,7 +206,7 @@ def map_notification_settings_to_legacy(
 def get_parent_mappings(
     notification_settings: Iterable[Any],
 ) -> Tuple[Mapping[int, Any], Mapping[int, Any]]:
-    """ Prefetch a list of Project or Organization objects for the Serializer. """
+    """Prefetch a list of Project or Organization objects for the Serializer."""
     from sentry.models.organization import Organization
     from sentry.models.project import Project
 

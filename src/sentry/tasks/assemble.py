@@ -170,7 +170,7 @@ class AssembleArtifactsError(Exception):
 
 
 def _simple_update(release_file: ReleaseFile, new_file: File, new_archive: ReleaseArchive):
-    """ Update function used in _upsert_release_file """
+    """Update function used in _upsert_release_file"""
     old_file = release_file.file
     release_file.update(file=new_file)
     old_file.delete()
@@ -200,28 +200,30 @@ def _upsert_release_file(file: File, archive: ReleaseArchive, update_fn, **kwarg
 
 @metrics.wraps("tasks.assemble.merge_archives")
 def _merge_archives(release_file: ReleaseFile, new_file: File, new_archive: ReleaseArchive):
-    old_file = release_file.file
-    with ReleaseArchive(old_file.getfile().file) as old_archive:
-        buffer = BytesIO()
 
-        lock_key = f"assemble:merge_archives:{release_file.id}"
-        lock = app.locks.get(lock_key, duration=60)
+    lock_key = f"assemble:merge_archives:{release_file.id}"
+    lock = app.locks.get(lock_key, duration=60)
 
-        try:
-            with lock.blocking_acquire(
-                RELEASE_ARCHIVE_MERGE_INITIAL_DELAY, RELEASE_ARCHIVE_MERGE_TIMEOUT
-            ):
-                merge_release_archives(old_archive, new_archive, buffer)
+    try:
+        with lock.blocking_acquire(
+            RELEASE_ARCHIVE_MERGE_INITIAL_DELAY, RELEASE_ARCHIVE_MERGE_TIMEOUT
+        ):
+            old_file = release_file.file
+            old_file_contents = ReleaseFile.cache.getfile(release_file)
+            buffer = BytesIO()
 
+            with metrics.timer("tasks.assemble.merge_archives_pure"):
+                did_merge = merge_release_archives(old_file_contents, new_archive, buffer)
+
+            if did_merge:
                 replacement = File.objects.create(name=old_file.name, type=old_file.type)
                 buffer.seek(0)
                 replacement.putfile(buffer)
                 release_file.update(file=replacement)
-
                 old_file.delete()
 
-        except UnableToAcquireLock as error:
-            logger.error("merge_archives.fail", extra={"error": error})
+    except UnableToAcquireLock as error:
+        logger.error("merge_archives.fail", extra={"error": error})
 
     new_file.delete()
 
@@ -310,9 +312,14 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
                 "release": release,
                 "dist": dist,
             }
+
+            num_files = len(manifest.get("files", {}))
+
             if options.get("processing.save-release-archives"):
-                kwargs = dict(meta, name=RELEASE_ARCHIVE_FILENAME)
-                _upsert_release_file(bundle, archive, _merge_archives, **kwargs)
+                min_size = options.get("processing.release-archive-min-files")
+                if num_files >= min_size:
+                    kwargs = dict(meta, name=RELEASE_ARCHIVE_FILENAME)
+                    _upsert_release_file(bundle, archive, _merge_archives, **kwargs)
 
             # NOTE(jjbayer): Single files are still stored to enable
             # rolling back from release archives. Once release archives run
@@ -321,7 +328,7 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
             _store_single_files(archive, meta)
 
             # Count files extracted, to compare them to release files endpoint
-            metrics.incr("tasks.assemble.extracted_files", amount=len(manifest.get("files", {})))
+            metrics.incr("tasks.assemble.extracted_files", amount=num_files)
 
     except AssembleArtifactsError as e:
         set_assemble_status(
