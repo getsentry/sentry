@@ -51,12 +51,22 @@ export type TooltipOption = SelectValue<string> & {
 };
 
 export function getAxisOptions(organization: LightWeightOrganization): TooltipOption[] {
-  return [
-    {
+  let apdexOption: TooltipOption;
+  if (organization.features.includes('project-transaction-threshold')) {
+    apdexOption = {
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.APDEX_NEW),
+      value: `apdex_new()`,
+      label: t('Apdex'),
+    };
+  } else {
+    apdexOption = {
       tooltip: getTermHelp(organization, PERFORMANCE_TERM.APDEX),
       value: `apdex(${organization.apdexThreshold})`,
       label: t('Apdex'),
-    },
+    };
+  }
+  return [
+    apdexOption,
     {
       tooltip: getTermHelp(organization, PERFORMANCE_TERM.TPM),
       value: 'tpm()',
@@ -172,6 +182,22 @@ export function getFrontendOtherAxisOptions(
 export function getBackendAxisOptions(
   organization: LightWeightOrganization
 ): AxisOption[] {
+  let apdexOption: AxisOption;
+  if (organization.features.includes('project-transaction-threshold')) {
+    apdexOption = {
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.APDEX),
+      value: `apdex_new()`,
+      label: t('Apdex'),
+      field: `apdex_new()`,
+    };
+  } else {
+    apdexOption = {
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.APDEX),
+      value: `apdex(${organization.apdexThreshold})`,
+      label: t('Apdex'),
+      field: `apdex(${organization.apdexThreshold})`,
+    };
+  }
   return [
     {
       tooltip: getTermHelp(organization, PERFORMANCE_TERM.P50),
@@ -199,12 +225,6 @@ export function getBackendAxisOptions(
       field: 'p99(transaction.duration)',
     },
     {
-      tooltip: getTermHelp(organization, PERFORMANCE_TERM.APDEX),
-      value: `apdex(${organization.apdexThreshold})`,
-      label: t('Apdex'),
-      field: `apdex(${organization.apdexThreshold})`,
-    },
-    {
       tooltip: getTermHelp(organization, PERFORMANCE_TERM.TPM),
       value: 'tpm()',
       label: t('Transactions Per Minute'),
@@ -224,6 +244,7 @@ export function getBackendAxisOptions(
       isDistribution: true,
       isRightDefault: true,
     },
+    apdexOption,
   ];
 }
 
@@ -289,7 +310,9 @@ function generateGenericPerformanceEventView(
   const {query} = location;
 
   const fields = [
-    'key_transaction',
+    organization.features.includes('team-key-transactions')
+      ? 'team_key_transaction'
+      : 'key_transaction',
     'transaction',
     'project',
     'tpm()',
@@ -359,7 +382,9 @@ function generateBackendPerformanceEventView(
   const {query} = location;
 
   const fields = [
-    'key_transaction',
+    organization.features.includes('team-key-transactions')
+      ? 'team_key_transaction'
+      : 'key_transaction',
     'transaction',
     'project',
     'transaction.op',
@@ -431,7 +456,9 @@ function generateFrontendPageloadPerformanceEventView(
   const {query} = location;
 
   const fields = [
-    'key_transaction',
+    organization.features.includes('team-key-transactions')
+      ? 'team_key_transaction'
+      : 'key_transaction',
     'transaction',
     'project',
     'tpm()',
@@ -498,7 +525,9 @@ function generateFrontendOtherPerformanceEventView(
   const {query} = location;
 
   const fields = [
-    'key_transaction',
+    organization.features.includes('team-key-transactions')
+      ? 'team_key_transaction'
+      : 'key_transaction',
     'transaction',
     'project',
     'transaction.op',
@@ -564,7 +593,7 @@ export function generatePerformanceEventView(
   projects,
   isTrends = false
 ) {
-  const eventView = generateGenericPerformanceEventView(organization, location);
+  let eventView = generateGenericPerformanceEventView(organization, location);
   if (isTrends) {
     return eventView;
   }
@@ -572,18 +601,27 @@ export function generatePerformanceEventView(
   const display = getCurrentLandingDisplay(location, projects, eventView);
   switch (display?.field) {
     case LandingDisplayField.FRONTEND_PAGELOAD:
-      return generateFrontendPageloadPerformanceEventView(organization, location);
+      eventView = generateFrontendPageloadPerformanceEventView(organization, location);
+      break;
     case LandingDisplayField.FRONTEND_OTHER:
-      return generateFrontendOtherPerformanceEventView(organization, location);
+      eventView = generateFrontendOtherPerformanceEventView(organization, location);
+      break;
     case LandingDisplayField.BACKEND:
-      return generateBackendPerformanceEventView(organization, location);
+      eventView = generateBackendPerformanceEventView(organization, location);
+      break;
     default:
-      return eventView;
+      break;
+  }
+
+  if (organization.features.includes('team-key-transactions')) {
+    return eventView.withTeams(['myteams']);
+  } else {
+    return eventView;
   }
 }
 
 export function generatePerformanceVitalDetailView(
-  _organization: LightWeightOrganization,
+  organization: LightWeightOrganization,
   location: Location
 ): EventView {
   const {query} = location;
@@ -597,7 +635,9 @@ export function generatePerformanceVitalDetailView(
     query: 'event.type:transaction',
     projects: [],
     fields: [
-      'key_transaction',
+      organization.features.includes('team-key-transactions')
+        ? 'team_key_transaction'
+        : 'key_transaction',
       'transaction',
       'project',
       'count_unique(user)',
@@ -631,5 +671,10 @@ export function generatePerformanceVitalDetailView(
   eventView.additionalConditions
     .addTagValues('event.type', ['transaction'])
     .addTagValues('has', [vitalName]);
-  return eventView;
+
+  if (organization.features.includes('team-key-transactions')) {
+    return eventView.withTeams(['myteams']);
+  } else {
+    return eventView;
+  }
 }
