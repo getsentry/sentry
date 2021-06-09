@@ -29,6 +29,8 @@ class UnmergeReplacement(abc.ABC):
     @staticmethod
     def parse_arguments(fingerprints: Any = None, replacement: Any = None) -> "UnmergeReplacement":
         if replacement is not None:
+            if isinstance(replacement, dict):
+                replacement = _DISCRIMINATOR_REPLACEMENTS[replacement.pop("type")](**replacement)
             assert isinstance(replacement, UnmergeReplacement)
             return replacement
         elif fingerprints is not None:
@@ -112,6 +114,13 @@ class PrimaryHashUnmergeReplacement(UnmergeReplacement):
         return {"fingerprints": self.fingerprints}
 
 
+_REPLACEMENT_DISCRIMINATORS = {
+    PrimaryHashUnmergeReplacement: "primary_hash",
+}
+
+_DISCRIMINATOR_REPLACEMENTS = {v: k for k, v in _REPLACEMENT_DISCRIMINATORS.items()}
+
+
 @dataclass(frozen=True)
 class UnmergeArgsBase:
     """
@@ -184,7 +193,7 @@ class UnmergeArgsBase:
         rv = dataclasses.asdict(self)
         rv["fingerprints"] = None
         rv["destination_id"] = None
-        rv["replacement"] = self.replacement
+        rv["replacement"]["type"] = _REPLACEMENT_DISCRIMINATORS[type(self.replacement)]
         return rv
 
 
