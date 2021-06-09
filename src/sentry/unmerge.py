@@ -191,6 +191,10 @@ class HierarchicalUnmergeReplacement(UnmergeReplacement):
         locked_primary_hashes: Collection[str],
     ) -> None:
         if self.reset_hashes:
+            # The SPLIT state on a grouphash tells save_event to not consider
+            # it for finding a group. When reducing the grouping level, we need
+            # to undo some SPLIT states to make sure new events go into the
+            # right group as well.
             GroupHash.objects.filter(
                 project_id=project.id, hash__in=self.reset_hashes, state=GroupHash.State.SPLIT
             ).update(state=GroupHash.State.UNLOCKED)
