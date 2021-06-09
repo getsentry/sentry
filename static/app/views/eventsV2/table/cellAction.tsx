@@ -11,6 +11,7 @@ import space from 'app/styles/space';
 import {TableDataRow} from 'app/utils/discover/discoverQuery';
 import {
   getAggregateAlias,
+  isEquationAlias,
   isRelativeSpanOperationBreakdownField,
 } from 'app/utils/discover/fields';
 import {getDuration} from 'app/utils/formatters';
@@ -196,6 +197,11 @@ class CellAction extends React.Component<Props, State> {
 
     // Do not render context menu buttons for the span op breakdown field.
     if (isRelativeSpanOperationBreakdownField(column.name)) {
+      return null;
+    }
+
+    // Do not render context menu buttons for the equation fields until we can query on them
+    if (isEquationAlias(column.name)) {
       return null;
     }
 
