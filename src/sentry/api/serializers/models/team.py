@@ -188,7 +188,9 @@ class TeamWithProjectsSerializer(TeamSerializer):
 
 
 class TeamSCIMSerializer(Serializer):  # type: ignore
-    def serialize(self, obj, attrs, user, **kwargs):
+    def serialize(
+        self, obj: Team, attrs: Mapping[str, Any], user: Any, **kwargs: Any
+    ) -> MutableMapping[str, JSONData]:
         return {
             "schemas": [SCIM_SCHEMA_GROUP],
             "id": obj.id,
