@@ -15,6 +15,10 @@ import {
   getParentField,
   groupByOrganization,
 } from 'app/views/settings/account/notifications/utils';
+import {
+  RenderSearch,
+  SearchWrapper,
+} from 'app/views/settings/components/defaultSearchBar';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
@@ -72,6 +76,10 @@ class NotificationSettingsByProjects extends AsyncComponent<Props, State> {
     const canSearch = this.getProjectCount() >= MIN_PROJECTS_FOR_SEARCH;
     const shouldPaginate = projects.length >= MIN_PROJECTS_FOR_PAGINATION;
 
+    // eslint-disable-next-line react/prop-types
+    const renderSearch: RenderSearch = ({defaultSearchBar}) => (
+      <SearchWrapper>{defaultSearchBar}</SearchWrapper>
+    );
     return (
       <React.Fragment>
         {canSearch &&
@@ -79,6 +87,7 @@ class NotificationSettingsByProjects extends AsyncComponent<Props, State> {
             stateKey: 'projects',
             url: '/projects/',
             placeholder: t('Search Projects'),
+            children: renderSearch,
           })}
         <Form
           saveOnBlur

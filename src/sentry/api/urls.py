@@ -4,8 +4,8 @@ from sentry.data_export.endpoints.data_export import DataExportEndpoint
 from sentry.data_export.endpoints.data_export_details import DataExportDetailsEndpoint
 from sentry.discover.endpoints.discover_key_transactions import (
     IsKeyTransactionEndpoint,
-    KeyTransactionCountEndpoint,
     KeyTransactionEndpoint,
+    KeyTransactionListEndpoint,
 )
 from sentry.discover.endpoints.discover_query import DiscoverQueryEndpoint
 from sentry.discover.endpoints.discover_saved_queries import DiscoverSavedQueriesEndpoint
@@ -801,9 +801,9 @@ urlpatterns = [
                     name="sentry-api-0-organization-key-transactions",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/key-transactions-count/$",
-                    KeyTransactionCountEndpoint.as_view(),
-                    name="sentry-api-0-organization-key-transactions-count",
+                    r"^(?P<organization_slug>[^\/]+)/key-transactions-list/$",
+                    KeyTransactionListEndpoint.as_view(),
+                    name="sentry-api-0-organization-key-transactions-list",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/is-key-transactions/$",

@@ -5,12 +5,12 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {createFocusTrap, FocusTrap} from 'focus-trap';
 import {AnimatePresence, motion} from 'framer-motion';
-import memoize from 'lodash/memoize';
 
 import {closeModal as actionCloseModal} from 'app/actionCreators/modal';
 import {ROOT_ELEMENT} from 'app/constants';
 import ModalStore from 'app/stores/modalStore';
 import space from 'app/styles/space';
+import getModalPortal from 'app/utils/getModalPortal';
 import testableTransition from 'app/utils/testableTransition';
 
 import {makeClosableHeader, makeCloseButton, ModalBody, ModalFooter} from './components';
@@ -81,17 +81,6 @@ type Props = {
   onClose?: () => void;
 };
 
-const getModalPortal = memoize(() => {
-  let portal = document.getElementById('modal-portal') as HTMLDivElement;
-  if (!portal) {
-    portal = document.createElement('div');
-    portal.setAttribute('id', 'modal-portal');
-    document.body.appendChild(portal);
-  }
-
-  return portal;
-});
-
 function GlobalModal({visible = false, options = {}, children, onClose}: Props) {
   const closeModal = React.useCallback(() => {
     // Option close callback, from the thing which opened the modal
@@ -111,6 +100,10 @@ function GlobalModal({visible = false, options = {}, children, onClose}: Props) 
 
   const portal = getModalPortal();
   const focusTrap = React.useRef<FocusTrap>();
+  // SentryApp might be missing on tests
+  if (window.SentryApp) {
+    window.SentryApp.modalFocusTrap = focusTrap;
+  }
 
   React.useEffect(() => {
     focusTrap.current = createFocusTrap(portal, {

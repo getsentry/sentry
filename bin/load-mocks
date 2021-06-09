@@ -129,8 +129,8 @@ def generate_commits(user):
             author = (user.name, user.email)
         else:
             author = (
-                "{} {}".format(random.choice(loremipsum.words), random.choice(loremipsum.words)),
-                "{}@example.com".format(random.choice(loremipsum.words)),
+                f"{random.choice(loremipsum.words)} {random.choice(loremipsum.words)}",
+                f"{random.choice(loremipsum.words)}@example.com",
             )
 
         commits.append(

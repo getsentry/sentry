@@ -31,7 +31,7 @@ class IntegrationExternalUserMappings extends AsyncComponent<Props, State> {
       [
         'members',
         `/organizations/${organization.slug}/members/`,
-        {query: {expand: 'externalUsers'}},
+        {query: {query: 'hasExternalUsers:true', expand: 'externalUsers'}},
       ],
     ];
   }
@@ -74,12 +74,13 @@ class IntegrationExternalUserMappings extends AsyncComponent<Props, State> {
     return externalUserMappings.sort((a, b) => parseInt(a.id, 10) - parseInt(b.id, 10));
   }
 
-  get sentryNames() {
-    const {members} = this.state;
-    return members.map(({user: {id}, email, name}) => {
-      const label = email !== name ? `${name} - ${email}` : `${email}`;
-      return {id, name: label};
-    });
+  sentryNamesMapper(members: Member[]) {
+    return members
+      .filter(member => member.user)
+      .map(({user: {id}, email, name}) => {
+        const label = email !== name ? `${name} - ${email}` : `${email}`;
+        return {id, name: label};
+      });
   }
 
   openModal = (mapping?: ExternalActorMapping) => {
@@ -96,8 +97,9 @@ class IntegrationExternalUserMappings extends AsyncComponent<Props, State> {
               closeModal();
             }}
             mapping={mapping}
-            sentryNames={this.sentryNames}
+            sentryNamesMapper={this.sentryNamesMapper}
             type="user"
+            url={`/organizations/${organization.slug}/members/`}
             onCancel={closeModal}
             baseEndpoint={`/organizations/${organization.slug}/external-users/`}
           />

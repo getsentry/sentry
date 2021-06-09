@@ -939,7 +939,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert [attrs for time, attrs in results["data"]] == [[{"count": 3}], [{"count": 0}]]
 
     def test_top_events_with_functions_on_different_transactions(self):
-        """ Transaction2 has less events, but takes longer so order should be self.transaction then transaction2 """
+        """Transaction2 has less events, but takes longer so order should be self.transaction then transaction2"""
         transaction_data = load_data("transaction")
         transaction_data["start_timestamp"] = iso_format(self.day_ago + timedelta(minutes=2))
         transaction_data["timestamp"] = iso_format(self.day_ago + timedelta(minutes=6))
