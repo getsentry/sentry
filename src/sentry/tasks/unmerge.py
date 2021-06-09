@@ -477,9 +477,9 @@ def unmerge(*posargs, **kwargs):
     # If there are no more events to process, we're done with the migration.
     if not events:
         unlock_hashes(args.project_id, locked_primary_hashes)
-        if isinstance(args, SuccessiveUnmergeArgs):
-            for unmerge_key, (group_id, eventstream_state) in args.destinations.items():
-                logger.warning("Unmerge complete (eventstream state: %s)", eventstream_state)
+        for unmerge_key, (group_id, eventstream_state) in args.destinations.items():
+            logger.warning("Unmerge complete (eventstream state: %s)", eventstream_state)
+            if eventstream_state:
                 args.replacement.stop_snuba_replacement(eventstream_state)
         return
 

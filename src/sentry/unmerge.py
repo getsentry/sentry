@@ -10,6 +10,9 @@ from sentry.models.project import Project
 
 _DEFAULT_UNMERGE_KEY = "default"
 
+# Weird type, but zero runtime cost in casting it to `Destinations`!
+InitialDestinations = Mapping[str, Tuple[int, None]]
+
 Destinations = Mapping[str, Tuple[int, Any]]
 
 
@@ -95,8 +98,7 @@ class PrimaryHashUnmergeReplacement(UnmergeReplacement):
         return eventstream.start_unmerge(project.id, self.fingerprints, source_id, destination_id)
 
     def stop_snuba_replacement(self, eventstream_state: Any) -> None:
-        if eventstream_state:
-            eventstream.end_unmerge(eventstream_state)
+        eventstream.end_unmerge(eventstream_state)
 
     def run_postgres_replacement(
         self, project: Project, destination_id: int, locked_primary_hashes: Collection[str]
@@ -191,7 +193,7 @@ class InitialUnmergeArgs(UnmergeArgsBase):
     # In tests the destination task is passed in explicitly from the outside,
     # so we support unmerging into an existing destination group. In production
     # this does not happen.
-    destinations: Destinations
+    destinations: InitialDestinations
 
 
 @dataclass(frozen=True)
