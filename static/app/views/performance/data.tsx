@@ -55,7 +55,7 @@ export function getAxisOptions(organization: LightWeightOrganization): TooltipOp
   if (organization.features.includes('project-transaction-threshold')) {
     apdexOption = {
       tooltip: getTermHelp(organization, PERFORMANCE_TERM.APDEX_NEW),
-      value: `apdex_new()`,
+      value: `apdex()`,
       label: t('Apdex'),
     };
   } else {
@@ -186,9 +186,9 @@ export function getBackendAxisOptions(
   if (organization.features.includes('project-transaction-threshold')) {
     apdexOption = {
       tooltip: getTermHelp(organization, PERFORMANCE_TERM.APDEX),
-      value: `apdex_new()`,
+      value: `apdex()`,
       label: t('Apdex'),
-      field: `apdex_new()`,
+      field: `apdex()`,
     };
   } else {
     apdexOption = {
