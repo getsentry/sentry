@@ -229,7 +229,8 @@ class SlackIntegrationPostInstallTest(APITestCase):
         if their Sentry email matches their Slack email
         """
         with self.tasks():
-            SlackIntegrationProvider().post_install(self.integration, self.organization)
+            with self.feature("organizations:notification-platform"):
+                SlackIntegrationProvider().post_install(self.integration, self.organization)
 
         user1_identity = Identity.objects.get(user=self.user)
         assert user1_identity
@@ -270,7 +271,8 @@ class SlackIntegrationPostInstallTest(APITestCase):
             },
         )
         with self.tasks():
-            SlackIntegrationProvider().post_install(self.integration, self.organization)
+            with self.feature("organizations:notification-platform"):
+                SlackIntegrationProvider().post_install(self.integration, self.organization)
 
         identities = Identity.objects.all()
         assert identities.count() == 2
@@ -311,7 +313,8 @@ class SlackIntegrationPostInstallTest(APITestCase):
             },
         )
         with self.tasks():
-            SlackIntegrationProvider().post_install(self.integration, self.organization)
+            with self.feature("organizations:notification-platform"):
+                SlackIntegrationProvider().post_install(self.integration, self.organization)
 
         user3_identity = Identity.objects.get(user=user3)
         assert user3_identity
