@@ -59,7 +59,6 @@ def create_demo_org(quick=False) -> Organization:
             react_project.add_team(team)
 
             populate_org_members(org, team)
-
             # we'll be adding transactions later
             Project.objects.filter(organization=org).update(
                 flags=F("flags").bitor(Project.flags.has_transactions)
