@@ -51,6 +51,14 @@ function SymbolSources({
 }: Props) {
   const appStoreConnectContext = useContext(AppStoreConnectContext);
 
+  const hasSavedAppStoreConnect = symbolSources.find(
+    symbolSource => symbolSource.type.toLowerCase() === 'appstoreconnect'
+  );
+
+  useEffect(() => {
+    reloadPage();
+  }, [hasSavedAppStoreConnect]);
+
   useEffect(() => {
     openDebugFileSourceDialog();
   }, [location.query, appStoreConnectContext]);
@@ -77,10 +85,6 @@ function SymbolSources({
     },
   ];
 
-  const hasSavedAppStoreConnect = symbolSources.find(
-    symbolSource => symbolSource.type === 'AppStoreConnect'
-  );
-
   if (
     hasAppConnectStoreFeatureFlag &&
     !hasSavedAppStoreConnect &&
@@ -91,6 +95,20 @@ function SymbolSources({
       label: t(DEBUG_SOURCE_TYPES.appStoreConnect),
       searchKey: t('apple store connect itunes ios'),
     });
+  }
+
+  function reloadPage() {
+    if (!!hasSavedAppStoreConnect || !appStoreConnectContext) {
+      return;
+    }
+
+    const appConnectStoreUpdateAlertMessage = getAppConnectStoreUpdateAlertMessage(
+      appStoreConnectContext
+    );
+
+    if (appConnectStoreUpdateAlertMessage) {
+      window.location.reload();
+    }
   }
 
   function getRichListFieldValue(): {

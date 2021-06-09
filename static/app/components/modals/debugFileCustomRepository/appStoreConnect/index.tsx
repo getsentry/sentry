@@ -231,7 +231,7 @@ function AppStoreConnect({
     }
   }
 
-  function isFormInValid() {
+  function isFormInvalid() {
     switch (activeStep) {
       case 0:
         return Object.keys(stepOneData).some(key => !stepOneData[key]);
@@ -497,9 +497,11 @@ function AppStoreConnect({
                 priority="primary"
                 onClick={handleGoNext}
                 disabled={
-                  isFormInValid() ||
                   isLoading ||
-                  appStoreConnectContext?.isLoading !== false
+                  isFormInvalid() ||
+                  (appStoreConnectContext
+                    ? appStoreConnectContext?.isLoading !== false
+                    : false)
                 }
               >
                 {isLoading && (
