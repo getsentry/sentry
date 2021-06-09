@@ -1063,10 +1063,10 @@ class QueryTransformTest(TestCase):
             selected_columns=["transaction"],
             aggregations=[
                 [
-                    "uniqIf(user, greater(duration, 1200.0))",
+                    "uniqIf(user, greater(duration, 1200))",
                     None,
                     "count_miserable_user_300",
-                ]
+                ],
             ],
             filter_keys={"project_id": [self.project.id]},
             dataset=Dataset.Discover,
