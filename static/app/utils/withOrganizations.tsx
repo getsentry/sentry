@@ -1,6 +1,4 @@
 import * as React from 'react';
-import createReactClass from 'create-react-class';
-import Reflux from 'reflux';
 
 import OrganizationsStore from 'app/stores/organizationsStore';
 import {OrganizationSummary} from 'app/types';
@@ -15,15 +13,25 @@ type State = {
   organizations: OrganizationSummary[];
 };
 
-const withOrganizations = <P extends InjectedOrganizationsProps>(
+function withOrganizations<P extends InjectedOrganizationsProps>(
   WrappedComponent: React.ComponentType<P>
-) =>
-  createReactClass<
+) {
+  class WithOrganizations extends React.Component<
     Omit<P, keyof InjectedOrganizationsProps> & Partial<InjectedOrganizationsProps>,
     State
-  >({
-    displayName: `withOrganizations(${getDisplayName(WrappedComponent)})`,
-    mixins: [Reflux.connect(OrganizationsStore, 'organizations') as any],
+  > {
+    static displayName = `withOrganizations(${getDisplayName(WrappedComponent)})`;
+
+    state: State = {organizations: OrganizationsStore.getAll()};
+
+    componentWillUnmount() {
+      this.unsubscribe();
+    }
+
+    unsubscribe = OrganizationsStore.listen(
+      (organizations: OrganizationSummary[]) => this.setState({organizations}),
+      undefined
+    );
 
     render() {
       const {organizationsLoading, organizations, ...props} = this.props as P;
@@ -36,7 +44,10 @@ const withOrganizations = <P extends InjectedOrganizationsProps>(
           } as P)}
         />
       );
-    },
-  });
+    }
+  }
+
+  return WithOrganizations;
+}
 
 export default withOrganizations;

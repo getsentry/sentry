@@ -13,6 +13,8 @@ from sentry.utils.snuba import Dataset, raw_query
 
 standard_intervals = {
     "1m": ("one minute", timedelta(minutes=1)),
+    "5m": ("5 minutes", timedelta(minutes=5)),
+    "15m": ("15 minutes", timedelta(minutes=15)),
     "1h": ("one hour", timedelta(hours=1)),
     "1d": ("one day", timedelta(hours=24)),
     "1w": ("one week", timedelta(days=7)),
@@ -149,7 +151,7 @@ class EventFrequencyPercentForm(EventFrequencyForm):
             )
         ]
     )
-    value = forms.IntegerField(widget=forms.TextInput())
+    value = forms.FloatField(widget=forms.TextInput(), min_value=0, max_value=100)
 
 
 class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
