@@ -116,15 +116,15 @@ class GroupEventToolbar extends Component<Props> {
     return (
       <Wrapper>
         <StyledNavigationButtonGroup
-          location={location}
           hasPrevious={!!evt.previousEventID}
           hasNext={!!evt.nextEventID}
-          urls={[
-            `${baseEventsPath}oldest/`,
-            `${baseEventsPath}${evt.previousEventID}/`,
-            `${baseEventsPath}${evt.nextEventID}/`,
-            `${baseEventsPath}latest/`,
+          links={[
+            {pathname: `${baseEventsPath}oldest/`, query: location.query},
+            {pathname: `${baseEventsPath}${evt.previousEventID}/`, query: location.query},
+            {pathname: `${baseEventsPath}${evt.nextEventID}/`, query: location.query},
+            {pathname: `${baseEventsPath}latest/`, query: location.query},
           ]}
+          size="small"
         />
         <Heading>
           {t('Event')}{' '}

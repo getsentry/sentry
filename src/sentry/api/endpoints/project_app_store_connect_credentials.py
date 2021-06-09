@@ -2,9 +2,9 @@
 
 There are currently two sets of credentials required:
 - API credentials
-- ITunes credentials
+- iTunes credentials
 
-Note that for the ITunes credential Sentry needs to keep a session alive, which typically
+Note that for the iTunes credential Sentry needs to keep a session alive, which typically
 lasts 10-14 days.  The UI may need to re-fresh these using endpoints 2-4 at regular
 intervals.
 
@@ -17,7 +17,7 @@ To create and manage these credentials, several API endpoints exist:
 
 2. ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/start/``
 
-   This starts an ITunes login, either brand new credentials or re-authenticate an existing
+   This starts an iTunes login, either brand new credentials or re-authenticate an existing
    session.  The user will be prompted with a 2FA code on their device, jump to endpoint 4.
    See :class:`AppStoreConnectStartAuthEndpoint`.
 
@@ -28,7 +28,7 @@ To create and manage these credentials, several API endpoints exist:
 
 4. ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/2fa/``
 
-   Complete the 2FA ITunes authentication stated in endpoint 2 by verifying the 2FA code.
+   Complete the 2FA iTunes authentication stated in endpoint 2 by verifying the 2FA code.
    See :class:`AppStoreConnect2FactorAuthEndpoint`.
 
 5. ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/``
@@ -46,7 +46,7 @@ To create and manage these credentials, several API endpoints exist:
 
 7. ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/validate/{id}/``
 
-   Validate if an existing ITunes session is still active or if a new one needs to be
+   Validate if an existing iTunes session is still active or if a new one needs to be
    initiated by steps 2-4.  See :class:`AppStoreConnectCredentialsValidateEndpoint`.
 """
 import datetime
@@ -221,7 +221,7 @@ class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):
     the `sessionContext` field must be as returned from a call to
     :class:`AppStoreConnect2FactorAuthEndpoint` aka
     ``projects/{org_slug}/{proj_slug}/appstoreconnect/2fa/`` so you must have gone through
-    the ITunes login steps (endpoints 2-4 in module doc string).
+    the iTunes login steps (endpoints 2-4 in module doc string).
 
     The returned JSON contains an ``id`` field which can be used in other endpoints to refer
     to this set of credentials.
@@ -306,7 +306,7 @@ class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):
 
     This is like :class:`AppStoreConnectCreateCredentialsEndpoint` aka
     ``projects/{org_slug}/{proj_slug}/appstoreconnect/{id}/`` but allows you to only provide
-    a sub-set.  This is most useful when you had to refresh the ITunes session using
+    a sub-set.  This is most useful when you had to refresh the iTunes session using
     endpoints 2-4 (see module docstring), as you can only supply the `sessionContext`.
     """
 
@@ -458,7 +458,7 @@ class AppStoreConnectStartAuthSerializer(serializers.Serializer):
 
 
 class AppStoreConnectStartAuthEndpoint(ProjectEndpoint):
-    """Starts ITunes login sequence.
+    """Starts iTunes login sequence.
 
     ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/start/``
 
@@ -573,7 +573,7 @@ class AppStoreConnectRequestSmsSerializer(serializers.Serializer):
 
 
 class AppStoreConnectRequestSmsEndpoint(ProjectEndpoint):
-    """Switches an ITunes login to using SMS for 2FA.
+    """Switches an iTunes login to using SMS for 2FA.
 
     ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/requestSms/``
 
@@ -589,7 +589,7 @@ class AppStoreConnectRequestSmsEndpoint(ProjectEndpoint):
     The response will contain a new ``sessionContext`` which must be used in the call to
     :class:`AppStoreConnect2FactorAuthEndpoint`
     (``projects/{org_slug}/{proj_slug}/appstoreconnect/2fa/``) to complete the login of this
-    ITunes session.
+    iTunes session.
     """
 
     permission_classes = [StrictProjectPermission]
@@ -660,7 +660,7 @@ class AppStoreConnect2FactorAuthSerializer(serializers.Serializer):
 
 
 class AppStoreConnect2FactorAuthEndpoint(ProjectEndpoint):
-    """Completes the 2FA ITunes login, returning a valid session.
+    """Completes the 2FA iTunes login, returning a valid session.
 
     ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/2fa/``
 

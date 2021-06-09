@@ -1453,6 +1453,14 @@ type ReleaseData = {
   newGroups: number;
   versionInfo: VersionInfo;
   fileCount: number | null;
+  currentProjectMeta: {
+    nextReleaseVersion: string | null;
+    prevReleaseVersion: string | null;
+    sessionsLowerBound: string | null;
+    sessionsUpperBound: string | null;
+    firstReleaseVersion: string | null;
+    lastReleaseVersion: string | null;
+  };
 };
 
 type BaseRelease = {
