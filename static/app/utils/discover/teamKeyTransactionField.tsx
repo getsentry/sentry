@@ -33,7 +33,7 @@ type BaseProps = {
 
 type Props = BaseProps &
   TeamKeyTransactionManager.TeamKeyTransactionManagerChildrenProps & {
-    project: number;
+    project: Project;
     transactionName: string;
   };
 
@@ -45,7 +45,7 @@ function TeamKeyTransactionField({
   transactionName,
   ...props
 }: Props) {
-  const keyedTeams = getKeyedTeams(String(project), transactionName);
+  const keyedTeams = getKeyedTeams(project.id, transactionName);
 
   return (
     <TeamKeyTransaction
@@ -74,12 +74,11 @@ function TeamKeyTransactionFieldWrapper({
   ...props
 }: WrapperProps) {
   const project = projects.find(proj => proj.slug === projectSlug);
-  const projectId = project ? parseInt(project.id, 10) : null;
 
   // All these fields need to be defined in order to toggle a team key
   // transaction. Since they are not defined, just render a plain star
   // with no interactions.
-  if (!defined(projectId) || !defined(transactionName)) {
+  if (!defined(project) || !defined(transactionName)) {
     return <TitleStar keyedTeamsCount={Number(isKeyTransaction)} />;
   }
 
@@ -88,7 +87,7 @@ function TeamKeyTransactionFieldWrapper({
       {results => (
         <TeamKeyTransactionField
           isKeyTransaction={isKeyTransaction}
-          project={projectId}
+          project={project}
           transactionName={transactionName}
           {...props}
           {...results}

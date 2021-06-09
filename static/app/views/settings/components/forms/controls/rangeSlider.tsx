@@ -56,6 +56,7 @@ type Props = {
    */
   onBlur?: (value, event?) => void;
   onChange?: Function;
+  className?: string;
 };
 
 type State = {
@@ -148,6 +149,7 @@ class RangeSlider extends React.Component<Props, State> {
       formatLabel,
       placeholder,
       showCustomInput,
+      className,
     } = this.props;
     const {sliderValue} = this.state;
     let actualValue = sliderValue;
@@ -166,7 +168,7 @@ class RangeSlider extends React.Component<Props, State> {
       typeof formatLabel === 'function' ? formatLabel(actualValue) : displayValue;
 
     return (
-      <div>
+      <div className={className}>
         {!showCustomInput && <Label htmlFor={name}>{displayValue}</Label>}
         <SliderAndInputWrapper showCustomInput={showCustomInput}>
           <Slider
