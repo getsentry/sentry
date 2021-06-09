@@ -60,17 +60,17 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.bases.project import ProjectEndpoint, StrictProjectPermission
+from sentry.api.exceptions import (
+    AppConnectAuthenticationError,
+    ItunesAuthenticationError,
+    ItunesTwoFactorAuthenticationRequired,
+)
 from sentry.models import Project
 from sentry.utils import fernet_encrypt as encrypt
 from sentry.utils import json
 from sentry.utils.appleconnect import appstore_connect, itunes_connect
 from sentry.utils.appleconnect.itunes_connect import ITunesHeaders
 from sentry.utils.safe import get_path
-from sentry.api.exceptions import (
-    AppConnectAuthenticationError,
-    ItunesAuthenticationError,
-    ItunesTwoFactorAuthenticationRequired,
-)
 
 # The property name of the project option which contains the encryption key.
 #
