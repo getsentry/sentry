@@ -37,21 +37,22 @@ get_shell_startup_script() {
   echo "$_startup_script"
 }
 
-# The first \n is important on Github workers sicne it was being appended to
+# The first \n is important on Github workers since it was being appended to
 # the last line rather than on a new line. I never figured out why
 _append_to_startup_script() {
   if [[ -n "$SHELL" ]]; then
     case "$SHELL" in
     */bash)
       # shellcheck disable=SC2016
-      echo -e '\nif command -v pyenv 1>/dev/null 2>&1; then\n  eval "$(pyenv init --path)"\nfi' >>"${1}"
+      echo -e '\neval "$(pyenv init --path)"\nif command -v pyenv 1>/dev/null 2>&1; then\n  eval "$(pyenv init -)"\nfi' >>"${1}"
       ;;
     */zsh)
       # shellcheck disable=SC2016
-      echo -e '\nif command -v pyenv 1>/dev/null 2>&1; then\n  eval "$(pyenv init --path)"\nfi' >>"${1}"
+      echo -e '\neval "$(pyenv init --path)"\nif command -v pyenv 1>/dev/null 2>&1; then\n  eval "$(pyenv init -)"\nfi' >>"${1}"
       ;;
     */fish)
-      echo -e '\n\n# pyenv init\nif command -v pyenv 1>/dev/null 2>&1\n  pyenv init --path | source\nend' >>"$1"
+      # shellcheck disable=SC2016
+      echo -e '\n\n# pyenv init\nstatus is-login; and pyenv init --path | source\nif command -v pyenv 1>/dev/null 2>&1;\n  pyenv init - | source\nend' >>"$1"
       ;;
     esac
 
@@ -116,7 +117,10 @@ setup_pyenv() {
   # If the script is called with the "dot space right" approach (. ./scripts/pyenv_setup.sh),
   # the effects of this will be persistent outside of this script
   echo "Activating pyenv and validating Python version"
+  # Sets up PATH
   eval "$(pyenv init --path)"
+  # Enables autocompletion and all subcommands
+  eval "$(pyenv init -)"
   python_version=$(python -V | sed s/Python\ //g)
   [[ $python_version == $(cat .python-version) ]] ||
     (echo "Wrong Python version: $python_version. Please report in #discuss-dev-tooling" && exit 1)
