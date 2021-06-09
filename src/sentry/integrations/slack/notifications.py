@@ -43,23 +43,19 @@ def get_channel_and_integration_by_user(
         # recipients.
         return None, None
 
-    identity = [
-        identity
-        for identity in identities
-        if identity.user.org_memberships.filter(id=organization.id)
-    ]
-    if not identity:
-        return None, None
-
     try:
         integration = Integration.objects.get(
-            provider=identity[0].idp.type,
+            provider=EXTERNAL_PROVIDERS[ExternalProviders.SLACK],
             organizations=organization,
+            external_id__in=[identity.idp.external_id for identity in identities],
         )
     except Integration.DoesNotExist:
         return None, None
 
-    return identity[0].external_id, integration
+    matched_identity = [
+        identity for identity in identities if integration.external_id == identity.idp.external_id
+    ]
+    return matched_identity[0].external_id, integration
 
 
 def get_channel_and_integration_by_team(
