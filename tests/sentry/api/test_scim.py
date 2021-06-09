@@ -68,6 +68,8 @@ class SCIMUserTests(APITestCase):
         # test that post creates an OM
 
         response = self.client.post(url, CREATE_USER_POST_DATA)
+
+        assert response.status_code == 201, response.content
         org_member_id = OrganizationMember.objects.get(
             organization=self.organization, email="test.user@okta.local"
         ).id
@@ -85,7 +87,6 @@ class SCIMUserTests(APITestCase):
             # "groups": [],
             "meta": {"resourceType": "User"},
         }
-        assert response.status_code == 201, response.content
 
         assert correct_post_data == response.data
 

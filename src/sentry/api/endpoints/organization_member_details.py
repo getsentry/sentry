@@ -94,7 +94,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
         return queryset.select_related("user").get()
 
     @staticmethod
-    def _is_only_owner(member):
+    def is_only_owner(member):
         if member.role != roles.get_top_dog().id:
             return False
 
@@ -116,7 +116,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
             context["invite_link"] = member.get_invite_link()
             context["user"] = serialize(member.user, request.user, DetailedUserSerializer())
 
-        context["isOnlyOwner"] = self._is_only_owner(member)
+        context["isOnlyOwner"] = self.is_only_owner(member)
         context["roles"] = serialize(
             roles.get_all(), serializer=RoleSerializer(), allowed_roles=allowed_roles
         )
@@ -268,7 +268,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationEndpoint):
         elif not request.access.has_scope("member:admin"):
             return Response({"detail": ERR_INSUFFICIENT_SCOPE}, status=400)
 
-        if self._is_only_owner(om):
+        if self.is_only_owner(om):
             return Response({"detail": ERR_ONLY_OWNER}, status=403)
 
         audit_data = om.get_audit_log_data()
