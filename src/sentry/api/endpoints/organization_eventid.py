@@ -6,6 +6,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.group_index import rate_limit_endpoint
 from sentry.api.serializers import serialize
 from sentry.models import Project
+from sentry.utils.validators import INVALID_EVENT_DETAILS, is_event_id
 
 
 class EventIdLookupEndpoint(OrganizationEndpoint):
@@ -23,6 +24,9 @@ class EventIdLookupEndpoint(OrganizationEndpoint):
                                 regex in the URL.
         :auth: required
         """
+        if event_id and not is_event_id(event_id):
+            return Response({"detail": INVALID_EVENT_DETAILS.format("Event")}, status=400)
+
         project_slugs_by_id = dict(
             Project.objects.filter(organization=organization).values_list("id", "slug")
         )
