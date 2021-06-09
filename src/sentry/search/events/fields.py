@@ -403,11 +403,11 @@ def resolve_field_list(
             fields.append("project.id")
 
     for field in fields[:]:
-        if isinstance(field, str) and field in [
+        if isinstance(field, str) and field in {
             "apdex()",
             "count_miserable(user)",
             "user_misery()",
-        ]:
+        }:
             if PROJECT_THRESHOLD_CONFIG_ALIAS not in fields:
                 fields.append(PROJECT_THRESHOLD_CONFIG_ALIAS)
                 break
