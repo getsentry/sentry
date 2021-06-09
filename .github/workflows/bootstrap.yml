@@ -1,7 +1,7 @@
 name: bootstrap
 on:
   schedule:
-    # Run on Fridays & Mondays in hopes to fix things before new engineers run the script
+    # Run on Mondays in hopes to fix things before new engineers run the script
     # It's far more likely that somethings regresses because there's new software released than
     # by our code changes regressing it
     - cron: '0 3 * * 1'
