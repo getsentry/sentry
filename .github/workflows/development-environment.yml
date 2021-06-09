@@ -2,9 +2,10 @@ name: dev env
 on:
   pull_request:
     paths:
-    - 'Brewfile'
     - 'Makefile'
     - '.github/workflows/development-environment.yml'
+    - '.envrc'
+    - 'Brewfile'
     - 'scripts/*'
     - 'src/sentry/runner/commands/devserver.py'
     - 'src/sentry/runner/commands/devservices.py'
@@ -13,14 +14,13 @@ jobs:
   dev-environment:
     name: set up
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 35
+    timeout-minutes: 40
     strategy:
       matrix:
-        # macosx-10.15 is Catalina
         # macosx-11.0 is Big Sur, however, it takes long for jobs to get started
         # Using Ubuntu 18 until I figure out this error:
         # -> ImportError: libffi.so.6: cannot open shared object file: No such file or directory
-        os: [ macos-10.15, macos-11.0, ubuntu-18.04 ]
+        os: [ macos-11.0, ubuntu-18.04 ]
       fail-fast: false
     env:
       PIP_DISABLE_PIP_VERSION_CHECK: on
@@ -28,17 +28,11 @@ jobs:
       SHELL: /bin/zsh
 
     steps:
-      - uses: actions/checkout@v2
-
-      - name: Set environment variables & others
-        run: |
-          echo "VOLTA_HOME=$HOME/.volta" >> $GITHUB_ENV
-          echo "PATH=$HOME/.volta/bin:$PATH" >> $GITHUB_ENV
-          touch "$HOME/.zshrc"
+      - name: Checkout sentry
+        uses: actions/checkout@v2
 
       - name: Install prerequisites
         # Xcode CLI & brew are already installed, thus, no need to call xcode-select install
-        # XXX: Can the Brew set up be cached?
         # Sometimes, brew needs to be updated before brew bundle would work
         # After installing Docker (via homebrew) we need to make sure that it is properly initialized on Mac
         run: |
@@ -46,48 +40,59 @@ jobs:
           # This code is mentioned in our dev docs. Only remove if you adjust the docs as well
           SENTRY_NO_VENV_CHECK=1 ./scripts/do.sh init-docker
 
-      - name: Install Python (via Pyenv)
-        id: python-version
-        # We echo to $GITHUB_ENV to make the PATH changes by pyenv init permanent for the rest of the execution
+      # The next few steps are to set up the cache quickly
+      - name: Set environment variables & others
+        id: info
         run: |
-          make setup-pyenv
-          eval "$(pyenv init --path)"
-          echo "PATH=$PATH" >> $GITHUB_ENV
-          echo "::set-output name=python-version::$(python -V  | sed s/Python\ //g)"
+          echo "::set-output name=python-version::$(cat .python-version)"
+          echo "::set-output name=pip-cache-dir::$(pip3 cache dir)"
+          echo "::set-output name=pip-version::$(pip -V | awk -F ' ' '{print $2}')"
+          echo "::set-output name=yarn-cache-dir::$(yarn cache dir)"
 
-      - name: Setup pip
-        uses: ./.github/actions/setup-pip
-        id: pip
+      # In a sense, we set up Python two times (once here and once via pyenv). Setting
+      # it up here is instant and it helps us to get the cache primed sooner
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ steps.info.outputs.python-version }}
 
-      - name: Cache
+      - name: Cache (pyenv)
         uses: actions/cache@v2
         with:
-          path: |
-            ${{ steps.pip.outputs.pip-cache-dir }}
-            ~/.pyenv
-          key: |
-            devenv-${{ matrix.os }}-py${{ steps.python-version.outputs.python-version }}-pip${{ steps.pip.outputs.pip-version }}-${{ hashFiles('requirements-*.txt') }}
+          path: ~/.pyenv
+          key: devenv-${{ matrix.os }}-pyenv-${{ hashFiles('.python-version') }}
           restore-keys: |
-            devenv-${{ matrix.os }}-py${{ steps.python-version.outputs.python-version }}-pip${{ steps.pip.outputs.pip-version }}
+            devenv-${{ matrix.os }}-pyenv-
 
-      - name: Get yarn cache directory path
-        id: yarn-cache-dir-path
-        run: echo "::set-output name=dir::$(yarn cache dir)"
+      - name: Cache (pip)
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.info.outputs.pip-cache-dir }}
+          key: devenv-${{ matrix.os }}-py${{ steps.info.outputs.python-version }}-pip${{ steps.info.outputs.pip-version }}-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            devenv-${{ matrix.os }}-py${{ steps.info.outputs.python-version }}-pip${{ steps.info.outputs.pip-version }}-
 
-      - uses: actions/cache@v2
+      - name: Cache (yarn)
+        uses: actions/cache@v2
         id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
         with:
-          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
-          key: ${{ matrix.os }}-yarn-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock') }}
+          path: ${{ steps.info.outputs.yarn-cache-dir }}
+          key: devenv-${{ matrix.os }}-yarn-${{ hashFiles('yarn.lock') }}
           restore-keys: |
-            ${{ matrix.os }}-yarn-
+            devenv-${{ matrix.os }}-yarn-
 
-      # make develop calls "ensure-venv", thus, needing to be within a venv
-      # TODO: We need to streamline the installation of the wheel package
       - name: Set up development environment (mostly as per docs)
         run: |
+          curl https://get.volta.sh | bash
+          export VOLTA_HOME="$HOME/.volta"
+          export PATH="$HOME/.volta/bin:$PATH"
+          make setup-pyenv
+          eval "$(pyenv init --path)"
           python -m venv .venv
           source .venv/bin/activate
-          pip install wheel
-          curl https://get.volta.sh | bash
           make bootstrap
+
+      - name: Test direnv
+        run: |
+          brew install direnv
+          direnv allow

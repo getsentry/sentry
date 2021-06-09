@@ -8,8 +8,10 @@ import TeamKeyTransactionComponent, {
 import * as TeamKeyTransactionManager from 'app/components/performance/teamKeyTransactionsManager';
 import {IconStar} from 'app/icons';
 import {t, tn} from 'app/locale';
-import {Organization, Team} from 'app/types';
+import {Organization, Project, Team} from 'app/types';
+import {defined} from 'app/utils';
 import EventView from 'app/utils/discover/eventView';
+import withProjects from 'app/utils/withProjects';
 import withTeams from 'app/utils/withTeams';
 
 /**
@@ -40,7 +42,7 @@ type BaseProps = {
 
 type Props = BaseProps &
   TeamKeyTransactionManager.TeamKeyTransactionManagerChildrenProps & {
-    project: number;
+    project: Project;
   };
 
 function TeamKeyTransactionButton({
@@ -50,7 +52,7 @@ function TeamKeyTransactionButton({
   transactionName,
   ...props
 }: Props) {
-  const keyedTeams = getKeyedTeams(String(project), transactionName);
+  const keyedTeams = getKeyedTeams(project.id, transactionName);
   return (
     <TeamKeyTransactionComponent
       counts={counts}
@@ -65,19 +67,26 @@ function TeamKeyTransactionButton({
 
 type WrapperProps = BaseProps & {
   eventView: EventView;
+  projects: Project[];
 };
 
 function TeamKeyTransactionButtonWrapper({
   eventView,
   organization,
   teams,
+  projects,
   ...props
 }: WrapperProps) {
   if (eventView.project.length !== 1) {
     return <TitleButton disabled keyedTeamsCount={0} />;
   }
 
-  const projectId = eventView.project[0];
+  const projectId = String(eventView.project[0]);
+  const project = projects.find(proj => proj.id === projectId);
+  if (!defined(project)) {
+    return <TitleButton disabled keyedTeamsCount={0} />;
+  }
+
   const userTeams = teams.filter(({isMember}) => isMember);
 
   return (
@@ -91,7 +100,7 @@ function TeamKeyTransactionButtonWrapper({
         {results => (
           <TeamKeyTransactionButton
             organization={organization}
-            project={projectId}
+            project={project}
             {...props}
             {...results}
           />
@@ -105,4 +114,4 @@ const StyledButton = styled(Button)`
   width: 180px;
 `;
 
-export default withTeams(TeamKeyTransactionButtonWrapper);
+export default withTeams(withProjects(TeamKeyTransactionButtonWrapper));

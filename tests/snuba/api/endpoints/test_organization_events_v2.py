@@ -4,8 +4,8 @@ import pytest
 from django.urls import reverse
 from pytz import utc
 
-from sentry.discover.models import KeyTransaction, TeamKeyTransaction
-from sentry.models import ApiKey, ProjectTransactionThreshold
+from sentry.discover.models import MAX_TEAM_KEY_TRANSACTIONS, KeyTransaction, TeamKeyTransaction
+from sentry.models import ApiKey, ProjectTeam, ProjectTransactionThreshold
 from sentry.models.transaction_threshold import TransactionMetric
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
@@ -3648,6 +3648,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         self.project.add_team(team1)
 
         team2 = self.create_team(organization=self.organization, name="Team B")
+        self.project.add_team(team2)
 
         transactions = ["/blah_transaction/"]
         key_transactions = [
@@ -3663,10 +3664,9 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             self.transaction_data["transaction"] = transaction
             self.store_event(self.transaction_data, self.project.id)
             TeamKeyTransaction.objects.create(
-                team=team,
                 organization=self.organization,
                 transaction=transaction,
-                project=self.project,
+                project_team=ProjectTeam.objects.get(project=self.project, team=team),
             )
 
         query = {
@@ -3715,10 +3715,9 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             self.transaction_data["transaction"] = transaction
             self.store_event(self.transaction_data, self.project.id)
             TeamKeyTransaction.objects.create(
-                team=team,
                 organization=self.organization,
                 transaction=transaction,
-                project=self.project,
+                project_team=ProjectTeam.objects.get(project=self.project, team=team),
             )
 
         query = {
@@ -3781,10 +3780,12 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             self.transaction_data["transaction"] = transaction
             self.store_event(self.transaction_data, self.project.id)
             TeamKeyTransaction.objects.create(
-                team=team,
                 organization=self.organization,
+                project_team=ProjectTeam.objects.get(
+                    project=self.project,
+                    team=team,
+                ),
                 transaction=transaction,
-                project=self.project,
             )
 
         query = {
@@ -3843,6 +3844,50 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["team_key_transaction"] == 0
         assert data[0]["transaction"] == "/blah_transaction/"
 
+    def test_too_many_team_key_transactions(self):
+        MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS = 1
+        with mock.patch(
+            "sentry.search.events.fields.MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS",
+            MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS,
+        ):
+            team = self.create_team(organization=self.organization, name="Team A")
+            self.create_team_membership(team, user=self.user)
+            self.project.add_team(team)
+            project_team = ProjectTeam.objects.get(project=self.project, team=team)
+
+            TeamKeyTransaction.objects.bulk_create(
+                [
+                    TeamKeyTransaction(
+                        organization=self.organization,
+                        project_team=project_team,
+                        transaction=f"transaction-{team.id}-{i}",
+                    )
+                    for i in range(MAX_TEAM_KEY_TRANSACTIONS + 1)
+                ]
+            )
+
+            query = {
+                "team": "myteams",
+                "project": [self.project.id],
+                "orderby": "transaction",
+                "field": [
+                    "team_key_transaction",
+                    "transaction",
+                    "transaction.status",
+                    "project",
+                    "epm()",
+                    "failure_rate()",
+                    "percentile(transaction.duration, 0.95)",
+                ],
+            }
+
+            response = self.do_request(query)
+            assert response.status_code == 400, response.content
+            assert (
+                response.data["detail"]
+                == f"You have selected teams with too many transactions. The limit is {MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS}. Change the active filters to try again."
+            )
+
     def test_no_pagination_param(self):
         self.store_event(
             data={"event_id": "a" * 32, "timestamp": self.min_ago, "fingerprint": ["group1"]},
@@ -3891,6 +3936,24 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         query = {
             "field": ["spans.http"],
             "equation": [f"spans.http{' * 2' * 2}"],
+            "project": [self.project.id],
+            "query": "event.type:transaction",
+        }
+        response = self.do_request(
+            query,
+            {
+                "organizations:discover-basic": True,
+                "organizations:discover-arithmetic": True,
+            },
+        )
+
+        assert response.status_code == 400
+
+    @mock.patch("sentry.api.bases.organization_events.MAX_FIELDS", 2)
+    def test_equation_field_limit(self):
+        query = {
+            "field": ["spans.http", "transaction.duration"],
+            "equation": ["5 * 2"],
             "project": [self.project.id],
             "query": "event.type:transaction",
         }

@@ -73,7 +73,7 @@ export function toggleKeyTransaction(
   api: Client,
   isKeyTransaction: boolean,
   orgId: string,
-  projects: Readonly<number[]>,
+  projects: string[],
   transactionName: string,
   teamIds?: string[] // TODO(txiao): make this required
 ): Promise<undefined> {
@@ -96,16 +96,13 @@ export function toggleKeyTransaction(
   promise.then(clearIndicators);
 
   promise.catch(response => {
-    const non_field_errors = response?.responseJSON?.non_field_errors;
+    const responseJSON = response?.responseJSON;
+    const errorDetails = responseJSON?.detail ?? responseJSON?.non_field_errors;
 
-    if (
-      Array.isArray(non_field_errors) &&
-      non_field_errors.length &&
-      non_field_errors[0]
-    ) {
-      addErrorMessage(response.responseJSON.non_field_errors[0]);
+    if (Array.isArray(errorDetails) && errorDetails.length && errorDetails[0]) {
+      addErrorMessage(errorDetails[0]);
     } else {
-      addErrorMessage(t('Unable to update key transaction'));
+      addErrorMessage(errorDetails ?? t('Unable to update key transaction'));
     }
   });
 

@@ -29,6 +29,7 @@ from sentry.models import (
     OrganizationAvatar,
     OrganizationOption,
     OrganizationStatus,
+    UserEmail,
 )
 from sentry.tasks.deletion import delete_organization
 from sentry.utils.cache import memoize
@@ -37,6 +38,7 @@ ERR_DEFAULT_ORG = "You cannot remove the default organization."
 ERR_NO_USER = "This request requires an authenticated user."
 ERR_NO_2FA = "Cannot require two-factor authentication without personal two-factor enabled."
 ERR_SSO_ENABLED = "Cannot require two-factor authentication with SSO enabled"
+ERR_EMAIL_VERIFICATION = "Cannot require email verification before verifying your email address."
 
 ORG_OPTIONS = (
     # serializer field name, option key name, type, default value
@@ -150,6 +152,7 @@ class OrganizationSerializer(serializers.Serializer):
     scrapeJavaScript = serializers.BooleanField(required=False)
     isEarlyAdopter = serializers.BooleanField(required=False)
     require2FA = serializers.BooleanField(required=False)
+    requireEmailVerification = serializers.BooleanField(required=False)
     trustedRelays = ListField(child=TrustedRelaySerializer(), required=False)
     allowJoinRequests = serializers.BooleanField(required=False)
     relayPiiConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
@@ -218,6 +221,13 @@ class OrganizationSerializer(serializers.Serializer):
 
         if value and self._has_sso_enabled():
             raise serializers.ValidationError(ERR_SSO_ENABLED)
+        return value
+
+    def validate_requireEmailVerification(self, value):
+        user = self.context["user"]
+        has_verified = UserEmail.get_primary_email(user).is_verified
+        if value and not has_verified:
+            raise serializers.ValidationError(ERR_EMAIL_VERIFICATION)
         return value
 
     def validate_trustedRelays(self, value):
@@ -320,6 +330,8 @@ class OrganizationSerializer(serializers.Serializer):
         return incoming
 
     def save(self):
+        from sentry import features
+
         org = self.context["organization"]
         changed_data = {}
         if not hasattr(org, "__data"):
@@ -360,6 +372,11 @@ class OrganizationSerializer(serializers.Serializer):
             org.flags.early_adopter = self.initial_data["isEarlyAdopter"]
         if "require2FA" in self.initial_data:
             org.flags.require_2fa = self.initial_data["require2FA"]
+        if (
+            features.has("organizations:required-email-verification", org)
+            and "requireEmailVerification" in self.initial_data
+        ):
+            org.flags.require_email_verification = self.initial_data["requireEmailVerification"]
         if "name" in self.initial_data:
             org.name = self.initial_data["name"]
         if "slug" in self.initial_data:
@@ -399,8 +416,13 @@ class OrganizationSerializer(serializers.Serializer):
                 avatar=self.initial_data.get("avatar"),
                 filename=f"{org.slug}.png",
             )
-        if "require2FA" in self.initial_data and self.initial_data["require2FA"] is True:
+        if self.initial_data.get("require2FA") is True:
             org.handle_2fa_required(self.context["request"])
+        if (
+            features.has("organizations:required-email-verification", org)
+            and self.initial_data.get("requireEmailVerification") is True
+        ):
+            org.handle_email_verification_required(self.context["request"])
         return org, changed_data
 
 
