@@ -129,7 +129,6 @@ class TransactionEvents extends Component<Props> {
                   projects={projects}
                   spanOperationBreakdownFilter={this.state.spanOperationBreakdownFilter}
                 />
-                ;
               </LightWeightNoProjectMessage>
             </StyledPageContent>
           </GlobalSelectionHeader>
