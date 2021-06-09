@@ -45,6 +45,12 @@ import {generateTitle, getExpandedResults} from '../utils';
 
 import LinkedIssue from './linkedIssue';
 
+/**
+ * Some tag keys should never be formatted as `tag[...]`
+ * when used as a filter because they are predefined.
+ */
+const EXCLUDED_TAG_KEYS = new Set(['release']);
+
 type Props = {
   organization: Organization;
   location: Location;
@@ -99,7 +105,7 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     // Some tags may be normalized from context, but not all of them are.
     // This supports a user making a custom tag with the same name as one
     // that comes from context as all of these are also tags.
-    if (tag.key in FIELD_TAGS) {
+    if (tag.key in FIELD_TAGS && !EXCLUDED_TAG_KEYS.has(tag.key)) {
       return `tags[${tag.key}]`;
     }
     return tag.key;

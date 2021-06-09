@@ -71,3 +71,11 @@ class EventIdLookupEndpointTest(APITestCase, SnubaTestCase):
                     "event_id": "not-an-event",
                 },
             )
+
+        url = reverse(
+            "sentry-api-0-event-id-lookup",
+            kwargs={"organization_slug": self.org.slug, "event_id": 123456},
+        )
+        resp = self.client.get(url, format="json")
+
+        assert resp.status_code == 400
