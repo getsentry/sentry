@@ -73,7 +73,7 @@ export function toggleKeyTransaction(
   api: Client,
   isKeyTransaction: boolean,
   orgId: string,
-  projects: Readonly<number[]>,
+  projects: string[],
   transactionName: string,
   teamIds?: string[] // TODO(txiao): make this required
 ): Promise<undefined> {
