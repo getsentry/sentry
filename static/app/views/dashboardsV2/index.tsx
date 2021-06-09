@@ -23,7 +23,7 @@ class DashboardsV2Container extends React.Component<Props> {
   render() {
     const {organization, params, api, location, children} = this.props;
 
-    if (organization.features.includes('dashboards-manage')) {
+    if (organization.features.includes('dashboards-edit')) {
       return children;
     }
     return (
