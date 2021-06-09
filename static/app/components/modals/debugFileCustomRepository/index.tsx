@@ -53,6 +53,7 @@ function DebugFileCustomRepository({
   sourceType,
   params: {orgId, projectId: projectSlug},
   location,
+  appStoreConnectContext,
 }: Props) {
   function handleSave(data: Record<string, string>) {
     onSave({...data, type: sourceType});
@@ -64,6 +65,7 @@ function DebugFileCustomRepository({
 
     return (
       <AppStoreConnect
+        Header={Header}
         Body={Body}
         Footer={Footer}
         closeModal={closeModal}
@@ -72,6 +74,7 @@ function DebugFileCustomRepository({
         onSubmit={handleSave}
         initialData={sourceConfig as AppStoreConnectInitialData | undefined}
         revalidateItunesSession={!!revalidateItunesSession}
+        appStoreConnectContext={appStoreConnectContext}
       />
     );
   }
