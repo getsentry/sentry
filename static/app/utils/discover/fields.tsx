@@ -670,6 +670,10 @@ export function generateAggregateFields(
 }
 
 export function explodeFieldString(field: string): Column {
+  if (isEquation(field)) {
+    return {kind: 'equation', field: getEquation(field)};
+  }
+
   const results = field.match(AGGREGATE_PATTERN);
 
   if (results && results.length >= 3) {
@@ -681,9 +685,6 @@ export function explodeFieldString(field: string): Column {
         results[3] as AggregationRefinement,
       ],
     };
-  }
-  if (isEquation(field)) {
-    return {kind: 'equation', field: getEquation(field)};
   }
 
   return {kind: 'field', field};
