@@ -258,20 +258,16 @@ def link_slack_user_identities(integration, organization):
     identities_by_user = get_identities_by_user(idp, slack_data_by_user.keys())
 
     for user, data in slack_data_by_user.items():
-        if data["email"] not in emails_by_user[user]:
-            continue
         # identity already exists, the emails match, AND the external ID has changed
-        if (
-            user in identities_by_user.keys()
-            and data["slack_id"] != identities_by_user[user].external_id
-        ):
-            # replace the Identity's external_id with the new one we just got from Slack
-            identities_by_user[user].update(external_id=data["slack_id"])
-        if user not in identities_by_user.keys():
-            # the user doesn't already have an identity and one of their Sentry emails matches their Slack email
+        if user in identities_by_user.keys():
+            if data["slack_id"] != identities_by_user[user].external_id:
+                # replace the Identity's external_id with the new one we just got from Slack
+                identities_by_user[user].update(external_id=data["slack_id"])
+        # the user doesn't already have an identity and one of their Sentry emails matches their Slack email
+        else:
             try:
                 with transaction.atomic():
-                    identity_model = Identity.objects.create(
+                    Identity.objects.create(
                         idp=idp,
                         user=user,
                         external_id=data["slack_id"],
@@ -286,7 +282,7 @@ def link_slack_user_identities(integration, organization):
                 except Identity.DoesNotExist:
                     # The user is linked to a different external_id. It's ok to relink
                     # here because they'll still be able to log in with the new external_id.
-                    identity_model = Identity.update_external_id_and_defaults(
+                    Identity.update_external_id_and_defaults(
                         idp, data["slack_id"], user, identity_data
                     )
                 else:
@@ -300,7 +296,3 @@ def link_slack_user_identities(integration, organization):
                             "type": idp.type,
                         },
                     )
-            else:
-                if data["slack_id"] != identity_model.external_id:
-                    # an identity already exists but the Slack user ID has changed
-                    identity_model.update(external_id=data["slack_id"])
