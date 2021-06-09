@@ -179,7 +179,7 @@ describe('Performance > VitalDetail', function () {
     wrapper.update();
 
     // It shows a search bar
-    expect(wrapper.find('StyledSearchBar')).toHaveLength(1);
+    expect(wrapper.find('SearchBar')).toHaveLength(1);
 
     // It shows the vital card
     expect(wrapper.find('vitalInfo')).toHaveLength(1);
