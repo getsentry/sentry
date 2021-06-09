@@ -318,6 +318,12 @@ class SCIMUtilsTests(TestCase):
         fil = parse_filter_conditions("userName eq 'user@sentry.io'")
         assert fil == ["user@sentry.io"]
 
+        fil = parse_filter_conditions('value eq "23"')
+        assert fil == [23]
+
+        fil = parse_filter_conditions('displayName eq "MyTeamName"')
+        assert fil == ["MyTeamName"]
+
     def test_parse_filter_conditions_upper_to_lower(self):
         fil = parse_filter_conditions('userName eq "USER@sentry.io"')
         assert fil == ["user@sentry.io"]
@@ -691,4 +697,37 @@ class SCIMGroupTests(APITestCase):
         assert response.data == {
             "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
             "detail": "User not found.",
+        }
+
+    def test_invalid_filter(self):
+        url = reverse("sentry-api-0-organization-scim-team-index", args=[self.organization.slug])
+        response = self.client.get(f"{url}?startIndex=1&count=1&filter=bad filter eq 23")
+        assert response.status_code == 400, response.data
+        assert response.data == {
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+            "scimType": "invalidFilter",
+        }
+
+    def test_invalid_filter_patch_route(self):
+        url = reverse(
+            "sentry-api-0-organization-scim-team-details",
+            args=[self.organization.slug, self.team.id],
+        )
+        response = self.client.patch(
+            url,
+            {
+                "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+                "Operations": [
+                    {
+                        "op": "remove",
+                        "path": 'members[value badop "1"]',
+                    }
+                ],
+            },
+        )
+
+        assert response.status_code == 400, response.data
+        assert response.data == {
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+            "scimType": "invalidFilter",
         }

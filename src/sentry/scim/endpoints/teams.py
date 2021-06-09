@@ -32,9 +32,6 @@ delete_logger = logging.getLogger("sentry.deletions.api")
 
 CONFLICTING_SLUG_ERROR = "A team with this slug already exists."
 
-# TODO: do I need to do inner transactions within the patch route?
-# TODO: add invalid filter integration tests
-
 
 class SCIMTeamNameSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=64, required=True, allow_null=False, allow_blank=False)
@@ -49,7 +46,11 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationEndpoint):
     permission_classes = (OrganizationSCIMTeamPermission,)
 
     def get(self, request, organization):
-        filter_val = parse_filter_conditions(request.GET.get("filter"))
+        try:
+            filter_val = parse_filter_conditions(request.GET.get("filter"))
+        except ValueError:
+            raise ParseError(detail=SCIM_400_INVALID_FILTER)
+
         if "members" in request.GET.get("excludedAttributes", []):
             exclude_members = True
         else:
