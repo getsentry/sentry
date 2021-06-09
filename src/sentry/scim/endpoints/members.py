@@ -15,7 +15,7 @@ from sentry.models import AuditLogEntryEvent, AuthIdentity, InviteStatus, Organi
 from sentry.signals import member_invited
 from sentry.utils.cursors import SCIMCursor
 
-from .constants import SCIM_400_INVALID_FILTER, SCIM_409_USER_EXISTS, SCIM_API_LIST
+from .constants import SCIM_400_INVALID_FILTER, SCIM_409_USER_EXISTS
 from .utils import OrganizationSCIMMemberPermission, SCIMEndpoint, parse_filter_conditions
 
 ERR_ONLY_OWNER = "You cannot remove the only remaining owner of the organization."
@@ -93,13 +93,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
 
         def on_results(results):
             results = serialize(results, None, OrganizationMemberSCIMSerializer())
-            return {
-                "schemas": [SCIM_API_LIST],
-                "totalResults": queryset.count(),  # TODO: audit perf
-                "startIndex": int(request.GET.get("startIndex", 1)),  # must be integer
-                "itemsPerPage": len(results),  # what's max?
-                "Resources": results,
-            }
+            return self.list_api_format(request, queryset, results)
 
         return self.paginate(
             request=request,

@@ -22,7 +22,7 @@ from sentry.models import (
 )
 from sentry.utils.cursors import SCIMCursor
 
-from .constants import SCIM_400_INVALID_FILTER, SCIM_404_USER_RES, SCIM_API_LIST, GroupPatchOps
+from .constants import SCIM_400_INVALID_FILTER, SCIM_404_USER_RES, GroupPatchOps
 from .utils import OrganizationSCIMTeamPermission, SCIMEndpoint, parse_filter_conditions
 
 delete_logger = logging.getLogger("sentry.deletions.api")
@@ -71,13 +71,7 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
             results = serialize(
                 results, None, TeamSCIMSerializer(), exclude_members=exclude_members
             )
-            return {
-                "schemas": [SCIM_API_LIST],
-                "totalResults": queryset.count(),  # TODO: audit perf
-                "startIndex": int(request.GET.get("startIndex", 1)),  # must be integer
-                "itemsPerPage": len(results),  # what's max?
-                "Resources": results,
-            }
+            return self.list_api_format(request, queryset, results)
 
         return self.paginate(
             request=request,

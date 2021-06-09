@@ -3,6 +3,8 @@ from rest_framework.negotiation import BaseContentNegotiation
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.models import AuthProvider
 
+from .constants import SCIM_API_LIST
+
 SCIM_CONTENT_TYPES = ["application/json", "application/json+scim"]
 
 
@@ -67,6 +69,15 @@ class SCIMEndpoint(OrganizationEndpoint):
 
     def add_cursor_headers(self, request, response, cursor_result):
         pass
+
+    def list_api_format(self, request, queryset, results):
+        return {
+            "schemas": [SCIM_API_LIST],
+            "totalResults": queryset.count(),  # TODO: audit perf
+            "startIndex": int(request.GET.get("startIndex", 1)),  # must be integer
+            "itemsPerPage": len(results),  # what's max?
+            "Resources": results,
+        }
 
 
 def parse_filter_conditions(raw_filters):
