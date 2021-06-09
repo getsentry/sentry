@@ -11,6 +11,7 @@ from sentry.models import (
     TeamStatus,
     User,
 )
+from sentry.scim.endpoints.constants import SCIM_SCHEMA_USER  # type: ignore
 from sentry.utils.json import JSONData
 
 
@@ -188,4 +189,26 @@ class OrganizationMemberWithProjectsSerializer(OrganizationMemberSerializer):
     ) -> MutableMapping[str, JSONData]:
         d = super().serialize(obj, attrs, user)
         d["projects"] = attrs.get("projects", [])
+        return d
+
+
+class OrganizationMemberSCIMSerializer(Serializer):  # type: ignore
+    def __init__(self, expand: Optional[Sequence[str]] = None) -> None:
+        self.expand = expand or []
+
+    def serialize(
+        self, obj: OrganizationMember, attrs: Mapping[str, Any], user: Any, **kwargs: Any
+    ) -> MutableMapping[str, JSONData]:
+
+        d = {
+            "schemas": [SCIM_SCHEMA_USER],
+            "id": obj.id,
+            "userName": obj.get_email(),  # TODO: does this get weird with secondary emails?
+            "name": {"givenName": "N/A", "familyName": "N/A"},
+            "emails": [
+                {"primary": True, "value": obj.get_email(), "type": "work"}
+            ],  # TODO: secondary emails?
+            "active": True,
+            "meta": {"resourceType": "User"},
+        }
         return d

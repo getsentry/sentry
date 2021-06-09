@@ -4,6 +4,7 @@ from django.db import models
 from django.utils import timezone
 
 from bitfield import BitField
+from sentry import options
 from sentry.db.models import (
     BoundedPositiveIntegerField,
     EncryptedJsonField,
@@ -77,8 +78,8 @@ class AuthProvider(Model):
 
     def get_scim_url(self):
         if self.flags.scim_enabled:
-            return f"https://sentry.io/scim/{self.organization.slug}/scim/v2"
-            # TODO: make dynamic once URL routes are added
+            url_prefix = options.get("system.url-prefix")
+            return f"{url_prefix}/api/0/organizations/{self.organization.slug}/scim/v2/"
         else:
             return None
 

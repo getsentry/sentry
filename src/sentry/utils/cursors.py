@@ -44,6 +44,13 @@ class Cursor:
         return cls(*bits)
 
 
+class SCIMCursor(Cursor):
+    @classmethod
+    def from_string(cls, value):
+        # SCIM cursors are 1 indexed
+        return cls(0, int(value) - 1, 0)
+
+
 class StringCursor(Cursor):
     @classmethod
     def from_string(cls, value):
