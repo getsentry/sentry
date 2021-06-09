@@ -145,24 +145,31 @@ class RichList extends React.PureComponent<RichListProps, {}> {
     const {disabled, renderItem, onEditItem} = this.props;
 
     const error = item.error;
+    const warning = item.warning;
 
     return (
       <Item
         disabled={!!disabled}
         key={index}
         onClick={
-          error && onEditItem && !disabled
+          (error || warning) && onEditItem && !disabled
             ? () => this.onEditItem(item, index)
             : undefined
         }
       >
         {renderItem(item)}
         {error ? (
-          <ErrorIcon>
+          <StatusIcon>
             <Tooltip title={error} containerDisplayMode="inline-flex">
               <IconWarning color="red300" />
             </Tooltip>
-          </ErrorIcon>
+          </StatusIcon>
+        ) : warning ? (
+          <StatusIcon>
+            <Tooltip title={warning} containerDisplayMode="inline-flex">
+              <IconWarning color="yellow300" />
+            </Tooltip>
+          </StatusIcon>
         ) : (
           onEditItem && (
             <SettingsButton
@@ -321,7 +328,7 @@ const DeleteButton = styled(ItemButton)`
   width: 100%;
 `;
 
-const ErrorIcon = styled('div')`
+const StatusIcon = styled('div')`
   margin-left: 10px;
   display: inline-flex;
 `;
