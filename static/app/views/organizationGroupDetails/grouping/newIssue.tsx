@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
 import Card from 'app/components/card';
-import TextOverflow from 'app/components/textOverflow';
 import {tn} from 'app/locale';
 import space from 'app/styles/space';
 import {Event} from 'app/types/event';
@@ -36,9 +35,11 @@ const StyledCard = styled(Card)`
   grid-template-columns: 1fr max-content;
   align-items: center;
   padding: ${space(1.5)} ${space(2)};
+  grid-gap: ${space(2)};
+  word-break: break-word;
 `;
 
-const Title = styled(TextOverflow)`
+const Title = styled('div')`
   font-size: ${p => p.theme.fontSizeLarge};
   font-weight: 700;
 `;

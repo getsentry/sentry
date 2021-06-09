@@ -174,14 +174,12 @@ function Grouping({api, groupId, location}: Props) {
 
   return (
     <Wrapper>
-      <Header>
-        <p>
-          {t(
-            'Sometimes you might want to split up the errors in an issue by different frames in the stacktrace. Below you can select which frames to regroup this issue by and see how many new issues will be created in the process.'
-          )}
-        </p>
-      </Header>
-      <Body>
+      <Description>
+        {t(
+          'Sometimes you might want to split up the errors in an issue by different frames in the stacktrace. Below you can select which frames to regroup this issue by and see how many new issues will be created in the process.'
+        )}
+      </Description>
+      <div>
         <StyledList symbol="colored-numeric">
           <StyledListItem>
             {t('Select levels')}
@@ -193,7 +191,7 @@ function Grouping({api, groupId, location}: Props) {
               formatLabel={value => {
                 return value === 0
                   ? t('Automatically grouped')
-                  : tn('%s leve', '%s leves', value);
+                  : tn('%s level', '%s levels', value);
               }}
               value={activeGroupingLevel ?? 0}
               onChange={groupingLevelId =>
@@ -231,12 +229,19 @@ function Grouping({api, groupId, location}: Props) {
           </StyledListItem>
         </StyledList>
         <Pagination pageLinks={pagination} />
-      </Body>
-      <Footer>
-        <Button priority="primary" disabled={isGroupingLevelDetailsLoading}>
+      </div>
+      <Action>
+        <Button
+          priority="primary"
+          disabled={
+            isGroupingLevelDetailsLoading ||
+            !activeGroupingLevel ||
+            activeGroupingLevel === 0
+          }
+        >
           {t('Regroup')}
         </Button>
-      </Footer>
+      </Action>
     </Wrapper>
   );
 }
@@ -252,15 +257,11 @@ const Wrapper = styled('div')`
   padding: ${space(3)} ${space(4)};
 `;
 
-const Header = styled('div')`
-  display: grid;
-  grid-gap: ${space(1)};
-  grid-template-columns: max-content 1fr;
+const Description = styled('p')`
+  margin-bottom: ${space(0.5)};
 `;
 
-const Body = styled('div')``;
-
-const Footer = styled('div')`
+const Action = styled('div')`
   border-top: 1px solid ${p => p.theme.innerBorder};
   display: flex;
   justify-content: flex-end;
@@ -274,7 +275,7 @@ const StyledListItem = styled(ListItem)`
 `;
 
 const StyledRangeSlider = styled(RangeSlider)`
-  max-width: 10%;
+  max-width: 20%;
 `;
 
 const StyledList = styled(List)`
