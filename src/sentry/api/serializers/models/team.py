@@ -196,7 +196,7 @@ class TeamSCIMSerializer(Serializer):  # type: ignore
             "id": obj.id,
             "displayName": obj.slug,
             # For a patch request, we don't need to return the full list of members
-            # so look at members_null arg
+            # so look at exclude_members arg
             "members": [
                 {"value": str(om.id), "display": om.get_email()} for om in obj.member_set
             ]  # TODO: what happens when this gets very large?

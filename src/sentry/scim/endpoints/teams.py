@@ -1,15 +1,14 @@
 import logging
 import re
-from uuid import uuid4
 
-from django.db import IntegrityError, transaction
+from django.db import transaction
 from django.template.defaultfilters import slugify
-from rest_framework import serializers, status
+from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
-from sentry.api.bases.organization import OrganizationEndpoint
-from sentry.api.endpoints.team_details import TeamSerializer
+from sentry.api.endpoints.organization_teams import OrganizationTeamsEndpoint
+from sentry.api.endpoints.team_details import TeamDetailsEndpoint, TeamSerializer
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import serialize
@@ -21,8 +20,6 @@ from sentry.models import (
     Team,
     TeamStatus,
 )
-from sentry.signals import team_created
-from sentry.tasks.deletion import delete_team
 from sentry.utils.cursors import SCIMCursor
 
 from .constants import SCIM_400_INVALID_FILTER, SCIM_404_USER_RES, SCIM_API_LIST, GroupPatchOps
@@ -43,8 +40,12 @@ class SCIMTeamNameSerializer(serializers.Serializer):
         return attrs
 
 
-class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationEndpoint):
+class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
     permission_classes = (OrganizationSCIMTeamPermission,)
+    team_serializer = TeamSCIMSerializer
+
+    def should_add_creator_to_team(request):
+        return False
 
     def get(self, request, organization):
         try:
@@ -88,49 +89,13 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationEndpoint):
         )
 
     def post(self, request, organization):
-        """
-        Creates a team based on a SCIM Group POST request.
-        Basically the same operations as the regular team POST but with
-        SCIM serializers
-        """
-        serializer = SCIMTeamNameSerializer(data={"name": request.data["displayName"]})
-
-        if serializer.is_valid():
-            result = serializer.validated_data
-
-            try:
-                with transaction.atomic():
-                    team = Team.objects.create(
-                        name=result.get("name"),
-                        organization=organization,
-                    )
-                    self.create_audit_entry(
-                        request=request,
-                        organization=organization,
-                        target_object=team.id,
-                        event=AuditLogEntryEvent.TEAM_ADD,
-                        data=team.get_audit_log_data(),
-                    )
-            except IntegrityError:
-                return Response(
-                    {
-                        "non_field_errors": [CONFLICTING_SLUG_ERROR],
-                        "detail": CONFLICTING_SLUG_ERROR,
-                    },
-                    status=409,
-                )
-            else:
-                team_created.send_robust(
-                    organization=organization, user=request.user, team=team, sender=self.__class__
-                )
-
-            context = serialize(team, serializer=TeamSCIMSerializer())
-            return Response(context, status=201)
-        else:
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        # shim displayName from SCIM api to "slug" in order to work with
+        # our regular team index POST
+        request.data.update({"slug": slugify(request.data["displayName"])})
+        return super().post(request, organization)
 
 
-class OrganizationSCIMTeamDetails(SCIMEndpoint, OrganizationEndpoint):
+class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
     permission_classes = (OrganizationSCIMTeamPermission,)
 
     def convert_args(self, request, organization_slug, team_id, *args, **kwargs):
@@ -246,34 +211,4 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, OrganizationEndpoint):
         return Response(context)
 
     def delete(self, request, organization, team):
-        """
-        Basically the same as the regular team delete endpoint
-        """
-        updated = Team.objects.filter(id=team.id, status=TeamStatus.VISIBLE).update(
-            status=TeamStatus.PENDING_DELETION
-        )
-
-        if updated:
-            transaction_id = uuid4().hex
-
-            self.create_audit_entry(
-                request=request,
-                organization=team.organization,
-                target_object=team.id,
-                event=AuditLogEntryEvent.TEAM_REMOVE,
-                data=team.get_audit_log_data(),
-                transaction_id=transaction_id,
-            )
-
-            delete_team.apply_async(kwargs={"object_id": team.id, "transaction_id": transaction_id})
-
-            delete_logger.info(
-                "object.delete.queued",
-                extra={
-                    "object_id": team.id,
-                    "transaction_id": transaction_id,
-                    "model": type(team).__name__,
-                },
-            )
-
-        return Response(status=204)
+        return super().delete(request, team)

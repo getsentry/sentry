@@ -386,8 +386,9 @@ class SCIMGroupTests(APITestCase):
             args=[self.organization.slug],
         )
         response = self.client.post(url, CREATE_GROUP_POST_DATA)
-        team_id = response.data["id"]
         assert response.status_code == 201, response.content
+
+        team_id = response.data["id"]
         assert response.data == {
             "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
             "id": team_id,
