@@ -2,7 +2,6 @@ import logging
 from uuid import uuid4
 
 from django.conf import settings
-from django.db import IntegrityError, transaction
 from django.utils import timezone
 from rest_framework import serializers
 
@@ -251,48 +250,31 @@ def link_slack_user_identities(integration, organization):
         type=integration.provider,
         external_id=integration.external_id,
     )
-    identity_data = {
-        "status": IdentityStatus.VALID,
-        "date_verified": timezone.now(),
-    }
+    date_verified = timezone.now()
     identities_by_user = get_identities_by_user(idp, slack_data_by_user.keys())
 
     for user, data in slack_data_by_user.items():
-        # identity already exists, the emails match, AND the external ID has changed
+        # Identity already exists, the emails match, AND the external ID has changed
         if user in identities_by_user.keys():
             if data["slack_id"] != identities_by_user[user].external_id:
                 # replace the Identity's external_id with the new one we just got from Slack
                 identities_by_user[user].update(external_id=data["slack_id"])
-        # the user doesn't already have an identity and one of their Sentry emails matches their Slack email
-        else:
-            try:
-                with transaction.atomic():
-                    Identity.objects.create(
-                        idp=idp,
-                        user=user,
-                        external_id=data["slack_id"],
-                        **identity_data,
-                    )
-            except IntegrityError:
-                # If the external_id is already used for a different user then throw an error
-                # otherwise we have the same user with a new external id
-                # and we update the identity with the new external_id and identity data
-                try:
-                    matched_identity = Identity.objects.get(idp=idp, external_id=data["slack_id"])
-                except Identity.DoesNotExist:
-                    # The user is linked to a different external_id. It's ok to relink
-                    # here because they'll still be able to log in with the new external_id.
-                    Identity.update_external_id_and_defaults(
-                        idp, data["slack_id"], user, identity_data
-                    )
-                else:
-                    logger.info(
-                        "post_install.identity_linked_different_user",
-                        extra={
-                            "idp_id": idp.id,
-                            "external_id": data["slack_id"],
-                            "object_id": matched_identity.id,
-                            "user_id": user.id,
-                            "type": idp.type,
-                        },
-                    )
+            continue
+        # the user doesn't already have an Identity and one of their Sentry emails matches their Slack email
+        matched_identity, created = Identity.objects.get_or_create(
+            idp=idp,
+            external_id=data["slack_id"],
+            defaults={"user": user, "status": IdentityStatus.VALID, "date_verified": date_verified},
+        )
+        # the Identity matching that idp/external_id combo is linked to a different user
+        if not created:
+            logger.info(
+                "post_install.identity_linked_different_user",
+                extra={
+                    "idp_id": idp.id,
+                    "external_id": data["slack_id"],
+                    "object_id": matched_identity.id,
+                    "user_id": user.id,
+                    "type": idp.type,
+                },
+            )
