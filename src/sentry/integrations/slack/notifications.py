@@ -32,12 +32,12 @@ def get_context(
 def get_channel_and_integration_by_user(
     user: User, organization: Organization
 ) -> Tuple[Optional[str], Optional[Integration]]:
-    try:
-        identities = Identity.objects.filter(
-            idp__type=EXTERNAL_PROVIDERS[ExternalProviders.SLACK],
-            user=user.id,
-        )
-    except Identity.DoesNotExist:
+
+    identities = Identity.objects.filter(
+        idp__type=EXTERNAL_PROVIDERS[ExternalProviders.SLACK],
+        user=user.id,
+    )
+    if not identities:
         # The user may not have linked their identity so just move on
         # since there are likely other users or teams in the list of
         # recipients.
