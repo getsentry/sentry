@@ -77,6 +77,7 @@ function initializeTrendsData(query, addDefaultQuery = true) {
 
 describe('Performance > Content', function () {
   let wrapper;
+  let teamKeyTransactionsEventsV2;
 
   beforeEach(function () {
     browserHistory.push = jest.fn();
@@ -270,6 +271,74 @@ describe('Performance > Content', function () {
       url: `/organizations/org-slug/key-transactions-list/`,
       body: [],
     });
+    teamKeyTransactionsEventsV2 = MockApiClient.addMockResponse(
+      {
+        url: '/organizations/org-slug/eventsv2/',
+        body: {
+          meta: {
+            team_key_transaction: 'boolean',
+            user: 'string',
+            transaction: 'string',
+            'project.id': 'integer',
+            tpm: 'number',
+            p50: 'number',
+            p95: 'number',
+            failure_rate: 'number',
+            apdex_300: 'number',
+            count_unique_user: 'number',
+            count_miserable_user_300: 'number',
+            user_misery_300: 'number',
+          },
+          data: [
+            {
+              team_key_transaction: 1,
+              transaction: '/apple/cart',
+              'project.id': 1,
+              user: 'uhoh@example.com',
+              tpm: 30,
+              p50: 100,
+              p95: 500,
+              failure_rate: 0.1,
+              apdex_300: 0.6,
+              count_unique_user: 1000,
+              count_miserable_user_300: 122,
+              user_misery_300: 0.114,
+            },
+            {
+              team_key_transaction: 0,
+              transaction: '/apple/checkout',
+              'project.id': 1,
+              user: 'uhoh@example.com',
+              tpm: 30,
+              p50: 100,
+              p95: 500,
+              failure_rate: 0.1,
+              apdex_300: 0.6,
+              count_unique_user: 1000,
+              count_miserable_user_300: 122,
+              user_misery_300: 0.114,
+            },
+          ],
+        },
+      },
+      {
+        predicate: (_, options) => {
+          if (!options.hasOwnProperty('query')) {
+            return false;
+          } else if (!options.query.hasOwnProperty('field')) {
+            return false;
+          }
+          // expecting team ids 1 and 2
+          return (
+            options.query.field.includes('team_key_transaction') &&
+            options.query.team &&
+            options.query.team.length === 2 &&
+            options.query.team[0] === '1' &&
+            options.query.team[1] === '2'
+          );
+        },
+      }
+    );
   });
 
   afterEach(function () {
@@ -542,75 +611,6 @@ describe('Performance > Content', function () {
   });
 
   it('Queries the table with with the appropriate teams selected', async function () {
-    const teamKeyTransactionsEvents = MockApiClient.addMockResponse(
-      {
-        url: '/organizations/org-slug/eventsv2/',
-        body: {
-          meta: {
-            team_key_transaction: 'boolean',
-            user: 'string',
-            transaction: 'string',
-            'project.id': 'integer',
-            tpm: 'number',
-            p50: 'number',
-            p95: 'number',
-            failure_rate: 'number',
-            apdex_300: 'number',
-            count_unique_user: 'number',
-            count_miserable_user_300: 'number',
-            user_misery_300: 'number',
-          },
-          data: [
-            {
-              team_key_transaction: 1,
-              transaction: '/apple/cart',
-              'project.id': 1,
-              user: 'uhoh@example.com',
-              tpm: 30,
-              p50: 100,
-              p95: 500,
-              failure_rate: 0.1,
-              apdex_300: 0.6,
-              count_unique_user: 1000,
-              count_miserable_user_300: 122,
-              user_misery_300: 0.114,
-            },
-            {
-              team_key_transaction: 0,
-              transaction: '/apple/checkout',
-              'project.id': 1,
-              user: 'uhoh@example.com',
-              tpm: 30,
-              p50: 100,
-              p95: 500,
-              failure_rate: 0.1,
-              apdex_300: 0.6,
-              count_unique_user: 1000,
-              count_miserable_user_300: 122,
-              user_misery_300: 0.114,
-            },
-          ],
-        },
-      },
-      {
-        predicate: (_, options) => {
-          if (!options.hasOwnProperty('query')) {
-            return false;
-          } else if (!options.query.hasOwnProperty('field')) {
-            return false;
-          }
-          // expecting team ids 1 and 2
-          return (
-            options.query.field.includes('team_key_transaction') &&
-            options.query.team &&
-            options.query.team.length === 2 &&
-            options.query.team[0] === '1' &&
-            options.query.team[1] === '2'
-          );
-        },
-      }
-    );
-
     const teams = [
       TestStubs.Team({id: '1', slug: 'team1', name: 'Team 1'}),
       TestStubs.Team({id: '2', slug: 'team2', name: 'Team 2'}),
@@ -633,9 +633,63 @@ describe('Performance > Content', function () {
     await tick();
     wrapper.update();
 
+    expect(teamKeyTransactionsEventsV2).toHaveBeenCalled();
+  });
+
+  it('Refreshes the table with with the appropriate teams selected', async function () {
+    const teams = [
+      TestStubs.Team({id: '1', slug: 'team1', name: 'Team 1'}),
+      TestStubs.Team({id: '2', slug: 'team2', name: 'Team 2'}),
+    ];
+    const project = TestStubs.Project({teams});
+    const data = initializeData([project], {project: [project.id]}, [
+      ...FEATURES,
+      'team-key-transactions',
+    ]);
+
+    wrapper = mountWithTheme(
+      <PerformanceContent
+        organization={data.organization}
+        location={data.router.location}
+      />,
+      data.routerContext
+    );
+
     await tick();
     wrapper.update();
 
-    expect(teamKeyTransactionsEvents).toHaveBeenCalled();
+    expect(teamKeyTransactionsEventsV2).not.toHaveBeenCalled();
+
+    wrapper.find('Button[data-test-id="filter-button"]').simulate('click');
+
+    expect(wrapper.find('FilterSection Header').length).toEqual(1);
+    expect(wrapper.find('FilterSection ListItem').length).toEqual(2);
+
+    wrapper.find('FilterSection Header CheckboxFancy').first().simulate('click');
+
+    // the team selection has changed as expected
+    expect(browserHistory.push).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({
+          team: ['1', '2'],
+        }),
+      })
+    );
+
+    // update the location prop as expected
+    wrapper.setProps({
+      location: {
+        ...data.router.location,
+        query: {
+          ...data.router.location.query,
+          team: ['1', '2'],
+        },
+      },
+    });
+
+    await tick();
+    wrapper.update();
+
+    expect(teamKeyTransactionsEventsV2).toHaveBeenCalled();
   });
 });
