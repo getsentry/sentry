@@ -1062,7 +1062,11 @@ class QueryTransformTest(TestCase):
         mock_query.assert_called_with(
             selected_columns=["transaction"],
             aggregations=[
-                ["uniqIf", ["user", ["greater", ["duration", 1200.0]]], "count_miserable_user_300"]
+                [
+                    "uniqIf(user, greater(duration, 1200.0))",
+                    None,
+                    "count_miserable_user_300",
+                ]
             ],
             filter_keys={"project_id": [self.project.id]},
             dataset=Dataset.Discover,
@@ -1261,33 +1265,21 @@ class QueryTransformTest(TestCase):
             conditions=[],
             aggregations=[
                 [
-                    "uniqIf",
-                    [
-                        "user",
-                        [
-                            "greater",
-                            [
-                                [
-                                    "multiIf",
-                                    [
-                                        [
-                                            "equals",
-                                            [
-                                                ["tupleElement", ["project_threshold_config", 1]],
-                                                "'lcp'",
-                                            ],
-                                        ],
-                                        "measurements[lcp]",
-                                        "duration",
-                                    ],
-                                ],
-                                [
-                                    "multiply",
-                                    [["tupleElement", ["project_threshold_config", 2]], 4],
-                                ],
-                            ],
-                        ],
-                    ],
+                    """
+                    uniqIf(user, greater(
+                        multiIf(
+                            equals(tupleElement(project_threshold_config, 1), 'lcp'),
+                            if(has(measurements.key, 'lcp'), arrayElement(measurements.value, indexOf(measurements.key, 'lcp')), NULL),
+                            duration
+                        ),
+                        multiply(tupleElement(project_threshold_config, 2), 4)
+                    ))
+                    """.replace(
+                        "\n", ""
+                    ).replace(
+                        " ", ""
+                    ),
+                    None,
                     "count_miserable_user",
                 ]
             ],
