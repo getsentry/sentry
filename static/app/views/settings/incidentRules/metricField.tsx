@@ -49,7 +49,6 @@ const getFieldOptionConfig = ({
   alertType,
 }: {
   dataset: Dataset;
-  organization: Organization;
   alertType?: AlertType;
 }) => {
   let config: OptionConfig;
