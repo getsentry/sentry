@@ -212,7 +212,11 @@ function Grouping({api, groupId, location}: Props) {
                   <WhatHappensDescription>
                     {tct(
                       `This issue will be deleted and [quantity] new issues will be created.`,
-                      {quantity: activeGroupingLevelDetails.length}
+                      {
+                        quantity: pagination
+                          ? `${activeGroupingLevelDetails.length}+`
+                          : activeGroupingLevelDetails.length,
+                      }
                     )}
                   </WhatHappensDescription>
                 </div>
