@@ -2,6 +2,7 @@ from collections import namedtuple
 
 from django.utils.translation import ugettext_lazy as _
 
+from sentry import features
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.integrations import (
     FeatureDescription,
@@ -159,5 +160,6 @@ class SlackIntegrationProvider(IntegrationProvider):
         """
         Create Identity records for an organization's users if their emails match in Sentry and Slack
         """
-        run_args = {"integration": integration, "organization": organization}
-        tasks.link_slack_user_identities.apply_async(kwargs=run_args)
+        if features.has("organizations:notification-platform", organization):
+            run_args = {"integration": integration, "organization": organization}
+            tasks.link_slack_user_identities.apply_async(kwargs=run_args)
