@@ -15,7 +15,7 @@ import {AppStoreConnectValidationData} from 'app/types/debugFiles';
 import {promptIsDismissed} from 'app/utils/promptIsDismissed';
 import withApi from 'app/utils/withApi';
 
-import {getAppConnectStoreUpdateAlertMessage} from './utils';
+import {appStoreConnectAlertMessage, getAppConnectStoreUpdateAlertMessage} from './utils';
 
 const APP_STORE_CONNECT_UPDATES = 'app_store_connect_updates';
 
@@ -77,28 +77,24 @@ function UpdateAlert({api, Wrapper, isCompact, project, organization, className}
       return null;
     }
 
-    if (appConnectValidationData.appstoreCredentialsValid === false) {
-      return (
-        <div>
-          {appConnectStoreUpdateAlertMessage}&nbsp;
-          {isCompact ? (
-            <Link to={projectSettingsLink}>
-              {t('Update it in the project settings to reconnect.')}
-            </Link>
-          ) : undefined}
-        </div>
-      );
-    }
-
-    const commonMessage = isCompact ? (
-      <Link to={`${projectSettingsLink}&revalidateItunesSession=true`}>
-        {t('Update it in the project settings to reconnect.')}
-      </Link>
-    ) : undefined;
-
     return (
       <div>
-        {appConnectStoreUpdateAlertMessage}&nbsp;{commonMessage}
+        {appConnectStoreUpdateAlertMessage}&nbsp;
+        {isCompact && (
+          <Link
+            to={
+              appConnectStoreUpdateAlertMessage ===
+              appStoreConnectAlertMessage.appStoreCredentialsInvalid
+                ? projectSettingsLink
+                : `${projectSettingsLink}&revalidateItunesSession=true`
+            }
+          >
+            {appConnectStoreUpdateAlertMessage ===
+            appStoreConnectAlertMessage.isTodayAfterItunesSessionRefreshAt
+              ? t('We recommend that you update it in the project settings.')
+              : t('Update it in the project settings to reconnect.')}
+          </Link>
+        )}
       </div>
     );
   }

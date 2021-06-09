@@ -1,4 +1,4 @@
-export type App = {
+export type AppStoreApp = {
   name: string;
   appId: string;
 };
@@ -8,32 +8,25 @@ export type AppleStoreOrg = {
   organizationId: number;
 };
 
-export type AppStoreCredentialsStepOneData = {
+export type StepOneData = {
   issuer?: string;
   keyId?: string;
   privateKey?: string;
 };
 
-export type AppStoreCredentialsStepTwoData = {
-  app?: App;
+export type StepTwoData = {
+  app?: AppStoreApp;
 };
 
-export type AppStoreCredentialsData = AppStoreCredentialsStepOneData &
-  AppStoreCredentialsStepTwoData;
-
-export type ItunesCredentialsStepOneData = {
+export type StepThreeData = {
   username?: string;
   password?: string;
 };
 
-export type ItunesCredentialsStepTwoData = {
+export type StepFourData = {
   authenticationCode?: string;
 };
 
-export type ItunesCredentialsStepThreeData = {
+export type StepFifthData = {
   org?: AppleStoreOrg;
 };
-
-export type ItunesCredentialsData = ItunesCredentialsStepOneData &
-  ItunesCredentialsStepThreeData &
-  ItunesCredentialsStepTwoData & {sessionContext?: string; useSms?: boolean};
