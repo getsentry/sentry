@@ -6,6 +6,7 @@ import TeamKeyTransactionComponent, {
   TitleProps,
 } from 'app/components/performance/teamKeyTransaction';
 import * as TeamKeyTransactionManager from 'app/components/performance/teamKeyTransactionsManager';
+import Tooltip from 'app/components/tooltip';
 import {IconStar} from 'app/icons';
 import {t, tn} from 'app/locale';
 import {Organization, Project, Team} from 'app/types';
@@ -20,8 +21,9 @@ import withTeams from 'app/utils/withTeams';
  */
 class TitleButton extends Component<TitleProps> {
   render() {
-    const {keyedTeamsCount, ...props} = this.props;
-    return (
+    const {isOpen, keyedTeams, ...props} = this.props;
+    const keyedTeamsCount = keyedTeams?.length ?? 0;
+    const button = (
       <StyledButton
         {...props}
         icon={keyedTeamsCount ? <IconStar color="yellow300" isSolid /> : <IconStar />}
@@ -31,6 +33,13 @@ class TitleButton extends Component<TitleProps> {
           : t('Star for Team')}
       </StyledButton>
     );
+
+    if (!isOpen && keyedTeams?.length) {
+      const teamSlugs = keyedTeams.map(({slug}) => slug).join(', ');
+      return <Tooltip title={teamSlugs}>{button}</Tooltip>;
+    } else {
+      return button;
+    }
   }
 }
 

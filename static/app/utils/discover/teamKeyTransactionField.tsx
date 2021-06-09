@@ -5,6 +5,7 @@ import TeamKeyTransaction, {
   TitleProps,
 } from 'app/components/performance/teamKeyTransaction';
 import * as TeamKeyTransactionManager from 'app/components/performance/teamKeyTransactionsManager';
+import Tooltip from 'app/components/tooltip';
 import {IconStar} from 'app/icons';
 import {Organization, Project, Team} from 'app/types';
 import {defined} from 'app/utils';
@@ -13,7 +14,8 @@ import withTeams from 'app/utils/withTeams';
 
 class TitleStar extends Component<TitleProps> {
   render() {
-    const {keyedTeamsCount, ...props} = this.props;
+    const {isOpen, keyedTeams, initialValue, ...props} = this.props;
+    const keyedTeamsCount = keyedTeams?.length ?? initialValue ?? 0;
     const star = (
       <IconStar
         color={keyedTeamsCount ? 'yellow300' : 'gray200'}
@@ -21,7 +23,13 @@ class TitleStar extends Component<TitleProps> {
         data-test-id="team-key-transaction-column"
       />
     );
-    return <Button {...props} icon={star} borderless size="zero" />;
+    const button = <Button {...props} icon={star} borderless size="zero" />;
+    if (!isOpen && keyedTeams?.length) {
+      const teamSlugs = keyedTeams.map(({slug}) => slug).join(', ');
+      return <Tooltip title={teamSlugs}>{button}</Tooltip>;
+    } else {
+      return button;
+    }
   }
 }
 
