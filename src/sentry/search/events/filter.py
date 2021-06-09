@@ -355,9 +355,9 @@ def parse_semver_search(
         raise ValueError("organization_id is a required param")
 
     organization_id: int = params["organization_id"]
-
     version: str = search_filter.value.value
     operator: str = search_filter.operator
+
     # Our semver parser expects a package at the start of the version, so just add a
     # dummy one here if not already provided.
     version = version if "@" in version else f"{SEMVER_FAKE_PACKAGE}@{version}"
@@ -365,18 +365,19 @@ def parse_semver_search(
     parsed_version = parsed.get("version_parsed")
     if parsed_version:
         # The version matches semver format, so we can use it for comparison
-        package = parsed["package"]
         release_filter = Q(organization_id=organization_id)
-        if package and package != SEMVER_FAKE_PACKAGE:
-            release_filter &= Q(package=package)
-        major = parsed_version["major"]
-        minor = parsed_version["minor"]
-        patch = parsed_version["patch"]
-        revision = parsed_version["revision"]
+        if parsed["package"] and parsed["package"] != SEMVER_FAKE_PACKAGE:
+            release_filter &= Q(package=parsed["package"])
         # Convert `pre` to always be a string
         prerelease = parsed_version["pre"] if parsed_version["pre"] else ""
         filter_func = Func(
-            major, minor, patch, revision, 0 if prerelease else 1, Value(prerelease), function="ROW"
+            parsed_version["major"],
+            parsed_version["minor"],
+            parsed_version["patch"],
+            parsed_version["revision"],
+            0 if prerelease else 1,
+            Value(prerelease),
+            function="ROW",
         )
 
         # Note that we sort this such that if we end up fetching more than
