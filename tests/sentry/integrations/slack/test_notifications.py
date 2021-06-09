@@ -116,6 +116,50 @@ class SlackActivityNotificationTest(ActivityTestCase, TestCase):
 
     @responses.activate
     @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
+    def test_multiple_identities(self, mock_func):
+        """
+        Test that we notify a user with multiple Identities in the correct place
+        """
+        org2 = self.create_organization(owner=None)
+        integration2 = Integration.objects.create(
+            provider="slack",
+            name="Team B",
+            external_id="TXXXXXXX2",
+            metadata={
+                "access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
+                "installation_type": "born_as_bot",
+            },
+        )
+        integration2.add_organization(org2, self.user)
+        idp2 = IdentityProvider.objects.create(type="slack", external_id="TXXXXXXX2", config={})
+        Identity.objects.create(
+            external_id="UXXXXXXX2",
+            idp=idp2,
+            user=self.user,
+            status=IdentityStatus.VALID,
+            scopes=[],
+        )
+
+        notification = AssignedActivityNotification(
+            Activity(
+                project=self.project,
+                group=self.group,
+                user=self.user,
+                type=ActivityType.ASSIGNED,
+                data={"assignee": self.user.id},
+            )
+        )
+        with self.tasks():
+            notification.send()
+
+        assert len(responses.calls) >= 1
+        data = parse_qs(responses.calls[0].request.body)
+        assert "channel" in data
+        channel = data["channel"][0]
+        assert channel == self.identity.external_id
+
+    @responses.activate
+    @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
     def test_assignment(self, mock_func):
         """
         Test that a Slack message is sent with the expected payload when an issue is assigned
