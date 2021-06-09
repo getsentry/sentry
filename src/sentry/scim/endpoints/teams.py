@@ -44,7 +44,7 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
     permission_classes = (OrganizationSCIMTeamPermission,)
     team_serializer = TeamSCIMSerializer
 
-    def should_add_creator_to_team(request):
+    def should_add_creator_to_team(self, request):
         return False
 
     def get(self, request, organization):

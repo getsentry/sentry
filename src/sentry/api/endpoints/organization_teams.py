@@ -56,7 +56,7 @@ class TeamSerializer(serializers.Serializer):
 class OrganizationTeamsEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationTeamsPermission,)
 
-    team_serializer = TeamSerializer
+    team_serializer = team_serializers.TeamSerializer
 
     def get(self, request, organization):
         """
@@ -126,7 +126,7 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
             paginator_cls=OffsetPaginator,
         )
 
-    def should_add_creator_to_team(request):
+    def should_add_creator_to_team(self, request):
         return request.user.is_authenticated
 
     def post(self, request, organization, **kwargs):
@@ -169,7 +169,7 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
                 team_created.send_robust(
                     organization=organization, user=request.user, team=team, sender=self.__class__
                 )
-            if self.should_add_creator_to_team():
+            if self.should_add_creator_to_team(request):
                 try:
                     member = OrganizationMember.objects.get(
                         user=request.user, organization=organization
