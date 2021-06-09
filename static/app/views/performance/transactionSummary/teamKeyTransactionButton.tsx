@@ -1,5 +1,4 @@
 import {Component} from 'react';
-import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
 import TeamKeyTransactionComponent, {
@@ -22,14 +21,14 @@ class TitleButton extends Component<TitleProps> {
   render() {
     const {keyedTeamsCount, ...props} = this.props;
     return (
-      <StyledButton
+      <Button
         {...props}
         icon={keyedTeamsCount ? <IconStar color="yellow300" isSolid /> : <IconStar />}
       >
         {keyedTeamsCount
           ? tn('Starred for Team', 'Starred for Teams', keyedTeamsCount)
           : t('Star for Team')}
-      </StyledButton>
+      </Button>
     );
   }
 }
@@ -109,9 +108,5 @@ function TeamKeyTransactionButtonWrapper({
     </TeamKeyTransactionManager.Provider>
   );
 }
-
-const StyledButton = styled(Button)`
-  width: 180px;
-`;
 
 export default withTeams(withProjects(TeamKeyTransactionButtonWrapper));
