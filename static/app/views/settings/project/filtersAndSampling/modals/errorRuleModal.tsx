@@ -35,7 +35,9 @@ class ErrorRuleModal extends Form<Props, State> {
   geTransactionFieldDescription() {
     return {
       label: t('Errors'),
-      // help: t('This is a description'), TODO(PRISCILA): Add correct description
+      help: t(
+        'This determines if the rule applies to all errors or only errors that match custom conditions.'
+      ),
     };
   }
 

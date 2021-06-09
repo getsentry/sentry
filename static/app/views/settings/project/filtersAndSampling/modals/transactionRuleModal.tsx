@@ -76,7 +76,9 @@ class TransactionRuleModal extends Form<Props, State> {
   geTransactionFieldDescription() {
     return {
       label: t('Transactions'),
-      // help: t('This is a description'),  TODO(Priscila): Add correct descriptions
+      help: t(
+        'This determines if the rule applies to all transactions or only transactions that match custom conditions.'
+      ),
     };
   }
 

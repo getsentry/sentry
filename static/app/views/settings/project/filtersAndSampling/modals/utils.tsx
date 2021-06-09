@@ -10,7 +10,8 @@ export const modalCss = css`
   }
 
   @media (min-width: ${theme.breakpoints[0]}) {
-    width: 700px;
+    width: 100%;
+    max-width: 700px;
   }
 `;
 
