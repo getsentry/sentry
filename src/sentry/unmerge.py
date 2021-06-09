@@ -10,6 +10,8 @@ from sentry.models.project import Project
 
 _DEFAULT_UNMERGE_KEY = "default"
 
+Destinations = Mapping[str, Tuple[int, Any]]
+
 
 class UnmergeReplacement(abc.ABC):
     """
@@ -126,7 +128,7 @@ class UnmergeArgsBase:
     project_id: int
     source_id: int
     replacement: UnmergeReplacement
-    actor_id: int
+    actor_id: Optional[int]
     batch_size: int
 
     @staticmethod
@@ -142,7 +144,7 @@ class UnmergeArgsBase:
         eventstream_state: Any = None,
         replacement: Optional[UnmergeReplacement] = None,
         locked_primary_hashes: Optional[Collection[str]] = None,
-        destinations: Optional[Mapping[str, int]] = None,
+        destinations: Optional[Destinations] = None,
     ) -> "UnmergeArgs":
         if destinations is None:
             if destination_id is not None:
@@ -189,7 +191,7 @@ class InitialUnmergeArgs(UnmergeArgsBase):
     # In tests the destination task is passed in explicitly from the outside,
     # so we support unmerging into an existing destination group. In production
     # this does not happen.
-    destinations: Mapping[str, Tuple[int, Optional[Mapping[str, Any]]]]
+    destinations: Destinations
 
 
 @dataclass(frozen=True)
@@ -200,7 +202,7 @@ class SuccessiveUnmergeArgs(UnmergeArgsBase):
     # unmerge may only start mutating data on a successive page, once it
     # actually has found an event that needs to be migrated.
     # (unmerge_key) -> (group_id, eventstream_state)
-    destinations: Mapping[str, Tuple[int, Optional[Mapping[str, Any]]]]
+    destinations: Destinations
 
     # likewise unmerge may only find "source" events (events that should not be
     # migrated) on the second page, only then (and only once) it can reset
