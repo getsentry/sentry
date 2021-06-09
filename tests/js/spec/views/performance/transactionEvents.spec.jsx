@@ -1,5 +1,3 @@
-import {browserHistory} from 'react-router';
-
 import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
@@ -36,48 +34,6 @@ describe('Performance > TransactionSummary', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/tags/',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/tags/user.email/values/',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
-      body: {data: [[123, []]]},
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/releases/stats/',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url:
-        '/organizations/org-slug/issues/?limit=5&project=1&query=is%3Aunresolved%20transaction%3A%2Fperformance&sort=new&statsPeriod=14d',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/users/',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/recent-searches/',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/recent-searches/',
-      method: 'POST',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/sdk-updates/',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: '/prompts-activity/',
-      body: {},
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/is-key-transactions/',
@@ -128,52 +84,6 @@ describe('Performance > TransactionSummary', function () {
         },
       }
     );
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-facets/',
-      body: [
-        {
-          key: 'release',
-          topValues: [{count: 2, value: 'abcd123', name: 'abcd123'}],
-        },
-        {
-          key: 'environment',
-          topValues: [{count: 2, value: 'abcd123', name: 'abcd123'}],
-        },
-      ],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-vitals/',
-      body: {
-        'measurements.fcp': {
-          poor: 3,
-          meh: 100,
-          good: 47,
-          total: 150,
-          p75: 1500,
-        },
-        'measurements.lcp': {
-          poor: 2,
-          meh: 38,
-          good: 40,
-          total: 80,
-          p75: 2750,
-        },
-        'measurements.fid': {
-          poor: 2,
-          meh: 53,
-          good: 5,
-          total: 60,
-          p75: 1000,
-        },
-        'measurements.cls': {
-          poor: 3,
-          meh: 10,
-          good: 4,
-          total: 17,
-          p75: 0.2,
-        },
-      },
-    });
   });
 
   afterEach(function () {
