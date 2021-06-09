@@ -375,6 +375,7 @@ describe('EventView.fromNewQueryWithLocation()', function () {
     name: 'All Events',
     query: '',
     projects: [],
+    teams: [],
     fields: ['title', 'event.type', 'project', 'user', 'timestamp'],
     orderby: '-timestamp',
     version: 2,
@@ -402,6 +403,7 @@ describe('EventView.fromNewQueryWithLocation()', function () {
       sorts: [{field: 'timestamp', kind: 'desc'}],
       query: '',
       project: [],
+      team: [],
       start: undefined,
       end: undefined,
       // statsPeriod has precedence
@@ -416,6 +418,7 @@ describe('EventView.fromNewQueryWithLocation()', function () {
       query: {
         statsPeriod: '99d',
         project: ['456'],
+        team: ['1', '2'],
         environment: ['prod'],
       },
     };
@@ -435,6 +438,7 @@ describe('EventView.fromNewQueryWithLocation()', function () {
       sorts: [{field: 'timestamp', kind: 'desc'}],
       query: '',
       project: [456],
+      team: [1, 2],
       start: undefined,
       end: undefined,
       statsPeriod: '99d',
@@ -448,6 +452,7 @@ describe('EventView.fromNewQueryWithLocation()', function () {
       query: {
         statsPeriod: '99d',
         project: ['456'],
+        team: ['1', '2'],
         environment: ['prod'],
       },
     };
@@ -456,6 +461,7 @@ describe('EventView.fromNewQueryWithLocation()', function () {
       ...prebuiltQuery,
       range: '42d',
       projects: [987],
+      teams: ['myteams'],
       environment: ['staging'],
     };
 
@@ -474,6 +480,7 @@ describe('EventView.fromNewQueryWithLocation()', function () {
       sorts: [{field: 'timestamp', kind: 'desc'}],
       query: '',
       project: [987],
+      team: ['myteams'],
       start: undefined,
       end: undefined,
       statsPeriod: '42d',

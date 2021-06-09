@@ -13,6 +13,10 @@ import SearchBar from 'app/components/events/searchBar';
 import * as Layout from 'app/components/layouts/thirds';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import * as TeamKeyTransactionManager from 'app/components/performance/teamKeyTransactionsManager';
+import TeamSelector, {
+  getSelectedTeamIdsFromLocation,
+  getSelectedTeams,
+} from 'app/components/performance/teamSelector';
 import {IconChevron} from 'app/icons';
 import {IconFlag} from 'app/icons/iconFlag';
 import {t} from 'app/locale';
@@ -176,6 +180,24 @@ class VitalDetailContent extends React.Component<Props, State> {
     );
   }
 
+  handleTeamChange = (activeFilters: Set<string>) => {
+    const {location} = this.props;
+
+    const newQuery: Location['query'] = {
+      ...location.query,
+      team: [...activeFilters],
+    };
+
+    if (activeFilters.size <= 0) {
+      delete newQuery.team;
+    }
+
+    browserHistory.push({
+      ...location,
+      query: newQuery,
+    });
+  };
+
   render() {
     const {location, eventView, organization, vitalName, projects, teams} = this.props;
     const {incompatibleAlertNotice} = this.state;
@@ -186,7 +208,15 @@ class VitalDetailContent extends React.Component<Props, State> {
     const filterString = getTransactionSearchQuery(location);
     const summaryConditions = getSummaryConditions(filterString);
     const description = vitalDescription[vitalName];
+
     const userTeams = teams.filter(({isMember}) => isMember);
+    const selectedTeamIds = getSelectedTeamIdsFromLocation(location);
+    const selectedTeamIdSet = new Set(selectedTeamIds);
+    const selectedTeams = getSelectedTeams(teams, selectedTeamIdSet);
+
+    const hasTeamKeyTransactions = organization.features.includes(
+      'team-key-transactions'
+    );
 
     return (
       <React.Fragment>
@@ -215,13 +245,22 @@ class VitalDetailContent extends React.Component<Props, State> {
           )}
           <Layout.Main fullWidth>
             <StyledDescription>{description}</StyledDescription>
-            <StyledSearchBar
-              organization={organization}
-              projectIds={eventView.project}
-              query={query}
-              fields={eventView.fields}
-              onSearch={this.handleSearch}
-            />
+            <SearchContainer hasTeamSelector={hasTeamKeyTransactions}>
+              {hasTeamKeyTransactions && (
+                <TeamSelector
+                  teams={userTeams}
+                  selectedTeams={selectedTeamIdSet}
+                  handleChangeFilter={this.handleTeamChange}
+                />
+              )}
+              <SearchBar
+                organization={organization}
+                projectIds={eventView.project}
+                query={query}
+                fields={eventView.fields}
+                onSearch={this.handleSearch}
+              />
+            </SearchContainer>
             <VitalChart
               organization={organization}
               query={eventView.query}
@@ -239,36 +278,32 @@ class VitalDetailContent extends React.Component<Props, State> {
                 vital={vital}
               />
             </StyledVitalInfo>
-            <Feature organization={organization} features={['team-key-transactions']}>
-              {({hasFeature}) =>
-                hasFeature ? (
-                  <TeamKeyTransactionManager.Provider
-                    organization={organization}
-                    teams={userTeams}
-                    selectedTeams={['myteams']}
-                    selectedProjects={eventView.project.map(String)}
-                  >
-                    <Table
-                      eventView={eventView}
-                      projects={projects}
-                      organization={organization}
-                      location={location}
-                      setError={this.setError}
-                      summaryConditions={summaryConditions}
-                    />
-                  </TeamKeyTransactionManager.Provider>
-                ) : (
-                  <Table
-                    eventView={eventView}
-                    projects={projects}
-                    organization={organization}
-                    location={location}
-                    setError={this.setError}
-                    summaryConditions={summaryConditions}
-                  />
-                )
-              }
-            </Feature>
+            {hasTeamKeyTransactions ? (
+              <TeamKeyTransactionManager.Provider
+                organization={organization}
+                teams={selectedTeams}
+                selectedTeams={selectedTeamIds}
+                selectedProjects={eventView.project.map(String)}
+              >
+                <Table
+                  eventView={eventView}
+                  projects={projects}
+                  organization={organization}
+                  location={location}
+                  setError={this.setError}
+                  summaryConditions={summaryConditions}
+                />
+              </TeamKeyTransactionManager.Provider>
+            ) : (
+              <Table
+                eventView={eventView}
+                projects={projects}
+                organization={organization}
+                location={location}
+                setError={this.setError}
+                summaryConditions={summaryConditions}
+              />
+            )}
           </Layout.Main>
         </Layout.Body>
       </React.Fragment>
@@ -281,8 +316,14 @@ const StyledDescription = styled('div')`
   margin-bottom: ${space(3)};
 `;
 
-const StyledSearchBar = styled(SearchBar)`
+const SearchContainer = styled('div')<{hasTeamSelector: boolean}>`
+  display: grid;
+  grid-gap: ${space(2)};
   margin-bottom: ${space(2)};
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    grid-template-columns: ${p => (p.hasTeamSelector ? 'min-content 1fr' : '1fr')};
+  }
 `;
 
 const StyledVitalInfo = styled('div')`

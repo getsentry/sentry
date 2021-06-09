@@ -5,6 +5,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import * as globalSelection from 'app/actionCreators/globalSelection';
 import ProjectsStore from 'app/stores/projectsStore';
+import TeamStore from 'app/stores/teamStore';
 import PerformanceContent from 'app/views/performance/content';
 import {DEFAULT_MAX_DURATION} from 'app/views/performance/trends/utils';
 import {vitalAbbreviations} from 'app/views/performance/vitalDetail/utils';
@@ -25,6 +26,21 @@ function initializeData(projects, query, features = FEATURES) {
     },
   });
   ProjectsStore.loadInitialData(initialData.organization.projects);
+  const teamIds = new Set();
+  const teams = initialData.organization.projects
+    .map(project => project.teams)
+    .reduce(
+      (allTeams, projectTeams) =>
+        projectTeams.reduce((ts, team) => {
+          if (!teamIds.has(team.id)) {
+            teamIds.add(team.id);
+            ts.push(team);
+          }
+          return ts;
+        }, allTeams),
+      []
+    );
+  TeamStore.loadInitialData(teams);
   return initialData;
 }
 
@@ -60,6 +76,8 @@ function initializeTrendsData(query, addDefaultQuery = true) {
 }
 
 describe('Performance > Content', function () {
+  let wrapper;
+
   beforeEach(function () {
     browserHistory.push = jest.fn();
     jest.spyOn(globalSelection, 'updateDateTime');
@@ -142,7 +160,10 @@ describe('Performance > Content', function () {
           } else if (!options.query.hasOwnProperty('field')) {
             return false;
           }
-          return !options.query.field.includes('key_transaction');
+          return (
+            !options.query.field.includes('key_transaction') &&
+            !options.query.field.includes('team_key_transaction')
+          );
         },
       }
     );
@@ -202,7 +223,13 @@ describe('Performance > Content', function () {
           } else if (!options.query.hasOwnProperty('field')) {
             return false;
           }
-          return options.query.field.includes('key_transaction');
+          return (
+            options.query.field.includes('key_transaction') ||
+            (options.query.field.includes('team_key_transaction') &&
+              options.query.team &&
+              options.query.team.length === 1 &&
+              options.query.team[0] === 'myteams')
+          );
         },
       }
     );
@@ -248,14 +275,16 @@ describe('Performance > Content', function () {
   afterEach(function () {
     MockApiClient.clearMockResponses();
     ProjectsStore.reset();
+    TeamStore.reset();
     globalSelection.updateDateTime.mockRestore();
+    wrapper.unmount();
   });
 
   it('renders basic UI elements', async function () {
     const projects = [TestStubs.Project({firstTransactionEvent: true})];
     const data = initializeData(projects, {});
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <PerformanceContent
         organization={data.organization}
         location={data.router.location}
@@ -283,7 +312,7 @@ describe('Performance > Content', function () {
     ];
     const data = initializeData(projects, {project: [1]});
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <PerformanceContent
         organization={data.organization}
         location={data.router.location}
@@ -308,7 +337,7 @@ describe('Performance > Content', function () {
     ];
     const data = initializeData(projects, {project: ['-1']});
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <PerformanceContent
         organization={data.organization}
         location={data.router.location}
@@ -325,7 +354,7 @@ describe('Performance > Content', function () {
     const projects = [TestStubs.Project({id: '1', firstTransactionEvent: true})];
     const data = initializeData(projects, {project: ['1'], query: 'sentry:yes'});
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <PerformanceContent
         organization={data.organization}
         location={data.router.location}
@@ -350,7 +379,7 @@ describe('Performance > Content', function () {
 
   it('Default period for trends does not call updateDateTime', async function () {
     const data = initializeTrendsData({query: 'tag:value'}, false);
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <PerformanceContent
         organization={data.organization}
         location={data.router.location}
@@ -368,7 +397,7 @@ describe('Performance > Content', function () {
       statsPeriod: '24h',
     });
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <PerformanceContent
         organization={data.organization}
         location={data.router.location}
@@ -401,7 +430,7 @@ describe('Performance > Content', function () {
     ];
     const data = initializeData(projects, {view: undefined});
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <PerformanceContent
         organization={data.organization}
         location={data.router.location}
@@ -417,7 +446,7 @@ describe('Performance > Content', function () {
   it('Default page (transactions) with trends feature will not update filters if none are set', async function () {
     const data = initializeTrendsData({view: undefined}, false);
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <PerformanceContent
         organization={data.organization}
         location={data.router.location}
@@ -433,7 +462,7 @@ describe('Performance > Content', function () {
   it('Tags are replaced with trends default query if navigating to trends', async function () {
     const data = initializeTrendsData({query: 'device.family:Mac'}, false);
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <PerformanceContent
         organization={data.organization}
         location={data.router.location}
@@ -462,7 +491,7 @@ describe('Performance > Content', function () {
       ...FEATURES,
     ]);
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <PerformanceContent
         organization={data.organization}
         location={data.router.location}
@@ -488,7 +517,7 @@ describe('Performance > Content', function () {
       ...FEATURES,
     ]);
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <PerformanceContent
         organization={data.organization}
         location={data.router.location}
@@ -510,5 +539,103 @@ describe('Performance > Content', function () {
       const link = wrapper.find(selector);
       expect(link).toHaveLength(1);
     }
+  });
+
+  it('Queries the table with with the appropriate teams selected', async function () {
+    const teamKeyTransactionsEvents = MockApiClient.addMockResponse(
+      {
+        url: '/organizations/org-slug/eventsv2/',
+        body: {
+          meta: {
+            team_key_transaction: 'boolean',
+            user: 'string',
+            transaction: 'string',
+            'project.id': 'integer',
+            tpm: 'number',
+            p50: 'number',
+            p95: 'number',
+            failure_rate: 'number',
+            apdex_300: 'number',
+            count_unique_user: 'number',
+            count_miserable_user_300: 'number',
+            user_misery_300: 'number',
+          },
+          data: [
+            {
+              team_key_transaction: 1,
+              transaction: '/apple/cart',
+              'project.id': 1,
+              user: 'uhoh@example.com',
+              tpm: 30,
+              p50: 100,
+              p95: 500,
+              failure_rate: 0.1,
+              apdex_300: 0.6,
+              count_unique_user: 1000,
+              count_miserable_user_300: 122,
+              user_misery_300: 0.114,
+            },
+            {
+              team_key_transaction: 0,
+              transaction: '/apple/checkout',
+              'project.id': 1,
+              user: 'uhoh@example.com',
+              tpm: 30,
+              p50: 100,
+              p95: 500,
+              failure_rate: 0.1,
+              apdex_300: 0.6,
+              count_unique_user: 1000,
+              count_miserable_user_300: 122,
+              user_misery_300: 0.114,
+            },
+          ],
+        },
+      },
+      {
+        predicate: (_, options) => {
+          if (!options.hasOwnProperty('query')) {
+            return false;
+          } else if (!options.query.hasOwnProperty('field')) {
+            return false;
+          }
+          // expecting team ids 1 and 2
+          return (
+            options.query.field.includes('team_key_transaction') &&
+            options.query.team &&
+            options.query.team.length === 2 &&
+            options.query.team[0] === '1' &&
+            options.query.team[1] === '2'
+          );
+        },
+      }
+    );
+
+    const teams = [
+      TestStubs.Team({id: '1', slug: 'team1', name: 'Team 1'}),
+      TestStubs.Team({id: '2', slug: 'team2', name: 'Team 2'}),
+    ];
+    const project = TestStubs.Project({teams});
+    const data = initializeData(
+      [project],
+      {project: [project.id], team: teams.map(({id}) => id)},
+      [...FEATURES, 'team-key-transactions']
+    );
+
+    wrapper = mountWithTheme(
+      <PerformanceContent
+        organization={data.organization}
+        location={data.router.location}
+      />,
+      data.routerContext
+    );
+
+    await tick();
+    wrapper.update();
+
+    await tick();
+    wrapper.update();
+
+    expect(teamKeyTransactionsEvents).toHaveBeenCalled();
   });
 });

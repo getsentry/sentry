@@ -362,11 +362,17 @@ class EventView {
         ? newQuery.projects
         : decodeProjects(location);
 
+    const teams =
+      Array.isArray(newQuery.teams) && newQuery.teams.length > 0
+        ? newQuery.teams
+        : decodeTeams(location);
+
     const saved: NewQuery = {
       ...newQuery,
 
       environment,
       projects: project,
+      teams,
 
       // datetime selection
       start: newQuery.start || decodeScalar(query.start),

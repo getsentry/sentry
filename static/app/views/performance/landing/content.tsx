@@ -3,10 +3,13 @@ import {browserHistory, withRouter, WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import Feature from 'app/components/acl/feature';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import SearchBar from 'app/components/events/searchBar';
 import * as TeamKeyTransactionManager from 'app/components/performance/teamKeyTransactionsManager';
+import TeamSelector, {
+  getSelectedTeamIdsFromLocation,
+  getSelectedTeams,
+} from 'app/components/performance/teamSelector';
 import {MAX_QUERY_LENGTH} from 'app/constants';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -54,8 +57,7 @@ type Props = {
   handleSearch: (searchQuery: string) => void;
 } & WithRouterProps;
 
-type State = {};
-class LandingContent extends Component<Props, State> {
+class LandingContent extends Component<Props> {
   getSummaryConditions(query: string) {
     const parsed = tokenizeSearch(query);
     parsed.query = [];
@@ -216,16 +218,48 @@ class LandingContent extends Component<Props, State> {
     );
   };
 
+  handleTeamChange = (activeFilters: Set<string>) => {
+    const {location} = this.props;
+
+    const newQuery = {
+      ...location.query,
+      team: [...activeFilters],
+    };
+
+    if (activeFilters.size <= 0) {
+      delete newQuery.team;
+    }
+
+    browserHistory.push({
+      ...location,
+      query: newQuery,
+    });
+  };
+
   render() {
     const {organization, location, eventView, projects, teams, handleSearch} = this.props;
-
     const currentLandingDisplay = getCurrentLandingDisplay(location, projects, eventView);
     const filterString = getTransactionSearchQuery(location, eventView.query);
+
     const userTeams = teams.filter(({isMember}) => isMember);
+    const selectedTeamIds = getSelectedTeamIdsFromLocation(location);
+    const selectedTeamIdSet = new Set(selectedTeamIds);
+    const selectedTeams = getSelectedTeams(teams, selectedTeamIdSet);
+
+    const hasTeamKeyTransactions = organization.features.includes(
+      'team-key-transactions'
+    );
 
     return (
       <Fragment>
-        <SearchContainer>
+        <SearchContainer hasTeamSelector={hasTeamKeyTransactions}>
+          {hasTeamKeyTransactions && (
+            <TeamSelector
+              teams={userTeams}
+              selectedTeams={selectedTeamIdSet}
+              handleChangeFilter={this.handleTeamChange}
+            />
+          )}
           <SearchBar
             organization={organization}
             projectIds={eventView.project}
@@ -255,34 +289,31 @@ class LandingContent extends Component<Props, State> {
             ))}
           </DropdownControl>
         </SearchContainer>
-        <Feature organization={organization} features={['team-key-transactions']}>
-          {({hasFeature}) =>
-            hasFeature ? (
-              <TeamKeyTransactionManager.Provider
-                organization={organization}
-                teams={userTeams}
-                selectedTeams={['myteams']}
-                selectedProjects={eventView.project.map(String)}
-              >
-                {this.renderSelectedDisplay(currentLandingDisplay.field)}
-              </TeamKeyTransactionManager.Provider>
-            ) : (
-              this.renderSelectedDisplay(currentLandingDisplay.field)
-            )
-          }
-        </Feature>
+        {hasTeamKeyTransactions ? (
+          <TeamKeyTransactionManager.Provider
+            organization={organization}
+            teams={selectedTeams}
+            selectedTeams={selectedTeamIds}
+            selectedProjects={eventView.project.map(String)}
+          >
+            {this.renderSelectedDisplay(currentLandingDisplay.field)}
+          </TeamKeyTransactionManager.Provider>
+        ) : (
+          this.renderSelectedDisplay(currentLandingDisplay.field)
+        )}
       </Fragment>
     );
   }
 }
 
-const SearchContainer = styled('div')`
+const SearchContainer = styled('div')<{hasTeamSelector: boolean}>`
   display: grid;
   grid-gap: ${space(2)};
   margin-bottom: ${space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    grid-template-columns: 1fr min-content;
+    grid-template-columns: ${p =>
+      p.hasTeamSelector ? 'min-content 1fr min-content' : '1fr min-content'};
   }
 `;
 

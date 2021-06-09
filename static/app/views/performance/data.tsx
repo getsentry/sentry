@@ -593,10 +593,12 @@ export function generatePerformanceEventView(
   }
 
   if (organization.features.includes('team-key-transactions')) {
-    return eventView.withTeams(['myteams']);
-  } else {
-    return eventView;
+    if (eventView.team.length <= 0) {
+      eventView = eventView.withTeams(['myteams']);
+    }
   }
+
+  return eventView;
 }
 
 export function generatePerformanceVitalDetailView(
@@ -646,14 +648,16 @@ export function generatePerformanceVitalDetailView(
   }
   savedQuery.query = stringifyQueryObject(conditions);
 
-  const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
+  let eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
   eventView.additionalConditions
     .addTagValues('event.type', ['transaction'])
     .addTagValues('has', [vitalName]);
 
   if (organization.features.includes('team-key-transactions')) {
-    return eventView.withTeams(['myteams']);
-  } else {
-    return eventView;
+    if (eventView.team.length <= 0) {
+      eventView = eventView.withTeams(['myteams']);
+    }
   }
+
+  return eventView;
 }
