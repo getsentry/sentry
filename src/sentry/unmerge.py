@@ -1,7 +1,7 @@
 import abc
 import dataclasses
 from dataclasses import dataclass
-from typing import Any, Collection, Mapping, Optional, Sequence, Tuple, Union
+from typing import Any, Collection, Mapping, Optional, Sequence, Tuple, Type, Union
 
 from sentry import eventstream
 from sentry.eventstore.models import Event
@@ -30,7 +30,7 @@ class UnmergeReplacement(abc.ABC):
     def parse_arguments(fingerprints: Any = None, replacement: Any = None) -> "UnmergeReplacement":
         if replacement is not None:
             if isinstance(replacement, dict):
-                replacement = _DISCRIMINATOR_REPLACEMENTS[replacement.pop("type")](**replacement)
+                replacement = _DISCRIMINATOR_REPLACEMENTS[replacement.pop("type")](**replacement)  # type: ignore
             assert isinstance(replacement, UnmergeReplacement)
             return replacement
         elif fingerprints is not None:
@@ -114,15 +114,17 @@ class PrimaryHashUnmergeReplacement(UnmergeReplacement):
         return {"fingerprints": self.fingerprints}
 
 
-_REPLACEMENT_DISCRIMINATORS = {
+_REPLACEMENT_DISCRIMINATORS: Mapping[Type[UnmergeReplacement], str] = {
     PrimaryHashUnmergeReplacement: "primary_hash",
 }
 
-_DISCRIMINATOR_REPLACEMENTS = {v: k for k, v in _REPLACEMENT_DISCRIMINATORS.items()}
+_DISCRIMINATOR_REPLACEMENTS: Mapping[str, Type[UnmergeReplacement]] = {
+    v: k for k, v in _REPLACEMENT_DISCRIMINATORS.items()
+}
 
 
 @dataclass(frozen=True)
-class UnmergeArgsBase:
+class UnmergeArgsBase(abc.ABC):
     """
     Parsed arguments of the Sentry unmerge task. Since events of the source
     issue are processed in batches, one can think of each batch as belonging to
@@ -149,7 +151,7 @@ class UnmergeArgsBase:
         destination_id: Optional[int],
         fingerprints: Sequence[str],
         actor_id: Optional[int],
-        last_event: Optional[str] = None,
+        last_event: Optional[Mapping[str, Any]] = None,
         batch_size: int = 500,
         source_fields_reset: bool = False,
         eventstream_state: Any = None,
