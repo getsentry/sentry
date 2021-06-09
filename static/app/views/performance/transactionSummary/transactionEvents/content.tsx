@@ -6,6 +6,7 @@ import {Location, LocationDescriptor, Query} from 'history';
 import omit from 'lodash/omit';
 
 import SearchBar from 'app/components/events/searchBar';
+import * as Layout from 'app/components/layouts/thirds';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import Pagination from 'app/components/pagination';
 import {t} from 'app/locale';
@@ -130,47 +131,49 @@ class EventsPageContent extends React.Component<Props> {
           }
           handleIncompatibleQuery={handleIncompatibleQuery}
         />
-        <StyledLayoutBody>
-          <Search {...this.props} />
-          <StyledTable>
-            <DiscoverQuery
-              location={location}
-              eventView={transactionsListEventView}
-              orgSlug={organization.slug}
-              limit={limit}
-              cursor={cursor}
-              referrer="api.discover.transactions-list"
-            >
-              {({isLoading, pageLinks, tableData}) => {
-                return (
-                  <React.Fragment>
-                    <TransactionsTable
-                      eventView={eventView}
-                      organization={organization}
-                      location={location}
-                      isLoading={isLoading}
-                      tableData={tableData}
-                      columnOrder={eventView.getColumns()}
-                      titles={transactionsListTitles}
-                      handleCellAction={this.handleCellAction}
-                      generateLink={{
-                        id: generateTransactionLink(transactionName),
-                        trace: generateTraceLink(
-                          eventView.normalizeDateSelection(location)
-                        ),
-                      }}
-                    />
-                    <Pagination
-                      pageLinks={pageLinks}
-                      onCursor={this.handleCursor}
-                      size="small"
-                    />
-                  </React.Fragment>
-                );
-              }}
-            </DiscoverQuery>
-          </StyledTable>
-        </StyledLayoutBody>
+        <Layout.Body>
+          <Layout.Main fullWidth>
+            <Search {...this.props} />
+            <StyledTable>
+              <DiscoverQuery
+                location={location}
+                eventView={transactionsListEventView}
+                orgSlug={organization.slug}
+                limit={limit}
+                cursor={cursor}
+                referrer="api.discover.transactions-list"
+              >
+                {({isLoading, pageLinks, tableData}) => {
+                  return (
+                    <React.Fragment>
+                      <TransactionsTable
+                        eventView={eventView}
+                        organization={organization}
+                        location={location}
+                        isLoading={isLoading}
+                        tableData={tableData}
+                        columnOrder={eventView.getColumns()}
+                        titles={transactionsListTitles}
+                        handleCellAction={this.handleCellAction}
+                        generateLink={{
+                          id: generateTransactionLink(transactionName),
+                          trace: generateTraceLink(
+                            eventView.normalizeDateSelection(location)
+                          ),
+                        }}
+                      />
+                      <Pagination
+                        pageLinks={pageLinks}
+                        onCursor={this.handleCursor}
+                        size="small"
+                      />
+                    </React.Fragment>
+                  );
+                }}
+              </DiscoverQuery>
+            </StyledTable>
+          </Layout.Main>
+        </Layout.Body>
       </Fragment>
     );
   }
@@ -231,13 +234,6 @@ const Search = (props: Props) => {
     />
   );
 };
-
-const StyledLayoutBody = styled('div')`
-  padding: ${space(2)};
-  margin: 0;
-  background-color: ${p => p.theme.background};
-  flex-grow: 1;
-`;
 
 const StyledSearchBar = styled(SearchBar)`
   flex-grow: 1;

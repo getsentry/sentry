@@ -1,6 +1,5 @@
 import {Component} from 'react';
 import {browserHistory, WithRouterProps} from 'react-router';
-import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import Feature from 'app/components/acl/feature';
@@ -9,7 +8,6 @@ import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMess
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {t} from 'app/locale';
-import {PageContent} from 'app/styles/organization';
 import {GlobalSelection, Organization, Project} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import {
@@ -117,30 +115,24 @@ class TransactionEvents extends Component<Props> {
             disableMultipleProjectSelection
             showProjectSettingsLink
           >
-            <StyledPageContent>
-              <LightWeightNoProjectMessage organization={organization}>
-                <EventsPageContent
-                  location={location}
-                  eventView={eventView}
-                  transactionName={transactionName}
-                  organization={organization}
-                  isLoading={false}
-                  totalValues={null}
-                  projects={projects}
-                  spanOperationBreakdownFilter={this.state.spanOperationBreakdownFilter}
-                />
-              </LightWeightNoProjectMessage>
-            </StyledPageContent>
+            <LightWeightNoProjectMessage organization={organization}>
+              <EventsPageContent
+                location={location}
+                eventView={eventView}
+                transactionName={transactionName}
+                organization={organization}
+                isLoading={false}
+                totalValues={null}
+                projects={projects}
+                spanOperationBreakdownFilter={this.state.spanOperationBreakdownFilter}
+              />
+            </LightWeightNoProjectMessage>
           </GlobalSelectionHeader>
         </Feature>
       </SentryDocumentTitle>
     );
   }
 }
-
-const StyledPageContent = styled(PageContent)`
-  padding: 0;
-`;
 
 function generateEventsEventView(
   location: Location,
