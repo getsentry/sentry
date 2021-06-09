@@ -1,20 +1,18 @@
 import datetime
 
-from django.core.cache import cache
 from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.orderby import Direction, OrderBy
 from snuba_sdk.query import Column, Entity, Function, Query
 
-from sentry import features, nodestore
+from sentry import nodestore
 from sentry.api.bases import GroupEndpoint
 from sentry.api.endpoints.group_hashes_split import _get_group_filters
-from sentry.api.endpoints.grouping_levels import LevelsOverview, check_feature, get_levels_overview
+from sentry.api.endpoints.grouping_levels import check_feature, get_levels_overview
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.eventstore.models import Event
 from sentry.models import Group
 from sentry.utils import snuba
-from sentry.utils.safe import get_path
 
 
 class GroupingLevelNewIssuesEndpoint(GroupEndpoint):
@@ -79,33 +77,6 @@ class GroupingLevelNewIssuesEndpoint(GroupEndpoint):
         )
 
 
-def _get_hash_for_parent_level(group: Group, id: int, levels_overview: LevelsOverview) -> str:
-    # If this is violated, there cannot be a 1:1 mapping between level and hash.
-    assert 0 <= id < levels_overview.current_level
-
-    # This cache never needs explicit invalidation because during every level
-    # change, the group ID changes.
-    #
-    # No idea if the query is slow, caching just because I can.
-    cache_key = f"group-parent-level-hash:{group.id}:{id}"
-
-    return_hash: str = cache.get(cache_key)
-
-    if return_hash is None:
-        query = (
-            Query("events", Entity("events"))
-            .set_select([Function("arrayElement", [Column("hierarchical_hashes"), id + 1], "hash")])
-            .set_where(_get_group_filters(group))
-            .set_limit(1)
-        )
-
-        return_hash: str = get_path(snuba.raw_snql_query(query), "data", 0, "hash")  # type: ignore
-        cache.set(cache_key, return_hash)
-
-    assert return_hash
-    return return_hash
-
-
 def _query_snuba(group: Group, unparsed_id: str, offset=None, limit=None):
     id = int(unparsed_id)
 
@@ -154,7 +125,7 @@ def _query_snuba(group: Group, unparsed_id: str, offset=None, limit=None):
         # that filtering by timerange (=primary key) is only a little bit
         # faster.
         now = datetime.datetime.now()
-        new_materialized_hash = _get_hash_for_parent_level(group, id, levels_overview)
+        new_materialized_hash = levels_overview.parent_hashes[id]
         query = query.set_where(
             common_where
             + [

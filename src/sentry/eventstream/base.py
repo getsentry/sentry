@@ -92,7 +92,13 @@ class EventStream(Service):
         pass
 
     def start_unmerge_hierarchical(
-        self, project_id, primary_hash, hierarchical_hash, previous_group_id, new_group_id
+        self,
+        project_id,
+        primary_hash,
+        hierarchical_hash,
+        previous_group_id,
+        new_group_id,
+        skip_needs_final,
     ):
         pass
 

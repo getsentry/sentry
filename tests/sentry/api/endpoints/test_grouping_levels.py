@@ -244,3 +244,64 @@ level 2*
     )
 
     assert _render_all_previews(old_group) == ""
+
+
+@pytest.mark.django_db
+@pytest.mark.snuba
+def test_decrease(
+    client, default_project, store_stacktrace, reset_snuba, _render_all_previews, task_runner
+):
+    for split_hash in (
+        "bab925683e73afdb4dc4047397a7b36b",
+        "c8ef2dd3dedeed29b4b74b9c579eea1a",
+        "aa1c4037371150958f9ea22adb110bbc",
+    ):
+        GroupHash.objects.create(
+            project_id=default_project.id,
+            hash=split_hash,
+            state=GroupHash.State.SPLIT,
+            group_id=None,
+        )
+
+    events = [
+        store_stacktrace(["baz", "bar2", "foo"]),
+        store_stacktrace(["baz", "bar", "foo"]),
+        store_stacktrace(["bam", "bar", "foo"]),
+    ]
+
+    assert len({e.group_id for e in events}) == 3
+    old_groups = [e.group_id for e in events]
+
+    with task_runner():
+        response = client.post(f"/api/0/issues/{events[0].group_id}/grouping/levels/0/")
+        assert response.status_code == 200
+
+    events = [_reload_event(event) for event in events]
+    assert len({e.group_id for e in events}) == 1
+
+    assert (
+        _render_all_previews(events[0].group)
+        == """\
+level 0*
+bab925683e73afdb4dc4047397a7b36b (3)
+level 1
+aa1c4037371150958f9ea22adb110bbc (2)
+c8ef2dd3dedeed29b4b74b9c579eea1a (1)
+level 2
+97df6b60ec530c65ab227585143a087a (1)
+b8d08a573c62ca8c84de14c12c0e19fe (1)
+7411b56aa6591edbdba71898d3a9f01c (1)\
+"""
+    )
+
+    assert set(GroupHash.objects.all().values_list("hash", "state", "group_id")) == {
+        # These groups still exist, but have no events now
+        ("7411b56aa6591edbdba71898d3a9f01c", None, old_groups[0]),
+        ("b8d08a573c62ca8c84de14c12c0e19fe", None, old_groups[1]),
+        ("97df6b60ec530c65ab227585143a087a", None, old_groups[2]),
+        # Level 1 should not have any groups associated
+        ("aa1c4037371150958f9ea22adb110bbc", None, None),
+        ("c8ef2dd3dedeed29b4b74b9c579eea1a", None, None),
+        # Our newly created group
+        ("bab925683e73afdb4dc4047397a7b36b", None, events[0].group_id),
+    }

@@ -1,12 +1,16 @@
+import datetime
 import logging
 
 from rest_framework.exceptions import APIException
+from snuba_sdk.conditions import Condition, Op
+from snuba_sdk.query import Column, Entity, Function, Query
 
 from sentry.api.bases import GroupEndpoint
 from sentry.api.endpoints.grouping_levels import LevelsOverview, check_feature, get_levels_overview
 from sentry.models import Group, GroupHash
 from sentry.tasks.unmerge import unmerge
 from sentry.unmerge import HierarchicalUnmergeReplacement
+from sentry.utils import snuba
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +52,7 @@ class GroupingLevelDetailsEndpoint(GroupEndpoint):
             raise InvalidLevel()
 
         if parsed_id < levels_overview.current_level:
-            raise NotImplementedError()
+            _decrease_level(group, parsed_id, levels_overview, request)
 
         if parsed_id > levels_overview.current_level:
             _increase_level(group, parsed_id, levels_overview, request)
@@ -78,9 +82,11 @@ def _increase_level(group: Group, id: int, levels_overview: LevelsOverview, requ
 
     replacement = HierarchicalUnmergeReplacement(
         primary_hash=levels_overview.only_primary_hash,
-        current_hierarchical_hash=levels_overview.current_hash,
-        current_level=levels_overview.current_level,
+        filter_hierarchical_hash=levels_overview.current_hash,
+        filter_level=levels_overview.current_level,
         new_level=id,
+        assume_source_emptied=True,
+        reset_hashes=[],
     )
 
     unmerge.delay(
@@ -91,3 +97,92 @@ def _increase_level(group: Group, id: int, levels_overview: LevelsOverview, requ
         actor_id=request.user.id if request.user else None,
         replacement=replacement,
     )
+
+
+def _decrease_level(group: Group, id: int, levels_overview: LevelsOverview, request):
+    assert levels_overview.parent_hashes
+    assert id < len(levels_overview.parent_hashes)
+
+    new_materialized_hash = levels_overview.parent_hashes[id]
+
+    # Create new group with parent hash that we want to group by going forward.
+    destination = Group.objects.create(
+        project_id=group.project_id, short_id=group.project.next_short_id()
+    )
+
+    GroupHash.objects.create_or_update(
+        project_id=group.project_id,
+        hash=new_materialized_hash,
+        defaults={"group_id": destination.id},
+    )
+
+    now = datetime.datetime.now()
+
+    # When decreasing the level, events from this + other groups get merged
+    # into one new parent group. This is why we cannot restrict the query by
+    # timestamp here. The query logic is analoguous to
+    # GroupingLevelNewIssuesEndpoint.
+
+    query = (
+        Query("events", Entity("events"))
+        .set_select(
+            [
+                Column("group_id"),
+                Function(
+                    "argMax",
+                    [
+                        Function(
+                            "arraySlice",
+                            [
+                                Column("hierarchical_hashes"),
+                                id + 1,
+                            ],
+                        ),
+                        Column("timestamp"),
+                    ],
+                    "reset_hashes",
+                ),
+            ]
+        )
+        .set_groupby([Column("group_id")])
+        .set_where(
+            [
+                Condition(Column("primary_hash"), Op.EQ, levels_overview.only_primary_hash),
+                Condition(Column("project_id"), Op.EQ, group.project_id),
+                Condition(
+                    Function("arrayElement", [Column("hierarchical_hashes"), id + 1]),
+                    Op.EQ,
+                    new_materialized_hash,
+                ),
+                Condition(Column("timestamp"), Op.GTE, now - datetime.timedelta(days=90)),
+                Condition(Column("timestamp"), Op.LT, now + datetime.timedelta(seconds=10)),
+            ]
+        )
+    )
+
+    # TODO pagination
+    for row in snuba.raw_snql_query(
+        query, referrer="api.grouping_levels_details.decrease_level.get_group_ids"
+    )["data"]:
+        group_id = row["group_id"]
+
+        replacement = HierarchicalUnmergeReplacement(
+            primary_hash=levels_overview.only_primary_hash,
+            filter_hierarchical_hash=new_materialized_hash,
+            filter_level=id,
+            new_level=id,
+            assume_source_emptied=False,
+            # Reset SPLIT state of entire subtree. At this point new events should go
+            # into the just-created group.
+            reset_hashes=row["reset_hashes"],
+        )
+
+        unmerge.delay(
+            project_id=group.project_id,
+            source_id=group_id,
+            destination_id=None,
+            destinations={new_materialized_hash: (destination.id, None)},
+            fingerprints=None,
+            actor_id=request.user.id if request.user else None,
+            replacement=replacement,
+        )

@@ -135,9 +135,11 @@ class HierarchicalUnmergeReplacement(UnmergeReplacement):
     """
 
     primary_hash: str
-    current_hierarchical_hash: str
-    current_level: int
+    filter_hierarchical_hash: str
+    filter_level: int
     new_level: int
+    assume_source_emptied: bool
+    reset_hashes: Sequence[str]
 
     def get_unmerge_key(
         self, event: Event, locked_primary_hashes: Collection[str]
@@ -151,7 +153,7 @@ class HierarchicalUnmergeReplacement(UnmergeReplacement):
             return None
 
         try:
-            if hierarchical_hashes[self.current_level] != self.current_hierarchical_hash:
+            if hierarchical_hashes[self.filter_level] != self.filter_hierarchical_hash:
                 return None
         except IndexError:
             return None
@@ -174,6 +176,7 @@ class HierarchicalUnmergeReplacement(UnmergeReplacement):
             hierarchical_hash=unmerge_key,
             previous_group_id=source_id,
             new_group_id=destination_id,
+            skip_needs_final=self.assume_source_emptied,
         )
 
     def stop_snuba_replacement(self, eventstream_state: Any) -> None:
@@ -187,18 +190,23 @@ class HierarchicalUnmergeReplacement(UnmergeReplacement):
         destination_id: int,
         locked_primary_hashes: Collection[str],
     ) -> None:
+        if self.reset_hashes:
+            GroupHash.objects.filter(
+                project_id=project.id, hash__in=self.reset_hashes, state=GroupHash.State.SPLIT
+            ).update(state=GroupHash.State.UNLOCKED)
+
         GroupHash.objects.update_or_create(
             project=project, hash=unmerge_key, defaults={"group_id": destination_id}
         )
 
     def get_activity_args(self, unmerge_key: str) -> Mapping[str, Any]:
         return {
-            "previous_hierarchical_hash": self.current_hierarchical_hash,
             "new_hierarchical_hash": unmerge_key,
         }
 
     def on_finish(self, project: Project, source_id: int):
-        eventstream.exclude_groups(project.id, [source_id])
+        if self.assume_source_emptied:
+            eventstream.exclude_groups(project.id, [source_id])
 
 
 @dataclass(frozen=True)
