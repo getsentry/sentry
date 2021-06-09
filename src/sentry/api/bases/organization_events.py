@@ -276,6 +276,8 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 # column which means the group by for the time series won't work.
                 # As a temporary solution, we will calculate the mean of all the project
                 # level thresholds in the request and use the legacy apdex calculation.
+                # TODO(snql): Alias the project_threshold_config column so it doesn't
+                # have to be in the SELECT statement and group by to be able to use new apdex.
                 if "apdex_new()" in columns:
                     project_ids = params.get("project_id")
                     threshold_configs = list(
