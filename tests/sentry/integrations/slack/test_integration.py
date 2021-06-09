@@ -192,8 +192,9 @@ class SlackIntegrationPostInstallTest(APITestCase):
         self.idp = IdentityProvider.objects.create(type="slack", external_id="TXXXXXXX1", config={})
 
         responses.add(
-            responses.GET,
-            "https://slack.com/api/users.lookupByEmail/",
+            method=responses.GET,
+            url=f"https://slack.com/api/users.lookupByEmail/?email={self.user2.email}",
+            match_querystring=True,
             json={
                 "ok": True,
                 "user": {
@@ -206,8 +207,9 @@ class SlackIntegrationPostInstallTest(APITestCase):
             },
         )
         responses.add(
-            responses.GET,
-            "https://slack.com/api/users.lookupByEmail/",
+            method=responses.GET,
+            url=f"https://slack.com/api/users.lookupByEmail/?email={self.user.email}",
+            match_querystring=True,
             json={
                 "ok": True,
                 "user": {
@@ -253,8 +255,9 @@ class SlackIntegrationPostInstallTest(APITestCase):
             teams=[self.team],
         )
         responses.add(
-            responses.GET,
-            "https://slack.com/api/users.lookupByEmail/",
+            method=responses.GET,
+            url=f"https://slack.com/api/users.lookupByEmail/email={user3.email}",
+            match_querystring=True,
             json={
                 "ok": True,
                 "user": {

@@ -302,6 +302,7 @@ def get_slack_data_by_user(integration, organization, emails_by_user):
                     "team_id": resp["user"]["team_id"],
                     "slack_id": resp["user"]["id"],
                 }
+            continue
     return slack_data_by_user
 
 
