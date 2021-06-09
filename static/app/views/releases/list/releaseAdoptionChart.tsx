@@ -186,7 +186,7 @@ class ReleaseAdoptionChart extends AsyncComponent<Props, State> {
   }
 
   handleClick = (params: {seriesId: string}) => {
-    const {organization, router, selection} = this.props;
+    const {organization, router, selection, location} = this.props;
 
     const project = selection.projects[0];
 
@@ -194,7 +194,7 @@ class ReleaseAdoptionChart extends AsyncComponent<Props, State> {
       pathname: `/organizations/${organization?.slug}/releases/${encodeURIComponent(
         params.seriesId
       )}/`,
-      query: {project},
+      query: {project, environment: location.query.environment},
     });
   };
 
