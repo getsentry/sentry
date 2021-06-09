@@ -932,6 +932,23 @@ class ParseSearchQueryTest(unittest.TestCase):
             )
         ]
 
+    def test_conditional_apdex_filter(self):
+        assert parse_search_query("apdex(400):>0.5") == [
+            SearchFilter(
+                key=AggregateKey(name="apdex(400)"),
+                operator=">",
+                value=SearchValue(raw_value=0.5),
+            )
+        ]
+
+        assert parse_search_query("apdex():>0.5") == [
+            SearchFilter(
+                key=AggregateKey(name="apdex()"),
+                operator=">",
+                value=SearchValue(raw_value=0.5),
+            )
+        ]
+
     def test_aggregate_duration_filter_overrides_numeric_shorthand(self):
         # 2m should mean 2 minutes for duration filters (as opposed to 2 million)
         assert parse_search_query("avg(transaction.duration):>2m") == [

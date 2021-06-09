@@ -41,6 +41,7 @@ from sentry.utils.snuba import (
     is_span_op_breakdown,
 )
 
+ConditionalFunction = namedtuple("ConditionalFunction", "condition match fallback")
 FunctionDetails = namedtuple("FunctionDetails", "field instance arguments")
 ResolvedFunction = namedtuple("ResolvedFunction", "details column aggregate")
 
@@ -1084,6 +1085,9 @@ class Function:
         :param str transform: NOTE: Use aggregate over transform whenever possible.
             An aggregate string to be passed to snuba once formatted. The arguments
             will be filled into the string using `.format(...)`.
+        :param ConditionalFunction conditional: Tuple of the condition to be evaluated, the
+            transform string if the condition is met and the transform string if the condition
+            is not met.
         :param str result_type_fn: A function to call with in order to determine the result type.
             This function will be passed the list of argument classes and argument values. This should
             be tried first as the source of truth if available.
@@ -1336,31 +1340,31 @@ FUNCTIONS = {
         Function(
             "apdex",
             optional_args=[with_default(0, NumberRange("satisfaction", 0, None))],
-            conditional=[
+            conditional=ConditionalFunction(
                 ArgValue("satisfaction"),
                 "apdex(duration, {satisfaction:g})",
                 """
-                    apdex(
-                        multiIf(
-                            equals(
-                                tupleElement(project_threshold_config, 1),
-                                'lcp'
-                            ),
-                            if(
-                                has(measurements.key, 'lcp'),
-                                arrayElement(measurements.value, indexOf(measurements.key, 'lcp')),
-                                NULL
-                            ),
-                            duration
+                apdex(
+                    multiIf(
+                        equals(
+                            tupleElement(project_threshold_config, 1),
+                            'lcp'
                         ),
-                        tupleElement(project_threshold_config, 2)
-                    )
-                """.replace(
+                        if(
+                            has(measurements.key, 'lcp'),
+                            arrayElement(measurements.value, indexOf(measurements.key, 'lcp')),
+                            NULL
+                        ),
+                        duration
+                    ),
+                    tupleElement(project_threshold_config, 2)
+                )
+            """.replace(
                     "\n", ""
                 ).replace(
                     " ", ""
                 ),
-            ],
+            ),
             default_result_type="number",
         ),
         Function(
@@ -1368,7 +1372,7 @@ FUNCTIONS = {
             required_args=[CountColumn("column")],
             optional_args=[with_default(0, NumberRange("satisfaction", 0, None))],
             calculated_args=[{"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0}],
-            conditional=[
+            conditional=ConditionalFunction(
                 ArgValue("satisfaction"),
                 "uniqIf(user, greater(duration, {tolerated:g}))",
                 """
@@ -1385,7 +1389,7 @@ FUNCTIONS = {
                 ).replace(
                     " ", ""
                 ),
-            ],
+            ),
             default_result_type="number",
         ),
         Function(
@@ -1405,7 +1409,7 @@ FUNCTIONS = {
                 {"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0},
                 {"name": "parameter_sum", "fn": lambda args: args["alpha"] + args["beta"]},
             ],
-            conditional=[
+            conditional=ConditionalFunction(
                 ArgValue("satisfaction"),
                 "ifNull(divide(plus(uniqIf(user, greater(duration, {tolerated:g})), {alpha}), plus(uniq(user), {parameter_sum})), 0)",
                 """
@@ -1430,7 +1434,7 @@ FUNCTIONS = {
                 ).replace(
                     "\n", ""
                 ),
-            ],
+            ),
             default_result_type="number",
         ),
         Function("failure_rate", transform="failure_rate()", default_result_type="percentage"),
