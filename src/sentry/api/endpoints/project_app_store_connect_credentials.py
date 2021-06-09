@@ -60,6 +60,11 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.bases.project import ProjectEndpoint, StrictProjectPermission
+from sentry.api.exceptions import (
+    AppConnectAuthenticationError,
+    ItunesAuthenticationError,
+    ItunesTwoFactorAuthenticationRequired,
+)
 from sentry.models import Project
 from sentry.utils import fernet_encrypt as encrypt
 from sentry.utils import json
@@ -180,7 +185,7 @@ class AppStoreConnectAppsEndpoint(ProjectEndpoint):
         apps = appstore_connect.get_apps(session, credentials)
 
         if apps is None:
-            return Response("App connect authentication error.", status=401)
+            raise AppConnectAuthenticationError()
 
         apps = [{"name": app.name, "bundleId": app.bundle_id, "appId": app.app_id} for app in apps]
         result = {"apps": apps}
@@ -547,7 +552,7 @@ class AppStoreConnectStartAuthEndpoint(ProjectEndpoint):
             session, service_key=auth_key, account_name=user_name, password=password
         )
         if init_login_result is None:
-            return Response("ITunes login failed.", status=401)
+            raise ItunesAuthenticationError()
 
         # send session context to be used in next calls
         session_context = {
@@ -774,7 +779,7 @@ class AppStoreConnect2FactorAuthEndpoint(ProjectEndpoint):
 
                 return Response(response_body, status=200)
             else:
-                return Response("2FA failed.", status=401)
+                raise ItunesTwoFactorAuthenticationRequired()
 
         except ValueError:
             return Response("Invalid validation context passed.", status=400)

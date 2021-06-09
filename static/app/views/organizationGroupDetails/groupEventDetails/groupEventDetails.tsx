@@ -272,6 +272,7 @@ class GroupEventDetails extends Component<Props, State> {
                     event={eventWithMeta}
                     organization={organization}
                     location={location}
+                    project={project}
                   />
                 )}
                 {group.status === 'ignored' && (

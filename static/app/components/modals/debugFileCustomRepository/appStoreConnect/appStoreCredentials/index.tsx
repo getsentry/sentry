@@ -1,5 +1,3 @@
-import {useState} from 'react';
-
 import {Client} from 'app/api';
 import {t} from 'app/locale';
 import {Organization, Project} from 'app/types';
@@ -16,19 +14,26 @@ type Props = {
   projectSlug: Project['slug'];
   isUpdating: boolean;
   data: AppStoreCredentialsData;
+  isEditing: boolean;
   onChange: (data: AppStoreCredentialsData) => void;
+  onEdit: (isEditing: boolean) => void;
   onReset: () => void;
 };
 
-function AppStoreCredentials({data, isUpdating, onReset, ...props}: Props) {
-  const [isEditing, setIsEditing] = useState(!isUpdating);
-
+function AppStoreCredentials({
+  data,
+  isUpdating,
+  onReset,
+  isEditing,
+  onEdit,
+  ...props
+}: Props) {
   function handleSwitchToReadMode() {
-    setIsEditing(false);
+    onEdit(false);
   }
 
   function handleCancel() {
-    setIsEditing(false);
+    onEdit(false);
     onReset();
   }
 
@@ -44,7 +49,7 @@ function AppStoreCredentials({data, isUpdating, onReset, ...props}: Props) {
   }
 
   return (
-    <Card onEdit={() => setIsEditing(true)}>
+    <Card onEdit={() => onEdit(true)}>
       {data.issuer && <CardItem label={t('Issuer')} value={data.issuer} />}
       {data.keyId && <CardItem label={t('Key Id')} value={data.keyId} />}
       {data.app?.name && (

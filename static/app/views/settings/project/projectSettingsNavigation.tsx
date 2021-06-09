@@ -1,11 +1,11 @@
 import {useContext} from 'react';
 
+import {getAppConnectStoreUpdateAlertMessage} from 'app/components/globalAppStoreConnectUpdateAlert/utils';
+import AppStoreConnectContext from 'app/components/projects/appStoreConnectContext';
 import {Organization, Project} from 'app/types';
 import withProject from 'app/utils/withProject';
 import SettingsNavigation from 'app/views/settings/components/settingsNavigation';
 import getConfiguration from 'app/views/settings/project/navigationConfiguration';
-
-import AppStoreConnectContext from './appStoreConnectContext';
 
 type Props = {
   organization: Organization;
@@ -15,8 +15,12 @@ type Props = {
 const ProjectSettingsNavigation = ({organization, project}: Props) => {
   const appStoreConnectContext = useContext(AppStoreConnectContext);
 
-  const debugFilesNeedsReview = appStoreConnectContext
-    ? Object.keys(appStoreConnectContext ?? {}).some(key => !appStoreConnectContext[key])
+  const hasAppConnectStoreFeatureFlag = !!organization.features?.includes(
+    'app-store-connect'
+  );
+
+  const debugFilesNeedsReview = hasAppConnectStoreFeatureFlag
+    ? !!getAppConnectStoreUpdateAlertMessage(appStoreConnectContext)
     : false;
 
   return (

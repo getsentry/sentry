@@ -1,4 +1,4 @@
-import {Fragment, useContext, useState} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
@@ -9,12 +9,12 @@ import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import List from 'app/components/list';
-import {IconWarning} from 'app/icons';
+import {IconInfo, IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
+import {AppStoreConnectValidationData} from 'app/types/debugFiles';
 import withApi from 'app/utils/withApi';
-import AppStoreConnectContext from 'app/views/settings/project/appStoreConnectContext';
 
 import Accordion from './accordion';
 import AppStoreCredentials from './appStoreCredentials';
@@ -26,8 +26,11 @@ type IntialData = {
   appName: string;
   appconnectIssuer: string;
   appconnectKey: string;
+  appconnectPrivateKey: string;
   encrypted: string;
   id: string;
+  itunesCreated: string;
+  itunesPassword: string;
   itunesUser: string;
   name: string;
   orgId: number;
@@ -40,6 +43,8 @@ type Props = Pick<ModalRenderProps, 'Body' | 'Footer' | 'closeModal'> & {
   orgSlug: Organization['slug'];
   projectSlug: Project['slug'];
   onSubmit: (data: Record<string, any>) => void;
+  revalidateItunesSession: boolean;
+  appStoreConnectValidationData?: AppStoreConnectValidationData;
   initialData?: IntialData;
 };
 
@@ -52,15 +57,27 @@ function AppStoreConnect({
   orgSlug,
   projectSlug,
   onSubmit,
+  revalidateItunesSession,
+  appStoreConnectValidationData,
 }: Props) {
-  const appStoreConnectContext = useContext(AppStoreConnectContext);
+  const isUpdating = !!initialData;
+  const appStoreCredentialsInvalid =
+    appStoreConnectValidationData?.appstoreCredentialsValid === false;
+  const itunesSessionInvalid =
+    appStoreConnectValidationData?.itunesSessionValid === false;
 
   const [isLoading, setIsLoading] = useState(false);
+  const [isEditingAppStoreCredentials, setIsEditingAppStoreCredentials] = useState(
+    appStoreCredentialsInvalid || !isUpdating
+  );
+  const [isEditingItunesCredentials, setIsEditingItunesCredentials] = useState(
+    itunesSessionInvalid || !isUpdating
+  );
 
   const appStoreCredentialsInitialData = {
     issuer: initialData?.appconnectIssuer,
     keyId: initialData?.appconnectKey,
-    privateKey: undefined,
+    privateKey: initialData?.appconnectPrivateKey,
     app:
       initialData?.appName && initialData?.appId
         ? {
@@ -72,7 +89,7 @@ function AppStoreConnect({
 
   const iTunesCredentialsInitialData = {
     username: initialData?.itunesUser,
-    password: undefined,
+    password: initialData?.itunesPassword,
     authenticationCode: undefined,
     org:
       initialData?.orgId && initialData?.orgName
@@ -94,50 +111,6 @@ function AppStoreConnect({
     iTunesCredentialsData,
     setItunesCredentialsData,
   ] = useState<ItunesCredentialsData>(iTunesCredentialsInitialData);
-
-  async function handleSave() {
-    let endpoint = `/projects/${orgSlug}/${projectSlug}/appstoreconnect/`;
-    let successMessage = t('App Store Connect repository was successfully added');
-    let errorMessage = t(
-      'An error occured while adding the App Store Connect repository'
-    );
-
-    if (!!initialData) {
-      endpoint = `${endpoint}${initialData.id}/`;
-      successMessage = t('App Store Connect repository was successfully updated');
-      errorMessage = t(
-        'An error occured while updating the App Store Connect repository'
-      );
-    }
-
-    setIsLoading(true);
-    try {
-      const response = await api.requestPromise(endpoint, {
-        method: 'POST',
-        data: {
-          appconnectIssuer: appStoreCredentialsData.issuer,
-          appconnectKey: appStoreCredentialsData.keyId,
-          appconnectPrivateKey: appStoreCredentialsData.privateKey,
-          appName: appStoreCredentialsData.app?.name,
-          appId: appStoreCredentialsData.app?.appId,
-          itunesUser: iTunesCredentialsData.username,
-          itunesPassword: iTunesCredentialsData.password,
-          orgId: iTunesCredentialsData.org?.organizationId,
-          orgName: iTunesCredentialsData.org?.name,
-          sessionContext: iTunesCredentialsData.sessionContext,
-        },
-      });
-      addSuccessMessage(successMessage);
-      setIsLoading(false);
-      onSubmit(response);
-      closeModal();
-    } catch {
-      setIsLoading(false);
-      addErrorMessage(errorMessage);
-    }
-  }
-
-  const isUpdating = !!initialData;
 
   function isDataInvalid(data: Record<string, any>) {
     return Object.keys(data).some(key => {
@@ -189,20 +162,74 @@ function AppStoreConnect({
     return isAppStoreCredentialsDataInvalid() && isItunesCredentialsDataInvalid();
   }
 
+  async function handleSave() {
+    let endpoint = `/projects/${orgSlug}/${projectSlug}/appstoreconnect/`;
+    let successMessage = t('App Store Connect repository was successfully added');
+    let errorMessage = t(
+      'An error occured while adding the App Store Connect repository'
+    );
+
+    if (!!initialData) {
+      endpoint = `${endpoint}${initialData.id}/`;
+      successMessage = t('App Store Connect repository was successfully updated');
+      errorMessage = t(
+        'An error occured while updating the App Store Connect repository'
+      );
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await api.requestPromise(endpoint, {
+        method: 'POST',
+        data: {
+          appconnectIssuer: appStoreCredentialsData.issuer,
+          appconnectKey: appStoreCredentialsData.keyId,
+          appconnectPrivateKey: appStoreCredentialsData.privateKey,
+          appName: appStoreCredentialsData.app?.name,
+          appId: appStoreCredentialsData.app?.appId,
+          itunesUser: iTunesCredentialsData.username,
+          itunesPassword: iTunesCredentialsData.password,
+          orgId: iTunesCredentialsData.org?.organizationId,
+          orgName: iTunesCredentialsData.org?.name,
+          sessionContext: iTunesCredentialsData.sessionContext,
+        },
+      });
+      addSuccessMessage(successMessage);
+      setIsLoading(false);
+      onSubmit(response);
+      closeModal();
+    } catch {
+      setIsLoading(false);
+      addErrorMessage(errorMessage);
+    }
+  }
+
+  function handleEditAppStoreCredentials(isEditing: boolean) {
+    if (
+      !isEditing &&
+      isEditingAppStoreCredentials &&
+      isAppStoreCredentialsDataInvalid()
+    ) {
+      setIsEditingItunesCredentials(true);
+    }
+
+    setIsEditingAppStoreCredentials(isEditing);
+  }
+
   return (
     <Fragment>
       <Body>
+        {revalidateItunesSession && !itunesSessionInvalid && (
+          <StyledAlert type="warning" icon={<IconInfo />}>
+            {t('Your iTunes session has already been re-validated.')}
+          </StyledAlert>
+        )}
         <StyledList symbol="colored-numeric">
-          <Accordion
-            summary={t('App Store Connect credentials')}
-            defaultExpanded={
-              !isUpdating || !!appStoreConnectContext?.appstoreCredentialsValid
-            }
-          >
-            {!!appStoreConnectContext?.appstoreCredentialsValid && (
+          <Accordion summary={t('App Store Connect credentials')} defaultExpanded>
+            {appStoreCredentialsInvalid && (
               <StyledAlert type="warning" icon={<IconWarning />}>
                 {t(
-                  'Your App Store Connect credentials are invalid. To reconnect, update your credentials'
+                  'Your App Store Connect credentials are invalid. To reconnect, update your credentials.'
                 )}
               </StyledAlert>
             )}
@@ -211,16 +238,23 @@ function AppStoreConnect({
               orgSlug={orgSlug}
               projectSlug={projectSlug}
               data={appStoreCredentialsData}
+              isUpdating={isUpdating}
+              isEditing={isEditingAppStoreCredentials}
               onChange={setAppStoreCredentialsData}
               onReset={() => setAppStoreCredentialsData(appStoreCredentialsInitialData)}
-              isUpdating={isUpdating}
+              onEdit={handleEditAppStoreCredentials}
             />
           </Accordion>
           <Accordion
             summary={t('iTunes credentials')}
-            defaultExpanded={!!appStoreConnectContext?.itunesSessionValid}
+            defaultExpanded={
+              isUpdating ||
+              itunesSessionInvalid ||
+              (isItunesCredentialsDataInvalid() && !isAppStoreCredentialsDataInvalid()) ||
+              (!isEditingItunesCredentials && !isItunesCredentialsDataInvalid())
+            }
           >
-            {!!appStoreConnectContext?.itunesSessionValid && (
+            {!revalidateItunesSession && itunesSessionInvalid && (
               <StyledAlert type="warning" icon={<IconWarning />}>
                 {t(
                   'Your iTunes session has expired. To reconnect, sign in with your Apple ID and password'
@@ -232,9 +266,12 @@ function AppStoreConnect({
               orgSlug={orgSlug}
               projectSlug={projectSlug}
               data={iTunesCredentialsData}
+              isUpdating={isUpdating}
+              isEditing={isEditingItunesCredentials}
+              revalidateItunesSession={revalidateItunesSession && itunesSessionInvalid}
               onChange={setItunesCredentialsData}
               onReset={() => setItunesCredentialsData(iTunesCredentialsInitialData)}
-              isUpdating={isUpdating}
+              onEdit={setIsEditingItunesCredentials}
             />
           </Accordion>
         </StyledList>

@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
@@ -35,6 +35,7 @@ type Props = {
   orgSlug: Organization['slug'];
   projectSlug: Project['slug'];
   data: ItunesCredentialsData;
+  revalidateItunesSession: boolean;
   onChange: (data: ItunesCredentialsData) => void;
   onSwitchToReadMode: () => void;
   onCancel?: () => void;
@@ -45,6 +46,7 @@ function Form({
   orgSlug,
   projectSlug,
   data,
+  revalidateItunesSession,
   onChange,
   onSwitchToReadMode,
   onCancel,
@@ -67,6 +69,12 @@ function Form({
   const [stepThreeData, setStepThreeData] = useState<ItunesCredentialsStepThreeData>({
     org: data.org,
   });
+
+  useEffect(() => {
+    if (revalidateItunesSession) {
+      handleGoNext();
+    }
+  }, [revalidateItunesSession]);
 
   function isFormInvalid() {
     switch (activeStep) {
@@ -342,6 +350,9 @@ const StyledAlert = styled(Alert)`
   display: grid;
   grid-template-columns: max-content 1fr;
   align-items: center;
+  span:nth-child(2) {
+    margin: 0;
+  }
 `;
 
 const AlertContent = styled('div')`
