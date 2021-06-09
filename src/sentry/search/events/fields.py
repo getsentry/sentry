@@ -1034,8 +1034,21 @@ class NumberRange(FunctionArg):
             )
         elif self.end and value >= self.end:
             raise InvalidFunctionArgument(f"{value:g} must be less than {self.end:g}")
-
         return value
+
+
+class OptionalNumberRange(NumberRange):
+    def __init__(self, name, start, end):
+        super().__init__(name, start, end)
+        self.has_default = True
+
+    def get_default(self, params):
+        return None
+
+    def normalize(self, value, params):
+        if value is None:
+            return value
+        return super().normalize(value, params)
 
 
 class IntervalDefault(NumberRange):
@@ -1348,7 +1361,7 @@ FUNCTIONS = {
         ),
         Function(
             "apdex",
-            optional_args=[with_default(0, NumberRange("satisfaction", 0, None))],
+            optional_args=[OptionalNumberRange("satisfaction", 0, None)],
             conditional_transform=ConditionalFunction(
                 ArgValue("satisfaction"),
                 "apdex(duration, {satisfaction:g})",
@@ -1379,8 +1392,13 @@ FUNCTIONS = {
         Function(
             "count_miserable",
             required_args=[CountColumn("column")],
-            optional_args=[with_default(0, NumberRange("satisfaction", 0, None))],
-            calculated_args=[{"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0}],
+            optional_args=[OptionalNumberRange("satisfaction", 0, None)],
+            calculated_args=[
+                {
+                    "name": "tolerated",
+                    "fn": lambda args: args["satisfaction"] * 4.0 if args["satisfaction"] else None,
+                }
+            ],
             conditional_transform=ConditionalFunction(
                 ArgValue("satisfaction"),
                 "uniqIf(user, greater(duration, {tolerated:g}))",
@@ -1410,12 +1428,15 @@ FUNCTIONS = {
             # https://stats.stackexchange.com/questions/47771/what-is-the-intuition-behind-beta-distribution
             # for an intuitive explanation of the Beta Distribution Function.
             optional_args=[
-                with_default(0, NumberRange("satisfaction", 0, None)),
+                OptionalNumberRange("satisfaction", 0, None),
                 with_default(5.8875, NumberRange("alpha", 0, None)),
                 with_default(111.8625, NumberRange("beta", 0, None)),
             ],
             calculated_args=[
-                {"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0},
+                {
+                    "name": "tolerated",
+                    "fn": lambda args: args["satisfaction"] * 4.0 if args["satisfaction"] else None,
+                },
                 {"name": "parameter_sum", "fn": lambda args: args["alpha"] + args["beta"]},
             ],
             conditional_transform=ConditionalFunction(
