@@ -90,12 +90,22 @@ function SymbolSources({
     });
   }
 
+<<<<<<< HEAD
   function getRichListFieldValue(): {
     value: Item[];
     warnings?: React.ReactNode[];
     errors?: React.ReactNode[];
   } {
     if (!hasAppConnectStoreFeatureFlag || appStoreConnectContext.isLoading !== false) {
+=======
+  function getRichListFieldValue(): {value: Item[]; errors?: React.ReactNode[]} {
+    if (
+      !hasAppConnectStoreFeatureFlag ||
+      !appStoreConnectContext ||
+      (appStoreConnectContext.appstoreCredentialsValid &&
+        appStoreConnectContext.itunesSessionValid)
+    ) {
+>>>>>>> master
       return {value: symbolSources};
     }
 

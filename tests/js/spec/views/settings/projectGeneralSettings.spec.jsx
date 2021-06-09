@@ -1,4 +1,3 @@
-import {act} from 'react-dom/test-utils';
 import {browserHistory} from 'react-router';
 
 import {mountWithTheme} from 'sentry-test/enzyme';
@@ -19,6 +18,8 @@ describe('projectGeneralSettings', function () {
   const groupingEnhancements = TestStubs.GroupingEnhancements();
   let routerContext;
   let putMock;
+  let wrapper;
+  let modal;
 
   beforeEach(function () {
     jest.spyOn(window.location, 'assign');
@@ -66,10 +67,19 @@ describe('projectGeneralSettings', function () {
     MockApiClient.clearMockResponses();
     addSuccessMessage.mockReset();
     addErrorMessage.mockReset();
+
+    if (wrapper?.length) {
+      wrapper.unmount();
+      wrapper = undefined;
+    }
+    if (modal?.length) {
+      modal.unmount();
+      modal = undefined;
+    }
   });
 
   it('renders form fields', function () {
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />,
       TestStubs.routerContext()
     );
@@ -95,7 +105,7 @@ describe('projectGeneralSettings', function () {
 
   it('disables scrapeJavaScript when equivalent org setting is false', function () {
     routerContext.context.organization.scrapeJavaScript = false;
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />,
       routerContext
     );
@@ -109,7 +119,7 @@ describe('projectGeneralSettings', function () {
       method: 'DELETE',
     });
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />,
       TestStubs.routerContext()
     );
@@ -122,7 +132,7 @@ describe('projectGeneralSettings', function () {
     removeBtn.simulate('click');
 
     // Confirm Modal
-    const modal = await mountGlobalModal();
+    modal = await mountGlobalModal();
     modal.find('Button[priority="danger"]').simulate('click');
 
     expect(deleteMock).toHaveBeenCalled();
@@ -134,7 +144,7 @@ describe('projectGeneralSettings', function () {
       method: 'POST',
     });
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />,
       TestStubs.routerContext()
     );
@@ -147,7 +157,7 @@ describe('projectGeneralSettings', function () {
     removeBtn.simulate('click');
 
     // Confirm Modal
-    const modal = await mountGlobalModal();
+    modal = await mountGlobalModal();
     modal
       .find('input[name="email"]')
       .simulate('change', {target: {value: 'billy@sentry.io'}});
@@ -175,7 +185,7 @@ describe('projectGeneralSettings', function () {
       body: {detail: 'An organization owner could not be found'},
     });
 
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />,
       TestStubs.routerContext()
     );
@@ -188,7 +198,7 @@ describe('projectGeneralSettings', function () {
     removeBtn.simulate('click');
 
     // Confirm Modal
-    const modal = await mountGlobalModal();
+    modal = await mountGlobalModal();
     modal
       .find('input[name="email"]')
       .simulate('change', {target: {value: 'billy@sentry.io'}});
@@ -208,7 +218,7 @@ describe('projectGeneralSettings', function () {
 
   it('displays transfer/remove message for non-admins', function () {
     routerContext.context.organization.access = ['org:read'];
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />,
       routerContext
     );
@@ -223,7 +233,7 @@ describe('projectGeneralSettings', function () {
 
   it('disables the form for users without write permissions', function () {
     routerContext.context.organization.access = ['org:read'];
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <ProjectGeneralSettings params={{orgId: org.slug, projectId: project.slug}} />,
       routerContext
     );
@@ -245,7 +255,7 @@ describe('projectGeneralSettings', function () {
         platform: 'javascript',
       },
     });
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <ProjectContext orgId={org.slug} projectId={project.slug}>
         <ProjectGeneralSettings
           routes={[]}
@@ -283,7 +293,7 @@ describe('projectGeneralSettings', function () {
         slug: 'new-project',
       },
     });
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <ProjectContext orgId={org.slug} projectId={project.slug}>
         <ProjectGeneralSettings
           routes={[]}
@@ -337,8 +347,6 @@ describe('projectGeneralSettings', function () {
   });
 
   describe('Non-"save on blur" Field', function () {
-    let wrapper;
-
     beforeEach(function () {
       const params = {orgId: org.slug, projectId: project.slug};
       ProjectsStore.loadInitialData([project]);
@@ -350,19 +358,21 @@ describe('projectGeneralSettings', function () {
           slug: 'new-project',
         },
       });
-      // act() prevents warnings about animations running.
-      act(() => {
-        wrapper = mountWithTheme(
-          <ProjectContext orgId={org.slug} projectId={project.slug}>
-            <ProjectGeneralSettings
-              routes={[]}
-              location={routerContext.context.location}
-              params={params}
-            />
-          </ProjectContext>,
-          routerContext
-        );
-      });
+      wrapper = mountWithTheme(
+        <ProjectContext orgId={org.slug} projectId={project.slug}>
+          <ProjectGeneralSettings
+            routes={[]}
+            location={routerContext.context.location}
+            params={params}
+          />
+        </ProjectContext>,
+        routerContext
+      );
+    });
+
+    afterEach(() => {
+      wrapper?.unmount();
+      modal?.unmount();
     });
 
     it('can cancel unsaved changes for a field', async function () {
@@ -376,12 +386,10 @@ describe('projectGeneralSettings', function () {
       expect(wrapper.find('input[name="resolveAge"]').prop('value')).toBe(19);
 
       // Change value
-      act(() => {
-        wrapper
-          .find('input[name="resolveAge"]')
-          .simulate('input', {target: {value: 12}})
-          .simulate('mouseUp');
-      });
+      wrapper
+        .find('input[name="resolveAge"]')
+        .simulate('input', {target: {value: 12}})
+        .simulate('mouseUp');
       await wrapper.update();
 
       // Has updated value
@@ -405,8 +413,7 @@ describe('projectGeneralSettings', function () {
       expect(putMock).not.toHaveBeenCalled();
     });
 
-    // eslint-disable-next-line jest/no-disabled-tests
-    it.skip('saves when value is changed and "Save" clicked', async function () {
+    it('saves when value is changed and "Save" clicked', async function () {
       // This test has been flaky and using act() isn't removing the flakyness.
       await tick();
       await wrapper.update();
@@ -414,14 +421,12 @@ describe('projectGeneralSettings', function () {
       // Initially does not have "Save" button
       expect(wrapper.find('MessageAndActions button[aria-label="Save"]')).toHaveLength(0);
 
-      act(() => {
-        // Change value
-        wrapper
-          .find('input[name="resolveAge"]')
-          .simulate('input', {target: {value: 12}})
-          .simulate('mouseUp');
-      });
-      await wrapper.update();
+      // Change value
+      wrapper
+        .find('input[name="resolveAge"]')
+        .simulate('input', {target: {value: 12}})
+        .simulate('mouseUp');
+      await tick();
       await wrapper.update();
 
       // Has "Save" button visible
@@ -431,9 +436,7 @@ describe('projectGeneralSettings', function () {
       expect(putMock).not.toHaveBeenCalled();
 
       // Click "Save"
-      act(() => {
-        wrapper.find('MessageAndActions button[aria-label="Save"]').simulate('click');
-      });
+      wrapper.find('MessageAndActions button[aria-label="Save"]').simulate('click');
       await tick();
       await wrapper.update();
 

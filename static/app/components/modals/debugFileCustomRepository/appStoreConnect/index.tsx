@@ -309,7 +309,3 @@ const StyledList = styled(List)`
 const StyledButton = styled(Button)`
   position: relative;
 `;
-
-const StyledAlert = styled(Alert)`
-  margin: ${space(1)} 0 ${space(2)} 0;
-`;
