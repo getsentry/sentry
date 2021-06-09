@@ -1014,8 +1014,6 @@ class NumberRange(FunctionArg):
         self.end = end
 
     def normalize(self, value, params):
-        if value is None:
-            return value
         try:
             value = float(value)
         except ValueError:
