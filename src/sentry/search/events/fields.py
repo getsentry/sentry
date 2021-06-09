@@ -377,7 +377,12 @@ def format_column_as_key(x):
 
 
 def resolve_field_list(
-    fields, snuba_filter, auto_fields=True, auto_aggregations=False, functions_acl=None
+    fields,
+    snuba_filter,
+    auto_fields=True,
+    auto_aggregations=False,
+    functions_acl=None,
+    resolved_equations=None,
 ):
     """
     Expand a list of fields based on aliases and aggregate functions.
@@ -497,7 +502,7 @@ def resolve_field_list(
     orderby = snuba_filter.orderby
     # Only sort if there are columns. When there are only aggregates there's no need to sort
     if orderby and len(columns) > 0:
-        orderby = resolve_orderby(orderby, columns, aggregations)
+        orderby = resolve_orderby(orderby, columns, aggregations, resolved_equations)
     else:
         orderby = None
 
@@ -528,6 +533,9 @@ def resolve_field_list(
                     )
                 groupby.append(column)
 
+    if resolved_equations:
+        columns += resolved_equations
+
     return {
         "selected_columns": columns,
         "aggregations": aggregations,
@@ -537,7 +545,7 @@ def resolve_field_list(
     }
 
 
-def resolve_orderby(orderby, fields, aggregations):
+def resolve_orderby(orderby, fields, aggregations, equations):
     """
     We accept column names, aggregate functions, and aliases as order by
     values. Aggregates and field aliases need to be resolve/validated.
@@ -547,11 +555,19 @@ def resolve_orderby(orderby, fields, aggregations):
     those that are currently selected.
     """
     orderby = orderby if isinstance(orderby, (list, tuple)) else [orderby]
+    if equations is not None:
+        equation_aliases = [equation[-1] for equation in equations]
+    else:
+        equation_aliases = []
     validated = []
     for column in orderby:
         bare_column = column.lstrip("-")
 
         if bare_column in fields:
+            validated.append(column)
+            continue
+
+        if equation_aliases and bare_column in equation_aliases:
             validated.append(column)
             continue
 
