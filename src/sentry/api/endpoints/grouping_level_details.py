@@ -22,6 +22,12 @@ class GroupingLevelDetailsEndpoint(GroupEndpoint):
         """
         Set the current grouping level to the given one.
 
+        ```
+        POST /api/0/issues/<group_id>/grouping/levels/<level_id>/
+
+        200 OK
+        ```
+
         Use `GroupingLevelNewIssuesEndpoint` to preview what will be produced
         in place of the current issue.
 
