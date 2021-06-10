@@ -391,10 +391,10 @@ class QueryField extends React.Component<Props> {
             return (
               <BufferedInput
                 name="refinement"
-                key="parameter:number"
+                key="parameter:autoNumber"
                 type="text"
                 inputMode="numeric"
-                pattern="auto|aut|au|a|[0-9]*(\.[0-9]*)?"
+                pattern="auto|[0-9]*(\.[0-9]*)?"
                 {...inputProps}
               />
             );
@@ -630,9 +630,7 @@ class BufferedInput extends React.Component<InputProps, InputState> {
   };
 
   handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (this.isValid) {
-      this.setState({value: event.target.value});
-    }
+    this.setState({value: event.target.value});
   };
 
   render() {
