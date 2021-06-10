@@ -38,7 +38,12 @@ To create and manage these credentials, several API endpoints exist:
    and can be used in e.g. endpoint 6 and 7.  See
    :class:`AppStoreConnectCreateCredentialsEndpoint`.
 
-6. ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/validate/{id}/``
+6. ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/{id}/``
+   Update a subset of the full credentials normally saved in endpoint 5.  Like endpoint 5 it
+   returns the entire symbol source JSON config to be saved in project details.  See
+   :class:`AppStoreConnectUpdateCredentialsEndpoint`.
+
+7. ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/validate/{id}/``
 
    Validate if an existing iTunes session is still active or if a new one needs to be
    initiated by steps 2-4.  See :class:`AppStoreConnectCredentialsValidateEndpoint`.
@@ -255,7 +260,7 @@ class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        config = serializer.validated_data.copy()
+        config = serializer.validated_data
         session_context = config.pop("sessionContext")
 
         config["type"] = "appStoreConnect"
@@ -274,15 +279,82 @@ class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):
         return Response(config, status=200)
 
 
-def validate_symbol_source_schema(data):
-    BaseVal = jsonschema.Draft7Validator
+class UpdateSessionContextSerializer(serializers.Serializer):
+    auth_key = serializers.CharField(min_length=1, required=True)
+    session_id = serializers.CharField(min_length=1, required=True)
+    scnt = serializers.CharField(min_length=1, required=True)
+    itunes_session = serializers.CharField(min_length=1, required=True)
+    itunes_person_id = serializers.CharField(min_length=1, required=True)
+    itunes_created = serializers.DateTimeField(required=True)
 
-    def is_datetime(checker, obj):
-        return isinstance(obj, datetime.datetime)
 
-    date_check = BaseVal.TYPE_CHECKER.redefine("datetime", is_datetime)
-    Validator = jsonschema.validators.extend(BaseVal, type_checker=date_check)
-    Validator(schema=APP_STORE_CONNECT_SCHEMA).validate(data)
+class AppStoreUpdateCredentialsSerializer(serializers.Serializer):
+    """Input validation for :class:`AppStoreConnectUpdateCredentialsEndpoint`."""
+
+    # an IID with the XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX format
+    appconnectIssuer = serializers.CharField(max_length=36, min_length=36, required=False)
+    # about 10 chars
+    appconnectKey = serializers.CharField(max_length=20, min_length=2, required=False)
+    # 512 should fit a private key
+    appconnectPrivateKey = serializers.CharField(max_length=512, required=False)
+    itunesUser = serializers.CharField(max_length=100, min_length=1, required=False)
+    itunesPassword = serializers.CharField(max_length=512, min_length=1, required=False)
+    appName = serializers.CharField(max_length=512, min_length=1, required=False)
+    appId = serializers.CharField(max_length=512, min_length=1, required=False)
+    sessionContext = UpdateSessionContextSerializer(required=False)
+    # this is the ITunes organization the user is a member of ( known as providers in Itunes terminology)
+    orgId = serializers.IntegerField(required=False)
+    orgName = serializers.CharField(max_length=100, required=False)
+
+
+class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):
+    """Updates a subset of the existing credentials.
+    ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/{id}/``
+    See :class:`AppStoreUpdateCredentialsSerializer` for the input format.
+    This is like :class:`AppStoreConnectCreateCredentialsEndpoint` aka
+    ``projects/{org_slug}/{proj_slug}/appstoreconnect/{id}/`` but allows you to only provide
+    a sub-set.  This is most useful when you had to refresh the iTunes session using
+    endpoints 2-4 (see module docstring), as you can only supply the `sessionContext`.
+    """
+
+    permission_classes = [StrictProjectPermission]
+
+    def post(self, request, project, credentials_id):
+        if not features.has(
+            APP_STORE_CONNECT_FEATURE_NAME, project.organization, actor=request.user
+        ):
+            return Response(status=404)
+
+        serializer = AppStoreUpdateCredentialsSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+
+        # get the existing credentials
+        symbol_source_config = get_app_store_config(project, credentials_id)
+        if symbol_source_config is None:
+            return Response(status=404)
+
+        # get the new credentials
+        data = serializer.validated_data
+        session_context = data.pop("sessionContext")
+
+        if session_context:
+            data["itunesCreated"] = session_context.get("itunes_created")
+            data["itunesSession"] = session_context.get("itunes_session")
+            data["itunesPersonId"] = session_context.get("itunes_person_id")
+
+        symbol_source_config.update(data)
+
+        # We need to have a serialised datetime, but django-rest-framework de-serialised it
+        # into the class.  So, serialize it back.
+        if isinstance(symbol_source_config["itunesCreated"], datetime.datetime):
+            clone = data.copy()
+            clone["itunesCreated"] = symbol_source_config["itunesCreated"].isoformat()
+        else:
+            clone = data
+        jsonschema.validate(clone, APP_STORE_CONNECT_SCHEMA)
+
+        return Response(symbol_source_config, status=200)
 
 
 class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):
