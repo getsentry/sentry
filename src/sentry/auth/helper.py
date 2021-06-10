@@ -350,14 +350,6 @@ class AuthIdentityHandler:
         )
         return member
 
-    @staticmethod
-    def _get_display_name(identity):
-        return identity.get("name") or identity.get("email")
-
-    @staticmethod
-    def _get_identifier(identity):
-        return identity.get("email") or identity.get("id")
-
     def _respond(self, template, context=None, status=200):
         default_context = {"organization": self.organization}
         if context:
@@ -468,29 +460,19 @@ class AuthIdentityHandler:
             # A blank character is needed to prevent the HTML span from collapsing
             provider_name = self.auth_provider.get_provider().name if self.auth_provider else " "
 
+            context = {
+                "identity": identity,
+                "provider": provider_name,
+                "identity_display_name": identity.get("name") or identity.get("email"),
+                "identity_identifier": identity.get("email") or identity.get("id"),
+            }
             if self.user.is_authenticated:
-                return self._respond(
-                    "sentry/auth-confirm-link.html",
-                    {
-                        "identity": identity,
-                        "provider": provider_name,
-                        "existing_user": self.user,
-                        "identity_display_name": self._get_display_name(identity),
-                        "identity_identifier": self._get_identifier(identity),
-                    },
-                )
-
-            return self._respond(
-                "sentry/auth-confirm-identity.html",
-                {
-                    "existing_user": acting_user,
-                    "identity": identity,
-                    "provider": provider_name,
-                    "login_form": login_form,
-                    "identity_display_name": self._get_display_name(identity),
-                    "identity_identifier": self._get_identifier(identity),
-                },
-            )
+                template = "sentry/auth-confirm-link.html"
+                context.update({"existing_user": self.user})
+            else:
+                template = "sentry/auth-confirm-identity.html"
+                context.update({"existing_user": acting_user, "login_form": login_form})
+            return self._respond(template, **context)
 
         user = auth_identity.user
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
