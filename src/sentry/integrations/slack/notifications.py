@@ -37,27 +37,26 @@ def get_channel_and_integration_by_user(
     identities = Identity.objects.filter(
         idp__type=EXTERNAL_PROVIDERS[ExternalProviders.SLACK],
         user=user.id,
-    )
+    ).select_related("idp")
+
     if not identities:
         # The user may not have linked their identity so just move on
         # since there are likely other users or teams in the list of
         # recipients.
         return None, None
 
+    integrations = Integration.objects.filter(
+        provider=EXTERNAL_PROVIDERS[ExternalProviders.SLACK],
+        organizations=organization,
+        external_id__in=[identity.idp.external_id for identity in identities],
+    )
     channels_to_integration = {}
 
     for identity in identities:
-        try:
-            integration = Integration.objects.get(
-                provider=EXTERNAL_PROVIDERS[ExternalProviders.SLACK],
-                organizations=organization,
-                external_id=identity.idp.external_id,
-            )
-        except Integration.DoesNotExist:
-            continue
-
-        else:
-            channels_to_integration[identity.external_id] = integration
+        for integration in integrations:
+            if identity.idp.external_id == integration.external_id:
+                channels_to_integration[identity.external_id] = integration
+                break
 
     return channels_to_integration
 
@@ -128,11 +127,21 @@ def send_notification_as_slack(
     """Send an "activity" or "alert rule" notification to a Slack user or team."""
     client = SlackClient()
     data = get_channel_and_token_by_recipient(notification.organization, recipients)
+
     for recipient, tokens_by_channel in data.items():
+        is_multiple = True if len([token for token in tokens_by_channel]) > 1 else False
+        if is_multiple:
+            logger.info(
+                "notification.multiple.slack_post",
+                extra={
+                    "notification": notification,
+                    "recipient": recipient.id,
+                },
+            )
+        extra_context = (extra_context_by_user_id or {}).get(recipient.id, {})
+        context = get_context(notification, recipient, shared_context, extra_context)
+        attachment = [build_notification_attachment(notification, context)]
         for channel, token in tokens_by_channel.items():
-            extra_context = (extra_context_by_user_id or {}).get(recipient.id, {})
-            context = get_context(notification, recipient, shared_context, extra_context)
-            attachment = [build_notification_attachment(notification, context)]
             payload = {
                 "token": token,
                 "channel": channel,
@@ -149,6 +158,7 @@ def send_notification_as_slack(
                         "notification": notification,
                         "recipient": recipient.id,
                         "channel_id": channel,
+                        "is_multiple": is_multiple,
                     },
                 )
                 continue
