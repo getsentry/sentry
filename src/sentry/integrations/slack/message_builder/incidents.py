@@ -58,5 +58,5 @@ def build_incident_attachment(
     metric_value: Optional[str] = None,
     method: Optional[str] = None,
 ) -> SlackBody:
-    """ @deprecated """
+    """@deprecated"""
     return SlackIncidentsMessageBuilder(action, incident, metric_value, method).build()
