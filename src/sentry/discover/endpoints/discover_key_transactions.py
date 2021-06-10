@@ -236,9 +236,13 @@ class KeyTransactionTeamSerializer(Serializer):
         self.project_ids = {project.id for project in projects}
 
     def get_attrs(self, item_list, user, **kwargs):
-        team_key_transactions = TeamKeyTransaction.objects.filter(
-            project_team__in=ProjectTeam.objects.filter(team__in=item_list),
-        ).order_by("transaction", "project_team__project_id")
+        team_key_transactions = (
+            TeamKeyTransaction.objects.filter(
+                project_team__in=ProjectTeam.objects.filter(team__in=item_list),
+            )
+            .select_related("project_team__project", "project_team__team")
+            .order_by("transaction", "project_team__project_id")
+        )
 
         attrs = defaultdict(
             lambda: {
