@@ -4,6 +4,9 @@ export enum SortOption {
   USERS_24_HOURS = 'users_24h',
   SESSIONS = 'sessions',
   DATE = 'date',
+  BUILD = 'build',
+  SEMVER = 'semver',
+  ADOPTION = 'adoption',
 }
 
 export enum DisplayOption {

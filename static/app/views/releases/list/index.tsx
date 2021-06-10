@@ -137,6 +137,12 @@ class ReleasesList extends AsyncView<Props, State> {
         return SortOption.SESSIONS;
       case SortOption.USERS_24_HOURS:
         return SortOption.USERS_24_HOURS;
+      case SortOption.BUILD:
+        return SortOption.BUILD;
+      case SortOption.SEMVER:
+        return SortOption.SEMVER;
+      case SortOption.ADOPTION:
+        return SortOption.ADOPTION;
       default:
         return SortOption.DATE;
     }
@@ -440,6 +446,7 @@ class ReleasesList extends AsyncView<Props, State> {
               <ReleaseListSortOptions
                 selected={activeSort}
                 onSelect={this.handleSortBy}
+                organization={organization}
               />
               <ReleaseDisplayOptions
                 selected={activeDisplay}
