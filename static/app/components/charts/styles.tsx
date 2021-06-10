@@ -32,8 +32,11 @@ export const SectionValue = styled('span')`
 export const InlineContainer = styled('div')`
   display: grid;
   align-items: center;
-  grid-auto-flow: column;
-  grid-gap: ${space(1)};
+
+  @media (min-width: ${p => p.theme.breakpoints[0]}) {
+    grid-auto-flow: column;
+    grid-column-gap: ${space(1)};
+  }
 `;
 
 export const ChartControls = styled('div')`
@@ -43,6 +46,7 @@ export const ChartControls = styled('div')`
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     display: flex;
     justify-content: space-between;
+    flex-wrap: wrap;
   }
 `;
 
