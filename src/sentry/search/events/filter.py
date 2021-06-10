@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Callable, List, Mapping, Optional, Sequence, Tuple, Union
 
-from django.db.models import BigIntegerField, Case, F, Func, Q, Value, When
+from django.db.models import BigIntegerField, F, Func, Q, Value
 from parsimonious.exceptions import ParseError
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 from sentry_relay.processing import parse_release as relay_parse_release
@@ -383,13 +383,13 @@ def parse_semver_search(
         # Note that we sort this such that if we end up fetching more than
         # MAX_SEMVER_SEARCH_RELEASES, we will return the releases that are closest to
         # the passed filter.
-        order_by = ["major", "minor", "patch", "revision", "prerelease_case", "prerelease"]
+        order_by = Release.SEMVER_SORT_COLS
         if operator.startswith("<"):
             order_by = list(map(_flip_field_sort, order_by))
         qs = (
             Release.objects.filter(release_filter)
+            .annotate_prerelease_column()
             .annotate(
-                prerelease_case=Case(When(prerelease="", then=1), default=0),
                 semver=Func(
                     F("major"),
                     F("minor"),

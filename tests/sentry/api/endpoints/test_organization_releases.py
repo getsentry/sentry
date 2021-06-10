@@ -151,6 +151,27 @@ class OrganizationReleaseListTest(APITestCase):
             release_2.version,
         ]
 
+    def test_release_list_order_by_semver(self):
+        self.login_as(user=self.user)
+        release_1 = self.create_release(version="test@2.2")
+        release_2 = self.create_release(version="test@10.0")
+        release_3 = self.create_release(version="test@2.2-alpha")
+        release_4 = self.create_release(version="test@2.2.3")
+        release_5 = self.create_release(version="test@2.20.3")
+        release_6 = self.create_release(version="test@2.20.3.3")
+        self.create_release(version="test@some_thing")
+        self.create_release(version="random_junk")
+
+        response = self.get_valid_response(self.organization.slug, sort="semver")
+        assert [r["version"] for r in response.data] == [
+            release_2.version,
+            release_6.version,
+            release_5.version,
+            release_4.version,
+            release_1.version,
+            release_3.version,
+        ]
+
     def test_query_filter(self):
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.organization
