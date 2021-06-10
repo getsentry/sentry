@@ -126,6 +126,19 @@ class AuthIdentityHandler:
     def user(self):
         return self.request.user
 
+    class _NotLoggedIn(Exception):
+        pass
+
+    def _login(self, user):
+        user_was_logged_in = auth.login(
+            self.request,
+            user,
+            after_2fa=self.request.build_absolute_uri(),
+            organization_id=self.organization.id,
+        )
+        if not user_was_logged_in:
+            raise self._NotLoggedIn()
+
     def handle_existing_identity(self, state, auth_identity, identity):
         # TODO(dcramer): this is very similar to attach
         now = timezone.now()
@@ -154,12 +167,9 @@ class AuthIdentityHandler:
         user = auth_identity.user
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
 
-        if not auth.login(
-            self.request,
-            user,
-            after_2fa=self.request.build_absolute_uri(),
-            organization_id=self.organization.id,
-        ):
+        try:
+            self._login(user)
+        except self._NotLoggedIn:
             return HttpResponseRedirect(auth.get_login_redirect(self.request))
 
         state.clear()
@@ -413,12 +423,9 @@ class AuthIdentityHandler:
                 user=acting_user, organization=self.organization
             ).exists()
             if has_membership:
-                if not auth.login(
-                    self.request,
-                    acting_user,
-                    after_2fa=self.request.build_absolute_uri(),
-                    organization_id=self.organization.id,
-                ):
+                try:
+                    self._login(acting_user)
+                except self._NotLoggedIn:
                     if acting_user.has_usable_password():
                         return self._post_login_redirect()
                     else:
@@ -448,12 +455,9 @@ class AuthIdentityHandler:
                 #
                 # If there is no 2fa we don't need to do this and can just
                 # go on.
-                if not auth.login(
-                    self.request,
-                    login_form.get_user(),
-                    after_2fa=self.request.build_absolute_uri(),
-                    organization_id=self.organization.id,
-                ):
+                try:
+                    self._login(login_form.get_user())
+                except self._NotLoggedIn:
                     return self._post_login_redirect()
             else:
                 auth.log_auth_failure(self.request, self.request.POST.get("username"))
@@ -492,12 +496,9 @@ class AuthIdentityHandler:
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
 
         # XXX(dcramer): this is repeated from above
-        if not auth.login(
-            self.request,
-            user,
-            after_2fa=self.request.build_absolute_uri(),
-            organization_id=self.organization.id,
-        ):
+        try:
+            self._login(user)
+        except self._NotLoggedIn:
             return self._post_login_redirect()
 
         state.clear()
