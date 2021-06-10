@@ -137,11 +137,6 @@ class OrganizationReleaseListTest(APITestCase):
         assert response.data[2]["version"] == release6.version
 
     def test_release_list_order_by_build_number(self):
-        """
-        Test that ensures that by relying on the default date sorting, releases
-        will only be sorted according to `Release.date_added`, and
-        `Release.date_released` should have no effect whatsoever on that order
-        """
         self.login_as(user=self.user)
         release_1 = self.create_release(version="test@1.2+1000")
         release_2 = self.create_release(version="test@1.2+1")
