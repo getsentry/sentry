@@ -169,8 +169,9 @@ function AppStoreConnect({
     }
   }
 
-  async function startTwoFactorAuthentication() {
+  async function startTwoFactorAuthentication(shouldJumpNext = false) {
     setIsLoading(true);
+
     try {
       const response = await api.requestPromise(
         `/projects/${orgSlug}/${projectSlug}/appstoreconnect/2fa/`,
@@ -183,11 +184,18 @@ function AppStoreConnect({
           },
         }
       );
-      setIsLoading(false);
+
       const {organizations, sessionContext: newSessionContext} = response;
-      setStepFifthData({org: organizations[0]});
-      setAppleStoreOrgs(organizations);
+
+      if (shouldJumpNext) {
+        persistData(newSessionContext);
+        return;
+      }
+
       setSessionContext(newSessionContext);
+      setAppleStoreOrgs(organizations);
+      setStepFifthData({org: organizations[0]});
+      setIsLoading(false);
       goNext();
     } catch (error) {
       setIsLoading(false);
@@ -197,7 +205,7 @@ function AppStoreConnect({
     }
   }
 
-  async function persistData() {
+  async function persistData(newSessionContext?: string) {
     if (!stepTwoData.app || !stepFifthData.org || !stepThreeData.username) {
       return;
     }
@@ -231,7 +239,7 @@ function AppStoreConnect({
           appId: stepTwoData.app.appId,
           orgId: stepFifthData.org.organizationId,
           orgName: stepFifthData.org.name,
-          sessionContext,
+          sessionContext: newSessionContext ?? sessionContext,
         },
       });
 
@@ -506,7 +514,7 @@ function AppStoreConnect({
         <Footer>
           <StyledButton
             priority="primary"
-            onClick={() => persistData()}
+            onClick={() => startTwoFactorAuthentication(true)}
             disabled={isLoading || isFormInvalid()}
           >
             {t('Revalidate')}
