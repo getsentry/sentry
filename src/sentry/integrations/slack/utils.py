@@ -232,7 +232,7 @@ def get_identity(user, organization_id, integration_id):
 
 
 def parse_link(url):
-    """ For data aggregation purposes, remove unique information from URL. """
+    """For data aggregation purposes, remove unique information from URL."""
 
     url_parts = list(urlparse(url))
     query = dict(parse_qs(url_parts[4]))
