@@ -116,6 +116,12 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
             else team_serializers.TeamSerializer
         )
 
+        get_all_teams = request.GET.get("all_teams") == "1"
+
+        if get_all_teams:
+            queryset = queryset.order_by("slug")
+            return Response(serialize(list(queryset), request.user, serializer()))
+
         return self.paginate(
             request=request,
             queryset=queryset,

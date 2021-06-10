@@ -67,7 +67,12 @@ async function fetchProjectsAndTeams(
         slug,
         // This data should get preloaded in static/sentry/index.ejs
         // If this url changes make sure to update the preload
-        () => uncancelableApi.requestPromise(`/organizations/${slug}/teams/`),
+        () =>
+          uncancelableApi.requestPromise(`/organizations/${slug}/teams/`, {
+            query: {
+              all_teams: 1,
+            },
+          }),
         isInitialFetch
       ),
     ]);

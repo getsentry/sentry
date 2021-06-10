@@ -132,6 +132,24 @@ class OrganizationTeamsListTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
 
+    def test_all_teams(self):
+        user = self.create_user()
+        org = self.create_organization(owner=self.user)
+        team1 = self.create_team(organization=org, name="foo")
+        self.create_team(organization=org, name="bar")
+
+        self.create_member(organization=org, user=user, has_global_access=False, teams=[team1])
+
+        # all_teams should override the per_page url param
+        path = f"/api/0/organizations/{org.slug}/teams/?all_teams=1&per_page=1"
+
+        self.login_as(user=user)
+
+        response = self.client.get(path)
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 2
+
 
 class OrganizationTeamsCreateTest(APITestCase):
     endpoint = "sentry-api-0-organization-teams"
