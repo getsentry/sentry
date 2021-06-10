@@ -307,7 +307,7 @@ class ReleasesList extends AsyncView<Props, State> {
       p => p.id === `${selectedProjectId}`
     );
 
-    if (!selectedProject || hasSessions !== false || !releases.length) {
+    if (!selectedProject || hasSessions !== false || !releases?.length) {
       return null;
     }
 
