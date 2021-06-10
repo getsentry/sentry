@@ -110,15 +110,13 @@ describe('generatePerformanceEventView()', function () {
     );
 
     expect(result.fields).not.toEqual(
-      expect.arrayContaining([expect.objectContaining({field: 'uuser_misery_new()'})])
+      expect.arrayContaining([expect.objectContaining({field: 'user_misery()'})])
     );
     expect(result.fields).not.toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({field: 'count_miserable_new(user)'}),
-      ])
+      expect.arrayContaining([expect.objectContaining({field: 'count_miserable(user)'})])
     );
     expect(result.fields).not.toEqual(
-      expect.arrayContaining([expect.objectContaining({field: 'apdex_new()'})])
+      expect.arrayContaining([expect.objectContaining({field: 'apdex()'})])
     );
 
     const newOrganization = TestStubs.Organization({
@@ -135,15 +133,13 @@ describe('generatePerformanceEventView()', function () {
       },
     });
     expect(newResult.fields).toEqual(
-      expect.arrayContaining([expect.objectContaining({field: 'user_misery_new()'})])
+      expect.arrayContaining([expect.objectContaining({field: 'user_misery()'})])
     );
     expect(newResult.fields).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({field: 'count_miserable_new(user)'}),
-      ])
+      expect.arrayContaining([expect.objectContaining({field: 'count_miserable(user)'})])
     );
     expect(newResult.fields).toEqual(
-      expect.arrayContaining([expect.objectContaining({field: 'apdex_new()'})])
+      expect.arrayContaining([expect.objectContaining({field: 'apdex()'})])
     );
 
     expect(newResult.fields).not.toEqual(

@@ -162,9 +162,9 @@ function SidebarCharts({
   let apdexKey, apdexYAxis: string;
   let apdexPerformanceTerm: PERFORMANCE_TERM;
   if (organization.features.includes('project-transaction-threshold')) {
-    apdexKey = 'apdex_new';
+    apdexKey = 'apdex';
     apdexPerformanceTerm = PERFORMANCE_TERM.APDEX_NEW;
-    apdexYAxis = 'apdex_new()';
+    apdexYAxis = 'apdex()';
   } else {
     apdexKey = `apdex_${threshold}`;
     apdexPerformanceTerm = PERFORMANCE_TERM.APDEX;

@@ -572,9 +572,6 @@ export const TRACING_FIELDS = [
   'apdex',
   'count_miserable',
   'user_misery',
-  'apdex_new',
-  'count_miserable_new',
-  'user_misery_new',
   'eps',
   'epm',
   ...Object.keys(MEASUREMENTS),
@@ -781,14 +778,6 @@ export function aggregateFunctionOutputType(
     return measurementType(firstArg);
   } else if (firstArg && isSpanOperationBreakdownField(firstArg)) {
     return 'duration';
-  }
-
-  // This is temporary since these don't fulfill any of
-  // the conditions above. Will be removed when these fields
-  // are added to the list of aggregations with an explicit
-  // return type.
-  if (funcName.startsWith('user_misery_new') || funcName.startsWith('apdex_new')) {
-    return 'number';
   }
 
   return null;

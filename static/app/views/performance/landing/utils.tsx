@@ -90,6 +90,12 @@ export function getBackendFunction(
     case 'failure_rate':
       return {kind: 'function', function: ['failure_rate', '', undefined]};
     case 'apdex':
+      if (organization.features.includes('project-transaction-threshold')) {
+        return {
+          kind: 'function',
+          function: ['apdex' as AggregationKey, '', undefined],
+        };
+      }
       return {
         kind: 'function',
         function: ['apdex', `${organization.apdexThreshold}`, undefined],
@@ -138,7 +144,9 @@ export const backendCardDetails = (organization: LightWeightOrganization) => {
     },
     apdex: {
       title: t('Apdex'),
-      tooltip: getTermHelp(organization, PERFORMANCE_TERM.APDEX),
+      tooltip: organization.features.includes('project-transaction-threshold')
+        ? getTermHelp(organization, PERFORMANCE_TERM.APDEX_NEW)
+        : getTermHelp(organization, PERFORMANCE_TERM.APDEX),
       formatter: value => formatFloat(value, 4),
     },
   };
