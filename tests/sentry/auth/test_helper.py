@@ -3,13 +3,16 @@ from urllib.parse import urlencode
 from django.contrib.auth.models import AnonymousUser
 from django.test import RequestFactory
 
-from sentry.auth.helper import handle_new_user
+from sentry.auth.helper import AuthIdentityHandler
 from sentry.models import AuthProvider, InviteStatus, OrganizationMember
 from sentry.testutils import TestCase
 from sentry.utils.compat import mock
 
 
 class HandleNewUserTest(TestCase):
+    def _create_handler(self, auth_provider, request):
+        return AuthIdentityHandler(auth_provider, None, self.organization, request)
+
     @mock.patch("sentry.analytics.record")
     def test_simple(self, mock_record):
         provider = "dummy"
@@ -21,7 +24,7 @@ class HandleNewUserTest(TestCase):
         )
         identity = {"id": "1234", "email": "test@example.com", "name": "Morty"}
 
-        auth_identity = handle_new_user(auth_provider, self.organization, request, identity)
+        auth_identity = self._create_handler(auth_provider, request).handle_new_user(identity)
         user = auth_identity.user
 
         assert user.email == identity["email"]
@@ -45,7 +48,7 @@ class HandleNewUserTest(TestCase):
             organization=self.organization, email=identity["email"]
         )
 
-        auth_identity = handle_new_user(provider, self.organization, request, identity)
+        auth_identity = self._create_handler(provider, request).handle_new_user(identity)
 
         assigned_member = OrganizationMember.objects.get(
             organization=self.organization, user=auth_identity.user
@@ -66,7 +69,7 @@ class HandleNewUserTest(TestCase):
             invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
         )
 
-        auth_identity = handle_new_user(provider, self.organization, request, identity)
+        auth_identity = self._create_handler(provider, request).handle_new_user(identity)
 
         assert OrganizationMember.objects.filter(
             organization=self.organization,
@@ -92,7 +95,7 @@ class HandleNewUserTest(TestCase):
             {"memberId": member.id, "token": member.token, "url": ""}
         )
 
-        auth_identity = handle_new_user(provider, self.organization, request, identity)
+        auth_identity = self._create_handler(provider, request).handle_new_user(identity)
 
         assigned_member = OrganizationMember.objects.get(
             organization=self.organization, user=auth_identity.user

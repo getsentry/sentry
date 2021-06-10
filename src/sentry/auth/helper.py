@@ -114,415 +114,428 @@ class RedisBackedState:
         self._client.setex(self.auth_key, self.EXPIRATION_TTL, json.dumps(state))
 
 
-def handle_existing_identity(
-    auth_provider, provider, organization, request, state, auth_identity, identity
-):
-    # TODO(dcramer): this is very similar to attach
-    now = timezone.now()
-    auth_identity.update(
-        data=provider.update_identity(
-            new_data=identity.get("data", {}), current_data=auth_identity.data
-        ),
-        last_verified=now,
-        last_synced=now,
-    )
+class AuthIdentityHandler:
+    def __init__(self, auth_provider, provider, organization, request):
+        self.auth_provider = auth_provider
+        self.provider = provider
+        self.organization = organization
+        self.request = request
 
-    try:
-        member = OrganizationMember.objects.get(user=auth_identity.user, organization=organization)
-    except OrganizationMember.DoesNotExist:
-        # this is likely the case when someone was removed from the org
-        # but still has access to rejoin
-        member = handle_new_membership(auth_provider, organization, request, auth_identity)
-    else:
-        if getattr(member.flags, "sso:invalid") or not getattr(member.flags, "sso:linked"):
-            setattr(member.flags, "sso:invalid", False)
-            setattr(member.flags, "sso:linked", True)
-            member.save()
+    @property
+    def user(self):
+        return self.request.user
 
-    user = auth_identity.user
-    user.backend = settings.AUTHENTICATION_BACKENDS[0]
-
-    if not auth.login(
-        request, user, after_2fa=request.build_absolute_uri(), organization_id=organization.id
-    ):
-        return HttpResponseRedirect(auth.get_login_redirect(request))
-
-    state.clear()
-    metrics.incr(
-        "sso.login-success",
-        tags={
-            "provider": provider.key,
-            "organization_id": organization.id,
-            "user_id": request.user.id,
-        },
-        skip_internal=False,
-        sample_rate=1.0,
-    )
-
-    if not is_active_superuser(request):
-        # set activeorg to ensure correct redirect upon logging in
-        request.session["activeorg"] = organization.slug
-    return HttpResponseRedirect(auth.get_login_redirect(request))
-
-
-def handle_new_membership(auth_provider, organization, request, auth_identity):
-    user = auth_identity.user
-
-    # If the user is either currently *pending* invite acceptance (as indicated
-    # from the pending-invite cookie) OR an existing invite exists on this
-    # organziation for the email provided by the identity provider.
-    invite_helper = ApiInviteHelper.from_cookie_or_email(
-        request=request, organization=organization, email=user.email
-    )
-
-    # If we are able to accept an existing invite for the user for this
-    # organization, do so, otherwise handle new membership
-    if invite_helper:
-        if invite_helper.invite_approved:
-            invite_helper.accept_invite(user)
-            return
-
-        # It's possible the user has an _invite request_ that hasn't been approved yet,
-        # and is able to join the organization without an invite through the SSO flow.
-        # In that case, delete the invite request and create a new membership.
-        invite_helper.handle_invite_not_approved()
-
-    # Otherwise create a new membership
-    om = OrganizationMember.objects.create(
-        organization=organization,
-        role=organization.default_role,
-        user=user,
-        flags=OrganizationMember.flags["sso:linked"],
-    )
-
-    default_teams = auth_provider.default_teams.all()
-    for team in default_teams:
-        OrganizationMemberTeam.objects.create(team=team, organizationmember=om)
-
-    AuditLogEntry.objects.create(
-        organization=organization,
-        actor=user,
-        ip_address=request.META["REMOTE_ADDR"],
-        target_object=om.id,
-        target_user=om.user,
-        event=AuditLogEntryEvent.MEMBER_ADD,
-        data=om.get_audit_log_data(),
-    )
-
-    return om
-
-
-@transaction.atomic
-def handle_attach_identity(auth_provider, request, organization, provider, identity, member=None):
-    """
-    Given an already authenticated user, attach or re-attach an identity.
-    """
-    user = request.user
-
-    try:
-        try:
-            # prioritize identifying by the SSO provider's user ID
-            auth_identity = AuthIdentity.objects.get(
-                auth_provider=auth_provider, ident=identity["id"]
-            )
-        except AuthIdentity.DoesNotExist:
-            # otherwise look for an already attached identity
-            # this can happen if the SSO provider's internal ID changes
-            auth_identity = AuthIdentity.objects.get(auth_provider=auth_provider, user=user)
-    except AuthIdentity.DoesNotExist:
-        auth_identity = AuthIdentity.objects.create(
-            auth_provider=auth_provider,
-            user=user,
-            ident=identity["id"],
-            data=identity.get("data", {}),
-        )
-        auth_is_new = True
-    else:
+    def handle_existing_identity(self, state, auth_identity, identity):
+        # TODO(dcramer): this is very similar to attach
         now = timezone.now()
-
-        # TODO(dcramer): this might leave the user with duplicate accounts,
-        # and in that kind of situation its very reasonable that we could
-        # test email addresses + is_managed to determine if we can auto
-        # merge
-        if auth_identity.user != user:
-            # it's possible the user has an existing identity, let's wipe it out
-            # so that the new identifier gets used (other we'll hit a constraint)
-            # violation since one might exist for (provider, user) as well as
-            # (provider, ident)
-            AuthIdentity.objects.exclude(id=auth_identity.id).filter(
-                auth_provider=auth_provider, user=user
-            ).delete()
-
-            # since we've identify an identity which is no longer valid
-            # lets preemptively mark it as such
-            try:
-                other_member = OrganizationMember.objects.get(
-                    user=auth_identity.user_id, organization=organization
-                )
-            except OrganizationMember.DoesNotExist:
-                pass
-            else:
-                other_member.flags["sso:invalid"] = True
-                other_member.flags["sso:linked"] = False
-                other_member.save()
-
         auth_identity.update(
-            user=user,
-            ident=identity["id"],
-            data=provider.update_identity(
+            data=self.provider.update_identity(
                 new_data=identity.get("data", {}), current_data=auth_identity.data
             ),
             last_verified=now,
             last_synced=now,
         )
-        auth_is_new = False
 
-    if member is None:
         try:
-            member = OrganizationMember.objects.get(user=user, organization=organization)
+            member = OrganizationMember.objects.get(
+                user=auth_identity.user, organization=self.organization
+            )
         except OrganizationMember.DoesNotExist:
-            member = OrganizationMember.objects.create(
-                organization=organization,
-                role=organization.default_role,
-                user=user,
-                flags=OrganizationMember.flags["sso:linked"],
-            )
-
-            default_teams = auth_provider.default_teams.all()
-            for team in default_teams:
-                OrganizationMemberTeam.objects.create(team=team, organizationmember=member)
-
-            AuditLogEntry.objects.create(
-                organization=organization,
-                actor=user,
-                ip_address=request.META["REMOTE_ADDR"],
-                target_object=member.id,
-                target_user=user,
-                event=AuditLogEntryEvent.MEMBER_ADD,
-                data=member.get_audit_log_data(),
-            )
-    if getattr(member.flags, "sso:invalid") or not getattr(member.flags, "sso:linked"):
-        setattr(member.flags, "sso:invalid", False)
-        setattr(member.flags, "sso:linked", True)
-        member.save()
-
-    if auth_is_new:
-        AuditLogEntry.objects.create(
-            organization=organization,
-            actor=user,
-            ip_address=request.META["REMOTE_ADDR"],
-            target_object=auth_identity.id,
-            event=AuditLogEntryEvent.SSO_IDENTITY_LINK,
-            data=auth_identity.get_audit_log_data(),
-        )
-
-        messages.add_message(request, messages.SUCCESS, OK_LINK_IDENTITY)
-
-    return auth_identity
-
-
-def get_display_name(identity):
-    return identity.get("name") or identity.get("email")
-
-
-def get_identifier(identity):
-    return identity.get("email") or identity.get("id")
-
-
-def respond(template, organization, request, context=None, status=200):
-    default_context = {"organization": organization}
-    if context:
-        default_context.update(context)
-
-    return render_to_response(template, default_context, request, status=status)
-
-
-def post_login_redirect(request):
-    response = HttpResponseRedirect(auth.get_login_redirect(request))
-
-    # Always remove any pending invite cookies, pending invites will have been
-    # accepted during the SSO flow.
-    remove_invite_cookie(request, response)
-
-    return response
-
-
-def handle_unknown_identity(request, organization, auth_provider, provider, state, identity):
-    """
-    Flow is activated upon a user logging in to where an AuthIdentity is
-    not present.
-
-    XXX(dcramer): this docstring is out of date
-
-    The flow will attempt to answer the following:
-
-    - Is there an existing user with the same email address? Should they be
-      merged?
-
-    - Is there an existing user (via authentication) that should be merged?
-
-    - Should I create a new user based on this identity?
-    """
-    op = request.POST.get("op")
-    if not request.user.is_authenticated:
-        # TODO(dcramer): its possible they have multiple accounts and at
-        # least one is managed (per the check below)
-        try:
-            acting_user = User.objects.filter(
-                id__in=UserEmail.objects.filter(email__iexact=identity["email"]).values("user"),
-                is_active=True,
-            ).first()
-        except IndexError:
-            acting_user = None
-        login_form = AuthenticationForm(
-            request,
-            request.POST if request.POST.get("op") == "login" else None,
-            initial={"username": acting_user.username if acting_user else None},
-        )
-    else:
-        acting_user = request.user
-
-    # If they already have an SSO account and the identity provider says
-    # the email matches we go ahead and let them merge it. This is the
-    # only way to prevent them having duplicate accounts, and because
-    # we trust identity providers, its considered safe.
-    # Note: we do not trust things like SAML, so the SSO implementation needs
-    # to consider if 'email_verified' can be trusted or not
-    if acting_user and identity.get("email_verified"):
-        # we only allow this flow to happen if the existing user has
-        # membership, otherwise we short circuit because it might be
-        # an attempt to hijack membership of another organization
-        has_membership = OrganizationMember.objects.filter(
-            user=acting_user, organization=organization
-        ).exists()
-        if has_membership:
-            if not auth.login(
-                request,
-                acting_user,
-                after_2fa=request.build_absolute_uri(),
-                organization_id=organization.id,
-            ):
-                if acting_user.has_usable_password():
-                    return post_login_redirect(request)
-                else:
-                    acting_user = None
-            else:
-                # assume they've confirmed they want to attach the identity
-                op = "confirm"
+            # this is likely the case when someone was removed from the org
+            # but still has access to rejoin
+            member = self._handle_new_membership(auth_identity)
         else:
-            # force them to create a new account
-            acting_user = None
-    # without a usable password they cant login, so let's clear the acting_user
-    elif acting_user and not acting_user.has_usable_password():
-        acting_user = None
+            if getattr(member.flags, "sso:invalid") or not getattr(member.flags, "sso:linked"):
+                setattr(member.flags, "sso:invalid", False)
+                setattr(member.flags, "sso:linked", True)
+                member.save()
 
-    if op == "confirm" and request.user.is_authenticated:
-        auth_identity = handle_attach_identity(
-            auth_provider, request, organization, provider, identity
-        )
-    elif op == "newuser":
-        auth_identity = handle_new_user(auth_provider, organization, request, identity)
-    elif op == "login" and not request.user.is_authenticated:
-        # confirm authentication, login
-        op = None
-        if login_form.is_valid():
-            # This flow is special.  If we are going through a 2FA
-            # flow here (login returns False) we want to instruct the
-            # system to return upon completion of the 2fa flow to the
-            # current URL and continue with the dialog.
-            #
-            # If there is no 2fa we don't need to do this and can just
-            # go on.
-            if not auth.login(
-                request,
-                login_form.get_user(),
-                after_2fa=request.build_absolute_uri(),
-                organization_id=organization.id,
-            ):
-                return post_login_redirect(request)
-        else:
-            auth.log_auth_failure(request, request.POST.get("username"))
-    else:
-        op = None
+        user = auth_identity.user
+        user.backend = settings.AUTHENTICATION_BACKENDS[0]
 
-    if not op:
-        # A blank character is needed to prevent the HTML span from collapsing
-        provider_name = auth_provider.get_provider().name if auth_provider else " "
+        if not auth.login(
+            self.request,
+            user,
+            after_2fa=self.request.build_absolute_uri(),
+            organization_id=self.organization.id,
+        ):
+            return HttpResponseRedirect(auth.get_login_redirect(self.request))
 
-        if request.user.is_authenticated:
-            return respond(
-                "sentry/auth-confirm-link.html",
-                organization,
-                request,
-                {
-                    "identity": identity,
-                    "provider": provider_name,
-                    "existing_user": request.user,
-                    "identity_display_name": get_display_name(identity),
-                    "identity_identifier": get_identifier(identity),
-                },
-            )
-
-        return respond(
-            "sentry/auth-confirm-identity.html",
-            organization,
-            request,
-            {
-                "existing_user": acting_user,
-                "identity": identity,
-                "provider": provider_name,
-                "login_form": login_form,
-                "identity_display_name": get_display_name(identity),
-                "identity_identifier": get_identifier(identity),
+        state.clear()
+        metrics.incr(
+            "sso.login-success",
+            tags={
+                "provider": self.provider.key,
+                "organization_id": self.organization.id,
+                "user_id": self.user.id,
             },
+            skip_internal=False,
+            sample_rate=1.0,
         )
 
-    user = auth_identity.user
-    user.backend = settings.AUTHENTICATION_BACKENDS[0]
+        if not is_active_superuser(self.request):
+            # set activeorg to ensure correct redirect upon logging in
+            self.request.session["activeorg"] = self.organization.slug
+        return HttpResponseRedirect(auth.get_login_redirect(self.request))
 
-    # XXX(dcramer): this is repeated from above
-    if not auth.login(
-        request, user, after_2fa=request.build_absolute_uri(), organization_id=organization.id
-    ):
-        return post_login_redirect(request)
+    def _handle_new_membership(self, auth_identity):
+        user = auth_identity.user
 
-    state.clear()
+        # If the user is either currently *pending* invite acceptance (as indicated
+        # from the pending-invite cookie) OR an existing invite exists on this
+        # organziation for the email provided by the identity provider.
+        invite_helper = ApiInviteHelper.from_cookie_or_email(
+            request=self.request, organization=self.organization, email=user.email
+        )
 
-    if not is_active_superuser(request):
-        # set activeorg to ensure correct redirect upon logging in
-        request.session["activeorg"] = organization.slug
-    return post_login_redirect(request)
+        # If we are able to accept an existing invite for the user for this
+        # organization, do so, otherwise handle new membership
+        if invite_helper:
+            if invite_helper.invite_approved:
+                invite_helper.accept_invite(user)
+                return
 
+            # It's possible the user has an _invite request_ that hasn't been approved yet,
+            # and is able to join the organization without an invite through the SSO flow.
+            # In that case, delete the invite request and create a new membership.
+            invite_helper.handle_invite_not_approved()
 
-def handle_new_user(auth_provider, organization, request, identity):
-    user = User.objects.create(
-        username=uuid4().hex, email=identity["email"], name=identity.get("name", "")[:200]
-    )
+        # Otherwise create a new membership
+        om = OrganizationMember.objects.create(
+            organization=self.organization,
+            role=self.organization.default_role,
+            user=user,
+            flags=OrganizationMember.flags["sso:linked"],
+        )
 
-    if settings.TERMS_URL and settings.PRIVACY_URL:
-        user.update(flags=F("flags").bitor(User.flags.newsletter_consent_prompt))
+        default_teams = self.auth_provider.default_teams.all()
+        for team in default_teams:
+            OrganizationMemberTeam.objects.create(team=team, organizationmember=om)
 
-    try:
-        with transaction.atomic():
+        AuditLogEntry.objects.create(
+            organization=self.organization,
+            actor=user,
+            ip_address=self.request.META["REMOTE_ADDR"],
+            target_object=om.id,
+            target_user=om.user,
+            event=AuditLogEntryEvent.MEMBER_ADD,
+            data=om.get_audit_log_data(),
+        )
+
+        return om
+
+    @transaction.atomic
+    def handle_attach_identity(self, identity, member=None):
+        """
+        Given an already authenticated user, attach or re-attach an identity.
+        """
+        try:
+            try:
+                # prioritize identifying by the SSO provider's user ID
+                auth_identity = AuthIdentity.objects.get(
+                    auth_provider=self.auth_provider, ident=identity["id"]
+                )
+            except AuthIdentity.DoesNotExist:
+                # otherwise look for an already attached identity
+                # this can happen if the SSO provider's internal ID changes
+                auth_identity = AuthIdentity.objects.get(
+                    auth_provider=self.auth_provider, user=self.user
+                )
+        except AuthIdentity.DoesNotExist:
             auth_identity = AuthIdentity.objects.create(
-                auth_provider=auth_provider,
-                user=user,
+                auth_provider=self.auth_provider,
+                user=self.user,
                 ident=identity["id"],
                 data=identity.get("data", {}),
             )
-    except IntegrityError:
-        auth_identity = AuthIdentity.objects.get(auth_provider=auth_provider, ident=identity["id"])
-        auth_identity.update(user=user, data=identity.get("data", {}))
+            auth_is_new = True
+        else:
+            now = timezone.now()
 
-    user.send_confirm_emails(is_new_user=True)
-    provider = auth_provider.provider if auth_provider else None
-    user_signup.send_robust(
-        sender=handle_new_user, user=user, source="sso", provider=provider, referrer="in-app"
-    )
+            # TODO(dcramer): this might leave the user with duplicate accounts,
+            # and in that kind of situation its very reasonable that we could
+            # test email addresses + is_managed to determine if we can auto
+            # merge
+            if auth_identity.user != self.user:
+                # it's possible the user has an existing identity, let's wipe it out
+                # so that the new identifier gets used (other we'll hit a constraint)
+                # violation since one might exist for (provider, user) as well as
+                # (provider, ident)
+                AuthIdentity.objects.exclude(id=auth_identity.id).filter(
+                    auth_provider=self.auth_provider, user=self.user
+                ).delete()
 
-    handle_new_membership(auth_provider, organization, request, auth_identity)
+                # since we've identify an identity which is no longer valid
+                # lets preemptively mark it as such
+                try:
+                    other_member = OrganizationMember.objects.get(
+                        user=auth_identity.user_id, organization=self.organization
+                    )
+                except OrganizationMember.DoesNotExist:
+                    pass
+                else:
+                    other_member.flags["sso:invalid"] = True
+                    other_member.flags["sso:linked"] = False
+                    other_member.save()
 
-    return auth_identity
+            auth_identity.update(
+                user=self.user,
+                ident=identity["id"],
+                data=self.provider.update_identity(
+                    new_data=identity.get("data", {}), current_data=auth_identity.data
+                ),
+                last_verified=now,
+                last_synced=now,
+            )
+            auth_is_new = False
+
+        if member is None:
+            try:
+                member = OrganizationMember.objects.get(
+                    user=self.user, organization=self.organization
+                )
+            except OrganizationMember.DoesNotExist:
+                member = OrganizationMember.objects.create(
+                    organization=self.organization,
+                    role=self.organization.default_role,
+                    user=self.user,
+                    flags=OrganizationMember.flags["sso:linked"],
+                )
+
+                default_teams = self.auth_provider.default_teams.all()
+                for team in default_teams:
+                    OrganizationMemberTeam.objects.create(team=team, organizationmember=member)
+
+                AuditLogEntry.objects.create(
+                    organization=self.organization,
+                    actor=self.user,
+                    ip_address=self.request.META["REMOTE_ADDR"],
+                    target_object=member.id,
+                    target_user=self.user,
+                    event=AuditLogEntryEvent.MEMBER_ADD,
+                    data=member.get_audit_log_data(),
+                )
+        if getattr(member.flags, "sso:invalid") or not getattr(member.flags, "sso:linked"):
+            setattr(member.flags, "sso:invalid", False)
+            setattr(member.flags, "sso:linked", True)
+            member.save()
+
+        if auth_is_new:
+            AuditLogEntry.objects.create(
+                organization=self.organization,
+                actor=self.user,
+                ip_address=self.request.META["REMOTE_ADDR"],
+                target_object=auth_identity.id,
+                event=AuditLogEntryEvent.SSO_IDENTITY_LINK,
+                data=auth_identity.get_audit_log_data(),
+            )
+
+            messages.add_message(self.request, messages.SUCCESS, OK_LINK_IDENTITY)
+
+        return auth_identity
+
+    @staticmethod
+    def _get_display_name(identity):
+        return identity.get("name") or identity.get("email")
+
+    @staticmethod
+    def _get_identifier(identity):
+        return identity.get("email") or identity.get("id")
+
+    def _respond(self, template, context=None, status=200):
+        default_context = {"organization": self.organization}
+        if context:
+            default_context.update(context)
+
+        return render_to_response(template, default_context, self.request, status=status)
+
+    def _post_login_redirect(self):
+        response = HttpResponseRedirect(auth.get_login_redirect(self.request))
+
+        # Always remove any pending invite cookies, pending invites will have been
+        # accepted during the SSO flow.
+        remove_invite_cookie(self.request, response)
+
+        return response
+
+    def handle_unknown_identity(self, state, identity):
+        """
+        Flow is activated upon a user logging in to where an AuthIdentity is
+        not present.
+
+        XXX(dcramer): this docstring is out of date
+
+        The flow will attempt to answer the following:
+
+        - Is there an existing user with the same email address? Should they be
+          merged?
+
+        - Is there an existing user (via authentication) that should be merged?
+
+        - Should I create a new user based on this identity?
+        """
+        op = self.request.POST.get("op")
+        if not self.user.is_authenticated:
+            # TODO(dcramer): its possible they have multiple accounts and at
+            # least one is managed (per the check below)
+            try:
+                acting_user = User.objects.filter(
+                    id__in=UserEmail.objects.filter(email__iexact=identity["email"]).values("user"),
+                    is_active=True,
+                ).first()
+            except IndexError:
+                acting_user = None
+            login_form = AuthenticationForm(
+                self.request,
+                self.request.POST if self.request.POST.get("op") == "login" else None,
+                initial={"username": acting_user.username if acting_user else None},
+            )
+        else:
+            acting_user = self.user
+
+        # If they already have an SSO account and the identity provider says
+        # the email matches we go ahead and let them merge it. This is the
+        # only way to prevent them having duplicate accounts, and because
+        # we trust identity providers, its considered safe.
+        # Note: we do not trust things like SAML, so the SSO implementation needs
+        # to consider if 'email_verified' can be trusted or not
+        if acting_user and identity.get("email_verified"):
+            # we only allow this flow to happen if the existing user has
+            # membership, otherwise we short circuit because it might be
+            # an attempt to hijack membership of another organization
+            has_membership = OrganizationMember.objects.filter(
+                user=acting_user, organization=self.organization
+            ).exists()
+            if has_membership:
+                if not auth.login(
+                    self.request,
+                    acting_user,
+                    after_2fa=self.request.build_absolute_uri(),
+                    organization_id=self.organization.id,
+                ):
+                    if acting_user.has_usable_password():
+                        return self._post_login_redirect()
+                    else:
+                        acting_user = None
+                else:
+                    # assume they've confirmed they want to attach the identity
+                    op = "confirm"
+            else:
+                # force them to create a new account
+                acting_user = None
+        # without a usable password they cant login, so let's clear the acting_user
+        elif acting_user and not acting_user.has_usable_password():
+            acting_user = None
+
+        if op == "confirm" and self.user.is_authenticated:
+            auth_identity = self.handle_attach_identity(identity)
+        elif op == "newuser":
+            auth_identity = self.handle_new_user(identity)
+        elif op == "login" and not self.user.is_authenticated:
+            # confirm authentication, login
+            op = None
+            if login_form.is_valid():
+                # This flow is special.  If we are going through a 2FA
+                # flow here (login returns False) we want to instruct the
+                # system to return upon completion of the 2fa flow to the
+                # current URL and continue with the dialog.
+                #
+                # If there is no 2fa we don't need to do this and can just
+                # go on.
+                if not auth.login(
+                    self.request,
+                    login_form.get_user(),
+                    after_2fa=self.request.build_absolute_uri(),
+                    organization_id=self.organization.id,
+                ):
+                    return self._post_login_redirect()
+            else:
+                auth.log_auth_failure(self.request, self.request.POST.get("username"))
+        else:
+            op = None
+
+        if not op:
+            # A blank character is needed to prevent the HTML span from collapsing
+            provider_name = self.auth_provider.get_provider().name if self.auth_provider else " "
+
+            if self.user.is_authenticated:
+                return self._respond(
+                    "sentry/auth-confirm-link.html",
+                    {
+                        "identity": identity,
+                        "provider": provider_name,
+                        "existing_user": self.user,
+                        "identity_display_name": self._get_display_name(identity),
+                        "identity_identifier": self._get_identifier(identity),
+                    },
+                )
+
+            return self._respond(
+                "sentry/auth-confirm-identity.html",
+                {
+                    "existing_user": acting_user,
+                    "identity": identity,
+                    "provider": provider_name,
+                    "login_form": login_form,
+                    "identity_display_name": self._get_display_name(identity),
+                    "identity_identifier": self._get_identifier(identity),
+                },
+            )
+
+        user = auth_identity.user
+        user.backend = settings.AUTHENTICATION_BACKENDS[0]
+
+        # XXX(dcramer): this is repeated from above
+        if not auth.login(
+            self.request,
+            user,
+            after_2fa=self.request.build_absolute_uri(),
+            organization_id=self.organization.id,
+        ):
+            return self._post_login_redirect()
+
+        state.clear()
+
+        if not is_active_superuser(self.request):
+            # set activeorg to ensure correct redirect upon logging in
+            self.request.session["activeorg"] = self.organization.slug
+        return self._post_login_redirect()
+
+    def handle_new_user(self, identity):
+        user = User.objects.create(
+            username=uuid4().hex, email=identity["email"], name=identity.get("name", "")[:200]
+        )
+
+        if settings.TERMS_URL and settings.PRIVACY_URL:
+            user.update(flags=F("flags").bitor(User.flags.newsletter_consent_prompt))
+
+        try:
+            with transaction.atomic():
+                auth_identity = AuthIdentity.objects.create(
+                    auth_provider=self.auth_provider,
+                    user=user,
+                    ident=identity["id"],
+                    data=identity.get("data", {}),
+                )
+        except IntegrityError:
+            auth_identity = AuthIdentity.objects.get(
+                auth_provider=self.auth_provider, ident=identity["id"]
+            )
+            auth_identity.update(user=user, data=identity.get("data", {}))
+
+        user.send_confirm_emails(is_new_user=True)
+        provider = self.auth_provider.provider if self.auth_provider else None
+        user_signup.send_robust(
+            sender=self.handle_new_user,
+            user=user,
+            source="sso",
+            provider=provider,
+            referrer="in-app",
+        )
+
+        self._handle_new_membership(auth_identity)
+
+        return auth_identity
 
 
 class AuthHelper:
@@ -671,6 +684,12 @@ class AuthHelper:
 
         return response
 
+    @property
+    def auth_handler(self):
+        return AuthIdentityHandler(
+            self.auth_provider, self.provider, self.organization, self.request
+        )
+
     @transaction.atomic
     def _finish_login_pipeline(self, identity):
         """
@@ -726,14 +745,7 @@ class AuthHelper:
                         },
                     )
 
-                return handle_unknown_identity(
-                    self.request,
-                    self.organization,
-                    self.auth_provider,
-                    self.provider,
-                    self.state,
-                    identity,
-                )
+                return self.auth_handler.handle_unknown_identity(self.state, identity)
 
             # If the User attached to this AuthIdentity is not active,
             # we want to clobber the old account and take it over, rather than
@@ -742,27 +754,10 @@ class AuthHelper:
                 # Current user is also not logged in, so we have to
                 # assume unknown.
                 if not self.request.user.is_authenticated:
-                    return handle_unknown_identity(
-                        self.request,
-                        self.organization,
-                        self.auth_provider,
-                        self.provider,
-                        self.state,
-                        identity,
-                    )
-                auth_identity = handle_attach_identity(
-                    self.auth_provider, self.request, self.organization, self.provider, identity
-                )
+                    return self.auth_handler.handle_unknown_identity(self.state, identity)
+                auth_identity = self.auth_handler.handle_attach_identity(identity)
 
-            return handle_existing_identity(
-                self.auth_provider,
-                self.provider,
-                self.organization,
-                self.request,
-                self.state,
-                auth_identity,
-                identity,
-            )
+            return self.auth_handler.handle_existing_identity(self.state, auth_identity, identity)
 
     @transaction.atomic
     def _finish_setup_pipeline(self, identity):
@@ -793,9 +788,7 @@ class AuthHelper:
             organization=self.organization, provider=self.provider.key, config=config
         )
 
-        handle_attach_identity(
-            self.auth_provider, self.request, self.organization, self.provider, identity, om
-        )
+        self.auth_handler.handle_attach_identity(identity, om)
 
         auth.mark_sso_complete(request, self.organization.id)
 
