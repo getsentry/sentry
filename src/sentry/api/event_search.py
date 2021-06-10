@@ -409,8 +409,7 @@ class SearchVisitor(NodeVisitor):
                 'Boolean statements containing "OR" or "AND" are not supported in this search'
             )
 
-        children = flatten(remove_space(children))
-        return children[0].text.upper()
+        return children[0]
 
     def visit_free_text_unquoted(self, node, children):
         return node.text.strip(" ") or None
@@ -554,9 +553,8 @@ class SearchVisitor(NodeVisitor):
             return self._handle_basic_filter(search_key, "=" if not negated else "!=", search_value)
 
     def visit_numeric_in_filter(self, node, children):
-        (search_key, _, value) = children
+        (search_key, _, search_value) = children
         operator = "IN"
-        search_value = process_list(value[1], value[2])
 
         if self.is_numeric_key(search_key.name):
             try:
@@ -674,7 +672,7 @@ class SearchVisitor(NodeVisitor):
     def visit_text_in_filter(self, node, children):
         (negation, search_key, _, search_value) = children
         operator = "IN"
-        search_value = SearchValue(process_list(search_value[1], search_value[2]))
+        search_value = SearchValue(search_value)
 
         operator = handle_negation(negation, operator)
 
@@ -760,23 +758,38 @@ class SearchVisitor(NodeVisitor):
     def visit_search_value(self, node, children):
         return SearchValue(children[0])
 
-    # def visit_numeric_value
-    # def visit_boolean_value
-    # def visit_text_in_list
-    # def visit_numerc_in_list
+    def visit_numeric_value(self, node, children):
+        return node
+
+    def visit_boolean_value(self, node, children):
+        return node
+
+    def visit_text_in_list(self, node, children):
+        return process_list(children[1], children[2])
+
+    def visit_numeric_in_list(self, node, children):
+        return process_list(children[1], children[2])
 
     def visit_iso_8601_date_format(self, node, children):
         return node.text
 
-    # def visit_rel_date_format
-    # def visit_duration_format
-    # def visit_percentage_format
+    def visit_rel_date_format(self, node, children):
+        return node
+
+    def visit_duration_format(self, node, children):
+        return node
+
+    def visit_percentage_format(self, node, children):
+        return node
 
     def visit_operator(self, node, children):
         return node.text
 
-    # def visit_or_operator
-    # def visit_and_operator
+    def visit_or_operator(self, node, children):
+        return node.text.upper()
+
+    def visit_and_operator(self, node, children):
+        return node.text.upper()
 
     def visit_open_paren(self, node, children):
         return node.text
@@ -784,11 +797,20 @@ class SearchVisitor(NodeVisitor):
     def visit_closed_paren(self, node, children):
         return node.text
 
-    # def visit_open_bracket
-    # def visit_closed_bracket
-    # def visit_sep
-    # def visit_negation
-    # def visit_comma
+    def visit_open_bracket(self, node, children):
+        return node.text
+
+    def visit_closed_bracket(self, node, children):
+        return node.text
+
+    def visit_sep(self, node, children):
+        return node
+
+    def visit_negation(self, node, children):
+        return node
+
+    def visit_comma(self, node, children):
+        return node
 
     def visit_spaces(self, node, children):
         return " "
