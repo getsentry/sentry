@@ -326,12 +326,11 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
 
     def get_client(self):
         logging_context = {"org_id": self.organization_id}
-        try:
+
+        if self.organization_id is not None:
             logging_context["integration_id"] = attrgetter("org_integration.integration.id")(self)
             logging_context["org_integration_id"] = attrgetter("org_integration.id")(self)
-        except OrganizationIntegration.DoesNotExist:
-            # Just don't log the integration_id and/or org_integration id if we can't the org_integration row
-            pass
+
         return JiraApiClient(
             self.model.metadata["base_url"],
             JiraCloud(self.model.metadata["shared_secret"]),
