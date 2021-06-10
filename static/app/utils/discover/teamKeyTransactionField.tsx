@@ -87,7 +87,14 @@ function TeamKeyTransactionFieldWrapper({
   // transaction. Since they are not defined, just render a plain star
   // with no interactions.
   if (!defined(project) || !defined(transactionName)) {
-    return <TitleStar keyedTeamsCount={Number(isKeyTransaction)} />;
+    return (
+      <TitleStar
+        isOpen={false}
+        disabled
+        keyedTeams={null}
+        initialValue={Number(isKeyTransaction)}
+      />
+    );
   }
 
   return (
