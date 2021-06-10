@@ -1,23 +1,31 @@
 import errno
 import logging
 import os
-import warnings
 import zipfile
+from contextlib import contextmanager
+from io import BytesIO
 from tempfile import TemporaryDirectory
-from typing import IO, Tuple
+from typing import IO, Optional, Tuple
 from urllib.parse import urlsplit, urlunsplit
 
 from django.core.files.base import File as FileObj
-from django.db import models
+from django.db import models, transaction
 
 from sentry import options
 from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
 from sentry.models import clear_cached_files
+from sentry.models.distribution import Distribution
+from sentry.models.file import File
+from sentry.models.release import Release
 from sentry.utils import json, metrics
 from sentry.utils.hashlib import sha1_text
 from sentry.utils.zip import safe_extract_zip
 
 logger = logging.getLogger(__name__)
+
+
+MANIFEST_FILENAME = "release-file-manifest.json"
+MANIFEST_TYPE = "release.manifest"
 
 
 class ReleaseFile(Model):
@@ -99,14 +107,22 @@ class ReleaseFileCache:
         return options.get("releasefile.cache-path")
 
     def getfile(self, releasefile):
+        return self.get_regular_file(releasefile.file, releasefile.organization_id)
+
+    def get_regular_file(self, file_: File, organization_id: int) -> FileObj:
+        """Get a ``File`` from the release file cache.
+
+        Release bundles are now stored as regular ``File``s (not as ``ReleaseFile``s),
+        but the same caching logic applies to them.
+        """
         cutoff = options.get("releasefile.cache-limit")
-        file_size = releasefile.file.size
+        file_size = file_.size
         if file_size < cutoff:
             metrics.timing("release_file.cache.get.size", file_size, tags={"cutoff": True})
-            return releasefile.file.getfile()
+            return file_.getfile()
 
-        file_id = str(releasefile.file_id)
-        organization_id = str(releasefile.organization_id)
+        file_id = str(file_.id)
+        organization_id = str(organization_id)
         file_path = os.path.join(self.cache_path, organization_id, file_id)
 
         hit = True
@@ -115,7 +131,7 @@ class ReleaseFileCache:
         except OSError as e:
             if e.errno != errno.ENOENT:
                 raise
-            releasefile.file.save_to(file_path)
+            file_.save_to(file_path)
             hit = False
 
         metrics.timing("release_file.cache.get.size", file_size, tags={"hit": hit, "cutoff": False})
@@ -177,45 +193,112 @@ class ReleaseArchive:
         return temp_dir
 
 
-def merge_release_archives(file1: IO, archive2: ReleaseArchive, target: IO) -> bool:
-    """Append contents of archive2 to copy of file1
+class Manifest:
+    def __init__(self, data: dict, fresh=False):
+        self._data = data
+        self.changed = fresh
 
-    Skip files that are already present in archive 1.
+    @property
+    def data(self):
+        """Meant to be read-only"""
+        return self._data
 
-    :returns: True if zip archive was written to target
-    """
-    with ReleaseArchive(file1) as archive1:
-        manifest = archive1.manifest
+    def get(self, filename: str):
+        return self._data.get("files", {}).get(filename, None)
 
-        files = manifest.get("files", {})
-        files2 = archive2.manifest.get("files", {})
+    def update_files(self, files: dict):
+        if files:
+            self._data.setdefault("files", {}).update(files)
+            self.changed = True
 
-        if any(
-            archive1.info(filename).CRC != archive2.info(filename).CRC
-            for filename in files.keys() & files2.keys()
-        ):
-            metrics.incr("release_file.archive.different_content")
+    def delete(self, filename: str):
+        self._data.get("files", {}).pop(filename, None)
+        self.changed = True
 
-        new_files = files2.keys() - files.keys()
-        if not new_files:
-            # Nothing to merge
-            return False
 
-        # Create a copy
-        file1.seek(0)
-        target.write(file1.read())
+class ManifestGuard:
+    def __init__(self, release: Release, dist: Optional[Distribution]):
+        self._release = release
+        self._dist = dist
 
-    with zipfile.ZipFile(target, mode="a", compression=zipfile.ZIP_DEFLATED) as zip_file:
-        for filename in new_files:
-            zip_file.writestr(filename, archive2.read(filename))
-            files[filename] = files2[filename]
+    @contextmanager
+    def writable(self, create: bool):
+        """Context manager for editable release manifest"""
+        with transaction.atomic():
 
-        manifest["files"] = files
+            file_, created = self._get_file(create=create)
 
-        # This creates a duplicate entry for the manifest, which is okay-ish
-        # because the Python implementation prefers the latest version when reading
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            zip_file.writestr("manifest.json", json.dumps(manifest))
+            if file_ is None:
+                manifest = None
+            else:
+                if created:
+                    manifest = Manifest({}, fresh=True)
+                else:
+                    data = json.load(file_.getfile())
+                    manifest = Manifest(data)
 
-    return True
+            yield manifest  # editable reference to manifest
+
+            if manifest is not None and manifest.changed:
+                file_.putfile(BytesIO(json.dumps(manifest.data).encode()))
+
+    def _get_file(self, create: bool) -> Tuple[Optional[File], bool]:
+        created = False
+        if create:
+            release_file, created = ReleaseFile.objects.select_related("file").get_or_create(
+                organization_id=self._release.organization_id,
+                release=self._release,
+                dist=self._dist,
+                name=MANIFEST_FILENAME,
+                file=File.objects.get_or_create(
+                    name=MANIFEST_FILENAME,
+                    type=MANIFEST_TYPE,
+                )[0],
+            )
+
+            return release_file.file, created
+        else:
+            try:
+                file_ = File.objects.select_related("releasefile").get(
+                    type=MANIFEST_TYPE, releasefile__release=self._release
+                )
+            except File.DoesNotExist:
+                return None, False
+            else:
+                return file_, False
+
+
+class ReleaseMultiArchive:
+
+    """Manager of all uploaded artifact bundles and their common manifest"""
+
+    def __init__(self, release: Release, dist: Optional[Distribution]):
+        self.manifest = ManifestGuard(release, dist)
+
+    def update(self, local_manifest: dict, archive_file: File):
+
+        files = local_manifest.get("files", {})
+        if not files:
+            return
+
+        files_out = {}
+
+        for filename, info in files.items():
+            info = info.copy()
+            url = info.pop("url")
+            info["filename"] = filename
+            info["archive_id"] = archive_file.id
+            # FIXME: more fields
+            files_out[url] = info
+
+        with self.manifest.writable(create=True) as manifest:
+            manifest.update_files(files_out)
+
+    def delete(self, filename: str):
+        """Delete a file from the manifest.
+
+        Does *not* delete the file from the zip archive.
+        """
+        with self.manifest.writable(create=False) as manifest:
+            if manifest is not None:
+                manifest.delete(filename)
