@@ -174,7 +174,7 @@ class ParseSearchQueryTest(unittest.TestCase):
             ),
         ]
 
-    def test_raw_search_anywhere(self):
+    def test_free_text_search_anywhere(self):
         assert parse_search_query(
             "hello what user.email:foo@example.com where release:1.2.1 when"
         ) == [
@@ -228,7 +228,7 @@ class ParseSearchQueryTest(unittest.TestCase):
             ),
         ]
 
-    def test_quoted_raw_search_anywhere(self):
+    def test_quoted_free_text_search_anywhere(self):
         assert parse_search_query('"hello there" user.email:foo@example.com "general kenobi"') == [
             SearchFilter(
                 key=SearchKey(name="message"),
@@ -798,6 +798,13 @@ class ParseSearchQueryTest(unittest.TestCase):
                 operator="IN",
                 value=SearchValue(raw_value=[500, 501, 502]),
             )
+        ]
+        assert parse_search_query("project_id:[500, 501 ,502]") == [
+            SearchFilter(
+                key=SearchKey(name="project_id"),
+                operator="IN",
+                value=SearchValue(raw_value=[500, 501, 502]),
+            ),
         ]
         assert parse_search_query("project_id:[500,501,502] issue.id:[100]") == [
             SearchFilter(

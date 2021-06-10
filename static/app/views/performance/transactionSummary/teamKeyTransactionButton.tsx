@@ -1,53 +1,112 @@
-import styled from '@emotion/styled';
+import {Component} from 'react';
 
 import Button from 'app/components/button';
-import TeamKeyTransaction, {
+import TeamKeyTransactionComponent, {
   TitleProps,
 } from 'app/components/performance/teamKeyTransaction';
+import * as TeamKeyTransactionManager from 'app/components/performance/teamKeyTransactionsManager';
 import {IconStar} from 'app/icons';
 import {t, tn} from 'app/locale';
-import {Organization, Team} from 'app/types';
+import {Organization, Project, Team} from 'app/types';
+import {defined} from 'app/utils';
 import EventView from 'app/utils/discover/eventView';
+import withProjects from 'app/utils/withProjects';
 import withTeams from 'app/utils/withTeams';
 
-type Props = {
-  eventView: EventView;
+/**
+ * This can't be a function component because `TeamKeyTransaction` uses
+ * `DropdownControl` which in turn uses passes a ref to this component.
+ */
+class TitleButton extends Component<TitleProps> {
+  render() {
+    const {keyedTeamsCount, ...props} = this.props;
+    return (
+      <Button
+        {...props}
+        icon={keyedTeamsCount ? <IconStar color="yellow300" isSolid /> : <IconStar />}
+      >
+        {keyedTeamsCount
+          ? tn('Starred for Team', 'Starred for Teams', keyedTeamsCount)
+          : t('Star for Team')}
+      </Button>
+    );
+  }
+}
+
+type BaseProps = {
   organization: Organization;
-  teams: Team[];
   transactionName: string;
+  teams: Team[];
 };
 
-function TeamKeyTransactionButton({eventView, teams, ...props}: Props) {
-  if (eventView.project.length !== 1) {
-    return <TitleButton disabled keyedTeamsCount={0} />;
-  }
+type Props = BaseProps &
+  TeamKeyTransactionManager.TeamKeyTransactionManagerChildrenProps & {
+    project: Project;
+  };
 
-  const userTeams = teams.filter(({isMember}) => isMember);
+function TeamKeyTransactionButton({
+  counts,
+  getKeyedTeams,
+  project,
+  transactionName,
+  ...props
+}: Props) {
+  const keyedTeams = getKeyedTeams(project.id, transactionName);
   return (
-    <TeamKeyTransaction
-      teams={userTeams}
-      project={eventView.project[0]}
+    <TeamKeyTransactionComponent
+      counts={counts}
+      keyedTeams={keyedTeams}
       title={TitleButton}
+      project={project}
+      transactionName={transactionName}
       {...props}
     />
   );
 }
 
-function TitleButton({disabled, keyedTeamsCount}: TitleProps) {
+type WrapperProps = BaseProps & {
+  eventView: EventView;
+  projects: Project[];
+};
+
+function TeamKeyTransactionButtonWrapper({
+  eventView,
+  organization,
+  teams,
+  projects,
+  ...props
+}: WrapperProps) {
+  if (eventView.project.length !== 1) {
+    return <TitleButton disabled keyedTeamsCount={0} />;
+  }
+
+  const projectId = String(eventView.project[0]);
+  const project = projects.find(proj => proj.id === projectId);
+  if (!defined(project)) {
+    return <TitleButton disabled keyedTeamsCount={0} />;
+  }
+
+  const userTeams = teams.filter(({isMember}) => isMember);
+
   return (
-    <StyledButton
-      disabled={disabled}
-      icon={keyedTeamsCount ? <IconStar color="yellow300" isSolid /> : <IconStar />}
+    <TeamKeyTransactionManager.Provider
+      organization={organization}
+      teams={userTeams}
+      selectedTeams={['myteams']}
+      selectedProjects={[String(projectId)]}
     >
-      {keyedTeamsCount
-        ? tn('Starred for Team', 'Starred for Teams', keyedTeamsCount)
-        : t('Star for Team')}
-    </StyledButton>
+      <TeamKeyTransactionManager.Consumer>
+        {results => (
+          <TeamKeyTransactionButton
+            organization={organization}
+            project={project}
+            {...props}
+            {...results}
+          />
+        )}
+      </TeamKeyTransactionManager.Consumer>
+    </TeamKeyTransactionManager.Provider>
   );
 }
 
-const StyledButton = styled(Button)`
-  width: 180px;
-`;
-
-export default withTeams(TeamKeyTransactionButton);
+export default withTeams(withProjects(TeamKeyTransactionButtonWrapper));

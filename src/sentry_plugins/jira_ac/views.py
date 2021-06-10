@@ -45,7 +45,7 @@ class BaseJiraWidgetView(View):
             self.request.GET.get("xdm_e"),
             options.get("system.url-prefix"),
         ]
-        sources_string = " ".join([s for s in sources if s])
+        sources_string = " ".join(s for s in sources if s)
         res["Content-Security-Policy"] = "frame-ancestors 'self' %s" % sources_string
 
         return res
@@ -62,7 +62,7 @@ class JiraUIWidgetView(BaseJiraWidgetView):
                 scope.set_tag("result", f"error.{e.__class__.__name__}")
                 return self.get_response("error.html")
 
-            if request.user.is_anonymous():
+            if request.user.is_anonymous:
                 scope.set_tag("result", "signin")
                 return self.get_response("signin.html")
 
@@ -100,7 +100,7 @@ class JiraConfigView(BaseJiraWidgetView):
         except (ApiError, JiraTenant.DoesNotExist):
             return self.get_response("error.html")
 
-        if request.user.is_anonymous():
+        if request.user.is_anonymous:
             return self.get_response("signin.html")
 
         org = jira_auth.organization
@@ -122,7 +122,7 @@ class JiraConfigView(BaseJiraWidgetView):
         except (ApiError, JiraTenant.DoesNotExist):
             self.get_response("error.html")
 
-        if request.user.is_anonymous():
+        if request.user.is_anonymous:
             return self.get_response("signin.html")
 
         orgs = self.request.user.get_orgs()

@@ -5,10 +5,8 @@ import omit from 'lodash/omit';
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
-import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
-import {IconInfo} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
@@ -28,8 +26,8 @@ import handleXhrErrorResponse from './handleXhrErrorResponse';
 import {isLegacyBrowser, Transaction} from './utils';
 
 const transactionChoices = [
-  [Transaction.ALL, t('All')],
-  [Transaction.MATCH_CONDITIONS, t('Match Conditions')],
+  [Transaction.ALL, t('Apply to all')],
+  [Transaction.MATCH_CONDITIONS, t('Match custom conditions')],
 ] as Array<[string, string]>;
 
 type Conditions = React.ComponentProps<typeof ConditionFields>['conditions'];
@@ -107,15 +105,6 @@ class Form<P extends Props = Props, S extends State = State> extends React.Compo
   }
 
   getNewCondition(condition: Conditions[0]): DynamicSamplingConditionLogicalInner {
-    // DynamicSamplingConditionLogicalInnerCustom
-    if (condition.category === DynamicSamplingInnerName.EVENT_LEGACY_BROWSER) {
-      return {
-        op: DynamicSamplingInnerOperator.CUSTOM,
-        name: condition.category,
-        value: condition.legacyBrowsers ?? [],
-      };
-    }
-
     // DynamicSamplingConditionLogicalInnerEqBoolean
     if (
       condition.category === DynamicSamplingInnerName.EVENT_BROWSER_EXTENSIONS ||
@@ -129,10 +118,31 @@ class Form<P extends Props = Props, S extends State = State> extends React.Compo
       };
     }
 
+    // DynamicSamplingConditionLogicalInnerCustom
+    if (condition.category === DynamicSamplingInnerName.EVENT_LEGACY_BROWSER) {
+      return {
+        op: DynamicSamplingInnerOperator.CUSTOM,
+        name: condition.category,
+        value: condition.legacyBrowsers ?? [],
+      };
+    }
+
     const newValue = condition.match
       .split('\n')
       .filter(match => !!match.trim())
       .map(match => match.trim());
+
+    if (
+      condition.category === DynamicSamplingInnerName.EVENT_IP_ADDRESSES ||
+      condition.category === DynamicSamplingInnerName.EVENT_ERROR_MESSAGES ||
+      condition.category === DynamicSamplingInnerName.EVENT_CSP
+    ) {
+      return {
+        op: DynamicSamplingInnerOperator.CUSTOM,
+        name: condition.category,
+        value: newValue,
+      };
+    }
 
     // DynamicSamplingConditionLogicalInnerGlob
     if (
@@ -214,6 +224,13 @@ class Form<P extends Props = Props, S extends State = State> extends React.Compo
 
   handleChange = <T extends keyof S>(field: T, value: S[T]) => {
     this.setState(prevState => ({...prevState, [field]: value}));
+  };
+
+  handleChangeTransaction = (value: Transaction) => {
+    this.setState(prevState => ({
+      transaction: value,
+      conditions: value === Transaction.ALL ? [] : prevState.conditions,
+    }));
   };
 
   handleSubmit = (): never | void => {
@@ -329,23 +346,23 @@ class Form<P extends Props = Props, S extends State = State> extends React.Compo
 
     return (
       <React.Fragment>
-        <Header closeButton>{this.getModalTitle()}</Header>
+        <Header closeButton>
+          <h4>{this.getModalTitle()}</h4>
+        </Header>
         <Body>
-          <Alert type="info" icon={<IconInfo size="md" />}>
-            {t('A new rule may take a few minutes to propagate.')}
-          </Alert>
           <Fields>
             {this.getExtraFields()}
             <RadioField
               {...transactionField}
               name="transaction"
               choices={transactionChoices}
-              onChange={value => this.handleChange('transaction', value)}
+              onChange={this.handleChangeTransaction}
               value={transaction}
               inline={false}
               hideControlState
               showHelpInTooltip
               stacked
+              required
             />
             {transaction !== Transaction.ALL && (
               <ConditionFields
@@ -361,7 +378,10 @@ class Form<P extends Props = Props, S extends State = State> extends React.Compo
               // help={t('this is a description')}  TODO(Priscila): Add correct descriptions
               name="sampleRate"
               onChange={value => {
-                this.handleChange('sampleRate', value ? Number(value) : undefined);
+                this.handleChange(
+                  'sampleRate',
+                  defined(value) ? Number(value) : undefined
+                );
                 if (!!errors.sampleRate) {
                   this.clearError('sampleRate');
                 }
@@ -373,6 +393,7 @@ class Form<P extends Props = Props, S extends State = State> extends React.Compo
               error={errors.sampleRate}
               showHelpInTooltip
               stacked
+              required
             />
           </Fields>
         </Body>
@@ -384,7 +405,7 @@ class Form<P extends Props = Props, S extends State = State> extends React.Compo
               onClick={this.handleSubmit}
               disabled={submitDisabled}
             >
-              {t('Save')}
+              {t('Save Rule')}
             </Button>
           </ButtonBar>
         </Footer>

@@ -213,14 +213,14 @@ def _get_group_filters(group: Group):
         #
         # We add both conditions because Snuba query API requires us to, and
         # because it does bring a significant performance boost.
-        Condition(Column("timestamp"), Op.GTE, group.first_seen),
-        Condition(Column("timestamp"), Op.LT, group.last_seen + datetime.timedelta(seconds=1)),
+        Condition(Column("timestamp"), Op.GTE, group.first_seen - datetime.timedelta(seconds=10)),
+        Condition(Column("timestamp"), Op.LT, group.last_seen + datetime.timedelta(seconds=10)),
     ]
 
 
 def _add_hash(
     trees: List[Dict[str, Any]],
-    project_id: int,
+    group: Group,
     user,
     parent_hash: Optional[str],
     hash: str,
@@ -229,7 +229,7 @@ def _add_hash(
     last_seen,
     latest_event_id,
 ):
-    event = eventstore.get_event_by_id(project_id, latest_event_id)
+    event = eventstore.get_event_by_id(group.project_id, latest_event_id, group_id=group.id)
 
     tree = {
         "parentId": parent_hash,
@@ -397,7 +397,7 @@ def _render_trees(group: Group, user):
 
         _add_hash(
             rv,
-            group.project_id,
+            group,
             user,
             parent_hash,
             hash,

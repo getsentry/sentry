@@ -1,5 +1,3 @@
-import styled from '@emotion/styled';
-
 import tourAlert from 'sentry-images/spot/discover-tour-alert.svg';
 import tourExplore from 'sentry-images/spot/discover-tour-explore.svg';
 import tourFilter from 'sentry-images/spot/discover-tour-filter.svg';
@@ -13,9 +11,10 @@ import FeatureTourModal, {
   TourText,
 } from 'app/components/modals/featureTourModal';
 import {t} from 'app/locale';
-import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
+import theme from 'app/utils/theme';
+import useMedia from 'app/utils/useMedia';
 
 import BackgroundSpace from './backgroundSpace';
 
@@ -78,11 +77,9 @@ const TOUR_STEPS: TourStep[] = [
 type Props = {
   organization: Organization;
   resultsUrl: string;
-  isSmallBanner: boolean;
-  onHideBanner: () => void;
 };
 
-function DiscoverBanner({organization, resultsUrl, isSmallBanner, onHideBanner}: Props) {
+function DiscoverBanner({organization, resultsUrl}: Props) {
   function onAdvance(step: number, duration: number) {
     trackAnalyticsEvent({
       eventKey: 'discover_v2.tour.advance',
@@ -102,16 +99,18 @@ function DiscoverBanner({organization, resultsUrl, isSmallBanner, onHideBanner}:
     });
   }
 
+  const isSmallBanner = useMedia(`(max-width: ${theme.breakpoints[1]})`);
+
   return (
-    <StyledBanner
+    <Banner
       title={t('Discover Trends')}
       subtitle={t(
         'Customize and save queries by search conditions, event fields, and tags'
       )}
       backgroundComponent={<BackgroundSpace />}
-      onCloseClick={onHideBanner}
+      dismissKey="discover"
     >
-      <StarterButton
+      <Button
         size={isSmallBanner ? 'xsmall' : undefined}
         to={resultsUrl}
         onClick={() => {
@@ -123,7 +122,7 @@ function DiscoverBanner({organization, resultsUrl, isSmallBanner, onHideBanner}:
         }}
       >
         {t('Build a new query')}
-      </StarterButton>
+      </Button>
       <FeatureTourModal
         steps={TOUR_STEPS}
         doneText={t('View all Events')}
@@ -132,7 +131,7 @@ function DiscoverBanner({organization, resultsUrl, isSmallBanner, onHideBanner}:
         onCloseModal={onCloseModal}
       >
         {({showModal}) => (
-          <StarterButton
+          <Button
             size={isSmallBanner ? 'xsmall' : undefined}
             onClick={() => {
               trackAnalyticsEvent({
@@ -144,23 +143,11 @@ function DiscoverBanner({organization, resultsUrl, isSmallBanner, onHideBanner}:
             }}
           >
             {t('Get a Tour')}
-          </StarterButton>
+          </Button>
         )}
       </FeatureTourModal>
-    </StyledBanner>
+    </Banner>
   );
 }
 
 export default DiscoverBanner;
-
-const StyledBanner = styled(Banner)`
-  max-height: 220px;
-
-  @media (min-width: ${p => p.theme.breakpoints[3]}) {
-    max-height: 260px;
-  }
-`;
-
-const StarterButton = styled(Button)`
-  margin: ${space(1)};
-`;

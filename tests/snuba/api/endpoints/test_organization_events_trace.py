@@ -261,7 +261,7 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
             )
 
     def test_no_roots(self):
-        """ Even when there's no root, we return the current event """
+        """Even when there's no root, we return the current event"""
         self.load_trace()
         no_root_trace = uuid4().hex
         parent_span_id = uuid4().hex[:16]
@@ -515,7 +515,7 @@ class OrganizationEventsTraceLightEndpointTest(OrganizationEventsTraceEndpointBa
         assert event["parent_span_id"] == self.gen2_span_id
 
     def test_sibling_transactions(self):
-        """ More than one transaction can share a parent_span_id """
+        """More than one transaction can share a parent_span_id"""
         self.load_trace()
         gen3_event_siblings = [
             self.create_event(
@@ -622,7 +622,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         assert result["start_timestamp"] == event_data.data["start_timestamp"], message
 
     def assert_trace_data(self, root, gen2_no_children=True):
-        """ see the setUp docstring for an idea of what the response structure looks like """
+        """see the setUp docstring for an idea of what the response structure looks like"""
         self.assert_event(root, self.root_event, "root")
         assert root["parent_event_id"] is None
         assert root["parent_span_id"] is None
@@ -713,7 +713,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         assert root["measurements"]["fcp"]["value"] == 750
 
     def test_detailed_trace_with_bad_tags(self):
-        """ Basically test that we're actually using the event serializer's method for tags """
+        """Basically test that we're actually using the event serializer's method for tags"""
         trace = uuid4().hex
         self.create_event(
             trace=trace,
@@ -878,7 +878,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         self.assert_event(response.data[1], second_root, "second_root")
 
     def test_sibling_transactions(self):
-        """ More than one transaction can share a parent_span_id """
+        """More than one transaction can share a parent_span_id"""
         self.load_trace()
         gen3_event_siblings = [
             self.create_event(

@@ -4,6 +4,7 @@ import ModalActions from 'app/actions/modalActions';
 import GlobalModal from 'app/components/globalModal';
 import type {DashboardWidgetModalOptions} from 'app/components/modals/addDashboardWidgetModal';
 import type {ReprocessEventModalOptions} from 'app/components/modals/reprocessEventModal';
+import {AppStoreConnectContextProps} from 'app/components/projects/appStoreConnectContext';
 import {
   DebugFileSource,
   Group,
@@ -44,8 +45,24 @@ type OpenSudoModalOptions = {
   retryRequest?: () => Promise<any>;
 };
 
+type emailVerificationModalOptions = {
+  onClose?: () => void;
+  emailVerified?: boolean;
+  actionMessage?: string;
+};
+
 export async function openSudo({onClose, ...args}: OpenSudoModalOptions = {}) {
   const mod = await import('app/components/modals/sudoModal');
+  const {default: Modal} = mod;
+
+  openModal(deps => <Modal {...deps} {...args} />, {onClose});
+}
+
+export async function openEmailVerification({
+  onClose,
+  ...args
+}: emailVerificationModalOptions = {}) {
+  const mod = await import('app/components/modals/emailVerificationModal');
   const {default: Modal} = mod;
 
   openModal(deps => <Modal {...deps} {...args} />, {onClose});
@@ -180,16 +197,24 @@ export type SentryAppDetailsModalOptions = {
 type DebugFileSourceModalOptions = {
   sourceType: DebugFileSource;
   onSave: (data: Record<string, string>) => void;
+  appStoreConnectContext?: AppStoreConnectContextProps;
+  onClose?: () => void;
   sourceConfig?: Record<string, string>;
 };
 
-export async function openDebugFileSourceModal(options: DebugFileSourceModalOptions) {
+export async function openDebugFileSourceModal({
+  onClose,
+  ...restOptions
+}: DebugFileSourceModalOptions) {
   const mod = await import(
     /* webpackChunkName: "DebugFileCustomRepository" */ 'app/components/modals/debugFileCustomRepository'
   );
-  const {default: Modal, modalCss} = mod;
 
-  openModal(deps => <Modal {...deps} {...options} />, {backdrop: 'static', modalCss});
+  const {default: Modal, modalCss} = mod;
+  openModal(deps => <Modal {...deps} {...restOptions} />, {
+    modalCss,
+    onClose,
+  });
 }
 
 export async function openInviteMembersModal(options = {}) {

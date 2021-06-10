@@ -2,6 +2,7 @@ import {Component} from 'react';
 
 import {Scope} from 'app/types';
 
+import BlankField from './blankField';
 import BooleanField from './booleanField';
 import ChoiceMapperField from './choiceMapperField';
 import EmailField from './emailField';
@@ -13,6 +14,7 @@ import ProjectMapperField from './projectMapperField';
 import RadioField from './radioField';
 import RangeField from './rangeField';
 import RichListField from './richListField';
+import SelectAsyncField from './selectAsyncField';
 import SelectField from './selectField';
 import SentryProjectSelectorField from './sentryProjectSelectorField';
 import TableField from './tableField';
@@ -51,6 +53,8 @@ export default class FieldFromConfig extends Component<Props> {
         // TODO(ts) The switch on field.type is not resolving
         // the Field union for this component. The union might be 'too big'.
         return <RangeField {...(props as any)} />;
+      case 'blank':
+        return <BlankField {...props} />;
       case 'bool':
       case 'boolean':
         return <BooleanField {...props} />;
@@ -95,6 +99,8 @@ export default class FieldFromConfig extends Component<Props> {
         return <ProjectMapperField {...props} />;
       case 'sentry_project_selector':
         return <SentryProjectSelectorField {...props} />;
+      case 'select_async':
+        return <SelectAsyncField {...props} />;
       case 'custom':
         return field.Component(props);
       default:

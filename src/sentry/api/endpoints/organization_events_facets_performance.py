@@ -174,8 +174,8 @@ class OrganizationEventsFacetsPerformanceHistogramEndpoint(
                 on_results=lambda results: self.handle_results_with_meta(
                     request, organization, params["project_id"], results
                 ),
-                default_per_page=5,
-                max_per_page=10,
+                default_per_page=10,
+                max_per_page=50,
             )
 
 
@@ -295,26 +295,17 @@ def query_facet_performance(
 
         tag_selected_columns = [
             [
-                "sum",
+                "divide",
                 [
-                    "minus",
-                    [
-                        translated_aggregate_column,
-                        str(transaction_aggregate),
-                    ],
+                    ["sum", [["minus", [translated_aggregate_column, transaction_aggregate]]]],
+                    frequency_sample_rate,
                 ],
                 "sumdelta",
             ],
             ["count", [], "count"],
             [
                 "divide",
-                [
-                    [
-                        "divide",
-                        [["count", []], frequency_sample_rate],
-                    ],
-                    transaction_count,
-                ],
+                [["divide", [["count", []], frequency_sample_rate]], transaction_count],
                 "frequency",
             ],
             ["divide", ["aggregate", transaction_aggregate], "comparison"],

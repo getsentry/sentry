@@ -10,6 +10,7 @@ import ReleaseSeries from 'app/components/charts/releaseSeries';
 import TransitionChart from 'app/components/charts/transitionChart';
 import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
+import {t} from 'app/locale';
 import {EventsStatsData, OrganizationSummary, Project} from 'app/types';
 import {Series} from 'app/types/echarts';
 import {getUtcToLocalDateObject} from 'app/utils/dates';
@@ -159,12 +160,40 @@ function getIntervalLine(
       {coord: [seriesLine, transaction.aggregate_range_1]},
     ],
   ];
+  previousPeriod.markLine.tooltip = {
+    formatter: () => {
+      return [
+        '<div class="tooltip-series tooltip-series-solo">',
+        '<div>',
+        `<span class="tooltip-label"><strong>${t('Past Baseline')}</strong></span>`,
+        // p50() coerces the axis to be time based
+        tooltipFormatter(transaction.aggregate_range_1, 'p50()'),
+        '</div>',
+        '</div>',
+        '<div class="tooltip-arrow"></div>',
+      ].join('');
+    },
+  } as any;
   currentPeriod.markLine.data = [
     [
       {value: 'Present', coord: [seriesLine, transaction.aggregate_range_2]},
       {coord: [seriesEnd, transaction.aggregate_range_2]},
     ],
   ];
+  currentPeriod.markLine.tooltip = {
+    formatter: () => {
+      return [
+        '<div class="tooltip-series tooltip-series-solo">',
+        '<div>',
+        `<span class="tooltip-label"><strong>${t('Present Baseline')}</strong></span>`,
+        // p50() coerces the axis to be time based
+        tooltipFormatter(transaction.aggregate_range_2, 'p50()'),
+        '</div>',
+        '</div>',
+        '<div class="tooltip-arrow"></div>',
+      ].join('');
+    },
+  } as any;
   periodDividingLine.markLine = {
     data: [
       {

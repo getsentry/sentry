@@ -9,9 +9,10 @@ describe('OrganizationRuleList', () => {
   const {routerContext, organization, router} = initializeOrg();
   let rulesMock;
   let projectMock;
+  let wrapper;
 
   const createWrapper = async props => {
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <AlertRulesList
         organization={organization}
         params={{orgId: organization.slug}}
@@ -23,7 +24,6 @@ describe('OrganizationRuleList', () => {
     );
     await tick();
     wrapper.update();
-    return wrapper;
   };
 
   beforeEach(() => {
@@ -60,12 +60,13 @@ describe('OrganizationRuleList', () => {
   });
 
   afterEach(() => {
+    wrapper.unmount();
     ProjectsStore.reset();
     MockApiClient.clearMockResponses();
   });
 
   it('displays list', async () => {
-    const wrapper = await createWrapper();
+    await createWrapper();
 
     const row = wrapper.find('RuleListRow').at(0);
     expect(row.find('RuleType').at(0).text()).toBe('Issue');
@@ -93,19 +94,16 @@ describe('OrganizationRuleList', () => {
       body: [],
     });
 
-    const wrapper = await createWrapper();
+    await createWrapper();
 
     expect(rulesMock).toHaveBeenCalledTimes(0);
-
-    await tick();
-    wrapper.update();
 
     expect(wrapper.find('PanelItem')).toHaveLength(0);
     expect(wrapper.text()).toContain('No alert rules exist for these projects');
   });
 
   it('sorts by date created', async () => {
-    const wrapper = await createWrapper();
+    await createWrapper();
 
     expect(wrapper.find('IconArrow').prop('direction')).toBe('down');
 
@@ -124,7 +122,7 @@ describe('OrganizationRuleList', () => {
   });
 
   it('sorts by name', async () => {
-    const wrapper = await createWrapper();
+    await createWrapper();
 
     const nameHeader = wrapper.find('StyledSortLink').first();
     expect(nameHeader.text()).toContain('Alert Name');
@@ -157,13 +155,14 @@ describe('OrganizationRuleList', () => {
       access: [],
     };
 
-    let wrapper = await createWrapper({organization: noAccessOrg});
+    await createWrapper({organization: noAccessOrg});
 
     const addButton = wrapper.find('button[aria-label="Create Alert Rule"]');
     expect(addButton.props()['aria-disabled']).toBe(true);
+    wrapper.unmount();
 
     // Enabled with access
-    wrapper = await createWrapper();
+    await createWrapper();
 
     const addLink = wrapper.find('button[aria-label="Create Alert Rule"]');
     expect(addLink.props()['aria-disabled']).toBe(false);
@@ -174,7 +173,7 @@ describe('OrganizationRuleList', () => {
       ...organization,
       features: ['team-alerts-ownership'],
     };
-    const wrapper = await createWrapper({organization: ownershipOrg});
+    await createWrapper({organization: ownershipOrg});
     expect(wrapper.find('StyledSearchBar').exists()).toBe(true);
 
     const testQuery = 'test name';
@@ -199,7 +198,7 @@ describe('OrganizationRuleList', () => {
       ...organization,
       features: ['team-alerts-ownership'],
     };
-    const wrapper = await createWrapper({organization: ownershipOrg});
+    await createWrapper({organization: ownershipOrg});
 
     wrapper.setProps({
       location: {query: {team: 'myteams'}, search: '?team=myteams`'},
@@ -224,7 +223,7 @@ describe('OrganizationRuleList', () => {
       ...organization,
       features: ['alert-details-redesign'],
     };
-    const wrapper = await createWrapper({organization: ownershipOrg});
+    await createWrapper({organization: ownershipOrg});
     let row = wrapper.find('RuleListRow').at(1);
     expect(row.find('AlertNameAndStatus').text()).toContain('My Incident Rule');
     expect(row.find('AlertNameAndStatus').text()).toContain('Triggered');

@@ -1,7 +1,6 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
-import PropTypes from 'prop-types';
 
 import {APIRequestMethod} from 'app/api';
 import Button from 'app/components/button';
@@ -9,6 +8,9 @@ import Panel from 'app/components/panels/panel';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {isRenderFunc} from 'app/utils/isRenderFunc';
+import FormContext, {
+  FormContextData,
+} from 'app/views/settings/components/forms/formContext';
 import FormModel, {FormOptions} from 'app/views/settings/components/forms/model';
 
 type Data = Record<string, any>;
@@ -57,18 +59,8 @@ type Props = {
   onPreSubmit?: () => void;
 } & Pick<FormOptions, 'onSubmitSuccess' | 'onSubmitError' | 'onFieldChange'>;
 
-type Context = {
-  saveOnBlur: boolean;
-  form: FormModel;
-};
-
 export default class Form extends React.Component<Props> {
-  static childContextTypes = {
-    saveOnBlur: PropTypes.bool,
-    form: PropTypes.object,
-  };
-
-  constructor(props: Props, context: Context) {
+  constructor(props: Props, context: FormContextData) {
     super(props, context);
     const {
       saveOnBlur,
@@ -95,18 +87,18 @@ export default class Form extends React.Component<Props> {
     });
   }
 
-  getChildContext() {
-    return {
-      saveOnBlur: this.props.saveOnBlur,
-      form: this.model,
-    };
-  }
-
   componentWillUnmount() {
     this.model.reset();
   }
 
   model: FormModel = this.props.model || new FormModel();
+
+  contextData() {
+    return {
+      saveOnBlur: this.props.saveOnBlur,
+      form: this.model,
+    };
+  }
 
   onSubmit = e => {
     !this.props.skipPreventDefault && e.preventDefault();
@@ -167,59 +159,63 @@ export default class Form extends React.Component<Props> {
       typeof hideFooter !== 'undefined' ? !hideFooter : !saveOnBlur;
 
     return (
-      <form
-        onSubmit={this.onSubmit}
-        className={className ?? 'form-stacked'}
-        data-test-id={this.props['data-test-id']}
-      >
-        <div>
-          {isRenderFunc<RenderFunc>(children) ? children({model: this.model}) : children}
-        </div>
+      <FormContext.Provider value={this.contextData()}>
+        <form
+          onSubmit={this.onSubmit}
+          className={className ?? 'form-stacked'}
+          data-test-id={this.props['data-test-id']}
+        >
+          <div>
+            {isRenderFunc<RenderFunc>(children)
+              ? children({model: this.model})
+              : children}
+          </div>
 
-        {shouldShowFooter && (
-          <StyledFooter
-            className={footerClass}
-            style={footerStyle}
-            saveOnBlur={saveOnBlur}
-          >
-            {extraButton}
-            <DefaultButtons>
-              {onCancel && (
+          {shouldShowFooter && (
+            <StyledFooter
+              className={footerClass}
+              style={footerStyle}
+              saveOnBlur={saveOnBlur}
+            >
+              {extraButton}
+              <DefaultButtons>
+                {onCancel && (
+                  <Observer>
+                    {() => (
+                      <Button
+                        type="button"
+                        disabled={this.model.isSaving}
+                        onClick={onCancel}
+                        style={{marginLeft: 5}}
+                      >
+                        {cancelLabel ?? t('Cancel')}
+                      </Button>
+                    )}
+                  </Observer>
+                )}
+
                 <Observer>
                   {() => (
                     <Button
-                      type="button"
-                      disabled={this.model.isSaving}
-                      onClick={onCancel}
-                      style={{marginLeft: 5}}
+                      data-test-id="form-submit"
+                      priority={submitPriority ?? 'primary'}
+                      disabled={
+                        this.model.isError ||
+                        this.model.isSaving ||
+                        submitDisabled ||
+                        (requireChanges ? !this.model.formChanged : false)
+                      }
+                      type="submit"
                     >
-                      {cancelLabel ?? t('Cancel')}
+                      {submitLabel ?? t('Save Changes')}
                     </Button>
                   )}
                 </Observer>
-              )}
-
-              <Observer>
-                {() => (
-                  <Button
-                    data-test-id="form-submit"
-                    priority={submitPriority ?? 'primary'}
-                    disabled={
-                      this.model.isError ||
-                      this.model.isSaving ||
-                      submitDisabled ||
-                      (requireChanges ? !this.model.formChanged : false)
-                    }
-                    type="submit"
-                  >
-                    {submitLabel ?? t('Save Changes')}
-                  </Button>
-                )}
-              </Observer>
-            </DefaultButtons>
-          </StyledFooter>
-        )}
-      </form>
+              </DefaultButtons>
+            </StyledFooter>
+          )}
+        </form>
+      </FormContext.Provider>
     );
   }
 }

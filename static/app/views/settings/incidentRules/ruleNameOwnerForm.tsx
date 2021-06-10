@@ -12,13 +12,12 @@ type Props = {
   disabled: boolean;
   project: Project;
   organization: Organization;
-  userTeamIds: Set<string>;
+  userTeamIds: string[];
 };
 
 class RuleNameOwnerForm extends PureComponent<Props> {
   render() {
     const {disabled, project, organization, userTeamIds} = this.props;
-
     return (
       <Panel>
         <PanelBody>
@@ -35,10 +34,16 @@ class RuleNameOwnerForm extends PureComponent<Props> {
               name="owner"
               label={t('Team')}
               help={t('The team that can edit this alert.')}
+              disabled={disabled}
             >
               {({model}) => {
                 const owner = model.getValue('owner');
                 const ownerId = owner && owner.split(':')[1];
+                const filteredTeamIds = new Set(userTeamIds);
+                // Add the current team that owns the alert
+                if (ownerId) {
+                  filteredTeamIds.add(ownerId);
+                }
                 return (
                   <SelectMembers
                     showTeam
@@ -49,8 +54,9 @@ class RuleNameOwnerForm extends PureComponent<Props> {
                       const ownerValue = value && `team:${value}`;
                       model.setValue('owner', ownerValue);
                     }}
-                    filteredTeamIds={userTeamIds}
+                    filteredTeamIds={filteredTeamIds}
                     includeUnassigned
+                    disabled={disabled}
                   />
                 );
               }}

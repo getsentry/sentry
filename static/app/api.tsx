@@ -79,7 +79,16 @@ export const initApiClientErrorHandling = () =>
 
     // 401s can also mean sudo is required or it's a request that is allowed to fail
     // Ignore if these are the cases
-    if (['sudo-required', 'ignore', '2fa-required'].includes(code)) {
+    if (
+      [
+        'sudo-required',
+        'ignore',
+        '2fa-required',
+        'app-connect-authentication-error',
+        'itunes-authentication-error',
+        'itunes-2fa-required',
+      ].includes(code)
+    ) {
       return;
     }
 
@@ -87,6 +96,10 @@ export const initApiClientErrorHandling = () =>
     if (code === 'sso-required') {
       window.location.assign(extra.loginUrl);
       return;
+    }
+
+    if (code === 'member-disabled-over-limit') {
+      browserHistory.replace(extra.next);
     }
 
     // Otherwise, the user has become unauthenticated. Send them to auth

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import ProjectsStore from 'app/stores/projectsStore';
-import {Group, GroupTombstone, Organization} from 'app/types';
+import {BaseGroup, GroupTombstone, Organization} from 'app/types';
 import {Event} from 'app/types/event';
 import {getTitle} from 'app/utils/events';
 import withOrganization from 'app/utils/withOrganization';
@@ -11,7 +11,7 @@ import withOrganization from 'app/utils/withOrganization';
 import StacktracePreview from './stacktracePreview';
 
 type Props = Partial<DefaultProps> & {
-  data: Event | Group | GroupTombstone;
+  data: Event | BaseGroup | GroupTombstone;
   organization: Organization;
   style?: React.CSSProperties;
   hasGuideAnchor?: boolean;

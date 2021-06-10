@@ -8,18 +8,22 @@ import {resendMemberInvite} from 'app/actionCreators/members';
 import {redirectToRemainingOrganization} from 'app/actionCreators/organizations';
 import Button from 'app/components/button';
 import DropdownMenu from 'app/components/dropdownMenu';
+import HookOrDefault from 'app/components/hookOrDefault';
 import Pagination from 'app/components/pagination';
 import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {MEMBER_ROLES} from 'app/constants';
 import {IconSliders} from 'app/icons';
 import {t, tct} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
-import space from 'app/styles/space';
 import {Member, MemberRole, Organization} from 'app/types';
 import routeTitleGen from 'app/utils/routeTitle';
 import theme from 'app/utils/theme';
 import withOrganization from 'app/utils/withOrganization';
 import AsyncView from 'app/views/asyncView';
+import {
+  RenderSearch,
+  SearchWrapper,
+} from 'app/views/settings/components/defaultSearchBar';
 import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 import MembersFilter from './components/membersFilter';
@@ -34,6 +38,11 @@ type State = AsyncView['state'] & {
   members: Member[];
   invited: {[key: string]: 'loading' | 'success' | null};
 };
+
+const MemberListHeader = HookOrDefault({
+  hookName: 'component:member-list-header',
+  defaultComponent: () => <PanelHeader>{t('Members')}</PanelHeader>,
+});
 
 class OrganizationMembersList extends AsyncView<Props, State> {
   getDefaultState() {
@@ -149,13 +158,9 @@ class OrganizationMembersList extends AsyncView<Props, State> {
     // Only admins/owners can remove members
     const requireLink = !!this.state.authProvider && this.state.authProvider.require_link;
 
-    type RenderSearch = React.ComponentProps<
-      typeof AsyncView.prototype.renderSearchInput
-    >['children'];
-
     // eslint-disable-next-line react/prop-types
     const renderSearch: RenderSearch = ({defaultSearchBar, value, handleChange}) => (
-      <SearchWrapper>
+      <SearchWrapperWithFilter>
         {defaultSearchBar}
         <DropdownMenu closeOnEscape>
           {({getActorProps, isOpen}) => (
@@ -173,7 +178,7 @@ class OrganizationMembersList extends AsyncView<Props, State> {
             </FilterWrapper>
           )}
         </DropdownMenu>
-      </SearchWrapper>
+      </SearchWrapperWithFilter>
     );
 
     return (
@@ -191,8 +196,7 @@ class OrganizationMembersList extends AsyncView<Props, State> {
           }
         </ClassNames>
         <Panel data-test-id="org-member-list">
-          <PanelHeader>{t('Members')}</PanelHeader>
-
+          <MemberListHeader members={members} organization={organization} />
           <PanelBody>
             {members.map(member => (
               <OrganizationMemberRow
@@ -224,12 +228,8 @@ class OrganizationMembersList extends AsyncView<Props, State> {
   }
 }
 
-const SearchWrapper = styled('div')`
+const SearchWrapperWithFilter = styled(SearchWrapper)`
   display: grid;
-  grid-template-columns: 1fr max-content;
-  grid-gap: ${space(1.5)};
-  margin-bottom: ${space(3)};
-  position: relative;
 `;
 
 const FilterWrapper = styled('div')`
