@@ -1,6 +1,6 @@
 import logging
 from collections import defaultdict
-from typing import AbstractSet, Any, Mapping, Optional, Set, Union
+from typing import AbstractSet, Any, Mapping, Set, Union
 
 from sentry.integrations.slack.client import SlackClient  # NOQA
 from sentry.integrations.slack.message_builder.notifications import build_notification_attachment
@@ -32,7 +32,7 @@ def get_context(
 
 def get_channel_and_integration_by_user(
     user: User, organization: Organization
-) -> Mapping[Optional[str], Optional[Integration]]:
+) -> Mapping[str, Integration]:
 
     identities = Identity.objects.filter(
         idp__type=EXTERNAL_PROVIDERS[ExternalProviders.SLACK],
@@ -43,15 +43,15 @@ def get_channel_and_integration_by_user(
         # The user may not have linked their identity so just move on
         # since there are likely other users or teams in the list of
         # recipients.
-        return None, None
+        return {}
 
     integrations = Integration.objects.filter(
         provider=EXTERNAL_PROVIDERS[ExternalProviders.SLACK],
         organizations=organization,
         external_id__in=[identity.idp.external_id for identity in identities],
     )
-    channels_to_integration = {}
 
+    channels_to_integration = {}
     for identity in identities:
         for integration in integrations:
             if identity.idp.external_id == integration.external_id:
@@ -63,7 +63,7 @@ def get_channel_and_integration_by_user(
 
 def get_channel_and_integration_by_team(
     team: Team, organization: Organization
-) -> Mapping[Optional[str], Optional[Integration]]:
+) -> Mapping[str, Integration]:
     try:
         external_actor = (
             ExternalActor.objects.filter(
@@ -75,7 +75,7 @@ def get_channel_and_integration_by_team(
             .get()
         )
     except ExternalActor.DoesNotExist:
-        return None, None
+        return {}
 
     return {external_actor.external_id: external_actor.integration}
 
