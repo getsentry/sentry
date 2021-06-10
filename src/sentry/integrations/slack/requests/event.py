@@ -1,5 +1,4 @@
-from sentry.integrations.slack.requests.base import SlackRequest
-from sentry.integrations.slack.requests.errors import SlackRequestError
+from sentry.integrations.slack.requests.base import SlackRequest, SlackRequestError
 
 
 class SlackEventRequest(SlackRequest):

@@ -5,12 +5,9 @@ from hashlib import sha256
 from urllib.parse import urlencode
 
 from sentry import options
-from sentry.integrations.slack.requests import (
-    SlackActionRequest,
-    SlackEventRequest,
-    SlackRequest,
-    SlackRequestError,
-)
+from sentry.integrations.slack.requests import SlackRequest, SlackRequestError
+from sentry.integrations.slack.requests.action import SlackActionRequest
+from sentry.integrations.slack.requests.event import SlackEventRequest
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import override_options
 from sentry.utils import json

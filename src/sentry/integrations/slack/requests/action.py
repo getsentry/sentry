@@ -1,7 +1,6 @@
 from rest_framework.request import Request
 
-from sentry.integrations.slack.requests.base import SlackRequest
-from sentry.integrations.slack.requests.errors import SlackRequestError
+from sentry.integrations.slack.requests.base import SlackRequest, SlackRequestError
 from sentry.utils import json
 from sentry.utils.cache import memoize
 from sentry.utils.json import JSONData

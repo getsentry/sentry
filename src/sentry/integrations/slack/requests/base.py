@@ -8,7 +8,17 @@ from sentry import options
 from sentry.models import Integration
 
 from ..utils import logger
-from .errors import SlackRequestError
+
+
+class SlackRequestError(Exception):
+    """
+    Something was invalid about the request from Slack.
+
+    Includes the status the endpoint should return, based on the error.
+    """
+
+    def __init__(self, status: int) -> None:
+        self.status = status
 
 
 class SlackRequest:
