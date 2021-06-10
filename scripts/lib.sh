@@ -150,6 +150,14 @@ init-config() {
 }
 
 run-dependent-services() {
+    if [ -n "${CI+x}" ] && ! docker system info &>/dev/null; then
+        # If the step above fails, at least we can get some debugging information to determine why
+        cat /Library/LaunchDaemons/com.docker.vmnetd.plist
+        sudo-askpass ls -l /Library/PrivilegedHelperTools/com.docker.vmnetd
+        ls -l /Library/LaunchDaemons/
+        ls -l /Applications/Docker.app
+        ls -l "$(which docker)"
+    fi
     sentry devservices up
 }
 
