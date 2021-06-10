@@ -9,7 +9,6 @@ import statsImage from 'sentry-images/spot/releases-tour-stats.svg';
 
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
-import EmptyStateWarning from 'app/components/emptyStateWarning';
 import FeatureTourModal, {
   TourImage,
   TourStep,
@@ -19,7 +18,6 @@ import OnboardingPanel from 'app/components/onboardingPanel';
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import AsyncView from 'app/views/asyncView';
 
 const releasesSetupUrl = 'https://docs.sentry.io/product/releases/';
 
@@ -82,38 +80,9 @@ export const RELEASES_TOUR_STEPS: TourStep[] = [
 type Props = {
   organization: Organization;
   projectId?: number;
-} & AsyncView['props'];
-
-class ReleaseLanding extends AsyncView<Props> {
-  // if there are no releases in the last 30 days, we want to show releases promo, otherwise empty message
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {slug} = this.props.organization;
-
-    const query = {
-      per_page: 1,
-      summaryStatsPeriod: '30d',
-    };
-
-    return [['releases', `/organizations/${slug}/releases/`, {query}]];
-  }
-
-  renderBody() {
-    const {organization, projectId} = this.props;
-
-    if (this.state.releases.length === 0) {
-      return <Promo organization={organization} projectId={projectId} />;
-    }
-
-    return <EmptyStateWarning small>{t('There are no releases.')}</EmptyStateWarning>;
-  }
-}
-
-type PromoProps = {
-  organization: Organization;
-  projectId?: number;
 };
 
-class Promo extends Component<PromoProps> {
+class ReleasePromo extends Component<Props> {
   componentDidMount() {
     const {organization, projectId} = this.props;
 
@@ -187,4 +156,4 @@ const ButtonList = styled(ButtonBar)`
   grid-template-columns: repeat(auto-fit, minmax(130px, max-content));
 `;
 
-export default ReleaseLanding;
+export default ReleasePromo;

@@ -29,7 +29,6 @@ import {
   ReleaseStatus,
   SessionApiResponse,
 } from 'app/types';
-import {defined} from 'app/utils';
 import Projects from 'app/utils/projects';
 import routeTitleGen from 'app/utils/routeTitle';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
@@ -42,9 +41,9 @@ import ReleaseHealthRequest from '../utils/releaseHealthRequest';
 import ReleaseAdoptionChart from './releaseAdoptionChart';
 import ReleaseCard from './releaseCard';
 import ReleaseDisplayOptions from './releaseDisplayOptions';
-import ReleaseLanding from './releaseLanding';
 import ReleaseListSortOptions from './releaseListSortOptions';
 import ReleaseListStatusOptions from './releaseListStatusOptions';
+import ReleasePromo from './releasePromo';
 import {DisplayOption, SortOption, StatusOption} from './utils';
 
 type RouteParams = {
@@ -284,21 +283,17 @@ class ReleasesList extends AsyncView<Props, State> {
       );
     }
 
-    if (defined(statsPeriod) && statsPeriod !== '14d') {
-      return <EmptyStateWarning small>{t('There are no releases.')}</EmptyStateWarning>;
-    }
-
     return (
-      <ReleaseLanding
+      <ReleasePromo
         organization={organization}
         projectId={selection.projects.filter(p => p !== ALL_ACCESS_PROJECTS)[0]}
       />
     );
   }
 
-  renderAlertBanner() {
+  renderHealthCta() {
     const {selection, organization} = this.props;
-    const {hasSessions} = this.state;
+    const {hasSessions, releases} = this.state;
 
     const selectedProjectId =
       selection.projects && selection.projects.length === 1 && selection.projects[0];
@@ -306,7 +301,7 @@ class ReleasesList extends AsyncView<Props, State> {
       p => p.id === `${selectedProjectId}`
     );
 
-    if (!selectedProject || hasSessions !== false) {
+    if (!selectedProject || hasSessions !== false || !releases.length) {
       return null;
     }
 
@@ -425,7 +420,7 @@ class ReleasesList extends AsyncView<Props, State> {
               <PageHeading>{t('Releases')}</PageHeading>
             </PageHeader>
 
-            {this.renderAlertBanner()}
+            {this.renderHealthCta()}
 
             <SortAndFilterWrapper>
               <SearchBar
