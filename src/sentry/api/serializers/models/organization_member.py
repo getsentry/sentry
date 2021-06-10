@@ -11,6 +11,7 @@ from sentry.models import (
     TeamStatus,
     User,
 )
+from sentry.scim.endpoints.constants import SCIM_SCHEMA_USER  # type: ignore
 from sentry.utils.json import JSONData
 
 
@@ -28,15 +29,12 @@ def get_team_slugs_by_organization_member_id(
             team__status=TeamStatus.VISIBLE, organizationmember__in=organization_members
         ).values_list("organizationmember_id", "team_id")
     )
-    team_ids_by_organization_member_id = {
-        organization_member_id: team_id
-        for organization_member_id, team_id in organization_member_tuples
-    }
-    teams = Team.objects.filter(id__in=team_ids_by_organization_member_id.values())
+    team_ids = {team_id for (_organization_member_id, team_id) in organization_member_tuples}
+    teams = Team.objects.filter(id__in=team_ids)
     teams_by_id = {team.id: team for team in teams}
 
     results = defaultdict(list)
-    for member_id, team_id in team_ids_by_organization_member_id.items():
+    for member_id, team_id in organization_member_tuples:
         results[member_id].append(teams_by_id[team_id].slug)
     return results
 
@@ -191,4 +189,26 @@ class OrganizationMemberWithProjectsSerializer(OrganizationMemberSerializer):
     ) -> MutableMapping[str, JSONData]:
         d = super().serialize(obj, attrs, user)
         d["projects"] = attrs.get("projects", [])
+        return d
+
+
+class OrganizationMemberSCIMSerializer(Serializer):  # type: ignore
+    def __init__(self, expand: Optional[Sequence[str]] = None) -> None:
+        self.expand = expand or []
+
+    def serialize(
+        self, obj: OrganizationMember, attrs: Mapping[str, Any], user: Any, **kwargs: Any
+    ) -> MutableMapping[str, JSONData]:
+
+        d = {
+            "schemas": [SCIM_SCHEMA_USER],
+            "id": obj.id,
+            "userName": obj.get_email(),  # TODO: does this get weird with secondary emails?
+            "name": {"givenName": "N/A", "familyName": "N/A"},
+            "emails": [
+                {"primary": True, "value": obj.get_email(), "type": "work"}
+            ],  # TODO: secondary emails?
+            "active": True,
+            "meta": {"resourceType": "User"},
+        }
         return d

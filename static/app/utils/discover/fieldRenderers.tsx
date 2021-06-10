@@ -539,7 +539,11 @@ const spanOperationRelativeBreakdownRenderer = (
   data: EventData,
   {location, organization}: RenderFunctionBaggage
 ): React.ReactNode => {
-  const cumulativeSpanOpBreakdown = data['spans.total.time'];
+  const sumOfSpanTime = SPAN_OP_BREAKDOWN_FIELDS.reduce(
+    (prev, curr) => (isDurationValue(data, curr) ? prev + data[curr] : prev),
+    0
+  );
+  const cumulativeSpanOpBreakdown = Math.max(sumOfSpanTime, data['transaction.duration']);
 
   if (
     !isDurationValue(data, 'spans.total.time') ||
@@ -570,7 +574,7 @@ const spanOperationRelativeBreakdownRenderer = (
             <Tooltip
               title={
                 <div>
-                  <div>{`${operationName} ${formatPercentage(widthPercentage, 0)}`}</div>
+                  <div>{operationName}</div>
                   <div>
                     <Duration
                       seconds={spanOpDuration / 1000}
