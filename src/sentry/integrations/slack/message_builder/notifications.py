@@ -65,5 +65,5 @@ class SlackNotificationsMessageBuilder(SlackMessageBuilder):
 def build_notification_attachment(
     notification: BaseNotification, context: Mapping[str, Any]
 ) -> Mapping[str, str]:
-    """ @deprecated """
+    """@deprecated"""
     return SlackNotificationsMessageBuilder(notification, context).build()
