@@ -96,7 +96,7 @@ describe('ReleasesList', function () {
       routerContext
     );
     expect(wrapper.find('StyledPanel')).toHaveLength(0);
-    expect(wrapper.find('Promo').text()).toContain('Demystify Releases');
+    expect(wrapper.find('ReleasePromo').text()).toContain('Demystify Releases');
 
     location = {query: {statsPeriod: '30d'}};
     wrapper = mountWithTheme(
@@ -104,7 +104,7 @@ describe('ReleasesList', function () {
       routerContext
     );
     expect(wrapper.find('StyledPanel')).toHaveLength(0);
-    expect(wrapper.find('EmptyMessage').text()).toEqual('There are no releases.');
+    expect(wrapper.find('ReleasePromo').text()).toContain('Demystify Releases');
 
     location = {query: {query: 'abc'}};
     wrapper = mountWithTheme(
