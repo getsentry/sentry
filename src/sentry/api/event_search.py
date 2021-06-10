@@ -433,6 +433,98 @@ class SearchVisitor(NodeVisitor):
 
         return ParenExpression(children)
 
+    # --- Start of filter visitors
+
+    def _handle_basic_filter(self, search_key, operator, search_value):
+        # If a date or numeric key gets down to the basic filter, then it means
+        # that the value wasn't in a valid format, so raise here.
+        if search_key.name in self.date_keys:
+            raise InvalidSearchQuery(
+                f"{search_key.name}: Invalid date: {search_value.raw_value}. Expected +/-duration (e.g. +1h) or ISO 8601-like (e.g. {datetime.now().isoformat()[:-4]})."
+            )
+        if search_key.name in self.boolean_keys:
+            raise InvalidSearchQuery(
+                f"{search_key.name}: Invalid boolean: {search_value.raw_value}. Expected true, 1, false, or 0."
+            )
+        if self.is_numeric_key(search_key.name):
+            raise InvalidSearchQuery(
+                f"{search_key.name}: Invalid number: {search_value.raw_value}. Expected number then optional k, m, or b suffix (e.g. 500k)."
+            )
+
+        return SearchFilter(search_key, operator, search_value)
+
+    def visit_date_filter(self, node, children):
+        (search_key, _, operator, search_value) = children
+
+        if search_key.name in self.date_keys:
+            try:
+                search_value = parse_datetime_string(search_value)
+            except InvalidQuery as exc:
+                raise InvalidSearchQuery(str(exc))
+            return SearchFilter(search_key, operator, SearchValue(search_value))
+        else:
+            search_value = operator + search_value if operator != "=" else search_value
+            return self._handle_basic_filter(search_key, "=", SearchValue(search_value))
+
+    def visit_specific_date_filter(self, node, children):
+        # If we specify a specific date, it means any event on that day, and if
+        # we specify a specific datetime then it means a few minutes interval
+        # on either side of that datetime
+        (search_key, _, date_value) = children
+
+        if search_key.name not in self.date_keys:
+            return self._handle_basic_filter(search_key, "=", SearchValue(date_value))
+
+        try:
+            from_val, to_val = parse_datetime_value(date_value)
+        except InvalidQuery as exc:
+            raise InvalidSearchQuery(str(exc))
+
+        # TODO: Handle negations here. This is tricky because these will be
+        # separate filters, and to negate this range we need (< val or >= val).
+        # We currently AND all filters together, so we'll need extra logic to
+        # handle. Maybe not necessary to allow negations for this.
+        return [
+            SearchFilter(search_key, ">=", SearchValue(from_val[0])),
+            SearchFilter(search_key, "<", SearchValue(to_val[0])),
+        ]
+
+    def visit_rel_date_filter(self, node, children):
+        (search_key, _, value) = children
+
+        if search_key.name in self.date_keys:
+            try:
+                from_val, to_val = parse_datetime_range(value.text)
+            except InvalidQuery as exc:
+                raise InvalidSearchQuery(str(exc))
+
+            # TODO: Handle negations
+            if from_val is not None:
+                operator = ">="
+                search_value = from_val[0]
+            else:
+                operator = "<="
+                search_value = to_val[0]
+            return SearchFilter(search_key, operator, SearchValue(search_value))
+        else:
+            return self._handle_basic_filter(search_key, "=", SearchValue(value.text))
+
+    def visit_duration_filter(self, node, children):
+        (search_key, sep, operator, search_value) = children
+
+        operator = operator[0] if not isinstance(operator, Node) else "="
+        if self.is_duration_key(search_key.name):
+            try:
+                search_value = parse_duration(*search_value.match.groups())
+            except InvalidQuery as exc:
+                raise InvalidSearchQuery(str(exc))
+            return SearchFilter(search_key, operator, SearchValue(search_value))
+        elif self.is_numeric_key(search_key.name):
+            return self.visit_numeric_filter(node, (search_key, sep, operator, search_value))
+        else:
+            search_value = operator + search_value.text if operator != "=" else search_value.text
+            return self._handle_basic_filter(search_key, "=", SearchValue(search_value))
+
     def visit_boolean_filter(self, node, children):
         (negation, search_key, sep, search_value) = children
         negated = is_negated(negation)
@@ -461,6 +553,23 @@ class SearchVisitor(NodeVisitor):
             search_value = SearchValue(search_value.text)
             return self._handle_basic_filter(search_key, "=" if not negated else "!=", search_value)
 
+    def visit_numeric_in_filter(self, node, children):
+        (search_key, _, value) = children
+        operator = "IN"
+        search_value = process_list(value[1], value[2])
+
+        if self.is_numeric_key(search_key.name):
+            try:
+                search_value = SearchValue(
+                    [parse_numeric_value(*val.match.groups()) for val in search_value]
+                )
+            except InvalidQuery as exc:
+                raise InvalidSearchQuery(str(exc))
+            return SearchFilter(search_key, operator, search_value)
+        else:
+            search_value = SearchValue([v.text for v in search_value])
+            return self._handle_basic_filter(search_key, operator, search_value)
+
     def visit_numeric_filter(self, node, children):
         (search_key, _, operator, search_value) = children
         if isinstance(operator, Node):
@@ -478,23 +587,6 @@ class SearchVisitor(NodeVisitor):
             search_value = search_value.text
             search_value = SearchValue(operator + search_value if operator != "=" else search_value)
             return self._handle_basic_filter(search_key, "=", search_value)
-
-    def visit_numeric_in_filter(self, node, children):
-        (search_key, _, value) = children
-        operator = "IN"
-        search_value = process_list(value[1], value[2])
-
-        if self.is_numeric_key(search_key.name):
-            try:
-                search_value = SearchValue(
-                    [parse_numeric_value(*val.match.groups()) for val in search_value]
-                )
-            except InvalidQuery as exc:
-                raise InvalidSearchQuery(str(exc))
-            return SearchFilter(search_key, operator, search_value)
-        else:
-            search_value = SearchValue([v.text for v in search_value])
-            return self._handle_basic_filter(search_key, operator, search_value)
 
     def visit_aggregate_filter(self, node, children):
         (negation, search_key, _, operator, search_value) = children
@@ -563,123 +655,6 @@ class SearchVisitor(NodeVisitor):
             search_value = operator + search_value.text if operator != "=" else search_value
             return AggregateFilter(search_key, "=", SearchValue(search_value))
 
-    def visit_date_filter(self, node, children):
-        (search_key, _, operator, search_value) = children
-
-        if search_key.name in self.date_keys:
-            try:
-                search_value = parse_datetime_string(search_value)
-            except InvalidQuery as exc:
-                raise InvalidSearchQuery(str(exc))
-            return SearchFilter(search_key, operator, SearchValue(search_value))
-        else:
-            search_value = operator + search_value if operator != "=" else search_value
-            return self._handle_basic_filter(search_key, "=", SearchValue(search_value))
-
-    def visit_duration_filter(self, node, children):
-        (search_key, sep, operator, search_value) = children
-
-        operator = operator[0] if not isinstance(operator, Node) else "="
-        if self.is_duration_key(search_key.name):
-            try:
-                search_value = parse_duration(*search_value.match.groups())
-            except InvalidQuery as exc:
-                raise InvalidSearchQuery(str(exc))
-            return SearchFilter(search_key, operator, SearchValue(search_value))
-        elif self.is_numeric_key(search_key.name):
-            return self.visit_numeric_filter(node, (search_key, sep, operator, search_value))
-        else:
-            search_value = operator + search_value.text if operator != "=" else search_value.text
-            return self._handle_basic_filter(search_key, "=", SearchValue(search_value))
-
-    def visit_rel_date_filter(self, node, children):
-        (search_key, _, value) = children
-
-        if search_key.name in self.date_keys:
-            try:
-                from_val, to_val = parse_datetime_range(value.text)
-            except InvalidQuery as exc:
-                raise InvalidSearchQuery(str(exc))
-
-            # TODO: Handle negations
-            if from_val is not None:
-                operator = ">="
-                search_value = from_val[0]
-            else:
-                operator = "<="
-                search_value = to_val[0]
-            return SearchFilter(search_key, operator, SearchValue(search_value))
-        else:
-            return self._handle_basic_filter(search_key, "=", SearchValue(value.text))
-
-    def visit_specific_date_filter(self, node, children):
-        # If we specify a specific date, it means any event on that day, and if
-        # we specify a specific datetime then it means a few minutes interval
-        # on either side of that datetime
-        (search_key, _, date_value) = children
-
-        if search_key.name not in self.date_keys:
-            return self._handle_basic_filter(search_key, "=", SearchValue(date_value))
-
-        try:
-            from_val, to_val = parse_datetime_value(date_value)
-        except InvalidQuery as exc:
-            raise InvalidSearchQuery(str(exc))
-
-        # TODO: Handle negations here. This is tricky because these will be
-        # separate filters, and to negate this range we need (< val or >= val).
-        # We currently AND all filters together, so we'll need extra logic to
-        # handle. Maybe not necessary to allow negations for this.
-        return [
-            SearchFilter(search_key, ">=", SearchValue(from_val[0])),
-            SearchFilter(search_key, "<", SearchValue(to_val[0])),
-        ]
-
-    def visit_operator(self, node, children):
-        return node.text
-
-    def visit_iso_8601_date_format(self, node, children):
-        return node.text
-
-    def visit_text_filter(self, node, children):
-        (negation, search_key, _, search_value) = children
-        operator = "="
-        # XXX: We check whether the text in the node itself is actually empty, so
-        # we can tell the difference between an empty quoted string and no string
-        if not search_value.raw_value and not node.children[3].text:
-            raise InvalidSearchQuery(f"Empty string after '{search_key.name}:'")
-
-        operator = handle_negation(negation, operator)
-
-        return self._handle_basic_filter(search_key, operator, search_value)
-
-    def visit_text_in_filter(self, node, children):
-        (negation, search_key, _, search_value) = children
-        operator = "IN"
-        search_value = SearchValue(process_list(search_value[1], search_value[2]))
-
-        operator = handle_negation(negation, operator)
-
-        return self._handle_basic_filter(search_key, operator, search_value)
-
-    def _handle_basic_filter(self, search_key, operator, search_value):
-        # If a date or numeric key gets down to the basic filter, then it means
-        # that the value wasn't in a valid format, so raise here.
-        if search_key.name in self.date_keys:
-            raise InvalidSearchQuery(
-                f"{search_key.name}: Invalid date: {search_value.raw_value}. Expected +/-duration (e.g. +1h) or ISO 8601-like (e.g. {datetime.now().isoformat()[:-4]})."
-            )
-        if search_key.name in self.boolean_keys:
-            raise InvalidSearchQuery(
-                f"{search_key.name}: Invalid boolean: {search_value.raw_value}. Expected true, 1, false, or 0."
-            )
-        if self.is_numeric_key(search_key.name):
-            raise InvalidSearchQuery(
-                f"{search_key.name}: Invalid number: {search_value.raw_value}. Expected number then optional k, m, or b suffix (e.g. 500k)."
-            )
-
-        return SearchFilter(search_key, operator, search_value)
-
     def visit_has_filter(self, node, children):
         # the key is has here, which we don't need
         negation, _, _, (search_key,) = children
@@ -696,9 +671,37 @@ class SearchVisitor(NodeVisitor):
     def visit_is_filter(self, node, children):
         raise InvalidSearchQuery('"is:" queries are only supported in issue search.')
 
-    def visit_search_key(self, node, children):
-        key = children[0]
-        return SearchKey(self.key_mappings_lookup.get(key, key))
+    def visit_text_in_filter(self, node, children):
+        (negation, search_key, _, search_value) = children
+        operator = "IN"
+        search_value = SearchValue(process_list(search_value[1], search_value[2]))
+
+        operator = handle_negation(negation, operator)
+
+        return self._handle_basic_filter(search_key, operator, search_value)
+
+    def visit_text_filter(self, node, children):
+        (negation, search_key, _, search_value) = children
+        operator = "="
+        # XXX: We check whether the text in the node itself is actually empty, so
+        # we can tell the difference between an empty quoted string and no string
+        if not search_value.raw_value and not node.children[3].text:
+            raise InvalidSearchQuery(f"Empty string after '{search_key.name}:'")
+
+        operator = handle_negation(negation, operator)
+
+        return self._handle_basic_filter(search_key, operator, search_value)
+
+    # --- End of filter visitors
+
+    def visit_key(self, node, children):
+        return node.text
+
+    def visit_quoted_key(self, node, children):
+        return node.match.groups()[0]
+
+    def visit_explicit_tag_key(self, node, children):
+        return SearchKey(f"tags[{children[2].name}]")
 
     def visit_aggregate_key(self, node, children):
         children = remove_optional_nodes(children)
@@ -717,14 +720,12 @@ class SearchVisitor(NodeVisitor):
     def visit_function_args(self, node, children):
         return process_list(children[0], children[1])
 
-    def visit_search_value(self, node, children):
-        return SearchValue(children[0])
+    def visit_search_key(self, node, children):
+        key = children[0]
+        return SearchKey(self.key_mappings_lookup.get(key, key))
 
-    def visit_closed_paren(self, node, children):
-        return node.text
-
-    def visit_open_paren(self, node, children):
-        return node.text
+    def visit_text_key(self, node, children):
+        return children[0]
 
     def visit_value(self, node, children):
         # A properly quoted value will match the quoted value regex, so any unescaped
@@ -747,26 +748,47 @@ class SearchVisitor(NodeVisitor):
 
         return node.text.replace('\\"', '"')
 
-    def visit_key(self, node, children):
-        return node.text
+    def visit_quoted_value(self, node, children):
+        return node.match.groups()[0].replace('\\"', '"')
 
     def visit_in_value(self, node, children):
         return node.text.replace('\\"', '"')
 
-    def visit_quoted_value(self, node, children):
-        return node.match.groups()[0].replace('\\"', '"')
-
-    def visit_quoted_key(self, node, children):
-        return node.match.groups()[0]
-
-    def visit_explicit_tag_key(self, node, children):
-        return SearchKey(f"tags[{children[2].name}]")
-
-    def visit_text_key(self, node, children):
-        return children[0]
-
     def visit_text_value(self, node, children):
         return children[0]
+
+    def visit_search_value(self, node, children):
+        return SearchValue(children[0])
+
+    # def visit_numeric_value
+    # def visit_boolean_value
+    # def visit_text_in_list
+    # def visit_numerc_in_list
+
+    def visit_iso_8601_date_format(self, node, children):
+        return node.text
+
+    # def visit_rel_date_format
+    # def visit_duration_format
+    # def visit_percentage_format
+
+    def visit_operator(self, node, children):
+        return node.text
+
+    # def visit_or_operator
+    # def visit_and_operator
+
+    def visit_open_paren(self, node, children):
+        return node.text
+
+    def visit_closed_paren(self, node, children):
+        return node.text
+
+    # def visit_open_bracket
+    # def visit_closed_bracket
+    # def visit_sep
+    # def visit_negation
+    # def visit_comma
 
     def visit_spaces(self, node, children):
         return " "
