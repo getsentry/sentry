@@ -909,13 +909,13 @@ class QueryTransformTest(TestCase):
             "meta": [
                 {"name": "transaction"},
                 {"name": "project_threshold_config"},
-                {"name": "apdex_new"},
+                {"name": "apdex"},
             ],
             "data": [
                 {
                     "transaction": "api.do_things",
                     "project_threshold_config": ("duration", 300),
-                    "apdex_new": 0.15,
+                    "apdex": 0.15,
                 }
             ],
         }
@@ -923,7 +923,7 @@ class QueryTransformTest(TestCase):
         discover.query(
             selected_columns=[
                 "transaction",
-                "apdex_new()",
+                "apdex()",
             ],
             query="",
             params={"project_id": [self.project.id], "organization_id": self.organization.id},
@@ -938,7 +938,7 @@ class QueryTransformTest(TestCase):
                 [
                     "apdex(multiIf(equals(tupleElement(project_threshold_config,1),'lcp'),if(has(measurements.key,'lcp'),arrayElement(measurements.value,indexOf(measurements.key,'lcp')),NULL),duration),tupleElement(project_threshold_config,2))",
                     None,
-                    "apdex_new",
+                    "apdex",
                 ]
             ],
             selected_columns=[
@@ -998,13 +998,13 @@ class QueryTransformTest(TestCase):
             "meta": [
                 {"name": "transaction"},
                 {"name": "project_threshold_config"},
-                {"name": "user_misery_new"},
+                {"name": "user_misery"},
             ],
             "data": [
                 {
                     "transaction": "api.do_things",
                     "project_threshold_config": ("duration", 300),
-                    "user_misery_new": 0.15,
+                    "user_misery": 0.15,
                 }
             ],
         }
@@ -1012,7 +1012,7 @@ class QueryTransformTest(TestCase):
         discover.query(
             selected_columns=[
                 "transaction",
-                "user_misery_new()",
+                "user_misery()",
             ],
             query="",
             params={"project_id": [self.project.id], "organization_id": self.organization.id},
@@ -1027,7 +1027,7 @@ class QueryTransformTest(TestCase):
                 [
                     "ifNull(divide(plus(uniqIf(user,greater(multiIf(equals(tupleElement(project_threshold_config,1),'lcp'),if(has(measurements.key,'lcp'),arrayElement(measurements.value,indexOf(measurements.key,'lcp')),NULL),duration),multiply(tupleElement(project_threshold_config,2),4))),5.8875),plus(uniq(user),117.75)),0)",
                     None,
-                    "user_misery_new",
+                    "user_misery",
                 ]
             ],
             selected_columns=[
@@ -1062,7 +1062,11 @@ class QueryTransformTest(TestCase):
         mock_query.assert_called_with(
             selected_columns=["transaction"],
             aggregations=[
-                ["uniqIf", ["user", ["greater", ["duration", 1200.0]]], "count_miserable_user_300"]
+                [
+                    "uniqIf(user, greater(duration, 1200))",
+                    None,
+                    "count_miserable_user_300",
+                ],
             ],
             filter_keys={"project_id": [self.project.id]},
             dataset=Dataset.Discover,
@@ -1234,20 +1238,20 @@ class QueryTransformTest(TestCase):
             "meta": [
                 {"name": "transaction"},
                 {"name": "project_threshold_config"},
-                {"name": "count_miserable_new_user_project_threshold_config"},
+                {"name": "count_miserable_user_project_threshold_config"},
             ],
             "data": [
                 {
                     "transaction": "api.do_things",
                     "project_threshold_config": ("duration", 400),
-                    "count_miserable_new_user": 15,
+                    "count_miserable_user": 15,
                 }
             ],
         }
         discover.query(
             selected_columns=[
                 "transaction",
-                "count_miserable_new(user)",
+                "count_miserable(user)",
             ],
             query="",
             params={"project_id": [self.project.id], "organization_id": self.organization.id},
@@ -1261,34 +1265,22 @@ class QueryTransformTest(TestCase):
             conditions=[],
             aggregations=[
                 [
-                    "uniqIf",
-                    [
-                        "user",
-                        [
-                            "greater",
-                            [
-                                [
-                                    "multiIf",
-                                    [
-                                        [
-                                            "equals",
-                                            [
-                                                ["tupleElement", ["project_threshold_config", 1]],
-                                                "'lcp'",
-                                            ],
-                                        ],
-                                        "measurements[lcp]",
-                                        "duration",
-                                    ],
-                                ],
-                                [
-                                    "multiply",
-                                    [["tupleElement", ["project_threshold_config", 2]], 4],
-                                ],
-                            ],
-                        ],
-                    ],
-                    "count_miserable_new_user",
+                    """
+                    uniqIf(user, greater(
+                        multiIf(
+                            equals(tupleElement(project_threshold_config, 1), 'lcp'),
+                            if(has(measurements.key, 'lcp'), arrayElement(measurements.value, indexOf(measurements.key, 'lcp')), NULL),
+                            duration
+                        ),
+                        multiply(tupleElement(project_threshold_config, 2), 4)
+                    ))
+                    """.replace(
+                        "\n", ""
+                    ).replace(
+                        " ", ""
+                    ),
+                    None,
+                    "count_miserable_user",
                 ]
             ],
             selected_columns=[
