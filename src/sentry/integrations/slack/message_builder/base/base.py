@@ -23,7 +23,7 @@ class SlackMessageBuilder(AbstractMessageBuilder, ABC):
         """
         Helper to DRY up Slack specific fields.
 
-        :param string title: Title text. TODO MARCOS this might actually be optional.
+        :param string title: Title text.
         :param string text: Body text.
         :param [string] footer: Footer text.
         :param [string] color: The key in the Slack palate table, NOT hex. Default: "info".

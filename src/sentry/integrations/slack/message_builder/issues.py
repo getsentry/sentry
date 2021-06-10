@@ -44,7 +44,6 @@ def get_member_assignees(group: Group) -> Sequence[Mapping[str, str]]:
         .select_related("user")
     )
 
-    # TODO MARCOS 5
     members = sorted(queryset, key=lambda u: u.user.get_display_name())  # type: ignore
 
     return [format_actor_option(u.user) for u in members]
