@@ -1,5 +1,6 @@
 import logging
-from typing import AbstractSet, Any, Mapping, Optional, Set, Tuple, Union
+from collections import defaultdict
+from typing import AbstractSet, Any, Mapping, Optional, Set, Union
 
 from sentry.integrations.slack.client import SlackClient  # NOQA
 from sentry.integrations.slack.message_builder.notifications import build_notification_attachment
@@ -22,7 +23,7 @@ def get_context(
     shared_context: Mapping[str, Any],
     extra_context: Mapping[str, Any],
 ) -> Mapping[str, Any]:
-    """Compose the various levels of context and add slack-specific fields."""
+    """Compose the various levels of context and add Slack-specific fields."""
     return {
         **shared_context,
         **notification.get_user_context(recipient, extra_context),
@@ -31,7 +32,7 @@ def get_context(
 
 def get_channel_and_integration_by_user(
     user: User, organization: Organization
-) -> Tuple[Optional[str], Optional[Integration]]:
+) -> Mapping[Optional[str], Optional[Integration]]:
 
     identities = Identity.objects.filter(
         idp__type=EXTERNAL_PROVIDERS[ExternalProviders.SLACK],
@@ -43,24 +44,27 @@ def get_channel_and_integration_by_user(
         # recipients.
         return None, None
 
-    try:
-        integration = Integration.objects.get(
-            provider=EXTERNAL_PROVIDERS[ExternalProviders.SLACK],
-            organizations=organization,
-            external_id__in=[identity.idp.external_id for identity in identities],
-        )
-    except Integration.DoesNotExist:
-        return None, None
+    channels_to_integration = {}
 
-    matched_identity = [
-        identity for identity in identities if integration.external_id == identity.idp.external_id
-    ]
-    return matched_identity[0].external_id, integration
+    for identity in identities:
+        try:
+            integration = Integration.objects.get(
+                provider=EXTERNAL_PROVIDERS[ExternalProviders.SLACK],
+                organizations=organization,
+                external_id=identity.idp.external_id,
+            )
+        except Integration.DoesNotExist:
+            continue
+
+        else:
+            channels_to_integration[identity.external_id] = integration
+
+    return channels_to_integration
 
 
 def get_channel_and_integration_by_team(
     team: Team, organization: Organization
-) -> Tuple[Optional[str], Optional[Integration]]:
+) -> Mapping[Optional[str], Optional[Integration]]:
     try:
         external_actor = (
             ExternalActor.objects.filter(
@@ -74,37 +78,34 @@ def get_channel_and_integration_by_team(
     except ExternalActor.DoesNotExist:
         return None, None
 
-    return (
-        external_actor.external_id,
-        external_actor.integration,
-    )
+    return {external_actor.external_id: external_actor.integration}
 
 
 def get_channel_and_token_by_recipient(
     organization: Organization, recipients: AbstractSet[Union[User, Team]]
-) -> Mapping[Union[User, Team], Tuple[str, str]]:
-    output = {}
+) -> Mapping[Union[User, Team], Mapping[str, str]]:
+    output = defaultdict(dict)
     for recipient in recipients:
-        channel, integration = (
+        channels_to_integrations = (
             get_channel_and_integration_by_user(recipient, organization)
             if isinstance(recipient, User)
             else get_channel_and_integration_by_team(recipient, organization)
         )
+        for channel, integration in channels_to_integrations.items():
+            try:
+                token = integration.metadata["access_token"]
+            except AttributeError as e:
+                logger.info(
+                    "notification.fail.invalid_slack",
+                    extra={
+                        "error": str(e),
+                        "organization": organization,
+                        "recipient": recipient.id,
+                    },
+                )
+                continue
 
-        try:
-            token = integration.metadata["access_token"]
-        except AttributeError as e:
-            logger.info(
-                "notification.fail.invalid_slack",
-                extra={
-                    "error": str(e),
-                    "organization": organization,
-                    "recipient": recipient.id,
-                },
-            )
-            continue
-
-        output[recipient] = channel, token
+            output[recipient][channel] = token
     return output
 
 
@@ -127,29 +128,30 @@ def send_notification_as_slack(
     """Send an "activity" or "alert rule" notification to a Slack user or team."""
     client = SlackClient()
     data = get_channel_and_token_by_recipient(notification.organization, recipients)
-    for recipient, (channel, token) in data.items():
-        extra_context = (extra_context_by_user_id or {}).get(recipient.id, {})
-        context = get_context(notification, recipient, shared_context, extra_context)
-        attachment = [build_notification_attachment(notification, context)]
-        payload = {
-            "token": token,
-            "channel": channel,
-            "link_names": 1,
-            "attachments": json.dumps(attachment),
-        }
-        try:
-            client.post("/chat.postMessage", data=payload, timeout=5)
-        except ApiError as e:
-            logger.info(
-                "notification.fail.slack_post",
-                extra={
-                    "error": str(e),
-                    "notification": notification,
-                    "recipient": recipient.id,
-                    "channel_id": channel,
-                },
-            )
-            continue
+    for recipient, tokens_by_channel in data.items():
+        for channel, token in tokens_by_channel.items():
+            extra_context = (extra_context_by_user_id or {}).get(recipient.id, {})
+            context = get_context(notification, recipient, shared_context, extra_context)
+            attachment = [build_notification_attachment(notification, context)]
+            payload = {
+                "token": token,
+                "channel": channel,
+                "link_names": 1,
+                "attachments": json.dumps(attachment),
+            }
+            try:
+                client.post("/chat.postMessage", data=payload, timeout=5)
+            except ApiError as e:
+                logger.info(
+                    "notification.fail.slack_post",
+                    extra={
+                        "error": str(e),
+                        "notification": notification,
+                        "recipient": recipient.id,
+                        "channel_id": channel,
+                    },
+                )
+                continue
 
     key = get_key(notification)
     metrics.incr(
