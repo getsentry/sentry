@@ -899,13 +899,3 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
             )
 
         assert response.status_code == 403
-
-    def test_key_transactions_without_feature(self):
-        url = reverse("sentry-api-0-organization-key-transactions", args=[self.org.slug])
-        functions = [self.client.post, self.client.delete]
-        for function in functions:
-            response = function(url)
-            assert response.status_code == 404
-        url = reverse("sentry-api-0-organization-is-key-transactions", args=[self.org.slug])
-        response = self.client.get(url)
-        assert response.status_code == 404
