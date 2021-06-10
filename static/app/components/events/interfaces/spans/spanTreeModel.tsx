@@ -5,7 +5,7 @@ import {getSpanID} from './utils';
 
 class SpanTreeModel {
   // readonly state
-  span: SpanType;
+  span: Readonly<SpanType>;
   children: Array<SpanTreeModel> = [];
 
   constructor(parentSpan: SpanType, childSpans: SpanChildrenLookupType) {
