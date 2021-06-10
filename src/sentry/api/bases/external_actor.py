@@ -13,7 +13,14 @@ from sentry.api.validators.external_actor import (
     validate_integration_id,
 )
 from sentry.api.validators.integrations import validate_provider
-from sentry.models import ExternalActor, Organization, Team, User
+from sentry.models import (
+    ExternalActor,
+    Organization,
+    ProjectCodeOwners,
+    RepositoryProjectPathConfig,
+    Team,
+    User,
+)
 from sentry.types.integrations import ExternalProviders, get_provider_choices
 
 AVAILABLE_PROVIDERS = {
@@ -22,6 +29,19 @@ AVAILABLE_PROVIDERS = {
     ExternalProviders.SLACK,
     ExternalProviders.CUSTOM,
 }
+
+
+def update_codeowner_schemas(integration):
+    code_mapping_ids = RepositoryProjectPathConfig.objects.filter(
+        organization_integration__integration=integration,
+    ).values_list("id", flat=True)
+
+    codeowners = ProjectCodeOwners.objects.filter(
+        repository_project_path_config__in=code_mapping_ids
+    )
+
+    for codeowner in codeowners:
+        codeowner.update_schema()
 
 
 class ExternalActorSerializerBase(CamelSnakeModelSerializer):  # type: ignore
@@ -49,11 +69,13 @@ class ExternalActorSerializerBase(CamelSnakeModelSerializer):  # type: ignore
 
     def create(self, validated_data: MutableMapping[str, Any]) -> ExternalActor:
         actor_id = self.get_actor_id(validated_data)
-        return ExternalActor.objects.get_or_create(
+        external_actor, created = ExternalActor.objects.get_or_create(
             **validated_data,
             actor_id=actor_id,
             organization=self.organization,
         )
+        update_codeowner_schemas(external_actor.integration)
+        return external_actor, created
 
     def update(
         self, instance: ExternalActor, validated_data: MutableMapping[str, Any]
@@ -69,6 +91,7 @@ class ExternalActorSerializerBase(CamelSnakeModelSerializer):  # type: ignore
             setattr(self.instance, key, value)
         try:
             self.instance.save()
+            update_codeowner_schemas(self.instance.integration)
             return self.instance
         except IntegrityError:
             raise serializers.ValidationError(

@@ -18,9 +18,9 @@ from sentry.models import (
     ProjectCodeOwners,
     RepositoryProjectPathConfig,
     UserEmail,
-    actor_type_to_string,
 )
-from sentry.ownership.grammar import convert_codeowners_syntax, parse_code_owners
+from sentry.models.projectcodeowners import codeowners_to_ownership_syntax
+from sentry.ownership.grammar import parse_code_owners
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -98,22 +98,9 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):  # type: ignore
         external_association_err.extend(external_teams_diff)
 
         # Convert CODEOWNERS into IssueOwner syntax
-        users_dict = {}
-        teams_dict = {}
-        teams_without_access = []
-        for external_actor in external_actors:
-            type = actor_type_to_string(external_actor.actor.type)
-            if type == "user":
-                user = external_actor.actor.resolve()
-                users_dict[external_actor.external_name] = user.email
-            elif type == "team":
-                team = external_actor.actor.resolve()
-                # make sure the sentry team has access to the project
-                # tied to the codeowner
-                if self.context["project"] in team.get_projects():
-                    teams_dict[external_actor.external_name] = f"#{team.slug}"
-                else:
-                    teams_without_access.append(f"#{team.slug}")
+        issue_owner_rules, teams_without_access = codeowners_to_ownership_syntax(
+            attrs["raw"], attrs["code_mapping_id"], self.context["project"], external_actors, emails
+        )
 
         if teams_without_access:
             teams_without_access_err = [
@@ -123,13 +110,6 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):  # type: ignore
 
         if len(external_association_err) and not ignore_missing:
             raise serializers.ValidationError({"raw": "\n".join(external_association_err)})
-
-        emails_dict = {email: email for email in emails}
-        associations = {**users_dict, **teams_dict, **emails_dict}
-
-        issue_owner_rules = convert_codeowners_syntax(
-            attrs["raw"], associations, attrs["code_mapping_id"]
-        )
 
         # Convert IssueOwner syntax into schema syntax
         validated_data = ProjectOwnershipSerializer(context=self.context).validate(

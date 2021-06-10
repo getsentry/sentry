@@ -5,7 +5,11 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.bases.external_actor import ExternalActorEndpointMixin, ExternalTeamSerializer
+from sentry.api.bases.external_actor import (
+    ExternalActorEndpointMixin,
+    ExternalTeamSerializer,
+    update_codeowner_schemas,
+)
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.serializers import serialize
 from sentry.models import ExternalActor, Team
@@ -64,6 +68,8 @@ class ExternalTeamDetailsEndpoint(TeamEndpoint, ExternalActorEndpointMixin):  # 
         Delete an External Team
         """
         self.assert_has_feature(request, team.organization)
+        integration = external_team.integration
 
         external_team.delete()
+        update_codeowner_schemas(integration)
         return Response(status=status.HTTP_204_NO_CONTENT)
