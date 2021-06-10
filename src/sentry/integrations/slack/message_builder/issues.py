@@ -347,7 +347,7 @@ def build_group_attachment(
     link_to_event: bool = False,
     issue_alert: bool = False,
 ) -> SlackBody:
-    """ @deprecated """
+    """@deprecated"""
     return SlackIssuesMessageBuilder(
         group, event, tags, identity, actions, rules, link_to_event, issue_alert
     ).build()
