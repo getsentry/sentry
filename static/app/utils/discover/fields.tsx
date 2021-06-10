@@ -23,6 +23,7 @@ export type ColumnType =
   | 'string';
 
 export type ColumnValueType = ColumnType | 'never'; // Matches to nothing
+export type DataType = ColumnType | 'autoNumber';
 
 type ValidateColumnValueFunction = ({name: string, dataType: ColumnType}) => boolean;
 
@@ -37,7 +38,7 @@ export type AggregateParameter =
     }
   | {
       kind: 'value';
-      dataType: ColumnType;
+      dataType: DataType;
       defaultValue?: string;
       required: boolean;
     };
@@ -263,14 +264,16 @@ export const AGGREGATIONS = {
   },
   apdex: {
     generateDefaultValue({parameter, organization}: DefaultValueInputs) {
-      return organization.apdexThreshold?.toString() ?? parameter.defaultValue;
+      return organization.features.includes('project-transaction-threshold')
+        ? 'auto'
+        : organization.apdexThreshold?.toString() ?? parameter.defaultValue;
     },
     parameters: [
       {
         kind: 'value',
-        dataType: 'number',
+        dataType: 'autoNumber',
         defaultValue: '300',
-        required: true,
+        required: false,
       },
     ],
     outputType: 'number',
@@ -279,12 +282,14 @@ export const AGGREGATIONS = {
   },
   user_misery: {
     generateDefaultValue({parameter, organization}: DefaultValueInputs) {
-      return organization.apdexThreshold?.toString() ?? parameter.defaultValue;
+      return organization.features.includes('project-transaction-threshold')
+        ? 'auto'
+        : organization.apdexThreshold?.toString() ?? parameter.defaultValue;
     },
     parameters: [
       {
         kind: 'value',
-        dataType: 'number',
+        dataType: 'autoNumber',
         defaultValue: '300',
         required: true,
       },
@@ -310,7 +315,9 @@ export const AGGREGATIONS = {
       if (parameter.kind === 'column') {
         return 'user';
       }
-      return organization.apdexThreshold?.toString() ?? parameter.defaultValue;
+      return organization.features.includes('project-transaction-threshold')
+        ? 'auto'
+        : organization.apdexThreshold?.toString() ?? parameter.defaultValue;
     },
     parameters: [
       {
@@ -321,7 +328,7 @@ export const AGGREGATIONS = {
       },
       {
         kind: 'value',
-        dataType: 'number',
+        dataType: 'autoNumber',
         defaultValue: '300',
         required: true,
       },

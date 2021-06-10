@@ -228,7 +228,9 @@ function incompatibleYAxis(eventView: EventView): boolean {
   }
 
   const isNumericParameter = aggregation.parameters.some(
-    param => param.kind === 'value' && param.dataType === 'number'
+    param =>
+      param.kind === 'value' &&
+      (param.dataType === 'number' || param.dataType === 'autoNumber')
   );
   // There are other measurements possible, but for the time being, only allow alerting
   // on the predefined set of measurements for alerts.

@@ -12,7 +12,7 @@ import {SelectValue} from 'app/types';
 import {
   AggregateParameter,
   AggregationKey,
-  ColumnType,
+  DataType,
   QueryFieldValue,
   ValidateColumnTypes,
 } from 'app/utils/discover/fields';
@@ -30,7 +30,7 @@ type ParameterDescription =
   | {
       kind: 'value';
       value: string;
-      dataType: ColumnType;
+      dataType: DataType;
       required: boolean;
     }
   | {
@@ -144,7 +144,11 @@ class QueryField extends React.Component<Props> {
             fieldValue.function[i + 2] = undefined;
           }
         } else if (param.kind === 'value') {
-          fieldValue.function[i + 1] = param.defaultValue || '';
+          if (param.dataType === 'autoNumber' && param.defaultValue === 'auto') {
+            fieldValue.function[i + 1] = '';
+          } else {
+            fieldValue.function[i + 1] = param.defaultValue || '';
+          }
         }
       });
 
@@ -176,12 +180,20 @@ class QueryField extends React.Component<Props> {
     this.triggerChange(newColumn);
   };
 
-  handleScalarParameterChange = (value: string) => {
-    const newColumn = cloneDeep(this.props.fieldValue);
-    if (newColumn.kind === 'function') {
-      newColumn.function[1] = value;
-    }
-    this.triggerChange(newColumn);
+  handleScalarParameterChange = (dataType: DataType) => {
+    const func = (value: string) => {
+      const newColumn = cloneDeep(this.props.fieldValue);
+      if (newColumn.kind === 'function') {
+        if (dataType === 'autoNumber' && value === 'auto') {
+          newColumn.function[1] = '';
+        } else {
+          newColumn.function[1] = value;
+        }
+      }
+      this.triggerChange(newColumn);
+    };
+
+    return func;
   };
 
   handleRefinementChange = (value: string) => {
@@ -353,7 +365,9 @@ class QueryField extends React.Component<Props> {
       }
       if (descriptor.kind === 'value') {
         const handler =
-          index === 0 ? this.handleScalarParameterChange : this.handleRefinementChange;
+          index === 0
+            ? this.handleScalarParameterChange(descriptor.dataType)
+            : this.handleRefinementChange;
 
         const inputProps = {
           required: descriptor.required,
@@ -370,6 +384,17 @@ class QueryField extends React.Component<Props> {
                 type="text"
                 inputMode="numeric"
                 pattern="[0-9]*(\.[0-9]*)?"
+                {...inputProps}
+              />
+            );
+          case 'autoNumber':
+            return (
+              <BufferedInput
+                name="refinement"
+                key="parameter:number"
+                type="text"
+                inputMode="numeric"
+                pattern="auto|aut|au|a|[0-9]*(\.[0-9]*)?"
                 {...inputProps}
               />
             );
