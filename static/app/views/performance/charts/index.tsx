@@ -57,6 +57,8 @@ class Container extends Component<Props> {
     const {utc} = getParams(location.query);
     const axisOptions = this.getChartParameters();
 
+    const apiPayload = eventView.getEventsAPIPayload(location);
+
     return (
       <Panel>
         <EventsRequest
@@ -65,6 +67,7 @@ class Container extends Component<Props> {
           period={globalSelection.datetime.period}
           project={globalSelection.projects}
           environment={globalSelection.environments}
+          team={apiPayload.team}
           start={start}
           end={end}
           interval={getInterval(
@@ -76,7 +79,7 @@ class Container extends Component<Props> {
             true
           )}
           showLoading={false}
-          query={eventView.getEventsAPIPayload(location).query}
+          query={apiPayload.query}
           includePrevious={false}
           yAxis={axisOptions.map(opt => opt.value)}
           partial
