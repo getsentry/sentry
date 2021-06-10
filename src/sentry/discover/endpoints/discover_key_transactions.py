@@ -28,7 +28,7 @@ class IsKeyTransactionEndpoint(KeyTransactionBase):
     permission_classes = (KeyTransactionPermission,)
 
     def get(self, request, organization):
-        """ Get the Key Transactions for a user """
+        """Get the Key Transactions for a user"""
         project = self.get_project(request, organization)
 
         transaction = request.GET.get("transaction")
@@ -68,7 +68,7 @@ class KeyTransactionEndpoint(KeyTransactionBase):
         return Response(serialize(list(key_teams)), status=200)
 
     def post(self, request, organization):
-        """ Create a Key Transaction """
+        """Create a Key Transaction"""
         project = self.get_project(request, organization)
 
         if not self.has_team_feature(request, organization):
@@ -143,7 +143,7 @@ class KeyTransactionEndpoint(KeyTransactionBase):
         return Response(serializer.errors, status=400)
 
     def delete(self, request, organization):
-        """ Remove a Key transaction for a user """
+        """Remove a Key transaction for a user"""
         project = self.get_project(request, organization)
 
         if not self.has_team_feature(request, organization):
