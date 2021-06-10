@@ -1,4 +1,5 @@
 import logging
+from typing import Optional
 from uuid import uuid4
 
 from django.conf import settings
@@ -224,60 +225,41 @@ class AuthIdentityHandler:
 
         return om
 
+    def _get_auth_identity(self, **params) -> Optional[AuthIdentity]:
+        try:
+            return AuthIdentity.objects.get(auth_provider=self.auth_provider, **params)
+        except AuthIdentity.DoesNotExist:
+            return None
+
     @transaction.atomic
     def handle_attach_identity(self, identity, member=None):
         """
         Given an already authenticated user, attach or re-attach an identity.
         """
-        try:
-            try:
-                # prioritize identifying by the SSO provider's user ID
-                auth_identity = AuthIdentity.objects.get(
-                    auth_provider=self.auth_provider, ident=identity["id"]
-                )
-            except AuthIdentity.DoesNotExist:
-                # otherwise look for an already attached identity
-                # this can happen if the SSO provider's internal ID changes
-                auth_identity = AuthIdentity.objects.get(
-                    auth_provider=self.auth_provider, user=self.user
-                )
-        except AuthIdentity.DoesNotExist:
+        # prioritize identifying by the SSO provider's user ID
+        auth_identity = self._get_auth_identity(ident=identity["id"])
+        if auth_identity is None:
+            # otherwise look for an already attached identity
+            # this can happen if the SSO provider's internal ID changes
+            auth_identity = self._get_auth_identity(user=self.user)
+
+        auth_is_new = auth_identity is None
+        if auth_is_new:
             auth_identity = AuthIdentity.objects.create(
                 auth_provider=self.auth_provider,
                 user=self.user,
                 ident=identity["id"],
                 data=identity.get("data", {}),
             )
-            auth_is_new = True
         else:
-            now = timezone.now()
-
             # TODO(dcramer): this might leave the user with duplicate accounts,
             # and in that kind of situation its very reasonable that we could
             # test email addresses + is_managed to determine if we can auto
             # merge
             if auth_identity.user != self.user:
-                # it's possible the user has an existing identity, let's wipe it out
-                # so that the new identifier gets used (other we'll hit a constraint)
-                # violation since one might exist for (provider, user) as well as
-                # (provider, ident)
-                AuthIdentity.objects.exclude(id=auth_identity.id).filter(
-                    auth_provider=self.auth_provider, user=self.user
-                ).delete()
+                self._wipe_existing_identity(auth_identity)
 
-                # since we've identify an identity which is no longer valid
-                # lets preemptively mark it as such
-                try:
-                    other_member = OrganizationMember.objects.get(
-                        user=auth_identity.user_id, organization=self.organization
-                    )
-                except OrganizationMember.DoesNotExist:
-                    pass
-                else:
-                    other_member.flags["sso:invalid"] = True
-                    other_member.flags["sso:linked"] = False
-                    other_member.save()
-
+            now = timezone.now()
             auth_identity.update(
                 user=self.user,
                 ident=identity["id"],
@@ -287,34 +269,9 @@ class AuthIdentityHandler:
                 last_verified=now,
                 last_synced=now,
             )
-            auth_is_new = False
 
         if member is None:
-            try:
-                member = OrganizationMember.objects.get(
-                    user=self.user, organization=self.organization
-                )
-            except OrganizationMember.DoesNotExist:
-                member = OrganizationMember.objects.create(
-                    organization=self.organization,
-                    role=self.organization.default_role,
-                    user=self.user,
-                    flags=OrganizationMember.flags["sso:linked"],
-                )
-
-                default_teams = self.auth_provider.default_teams.all()
-                for team in default_teams:
-                    OrganizationMemberTeam.objects.create(team=team, organizationmember=member)
-
-                AuditLogEntry.objects.create(
-                    organization=self.organization,
-                    actor=self.user,
-                    ip_address=self.request.META["REMOTE_ADDR"],
-                    target_object=member.id,
-                    target_user=self.user,
-                    event=AuditLogEntryEvent.MEMBER_ADD,
-                    data=member.get_audit_log_data(),
-                )
+            member = self._get_organization_member()
         if getattr(member.flags, "sso:invalid") or not getattr(member.flags, "sso:linked"):
             setattr(member.flags, "sso:invalid", False)
             setattr(member.flags, "sso:linked", True)
@@ -333,6 +290,55 @@ class AuthIdentityHandler:
             messages.add_message(self.request, messages.SUCCESS, OK_LINK_IDENTITY)
 
         return auth_identity
+
+    def _wipe_existing_identity(self, auth_identity: AuthIdentity):
+        # it's possible the user has an existing identity, let's wipe it out
+        # so that the new identifier gets used (other we'll hit a constraint)
+        # violation since one might exist for (provider, user) as well as
+        # (provider, ident)
+        AuthIdentity.objects.exclude(id=auth_identity.id).filter(
+            auth_provider=self.auth_provider, user=self.user
+        ).delete()
+
+        # since we've identified an identity which is no longer valid
+        # lets preemptively mark it as such
+        try:
+            other_member = OrganizationMember.objects.get(
+                user=auth_identity.user_id, organization=self.organization
+            )
+        except OrganizationMember.DoesNotExist:
+            return
+        other_member.flags["sso:invalid"] = True
+        other_member.flags["sso:linked"] = False
+        other_member.save()
+
+    def _get_organization_member(self) -> OrganizationMember:
+        try:
+            return OrganizationMember.objects.get(user=self.user, organization=self.organization)
+        except OrganizationMember.DoesNotExist:
+            pass
+
+        member = OrganizationMember.objects.create(
+            organization=self.organization,
+            role=self.organization.default_role,
+            user=self.user,
+            flags=OrganizationMember.flags["sso:linked"],
+        )
+
+        default_teams = self.auth_provider.default_teams.all()
+        for team in default_teams:
+            OrganizationMemberTeam.objects.create(team=team, organizationmember=member)
+
+        AuditLogEntry.objects.create(
+            organization=self.organization,
+            actor=self.user,
+            ip_address=self.request.META["REMOTE_ADDR"],
+            target_object=member.id,
+            target_user=self.user,
+            event=AuditLogEntryEvent.MEMBER_ADD,
+            data=member.get_audit_log_data(),
+        )
+        return member
 
     @staticmethod
     def _get_display_name(identity):
@@ -518,9 +524,7 @@ class AuthIdentityHandler:
                     data=identity.get("data", {}),
                 )
         except IntegrityError:
-            auth_identity = AuthIdentity.objects.get(
-                auth_provider=self.auth_provider, ident=identity["id"]
-            )
+            auth_identity = self._get_auth_identity(ident=identity["id"])
             auth_identity.update(user=user, data=identity.get("data", {}))
 
         user.send_confirm_emails(is_new_user=True)
