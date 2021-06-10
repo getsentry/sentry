@@ -5,8 +5,9 @@ from typing import IO, Optional, Tuple
 
 from django.utils.encoding import force_bytes, force_text
 
-from sentry.models.releasefile import ReleaseArchive
-from sentry.tasks.assemble import RELEASE_ARCHIVE_FILENAME
+from sentry.models.file import File
+from sentry.models.releasefile import MANIFEST_FILENAME, ReleaseArchive, ReleaseMultiArchive
+from sentry.utils import json
 
 __all__ = ["JavaScriptStacktraceProcessor"]
 
@@ -392,17 +393,57 @@ def get_from_archive(url: str, archive: ReleaseArchive) -> Tuple[bytes, dict]:
     raise KeyError(f"Not found in archive: '{url}'")
 
 
+@metrics.wraps("sourcemaps.load_release_manifest")
+def get_manifest(release, dist):
+    dist_name = dist and dist.name or None
+
+    manifest_ident = ReleaseFile.get_ident(MANIFEST_FILENAME, dist_name)
+    manifest_key = f"release-manifest:v1:{release.id}:{manifest_ident}"
+    result = cache.get(manifest_key)
+    if result == -1:
+        manifest = None
+    elif result:
+        manifest = json.loads(result)
+    else:
+        multi_archive = ReleaseMultiArchive(release, dist)
+        manifest = multi_archive.manifest.readable_data()
+        cache_value = -1 if manifest is None else json.dumps(manifest)
+        # Only cache for a short time to keep the manifest up-to-date
+        cache.set(manifest_key, cache_value, timeout=60)
+
+    return manifest
+
+
+def get_info_from_manifest(release, dist, url) -> Optional[dict]:
+    manifest = get_manifest(release, dist)
+    if manifest:
+        for candidate in ReleaseFile.normalize(url):
+            info = manifest.get("files", {}).get(candidate)
+            if info:
+                return info
+
+    return None
+
+
 @metrics.wraps("sourcemaps.fetch_release_archive")
-def fetch_release_archive(release, dist) -> Optional[IO]:
+def fetch_release_archive(release, dist, url) -> Optional[IO]:
     """Fetch release archive and cache if possible.
 
     If return value is not empty, the caller is responsible for closing the stream.
     """
-    dist_name = dist and dist.name or None
-    releasefile_ident = ReleaseFile.get_ident(RELEASE_ARCHIVE_FILENAME, dist_name)
-    cache_key = get_release_file_cache_key(
-        release_id=release.id, releasefile_ident=releasefile_ident
-    )
+
+    info = get_info_from_manifest(release, dist, url)
+    if info is None:
+        # Cannot write negative cache entry here because ID of release archive
+        # is not yet known
+        return None
+
+    archive_id = info["archive_id"]
+
+    # TODO(jjbayer): Could already extract filename from info and return
+    # it here.
+
+    cache_key = f"release-bundle:v1:{release.id}:{archive_id}"
 
     result = cache.get(cache_key)
 
@@ -411,18 +452,20 @@ def fetch_release_archive(release, dist) -> Optional[IO]:
     elif result:
         return BytesIO(result)
     else:
-        qs = ReleaseFile.objects.filter(
-            release=release, dist=dist, ident=releasefile_ident
-        ).select_related("file")
+        qs = File.objects.filter(pk=archive_id, type="release.bundle")
         try:
-            releasefile = qs[0]
+            file_ = qs[0]
         except IndexError:
+            # This should not happen when there is an archive_id in the manifest
+            logger.error("sourcemaps.missing_archive", exc_info=sys.exc_info())
             # Cache as nonexistent:
             cache.set(cache_key, -1, 60)
             return None
         else:
             try:
-                file_ = fetch_retry_policy(lambda: ReleaseFile.cache.getfile(releasefile))
+                file_ = fetch_retry_policy(
+                    lambda: ReleaseFile.cache.get_regular_file(file_, release.organization_id)
+                )
             except Exception:
                 logger.error("sourcemaps.read_archive_failed", exc_info=sys.exc_info())
 
@@ -460,8 +503,7 @@ def fetch_release_artifact(url, release, dist):
         return result_from_cache(url, result)
 
     start = time.monotonic()
-
-    release_file = fetch_release_archive(release, dist)
+    release_file = fetch_release_archive(release, dist, url)
     if release_file is not None:
         try:
             archive = ReleaseArchive(release_file)

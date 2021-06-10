@@ -221,8 +221,14 @@ class ManifestGuard:
         self._release = release
         self._dist = dist
 
+    def readable_data(self):
+        """Simple read, no synchronization necessary"""
+        file_, _ = self._get_file(create=False)
+        with file_.getfile() as fp:
+            return json.load(fp)
+
     @contextmanager
-    def writable(self, create: bool):
+    def writable_data(self, create: bool):
         """Context manager for editable release manifest"""
         with transaction.atomic():
 
@@ -259,13 +265,16 @@ class ManifestGuard:
             return release_file.file, created
         else:
             try:
-                file_ = File.objects.select_related("releasefile").get(
-                    type=MANIFEST_TYPE, releasefile__release=self._release
+                release_file = ReleaseFile.objects.select_related("file").get(
+                    organization_id=self._release.organization_id,
+                    release=self._release,
+                    dist=self._dist,
+                    name=MANIFEST_FILENAME,
                 )
-            except File.DoesNotExist:
+            except ReleaseFile.DoesNotExist:
                 return None, False
             else:
-                return file_, False
+                return release_file.file, False
 
 
 class ReleaseMultiArchive:
@@ -291,7 +300,7 @@ class ReleaseMultiArchive:
             # FIXME: more fields
             files_out[url] = info
 
-        with self.manifest.writable(create=True) as manifest:
+        with self.manifest.writable_data(create=True) as manifest:
             manifest.update_files(files_out)
 
     def delete(self, filename: str):
@@ -299,6 +308,6 @@ class ReleaseMultiArchive:
 
         Does *not* delete the file from the zip archive.
         """
-        with self.manifest.writable(create=False) as manifest:
+        with self.manifest.writable_data(create=False) as manifest:
             if manifest is not None:
                 manifest.delete(filename)
