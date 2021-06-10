@@ -515,8 +515,10 @@ def fetch_release_artifact(url, release, dist):
                 try:
                     fp, headers = get_from_archive(url, archive)
                 except KeyError:
-                    logger.debug(
-                        "Release artifact %r not found in archive (release_id=%s)", url, release.id
+                    # The manifest mapped the url to an archive, but the file
+                    # is not there.
+                    logger.error(
+                        "Release artifact %r not found in archive %s", url, release_file.id
                     )
                     cache.set(cache_key, -1, 60)
                     metrics.timing(
