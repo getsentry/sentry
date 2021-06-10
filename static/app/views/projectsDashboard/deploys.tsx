@@ -83,7 +83,7 @@ const Deploy = ({deploy, project, shorten}: DeployProps) => (
 const NoDeploys = () => (
   <GetStarted>
     <Button size="small" href="https://docs.sentry.io/product/releases/" external>
-      {t('Track deploys')}
+      {t('Track Deploys')}
     </Button>
   </GetStarted>
 );
