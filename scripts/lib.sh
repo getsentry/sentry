@@ -181,8 +181,16 @@ build-platform-assets() {
     echo "from sentry.utils.integrationdocs import sync_docs; sync_docs(quiet=True)" | sentry exec
 }
 
+copy-template-dotenv() {
+    # Assumes this is being run from the root directory of the repository.
+    if [[ ! -f .env ]]; then
+        cp .env.example .env
+    fi
+}
+
 bootstrap() {
     develop
+    copy-template-dotenv
     init-config
     run-dependent-services
     create-db
