@@ -90,3 +90,31 @@ export type OrphanTreeDepth = {
 };
 
 export type TreeDepthType = SpanTreeDepth | OrphanTreeDepth;
+
+export type IndexedFusedSpan = {
+  span: RawSpanType;
+  indexed: string[];
+  tagKeys: string[];
+  tagValues: string[];
+  dataKeys: string[];
+  dataValues: string[];
+};
+
+export type FuseResult = {
+  item: IndexedFusedSpan;
+  score: number;
+};
+
+export type FilterSpans = {
+  results: FuseResult[];
+  spanIDs: Set<string>;
+};
+
+export type SpanFuseOptions = {
+  keys: ('indexed' | 'tagKeys' | 'tagValues' | 'dataKeys' | 'dataValues')[];
+  includeMatches: false;
+  threshold: number;
+  location: number;
+  distance: number;
+  maxPatternLength: number;
+};
