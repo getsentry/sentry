@@ -19,7 +19,7 @@ function withTags<P extends InjectedTagsProps>(WrappedComponent: React.Component
   class WithTags extends React.Component<Omit<P, keyof InjectedTagsProps>, State> {
     static displayName = `withTags(${getDisplayName(WrappedComponent)})`;
 
-    state = {
+    state: State = {
       tags: TagStore.getAllTags(),
     };
 

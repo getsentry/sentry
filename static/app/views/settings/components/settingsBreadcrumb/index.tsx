@@ -87,7 +87,7 @@ class ConnectedSettingsBreadcrumb extends Component<
   Omit<Props, 'pathMap'>,
   ConnectedState
 > {
-  state = {pathMap: SettingsBreadcrumbStore.getPathMap()};
+  state: ConnectedState = {pathMap: SettingsBreadcrumbStore.getPathMap()};
 
   componentWillUnmount() {
     this.unsubscribe();
