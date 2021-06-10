@@ -2,6 +2,7 @@ import string
 from collections import OrderedDict
 from datetime import datetime
 from hashlib import md5
+from typing import Mapping, Optional
 
 import pytz
 import sentry_sdk
@@ -140,7 +141,7 @@ class Event:
             # vs ((tag, foo), (tag, bar))
             return []
 
-    def get_tag(self, key):
+    def get_tag(self, key: str) -> Optional[str]:
         for t, v in self.tags:
             if t == key:
                 return v
@@ -229,7 +230,7 @@ class Event:
         return None
 
     @property
-    def title(self):
+    def title(self) -> str:
         column = self.__get_column_name(Columns.TITLE)
         if column in self._snuba_data:
             return self._snuba_data[column]
@@ -307,7 +308,7 @@ class Event:
     def get_interface(self, name):
         return self.interfaces.get(name)
 
-    def get_event_metadata(self):
+    def get_event_metadata(self) -> Mapping[str, str]:
         """
         Return the metadata of this event.
 

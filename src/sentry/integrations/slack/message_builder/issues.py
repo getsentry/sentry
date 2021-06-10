@@ -45,7 +45,7 @@ def get_member_assignees(group: Group) -> Sequence[Mapping[str, str]]:
     )
 
     # TODO MARCOS 5
-    members = sorted(queryset, key=lambda u: u.user.get_display_name())
+    members = sorted(queryset, key=lambda u: u.user.get_display_name())  # type: ignore
 
     return [format_actor_option(u.user) for u in members]
 
@@ -66,7 +66,7 @@ def get_assignee(group: Group) -> Optional[Mapping[str, str]]:
         return None
 
 
-def build_attachment_title(obj: Union[Group, Event]) -> str:
+def build_attachment_title(obj: Union[Group, Event]) -> Any:
     ev_metadata = obj.get_event_metadata()
     ev_type = obj.get_event_type()
 
@@ -78,7 +78,7 @@ def build_attachment_title(obj: Union[Group, Event]) -> str:
         return obj.title
 
 
-def build_attachment_text(group: Group, event: Optional[Event] = None) -> Optional[str]:
+def build_attachment_text(group: Group, event: Optional[Event] = None) -> Optional[Any]:
     # Group and Event both implement get_event_{type,metadata}
     obj = event if event is not None else group
     ev_metadata = obj.get_event_metadata()
@@ -132,7 +132,7 @@ def build_action_text(group: Group, identity: Identity, action: Mapping[str, Any
     )
 
 
-def build_rule_url(rule: Rule, group: Group, project: Project, issue_alert: bool) -> str:
+def build_rule_url(rule: Any, group: Group, project: Project, issue_alert: bool) -> Any:
     org_slug = group.organization.slug
     project_slug = project.slug
     if issue_alert:
@@ -260,24 +260,25 @@ def build_actions(
 
 def get_title_link(
     group: Group, event: Optional[Event], link_to_event: bool, issue_alert: bool
-) -> str:
+) -> Any:
     if event and link_to_event:
         return group.get_absolute_url(params={"referrer": "slack"}, event_id=event.event_id)
-    elif issue_alert:
+
+    if issue_alert:
         return group.get_absolute_url(params={"referrer": "IssueAlertSlack"})
-    else:
-        return group.get_absolute_url(params={"referrer": "slack"})
+
+    return group.get_absolute_url(params={"referrer": "slack"})
 
 
-def get_timestamp(group: Group, event: Optional[Event]) -> str:
+def get_timestamp(group: Group, event: Optional[Event]) -> float:
     ts = group.last_seen
     return to_timestamp(max(ts, event.datetime) if event else ts)
 
 
-def get_color(event_for_tags: Any) -> str:
+def get_color(event_for_tags: Optional[Event]) -> str:
     if event_for_tags:
-        color = event_for_tags.get_tag("level")
-        if color in LEVEL_TO_COLOR.keys():
+        color: Optional[str] = event_for_tags.get_tag("level")
+        if color and color in LEVEL_TO_COLOR.keys():
             return color
     return "error"
 
@@ -310,7 +311,7 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
         project = Project.objects.get_from_cache(id=self.group.project_id)
 
         # If an event is unspecified, use the tags of the latest event (if one exists).
-        event_for_tags = self.event if self.event else self.group.get_latest_event()
+        event_for_tags = self.event or self.group.get_latest_event()
         color = get_color(event_for_tags)
         fields = build_tag_fields(event_for_tags, self.tags)
         footer = build_footer(self.group, self.issue_alert, project, self.rules)
