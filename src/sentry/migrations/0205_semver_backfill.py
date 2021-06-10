@@ -31,7 +31,7 @@ UPDATE_QUERY = """
     revision = data.revision,
     prerelease = data.prerelease,
     build_code = data.build_code,
-    build_number = data.build_number
+    build_number = data.build_number::bigint
     FROM (VALUES %s) AS data (id, package, major, minor, patch, revision, prerelease, build_code, build_number)
     WHERE sentry_release.id = data.id"""
 
