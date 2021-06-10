@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import {withRouter, WithRouterProps} from 'react-router';
 import {css} from '@emotion/react';
+import {Location} from 'history';
 
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import {AppStoreConnectContextProps} from 'app/components/projects/appStoreConnectContext';
@@ -22,11 +23,7 @@ type RouteParams = {
   projectId: string;
 };
 
-type Query = {
-  revalidateItunesSession?: boolean;
-};
-
-type Props = WithRouterProps<RouteParams, Query> & {
+type Props = WithRouterProps<RouteParams, {}> & {
   /**
    * Callback invoked with the updated config value.
    */
@@ -61,19 +58,16 @@ function DebugFileCustomRepository({
   }
 
   if (sourceType === 'appStoreConnect') {
-    const {revalidateItunesSession} = location.query;
-
     return (
       <AppStoreConnect
         Header={Header}
         Body={Body}
         Footer={Footer}
-        closeModal={closeModal}
         orgSlug={orgId}
         projectSlug={projectSlug}
         onSubmit={handleSave}
         initialData={sourceConfig as AppStoreConnectInitialData | undefined}
-        revalidateItunesSession={!!revalidateItunesSession}
+        location={location as Location}
         appStoreConnectContext={appStoreConnectContext}
       />
     );
