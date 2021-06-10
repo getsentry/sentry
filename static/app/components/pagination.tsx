@@ -28,7 +28,7 @@ type DefaultProps = {
 
 type Props = DefaultProps & {
   className?: string;
-  pageLinks: string | null | undefined;
+  pageLinks?: string | null;
   to?: string;
 };
 

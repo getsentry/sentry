@@ -572,9 +572,6 @@ export const TRACING_FIELDS = [
   'apdex',
   'count_miserable',
   'user_misery',
-  'apdex_new',
-  'count_miserable_new',
-  'user_misery_new',
   'eps',
   'epm',
   ...Object.keys(MEASUREMENTS),
@@ -615,9 +612,23 @@ export function getAggregateArg(field: string): string | null {
 
 // `|` is an invalid field character, so it is used to determine whether a field is an equation or not
 const EQUATION_PREFIX = 'equation|';
+const EQUATION_ALIAS_PATTERN = /^equation\[(\d+)\]$/;
 
 export function isEquation(field: string): boolean {
   return field.startsWith(EQUATION_PREFIX);
+}
+
+export function isEquationAlias(field: string): boolean {
+  return EQUATION_ALIAS_PATTERN.test(field);
+}
+
+export function getEquationAliasIndex(field: string): number {
+  const results = field.match(EQUATION_ALIAS_PATTERN);
+
+  if (results && results.length === 2) {
+    return parseInt(results[1], 10);
+  }
+  return -1;
 }
 
 export function getEquation(field: string): string {
@@ -767,14 +778,6 @@ export function aggregateFunctionOutputType(
     return measurementType(firstArg);
   } else if (firstArg && isSpanOperationBreakdownField(firstArg)) {
     return 'duration';
-  }
-
-  // This is temporary since these don't fulfill any of
-  // the conditions above. Will be removed when these fields
-  // are added to the list of aggregations with an explicit
-  // return type.
-  if (funcName.startsWith('user_misery_new') || funcName.startsWith('apdex_new')) {
-    return 'number';
   }
 
   return null;

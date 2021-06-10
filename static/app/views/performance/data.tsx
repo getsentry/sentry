@@ -51,12 +51,22 @@ export type TooltipOption = SelectValue<string> & {
 };
 
 export function getAxisOptions(organization: LightWeightOrganization): TooltipOption[] {
-  return [
-    {
+  let apdexOption: TooltipOption;
+  if (organization.features.includes('project-transaction-threshold')) {
+    apdexOption = {
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.APDEX_NEW),
+      value: 'apdex()',
+      label: t('Apdex'),
+    };
+  } else {
+    apdexOption = {
       tooltip: getTermHelp(organization, PERFORMANCE_TERM.APDEX),
       value: `apdex(${organization.apdexThreshold})`,
       label: t('Apdex'),
-    },
+    };
+  }
+  return [
+    apdexOption,
     {
       tooltip: getTermHelp(organization, PERFORMANCE_TERM.TPM),
       value: 'tpm()',
@@ -172,6 +182,22 @@ export function getFrontendOtherAxisOptions(
 export function getBackendAxisOptions(
   organization: LightWeightOrganization
 ): AxisOption[] {
+  let apdexOption: AxisOption;
+  if (organization.features.includes('project-transaction-threshold')) {
+    apdexOption = {
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.APDEX),
+      value: 'apdex()',
+      label: t('Apdex'),
+      field: 'apdex()',
+    };
+  } else {
+    apdexOption = {
+      tooltip: getTermHelp(organization, PERFORMANCE_TERM.APDEX),
+      value: `apdex(${organization.apdexThreshold})`,
+      label: t('Apdex'),
+      field: `apdex(${organization.apdexThreshold})`,
+    };
+  }
   return [
     {
       tooltip: getTermHelp(organization, PERFORMANCE_TERM.P50),
@@ -199,12 +225,6 @@ export function getBackendAxisOptions(
       field: 'p99(transaction.duration)',
     },
     {
-      tooltip: getTermHelp(organization, PERFORMANCE_TERM.APDEX),
-      value: `apdex(${organization.apdexThreshold})`,
-      label: t('Apdex'),
-      field: `apdex(${organization.apdexThreshold})`,
-    },
-    {
       tooltip: getTermHelp(organization, PERFORMANCE_TERM.TPM),
       value: 'tpm()',
       label: t('Transactions Per Minute'),
@@ -224,6 +244,7 @@ export function getBackendAxisOptions(
       isDistribution: true,
       isRightDefault: true,
     },
+    apdexOption,
   ];
 }
 
@@ -301,12 +322,7 @@ function generateGenericPerformanceEventView(
   ];
 
   const featureFields = organization.features.includes('project-transaction-threshold')
-    ? [
-        `apdex_new()`,
-        'count_unique(user)',
-        `count_miserable_new(user)`,
-        `user_misery_new()`,
-      ]
+    ? ['apdex()', 'count_unique(user)', 'count_miserable(user)', 'user_misery()']
     : [
         `apdex(${organization.apdexThreshold})`,
         'count_unique(user)',
@@ -375,12 +391,7 @@ function generateBackendPerformanceEventView(
   ];
 
   const featureFields = organization.features.includes('project-transaction-threshold')
-    ? [
-        `apdex_new()`,
-        'count_unique(user)',
-        `count_miserable_new(user)`,
-        `user_misery_new()`,
-      ]
+    ? ['apdex()', 'count_unique(user)', 'count_miserable(user)', 'user_misery()']
     : [
         `apdex(${organization.apdexThreshold})`,
         'count_unique(user)',
@@ -448,7 +459,7 @@ function generateFrontendPageloadPerformanceEventView(
   ];
 
   const featureFields = organization.features.includes('project-transaction-threshold')
-    ? ['count_unique(user)', `count_miserable_new(user)`, `user_misery_new()`]
+    ? ['count_unique(user)', 'count_miserable(user)', 'user_misery()']
     : [
         'count_unique(user)',
         `count_miserable(user,${organization.apdexThreshold})`,
@@ -517,7 +528,7 @@ function generateFrontendOtherPerformanceEventView(
   ];
 
   const featureFields = organization.features.includes('project-transaction-threshold')
-    ? ['count_unique(user)', `count_miserable_new(user)`, `user_misery_new()`]
+    ? ['count_unique(user)', 'count_miserable(user)', 'user_misery()']
     : [
         'count_unique(user)',
         `count_miserable(user,${organization.apdexThreshold})`,

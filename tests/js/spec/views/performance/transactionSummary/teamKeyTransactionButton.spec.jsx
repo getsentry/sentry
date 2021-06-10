@@ -1,5 +1,6 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
 
+import ProjectsStore from 'app/stores/projectsStore';
 import TeamStore from 'app/stores/teamStore';
 import EventView from 'app/utils/discover/eventView';
 import {MAX_TEAM_KEY_TRANSACTIONS} from 'app/utils/performance/constants';
@@ -13,11 +14,11 @@ async function clickTeamKeyTransactionDropdown(wrapper) {
 
 describe('TeamKeyTransactionButton', function () {
   const organization = TestStubs.Organization({features: ['performance-view']});
-  const project = TestStubs.Project();
   const teams = [
     TestStubs.Team({id: '1', slug: 'team1', name: 'Team 1'}),
     TestStubs.Team({id: '2', slug: 'team2', name: 'Team 2'}),
   ];
+  const project = TestStubs.Project({teams});
   const eventView = new EventView({
     id: '1',
     name: 'my query',
@@ -33,6 +34,7 @@ describe('TeamKeyTransactionButton', function () {
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
+    ProjectsStore.loadInitialData([project]);
     TeamStore.loadInitialData(teams);
   });
 
@@ -48,12 +50,15 @@ describe('TeamKeyTransactionButton', function () {
         })),
       },
       {
-        predicate: (_, options) =>
-          options.method === 'GET' &&
-          options.query.project.length === 1 &&
-          options.query.project[0] === project.id &&
-          options.query.team.length === 1 &&
-          options.query.team[0] === 'myteams',
+        predicate: (_, options) => {
+          return (
+            options.method === 'GET' &&
+            options.query.project.length === 1 &&
+            options.query.project[0] === project.id &&
+            options.query.team.length === 1 &&
+            options.query.team[0] === 'myteams'
+          );
+        },
       }
     );
 
@@ -104,7 +109,7 @@ describe('TeamKeyTransactionButton', function () {
     const entries = wrapper.find('DropdownMenuItem');
     expect(entries.length).toBe(2);
     entries.forEach((entry, i) => {
-      expect(entry.text()).toEqual(teams[i].name);
+      expect(entry.text()).toEqual(teams[i].slug);
       expect(entry.find('CheckboxFancy').props().isChecked).toBeTruthy();
     });
   });
@@ -146,7 +151,7 @@ describe('TeamKeyTransactionButton', function () {
     const entries = wrapper.find('DropdownMenuItem');
     expect(entries.length).toBe(2);
     entries.forEach((entry, i) => {
-      expect(entry.text()).toEqual(teams[i].name);
+      expect(entry.text()).toEqual(teams[i].slug);
     });
     expect(entries.at(0).find('CheckboxFancy').props().isChecked).toBeTruthy();
     expect(entries.at(1).find('CheckboxFancy').props().isChecked).toBeFalsy();
@@ -185,7 +190,7 @@ describe('TeamKeyTransactionButton', function () {
     const entries = wrapper.find('DropdownMenuItem');
     expect(entries.length).toBe(2);
     entries.forEach((entry, i) => {
-      expect(entry.text()).toEqual(teams[i].name);
+      expect(entry.text()).toEqual(teams[i].slug);
       expect(entry.find('CheckboxFancy').props().isChecked).toBeFalsy();
     });
   });
@@ -435,7 +440,7 @@ describe('TeamKeyTransactionButton', function () {
     expect(entries.length).toBe(2);
     entries.forEach((entry, i) => {
       expect(entry.props().disabled).toBeTruthy();
-      expect(entry.text()).toEqual(`${teams[i].name}Max ${MAX_TEAM_KEY_TRANSACTIONS}`);
+      expect(entry.text()).toEqual(`${teams[i].slug}Max ${MAX_TEAM_KEY_TRANSACTIONS}`);
     });
   });
 
@@ -472,7 +477,7 @@ describe('TeamKeyTransactionButton', function () {
     expect(entries.length).toBe(2);
     entries.forEach((entry, i) => {
       expect(entry.props().disabled).toBeFalsy();
-      expect(entry.text()).toEqual(teams[i].name);
+      expect(entry.text()).toEqual(teams[i].slug);
       expect(entry.find('CheckboxFancy').props().isChecked).toBeTruthy();
     });
   });
