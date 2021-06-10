@@ -32,10 +32,7 @@ def get_session_cookie(session: Session) -> Optional[str]:
 
     :return: the session cookie if available
     """
-    cookie = session.cookies.get(SESSION_COOKIE_NAME)  # type: ignore
-    if not isinstance(cookie, str) or cookie is not None:
-        raise TypeError(f"Cookie has wrong type: {cookie!r}")
-    return cookie
+    return session.cookies.get(SESSION_COOKIE_NAME)  # type: ignore
 
 
 def get_session_info(session: Session) -> Optional[Any]:
