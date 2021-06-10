@@ -5,36 +5,30 @@ import {Organization, Project} from 'app/types';
 import {AppStoreConnectValidationData} from 'app/types/debugFiles';
 import withApi from 'app/utils/withApi';
 
-export type AppStoreConnectContextProps = AppStoreConnectValidationData & {
-  isLoading?: boolean;
-};
+export type AppStoreConnectContextProps = AppStoreConnectValidationData | undefined;
 
-const appStoreConnectContextInitialData = {
-  isLoading: undefined,
-  id: undefined,
-  appstoreCredentialsValid: undefined,
-  itunesSessionValid: undefined,
-  itunesSessionRefreshAt: undefined,
-};
+const AppStoreConnectContext = createContext<AppStoreConnectContextProps>(undefined);
 
-const AppStoreConnectContext = createContext<AppStoreConnectContextProps>(
-  appStoreConnectContextInitialData
-);
+import {getAppConnectStoreUpdateAlertMessage} from './utils';
 
 type ProviderProps = {
   children: React.ReactNode;
-  orgSlug: Organization['slug'];
+  organization: Organization;
   api: Client;
   project?: Project;
 };
 
-const Provider = withApi(({api, children, project, orgSlug}: ProviderProps) => {
-  const [isLoading, setIsLoading] = useState(false);
+const Provider = withApi(({api, children, project, organization}: ProviderProps) => {
   const [projectDetails, setProjectDetails] = useState<undefined | Project>();
   const [
     appStoreConnectValidationData,
     setAppStoreConnectValidationData,
-  ] = useState<AppStoreConnectContextProps>(appStoreConnectContextInitialData);
+  ] = useState<AppStoreConnectContextProps>(undefined);
+
+  const orgSlug = organization.slug;
+  const hasAppConnectStoreFeatureFlag = !!organization.features?.includes(
+    'app-store-connect'
+  );
 
   useEffect(() => {
     fetchProjectDetails();
@@ -45,7 +39,7 @@ const Provider = withApi(({api, children, project, orgSlug}: ProviderProps) => {
   }, [projectDetails]);
 
   async function fetchProjectDetails() {
-    if (!project || projectDetails) {
+    if (!hasAppConnectStoreFeatureFlag || !project || projectDetails) {
       return;
     }
 
@@ -54,14 +48,10 @@ const Provider = withApi(({api, children, project, orgSlug}: ProviderProps) => {
       return;
     }
 
-    setIsLoading(true);
-
     try {
       const response = await api.requestPromise(`/projects/${orgSlug}/${project.slug}/`);
       setProjectDetails(response);
-      setIsLoading(false);
     } catch {
-      setIsLoading(false);
       // do nothing
     }
   }
@@ -85,8 +75,6 @@ const Provider = withApi(({api, children, project, orgSlug}: ProviderProps) => {
       return;
     }
 
-    setIsLoading(true);
-
     try {
       const response = await api.requestPromise(
         `/projects/${orgSlug}/${projectDetails.slug}/appstoreconnect/validate/${appStoreConnectSymbolSourceId}/`
@@ -95,16 +83,23 @@ const Provider = withApi(({api, children, project, orgSlug}: ProviderProps) => {
         id: appStoreConnectSymbolSourceId,
         ...response,
       });
-      setIsLoading(false);
     } catch {
-      setIsLoading(false);
       // do nothing
     }
   }
 
   return (
     <AppStoreConnectContext.Provider
-      value={{isLoading, ...appStoreConnectValidationData}}
+      value={
+        appStoreConnectValidationData
+          ? {
+              ...appStoreConnectValidationData,
+              updateAlertMessage: getAppConnectStoreUpdateAlertMessage(
+                appStoreConnectValidationData
+              ),
+            }
+          : undefined
+      }
     >
       {children}
     </AppStoreConnectContext.Provider>

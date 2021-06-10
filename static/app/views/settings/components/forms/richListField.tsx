@@ -80,7 +80,9 @@ export type RichListProps = {
    * Properties for the confirm delete dialog. If missing, the item will be
    * removed immediately.
    */
-  removeConfirm?: ConfirmDeleteProps;
+  removeConfirm?: Omit<ConfirmDeleteProps, 'onConfirm'> & {
+    onConfirm?: (item: ListItem) => void;
+  };
 
   /**
    * Callback invoked when an item is interacted with.
@@ -142,7 +144,7 @@ class RichList extends React.PureComponent<RichListProps, {}> {
   };
 
   renderItem = (item: ListItem, index: number) => {
-    const {disabled, renderItem, onEditItem} = this.props;
+    const {disabled, renderItem, onEditItem, removeConfirm} = this.props;
 
     const error = item.error;
     const warning = item.warning;
@@ -188,14 +190,17 @@ class RichList extends React.PureComponent<RichListProps, {}> {
             event.stopPropagation();
           }}
         >
-          {this.props.removeConfirm ? (
+          {removeConfirm ? (
             <ConfirmDelete
               confirmText={t('Remove')}
               disabled={disabled}
-              {...this.props.removeConfirm}
+              {...removeConfirm}
               confirmInput={item.name}
               priority="danger"
-              onConfirm={() => this.onRemoveItem(item, index)}
+              onConfirm={() => {
+                this.onRemoveItem(item, index);
+                removeConfirm.onConfirm?.(item);
+              }}
             >
               <DeleteButton
                 disabled={disabled}
