@@ -1,4 +1,3 @@
-// import {ActiveFilter, noFilter} from 'app/components/events/interfaces/spans/filter';
 import SpanTreeModel from 'app/components/events/interfaces/spans/spanTreeModel';
 import {generateRootSpan, parseTrace} from 'app/components/events/interfaces/spans/utils';
 import {EntryType, EventTransaction} from 'app/types/event';
