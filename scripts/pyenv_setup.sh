@@ -20,7 +20,7 @@ get_shell_startup_script() {
       _startup_script="${HOME}/.bash_profile"
       ;;
     */zsh)
-      _startup_script="${HOME}/.zshrc"
+      _startup_script="${HOME}/.zprofile"
       ;;
     */fish)
       _startup_script="${HOME}/.config/fish/config.fish"
@@ -44,15 +44,14 @@ _append_to_startup_script() {
     case "$SHELL" in
     */bash)
       # shellcheck disable=SC2016
-      echo -e '\neval "$(pyenv init --path)"\nif command -v pyenv 1>/dev/null 2>&1; then\n  eval "$(pyenv init -)"\nfi' >>"${1}"
-      ;;
+      echo "Visit https://github.com/pyenv/pyenv#installation on how to fully set up your Bash shell.";;
     */zsh)
       # shellcheck disable=SC2016
-      echo -e '\neval "$(pyenv init --path)"\nif command -v pyenv 1>/dev/null 2>&1; then\n  eval "$(pyenv init -)"\nfi' >>"${1}"
+      echo -e '\neval "$(pyenv init --path)"' >> "${1}"
       ;;
     */fish)
       # shellcheck disable=SC2016
-      echo -e '\n\n# pyenv init\nstatus is-login; and pyenv init --path | source\nif command -v pyenv 1>/dev/null 2>&1;\n  pyenv init - | source\nend' >>"$1"
+      echo -e 'n# pyenv init\nstatus is-login; and pyenv init --path | source' >> "${1}"
       ;;
     esac
 
