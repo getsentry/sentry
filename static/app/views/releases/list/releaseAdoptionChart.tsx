@@ -92,7 +92,7 @@ class ReleaseAdoptionChart extends AsyncComponent<Props, State> {
             interval: getInterval(
               {
                 start: location.query.start,
-                end: location.query.start,
+                end: location.query.end,
                 period: location.query.statsPeriod,
                 utc: location.query.utc,
               },
@@ -132,7 +132,6 @@ class ReleaseAdoptionChart extends AsyncComponent<Props, State> {
         sessionDisplayToField(activeDisplay)
       ];
       return {
-        type: 'line',
         id: release as string,
         seriesName: formatVersion(release as string),
         data:
@@ -140,9 +139,6 @@ class ReleaseAdoptionChart extends AsyncComponent<Props, State> {
             name: moment(interval).valueOf(),
             value: percent(releaseData?.[index] ?? 0, totalData?.[index] ?? 0),
           })) ?? [],
-        emphasis: {
-          focus: 'series',
-        },
       };
     });
   }
