@@ -14,6 +14,7 @@ type SettingsBreadcrumbStoreInterface = {
   reset: () => void;
   onUpdateRouteMap: (update: UpdateData) => void;
   onTrimMappings: (routes: PlainRoute<any>[]) => void;
+  getPathMap: () => Internals['pathMap'];
 };
 
 type Internals = {
@@ -32,6 +33,10 @@ const storeConfig: Reflux.StoreDefinition &
 
   reset() {
     this.pathMap = {};
+  },
+
+  getPathMap() {
+    return this.pathMap;
   },
 
   onUpdateRouteMap({routes, title}) {
