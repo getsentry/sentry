@@ -22,9 +22,7 @@ from sentry.utils.snuba import MAX_FIELDS
 
 class OrganizationEventsEndpointBase(OrganizationEndpoint):
     def has_feature(self, organization, request):
-        return features.has(
-            "organizations:discover-basic", organization, actor=request.user
-        ) or features.has("organizations:performance-view", organization, actor=request.user)
+        return features.has("organizations:discover-basic", organization, actor=request.user)
 
     def get_snuba_filter(self, request, organization, params=None):
         if params is None:
@@ -313,9 +311,6 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
 
 
 class KeyTransactionBase(OrganizationEventsV2EndpointBase):
-    def has_feature(self, request, organization):
-        return features.has("organizations:performance-view", organization, actor=request.user)
-
     def has_team_feature(self, request, organization):
         return features.has("organizations:team-key-transactions", organization, actor=request.user)
 

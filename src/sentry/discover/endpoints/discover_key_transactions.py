@@ -24,9 +24,6 @@ class IsKeyTransactionEndpoint(KeyTransactionBase):
 
     def get(self, request, organization):
         """ Get the Key Transactions for a user """
-        if not self.has_feature(request, organization):
-            return Response(status=404)
-
         project = self.get_project(request, organization)
 
         transaction = request.GET.get("transaction")
@@ -67,9 +64,6 @@ class KeyTransactionEndpoint(KeyTransactionBase):
 
     def post(self, request, organization):
         """ Create a Key Transaction """
-        if not self.has_feature(request, organization):
-            return Response(status=404)
-
         project = self.get_project(request, organization)
 
         if not self.has_team_feature(request, organization):
@@ -139,9 +133,6 @@ class KeyTransactionEndpoint(KeyTransactionBase):
 
     def delete(self, request, organization):
         """ Remove a Key transaction for a user """
-        if not self.has_feature(request, organization):
-            return Response(status=404)
-
         project = self.get_project(request, organization)
 
         if not self.has_team_feature(request, organization):
