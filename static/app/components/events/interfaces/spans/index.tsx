@@ -45,9 +45,14 @@ class SpansInterface extends PureComponent<Props, State> {
   };
 
   static getDerivedStateFromProps(props: Readonly<Props>, state: State): State {
+    if (state.waterfallModel.isEvent(props.event)) {
+      return state;
+    }
+
     return {
       ...state,
       parsedTrace: parseTrace(props.event),
+      waterfallModel: new WaterfallModel(props.event),
     };
   }
 
