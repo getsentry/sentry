@@ -15,5 +15,5 @@ class SlackDiscoverMessageBuilder(BlockSlackMessageBuilder):
 
 
 def build_discover_attachment(title: str, chart_url: str) -> SlackBody:
-    """ @deprecated """
+    """@deprecated"""
     return SlackDiscoverMessageBuilder(title, chart_url).build()
