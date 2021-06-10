@@ -35,7 +35,7 @@ RUN set -x \
 
 # Sane defaults for pip
 ENV \
-  PIP_NO_CACHE_DIR=off \
+  PIP_NO_CACHE_DIR=1 \
   PIP_DISABLE_PIP_VERSION_CHECK=1 \
   # Sentry config params
   SENTRY_CONF=/etc/sentry \
