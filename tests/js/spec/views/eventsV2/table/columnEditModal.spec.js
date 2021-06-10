@@ -57,6 +57,10 @@ describe('EventsV2 -> ColumnEditModal', function () {
     },
     {
       kind: 'function',
+      function: ['apdex', 'auto'],
+    },
+    {
+      kind: 'function',
       function: ['count_unique', 'issue.id'],
     },
   ];
@@ -260,6 +264,44 @@ describe('EventsV2 -> ColumnEditModal', function () {
       wrapper.find('Button[priority="primary"]').simulate('click');
       expect(onApply).toHaveBeenCalledWith([
         {kind: 'function', function: ['failure_rate', '', undefined]},
+      ]);
+    });
+  });
+
+  describe('handles auto fields', function () {
+    const initialDataAuto = initializeOrg({
+      organization: {
+        features: ['performance-view', 'project-transaction-threshold'],
+        apdexThreshold: 400,
+      },
+    });
+    let onApply, wrapper;
+    beforeEach(function () {
+      onApply = jest.fn();
+      wrapper = mountModal(
+        {
+          columns: [columns[0]],
+          onApply,
+          tagKeys,
+        },
+        initialDataAuto
+      );
+    });
+
+    it('handles scalar field parameters', function () {
+      selectByLabel(wrapper, 'apdex(\u2026)', {name: 'field', at: 0, control: true});
+
+      // Parameter select should display and use the default value.
+      const field = wrapper.find('QueryField input[name="refinement"]');
+      expect(field.props().value).toBe('auto');
+
+      // Trigger a blur and make sure the column is not wrong.
+      field.simulate('blur');
+
+      // Apply the changes so we can see the new columns.
+      wrapper.find('Button[priority="primary"]').simulate('click');
+      expect(onApply).toHaveBeenCalledWith([
+        {kind: 'function', function: ['apdex', '', undefined]},
       ]);
     });
   });
