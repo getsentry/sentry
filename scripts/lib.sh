@@ -184,7 +184,10 @@ build-platform-assets() {
 copy-template-dotenv() {
     # Assumes this is being run from the root directory of the repository.
     if [[ ! -f .env ]]; then
+        echo "--> Copying template .env file"
         cp .env.example .env
+    else
+        echo "--> .env file already exists, skipping template copying"
     fi
 }
 
