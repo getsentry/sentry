@@ -857,31 +857,27 @@ class QueryFilter(QueryBase):
         search_filter: SearchFilter,
         _: str,
     ) -> Optional[WhereType]:
-        """Convert project slugs to ids and create a filter based on those
-
-        This is cause we only store project ids in clickhouse
+        """Convert project slugs to ids and create a filter based on those.
+        This is cause we only store project ids in clickhouse.
         """
         value = search_filter.value.value
 
-        if search_filter.operator == "=" and value == "":
+        if Op(search_filter.operator) == Op.EQ and value == "":
             raise InvalidSearchQuery(
                 'Cannot query for has:project or project:"" as every event will have a project'
             )
 
         slugs = to_list(value)
-        projects = {
-            p.slug: p.id
-            for p in Project.objects.filter(
-                id__in=self.params.get("project_id", []), slug__in=slugs
-            )
+        project_slugs: Mapping[str, int] = {
+            slug: project_id for slug, project_id in self.project_slugs.items() if slug in slugs
         }
-        missing: List[str] = [slug for slug in slugs if slug not in projects]
+        missing: List[str] = [slug for slug in slugs if slug not in project_slugs]
         if missing and search_filter.operator in EQUALITY_OPERATORS:
             raise InvalidSearchQuery(
                 f"Invalid query. Project(s) {', '.join(missing)} do not exist or are not actively selected."
             )
         # Sorted for consistent query results
-        project_ids = list(sorted(projects.values()))
+        project_ids = list(sorted(project_slugs.values))
         if project_ids:
             # Create a new search filter with the correct values
             converted_filter = self.convert_search_filter_to_condition(
