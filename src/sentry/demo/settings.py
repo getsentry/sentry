@@ -48,3 +48,5 @@ DEMO_DATA_GEN_PARAMS = {
 # parameters for an org when quickly generating them synchronously
 DEMO_DATA_QUICK_GEN_PARAMS = DEMO_DATA_GEN_PARAMS.copy()
 DEMO_DATA_QUICK_GEN_PARAMS.update(MAX_DAYS=1, SCALE_FACTOR=0.25, NAME_STEP_SIZE=200)
+
+MOBILE_PROJECTS = False
