@@ -83,36 +83,6 @@ class ReleaseAdoptionChart extends AsyncComponent<Props, State> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {organization, location, activeDisplay} = this.props;
 
-type GetIntervalOptions = {
-  highFidelity?: boolean;
-};
-
-// TODO(release-adoption-chart): refactor duplication
-function getInterval(
-  datetimeObj: DateTimeObject,
-  {highFidelity}: GetIntervalOptions = {}
-) {
-  const diffInMinutes = getDiffInMinutes(datetimeObj);
-
-  if (
-    highFidelity &&
-    diffInMinutes < 360 // limit on backend is set to six hour
-  ) {
-    return '10m';
-  }
-
-  if (diffInMinutes >= ONE_WEEK) {
-    return '1d';
-  } else {
-    return '1h';
-  }
-}
-class ReleaseAdoptionChart extends AsyncComponent<Props, State> {
-  shouldReload = true;
-
-  getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {organization, location, activeDisplay} = this.props;
-
     return [
       [
         'sessions',
