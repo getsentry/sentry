@@ -1221,7 +1221,7 @@ class SmartSearchBar extends React.Component<Props, State> {
               anchorRight
               caret={false}
               title={
-                <EllipsisButton
+                <InputButton
                   size="zero"
                   borderless
                   tooltipProps={{
@@ -1381,14 +1381,6 @@ const StyledDropdownLink = styled(DropdownLink)`
 
 const DropdownElement = styled('a')<Omit<DropdownElementStylesProps, 'theme'>>`
   ${getDropdownElementStyles}
-`;
-
-const EllipsisButton = styled(InputButton)`
-  /*
-   * this is necessary because DropdownLink wraps the button in an unstyled
-   * span
-   */
-  margin: 6px 0 0 0;
 `;
 
 const VerticalEllipsisIcon = styled(IconEllipsis)`
