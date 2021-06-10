@@ -19,19 +19,6 @@ from .client import SlackClient
 
 logger = logging.getLogger("sentry.integrations.slack")
 
-# Attachment colors used for issues with no actions take
-LEVEL_TO_COLOR = {
-    "debug": "#fbe14f",
-    "info": "#2788ce",
-    "warning": "#FFC227",
-    "error": "#E03E2F",
-    "fatal": "#FA4747",
-}
-
-ACTIONED_ISSUE_COLOR = "#EDEEEF"
-INCIDENT_RESOLVED_COLOR = "#4dc771"
-
-
 MEMBER_PREFIX = "@"
 CHANNEL_PREFIX = "#"
 strip_channel_chars = "".join([MEMBER_PREFIX, CHANNEL_PREFIX])
@@ -245,9 +232,7 @@ def get_identity(user, organization_id, integration_id):
 
 
 def parse_link(url):
-    """
-    For data aggreggation purposes, rm unique information from URL
-    """
+    """ For data aggregation purposes, remove unique information from URL. """
 
     url_parts = list(urlparse(url))
     query = dict(parse_qs(url_parts[4]))

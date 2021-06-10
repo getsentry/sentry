@@ -2,11 +2,11 @@ import re
 from typing import Any, Mapping
 from urllib.parse import urljoin
 
-from sentry.integrations.slack.message_builder.issues import build_group_attachment
-from sentry.integrations.slack.utils import LEVEL_TO_COLOR
+from sentry.integrations.slack.message_builder import SlackBody
+from sentry.integrations.slack.message_builder.base.base import SlackMessageBuilder
+from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
 from sentry.notifications.base import BaseNotification
 from sentry.notifications.rules import AlertRuleNotification
-from sentry.notifications.utils.avatar import get_sentry_avatar_url
 from sentry.utils.http import absolute_uri
 
 
@@ -15,13 +15,15 @@ def get_referrer_qstring(notification: BaseNotification) -> str:
 
 
 def get_settings_url(notification: BaseNotification) -> str:
-    return urljoin(
-        absolute_uri("/settings/account/notifications/"), get_referrer_qstring(notification)
+    return str(
+        urljoin(
+            absolute_uri("/settings/account/notifications/"), get_referrer_qstring(notification)
+        )
     )
 
 
 def get_group_url(notification: BaseNotification) -> str:
-    return urljoin(notification.group.get_absolute_url(), get_referrer_qstring(notification))
+    return str(urljoin(notification.group.get_absolute_url(), get_referrer_qstring(notification)))
 
 
 def build_notification_footer(notification: BaseNotification) -> str:
@@ -37,24 +39,31 @@ def build_notification_footer(notification: BaseNotification) -> str:
     return f"<{group_url}|{short_id}> via <{settings_url}|Notification Settings>"
 
 
+class SlackNotificationsMessageBuilder(SlackMessageBuilder):
+    def __init__(self, notification: BaseNotification, context: Mapping[str, Any]) -> None:
+        super().__init__()
+        self.notification = notification
+        self.context = context
+
+    def build(self) -> SlackBody:
+        if isinstance(self.notification, AlertRuleNotification):
+            return SlackIssuesMessageBuilder(
+                self.notification.group,
+                self.notification.event,
+                self.context["tags"],
+                self.notification.rules,
+                issue_alert=True,
+            ).build()
+
+        return self._build(
+            footer=build_notification_footer(self.notification),
+            text=self.context["text_description"],
+            title=self.notification.get_title(),
+        )
+
+
 def build_notification_attachment(
     notification: BaseNotification, context: Mapping[str, Any]
 ) -> Mapping[str, str]:
-    if isinstance(notification, AlertRuleNotification):
-        return build_group_attachment(
-            notification.group,
-            notification.event,
-            context["tags"],
-            notification.rules,
-            issue_alert=True,
-        )
-
-    footer = build_notification_footer(notification)
-    return {
-        "title": notification.get_title(),
-        "text": context["text_description"],
-        "mrkdwn_in": ["text"],
-        "footer_icon": get_sentry_avatar_url(),
-        "footer": footer,
-        "color": LEVEL_TO_COLOR["info"],
-    }
+    """ @deprecated """
+    return SlackNotificationsMessageBuilder(notification, context).build()
