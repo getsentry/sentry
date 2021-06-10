@@ -25,7 +25,7 @@ function ProjectSettingsLayout({
   return (
     <ProjectContext orgId={orgId} projectId={projectId}>
       {({project}) => (
-        <AppStoreConnectContext.Provider project={project} orgSlug={orgId}>
+        <AppStoreConnectContext.Provider project={project} organization={organization}>
           <SettingsLayout
             params={params}
             routes={routes}

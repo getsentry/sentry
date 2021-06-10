@@ -34,9 +34,10 @@ export type DebugFile = {
 };
 
 export type AppStoreConnectValidationData = {
-  id?: string;
-  appstoreCredentialsValid?: boolean;
-  itunesSessionValid?: boolean;
+  id: string;
+  appstoreCredentialsValid: boolean;
+  itunesSessionValid: boolean;
   /** Approximate expiration Date of AppStore Connect iTunes session as an ISO DateTime */
-  itunesSessionRefreshAt?: string;
+  itunesSessionRefreshAt: string | null;
+  updateAlertMessage?: string;
 };
