@@ -32,7 +32,7 @@ export const SectionValue = styled('span')`
 export const InlineContainer = styled('div')`
   display: grid;
   align-items: center;
-  grid-template-columns: max-content auto;
+  grid-auto-flow: column;
   grid-gap: ${space(1)};
 `;
 
