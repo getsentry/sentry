@@ -151,6 +151,20 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
                 (self.project.id, self.session_crashed_release),
             ]
 
+    def test_get_project_releases_by_stability_for_crash_free_sort(self):
+        """
+        Test that ensures that using crash free rate sort options, returns a list of ASC releases
+        according to the chosen crash_free sort option
+        """
+        for scope in "crash_free_sessions", "crash_free_users":
+            data = get_project_releases_by_stability(
+                [self.project.id], offset=0, limit=100, scope=scope, stats_period="24h"
+            )
+            assert data == [
+                (self.project.id, self.session_crashed_release),
+                (self.project.id, self.session_release),
+            ]
+
     def test_get_release_adoption(self):
         data = get_release_adoption(
             [

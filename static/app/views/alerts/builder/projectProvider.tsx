@@ -9,6 +9,7 @@ import {t} from 'app/locale';
 import {Organization, Project} from 'app/types';
 import Projects from 'app/utils/projects';
 import withApi from 'app/utils/withApi';
+import ScrollToTop from 'app/views/settings/components/scrollToTop';
 
 type Props = RouteComponentProps<RouteParams, {}> & {
   organization: Organization;
@@ -43,7 +44,7 @@ function AlertBuilderProjectProvider(props: Props) {
         fetchOrgMembers(api, organization.slug, [project.id]);
 
         return (
-          <React.Fragment>
+          <ScrollToTop location={props.location} disable={() => false}>
             {children && React.isValidElement(children)
               ? React.cloneElement(children, {
                   ...other,
@@ -52,7 +53,7 @@ function AlertBuilderProjectProvider(props: Props) {
                   organization,
                 })
               : children}
-          </React.Fragment>
+          </ScrollToTop>
         );
       }}
     </Projects>

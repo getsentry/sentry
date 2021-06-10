@@ -196,19 +196,6 @@ class DashboardDetail extends Component<Props, State> {
     event.returnValue = UNSAVED_MESSAGE;
   };
 
-  onCreate = () => {
-    const {organization, location} = this.props;
-    trackAnalyticsEvent({
-      eventKey: 'dashboards2.create.start',
-      eventName: 'Dashboards2: Create start',
-      organization_id: parseInt(this.props.organization.id, 10),
-    });
-    browserHistory.replace({
-      pathname: `/organizations/${organization.slug}/dashboards/new/`,
-      query: location.query,
-    });
-  };
-
   onDelete = (dashboard: State['modifiedDashboard']) => () => {
     const {api, organization, location} = this.props;
     if (!dashboard?.id) {
@@ -423,9 +410,7 @@ class DashboardDetail extends Component<Props, State> {
               <Controls
                 organization={organization}
                 dashboards={dashboards}
-                dashboard={dashboard}
                 onEdit={this.onEdit}
-                onCreate={this.onCreate}
                 onCancel={this.onCancel}
                 onCommit={this.onCommit}
                 onDelete={this.onDelete(dashboard)}
@@ -479,7 +464,7 @@ class DashboardDetail extends Component<Props, State> {
                     label:
                       dashboardState === DashboardState.CREATE
                         ? t('Create Dashboard')
-                        : organization.features.includes('dashboards-manage') &&
+                        : organization.features.includes('dashboards-edit') &&
                           dashboard.id === 'default-overview'
                         ? 'Default Dashboard'
                         : this.dashboardTitle,
@@ -498,9 +483,7 @@ class DashboardDetail extends Component<Props, State> {
               <Controls
                 organization={organization}
                 dashboards={dashboards}
-                dashboard={dashboard}
                 onEdit={this.onEdit}
-                onCreate={this.onCreate}
                 onCancel={this.onCancel}
                 onCommit={this.onCommit}
                 onDelete={this.onDelete(dashboard)}
@@ -534,10 +517,7 @@ class DashboardDetail extends Component<Props, State> {
       return this.renderWidgetBuilder(dashboard);
     }
 
-    if (
-      organization.features.includes('dashboards-manage') &&
-      organization.features.includes('dashboards-edit')
-    ) {
+    if (organization.features.includes('dashboards-edit')) {
       return this.renderDashboardDetail();
     }
 

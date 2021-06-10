@@ -1,5 +1,4 @@
 import {Component} from 'react';
-import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
 import TeamKeyTransactionComponent, {
@@ -24,14 +23,14 @@ class TitleButton extends Component<TitleProps> {
     const {isOpen, keyedTeams, ...props} = this.props;
     const keyedTeamsCount = keyedTeams?.length ?? 0;
     const button = (
-      <StyledButton
+      <Button
         {...props}
         icon={keyedTeamsCount ? <IconStar color="yellow300" isSolid /> : <IconStar />}
       >
         {keyedTeamsCount
           ? tn('Starred for Team', 'Starred for Teams', keyedTeamsCount)
           : t('Star for Team')}
-      </StyledButton>
+      </Button>
     );
 
     if (!isOpen && keyedTeams?.length) {
@@ -87,13 +86,13 @@ function TeamKeyTransactionButtonWrapper({
   ...props
 }: WrapperProps) {
   if (eventView.project.length !== 1) {
-    return <TitleButton disabled keyedTeamsCount={0} />;
+    return <TitleButton isOpen={false} disabled keyedTeams={null} />;
   }
 
   const projectId = String(eventView.project[0]);
   const project = projects.find(proj => proj.id === projectId);
   if (!defined(project)) {
-    return <TitleButton disabled keyedTeamsCount={0} />;
+    return <TitleButton isOpen={false} disabled keyedTeams={null} />;
   }
 
   const userTeams = teams.filter(({isMember}) => isMember);
@@ -118,9 +117,5 @@ function TeamKeyTransactionButtonWrapper({
     </TeamKeyTransactionManager.Provider>
   );
 }
-
-const StyledButton = styled(Button)`
-  width: 180px;
-`;
 
 export default withTeams(withProjects(TeamKeyTransactionButtonWrapper));
