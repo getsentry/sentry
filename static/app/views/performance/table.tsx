@@ -281,12 +281,14 @@ class Table extends React.Component<Props, State> {
       } else if (teamKeyTransactionColumn) {
         if (isHeader) {
           const star = (
-            <IconStar
-              key="keyTransaction"
-              color="yellow300"
-              isSolid
-              data-test-id="team-key-transaction-header"
-            />
+            <GuideAnchor target="team_key_transaction_header" position="top">
+              <IconStar
+                key="keyTransaction"
+                color="yellow300"
+                isSolid
+                data-test-id="team-key-transaction-header"
+              />
+            </GuideAnchor>
           );
           return [this.renderHeadCell(tableData?.meta, teamKeyTransactionColumn, star)];
         } else {

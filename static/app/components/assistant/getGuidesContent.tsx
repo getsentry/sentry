@@ -286,6 +286,26 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
         },
       ],
     },
+    {
+      guide: 'team_key_transactions',
+      requiredTargets: ['team_key_transaction_header'],
+      steps: [
+        {
+          title: t('Team Key Transactions'),
+          target: 'team_key_transaction_header',
+          description: t(
+            'Key transactions are now team based. You only have to key a transaction once and all your team members will get the benefits too!'
+          ),
+        },
+        {
+          title: t('Migrating Key Transactions'),
+          target: 'team_key_transaction_header',
+          description: t(
+            'If you were previously using key transactions, you will have to key them again for your team.'
+          ),
+        },
+      ],
+    },
   ];
 }
 
