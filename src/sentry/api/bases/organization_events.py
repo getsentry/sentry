@@ -9,14 +9,18 @@ from sentry import features
 from sentry.api.base import LINK_HEADER
 from sentry.api.bases import NoProjects, OrganizationEndpoint
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
+from sentry.discover.arithmetic import ArithmeticError
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.group import Group
+from sentry.models.transaction_threshold import ProjectTransactionThreshold
+from sentry.search.events.constants import DEFAULT_PROJECT_THRESHOLD
 from sentry.search.events.fields import get_function_alias
 from sentry.search.events.filter import get_filter
 from sentry.snuba import discover
 from sentry.utils import snuba
 from sentry.utils.dates import get_rollup_from_request
 from sentry.utils.http import absolute_uri
+from sentry.utils.math import mean
 from sentry.utils.snuba import MAX_FIELDS
 
 
@@ -25,6 +29,15 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         return features.has(
             "organizations:discover-basic", organization, actor=request.user
         ) or features.has("organizations:performance-view", organization, actor=request.user)
+
+    def has_arithmetic(self, organization, request):
+        return features.has("organizations:discover-arithmetic", organization, actor=request.user)
+
+    def get_equation_list(self, organization, request):
+        if self.has_arithmetic(organization, request):
+            return request.GET.getlist("equation")[:]
+        else:
+            return []
 
     def get_snuba_filter(self, request, organization, params=None):
         if params is None:
@@ -37,7 +50,11 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
     def get_snuba_params(self, request, organization, check_global_views=True):
         with sentry_sdk.start_span(op="discover.endpoint", description="filter_params"):
-            if len(request.GET.getlist("field")) > MAX_FIELDS:
+            if (
+                len(request.GET.getlist("field"))
+                + len(self.get_equation_list(organization, request))
+                > MAX_FIELDS
+            ):
                 raise ParseError(
                     detail=f"You can view up to {MAX_FIELDS} fields at a time. Please delete some and try again."
                 )
@@ -103,6 +120,10 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         try:
             yield
         except discover.InvalidSearchQuery as error:
+            message = str(error)
+            sentry_sdk.set_tag("query.error_reason", message)
+            raise ParseError(detail=message)
+        except ArithmeticError as error:
             message = str(error)
             sentry_sdk.set_tag("query.error_reason", message)
             raise ParseError(detail=message)
@@ -261,6 +282,29 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     "tpm()": "tpm(%d)" % rollup,
                     "tps()": "tps(%d)" % rollup,
                 }
+                # For the new apdex, we need to add project threshold config as a selected
+                # column which means the group by for the time series won't work.
+                # As a temporary solution, we will calculate the mean of all the project
+                # level thresholds in the request and use the legacy apdex calculation.
+                # TODO(snql): Alias the project_threshold_config column so it doesn't
+                # have to be in the SELECT statement and group by to be able to use new apdex.
+                if "apdex_new()" in columns:
+                    project_ids = params.get("project_id")
+                    threshold_configs = list(
+                        ProjectTransactionThreshold.objects.filter(
+                            organization_id=organization.id,
+                            project_id__in=project_ids,
+                        ).values_list("threshold", flat=True)
+                    )
+
+                    projects_without_threshold = len(project_ids) - len(threshold_configs)
+                    threshold_configs.extend(
+                        [DEFAULT_PROJECT_THRESHOLD] * projects_without_threshold
+                    )
+
+                    threshold = int(mean(threshold_configs))
+                    column_map["apdex_new()"] = f"apdex({threshold})"
+
                 query_columns = [column_map.get(column, column) for column in columns]
             with sentry_sdk.start_span(op="discover.endpoint", description="base.stats_query"):
                 result = get_event_stats(query_columns, query, params, rollup)

@@ -1,7 +1,9 @@
-from typing import List, Optional, Tuple, Union
+from typing import Any, List, Optional, Tuple, Union
 
 from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar, NodeVisitor
+
+from sentry.exceptions import InvalidSearchQuery
 
 SUPPORTED_OPERATORS = {"plus", "minus", "multiply", "divide"}
 
@@ -11,24 +13,25 @@ class ArithmeticError(Exception):
 
 
 class MaxOperatorError(ArithmeticError):
-    """ Exceeded the maximum allowed operators """
+    """Exceeded the maximum allowed operators"""
 
     pass
 
 
 class ArithmeticParseError(ArithmeticError):
-    """ Encountered an error trying to parse an equation """
+    """Encountered an error trying to parse an equation"""
 
     pass
 
 
 class ArithmeticValidationError(ArithmeticError):
-    """ The math itself isn't valid """
+    """The math itself isn't valid"""
 
     pass
 
 
 OperationSideType = Union["Operation", float, str]
+JsonQueryType = List[Union[str, float, List[Any]]]
 
 
 class Operation:
@@ -52,6 +55,15 @@ class Operation:
 
         if self.operator == "divide" and self.rhs == 0:
             raise ArithmeticValidationError("division by 0 is not allowed")
+
+    def to_snuba_json(self, alias: Optional[str] = None) -> JsonQueryType:
+        """Convert this tree of Operations to the equivalent snuba json"""
+        lhs = self.lhs.to_snuba_json() if isinstance(self.lhs, Operation) else self.lhs
+        rhs = self.rhs.to_snuba_json() if isinstance(self.rhs, Operation) else self.rhs
+        result = [self.operator, [lhs, rhs]]
+        if alias:
+            result.append(alias)
+        return result
 
     def __repr__(self) -> str:
         return repr([self.operator, self.lhs, self.rhs])
@@ -115,7 +127,7 @@ class ArithmeticVisitor(NodeVisitor):
         self.fields: set[str] = set()
 
     def flatten(self, remaining):
-        """ Take all the remaining terms and reduce them to a single tree """
+        """Take all the remaining terms and reduce them to a single tree"""
         term = remaining.pop(0)
         while remaining:
             next_term = remaining.pop(0)
@@ -142,7 +154,7 @@ class ArithmeticVisitor(NodeVisitor):
         return self.flatten(remaining_muls)
 
     def visited_operator(self):
-        """ We visited an operator, increment the count and error if we exceed max """
+        """We visited an operator, increment the count and error if we exceed max"""
         self.operators += 1
         if self.operators > self.max_operators:
             raise MaxOperatorError("Exceeded maximum number of operations")
@@ -159,7 +171,7 @@ class ArithmeticVisitor(NodeVisitor):
 
     @staticmethod
     def strip_spaces(children):
-        """ Visitor for a `spaces foo spaces` node """
+        """Visitor for a `spaces foo spaces` node"""
         _, value, _ = children
 
         return value
@@ -199,7 +211,7 @@ class ArithmeticVisitor(NodeVisitor):
 def parse_arithmetic(
     equation: str, max_operators: Optional[int] = None
 ) -> Tuple[Operation, List[str]]:
-    """ Given a string equation try to parse it into a set of Operations """
+    """Given a string equation try to parse it into a set of Operations"""
     try:
         tree = arithmetic_grammar.parse(equation)
     except ParseError:
@@ -209,3 +221,16 @@ def parse_arithmetic(
     visitor = ArithmeticVisitor(max_operators)
     result = visitor.visit(tree)
     return result, list(visitor.fields)
+
+
+def resolve_equation_list(equations: List[str], selected_columns: List[str]) -> List[JsonQueryType]:
+    """Given a list of equation strings, resolve them to their equivalent snuba json query formats"""
+    resolved_equations = []
+    for index, equation in enumerate(equations):
+        # only supporting 1 operation for now
+        parsed_equation, fields = parse_arithmetic(equation, max_operators=1)
+        for field in fields:
+            if field not in selected_columns:
+                raise InvalidSearchQuery(f"{field} used in an equation but is not a selected field")
+        resolved_equations.append(parsed_equation.to_snuba_json(f"equation[{index}]"))
+    return resolved_equations

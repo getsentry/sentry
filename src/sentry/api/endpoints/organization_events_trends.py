@@ -106,7 +106,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
         }
 
     def get_trend_columns(self, baseline_function, column, middle):
-        """ Construct the columns needed to calculate high confidence trends """
+        """Construct the columns needed to calculate high confidence trends"""
         trend_column = self.trend_columns.get(baseline_function)
         if trend_column is None:
             raise ParseError(detail=f"{baseline_function} is not a supported trend function")

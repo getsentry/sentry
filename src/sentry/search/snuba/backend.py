@@ -25,7 +25,7 @@ from sentry.models import (
     User,
 )
 from sentry.search.base import SearchBackend
-from sentry.search.events.constants import EQUALITY_OPERATORS
+from sentry.search.events.constants import EQUALITY_OPERATORS, OPERATOR_TO_DJANGO
 from sentry.search.snuba.executors import PostgresSnubaQueryExecutor
 
 
@@ -276,14 +276,12 @@ class ScalarCondition(Condition):
     instances
     """
 
-    OPERATOR_TO_DJANGO = {">=": "gte", "<=": "lte", ">": "gt", "<": "lt"}
-
     def __init__(self, field, extra=None):
         self.field = field
         self.extra = extra
 
     def _get_operator(self, search_filter):
-        django_operator = self.OPERATOR_TO_DJANGO.get(search_filter.operator, "")
+        django_operator = OPERATOR_TO_DJANGO.get(search_filter.operator, "")
         if django_operator:
             django_operator = f"__{django_operator}"
         return django_operator

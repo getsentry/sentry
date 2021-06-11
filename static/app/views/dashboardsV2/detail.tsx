@@ -11,6 +11,7 @@ import {
 import {addSuccessMessage} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
 import Breadcrumbs from 'app/components/breadcrumbs';
+import HookOrDefault from 'app/components/hookOrDefault';
 import * as Layout from 'app/components/layouts/thirds';
 import LightWeightNoProjectMessage from 'app/components/lightWeightNoProjectMessage';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
@@ -30,6 +31,8 @@ import {DashboardDetails, DashboardListItem, DashboardState, Widget} from './typ
 import {cloneDashboard} from './utils';
 
 const UNSAVED_MESSAGE = t('You have unsaved changes, are you sure you want to leave?');
+
+const HookHeader = HookOrDefault({hookName: 'component:dashboards-header'});
 
 type RouteParams = {
   orgId: string;
@@ -191,19 +194,6 @@ class DashboardDetail extends Component<Props, State> {
     }
     event.preventDefault();
     event.returnValue = UNSAVED_MESSAGE;
-  };
-
-  onCreate = () => {
-    const {organization, location} = this.props;
-    trackAnalyticsEvent({
-      eventKey: 'dashboards2.create.start',
-      eventName: 'Dashboards2: Create start',
-      organization_id: parseInt(this.props.organization.id, 10),
-    });
-    browserHistory.replace({
-      pathname: `/organizations/${organization.slug}/dashboards/new/`,
-      query: location.query,
-    });
   };
 
   onDelete = (dashboard: State['modifiedDashboard']) => () => {
@@ -420,15 +410,14 @@ class DashboardDetail extends Component<Props, State> {
               <Controls
                 organization={organization}
                 dashboards={dashboards}
-                dashboard={dashboard}
                 onEdit={this.onEdit}
-                onCreate={this.onCreate}
                 onCancel={this.onCancel}
                 onCommit={this.onCommit}
                 onDelete={this.onDelete(dashboard)}
                 dashboardState={dashboardState}
               />
             </StyledPageHeader>
+            <HookHeader organization={organization} />
             <Dashboard
               paramDashboardId={dashboardId}
               dashboard={modifiedDashboard ?? dashboard}
@@ -475,7 +464,7 @@ class DashboardDetail extends Component<Props, State> {
                     label:
                       dashboardState === DashboardState.CREATE
                         ? t('Create Dashboard')
-                        : organization.features.includes('dashboards-manage') &&
+                        : organization.features.includes('dashboards-edit') &&
                           dashboard.id === 'default-overview'
                         ? 'Default Dashboard'
                         : this.dashboardTitle,
@@ -494,9 +483,7 @@ class DashboardDetail extends Component<Props, State> {
               <Controls
                 organization={organization}
                 dashboards={dashboards}
-                dashboard={dashboard}
                 onEdit={this.onEdit}
-                onCreate={this.onCreate}
                 onCancel={this.onCancel}
                 onCommit={this.onCommit}
                 onDelete={this.onDelete(dashboard)}
@@ -530,10 +517,7 @@ class DashboardDetail extends Component<Props, State> {
       return this.renderWidgetBuilder(dashboard);
     }
 
-    if (
-      organization.features.includes('dashboards-manage') &&
-      organization.features.includes('dashboards-edit')
-    ) {
+    if (organization.features.includes('dashboards-edit')) {
       return this.renderDashboardDetail();
     }
 

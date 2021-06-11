@@ -40,17 +40,24 @@ sudo-askpass() {
 init-docker() {
     # Need to start docker if it was freshly installed or updated
     # You will know that Docker is ready for devservices when the icon on the menu bar stops flashing
-    if query-mac && [ ! -f /Library/PrivilegedHelperTools/com.docker.vmnetd ]; then
+    if query-mac && ! require docker && [ -d "/Applications/Docker.app" ]; then
         echo "Making some changes to complete Docker initialization"
         # allow the app to run without confirmation
         xattr -d -r com.apple.quarantine /Applications/Docker.app
 
         # preemptively do docker.app's setup to avoid any gui prompts
+        # This path is not available for brand new MacBooks
         sudo-askpass /bin/mkdir -p /Library/PrivilegedHelperTools
         sudo-askpass /bin/chmod 754 /Library/PrivilegedHelperTools
         sudo-askpass /bin/cp /Applications/Docker.app/Contents/Library/LaunchServices/com.docker.vmnetd /Library/PrivilegedHelperTools/
-        sudo-askpass /bin/cp /Applications/Docker.app/Contents/Resources/com.docker.vmnetd.plist /Library/LaunchDaemons/
         sudo-askpass /bin/chmod 544 /Library/PrivilegedHelperTools/com.docker.vmnetd
+
+        # This file used to be generated as part of brew's installation
+        if [ -f /Applications/Docker.app/Contents/Resources/com.docker.vmnetd.plist ]; then
+            sudo-askpass /bin/cp /Applications/Docker.app/Contents/Resources/com.docker.vmnetd.plist /Library/LaunchDaemons/
+        else
+            sudo-askpass /bin/cp .github/workflows/files/com.docker.vmnetd.plist /Library/LaunchDaemons/
+        fi
         sudo-askpass /bin/chmod 644 /Library/LaunchDaemons/com.docker.vmnetd.plist
         sudo-askpass /bin/launchctl load /Library/LaunchDaemons/com.docker.vmnetd.plist
     fi
@@ -65,16 +72,18 @@ start-docker() {
         echo "About to open Docker.app"
         # At a later stage in the script, we're going to execute
         # ensure_docker_server which waits for it to be ready
-        open -g -a Docker.app
+        if ! open -g -a Docker.app; then
+            # If the step above fails, at least we can get some debugging information to determine why
+            sudo-askpass ls -l /Library/PrivilegedHelperTools/com.docker.vmnetd
+            ls -l /Library/LaunchDaemons/
+            cat /Library/LaunchDaemons/com.docker.vmnetd.plist
+            ls -l /Applications/Docker.app
+        fi
     fi
 }
 
 upgrade-pip() {
-    # pip versions before 20.1 do not have `pip cache` as a command which is necessary for the CI
-    pip install --no-cache-dir --upgrade "pip>=20.1"
-    # The Python version installed via pyenv does not come with wheel pre-installed
-    # Installing wheel will speed up installation of Python dependencies
-    require wheel || pip install wheel
+    pip install --upgrade "pip==21.1.2" "wheel==0.36.2"
 }
 
 install-py-dev() {
@@ -83,15 +92,10 @@ install-py-dev() {
     # This helps when getsentry calls into this script
     cd "${HERE}/.." || exit
     echo "--> Installing Sentry (for development)"
-    # In Big Sur, versions of pip before 20.3 require SYSTEM_VERSION_COMPAT set
-    if query_big_sur && python -c 'from sys import exit; import pip; from pip._vendor.packaging.version import parse; exit(1 if parse(pip.__version__) < parse("20.3") else 0)'; then
-        SENTRY_LIGHT_BUILD=1 SYSTEM_VERSION_COMPAT=1 pip install -e '.[dev]'
-    else
-        # SENTRY_LIGHT_BUILD=1 disables webpacking during setup.py.
-        # Webpacked assets are only necessary for devserver (which does it lazily anyways)
-        # and acceptance tests, which webpack automatically if run.
-        SENTRY_LIGHT_BUILD=1 pip install -e '.[dev]'
-    fi
+    # SENTRY_LIGHT_BUILD=1 disables webpacking during setup.py.
+    # Webpacked assets are only necessary for devserver (which does it lazily anyways)
+    # and acceptance tests, which webpack automatically if run.
+    SENTRY_LIGHT_BUILD=1 pip install -e '.[dev]'
 }
 
 setup-git-config() {

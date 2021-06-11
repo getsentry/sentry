@@ -4,8 +4,8 @@ from sentry.data_export.endpoints.data_export import DataExportEndpoint
 from sentry.data_export.endpoints.data_export_details import DataExportDetailsEndpoint
 from sentry.discover.endpoints.discover_key_transactions import (
     IsKeyTransactionEndpoint,
-    KeyTransactionCountEndpoint,
     KeyTransactionEndpoint,
+    KeyTransactionListEndpoint,
 )
 from sentry.discover.endpoints.discover_query import DiscoverQueryEndpoint
 from sentry.discover.endpoints.discover_saved_queries import DiscoverSavedQueriesEndpoint
@@ -46,6 +46,7 @@ from sentry.incidents.endpoints.project_alert_rule_index import (
 from sentry.incidents.endpoints.project_alert_rule_task_details import (
     ProjectAlertRuleTaskDetailsEndpoint,
 )
+from sentry.scim.endpoints.users import OrganizationSCIMUserDetails, OrganizationSCIMUserIndex
 
 from .endpoints.accept_organization_invite import AcceptOrganizationInvite
 from .endpoints.accept_project_transfer import AcceptProjectTransferEndpoint
@@ -796,9 +797,9 @@ urlpatterns = [
                     name="sentry-api-0-organization-key-transactions",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/key-transactions-count/$",
-                    KeyTransactionCountEndpoint.as_view(),
-                    name="sentry-api-0-organization-key-transactions-count",
+                    r"^(?P<organization_slug>[^\/]+)/key-transactions-list/$",
+                    KeyTransactionListEndpoint.as_view(),
+                    name="sentry-api-0-organization-key-transactions-list",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/is-key-transactions/$",
@@ -1327,6 +1328,23 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/request-project-creation/$",
                     OrganizationRequestProjectCreation.as_view(),
                     name="sentry-api-0-organization-request-project-creation",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/scim/v2/",
+                    include(
+                        [
+                            url(
+                                r"^Users$",
+                                OrganizationSCIMUserIndex.as_view(),
+                                name="sentry-scim-organization-members-index",
+                            ),
+                            url(
+                                r"^Users/(?P<member_id>\d+)$",
+                                OrganizationSCIMUserDetails.as_view(),
+                                name="sentry-scim-organization-members-details",
+                            ),
+                        ]
+                    ),
                 ),
             ]
         ),

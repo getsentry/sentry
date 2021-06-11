@@ -1,3 +1,4 @@
+from datetime import datetime
 from uuid import uuid4
 
 from rest_framework.exceptions import ErrorDetail
@@ -83,10 +84,47 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         assert result["versionInfo"]["buildHash"] == release_version
         assert result["versionInfo"]["description"] == release_version[:12]
 
-        result = serialize(release, user, project=project)
+        current_formatted_datetime = datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S+00:00")
+        current_project_meta = {
+            "prev_release_version": "foobar@1.0.0",
+            "next_release_version": "foobar@2.0.0",
+            "sessions_lower_bound": current_formatted_datetime,
+            "sessions_upper_bound": current_formatted_datetime,
+            "first_release_version": "foobar@1.0.0",
+            "last_release_version": "foobar@2.0.0",
+        }
+
+        result = serialize(
+            release, user, project=project, current_project_meta=current_project_meta
+        )
         assert result["newGroups"] == 1
         assert result["firstEvent"] == tagvalue1.first_seen
         assert result["lastEvent"] == tagvalue1.last_seen
+
+        assert (
+            result["currentProjectMeta"]["prevReleaseVersion"]
+            == current_project_meta["prev_release_version"]
+        )
+        assert (
+            result["currentProjectMeta"]["nextReleaseVersion"]
+            == current_project_meta["next_release_version"]
+        )
+        assert (
+            result["currentProjectMeta"]["sessionsLowerBound"]
+            == current_project_meta["sessions_lower_bound"]
+        )
+        assert (
+            result["currentProjectMeta"]["sessionsUpperBound"]
+            == current_project_meta["sessions_upper_bound"]
+        )
+        assert (
+            result["currentProjectMeta"]["firstReleaseVersion"]
+            == current_project_meta["first_release_version"]
+        )
+        assert (
+            result["currentProjectMeta"]["lastReleaseVersion"]
+            == current_project_meta["last_release_version"]
+        )
 
     def test_mobile_version(self):
         user = self.create_user()

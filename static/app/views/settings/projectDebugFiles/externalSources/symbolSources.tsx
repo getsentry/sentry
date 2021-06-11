@@ -1,5 +1,7 @@
-import {Fragment, useContext} from 'react';
+import React, {Fragment, useContext, useEffect} from 'react';
+import {InjectedRouter} from 'react-router/lib/Router';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 import omit from 'lodash/omit';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
@@ -10,19 +12,23 @@ import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
 import Alert from 'app/components/alert';
 import {Item} from 'app/components/dropdownAutoComplete/types';
+import {
+  appStoreConnectAlertMessage,
+  getAppConnectStoreUpdateAlertMessage,
+} from 'app/components/globalAppStoreConnectUpdateAlert/utils';
 import Link from 'app/components/links/link';
 import List from 'app/components/list';
 import ListItem from 'app/components/list/listItem';
+import AppStoreConnectContext from 'app/components/projects/appStoreConnectContext';
 import TextOverflow from 'app/components/textOverflow';
 import {DEBUG_SOURCE_TYPES} from 'app/data/debugFileSources';
-import {IconWarning} from 'app/icons';
+import {IconRefresh, IconWarning} from 'app/icons';
 import {t, tct, tn} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import Field from 'app/views/settings/components/forms/field';
 import RichListField from 'app/views/settings/components/forms/richListField';
 import TextBlock from 'app/views/settings/components/text/textBlock';
-import AppStoreConnectContext from 'app/views/settings/project/appStoreConnectContext';
 
 import {expandKeys} from './utils';
 
@@ -31,10 +37,32 @@ type Props = {
   organization: Organization;
   projectSlug: Project['slug'];
   symbolSources: Item[];
+  router: InjectedRouter;
+  location: Location;
 };
 
-function SymbolSources({api, organization, symbolSources, projectSlug}: Props) {
+function SymbolSources({
+  api,
+  organization,
+  symbolSources,
+  projectSlug,
+  router,
+  location,
+}: Props) {
   const appStoreConnectContext = useContext(AppStoreConnectContext);
+
+  const hasSavedAppStoreConnect = symbolSources.find(
+    symbolSource => symbolSource.type.toLowerCase() === 'appstoreconnect'
+  );
+
+  useEffect(() => {
+    reloadPage();
+  }, [hasSavedAppStoreConnect]);
+
+  useEffect(() => {
+    openDebugFileSourceDialog();
+  }, [location.query, appStoreConnectContext]);
+
   const hasAppConnectStoreFeatureFlag = !!organization.features?.includes(
     'app-store-connect'
   );
@@ -57,10 +85,6 @@ function SymbolSources({api, organization, symbolSources, projectSlug}: Props) {
     },
   ];
 
-  const hasSavedAppStoreConnect = symbolSources.find(
-    symbolSource => symbolSource.type === 'AppStoreConnect'
-  );
-
   if (
     hasAppConnectStoreFeatureFlag &&
     !hasSavedAppStoreConnect &&
@@ -73,58 +97,103 @@ function SymbolSources({api, organization, symbolSources, projectSlug}: Props) {
     });
   }
 
-  function getRichListFieldValue(): {value: Item[]; errors?: React.ReactNode[]} {
-    if (
-      !hasAppConnectStoreFeatureFlag ||
-      !appStoreConnectContext ||
-      Object.keys(appStoreConnectContext).every(key => appStoreConnectContext[key])
-    ) {
+  function reloadPage() {
+    if (!!hasSavedAppStoreConnect || !appStoreConnectContext) {
+      return;
+    }
+
+    const appConnectStoreUpdateAlertMessage = getAppConnectStoreUpdateAlertMessage(
+      appStoreConnectContext
+    );
+
+    if (appConnectStoreUpdateAlertMessage) {
+      window.location.reload();
+    }
+  }
+
+  function getRichListFieldValue(): {
+    value: Item[];
+    warnings?: React.ReactNode[];
+    errors?: React.ReactNode[];
+  } {
+    if (!hasAppConnectStoreFeatureFlag || appStoreConnectContext.isLoading !== false) {
       return {value: symbolSources};
     }
 
     const symbolSourcesErrors: React.ReactNode[] = [];
+    const symbolSourcesWarnings: React.ReactNode[] = [];
 
-    const symbolSourcesWithErrors = symbolSources.map((symbolSource, index) => {
-      if (symbolSource.id !== appStoreConnectContext?.id) {
-        const errors: string[] = [];
-        if (appStoreConnectContext.itunesSessionValid) {
+    const symbolSourcesWithErrors = symbolSources.map(symbolSource => {
+      if (symbolSource.id === appStoreConnectContext.id) {
+        const appStoreConnectErrors: string[] = [];
+        const customRepositoryLink = `/settings/${organization.slug}/projects/${projectSlug}/debug-symbols/?customRepository=${symbolSource.id}`;
+
+        if (
+          appStoreConnectContext.itunesSessionValid &&
+          appStoreConnectContext.appstoreCredentialsValid
+        ) {
+          const appConnectStoreUpdateAlertMessage = getAppConnectStoreUpdateAlertMessage(
+            appStoreConnectContext
+          );
+
+          if (
+            appConnectStoreUpdateAlertMessage ===
+            appStoreConnectAlertMessage.isTodayAfterItunesSessionRefreshAt
+          ) {
+            symbolSourcesWarnings.push(
+              <div>
+                {appConnectStoreUpdateAlertMessage}{' '}
+                {tct('Revalidate your iTunes Session for [link]', {
+                  link: (
+                    <Link to={`${customRepositoryLink}&revalidateItunesSession=true`}>
+                      {symbolSource.name}
+                    </Link>
+                  ),
+                })}
+              </div>
+            );
+
+            return {
+              ...symbolSource,
+              warning: appConnectStoreUpdateAlertMessage,
+            };
+          }
+        }
+
+        if (appStoreConnectContext.itunesSessionValid === false) {
           symbolSourcesErrors.push(
             tct('Revalidate your iTunes Session for [link]', {
               link: (
-                <Link to="" onClick={() => editSymbolSourceModal(symbolSource, index)}>
+                <Link to={`${customRepositoryLink}&revalidateItunesSession=true`}>
                   {symbolSource.name}
                 </Link>
               ),
             })
           );
 
-          errors.push(t('Revalidate your iTunes Session'));
+          appStoreConnectErrors.push(t('Revalidate your iTunes Session'));
         }
 
-        if (appStoreConnectContext.appstoreCredentialsValid) {
+        if (appStoreConnectContext.appstoreCredentialsValid === false) {
           symbolSourcesErrors.push(
             tct('Recheck your App Store Credentials for [link]', {
-              link: (
-                <Link to="" onClick={() => editSymbolSourceModal(symbolSource, index)}>
-                  {symbolSource.name}
-                </Link>
-              ),
+              link: <Link to={customRepositoryLink}>{symbolSource.name}</Link>,
             })
           );
-          errors.push(t('Recheck your App Store Credentials'));
+          appStoreConnectErrors.push(t('Recheck your App Store Credentials'));
         }
 
         return {
           ...symbolSource,
-          error: !!errors.length ? (
+          error: !!appStoreConnectErrors.length ? (
             <Fragment>
               {tn(
                 'There was an error connecting to the Apple Store Connect:',
                 'There were errors connecting to the Apple Store Connect:',
-                errors.length
+                appStoreConnectErrors.length
               )}
               <StyledList symbol="bullet">
-                {errors.map((error, errorIndex) => (
+                {appStoreConnectErrors.map((error, errorIndex) => (
                   <ListItem key={errorIndex}>{error}</ListItem>
                 ))}
               </StyledList>
@@ -132,13 +201,41 @@ function SymbolSources({api, organization, symbolSources, projectSlug}: Props) {
           ) : undefined,
         };
       }
+
       return symbolSource;
     });
 
     return {
       value: symbolSourcesWithErrors,
       errors: symbolSourcesErrors,
+      warnings: symbolSourcesWarnings,
     };
+  }
+
+  const {value, warnings = [], errors = []} = getRichListFieldValue();
+
+  function openDebugFileSourceDialog() {
+    const {customRepository} = location.query;
+
+    if (!customRepository) {
+      return;
+    }
+
+    const item = value.find(v => v.id === customRepository);
+
+    if (!item) {
+      return;
+    }
+
+    const {_warning, _error, ...sourceConfig} = item;
+
+    openDebugFileSourceModal({
+      sourceConfig,
+      sourceType: item.type,
+      appStoreConnectContext,
+      onSave: updatedData => handleUpdateSymbolSource(updatedData as Item, item.index),
+      onClose: handleCloseImageDetailsModal,
+    });
   }
 
   function getRequestMessages(symbolSourcesQuantity: number) {
@@ -195,18 +292,43 @@ function SymbolSources({api, organization, symbolSources, projectSlug}: Props) {
     handleChange(items);
   }
 
-  function editSymbolSourceModal(item: Item, index: number) {
-    return openDebugFileSourceModal({
-      sourceConfig: item,
-      sourceType: item.type,
-      onSave: updatedData => handleUpdateSymbolSource(updatedData as Item, index),
+  function handleOpenDebugFileSourceModalToEdit(repositoryId: string) {
+    router.push({
+      ...location,
+      query: {
+        ...location.query,
+        customRepository: repositoryId,
+      },
     });
   }
 
-  const {value, errors = []} = getRichListFieldValue();
+  function handleCloseImageDetailsModal() {
+    router.push({
+      ...location,
+      query: {
+        ...location.query,
+        customRepository: undefined,
+        revalidateItunesSession: undefined,
+      },
+    });
+  }
 
   return (
     <Fragment>
+      {!!warnings.length && (
+        <Alert type="warning" icon={<IconRefresh />} system>
+          {tn(
+            'Please check the warning related to the following custom repository:',
+            'Please check the warnings related to the following custom repositories:',
+            warnings.length
+          )}
+          <StyledList symbol="bullet">
+            {warnings.map((warning, index) => (
+              <ListItem key={index}>{warning}</ListItem>
+            ))}
+          </StyledList>
+        </Alert>
+      )}
       {!!errors.length && (
         <Alert type="error" icon={<IconWarning />} system>
           {tn(
@@ -258,13 +380,7 @@ function SymbolSources({api, organization, symbolSources, projectSlug}: Props) {
               onSave: addItem,
             })
           }
-          onEditItem={(item, updateItem) =>
-            openDebugFileSourceModal({
-              sourceConfig: item,
-              sourceType: item.type,
-              onSave: updateItem,
-            })
-          }
+          onEditItem={item => handleOpenDebugFileSourceModalToEdit(item.id)}
           removeConfirm={{
             confirmText: t('Remove Repository'),
             message: (

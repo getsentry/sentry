@@ -185,7 +185,7 @@ class ManageDashboards extends AsyncView<Props, State> {
     return (
       <Feature
         organization={organization}
-        features={['dashboards-manage']}
+        features={['dashboards-edit']}
         renderDisabled={this.renderNoAccess}
       >
         <SentryDocumentTitle title={t('Dashboards')} orgSlug={organization.slug}>

@@ -64,7 +64,7 @@ def test_simple_arithmetic(a, op, b):
     ],
 )
 def test_homogenous_arithmetic(a, op1, b, op2, c):
-    """ Test that literal order of ops is respected assuming we don't have to worry about BEDMAS """
+    """Test that literal order of ops is respected assuming we don't have to worry about BEDMAS"""
     equation = f"{a}{op1}{b}{op2}{c}"
     result, _ = parse_arithmetic(equation)
     assert result.operator == op_map[op2.strip()], equation

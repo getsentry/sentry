@@ -347,7 +347,11 @@ class Group(Model):
         verbose_name_plural = _("grouped messages")
         verbose_name = _("grouped message")
         permissions = (("can_view", "Can view"),)
-        index_together = [("project", "first_release"), ("project", "id")]
+        index_together = [
+            ("project", "first_release"),
+            ("project", "id"),
+            ("project", "status", "last_seen", "id"),
+        ]
         unique_together = (("project", "short_id"),)
 
     __repr__ = sane_repr("project_id")
@@ -571,7 +575,7 @@ class Group(Model):
 
     @staticmethod
     def issues_mapping(group_ids, project_ids, organization):
-        """ Create a dictionary of group_ids to their qualified_short_ids """
+        """Create a dictionary of group_ids to their qualified_short_ids"""
         return {
             i.id: i.qualified_short_id
             for i in Group.objects.filter(

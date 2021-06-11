@@ -1,8 +1,12 @@
 from datetime import datetime
-from typing import Callable, Mapping, Optional, Sequence, Union
+from typing import Callable, Mapping, Optional, Sequence, Tuple, Union
 
+from django.db.models import BigIntegerField, Case, F, Func, Q, Value, When
 from parsimonious.exceptions import ParseError
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
+from sentry_relay.processing import parse_release as relay_parse_release
+from snuba_sdk.conditions import Condition, Op, Or
+from snuba_sdk.function import Function
 
 from sentry import eventstore
 from sentry.api.event_search import (
@@ -15,8 +19,9 @@ from sentry.api.event_search import (
     parse_search_query,
 )
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import Project
+from sentry.models import Project, Release
 from sentry.models.group import Group
+from sentry.search.events.base import QueryBase
 from sentry.search.events.constants import (
     ARRAY_FIELDS,
     EQUALITY_OPERATORS,
@@ -25,13 +30,18 @@ from sentry.search.events.constants import (
     ISSUE_ID_ALIAS,
     KEY_TRANSACTION_ALIAS,
     NO_CONVERSION_FIELDS,
+    OPERATOR_NEGATION_MAP,
+    OPERATOR_TO_DJANGO,
     PROJECT_ALIAS,
     PROJECT_NAME_ALIAS,
     RELEASE_ALIAS,
+    SEMVER_FAKE_PACKAGE,
+    SEMVER_MAX_SEARCH_RELEASES,
     TEAM_KEY_TRANSACTION_ALIAS,
     USER_DISPLAY_ALIAS,
 )
 from sentry.search.events.fields import FIELD_ALIASES, FUNCTIONS, resolve_field
+from sentry.search.events.types import WhereType
 from sentry.search.utils import parse_release
 from sentry.utils.compat import filter
 from sentry.utils.dates import to_timestamp
@@ -315,6 +325,115 @@ def _team_key_transaction_filter_converter(
     raise InvalidSearchQuery(
         "Invalid value for key_transaction condition. Accepted values are 1, 0"
     )
+
+
+def _flip_field_sort(field: str):
+    return field[1:] if field.startswith("-") else f"-{field}"
+
+
+def parse_semver_search(
+    search_filter: SearchFilter,
+    name: str,
+    params: Optional[Mapping[str, Union[int, str, datetime]]],
+) -> Tuple[str, str, Sequence[str]]:
+    """
+    Parses a semver query search and returns a snuba condition to filter to the
+    requested releases.
+
+    Since we only have semver information available in Postgres currently, we query
+    Postgres and return a list of versions to include/exclude. For most customers this
+    will work well, however some have extremely large numbers of releases, and we can't
+    pass them all to Snuba. To try and serve reasonable results, we:
+     - Attempt to query based on the initial semver query. If this returns
+       MAX_SEMVER_SEARCH_RELEASES results, we invert the query and see if it returns
+       fewer results. If so, we use a `NOT IN` snuba condition instead of an `IN`.
+     - Order the results such that the versions we return are semantically closest to
+       the passed filter. This means that when searching for `>= 1.0.0`, we'll return
+       version 1.0.0, 1.0.1, 1.1.0 before 9.x.x.
+    """
+    if not params or "organization_id" not in params:
+        raise ValueError("organization_id is a required param")
+
+    organization_id: int = params["organization_id"]
+    version: str = search_filter.value.value
+    operator: str = search_filter.operator
+
+    # Our semver parser expects a package at the start of the version, so just add a
+    # dummy one here if not already provided.
+    version = version if "@" in version else f"{SEMVER_FAKE_PACKAGE}@{version}"
+    parsed = relay_parse_release(version)
+    parsed_version = parsed.get("version_parsed")
+    if parsed_version:
+        # The version matches semver format, so we can use it for comparison
+        release_filter = Q(organization_id=organization_id)
+        if parsed["package"] and parsed["package"] != SEMVER_FAKE_PACKAGE:
+            release_filter &= Q(package=parsed["package"])
+        # Convert `pre` to always be a string
+        prerelease = parsed_version["pre"] if parsed_version["pre"] else ""
+        filter_func = Func(
+            parsed_version["major"],
+            parsed_version["minor"],
+            parsed_version["patch"],
+            parsed_version["revision"],
+            0 if prerelease else 1,
+            Value(prerelease),
+            function="ROW",
+        )
+
+        # Note that we sort this such that if we end up fetching more than
+        # MAX_SEMVER_SEARCH_RELEASES, we will return the releases that are closest to
+        # the passed filter.
+        order_by = ["major", "minor", "patch", "revision", "prerelease_case", "prerelease"]
+        if operator.startswith("<"):
+            order_by = list(map(_flip_field_sort, order_by))
+        qs = (
+            Release.objects.filter(release_filter)
+            .annotate(
+                prerelease_case=Case(When(prerelease="", then=1), default=0),
+                semver=Func(
+                    F("major"),
+                    F("minor"),
+                    F("patch"),
+                    F("revision"),
+                    F("prerelease_case"),
+                    F("prerelease"),
+                    function="ROW",
+                    # XXX: The output_field doesn't matter here, but Django complains
+                    # that it needs to be set since we have a mix of types in the `Func`
+                    output_field=BigIntegerField(),
+                ),
+            )
+            .values_list("version", flat=True)
+        )
+        qs_initial = qs.filter(**{f"semver__{OPERATOR_TO_DJANGO[operator]}": filter_func}).order_by(
+            *order_by
+        )[:SEMVER_MAX_SEARCH_RELEASES]
+        versions = list(qs_initial)
+        final_operator = "IN"
+        if len(versions) == SEMVER_MAX_SEARCH_RELEASES:
+            # We want to limit how many versions we pass through to Snuba. If we've hit
+            # the limit, make an extra query and see whether the inverse has fewer ids.
+            # If so, we can do a NOT IN query with these ids instead. Otherwise, we just
+            # do our best.
+            django_operator = OPERATOR_TO_DJANGO[OPERATOR_NEGATION_MAP[operator]]
+            # Note that the `order_by` here is important for index usage. Postgres seems
+            # to seq scan with this query if the `order_by` isn't included, so we
+            # include it even though we don't really care about order for this query
+            qs_flipped = qs.filter(**{f"semver__{django_operator}": filter_func}).order_by(
+                *map(_flip_field_sort, order_by)
+            )[:SEMVER_MAX_SEARCH_RELEASES]
+            exclude_versions = list(qs_flipped)
+            if exclude_versions and len(exclude_versions) < len(versions):
+                # Do a negative search instead
+                final_operator = "NOT IN"
+                versions = exclude_versions
+
+        return ["release", final_operator, versions]
+
+    else:
+        # TODO: We want to parse partial strings like 1.*, etc. For now, we'll just
+        # handle the basic case and fail otherwise
+        raise InvalidSearchQuery("Invalid format for semver query")
 
 
 key_conversion_map: Mapping[
@@ -725,7 +844,7 @@ def format_search_filter(term, params):
             except Exception:
                 raise InvalidSearchQuery(f"Invalid value '{group_short_ids}' for 'issue:' filter")
             else:
-                filter_values.extend(sorted([g.id for g in groups]))
+                filter_values.extend(sorted(g.id for g in groups))
 
         term = SearchFilter(
             SearchKey("issue.id"),
@@ -764,3 +883,139 @@ def format_search_filter(term, params):
             conditions.append(converted_filter)
 
     return conditions, projects_to_filter, group_ids
+
+
+class QueryFilter(QueryBase):
+    """Filter logic for a snql query"""
+
+    def resolve_where(self, query: str) -> None:
+        try:
+            parsed_terms = parse_search_query(query, allow_boolean=True, params=self.params)
+        except ParseError as e:
+            raise InvalidSearchQuery(f"Parse error: {e.expr.name} (column {e.column():d})")
+
+        for term in parsed_terms:
+            if isinstance(term, SearchFilter):
+                conditions = self.format_search_filter(term)
+                if conditions:
+                    self.where.append(conditions)
+
+    def resolve_params(self) -> None:
+        """Keys included as url params take precedent if same key is included in search
+        They are also considered safe and to have had access rules applied unlike conditions
+        from the query string.
+        """
+        # start/end are required so that we can run a query in a reasonable amount of time
+        if "start" not in self.params or "end" not in self.params:
+            raise InvalidSearchQuery("Cannot query without a valid date range")
+        start, end = self.params["start"], self.params["end"]
+
+        # TODO: this validation should be done when we create the params dataclass instead
+        assert isinstance(start, datetime) and isinstance(
+            end, datetime
+        ), "Both start and end params must be datetime objects"
+        assert all(
+            isinstance(project_id, int) for project_id in self.params.get("project_id", [])
+        ), "All project id params must be ints"
+
+        self.where.append(Condition(self.column("timestamp"), Op.GTE, start))
+        self.where.append(Condition(self.column("timestamp"), Op.LT, end))
+
+        if "project_id" in self.params:
+            self.where.append(
+                Condition(
+                    self.column("project_id"),
+                    Op.IN,
+                    self.params["project_id"],
+                )
+            )
+
+        if "environment" in self.params:
+            term = SearchFilter(
+                SearchKey("environment"), "=", SearchValue(self.params["environment"])
+            )
+            condition = self._environment_filter_converter(term, "environment")
+            if condition:
+                self.where.append(condition)
+
+    def _environment_filter_converter(
+        self,
+        search_filter: SearchFilter,
+        _: str,
+    ) -> WhereType:
+        # conditions added to env_conditions can be OR'ed
+        env_conditions = []
+        value = search_filter.value.value
+        values = set(value if isinstance(value, (list, tuple)) else [value])
+        # sorted for consistency
+        values = sorted(f"{value}" for value in values)
+        environment = self.column("environment")
+        # the "no environment" environment is null in snuba
+        if "" in values:
+            values.remove("")
+            operator = Op.IS_NULL if search_filter.operator == "=" else Op.IS_NOT_NULL
+            env_conditions.append(Condition(environment, operator))
+        if len(values) == 1:
+            operator = Op.EQ if search_filter.operator in EQUALITY_OPERATORS else Op.NEQ
+            env_conditions.append(Condition(environment, operator, values.pop()))
+        elif values:
+            operator = Op.IN if search_filter.operator in EQUALITY_OPERATORS else Op.NOT_IN
+            env_conditions.append(Condition(environment, operator, values))
+        if len(env_conditions) > 1:
+            return Or(conditions=env_conditions)
+        else:
+            return env_conditions[0]
+
+    def format_search_filter(self, term: SearchFilter) -> Optional[WhereType]:
+        """For now this function seems a bit redundant inside QueryFilter but
+        most of the logic from hte existing format_search_filter hasn't been
+        converted over yet
+        """
+        converted_filter = self.convert_search_filter_to_condition(term)
+        if converted_filter:
+            return converted_filter
+        else:
+            return None
+
+    def convert_search_filter_to_condition(
+        self,
+        search_filter: SearchFilter,
+    ) -> Optional[WhereType]:
+        key_conversion_map: Mapping[str, Callable[[SearchFilter, str], WhereType]] = {
+            "environment": self._environment_filter_converter,
+        }
+        name = search_filter.key.name
+        value = search_filter.value.value
+
+        # We want to use group_id elsewhere so shouldn't be removed from the dataset
+        # but if a user has a tag with the same name we want to make sure that works
+        if name == "group_id":
+            name = f"tags[{name}]"
+
+        if name in NO_CONVERSION_FIELDS:
+            return
+        elif name in key_conversion_map:
+            return key_conversion_map[name](search_filter, name)
+        elif name in self.field_allowlist:
+            lhs = self.column(name)
+
+            # Handle checks for existence
+            if search_filter.operator in ("=", "!=") and search_filter.value.value == "":
+                if search_filter.key.is_tag:
+                    return Condition(lhs, Op(search_filter.operator), value)
+                else:
+                    # If not a tag, we can just check that the column is null.
+                    return Condition(Function("ifNull", [lhs]), Op(search_filter.operator), 1)
+
+            if search_filter.value.is_wildcard():
+                condition = Condition(
+                    Function("match", [lhs, f"'(?i){value}'"]),
+                    Op(search_filter.operator),
+                    1,
+                )
+            else:
+                condition = Condition(lhs, Op(search_filter.operator), value)
+
+            return condition
+        else:
+            raise NotImplementedError(f"{name} not implemented in snql filter parsing yet")
