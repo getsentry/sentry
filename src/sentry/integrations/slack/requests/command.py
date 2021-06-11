@@ -19,7 +19,6 @@ class SlackCommandRequest(SlackRequest):
         try:
             qs_data = parse_qs(self.request.body.decode("utf-8"), strict_parsing=True)
         except ValueError:
-            logger.info("slack.webhook.invalid-payload", extra={"todo": "marcos"})
             raise SlackRequestError(status=400)
 
         # Flatten the values.

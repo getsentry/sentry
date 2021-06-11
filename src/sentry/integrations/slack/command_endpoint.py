@@ -26,7 +26,6 @@ class SlackCommandsEndpoint(Endpoint):
         validates the request and dispatches it to the right handler.
         """
         try:
-
             slack_request = SlackCommandRequest(request)
             slack_request.validate()
         except SlackRequestError as e:
