@@ -93,6 +93,7 @@ jobs:
           if [ docker system info &>/dev/null ]; then
             make bootstrap
           else
+            SENTRY_NO_VENV_CHECK=1 ./scripts/do.sh docker-debug-info
             make develop init-config
           fi
 

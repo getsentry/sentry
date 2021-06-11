@@ -64,6 +64,16 @@ init-docker() {
     start-docker
 }
 
+docker-debug-info() {
+    echo >&2 "This info might help as to why Docker did not initialize"
+    cat /Library/LaunchDaemons/com.docker.vmnetd.plist
+    # If the step above fails, at least we can get some debugging information to determine why
+    sudo-askpass ls -l /Library/PrivilegedHelperTools/com.docker.vmnetd
+    ls -l /Library/LaunchDaemons/
+    ls -l /Applications/Docker.app
+    ls -l "$(which docker)"
+}
+
 # This is mainly to be used by CI
 # We need this for Mac since the executable docker won't work properly
 # until the app is opened once
@@ -73,11 +83,7 @@ start-docker() {
         # At a later stage in the script, we're going to execute
         # ensure_docker_server which waits for it to be ready
         if ! open -g -a Docker.app; then
-            # If the step above fails, at least we can get some debugging information to determine why
-            sudo-askpass ls -l /Library/PrivilegedHelperTools/com.docker.vmnetd
-            ls -l /Library/LaunchDaemons/
-            cat /Library/LaunchDaemons/com.docker.vmnetd.plist
-            ls -l /Applications/Docker.app
+            docker-debug-info
         fi
     fi
 }
@@ -150,14 +156,6 @@ init-config() {
 }
 
 run-dependent-services() {
-    if [ -n "${CI+x}" ] && ! docker system info &>/dev/null; then
-        # If the step above fails, at least we can get some debugging information to determine why
-        cat /Library/LaunchDaemons/com.docker.vmnetd.plist
-        sudo-askpass ls -l /Library/PrivilegedHelperTools/com.docker.vmnetd
-        ls -l /Library/LaunchDaemons/
-        ls -l /Applications/Docker.app
-        ls -l "$(which docker)"
-    fi
     sentry devservices up
 }
 
