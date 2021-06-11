@@ -1,7 +1,8 @@
 import re
 from collections import namedtuple
+from dataclasses import dataclass, field
 from datetime import datetime
-from typing import NamedTuple, Sequence, Union
+from typing import Any, List, Mapping, NamedTuple, Sequence, Set, Tuple, Union
 
 from django.utils.functional import cached_property
 from parsimonious.exceptions import IncompleteParseError
@@ -159,8 +160,9 @@ end_value = ~r"[\t\n )]|$"
 )
 
 
-def translate(pat) -> str:
-    """Translate a shell PATTERN to a regular expression.
+def translate_wildcard(pat: str) -> str:
+    """
+    Translate a shell PATTERN to a regular expression.
     modified from: https://github.com/python/cpython/blob/2.7/Lib/fnmatch.py#L85
     """
 
@@ -283,7 +285,7 @@ class SearchValue(NamedTuple):
     @property
     def value(self):
         if self.is_wildcard():
-            return translate(self.raw_value)
+            return translate_wildcard(self.raw_value)
         return self.raw_value
 
     def is_wildcard(self) -> bool:
@@ -314,7 +316,7 @@ class SearchFilter(NamedTuple):
         # Negations are mostly just using != operators. But we also have
         # negations on has: filters, which translate to = '', so handle that
         # case as well.
-        return (
+        return bool(
             self.operator == "!="
             and self.value.raw_value != ""
             or self.operator == "="
@@ -341,77 +343,80 @@ class AggregateKey(NamedTuple):
     name: str
 
 
-class SearchVisitor(NodeVisitor):
-    # A list of mappers that map source keys to a target name. Format is
-    # <target_name>: [<list of source names>],
-    key_mappings = {}
-    duration_keys = {"transaction.duration"}
-    percentage_keys = {"percentage"}
-    # text keys we allow operators to be used on
-    text_operator_keys = {SEMVER_ALIAS}
-    numeric_keys = {
-        "project_id",
-        "project.id",
-        "issue.id",
-        "stack.colno",
-        "stack.lineno",
-        "stack.stack_level",
-        "transaction.duration",
-        "apdex",
-        "p75",
-        "p95",
-        "p99",
-        "failure_rate",
-        "count_miserable",
-        "user_misery",
-        "count_miserable_new",
-        "user_miser_new",
-    }
-    date_keys = {
-        "start",
-        "end",
-        "first_seen",
-        "last_seen",
-        "time",
-        "timestamp",
-        "timestamp.to_hour",
-        "timestamp.to_day",
-        "transaction.start_time",
-        "transaction.end_time",
-    }
-    boolean_keys = {
-        "error.handled",
-        "error.unhandled",
-        "stack.in_app",
-        KEY_TRANSACTION_ALIAS,
-        TEAM_KEY_TRANSACTION_ALIAS,
-    }
+@dataclass
+class SearchConfig:
+    """
+    Configures how the search parser interprets a search query
+    """
 
+    # <target_name>: [<list of source names>]
+    key_mappings: Mapping[str, List[str]] = field(default_factory=dict)
+
+    # Text keys we allow operators to be used on
+    text_operator_keys: Set[str] = field(default_factory=set)
+
+    # Keys which are considered valid for duration filters
+    duration_keys: Set[str] = field(default_factory=set)
+
+    # Keys considered valid for the percentage aggregate and may have
+    # percentage search values
+    percentage_keys: Set[str] = field(default_factory=set)
+
+    # Keys considered valid for numeric filter types
+    numeric_keys: Set[str] = field(default_factory=set)
+
+    # Keys considered valid for date filter types
+    date_keys: Set[str] = field(default_factory=set)
+
+    # Keys considered valid for boolean filter types
+    boolean_keys: Set[str] = field(default_factory=set)
+
+    # A mapping of string values that may be provided to `is:<value>` which
+    # translates to a pair of SearchKey + SearchValue's. An empty list disables
+    # this feature for the search
+    is_filter_translation: Mapping[str, Tuple[str, Any]] = field(default_factory=dict)
+
+    # Enables boolean filtering (AND / OR)
+    allow_boolean = True
+
+
+class SearchVisitor(NodeVisitor):
     unwrapped_exceptions = (InvalidSearchQuery,)
 
-    def __init__(self, allow_boolean=True, params=None):
-        self.allow_boolean = allow_boolean
-        self.params = params if params is not None else {}
+    def __init__(self, config=None, params=None):
         super().__init__()
+
+        if config is None:
+            config = SearchConfig()
+        self.config = config
+        self.params = params if params is not None else {}
 
     @cached_property
     def key_mappings_lookup(self):
         lookup = {}
-        for target_field, source_fields in self.key_mappings.items():
+        for target_field, source_fields in self.config.key_mappings.items():
             for source_field in source_fields:
                 lookup[source_field] = target_field
         return lookup
 
     def is_numeric_key(self, key):
-        return key in self.numeric_keys or is_measurement(key)
+        return key in self.config.numeric_keys or is_measurement(key)
 
     def is_duration_key(self, key):
         return (
-            key in self.duration_keys or is_duration_measurement(key) or is_span_op_breakdown(key)
+            key in self.config.duration_keys
+            or is_duration_measurement(key)
+            or is_span_op_breakdown(key)
         )
 
+    def is_date_key(self, key):
+        return key in self.config.date_keys
+
+    def is_boolean_key(self, key):
+        return key in self.config.boolean_keys
+
     def is_percentage_key(self, key):
-        return key in self.percentage_keys
+        return key in self.config.percentage_keys
 
     def visit_search(self, node, children):
         return flatten(remove_space(children[1]))
@@ -420,7 +425,7 @@ class SearchVisitor(NodeVisitor):
         return flatten(remove_space(children[0]))
 
     def visit_boolean_operator(self, node, children):
-        if not self.allow_boolean:
+        if not self.config.allow_boolean:
             raise InvalidSearchQuery(
                 'Boolean statements containing "OR" or "AND" are not supported in this search'
             )
@@ -436,7 +441,7 @@ class SearchVisitor(NodeVisitor):
         return SearchFilter(SearchKey("message"), "=", SearchValue(children[0]))
 
     def visit_paren_group(self, node, children):
-        if not self.allow_boolean:
+        if not self.config.allow_boolean:
             # It's possible to have a valid search that includes parens, so we
             # can't just error out when we find a paren expression.
             return SearchFilter(SearchKey("message"), "=", SearchValue(node.text))
@@ -453,11 +458,11 @@ class SearchVisitor(NodeVisitor):
     def _handle_basic_filter(self, search_key, operator, search_value):
         # If a date or numeric key gets down to the basic filter, then it means
         # that the value wasn't in a valid format, so raise here.
-        if search_key.name in self.date_keys:
+        if self.is_date_key(search_key.name):
             raise InvalidSearchQuery(
                 f"{search_key.name}: Invalid date: {search_value.raw_value}. Expected +/-duration (e.g. +1h) or ISO 8601-like (e.g. {datetime.now().isoformat()[:-4]})."
             )
-        if search_key.name in self.boolean_keys:
+        if self.is_boolean_key(search_key.name):
             raise InvalidSearchQuery(
                 f"{search_key.name}: Invalid boolean: {search_value.raw_value}. Expected true, 1, false, or 0."
             )
@@ -486,7 +491,7 @@ class SearchVisitor(NodeVisitor):
     def visit_date_filter(self, node, children):
         (search_key, _, operator, search_value) = children
 
-        if search_key.name in self.date_keys:
+        if self.is_date_key(search_key.name):
             try:
                 search_value = parse_datetime_string(search_value)
             except InvalidQuery as exc:
@@ -502,7 +507,7 @@ class SearchVisitor(NodeVisitor):
         # on either side of that datetime
         (search_key, _, date_value) = children
 
-        if search_key.name not in self.date_keys:
+        if not self.is_date_key(search_key.name):
             return self._handle_basic_filter(search_key, "=", SearchValue(date_value))
 
         try:
@@ -522,7 +527,7 @@ class SearchVisitor(NodeVisitor):
     def visit_rel_date_filter(self, node, children):
         (search_key, _, value) = children
 
-        if search_key.name in self.date_keys:
+        if self.is_date_key(search_key.name):
             try:
                 from_val, to_val = parse_datetime_range(value.text)
             except InvalidQuery as exc:
@@ -567,7 +572,7 @@ class SearchVisitor(NodeVisitor):
         if self.is_numeric_key(search_key.name):
             return self._handle_numeric_filter(search_key, "=", [search_value.text, ""])
 
-        if search_key.name in self.boolean_keys:
+        if self.is_boolean_key(search_key.name):
             if search_value.text.lower() in ("true", "1"):
                 search_value = SearchValue(0 if negated else 1)
             elif search_value.text.lower() in ("false", "0"):
@@ -638,7 +643,7 @@ class SearchVisitor(NodeVisitor):
     def visit_aggregate_date_filter(self, node, children):
         (negation, search_key, _, operator, search_value) = children
         operator = handle_negation(negation, operator)
-        is_date_aggregate = any(key in search_key.name for key in self.date_keys)
+        is_date_aggregate = any(key in search_key.name for key in self.config.date_keys)
         if is_date_aggregate:
             try:
                 search_value = parse_datetime_string(search_value)
@@ -652,7 +657,7 @@ class SearchVisitor(NodeVisitor):
     def visit_aggregate_rel_date_filter(self, node, children):
         (negation, search_key, _, operator, search_value) = children
         operator = handle_negation(negation, operator)
-        is_date_aggregate = any(key in search_key.name for key in self.date_keys)
+        is_date_aggregate = any(key in search_key.name for key in self.config.date_keys)
         if is_date_aggregate:
             try:
                 from_val, to_val = parse_datetime_range(search_value.text)
@@ -685,7 +690,29 @@ class SearchVisitor(NodeVisitor):
         return SearchFilter(search_key, operator, SearchValue(""))
 
     def visit_is_filter(self, node, children):
-        raise InvalidSearchQuery('"is:" queries are only supported in issue search.')
+        negation, _, _, _, search_value = children
+
+        translators = self.config.is_filter_translation
+
+        if not translators:
+            raise InvalidSearchQuery('"is:" queries are not supported in this search.')
+
+        if search_value.raw_value.startswith("["):
+            raise InvalidSearchQuery('"in" syntax invalid for "is" search')
+
+        if search_value.raw_value not in translators:
+            valid_keys = sorted(translators.keys())
+            raise InvalidSearchQuery(
+                f'Invalid value for "is" search, valid values are {valid_keys}'
+            )
+
+        search_key, search_value = translators[search_value.raw_value]
+
+        operator = "!=" if is_negated(negation) else "="
+        search_key = SearchKey(search_key)
+        search_value = SearchValue(search_value)
+
+        return SearchFilter(search_key, operator, search_value)
 
     def visit_text_in_filter(self, node, children):
         (negation, search_key, _, search_value) = children
@@ -713,7 +740,7 @@ class SearchVisitor(NodeVisitor):
         return self._handle_text_filter(search_key, operator, search_value)
 
     def _handle_text_filter(self, search_key, operator, search_value):
-        if operator not in ("=", "!=") and search_key.name not in self.text_operator_keys:
+        if operator not in ("=", "!=") and search_key.name not in self.config.text_operator_keys:
             # If operators aren't allowed for this key then push it back into the value
             search_value = search_value._replace(raw_value=f"{operator}{search_value.raw_value}")
             operator = "="
@@ -859,7 +886,54 @@ class SearchVisitor(NodeVisitor):
         return children or node
 
 
-def parse_search_query(query, allow_boolean=True, params=None):
+default_config = SearchConfig(
+    duration_keys={"transaction.duration"},
+    percentage_keys={"percentage"},
+    text_operator_keys={SEMVER_ALIAS},
+    numeric_keys={
+        "project_id",
+        "project.id",
+        "issue.id",
+        "stack.colno",
+        "stack.lineno",
+        "stack.stack_level",
+        "transaction.duration",
+        "apdex",
+        "p75",
+        "p95",
+        "p99",
+        "failure_rate",
+        "count_miserable",
+        "user_misery",
+        "count_miserable_new",
+        "user_miser_new",
+    },
+    date_keys={
+        "start",
+        "end",
+        "first_seen",
+        "last_seen",
+        "time",
+        "timestamp",
+        "timestamp.to_hour",
+        "timestamp.to_day",
+        "transaction.start_time",
+        "transaction.end_time",
+    },
+    boolean_keys={
+        "error.handled",
+        "error.unhandled",
+        "stack.in_app",
+        KEY_TRANSACTION_ALIAS,
+        TEAM_KEY_TRANSACTION_ALIAS,
+    },
+)
+
+
+def parse_search_query(query, config=None, params=None):
+    if config is None:
+        config = default_config
+
     try:
         tree = event_search_grammar.parse(query)
     except IncompleteParseError as e:
@@ -872,4 +946,4 @@ def parse_search_query(query, allow_boolean=True, params=None):
                 "This is commonly caused by unmatched parentheses. Enclose any text in double quotes.",
             )
         )
-    return SearchVisitor(allow_boolean, params=params).visit(tree)
+    return SearchVisitor(config, params=params).visit(tree)

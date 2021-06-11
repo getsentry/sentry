@@ -702,7 +702,7 @@ def get_filter(query=None, params=None):
     parsed_terms = []
     if query is not None:
         try:
-            parsed_terms = parse_search_query(query, allow_boolean=True, params=params)
+            parsed_terms = parse_search_query(query, params=params)
         except ParseError as e:
             raise InvalidSearchQuery(f"Parse error: {e.expr.name} (column {e.column():d})")
 
@@ -892,7 +892,7 @@ class QueryFilter(QueryBase):
 
     def resolve_where(self, query: str) -> None:
         try:
-            parsed_terms = parse_search_query(query, allow_boolean=True, params=self.params)
+            parsed_terms = parse_search_query(query, params=self.params)
         except ParseError as e:
             raise InvalidSearchQuery(f"Parse error: {e.expr.name} (column {e.column():d})")
 
