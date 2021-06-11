@@ -17,17 +17,19 @@ def get_footer(timestamp: datetime) -> str:
 class SlackIncidentsMessageBuilder(SlackMessageBuilder):
     def __init__(
         self,
-        action: AlertRuleTriggerAction,
         incident: Incident,
-        metric_value: Optional[str] = None,
+        action: Optional[AlertRuleTriggerAction] = None,
+        metric_value: Optional[int] = None,
         method: Optional[str] = None,
     ) -> None:
         """
         Builds an incident attachment for slack unfurling.
 
-        :param incident: The `Incident` to build the attachment for
-        :param metric_value: The value of the metric that triggered this alert to
+        :param incident: The `Incident` for which to build the attachment.
+        :param [action]:
+        :param [metric_value]: The value of the metric that triggered this alert to
             fire. If not provided we'll attempt to calculate this ourselves.
+        :param [method]: Either "fire" or "resolve".
         """
         super().__init__()
         self.action = action
@@ -53,10 +55,10 @@ class SlackIncidentsMessageBuilder(SlackMessageBuilder):
 
 
 def build_incident_attachment(
-    action: AlertRuleTriggerAction,
+    action: Optional[AlertRuleTriggerAction],
     incident: Incident,
-    metric_value: Optional[str] = None,
+    metric_value: Optional[int] = None,
     method: Optional[str] = None,
 ) -> SlackBody:
     """@deprecated"""
-    return SlackIncidentsMessageBuilder(action, incident, metric_value, method).build()
+    return SlackIncidentsMessageBuilder(incident, action, metric_value, method).build()
