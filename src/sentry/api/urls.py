@@ -1864,6 +1864,11 @@ urlpatterns = [
                     name="sentry-api-0-project-appstoreconnect-credentials-create",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/appstoreconnect/(?P<credentials_id>[^\/]+)/$",
+                    AppStoreConnectUpdateCredentialsEndpoint.as_view(),
+                    name="sentry-api-0-project-appstoreconnect-credentials-update",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/appstoreconnect/apps/$",
                     AppStoreConnectAppsEndpoint.as_view(),
                     name="sentry-api-0-project-appstoreconnect-apps",
@@ -1887,11 +1892,6 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/appstoreconnect/2fa/$",
                     AppStoreConnect2FactorAuthEndpoint.as_view(),
                     name="sentry-api-0-project-appstoreconnect-2fa",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/appstoreconnect/(?P<credentials_id>[^\/]+)/$",
-                    AppStoreConnectUpdateCredentialsEndpoint.as_view(),
-                    name="sentry-api-0-project-appstoreconnect-credentials-update",
                 ),
             ]
         ),
