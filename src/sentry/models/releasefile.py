@@ -194,7 +194,7 @@ class ReleaseArchive:
         return temp_dir
 
 
-class Manifest:
+class _Manifest:
     def __init__(self, data: dict, fresh=False):
         self._data = data
         self.changed = fresh
@@ -217,7 +217,7 @@ class Manifest:
         self.changed = True
 
 
-class ManifestGuard:
+class _ManifestGuard:
     def __init__(self, release: Release, dist: Optional[Distribution]):
         self._release = release
         self._dist = dist
@@ -243,10 +243,10 @@ class ManifestGuard:
                 manifest = None
             else:
                 if created:
-                    manifest = Manifest({}, fresh=True)
+                    manifest = _Manifest({}, fresh=True)
                 else:
                     data = json.load(file_.getfile())
-                    manifest = Manifest(data)
+                    manifest = _Manifest(data)
 
             yield manifest  # editable reference to manifest
 
@@ -285,12 +285,12 @@ class ManifestGuard:
             return release_file.file
 
 
-class ReleaseMultiArchive:
+class ReleaseManifest:
 
     """Manager of all uploaded artifact bundles and their common manifest"""
 
     def __init__(self, release: Release, dist: Optional[Distribution]):
-        self.manifest = ManifestGuard(release, dist)
+        self._manifest = _ManifestGuard(release, dist)
 
     def update(self, archive: ReleaseArchive, archive_file: File):
         """Add information from release archive to manifest
@@ -316,7 +316,7 @@ class ReleaseMultiArchive:
             # FIXME: more fields
             files_out[url] = info
 
-        with self.manifest.writable_data(create=True) as manifest:
+        with self._manifest.writable_data(create=True) as manifest:
             manifest.update_files(files_out)
 
     def delete(self, url: str):
@@ -324,7 +324,7 @@ class ReleaseMultiArchive:
 
         Does *not* delete the file from the zip archive.
         """
-        with self.manifest.writable_data(create=False) as manifest:
+        with self._manifest.writable_data(create=False) as manifest:
             if manifest is not None:
                 manifest.delete(url)
 

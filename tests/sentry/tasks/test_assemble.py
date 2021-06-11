@@ -7,7 +7,7 @@ from django.core.files.base import ContentFile
 from sentry.models import FileBlob, FileBlobOwner, ReleaseFile
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.file import File
-from sentry.models.releasefile import ReleaseMultiArchive
+from sentry.models.releasefile import ReleaseManifest
 from sentry.tasks.assemble import (
     AssembleTask,
     ChunkFileState,
@@ -210,8 +210,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
                 assert details is None
 
                 if has_release_archives:
-                    multi_archive = ReleaseMultiArchive(self.release, dist=None)
-                    manifest = multi_archive.manifest.readable_data()
+                    manifest = ReleaseManifest(self.release, dist=None).read()
                     archive_id = manifest["files"]["~/index.js"]["archive_id"]
                     file_ = File.objects.get(id=archive_id)
                     # Artifact is the same as original bundle

@@ -9,7 +9,7 @@ from sentry.api.serializers import serialize
 from sentry.cache import default_cache
 from sentry.db.models.fields import uuid
 from sentry.models import File, Organization, Release, ReleaseFile
-from sentry.models.releasefile import ReleaseArchive, ReleaseMultiArchive
+from sentry.models.releasefile import ReleaseArchive, ReleaseManifest
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.files import get_max_file_size
@@ -278,7 +278,7 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
             if options.get("processing.save-release-archives"):
                 min_size = options.get("processing.release-archive-min-files")
                 if num_files >= min_size:
-                    ReleaseMultiArchive(release, dist).update(archive, bundle)
+                    ReleaseManifest(release, dist).update(archive, bundle)
 
             # NOTE(jjbayer): Single files are still stored to enable
             # rolling back from release archives. Once release archives run

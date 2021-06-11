@@ -31,7 +31,7 @@ from sentry.lang.javascript.processor import (
     trim_line,
 )
 from sentry.models import EventError, File, Release, ReleaseFile
-from sentry.models.releasefile import MANIFEST_FILENAME, ReleaseArchive, ReleaseMultiArchive
+from sentry.models.releasefile import MANIFEST_FILENAME, ReleaseArchive, ReleaseManifest
 from sentry.testutils import TestCase
 from sentry.utils import json
 from sentry.utils.compat.mock import ANY, MagicMock, call, patch
@@ -521,7 +521,7 @@ class FetchFileTest(TestCase):
         file_ = File.objects.create(name="foo", type="release.bundle")
         file_.putfile(compressed)
         with ReleaseArchive(file_.getfile()) as archive:
-            ReleaseMultiArchive(release, dist=None).update(archive, file_)
+            ReleaseManifest(release, dist=None).update(archive, file_)
 
         with self.options({"processing.use-release-archives-sample-rate": 1.0}):
             # Attempt to fetch nonexisting
