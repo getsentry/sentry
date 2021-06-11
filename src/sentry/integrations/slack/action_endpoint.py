@@ -4,8 +4,8 @@ from sentry.api.base import Endpoint
 from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.link_identity import build_linking_url
 from sentry.integrations.slack.message_builder.issues import build_group_attachment
-from sentry.integrations.slack.requests import SlackRequestError
 from sentry.integrations.slack.requests.action import SlackActionRequest
+from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.unlink_identity import build_unlinking_url
 from sentry.models import ApiKey, Group, Identity, IdentityProvider, Project
 from sentry.shared_integrations.exceptions import ApiError
