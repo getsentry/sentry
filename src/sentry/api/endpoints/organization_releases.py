@@ -134,6 +134,17 @@ def debounce_update_release_health_data(organization, project_ids):
 class OrganizationReleasesEndpoint(
     OrganizationReleasesBaseEndpoint, EnvironmentMixin, ReleaseAnalyticsMixin
 ):
+    SESSION_SORTS = frozenset(
+        [
+            "crash_free_sessions",
+            "crash_free_users",
+            "sessions",
+            "users",
+            "sessions_24h",
+            "users_24h",
+        ]
+    )
+
     def get(self, request, organization):
         """
         List an Organization's Releases
@@ -203,19 +214,16 @@ class OrganizationReleasesEndpoint(
         if flatten:
             select_extra["_for_project_id"] = "sentry_release_project.project_id"
 
+        if sort not in self.SESSION_SORTS:
+            queryset = queryset.filter(projects__id__in=filter_params["project_id"])
+
         if sort == "date":
-            queryset = queryset.filter(projects__id__in=filter_params["project_id"]).order_by(
-                "-date"
-            )
+            queryset = queryset.order_by("-date")
             paginator_kwargs["order_by"] = "-date"
-        elif sort in (
-            "crash_free_sessions",
-            "crash_free_users",
-            "sessions",
-            "users",
-            "sessions_24h",
-            "users_24h",
-        ):
+        elif sort == "build":
+            queryset = queryset.filter(build_number__isnull=False).order_by("-build_number")
+            paginator_kwargs["order_by"] = "-build_number"
+        elif sort in self.SESSION_SORTS:
             if not flatten:
                 return Response(
                     {"detail": "sorting by crash statistics requires flattening (flatten=1)"},
