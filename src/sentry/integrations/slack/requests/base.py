@@ -83,7 +83,6 @@ class SlackRequest:
         except (ValueError, TypeError):
             raise SlackRequestError(status=400)
 
-    # TODO MARCOS FIRST
     def _authorize(self) -> None:
         # XXX(meredith): Signing secrets are the preferred way
         # but self-hosted could still have an older slack bot
