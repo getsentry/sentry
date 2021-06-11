@@ -22,7 +22,7 @@ class SlackCommandsEndpoint(Endpoint):
 
     def post(self, request: Request) -> HttpResponse:
         """
-        All Slack commands and handled by this endpoint. This block just
+        All Slack commands are handled by this endpoint. This block just
         validates the request and dispatches it to the right handler.
         """
         try:

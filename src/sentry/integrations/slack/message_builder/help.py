@@ -5,7 +5,7 @@ from sentry.integrations.slack.message_builder.base.base import SlackMessageBuil
 
 AVAILABLE_COMMANDS = {
     "help": "displays the available commands",
-    "link": "kicks of linking Slack and Sentry",
+    "link": "kicks off linking Slack and Sentry",
     "unlink": "unlinks your identity",
 }
 
