@@ -377,6 +377,7 @@ function SymbolSources({
           removeConfirm={{
             onConfirm: item => {
               if (item.type === 'appStoreConnect') {
+                handleCloseImageDetailsModal();
                 window.location.reload();
               }
             },
