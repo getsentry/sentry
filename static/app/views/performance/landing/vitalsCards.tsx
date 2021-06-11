@@ -149,6 +149,7 @@ function _BackendCards(props: BackendCardsProps) {
   const end = globalSelection.datetime.end
     ? getUtcToLocalDateObject(globalSelection.datetime.end)
     : undefined;
+  const apiPayload = eventView.getEventsAPIPayload(location);
 
   return (
     <DiscoverQuery
@@ -165,6 +166,7 @@ function _BackendCards(props: BackendCardsProps) {
           period={globalSelection.datetime.period}
           project={globalSelection.projects}
           environment={globalSelection.environments}
+          team={apiPayload.team}
           start={start}
           end={end}
           interval={getInterval({
@@ -172,7 +174,7 @@ function _BackendCards(props: BackendCardsProps) {
             end: end || null,
             period: globalSelection.datetime.period,
           })}
-          query={eventView.getEventsAPIPayload(location).query}
+          query={apiPayload.query}
           includePrevious={false}
           yAxis={eventView.getFields()}
           partial

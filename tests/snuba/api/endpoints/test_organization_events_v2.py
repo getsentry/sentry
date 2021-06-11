@@ -3695,6 +3695,32 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[2]["team_key_transaction"] == 1
         assert data[2]["transaction"] == "/foo_transaction/"
 
+        # not specifying any teams should use my teams
+        query = {
+            "project": [self.project.id],
+            "field": [
+                "team_key_transaction",
+                "transaction",
+                "transaction.status",
+                "project",
+                "epm()",
+                "failure_rate()",
+                "percentile(transaction.duration, 0.95)",
+            ],
+        }
+
+        query["orderby"] = ["team_key_transaction", "transaction"]
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 3
+        assert data[0]["team_key_transaction"] == 0
+        assert data[0]["transaction"] == "/blah_transaction/"
+        assert data[1]["team_key_transaction"] == 0
+        assert data[1]["transaction"] == "/zoo_transaction/"
+        assert data[2]["team_key_transaction"] == 1
+        assert data[2]["transaction"] == "/foo_transaction/"
+
     def test_team_key_transactions_orderby(self):
         team1 = self.create_team(organization=self.organization, name="Team A")
         team2 = self.create_team(organization=self.organization, name="Team B")

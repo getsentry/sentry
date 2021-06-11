@@ -8,9 +8,11 @@ from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 from sentry import features
 from sentry.api.base import LINK_HEADER
 from sentry.api.bases import NoProjects, OrganizationEndpoint
+from sentry.api.helpers.teams import get_teams
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
 from sentry.discover.arithmetic import ArithmeticError
 from sentry.exceptions import InvalidSearchQuery
+from sentry.models import Team
 from sentry.models.group import Group
 from sentry.models.transaction_threshold import ProjectTransactionThreshold
 from sentry.search.events.constants import DEFAULT_PROJECT_THRESHOLD
@@ -62,6 +64,10 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             params = self.get_filter_params(request, organization)
             params = self.quantize_date_params(request, params)
             params["user_id"] = request.user.id if request.user else None
+            teams = get_teams(request, organization)
+            if not teams:
+                teams = Team.objects.get_for_user(organization, request.user)
+            params["team_id"] = [team.id for team in teams]
 
             if check_global_views:
                 has_global_views = features.has(
