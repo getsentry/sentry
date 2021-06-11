@@ -13,7 +13,7 @@ from snuba_sdk.orderby import Direction, OrderBy
 
 from sentry.discover.models import KeyTransaction, TeamKeyTransaction
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import Project, ProjectTransactionThreshold
+from sentry.models import Project, ProjectTeam, ProjectTransactionThreshold
 from sentry.models.transaction_threshold import TRANSACTION_METRICS
 from sentry.search.events.base import QueryBase
 from sentry.search.events.constants import (
@@ -41,6 +41,9 @@ from sentry.utils.snuba import (
     is_span_op_breakdown,
 )
 
+MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS = 500
+
+ConditionalFunction = namedtuple("ConditionalFunction", "condition match fallback")
 FunctionDetails = namedtuple("FunctionDetails", "field instance arguments")
 ResolvedFunction = namedtuple("ResolvedFunction", "details column aggregate")
 
@@ -129,7 +132,7 @@ def project_threshold_config_expression(organization_id, project_ids):
     This function returns a column with the threshold and threshold metric
     for each transaction based on project level settings. If no project level
     thresholds are set, the will fallback to the default values. This column
-    is used in the `count_miserable_new` and `user_misery_new` aggregates.
+    is used in the new `count_miserable` and `user_misery` aggregates.
     """
     if organization_id is None or project_ids is None:
         raise InvalidSearchQuery("Missing necessary data for project threshold config")
@@ -211,17 +214,24 @@ def team_key_transaction_expression(organization_id, team_ids, project_ids):
     team_key_transactions = (
         TeamKeyTransaction.objects.filter(
             organization_id=organization_id,
-            project_id__in=project_ids,
-            team_id__in=team_ids,
+            project_team__in=ProjectTeam.objects.filter(
+                project_id__in=project_ids, team_id__in=team_ids
+            ),
         )
-        .order_by("transaction", "project_id")
-        .values("project_id", "transaction")
-        .distinct("transaction", "project_id")
+        .order_by("transaction", "project_team__project_id")
+        .values("transaction", "project_team__project_id")
+        .distinct("transaction", "project_team__project_id")
     )
 
-    # There are team key transactions marked, so hard code false into the query.
-    if len(team_key_transactions) == 0:
+    count = len(team_key_transactions)
+
+    # There are no team key transactions marked, so hard code false into the query.
+    if count == 0:
         return ["toInt8", [0]]
+    elif count > MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS:
+        raise InvalidSearchQuery(
+            f"You have selected teams with too many transactions. The limit is {MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS}. Change the active filters to try again."
+        )
 
     return [
         "in",
@@ -233,7 +243,7 @@ def team_key_transaction_expression(organization_id, team_ids, project_ids):
                     [
                         "tuple",
                         [
-                            transaction["project_id"],
+                            transaction["project_team__project_id"],
                             "'{}'".format(transaction["transaction"]),
                         ],
                     ]
@@ -368,7 +378,12 @@ def format_column_as_key(x):
 
 
 def resolve_field_list(
-    fields, snuba_filter, auto_fields=True, auto_aggregations=False, functions_acl=None
+    fields,
+    snuba_filter,
+    auto_fields=True,
+    auto_aggregations=False,
+    functions_acl=None,
+    resolved_equations=None,
 ):
     """
     Expand a list of fields based on aliases and aggregate functions.
@@ -401,14 +416,13 @@ def resolve_field_list(
         if "project.id" not in fields:
             fields.append("project.id")
 
-    # Both `count_miserable_new` and `user_misery_new` require the project_threshold_config column
-    if PROJECT_THRESHOLD_CONFIG_ALIAS not in fields:
-        for field in fields[:]:
-            if isinstance(field, str) and (
-                field.startswith("count_miserable_new")
-                or field == "user_misery_new()"
-                or field == "apdex_new()"
-            ):
+    for field in fields[:]:
+        if isinstance(field, str) and field in {
+            "apdex()",
+            "count_miserable(user)",
+            "user_misery()",
+        }:
+            if PROJECT_THRESHOLD_CONFIG_ALIAS not in fields:
                 fields.append(PROJECT_THRESHOLD_CONFIG_ALIAS)
                 break
 
@@ -488,7 +502,7 @@ def resolve_field_list(
     orderby = snuba_filter.orderby
     # Only sort if there are columns. When there are only aggregates there's no need to sort
     if orderby and len(columns) > 0:
-        orderby = resolve_orderby(orderby, columns, aggregations)
+        orderby = resolve_orderby(orderby, columns, aggregations, resolved_equations)
     else:
         orderby = None
 
@@ -519,6 +533,9 @@ def resolve_field_list(
                     )
                 groupby.append(column)
 
+    if resolved_equations:
+        columns += resolved_equations
+
     return {
         "selected_columns": columns,
         "aggregations": aggregations,
@@ -528,7 +545,7 @@ def resolve_field_list(
     }
 
 
-def resolve_orderby(orderby, fields, aggregations):
+def resolve_orderby(orderby, fields, aggregations, equations):
     """
     We accept column names, aggregate functions, and aliases as order by
     values. Aggregates and field aliases need to be resolve/validated.
@@ -538,11 +555,19 @@ def resolve_orderby(orderby, fields, aggregations):
     those that are currently selected.
     """
     orderby = orderby if isinstance(orderby, (list, tuple)) else [orderby]
+    if equations is not None:
+        equation_aliases = [equation[-1] for equation in equations]
+    else:
+        equation_aliases = []
     validated = []
     for column in orderby:
         bare_column = column.lstrip("-")
 
         if bare_column in fields:
+            validated.append(column)
+            continue
+
+        if equation_aliases and bare_column in equation_aliases:
             validated.append(column)
             continue
 
@@ -625,6 +650,21 @@ def resolve_function(field, match=None, params=None, functions_acl=False):
             None,
             [snuba_string, None, alias],
         )
+    elif function.conditional_transform is not None:
+        condition, match, fallback = function.conditional_transform
+        if alias is None:
+            alias = get_function_alias_with_columns(function.name, columns)
+
+        if arguments[condition.arg]:
+            snuba_string = match.format(**arguments)
+        else:
+            snuba_string = fallback.format(**arguments)
+        return ResolvedFunction(
+            details,
+            None,
+            [snuba_string, None, alias],
+        )
+
     elif function.aggregate is not None:
         aggregate = deepcopy(function.aggregate)
 
@@ -1010,8 +1050,21 @@ class NumberRange(FunctionArg):
             )
         elif self.end and value >= self.end:
             raise InvalidFunctionArgument(f"{value:g} must be less than {self.end:g}")
-
         return value
+
+
+class NullableNumberRange(NumberRange):
+    def __init__(self, name, start, end):
+        super().__init__(name, start, end)
+        self.has_default = True
+
+    def get_default(self, params):
+        return None
+
+    def normalize(self, value, params):
+        if value is None:
+            return value
+        return super().normalize(value, params)
 
 
 class IntervalDefault(NumberRange):
@@ -1047,6 +1100,7 @@ class Function:
         column=None,
         aggregate=None,
         transform=None,
+        conditional_transform=None,
         result_type_fn=None,
         default_result_type=None,
         redundant_grouping=False,
@@ -1069,6 +1123,9 @@ class Function:
         :param str transform: NOTE: Use aggregate over transform whenever possible.
             An aggregate string to be passed to snuba once formatted. The arguments
             will be filled into the string using `.format(...)`.
+        :param ConditionalFunction conditional_transform: Tuple of the condition to be evaluated, the
+            transform string if the condition is met and the transform string if the condition
+            is not met.
         :param str result_type_fn: A function to call with in order to determine the result type.
             This function will be passed the list of argument classes and argument values. This should
             be tried first as the source of truth if available.
@@ -1086,6 +1143,7 @@ class Function:
         self.column = column
         self.aggregate = aggregate
         self.transform = transform
+        self.conditional_transform = conditional_transform
         self.result_type_fn = result_type_fn
         self.default_result_type = default_result_type
         self.redundant_grouping = redundant_grouping
@@ -1173,7 +1231,14 @@ class Function:
         # assert that the function has only one of the following specified
         # `column`, `aggregate`, or `transform`
         assert (
-            sum([self.column is not None, self.aggregate is not None, self.transform is not None])
+            sum(
+                [
+                    self.column is not None,
+                    self.aggregate is not None,
+                    self.transform is not None,
+                    self.conditional_transform is not None,
+                ]
+            )
             == 1
         ), f"{self.name}: only one of column, aggregate, or transform is allowed"
 
@@ -1312,13 +1377,11 @@ FUNCTIONS = {
         ),
         Function(
             "apdex",
-            required_args=[NumberRange("satisfaction", 0, None)],
-            transform="apdex(duration, {satisfaction:g})",
-            default_result_type="number",
-        ),
-        Function(
-            "apdex_new",
-            transform="""
+            optional_args=[NullableNumberRange("satisfaction", 0, None)],
+            conditional_transform=ConditionalFunction(
+                ArgValue("satisfaction"),
+                "apdex(duration, {satisfaction:g})",
+                """
                 apdex(
                     multiIf(
                         equals(
@@ -1335,77 +1398,45 @@ FUNCTIONS = {
                     tupleElement(project_threshold_config, 2)
                 )
             """.replace(
-                "\n", ""
-            ).replace(
-                " ", ""
+                    "\n", ""
+                ).replace(
+                    " ", ""
+                ),
             ),
             default_result_type="number",
         ),
         Function(
             "count_miserable",
-            required_args=[CountColumn("column"), NumberRange("satisfaction", 0, None)],
-            calculated_args=[{"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0}],
-            aggregate=[
-                "uniqIf",
-                [ArgValue("column"), ["greater", ["transaction.duration", ArgValue("tolerated")]]],
-                None,
+            required_args=[CountColumn("column")],
+            optional_args=[NullableNumberRange("satisfaction", 0, None)],
+            calculated_args=[
+                {
+                    "name": "tolerated",
+                    "fn": lambda args: args["satisfaction"] * 4.0 if args["satisfaction"] else None,
+                }
             ],
+            conditional_transform=ConditionalFunction(
+                ArgValue("satisfaction"),
+                "uniqIf(user, greater(duration, {tolerated:g}))",
+                """
+                uniqIf(user, greater(
+                    multiIf(
+                        equals(tupleElement(project_threshold_config, 1), 'lcp'),
+                        if(has(measurements.key, 'lcp'), arrayElement(measurements.value, indexOf(measurements.key, 'lcp')), NULL),
+                        duration
+                    ),
+                    multiply(tupleElement(project_threshold_config, 2), 4)
+                ))
+                """.replace(
+                    "\n", ""
+                ).replace(
+                    " ", ""
+                ),
+            ),
             default_result_type="number",
         ),
         Function(
-            "count_miserable_new",
-            required_args=[
-                CountColumn("column"),
-            ],
-            aggregate=[
-                "uniqIf",
-                [
-                    ArgValue("column"),
-                    [
-                        "greater",
-                        [
-                            [
-                                "multiIf",
-                                [
-                                    [
-                                        "equals",
-                                        [
-                                            [
-                                                "tupleElement",
-                                                [
-                                                    "project_threshold_config",
-                                                    1,
-                                                ],
-                                            ],
-                                            "'lcp'",
-                                        ],
-                                    ],
-                                    "measurements[lcp]",
-                                    "duration",
-                                ],
-                            ],
-                            [
-                                "multiply",
-                                [
-                                    [
-                                        "tupleElement",
-                                        [
-                                            "project_threshold_config",
-                                            2,
-                                        ],
-                                    ],
-                                    4,
-                                ],
-                            ],
-                        ],
-                    ],
-                ],
-                None,
-            ],
-            default_result_type="number",
-        ),
-        Function(
-            "user_misery_new",
+            "user_misery",
             # To correct for sensitivity to low counts, User Misery is modeled as a Beta Distribution Function.
             # With prior expectations, we have picked the expected mean user misery to be 0.05 and variance
             # to be 0.0004. This allows us to calculate the alpha (5.8875) and beta (111.8625) parameters,
@@ -1413,13 +1444,21 @@ FUNCTIONS = {
             # https://stats.stackexchange.com/questions/47771/what-is-the-intuition-behind-beta-distribution
             # for an intuitive explanation of the Beta Distribution Function.
             optional_args=[
+                NullableNumberRange("satisfaction", 0, None),
                 with_default(5.8875, NumberRange("alpha", 0, None)),
                 with_default(111.8625, NumberRange("beta", 0, None)),
             ],
             calculated_args=[
+                {
+                    "name": "tolerated",
+                    "fn": lambda args: args["satisfaction"] * 4.0 if args["satisfaction"] else None,
+                },
                 {"name": "parameter_sum", "fn": lambda args: args["alpha"] + args["beta"]},
             ],
-            transform="""
+            conditional_transform=ConditionalFunction(
+                ArgValue("satisfaction"),
+                "ifNull(divide(plus(uniqIf(user, greater(duration, {tolerated:g})), {alpha}), plus(uniq(user), {parameter_sum})), 0)",
+                """
                 ifNull(
                     divide(
                         plus(
@@ -1437,30 +1476,11 @@ FUNCTIONS = {
                     ),
                 0)
             """.replace(
-                " ", ""
-            ).replace(
-                "\n", ""
+                    " ", ""
+                ).replace(
+                    "\n", ""
+                ),
             ),
-            default_result_type="number",
-        ),
-        Function(
-            "user_misery",
-            required_args=[NumberRange("satisfaction", 0, None)],
-            # To correct for sensitivity to low counts, User Misery is modeled as a Beta Distribution Function.
-            # With prior expectations, we have picked the expected mean user misery to be 0.05 and variance
-            # to be 0.0004. This allows us to calculate the alpha (5.8875) and beta (111.8625) parameters,
-            # with the user misery being adjusted for each fast/slow unique transaction. See:
-            # https://stats.stackexchange.com/questions/47771/what-is-the-intuition-behind-beta-distribution
-            # for an intuitive explanation of the Beta Distribution Function.
-            optional_args=[
-                with_default(5.8875, NumberRange("alpha", 0, None)),
-                with_default(111.8625, NumberRange("beta", 0, None)),
-            ],
-            calculated_args=[
-                {"name": "tolerated", "fn": lambda args: args["satisfaction"] * 4.0},
-                {"name": "parameter_sum", "fn": lambda args: args["alpha"] + args["beta"]},
-            ],
-            transform="ifNull(divide(plus(uniqIf(user, greater(duration, {tolerated:g})), {alpha}), plus(uniq(user), {parameter_sum})), 0)",
             default_result_type="number",
         ),
         Function("failure_rate", transform="failure_rate()", default_result_type="percentage"),

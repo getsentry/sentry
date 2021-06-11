@@ -325,15 +325,17 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
         return "\n".join(output)
 
     def get_client(self):
+        logging_context = {"org_id": self.organization_id}
+
+        if self.organization_id is not None:
+            logging_context["integration_id"] = attrgetter("org_integration.integration.id")(self)
+            logging_context["org_integration_id"] = attrgetter("org_integration.id")(self)
+
         return JiraApiClient(
             self.model.metadata["base_url"],
             JiraCloud(self.model.metadata["shared_secret"]),
             verify_ssl=True,
-            logging_context={
-                "org_id": self.organization_id,
-                "integration_id": attrgetter("org_integration.integration.id")(self),
-                "org_integration_id": attrgetter("org_integration.id")(self),
-            },
+            logging_context=logging_context,
         )
 
     def get_issue(self, issue_id, **kwargs):

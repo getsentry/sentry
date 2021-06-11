@@ -38,7 +38,6 @@ type Props = {
 };
 
 type State = {
-  datePickerActive: boolean;
   anySelected: boolean;
   multiSelected: boolean;
   pageSelected: boolean;
@@ -49,7 +48,6 @@ type State = {
 
 class IssueListActions extends React.Component<Props, State> {
   state: State = {
-    datePickerActive: false,
     anySelected: false,
     multiSelected: false, // more than one selected
     pageSelected: false, // all on current page selected (e.g. 25)

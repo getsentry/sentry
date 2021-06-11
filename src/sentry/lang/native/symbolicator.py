@@ -48,6 +48,7 @@ COMMON_SOURCE_PROPERTIES = {
     "filetypes": {"type": "array", "items": {"type": "string", "enum": list(VALID_FILE_TYPES)}},
 }
 
+
 APP_STORE_CONNECT_SCHEMA = {
     "type": "object",
     "properties": {
@@ -56,25 +57,33 @@ APP_STORE_CONNECT_SCHEMA = {
         "name": {"type": "string"},
         "appconnectIssuer": {"type": "string", "minLength": 36, "maxLength": 36},
         "appconnectKey": {"type": "string", "minLength": 2, "maxLength": 20},
+        "appconnectPrivateKey": {"type": "string"},
         "itunesUser": {"type": "string", "minLength": 1, "maxLength": 100},
+        "itunesCreated": {"type": "string", "format": "date-time"},
+        "itunesPassword": {"type": "string"},
+        "itunesSession": {"type": "string"},
+        "itunesPersonId": {"type": "string"},
         "appName": {"type": "string", "minLength": 1, "maxLength": 512},
         "appId": {"type": "string", "minLength": 1, "maxLength": 512},
         "orgId": {"type": "integer"},
         "orgName": {"type": "string", "minLength": 1, "maxLength": 512},
-        "encrypted": {"type": "string"},
     },
     "required": [
+        "type",
         "id",
         "name",
-        "type",
         "appconnectIssuer",
         "appconnectKey",
+        "appconnectPrivateKey",
         "itunesUser",
+        "itunesCreated",
+        "itunesPassword",
+        "itunesSession",
+        "itunesPersonId",
         "appName",
         "appId",
         "orgId",
         "orgName",
-        "encrypted",
     ],
     "additionalProperties": False,
 }

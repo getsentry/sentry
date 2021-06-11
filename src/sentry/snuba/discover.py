@@ -312,6 +312,11 @@ def prepare_discover_query(
             snuba_filter.having = []
 
     with sentry_sdk.start_span(op="discover.discover", description="query.field_translations"):
+        if equations is not None:
+            resolved_equations = resolve_equation_list(equations, selected_columns)
+        else:
+            resolved_equations = []
+
         if orderby is not None:
             orderby = list(orderby) if isinstance(orderby, (list, tuple)) else [orderby]
             snuba_filter.orderby = [get_function_alias(o) for o in orderby]
@@ -322,14 +327,10 @@ def prepare_discover_query(
             auto_fields=auto_fields,
             auto_aggregations=auto_aggregations,
             functions_acl=functions_acl,
+            resolved_equations=resolved_equations,
         )
 
         snuba_filter.update_with(resolved_fields)
-
-        if equations is not None:
-            resolved_equations = resolve_equation_list(equations, snuba_filter)
-
-            snuba_filter.update_with(resolved_equations)
 
         # Resolve the public aliases into the discover dataset names.
         snuba_filter, translated_columns = resolve_discover_aliases(snuba_filter)
