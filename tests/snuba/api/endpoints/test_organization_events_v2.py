@@ -4,7 +4,7 @@ import pytest
 from django.urls import reverse
 from pytz import utc
 
-from sentry.discover.models import MAX_TEAM_KEY_TRANSACTIONS, KeyTransaction, TeamKeyTransaction
+from sentry.discover.models import KeyTransaction, TeamKeyTransaction
 from sentry.models import ApiKey, ProjectTeam, ProjectTransactionThreshold
 from sentry.models.transaction_threshold import TransactionMetric
 from sentry.testutils import APITestCase, SnubaTestCase
@@ -3855,6 +3855,11 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             self.project.add_team(team)
             project_team = ProjectTeam.objects.get(project=self.project, team=team)
 
+            for i in range(MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS + 1):
+                transaction = f"transaction-{team.id}-{i}"
+                self.transaction_data["transaction"] = transaction
+                self.store_event(self.transaction_data, self.project.id)
+
             TeamKeyTransaction.objects.bulk_create(
                 [
                     TeamKeyTransaction(
@@ -3862,7 +3867,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                         project_team=project_team,
                         transaction=f"transaction-{team.id}-{i}",
                     )
-                    for i in range(MAX_TEAM_KEY_TRANSACTIONS + 1)
+                    for i in range(MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS + 1)
                 ]
             )
 
@@ -3882,10 +3887,12 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             }
 
             response = self.do_request(query)
-            assert response.status_code == 400, response.content
+            assert response.status_code == 200, response.content
+            data = response.data["data"]
+            assert len(data) == 2
             assert (
-                response.data["detail"]
-                == f"You have selected teams with too many transactions. The limit is {MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS}. Change the active filters to try again."
+                sum(row["team_key_transaction"] for row in data)
+                == MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS
             )
 
     def test_no_pagination_param(self):
