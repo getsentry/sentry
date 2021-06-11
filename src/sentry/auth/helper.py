@@ -472,7 +472,7 @@ class AuthIdentityHandler:
             else:
                 template = "sentry/auth-confirm-identity.html"
                 context.update({"existing_user": acting_user, "login_form": login_form})
-            return self._respond(template, **context)
+            return self._respond(template, context)
 
         user = auth_identity.user
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
