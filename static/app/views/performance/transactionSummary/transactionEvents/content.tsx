@@ -5,7 +5,9 @@ import styled from '@emotion/styled';
 import {Location, LocationDescriptor, Query} from 'history';
 import omit from 'lodash/omit';
 
+import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
 import SearchBar from 'app/components/events/searchBar';
+import GlobalSdkUpdateAlert from 'app/components/globalSdkUpdateAlert';
 import * as Layout from 'app/components/layouts/thirds';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import Pagination from 'app/components/pagination';
@@ -43,26 +45,31 @@ type Props = {
   limit: number;
 };
 
-const EventsPageContent = (props: Props) => {
-  const {
-    eventView,
-    location,
-    organization,
-    projects,
-    transactionName,
-    limit = DEFAULT_TRANSACTION_LIMIT,
-    cursorName = 'transactionCursor',
-  } = props;
+type State = {
+  incompatibleAlertNotice: React.ReactNode;
+};
 
-  const handleCursor = (cursor: string, pathname: string, query: Query) => {
+class EventsPageContent extends React.Component<Props, State> {
+  static defaultProps = {
+    cursorName: 'transactionCursor',
+    limit: DEFAULT_TRANSACTION_LIMIT,
+  };
+  state: State = {
+    incompatibleAlertNotice: null,
+  };
+
+  handleCursor = (cursor: string, pathname: string, query: Query) => {
+    const {cursorName} = this.props;
     browserHistory.push({
       pathname,
       query: {...query, [cursorName]: cursor},
     });
   };
 
-  const handleCellAction = (column: TableColumn<React.ReactText>) => {
+  handleCellAction = (column: TableColumn<React.ReactText>) => {
     return (action: Actions, value: React.ReactText) => {
+      const {eventView, location} = this.props;
+
       const searchConditions = tokenizeSearch(eventView.query);
 
       // remove any event.type queries since it is implied to apply to only transactions
@@ -84,81 +91,105 @@ const EventsPageContent = (props: Props) => {
     };
   };
 
-  const handleIncompatibleQuery = () => {};
+  handleIncompatibleQuery: React.ComponentProps<
+    typeof CreateAlertFromViewButton
+  >['onIncompatibleQuery'] = (incompatibleAlertNoticeFn, _errors) => {
+    const incompatibleAlertNotice = incompatibleAlertNoticeFn(() =>
+      this.setState({incompatibleAlertNotice: null})
+    );
+    this.setState({incompatibleAlertNotice});
+  };
 
-  const transactionsListEventView = eventView.clone();
+  render() {
+    const {
+      eventView,
+      location,
+      organization,
+      projects,
+      transactionName,
+      limit,
+      cursorName,
+    } = this.props;
+    const {incompatibleAlertNotice} = this.state;
 
-  const transactionsListTitles = [
-    t('event id'),
-    t('user'),
-    t('operation duration'),
-    t('total duration'),
-    t('trace id'),
-    t('timestamp'),
-  ];
-  const cursor = decodeScalar(location.query?.[cursorName]);
+    const transactionsListEventView = eventView.clone();
 
-  return (
-    <Fragment>
-      <TransactionHeader
-        eventView={transactionsListEventView}
-        location={location}
-        organization={organization}
-        projects={projects}
-        transactionName={transactionName}
-        currentTab={Tab.Events}
-        hasWebVitals={
-          getCurrentLandingDisplay(location, projects, eventView).field ===
-          LandingDisplayField.FRONTEND_PAGELOAD
-        }
-        handleIncompatibleQuery={handleIncompatibleQuery}
-      />
-      <Layout.Body>
-        <Layout.Main fullWidth>
-          <Search {...props} />
-          <StyledTable>
-            <DiscoverQuery
-              location={location}
-              eventView={transactionsListEventView}
-              orgSlug={organization.slug}
-              limit={limit}
-              cursor={cursor}
-              referrer="api.discover.transactions-list"
-            >
-              {({isLoading, pageLinks, tableData}) => {
-                return (
-                  <React.Fragment>
-                    <TransactionsTable
-                      eventView={eventView}
-                      organization={organization}
-                      location={location}
-                      isLoading={isLoading}
-                      tableData={tableData}
-                      columnOrder={eventView.getColumns()}
-                      titles={transactionsListTitles}
-                      handleCellAction={handleCellAction}
-                      generateLink={{
-                        id: generateTransactionLink(transactionName),
-                        trace: generateTraceLink(
-                          eventView.normalizeDateSelection(location)
-                        ),
-                      }}
-                    />
-                    <Pagination
-                      pageLinks={pageLinks}
-                      onCursor={handleCursor}
-                      size="small"
-                    />
-                  </React.Fragment>
-                );
-              }}
-            </DiscoverQuery>
-          </StyledTable>
-        </Layout.Main>
-      </Layout.Body>
-    </Fragment>
-  );
-};
+    const transactionsListTitles = [
+      t('event id'),
+      t('user'),
+      t('operation duration'),
+      t('total duration'),
+      t('trace id'),
+      t('timestamp'),
+    ];
+    const cursor = decodeScalar(location.query?.[cursorName]);
+
+    return (
+      <Fragment>
+        <TransactionHeader
+          eventView={transactionsListEventView}
+          location={location}
+          organization={organization}
+          projects={projects}
+          transactionName={transactionName}
+          currentTab={Tab.Events}
+          hasWebVitals={
+            getCurrentLandingDisplay(location, projects, eventView).field ===
+            LandingDisplayField.FRONTEND_PAGELOAD
+          }
+          handleIncompatibleQuery={this.handleIncompatibleQuery}
+        />
+        <Layout.Body>
+          <StyledSdkUpdatesAlert />
+          {incompatibleAlertNotice && (
+            <Layout.Main fullWidth>{incompatibleAlertNotice}</Layout.Main>
+          )}
+          <Layout.Main fullWidth>
+            <Search {...this.props} />
+            <StyledTable>
+              <DiscoverQuery
+                location={location}
+                eventView={transactionsListEventView}
+                orgSlug={organization.slug}
+                limit={limit}
+                cursor={cursor}
+                referrer="api.discover.transactions-list"
+              >
+                {({isLoading, pageLinks, tableData}) => {
+                  return (
+                    <React.Fragment>
+                      <TransactionsTable
+                        eventView={eventView}
+                        organization={organization}
+                        location={location}
+                        isLoading={isLoading}
+                        tableData={tableData}
+                        columnOrder={eventView.getColumns()}
+                        titles={transactionsListTitles}
+                        handleCellAction={this.handleCellAction}
+                        generateLink={{
+                          id: generateTransactionLink(transactionName),
+                          trace: generateTraceLink(
+                            eventView.normalizeDateSelection(location)
+                          ),
+                        }}
+                      />
+                      <Pagination
+                        pageLinks={pageLinks}
+                        onCursor={this.handleCursor}
+                        size="small"
+                      />
+                    </React.Fragment>
+                  );
+                }}
+              </DiscoverQuery>
+            </StyledTable>
+          </Layout.Main>
+        </Layout.Body>
+      </Fragment>
+    );
+  }
+}
 
 function generateTraceLink(dateSelection) {
   return (
@@ -223,5 +254,15 @@ const StyledTable = styled('div')`
   flex-grow: 1;
   padding-top: ${space(2)};
 `;
+
+const StyledSdkUpdatesAlert = styled(GlobalSdkUpdateAlert)`
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    margin-bottom: 0;
+  }
+`;
+
+StyledSdkUpdatesAlert.defaultProps = {
+  Wrapper: p => <Layout.Main fullWidth {...p} />,
+};
 
 export default EventsPageContent;
