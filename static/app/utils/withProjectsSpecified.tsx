@@ -1,4 +1,5 @@
 import * as React from 'react';
+import isEqual from 'lodash/isEqual';
 
 import ProjectsStore from 'app/stores/projectsStore';
 import {Project} from 'app/types';
@@ -43,7 +44,7 @@ function withProjectsSpecified<P extends InjectedProjectsProps>(
     unsubscribe = ProjectsStore.listen(() => {
       const storeState = ProjectsStore.getState(this.props.specificProjectSlugs);
 
-      if (this.state !== storeState) {
+      if (!isEqual(this.state, storeState)) {
         this.setState(storeState);
       }
     }, undefined);
