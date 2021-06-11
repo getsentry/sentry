@@ -9,13 +9,13 @@ from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.snuba import Dataset, raw_query
 
-# TODO: Add metrics + some error casing
-# TODO: Think about where too many results many be returned, and where you may want to batch things or even fire off another task
+# TODO: Think about where too many results many be processed, and where you may need to page, batch things, or fire off another task
 # TODO: Paginate step #1 query? Last I checked there are 43k projects. Not sure how many orgs.
-# TODO: I'm actually not sure if I need to update ReleaseProject's? A release doesn't have to have an environment, but it seems like sessions do (https://develop.sentry.dev/sdk/sessions/)
-# TODO: Can I select every ReleaseProjectEnvironment at once?
-# TODO: Bulk select releases and environments? (per org)?
 # TODO: Is step #2 really slow? Should I break it up per project? Org?
+# TODO: Can I select every ReleaseProjectEnvironment at once? Or bulk select releases and environments? (per org)?
+# TODO: Try using SnQL
+# TODO: Add some error catching (i.e. catch ReleaseProjectEnvironment.DoesNotExist and think of where else errors could occur)
+# TODO: I'm actually not sure if I need to update ReleaseProject's? A release doesn't have to have an environment, but it seems like sessions do (https://develop.sentry.dev/sdk/sessions/)
 
 REQUIRED_ADOPTION_PERCENT = 0.1
 logger = logging.getLogger("tasks.releasemonitor")
@@ -80,6 +80,7 @@ def process_projects_with_sessions(data):
                     referrer="sentry.tasks.sreleasemonitor.monitor_release_adoption.SessionsAcrossOrg",
                 )
 
+            # TODO: Can I just make the rollup 6 hours and not have to do this sum? Could process rows directly, but would need total session count still.
             with metrics.timer("sentry.tasks.monitor_release_adoption.org_query_summation"):
                 release_sums = defaultdict(dict)
                 total_sessions = 0
@@ -99,7 +100,7 @@ def process_projects_with_sessions(data):
                         release_sums[org_id][project_id][release][env] += count
                         total_sessions += count
 
-    # 3. Using the sums from #2, calculate adoption rate (relevant sessions / all sessions) update the appropriate postgres model adopted/unadopted fields as appropriate.
+    # 3. Using the sums from #2, calculate adoption rate (relevant sessions / all sessions) update the appropriate ReleaseProjectEnvironment model adopted/unadopted fields.
     with metrics.timer("sentry.tasks.monitor_release_adoption.update_postgres_loop"):
         for org_id in release_sums:
             with metrics.timer("sentry.tasks.monitor_release_adoption.org_loop"):
