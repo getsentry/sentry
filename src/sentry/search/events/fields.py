@@ -220,7 +220,7 @@ def team_key_transaction_expression(organization_id, team_ids, project_ids):
         )
         .order_by("transaction", "project_team__project_id")
         .values("transaction", "project_team__project_id")
-        .distinct("transaction", "project_team__project_id")
+        .distinct("transaction", "project_team__project_id")[:MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS]
     )
 
     count = len(team_key_transactions)
@@ -228,10 +228,6 @@ def team_key_transaction_expression(organization_id, team_ids, project_ids):
     # There are no team key transactions marked, so hard code false into the query.
     if count == 0:
         return ["toInt8", [0]]
-    elif count > MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS:
-        raise InvalidSearchQuery(
-            f"You have selected teams with too many transactions. The limit is {MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS}. Change the active filters to try again."
-        )
 
     return [
         "in",
