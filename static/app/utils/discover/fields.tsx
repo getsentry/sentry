@@ -273,7 +273,7 @@ export const AGGREGATIONS = {
         kind: 'value',
         dataType: 'autoNumber',
         defaultValue: '300',
-        required: false,
+        required: true,
       },
     ],
     outputType: 'number',
