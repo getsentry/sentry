@@ -2,7 +2,7 @@ import * as React from 'react';
 import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location, LocationDescriptor, Query} from 'history';
+import {Location, Query} from 'history';
 import omit from 'lodash/omit';
 
 import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
@@ -14,21 +14,19 @@ import Pagination from 'app/components/pagination';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
-import DiscoverQuery, {TableDataRow} from 'app/utils/discover/discoverQuery';
+import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
-import {generateEventSlug} from 'app/utils/discover/urls';
 import {decodeScalar} from 'app/utils/queryString';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 import {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
 import {TableColumn} from 'app/views/eventsV2/table/types';
-import {getTraceDetailsUrl} from 'app/views/performance/traceDetails/utils';
 
 import {getCurrentLandingDisplay, LandingDisplayField} from '../../landing/utils';
-import {getTransactionDetailsUrl} from '../../utils';
 import {SpanOperationBreakdownFilter} from '../filter';
 import TransactionHeader, {Tab} from '../header';
 
 import TransactionsTable from './transactionsTable';
+import {generateTraceLink, generateTransactionLink} from './utils';
 
 const DEFAULT_TRANSACTION_LIMIT = 12;
 
@@ -189,32 +187,6 @@ class EventsPageContent extends React.Component<Props, State> {
       </Fragment>
     );
   }
-}
-
-function generateTraceLink(dateSelection) {
-  return (
-    organization: Organization,
-    tableRow: TableDataRow,
-    _query: Query
-  ): LocationDescriptor => {
-    const traceId = `${tableRow.trace}`;
-    if (!traceId) {
-      return {};
-    }
-
-    return getTraceDetailsUrl(organization, traceId, dateSelection, {});
-  };
-}
-
-function generateTransactionLink(transactionName: string) {
-  return (
-    organization: Organization,
-    tableRow: TableDataRow,
-    query: Query
-  ): LocationDescriptor => {
-    const eventSlug = generateEventSlug(tableRow);
-    return getTransactionDetailsUrl(organization, eventSlug, transactionName, query);
-  };
 }
 
 const Search = (props: Props) => {

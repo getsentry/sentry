@@ -39,6 +39,14 @@ describe('Performance > TransactionSummary', function () {
       url: '/organizations/org-slug/is-key-transactions/',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/prompts-activity/',
+      body: {},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sdk-updates/',
+      body: [],
+    });
     // Transaction list response
     MockApiClient.addMockResponse(
       {
