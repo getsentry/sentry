@@ -268,6 +268,7 @@ function SymbolSources({
         reloadPage();
       }
     } catch {
+      handleCloseImageDetailsModal();
       addErrorMessage(errorMessage);
     }
   }
@@ -376,6 +377,7 @@ function SymbolSources({
           removeConfirm={{
             onConfirm: item => {
               if (item.type === 'appStoreConnect') {
+                handleCloseImageDetailsModal();
                 window.location.reload();
               }
             },
