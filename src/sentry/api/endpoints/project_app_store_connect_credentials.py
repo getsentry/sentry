@@ -39,6 +39,7 @@ To create and manage these credentials, several API endpoints exist:
    :class:`AppStoreConnectCreateCredentialsEndpoint`.
 
 6. ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/{id}/``
+
    Update a subset of the full credentials normally saved in endpoint 5.  Like endpoint 5 it
    returns the entire symbol source JSON config to be saved in project details.  See
    :class:`AppStoreConnectUpdateCredentialsEndpoint`.
