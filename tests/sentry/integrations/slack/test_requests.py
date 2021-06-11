@@ -1,8 +1,8 @@
 from urllib.parse import urlencode
 
 from sentry import options
-from sentry.integrations.slack.requests import SlackRequest, SlackRequestError
 from sentry.integrations.slack.requests.action import SlackActionRequest
+from sentry.integrations.slack.requests.base import SlackRequest, SlackRequestError
 from sentry.integrations.slack.requests.event import SlackEventRequest
 from sentry.integrations.slack.util.auth import set_signing_secret
 from sentry.testutils import TestCase
