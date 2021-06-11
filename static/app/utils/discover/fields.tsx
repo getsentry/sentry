@@ -40,6 +40,7 @@ export type AggregateParameter =
       dataType: ColumnType;
       defaultValue?: string;
       required: boolean;
+      placeholder?: string;
     };
 
 export type AggregationRefinement = string | undefined;
@@ -263,14 +264,16 @@ export const AGGREGATIONS = {
   },
   apdex: {
     generateDefaultValue({parameter, organization}: DefaultValueInputs) {
-      return organization.apdexThreshold?.toString() ?? parameter.defaultValue;
+      return organization.features.includes('project-transaction-threshold')
+        ? ''
+        : organization.apdexThreshold?.toString() ?? parameter.defaultValue;
     },
     parameters: [
       {
         kind: 'value',
         dataType: 'number',
-        defaultValue: '300',
-        required: true,
+        required: false,
+        placeholder: 'Automatic',
       },
     ],
     outputType: 'number',
@@ -279,14 +282,17 @@ export const AGGREGATIONS = {
   },
   user_misery: {
     generateDefaultValue({parameter, organization}: DefaultValueInputs) {
-      return organization.apdexThreshold?.toString() ?? parameter.defaultValue;
+      return organization.features.includes('project-transaction-threshold')
+        ? ''
+        : organization.apdexThreshold?.toString() ?? parameter.defaultValue;
     },
     parameters: [
       {
         kind: 'value',
         dataType: 'number',
         defaultValue: '300',
-        required: true,
+        required: false,
+        placeholder: 'Automatic',
       },
     ],
     outputType: 'number',
@@ -310,7 +316,9 @@ export const AGGREGATIONS = {
       if (parameter.kind === 'column') {
         return 'user';
       }
-      return organization.apdexThreshold?.toString() ?? parameter.defaultValue;
+      return organization.features.includes('project-transaction-threshold')
+        ? ''
+        : organization.apdexThreshold?.toString() ?? parameter.defaultValue;
     },
     parameters: [
       {
@@ -323,7 +331,8 @@ export const AGGREGATIONS = {
         kind: 'value',
         dataType: 'number',
         defaultValue: '300',
-        required: true,
+        required: false,
+        placeholder: 'Automatic',
       },
     ],
     outputType: 'number',
