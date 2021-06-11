@@ -25,7 +25,7 @@ class Migration(migrations.Migration):
     atomic = False
 
     dependencies = [
-        ("sentry", "0205_semver_backfill"),
+        ("sentry", "0206_organization_require_email_verification_flag"),
     ]
 
     operations = [
