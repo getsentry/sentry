@@ -132,6 +132,7 @@ class ReleaseAdoptionChart extends AsyncComponent<Props, State> {
         sessionDisplayToField(activeDisplay)
       ];
       return {
+        id: release as string,
         seriesName: formatVersion(release as string),
         data:
           sessions?.intervals.map((interval, index) => ({
@@ -153,6 +154,19 @@ class ReleaseAdoptionChart extends AsyncComponent<Props, State> {
       ) || 0
     );
   }
+
+  handleClick = (params: {seriesId: string}) => {
+    const {organization, router, selection, location} = this.props;
+
+    const project = selection.projects[0];
+
+    router.push({
+      pathname: `/organizations/${organization?.slug}/releases/${encodeURIComponent(
+        params.seriesId
+      )}/`,
+      query: {project, environment: location.query.environment},
+    });
+  };
 
   renderEmpty() {
     return (
@@ -255,6 +269,7 @@ class ReleaseAdoptionChart extends AsyncComponent<Props, State> {
                       ].join('');
                     },
                   }}
+                  onClick={this.handleClick}
                 />
               )}
             </ChartZoom>

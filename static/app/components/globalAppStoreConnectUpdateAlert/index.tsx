@@ -12,16 +12,8 @@ type Props = Pick<
 };
 
 function GlobalAppStoreConnectUpdateAlert({project, organization, ...rest}: Props) {
-  const hasAppConnectStoreFeatureFlag = !!organization.features?.includes(
-    'app-store-connect'
-  );
-
-  if (!hasAppConnectStoreFeatureFlag) {
-    return null;
-  }
-
   return (
-    <AppStoreConnectContext.Provider project={project} orgSlug={organization.slug}>
+    <AppStoreConnectContext.Provider project={project} organization={organization}>
       <UpdateAlert project={project} organization={organization} {...rest} />
     </AppStoreConnectContext.Provider>
   );

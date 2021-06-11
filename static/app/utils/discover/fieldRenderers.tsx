@@ -21,6 +21,7 @@ import {
   AGGREGATIONS,
   getAggregateAlias,
   getSpanOperationName,
+  isEquation,
   isRelativeSpanOperationBreakdownField,
   SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
@@ -512,6 +513,10 @@ export function getSortField(
   }
 
   if (!tableMeta) {
+    return field;
+  }
+
+  if (isEquation(field)) {
     return field;
   }
 
