@@ -310,8 +310,8 @@ class TokenConverter {
   tokenKeyAggregate = (
     name: ReturnType<TokenConverter['tokenKeySimple']>,
     args: ReturnType<TokenConverter['tokenKeyAggregateArgs']> | null,
-    argsSpaceBefore: string,
-    argsSpaceAfter: string
+    argsSpaceBefore: ReturnType<TokenConverter['tokenSpaces']>,
+    argsSpaceAfter: ReturnType<TokenConverter['tokenSpaces']>
   ) =>
     this.makeToken({
       type: Token.KeyAggregate as const,
@@ -321,7 +321,10 @@ class TokenConverter {
       argsSpaceAfter,
     });
 
-  tokenKeyAggregateArgs = (arg1: string, args: ListItem<string>[]) =>
+  tokenKeyAggregateArgs = (
+    arg1: ReturnType<TokenConverter['tokenKeySimple']>,
+    args: ListItem<ReturnType<TokenConverter['tokenKeySimple']>>[]
+  ) =>
     this.makeToken({
       type: Token.KeyAggregateArgs as const,
       args: [{separator: '', value: arg1}, ...args.map(listJoiner)],
