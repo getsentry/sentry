@@ -33,16 +33,29 @@ import {
   StepTwoData,
 } from './types';
 
+type SessionContext = {
+  auth_key: string;
+  scnt: string;
+  session_id: string;
+};
+
+type ItunesRevalidationSessionContext = SessionContext & {
+  itunes_created: string;
+  itunes_person_id: string;
+  itunes_session: string;
+};
+
 type IntialData = {
   appId: string;
   appName: string;
   appconnectIssuer: string;
   appconnectKey: string;
   appconnectPrivateKey: string;
-  encrypted: string;
   id: string;
   itunesCreated: string;
   itunesPassword: string;
+  itunesPersonId: string;
+  itunesSession: string;
   itunesUser: string;
   name: string;
   orgId: number;
@@ -90,7 +103,9 @@ function AppStoreConnect({
   const [appStoreApps, setAppStoreApps] = useState<AppStoreApp[]>([]);
   const [appleStoreOrgs, setAppleStoreOrgs] = useState<AppleStoreOrg[]>([]);
   const [useSms, setUseSms] = useState(false);
-  const [sessionContext, setSessionContext] = useState('');
+  const [sessionContext, setSessionContext] = useState<SessionContext | undefined>(
+    undefined
+  );
 
   const [stepOneData, setStepOneData] = useState<StepOneData>({
     issuer: initialData?.appconnectIssuer,
@@ -205,7 +220,7 @@ function AppStoreConnect({
     }
   }
 
-  async function persistData(newSessionContext?: string) {
+  async function persistData(newSessionContext?: ItunesRevalidationSessionContext) {
     if (!stepTwoData.app || !stepFifthData.org || !stepThreeData.username) {
       return;
     }
@@ -242,7 +257,6 @@ function AppStoreConnect({
           sessionContext: newSessionContext ?? sessionContext,
         },
       });
-
       onSubmit(response);
     } catch (error) {
       setIsLoading(false);
