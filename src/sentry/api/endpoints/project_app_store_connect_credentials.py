@@ -305,8 +305,11 @@ class AppStoreUpdateCredentialsSerializer(serializers.Serializer):
 
 class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):
     """Updates a subset of the existing credentials.
+
     ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/{id}/``
+
     See :class:`AppStoreUpdateCredentialsSerializer` for the input format.
+
     This is like :class:`AppStoreConnectCreateCredentialsEndpoint` aka
     ``projects/{org_slug}/{proj_slug}/appstoreconnect/{id}/`` but allows you to only provide
     a sub-set.  This is most useful when you had to refresh the iTunes session using
