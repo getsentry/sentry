@@ -1893,11 +1893,6 @@ urlpatterns = [
                     AppStoreConnect2FactorAuthEndpoint.as_view(),
                     name="sentry-api-0-project-appstoreconnect-2fa",
                 ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/appstoreconnect/(?P<credentials_id>[^\/]+)/$",
-                    AppStoreConnectUpdateCredentialsEndpoint.as_view(),
-                    name="sentry-api-0-project-appstoreconnect-credentials-update",
-                ),
             ]
         ),
     ),
