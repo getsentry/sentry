@@ -294,14 +294,16 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
           title: t('Team Key Transactions'),
           target: 'team_key_transaction_header',
           description: t(
-            'Key transactions are now team based. You only have to key a transaction once and all your team members will get the benefits too!'
+            `Software development is a team sport. That’s why Key Transactions are now shared within teams!
+              When anyone on your team marks a key transaction, the whole team benefits from it.`
           ),
         },
         {
           title: t('Migrating Key Transactions'),
-          target: 'team_key_transaction_header',
+          target: 'team_key_transaction_existing',
           description: t(
-            'If you were previously using key transactions, you will have to key them again for your team.'
+            `We know you had key transactions previously and we had to clear those to make way for the new hotness.
+              (Sorry not sorry.) The good news is you can set them again and now they’ll be shared with your team!`
           ),
         },
       ],
