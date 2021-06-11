@@ -66,6 +66,11 @@ type State = {
   incompatibleAlertNotice: React.ReactNode;
 };
 const SHOW_TAGS_STORAGE_KEY = 'discover2:show-tags';
+const OMIT_SEARCH_TAGS = [
+  'apdex(auto)',
+  'user_misery(auto)',
+  'count_miserable(user,auto)',
+];
 
 function readShowTagsState() {
   const value = localStorage.getItem(SHOW_TAGS_STORAGE_KEY);
@@ -441,6 +446,7 @@ class Results extends React.Component<Props, State> {
                   fields={fields}
                   onSearch={this.handleSearch}
                   maxQueryLength={MAX_QUERY_LENGTH}
+                  omitTags={OMIT_SEARCH_TAGS}
                 />
                 <ResultsChart
                   router={router}
