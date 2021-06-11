@@ -32,6 +32,8 @@ from sentry.utils.compat.mock import patch
 
 
 class OrganizationReleaseListTest(APITestCase):
+    endpoint = "sentry-api-0-organization-releases"
+
     def test_simple(self):
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.organization
@@ -133,6 +135,21 @@ class OrganizationReleaseListTest(APITestCase):
         assert response.data[0]["version"] == release8.version
         assert response.data[1]["version"] == release7.version
         assert response.data[2]["version"] == release6.version
+
+    def test_release_list_order_by_build_number(self):
+        self.login_as(user=self.user)
+        release_1 = self.create_release(version="test@1.2+1000")
+        release_2 = self.create_release(version="test@1.2+1")
+        release_3 = self.create_release(version="test@1.2+200")
+        self.create_release(version="test@1.2")
+        self.create_release(version="test@1.2+500alpha")
+
+        response = self.get_valid_response(self.organization.slug, sort="build")
+        assert [r["version"] for r in response.data] == [
+            release_1.version,
+            release_3.version,
+            release_2.version,
+        ]
 
     def test_query_filter(self):
         user = self.create_user(is_staff=False, is_superuser=False)
