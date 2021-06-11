@@ -3,6 +3,7 @@ import logging
 import os
 import zipfile
 from contextlib import contextmanager
+from hashlib import sha1
 from io import BytesIO
 from tempfile import TemporaryDirectory
 from typing import IO, Optional, Tuple
@@ -284,7 +285,12 @@ class ReleaseMultiArchive:
     def __init__(self, release: Release, dist: Optional[Distribution]):
         self.manifest = ManifestGuard(release, dist)
 
-    def update(self, local_manifest: dict, archive_file: File):
+    def update(self, archive: ReleaseArchive, archive_file: File):
+        """Add information from release archive to manifest
+
+        Assumes that archive is already open for reading.
+        """
+        local_manifest = archive.manifest
 
         files = local_manifest.get("files", {})
         if not files:
@@ -297,6 +303,9 @@ class ReleaseMultiArchive:
             url = info.pop("url")
             info["filename"] = filename
             info["archive_id"] = archive_file.id
+            info["date_created"] = archive_file.timestamp
+            info["sha1"] = self._compute_sha1(archive, filename)
+            info["size"] = archive.info(filename).file_size
             # FIXME: more fields
             files_out[url] = info
 
@@ -311,3 +320,7 @@ class ReleaseMultiArchive:
         with self.manifest.writable_data(create=False) as manifest:
             if manifest is not None:
                 manifest.delete(filename)
+
+    def _compute_sha1(self, archive: ReleaseArchive, filename: str) -> str:
+        data = archive.read(filename)
+        return sha1(data).hexdigest()
