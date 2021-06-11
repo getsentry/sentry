@@ -1,5 +1,5 @@
 import logging
-from typing import Optional
+from typing import Any, Mapping, Optional
 from uuid import uuid4
 
 from django.conf import settings
@@ -7,6 +7,8 @@ from django.contrib import messages
 from django.db import IntegrityError, transaction
 from django.db.models import F
 from django.http import HttpResponseRedirect
+from django.http.request import HttpRequest
+from django.http.response import HttpResponse
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
@@ -16,7 +18,7 @@ from sentry import features
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie
 from sentry.app import locks
 from sentry.auth.exceptions import IdentityNotValid
-from sentry.auth.provider import MigratingIdentityId
+from sentry.auth.provider import MigratingIdentityId, Provider
 from sentry.auth.superuser import is_active_superuser
 from sentry.models import (
     AuditLogEntry,
@@ -115,21 +117,30 @@ class RedisBackedState:
         self._client.setex(self.auth_key, self.EXPIRATION_TTL, json.dumps(state))
 
 
+Identity = Mapping[str, Any]
+
+
 class AuthIdentityHandler:
-    def __init__(self, auth_provider, provider, organization, request):
-        self.auth_provider = auth_provider
-        self.provider = provider
-        self.organization = organization
-        self.request = request
+    def __init__(
+        self,
+        auth_provider: AuthProvider,
+        provider: Provider,
+        organization: Organization,
+        request: HttpRequest,
+    ) -> None:
+        self.auth_provider: AuthProvider = auth_provider
+        self.provider: Provider = provider
+        self.organization: Organization = organization
+        self.request: HttpRequest = request
 
     @property
-    def user(self):
+    def user(self) -> Any:
         return self.request.user
 
     class _NotLoggedIn(Exception):
         pass
 
-    def _login(self, user):
+    def _login(self, user: Any) -> None:
         user_was_logged_in = auth.login(
             self.request,
             user,
@@ -139,7 +150,12 @@ class AuthIdentityHandler:
         if not user_was_logged_in:
             raise self._NotLoggedIn()
 
-    def handle_existing_identity(self, state, auth_identity, identity):
+    def handle_existing_identity(
+        self,
+        state: RedisBackedState,
+        auth_identity: AuthIdentity,
+        identity: Identity,
+    ) -> HttpResponseRedirect:
         # TODO(dcramer): this is very similar to attach
         now = timezone.now()
         auth_identity.update(
@@ -189,7 +205,7 @@ class AuthIdentityHandler:
             self.request.session["activeorg"] = self.organization.slug
         return HttpResponseRedirect(auth.get_login_redirect(self.request))
 
-    def _handle_new_membership(self, auth_identity):
+    def _handle_new_membership(self, auth_identity: AuthIdentity) -> Optional[OrganizationMember]:
         user = auth_identity.user
 
         # If the user is either currently *pending* invite acceptance (as indicated
@@ -204,7 +220,7 @@ class AuthIdentityHandler:
         if invite_helper:
             if invite_helper.invite_approved:
                 invite_helper.accept_invite(user)
-                return
+                return None
 
             # It's possible the user has an _invite request_ that hasn't been approved yet,
             # and is able to join the organization without an invite through the SSO flow.
@@ -242,7 +258,11 @@ class AuthIdentityHandler:
             return None
 
     @transaction.atomic
-    def handle_attach_identity(self, identity, member=None):
+    def handle_attach_identity(
+        self,
+        identity: Identity,
+        member: Optional[OrganizationMember] = None,
+    ) -> AuthIdentity:
         """
         Given an already authenticated user, attach or re-attach an identity.
         """
@@ -262,6 +282,8 @@ class AuthIdentityHandler:
                 data=identity.get("data", {}),
             )
         else:
+            assert auth_identity is not None  # for mypy
+
             # TODO(dcramer): this might leave the user with duplicate accounts,
             # and in that kind of situation its very reasonable that we could
             # test email addresses + is_managed to determine if we can auto
@@ -301,7 +323,7 @@ class AuthIdentityHandler:
 
         return auth_identity
 
-    def _wipe_existing_identity(self, auth_identity: AuthIdentity):
+    def _wipe_existing_identity(self, auth_identity: AuthIdentity) -> None:
         # it's possible the user has an existing identity, let's wipe it out
         # so that the new identifier gets used (other we'll hit a constraint)
         # violation since one might exist for (provider, user) as well as
@@ -350,14 +372,19 @@ class AuthIdentityHandler:
         )
         return member
 
-    def _respond(self, template, context=None, status=200):
+    def _respond(
+        self,
+        template: str,
+        context: Mapping[str, Any] = None,
+        status: int = 200,
+    ) -> HttpResponse:
         default_context = {"organization": self.organization}
         if context:
             default_context.update(context)
 
         return render_to_response(template, default_context, self.request, status=status)
 
-    def _post_login_redirect(self):
+    def _post_login_redirect(self) -> HttpResponseRedirect:
         response = HttpResponseRedirect(auth.get_login_redirect(self.request))
 
         # Always remove any pending invite cookies, pending invites will have been
@@ -366,7 +393,11 @@ class AuthIdentityHandler:
 
         return response
 
-    def handle_unknown_identity(self, state, identity):
+    def handle_unknown_identity(
+        self,
+        state: RedisBackedState,
+        identity: Identity,
+    ) -> HttpResponseRedirect:
         """
         Flow is activated upon a user logging in to where an AuthIdentity is
         not present.
@@ -490,7 +521,7 @@ class AuthIdentityHandler:
             self.request.session["activeorg"] = self.organization.slug
         return self._post_login_redirect()
 
-    def handle_new_user(self, identity):
+    def handle_new_user(self, identity: Identity) -> AuthIdentity:
         user = User.objects.create(
             username=uuid4().hex, email=identity["email"], name=identity.get("name", "")[:200]
         )
@@ -678,7 +709,7 @@ class AuthHelper:
         )
 
     @transaction.atomic
-    def _finish_login_pipeline(self, identity):
+    def _finish_login_pipeline(self, identity: Identity):
         """
         The login flow executes both with anonymous and authenticated users.
 
@@ -747,7 +778,7 @@ class AuthHelper:
             return self.auth_handler.handle_existing_identity(self.state, auth_identity, identity)
 
     @transaction.atomic
-    def _finish_setup_pipeline(self, identity):
+    def _finish_setup_pipeline(self, identity: Identity):
         """
         The setup flow creates the auth provider as well as an identity linked
         to the active user.
