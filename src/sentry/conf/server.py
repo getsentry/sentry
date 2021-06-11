@@ -603,6 +603,10 @@ CELERY_QUEUES = [
     Queue(
         "group_owners.process_suspect_commits", routing_key="group_owners.process_suspect_commits"
     ),
+    Queue(
+        "releasemonitor.monitor_release_adoption",
+        routing_key="releasemonitor.monitor_release_adoption",
+    ),
     Queue("incidents", routing_key="incidents"),
     Queue("incident_snapshots", routing_key="incident_snapshots"),
     Queue("integrations", routing_key="integrations"),
