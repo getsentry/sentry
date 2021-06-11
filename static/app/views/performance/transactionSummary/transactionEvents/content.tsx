@@ -43,33 +43,26 @@ type Props = {
   limit: number;
 };
 
-class EventsPageContent extends React.Component<Props> {
-  static defaultProps = {
-    cursorName: 'transactionCursor',
-    limit: DEFAULT_TRANSACTION_LIMIT,
-  };
+const EventsPageContent = (props: Props) => {
+  const {
+    eventView,
+    location,
+    organization,
+    projects,
+    transactionName,
+    limit = DEFAULT_TRANSACTION_LIMIT,
+    cursorName = 'transactionCursor',
+  } = props;
 
-  handleCursor = (cursor: string, pathname: string, query: Query) => {
-    const {cursorName} = this.props;
+  const handleCursor = (cursor: string, pathname: string, query: Query) => {
     browserHistory.push({
       pathname,
       query: {...query, [cursorName]: cursor},
     });
   };
 
-  handleTransactionsListSortChange = (value: string) => {
-    const {location} = this.props;
-    const target = {
-      pathname: location.pathname,
-      query: {...location.query, showTransactions: value, transactionCursor: undefined},
-    };
-    browserHistory.push(target);
-  };
-
-  handleCellAction = (column: TableColumn<React.ReactText>) => {
+  const handleCellAction = (column: TableColumn<React.ReactText>) => {
     return (action: Actions, value: React.ReactText) => {
-      const {eventView, location} = this.props;
-
       const searchConditions = tokenizeSearch(eventView.query);
 
       // remove any event.type queries since it is implied to apply to only transactions
@@ -91,93 +84,81 @@ class EventsPageContent extends React.Component<Props> {
     };
   };
 
-  render() {
-    const {
-      eventView,
-      location,
-      organization,
-      projects,
-      transactionName,
-      limit,
-      cursorName,
-    } = this.props;
+  const handleIncompatibleQuery = () => {};
 
-    const handleIncompatibleQuery = () => {};
+  const transactionsListEventView = eventView.clone();
 
-    const transactionsListEventView = eventView.clone();
+  const transactionsListTitles = [
+    t('event id'),
+    t('user'),
+    t('operation duration'),
+    t('total duration'),
+    t('trace id'),
+    t('timestamp'),
+  ];
+  const cursor = decodeScalar(location.query?.[cursorName]);
 
-    const transactionsListTitles = [
-      t('event id'),
-      t('user'),
-      t('operation duration'),
-      t('total duration'),
-      t('trace id'),
-      t('timestamp'),
-    ];
-    const cursor = decodeScalar(location.query?.[cursorName]);
-
-    return (
-      <Fragment>
-        <TransactionHeader
-          eventView={transactionsListEventView}
-          location={location}
-          organization={organization}
-          projects={projects}
-          transactionName={transactionName}
-          currentTab={Tab.Events}
-          hasWebVitals={
-            getCurrentLandingDisplay(location, projects, eventView).field ===
-            LandingDisplayField.FRONTEND_PAGELOAD
-          }
-          handleIncompatibleQuery={handleIncompatibleQuery}
-        />
-        <Layout.Body>
-          <Layout.Main fullWidth>
-            <Search {...this.props} />
-            <StyledTable>
-              <DiscoverQuery
-                location={location}
-                eventView={transactionsListEventView}
-                orgSlug={organization.slug}
-                limit={limit}
-                cursor={cursor}
-                referrer="api.discover.transactions-list"
-              >
-                {({isLoading, pageLinks, tableData}) => {
-                  return (
-                    <React.Fragment>
-                      <TransactionsTable
-                        eventView={eventView}
-                        organization={organization}
-                        location={location}
-                        isLoading={isLoading}
-                        tableData={tableData}
-                        columnOrder={eventView.getColumns()}
-                        titles={transactionsListTitles}
-                        handleCellAction={this.handleCellAction}
-                        generateLink={{
-                          id: generateTransactionLink(transactionName),
-                          trace: generateTraceLink(
-                            eventView.normalizeDateSelection(location)
-                          ),
-                        }}
-                      />
-                      <Pagination
-                        pageLinks={pageLinks}
-                        onCursor={this.handleCursor}
-                        size="small"
-                      />
-                    </React.Fragment>
-                  );
-                }}
-              </DiscoverQuery>
-            </StyledTable>
-          </Layout.Main>
-        </Layout.Body>
-      </Fragment>
-    );
-  }
-}
+  return (
+    <Fragment>
+      <TransactionHeader
+        eventView={transactionsListEventView}
+        location={location}
+        organization={organization}
+        projects={projects}
+        transactionName={transactionName}
+        currentTab={Tab.Events}
+        hasWebVitals={
+          getCurrentLandingDisplay(location, projects, eventView).field ===
+          LandingDisplayField.FRONTEND_PAGELOAD
+        }
+        handleIncompatibleQuery={handleIncompatibleQuery}
+      />
+      <Layout.Body>
+        <Layout.Main fullWidth>
+          <Search {...props} />
+          <StyledTable>
+            <DiscoverQuery
+              location={location}
+              eventView={transactionsListEventView}
+              orgSlug={organization.slug}
+              limit={limit}
+              cursor={cursor}
+              referrer="api.discover.transactions-list"
+            >
+              {({isLoading, pageLinks, tableData}) => {
+                return (
+                  <React.Fragment>
+                    <TransactionsTable
+                      eventView={eventView}
+                      organization={organization}
+                      location={location}
+                      isLoading={isLoading}
+                      tableData={tableData}
+                      columnOrder={eventView.getColumns()}
+                      titles={transactionsListTitles}
+                      handleCellAction={handleCellAction}
+                      generateLink={{
+                        id: generateTransactionLink(transactionName),
+                        trace: generateTraceLink(
+                          eventView.normalizeDateSelection(location)
+                        ),
+                      }}
+                    />
+                    <Pagination
+                      pageLinks={pageLinks}
+                      onCursor={handleCursor}
+                      size="small"
+                    />
+                  </React.Fragment>
+                );
+              }}
+            </DiscoverQuery>
+          </StyledTable>
+        </Layout.Main>
+      </Layout.Body>
+    </Fragment>
+  );
+};
 
 function generateTraceLink(dateSelection) {
   return (
