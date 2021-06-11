@@ -95,7 +95,7 @@ type State = {
 };
 
 class CompactIssue extends Component<Props, State> {
-  state = {
+  state: State = {
     issue: this.props.data || GroupStore.get(this.props.id),
   };
 

@@ -4,7 +4,7 @@ import pytest
 from django.urls import reverse
 from pytz import utc
 
-from sentry.discover.models import MAX_TEAM_KEY_TRANSACTIONS, KeyTransaction, TeamKeyTransaction
+from sentry.discover.models import KeyTransaction, TeamKeyTransaction
 from sentry.models import ApiKey, ProjectTeam, ProjectTransactionThreshold
 from sentry.models.transaction_threshold import TransactionMetric
 from sentry.testutils import APITestCase, SnubaTestCase
@@ -930,7 +930,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         query = {
             "field": [
                 "transaction",
-                "count_miserable_new(user)",
+                "count_miserable(user)",
             ],
             "query": "event.type:transaction",
             project: [project.id],
@@ -951,11 +951,11 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 3
         data = response.data["data"]
-        assert data[0]["count_miserable_new_user"] == 0
-        assert data[1]["count_miserable_new_user"] == 2
-        assert data[2]["count_miserable_new_user"] == 1
+        assert data[0]["count_miserable_user"] == 0
+        assert data[1]["count_miserable_user"] == 2
+        assert data[2]["count_miserable_user"] == 1
 
-        query["query"] = "event.type:transaction count_miserable_new(user):>0"
+        query["query"] = "event.type:transaction count_miserable(user):>0"
 
         response = self.do_request(
             query,
@@ -968,8 +968,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 2
         data = response.data["data"]
-        assert abs(data[0]["count_miserable_new_user"]) == 2
-        assert abs(data[1]["count_miserable_new_user"]) == 1
+        assert abs(data[0]["count_miserable_user"]) == 2
+        assert abs(data[1]["count_miserable_user"]) == 1
 
     def test_user_misery_alias_field(self):
         project = self.create_project()
@@ -1032,7 +1032,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         query = {
             "field": [
                 "transaction",
-                "apdex_new()",
+                "apdex()",
             ],
             "query": "event.type:transaction",
             project: [project.id],
@@ -1053,11 +1053,11 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 3
         data = response.data["data"]
-        assert data[0]["apdex_new"] == 1.0
-        assert data[1]["apdex_new"] == 0.5
-        assert data[2]["apdex_new"] == 0.0
+        assert data[0]["apdex"] == 1.0
+        assert data[1]["apdex"] == 0.5
+        assert data[2]["apdex"] == 0.0
 
-        query["query"] = "event.type:transaction apdex_new():>0.50"
+        query["query"] = "event.type:transaction apdex():>0.50"
 
         response = self.do_request(
             query,
@@ -1070,7 +1070,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
         data = response.data["data"]
-        assert data[0]["apdex_new"] == 1.0
+        assert data[0]["apdex"] == 1.0
 
     def test_user_misery_new_alias_field(self):
         project = self.create_project()
@@ -1104,7 +1104,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         query = {
             "field": [
                 "transaction",
-                "user_misery_new()",
+                "user_misery()",
             ],
             "query": "event.type:transaction",
             project: [project.id],
@@ -1125,11 +1125,11 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 3
         data = response.data["data"]
-        assert abs(data[0]["user_misery_new"] - 0.04916) < 0.0001
-        assert abs(data[1]["user_misery_new"] - 0.06586) < 0.0001
-        assert abs(data[2]["user_misery_new"] - 0.05751) < 0.0001
+        assert abs(data[0]["user_misery"] - 0.04916) < 0.0001
+        assert abs(data[1]["user_misery"] - 0.06586) < 0.0001
+        assert abs(data[2]["user_misery"] - 0.05751) < 0.0001
 
-        query["query"] = "event.type:transaction user_misery_new():>0.050"
+        query["query"] = "event.type:transaction user_misery():>0.050"
 
         response = self.do_request(
             query,
@@ -1142,8 +1142,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 2
         data = response.data["data"]
-        assert abs(data[0]["user_misery_new"] - 0.06586) < 0.0001
-        assert abs(data[1]["user_misery_new"] - 0.05751) < 0.0001
+        assert abs(data[0]["user_misery"] - 0.06586) < 0.0001
+        assert abs(data[1]["user_misery"] - 0.05751) < 0.0001
 
     def test_aggregation(self):
         project = self.create_project()
@@ -2305,12 +2305,12 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 "p100()",
                 "percentile(transaction.duration, 0.99)",
                 "apdex(300)",
-                "apdex_new()",
+                "apdex()",
                 "count_miserable(user, 300)",
                 "user_misery(300)",
                 "failure_rate()",
-                "count_miserable_new(user)",
-                "user_misery_new()",
+                "count_miserable(user)",
+                "user_misery()",
             ],
             "query": "event.type:transaction",
             "project": [project.id],
@@ -2325,13 +2325,13 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert meta["p100"] == "duration"
         assert meta["percentile_transaction_duration_0_99"] == "duration"
         assert meta["apdex_300"] == "number"
-        assert meta["apdex_new"] == "number"
+        assert meta["apdex"] == "number"
         assert meta["failure_rate"] == "percentage"
         assert meta["user_misery_300"] == "number"
         assert meta["count_miserable_user_300"] == "number"
         assert meta["project_threshold_config"] == "string"
-        assert meta["user_misery_new"] == "number"
-        assert meta["count_miserable_new_user"] == "number"
+        assert meta["user_misery"] == "number"
+        assert meta["count_miserable_user"] == "number"
 
         data = response.data["data"]
         assert len(data) == 1
@@ -2342,13 +2342,13 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["p100"] == 5000
         assert data[0]["percentile_transaction_duration_0_99"] == 5000
         assert data[0]["apdex_300"] == 0.0
-        assert data[0]["apdex_new"] == 0.0
+        assert data[0]["apdex"] == 0.0
         assert data[0]["count_miserable_user_300"] == 1
         assert data[0]["user_misery_300"] == 0.058
         assert data[0]["failure_rate"] == 0.5
         assert data[0]["project_threshold_config"] == ["duration", 300]
-        assert data[0]["user_misery_new"] == 0.058
-        assert data[0]["count_miserable_new_user"] == 1
+        assert data[0]["user_misery"] == 0.058
+        assert data[0]["count_miserable_user"] == 1
 
         query = {
             "field": ["event.type", "last_seen()", "latest_event()"],
@@ -2430,16 +2430,16 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         }
 
         query = {
-            "field": ["user_misery_new()"],
+            "field": ["user_misery()"],
             "query": "event.type:transaction",
         }
 
         response = self.do_request(query, features=features)
         assert response.status_code == 200, response.content
         meta = response.data["meta"]
-        assert meta["user_misery_new"] == "number"
+        assert meta["user_misery"] == "number"
         data = response.data["data"]
-        assert data[0]["user_misery_new"] == 0
+        assert data[0]["user_misery"] == 0
 
     def test_all_aggregates_in_query(self):
         project = self.create_project()
@@ -3855,6 +3855,11 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             self.project.add_team(team)
             project_team = ProjectTeam.objects.get(project=self.project, team=team)
 
+            for i in range(MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS + 1):
+                transaction = f"transaction-{team.id}-{i}"
+                self.transaction_data["transaction"] = transaction
+                self.store_event(self.transaction_data, self.project.id)
+
             TeamKeyTransaction.objects.bulk_create(
                 [
                     TeamKeyTransaction(
@@ -3862,7 +3867,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                         project_team=project_team,
                         transaction=f"transaction-{team.id}-{i}",
                     )
-                    for i in range(MAX_TEAM_KEY_TRANSACTIONS + 1)
+                    for i in range(MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS + 1)
                 ]
             )
 
@@ -3882,10 +3887,12 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             }
 
             response = self.do_request(query)
-            assert response.status_code == 400, response.content
+            assert response.status_code == 200, response.content
+            data = response.data["data"]
+            assert len(data) == 2
             assert (
-                response.data["detail"]
-                == f"You have selected teams with too many transactions. The limit is {MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS}. Change the active filters to try again."
+                sum(row["team_key_transaction"] for row in data)
+                == MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS
             )
 
     def test_no_pagination_param(self):

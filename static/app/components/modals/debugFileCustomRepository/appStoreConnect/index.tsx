@@ -1,18 +1,17 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 
-import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
+import {addErrorMessage} from 'app/actionCreators/indicator';
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
 import Alert from 'app/components/alert';
+import AlertLink from 'app/components/alertLink';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
-import {
-  appStoreConnectAlertMessage,
-  getAppConnectStoreUpdateAlertMessage,
-} from 'app/components/globalAppStoreConnectUpdateAlert/utils';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import {AppStoreConnectContextProps} from 'app/components/projects/appStoreConnectContext';
+import {appStoreConnectAlertMessage} from 'app/components/projects/appStoreConnectContext/utils';
 import {IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space, {ValidSize} from 'app/styles/space';
@@ -34,16 +33,29 @@ import {
   StepTwoData,
 } from './types';
 
+type SessionContext = {
+  auth_key: string;
+  scnt: string;
+  session_id: string;
+};
+
+type ItunesRevalidationSessionContext = SessionContext & {
+  itunes_created: string;
+  itunes_person_id: string;
+  itunes_session: string;
+};
+
 type IntialData = {
   appId: string;
   appName: string;
   appconnectIssuer: string;
   appconnectKey: string;
   appconnectPrivateKey: string;
-  encrypted: string;
   id: string;
   itunesCreated: string;
   itunesPassword: string;
+  itunesPersonId: string;
+  itunesSession: string;
   itunesUser: string;
   name: string;
   orgId: number;
@@ -51,12 +63,12 @@ type IntialData = {
   type: string;
 };
 
-type Props = Pick<ModalRenderProps, 'Header' | 'Body' | 'Footer' | 'closeModal'> & {
+type Props = Pick<ModalRenderProps, 'Header' | 'Body' | 'Footer'> & {
   api: Client;
   orgSlug: Organization['slug'];
   projectSlug: Project['slug'];
   onSubmit: (data: Record<string, any>) => void;
-  revalidateItunesSession: boolean;
+  location: Location;
   appStoreConnectContext?: AppStoreConnectContextProps;
   initialData?: IntialData;
 };
@@ -73,26 +85,27 @@ function AppStoreConnect({
   Header,
   Body,
   Footer,
-  closeModal,
   api,
   initialData,
   orgSlug,
   projectSlug,
   onSubmit,
-  revalidateItunesSession,
+  location,
   appStoreConnectContext,
 }: Props) {
-  const shouldRevalidateItunesSession =
-    revalidateItunesSession &&
-    (appStoreConnectContext?.itunesSessionValid === false ||
-      appStoreConnectContext?.appstoreCredentialsValid === false);
+  const {updateAlertMessage} = appStoreConnectContext ?? {};
 
+  const [revalidateItunesSession, setRevalidateItunesSession] = useState(
+    location.query.revalidateItunesSession
+  );
   const [isLoading, setIsLoading] = useState(false);
-  const [activeStep, setActiveStep] = useState(shouldRevalidateItunesSession ? 2 : 0);
+  const [activeStep, setActiveStep] = useState(revalidateItunesSession ? 3 : 0);
   const [appStoreApps, setAppStoreApps] = useState<AppStoreApp[]>([]);
   const [appleStoreOrgs, setAppleStoreOrgs] = useState<AppleStoreOrg[]>([]);
   const [useSms, setUseSms] = useState(false);
-  const [sessionContext, setSessionContext] = useState('');
+  const [sessionContext, setSessionContext] = useState<SessionContext | undefined>(
+    undefined
+  );
 
   const [stepOneData, setStepOneData] = useState<StepOneData>({
     issuer: initialData?.appconnectIssuer,
@@ -124,10 +137,23 @@ function AppStoreConnect({
   });
 
   useEffect(() => {
-    if (shouldRevalidateItunesSession) {
-      handleStartItunesAuthentication();
+    if (location.query.revalidateItunesSession && !revalidateItunesSession) {
+      setIsLoading(true);
+      setRevalidateItunesSession(location.query.revalidateItunesSession);
     }
-  }, [shouldRevalidateItunesSession]);
+  }, [location.query]);
+
+  useEffect(() => {
+    if (revalidateItunesSession) {
+      handleStartItunesAuthentication(false);
+      if (activeStep !== 3) {
+        setActiveStep(3);
+      }
+      setIsLoading(false);
+      return;
+    }
+    setIsLoading(false);
+  }, [revalidateItunesSession]);
 
   async function checkAppStoreConnectCredentials() {
     setIsLoading(true);
@@ -158,8 +184,9 @@ function AppStoreConnect({
     }
   }
 
-  async function startTwoFactorAuthentication() {
+  async function startTwoFactorAuthentication(shouldJumpNext = false) {
     setIsLoading(true);
+
     try {
       const response = await api.requestPromise(
         `/projects/${orgSlug}/${projectSlug}/appstoreconnect/2fa/`,
@@ -172,11 +199,18 @@ function AppStoreConnect({
           },
         }
       );
-      setIsLoading(false);
+
       const {organizations, sessionContext: newSessionContext} = response;
-      setStepFifthData({org: organizations[0]});
-      setAppleStoreOrgs(organizations);
+
+      if (shouldJumpNext) {
+        persistData(newSessionContext);
+        return;
+      }
+
       setSessionContext(newSessionContext);
+      setAppleStoreOrgs(organizations);
+      setStepFifthData({org: organizations[0]});
+      setIsLoading(false);
       goNext();
     } catch (error) {
       setIsLoading(false);
@@ -186,21 +220,22 @@ function AppStoreConnect({
     }
   }
 
-  async function persistData() {
+  async function persistData(newSessionContext?: ItunesRevalidationSessionContext) {
     if (!stepTwoData.app || !stepFifthData.org || !stepThreeData.username) {
       return;
     }
+
     setIsLoading(true);
 
     let endpoint = `/projects/${orgSlug}/${projectSlug}/appstoreconnect/`;
-    let successMessage = t('App Store Connect repository was successfully added.');
+
     let errorMessage = t(
       'An error occured while adding the App Store Connect repository.'
     );
 
     if (!!initialData) {
       endpoint = `${endpoint}${initialData.id}/`;
-      successMessage = t('App Store Connect repository was successfully updated.');
+
       errorMessage = t(
         'An error occured while updating the App Store Connect repository.'
       );
@@ -219,12 +254,10 @@ function AppStoreConnect({
           appId: stepTwoData.app.appId,
           orgId: stepFifthData.org.organizationId,
           orgName: stepFifthData.org.name,
-          sessionContext,
+          sessionContext: newSessionContext ?? sessionContext,
         },
       });
-      addSuccessMessage(successMessage);
       onSubmit(response);
-      closeModal();
     } catch (error) {
       setIsLoading(false);
       addErrorMessage(errorMessage);
@@ -259,6 +292,7 @@ function AppStoreConnect({
     if (shouldGoNext) {
       setIsLoading(true);
     }
+
     if (useSms) {
       setUseSms(false);
     }
@@ -393,15 +427,23 @@ function AppStoreConnect({
   function getAlerts() {
     const alerts: React.ReactElement[] = [];
 
-    const appConnectStoreUpdateAlertMessage = getAppConnectStoreUpdateAlertMessage(
-      appStoreConnectContext ?? {}
-    );
+    if (revalidateItunesSession) {
+      if (!updateAlertMessage && revalidateItunesSession) {
+        alerts.push(
+          <StyledAlert type="warning" icon={<IconWarning />}>
+            {t('Your iTunes session has already been re-validated.')}
+          </StyledAlert>
+        );
+      }
 
-    if (
-      appConnectStoreUpdateAlertMessage ===
-        appStoreConnectAlertMessage.appStoreCredentialsInvalid &&
-      activeStep === 0
-    ) {
+      return alerts;
+    }
+
+    if (activeStep !== 0) {
+      return alerts;
+    }
+
+    if (updateAlertMessage === appStoreConnectAlertMessage.appStoreCredentialsInvalid) {
       alerts.push(
         <StyledAlert type="warning" icon={<IconWarning />}>
           {t(
@@ -411,41 +453,44 @@ function AppStoreConnect({
       );
     }
 
+    if (updateAlertMessage === appStoreConnectAlertMessage.iTunesSessionInvalid) {
+      alerts.push(
+        <AlertLink
+          withoutMarginBottom
+          icon={<IconWarning />}
+          to={{
+            pathname: location.pathname,
+            query: {
+              ...location.query,
+              revalidateItunesSession: true,
+            },
+          }}
+        >
+          {t('Your iTunes session has expired. To reconnect, revalidate the session.')}
+        </AlertLink>
+      );
+    }
+
     if (
-      appConnectStoreUpdateAlertMessage ===
-        appStoreConnectAlertMessage.iTunesSessionInvalid &&
-      activeStep < 3
+      updateAlertMessage ===
+      appStoreConnectAlertMessage.isTodayAfterItunesSessionRefreshAt
     ) {
       alerts.push(
-        <StyledAlert type="warning" icon={<IconWarning />}>
+        <AlertLink
+          withoutMarginBottom
+          icon={<IconWarning />}
+          to={{
+            pathname: location.pathname,
+            query: {
+              ...location.query,
+              revalidateItunesSession: true,
+            },
+          }}
+        >
           {t(
-            'Your iTunes session has expired. To reconnect, sign in with your Apple ID and password.'
+            'Your iTunes session will likely expire soon. We recommend that you revalidate the session.'
           )}
-        </StyledAlert>
-      );
-    }
-
-    if (
-      appConnectStoreUpdateAlertMessage ===
-        appStoreConnectAlertMessage.iTunesSessionInvalid &&
-      activeStep === 3
-    ) {
-      alerts.push(
-        <StyledAlert type="warning" icon={<IconWarning />}>
-          {t('Enter your authentication code to re-validate your iTunes session.')}
-        </StyledAlert>
-      );
-    }
-
-    if (
-      !appConnectStoreUpdateAlertMessage &&
-      revalidateItunesSession &&
-      activeStep === 0
-    ) {
-      alerts.push(
-        <StyledAlert type="warning" icon={<IconWarning />}>
-          {t('Your iTunes session has already been re-validated.')}
-        </StyledAlert>
+        </AlertLink>
       );
     }
 
@@ -469,6 +514,30 @@ function AppStoreConnect({
     );
   }
 
+  if (initialData && !appStoreConnectContext) {
+    return <LoadingIndicator />;
+  }
+
+  if (revalidateItunesSession) {
+    return (
+      <Fragment>
+        <Header closeButton>
+          <HeaderContentTitle>{t('Revalidate iTunes session')}</HeaderContentTitle>
+        </Header>
+        <Body>{renderBodyContent()}</Body>
+        <Footer>
+          <StyledButton
+            priority="primary"
+            onClick={() => startTwoFactorAuthentication(true)}
+            disabled={isLoading || isFormInvalid()}
+          >
+            {t('Revalidate')}
+          </StyledButton>
+        </Footer>
+      </Fragment>
+    );
+  }
+
   return (
     <Fragment>
       <Header closeButton>
@@ -483,42 +552,28 @@ function AppStoreConnect({
           </StepsOverview>
         </HeaderContent>
       </Header>
-      {initialData && appStoreConnectContext?.isLoading !== false ? (
-        <Body>
-          <LoadingIndicator />
-        </Body>
-      ) : (
-        <Fragment>
-          <Body>{renderBodyContent()}</Body>
-          <Footer>
-            <ButtonBar gap={1}>
-              {activeStep !== 0 && <Button onClick={handleGoBack}>{t('Back')}</Button>}
-              <StyledButton
-                priority="primary"
-                onClick={handleGoNext}
-                disabled={
-                  isLoading ||
-                  isFormInvalid() ||
-                  (appStoreConnectContext
-                    ? appStoreConnectContext?.isLoading !== false
-                    : false)
-                }
-              >
-                {isLoading && (
-                  <LoadingIndicatorWrapper>
-                    <LoadingIndicator mini />
-                  </LoadingIndicatorWrapper>
-                )}
-                {activeStep + 1 === steps.length
-                  ? initialData
-                    ? t('Update')
-                    : t('Save')
-                  : steps[activeStep + 1]}
-              </StyledButton>
-            </ButtonBar>
-          </Footer>
-        </Fragment>
-      )}
+      <Body>{renderBodyContent()}</Body>
+      <Footer>
+        <ButtonBar gap={1}>
+          {activeStep !== 0 && <Button onClick={handleGoBack}>{t('Back')}</Button>}
+          <StyledButton
+            priority="primary"
+            onClick={handleGoNext}
+            disabled={isLoading || isFormInvalid()}
+          >
+            {isLoading && (
+              <LoadingIndicatorWrapper>
+                <LoadingIndicator mini />
+              </LoadingIndicatorWrapper>
+            )}
+            {activeStep + 1 === steps.length
+              ? initialData
+                ? t('Update')
+                : t('Save')
+              : steps[activeStep + 1]}
+          </StyledButton>
+        </ButtonBar>
+      </Footer>
     </Fragment>
   );
 }
