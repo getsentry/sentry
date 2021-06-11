@@ -1,29 +1,15 @@
-import hmac
-import time
-from datetime import datetime
-from hashlib import sha256
 from urllib.parse import urlencode
 
 from sentry import options
 from sentry.integrations.slack.requests import SlackRequest, SlackRequestError
 from sentry.integrations.slack.requests.action import SlackActionRequest
 from sentry.integrations.slack.requests.event import SlackEventRequest
+from sentry.integrations.slack.util.auth import set_signing_secret
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import override_options
 from sentry.utils import json
 from sentry.utils.cache import memoize
 from sentry.utils.compat import mock
-
-
-def set_signature(secret, data):
-    timestamp = str(int(time.mktime(datetime.utcnow().timetuple())))
-    req = b"v0:%s:%s" % (timestamp.encode("utf-8"), data)
-
-    signature = "v0=" + hmac.new(secret.encode("utf-8"), req, sha256).hexdigest()
-    return {
-        "HTTP_X_SLACK_REQUEST_TIMESTAMP": timestamp,
-        "HTTP_X_SLACK_SIGNATURE": signature,
-    }
 
 
 class SlackRequestTest(TestCase):
@@ -39,7 +25,9 @@ class SlackRequestTest(TestCase):
             "api_app_id": "S1",
         }
         self.request.body = urlencode(self.request.data).encode("utf-8")
-        self.request.META = set_signature(options.get("slack.signing-secret"), self.request.body)
+        self.request.META = set_signing_secret(
+            options.get("slack.signing-secret"), self.request.body
+        )
 
     @memoize
     def slack_request(self):
@@ -115,7 +103,9 @@ class SlackEventRequestTest(TestCase):
             "api_app_id": "S1",
         }
         self.request.body = urlencode(self.request.data).encode("utf-8")
-        self.request.META = set_signature(options.get("slack.signing-secret"), self.request.body)
+        self.request.META = set_signing_secret(
+            options.get("slack.signing-secret"), self.request.body
+        )
 
     @memoize
     def slack_request(self):
@@ -164,7 +154,7 @@ class SlackEventRequestTest(TestCase):
         }
         self.request.body = urlencode(self.request.data).encode("utf-8")
 
-        self.request.META = set_signature("bad_key", self.request.body)
+        self.request.META = set_signing_secret("bad_key", self.request.body)
         with self.assertRaises(SlackRequestError) as e:
             self.slack_request.validate()
             assert e.status == 401
@@ -199,7 +189,9 @@ class SlackActionRequestTest(TestCase):
             )
         }
         self.request.body = urlencode(self.request.data).encode("utf-8")
-        self.request.META = set_signature(options.get("slack.signing-secret"), self.request.body)
+        self.request.META = set_signing_secret(
+            options.get("slack.signing-secret"), self.request.body
+        )
 
     @memoize
     def slack_request(self):
