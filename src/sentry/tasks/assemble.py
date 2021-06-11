@@ -278,7 +278,7 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
             if options.get("processing.save-release-archives"):
                 min_size = options.get("processing.release-archive-min-files")
                 if num_files >= min_size:
-                    ReleaseMultiArchive(release, dist).update(manifest, bundle)
+                    ReleaseMultiArchive(release, dist).update(archive, bundle)
 
             # NOTE(jjbayer): Single files are still stored to enable
             # rolling back from release archives. Once release archives run
