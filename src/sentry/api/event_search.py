@@ -461,9 +461,9 @@ class SearchVisitor(NodeVisitor):
             except InvalidQuery as exc:
                 raise InvalidSearchQuery(str(exc))
             return SearchFilter(search_key, operator, SearchValue(search_value))
-        else:
-            search_value = operator + search_value if operator != "=" else search_value
-            return self._handle_basic_filter(search_key, "=", SearchValue(search_value))
+
+        search_value = operator + search_value if operator != "=" else search_value
+        return self._handle_basic_filter(search_key, "=", SearchValue(search_value))
 
     def visit_specific_date_filter(self, node, children):
         # If we specify a specific date, it means any event on that day, and if
@@ -505,8 +505,8 @@ class SearchVisitor(NodeVisitor):
                 operator = "<="
                 search_value = to_val[0]
             return SearchFilter(search_key, operator, SearchValue(search_value))
-        else:
-            return self._handle_basic_filter(search_key, "=", SearchValue(value.text))
+
+        return self._handle_basic_filter(search_key, "=", SearchValue(value.text))
 
     def visit_duration_filter(self, node, children):
         (search_key, sep, operator, search_value) = children
@@ -520,9 +520,9 @@ class SearchVisitor(NodeVisitor):
             return SearchFilter(search_key, operator, SearchValue(search_value))
         elif self.is_numeric_key(search_key.name):
             return self.visit_numeric_filter(node, (search_key, sep, operator, search_value))
-        else:
-            search_value = operator + search_value.text if operator != "=" else search_value.text
-            return self._handle_basic_filter(search_key, "=", SearchValue(search_value))
+
+        search_value = operator + search_value.text if operator != "=" else search_value.text
+        return self._handle_basic_filter(search_key, "=", SearchValue(search_value))
 
     def visit_boolean_filter(self, node, children):
         (negation, search_key, sep, search_value) = children
@@ -548,9 +548,9 @@ class SearchVisitor(NodeVisitor):
             else:
                 raise InvalidSearchQuery(f"Invalid boolean field: {search_key}")
             return SearchFilter(search_key, "=", search_value)
-        else:
-            search_value = SearchValue(search_value.text)
-            return self._handle_basic_filter(search_key, "=" if not negated else "!=", search_value)
+
+        search_value = SearchValue(search_value.text)
+        return self._handle_basic_filter(search_key, "=" if not negated else "!=", search_value)
 
     def visit_numeric_in_filter(self, node, children):
         (search_key, _, search_value) = children
@@ -564,9 +564,9 @@ class SearchVisitor(NodeVisitor):
             except InvalidQuery as exc:
                 raise InvalidSearchQuery(str(exc))
             return SearchFilter(search_key, operator, search_value)
-        else:
-            search_value = SearchValue([v.text for v in search_value])
-            return self._handle_basic_filter(search_key, operator, search_value)
+
+        search_value = SearchValue([v.text for v in search_value])
+        return self._handle_basic_filter(search_key, operator, search_value)
 
     def visit_numeric_filter(self, node, children):
         (search_key, _, operator, search_value) = children
@@ -581,10 +581,10 @@ class SearchVisitor(NodeVisitor):
             except InvalidQuery as exc:
                 raise InvalidSearchQuery(str(exc))
             return SearchFilter(search_key, operator, search_value)
-        else:
-            search_value = search_value.text
-            search_value = SearchValue(operator + search_value if operator != "=" else search_value)
-            return self._handle_basic_filter(search_key, "=", search_value)
+
+        search_value = search_value.text
+        search_value = SearchValue(operator + search_value if operator != "=" else search_value)
+        return self._handle_basic_filter(search_key, "=", search_value)
 
     def visit_aggregate_filter(self, node, children):
         (negation, search_key, _, operator, search_value) = children
@@ -615,6 +615,7 @@ class SearchVisitor(NodeVisitor):
             raise InvalidSearchQuery(f"Invalid aggregate query condition: {search_key}")
         except InvalidQuery as exc:
             raise InvalidSearchQuery(str(exc))
+
         return AggregateFilter(search_key, operator, SearchValue(aggregate_value))
 
     def visit_aggregate_date_filter(self, node, children):
@@ -627,9 +628,9 @@ class SearchVisitor(NodeVisitor):
             except InvalidQuery as exc:
                 raise InvalidSearchQuery(str(exc))
             return AggregateFilter(search_key, operator, SearchValue(search_value))
-        else:
-            search_value = operator + search_value if operator != "=" else search_value
-            return AggregateFilter(search_key, "=", SearchValue(search_value))
+
+        search_value = operator + search_value if operator != "=" else search_value
+        return AggregateFilter(search_key, "=", SearchValue(search_value))
 
     def visit_aggregate_rel_date_filter(self, node, children):
         (negation, search_key, _, operator, search_value) = children
@@ -649,9 +650,9 @@ class SearchVisitor(NodeVisitor):
                 search_value = to_val[0]
 
             return AggregateFilter(search_key, operator, SearchValue(search_value))
-        else:
-            search_value = operator + search_value.text if operator != "=" else search_value
-            return AggregateFilter(search_key, "=", SearchValue(search_value))
+
+        search_value = operator + search_value.text if operator != "=" else search_value
+        return AggregateFilter(search_key, "=", SearchValue(search_value))
 
     def visit_has_filter(self, node, children):
         # the key is has here, which we don't need
