@@ -292,6 +292,10 @@ class ReleaseManifest:
     def __init__(self, release: Release, dist: Optional[Distribution]):
         self._manifest = _ManifestGuard(release, dist)
 
+    def read(self):
+        """Get manifest data"""
+        return self._manifest.readable_data()
+
     def update(self, archive: ReleaseArchive, archive_file: File):
         """Add information from release archive to manifest
 
