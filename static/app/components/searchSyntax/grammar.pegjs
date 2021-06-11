@@ -207,8 +207,8 @@ search_value
   = quoted_value / value
 
 numeric_value
-  = value:("-"? [0-9\.]+) unit:[kmb]? &(end_set / comma / closed_bracket) {
-      return tc.tokenValueNumber(value.flat().join(''), unit);
+  = value:("-"? numeric) unit:[kmb]? &(end_set / comma / closed_bracket) {
+      return tc.tokenValueNumber(value.join(''), unit);
     }
 
 boolean_value
@@ -244,15 +244,15 @@ rel_date_format
     }
 
 duration_format
-  = value:[0-9\.]+
+  = value:numeric
     unit:("ms"/"s"/"min"/"m"/"hr"/"h"/"day"/"d"/"wk"/"w")
     end_lookahead {
-      return tc.tokenValueDuration(value.join(''), unit);
+      return tc.tokenValueDuration(value, unit);
     }
 
 percentage_format
-  = value:[0-9\.]+ "%" {
-      return tc.tokenValuePercentage(value.join(''));
+  = value:numeric "%" {
+      return tc.tokenValuePercentage(value);
     }
 
 // NOTE: the order in which these operators are listed matters because for
@@ -260,6 +260,7 @@ percentage_format
 operator       = ">=" / "<=" / ">" / "<" / "=" / "!="
 or_operator    = "OR"i  &(" " / eol)
 and_operator   = "AND"i &(" " / eol)
+numeric        = [0-9]+ ("." [0-9]*)? { return text(); }
 open_paren     = "("
 closed_paren   = ")"
 open_bracket   = "["

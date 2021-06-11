@@ -7,7 +7,7 @@ from django.utils.functional import cached_property
 from parsimonious.exceptions import IncompleteParseError
 from parsimonious.expressions import Optional
 from parsimonious.grammar import Grammar, NodeVisitor
-from parsimonious.nodes import Node, RegexNode
+from parsimonious.nodes import Node
 
 from sentry.search.events.constants import (
     KEY_TRANSACTION_ALIAS,
@@ -117,7 +117,7 @@ quoted_value     = ~r"\"((?:\\\"|[^\"])*)?\""s
 in_value         = ~r"[^(),\s]*(?:[^\],\s)]|](?=]))"
 text_value       = quoted_value / in_value
 search_value     = quoted_value / value
-numeric_value    = ~r"([-]?[0-9\.]+)([kmb])?(?=\s|\)|$|,|])"
+numeric_value    = "-"? numeric ("k"/"m"/"b")? ~r"(?=\s|\)|$|,|])"
 boolean_value    = ~r"(true|1|false|0)(?=\s|\)|$)"i
 text_in_list     = open_bracket text_value (spaces comma spaces text_value)* closed_bracket
 numeric_in_list  = open_bracket numeric_value (spaces comma spaces numeric_value)* closed_bracket
@@ -125,14 +125,15 @@ numeric_in_list  = open_bracket numeric_value (spaces comma spaces numeric_value
 # Formats
 iso_8601_date_format = ~r"(\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{1,6})?)?(Z|([+-]\d{2}:\d{2}))?)(?=\s|\)|$)"
 rel_date_format      = ~r"[\+\-][0-9]+[wdhm](?=\s|\)|$)"
-duration_format      = ~r"([0-9\.]+)(ms|s|min|m|hr|h|day|d|wk|w)(?=\s|\)|$)"
-percentage_format    = ~r"([0-9\.]+)%"
+duration_format      = numeric ("ms"/"s"/"min"/"m"/"hr"/"h"/"day"/"d"/"wk"/"w") ~r"(?=\s|\)|$)"
+percentage_format    = numeric "%"
 
 # NOTE: the order in which these operators are listed matters because for
 # example, if < comes before <= it will match that even if the operator is <=
 operator             = ">=" / "<=" / ">" / "<" / "=" / "!="
 or_operator          = ~r"OR(?=\s|$)"i
 and_operator         = ~r"AND(?=\s|$)"i
+numeric              = ~r"[0-9]+(?:\.[0-9]*)?"
 open_paren           = "("
 closed_paren         = ")"
 open_bracket         = "["
@@ -510,18 +511,22 @@ class SearchVisitor(NodeVisitor):
 
     def visit_duration_filter(self, node, children):
         (search_key, sep, operator, search_value) = children
+        search_value = search_value[1:]
 
         operator = operator[0] if not isinstance(operator, Node) else "="
         if self.is_duration_key(search_key.name):
             try:
-                search_value = parse_duration(*search_value.match.groups())
+                search_value = parse_duration(*search_value)
             except InvalidQuery as exc:
                 raise InvalidSearchQuery(str(exc))
             return SearchFilter(search_key, operator, SearchValue(search_value))
+
+        # Durations overlap with numeric `m` suffixes
         elif self.is_numeric_key(search_key.name):
             return self.visit_numeric_filter(node, (search_key, sep, operator, search_value))
 
-        search_value = operator + search_value.text if operator != "=" else search_value.text
+        search_value = "".join(search_value)
+        search_value = operator + search_value if operator != "=" else search_value
         return self._handle_basic_filter(search_key, "=", SearchValue(search_value))
 
     def visit_boolean_filter(self, node, children):
@@ -536,7 +541,7 @@ class SearchVisitor(NodeVisitor):
                     search_key,
                     sep,
                     "=",
-                    search_value,
+                    [search_value.text, ""],
                 ),
             )
 
@@ -558,14 +563,12 @@ class SearchVisitor(NodeVisitor):
 
         if self.is_numeric_key(search_key.name):
             try:
-                search_value = SearchValue(
-                    [parse_numeric_value(*val.match.groups()) for val in search_value]
-                )
+                search_value = SearchValue([parse_numeric_value(*val) for val in search_value])
             except InvalidQuery as exc:
                 raise InvalidSearchQuery(str(exc))
             return SearchFilter(search_key, operator, search_value)
 
-        search_value = SearchValue([v.text for v in search_value])
+        search_value = SearchValue(["".join(value) for value in search_value])
         return self._handle_basic_filter(search_key, operator, search_value)
 
     def visit_numeric_filter(self, node, children):
@@ -577,40 +580,46 @@ class SearchVisitor(NodeVisitor):
 
         if self.is_numeric_key(search_key.name):
             try:
-                search_value = SearchValue(parse_numeric_value(*search_value.match.groups()))
+                search_value = SearchValue(parse_numeric_value(*search_value))
             except InvalidQuery as exc:
                 raise InvalidSearchQuery(str(exc))
             return SearchFilter(search_key, operator, search_value)
 
-        search_value = search_value.text
+        search_value = "".join(search_value)
         search_value = SearchValue(operator + search_value if operator != "=" else search_value)
         return self._handle_basic_filter(search_key, "=", search_value)
 
     def visit_aggregate_filter(self, node, children):
         (negation, search_key, _, operator, search_value) = children
         operator = handle_negation(negation, operator)
-        search_value = search_value[0] if not isinstance(search_value, RegexNode) else search_value
+        search_value = search_value[0]
 
         try:
             aggregate_value = None
-            if search_value.expr_name in ["duration_format", "percentage_format"]:
+            value_type = search_value[0]
+
+            if value_type in ["duration_format", "percentage_format"]:
                 # Even if the search value matches duration format, only act as duration for certain columns
                 function = resolve_field(
                     search_key.name, self.params, functions_acl=FUNCTIONS.keys()
                 )
                 if function.aggregate is not None:
-                    if search_value.expr_name == "percentage_format" and self.is_percentage_key(
+                    if value_type == "percentage_format" and self.is_percentage_key(
                         function.aggregate[0]
                     ):
-                        aggregate_value = parse_percentage(*search_value.match.groups())
+                        aggregate_value = parse_percentage(search_value[1])
                     # Extract column and function name out so we can check if we should parse as duration
-                    elif search_value.expr_name == "duration_format" and self.is_duration_key(
+                    elif value_type == "duration_format" and self.is_duration_key(
                         function.aggregate[1]
                     ):
-                        aggregate_value = parse_duration(*search_value.match.groups())
+                        aggregate_value = parse_duration(*search_value[1:])
 
             if aggregate_value is None:
-                aggregate_value = parse_numeric_value(*search_value.match.groups())
+                # Duration can fall through as a numeric value due to the
+                # overlapping 'm'
+                if len(search_value) == 3:
+                    search_value = search_value[1:]
+                aggregate_value = parse_numeric_value(*search_value)
         except ValueError:
             raise InvalidSearchQuery(f"Invalid aggregate query condition: {search_key}")
         except InvalidQuery as exc:
@@ -760,7 +769,11 @@ class SearchVisitor(NodeVisitor):
         return SearchValue(children[0])
 
     def visit_numeric_value(self, node, children):
-        return node
+        (sign, value, suffix, _) = children
+        sign = sign[0].text if isinstance(sign, list) else ""
+        suffix = suffix[0][0].text if isinstance(suffix, list) else ""
+
+        return [f"{sign}{value}", suffix]
 
     def visit_boolean_value(self, node, children):
         return node
@@ -778,10 +791,10 @@ class SearchVisitor(NodeVisitor):
         return node
 
     def visit_duration_format(self, node, children):
-        return node
+        return ["duration_format", children[0], children[1][0].text]
 
     def visit_percentage_format(self, node, children):
-        return node
+        return ["percentage_format", children[0]]
 
     def visit_operator(self, node, children):
         return node.text
@@ -791,6 +804,9 @@ class SearchVisitor(NodeVisitor):
 
     def visit_and_operator(self, node, children):
         return node.text.upper()
+
+    def visit_numeric(self, node, children):
+        return node.text
 
     def visit_open_paren(self, node, children):
         return node.text
