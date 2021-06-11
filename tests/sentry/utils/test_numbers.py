@@ -4,6 +4,7 @@ from sentry.utils.numbers import (
     base36_decode,
     base36_encode,
     format_bytes,
+    format_grouped_length,
 )
 
 
@@ -287,3 +288,13 @@ def test_format_bytes():
     assert format_bytes(3000000000000) == "2.73 TB"
 
     assert format_bytes(3000000000000, units=["B", "KB", "MB", "GB"]) == "2793.97 GB"
+
+
+def test_format_grouped_length():
+    assert format_grouped_length(0) == "0"
+    assert format_grouped_length(1) == "1"
+    assert format_grouped_length(2) == "<10"
+    assert format_grouped_length(10) == "<100"
+    assert format_grouped_length(50) == "<100"
+    assert format_grouped_length(100) == ">100"
+    assert format_grouped_length(25, [50]) == "<50"
