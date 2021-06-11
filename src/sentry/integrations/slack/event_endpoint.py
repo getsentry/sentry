@@ -2,14 +2,15 @@ from collections import defaultdict
 from typing import Any, Dict, List
 
 from sentry.api.base import Endpoint
+from sentry.integrations.slack.client import SlackClient
+from sentry.integrations.slack.message_builder.event import SlackEventMessageBuilder
+from sentry.integrations.slack.requests import SlackRequestError
+from sentry.integrations.slack.requests.event import SlackEventRequest
+from sentry.integrations.slack.unfurl import LinkType, UnfurlableUrl, link_handlers, match_link
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
 from sentry.web.decorators import transaction_start
 
-from .client import SlackClient
-from .message_builder.event import SlackEventMessageBuilder
-from .requests import SlackEventRequest, SlackRequestError
-from .unfurl import LinkType, UnfurlableUrl, link_handlers, match_link
 from .utils import logger, parse_link
 
 
