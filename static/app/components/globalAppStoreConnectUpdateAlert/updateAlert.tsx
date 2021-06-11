@@ -36,7 +36,12 @@ function UpdateAlert({api, Wrapper, isCompact, project, organization, className}
   }, []);
 
   async function checkPrompt() {
-    if (!project || !appStoreConnectContext || isDismissed) {
+    if (
+      !project ||
+      !appStoreConnectContext ||
+      !appStoreConnectContext.updateAlertMessage ||
+      isDismissed
+    ) {
       return;
     }
 
@@ -130,7 +135,12 @@ function UpdateAlert({api, Wrapper, isCompact, project, organization, className}
     );
   }
 
-  if (!project || !appStoreConnectContext || isDismissed) {
+  if (
+    !project ||
+    !appStoreConnectContext ||
+    !appStoreConnectContext.updateAlertMessage ||
+    isDismissed
+  ) {
     return null;
   }
 

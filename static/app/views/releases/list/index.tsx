@@ -269,6 +269,14 @@ class ReleasesList extends AsyncView<Props, State> {
       );
     }
 
+    if (activeSort === SortOption.BUILD || activeSort === SortOption.SEMVER) {
+      return (
+        <EmptyStateWarning small>
+          {t('There are no releases with semantic versioning.')}
+        </EmptyStateWarning>
+      );
+    }
+
     if (activeSort !== SortOption.DATE) {
       const relativePeriod = getRelativeSummary(
         statsPeriod || DEFAULT_STATS_PERIOD
