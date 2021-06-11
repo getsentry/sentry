@@ -222,18 +222,22 @@ class ManifestGuard:
         self._release = release
         self._dist = dist
 
-    def readable_data(self):
+    def readable_data(self) -> Optional[dict]:
         """Simple read, no synchronization necessary"""
-        file_, _ = self._get_file(create=False)
-        with file_.getfile() as fp:
-            return json.load(fp)
+        file_ = self._get_file(lock=False)
+        if file_ is not None:
+            with file_.getfile() as fp:
+                return json.load(fp)
 
     @contextmanager
     def writable_data(self, create: bool):
         """Context manager for editable release manifest"""
         with transaction.atomic():
-
-            file_, created = self._get_file(create=create)
+            if create:
+                file_, created = self._get_or_create_file()
+            else:
+                file_ = self._get_file(lock=True)
+                created = False
 
             if file_ is None:
                 manifest = None
@@ -249,33 +253,36 @@ class ManifestGuard:
             if manifest is not None and manifest.changed:
                 file_.putfile(BytesIO(json.dumps(manifest.data).encode()))
 
-    def _get_file(self, create: bool) -> Tuple[Optional[File], bool]:
-        created = False
-        if create:
-            release_file, created = ReleaseFile.objects.select_related("file").get_or_create(
+    def _get_or_create_file(self) -> Tuple[File, bool]:
+        qs = ReleaseFile.objects.select_related("file").select_for_update()
+        release_file, created = qs.get_or_create(
+            organization_id=self._release.organization_id,
+            release=self._release,
+            dist=self._dist,
+            name=MANIFEST_FILENAME,
+            file=File.objects.get_or_create(
+                name=MANIFEST_FILENAME,
+                type=MANIFEST_TYPE,
+            )[0],
+        )
+
+        return release_file.file, created
+
+    def _get_file(self, lock: bool) -> Optional[File]:
+        qs = ReleaseFile.objects.select_related("file")
+        if lock:
+            qs = qs.select_for_update()
+        try:
+            release_file = qs.get(
                 organization_id=self._release.organization_id,
                 release=self._release,
                 dist=self._dist,
                 name=MANIFEST_FILENAME,
-                file=File.objects.get_or_create(
-                    name=MANIFEST_FILENAME,
-                    type=MANIFEST_TYPE,
-                )[0],
             )
-
-            return release_file.file, created
+        except ReleaseFile.DoesNotExist:
+            return None
         else:
-            try:
-                release_file = ReleaseFile.objects.select_related("file").get(
-                    organization_id=self._release.organization_id,
-                    release=self._release,
-                    dist=self._dist,
-                    name=MANIFEST_FILENAME,
-                )
-            except ReleaseFile.DoesNotExist:
-                return None, False
-            else:
-                return release_file.file, False
+            return release_file.file
 
 
 class ReleaseMultiArchive:
@@ -312,15 +319,15 @@ class ReleaseMultiArchive:
         with self.manifest.writable_data(create=True) as manifest:
             manifest.update_files(files_out)
 
-    def delete(self, filename: str):
+    def delete(self, url: str):
         """Delete a file from the manifest.
 
         Does *not* delete the file from the zip archive.
         """
         with self.manifest.writable_data(create=False) as manifest:
             if manifest is not None:
-                manifest.delete(filename)
+                manifest.delete(url)
 
-    def _compute_sha1(self, archive: ReleaseArchive, filename: str) -> str:
-        data = archive.read(filename)
+    def _compute_sha1(self, archive: ReleaseArchive, url: str) -> str:
+        data = archive.read(url)
         return sha1(data).hexdigest()
