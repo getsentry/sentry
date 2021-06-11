@@ -71,16 +71,16 @@ export enum BooleanOperator {
 export enum FilterType {
   Text = 'text',
   TextIn = 'textIn',
-  Time = 'time',
-  SpecificTime = 'specificTime',
-  RelativeTime = 'relativeTime',
+  Date = 'date',
+  SpecificDate = 'specificDate',
+  RelativeDate = 'relativeDate',
   Duration = 'duration',
   Numeric = 'numeric',
   NumericIn = 'numericIn',
   Boolean = 'boolean',
   AggregateSimple = 'aggregateSimple',
-  AggregateTime = 'aggregateTime',
-  AggregateRelativeTime = 'aggregateRelativeTime',
+  AggregateDate = 'aggregateDate',
+  AggregateRelativeDate = 'aggregateRelativeDate',
   Has = 'has',
   Is = 'is',
 }
@@ -124,19 +124,19 @@ export const filterTypeConfig = {
     validValues: [Token.ValueTextList],
     canNegate: true,
   },
-  [FilterType.Time]: {
+  [FilterType.Date]: {
     validKeys: [Token.KeySimple],
     validOps: allOperators,
     validValues: [Token.ValueIso8601Date],
     canNegate: false,
   },
-  [FilterType.SpecificTime]: {
+  [FilterType.SpecificDate]: {
     validKeys: [Token.KeySimple],
     validOps: [],
     validValues: [Token.ValueIso8601Date],
     canNegate: false,
   },
-  [FilterType.RelativeTime]: {
+  [FilterType.RelativeDate]: {
     validKeys: [Token.KeySimple],
     validOps: [],
     validValues: [Token.ValueRelativeDate],
@@ -172,13 +172,13 @@ export const filterTypeConfig = {
     validValues: [Token.ValueDuration, Token.ValueNumber, Token.ValuePercentage],
     canNegate: true,
   },
-  [FilterType.AggregateTime]: {
+  [FilterType.AggregateDate]: {
     validKeys: [Token.KeyAggregate],
     validOps: allOperators,
     validValues: [Token.ValueIso8601Date],
     canNegate: true,
   },
-  [FilterType.AggregateRelativeTime]: {
+  [FilterType.AggregateRelativeDate]: {
     validKeys: [Token.KeyAggregate],
     validOps: allOperators,
     validValues: [Token.ValueRelativeDate],
