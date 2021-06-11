@@ -429,13 +429,14 @@ class SourceMapsEndpoint(ProjectEndpoint):
 
         def serialize_results(results):
             file_counts = (
-                Release.objects.filter(id__in=[r["id"] for r in results])
-                .annotate(count=Count("releasefile"))
-                .values("count", "id")
+                ReleaseFile.public_objects()
+                .filter(release_id__in=[r["id"] for r in results])
+                .values("release_id")
+                .annotate(count=Count("id"))
             )
-            file_count_map = {r["id"]: r["count"] for r in file_counts}
+            file_count_map = {r["release_id"]: r["count"] for r in file_counts}
             return serialize(
-                [expose_release(r, file_count_map[r["id"]]) for r in results], request.user
+                [expose_release(r, file_count_map.get(r["id"], 0)) for r in results], request.user
             )
 
         return self.paginate(

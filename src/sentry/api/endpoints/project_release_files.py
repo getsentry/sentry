@@ -45,7 +45,10 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint):
             raise ResourceDoesNotExist
 
         file_list = (
-            ReleaseFile.objects.filter(release=release).select_related("file").order_by("name")
+            ReleaseFile.public_objects()
+            .filter(release=release)
+            .select_related("file")
+            .order_by("name")
         )
 
         if query:

@@ -101,6 +101,11 @@ class ReleaseFile(Model):
             urls.append("~" + urlunsplit(uri_relative_without_query))
         return urls
 
+    @classmethod
+    def public_objects(cls):
+        """Exclude hidden release files such as release manifest, etc."""
+        return cls.objects.select_related("file").filter(file__type="release.file")
+
 
 class ReleaseFileCache:
     @property
