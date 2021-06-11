@@ -1,10 +1,13 @@
 import errno
 import os
+from datetime import datetime, timezone
 from io import BytesIO
 from zipfile import ZipFile
 
 from sentry import options
-from sentry.models import ReleaseArchive, ReleaseFile, merge_release_archives
+from sentry.models import ReleaseArchive, ReleaseFile
+from sentry.models.file import File
+from sentry.models.releasefile import ReleaseMultiArchive
 from sentry.testutils import TestCase
 from sentry.utils import json
 
@@ -87,8 +90,7 @@ class ReleaseFileCacheTest(TestCase):
 
 
 class ReleaseArchiveTestCase(TestCase):
-    @staticmethod
-    def create_archive(fields, files, raw=False):
+    def create_archive(self, fields, files):
         manifest = dict(
             fields, files={filename: {"url": f"fake://{filename}"} for filename in files}
         )
@@ -98,81 +100,117 @@ class ReleaseArchiveTestCase(TestCase):
             for filename, content in files.items():
                 zf.writestr(filename, content)
 
-        return buffer if raw else ReleaseArchive(buffer)
+        buffer.seek(0)
+        file_ = File.objects.create(name="foo")
+        file_.putfile(buffer)
+        file_.update(timestamp=datetime(2021, 6, 11, 9, 13, 1, 317902, tzinfo=timezone.utc))
 
-    def test_merge(self):
+        multi_archive = ReleaseMultiArchive(self.release, None)
+
+        with ReleaseArchive(file_.getfile()) as archive:
+            multi_archive.update(archive, file_)
+
+        return file_
+
+    def test_multi_archive(self):
+        multi_archive = ReleaseMultiArchive(self.release, None)
+
+        assert multi_archive.manifest.readable_data() is None
+
+        # Delete does nothing
+        multi_archive.delete("foo")
+
         archive1 = self.create_archive(
-            fields={
-                "org": 1,
-                "release": 666,
-                "dist": 3,
-            },
-            files={
-                "foo": "foo",
-                "bar": "BAR",
-            },
-            raw=True,
-        )
-        archive2 = self.create_archive(
-            fields={
-                "org": 1,
-                "release": 2,
-                "dist": 3,
-            },
+            fields={},
             files={
                 "foo": "foo",
                 "bar": "bar",
-                "baz": "baz",
+                "baz": "bazaa",
             },
         )
 
-        buffer = BytesIO()
-
-        assert merge_release_archives(archive1, archive2, buffer) is True
-
-        archive3 = ReleaseArchive(buffer)
-
-        assert archive3.manifest["org"] == 1
-        assert archive3.manifest["release"] == 666
-        assert archive3.manifest["dist"] == 3
-
-        assert archive3.manifest["files"].keys() == {"foo", "bar", "baz"}
-
-        # Make sure everything was saved:
-        peristed_manifest = archive3._read_manifest()
-        assert peristed_manifest == archive3.manifest
-
-        assert archive3.read("foo") == b"foo"
-        assert archive3.read("bar") == b"BAR"  # no overwrite
-        assert archive3.read("baz") == b"baz"
-
-    def test_merge_nothing(self):
-        archive1 = self.create_archive(
-            fields={
-                "org": 1,
-                "release": 2,
-                "dist": 3,
+        assert multi_archive.manifest.readable_data() == {
+            "files": {
+                "fake://bar": {
+                    "archive_id": archive1.id,
+                    "date_created": "2021-06-11T09:13:01.317902Z",
+                    "filename": "bar",
+                    "sha1": "62cdb7020ff920e5aa642c3d4066950dd1f01f4d",
+                    "size": 3,
+                },
+                "fake://baz": {
+                    "archive_id": archive1.id,
+                    "date_created": "2021-06-11T09:13:01.317902Z",
+                    "filename": "baz",
+                    "sha1": "1a74885aa2771a6a0edcc80dbd0cf396dfaf1aab",
+                    "size": 5,
+                },
+                "fake://foo": {
+                    "archive_id": archive1.id,
+                    "date_created": "2021-06-11T09:13:01.317902Z",
+                    "filename": "foo",
+                    "sha1": "0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33",
+                    "size": 3,
+                },
             },
-            files={
-                "foo": "foo",
-                "bar": "bar",
-                "baz": "baz",
-            },
-            raw=True,
-        )
+        }
+
         archive2 = self.create_archive(
-            fields={
-                "org": 1,
-                "release": 666,
-                "dist": 3,
-            },
+            fields={},
             files={
                 "foo": "foo",
                 "bar": "BAR",
+                "zap": "zapz",
             },
         )
 
-        buffer = BytesIO()
+        # Two files were overwritten, one was added
+        expected = {
+            "files": {
+                "fake://bar": {
+                    "archive_id": archive2.id,
+                    "date_created": "2021-06-11T09:13:01.317902Z",
+                    "filename": "bar",
+                    "sha1": "a5d5c1bba91fdb6c669e1ae0413820885bbfc455",
+                    "size": 3,
+                },
+                "fake://baz": {
+                    "archive_id": archive1.id,
+                    "date_created": "2021-06-11T09:13:01.317902Z",
+                    "filename": "baz",
+                    "sha1": "1a74885aa2771a6a0edcc80dbd0cf396dfaf1aab",
+                    "size": 5,
+                },
+                "fake://foo": {
+                    "archive_id": archive2.id,
+                    "date_created": "2021-06-11T09:13:01.317902Z",
+                    "filename": "foo",
+                    "sha1": "0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33",
+                    "size": 3,
+                },
+                "fake://zap": {
+                    "archive_id": archive2.id,
+                    "date_created": "2021-06-11T09:13:01.317902Z",
+                    "filename": "zap",
+                    "sha1": "a7a9c12205f9cb1f53f8b6678265c9e8158f2a8f",
+                    "size": 4,
+                },
+            },
+        }
 
-        # Nothing added:
-        assert merge_release_archives(archive1, archive2, buffer) is False
+        assert multi_archive.manifest.readable_data() == expected
+
+        # Deletion works:
+        multi_archive.delete("fake://foo")
+        expected["files"].pop("fake://foo")
+        assert multi_archive.manifest.readable_data() == expected
+
+    def test_same_sha(self):
+        """Stand-alone release file has same sha1 as one in manifest"""
+        self.create_archive(fields={}, files={"foo": "bar"})
+        file_ = File.objects.create()
+        file_.putfile(BytesIO(b"bar"))
+        self.create_release_file(file=file_)
+
+        manifest = ReleaseMultiArchive(self.release, None).manifest.readable_data()
+        assert file_.checksum == manifest["files"]["fake://foo"]["sha1"]
