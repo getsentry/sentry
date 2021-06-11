@@ -49,7 +49,6 @@ To create and manage these credentials, several API endpoints exist:
    initiated by steps 2-4.  See :class:`AppStoreConnectCredentialsValidateEndpoint`.
 """
 import datetime
-import logging
 from typing import Optional
 from uuid import uuid4
 
@@ -72,9 +71,6 @@ from sentry.utils import json
 from sentry.utils.appleconnect import appstore_connect, itunes_connect
 from sentry.utils.appleconnect.itunes_connect import ITunesHeaders
 from sentry.utils.safe import get_path
-
-logger = logging.getLogger(__name__)
-
 
 # The property name of the project option which contains the encryption key.
 #
@@ -561,7 +557,6 @@ class AppStoreConnectRequestSmsEndpoint(ProjectEndpoint):
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
         data = serializer.validated_data["sessionContext"]
-        logger.warn("THE DATA:::::::::::::::::: %r", data)
 
         headers = ITunesHeaders(session_id=data.get("session_id"), scnt=data.get("scnt"))
         auth_key = data.get("auth_key")
@@ -662,7 +657,6 @@ class AppStoreConnect2FactorAuthEndpoint(ProjectEndpoint):
             return Response(serializer.errors, status=400)
         data = serializer.validated_data
         session_context = data["sessionContext"]
-        logger.warn("THE CONTEXT:::::::::::::::::: %r", session_context)
 
         session = requests.Session()
         headers = ITunesHeaders(
