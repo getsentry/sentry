@@ -6,7 +6,7 @@ from typing import IO, Optional, Tuple
 from django.utils.encoding import force_bytes, force_text
 
 from sentry.models.file import File
-from sentry.models.releasefile import MANIFEST_FILENAME, ReleaseArchive, ReleaseMultiArchive
+from sentry.models.releasefile import MANIFEST_FILENAME, ReleaseArchive, ReleaseManifest
 from sentry.utils import json
 
 __all__ = ["JavaScriptStacktraceProcessor"]
@@ -405,8 +405,7 @@ def get_manifest(release, dist):
     elif result:
         manifest = json.loads(result)
     else:
-        multi_archive = ReleaseMultiArchive(release, dist)
-        manifest = multi_archive.manifest.readable_data()
+        manifest = ReleaseManifest(release, dist).read()
         cache_value = -1 if manifest is None else json.dumps(manifest)
         # Only cache for a short time to keep the manifest up-to-date
         cache.set(manifest_key, cache_value, timeout=60)

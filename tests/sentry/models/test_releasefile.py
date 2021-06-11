@@ -7,7 +7,7 @@ from zipfile import ZipFile
 from sentry import options
 from sentry.models import ReleaseArchive, ReleaseFile
 from sentry.models.file import File
-from sentry.models.releasefile import ReleaseMultiArchive
+from sentry.models.releasefile import ReleaseManifest
 from sentry.testutils import TestCase
 from sentry.utils import json
 
@@ -105,20 +105,20 @@ class ReleaseArchiveTestCase(TestCase):
         file_.putfile(buffer)
         file_.update(timestamp=datetime(2021, 6, 11, 9, 13, 1, 317902, tzinfo=timezone.utc))
 
-        multi_archive = ReleaseMultiArchive(self.release, None)
+        manifest = ReleaseManifest(self.release, None)
 
         with ReleaseArchive(file_.getfile()) as archive:
-            multi_archive.update(archive, file_)
+            manifest.update(archive, file_)
 
         return file_
 
     def test_multi_archive(self):
-        multi_archive = ReleaseMultiArchive(self.release, None)
+        manifest = ReleaseManifest(self.release, None)
 
-        assert multi_archive.manifest.readable_data() is None
+        assert manifest.read() is None
 
         # Delete does nothing
-        multi_archive.delete("foo")
+        manifest.delete("foo")
 
         archive1 = self.create_archive(
             fields={},
@@ -129,7 +129,7 @@ class ReleaseArchiveTestCase(TestCase):
             },
         )
 
-        assert multi_archive.manifest.readable_data() == {
+        assert manifest.read() == {
             "files": {
                 "fake://bar": {
                     "archive_id": archive1.id,
@@ -198,12 +198,12 @@ class ReleaseArchiveTestCase(TestCase):
             },
         }
 
-        assert multi_archive.manifest.readable_data() == expected
+        assert manifest.read() == expected
 
         # Deletion works:
-        multi_archive.delete("fake://foo")
+        manifest.delete("fake://foo")
         expected["files"].pop("fake://foo")
-        assert multi_archive.manifest.readable_data() == expected
+        assert manifest.read() == expected
 
     def test_same_sha(self):
         """Stand-alone release file has same sha1 as one in manifest"""
@@ -212,5 +212,5 @@ class ReleaseArchiveTestCase(TestCase):
         file_.putfile(BytesIO(b"bar"))
         self.create_release_file(file=file_)
 
-        manifest = ReleaseMultiArchive(self.release, None).manifest.readable_data()
+        manifest = ReleaseManifest(self.release, None)._manifest.readable_data()
         assert file_.checksum == manifest["files"]["fake://foo"]["sha1"]
