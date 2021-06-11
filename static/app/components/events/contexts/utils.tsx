@@ -65,6 +65,8 @@ export function getRelativeTimeFromEventDateCreated(
   );
 }
 
+// Typescript doesn't have types for DisplayNames yet and that's why the type assertion "any" is needed below.
+// There is currently an open PR that intends to introduce the types https://github.com/microsoft/TypeScript/pull/44022
 export function getFullLanguageDescription(locale: string) {
   const sentryAppLanguageCode = ConfigStore.get('languageCode');
 
