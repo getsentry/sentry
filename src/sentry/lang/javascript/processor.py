@@ -431,7 +431,6 @@ def fetch_release_archive(release, dist, url) -> Optional[IO]:
 
     If return value is not empty, the caller is responsible for closing the stream.
     """
-
     info = get_info_from_manifest(release, dist, url)
     if info is None:
         # Cannot write negative cache entry here because ID of release archive
@@ -441,7 +440,7 @@ def fetch_release_archive(release, dist, url) -> Optional[IO]:
     archive_id = info["archive_id"]
 
     # TODO(jjbayer): Could already extract filename from info and return
-    # it here.
+    # it later
 
     cache_key = f"release-bundle:v1:{release.id}:{archive_id}"
 

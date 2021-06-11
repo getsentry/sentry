@@ -7,7 +7,7 @@ import responses
 from django.utils.encoding import force_bytes
 
 from sentry.models import File, Release, ReleaseFile
-from sentry.tasks.assemble import RELEASE_ARCHIVE_FILENAME
+from sentry.models.releasefile import ReleaseArchive, ReleaseMultiArchive
 from sentry.testutils import RelayStoreHelper, SnubaTestCase, TransactionTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils import json
@@ -1152,15 +1152,11 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
             zip.writestr("manifest.json", json.dumps(manifest))
         file_like.seek(0)
 
-        file = File.objects.create(name=RELEASE_ARCHIVE_FILENAME)
+        file = File.objects.create(name="doesnt_matter", type="release.bundle")
         file.putfile(file_like)
 
-        ReleaseFile.objects.create(
-            name=RELEASE_ARCHIVE_FILENAME,
-            release=release,
-            organization_id=project.organization_id,
-            file=file,
-        )
+        with ReleaseArchive(file.getfile()) as archive:
+            ReleaseMultiArchive(release, dist=None).update(archive, file)
 
         data = {
             "timestamp": self.min_ago,
