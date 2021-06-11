@@ -268,6 +268,7 @@ function SymbolSources({
         reloadPage();
       }
     } catch {
+      handleCloseImageDetailsModal();
       addErrorMessage(errorMessage);
     }
   }
