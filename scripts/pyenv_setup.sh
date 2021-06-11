@@ -47,8 +47,8 @@ _append_to_startup_script() {
       echo "Visit https://github.com/pyenv/pyenv#installation on how to fully set up your Bash shell.";;
     */zsh)
       # shellcheck disable=SC2016
-      echo -e '\n# It is assumed that pyenv is installed via Brew, so this is all we need to do.\n' \
-        '\neval "$(pyenv init --path)"' >>"${1}"
+      echo -e '# It is assumed that pyenv is installed via Brew, so this is all we need to do.\n' \
+        'eval "$(pyenv init --path)"' >>"${1}"
       ;;
     */fish)
       # shellcheck disable=SC2016
