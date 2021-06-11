@@ -344,7 +344,7 @@ class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):
         # We need to have a serialised datetime, but django-rest-framework de-serialised it
         # into the class.  So, serialize it back.
         if isinstance(symbol_source_config["itunesCreated"], datetime.datetime):
-            clone = data.copy()
+            clone = symbol_source_config.copy()
             clone["itunesCreated"] = symbol_source_config["itunesCreated"].isoformat()
         else:
             clone = data
