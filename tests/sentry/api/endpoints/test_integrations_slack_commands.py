@@ -12,9 +12,11 @@ from sentry.testutils import APITestCase
 from sentry.utils import json
 
 
-def assert_is_help_text(response: Response) -> None:
+def assert_is_help_text(response: Response, expected_command: Optional[str] = None) -> None:
     data = json.loads(str(response.content.decode("utf-8")))
     assert "Available Commands" in data["text"]
+    if expected_command:
+        assert expected_command in data["text"]
 
 
 class SlackCommandsTest(APITestCase):
@@ -63,7 +65,7 @@ class SlackCommandsPostTest(SlackCommandsTest):
 
     def test_invalid_command(self):
         response = self.get_slack_response({"text": "invalid command", "team_id": self.external_id})
-        assert_is_help_text(response)
+        assert_is_help_text(response, "invalid")
 
     def test_help_command(self):
         response = self.get_slack_response({"text": "help", "team_id": self.external_id})

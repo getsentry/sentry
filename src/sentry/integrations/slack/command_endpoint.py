@@ -1,5 +1,5 @@
 import logging
-from typing import List, Mapping
+from typing import Mapping
 
 from django.http import HttpResponse
 from rest_framework.request import Request
@@ -12,9 +12,8 @@ from sentry.integrations.slack.requests.command import SlackCommandRequest
 logger = logging.getLogger("sentry.integrations.slack")
 
 
-def get_command(payload: Mapping[str, List[str]]) -> str:
-    text = payload.get("text", [""])[0]
-    return text.split(" ")[0].lower()
+def get_command(payload: Mapping[str, str]) -> str:
+    return payload.get("text", "").split(" ")[0].lower()
 
 
 class SlackCommandsEndpoint(Endpoint):
