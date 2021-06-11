@@ -58,7 +58,7 @@ function getInterval(datetimeObj: DateTimeObject) {
   // TODO(sessions): sub-hour session resolution is still not possible
   return '1h';
 }
-function reduceTimeSeriesGroups(
+export function reduceTimeSeriesGroups(
   acc: number[],
   group: SessionApiResponse['groups'][number],
   field: 'count_unique(user)' | 'sum(session)'
@@ -68,6 +68,16 @@ function reduceTimeSeriesGroups(
   );
 
   return acc;
+}
+
+export function sessionDisplayToField(display: DisplayOption) {
+  switch (display) {
+    case DisplayOption.USERS:
+      return 'count_unique(user)';
+    case DisplayOption.SESSIONS:
+    default:
+      return 'sum(session)';
+  }
 }
 
 export type ReleaseHealthRequestRenderProps = {
@@ -207,7 +217,7 @@ class ReleaseHealthRequest extends React.Component<Props, State> {
       query: {
         ...this.baseQueryParams,
         field: [
-          ...new Set([...display.map(d => this.displayToField(d)), 'sum(session)']),
+          ...new Set([...display.map(d => sessionDisplayToField(d)), 'sum(session)']),
         ], // this request needs to be fired for sessions in both display options (because of crash count), removing potential sum(session) duplicated with Set
         groupBy: ['project', 'release', 'session.status'],
       },
@@ -227,7 +237,7 @@ class ReleaseHealthRequest extends React.Component<Props, State> {
         ...this.baseQueryParams,
         query: undefined,
         field: [
-          ...new Set([...display.map(d => this.displayToField(d)), 'sum(session)']),
+          ...new Set([...display.map(d => sessionDisplayToField(d)), 'sum(session)']),
         ],
         groupBy: ['project', 'session.status'],
       },
@@ -245,7 +255,7 @@ class ReleaseHealthRequest extends React.Component<Props, State> {
     const response: SessionApiResponse = await api.requestPromise(this.path, {
       query: {
         ...this.baseQueryParams,
-        field: display.map(d => this.displayToField(d)),
+        field: display.map(d => sessionDisplayToField(d)),
         groupBy: ['project', 'release'],
         interval: '1h',
         statsPeriod: '24h',
@@ -265,7 +275,7 @@ class ReleaseHealthRequest extends React.Component<Props, State> {
       query: {
         ...this.baseQueryParams,
         query: undefined,
-        field: display.map(d => this.displayToField(d)),
+        field: display.map(d => sessionDisplayToField(d)),
         groupBy: ['project'],
         interval: '1h',
         statsPeriod: '24h',
@@ -273,16 +283,6 @@ class ReleaseHealthRequest extends React.Component<Props, State> {
     });
 
     return response;
-  }
-
-  displayToField(display: DisplayOption) {
-    switch (display) {
-      case DisplayOption.USERS:
-        return 'count_unique(user)';
-      case DisplayOption.SESSIONS:
-      default:
-        return 'sum(session)';
-    }
   }
 
   getHealthData = () => {
@@ -299,7 +299,7 @@ class ReleaseHealthRequest extends React.Component<Props, State> {
 
   getCrashCount = (version: string, project: number, display: DisplayOption) => {
     const {statusCountByReleaseInPeriod} = this.state;
-    const field = this.displayToField(display);
+    const field = sessionDisplayToField(display);
 
     return statusCountByReleaseInPeriod?.groups.find(
       ({by}) =>
@@ -311,7 +311,7 @@ class ReleaseHealthRequest extends React.Component<Props, State> {
 
   getCrashFreeRate = (version: string, project: number, display: DisplayOption) => {
     const {statusCountByReleaseInPeriod} = this.state;
-    const field = this.displayToField(display);
+    const field = sessionDisplayToField(display);
 
     const totalCount = statusCountByReleaseInPeriod?.groups
       .filter(({by}) => by.release === version && by.project === project)
@@ -326,7 +326,7 @@ class ReleaseHealthRequest extends React.Component<Props, State> {
 
   get24hCountByRelease = (version: string, project: number, display: DisplayOption) => {
     const {totalCountByReleaseIn24h} = this.state;
-    const field = this.displayToField(display);
+    const field = sessionDisplayToField(display);
 
     return totalCountByReleaseIn24h?.groups
       .filter(({by}) => by.release === version && by.project === project)
@@ -335,7 +335,7 @@ class ReleaseHealthRequest extends React.Component<Props, State> {
 
   get24hCountByProject = (project: number, display: DisplayOption) => {
     const {totalCountByProjectIn24h} = this.state;
-    const field = this.displayToField(display);
+    const field = sessionDisplayToField(display);
 
     return totalCountByProjectIn24h?.groups
       .filter(({by}) => by.project === project)
@@ -353,7 +353,7 @@ class ReleaseHealthRequest extends React.Component<Props, State> {
 
   get24hTimeSeries = (version: string, project: number, display: DisplayOption) => {
     const {totalCountByReleaseIn24h, totalCountByProjectIn24h} = this.state;
-    const field = this.displayToField(display);
+    const field = sessionDisplayToField(display);
 
     const intervals = totalCountByProjectIn24h?.intervals ?? [];
 
@@ -386,7 +386,7 @@ class ReleaseHealthRequest extends React.Component<Props, State> {
 
   getPeriodTimeSeries = (version: string, project: number, display: DisplayOption) => {
     const {statusCountByReleaseInPeriod, statusCountByProjectInPeriod} = this.state;
-    const field = this.displayToField(display);
+    const field = sessionDisplayToField(display);
 
     const intervals = statusCountByProjectInPeriod?.intervals ?? [];
 

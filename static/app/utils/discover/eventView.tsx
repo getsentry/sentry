@@ -297,8 +297,19 @@ class EventView {
     const environment = Array.isArray(props.environment) ? props.environment : [];
 
     // only include sort keys that are included in the fields
+    let equations = 0;
     const sortKeys = fields
-      .map(field => getSortKeyFromField(field, undefined))
+      .map(field => {
+        if (isEquation(field.field)) {
+          const sortKey = getSortKeyFromField(
+            {field: `equation[${equations}]`},
+            undefined
+          );
+          equations += 1;
+          return sortKey;
+        }
+        return getSortKeyFromField(field, undefined);
+      })
       .filter((sortKey): sortKey is string => !!sortKey);
 
     const sort = sorts.find(currentSort => sortKeys.includes(currentSort.field));
