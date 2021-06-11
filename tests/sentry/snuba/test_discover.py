@@ -3342,6 +3342,18 @@ class ArithmeticTest(SnubaTestCase, TestCase):
                 params=self.params,
             )
 
+    def test_invalid_function(self):
+        with self.assertRaises(ArithmeticValidationError):
+            discover.query(
+                selected_columns=[
+                    "p50(transaction.duration)",
+                    "last_seen()",
+                ],
+                equations=["p50(transaction.duration) / last_seen()"],
+                query=self.query,
+                params=self.params,
+            )
+
     def test_unselected_field(self):
         with self.assertRaises(InvalidSearchQuery):
             discover.query(
@@ -3349,6 +3361,17 @@ class ArithmeticTest(SnubaTestCase, TestCase):
                     "spans.http",
                 ],
                 equations=["spans.http / transaction.duration"],
+                query=self.query,
+                params=self.params,
+            )
+
+    def test_unselected_function(self):
+        with self.assertRaises(InvalidSearchQuery):
+            discover.query(
+                selected_columns=[
+                    "p50(transaction.duration)",
+                ],
+                equations=["p50(transaction.duration) / p100(transaction.duration)"],
                 query=self.query,
                 params=self.params,
             )
@@ -3400,3 +3423,31 @@ class ArithmeticTest(SnubaTestCase, TestCase):
                 query=self.query,
                 params=self.params,
             )
+
+    def test_aggregate_equation(self):
+        results = discover.query(
+            selected_columns=[
+                "p50(transaction.duration)",
+            ],
+            equations=["p50(transaction.duration) / 2"],
+            query=self.query,
+            params=self.params,
+        )
+        assert len(results["data"]) == 1
+        result = results["data"][0]
+        assert result["equation[0]"] == result["p50_transaction_duration"] / 2
+
+    def test_multiple_aggregate_equation(self):
+        results = discover.query(
+            selected_columns=[
+                "p50(transaction.duration)",
+                "count()",
+            ],
+            equations=["p50(transaction.duration) + 2", "p50(transaction.duration) / count()"],
+            query=self.query,
+            params=self.params,
+        )
+        assert len(results["data"]) == 1
+        result = results["data"][0]
+        assert result["equation[0]"] == result["p50_transaction_duration"] + 2
+        assert result["equation[1]"] == result["p50_transaction_duration"] / result["count"]
