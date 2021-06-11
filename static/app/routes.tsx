@@ -912,6 +912,11 @@ function routes() {
               path="searches/:searchId/"
               component={errorHandler(IssueListOverview)}
             />
+            <Route
+              path="sessionPercent"
+              componentPromise={() => import('app/views/issueList/testSessionPercent')}
+              component={errorHandler(LazyLoad)}
+            />
           </Route>
 
           {/* Once org issues is complete, these routes can be nested under
