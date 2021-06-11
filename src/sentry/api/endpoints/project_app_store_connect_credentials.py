@@ -582,7 +582,7 @@ class AppStoreConnectRequestSmsEndpoint(ProjectEndpoint):
         # success, return the new session context (add phone_id and push mode to the session context)
         data["phone_id"] = phone_info.id
         data["push_mode"] = phone_info.push_mode
-        return Response(data, status=200)
+        return Response({"sessionContext": data}, status=200)
 
 
 class TwoFactorAuthSessionContextSerializer(serializers.Serializer):
