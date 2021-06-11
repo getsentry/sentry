@@ -6,6 +6,7 @@ import {Location, Query} from 'history';
 import omit from 'lodash/omit';
 
 import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
+import TransactionsTable from 'app/components/discover/transactionsTable';
 import SearchBar from 'app/components/events/searchBar';
 import GlobalSdkUpdateAlert from 'app/components/globalSdkUpdateAlert';
 import * as Layout from 'app/components/layouts/thirds';
@@ -25,7 +26,6 @@ import {getCurrentLandingDisplay, LandingDisplayField} from '../../landing/utils
 import {SpanOperationBreakdownFilter} from '../filter';
 import TransactionHeader, {Tab} from '../header';
 
-import TransactionsTable from './transactionsTable';
 import {generateTraceLink, generateTransactionLink} from './utils';
 
 const DEFAULT_TRANSACTION_LIMIT = 12;
@@ -171,6 +171,8 @@ class EventsPageContent extends React.Component<Props, State> {
                             eventView.normalizeDateSelection(location)
                           ),
                         }}
+                        baselineTransactionName={null}
+                        baselineData={null}
                       />
                       <Pagination
                         pageLinks={pageLinks}
