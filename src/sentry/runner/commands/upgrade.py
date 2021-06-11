@@ -3,6 +3,7 @@ from django.conf import settings
 from django.db import ProgrammingError, connections
 
 from sentry.runner.decorators import configuration
+from sentry.signals import cli_upgrade
 
 # List of migrations which we'll fake if we're coming from South
 DJANGO_MIGRATIONS = (
@@ -136,6 +137,11 @@ def _upgrade(interactive, traceback, verbosity, repair, with_nodestore):
         from sentry.runner import call_command
 
         call_command("sentry.runner.commands.repair.repair")
+
+    # Used in getsentry.
+    cli_upgrade.send_robust(
+        sender="cli", traceback=traceback, interactive=interactive, verbosity=verbosity
+    )
 
 
 @click.command()
