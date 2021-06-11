@@ -1,8 +1,5 @@
 import {Query} from 'history';
 
-export function generateEventsRoute({orgSlug}: {orgSlug: String}): string {
-  return `/organizations/${orgSlug}/performance/summary/events/`;
-}
 export function eventsRouteWithQuery({
   orgSlug,
   transaction,
@@ -14,10 +11,7 @@ export function eventsRouteWithQuery({
   query: Query;
   projectID?: string | string[];
 }) {
-  const pathname = generateEventsRoute({
-    orgSlug,
-  });
-
+  const pathname = `/organizations/${orgSlug}/performance/summary/events/`;
   return {
     pathname,
     query: {
