@@ -40,37 +40,37 @@ free_parens
 // All key:value filter types
 
 filter
-  = time_filter
-  / specific_time_filter
-  / rel_time_filter
+  = date_filter
+  / specific_date_filter
+  / rel_date_filter
   / duration_filter
   / boolean_filter
   / numeric_in_filter
   / numeric_filter
   / aggregate_filter
-  / aggregate_time_filter
-  / aggregate_rel_time_filter
+  / aggregate_date_filter
+  / aggregate_rel_date_filter
   / has_filter
   / is_filter
   / text_in_filter
   / text_filter
 
 // filter for dates
-time_filter
+date_filter
   = key:search_key sep op:operator value:iso_8601_date_format {
-      return tc.tokenFilter(FilterType.Time, key, value, op, false);
+      return tc.tokenFilter(FilterType.Date, key, value, op, false);
     }
 
 // filter for exact dates
-specific_time_filter
+specific_date_filter
   = key:search_key sep value:iso_8601_date_format {
-      return tc.tokenFilter(FilterType.SpecificTime, key, value, TermOperator.Default, false);
+      return tc.tokenFilter(FilterType.SpecificDate, key, value, TermOperator.Default, false);
     }
 
 // filter for relative dates
-rel_time_filter
+rel_date_filter
   = key:search_key sep value:rel_date_format {
-      return tc.tokenFilter(FilterType.RelativeTime, key, value, TermOperator.Default, false);
+      return tc.tokenFilter(FilterType.RelativeDate, key, value, TermOperator.Default, false);
     }
 
 // filter for durations
@@ -107,16 +107,16 @@ aggregate_filter
       return tc.tokenFilter(FilterType.AggregateSimple, key, value, op, !!negation);
     }
 
-// aggregate time filter
-aggregate_time_filter
+// aggregate date filter
+aggregate_date_filter
   = negation:negation? key:aggregate_key sep op:operator? value:iso_8601_date_format {
-      return tc.tokenFilter(FilterType.AggregateTime, key, value, op, !!negation);
+      return tc.tokenFilter(FilterType.AggregateDate, key, value, op, !!negation);
     }
 
 // filter for relative dates
-aggregate_rel_time_filter
+aggregate_rel_date_filter
   = negation:negation? key:aggregate_key sep op:operator? value:rel_date_format {
-      return tc.tokenFilter(FilterType.AggregateRelativeTime, key, value, op, !!negation);
+      return tc.tokenFilter(FilterType.AggregateRelativeDate, key, value, op, !!negation);
     }
 
 // has filter for not null type checks

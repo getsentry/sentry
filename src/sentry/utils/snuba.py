@@ -1300,13 +1300,13 @@ def _aliased_query_impl(
 # TODO (evanh) Since we are assuming that all string values are columns,
 # this will get tricky if we ever have complex columns where there are
 # string arguments to the functions that aren't columns
-def resolve_complex_column(col, resolve_func):
+def resolve_complex_column(col, resolve_func, ignored):
     args = col[1]
 
     for i in range(len(args)):
         if isinstance(args[i], (list, tuple)):
-            resolve_complex_column(args[i], resolve_func)
-        elif isinstance(args[i], str):
+            resolve_complex_column(args[i], resolve_func, ignored)
+        elif isinstance(args[i], str) and args[i] not in ignored:
             args[i] = resolve_func(args[i])
 
 
@@ -1314,19 +1314,24 @@ def resolve_snuba_aliases(snuba_filter, resolve_func, function_translations=None
     resolved = snuba_filter.clone()
     translated_columns = {}
     derived_columns = set()
+    aggregations = resolved.aggregations
+
     if function_translations:
         for snuba_name, sentry_name in function_translations.items():
             derived_columns.add(snuba_name)
             translated_columns[snuba_name] = sentry_name
 
     selected_columns = resolved.selected_columns
+    aggregation_aliases = [aggregation[-1] for aggregation in aggregations]
     if selected_columns:
         for (idx, col) in enumerate(selected_columns):
             if isinstance(col, (list, tuple)):
                 if len(col) == 3:
                     # Add the name from columns, and remove project backticks so its not treated as a new col
                     derived_columns.add(col[2].strip("`"))
-                resolve_complex_column(col, resolve_func)
+                # Equations use aggregation aliases as arguments, and we don't want those resolved since they'll resolve
+                # as tags instead
+                resolve_complex_column(col, resolve_func, aggregation_aliases)
             else:
                 name = resolve_func(col)
                 selected_columns[idx] = name
@@ -1347,7 +1352,6 @@ def resolve_snuba_aliases(snuba_filter, resolve_func, function_translations=None
             groupby[idx] = name
         resolved.groupby = groupby
 
-    aggregations = resolved.aggregations
     # need to get derived_columns first, so that they don't get resolved as functions
     derived_columns = derived_columns.union([aggregation[2] for aggregation in aggregations])
     for aggregation in aggregations or []:

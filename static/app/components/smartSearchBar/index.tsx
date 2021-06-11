@@ -5,9 +5,7 @@ import isPropValid from '@emotion/is-prop-valid';
 import {ClassNames, withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import createReactClass from 'create-react-class';
 import debounce from 'lodash/debounce';
-import Reflux from 'reflux';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {
@@ -31,7 +29,13 @@ import {IconClose, IconEllipsis, IconPin, IconSearch, IconSliders} from 'app/ico
 import {t} from 'app/locale';
 import MemberListStore from 'app/stores/memberListStore';
 import space from 'app/styles/space';
-import {LightWeightOrganization, SavedSearch, SavedSearchType, Tag} from 'app/types';
+import {
+  LightWeightOrganization,
+  SavedSearch,
+  SavedSearchType,
+  Tag,
+  User,
+} from 'app/types';
 import {defined} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {callIfFunction} from 'app/utils/callIfFunction';
@@ -253,6 +257,11 @@ type Props = WithRouterProps & {
    * Used to enforce length on the query
    */
   maxQueryLength?: number;
+  /**
+   * While the data is unused, this list of members can be updated to
+   * trigger re-renders.
+   */
+  members?: User[];
 };
 
 type State = {
@@ -1221,7 +1230,7 @@ class SmartSearchBar extends React.Component<Props, State> {
               anchorRight
               caret={false}
               title={
-                <EllipsisButton
+                <InputButton
                   size="zero"
                   borderless
                   tooltipProps={{
@@ -1274,26 +1283,29 @@ class SmartSearchBar extends React.Component<Props, State> {
   }
 }
 
-const SmartSearchBarContainer = createReactClass<Props>({
-  displayName: 'SmartSearchBarContainer',
+type ContainerState = {
+  members: ReturnType<typeof MemberListStore.getAll>;
+};
 
-  mixins: [Reflux.listenTo(MemberListStore, 'onMemberListStoreChange') as any],
+class SmartSearchBarContainer extends React.Component<Props, ContainerState> {
+  state: ContainerState = {
+    members: MemberListStore.getAll(),
+  };
 
-  getInitialState() {
-    return {
-      members: MemberListStore.getAll(),
-    };
-  },
+  componentWillUnmount() {
+    this.unsubscribe();
+  }
 
-  onMemberListStoreChange(members: any) {
-    this.setState({members}, this.updateAutoCompleteItems);
-  },
+  unsubscribe = MemberListStore.listen(
+    (members: ContainerState['members']) => this.setState({members}),
+    undefined
+  );
 
   render() {
     // SmartSearchBar doesn't use members, but we forward it to cause a re-render.
     return <SmartSearchBar {...this.props} members={this.state.members} />;
-  },
-});
+  }
+}
 
 export default withApi(withRouter(withOrganization(SmartSearchBarContainer)));
 export {SmartSearchBar};
@@ -1381,14 +1393,6 @@ const StyledDropdownLink = styled(DropdownLink)`
 
 const DropdownElement = styled('a')<Omit<DropdownElementStylesProps, 'theme'>>`
   ${getDropdownElementStyles}
-`;
-
-const EllipsisButton = styled(InputButton)`
-  /*
-   * this is necessary because DropdownLink wraps the button in an unstyled
-   * span
-   */
-  margin: 6px 0 0 0;
 `;
 
 const VerticalEllipsisIcon = styled(IconEllipsis)`
