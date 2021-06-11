@@ -1329,6 +1329,8 @@ def resolve_snuba_aliases(snuba_filter, resolve_func, function_translations=None
                 if len(col) == 3:
                     # Add the name from columns, and remove project backticks so its not treated as a new col
                     derived_columns.add(col[2].strip("`"))
+                # Equations use aggregation aliases as arguments, and we don't want those resolved since they'll resolve
+                # as tags instead
                 resolve_complex_column(col, resolve_func, aggregation_aliases)
             else:
                 name = resolve_func(col)

@@ -83,7 +83,6 @@ mul_div              = mul_div_operator primary
 
 add_sub_operator     = spaces (plus / minus) spaces
 mul_div_operator     = spaces (multiply / divide) spaces
-# TODO(wmak) allow variables
 primary              = spaces (numeric_value / function_value / field_value) spaces
 
 # Operator names should match what's in clickhouse
@@ -92,7 +91,11 @@ minus                = "-"
 multiply             = "*"
 divide               = "/"
 
-# Minor differences in parsing means that these cannot be shared with api/event_search
+# Minor differences in parsing means that these cannot be shared with
+# api/event_search. Arithmetic can support something like duration-duration as
+# subtraction, but event_search needs to treat that as a single field since `-`
+# is a valid tag character, which isn't supported in Arithmetic
+
 function_value       = function_name open_paren spaces function_args? spaces closed_paren
 function_args        = function_arg (spaces comma spaces function_arg)*
 # Different from a field value, since a function arg may not be a valid field
