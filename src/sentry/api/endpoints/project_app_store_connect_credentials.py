@@ -536,7 +536,7 @@ class AppStoreConnectRequestSmsEndpoint(ProjectEndpoint):
 
     You must have called :class:`AppStoreConnectStartAuthEndpoint`
     (``projects/{org_slug}/{proj_slug}/appstoreconnect/start/``) before calling this and
-    provide the data returned by that response in the request body:
+    provide the ``sessionContext`` from that response in the request body:
     ```json
     {
         "sessionContext": { ... }
@@ -634,8 +634,8 @@ class AppStoreConnect2FactorAuthEndpoint(ProjectEndpoint):
     }
     ```
 
-    Note that any of the opaque values might be different from the ones passed in, they must
-    be passed to :class:`AppStoreConnectCreateCredentialsEndpoint`
+    Note that the ``sessionContext`` **is different** from the ones passed in, it must be
+    passed to :class:`AppStoreConnectCreateCredentialsEndpoint`
     (``projects/{org_slug}/{proj_slug}/appstoreconnect/``).
 
     If multiple organisations are returned the user must choose one and this must be
