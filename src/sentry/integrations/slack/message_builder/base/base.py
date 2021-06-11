@@ -1,7 +1,7 @@
 from abc import ABC
 from typing import Any, Optional
 
-from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR, SlackBlock, SlackBody
+from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR, SlackAttachment, SlackBody
 from sentry.integrations.slack.message_builder.base import AbstractMessageBuilder
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
@@ -19,7 +19,7 @@ class SlackMessageBuilder(AbstractMessageBuilder, ABC):
         footer: Optional[str] = None,
         color: Optional[str] = None,
         **kwargs: Any,
-    ) -> SlackBlock:
+    ) -> SlackAttachment:
         """
         Helper to DRY up Slack specific fields.
 

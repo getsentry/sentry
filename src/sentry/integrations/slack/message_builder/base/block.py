@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import Any, MutableMapping, Optional, Sequence, Tuple, Union
+from typing import Any, MutableMapping, Optional, Sequence, Tuple
 
 from sentry.integrations.slack.message_builder import SlackBlock, SlackBody
 from sentry.integrations.slack.message_builder.base.base import SlackMessageBuilder
@@ -48,5 +48,5 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
         }
 
     @staticmethod
-    def _build_blocks(*args: Union[SlackBlock, Sequence[SlackBlock]]) -> SlackBody:
+    def _build_blocks(*args: SlackBlock) -> SlackBody:
         return {"blocks": args}
