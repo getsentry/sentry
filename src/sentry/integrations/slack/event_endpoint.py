@@ -7,6 +7,7 @@ from sentry.utils import json
 from sentry.web.decorators import transaction_start
 
 from .client import SlackClient
+from .message_builder.event import SlackEventMessageBuilder
 from .requests import SlackEventRequest, SlackRequestError
 from .unfurl import LinkType, UnfurlableUrl, link_handlers, match_link
 from .utils import logger, parse_link
@@ -35,31 +36,8 @@ class SlackEventEndpoint(Endpoint):
             return self.respond()
 
         access_token = self._get_access_token(integration)
-
         headers = {"Authorization": "Bearer %s" % access_token}
-        payload = {
-            "channel": channel,
-            "blocks": [
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "Want to learn more about configuring alerts in Sentry? Check out our documentation.",
-                    },
-                },
-                {
-                    "type": "actions",
-                    "elements": [
-                        {
-                            "type": "button",
-                            "text": {"type": "plain_text", "text": "Sentry Docs"},
-                            "url": "https://docs.sentry.io/product/alerts-notifications/alerts/",
-                            "value": "sentry_docs_link_clicked",
-                        }
-                    ],
-                },
-            ],
-        }
+        payload = {"channel": channel, **SlackEventMessageBuilder().build()}
 
         client = SlackClient()
         try:

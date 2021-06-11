@@ -3,6 +3,7 @@ from urllib.parse import parse_qs
 import responses
 from exam import fixture
 
+from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR
 from sentry.models import Rule
 from sentry.plugins.base import Notification
 from sentry.testutils import PluginTestCase
@@ -45,7 +46,7 @@ class SlackPluginTest(PluginTestCase):
             "username": "Sentry",
             "attachments": [
                 {
-                    "color": "#f18500",
+                    "color": LEVEL_TO_COLOR["warning"],
                     "fields": [
                         {"short": False, "value": "foo.bar", "title": "Culprit"},
                         {"short": True, "value": "bar", "title": "Project"},
@@ -82,7 +83,7 @@ class SlackPluginTest(PluginTestCase):
             "username": "Sentry",
             "attachments": [
                 {
-                    "color": "#f18500",
+                    "color": LEVEL_TO_COLOR["warning"],
                     "fields": [{"short": True, "value": "bar", "title": "Project"}],
                     "fallback": "[bar] Hello world",
                     "title": "Hello world",
@@ -117,7 +118,7 @@ class SlackPluginTest(PluginTestCase):
             "username": "Sentry",
             "attachments": [
                 {
-                    "color": "#f18500",
+                    "color": LEVEL_TO_COLOR["warning"],
                     "fields": [{"short": False, "value": "foo.bar", "title": "Culprit"}],
                     "fallback": "[bar] Hello world",
                     "title": "Hello world",

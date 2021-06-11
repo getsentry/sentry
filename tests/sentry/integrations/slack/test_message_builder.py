@@ -1,9 +1,10 @@
 from django.urls import reverse
 
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
+from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR
 from sentry.integrations.slack.message_builder.incidents import build_incident_attachment
 from sentry.integrations.slack.message_builder.issues import build_group_attachment
-from sentry.integrations.slack.utils import INCIDENT_RESOLVED_COLOR, LEVEL_TO_COLOR, parse_link
+from sentry.integrations.slack.utils import parse_link
 from sentry.testutils import TestCase
 from sentry.utils.assets import get_asset_url
 from sentry.utils.dates import to_timestamp
@@ -42,7 +43,7 @@ class BuildIncidentAttachmentTest(TestCase):
             "mrkdwn_in": ["text"],
             "footer_icon": logo_url,
             "footer": incident_footer_ts,
-            "color": INCIDENT_RESOLVED_COLOR,
+            "color": LEVEL_TO_COLOR["_incident_resolved"],
             "actions": [],
         }
 
