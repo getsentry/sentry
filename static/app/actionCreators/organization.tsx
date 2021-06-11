@@ -70,7 +70,7 @@ async function fetchProjectsAndTeams(
         () =>
           uncancelableApi.requestPromise(`/organizations/${slug}/teams/`, {
             query: {
-              all_teams: 1,
+              allTeams: 1,
             },
           }),
         isInitialFetch
