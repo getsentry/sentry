@@ -7,6 +7,7 @@ import sentry_sdk
 from sentry import options
 from sentry.discover.arithmetic import resolve_equation_list
 from sentry.models import Group
+from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.fields import (
     FIELD_ALIASES,
     InvalidSearchQuery,
@@ -32,6 +33,7 @@ from sentry.utils.snuba import (
     is_span_op_breakdown,
     naiveify_datetime,
     raw_query,
+    raw_snql_query,
     resolve_column,
     resolve_snuba_aliases,
     to_naive_timestamp,
@@ -40,6 +42,7 @@ from sentry.utils.snuba import (
 __all__ = (
     "PaginationResult",
     "InvalidSearchQuery",
+    "wip_snql_query",
     "query",
     "prepare_discover_query",
     "timeseries_query",
@@ -166,6 +169,32 @@ def transform_data(result, translated_columns, snuba_filter):
                 result["data"], snuba_filter.start, snuba_filter.end, rollup, snuba_filter.orderby
             )
 
+    return result
+
+
+def wip_snql_query(
+    selected_columns,
+    query,
+    params,
+    equations=None,
+    orderby=None,
+    offset=None,
+    limit=50,
+    referrer=None,
+    auto_fields=False,
+    auto_aggregations=False,
+    use_aggregate_conditions=False,
+    conditions=None,
+    functions_acl=None,
+):
+    """
+    Replacement API for query using snql, this function is still a work in
+    progress and is not ready for use in production
+    """
+    snql_query = QueryBuilder(
+        Dataset.Discover, params, query, selected_columns, orderby, limit
+    ).get_snql_query()
+    result = raw_snql_query(snql_query, referrer)
     return result
 
 
