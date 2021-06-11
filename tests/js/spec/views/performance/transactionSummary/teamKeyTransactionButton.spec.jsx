@@ -7,7 +7,7 @@ import {MAX_TEAM_KEY_TRANSACTIONS} from 'app/utils/performance/constants';
 import TeamKeyTransactionButton from 'app/views/performance/transactionSummary/teamKeyTransactionButton';
 
 async function clickTeamKeyTransactionDropdown(wrapper) {
-  wrapper.find('TitleButton').simulate('click');
+  wrapper.find('Button').simulate('click');
   await tick();
   wrapper.update();
 }

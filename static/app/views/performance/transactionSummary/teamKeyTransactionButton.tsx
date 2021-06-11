@@ -5,6 +5,7 @@ import TeamKeyTransactionComponent, {
   TitleProps,
 } from 'app/components/performance/teamKeyTransaction';
 import * as TeamKeyTransactionManager from 'app/components/performance/teamKeyTransactionsManager';
+import Tooltip from 'app/components/tooltip';
 import {IconStar} from 'app/icons';
 import {t, tn} from 'app/locale';
 import {Organization, Project, Team} from 'app/types';
@@ -19,8 +20,9 @@ import withTeams from 'app/utils/withTeams';
  */
 class TitleButton extends Component<TitleProps> {
   render() {
-    const {keyedTeamsCount, ...props} = this.props;
-    return (
+    const {isOpen, keyedTeams, ...props} = this.props;
+    const keyedTeamsCount = keyedTeams?.length ?? 0;
+    const button = (
       <Button
         {...props}
         icon={keyedTeamsCount ? <IconStar color="yellow300" isSolid /> : <IconStar />}
@@ -30,6 +32,13 @@ class TitleButton extends Component<TitleProps> {
           : t('Star for Team')}
       </Button>
     );
+
+    if (!isOpen && keyedTeams?.length) {
+      const teamSlugs = keyedTeams.map(({slug}) => slug).join(', ');
+      return <Tooltip title={teamSlugs}>{button}</Tooltip>;
+    } else {
+      return button;
+    }
   }
 }
 
@@ -77,13 +86,13 @@ function TeamKeyTransactionButtonWrapper({
   ...props
 }: WrapperProps) {
   if (eventView.project.length !== 1) {
-    return <TitleButton disabled keyedTeamsCount={0} />;
+    return <TitleButton isOpen={false} disabled keyedTeams={null} />;
   }
 
   const projectId = String(eventView.project[0]);
   const project = projects.find(proj => proj.id === projectId);
   if (!defined(project)) {
-    return <TitleButton disabled keyedTeamsCount={0} />;
+    return <TitleButton isOpen={false} disabled keyedTeams={null} />;
   }
 
   const userTeams = teams.filter(({isMember}) => isMember);
