@@ -14,8 +14,8 @@ class SlackMessageBuilder(AbstractMessageBuilder, ABC):
 
     @staticmethod
     def _build(
-        title: str,
         text: str,
+        title: Optional[str] = None,
         footer: Optional[str] = None,
         color: Optional[str] = None,
         **kwargs: Any,
@@ -23,8 +23,8 @@ class SlackMessageBuilder(AbstractMessageBuilder, ABC):
         """
         Helper to DRY up Slack specific fields.
 
-        :param string title: Title text.
         :param string text: Body text.
+        :param [string] title: Title text.
         :param [string] footer: Footer text.
         :param [string] color: The key in the Slack palate table, NOT hex. Default: "info".
         :param kwargs: Everything else.
@@ -36,8 +36,10 @@ class SlackMessageBuilder(AbstractMessageBuilder, ABC):
                 absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
             )
 
+        if title:
+            kwargs["title"] = title
+
         return {
-            "title": title,
             "text": text,
             "mrkdwn_in": ["text"],
             "color": LEVEL_TO_COLOR[color or "info"],

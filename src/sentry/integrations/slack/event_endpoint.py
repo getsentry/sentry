@@ -4,7 +4,7 @@ from typing import Any, Dict, List
 from sentry.api.base import Endpoint
 from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.message_builder.event import SlackEventMessageBuilder
-from sentry.integrations.slack.requests import SlackRequestError
+from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.requests.event import SlackEventRequest
 from sentry.integrations.slack.unfurl import LinkType, UnfurlableUrl, link_handlers, match_link
 from sentry.shared_integrations.exceptions import ApiError
