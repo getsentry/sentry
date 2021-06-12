@@ -13,6 +13,7 @@ from sentry.search.events.constants import (
     KEY_TRANSACTION_ALIAS,
     OPERATOR_NEGATION_MAP,
     SEARCH_MAP,
+    SEMVER_ALIAS,
     TAG_KEY_RE,
     TEAM_KEY_TRANSACTION_ALIAS,
 )
@@ -103,7 +104,7 @@ is_filter  = negation? &"is:" search_key sep search_value
 text_in_filter = negation? text_key sep text_in_list
 
 # standard key:val filter
-text_filter = negation? text_key sep search_value
+text_filter = negation? text_key sep operator? search_value
 
 key              = ~r"[a-zA-Z0-9_.-]+"
 quoted_key       = '"' ~r"[a-zA-Z0-9_.:-]+" '"'
@@ -346,6 +347,8 @@ class SearchVisitor(NodeVisitor):
     key_mappings = {}
     duration_keys = {"transaction.duration"}
     percentage_keys = {"percentage"}
+    # text keys we allow operators to be used on
+    text_operator_keys = {SEMVER_ALIAS}
     numeric_keys = {
         "project_id",
         "project.id",
@@ -478,9 +481,7 @@ class SearchVisitor(NodeVisitor):
                 raise InvalidSearchQuery(str(exc))
             return SearchFilter(search_key, operator, search_value)
 
-        search_value = "".join(search_value)
-        search_value = SearchValue(operator + search_value if operator != "=" else search_value)
-        return self._handle_basic_filter(search_key, "=", search_value)
+        return self._handle_text_filter(search_key, operator, SearchValue(search_value.text))
 
     def visit_date_filter(self, node, children):
         (search_key, _, operator, search_value) = children
@@ -696,14 +697,26 @@ class SearchVisitor(NodeVisitor):
         return self._handle_basic_filter(search_key, operator, search_value)
 
     def visit_text_filter(self, node, children):
-        (negation, search_key, _, search_value) = children
-        operator = "="
+        (negation, search_key, _, operator, search_value) = children
+        if isinstance(operator, Node):
+            operator = "="
+        else:
+            operator = operator[0]
+
         # XXX: We check whether the text in the node itself is actually empty, so
         # we can tell the difference between an empty quoted string and no string
-        if not search_value.raw_value and not node.children[3].text:
+        if not search_value.raw_value and not node.children[4].text:
             raise InvalidSearchQuery(f"Empty string after '{search_key.name}:'")
 
         operator = handle_negation(negation, operator)
+
+        return self._handle_text_filter(search_key, operator, search_value)
+
+    def _handle_text_filter(self, search_key, operator, search_value):
+        if operator not in ("=", "!=") and search_key.name not in self.text_operator_keys:
+            # If operators aren't allowed for this key then push it back into the value
+            search_value = search_value._replace(raw_value=f"{operator}{search_value.raw_value}")
+            operator = "="
 
         return self._handle_basic_filter(search_key, operator, search_value)
 
