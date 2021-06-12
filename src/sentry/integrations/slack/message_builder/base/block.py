@@ -33,6 +33,10 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
         }
 
     @staticmethod
+    def get_divider() -> SlackBlock:
+        return {"type": "divider"}
+
+    @staticmethod
     def get_action_block(actions: Sequence[Tuple[str, str, str]]) -> SlackBlock:
         return {
             "type": "actions",
