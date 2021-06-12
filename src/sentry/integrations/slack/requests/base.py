@@ -1,10 +1,9 @@
-import hmac
-from hashlib import sha256
 from typing import Any, Mapping, MutableMapping, Optional
 
 from rest_framework.request import Request
 
 from sentry import options
+from sentry.integrations.slack.util.auth import check_signing_secret
 from sentry.models import Integration
 
 from ..utils import logger
@@ -111,14 +110,12 @@ class SlackRequest:
         raise SlackRequestError(status=401)
 
     def _check_signing_secret(self, signing_secret: str) -> bool:
-        # Taken from: https://github.com/slackapi/python-slack-events-api/blob/master/slackeventsapi/server.py#L47
-        # Slack docs on this here: https://api.slack.com/authentication/verifying-requests-from-slack#about
-        signature = self.request.META["HTTP_X_SLACK_SIGNATURE"]
-        timestamp = self.request.META["HTTP_X_SLACK_REQUEST_TIMESTAMP"]
+        signature = self.request.META.get("HTTP_X_SLACK_SIGNATURE")
+        timestamp = self.request.META.get("HTTP_X_SLACK_REQUEST_TIMESTAMP")
+        if not (signature and timestamp):
+            return False
 
-        req = b"v0:%s:%s" % (timestamp.encode("utf-8"), self.request.body)
-        request_hash = "v0=" + hmac.new(signing_secret.encode("utf-8"), req, sha256).hexdigest()
-        return hmac.compare_digest(request_hash.encode("utf-8"), signature.encode("utf-8"))
+        return check_signing_secret(signing_secret, self.request.body, timestamp, signature)
 
     def _check_verification_token(self, verification_token: str) -> bool:
         return self.data.get("token") == verification_token
