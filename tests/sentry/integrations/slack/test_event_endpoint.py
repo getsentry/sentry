@@ -186,7 +186,22 @@ class MessageIMEventTest(BaseEventTest):
         data = json.loads(request.body)
         assert (
             self.get_block_type_text("section", data)
-            == "Just want to learn more about Sentry? Check out our documentation"
+            == "Want to learn more about configuring alerts in Sentry? Check out our documentation."
+        )
+        assert self.get_block_type_text("actions", data) == "Sentry Docs"
+
+    @responses.activate
+    def test_user_message_im_notification_platform(self):
+        responses.add(responses.POST, "https://slack.com/api/chat.postMessage", json={"ok": True})
+        with self.feature("organizations:notification-platform"):
+            resp = self.post_webhook(event_data=json.loads(MESSAGE_IM_EVENT))
+        assert resp.status_code == 200, resp.content
+        request = responses.calls[0].request
+        assert request.headers["Authorization"] == "Bearer xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
+        data = json.loads(request.body)
+        assert (
+            self.get_block_type_text("section", data)
+            == "Here's a bunch of information about this app! Commands not working? Re-install the app!"
         )
         assert self.get_block_type_text("actions", data) == "Sentry Docs"
 
