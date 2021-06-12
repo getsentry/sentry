@@ -94,10 +94,10 @@ aggregate_date_filter = negation? aggregate_key sep operator? iso_8601_date_form
 aggregate_rel_date_filter = negation? aggregate_key sep operator? rel_date_format
 
 # has filter for not null type checks
-has_filter = negation? "has" sep (search_key / search_value)
+has_filter = negation? &"has:" search_key sep (search_key / search_value)
 
 # is filter. Specific to issue search
-is_filter  = negation? "is" sep search_value
+is_filter  = negation? &"is:" search_key sep search_value
 
 # in filter key:[val1, val2]
 text_in_filter = negation? text_key sep text_in_list
@@ -105,34 +105,44 @@ text_in_filter = negation? text_key sep text_in_list
 # standard key:val filter
 text_filter = negation? text_key sep search_value
 
-key              = ~r"[a-zA-Z0-9_\.-]+"
-quoted_key       = ~r"\"([a-zA-Z0-9_\.:-]+)\""
+key              = ~r"[a-zA-Z0-9_.-]+"
+quoted_key       = '"' ~r"[a-zA-Z0-9_.:-]+" '"'
 explicit_tag_key = "tags" open_bracket search_key closed_bracket
 aggregate_key    = key open_paren spaces function_args? spaces closed_paren
 function_args    = key (spaces comma spaces key)*
 search_key       = key / quoted_key
 text_key         = explicit_tag_key / search_key
-value            = ~r"[^()\s]*"
-quoted_value     = ~r"\"((?:\\\"|[^\"])*)?\""s
-in_value         = ~r"[^(),\s]*(?:[^\],\s)]|](?=]))"
-text_value       = quoted_value / in_value
+value            = ~r"[^()\t\n ]*"
+quoted_value     = '"' ('\\"' / ~r'[^"]')* '"'
+in_value         = (&in_value_termination in_value_char)+
+text_in_value    = quoted_value / in_value
 search_value     = quoted_value / value
-numeric_value    = "-"? numeric ("k"/"m"/"b")? ~r"(?=\s|\)|$|,|])"
-boolean_value    = ~r"(true|1|false|0)(?=\s|\)|$)"i
-text_in_list     = open_bracket text_value (spaces comma spaces text_value)* closed_bracket
-numeric_in_list  = open_bracket numeric_value (spaces comma spaces numeric_value)* closed_bracket
+numeric_value    = "-"? numeric ~r"[kmb]"? &(end_value / comma / closed_bracket)
+boolean_value    = ~r"(true|1|false|0)"i &end_value
+text_in_list     = open_bracket text_in_value (spaces comma spaces text_in_value)* closed_bracket &end_value
+numeric_in_list  = open_bracket numeric_value (spaces comma spaces numeric_value)* closed_bracket &end_value
+
+# See: https://stackoverflow.com/a/39617181/790169
+in_value_termination = in_value_char (!in_value_end in_value_char)* in_value_end
+in_value_char        = ~r"[^(), ]"
+in_value_end         = closed_bracket / (spaces comma)
 
 # Formats
-iso_8601_date_format = ~r"(\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{1,6})?)?(Z|([+-]\d{2}:\d{2}))?)(?=\s|\)|$)"
-rel_date_format      = ~r"[\+\-][0-9]+[wdhm](?=\s|\)|$)"
-duration_format      = numeric ("ms"/"s"/"min"/"m"/"hr"/"h"/"day"/"d"/"wk"/"w") ~r"(?=\s|\)|$)"
+date_format = ~r"\d{4}-\d{2}-\d{2}"
+time_format = ~r"T\d{2}:\d{2}:\d{2}" ("." ms_format)?
+ms_format   = ~r"\d{1,6}"
+tz_format   = ~r"[+-]\d{2}:\d{2}"
+
+iso_8601_date_format = date_format time_format? ("Z" / tz_format)? &end_value
+rel_date_format      = ~r"[+-][0-9]+[wdhm]" &end_value
+duration_format      = numeric ("ms"/"s"/"min"/"m"/"hr"/"h"/"day"/"d"/"wk"/"w") &end_value
 percentage_format    = numeric "%"
 
 # NOTE: the order in which these operators are listed matters because for
 # example, if < comes before <= it will match that even if the operator is <=
 operator             = ">=" / "<=" / ">" / "<" / "=" / "!="
-or_operator          = ~r"OR(?=\s|$)"i
-and_operator         = ~r"AND(?=\s|$)"i
+or_operator          = ~r"OR"i  &end_value
+and_operator         = ~r"AND"i &end_value
 numeric              = ~r"[0-9]+(?:\.[0-9]*)?"
 open_paren           = "("
 closed_paren         = ")"
@@ -142,6 +152,8 @@ sep                  = ":"
 negation             = "!"
 comma                = ","
 spaces               = " "*
+
+end_value = ~r"[\t\n )]|$"
 """
 )
 
@@ -665,7 +677,7 @@ class SearchVisitor(NodeVisitor):
 
     def visit_has_filter(self, node, children):
         # the key is has here, which we don't need
-        negation, _, _, (search_key,) = children
+        negation, _, _, _, (search_key,) = children
 
         # if it matched search value instead, it's not a valid key
         if isinstance(search_key, SearchValue):
@@ -706,7 +718,7 @@ class SearchVisitor(NodeVisitor):
         return node.text
 
     def visit_quoted_key(self, node, children):
-        return node.match.groups()[0]
+        return children[1].text
 
     def visit_explicit_tag_key(self, node, children):
         return SearchKey(f"tags[{children[2].name}]")
@@ -757,12 +769,15 @@ class SearchVisitor(NodeVisitor):
         return node.text.replace('\\"', '"')
 
     def visit_quoted_value(self, node, children):
-        return node.match.groups()[0].replace('\\"', '"')
+        value = "".join(node.text for node in flatten(children[1]))
+        value = value.replace('\\"', '"')
+
+        return value
 
     def visit_in_value(self, node, children):
         return node.text.replace('\\"', '"')
 
-    def visit_text_value(self, node, children):
+    def visit_text_in_value(self, node, children):
         return children[0]
 
     def visit_search_value(self, node, children):
@@ -771,7 +786,7 @@ class SearchVisitor(NodeVisitor):
     def visit_numeric_value(self, node, children):
         (sign, value, suffix, _) = children
         sign = sign[0].text if isinstance(sign, list) else ""
-        suffix = suffix[0][0].text if isinstance(suffix, list) else ""
+        suffix = suffix[0].text if isinstance(suffix, list) else ""
 
         return [f"{sign}{value}", suffix]
 
