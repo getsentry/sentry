@@ -1269,12 +1269,15 @@ export const isAPIPayloadSimilar = (
 
   for (const key of currentKeys) {
     const currentValue = current[key];
-    const currentTarget = Array.isArray(currentValue)
-      ? new Set(currentValue)
-      : currentValue;
+    // Exclude equation from becoming a set for comparison cause its order matters
+    const currentTarget =
+      Array.isArray(currentValue) && key !== 'equation'
+        ? new Set(currentValue)
+        : currentValue;
 
     const otherValue = other[key];
-    const otherTarget = Array.isArray(otherValue) ? new Set(otherValue) : otherValue;
+    const otherTarget =
+      Array.isArray(otherValue) && key !== 'equation' ? new Set(otherValue) : otherValue;
 
     if (!isEqual(currentTarget, otherTarget)) {
       return false;
