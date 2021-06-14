@@ -11,23 +11,17 @@ import Pagination from 'app/components/pagination';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
-import DiscoverQuery, {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
+import DiscoverQuery, {TableDataRow} from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
 import {Sort} from 'app/utils/discover/fields';
-import BaselineQuery, {
-  BaselineQueryResults,
-} from 'app/utils/performance/baseline/baselineQuery';
+import BaselineQuery from 'app/utils/performance/baseline/baselineQuery';
 import {TrendsEventsDiscoverQuery} from 'app/utils/performance/trends/trendsDiscoverQuery';
 import {decodeScalar} from 'app/utils/queryString';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 import {Actions} from 'app/views/eventsV2/table/cellAction';
 import {TableColumn} from 'app/views/eventsV2/table/types';
 import {decodeColumnOrder} from 'app/views/eventsV2/utils';
-import {
-  TrendChangeType,
-  TrendsDataEvents,
-  TrendView,
-} from 'app/views/performance/trends/types';
+import {TrendChangeType, TrendView} from 'app/views/performance/trends/types';
 
 import TransactionsTable from './transactionsTable';
 
@@ -377,30 +371,6 @@ class TransactionsList extends React.Component<Props> {
     );
   }
 }
-
-type TableProps = {
-  eventView: EventView;
-  organization: Organization;
-  location: Location;
-  isLoading: boolean;
-  tableData: TableData | TrendsDataEvents | null;
-  columnOrder: TableColumn<React.ReactText>[];
-  titles?: string[];
-  baselineTransactionName: string | null;
-  baselineData: BaselineQueryResults | null;
-  handleBaselineClick?: (e: React.MouseEvent<Element>) => void;
-  generateLink?: Record<
-    string,
-    (
-      organization: Organization,
-      tableRow: TableDataRow,
-      query: Query
-    ) => LocationDescriptor
-  >;
-  handleCellAction?: (
-    c: TableColumn<React.ReactText>
-  ) => (a: Actions, v: React.ReactText) => void;
-};
 
 const Header = styled('div')`
   display: grid;
