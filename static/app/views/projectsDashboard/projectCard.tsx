@@ -42,7 +42,7 @@ type Props = {
 };
 
 class ProjectCard extends Component<Props> {
-  async componentDidMount() {
+  componentDidMount() {
     const {organization, project, api} = this.props;
 
     // fetch project stats
