@@ -48,12 +48,16 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
       return [];
     }
 
+    const apdexField = organization.features.includes('project-transaction-threshold')
+      ? 'apdex()'
+      : `apdex(${organization.apdexThreshold})`;
+
     const {projects, environments, datetime} = selection;
     const {period} = datetime;
     const commonQuery = {
       environment: environments,
       project: projects.map(proj => String(proj)),
-      field: [`apdex(${organization.apdexThreshold})`],
+      field: [apdexField],
       query: 'event.type:transaction count():>0',
     };
     const endpoints: ReturnType<AsyncComponent['getEndpoints']> = [
@@ -106,7 +110,13 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
   }
 
   get cardHelp() {
-    const baseHelp = getTermHelp(this.props.organization, PERFORMANCE_TERM.APDEX);
+    const {organization} = this.props;
+    const performanceTerm = organization.features.includes(
+      'project-transaction-threshold'
+    )
+      ? PERFORMANCE_TERM.APDEX_NEW
+      : PERFORMANCE_TERM.APDEX;
+    const baseHelp = getTermHelp(this.props.organization, performanceTerm);
 
     if (this.trend) {
       return baseHelp + t(' This shows how it has changed since the last period.');
@@ -119,8 +129,11 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
     const {organization} = this.props;
     const {currentApdex} = this.state;
 
-    const apdex =
-      currentApdex?.data[0]?.[getAggregateAlias(`apdex(${organization.apdexThreshold})`)];
+    const apdexField = organization.features.includes('project-transaction-threshold')
+      ? 'apdex()'
+      : `apdex(${organization.apdexThreshold})`;
+
+    const apdex = currentApdex?.data[0]?.[getAggregateAlias(apdexField)];
 
     return typeof apdex === 'undefined' ? undefined : Number(apdex);
   }
@@ -129,10 +142,11 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
     const {organization} = this.props;
     const {previousApdex} = this.state;
 
-    const apdex =
-      previousApdex?.data[0]?.[
-        getAggregateAlias(`apdex(${organization.apdexThreshold})`)
-      ];
+    const apdexField = organization.features.includes('project-transaction-threshold')
+      ? 'apdex()'
+      : `apdex(${organization.apdexThreshold})`;
+
+    const apdex = previousApdex?.data[0]?.[getAggregateAlias(apdexField)];
 
     return typeof apdex === 'undefined' ? undefined : Number(apdex);
   }
