@@ -27,6 +27,11 @@ SCIM_400_INVALID_FILTER = {
     "scimType": "invalidFilter",
 }
 
+SCIM_400_INTEGRITY_ERROR = {
+    "schemas": [SCIM_API_ERROR],
+    "detail": "Database Integrity Error.",
+}
+
 
 class GroupPatchOps(str, Enum):
     ADD = "add"

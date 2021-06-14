@@ -1,7 +1,8 @@
 import logging
 import re
 
-from django.db import transaction
+import sentry_sdk
+from django.db import IntegrityError, transaction
 from django.template.defaultfilters import slugify
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError
@@ -22,7 +23,12 @@ from sentry.models import (
 )
 from sentry.utils.cursors import SCIMCursor
 
-from .constants import SCIM_400_INVALID_FILTER, SCIM_404_USER_RES, GroupPatchOps
+from .constants import (
+    SCIM_400_INTEGRITY_ERROR,
+    SCIM_400_INVALID_FILTER,
+    SCIM_404_USER_RES,
+    GroupPatchOps,
+)
 from .utils import OrganizationSCIMTeamPermission, SCIMEndpoint, parse_filter_conditions
 
 delete_logger = logging.getLogger("sentry.deletions.api")
@@ -141,9 +147,12 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
             # TODO: log parse error
             raise ParseError(detail=SCIM_400_INVALID_FILTER)
         member = OrganizationMember.objects.get(organization=team.organization, id=parsed_filter[0])
-
         with transaction.atomic():
-            omt = OrganizationMemberTeam.objects.get(team=team, organizationmember=member)
+            try:
+                omt = OrganizationMemberTeam.objects.get(team=team, organizationmember=member)
+            except OrganizationMemberTeam.DoesNotExist:
+                pass
+
             self.create_audit_entry(
                 request=request,
                 organization=team.organization,
@@ -154,7 +163,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
             )
             omt.delete()
 
-    def _rename_team_opereation(self, request, operation, team):
+    def _rename_team_operation(self, request, operation, team):
         serializer = TeamSerializer(
             team,
             data={
@@ -189,7 +198,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
                         # members[userName eq "baz@sentry.io"]
                         self._remove_members_operation(request, operation, team)
                     elif op == GroupPatchOps.REPLACE and not operation.get("path", None):
-                        self._rename_team_opereation(request, operation, team)
+                        self._rename_team_operation(request, operation, team)
                     elif op == GroupPatchOps.REPLACE and operation["path"] == "members":
                         # delete all the current team members
                         # and add the ones in the operation list
@@ -199,7 +208,9 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
                             self._add_members_operation(request, operation, team)
         except OrganizationMember.DoesNotExist:
             raise ResourceDoesNotExist(detail=SCIM_404_USER_RES)
-        # TODO: what other exceptions to catch?
+        except IntegrityError as e:
+            sentry_sdk.capture_exception(e)
+            return Response(SCIM_400_INTEGRITY_ERROR, status=400)
 
         context = serialize(team, serializer=TeamSCIMSerializer(), exclude_members=True)
         return Response(context)

@@ -89,8 +89,6 @@ def parse_filter_conditions(raw_filters):
     operator. the input would look like so:
     userName eq "test.user@okta.local"
 
-    the only field we support filtering on is userName, so this function
-    simply returns the email within the above quotes currently.
     We may want to support further SCIM grammar for other IDPs and may use
     a package to replace this functionality.
     """
