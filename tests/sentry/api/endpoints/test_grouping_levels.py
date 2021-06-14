@@ -270,7 +270,6 @@ def test_decrease(
     ]
 
     assert len({e.group_id for e in events}) == 3
-    old_groups = [e.group_id for e in events]
 
     with task_runner():
         response = client.post(f"/api/0/issues/{events[0].group_id}/grouping/levels/0/")
@@ -295,11 +294,10 @@ b8d08a573c62ca8c84de14c12c0e19fe (1)
     )
 
     assert set(GroupHash.objects.all().values_list("hash", "state", "group_id")) == {
-        # These groups still exist, but have no events now
-        ("7411b56aa6591edbdba71898d3a9f01c", None, old_groups[0]),
-        ("b8d08a573c62ca8c84de14c12c0e19fe", None, old_groups[1]),
-        ("97df6b60ec530c65ab227585143a087a", None, old_groups[2]),
-        # Level 1 should not have any groups associated
+        # Old levels
+        ("7411b56aa6591edbdba71898d3a9f01c", None, None),
+        ("b8d08a573c62ca8c84de14c12c0e19fe", None, None),
+        ("97df6b60ec530c65ab227585143a087a", None, None),
         ("aa1c4037371150958f9ea22adb110bbc", None, None),
         ("c8ef2dd3dedeed29b4b74b9c579eea1a", None, None),
         # Our newly created group

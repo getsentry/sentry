@@ -1,18 +1,40 @@
 import datetime
+import itertools
 import logging
+from uuid import uuid4
 
+from django.db import transaction
 from rest_framework.exceptions import APIException
 from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.query import Column, Entity, Function, Query
 
+from sentry import eventstream
 from sentry.api.bases import GroupEndpoint
-from sentry.api.endpoints.grouping_levels import LevelsOverview, check_feature, get_levels_overview
-from sentry.models import Group, GroupHash
+from sentry.api.endpoints.grouping_levels import (
+    LevelsOverview,
+    MergedIssues,
+    check_feature,
+    get_levels_overview,
+)
+from sentry.models import Activity, Group, GroupHash, GroupStatus
+from sentry.tasks.merge import merge_groups
 from sentry.tasks.unmerge import unmerge
 from sentry.unmerge import HierarchicalUnmergeReplacement
 from sentry.utils import snuba
 
 logger = logging.getLogger(__name__)
+
+
+def _bogus_timestamp_conditions():
+    """
+    Use these if you know you can't use a timestamp limit.
+    """
+    now = datetime.datetime.now()
+
+    return [
+        Condition(Column("timestamp"), Op.GTE, now - datetime.timedelta(days=90)),
+        Condition(Column("timestamp"), Op.LT, now + datetime.timedelta(seconds=10)),
+    ]
 
 
 class InvalidLevel(APIException):
@@ -105,18 +127,7 @@ def _decrease_level(group: Group, id: int, levels_overview: LevelsOverview, requ
 
     new_materialized_hash = levels_overview.parent_hashes[id]
 
-    # Create new group with parent hash that we want to group by going forward.
-    destination = Group.objects.create(
-        project_id=group.project_id, short_id=group.project.next_short_id()
-    )
-
-    GroupHash.objects.create_or_update(
-        project_id=group.project_id,
-        hash=new_materialized_hash,
-        defaults={"group_id": destination.id},
-    )
-
-    now = datetime.datetime.now()
+    timerange = _bogus_timestamp_conditions()
 
     # When decreasing the level, events from this + other groups get merged
     # into one new parent group. This is why we cannot restrict the query by
@@ -154,9 +165,8 @@ def _decrease_level(group: Group, id: int, levels_overview: LevelsOverview, requ
                     Op.EQ,
                     new_materialized_hash,
                 ),
-                Condition(Column("timestamp"), Op.GTE, now - datetime.timedelta(days=90)),
-                Condition(Column("timestamp"), Op.LT, now + datetime.timedelta(seconds=10)),
             ]
+            + timerange
         )
     )
 
@@ -167,28 +177,81 @@ def _decrease_level(group: Group, id: int, levels_overview: LevelsOverview, requ
     # If we move this into a paginating celery task we need to consider that
     # we're iterating over a table that is also modified by the unmerge task at
     # the same time.
-    for row in snuba.raw_snql_query(
+    group_ids_result = snuba.raw_snql_query(
         query, referrer="api.grouping_levels_details.decrease_level.get_group_ids"
-    )["data"]:
-        group_id = row["group_id"]
+    )["data"]
+    source_group_ids = [row["group_id"] for row in group_ids_result]
 
-        replacement = HierarchicalUnmergeReplacement(
-            primary_hash=levels_overview.only_primary_hash,
-            filter_hierarchical_hash=new_materialized_hash,
-            filter_level=id,
-            new_level=id,
-            assume_source_emptied=False,
-            # Reset SPLIT state of entire subtree. At this point new events should go
-            # into the just-created group.
-            reset_hashes=row["reset_hashes"],
+    # This query only serves the purpose if any of the to-be-merged groups
+    # contain merged issues.
+    query = (
+        Query("events", Entity("events"))
+        .set_select([Function("uniqExact", [Column("primary_hash")], "count_primary_hash")])
+        .set_where(
+            [
+                Condition(Column("project_id"), Op.EQ, group.project_id),
+                Condition(Column("group_id"), Op.IN, source_group_ids),
+            ]
+            + timerange
+        )
+        .set_groupby([Column("group_id")])
+        .set_having([Condition(Column("count_primary_hash"), Op.GT, 1)])
+    )
+
+    merged_issues_result = snuba.raw_snql_query(
+        query, referrer="api.grouping_levels_details.decrease_level.merged_issues_check"
+    )["data"]
+
+    if merged_issues_result:
+        raise MergedIssues()
+
+    # Create new group with parent hash that we want to group by going forward.
+    GroupHash.objects.get_or_create(
+        project_id=group.project_id,
+        hash=new_materialized_hash,
+    )
+
+    destination = Group.objects.create(
+        project_id=group.project_id, short_id=group.project.next_short_id()
+    )
+
+    reset_hashes = set(
+        itertools.chain.from_iterable(row["reset_hashes"] for row in group_ids_result)
+    )
+
+    # Disassociate all subhashes and reset their state, except for the one
+    # hierarchical hash that we now group by (new_materialized_hash).
+    with transaction.atomic():
+        locked_grouphashes = GroupHash.objects.filter(
+            project_id=group.project_id, hash__in=reset_hashes
+        ).select_for_update()
+        ids = [gh.id for gh in locked_grouphashes]
+        GroupHash.objects.filter(id__in=ids).exclude(hash=new_materialized_hash).update(
+            state=GroupHash.State.UNLOCKED, group_id=None
+        )
+        GroupHash.objects.filter(id__in=ids, hash=new_materialized_hash).update(
+            state=GroupHash.State.UNLOCKED, group_id=destination.id
         )
 
-        unmerge.delay(
-            project_id=group.project_id,
-            source_id=group_id,
-            destination_id=None,
-            destinations={new_materialized_hash: (destination.id, None)},
-            fingerprints=None,
-            actor_id=request.user.id if request.user else None,
-            replacement=replacement,
-        )
+    Group.objects.filter(id__in=source_group_ids).update(status=GroupStatus.PENDING_MERGE)
+
+    eventstream_state = eventstream.start_merge(
+        destination.project_id, source_group_ids, destination.id
+    )
+
+    transaction_id = uuid4().hex
+
+    merge_groups.delay(
+        from_object_ids=source_group_ids,
+        to_object_id=destination.id,
+        transaction_id=transaction_id,
+        eventstream_state=eventstream_state,
+    )
+
+    Activity.objects.create(
+        project=destination.project,
+        group=destination,
+        type=Activity.MERGE,
+        user=request.user,
+        data={"issues": [{"id": id} for id in source_group_ids]},
+    )
