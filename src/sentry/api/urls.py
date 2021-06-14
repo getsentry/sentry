@@ -1028,6 +1028,7 @@ urlpatterns = [
                 url(
                     r"^(?P<organization_slug>[^\/]+)/integrations/(?P<integration_id>[^\/]+)/$",
                     OrganizationIntegrationDetailsEndpoint.as_view(),
+                    name="sentry-api-0-organization-integration-details",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/integrations/(?P<integration_id>[^\/]+)/repos/$",
