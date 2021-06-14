@@ -155,7 +155,8 @@ class ArithmeticVisitor(NodeVisitor):
 
     def __init__(self, max_operators):
         super().__init__()
-        self.operators = 0
+        self.operators: int = 0
+        self.terms: int = 0
         self.max_operators = max_operators if max_operators else self.DEFAULT_MAX_OPERATORS
         self.fields: set[str] = set()
         self.functions: set[str] = set()
@@ -214,7 +215,8 @@ class ArithmeticVisitor(NodeVisitor):
         return self.strip_spaces(children)
 
     def visit_primary(self, _, children):
-        # Return the 0th element since this is a (numeric/field)
+        # Return the 0th element since this is a (numeric/function/field)
+        self.terms += 1
         return self.strip_spaces(children)[0]
 
     @staticmethod
@@ -266,6 +268,8 @@ def parse_arithmetic(
     result = visitor.visit(tree)
     if len(visitor.fields) > 0 and len(visitor.functions) > 0:
         raise ArithmeticValidationError("Cannot mix functions and fields in arithmetic")
+    if visitor.terms <= 1:
+        raise ArithmeticValidationError("Arithmetic expression must contain at least 2 terms")
     return result, list(visitor.fields), list(visitor.functions)
 
 
