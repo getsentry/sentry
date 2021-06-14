@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 from django.core.files.base import ContentFile
 from django.db import DatabaseError
+from django.db.utils import IntegrityError
 
 from sentry.models import File, FileBlob, FileBlobIndex
 from sentry.testutils import TestCase
@@ -164,3 +165,13 @@ class FileTest(TestCase):
 
         f = file.getfile(prefetch=True)
         assert f.read() == random_data
+
+    def test_putfile_twice(self):
+        file = File.objects.create()
+        file.putfile(ContentFile(b"foo"))
+        file.putfile(ContentFile(b"foo bar"))
+
+        try:
+            file.putfile(ContentFile(b"foo"))
+        except IntegrityError:
+            self.fail("Failed to write same content twice")

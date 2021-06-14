@@ -406,7 +406,10 @@ class File(Model):
             blob_fileobj = ContentFile(contents)
             blob = FileBlob.from_file(blob_fileobj, logger=logger)
 
-            results.append(FileBlobIndex.objects.create(file=self, blob=blob, offset=offset))
+            index, _created = FileBlobIndex.objects.get_or_create(
+                file=self, blob=blob, offset=offset
+            )
+            results.append(index)
             offset += blob.size
         self.size = offset
         self.checksum = checksum.hexdigest()
