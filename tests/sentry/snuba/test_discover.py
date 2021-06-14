@@ -1113,6 +1113,40 @@ class QueryTransformTest(TestCase):
         )
 
     @patch("sentry.snuba.discover.raw_query")
+    def test_selected_columns_count_miserable_allows_zero_threshold(self, mock_query):
+        mock_query.return_value = {
+            "meta": [{"name": "transaction"}, {"name": "count_miserable_user_0"}],
+            "data": [{"transaction": "api.do_things", "count_miserable_user_0": 15}],
+        }
+        discover.query(
+            selected_columns=["transaction", "count_miserable(user,0)"],
+            query="",
+            params={"project_id": [self.project.id]},
+            auto_fields=True,
+        )
+        mock_query.assert_called_with(
+            selected_columns=["transaction"],
+            aggregations=[
+                [
+                    "uniqIf(user, greater(duration, 0))",
+                    None,
+                    "count_miserable_user_0",
+                ],
+            ],
+            filter_keys={"project_id": [self.project.id]},
+            dataset=Dataset.Discover,
+            groupby=["transaction"],
+            conditions=[],
+            end=None,
+            start=None,
+            orderby=None,
+            having=[],
+            limit=50,
+            offset=None,
+            referrer=None,
+        )
+
+    @patch("sentry.snuba.discover.raw_query")
     def test_selected_columns_project_threshold_config_alias_no_configured_thresholds(
         self, mock_query
     ):
