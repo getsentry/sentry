@@ -260,6 +260,7 @@ class _ArtifactIndexGuard:
                     release=self._release,
                     dist=self._dist,
                     name=ARTIFACT_INDEX_FILENAME,
+                    file__type=ARTIFACT_INDEX_TYPE,
                 ).file,
                 False,
             )
@@ -290,6 +291,7 @@ class _ArtifactIndexGuard:
                 release=self._release,
                 dist=self._dist,
                 name=ARTIFACT_INDEX_FILENAME,
+                file__type=ARTIFACT_INDEX_TYPE,
             )
         except ReleaseFile.DoesNotExist:
             return None

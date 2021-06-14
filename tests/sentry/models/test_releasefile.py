@@ -225,5 +225,5 @@ class ReleaseArchiveTestCase(TestCase):
         file_.putfile(BytesIO(b"bar"))
         self.create_release_file(file=file_)
 
-        index = ArtifactIndex(self.release, None)._index.readable_data()
+        index = ArtifactIndex(self.release, None).read()
         assert file_.checksum == index["files"]["fake://foo"]["sha1"]
