@@ -71,6 +71,32 @@ def _render_all_previews(client):
 
 @pytest.mark.django_db
 @pytest.mark.snuba
+def test_error_conditions(client, default_project, reset_snuba, factories):
+    group = Group.objects.create(project=default_project)
+    grouphash = GroupHash.objects.create(
+        project=default_project, group=group, hash="d41d8cd98f00b204e9800998ecf8427e"
+    )
+
+    with Feature({"organizations:grouping-tree-ui": False}):
+        response = client.get(f"/api/0/issues/{group.id}/grouping/levels/", format="json")
+        assert response.status_code == 403
+        assert response.data["detail"]["code"] == "missing_feature"
+
+    response = client.get(f"/api/0/issues/{group.id}/grouping/levels/", format="json")
+    assert response.status_code == 403
+    assert response.data["detail"]["code"] == "no_events"
+
+    factories.store_event(
+        data={"message": "hello world", "checksum": grouphash.hash}, project_id=default_project.id
+    )
+
+    response = client.get(f"/api/0/issues/{group.id}/grouping/levels/", format="json")
+    assert response.status_code == 403
+    assert response.data["detail"]["code"] == "not_hierarchical"
+
+
+@pytest.mark.django_db
+@pytest.mark.snuba
 def test_downwards(default_project, store_stacktrace, reset_snuba, _render_all_previews):
     events = [
         # store events with a common crashing frame `foo` and diverging threadbases
