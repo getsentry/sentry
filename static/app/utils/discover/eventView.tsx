@@ -1056,8 +1056,7 @@ class EventView {
         : this.sorts.length > 1
         ? encodeSorts(this.sorts)
         : encodeSort(this.sorts[0]);
-    const fields = this.getFields().filter(field => !isEquation(field));
-    const equations = this.getEquations();
+    const fields = this.getFields();
     const team = this.team.map(proj => String(proj));
     const project = this.project.map(proj => String(proj));
     const environment = this.environment as string[];
@@ -1071,7 +1070,6 @@ class EventView {
         project,
         environment,
         field: [...new Set(fields)],
-        equation: [...new Set(equations)],
         sort,
         per_page: DEFAULT_PER_PAGE,
         query: this.getQueryWithAdditionalConditions(),

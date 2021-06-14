@@ -3946,8 +3946,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         self.store_event(data=event_data, project_id=self.project.id)
 
         query = {
-            "field": ["spans.http"],
-            "equation": ["spans.http / 3"],
+            "field": ["spans.http", "equation|spans.http / 3"],
             "project": [self.project.id],
             "query": "event.type:transaction",
         }
@@ -3967,8 +3966,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
     def test_equation_operation_limit(self):
         query = {
-            "field": ["spans.http"],
-            "equation": [f"spans.http{' * 2' * 2}"],
+            "field": ["spans.http", f"equation|spans.http{' * 2' * 2}"],
             "project": [self.project.id],
             "query": "event.type:transaction",
         }
@@ -3985,8 +3983,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
     @mock.patch("sentry.api.bases.organization_events.MAX_FIELDS", 2)
     def test_equation_field_limit(self):
         query = {
-            "field": ["spans.http", "transaction.duration"],
-            "equation": ["5 * 2"],
+            "field": ["spans.http", "transaction.duration", "equation|5 * 2"],
             "project": [self.project.id],
             "query": "event.type:transaction",
         }

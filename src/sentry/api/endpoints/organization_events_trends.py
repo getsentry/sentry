@@ -220,7 +220,7 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
 
         trend_columns = self.get_trend_columns(function, column, middle)
 
-        selected_columns = request.GET.getlist("field")[:]
+        selected_columns = (self.get_field_list(organization, request),)
         orderby = self.get_orderby(request)
 
         query = request.GET.get("query")
