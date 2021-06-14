@@ -253,33 +253,24 @@ class _ArtifactIndexGuard:
         # Make sure the appropriate rows are locked for update:
         qs = ReleaseFile.objects.select_related("file").select_for_update()
 
-        try:
-            return (
-                qs.get(
-                    organization_id=self._release.organization_id,
-                    release=self._release,
-                    dist=self._dist,
-                    name=ARTIFACT_INDEX_FILENAME,
-                    file__type=ARTIFACT_INDEX_TYPE,
-                ).file,
-                False,
-            )
-        except ReleaseFile.DoesNotExist:
-            # This function is called from within a db transaction, so there
-            # should be no race condition here
-            return (
-                qs.create(
-                    organization_id=self._release.organization_id,
-                    release=self._release,
-                    dist=self._dist,
-                    name=ARTIFACT_INDEX_FILENAME,
-                    file=File.objects.create(
-                        name=ARTIFACT_INDEX_FILENAME,
-                        type=ARTIFACT_INDEX_TYPE,
-                    ),
-                ).file,
-                True,
-            )
+        file_ = File.objects.create(
+            name=ARTIFACT_INDEX_FILENAME,
+            type=ARTIFACT_INDEX_TYPE,
+        )
+
+        releasefile, created = qs.get_or_create(
+            organization_id=self._release.organization_id,
+            release=self._release,
+            dist=self._dist,
+            name=ARTIFACT_INDEX_FILENAME,
+            file__type=ARTIFACT_INDEX_TYPE,
+            defaults={"file": file_},
+        )
+
+        if not created:
+            file_.delete()
+
+        return releasefile.file, created
 
     def _get_file(self, lock: bool) -> Optional[File]:
         qs = ReleaseFile.objects.select_related("file")

@@ -2,18 +2,23 @@ import errno
 import os
 from datetime import datetime, timezone
 from io import BytesIO
+from threading import Thread
+from time import sleep
 from zipfile import ZipFile
+
+import pytest
 
 from sentry import options
 from sentry.models import ReleaseFile
 from sentry.models.distribution import Distribution
 from sentry.models.file import File
 from sentry.models.releasefile import (
+    _ArtifactIndexGuard,
     delete_from_artifact_index,
     read_artifact_index,
     update_artifact_index,
 )
-from sentry.testutils import TestCase
+from sentry.testutils import TestCase, TransactionTestCase
 from sentry.utils import json
 
 
@@ -218,3 +223,49 @@ class ReleaseArchiveTestCase(TestCase):
 
         index = read_artifact_index(self.release, None)
         assert file_.checksum == index["files"]["fake://foo"]["sha1"]
+
+
+@pytest.mark.skip(reason="Causes 'There is 1 other session using the database.'")
+class ArtifactIndexGuardTestCase(TransactionTestCase):
+    def test_locking(self):
+
+        release = self.release
+        dist = None
+
+        tick = 0.1  # seconds
+
+        def create_update_fn(initial_delay, locked_delay, files):
+            def f():
+                sleep(initial_delay * tick)
+                with _ArtifactIndexGuard(release, dist).writable_data(create=True) as data:
+                    sleep(locked_delay * tick)
+                    data.update_files(files)
+
+            return f
+
+        update1 = create_update_fn(0, 2, {"foo": "bar"})
+        update2 = create_update_fn(1, 2, {"123": "xyz"})
+
+        threads = [Thread(target=update1), Thread(target=update2)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+
+        # Without locking, only key "123" would survive:
+        assert read_artifact_index(release, dist)["files"].keys() == {"foo", "123"}
+
+        def delete():
+            sleep(2 * tick)
+            delete_from_artifact_index(release, dist, "foo")
+
+        update3 = create_update_fn(1, 2, {"abc": "666"})
+
+        threads = [Thread(target=update3), Thread(target=delete)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+
+        # Without locking, the delete would be surpassed by the slow update:
+        assert read_artifact_index(release, dist)["files"].keys() == {"123", "abc"}
