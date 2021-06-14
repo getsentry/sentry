@@ -35,12 +35,17 @@ type Props = AsyncComponent['props'] & {
   projects: Project[];
 };
 
+export type StacktraceErrorMessage =
+  | 'file_not_found'
+  | 'stack_root_mismatch'
+  | 'integration_link_forbidden';
+
 // format of the ProjectStacktraceLinkEndpoint response
 type StacktraceResultItem = {
   integrations: Integration[];
   config?: RepositoryProjectPathConfigWithIntegration;
   sourceUrl?: string;
-  error?: 'file_not_found' | 'stack_root_mismatch';
+  error?: StacktraceErrorMessage;
   attemptedUrl?: string;
 };
 
