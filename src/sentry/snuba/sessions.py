@@ -946,7 +946,7 @@ def __get_scope_value_for_release(
     return scope_value
 
 
-def __get_crash_free_rate(project_ids, start, end, rollup, projects_crash_free_rate_dict, key):
+def __get_crash_free_rate_data(project_ids, start, end, rollup):
     """
     Helper function that executes a snuba query on project_ids to fetch the number of crashed
     sessions and total sessions and returns the crash free rate for those project_ids.
@@ -955,12 +955,10 @@ def __get_crash_free_rate(project_ids, start, end, rollup, projects_crash_free_r
         * start
         * end
         * rollup
-        * projects_crash_free_rate_dict: Dictionary that contains project ids and their
-            corresponding crash free rates
-        * key: represents the key name that this crashFreeRate represents either
-            `currentCrashFreeRate` or `previousCrashFreeRate`
+    Returns:
+        Snuba query results
     """
-    crash_free_totals = raw_query(
+    return raw_query(
         dataset=Dataset.Sessions,
         selected_columns=["project_id", "sessions_crashed", "sessions"],
         filter_keys={"project_id": project_ids},
@@ -970,10 +968,6 @@ def __get_crash_free_rate(project_ids, start, end, rollup, projects_crash_free_r
         groupby=["project_id"],
         referrer="sessions.totals",
     )["data"]
-    for row in crash_free_totals:
-        projects_crash_free_rate_dict[row["project_id"]].update(
-            {key: 100 - (row["sessions_crashed"] / row["sessions"]) * 100}
-        )
 
 
 def get_current_and_previous_crash_free_rates(
@@ -1010,23 +1004,30 @@ def get_current_and_previous_crash_free_rates(
         prj: {"currentCrashFreeRate": None, "previousCrashFreeRate": None} for prj in project_ids
     }
 
+    def calculate_crash_free_percentage(row):
+        return 100 - (row["sessions_crashed"] / row["sessions"]) * 100
+
     # currentCrashFreeRate
-    __get_crash_free_rate(
+    current_crash_free_data = __get_crash_free_rate_data(
         project_ids=project_ids,
         start=current_start,
         end=current_end,
         rollup=rollup,
-        projects_crash_free_rate_dict=projects_crash_free_rate_dict,
-        key="currentCrashFreeRate",
     )
+    for row in current_crash_free_data:
+        projects_crash_free_rate_dict[row["project_id"]].update(
+            {"currentCrashFreeRate": calculate_crash_free_percentage(row)}
+        )
 
     # previousCrashFreeRate
-    __get_crash_free_rate(
+    previous_crash_free_data = __get_crash_free_rate_data(
         project_ids=project_ids,
         start=previous_start,
         end=previous_end,
         rollup=rollup,
-        projects_crash_free_rate_dict=projects_crash_free_rate_dict,
-        key="previousCrashFreeRate",
     )
+    for row in previous_crash_free_data:
+        projects_crash_free_rate_dict[row["project_id"]].update(
+            {"previousCrashFreeRate": calculate_crash_free_percentage(row)}
+        )
     return projects_crash_free_rate_dict
