@@ -145,11 +145,15 @@ class ReleaseModelManager(models.Manager):
         if build_code is not None:
             try:
                 build_code_as_int = int(build_code)
-                if build_code_as_int >= 0 and build_code_as_int.bit_length() <= 63:
+                if ReleaseModelManager.validate_bigint(build_code_as_int):
                     build_number = build_code_as_int
             except ValueError:
                 pass
         return build_number
+
+    @staticmethod
+    def validate_bigint(value):
+        return isinstance(value, int) and value >= 0 and value.bit_length() <= 63
 
     @staticmethod
     def _massage_semver_cols_into_release_object_data(kwargs):
@@ -165,7 +169,10 @@ class ReleaseModelManager(models.Manager):
                 package = version_info.get("package")
                 version_parsed = version_info.get("version_parsed")
 
-                if version_parsed is not None:
+                if version_parsed is not None and all(
+                    ReleaseModelManager.validate_bigint(version_parsed[field])
+                    for field in ("major", "minor", "patch", "revision")
+                ):
                     build_code = version_parsed.get("build_code")
                     build_number = ReleaseModelManager._convert_build_code_to_build_number(
                         build_code
