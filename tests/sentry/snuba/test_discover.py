@@ -21,6 +21,8 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         super().setUp()
         self.environment = self.create_environment(self.project, name="prod")
         self.release = self.create_release(self.project, version="first-release")
+        self.now = before_now()
+        self.two_min_ago = before_now(minutes=2)
 
         self.event_time = before_now(minutes=1)
         self.event = self.store_event(
@@ -42,16 +44,21 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             project_id=other_project.id,
         )
 
-        result = discover.query(
-            selected_columns=["project", "message"],
-            query="",
-            params={"project_id": [other_project.id]},
-            orderby="project",
-        )
+        for query_fn in [discover.query, discover.wip_snql_query]:
+            result = query_fn(
+                selected_columns=["project", "message"],
+                query="",
+                params={
+                    "project_id": [other_project.id],
+                    "start": self.two_min_ago,
+                    "end": self.now,
+                },
+                orderby="project",
+            )
 
-        data = result["data"]
-        assert len(data) == 1
-        assert data[0]["project"] == other_project.slug
+            data = result["data"]
+            assert len(data) == 1, query_fn
+            assert data[0]["project"] == other_project.slug, query_fn
 
     def test_sorting_project_name(self):
         project_ids = []
@@ -63,15 +70,20 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 project_id=other_project.id,
             )
 
-        result = discover.query(
-            selected_columns=["project", "message"],
-            query="",
-            params={"project_id": project_ids},
-            orderby="project",
-        )
-        data = result["data"]
-        assert len(data) == 3
-        assert [item["project"] for item in data] == ["a" * 32, "m" * 32, "z" * 32]
+        for query_fn in [discover.query, discover.wip_snql_query]:
+            result = query_fn(
+                selected_columns=["project", "message"],
+                query="",
+                params={
+                    "project_id": project_ids,
+                    "start": self.two_min_ago,
+                    "end": self.now,
+                },
+                orderby="project",
+            )
+            data = result["data"]
+            assert len(data) == 3, query_fn
+            assert [item["project"] for item in data] == ["a" * 32, "m" * 32, "z" * 32], query_fn
 
     def test_reverse_sorting_project_name(self):
         project_ids = []
@@ -83,15 +95,20 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 project_id=other_project.id,
             )
 
-        result = discover.query(
-            selected_columns=["project", "message"],
-            query="",
-            params={"project_id": project_ids},
-            orderby="-project",
-        )
-        data = result["data"]
-        assert len(data) == 3
-        assert [item["project"] for item in data] == ["z" * 32, "m" * 32, "a" * 32]
+        for query_fn in [discover.query, discover.wip_snql_query]:
+            result = query_fn(
+                selected_columns=["project", "message"],
+                query="",
+                params={
+                    "project_id": project_ids,
+                    "start": self.two_min_ago,
+                    "end": self.now,
+                },
+                orderby="-project",
+            )
+            data = result["data"]
+            assert len(data) == 3, query_fn
+            assert [item["project"] for item in data] == ["z" * 32, "m" * 32, "a" * 32], query_fn
 
     def test_using_project_and_project_name(self):
         project_ids = []
@@ -103,15 +120,24 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 project_id=other_project.id,
             )
 
-        result = discover.query(
-            selected_columns=["project.name", "message", "project"],
-            query="",
-            params={"project_id": project_ids},
-            orderby="project.name",
-        )
-        data = result["data"]
-        assert len(data) == 3
-        assert [item["project.name"] for item in data] == ["a" * 32, "m" * 32, "z" * 32]
+        for query_fn in [discover.query, discover.wip_snql_query]:
+            result = query_fn(
+                selected_columns=["project.name", "message", "project"],
+                query="",
+                params={
+                    "project_id": project_ids,
+                    "start": self.two_min_ago,
+                    "end": self.now,
+                },
+                orderby="project.name",
+            )
+            data = result["data"]
+            assert len(data) == 3, query_fn
+            assert [item["project.name"] for item in data] == [
+                "a" * 32,
+                "m" * 32,
+                "z" * 32,
+            ], query_fn
 
     def test_missing_project(self):
         project_ids = []
@@ -126,15 +152,20 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         # delete the last project so its missing
         other_project.delete()
 
-        result = discover.query(
-            selected_columns=["message", "project"],
-            query="",
-            params={"project_id": project_ids},
-            orderby="project",
-        )
-        data = result["data"]
-        assert len(data) == 3
-        assert [item["project"] for item in data] == ["", "a" * 32, "z" * 32]
+        for query_fn in [discover.query, discover.wip_snql_query]:
+            result = query_fn(
+                selected_columns=["message", "project"],
+                query="",
+                params={
+                    "project_id": project_ids,
+                    "start": self.two_min_ago,
+                    "end": self.now,
+                },
+                orderby="project",
+            )
+            data = result["data"]
+            assert len(data) == 3, query_fn
+            assert [item["project"] for item in data] == ["", "a" * 32, "z" * 32], query_fn
 
     def test_field_aliasing_in_selected_columns(self):
         result = discover.query(
@@ -3342,6 +3373,18 @@ class ArithmeticTest(SnubaTestCase, TestCase):
                 params=self.params,
             )
 
+    def test_invalid_function(self):
+        with self.assertRaises(ArithmeticValidationError):
+            discover.query(
+                selected_columns=[
+                    "p50(transaction.duration)",
+                    "last_seen()",
+                ],
+                equations=["p50(transaction.duration) / last_seen()"],
+                query=self.query,
+                params=self.params,
+            )
+
     def test_unselected_field(self):
         with self.assertRaises(InvalidSearchQuery):
             discover.query(
@@ -3349,6 +3392,17 @@ class ArithmeticTest(SnubaTestCase, TestCase):
                     "spans.http",
                 ],
                 equations=["spans.http / transaction.duration"],
+                query=self.query,
+                params=self.params,
+            )
+
+    def test_unselected_function(self):
+        with self.assertRaises(InvalidSearchQuery):
+            discover.query(
+                selected_columns=[
+                    "p50(transaction.duration)",
+                ],
+                equations=["p50(transaction.duration) / p100(transaction.duration)"],
                 query=self.query,
                 params=self.params,
             )
@@ -3400,3 +3454,31 @@ class ArithmeticTest(SnubaTestCase, TestCase):
                 query=self.query,
                 params=self.params,
             )
+
+    def test_aggregate_equation(self):
+        results = discover.query(
+            selected_columns=[
+                "p50(transaction.duration)",
+            ],
+            equations=["p50(transaction.duration) / 2"],
+            query=self.query,
+            params=self.params,
+        )
+        assert len(results["data"]) == 1
+        result = results["data"][0]
+        assert result["equation[0]"] == result["p50_transaction_duration"] / 2
+
+    def test_multiple_aggregate_equation(self):
+        results = discover.query(
+            selected_columns=[
+                "p50(transaction.duration)",
+                "count()",
+            ],
+            equations=["p50(transaction.duration) + 2", "p50(transaction.duration) / count()"],
+            query=self.query,
+            params=self.params,
+        )
+        assert len(results["data"]) == 1
+        result = results["data"][0]
+        assert result["equation[0]"] == result["p50_transaction_duration"] + 2
+        assert result["equation[1]"] == result["p50_transaction_duration"] / result["count"]

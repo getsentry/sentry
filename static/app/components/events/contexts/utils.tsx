@@ -1,9 +1,11 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import moment from 'moment-timezone';
 
 import {t} from 'app/locale';
 import plugins from 'app/plugins';
+import ConfigStore from 'app/stores/configStore';
 import space from 'app/styles/space';
 import {defined} from 'app/utils';
 
@@ -61,6 +63,39 @@ export function getRelativeTimeFromEventDateCreated(
       <RelativeTime>{relativeTime}</RelativeTime>
     </Fragment>
   );
+}
+
+// Typescript doesn't have types for DisplayNames yet and that's why the type assertion "any" is needed below.
+// There is currently an open PR that intends to introduce the types https://github.com/microsoft/TypeScript/pull/44022
+export function getFullLanguageDescription(locale: string) {
+  const sentryAppLanguageCode = ConfigStore.get('languageCode');
+
+  const [languageAbbreviation, countryAbbreviation] = locale.includes('_')
+    ? locale.split('_')
+    : locale.split('-');
+
+  try {
+    const languageNames = new (Intl as any).DisplayNames(sentryAppLanguageCode, {
+      type: 'language',
+    });
+
+    const languageName = languageNames.of(languageAbbreviation);
+
+    if (countryAbbreviation) {
+      const regionNames = new (Intl as any).DisplayNames(sentryAppLanguageCode, {
+        type: 'region',
+      });
+
+      const countryName = regionNames.of(countryAbbreviation.toUpperCase());
+
+      return `${languageName} (${countryName})`;
+    }
+
+    return languageName;
+  } catch (error) {
+    Sentry.captureException(error);
+    return locale;
+  }
 }
 
 const RelativeTime = styled('span')`

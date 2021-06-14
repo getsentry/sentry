@@ -5,7 +5,7 @@ from time import time
 
 import sentry_sdk
 from django.db import IntegrityError, models, transaction
-from django.db.models import F
+from django.db.models import Case, F, When
 from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
@@ -94,7 +94,36 @@ class ReleaseStatus:
             raise ValueError(repr(value))
 
 
+class ReleaseQuerySet(models.QuerySet):
+    def annotate_prerelease_column(self):
+        """
+        Adds a `prerelease_case` column to the queryset which is used to properly sort
+        by prerelease. We treat an empty (but not null) prerelease as higher than any
+        other value.
+        """
+        return self.annotate(
+            prerelease_case=Case(
+                When(prerelease="", then=1), default=0, output_field=models.IntegerField()
+            )
+        )
+
+    def filter_to_semver(self):
+        """
+        Filters the queryset to only include semver compatible rows
+        """
+        return self.filter(major__isnull=False)
+
+
 class ReleaseModelManager(models.Manager):
+    def get_queryset(self):
+        return ReleaseQuerySet(self.model, using=self._db)
+
+    def annotate_prerelease_column(self):
+        return self.get_queryset().annotate_prerelease_column()
+
+    def filter_to_semver(self):
+        return self.get_queryset().filter_to_semver()
+
     @staticmethod
     def _convert_build_code_to_build_number(build_code):
         """
@@ -251,6 +280,8 @@ class Release(Model):
         )
 
     __repr__ = sane_repr("organization_id", "version")
+
+    SEMVER_SORT_COLS = ["major", "minor", "patch", "revision", "prerelease_case", "prerelease"]
 
     def __eq__(self, other):
         """Make sure that specialized releases are only comparable to the same
