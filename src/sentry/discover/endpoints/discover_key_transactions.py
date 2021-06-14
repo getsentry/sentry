@@ -37,13 +37,13 @@ class LegacyKeyTransactionCountEndpoint(KeyTransactionBase):
         if not self.has_feature(request, organization):
             return Response(status=404)
 
-        project = self.get_project(request, organization)
+        projects = self.get_projects(request, organization)
 
         try:
             count = KeyTransaction.objects.filter(
                 organization=organization,
                 owner=request.user,
-                project=project,
+                project__in=projects,
             ).count()
             return Response({"keyed": count}, status=200)
         except KeyTransaction.DoesNotExist:

@@ -291,20 +291,20 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
       requiredTargets: ['team_key_transaction_header'],
       steps: [
         {
-          title: t('Team Key Transactions'),
+          title: t('Key Transactions'),
           target: 'team_key_transaction_header',
           description: t(
-            `Software development is a team sport. That’s why Key Transactions are now shared within teams!
-              When anyone on your team marks a key transaction, the whole team benefits from it.`
+            'Software development is a team sport. Key Transactions allow you to mark important transactions and share them with your team.'
           ),
+          nextText: t('Great'),
         },
         {
           title: t('Migrating Key Transactions'),
           target: 'team_key_transaction_existing',
           description: t(
-            `We know you had key transactions previously and we had to clear those to make way for the new hotness.
-              (Sorry not sorry.) The good news is you can set them again and now they’ll be shared with your team!`
+            'To migrate your previous key transactions, you will have to mark them as a key transaction again for your team. Sorry about that.'
           ),
+          nextText: t('Fine'),
         },
       ],
     },
