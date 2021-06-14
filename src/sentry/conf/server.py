@@ -2236,3 +2236,6 @@ DEMO_DATA_QUICK_GEN_PARAMS = {}
 
 # adds an extra JS to HTML template
 INJECTED_SCRIPT_ASSETS = []
+
+# adds mobile projects
+DEMO_MOBILE_PROJECTS = False
