@@ -579,17 +579,19 @@ class SearchVisitor(NodeVisitor):
         if self.is_numeric_key(search_key.name):
             return self._handle_numeric_filter(search_key, "=", [search_value.text, ""])
 
+        operator = "=" if not negated else "!="
+
         if self.is_boolean_key(search_key.name):
             if search_value.text.lower() in ("true", "1"):
-                search_value = SearchValue(0 if negated else 1)
+                search_value = SearchValue(1)
             elif search_value.text.lower() in ("false", "0"):
-                search_value = SearchValue(1 if negated else 0)
+                search_value = SearchValue(0)
             else:
                 raise InvalidSearchQuery(f"Invalid boolean field: {search_key}")
-            return SearchFilter(search_key, "=", search_value)
+            return SearchFilter(search_key, operator, search_value)
 
         search_value = SearchValue(search_value.text)
-        return self._handle_basic_filter(search_key, "=" if not negated else "!=", search_value)
+        return self._handle_basic_filter(search_key, operator, search_value)
 
     def visit_numeric_in_filter(self, node, children):
         (search_key, _, search_value) = children

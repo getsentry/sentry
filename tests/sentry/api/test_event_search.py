@@ -762,8 +762,8 @@ class ParseSearchQueryTest(unittest.TestCase):
         assert parse_search_query("!stack.in_app:false") == [
             SearchFilter(
                 key=SearchKey(name="stack.in_app"),
-                operator="=",
-                value=SearchValue(raw_value=1),
+                operator="!=",
+                value=SearchValue(raw_value=0),
             )
         ]
 
