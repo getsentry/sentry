@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Any, Optional
 
 from sentry.integrations.slack.message_builder import SlackBody
 from sentry.integrations.slack.message_builder.base.base import SlackMessageBuilder
@@ -23,7 +23,7 @@ class SlackHelpMessageBuilder(SlackMessageBuilder):
         super().__init__()
         self.command = command
 
-    def build(self) -> SlackBody:
+    def build(self, **kwargs: Any) -> SlackBody:
         return self._build(
             text=get_message(self.command),
         )
