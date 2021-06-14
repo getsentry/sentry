@@ -110,8 +110,10 @@ export type FilterSpans = {
   spanIDs: Set<string>;
 };
 
+type FuseKey = 'indexed' | 'tagKeys' | 'tagValues' | 'dataKeys' | 'dataValues';
+
 export type SpanFuseOptions = {
-  keys: ('indexed' | 'tagKeys' | 'tagValues' | 'dataKeys' | 'dataValues')[];
+  keys: FuseKey[];
   includeMatches: false;
   threshold: number;
   location: number;
