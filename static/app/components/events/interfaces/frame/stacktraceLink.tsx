@@ -82,6 +82,8 @@ class StacktraceLink extends AsyncComponent<Props, State> {
         return t('Error matching your configuration.');
       case 'file_not_found':
         return t('Source file not found.');
+      case 'integration_link_forbidden':
+        return t('The repository integration was disconnected.');
       default:
         return t('There was an error encountered with the code mapping for this project');
     }
