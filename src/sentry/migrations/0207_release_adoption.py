@@ -77,15 +77,15 @@ class Migration(migrations.Migration):
                 ),
                 migrations.RunSQL(
                     """
-                    CREATE INDEX CONCURRENTLY IF NOT EXISTS "sentry_releaseprojectenvironment_proj_id_env_id_adopted_j6h89s3f" ON "sentry_releaseprojectenvironment" ("project_id", "adopted", "environment_id");
+                    CREATE INDEX CONCURRENTLY IF NOT EXISTS "sentry_releaseprojectenvironment_proj_id_env_id_adopted_j6h89s3" ON "sentry_releaseprojectenvironment" ("project_id", "adopted", "environment_id");
                     """,
-                    reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS sentry_releaseprojectenvironment_proj_id_env_id_adopted_j6h89s3f",
+                    reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS sentry_releaseprojectenvironment_proj_id_env_id_adopted_j6h89s3",
                 ),
                 migrations.RunSQL(
                     """
-                    CREATE INDEX CONCURRENTLY IF NOT EXISTS "sentry_releaseprojectenvironment_proj_id_env_id_unadopted_kyh5m8s3" ON "sentry_releaseprojectenvironment" ("project_id", "unadopted", "environment_id");
+                    CREATE INDEX CONCURRENTLY IF NOT EXISTS "sentry_releaseprojectenvironment_proj_id_env_id_unadopted_kyh5m" ON "sentry_releaseprojectenvironment" ("project_id", "unadopted", "environment_id");
                     """,
-                    reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS sentry_releaseprojectenvironment_proj_id_env_id_unadopted_kyh5m8s3",
+                    reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS sentry_releaseprojectenvironment_proj_id_env_id_unadopted_kyh5m",
                 ),
             ],
             state_operations=[

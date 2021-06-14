@@ -4,6 +4,7 @@ from copy import deepcopy
 from datetime import datetime
 from typing import List, Union
 
+import sentry_sdk
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 
 # TODO remove import aliases on snql Functions&Columns
@@ -34,6 +35,7 @@ from sentry.search.events.constants import (
     VALID_FIELD_PATTERN,
 )
 from sentry.utils.compat import zip
+from sentry.utils.numbers import format_grouped_length
 from sentry.utils.snuba import (
     get_json_type,
     is_duration_measurement,
@@ -224,6 +226,13 @@ def team_key_transaction_expression(organization_id, team_ids, project_ids):
     )
 
     count = len(team_key_transactions)
+
+    # NOTE: this raw count is not 100% accurate because if it exceeds
+    # `MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS`, it will not be reflected
+    sentry_sdk.set_tag("team_key_txns.count", count)
+    sentry_sdk.set_tag(
+        "team_key_txns.count.grouped", format_grouped_length(count, [10, 100, 250, 500])
+    )
 
     # There are no team key transactions marked, so hard code false into the query.
     if count == 0:
@@ -651,7 +660,7 @@ def resolve_function(field, match=None, params=None, functions_acl=False):
         if alias is None:
             alias = get_function_alias_with_columns(function.name, columns)
 
-        if arguments[condition.arg]:
+        if arguments[condition.arg] is not None:
             snuba_string = match.format(**arguments)
         else:
             snuba_string = fallback.format(**arguments)
@@ -1408,7 +1417,9 @@ FUNCTIONS = {
             calculated_args=[
                 {
                     "name": "tolerated",
-                    "fn": lambda args: args["satisfaction"] * 4.0 if args["satisfaction"] else None,
+                    "fn": lambda args: args["satisfaction"] * 4.0
+                    if args["satisfaction"] is not None
+                    else None,
                 }
             ],
             conditional_transform=ConditionalFunction(
@@ -1447,7 +1458,9 @@ FUNCTIONS = {
             calculated_args=[
                 {
                     "name": "tolerated",
-                    "fn": lambda args: args["satisfaction"] * 4.0 if args["satisfaction"] else None,
+                    "fn": lambda args: args["satisfaction"] * 4.0
+                    if args["satisfaction"] is not None
+                    else None,
                 },
                 {"name": "parameter_sum", "fn": lambda args: args["alpha"] + args["beta"]},
             ],
