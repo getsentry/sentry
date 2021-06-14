@@ -55,9 +55,11 @@ class RelatedIssues extends Component<Props> {
     });
     currentFilter.addQuery('is:unresolved').setTagValues('transaction', [transaction]);
 
-    // Filter out key_transaction from being passed to issues as it will cause an error.
-    currentFilter.removeTag('key_transaction');
-    currentFilter.removeTag('team_key_transaction');
+    // Filter out these search terms from being passed to issues as they will cause an error.
+    currentFilter
+      .removeTag('key_transaction')
+      .removeTag('team_key_transaction')
+      .removeTag('project');
 
     return {
       path: `/organizations/${organization.slug}/issues/`,
