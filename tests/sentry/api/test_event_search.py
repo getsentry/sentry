@@ -15,6 +15,7 @@ from sentry.api.event_search import (
     parse_search_query,
 )
 from sentry.exceptions import InvalidSearchQuery
+from sentry.search.events.constants import SEMVER_ALIAS
 
 
 class ParseSearchQueryTest(unittest.TestCase):
@@ -902,6 +903,34 @@ class ParseSearchQueryTest(unittest.TestCase):
         assert parse_search_query("!user.id:1") == [
             SearchFilter(
                 key=SearchKey(name="user.id"), operator="!=", value=SearchValue(raw_value="1")
+            )
+        ]
+
+    def test_semver(self):
+        assert parse_search_query(f"{SEMVER_ALIAS}:>1.2.3") == [
+            SearchFilter(
+                key=SearchKey(name=SEMVER_ALIAS), operator=">", value=SearchValue(raw_value="1.2.3")
+            )
+        ]
+        assert parse_search_query(f"{SEMVER_ALIAS}:>1.2.3-hi") == [
+            SearchFilter(
+                key=SearchKey(name=SEMVER_ALIAS),
+                operator=">",
+                value=SearchValue(raw_value="1.2.3-hi"),
+            )
+        ]
+        assert parse_search_query(f"{SEMVER_ALIAS}:>=1.2.3-hi") == [
+            SearchFilter(
+                key=SearchKey(name=SEMVER_ALIAS),
+                operator=">=",
+                value=SearchValue(raw_value="1.2.3-hi"),
+            )
+        ]
+        assert parse_search_query(f"{SEMVER_ALIAS}:1.2.3-hi") == [
+            SearchFilter(
+                key=SearchKey(name=SEMVER_ALIAS),
+                operator="=",
+                value=SearchValue(raw_value="1.2.3-hi"),
             )
         ]
 

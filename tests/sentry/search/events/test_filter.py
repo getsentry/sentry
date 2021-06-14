@@ -8,6 +8,7 @@ from django.utils import timezone
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
+from sentry.search.events.constants import SEMVER_ALIAS
 from sentry.search.events.fields import Function, FunctionArg, InvalidSearchQuery, with_default
 from sentry.search.events.filter import get_filter, parse_semver_search
 from sentry.testutils.cases import TestCase
@@ -1295,6 +1296,17 @@ class GetSnubaQueryArgsTest(TestCase):
 
         with self.assertRaises(InvalidSearchQuery):
             get_filter(f"transaction.duration:<{'9'*10}d")
+
+    def test_semver(self):
+        release = self.create_release(version="test@1.2.3")
+        release_2 = self.create_release(version="test@1.2.4")
+        _filter = get_filter(f"{SEMVER_ALIAS}:>=1.2.3", {"organization_id": self.organization.id})
+        assert _filter.conditions == [["release", "IN", [release.version, release_2.version]]]
+        assert _filter.filter_keys == {}
+
+        _filter = get_filter(f"{SEMVER_ALIAS}:>1.2.4-hi", {"organization_id": self.organization.id})
+        assert _filter.conditions == [["release", "IN", [release_2.version]]]
+        assert _filter.filter_keys == {}
 
 
 def with_type(type, argument):
