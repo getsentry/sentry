@@ -6,7 +6,7 @@ import {defined} from 'app/utils';
 import getDeviceKnownDataDetails from './getDeviceKnownDataDetails';
 import {DeviceData, DeviceKnownDataType} from './types';
 
-function getOperatingSystemKnownData(
+function getDeviceKnownData(
   event: Event,
   data: DeviceData,
   deviceKnownDataValues: Array<DeviceKnownDataType>
@@ -34,4 +34,4 @@ function getOperatingSystemKnownData(
   return knownData;
 }
 
-export default getOperatingSystemKnownData;
+export default getDeviceKnownData;
