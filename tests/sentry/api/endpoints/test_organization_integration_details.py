@@ -45,6 +45,52 @@ class OrganizationIntegrationDetailsGetTest(OrganizationIntegrationDetailsTest):
         response = self.get_success_response(self.organization.slug, self.integration.id)
         assert response.data["id"] == str(self.integration.id)
 
+    @responses.activate
+    def test_vercel_team_forbidden(self):
+        """If Vercel returns a 403, fail gracefully."""
+        metadata = {
+            "access_token": "my_access_token",
+            "installation_id": "my_config_id",
+            "installation_type": "team",
+            "webhook_id": "my_webhook_id",
+            "configurations": {
+                "my_config_id": {
+                    "access_token": "my_access_token",
+                    "webhook_id": "my_webhook_id",
+                    "organization_id": self.organization.id,
+                },
+            },
+        }
+        team_id = "team_id"
+        self.integration = Integration.objects.create(
+            provider="vercel",
+            external_id=team_id,
+            name="My Vercel Team",
+            metadata=metadata,
+        )
+        self.integration.add_organization(self.organization)
+
+        responses.add(
+            method=responses.GET,
+            url=VercelClient.TEAMS_URL % team_id,
+            body='{"error":{"code":"forbidden","message":"Not authorized"}}',
+            status=403,
+            content_type="application/json",
+        )
+
+        responses.add(
+            method=responses.GET,
+            url=VercelClient.base_url + VercelClient.PROJECTS_URL,
+            body='{"projects":[],"pagination":{"count": 0}}',
+            status=200,
+            content_type="application/json",
+            match_querystring=False,
+        )
+
+        response = self.get_success_response(self.organization.slug, self.integration.id)
+        assert response.data["id"] == str(self.integration.id)
+        assert response.data["configData"] == {}
+
 
 class OrganizationIntegrationDetailsPutTest(OrganizationIntegrationDetailsTest):
     method = "put"

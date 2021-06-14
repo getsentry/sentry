@@ -142,18 +142,25 @@ class VercelIntegration(IntegrationInstallation):
             user = client.get_user()
             return user["username"]
 
-    def get_organization_config(self):
-        vercel_client = self.get_client()
-        # TODO: add try/catch if we get API failure
-        slug = self.get_slug()
+    def _get_vercel_projects(self):
+        """If the API returns a 403, just silently replace the slug."""
+        try:
+            slug = self.get_slug()
+        except ApiError:
+            slug = ""
+
         base_url = "https://vercel.com/%s" % slug
-        vercel_projects = [
+
+        client = self.get_client()
+        return [
             {"value": p["id"], "label": p["name"], "url": "{}/{}".format(base_url, p["name"])}
-            for p in vercel_client.get_projects()
+            for p in client.get_projects()
         ]
 
+    def _get_sentry_projects(self):
         proj_fields = ["id", "platform", "name", "slug"]
-        sentry_projects = map(
+
+        return map(
             lambda proj: {key: proj[key] for key in proj_fields},
             (
                 Project.objects.filter(
@@ -164,15 +171,16 @@ class VercelIntegration(IntegrationInstallation):
             ),
         )
 
-        fields = [
+    def get_organization_config(self):
+        return [
             {
                 "name": "project_mappings",
                 "type": "project_mapper",
                 "mappedDropdown": {
-                    "items": vercel_projects,
+                    "items": self._get_vercel_projects(),
                     "placeholder": _("Vercel project..."),
                 },
-                "sentryProjects": sentry_projects,
+                "sentry_projects": self._get_sentry_projects(),
                 "nextButton": {
                     "allowedDomain": "https://vercel.com",
                     "description": _(
@@ -183,8 +191,6 @@ class VercelIntegration(IntegrationInstallation):
                 "iconType": "vercel",
             }
         ]
-
-        return fields
 
     def update_organization_config(self, data):
         # data = {"project_mappings": [[sentry_project_id, vercel_project_id]]}
