@@ -1,7 +1,7 @@
 import * as React from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location, LocationDescriptor, Query} from 'history';
+import {Location} from 'history';
 import omit from 'lodash/omit';
 
 import Feature from 'app/components/acl/feature';
@@ -17,7 +17,6 @@ import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {generateQueryWithTag} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
-import {TableDataRow} from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
 import {
   getAggregateAlias,
@@ -25,20 +24,18 @@ import {
   SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'app/utils/discover/fields';
-import {generateEventSlug} from 'app/utils/discover/urls';
 import {decodeScalar} from 'app/utils/queryString';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 import withProjects from 'app/utils/withProjects';
 import {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
 import {TableColumn} from 'app/views/eventsV2/table/types';
 import Tags from 'app/views/eventsV2/tags';
-import {getTraceDetailsUrl} from 'app/views/performance/traceDetails/utils';
 import {
   PERCENTILE as VITAL_PERCENTILE,
   VITAL_GROUPS,
 } from 'app/views/performance/transactionSummary/transactionVitals/constants';
 
-import {getTransactionDetailsUrl, isSummaryViewFrontendPageLoad} from '../utils';
+import {isSummaryViewFrontendPageLoad} from '../utils';
 
 import TransactionSummaryCharts from './charts';
 import Filter, {
@@ -52,7 +49,12 @@ import SidebarCharts from './sidebarCharts';
 import StatusBreakdown from './statusBreakdown';
 import {TagExplorer} from './tagExplorer';
 import UserStats from './userStats';
-import {SidebarSpacer, TransactionFilterOptions} from './utils';
+import {
+  generateTraceLink,
+  generateTransactionLink,
+  SidebarSpacer,
+  TransactionFilterOptions,
+} from './utils';
 
 type Props = {
   location: Location;
@@ -392,32 +394,6 @@ class SummaryContent extends React.Component<Props, State> {
       </React.Fragment>
     );
   }
-}
-
-function generateTraceLink(dateSelection) {
-  return (
-    organization: Organization,
-    tableRow: TableDataRow,
-    _query: Query
-  ): LocationDescriptor => {
-    const traceId = `${tableRow.trace}`;
-    if (!traceId) {
-      return {};
-    }
-
-    return getTraceDetailsUrl(organization, traceId, dateSelection, {});
-  };
-}
-
-function generateTransactionLink(transactionName: string) {
-  return (
-    organization: Organization,
-    tableRow: TableDataRow,
-    query: Query
-  ): LocationDescriptor => {
-    const eventSlug = generateEventSlug(tableRow);
-    return getTransactionDetailsUrl(organization, eventSlug, transactionName, query);
-  };
 }
 
 function getFilterOptions({
