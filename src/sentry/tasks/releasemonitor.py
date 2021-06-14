@@ -65,49 +65,60 @@ def process_projects_with_sessions(org_id, project_ids):
     offset = 0
     total_sessions = 0
     updated_ids = []
-    while (time.time() - time_start) < MAX_SECONDS:
-        filters = {"org_id": [org_id], "project_id": project_ids}
-        result_totals = raw_query(
-            selected_columns=["sessions"],
-            rollup=21600,  # NOTE: This doesn't seem to matter
-            dataset=Dataset.Sessions,
-            start=timezone.now() - timedelta(hours=6),
-            end=timezone.now(),
-            filter_keys=filters,
-            groupby=["org_id", "project_id", "release", "environment"],
-            referrer="sentry.tasks.releasemonitor.monitor_release_adoption.SessionsAcrossOrg",
-            totals=True,
-            limit=CHUNK_SIZE + 1,
-            offset=offset,
-        )
-        data = result_totals["data"]
-        count = len(data)
-        more_results = count >= CHUNK_SIZE
-        offset += count
-        total_sessions = result_totals["totals"]["sessions"]
+    with metrics.timer("sentry.tasks.monitor_release_adoption.process_projects_with_sessions.loop"):
+        while (time.time() - time_start) < MAX_SECONDS:
+            with metrics.timer(
+                "sentry.tasks.monitor_release_adoption.process_projects_with_sessions.query"
+            ):
+                filters = {"org_id": [org_id], "project_id": project_ids}
+                result_totals = raw_query(
+                    selected_columns=["sessions"],
+                    rollup=21600,  # NOTE: This doesn't seem to matter
+                    dataset=Dataset.Sessions,
+                    start=timezone.now() - timedelta(hours=6),
+                    end=timezone.now(),
+                    filter_keys=filters,
+                    groupby=["org_id", "project_id", "release", "environment"],
+                    referrer="sentry.tasks.releasemonitor.monitor_release_adoption.SessionsAcrossOrg",
+                    totals=True,
+                    limit=CHUNK_SIZE + 1,
+                    offset=offset,
+                )
+                data = result_totals["data"]
+                count = len(data)
+                more_results = count >= CHUNK_SIZE
+                offset += count
+                total_sessions = result_totals["totals"]["sessions"]
 
-        # 3. Using the sums from #2, calculate adoption rate (relevant sessions / all sessions) update the appropriate ReleaseProjectEnvironment model adopted/unadopted fields.
-        for row in data:
-            rpe = ReleaseProjectEnvironment.objects.get(
-                project_id=row["project_id"],
-                release_id=Release.objects.get(organization=org_id, version=row["release"]).id,
-                environment_id=Environment.objects.get(
-                    organization_id=org_id,
-                    project_id=row["project_id"],
-                    name=row["environment"],
-                ).id,
-            )
-            adopted = (
-                True if row["sessions"] / total_sessions >= REQUIRED_ADOPTION_PERCENT else False
-            )
-            if adopted and rpe.adopted is None:
-                rpe.update(adopted=timezone.now())
-                updated_ids.append(rpe.id)
-            elif not adopted and rpe.adopted:
-                rpe.update(unadopted=timezone.now())
+            # 3. Using the sums from #2, calculate adoption rate (relevant sessions / all sessions) update the appropriate ReleaseProjectEnvironment model adopted/unadopted fields.
+            with metrics.timer(
+                "sentry.tasks.monitor_release_adoption.process_projects_with_sessions.updates"
+            ):
+                for row in data:
+                    rpe = ReleaseProjectEnvironment.objects.get(
+                        project_id=row["project_id"],
+                        release_id=Release.objects.get(
+                            organization=org_id, version=row["release"]
+                        ).id,
+                        environment_id=Environment.objects.get(
+                            organization_id=org_id,
+                            project_id=row["project_id"],
+                            name=row["environment"],
+                        ).id,
+                    )
+                    adopted = (
+                        True
+                        if row["sessions"] / total_sessions >= REQUIRED_ADOPTION_PERCENT
+                        else False
+                    )
+                    if adopted and rpe.adopted is None:
+                        rpe.update(adopted=timezone.now())
+                        updated_ids.append(rpe.id)
+                    elif not adopted and rpe.adopted:
+                        rpe.update(unadopted=timezone.now())
 
-        if not more_results:
-            break
+            if not more_results:
+                break
 
     # 4. Cleanup - releases that are marked as adopted that didn’t get any results in #2 need to be marked as unadopted
     # Note: I'm really worried here that we would mark all releases as unadopted if snuba failed to return results for any reason...
