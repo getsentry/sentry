@@ -4,6 +4,7 @@ import AsyncComponent from 'app/components/asyncComponent';
 import Pagination from 'app/components/pagination';
 import {t} from 'app/locale';
 import {Project} from 'app/types';
+import {sortProjects} from 'app/utils';
 import {
   MIN_PROJECTS_FOR_PAGINATION,
   MIN_PROJECTS_FOR_SEARCH,
@@ -64,7 +65,7 @@ class NotificationSettingsByProjects extends AsyncComponent<Props, State> {
 
     return Object.fromEntries(
       Object.values(
-        groupByOrganization(stateProjects)
+        groupByOrganization(sortProjects(stateProjects))
       ).map(({organization, projects}) => [`${organization.name} Projects`, projects])
     );
   };
