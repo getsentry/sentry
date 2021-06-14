@@ -1193,39 +1193,6 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.CreateModel(
-            name="Event",
-            fields=[
-                (
-                    "id",
-                    sentry.db.models.fields.bounded.BoundedBigAutoField(
-                        primary_key=True, serialize=False
-                    ),
-                ),
-                (
-                    "group_id",
-                    sentry.db.models.fields.bounded.BoundedBigIntegerField(blank=True, null=True),
-                ),
-                ("event_id", models.CharField(db_column="message_id", max_length=32, null=True)),
-                (
-                    "project_id",
-                    sentry.db.models.fields.bounded.BoundedBigIntegerField(blank=True, null=True),
-                ),
-                ("message", models.TextField()),
-                ("platform", models.CharField(max_length=64, null=True)),
-                (
-                    "datetime",
-                    models.DateTimeField(db_index=True, default=django.utils.timezone.now),
-                ),
-                ("time_spent", sentry.db.models.fields.bounded.BoundedIntegerField(null=True)),
-                ("data", sentry.db.models.fields.node.NodeField(blank=True, null=True)),
-            ],
-            options={
-                "db_table": "sentry_message",
-                "verbose_name": "message",
-                "verbose_name_plural": "messages",
-            },
-        ),
-        migrations.CreateModel(
             name="EventAttachment",
             fields=[
                 (
@@ -1253,24 +1220,6 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.CreateModel(
-            name="EventMapping",
-            fields=[
-                (
-                    "id",
-                    sentry.db.models.fields.bounded.BoundedBigAutoField(
-                        primary_key=True, serialize=False
-                    ),
-                ),
-                ("project_id", sentry.db.models.fields.bounded.BoundedBigIntegerField()),
-                ("group_id", sentry.db.models.fields.bounded.BoundedBigIntegerField()),
-                ("event_id", models.CharField(max_length=32)),
-                ("date_added", models.DateTimeField(default=django.utils.timezone.now)),
-            ],
-            options={
-                "db_table": "sentry_eventmapping",
-            },
-        ),
-        migrations.CreateModel(
             name="EventProcessingIssue",
             fields=[
                 (
@@ -1282,29 +1231,6 @@ class Migration(migrations.Migration):
             ],
             options={
                 "db_table": "sentry_eventprocessingissue",
-            },
-        ),
-        migrations.CreateModel(
-            name="EventTag",
-            fields=[
-                (
-                    "id",
-                    sentry.db.models.fields.bounded.BoundedBigAutoField(
-                        primary_key=True, serialize=False
-                    ),
-                ),
-                ("project_id", sentry.db.models.fields.bounded.BoundedBigIntegerField()),
-                ("group_id", sentry.db.models.fields.bounded.BoundedBigIntegerField(null=True)),
-                ("event_id", sentry.db.models.fields.bounded.BoundedBigIntegerField()),
-                ("key_id", sentry.db.models.fields.bounded.BoundedBigIntegerField()),
-                ("value_id", sentry.db.models.fields.bounded.BoundedBigIntegerField()),
-                (
-                    "date_added",
-                    models.DateTimeField(db_index=True, default=django.utils.timezone.now),
-                ),
-            ],
-            options={
-                "db_table": "sentry_eventtag",
             },
         ),
         migrations.CreateModel(
@@ -1954,71 +1880,6 @@ class Migration(migrations.Migration):
             ],
             options={
                 "db_table": "sentry_groupsubscription",
-            },
-        ),
-        migrations.CreateModel(
-            name="GroupTagKey",
-            fields=[
-                (
-                    "id",
-                    sentry.db.models.fields.bounded.BoundedBigAutoField(
-                        primary_key=True, serialize=False
-                    ),
-                ),
-                (
-                    "project_id",
-                    sentry.db.models.fields.bounded.BoundedBigIntegerField(
-                        db_index=True, null=True
-                    ),
-                ),
-                ("group_id", sentry.db.models.fields.bounded.BoundedBigIntegerField(db_index=True)),
-                ("key", models.CharField(max_length=32)),
-                (
-                    "values_seen",
-                    sentry.db.models.fields.bounded.BoundedPositiveIntegerField(default=0),
-                ),
-            ],
-            options={
-                "db_table": "sentry_grouptagkey",
-            },
-        ),
-        migrations.CreateModel(
-            name="GroupTagValue",
-            fields=[
-                (
-                    "id",
-                    sentry.db.models.fields.bounded.BoundedBigAutoField(
-                        primary_key=True, serialize=False
-                    ),
-                ),
-                (
-                    "project_id",
-                    sentry.db.models.fields.bounded.BoundedBigIntegerField(
-                        db_index=True, null=True
-                    ),
-                ),
-                ("group_id", sentry.db.models.fields.bounded.BoundedBigIntegerField(db_index=True)),
-                (
-                    "times_seen",
-                    sentry.db.models.fields.bounded.BoundedPositiveIntegerField(default=0),
-                ),
-                ("key", models.CharField(max_length=32)),
-                ("value", models.CharField(max_length=200)),
-                (
-                    "last_seen",
-                    models.DateTimeField(
-                        db_index=True, default=django.utils.timezone.now, null=True
-                    ),
-                ),
-                (
-                    "first_seen",
-                    models.DateTimeField(
-                        db_index=True, default=django.utils.timezone.now, null=True
-                    ),
-                ),
-            ],
-            options={
-                "db_table": "sentry_messagefiltervalue",
             },
         ),
         migrations.CreateModel(
@@ -2694,29 +2555,6 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.CreateModel(
-            name="ProjectCfiCacheFile",
-            fields=[
-                (
-                    "id",
-                    sentry.db.models.fields.bounded.BoundedBigAutoField(
-                        primary_key=True, serialize=False
-                    ),
-                ),
-                ("checksum", models.CharField(max_length=40)),
-                ("version", sentry.db.models.fields.bounded.BoundedPositiveIntegerField()),
-                (
-                    "cache_file",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE, to="sentry.File"
-                    ),
-                ),
-            ],
-            options={
-                "abstract": False,
-                "db_table": "sentry_projectcficachefile",
-            },
-        ),
-        migrations.CreateModel(
             name="ProjectDebugFile",
             fields=[
                 (
@@ -2918,43 +2756,6 @@ class Migration(migrations.Migration):
             ],
             options={
                 "db_table": "sentry_projectredirect",
-            },
-        ),
-        migrations.CreateModel(
-            name="ProjectSymCacheFile",
-            fields=[
-                (
-                    "id",
-                    sentry.db.models.fields.bounded.BoundedBigAutoField(
-                        primary_key=True, serialize=False
-                    ),
-                ),
-                ("checksum", models.CharField(max_length=40)),
-                ("version", sentry.db.models.fields.bounded.BoundedPositiveIntegerField()),
-                (
-                    "cache_file",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE, to="sentry.File"
-                    ),
-                ),
-                (
-                    "debug_file",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        db_column="dsym_file_id",
-                        on_delete=django.db.models.deletion.DO_NOTHING,
-                        to="sentry.ProjectDebugFile",
-                    ),
-                ),
-                (
-                    "project",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        null=True, on_delete=django.db.models.deletion.CASCADE, to="sentry.Project"
-                    ),
-                ),
-            ],
-            options={
-                "abstract": False,
-                "db_table": "sentry_projectsymcachefile",
             },
         ),
         migrations.CreateModel(
@@ -3837,15 +3638,6 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 (
-                    "authorization",
-                    models.OneToOneField(
-                        null=True,
-                        on_delete=django.db.models.deletion.SET_NULL,
-                        related_name="sentry_app_installation",
-                        to="sentry.ApiAuthorization",
-                    ),
-                ),
-                (
                     "organization",
                     sentry.db.models.fields.foreignkey.FlexibleForeignKey(
                         on_delete=django.db.models.deletion.CASCADE,
@@ -3941,73 +3733,6 @@ class Migration(migrations.Migration):
             ],
             options={
                 "db_table": "sentry_servicehookproject",
-            },
-        ),
-        migrations.CreateModel(
-            name="TagKey",
-            fields=[
-                (
-                    "id",
-                    sentry.db.models.fields.bounded.BoundedBigAutoField(
-                        primary_key=True, serialize=False
-                    ),
-                ),
-                (
-                    "project_id",
-                    sentry.db.models.fields.bounded.BoundedBigIntegerField(db_index=True),
-                ),
-                ("key", models.CharField(max_length=32)),
-                (
-                    "values_seen",
-                    sentry.db.models.fields.bounded.BoundedPositiveIntegerField(default=0),
-                ),
-                ("label", models.CharField(max_length=64, null=True)),
-                ("status", sentry.db.models.fields.bounded.BoundedPositiveIntegerField(default=0)),
-            ],
-            options={
-                "db_table": "sentry_filterkey",
-            },
-        ),
-        migrations.CreateModel(
-            name="TagValue",
-            fields=[
-                (
-                    "id",
-                    sentry.db.models.fields.bounded.BoundedBigAutoField(
-                        primary_key=True, serialize=False
-                    ),
-                ),
-                (
-                    "project_id",
-                    sentry.db.models.fields.bounded.BoundedBigIntegerField(
-                        db_index=True, null=True
-                    ),
-                ),
-                ("key", models.CharField(max_length=32)),
-                ("value", models.CharField(max_length=200)),
-                (
-                    "data",
-                    sentry.db.models.fields.gzippeddict.GzippedDictField(blank=True, null=True),
-                ),
-                (
-                    "times_seen",
-                    sentry.db.models.fields.bounded.BoundedPositiveIntegerField(default=0),
-                ),
-                (
-                    "last_seen",
-                    models.DateTimeField(
-                        db_index=True, default=django.utils.timezone.now, null=True
-                    ),
-                ),
-                (
-                    "first_seen",
-                    models.DateTimeField(
-                        db_index=True, default=django.utils.timezone.now, null=True
-                    ),
-                ),
-            ],
-            options={
-                "db_table": "sentry_filtervalue",
             },
         ),
         migrations.CreateModel(
@@ -4264,70 +3989,6 @@ class Migration(migrations.Migration):
                 "db_table": "sentry_userreport",
             },
         ),
-        migrations.CreateModel(
-            name="Widget",
-            fields=[
-                (
-                    "id",
-                    sentry.db.models.fields.bounded.BoundedBigAutoField(
-                        primary_key=True, serialize=False
-                    ),
-                ),
-                ("order", sentry.db.models.fields.bounded.BoundedPositiveIntegerField()),
-                ("title", models.CharField(max_length=255)),
-                ("display_type", sentry.db.models.fields.bounded.BoundedPositiveIntegerField()),
-                ("display_options", sentry.db.models.fields.jsonfield.JSONField(default={})),
-                ("date_added", models.DateTimeField(default=django.utils.timezone.now)),
-                ("status", sentry.db.models.fields.bounded.BoundedPositiveIntegerField(default=0)),
-                (
-                    "dashboard",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE, to="sentry.Dashboard"
-                    ),
-                ),
-            ],
-            options={
-                "db_table": "sentry_widget",
-            },
-        ),
-        migrations.CreateModel(
-            name="WidgetDataSource",
-            fields=[
-                (
-                    "id",
-                    sentry.db.models.fields.bounded.BoundedBigAutoField(
-                        primary_key=True, serialize=False
-                    ),
-                ),
-                ("type", sentry.db.models.fields.bounded.BoundedPositiveIntegerField()),
-                ("name", models.CharField(max_length=255)),
-                ("data", sentry.db.models.fields.jsonfield.JSONField(default={})),
-                ("order", sentry.db.models.fields.bounded.BoundedPositiveIntegerField()),
-                ("date_added", models.DateTimeField(default=django.utils.timezone.now)),
-                ("status", sentry.db.models.fields.bounded.BoundedPositiveIntegerField(default=0)),
-                (
-                    "widget",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE, to="sentry.Widget"
-                    ),
-                ),
-            ],
-            options={
-                "db_table": "sentry_widgetdatasource",
-            },
-        ),
-        migrations.AlterUniqueTogether(
-            name="tagvalue",
-            unique_together={("project_id", "key", "value")},
-        ),
-        migrations.AlterIndexTogether(
-            name="tagvalue",
-            index_together={("project_id", "key", "last_seen")},
-        ),
-        migrations.AlterUniqueTogether(
-            name="tagkey",
-            unique_together={("project_id", "key")},
-        ),
         migrations.AlterUniqueTogether(
             name="scheduleddeletion",
             unique_together={("app_label", "model_name", "object_id")},
@@ -4356,22 +4017,6 @@ class Migration(migrations.Migration):
         migrations.AlterUniqueTogether(
             name="projectplatform",
             unique_together={("project_id", "platform")},
-        ),
-        migrations.AddField(
-            model_name="projectcficachefile",
-            name="debug_file",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                db_column="dsym_file_id",
-                on_delete=django.db.models.deletion.DO_NOTHING,
-                to="sentry.ProjectDebugFile",
-            ),
-        ),
-        migrations.AddField(
-            model_name="projectcficachefile",
-            name="project",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                null=True, on_delete=django.db.models.deletion.CASCADE, to="sentry.Project"
-            ),
         ),
         migrations.AddField(
             model_name="project",
@@ -4507,18 +4152,6 @@ class Migration(migrations.Migration):
             field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
                 on_delete=django.db.models.deletion.CASCADE, to="sentry.Project"
             ),
-        ),
-        migrations.AlterUniqueTogether(
-            name="grouptagvalue",
-            unique_together={("group_id", "key", "value")},
-        ),
-        migrations.AlterIndexTogether(
-            name="grouptagvalue",
-            index_together={("project_id", "key", "value", "last_seen")},
-        ),
-        migrations.AlterUniqueTogether(
-            name="grouptagkey",
-            unique_together={("project_id", "group_id", "key")},
         ),
         migrations.AddField(
             model_name="groupsubscription",
@@ -4738,14 +4371,6 @@ class Migration(migrations.Migration):
                 ("project_id", "ip_address"),
             },
         ),
-        migrations.AlterUniqueTogether(
-            name="eventtag",
-            unique_together={("event_id", "key_id", "value_id")},
-        ),
-        migrations.AlterIndexTogether(
-            name="eventtag",
-            index_together={("group_id", "key_id", "value_id")},
-        ),
         migrations.AddField(
             model_name="eventprocessingissue",
             name="processing_issue",
@@ -4760,24 +4385,12 @@ class Migration(migrations.Migration):
                 on_delete=django.db.models.deletion.CASCADE, to="sentry.RawEvent"
             ),
         ),
-        migrations.AlterUniqueTogether(
-            name="eventmapping",
-            unique_together={("project_id", "event_id")},
-        ),
         migrations.AddField(
             model_name="eventattachment",
             name="file",
             field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
                 on_delete=django.db.models.deletion.CASCADE, to="sentry.File"
             ),
-        ),
-        migrations.AlterUniqueTogether(
-            name="event",
-            unique_together={("project_id", "event_id")},
-        ),
-        migrations.AlterIndexTogether(
-            name="event",
-            index_together={("group_id", "datetime")},
         ),
         migrations.AddField(
             model_name="environmentproject",
@@ -4926,14 +4539,6 @@ class Migration(migrations.Migration):
             ),
         ),
         migrations.AlterUniqueTogether(
-            name="widgetdatasource",
-            unique_together={("widget", "order"), ("widget", "name")},
-        ),
-        migrations.AlterUniqueTogether(
-            name="widget",
-            unique_together={("dashboard", "title"), ("dashboard", "order")},
-        ),
-        migrations.AlterUniqueTogether(
             name="userreport",
             unique_together={("project", "event_id")},
         ),
@@ -5041,10 +4646,6 @@ class Migration(migrations.Migration):
             unique_together={("project", "team")},
         ),
         migrations.AlterUniqueTogether(
-            name="projectsymcachefile",
-            unique_together={("project", "debug_file")},
-        ),
-        migrations.AlterUniqueTogether(
             name="projectredirect",
             unique_together={("organization", "redirect_slug")},
         ),
@@ -5059,10 +4660,6 @@ class Migration(migrations.Migration):
         migrations.AlterIndexTogether(
             name="projectdebugfile",
             index_together={("project", "debug_id"), ("project", "code_id")},
-        ),
-        migrations.AlterUniqueTogether(
-            name="projectcficachefile",
-            unique_together={("project", "debug_file")},
         ),
         migrations.AlterUniqueTogether(
             name="projectbookmark",
@@ -5248,15 +4845,7 @@ class Migration(migrations.Migration):
                 ),
                 ("name", models.TextField()),
                 ("status", models.SmallIntegerField(default=0)),
-                ("dataset", models.TextField()),
-                ("query", models.TextField()),
                 ("include_all_projects", models.BooleanField(default=False)),
-                ("aggregation", models.IntegerField(default=0)),
-                ("time_window", models.IntegerField()),
-                ("resolution", models.IntegerField()),
-                ("threshold_type", models.SmallIntegerField(null=True)),
-                ("alert_threshold", models.IntegerField(null=True)),
-                ("resolve_threshold", models.IntegerField(null=True)),
                 ("threshold_period", models.IntegerField()),
                 ("date_modified", models.DateTimeField(default=django.utils.timezone.now)),
                 ("date_added", models.DateTimeField(default=django.utils.timezone.now)),
@@ -5294,26 +4883,6 @@ class Migration(migrations.Migration):
             ],
             options={
                 "db_table": "sentry_alertruleexcludedprojects",
-            },
-        ),
-        migrations.CreateModel(
-            name="AlertRuleQuerySubscription",
-            fields=[
-                (
-                    "id",
-                    sentry.db.models.fields.bounded.BoundedBigAutoField(
-                        primary_key=True, serialize=False
-                    ),
-                ),
-                (
-                    "alert_rule",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE, to="sentry.AlertRule"
-                    ),
-                ),
-            ],
-            options={
-                "db_table": "sentry_alertrulequerysubscription",
             },
         ),
         migrations.CreateModel(
@@ -5416,20 +4985,6 @@ class Migration(migrations.Migration):
             ],
             options={
                 "db_table": "sentry_incidentactivity",
-            },
-        ),
-        migrations.CreateModel(
-            name="IncidentGroup",
-            fields=[
-                (
-                    "id",
-                    sentry.db.models.fields.bounded.BoundedBigAutoField(
-                        primary_key=True, serialize=False
-                    ),
-                ),
-            ],
-            options={
-                "db_table": "sentry_incidentgroup",
             },
         ),
         migrations.CreateModel(
@@ -5537,37 +5092,6 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.CreateModel(
-            name="IncidentSuspectCommit",
-            fields=[
-                (
-                    "id",
-                    sentry.db.models.fields.bounded.BoundedBigAutoField(
-                        primary_key=True, serialize=False
-                    ),
-                ),
-                ("order", models.SmallIntegerField()),
-                (
-                    "commit",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        db_constraint=False,
-                        on_delete=django.db.models.deletion.CASCADE,
-                        to="sentry.Commit",
-                    ),
-                ),
-                (
-                    "incident",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        db_index=False,
-                        on_delete=django.db.models.deletion.CASCADE,
-                        to="sentry.Incident",
-                    ),
-                ),
-            ],
-            options={
-                "db_table": "sentry_incidentsuspectcommit",
-            },
-        ),
-        migrations.CreateModel(
             name="IncidentTrigger",
             fields=[
                 (
@@ -5624,7 +5148,6 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 ("integration_key", models.CharField(max_length=255)),
-                ("service_id", models.CharField(max_length=255)),
                 ("service_name", models.CharField(max_length=255)),
                 ("date_added", models.DateTimeField(default=django.utils.timezone.now)),
                 (
@@ -5640,47 +5163,6 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.CreateModel(
-            name="PagerDutyServiceProject",
-            fields=[
-                (
-                    "id",
-                    sentry.db.models.fields.bounded.BoundedBigAutoField(
-                        primary_key=True, serialize=False
-                    ),
-                ),
-                ("integration_key", models.CharField(max_length=255, null=True)),
-                ("service_id", models.CharField(max_length=255, null=True)),
-                ("service_name", models.CharField(max_length=255, null=True)),
-                ("date_added", models.DateTimeField(default=django.utils.timezone.now, null=True)),
-                (
-                    "organization_integration",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        null=True,
-                        on_delete=django.db.models.deletion.CASCADE,
-                        to="sentry.OrganizationIntegration",
-                    ),
-                ),
-                (
-                    "pagerduty_service",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE, to="sentry.PagerDutyService"
-                    ),
-                ),
-                (
-                    "project",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        db_constraint=False,
-                        db_index=False,
-                        on_delete=django.db.models.deletion.CASCADE,
-                        to="sentry.Project",
-                    ),
-                ),
-            ],
-            options={
-                "db_table": "sentry_pagerdutyserviceproject",
-            },
-        ),
-        migrations.CreateModel(
             name="QuerySubscription",
             fields=[
                 (
@@ -5691,11 +5173,6 @@ class Migration(migrations.Migration):
                 ),
                 ("type", models.TextField()),
                 ("subscription_id", models.TextField(unique=True)),
-                ("dataset", models.TextField()),
-                ("query", models.TextField()),
-                ("aggregation", models.IntegerField(default=0)),
-                ("time_window", models.IntegerField()),
-                ("resolution", models.IntegerField()),
                 ("date_added", models.DateTimeField(default=django.utils.timezone.now)),
                 (
                     "project",
@@ -5731,36 +5208,6 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.CreateModel(
-            name="SentryAppWebhookError",
-            fields=[
-                (
-                    "id",
-                    sentry.db.models.fields.bounded.BoundedBigAutoField(
-                        primary_key=True, serialize=False
-                    ),
-                ),
-                (
-                    "date_added",
-                    models.DateTimeField(db_index=True, default=django.utils.timezone.now),
-                ),
-                (
-                    "request_body",
-                    sentry.db.models.fields.encrypted.EncryptedJsonField(default=dict),
-                ),
-                (
-                    "request_headers",
-                    sentry.db.models.fields.encrypted.EncryptedJsonField(default=dict),
-                ),
-                ("event_type", models.CharField(max_length=64)),
-                ("webhook_url", models.URLField()),
-                ("response_body", models.TextField()),
-                ("response_code", models.PositiveSmallIntegerField()),
-            ],
-            options={
-                "db_table": "sentry_sentryappwebhookerror",
-            },
-        ),
-        migrations.CreateModel(
             name="TimeSeriesSnapshot",
             fields=[
                 (
@@ -5778,56 +5225,6 @@ class Migration(migrations.Migration):
             options={
                 "db_table": "sentry_timeseriessnapshot",
             },
-        ),
-        migrations.DeleteModel(
-            name="EventMapping",
-        ),
-        migrations.DeleteModel(
-            name="EventTag",
-        ),
-        migrations.DeleteModel(
-            name="GroupTagKey",
-        ),
-        migrations.DeleteModel(
-            name="GroupTagValue",
-        ),
-        migrations.RemoveField(
-            model_name="projectcficachefile",
-            name="cache_file",
-        ),
-        migrations.RemoveField(
-            model_name="projectcficachefile",
-            name="debug_file",
-        ),
-        migrations.RemoveField(
-            model_name="projectcficachefile",
-            name="project",
-        ),
-        migrations.AlterUniqueTogether(
-            name="projectsymcachefile",
-            unique_together=set(),
-        ),
-        migrations.RemoveField(
-            model_name="projectsymcachefile",
-            name="cache_file",
-        ),
-        migrations.RemoveField(
-            model_name="projectsymcachefile",
-            name="debug_file",
-        ),
-        migrations.RemoveField(
-            model_name="projectsymcachefile",
-            name="project",
-        ),
-        migrations.DeleteModel(
-            name="TagKey",
-        ),
-        migrations.DeleteModel(
-            name="TagValue",
-        ),
-        migrations.RemoveField(
-            model_name="sentryappinstallation",
-            name="authorization",
         ),
         migrations.AddField(
             model_name="broadcast",
@@ -6016,16 +5413,6 @@ class Migration(migrations.Migration):
             name="webhook_url",
             field=models.URLField(null=True),
         ),
-        migrations.AlterField(
-            model_name="widget",
-            name="display_options",
-            field=sentry.db.models.fields.jsonfield.JSONField(default={}),
-        ),
-        migrations.AlterField(
-            model_name="widgetdatasource",
-            name="data",
-            field=sentry.db.models.fields.jsonfield.JSONField(default={}),
-        ),
         migrations.AlterUniqueTogether(
             name="groupassignee",
             unique_together={("project", "group")},
@@ -6037,30 +5424,6 @@ class Migration(migrations.Migration):
         migrations.AlterIndexTogether(
             name="group",
             index_together={("project", "first_release"), ("project", "id")},
-        ),
-        migrations.DeleteModel(
-            name="ProjectCfiCacheFile",
-        ),
-        migrations.DeleteModel(
-            name="ProjectSymCacheFile",
-        ),
-        migrations.AddField(
-            model_name="sentryappwebhookerror",
-            name="organization",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                on_delete=django.db.models.deletion.CASCADE,
-                related_name="sentry_app_webhook_errors",
-                to="sentry.Organization",
-            ),
-        ),
-        migrations.AddField(
-            model_name="sentryappwebhookerror",
-            name="sentry_app",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                on_delete=django.db.models.deletion.CASCADE,
-                related_name="webhook_errors",
-                to="sentry.SentryApp",
-            ),
         ),
         migrations.AddField(
             model_name="sentryappinstallationtoken",
@@ -6091,32 +5454,6 @@ class Migration(migrations.Migration):
             ),
         ),
         migrations.AddField(
-            model_name="incidentgroup",
-            name="group",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                db_constraint=False,
-                db_index=False,
-                on_delete=django.db.models.deletion.CASCADE,
-                to="sentry.Group",
-            ),
-        ),
-        migrations.AddField(
-            model_name="incidentgroup",
-            name="incident",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                on_delete=django.db.models.deletion.CASCADE, to="sentry.Incident"
-            ),
-        ),
-        migrations.AddField(
-            model_name="incidentactivity",
-            name="event_stats_snapshot",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                null=True,
-                on_delete=django.db.models.deletion.CASCADE,
-                to="sentry.TimeSeriesSnapshot",
-            ),
-        ),
-        migrations.AddField(
             model_name="incidentactivity",
             name="incident",
             field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
@@ -6128,13 +5465,6 @@ class Migration(migrations.Migration):
             name="user",
             field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
                 null=True, on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL
-            ),
-        ),
-        migrations.AddField(
-            model_name="incident",
-            name="groups",
-            field=models.ManyToManyField(
-                related_name="incidents", through="sentry.IncidentGroup", to="sentry.Group"
             ),
         ),
         migrations.AddField(
@@ -6166,15 +5496,6 @@ class Migration(migrations.Migration):
             ),
         ),
         migrations.AddField(
-            model_name="alertrulequerysubscription",
-            name="query_subscription",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                on_delete=django.db.models.deletion.CASCADE,
-                to="sentry.QuerySubscription",
-                unique=True,
-            ),
-        ),
-        migrations.AddField(
             model_name="alertrule",
             name="excluded_projects",
             field=models.ManyToManyField(
@@ -6193,26 +5514,9 @@ class Migration(migrations.Migration):
                 to="sentry.Organization",
             ),
         ),
-        migrations.AddField(
-            model_name="alertrule",
-            name="query_subscriptions",
-            field=models.ManyToManyField(
-                related_name="alert_rules",
-                through="sentry.AlertRuleQuerySubscription",
-                to="sentry.QuerySubscription",
-            ),
-        ),
         migrations.AlterUniqueTogether(
             name="sentryappinstallationtoken",
             unique_together={("sentry_app_installation", "api_token")},
-        ),
-        migrations.AlterUniqueTogether(
-            name="pagerdutyserviceproject",
-            unique_together={("project", "pagerduty_service")},
-        ),
-        migrations.AlterUniqueTogether(
-            name="pagerdutyservice",
-            unique_together={("service_id", "organization_integration")},
         ),
         migrations.AlterUniqueTogether(
             name="integrationfeature",
@@ -6221,10 +5525,6 @@ class Migration(migrations.Migration):
         migrations.AlterUniqueTogether(
             name="incidenttrigger",
             unique_together={("incident", "alert_rule_trigger")},
-        ),
-        migrations.AlterUniqueTogether(
-            name="incidentsuspectcommit",
-            unique_together={("incident", "commit")},
         ),
         migrations.AlterUniqueTogether(
             name="incidentsubscription",
@@ -6237,10 +5537,6 @@ class Migration(migrations.Migration):
         migrations.AlterUniqueTogether(
             name="incidentproject",
             unique_together={("project", "incident")},
-        ),
-        migrations.AlterUniqueTogether(
-            name="incidentgroup",
-            unique_together={("group", "incident")},
         ),
         migrations.AlterUniqueTogether(
             name="incident",
@@ -6304,11 +5600,6 @@ class Migration(migrations.Migration):
             name="event",
             field=sentry.db.models.fields.bounded.BoundedPositiveIntegerField(),
         ),
-        migrations.AlterField(
-            model_name="sentryappwebhookerror",
-            name="response_code",
-            field=models.PositiveSmallIntegerField(null=True),
-        ),
         migrations.AddField(
             model_name="sentryapp",
             name="date_published",
@@ -6323,86 +5614,6 @@ class Migration(migrations.Migration):
             model_name="organizationmember",
             name="role",
             field=models.CharField(default="member", max_length=32),
-        ),
-        migrations.SeparateDatabaseAndState(
-            state_operations=[
-                migrations.RemoveField(
-                    model_name="alertrule",
-                    name="alert_threshold",
-                ),
-                migrations.RemoveField(
-                    model_name="alertrule",
-                    name="resolve_threshold",
-                ),
-                migrations.RemoveField(
-                    model_name="alertrule",
-                    name="threshold_type",
-                ),
-            ],
-        ),
-        migrations.AlterField(
-            model_name="pagerdutyservice",
-            name="service_id",
-            field=models.CharField(max_length=255, null=True),
-        ),
-        migrations.AlterUniqueTogether(
-            name="pagerdutyservice",
-            unique_together=set(),
-        ),
-        migrations.SeparateDatabaseAndState(
-            state_operations=[
-                migrations.RemoveField(
-                    model_name="pagerdutyservice",
-                    name="service_id",
-                ),
-            ],
-        ),
-        migrations.SeparateDatabaseAndState(
-            database_operations=[
-                migrations.RunSQL(
-                    sql='\n                    ALTER TABLE "sentry_pagerdutyservice" DROP COLUMN "service_id";\n                    ',
-                    reverse_sql='\n                        ALTER TABLE "sentry_pagerdutyservice" ADD COLUMN "service_id" varchar(255) NULL;\n                        ',
-                ),
-            ],
-        ),
-        migrations.AlterField(
-            model_name="sentryappwebhookerror",
-            name="organization",
-            field=sentry.db.models.fields.bounded.BoundedBigIntegerField(
-                db_column="organization_id"
-            ),
-        ),
-        migrations.AlterField(
-            model_name="sentryappwebhookerror",
-            name="sentry_app",
-            field=sentry.db.models.fields.bounded.BoundedBigIntegerField(db_column="sentry_app_id"),
-        ),
-        migrations.SeparateDatabaseAndState(
-            state_operations=[
-                migrations.DeleteModel(
-                    name="SentryAppWebhookError",
-                ),
-            ],
-        ),
-        migrations.SeparateDatabaseAndState(
-            database_operations=[
-                migrations.RunSQL(
-                    sql='\n                    DROP TABLE "sentry_sentryappwebhookerror";\n                    ',
-                ),
-            ],
-        ),
-        migrations.SeparateDatabaseAndState(
-            database_operations=[
-                migrations.RunSQL(
-                    sql='\n                    ALTER TABLE "sentry_alertrule" DROP COLUMN "alert_threshold";\n                    ALTER TABLE "sentry_alertrule" DROP COLUMN "resolve_threshold";\n                    ALTER TABLE "sentry_alertrule" DROP COLUMN "threshold_type";\n                    ',
-                    reverse_sql='\n                    ALTER TABLE "sentry_alertrule" ADD COLUMN "alert_threshold" smallint NULL;\n                    ALTER TABLE "sentry_alertrule" ADD COLUMN "resolve_threshold" int NULL;\n                    ALTER TABLE "sentry_alertrule" ADD COLUMN "threshold_type" int NULL;\n\n                    ',
-                ),
-            ],
-        ),
-        migrations.AddField(
-            model_name="incident",
-            name="aggregation",
-            field=models.PositiveSmallIntegerField(default=0),
         ),
         migrations.AddField(
             model_name="discoversavedquery",
@@ -6430,9 +5641,6 @@ class Migration(migrations.Migration):
             field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
                 null=True, on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL
             ),
-        ),
-        migrations.DeleteModel(
-            name="Event",
         ),
         migrations.CreateModel(
             name="ExportedData",
@@ -6466,18 +5674,6 @@ class Migration(migrations.Migration):
                 "db_table": "sentry_exporteddata",
             },
         ),
-        migrations.AlterField(
-            model_name="incidentsuspectcommit",
-            name="commit",
-            field=sentry.db.models.fields.bounded.BoundedBigIntegerField(
-                db_column="commit_id", db_index=True
-            ),
-        ),
-        migrations.AlterField(
-            model_name="incidentsuspectcommit",
-            name="incident",
-            field=sentry.db.models.fields.bounded.BoundedBigIntegerField(db_column="incident_id"),
-        ),
         migrations.RemoveField(
             model_name="exporteddata",
             name="storage_url",
@@ -6504,98 +5700,10 @@ class Migration(migrations.Migration):
                 null=True,
             ),
         ),
-        migrations.CreateModel(
-            name="AlertRuleEnvironment",
-            fields=[
-                (
-                    "id",
-                    sentry.db.models.fields.bounded.BoundedBigAutoField(
-                        primary_key=True, serialize=False
-                    ),
-                ),
-                (
-                    "alert_rule",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE, to="sentry.AlertRule"
-                    ),
-                ),
-                (
-                    "environment",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE, to="sentry.Environment"
-                    ),
-                ),
-            ],
-            options={
-                "db_table": "sentry_alertruleenvironment",
-            },
-        ),
-        migrations.AddField(
-            model_name="alertrule",
-            name="environment",
-            field=models.ManyToManyField(
-                related_name="alert_rule_environment",
-                through="sentry.AlertRuleEnvironment",
-                to="sentry.Environment",
-            ),
-        ),
-        migrations.AlterUniqueTogether(
-            name="alertruleenvironment",
-            unique_together={("alert_rule", "environment")},
-        ),
-        migrations.AlterField(
-            model_name="pagerdutyserviceproject",
-            name="organization_integration",
-            field=sentry.db.models.fields.bounded.BoundedBigIntegerField(
-                db_column="organization_integration_id", db_index=True, null=True
-            ),
-        ),
-        migrations.AlterField(
-            model_name="pagerdutyserviceproject",
-            name="pagerduty_service",
-            field=sentry.db.models.fields.bounded.BoundedBigIntegerField(
-                db_column="pagerduty_service_id", db_index=True
-            ),
-        ),
-        migrations.AlterField(
-            model_name="pagerdutyserviceproject",
-            name="project",
-            field=sentry.db.models.fields.bounded.BoundedBigIntegerField(db_column="project_id"),
-        ),
-        migrations.SeparateDatabaseAndState(
-            state_operations=[
-                migrations.DeleteModel(
-                    name="PagerDutyServiceProject",
-                ),
-            ],
-        ),
         migrations.AlterField(
             model_name="exporteddata",
             name="query_type",
             field=sentry.db.models.fields.bounded.BoundedPositiveIntegerField(),
-        ),
-        migrations.SeparateDatabaseAndState(
-            database_operations=[
-                migrations.RunSQL(
-                    sql='\n                            DROP TABLE "sentry_pagerdutyserviceproject";\n                            ',
-                    reverse_sql="",
-                ),
-            ],
-        ),
-        migrations.SeparateDatabaseAndState(
-            state_operations=[
-                migrations.DeleteModel(
-                    name="IncidentSuspectCommit",
-                ),
-            ],
-        ),
-        migrations.SeparateDatabaseAndState(
-            database_operations=[
-                migrations.RunSQL(
-                    sql='\n                    DROP TABLE "sentry_incidentsuspectcommit";\n                    ',
-                    reverse_sql="",
-                ),
-            ],
         ),
         migrations.AddField(
             model_name="incidenttrigger",
@@ -6611,14 +5719,6 @@ class Migration(migrations.Migration):
             model_name="exporteddata",
             name="date_expired",
             field=models.DateTimeField(db_index=True, null=True),
-        ),
-        migrations.SeparateDatabaseAndState(
-            state_operations=[
-                migrations.RemoveField(
-                    model_name="incidentactivity",
-                    name="event_stats_snapshot",
-                ),
-            ],
         ),
         migrations.AlterField(
             model_name="exporteddata",
@@ -6636,10 +5736,6 @@ class Migration(migrations.Migration):
             field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
                 null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL
             ),
-        ),
-        migrations.RunSQL(
-            sql='\n            ALTER TABLE "sentry_incidentactivity" DROP COLUMN "event_stats_snapshot_id";\n            ',
-            reverse_sql='\n                ALTER TABLE "sentry_incidentactivity" ADD COLUMN "event_stats_snapshot_id" bigint NULL;\n                ',
         ),
         migrations.SeparateDatabaseAndState(
             state_operations=[
@@ -6668,44 +5764,6 @@ class Migration(migrations.Migration):
                     field=sentry.db.models.fields.bounded.BoundedPositiveIntegerField(),
                 ),
             ],
-        ),
-        migrations.CreateModel(
-            name="QuerySubscriptionEnvironment",
-            fields=[
-                (
-                    "id",
-                    sentry.db.models.fields.bounded.BoundedBigAutoField(
-                        primary_key=True, serialize=False
-                    ),
-                ),
-                ("date_added", models.DateTimeField(default=django.utils.timezone.now)),
-                (
-                    "environment",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE, to="sentry.Environment"
-                    ),
-                ),
-                (
-                    "query_subscription",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE, to="sentry.QuerySubscription"
-                    ),
-                ),
-            ],
-            options={
-                "db_table": "sentry_querysubscriptionenvironment",
-            },
-        ),
-        migrations.AddField(
-            model_name="querysubscription",
-            name="environments",
-            field=models.ManyToManyField(
-                through="sentry.QuerySubscriptionEnvironment", to="sentry.Environment"
-            ),
-        ),
-        migrations.AlterUniqueTogether(
-            name="querysubscriptionenvironment",
-            unique_together={("query_subscription", "environment")},
         ),
         migrations.AlterField(
             model_name="exporteddata",
@@ -6975,56 +6033,6 @@ class Migration(migrations.Migration):
                 "db_table": "sentry_snubaquery",
             },
         ),
-        migrations.AlterField(
-            model_name="alertrule",
-            name="aggregation",
-            field=models.IntegerField(default=0, null=True),
-        ),
-        migrations.AlterField(
-            model_name="alertrule",
-            name="dataset",
-            field=models.TextField(null=True),
-        ),
-        migrations.AlterField(
-            model_name="alertrule",
-            name="query",
-            field=models.TextField(null=True),
-        ),
-        migrations.AlterField(
-            model_name="alertrule",
-            name="resolution",
-            field=models.IntegerField(null=True),
-        ),
-        migrations.AlterField(
-            model_name="alertrule",
-            name="time_window",
-            field=models.IntegerField(null=True),
-        ),
-        migrations.AlterField(
-            model_name="querysubscription",
-            name="aggregation",
-            field=models.IntegerField(default=0, null=True),
-        ),
-        migrations.AlterField(
-            model_name="querysubscription",
-            name="dataset",
-            field=models.TextField(null=True),
-        ),
-        migrations.AlterField(
-            model_name="querysubscription",
-            name="query",
-            field=models.TextField(null=True),
-        ),
-        migrations.AlterField(
-            model_name="querysubscription",
-            name="resolution",
-            field=models.IntegerField(null=True),
-        ),
-        migrations.AlterField(
-            model_name="querysubscription",
-            name="time_window",
-            field=models.IntegerField(null=True),
-        ),
         migrations.AddField(
             model_name="alertrule",
             name="snuba_query",
@@ -7051,217 +6059,11 @@ class Migration(migrations.Migration):
             field=models.PositiveIntegerField(),
         ),
         migrations.AlterField(
-            model_name="alertruleenvironment",
-            name="alert_rule",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                db_constraint=False,
-                on_delete=django.db.models.deletion.CASCADE,
-                to="sentry.AlertRule",
-            ),
-        ),
-        migrations.AlterField(
-            model_name="alertruleenvironment",
-            name="environment",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                db_constraint=False,
-                on_delete=django.db.models.deletion.CASCADE,
-                to="sentry.Environment",
-            ),
-        ),
-        migrations.AlterField(
-            model_name="alertrulequerysubscription",
-            name="alert_rule",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                db_constraint=False,
-                on_delete=django.db.models.deletion.CASCADE,
-                to="sentry.AlertRule",
-            ),
-        ),
-        migrations.AlterField(
-            model_name="alertrulequerysubscription",
-            name="query_subscription",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                db_constraint=False,
-                on_delete=django.db.models.deletion.CASCADE,
-                to="sentry.QuerySubscription",
-                unique=True,
-            ),
-        ),
-        migrations.AlterField(
-            model_name="querysubscriptionenvironment",
-            name="environment",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                db_constraint=False,
-                on_delete=django.db.models.deletion.CASCADE,
-                to="sentry.Environment",
-            ),
-        ),
-        migrations.AlterField(
-            model_name="querysubscriptionenvironment",
-            name="query_subscription",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                db_constraint=False,
-                on_delete=django.db.models.deletion.CASCADE,
-                to="sentry.QuerySubscription",
-            ),
-        ),
-        migrations.SeparateDatabaseAndState(
-            state_operations=[
-                migrations.AlterUniqueTogether(
-                    name="alertruleenvironment",
-                    unique_together=set(),
-                ),
-                migrations.RemoveField(
-                    model_name="alertruleenvironment",
-                    name="alert_rule",
-                ),
-                migrations.RemoveField(
-                    model_name="alertruleenvironment",
-                    name="environment",
-                ),
-                migrations.RemoveField(
-                    model_name="alertrulequerysubscription",
-                    name="alert_rule",
-                ),
-                migrations.RemoveField(
-                    model_name="alertrulequerysubscription",
-                    name="query_subscription",
-                ),
-                migrations.AlterUniqueTogether(
-                    name="querysubscriptionenvironment",
-                    unique_together=set(),
-                ),
-                migrations.RemoveField(
-                    model_name="querysubscriptionenvironment",
-                    name="environment",
-                ),
-                migrations.RemoveField(
-                    model_name="querysubscriptionenvironment",
-                    name="query_subscription",
-                ),
-                migrations.RemoveField(
-                    model_name="alertrule",
-                    name="aggregation",
-                ),
-                migrations.RemoveField(
-                    model_name="alertrule",
-                    name="dataset",
-                ),
-                migrations.RemoveField(
-                    model_name="alertrule",
-                    name="environment",
-                ),
-                migrations.RemoveField(
-                    model_name="alertrule",
-                    name="query",
-                ),
-                migrations.RemoveField(
-                    model_name="alertrule",
-                    name="query_subscriptions",
-                ),
-                migrations.RemoveField(
-                    model_name="alertrule",
-                    name="resolution",
-                ),
-                migrations.RemoveField(
-                    model_name="alertrule",
-                    name="time_window",
-                ),
-                migrations.RemoveField(
-                    model_name="querysubscription",
-                    name="aggregation",
-                ),
-                migrations.RemoveField(
-                    model_name="querysubscription",
-                    name="dataset",
-                ),
-                migrations.RemoveField(
-                    model_name="querysubscription",
-                    name="environments",
-                ),
-                migrations.RemoveField(
-                    model_name="querysubscription",
-                    name="query",
-                ),
-                migrations.RemoveField(
-                    model_name="querysubscription",
-                    name="resolution",
-                ),
-                migrations.RemoveField(
-                    model_name="querysubscription",
-                    name="time_window",
-                ),
-                migrations.DeleteModel(
-                    name="AlertRuleEnvironment",
-                ),
-                migrations.DeleteModel(
-                    name="AlertRuleQuerySubscription",
-                ),
-                migrations.DeleteModel(
-                    name="QuerySubscriptionEnvironment",
-                ),
-            ],
-        ),
-        migrations.RemoveField(
-            model_name="incident",
-            name="groups",
-        ),
-        migrations.AlterField(
-            model_name="incident",
-            name="aggregation",
-            field=models.PositiveSmallIntegerField(default=0, null=True),
-        ),
-        migrations.AlterField(
             model_name="incident",
             name="alert_rule",
             field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
                 on_delete=django.db.models.deletion.PROTECT, to="sentry.AlertRule"
             ),
-        ),
-        migrations.AlterField(
-            model_name="incident",
-            name="query",
-            field=models.TextField(null=True),
-        ),
-        migrations.AlterField(
-            model_name="incidentgroup",
-            name="incident",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                db_constraint=False,
-                on_delete=django.db.models.deletion.CASCADE,
-                to="sentry.Incident",
-            ),
-        ),
-        migrations.SeparateDatabaseAndState(
-            state_operations=[
-                migrations.AlterUniqueTogether(
-                    name="incidentgroup",
-                    unique_together=set(),
-                ),
-                migrations.RemoveField(
-                    model_name="incidentgroup",
-                    name="group",
-                ),
-                migrations.RemoveField(
-                    model_name="incidentgroup",
-                    name="incident",
-                ),
-                migrations.RemoveField(
-                    model_name="incident",
-                    name="aggregation",
-                ),
-                migrations.RemoveField(
-                    model_name="incident",
-                    name="query",
-                ),
-                migrations.DeleteModel(
-                    name="IncidentGroup",
-                ),
-            ],
-        ),
-        migrations.RunSQL(
-            sql='\n            DROP TABLE "sentry_alertruleenvironment";\n            DROP TABLE "sentry_alertrulequerysubscription";\n            DROP TABLE "sentry_querysubscriptionenvironment";\n            DROP TABLE "sentry_incidentgroup";\n\n            ALTER TABLE "sentry_alertrule"\n            DROP COLUMN "aggregation",\n            DROP COLUMN "dataset",\n            DROP COLUMN "query",\n            DROP COLUMN "resolution",\n            DROP COLUMN "time_window";\n\n            ALTER TABLE "sentry_querysubscription"\n            DROP COLUMN "aggregation",\n            DROP COLUMN "dataset",\n            DROP COLUMN "query",\n            DROP COLUMN "resolution";\n\n            ALTER TABLE "sentry_incident"\n            DROP COLUMN "aggregation",\n            DROP COLUMN "query";\n        ',
-            reverse_sql='\n            CREATE TABLE "sentry_alertruleenvironment" (id bigint);\n            CREATE TABLE "sentry_alertrulequerysubscription" (id bigint);\n            CREATE TABLE "sentry_querysubscriptionenvironment" (id bigint);\n            CREATE TABLE "sentry_incidentgroup" (id bigint);\n\n            ALTER TABLE "sentry_alertrule"\n                ADD COLUMN "aggregation" int,\n                ADD COLUMN "dataset" int,\n                ADD COLUMN "query" text,\n                ADD COLUMN "resolution" text,\n                ADD COLUMN "time_window" int;\n\n            ALTER TABLE "sentry_querysubscription"\n                ADD COLUMN "aggregation" int,\n                ADD COLUMN "dataset" int,\n                ADD COLUMN "query" text,\n                ADD COLUMN "resolution" text;\n\n            ALTER TABLE "sentry_incident"\n                ADD COLUMN "aggregation" int,\n                ADD COLUMN "query" text;\n\n        ',
         ),
         migrations.AlterField(
             model_name="auditlogentry",
@@ -7904,51 +6706,6 @@ class Migration(migrations.Migration):
             name="dashboardwidget",
             unique_together={("dashboard", "title"), ("dashboard", "order")},
         ),
-        migrations.AlterField(
-            model_name="widget",
-            name="dashboard",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                db_constraint=False,
-                db_index=False,
-                on_delete=django.db.models.deletion.CASCADE,
-                to="sentry.Dashboard",
-            ),
-        ),
-        migrations.AlterField(
-            model_name="widget",
-            name="display_type",
-            field=sentry.db.models.fields.bounded.BoundedPositiveIntegerField(),
-        ),
-        migrations.AlterField(
-            model_name="widgetdatasource",
-            name="widget",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                db_constraint=False,
-                db_index=False,
-                on_delete=django.db.models.deletion.CASCADE,
-                to="sentry.Widget",
-            ),
-        ),
-        migrations.SeparateDatabaseAndState(
-            state_operations=[
-                migrations.DeleteModel(
-                    name="Widget",
-                ),
-                migrations.DeleteModel(
-                    name="WidgetDataSource",
-                ),
-            ],
-        ),
-        migrations.SeparateDatabaseAndState(
-            database_operations=[
-                migrations.RunSQL(
-                    sql="\n                DROP TABLE sentry_widget;\n                ",
-                ),
-                migrations.RunSQL(
-                    sql="\n                DROP TABLE sentry_widgetdatasource;\n                ",
-                ),
-            ],
-        ),
         migrations.CreateModel(
             name="GroupOwner",
             fields=[
@@ -8292,62 +7049,6 @@ class Migration(migrations.Migration):
             ),
         ),
         migrations.CreateModel(
-            name="ExternalTeam",
-            fields=[
-                (
-                    "id",
-                    sentry.db.models.fields.bounded.BoundedBigAutoField(
-                        primary_key=True, serialize=False
-                    ),
-                ),
-                ("date_updated", models.DateTimeField(default=django.utils.timezone.now)),
-                ("date_added", models.DateTimeField(default=django.utils.timezone.now, null=True)),
-                ("provider", sentry.db.models.fields.bounded.BoundedPositiveIntegerField()),
-                ("external_id", models.TextField()),
-                (
-                    "team",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE, to="sentry.Team"
-                    ),
-                ),
-            ],
-            options={
-                "db_table": "sentry_externalteam",
-            },
-        ),
-        migrations.AlterUniqueTogether(
-            name="externalteam",
-            unique_together={("team", "provider", "external_id")},
-        ),
-        migrations.CreateModel(
-            name="ExternalUser",
-            fields=[
-                (
-                    "id",
-                    sentry.db.models.fields.bounded.BoundedBigAutoField(
-                        primary_key=True, serialize=False
-                    ),
-                ),
-                ("date_updated", models.DateTimeField(default=django.utils.timezone.now)),
-                ("date_added", models.DateTimeField(default=django.utils.timezone.now, null=True)),
-                ("provider", sentry.db.models.fields.bounded.BoundedPositiveIntegerField()),
-                ("external_id", models.TextField()),
-                (
-                    "user",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL
-                    ),
-                ),
-            ],
-            options={
-                "db_table": "sentry_externaluser",
-            },
-        ),
-        migrations.AlterUniqueTogether(
-            name="externaluser",
-            unique_together={("user", "provider", "external_id")},
-        ),
-        migrations.CreateModel(
             name="ProjectCodeOwners",
             fields=[
                 (
@@ -8360,14 +7061,6 @@ class Migration(migrations.Migration):
                 ("raw", models.TextField(null=True)),
                 ("schema", sentry.db.models.fields.jsonfield.JSONField(null=True)),
                 ("date_added", models.DateTimeField(default=django.utils.timezone.now)),
-                (
-                    "organization_integration",
-                    sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        null=True,
-                        on_delete=django.db.models.deletion.CASCADE,
-                        to="sentry.OrganizationIntegration",
-                    ),
-                ),
                 (
                     "project",
                     sentry.db.models.fields.foreignkey.FlexibleForeignKey(
@@ -8405,46 +7098,6 @@ class Migration(migrations.Migration):
                     ),
                 ),
             ],
-        ),
-        migrations.AddField(
-            model_name="externalteam",
-            name="external_name",
-            field=models.TextField(),
-            preserve_default=False,
-        ),
-        migrations.AddField(
-            model_name="externaluser",
-            name="external_name",
-            field=models.TextField(),
-            preserve_default=False,
-        ),
-        migrations.AddField(
-            model_name="externaluser",
-            name="organizationmember",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                on_delete=django.db.models.deletion.CASCADE, to="sentry.OrganizationMember"
-            ),
-            preserve_default=False,
-        ),
-        migrations.RemoveField(
-            model_name="externalteam",
-            name="external_id",
-        ),
-        migrations.AlterUniqueTogether(
-            name="externalteam",
-            unique_together={("team", "provider", "external_name")},
-        ),
-        migrations.RemoveField(
-            model_name="externaluser",
-            name="external_id",
-        ),
-        migrations.RemoveField(
-            model_name="externaluser",
-            name="user",
-        ),
-        migrations.AlterUniqueTogether(
-            name="externaluser",
-            unique_together={("organizationmember", "provider", "external_name")},
         ),
         migrations.SeparateDatabaseAndState(
             state_operations=[
@@ -8496,14 +7149,6 @@ class Migration(migrations.Migration):
             name="notificationsetting",
             index_together={("target_type", "target_identifier")},
         ),
-        migrations.SeparateDatabaseAndState(
-            state_operations=[
-                migrations.RemoveField(
-                    model_name="projectcodeowners",
-                    name="organization_integration",
-                ),
-            ],
-        ),
         migrations.AlterField(
             model_name="organization",
             name="flags",
@@ -8552,14 +7197,6 @@ class Migration(migrations.Migration):
                 default=0,
                 null=True,
             ),
-        ),
-        migrations.SeparateDatabaseAndState(
-            database_operations=[
-                migrations.RunSQL(
-                    sql='\n                    ALTER TABLE "sentry_projectcodeowners" DROP COLUMN "organization_integration_id";\n                    ',
-                    reverse_sql='\n                    ALTER TABLE "sentry_projectcodeowners" ADD COLUMN "organization_integration_id" bigint NULL;\n                    ',
-                ),
-            ],
         ),
         migrations.CreateModel(
             name="Actor",
@@ -8793,44 +7430,6 @@ class Migration(migrations.Migration):
         migrations.AlterUniqueTogether(
             name="externalactor",
             unique_together={("organization", "provider", "external_name", "actor")},
-        ),
-        migrations.AlterField(
-            model_name="externalteam",
-            name="team",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                db_constraint=False, on_delete=django.db.models.deletion.CASCADE, to="sentry.Team"
-            ),
-        ),
-        migrations.AlterField(
-            model_name="externaluser",
-            name="organizationmember",
-            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                db_constraint=False,
-                on_delete=django.db.models.deletion.CASCADE,
-                to="sentry.OrganizationMember",
-            ),
-        ),
-        migrations.SeparateDatabaseAndState(
-            state_operations=[
-                migrations.DeleteModel(
-                    name="ExternalUser",
-                ),
-            ],
-        ),
-        migrations.SeparateDatabaseAndState(
-            state_operations=[
-                migrations.DeleteModel(
-                    name="ExternalTeam",
-                ),
-            ],
-        ),
-        migrations.RunSQL(
-            sql='\n                DROP TABLE "sentry_externaluser";\n                ',
-            reverse_sql="CREATE TABLE sentry_externaluser (fake_col int)",
-        ),
-        migrations.RunSQL(
-            sql='\n                DROP TABLE "sentry_externalteam";\n                ',
-            reverse_sql="CREATE TABLE sentry_externalteam (fake_col int)",
         ),
         migrations.SeparateDatabaseAndState(
             database_operations=[
