@@ -6,7 +6,7 @@ import {t} from 'app/locale';
 import {Event} from 'app/types/event';
 import {defined} from 'app/utils';
 
-import {getRelativeTimeFromEventDateCreated} from '../utils';
+import {getFullLanguageDescription, getRelativeTimeFromEventDateCreated} from '../utils';
 
 import formatMemory from './formatMemory';
 import formatStorage from './formatStorage';
@@ -182,7 +182,7 @@ function getDeviceKnownDataDetails(
     case DeviceKnownDataType.LANGUAGE:
       return {
         subject: t('Language'),
-        value: data.language,
+        value: getFullLanguageDescription(data.language),
       };
     case DeviceKnownDataType.LOW_MEMORY:
       return {
