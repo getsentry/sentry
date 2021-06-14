@@ -173,6 +173,7 @@ function generateEventsEventView(
       fields,
       query: stringifyQueryObject(conditions),
       projects: [],
+      orderby: '-timestamp',
     },
     location
   );
