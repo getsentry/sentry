@@ -68,7 +68,9 @@ const getFieldOptionConfig = ({
       // TODO(scttcper): Temporary hack for default value while we handle the translation of user
       if (key === 'count_unique') {
         const agg = AGGREGATIONS[key] as Aggregation;
-        agg.generateDefaultValue = () => 'tags[sentry:user]';
+        agg.getFieldOverrides = () => {
+          return {defaultValue: 'tags[sentry:user]'};
+        };
         return [key, agg];
       }
 
