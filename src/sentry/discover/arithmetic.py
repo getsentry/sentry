@@ -268,7 +268,7 @@ def parse_arithmetic(
     result = visitor.visit(tree)
     if len(visitor.fields) > 0 and len(visitor.functions) > 0:
         raise ArithmeticValidationError("Cannot mix functions and fields in arithmetic")
-    if visitor.terms == 1:
+    if visitor.terms <= 1:
         raise ArithmeticValidationError("Need at least 2 terms to do math")
     return result, list(visitor.fields), list(visitor.functions)
 

@@ -196,6 +196,8 @@ def test_function_values(a, op, b):
         "1 ** 2",
         "1 -- 1",
         "hello world",
+        "",
+        "+",
     ],
 )
 def test_unparseable_arithmetic(equation):
