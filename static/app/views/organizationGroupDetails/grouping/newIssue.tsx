@@ -6,12 +6,12 @@ import space from 'app/styles/space';
 import {Event} from 'app/types/event';
 
 type Props = {
-  event: Event;
+  sampleEvent: Event;
+  eventCount: number;
 };
 
-function NewIssue({event}: Props) {
-  const {title, culprit, errors} = event;
-  const errorCount = errors.length;
+function NewIssue({sampleEvent, eventCount}: Props) {
+  const {title, culprit} = sampleEvent;
   return (
     <StyledCard interactive={false}>
       <div>
@@ -19,8 +19,8 @@ function NewIssue({event}: Props) {
         <CulPrint>{culprit}</CulPrint>
       </div>
       <ErrorsCount>
-        {errorCount}
-        <ErrorLabel>{tn('Error', 'Errors', errorCount)}</ErrorLabel>
+        {eventCount}
+        <ErrorLabel>{tn('Error', 'Errors', eventCount)}</ErrorLabel>
       </ErrorsCount>
     </StyledCard>
   );
