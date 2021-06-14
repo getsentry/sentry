@@ -102,11 +102,13 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
 
             def serialize_on_result(result):
                 transaction_stats = request.GET.get("transactionStats")
+                session_stats = request.GET.get("sessionStats")
                 environment_id = self._get_environment_id_from_request(request, organization.id)
                 serializer = ProjectSummarySerializer(
                     environment_id=environment_id,
                     stats_period=stats_period,
                     transaction_stats=transaction_stats,
+                    session_stats=session_stats,
                     collapse=collapse,
                 )
                 return serialize(result, request.user, serializer)
