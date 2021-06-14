@@ -148,7 +148,7 @@ class TestReleaseMonitor(TestCase, SnubaTestCase):
                 "project_id": [self.project2.id, self.project_with_session_data.id],
             },
         ]
-        process_projects_with_sessions(test_data)
+        process_projects_with_sessions(test_data[0]["org_id"][0], test_data[0]["project_id"])
 
         assert not ReleaseProjectEnvironment.objects.filter(
             project_id=self.project_with_session_data.id,
@@ -202,7 +202,7 @@ class TestReleaseMonitor(TestCase, SnubaTestCase):
                 "project_id": [self.project2.id, self.project_with_session_data.id],
             },
         ]
-        process_projects_with_sessions(test_data)
+        process_projects_with_sessions(test_data[0]["org_id"][0], test_data[0]["project_id"])
 
         assert ReleaseProjectEnvironment.objects.filter(
             project_id=self.project_with_session_data.id,
@@ -263,7 +263,7 @@ class TestReleaseMonitor(TestCase, SnubaTestCase):
                 "project_id": [self.project2.id, self.project_with_session_data.id],
             },
         ]
-        process_projects_with_sessions(test_data)
+        process_projects_with_sessions(test_data[0]["org_id"][0], test_data[0]["project_id"])
         assert ReleaseProjectEnvironment.objects.filter(
             project_id=self.project_with_session_data.id,
             release_id=self.release.id,
@@ -279,34 +279,34 @@ class TestReleaseMonitor(TestCase, SnubaTestCase):
             unadopted__gte=now,
         ).exists()
 
-    # def test_release_is_unadopted_without_sessions(self):
-    # TODO: This isn't supported yet because I haven't implemented step 4
-    # This test should verify that releases that have no sessions (i.e. no result from snuba)
-    # get marked as unadopted
-    #     now = timezone.now()
-    #     self.rpe.update(adopted=now)
-    #     assert ReleaseProjectEnvironment.objects.filter(
-    #         project_id=self.project_with_session_data.id,
-    #         release_id=self.release.id,
-    #         environment_id=self.environment.id,
-    #         adopted=now,
-    #         unadopted=None
-    #     ).exists()
-    #     test_data = [
-    # {
-    # "org_id":self.organization.id,
-    # "project_id":[self.project2.id,self.project_with_session_data.id]
-    # },
-    # ]
-    # process_projects_with_sessions(test_data)
-    #     assert ReleaseProjectEnvironment.objects.filter(
-    #         project_id=self.project_with_session_data.id,
-    #         release_id=self.release.id,
-    #         environment_id=self.environment.id,
-    #         adopted=now,
-    #         unadopted__gte=now
-    #     ).exists()
+    def test_release_is_unadopted_without_sessions(self):
+        # This test should verify that releases that have no sessions (i.e. no result from snuba)
+        # get marked as unadopted
+        now = timezone.now()
+        self.rpe.update(adopted=now)
+        assert ReleaseProjectEnvironment.objects.filter(
+            project_id=self.project_with_session_data.id,
+            release_id=self.release.id,
+            environment_id=self.environment.id,
+            adopted=now,
+            unadopted=None,
+        ).exists()
+        test_data = [
+            {
+                "org_id": [self.organization.id],
+                "project_id": [self.project2.id, self.project_with_session_data.id],
+            },
+        ]
+        process_projects_with_sessions(test_data[0]["org_id"][0], test_data[0]["project_id"])
 
-    # # def test_multi_org(self):
-    #     # TODO: Implement a multi-org test
-    #     # pass
+        assert ReleaseProjectEnvironment.objects.filter(
+            project_id=self.project_with_session_data.id,
+            release_id=self.release.id,
+            environment_id=self.environment.id,
+            adopted=now,
+            unadopted__gte=now,
+        ).exists()
+
+    # def test_multi_org(self):
+    #     # TODO: Implement a multi-org test?
+    #     pass
