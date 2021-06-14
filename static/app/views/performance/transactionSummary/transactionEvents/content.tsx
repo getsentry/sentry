@@ -23,7 +23,6 @@ import {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
 import {TableColumn} from 'app/views/eventsV2/table/types';
 
 import {getCurrentLandingDisplay, LandingDisplayField} from '../../landing/utils';
-import {SpanOperationBreakdownFilter} from '../filter';
 import TransactionHeader, {Tab} from '../header';
 import {generateTraceLink, generateTransactionLink} from '../utils';
 
@@ -34,10 +33,7 @@ type Props = {
   eventView: EventView;
   transactionName: string;
   organization: Organization;
-  isLoading: boolean;
-  totalValues: Record<string, number> | null;
   projects: Project[];
-  spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
   cursorName: string;
   limit: number;
 };

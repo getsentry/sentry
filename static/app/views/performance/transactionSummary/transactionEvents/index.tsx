@@ -22,7 +22,6 @@ import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
 
 import {getTransactionName} from '../../utils';
-import {decodeFilterFromLocation, SpanOperationBreakdownFilter} from '../filter';
 
 import EventsPageContent from './content';
 
@@ -34,13 +33,11 @@ type Props = {
 } & Pick<WithRouterProps, 'router'>;
 
 type State = {
-  spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
   eventView: EventView | undefined;
 };
 
 class TransactionEvents extends Component<Props, State> {
   state: State = {
-    spanOperationBreakdownFilter: decodeFilterFromLocation(this.props.location),
     eventView: generateEventsEventView(
       this.props.location,
       getTransactionName(this.props.location)
@@ -121,10 +118,7 @@ class TransactionEvents extends Component<Props, State> {
                 eventView={eventView}
                 transactionName={transactionName}
                 organization={organization}
-                isLoading={false}
-                totalValues={null}
                 projects={projects}
-                spanOperationBreakdownFilter={this.state.spanOperationBreakdownFilter}
               />
             </LightWeightNoProjectMessage>
           </GlobalSelectionHeader>
