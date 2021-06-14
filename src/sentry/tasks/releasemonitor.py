@@ -2,6 +2,7 @@ import logging
 import time
 from datetime import timedelta
 
+from django.db.models import Subquery
 from django.utils import timezone
 
 from sentry.models import Environment, Release, ReleaseProjectEnvironment
@@ -95,16 +96,52 @@ def process_projects_with_sessions(org_id, project_ids):
                 "sentry.tasks.monitor_release_adoption.process_projects_with_sessions.updates"
             ):
                 for row in data:
+                    # Runs a single query like:
+                    # SELECT xxx FROM "sentry_releaseprojectenvironment" WHERE
+                    #   (
+                    #     "sentry_releaseprojectenvironment"."project_id" = 10
+                    #     AND "sentry_releaseprojectenvironment"."release_id" = (
+                    #       SELECT
+                    #         U0."id"
+                    #       FROM
+                    #         "sentry_release" U0
+                    #       WHERE
+                    #         (
+                    #           U0."organization_id" = 4
+                    #           AND U0."version" = foo @ 1.0.0
+                    #         )
+                    #       LIMIT
+                    #         1
+                    #     )
+                    #     AND "sentry_releaseprojectenvironment"."environment_id" = (
+                    #       SELECT
+                    #         U0."id"
+                    #       FROM
+                    #         "sentry_environment" U0
+                    #       WHERE
+                    #         (
+                    #           U0."organization_id" = 4
+                    #           AND U0."project_id" = 10
+                    #           AND U0."name" = canary
+                    #         )
+                    #       LIMIT
+                    #         1
+                    #     )
+                    #   )
                     rpe = ReleaseProjectEnvironment.objects.get(
                         project_id=row["project_id"],
-                        release_id=Release.objects.get(
-                            organization=org_id, version=row["release"]
-                        ).id,
-                        environment_id=Environment.objects.get(
-                            organization_id=org_id,
-                            project_id=row["project_id"],
-                            name=row["environment"],
-                        ).id,
+                        release_id=Subquery(
+                            Release.objects.filter(
+                                organization=org_id, version=row["release"]
+                            ).values("id")[:1],
+                        ),
+                        environment_id=Subquery(
+                            Environment.objects.filter(
+                                organization_id=org_id,
+                                project_id=row["project_id"],
+                                name=row["environment"],
+                            ).values("id")[:1]
+                        ),
                     )
                     adopted = (
                         True
