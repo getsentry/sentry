@@ -9,14 +9,6 @@ from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.snuba import Dataset, raw_query
 
-# TODO: Think about where too many results many be processed, and where you may need to page, batch things, or fire off another task
-# TODO: Paginate step #1 query? Last I checked there are 43k projects. Not sure how many orgs.
-# TODO: Is step #2 really slow? Should I break it up per project? Org?
-# TODO: Can I select every ReleaseProjectEnvironment at once? Or bulk select releases and environments? (per org)?
-# TODO: Try using SnQL
-# TODO: Add some error catching (i.e. catch ReleaseProjectEnvironment.DoesNotExist and think of where else errors could occur)
-# TODO: I'm actually not sure if I need to update ReleaseProject's? A release doesn't have to have an environment, but it seems like sessions do (https://develop.sentry.dev/sdk/sessions/)
-
 REQUIRED_ADOPTION_PERCENT = 0.1
 CHUNK_SIZE = 1
 MAX_SECONDS = 60
@@ -38,14 +30,13 @@ def monitor_release_adoption(**kwargs):
     # WHERE date > now() - interval '<whatever>'
     # GROUP BY org_id
     # Date range here will be 12 hours to start.
-    # TODO: When this query is supported, make sure you paginate it.
-
+    # NOTE: When this query is supported, make sure you paginate it.
     # NOTE: Hardcoded data for sentry org and sentry project for early release, in the same format snuba should return
     data = [
         {"org_id": [1], "project_id": [1]},
     ]
 
-    # TODO: This should probably be broken out into a separate task per org because it potentially has to paginate through a lot of snuba results.
+    # NOTE: This should probably be broken out into a separate task per org because it potentially has to paginate through a lot of snuba results.
     with metrics.timer("sentry.tasks.monitor_release_adoption.process_projects_with_sessions"):
         for row in data:
             process_projects_with_sessions(data["org_id"][0], data["project_id"])
@@ -97,7 +88,6 @@ def process_projects_with_sessions(org_id, project_ids):
 
         # 3. Using the sums from #2, calculate adoption rate (relevant sessions / all sessions) update the appropriate ReleaseProjectEnvironment model adopted/unadopted fields.
         for row in data:
-            # TODO: Make this one query or fetch all in bulk? Not sure how to do bulk without overselecting, but I can at least start with a subquery.
             rpe = ReleaseProjectEnvironment.objects.get(
                 project_id=row["project_id"],
                 release_id=Release.objects.get(organization=org_id, version=row["release"]).id,
