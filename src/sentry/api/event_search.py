@@ -7,7 +7,7 @@ from django.utils.functional import cached_property
 from parsimonious.exceptions import IncompleteParseError
 from parsimonious.expressions import Optional
 from parsimonious.grammar import Grammar, NodeVisitor
-from parsimonious.nodes import Node, RegexNode
+from parsimonious.nodes import Node
 
 from sentry.search.events.constants import (
     KEY_TRANSACTION_ALIAS,
@@ -94,10 +94,10 @@ aggregate_date_filter = negation? aggregate_key sep operator? iso_8601_date_form
 aggregate_rel_date_filter = negation? aggregate_key sep operator? rel_date_format
 
 # has filter for not null type checks
-has_filter = negation? "has" sep (search_key / search_value)
+has_filter = negation? &"has:" search_key sep (search_key / search_value)
 
 # is filter. Specific to issue search
-is_filter  = negation? "is" sep search_value
+is_filter  = negation? &"is:" search_key sep search_value
 
 # in filter key:[val1, val2]
 text_in_filter = negation? text_key sep text_in_list
@@ -105,34 +105,45 @@ text_in_filter = negation? text_key sep text_in_list
 # standard key:val filter
 text_filter = negation? text_key sep search_value
 
-key              = ~r"[a-zA-Z0-9_\.-]+"
-quoted_key       = ~r"\"([a-zA-Z0-9_\.:-]+)\""
+key              = ~r"[a-zA-Z0-9_.-]+"
+quoted_key       = '"' ~r"[a-zA-Z0-9_.:-]+" '"'
 explicit_tag_key = "tags" open_bracket search_key closed_bracket
 aggregate_key    = key open_paren spaces function_args? spaces closed_paren
 function_args    = key (spaces comma spaces key)*
 search_key       = key / quoted_key
 text_key         = explicit_tag_key / search_key
-value            = ~r"[^()\s]*"
-quoted_value     = ~r"\"((?:\\\"|[^\"])*)?\""s
-in_value         = ~r"[^(),\s]*(?:[^\],\s)]|](?=]))"
-text_value       = quoted_value / in_value
+value            = ~r"[^()\t\n ]*"
+quoted_value     = '"' ('\\"' / ~r'[^"]')* '"'
+in_value         = (&in_value_termination in_value_char)+
+text_in_value    = quoted_value / in_value
 search_value     = quoted_value / value
-numeric_value    = ~r"([-]?[0-9\.]+)([kmb])?(?=\s|\)|$|,|])"
-boolean_value    = ~r"(true|1|false|0)(?=\s|\)|$)"i
-text_in_list     = open_bracket text_value (spaces comma spaces text_value)* closed_bracket
-numeric_in_list  = open_bracket numeric_value (spaces comma spaces numeric_value)* closed_bracket
+numeric_value    = "-"? numeric ~r"[kmb]"? &(end_value / comma / closed_bracket)
+boolean_value    = ~r"(true|1|false|0)"i &end_value
+text_in_list     = open_bracket text_in_value (spaces comma spaces text_in_value)* closed_bracket &end_value
+numeric_in_list  = open_bracket numeric_value (spaces comma spaces numeric_value)* closed_bracket &end_value
+
+# See: https://stackoverflow.com/a/39617181/790169
+in_value_termination = in_value_char (!in_value_end in_value_char)* in_value_end
+in_value_char        = ~r"[^(), ]"
+in_value_end         = closed_bracket / (spaces comma)
 
 # Formats
-iso_8601_date_format = ~r"(\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}:\d{2}(\.\d{1,6})?)?(Z|([+-]\d{2}:\d{2}))?)(?=\s|\)|$)"
-rel_date_format      = ~r"[\+\-][0-9]+[wdhm](?=\s|\)|$)"
-duration_format      = ~r"([0-9\.]+)(ms|s|min|m|hr|h|day|d|wk|w)(?=\s|\)|$)"
-percentage_format    = ~r"([0-9\.]+)%"
+date_format = ~r"\d{4}-\d{2}-\d{2}"
+time_format = ~r"T\d{2}:\d{2}:\d{2}" ("." ms_format)?
+ms_format   = ~r"\d{1,6}"
+tz_format   = ~r"[+-]\d{2}:\d{2}"
+
+iso_8601_date_format = date_format time_format? ("Z" / tz_format)? &end_value
+rel_date_format      = ~r"[+-][0-9]+[wdhm]" &end_value
+duration_format      = numeric ("ms"/"s"/"min"/"m"/"hr"/"h"/"day"/"d"/"wk"/"w") &end_value
+percentage_format    = numeric "%"
 
 # NOTE: the order in which these operators are listed matters because for
 # example, if < comes before <= it will match that even if the operator is <=
 operator             = ">=" / "<=" / ">" / "<" / "=" / "!="
-or_operator          = ~r"OR(?=\s|$)"i
-and_operator         = ~r"AND(?=\s|$)"i
+or_operator          = ~r"OR"i  &end_value
+and_operator         = ~r"AND"i &end_value
+numeric              = ~r"[0-9]+(?:\.[0-9]*)?"
 open_paren           = "("
 closed_paren         = ")"
 open_bracket         = "["
@@ -141,6 +152,8 @@ sep                  = ":"
 negation             = "!"
 comma                = ","
 spaces               = " "*
+
+end_value = ~r"[\t\n )]|$"
 """
 )
 
@@ -423,7 +436,7 @@ class SearchVisitor(NodeVisitor):
         if not self.allow_boolean:
             # It's possible to have a valid search that includes parens, so we
             # can't just error out when we find a paren expression.
-            return self.visit_free_text(node, children)
+            return SearchFilter(SearchKey("message"), "=", SearchValue(node.text))
 
         children = remove_space(remove_optional_nodes(flatten(children)))
         children = flatten(children[1])
@@ -451,6 +464,23 @@ class SearchVisitor(NodeVisitor):
             )
 
         return SearchFilter(search_key, operator, search_value)
+
+    def _handle_numeric_filter(self, search_key, operator, search_value):
+        if isinstance(operator, Node):
+            operator = "=" if isinstance(operator.expr, Optional) else operator.text
+        else:
+            operator = operator[0]
+
+        if self.is_numeric_key(search_key.name):
+            try:
+                search_value = SearchValue(parse_numeric_value(*search_value))
+            except InvalidQuery as exc:
+                raise InvalidSearchQuery(str(exc))
+            return SearchFilter(search_key, operator, search_value)
+
+        search_value = "".join(search_value)
+        search_value = SearchValue(operator + search_value if operator != "=" else search_value)
+        return self._handle_basic_filter(search_key, "=", search_value)
 
     def visit_date_filter(self, node, children):
         (search_key, _, operator, search_value) = children
@@ -510,18 +540,22 @@ class SearchVisitor(NodeVisitor):
 
     def visit_duration_filter(self, node, children):
         (search_key, sep, operator, search_value) = children
+        search_value = search_value[1:]
 
         operator = operator[0] if not isinstance(operator, Node) else "="
         if self.is_duration_key(search_key.name):
             try:
-                search_value = parse_duration(*search_value.match.groups())
+                search_value = parse_duration(*search_value)
             except InvalidQuery as exc:
                 raise InvalidSearchQuery(str(exc))
             return SearchFilter(search_key, operator, SearchValue(search_value))
-        elif self.is_numeric_key(search_key.name):
-            return self.visit_numeric_filter(node, (search_key, sep, operator, search_value))
 
-        search_value = operator + search_value.text if operator != "=" else search_value.text
+        # Durations overlap with numeric `m` suffixes
+        if self.is_numeric_key(search_key.name):
+            return self._handle_numeric_filter(search_key, operator, search_value)
+
+        search_value = "".join(search_value)
+        search_value = operator + search_value if operator != "=" else search_value
         return self._handle_basic_filter(search_key, "=", SearchValue(search_value))
 
     def visit_boolean_filter(self, node, children):
@@ -530,15 +564,7 @@ class SearchVisitor(NodeVisitor):
 
         # Numeric and boolean filters overlap on 1 and 0 values.
         if self.is_numeric_key(search_key.name):
-            return self.visit_numeric_filter(
-                node,
-                (
-                    search_key,
-                    sep,
-                    "=",
-                    search_value,
-                ),
-            )
+            return self._handle_numeric_filter(search_key, "=", [search_value.text, ""])
 
         if search_key.name in self.boolean_keys:
             if search_value.text.lower() in ("true", "1"):
@@ -558,59 +584,49 @@ class SearchVisitor(NodeVisitor):
 
         if self.is_numeric_key(search_key.name):
             try:
-                search_value = SearchValue(
-                    [parse_numeric_value(*val.match.groups()) for val in search_value]
-                )
+                search_value = SearchValue([parse_numeric_value(*val) for val in search_value])
             except InvalidQuery as exc:
                 raise InvalidSearchQuery(str(exc))
             return SearchFilter(search_key, operator, search_value)
 
-        search_value = SearchValue([v.text for v in search_value])
+        search_value = SearchValue(["".join(value) for value in search_value])
         return self._handle_basic_filter(search_key, operator, search_value)
 
     def visit_numeric_filter(self, node, children):
         (search_key, _, operator, search_value) = children
-        if isinstance(operator, Node):
-            operator = "=" if isinstance(operator.expr, Optional) else operator.text
-        else:
-            operator = operator[0]
-
-        if self.is_numeric_key(search_key.name):
-            try:
-                search_value = SearchValue(parse_numeric_value(*search_value.match.groups()))
-            except InvalidQuery as exc:
-                raise InvalidSearchQuery(str(exc))
-            return SearchFilter(search_key, operator, search_value)
-
-        search_value = search_value.text
-        search_value = SearchValue(operator + search_value if operator != "=" else search_value)
-        return self._handle_basic_filter(search_key, "=", search_value)
+        return self._handle_numeric_filter(search_key, operator, search_value)
 
     def visit_aggregate_filter(self, node, children):
         (negation, search_key, _, operator, search_value) = children
         operator = handle_negation(negation, operator)
-        search_value = search_value[0] if not isinstance(search_value, RegexNode) else search_value
+        search_value = search_value[0]
 
         try:
             aggregate_value = None
-            if search_value.expr_name in ["duration_format", "percentage_format"]:
+            value_type = search_value[0]
+
+            if value_type in ["duration_format", "percentage_format"]:
                 # Even if the search value matches duration format, only act as duration for certain columns
                 function = resolve_field(
                     search_key.name, self.params, functions_acl=FUNCTIONS.keys()
                 )
                 if function.aggregate is not None:
-                    if search_value.expr_name == "percentage_format" and self.is_percentage_key(
+                    if value_type == "percentage_format" and self.is_percentage_key(
                         function.aggregate[0]
                     ):
-                        aggregate_value = parse_percentage(*search_value.match.groups())
+                        aggregate_value = parse_percentage(search_value[1])
                     # Extract column and function name out so we can check if we should parse as duration
-                    elif search_value.expr_name == "duration_format" and self.is_duration_key(
+                    elif value_type == "duration_format" and self.is_duration_key(
                         function.aggregate[1]
                     ):
-                        aggregate_value = parse_duration(*search_value.match.groups())
+                        aggregate_value = parse_duration(*search_value[1:])
 
             if aggregate_value is None:
-                aggregate_value = parse_numeric_value(*search_value.match.groups())
+                # Duration can fall through as a numeric value due to the
+                # overlapping 'm'
+                if len(search_value) == 3:
+                    search_value = search_value[1:]
+                aggregate_value = parse_numeric_value(*search_value)
         except ValueError:
             raise InvalidSearchQuery(f"Invalid aggregate query condition: {search_key}")
         except InvalidQuery as exc:
@@ -656,7 +672,7 @@ class SearchVisitor(NodeVisitor):
 
     def visit_has_filter(self, node, children):
         # the key is has here, which we don't need
-        negation, _, _, (search_key,) = children
+        negation, _, _, _, (search_key,) = children
 
         # if it matched search value instead, it's not a valid key
         if isinstance(search_key, SearchValue):
@@ -697,7 +713,7 @@ class SearchVisitor(NodeVisitor):
         return node.text
 
     def visit_quoted_key(self, node, children):
-        return node.match.groups()[0]
+        return children[1].text
 
     def visit_explicit_tag_key(self, node, children):
         return SearchKey(f"tags[{children[2].name}]")
@@ -748,19 +764,26 @@ class SearchVisitor(NodeVisitor):
         return node.text.replace('\\"', '"')
 
     def visit_quoted_value(self, node, children):
-        return node.match.groups()[0].replace('\\"', '"')
+        value = "".join(node.text for node in flatten(children[1]))
+        value = value.replace('\\"', '"')
+
+        return value
 
     def visit_in_value(self, node, children):
         return node.text.replace('\\"', '"')
 
-    def visit_text_value(self, node, children):
+    def visit_text_in_value(self, node, children):
         return children[0]
 
     def visit_search_value(self, node, children):
         return SearchValue(children[0])
 
     def visit_numeric_value(self, node, children):
-        return node
+        (sign, value, suffix, _) = children
+        sign = sign[0].text if isinstance(sign, list) else ""
+        suffix = suffix[0].text if isinstance(suffix, list) else ""
+
+        return [f"{sign}{value}", suffix]
 
     def visit_boolean_value(self, node, children):
         return node
@@ -778,10 +801,10 @@ class SearchVisitor(NodeVisitor):
         return node
 
     def visit_duration_format(self, node, children):
-        return node
+        return ["duration_format", children[0], children[1][0].text]
 
     def visit_percentage_format(self, node, children):
-        return node
+        return ["percentage_format", children[0]]
 
     def visit_operator(self, node, children):
         return node.text
@@ -791,6 +814,9 @@ class SearchVisitor(NodeVisitor):
 
     def visit_and_operator(self, node, children):
         return node.text.upper()
+
+    def visit_numeric(self, node, children):
+        return node.text
 
     def visit_open_paren(self, node, children):
         return node.text

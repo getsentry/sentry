@@ -112,7 +112,7 @@ class Table extends React.Component<Props, State> {
     column: TableColumn<keyof TableDataRow>,
     dataRow: TableDataRow
   ): React.ReactNode {
-    const {eventView, organization, projects, location, summaryConditions} = this.props;
+    const {eventView, organization, projects, location} = this.props;
 
     if (!tableData || !tableData.meta) {
       return dataRow[column.key];
@@ -133,8 +133,12 @@ class Table extends React.Component<Props, State> {
     if (field === 'transaction') {
       const projectID = getProjectID(dataRow, projects);
       const summaryView = eventView.clone();
-      summaryView.query = summaryConditions;
-
+      if (dataRow['http.method']) {
+        summaryView.additionalConditions.setTagValues('http.method', [
+          dataRow['http.method'] as string,
+        ]);
+      }
+      summaryView.query = summaryView.getQueryWithAdditionalConditions();
       const target = transactionSummaryRouteWithQuery({
         orgSlug: organization.slug,
         transaction: String(dataRow.transaction) || '',

@@ -57,7 +57,7 @@ class IssueSearchVisitor(SearchVisitor):
 
     def visit_is_filter(self, node, children):
         # the key is "is" here, which we don't need
-        negation, _, _, search_value = children
+        negation, _, _, _, search_value = children
 
         if search_value.raw_value.startswith("["):
             raise InvalidSearchQuery('"in" syntax invalid for "is" search')
