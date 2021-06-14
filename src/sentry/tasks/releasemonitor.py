@@ -38,13 +38,12 @@ def monitor_release_adoption(**kwargs):
     # WHERE date > now() - interval '<whatever>'
     # GROUP BY org_id
     # Date range here will be 12 hours to start.
-    # TODO: When this query is supported, make sure you paginate when implementing it.
+    # TODO: When this query is supported, make sure you paginate it.
 
     # NOTE: Hardcoded data for sentry org and sentry project for early release, in the same format snuba should return
     data = [
         {"org_id": [1], "project_id": [1]},
-        # {"org_id":2,"project_id":[3,4]}
-    ]  # This is the format snuba will return I believe
+    ]
 
     # TODO: This should probably be broken out into a separate task per org because it potentially has to paginate through a lot of snuba results.
     with metrics.timer("sentry.tasks.monitor_release_adoption.process_projects_with_sessions"):
