@@ -660,7 +660,7 @@ def resolve_function(field, match=None, params=None, functions_acl=False):
         if alias is None:
             alias = get_function_alias_with_columns(function.name, columns)
 
-        if arguments[condition.arg]:
+        if arguments[condition.arg] is not None:
             snuba_string = match.format(**arguments)
         else:
             snuba_string = fallback.format(**arguments)
@@ -1417,7 +1417,9 @@ FUNCTIONS = {
             calculated_args=[
                 {
                     "name": "tolerated",
-                    "fn": lambda args: args["satisfaction"] * 4.0 if args["satisfaction"] else None,
+                    "fn": lambda args: args["satisfaction"] * 4.0
+                    if args["satisfaction"] is not None
+                    else None,
                 }
             ],
             conditional_transform=ConditionalFunction(
@@ -1456,7 +1458,9 @@ FUNCTIONS = {
             calculated_args=[
                 {
                     "name": "tolerated",
-                    "fn": lambda args: args["satisfaction"] * 4.0 if args["satisfaction"] else None,
+                    "fn": lambda args: args["satisfaction"] * 4.0
+                    if args["satisfaction"] is not None
+                    else None,
                 },
                 {"name": "parameter_sum", "fn": lambda args: args["alpha"] + args["beta"]},
             ],
