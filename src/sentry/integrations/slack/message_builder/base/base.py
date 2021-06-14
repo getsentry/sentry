@@ -8,7 +8,7 @@ from sentry.utils.http import absolute_uri
 
 
 class SlackMessageBuilder(AbstractMessageBuilder, ABC):
-    def build(self) -> SlackBody:
+    def build(self, **kwargs: Any) -> SlackBody:
         """Abstract `build` method that all inheritors must implement."""
         raise NotImplementedError
 

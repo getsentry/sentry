@@ -1,3 +1,5 @@
+from typing import Any
+
 from sentry.integrations.slack.message_builder import SlackBody
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 
@@ -8,7 +10,7 @@ class SlackDiscoverMessageBuilder(BlockSlackMessageBuilder):
         self.title = title
         self.chart_url = chart_url
 
-    def build(self) -> SlackBody:
+    def build(self, **kwargs: Any) -> SlackBody:
         return self._build_blocks(
             self.get_image_block(self.chart_url, title=self.title, alt="Discover Chart")
         )

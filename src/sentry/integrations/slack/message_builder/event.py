@@ -1,3 +1,5 @@
+from typing import Any
+
 from sentry import features
 from sentry.integrations.slack.message_builder import SlackBody
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
@@ -17,7 +19,7 @@ EVENT_MESSAGE = (
 
 
 class SlackEventMessageBuilder(BlockSlackMessageBuilder):
-    def build(self, integration) -> SlackBody:
+    def build(self, **kwargs: Any) -> SlackBody:
         action_block = self.get_action_block(
             [
                 (
@@ -27,11 +29,15 @@ class SlackEventMessageBuilder(BlockSlackMessageBuilder):
                 )
             ]
         )
-        if not features.has("organizations:notification-platform", integration.organizations.all()):
-            return self._build_blocks(
-                self.get_markdown_block(EVENT_MESSAGE),
-                action_block,
-            )
+        integration = kwargs.pop("integration", None)
+        if integration:
+            if not features.has(
+                "organizations:notification-platform", integration.organizations.all()
+            ):
+                return self._build_blocks(
+                    self.get_markdown_block(EVENT_MESSAGE),
+                    action_block,
+                )
         return self._build_blocks(
             self.get_markdown_block(HEADER_MESSAGE),
             self.get_markdown_block(DM_COMMAND_HEADER),

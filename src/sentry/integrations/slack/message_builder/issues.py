@@ -304,7 +304,7 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
         self.link_to_event = link_to_event
         self.issue_alert = issue_alert
 
-    def build(self) -> SlackBody:
+    def build(self, **kwargs: Any) -> SlackBody:
         # XXX(dcramer): options are limited to 100 choices, even when nested
         text = build_attachment_text(self.group, self.event) or ""
         project = Project.objects.get_from_cache(id=self.group.project_id)
