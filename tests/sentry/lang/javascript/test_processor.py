@@ -20,7 +20,7 @@ from sentry.lang.javascript.processor import (
     cache,
     discover_sourcemap,
     fetch_file,
-    fetch_release_archive,
+    fetch_release_archive_for_url,
     fetch_release_file,
     fetch_sourcemap,
     generate_module,
@@ -557,7 +557,7 @@ class FetchFileTest(TestCase):
             ]
 
         # No archive exists:
-        result = fetch_release_archive(release, dist=None, url="foo")
+        result = fetch_release_archive_for_url(release, dist=None, url="foo")
         assert result is None
         assert len(relevant_calls(cache_get, "artifact-index")) == 1
         assert len(relevant_calls(cache_set, "artifact-index")) == 1
@@ -567,7 +567,7 @@ class FetchFileTest(TestCase):
         cache_set.reset_mock()
 
         # Still no archive, cache is only read
-        result = fetch_release_archive(release, dist=None, url="foo")
+        result = fetch_release_archive_for_url(release, dist=None, url="foo")
         assert result is None
         assert len(relevant_calls(cache_get, "artifact-index")) == 1
         assert len(relevant_calls(cache_set, "artifact-index")) == 0
@@ -600,7 +600,7 @@ class FetchFileTest(TestCase):
         )
 
         # No we have one, call set again
-        result = fetch_release_archive(release2, dist=None, url="foo")
+        result = fetch_release_archive_for_url(release2, dist=None, url="foo")
         assert result is not None
         assert len(relevant_calls(cache_get, "artifact-index")) == 1
         assert len(relevant_calls(cache_set, "artifact-index")) == 1
@@ -610,7 +610,7 @@ class FetchFileTest(TestCase):
         cache_set.reset_mock()
 
         # Second time, get it from cache
-        result = fetch_release_archive(release2, dist=None, url="foo")
+        result = fetch_release_archive_for_url(release2, dist=None, url="foo")
         assert result is not None
         assert len(relevant_calls(cache_get, "artifact-index")) == 1
         assert len(relevant_calls(cache_set, "artifact-index")) == 0
@@ -620,7 +620,7 @@ class FetchFileTest(TestCase):
         cache_set.reset_mock()
 
         # For other file, get cached manifest but no release file
-        result = fetch_release_archive(release2, dist=None, url="bar")
+        result = fetch_release_archive_for_url(release2, dist=None, url="bar")
         assert result is None
         assert len(relevant_calls(cache_get, "artifact-index")) == 1
         assert len(relevant_calls(cache_set, "artifact-index")) == 0

@@ -424,8 +424,11 @@ def get_index_entry(release, dist, url) -> Optional[dict]:
 
 
 @metrics.wraps("sourcemaps.fetch_release_archive")
-def fetch_release_archive(release, dist, url) -> Optional[IO]:
+def fetch_release_archive_for_url(release, dist, url) -> Optional[IO]:
     """Fetch release archive and cache if possible.
+
+    Multiple archives might have been uploaded, so we need the URL
+    to get the correct archive from the artifact index.
 
     If return value is not empty, the caller is responsible for closing the stream.
     """
@@ -500,7 +503,7 @@ def fetch_release_artifact(url, release, dist):
         return result_from_cache(url, result)
 
     start = time.monotonic()
-    release_file = fetch_release_archive(release, dist, url)
+    release_file = fetch_release_archive_for_url(release, dist, url)
     if release_file is not None:
         try:
             archive = ReleaseArchive(release_file)
