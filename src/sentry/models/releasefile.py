@@ -299,54 +299,61 @@ class _ArtifactIndexGuard:
             return release_file.file
 
 
-class ArtifactIndex:
+def read_artifact_index(release: Release, dist: Optional[Distribution]) -> Optional[dict]:
+    """Get index data"""
+    guard = _ArtifactIndexGuard(release, dist)
+    return guard.readable_data()
 
-    """Manager of all uploaded artifact bundles and their index"""
 
-    def __init__(self, release: Release, dist: Optional[Distribution]):
-        self._release = release
-        self._dist = dist
-        self._guard = _ArtifactIndexGuard(release, dist)
+def _compute_sha1(archive: ReleaseArchive, url: str) -> str:
+    data = archive.read(url)
+    return sha1(data).hexdigest()
 
-    def read(self):
-        """Get index data"""
-        return self._guard.readable_data()
 
-    def update(self, archive_releasefile: ReleaseFile):
-        """Add information from release archive to artifact index"""
+def update_artifact_index(release: Release, dist: Optional[Distribution], archive_file: File):
+    """Add information from release archive to artifact index
 
-        archive_file: File = archive_releasefile.file
-        with ReleaseArchive(archive_file.getfile()) as archive:
-            manifest = archive.manifest
+    :returns: The created ReleaseFile instance
+    """
+    releasefile = ReleaseFile.objects.create(
+        name=archive_file.name,
+        release=release,
+        organization_id=release.organization_id,
+        dist=dist,
+        file=archive_file,
+    )
 
-            files = manifest.get("files", {})
-            if not files:
-                return
+    files_out = {}
+    with ReleaseArchive(archive_file.getfile()) as archive:
+        manifest = archive.manifest
 
-            files_out = {}
+        files = manifest.get("files", {})
+        if not files:
+            return
 
-            for filename, info in files.items():
-                info = info.copy()
-                url = info.pop("url")
-                info["filename"] = filename
-                info["archive_ident"] = archive_releasefile.ident
-                info["date_created"] = archive_file.timestamp
-                info["sha1"] = self._compute_sha1(archive, filename)
-                info["size"] = archive.info(filename).file_size
-                files_out[url] = info
+        for filename, info in files.items():
+            info = info.copy()
+            url = info.pop("url")
+            info["filename"] = filename
+            info["archive_ident"] = releasefile.ident
+            info["date_created"] = archive_file.timestamp
+            info["sha1"] = _compute_sha1(archive, filename)
+            info["size"] = archive.info(filename).file_size
+            files_out[url] = info
 
-            with self._guard.writable_data(create=True) as index_data:
-                index_data.update_files(files_out)
+    guard = _ArtifactIndexGuard(release, dist)
+    with guard.writable_data(create=True) as index_data:
+        index_data.update_files(files_out)
 
-    def delete(self, url: str):
-        """Delete a file from the manifest.
+    return releasefile
 
-        Does *not* delete the file from the zip archive.
-        """
-        with self._guard.writable_data(create=False) as index_data:
-            if index_data is not None:
-                index_data.delete(url)
 
-    def _compute_sha1(self, archive: ReleaseArchive, url: str) -> str:
-        data = archive.read(url)
-        return sha1(data).hexdigest()
+def delete_from_artifact_index(release: Release, dist: Optional[Distribution], url: str):
+    """Delete the file with the given url from the manifest.
+
+    Does *not* delete the file from the zip archive.
+    """
+    guard = _ArtifactIndexGuard(release, dist)
+    with guard.writable_data(create=False) as index_data:
+        if index_data is not None:
+            index_data.delete(url)

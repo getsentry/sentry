@@ -8,7 +8,11 @@ from sentry import options
 from sentry.models import ReleaseFile
 from sentry.models.distribution import Distribution
 from sentry.models.file import File
-from sentry.models.releasefile import ArtifactIndex
+from sentry.models.releasefile import (
+    delete_from_artifact_index,
+    read_artifact_index,
+    update_artifact_index,
+)
 from sentry.testutils import TestCase
 from sentry.utils import json
 
@@ -106,26 +110,13 @@ class ReleaseArchiveTestCase(TestCase):
         file_.putfile(buffer)
         file_.update(timestamp=datetime(2021, 6, 11, 9, 13, 1, 317902, tzinfo=timezone.utc))
 
-        releasefile = ReleaseFile.objects.create(
-            name=file_.name,
-            release=self.release,
-            organization_id=self.organization.id,
-            dist=dist,
-            file=file_,
-        )
-
-        index = ArtifactIndex(self.release, dist)
-        index.update(releasefile)
-
-        return releasefile
+        return update_artifact_index(self.release, dist, file_)
 
     def test_multi_archive(self):
-        index = ArtifactIndex(self.release, None)
-
-        assert index.read() is None
+        assert read_artifact_index(self.release, None) is None
 
         # Delete does nothing
-        index.delete("foo")
+        delete_from_artifact_index(self.release, None, "foo")
 
         archive1 = self.create_archive(
             fields={},
@@ -136,7 +127,7 @@ class ReleaseArchiveTestCase(TestCase):
             },
         )
 
-        assert index.read() == {
+        assert read_artifact_index(self.release, None) == {
             "files": {
                 "fake://bar": {
                     "archive_ident": archive1.ident,
@@ -211,12 +202,12 @@ class ReleaseArchiveTestCase(TestCase):
             },
         }
 
-        assert index.read() == expected
+        assert read_artifact_index(self.release, None) == expected
 
         # Deletion works:
-        index.delete("fake://foo")
+        delete_from_artifact_index(self.release, None, "fake://foo")
         expected["files"].pop("fake://foo")
-        assert index.read() == expected
+        assert read_artifact_index(self.release, None) == expected
 
     def test_same_sha(self):
         """Stand-alone release file has same sha1 as one in manifest"""
@@ -225,5 +216,5 @@ class ReleaseArchiveTestCase(TestCase):
         file_.putfile(BytesIO(b"bar"))
         self.create_release_file(file=file_)
 
-        index = ArtifactIndex(self.release, None).read()
+        index = read_artifact_index(self.release, None)
         assert file_.checksum == index["files"]["fake://foo"]["sha1"]

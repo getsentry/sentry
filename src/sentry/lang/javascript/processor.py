@@ -5,7 +5,7 @@ from typing import IO, Optional, Tuple
 
 from django.utils.encoding import force_bytes, force_text
 
-from sentry.models.releasefile import ARTIFACT_INDEX_FILENAME, ArtifactIndex, ReleaseArchive
+from sentry.models.releasefile import ARTIFACT_INDEX_FILENAME, ReleaseArchive, read_artifact_index
 from sentry.utils import json
 
 __all__ = ["JavaScriptStacktraceProcessor"]
@@ -404,7 +404,7 @@ def get_artifact_index(release, dist):
     elif result:
         index = json.loads(result)
     else:
-        index = ArtifactIndex(release, dist).read()
+        index = read_artifact_index(release, dist)
         cache_value = -1 if index is None else json.dumps(index)
         # Only cache for a short time to keep the manifest up-to-date
         cache.set(cache_key, cache_value, timeout=60)

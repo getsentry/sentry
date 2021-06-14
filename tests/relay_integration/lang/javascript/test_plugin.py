@@ -7,7 +7,7 @@ import responses
 from django.utils.encoding import force_bytes
 
 from sentry.models import File, Release, ReleaseFile
-from sentry.models.releasefile import ArtifactIndex, ReleaseArchive
+from sentry.models.releasefile import update_artifact_index
 from sentry.testutils import RelayStoreHelper, SnubaTestCase, TransactionTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils import json
@@ -1155,8 +1155,7 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         file = File.objects.create(name="doesnt_matter", type="release.bundle")
         file.putfile(file_like)
 
-        with ReleaseArchive(file.getfile()) as archive:
-            ArtifactIndex(release, dist=None).update(archive, file)
+        update_artifact_index(release, None, file)
 
         data = {
             "timestamp": self.min_ago,

@@ -31,7 +31,7 @@ from sentry.lang.javascript.processor import (
     trim_line,
 )
 from sentry.models import EventError, File, Release, ReleaseFile
-from sentry.models.releasefile import ARTIFACT_INDEX_FILENAME, ArtifactIndex
+from sentry.models.releasefile import ARTIFACT_INDEX_FILENAME, update_artifact_index
 from sentry.testutils import TestCase
 from sentry.utils import json
 from sentry.utils.compat.mock import ANY, MagicMock, call, patch
@@ -520,14 +520,7 @@ class FetchFileTest(TestCase):
         compressed.seek(0)
         file_ = File.objects.create(name="foo", type="release.bundle")
         file_.putfile(compressed)
-        releasefile = ReleaseFile.objects.create(
-            name=file_.name,
-            release=release,
-            organization_id=self.organization.id,
-            dist=None,
-            file=file_,
-        )
-        ArtifactIndex(release, dist=None).update(releasefile)
+        update_artifact_index(release, None, file_)
 
         with self.options({"processing.use-release-archives-sample-rate": 1.0}):
             # Attempt to fetch nonexisting
@@ -595,7 +588,7 @@ class FetchFileTest(TestCase):
             dist=None,
             file=pseudo_archive,
         )
-        file = File.objects.create(name=ARTIFACT_INDEX_FILENAME, type="release.manifest")
+        file = File.objects.create(name=ARTIFACT_INDEX_FILENAME, type="release.artifact-index")
         file.putfile(
             BytesIO(json.dumps({"files": {"foo": {"archive_ident": releasefile.ident}}}).encode())
         )
