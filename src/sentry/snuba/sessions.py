@@ -101,20 +101,45 @@ def get_oldest_health_data_for_releases(project_releases):
     return rv
 
 
-def check_has_health_data(project_releases):
-    conditions = [["release", "IN", list(x[1] for x in project_releases)]]
-    filter_keys = {"project_id": list({x[0] for x in project_releases})}
+def check_has_health_data(projects_list):
+    """
+    Function that returns a set of all project_ids or (project, release) if they have health data
+    within the last 90 days based on a list of projects or a list of project, release combinations
+    provided as an arg.
+    Inputs:
+        * projects_list: Contains either a list of project ids or a list of tuple (project_id,
+        release)
+    """
+    if len(projects_list) == 0:
+        return set()
+
+    conditions = None
+    # Check if projects_list also contains releases as a tuple of (project_id, releases)
+    includes_releases = type(projects_list[0]) == tuple
+
+    if includes_releases:
+        filter_keys = {"project_id": list({x[0] for x in projects_list})}
+        conditions = [["release", "IN", list(x[1] for x in projects_list)]]
+        query_cols = ["release", "project_id"]
+        def data_tuple(x): return x["project_id"], x["release"]
+    else:
+        filter_keys = {"project_id": list({x for x in projects_list})}
+        query_cols = ["project_id"]
+        def data_tuple(x): return x["project_id"]
+
+    raw_query_args = {
+        "dataset": Dataset.Sessions,
+        "selected_columns": query_cols,
+        "groupby": query_cols,
+        "start": datetime.utcnow() - timedelta(days=90),
+        "referrer": "sessions.health-data-check",
+        "filter_keys": filter_keys
+    }
+    if conditions is not None:
+        raw_query_args.update({"conditions": conditions})
+
     return {
-        (x["project_id"], x["release"])
-        for x in raw_query(
-            dataset=Dataset.Sessions,
-            selected_columns=["release", "project_id"],
-            groupby=["release", "project_id"],
-            start=datetime.utcnow() - timedelta(days=90),
-            conditions=conditions,
-            referrer="sessions.health-data-check",
-            filter_keys=filter_keys,
-        )["data"]
+        data_tuple(x) for x in raw_query(**raw_query_args)["data"]
     }
 
 
