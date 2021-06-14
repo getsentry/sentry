@@ -638,7 +638,6 @@ const RelativeOpsBreakdown = styled('div')`
 
 const RectangleRelativeOpsBreakdown = styled(RowRectangle)`
   position: relative;
-  top: 0;
   width: 100%;
 `;
 

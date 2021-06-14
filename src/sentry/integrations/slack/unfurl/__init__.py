@@ -28,7 +28,7 @@ class Handler(NamedTuple):
 
 def make_type_coercer(type_map: Mapping[str, type]) -> ArgsMapper:
     """
-    Given a mapping of argument names to types, cosntruct a function that will
+    Given a mapping of argument names to types, construct a function that will
     coerce given arguments into those types.
     """
 
