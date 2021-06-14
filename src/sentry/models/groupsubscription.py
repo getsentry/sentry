@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Any, Mapping
+from typing import Any, Mapping, Sequence
 
 from django.conf import settings
 from django.db import IntegrityError, models, transaction
@@ -121,6 +121,15 @@ class GroupSubscriptionManager(BaseManager):
                 result[provider][user] = value
 
         return result
+
+    @staticmethod
+    def get_participating_users(group) -> Sequence[Any]:
+        """Return the list of users participating in this issue."""
+        from sentry.models import User
+
+        return list(
+            User.object.filter(groupsubscription__is_active=True, groupsubscription__group=group)
+        )
 
 
 class GroupSubscription(Model):
