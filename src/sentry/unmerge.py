@@ -46,7 +46,7 @@ class UnmergeReplacement(abc.ABC):
         The unmerge task iterates through all events of a group. This function
         should return which of them should land in the new group.
 
-        If the issue should be moved, a string should be returned. Events with
+        If the event should be moved, a string should be returned. Events with
         the same string are moved into the same issue.
         """
 
