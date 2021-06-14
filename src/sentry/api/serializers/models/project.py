@@ -294,8 +294,8 @@ class ProjectSerializer(Serializer):
         segments, interval = STATS_PERIOD_CHOICES[self.stats_period]
 
         now = timezone.now()
-        current_interval_start = now - (segments * interval)
-        previous_interval_start = now - (2 * segments * interval)
+        current_interval_start = now - ((segments - 1) * interval)
+        previous_interval_start = now - (2 * (segments - 1) * interval)
 
         project_health_data_dict = get_current_and_previous_crash_free_rates(
             project_ids=project_ids,
