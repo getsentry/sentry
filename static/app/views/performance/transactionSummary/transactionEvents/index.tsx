@@ -38,7 +38,7 @@ type State = {
   eventView: EventView | undefined;
 };
 
-class TransactionEvents extends Component<Props> {
+class TransactionEvents extends Component<Props, State> {
   state: State = {
     spanOperationBreakdownFilter: decodeFilterFromLocation(this.props.location),
     eventView: generateEventsEventView(

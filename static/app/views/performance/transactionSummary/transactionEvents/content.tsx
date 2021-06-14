@@ -25,8 +25,7 @@ import {TableColumn} from 'app/views/eventsV2/table/types';
 import {getCurrentLandingDisplay, LandingDisplayField} from '../../landing/utils';
 import {SpanOperationBreakdownFilter} from '../filter';
 import TransactionHeader, {Tab} from '../header';
-
-import {generateTraceLink, generateTransactionLink} from './utils';
+import {generateTraceLink, generateTransactionLink} from '../utils';
 
 const DEFAULT_TRANSACTION_LIMIT = 50;
 
