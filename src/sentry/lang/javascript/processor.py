@@ -5,7 +5,7 @@ from typing import IO, Optional, Tuple
 
 from django.utils.encoding import force_bytes, force_text
 
-from sentry.models.releasefile import MANIFEST_FILENAME, ReleaseArchive, ReleaseManifest
+from sentry.models.releasefile import ARTIFACT_INDEX_FILENAME, ArtifactIndex, ReleaseArchive
 from sentry.utils import json
 
 __all__ = ["JavaScriptStacktraceProcessor"]
@@ -392,33 +392,33 @@ def get_from_archive(url: str, archive: ReleaseArchive) -> Tuple[bytes, dict]:
     raise KeyError(f"Not found in archive: '{url}'")
 
 
-@metrics.wraps("sourcemaps.load_release_manifest")
-def get_manifest(release, dist):
+@metrics.wraps("sourcemaps.load_artifact_index")
+def get_artifact_index(release, dist):
     dist_name = dist and dist.name or None
 
-    manifest_ident = ReleaseFile.get_ident(MANIFEST_FILENAME, dist_name)
-    manifest_key = f"release-manifest:v1:{release.id}:{manifest_ident}"
-    result = cache.get(manifest_key)
+    ident = ReleaseFile.get_ident(ARTIFACT_INDEX_FILENAME, dist_name)
+    cache_key = f"artifact-index:v1:{release.id}:{ident}"
+    result = cache.get(cache_key)
     if result == -1:
-        manifest = None
+        index = None
     elif result:
-        manifest = json.loads(result)
+        index = json.loads(result)
     else:
-        manifest = ReleaseManifest(release, dist).read()
-        cache_value = -1 if manifest is None else json.dumps(manifest)
+        index = ArtifactIndex(release, dist).read()
+        cache_value = -1 if index is None else json.dumps(index)
         # Only cache for a short time to keep the manifest up-to-date
-        cache.set(manifest_key, cache_value, timeout=60)
+        cache.set(cache_key, cache_value, timeout=60)
 
-    return manifest
+    return index
 
 
-def get_info_from_manifest(release, dist, url) -> Optional[dict]:
-    manifest = get_manifest(release, dist)
-    if manifest:
+def get_index_entry(release, dist, url) -> Optional[dict]:
+    index = get_artifact_index(release, dist)
+    if index:
         for candidate in ReleaseFile.normalize(url):
-            info = manifest.get("files", {}).get(candidate)
-            if info:
-                return info
+            entry = index.get("files", {}).get(candidate)
+            if entry:
+                return entry
 
     return None
 
@@ -429,7 +429,7 @@ def fetch_release_archive(release, dist, url) -> Optional[IO]:
 
     If return value is not empty, the caller is responsible for closing the stream.
     """
-    info = get_info_from_manifest(release, dist, url)
+    info = get_index_entry(release, dist, url)
     if info is None:
         # Cannot write negative cache entry here because ID of release archive
         # is not yet known

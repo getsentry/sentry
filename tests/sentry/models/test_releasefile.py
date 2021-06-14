@@ -8,7 +8,7 @@ from sentry import options
 from sentry.models import ReleaseFile
 from sentry.models.distribution import Distribution
 from sentry.models.file import File
-from sentry.models.releasefile import ReleaseManifest
+from sentry.models.releasefile import ArtifactIndex
 from sentry.testutils import TestCase
 from sentry.utils import json
 
@@ -114,18 +114,18 @@ class ReleaseArchiveTestCase(TestCase):
             file=file_,
         )
 
-        manifest = ReleaseManifest(self.release, dist)
-        manifest.update(releasefile)
+        index = ArtifactIndex(self.release, dist)
+        index.update(releasefile)
 
         return releasefile
 
     def test_multi_archive(self):
-        manifest = ReleaseManifest(self.release, None)
+        index = ArtifactIndex(self.release, None)
 
-        assert manifest.read() is None
+        assert index.read() is None
 
         # Delete does nothing
-        manifest.delete("foo")
+        index.delete("foo")
 
         archive1 = self.create_archive(
             fields={},
@@ -136,7 +136,7 @@ class ReleaseArchiveTestCase(TestCase):
             },
         )
 
-        assert manifest.read() == {
+        assert index.read() == {
             "files": {
                 "fake://bar": {
                     "archive_ident": archive1.ident,
@@ -211,12 +211,12 @@ class ReleaseArchiveTestCase(TestCase):
             },
         }
 
-        assert manifest.read() == expected
+        assert index.read() == expected
 
         # Deletion works:
-        manifest.delete("fake://foo")
+        index.delete("fake://foo")
         expected["files"].pop("fake://foo")
-        assert manifest.read() == expected
+        assert index.read() == expected
 
     def test_same_sha(self):
         """Stand-alone release file has same sha1 as one in manifest"""
@@ -225,5 +225,5 @@ class ReleaseArchiveTestCase(TestCase):
         file_.putfile(BytesIO(b"bar"))
         self.create_release_file(file=file_)
 
-        manifest = ReleaseManifest(self.release, None)._manifest.readable_data()
-        assert file_.checksum == manifest["files"]["fake://foo"]["sha1"]
+        index = ArtifactIndex(self.release, None)._index.readable_data()
+        assert file_.checksum == index["files"]["fake://foo"]["sha1"]

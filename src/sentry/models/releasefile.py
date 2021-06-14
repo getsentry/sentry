@@ -6,7 +6,7 @@ from contextlib import contextmanager
 from hashlib import sha1
 from io import BytesIO
 from tempfile import TemporaryDirectory
-from typing import IO, Optional, Tuple
+from typing import IO, ContextManager, Optional, Tuple
 from urllib.parse import urlsplit, urlunsplit
 
 from django.core.files.base import File as FileObj
@@ -25,8 +25,8 @@ from sentry.utils.zip import safe_extract_zip
 logger = logging.getLogger(__name__)
 
 
-MANIFEST_FILENAME = "release-file-manifest.json"
-MANIFEST_TYPE = "release.manifest"
+ARTIFACT_INDEX_FILENAME = "artifact-index.json"
+ARTIFACT_INDEX_TYPE = "release.artifact-index"
 
 
 class ReleaseFile(Model):
@@ -186,7 +186,9 @@ class ReleaseArchive:
         return temp_dir
 
 
-class _Manifest:
+class _ArtifactIndexData:
+    """Holds data of artifact index and keeps track of changes"""
+
     def __init__(self, data: dict, fresh=False):
         self._data = data
         self.changed = fresh
@@ -209,7 +211,9 @@ class _Manifest:
         self.changed = True
 
 
-class _ManifestGuard:
+class _ArtifactIndexGuard:
+    """Ensures atomic write operations to the artifact index"""
+
     def __init__(self, release: Release, dist: Optional[Distribution]):
         self._release = release
         self._dist = dist
@@ -222,8 +226,8 @@ class _ManifestGuard:
                 return json.load(fp)
 
     @contextmanager
-    def writable_data(self, create: bool):
-        """Context manager for editable release manifest"""
+    def writable_data(self, create: bool) -> ContextManager[_ArtifactIndexData]:
+        """Context manager for editable artifact index"""
         with transaction.atomic():
             if create:
                 file_, created = self._get_or_create_file()
@@ -232,18 +236,18 @@ class _ManifestGuard:
                 created = False
 
             if file_ is None:
-                manifest = None
+                index_data = None
             else:
                 if created:
-                    manifest = _Manifest({}, fresh=True)
+                    index_data = _ArtifactIndexData({}, fresh=True)
                 else:
-                    data = json.load(file_.getfile())
-                    manifest = _Manifest(data)
+                    raw_data = json.load(file_.getfile())
+                    index_data = _ArtifactIndexData(raw_data)
 
-            yield manifest  # editable reference to manifest
+            yield index_data  # editable reference to index
 
-            if manifest is not None and manifest.changed:
-                file_.putfile(BytesIO(json.dumps(manifest.data).encode()))
+            if index_data is not None and index_data.changed:
+                file_.putfile(BytesIO(json.dumps(index_data.data).encode()))
 
     def _get_or_create_file(self) -> Tuple[File, bool]:
         # Make sure the appropriate rows are locked for update:
@@ -255,7 +259,7 @@ class _ManifestGuard:
                     organization_id=self._release.organization_id,
                     release=self._release,
                     dist=self._dist,
-                    name=MANIFEST_FILENAME,
+                    name=ARTIFACT_INDEX_FILENAME,
                 ).file,
                 False,
             )
@@ -267,10 +271,10 @@ class _ManifestGuard:
                     organization_id=self._release.organization_id,
                     release=self._release,
                     dist=self._dist,
-                    name=MANIFEST_FILENAME,
+                    name=ARTIFACT_INDEX_FILENAME,
                     file=File.objects.create(
-                        name=MANIFEST_FILENAME,
-                        type=MANIFEST_TYPE,
+                        name=ARTIFACT_INDEX_FILENAME,
+                        type=ARTIFACT_INDEX_TYPE,
                     ),
                 ).file,
                 True,
@@ -285,7 +289,7 @@ class _ManifestGuard:
                 organization_id=self._release.organization_id,
                 release=self._release,
                 dist=self._dist,
-                name=MANIFEST_FILENAME,
+                name=ARTIFACT_INDEX_FILENAME,
             )
         except ReleaseFile.DoesNotExist:
             return None
@@ -293,27 +297,27 @@ class _ManifestGuard:
             return release_file.file
 
 
-class ReleaseManifest:
+class ArtifactIndex:
 
-    """Manager of all uploaded artifact bundles and their common manifest"""
+    """Manager of all uploaded artifact bundles and their index"""
 
     def __init__(self, release: Release, dist: Optional[Distribution]):
         self._release = release
         self._dist = dist
-        self._manifest = _ManifestGuard(release, dist)
+        self._guard = _ArtifactIndexGuard(release, dist)
 
     def read(self):
-        """Get manifest data"""
-        return self._manifest.readable_data()
+        """Get index data"""
+        return self._guard.readable_data()
 
     def update(self, archive_releasefile: ReleaseFile):
-        """Add information from release archive to manifest"""
+        """Add information from release archive to artifact index"""
 
         archive_file: File = archive_releasefile.file
         with ReleaseArchive(archive_file.getfile()) as archive:
-            local_manifest = archive.manifest
+            manifest = archive.manifest
 
-            files = local_manifest.get("files", {})
+            files = manifest.get("files", {})
             if not files:
                 return
 
@@ -329,17 +333,17 @@ class ReleaseManifest:
                 info["size"] = archive.info(filename).file_size
                 files_out[url] = info
 
-            with self._manifest.writable_data(create=True) as manifest:
-                manifest.update_files(files_out)
+            with self._guard.writable_data(create=True) as index_data:
+                index_data.update_files(files_out)
 
     def delete(self, url: str):
         """Delete a file from the manifest.
 
         Does *not* delete the file from the zip archive.
         """
-        with self._manifest.writable_data(create=False) as manifest:
-            if manifest is not None:
-                manifest.delete(url)
+        with self._guard.writable_data(create=False) as index_data:
+            if index_data is not None:
+                index_data.delete(url)
 
     def _compute_sha1(self, archive: ReleaseArchive, url: str) -> str:
         data = archive.read(url)
