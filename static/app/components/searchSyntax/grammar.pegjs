@@ -139,8 +139,8 @@ text_in_filter
 
 // standard key:val filter
 text_filter
-  = negation:negation? key:text_key sep value:search_value {
-      return tc.tokenFilter(FilterType.Text, key, value, TermOperator.Default, !!negation);
+  = negation:negation? key:text_key sep op:operator? value:search_value {
+      return tc.tokenFilter(FilterType.Text, key, value, op, !!negation);
     }
 
 // Filter keys
