@@ -481,7 +481,7 @@ class SearchVisitor(NodeVisitor):
                 raise InvalidSearchQuery(str(exc))
             return SearchFilter(search_key, operator, search_value)
 
-        return self._handle_text_filter(search_key, operator, SearchValue(search_value.text))
+        return self._handle_text_filter(search_key, operator, SearchValue("".join(search_value)))
 
     def visit_date_filter(self, node, children):
         (search_key, _, operator, search_value) = children
