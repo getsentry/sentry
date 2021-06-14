@@ -436,7 +436,7 @@ class SearchVisitor(NodeVisitor):
         if not self.allow_boolean:
             # It's possible to have a valid search that includes parens, so we
             # can't just error out when we find a paren expression.
-            return self.visit_free_text(node, children)
+            return SearchFilter(SearchKey("message"), "=", SearchValue(node.text))
 
         children = remove_space(remove_optional_nodes(flatten(children)))
         children = flatten(children[1])
@@ -464,6 +464,23 @@ class SearchVisitor(NodeVisitor):
             )
 
         return SearchFilter(search_key, operator, search_value)
+
+    def _handle_numeric_filter(self, search_key, operator, search_value):
+        if isinstance(operator, Node):
+            operator = "=" if isinstance(operator.expr, Optional) else operator.text
+        else:
+            operator = operator[0]
+
+        if self.is_numeric_key(search_key.name):
+            try:
+                search_value = SearchValue(parse_numeric_value(*search_value))
+            except InvalidQuery as exc:
+                raise InvalidSearchQuery(str(exc))
+            return SearchFilter(search_key, operator, search_value)
+
+        search_value = "".join(search_value)
+        search_value = SearchValue(operator + search_value if operator != "=" else search_value)
+        return self._handle_basic_filter(search_key, "=", search_value)
 
     def visit_date_filter(self, node, children):
         (search_key, _, operator, search_value) = children
@@ -534,8 +551,8 @@ class SearchVisitor(NodeVisitor):
             return SearchFilter(search_key, operator, SearchValue(search_value))
 
         # Durations overlap with numeric `m` suffixes
-        elif self.is_numeric_key(search_key.name):
-            return self.visit_numeric_filter(node, (search_key, sep, operator, search_value))
+        if self.is_numeric_key(search_key.name):
+            return self._handle_numeric_filter(search_key, operator, search_value)
 
         search_value = "".join(search_value)
         search_value = operator + search_value if operator != "=" else search_value
@@ -547,15 +564,7 @@ class SearchVisitor(NodeVisitor):
 
         # Numeric and boolean filters overlap on 1 and 0 values.
         if self.is_numeric_key(search_key.name):
-            return self.visit_numeric_filter(
-                node,
-                (
-                    search_key,
-                    sep,
-                    "=",
-                    [search_value.text, ""],
-                ),
-            )
+            return self._handle_numeric_filter(search_key, "=", [search_value.text, ""])
 
         if search_key.name in self.boolean_keys:
             if search_value.text.lower() in ("true", "1"):
@@ -585,21 +594,7 @@ class SearchVisitor(NodeVisitor):
 
     def visit_numeric_filter(self, node, children):
         (search_key, _, operator, search_value) = children
-        if isinstance(operator, Node):
-            operator = "=" if isinstance(operator.expr, Optional) else operator.text
-        else:
-            operator = operator[0]
-
-        if self.is_numeric_key(search_key.name):
-            try:
-                search_value = SearchValue(parse_numeric_value(*search_value))
-            except InvalidQuery as exc:
-                raise InvalidSearchQuery(str(exc))
-            return SearchFilter(search_key, operator, search_value)
-
-        search_value = "".join(search_value)
-        search_value = SearchValue(operator + search_value if operator != "=" else search_value)
-        return self._handle_basic_filter(search_key, "=", search_value)
+        return self._handle_numeric_filter(search_key, operator, search_value)
 
     def visit_aggregate_filter(self, node, children):
         (negation, search_key, _, operator, search_value) = children
