@@ -107,8 +107,6 @@ def _increase_level(group: Group, id: int, levels_overview: LevelsOverview, requ
         filter_hierarchical_hash=levels_overview.current_hash,
         filter_level=levels_overview.current_level,
         new_level=id,
-        assume_source_emptied=True,
-        reset_hashes=[],
     )
 
     unmerge.delay(

@@ -138,8 +138,6 @@ class HierarchicalUnmergeReplacement(UnmergeReplacement):
     filter_hierarchical_hash: str
     filter_level: int
     new_level: int
-    assume_source_emptied: bool
-    reset_hashes: Sequence[str]
 
     def get_unmerge_key(
         self, event: Event, locked_primary_hashes: Collection[str]
@@ -176,7 +174,6 @@ class HierarchicalUnmergeReplacement(UnmergeReplacement):
             hierarchical_hash=unmerge_key,
             previous_group_id=source_id,
             new_group_id=destination_id,
-            skip_needs_final=self.assume_source_emptied,
         )
 
     def stop_snuba_replacement(self, eventstream_state: Any) -> None:
@@ -190,15 +187,6 @@ class HierarchicalUnmergeReplacement(UnmergeReplacement):
         destination_id: int,
         locked_primary_hashes: Collection[str],
     ) -> None:
-        if self.reset_hashes:
-            # The SPLIT state on a grouphash tells save_event to not consider
-            # it for finding a group. When reducing the grouping level, we need
-            # to undo some SPLIT states to make sure new events go into the
-            # right group as well.
-            GroupHash.objects.filter(
-                project_id=project.id, hash__in=self.reset_hashes, state=GroupHash.State.SPLIT
-            ).update(state=GroupHash.State.UNLOCKED)
-
         GroupHash.objects.update_or_create(
             project=project, hash=unmerge_key, defaults={"group_id": destination_id}
         )
@@ -209,8 +197,7 @@ class HierarchicalUnmergeReplacement(UnmergeReplacement):
         }
 
     def on_finish(self, project: Project, source_id: int):
-        if self.assume_source_emptied:
-            eventstream.exclude_groups(project.id, [source_id])
+        eventstream.exclude_groups(project.id, [source_id])
 
 
 @dataclass(frozen=True)

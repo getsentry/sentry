@@ -198,7 +198,6 @@ class SnubaProtocolEventStream(EventStream):
         hierarchical_hash,
         previous_group_id,
         new_group_id,
-        skip_needs_final,
     ):
         state = {
             "project_id": project_id,
@@ -207,7 +206,6 @@ class SnubaProtocolEventStream(EventStream):
             "previous_group_id": previous_group_id,
             "new_group_id": new_group_id,
             "datetime": datetime.now(tz=pytz.utc),
-            "skip_needs_final": skip_needs_final,
         }
         self._send(
             project_id, "start_unmerge_hierarchical", extra_data=(state,), asynchronous=False
