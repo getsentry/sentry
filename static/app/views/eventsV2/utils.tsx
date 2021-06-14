@@ -452,16 +452,9 @@ export function generateFieldOptions({
   functions.forEach(func => {
     const ellipsis = aggregations[func].parameters.length ? '\u2026' : '';
     const parameters = aggregations[func].parameters.map(param => {
-      const generator = aggregations[func].generateDefaultValue;
       const overrides = AGGREGATIONS[func].getFieldOverrides;
-      if (typeof generator === 'undefined' && typeof overrides === 'undefined') {
+      if (typeof overrides === 'undefined') {
         return param;
-      }
-      if (typeof generator !== 'undefined') {
-        return {
-          ...param,
-          defaultValue: generator({parameter: param, organization}),
-        };
       }
       return {
         ...param,

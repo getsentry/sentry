@@ -372,11 +372,6 @@ type DefaultValueInputs = {
 
 export type Aggregation = {
   /**
-   * Used by functions that need to define their default values dynamically
-   * based on the organization, or parameter data.
-   */
-  generateDefaultValue?: (data: DefaultValueInputs) => string;
-  /**
    * List of parameters for the function.
    */
   parameters: Readonly<AggregateParameter[]>;
@@ -663,16 +658,9 @@ export function generateAggregateFields(
   const fields = Object.values(eventFields).map(field => field.field);
   functions.forEach(func => {
     const parameters = AGGREGATIONS[func].parameters.map(param => {
-      const generator = AGGREGATIONS[func].generateDefaultValue;
       const overrides = AGGREGATIONS[func].getFieldOverrides;
-      if (typeof generator === 'undefined' && typeof overrides === 'undefined') {
+      if (typeof overrides === 'undefined') {
         return param;
-      }
-      if (typeof generator !== 'undefined') {
-        return {
-          ...param,
-          defaultValue: generator({parameter: param, organization}),
-        };
       }
       return {
         ...param,
