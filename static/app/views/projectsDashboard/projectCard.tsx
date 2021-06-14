@@ -29,7 +29,10 @@ import withOrganization from 'app/utils/withOrganization';
 import MissingReleasesButtons, {
   StyledButtonBar,
 } from 'app/views/projectDetail/missingFeatureButtons/missingReleasesButtons';
-import {displayCrashFreePercent} from 'app/views/releases/utils';
+import {
+  CRASH_FREE_DECIMAL_THRESHOLD,
+  displayCrashFreePercent,
+} from 'app/views/releases/utils';
 
 import Chart from './chart';
 import Deploys, {DeployRows, GetStarted, TextOverflow} from './deploys';
@@ -67,7 +70,10 @@ class ProjectCard extends Component<Props> {
       return undefined;
     }
 
-    return round(currentCrashFreeRate - previousCrashFreeRate, 3);
+    return round(
+      currentCrashFreeRate - previousCrashFreeRate,
+      currentCrashFreeRate > CRASH_FREE_DECIMAL_THRESHOLD ? 3 : 0
+    );
   }
 
   renderMissingFeatureCard() {
@@ -188,7 +194,7 @@ class ProjectCard extends Component<Props> {
                     }
                     trend={this.renderTrend()}
                     trendStatus={
-                      defined(this.crashFreeTrend)
+                      this.crashFreeTrend
                         ? this.crashFreeTrend > 0
                           ? 'good'
                           : 'bad'
