@@ -960,7 +960,13 @@ def __get_crash_free_rate_data(project_ids, start, end, rollup):
     """
     return raw_query(
         dataset=Dataset.Sessions,
-        selected_columns=["project_id", "sessions_crashed", "sessions"],
+        selected_columns=[
+            "project_id",
+            "sessions_crashed",
+            "sessions_errored",
+            "sessions_abnormal",
+            "sessions",
+        ],
         filter_keys={"project_id": project_ids},
         start=start,
         end=end,
@@ -1005,7 +1011,17 @@ def get_current_and_previous_crash_free_rates(
     }
 
     def calculate_crash_free_percentage(row):
-        return 100 - (row["sessions_crashed"] / row["sessions"]) * 100
+        # XXX: Calculation is done in this way to clamp possible negative values and so to calculate
+        # crash free rates similar to how it is calculated here
+        # Ref: https://github.com/getsentry/sentry/pull/25543
+        healthy_sessions = max(row["sessions"] - row["sessions_errored"], 0)
+        errored_sessions = max(
+            row["sessions_errored"] - row["sessions_crashed"] - row["sessions_abnormal"], 0
+        )
+        totals = (
+            healthy_sessions + errored_sessions + row["sessions_crashed"] + row["sessions_abnormal"]
+        )
+        return 100 - (row["sessions_crashed"] / totals) * 100
 
     # currentCrashFreeRate
     current_crash_free_data = __get_crash_free_rate_data(
