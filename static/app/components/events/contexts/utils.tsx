@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 import moment from 'moment-timezone';
 
 import {t} from 'app/locale';
@@ -92,8 +91,7 @@ export function getFullLanguageDescription(locale: string) {
     }
 
     return languageName;
-  } catch (error) {
-    Sentry.captureException(error);
+  } catch {
     return locale;
   }
 }
