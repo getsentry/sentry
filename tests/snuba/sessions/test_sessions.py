@@ -1,13 +1,15 @@
 import time
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import pytz
+from django.utils import timezone
 
 from sentry.snuba.sessions import (
     _make_stats,
     check_has_health_data,
     get_adjacent_releases_based_on_adoption,
+    get_current_and_previous_crash_free_rates,
     get_oldest_health_data_for_releases,
     get_project_releases_by_stability,
     get_release_adoption,
@@ -15,6 +17,7 @@ from sentry.snuba.sessions import (
     get_release_sessions_time_bounds,
 )
 from sentry.testutils import SnubaTestCase, TestCase
+from sentry.utils.dates import to_timestamp
 
 
 def format_timestamp(dt):
@@ -25,6 +28,26 @@ def format_timestamp(dt):
 
 def make_24h_stats(ts):
     return _make_stats(datetime.utcfromtimestamp(ts).replace(tzinfo=pytz.utc), 3600, 24)
+
+
+def generate_session_default_args(session_dict):
+    session_dict_default = {
+        "session_id": str(uuid.uuid4()),
+        "distinct_id": str(uuid.uuid4()),
+        "status": "ok",
+        "seq": 0,
+        "release": "random@1.0",
+        "environment": "prod",
+        "retention_days": 90,
+        "org_id": 0,
+        "project_id": 0,
+        "duration": 60.0,
+        "errors": 0,
+        "started": time.time() // 60 * 60,
+        "received": time.time(),
+    }
+    session_dict_default.update(session_dict)
+    return session_dict_default
 
 
 class SnubaSessionsTest(TestCase, SnubaTestCase):
@@ -119,6 +142,58 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
             [(self.project.id, self.session_release), (self.project.id, "dummy-release")]
         )
         assert data == {(self.project.id, self.session_release)}
+
+    def test_check_has_health_data_without_releases_should_exlude_sessions_gt_90_days(self):
+        """
+        Test that ensures that `check_has_health_data` returns a set of projects that has health
+        data within the last 90d if only a list of project ids is provided and that any project
+        with session data older than 90 days should be exluded
+        """
+        project2 = self.create_project(
+            name="Bar2",
+            slug="bar2",
+            teams=[self.team],
+            fire_project_created=True,
+            organization=self.organization,
+        )
+
+        date_100_days_ago = to_timestamp(
+            (datetime.utcnow() - timedelta(days=100)).replace(tzinfo=pytz.utc)
+        )
+        self.store_session(
+            generate_session_default_args(
+                {
+                    "started": date_100_days_ago // 60 * 60,
+                    "received": date_100_days_ago,
+                    "project_id": project2.id,
+                    "org_id": project2.organization_id,
+                    "status": "exited",
+                }
+            )
+        )
+        data = check_has_health_data([self.project.id, project2.id])
+        assert data == {self.project.id}
+
+    def test_check_has_health_data_without_releases_should_include_sessions_lte_90_days(self):
+        """
+        Test that ensures that `check_has_health_data` returns a set of projects that has health
+        data within the last 90d if only a list of project ids is provided and any project with
+        session data earlier than 90 days should be included
+        """
+        project2 = self.create_project(
+            name="Bar2",
+            slug="bar2",
+            teams=[self.team],
+            fire_project_created=True,
+            organization=self.organization,
+        )
+        self.store_session(
+            generate_session_default_args(
+                {"project_id": project2.id, "org_id": project2.organization_id, "status": "exited"}
+            )
+        )
+        data = check_has_health_data([self.project.id, project2.id])
+        assert data == {self.project.id, project2.id}
 
     def test_get_project_releases_by_stability(self):
         # Add an extra session with a different `distinct_id` so that sorting by users
@@ -456,26 +531,6 @@ class SnubaReleaseDetailPaginationBaseTestClass:
         adjacent_releases = get_adjacent_releases_based_on_adoption(**adj_releases_filters)
         assert adjacent_releases == releases_list
 
-    @staticmethod
-    def generate_session_default_args(session_dict):
-        session_dict_default = {
-            "session_id": str(uuid.uuid4()),
-            "distinct_id": str(uuid.uuid4()),
-            "status": "ok",
-            "seq": 0,
-            "release": "random@1.0",
-            "environment": "prod",
-            "retention_days": 90,
-            "org_id": 0,
-            "project_id": 0,
-            "duration": 60.0,
-            "errors": 0,
-            "started": time.time() // 60 * 60,
-            "received": time.time(),
-        }
-        session_dict_default.update(session_dict)
-        return session_dict_default
-
 
 class SnubaReleaseDetailPaginationOnSessionsTest(
     TestCase, SnubaTestCase, SnubaReleaseDetailPaginationBaseTestClass
@@ -527,7 +582,7 @@ class SnubaReleaseDetailPaginationOnSessionsTest(
         # Time: < 24h
         # Total: 1 Session
         self.store_session(
-            self.generate_session_default_args(
+            generate_session_default_args(
                 {
                     **self.common_session_args,
                     "started": self.session_started,
@@ -542,7 +597,7 @@ class SnubaReleaseDetailPaginationOnSessionsTest(
         # Total: 2 sessions
         for _ in range(0, 2):
             self.store_session(
-                self.generate_session_default_args(
+                generate_session_default_args(
                     {
                         **self.common_session_args,
                         "started": self.session_started_gt_24h,
@@ -556,7 +611,7 @@ class SnubaReleaseDetailPaginationOnSessionsTest(
         # Time: < 24h
         # Total: 1 Session
         self.store_session(
-            self.generate_session_default_args(
+            generate_session_default_args(
                 {
                     **self.common_session_args,
                     "started": self.session_started,
@@ -572,7 +627,7 @@ class SnubaReleaseDetailPaginationOnSessionsTest(
         # Time: < 24h
         # Total: 2 Sessions
         self.store_session(
-            self.generate_session_default_args(
+            generate_session_default_args(
                 {
                     **self.common_session_args,
                     "started": self.session_started,
@@ -584,7 +639,7 @@ class SnubaReleaseDetailPaginationOnSessionsTest(
             )
         )
         self.store_session(
-            self.generate_session_default_args(
+            generate_session_default_args(
                 {
                     **self.common_session_args,
                     "started": self.session_started,
@@ -597,7 +652,7 @@ class SnubaReleaseDetailPaginationOnSessionsTest(
             )
         )
         self.store_session(
-            self.generate_session_default_args(
+            generate_session_default_args(
                 {
                     **self.common_session_args,
                     "started": self.session_started,
@@ -613,7 +668,7 @@ class SnubaReleaseDetailPaginationOnSessionsTest(
         # Total: 3 Session
         for _ in range(0, 3):
             self.store_session(
-                self.generate_session_default_args(
+                generate_session_default_args(
                     {
                         **self.common_session_args,
                         "started": self.session_started,
@@ -629,7 +684,7 @@ class SnubaReleaseDetailPaginationOnSessionsTest(
         # Total: 3 Sessions
         for _ in range(0, 3):
             self.store_session(
-                self.generate_session_default_args(
+                generate_session_default_args(
                     {
                         **self.common_session_args,
                         "started": self.session_started,
@@ -788,7 +843,7 @@ class SnubaReleaseDetailPaginationOnCrashFreeSessionsTest(
         # Time: < 24h
         # Total: 1 Session -> 100% Crash Free
         self.store_session(
-            self.generate_session_default_args(
+            generate_session_default_args(
                 {
                     **self.common_session_args,
                     "started": self.session_started,
@@ -803,7 +858,7 @@ class SnubaReleaseDetailPaginationOnCrashFreeSessionsTest(
         # Total: 3 sessions -> 1 Healthy + 2 Crashed -> 33.3333% Crash Free
         for _ in range(0, 2):
             self.store_session(
-                self.generate_session_default_args(
+                generate_session_default_args(
                     {
                         **self.common_session_args,
                         "started": self.session_started_gt_24h,
@@ -817,7 +872,7 @@ class SnubaReleaseDetailPaginationOnCrashFreeSessionsTest(
         # Time: < 24h
         # Total: 1 Session -> 0% Crash Free
         self.store_session(
-            self.generate_session_default_args(
+            generate_session_default_args(
                 {
                     **self.common_session_args,
                     "started": self.session_started,
@@ -833,7 +888,7 @@ class SnubaReleaseDetailPaginationOnCrashFreeSessionsTest(
         # Time: < 24h
         # Total: 2 Sessions -> 2 Crashed -> 0% Crash free
         self.store_session(
-            self.generate_session_default_args(
+            generate_session_default_args(
                 {
                     **self.common_session_args,
                     "started": self.session_started,
@@ -845,7 +900,7 @@ class SnubaReleaseDetailPaginationOnCrashFreeSessionsTest(
             )
         )
         self.store_session(
-            self.generate_session_default_args(
+            generate_session_default_args(
                 {
                     **self.common_session_args,
                     "started": self.session_started,
@@ -858,7 +913,7 @@ class SnubaReleaseDetailPaginationOnCrashFreeSessionsTest(
             )
         )
         self.store_session(
-            self.generate_session_default_args(
+            generate_session_default_args(
                 {
                     **self.common_session_args,
                     "started": self.session_started,
@@ -873,7 +928,7 @@ class SnubaReleaseDetailPaginationOnCrashFreeSessionsTest(
         # Time: <24h
         # Total: 3 Session -> 2 Healthy + 1 Crashed -> 66.666% Crash free
         self.store_session(
-            self.generate_session_default_args(
+            generate_session_default_args(
                 {
                     **self.common_session_args,
                     "started": self.session_started,
@@ -884,7 +939,7 @@ class SnubaReleaseDetailPaginationOnCrashFreeSessionsTest(
         )
         for _ in range(0, 2):
             self.store_session(
-                self.generate_session_default_args(
+                generate_session_default_args(
                     {
                         **self.common_session_args,
                         "started": self.session_started,
@@ -899,7 +954,7 @@ class SnubaReleaseDetailPaginationOnCrashFreeSessionsTest(
         # Time: <24h
         # Total: 3 Sessions -> 2 Healthy + 1 Crashed -> 66.666% Crash free
         self.store_session(
-            self.generate_session_default_args(
+            generate_session_default_args(
                 {
                     **self.common_session_args,
                     "started": self.session_started,
@@ -910,7 +965,7 @@ class SnubaReleaseDetailPaginationOnCrashFreeSessionsTest(
         )
         for _ in range(0, 2):
             self.store_session(
-                self.generate_session_default_args(
+                generate_session_default_args(
                     {
                         **self.common_session_args,
                         "started": self.session_started,
@@ -1060,7 +1115,7 @@ class SnubaReleaseDetailPaginationOnUsersTest(
         # Time: < 24h
         # Total: 1 Session
         self.store_session(
-            self.generate_session_default_args(
+            generate_session_default_args(
                 {
                     **self.common_session_args,
                     "started": self.session_started,
@@ -1075,7 +1130,7 @@ class SnubaReleaseDetailPaginationOnUsersTest(
         # Total: 2 sessions
         for _ in range(0, 2):
             self.store_session(
-                self.generate_session_default_args(
+                generate_session_default_args(
                     {
                         **self.common_session_args,
                         "started": self.session_started_gt_24h,
@@ -1089,7 +1144,7 @@ class SnubaReleaseDetailPaginationOnUsersTest(
         # Time: < 24h
         # Total: 1 Session
         self.store_session(
-            self.generate_session_default_args(
+            generate_session_default_args(
                 {
                     **self.common_session_args,
                     "started": self.session_started,
@@ -1105,7 +1160,7 @@ class SnubaReleaseDetailPaginationOnUsersTest(
         # Time: < 24h
         # Total: 2 Sessions
         self.store_session(
-            self.generate_session_default_args(
+            generate_session_default_args(
                 {
                     **self.common_session_args,
                     "started": self.session_started,
@@ -1117,7 +1172,7 @@ class SnubaReleaseDetailPaginationOnUsersTest(
             )
         )
         self.store_session(
-            self.generate_session_default_args(
+            generate_session_default_args(
                 {
                     **self.common_session_args,
                     "started": self.session_started,
@@ -1131,7 +1186,7 @@ class SnubaReleaseDetailPaginationOnUsersTest(
         )
 
         self.store_session(
-            self.generate_session_default_args(
+            generate_session_default_args(
                 {
                     **self.common_session_args,
                     "started": self.session_started,
@@ -1147,7 +1202,7 @@ class SnubaReleaseDetailPaginationOnUsersTest(
         # Total: 3 Session
         for _ in range(0, 3):
             self.store_session(
-                self.generate_session_default_args(
+                generate_session_default_args(
                     {
                         **self.common_session_args,
                         "started": self.session_started,
@@ -1163,7 +1218,7 @@ class SnubaReleaseDetailPaginationOnUsersTest(
         # Total: 3 Sessions
         for _ in range(0, 3):
             self.store_session(
-                self.generate_session_default_args(
+                generate_session_default_args(
                     {
                         **self.common_session_args,
                         "started": self.session_started,
@@ -1313,7 +1368,7 @@ class SnubaReleaseDetailPaginationOnCrashFreeUsersTest(
         # Time: < 24h
         # Total: 1 Session -> 100% Crash Free
         self.store_session(
-            self.generate_session_default_args(
+            generate_session_default_args(
                 {
                     **self.common_session_args,
                     "started": self.session_started,
@@ -1328,7 +1383,7 @@ class SnubaReleaseDetailPaginationOnCrashFreeUsersTest(
         # Total: 3 sessions -> 1 Healthy + 2 Crashed -> 33.3333% Crash Free
         for _ in range(0, 2):
             self.store_session(
-                self.generate_session_default_args(
+                generate_session_default_args(
                     {
                         **self.common_session_args,
                         "started": self.session_started_gt_24h,
@@ -1341,7 +1396,7 @@ class SnubaReleaseDetailPaginationOnCrashFreeUsersTest(
         # Time: < 24h
         # Total: 1 Session -> 0% Crash Free
         self.store_session(
-            self.generate_session_default_args(
+            generate_session_default_args(
                 {
                     **self.common_session_args,
                     "started": self.session_started,
@@ -1357,7 +1412,7 @@ class SnubaReleaseDetailPaginationOnCrashFreeUsersTest(
         # Time: < 24h
         # Total: 2 Sessions -> 2 Crashed -> 0% Crash free
         self.store_session(
-            self.generate_session_default_args(
+            generate_session_default_args(
                 {
                     **self.common_session_args,
                     "started": self.session_started,
@@ -1369,7 +1424,7 @@ class SnubaReleaseDetailPaginationOnCrashFreeUsersTest(
             )
         )
         self.store_session(
-            self.generate_session_default_args(
+            generate_session_default_args(
                 {
                     **self.common_session_args,
                     "started": self.session_started,
@@ -1382,7 +1437,7 @@ class SnubaReleaseDetailPaginationOnCrashFreeUsersTest(
             )
         )
         self.store_session(
-            self.generate_session_default_args(
+            generate_session_default_args(
                 {
                     **self.common_session_args,
                     "started": self.session_started,
@@ -1397,7 +1452,7 @@ class SnubaReleaseDetailPaginationOnCrashFreeUsersTest(
         # Time: <24h
         # Total: 3 Session -> 2 Healthy + 1 Crashed -> 66.666% Crash free
         self.store_session(
-            self.generate_session_default_args(
+            generate_session_default_args(
                 {
                     **self.common_session_args,
                     "started": self.session_started,
@@ -1408,7 +1463,7 @@ class SnubaReleaseDetailPaginationOnCrashFreeUsersTest(
         )
         for _ in range(0, 2):
             self.store_session(
-                self.generate_session_default_args(
+                generate_session_default_args(
                     {
                         **self.common_session_args,
                         "started": self.session_started,
@@ -1423,7 +1478,7 @@ class SnubaReleaseDetailPaginationOnCrashFreeUsersTest(
         # Time: <24h
         # Total: 3 Sessions -> 2 Healthy + 1 Crashed -> 66.666% Crash free
         self.store_session(
-            self.generate_session_default_args(
+            generate_session_default_args(
                 {
                     **self.common_session_args,
                     "started": self.session_started,
@@ -1434,7 +1489,7 @@ class SnubaReleaseDetailPaginationOnCrashFreeUsersTest(
         )
         for _ in range(0, 2):
             self.store_session(
-                self.generate_session_default_args(
+                generate_session_default_args(
                     {
                         **self.common_session_args,
                         "started": self.session_started,
@@ -1533,3 +1588,123 @@ class SnubaReleaseDetailPaginationOnCrashFreeUsersTest(
                 "prev_releases_list": [],
             },
         )
+
+
+class GetCrashFreeRateTestCase(TestCase, SnubaTestCase):
+    """
+    TestClass that tests that `get_current_and_previous_crash_free_rates` returns the correct
+    `currentCrashFreeRate` and `previousCrashFreeRate` for each project
+
+    TestData:
+    Project 1:
+        In the last 24h -> 2 Exited Sessions / 2 Total Sessions -> 100% Crash free rate
+        In the previous 24h (>24h & <48h) -> 2 Exited + 1 Crashed Sessions / 3 Sessions -> 66.7%
+
+    Project 2:
+        In the last 24h -> 1 Exited + 1 Crashed / 2 Total Sessions -> 50% Crash free rate
+        In the previous 24h (>24h & <48h) -> 0 Sessions -> None
+
+    Project 3:
+        In the last 24h -> 0 Sessions -> None
+        In the previous 24h (>24h & <48h) -> 4 Exited + 1 Crashed / 5 Total Sessions -> 80%
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.session_started = time.time() // 60 * 60
+        self.session_started_gt_24_lt_48 = self.session_started - 30 * 60 * 60
+        self.project2 = self.create_project(
+            name="Bar2",
+            slug="bar2",
+            teams=[self.team],
+            fire_project_created=True,
+            organization=self.organization,
+        )
+        self.project3 = self.create_project(
+            name="Bar3",
+            slug="bar3",
+            teams=[self.team],
+            fire_project_created=True,
+            organization=self.organization,
+        )
+
+        # Project 1
+        for _ in range(0, 2):
+            self.store_session(
+                generate_session_default_args(
+                    {
+                        "project_id": self.project.id,
+                        "org_id": self.project.organization_id,
+                        "status": "exited",
+                    }
+                )
+            )
+
+        for idx in range(0, 3):
+            status = "exited"
+            if idx == 2:
+                status = "crashed"
+            self.store_session(
+                generate_session_default_args(
+                    {
+                        "project_id": self.project.id,
+                        "org_id": self.project.organization_id,
+                        "status": status,
+                        "started": self.session_started_gt_24_lt_48,
+                    }
+                )
+            )
+
+        # Project 2
+        for i in range(0, 2):
+            status = "exited"
+            if i == 1:
+                status = "crashed"
+            self.store_session(
+                generate_session_default_args(
+                    {
+                        "project_id": self.project2.id,
+                        "org_id": self.project2.organization_id,
+                        "status": status,
+                    }
+                )
+            )
+
+        # Project 3
+        for i in range(0, 5):
+            status = "exited"
+            if i == 4:
+                status = "crashed"
+            self.store_session(
+                generate_session_default_args(
+                    {
+                        "project_id": self.project3.id,
+                        "org_id": self.project3.organization_id,
+                        "status": status,
+                        "started": self.session_started_gt_24_lt_48,
+                    }
+                )
+            )
+
+    def test_get_current_and_previous_crash_free_rates(self):
+        now = timezone.now()
+        last_24h_start = now - 24 * timedelta(hours=1)
+        last_48h_start = now - 2 * 24 * timedelta(hours=1)
+
+        data = get_current_and_previous_crash_free_rates(
+            project_ids=[self.project.id, self.project2.id, self.project3.id],
+            current_start=last_24h_start,
+            current_end=now,
+            previous_start=last_48h_start,
+            previous_end=last_24h_start,
+            rollup=86400,
+        )
+
+        assert data == {
+            self.project.id: {
+                "currentCrashFreeRate": 100,
+                "previousCrashFreeRate": 66.66666666666667,
+            },
+            self.project2.id: {"currentCrashFreeRate": 50.0, "previousCrashFreeRate": None},
+            self.project3.id: {"currentCrashFreeRate": None, "previousCrashFreeRate": 80.0},
+        }
