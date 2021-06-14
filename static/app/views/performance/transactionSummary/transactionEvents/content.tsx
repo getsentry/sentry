@@ -28,7 +28,7 @@ import TransactionHeader, {Tab} from '../header';
 
 import {generateTraceLink, generateTransactionLink} from './utils';
 
-const DEFAULT_TRANSACTION_LIMIT = 12;
+const DEFAULT_TRANSACTION_LIMIT = 50;
 
 type Props = {
   location: Location;
