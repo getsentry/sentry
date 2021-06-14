@@ -19,7 +19,6 @@ class OrganizationSerializerTest(TestCase):
         assert result["features"] == {
             "advanced-search",
             "alert-details-redesign",
-            "alert-wizard",
             "custom-event-title",
             "custom-symbol-sources",
             "data-forwarding",

@@ -138,225 +138,163 @@ describe('ProjectAlertsCreate', function () {
   };
 
   describe('Issue Alert', function () {
-    describe('With Metric Alerts', function () {
-      beforeEach(function () {
-        MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/tags/',
-          body: [],
-        });
-        MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/alert-rules/available-actions/',
-          body: [
-            {
-              allowedTargetTypes: ['user', 'team'],
-              integrationName: null,
-              type: 'email',
-              integrationId: null,
-            },
-          ],
-        });
-        MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/events-stats/',
-          body: TestStubs.EventsStats(),
-        });
-        MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/events-meta/',
-          body: {count: 5},
-        });
-      });
-      it('forces user to select Metric or Issue alert', async function () {
-        const {wrapper} = createWrapper({
-          organization: {features: ['incidents']},
-        });
-        await tick();
-        wrapper.update();
-        expect(memberActionCreators.fetchOrgMembers).toHaveBeenCalled();
-        expect(wrapper.find('IssueEditor')).toHaveLength(0);
-        expect(wrapper.find('IncidentRulesCreate')).toHaveLength(0);
-
-        wrapper.find('Radio[aria-label="metric"]').simulate('change');
-        expect(wrapper.find('IncidentRulesCreate')).toHaveLength(1);
-        await tick();
-
-        wrapper.find('Radio[aria-label="issue"]').simulate('change');
-        await tick();
-        expect(wrapper.find('IncidentRulesCreate')).toHaveLength(0);
-        expect(wrapper.find('SelectControl[name="environment"]').prop('value')).toBe(
-          '__all_environments__'
-        );
-        expect(wrapper.find('SelectControl[name="actionMatch"]').prop('value')).toBe(
-          'all'
-        );
-        expect(wrapper.find('SelectControl[name="frequency"]').prop('value')).toBe('30');
-      });
+    it('loads default values', async function () {
+      const {wrapper} = createWrapper();
+      await tick();
+      wrapper.update();
+      expect(memberActionCreators.fetchOrgMembers).toHaveBeenCalled();
+      expect(wrapper.find('SelectControl[name="environment"]').prop('value')).toBe(
+        '__all_environments__'
+      );
+      expect(wrapper.find('SelectControl[name="actionMatch"]').prop('value')).toBe('all');
+      expect(wrapper.find('SelectControl[name="frequency"]').prop('value')).toBe('30');
     });
 
-    describe('Without Metric Alerts', function () {
-      it('loads default values', async function () {
-        const {wrapper} = createWrapper();
-        await tick();
-        wrapper.update();
-        expect(memberActionCreators.fetchOrgMembers).toHaveBeenCalled();
-        expect(wrapper.find('SelectControl[name="environment"]').prop('value')).toBe(
-          '__all_environments__'
-        );
-        expect(wrapper.find('SelectControl[name="actionMatch"]').prop('value')).toBe(
-          'all'
-        );
-        expect(wrapper.find('SelectControl[name="frequency"]').prop('value')).toBe('30');
+    it('updates values and saves', async function () {
+      const {wrapper, router} = createWrapper({
+        organization: {
+          features: ['alert-filters'],
+        },
+      });
+      const mock = MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/rules/',
+        method: 'POST',
+        body: TestStubs.ProjectAlertRule(),
+      });
+      await tick();
+      wrapper.update();
+
+      expect(memberActionCreators.fetchOrgMembers).toHaveBeenCalled();
+      // Change target environment
+
+      selectByValue(wrapper, 'production', {control: true, name: 'environment'});
+      // Change actionMatch and filterMatch dropdown
+      selectByValue(wrapper, 'any', {name: 'actionMatch'});
+      selectByValue(wrapper, 'any', {name: 'filterMatch'});
+
+      // Change name of alert rule
+      wrapper
+        .find('input[name="name"]')
+        .simulate('change', {target: {value: 'My Rule Name'}});
+      // Add a condition and remove it
+      selectByValue(
+        wrapper,
+        'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
+        {selector: 'Select[placeholder="Add optional condition..."]'}
+      );
+
+      wrapper
+        .find('RuleNode')
+        .at(0)
+        .find('button[aria-label="Delete Node"]')
+        .simulate('click');
+
+      // Add another condition
+      selectByValue(
+        wrapper,
+        'sentry.rules.conditions.tagged_event.TaggedEventCondition',
+        {selector: 'Select[placeholder="Add optional condition..."]'}
+      );
+
+      // Edit new Condition
+      const ruleNode = wrapper.find('RuleNode').at(0);
+
+      ruleNode
+        .find('input[name="key"]')
+        .simulate('change', {target: {value: 'conditionKey'}});
+
+      ruleNode
+        .find('input[name="value"]')
+        .simulate('change', {target: {value: 'conditionValue'}});
+
+      selectByValue(wrapper, 'ne', {name: 'match', control: true});
+
+      // Add a filter and remove it
+      selectByValue(wrapper, 'sentry.rules.filters.age_comparison.AgeComparisonFilter', {
+        selector: 'Select[placeholder="Add optional filter..."]',
       });
 
-      it('updates values and saves', async function () {
-        const {wrapper, router} = createWrapper({
-          organization: {
-            features: ['alert-filters'],
-          },
-        });
-        const mock = MockApiClient.addMockResponse({
-          url: '/projects/org-slug/project-slug/rules/',
-          method: 'POST',
-          body: TestStubs.ProjectAlertRule(),
-        });
-        await tick();
-        wrapper.update();
+      wrapper
+        .find('RuleNode')
+        .at(1)
+        .find('button[aria-label="Delete Node"]')
+        .simulate('click');
 
-        expect(memberActionCreators.fetchOrgMembers).toHaveBeenCalled();
-        // Change target environment
+      // Add a new filter
+      selectByValue(wrapper, 'sentry.rules.filters.age_comparison.AgeComparisonFilter', {
+        selector: 'Select[placeholder="Add optional filter..."]',
+      });
 
-        selectByValue(wrapper, 'production', {control: true, name: 'environment'});
-        // Change actionMatch and filterMatch dropdown
-        selectByValue(wrapper, 'any', {name: 'actionMatch'});
-        selectByValue(wrapper, 'any', {name: 'filterMatch'});
+      const filterRuleNode = wrapper.find('RuleNode').at(1);
 
-        // Change name of alert rule
-        wrapper
-          .find('input[name="name"]')
-          .simulate('change', {target: {value: 'My Rule Name'}});
-        // Add a condition and remove it
-        selectByValue(
-          wrapper,
-          'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
-          {selector: 'Select[placeholder="Add optional condition..."]'}
-        );
+      filterRuleNode
+        .find('input[type="number"]')
+        .simulate('change', {target: {value: '12'}});
 
-        wrapper
-          .find('RuleNode')
-          .at(0)
-          .find('button[aria-label="Delete Node"]')
-          .simulate('click');
+      // Add an action and remove it
+      selectByValue(wrapper, 'sentry.rules.actions.notify_event.NotifyEventAction', {
+        selector: 'Select[placeholder="Add action..."]',
+      });
 
-        // Add another condition
-        selectByValue(
-          wrapper,
-          'sentry.rules.conditions.tagged_event.TaggedEventCondition',
-          {selector: 'Select[placeholder="Add optional condition..."]'}
-        );
+      wrapper
+        .find('RuleNodeList')
+        .at(2)
+        .find('button[aria-label="Delete Node"]')
+        .simulate('click');
 
-        // Edit new Condition
-        const ruleNode = wrapper.find('RuleNode').at(0);
-
-        ruleNode
-          .find('input[name="key"]')
-          .simulate('change', {target: {value: 'conditionKey'}});
-
-        ruleNode
-          .find('input[name="value"]')
-          .simulate('change', {target: {value: 'conditionValue'}});
-
-        selectByValue(wrapper, 'ne', {name: 'match', control: true});
-
-        // Add a filter and remove it
-        selectByValue(
-          wrapper,
-          'sentry.rules.filters.age_comparison.AgeComparisonFilter',
-          {selector: 'Select[placeholder="Add optional filter..."]'}
-        );
-
-        wrapper
-          .find('RuleNode')
-          .at(1)
-          .find('button[aria-label="Delete Node"]')
-          .simulate('click');
-
-        // Add a new filter
-        selectByValue(
-          wrapper,
-          'sentry.rules.filters.age_comparison.AgeComparisonFilter',
-          {selector: 'Select[placeholder="Add optional filter..."]'}
-        );
-
-        const filterRuleNode = wrapper.find('RuleNode').at(1);
-
-        filterRuleNode
-          .find('input[type="number"]')
-          .simulate('change', {target: {value: '12'}});
-
-        // Add an action and remove it
-        selectByValue(wrapper, 'sentry.rules.actions.notify_event.NotifyEventAction', {
+      // Add a new action
+      selectByValue(
+        wrapper,
+        'sentry.rules.actions.notify_event_service.NotifyEventServiceAction',
+        {
           selector: 'Select[placeholder="Add action..."]',
-        });
+        }
+      );
 
-        wrapper
-          .find('RuleNodeList')
-          .at(2)
-          .find('button[aria-label="Delete Node"]')
-          .simulate('click');
-
-        // Add a new action
-        selectByValue(
-          wrapper,
-          'sentry.rules.actions.notify_event_service.NotifyEventServiceAction',
-          {
-            selector: 'Select[placeholder="Add action..."]',
-          }
-        );
-
-        selectByValue(wrapper, '60', {
-          name: 'frequency',
-        });
-
-        wrapper.find('form').simulate('submit');
-
-        expect(mock).toHaveBeenCalledWith(
-          expect.any(String),
-          expect.objectContaining({
-            data: {
-              actionMatch: 'any',
-              filterMatch: 'any',
-              actions: [
-                {
-                  id:
-                    'sentry.rules.actions.notify_event_service.NotifyEventServiceAction',
-                  service: 'mail',
-                },
-              ],
-              conditions: [
-                {
-                  id: 'sentry.rules.conditions.tagged_event.TaggedEventCondition',
-                  key: 'conditionKey',
-                  match: 'ne',
-                  value: 'conditionValue',
-                },
-              ],
-              filters: [
-                {
-                  id: 'sentry.rules.filters.age_comparison.AgeComparisonFilter',
-                  comparison_type: 'older',
-                  time: 'minute',
-                  value: '12',
-                },
-              ],
-              environment: 'production',
-              frequency: '60',
-              name: 'My Rule Name',
-            },
-          })
-        );
-        expect(metric.startTransaction).toHaveBeenCalledWith({name: 'saveAlertRule'});
-
-        await tick();
-        expect(router.push).toHaveBeenCalledWith('/organizations/org-slug/alerts/rules/');
+      selectByValue(wrapper, '60', {
+        name: 'frequency',
       });
+
+      wrapper.find('form').simulate('submit');
+
+      expect(mock).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          data: {
+            actionMatch: 'any',
+            filterMatch: 'any',
+            actions: [
+              {
+                id: 'sentry.rules.actions.notify_event_service.NotifyEventServiceAction',
+                service: 'mail',
+              },
+            ],
+            conditions: [
+              {
+                id: 'sentry.rules.conditions.tagged_event.TaggedEventCondition',
+                key: 'conditionKey',
+                match: 'ne',
+                value: 'conditionValue',
+              },
+            ],
+            filters: [
+              {
+                id: 'sentry.rules.filters.age_comparison.AgeComparisonFilter',
+                comparison_type: 'older',
+                time: 'minute',
+                value: '12',
+              },
+            ],
+            environment: 'production',
+            frequency: '60',
+            name: 'My Rule Name',
+          },
+        })
+      );
+      expect(metric.startTransaction).toHaveBeenCalledWith({name: 'saveAlertRule'});
+
+      await tick();
+      expect(router.push).toHaveBeenCalledWith('/organizations/org-slug/alerts/rules/');
     });
   });
 });

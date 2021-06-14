@@ -20,8 +20,6 @@ import {getAlertTypeFromAggregateDataset} from 'app/views/alerts/wizard/utils';
 import IncidentRulesCreate from 'app/views/settings/incidentRules/create';
 import IssueRuleEditor from 'app/views/settings/projectAlerts/issueRuleEditor';
 
-import AlertTypeChooser from './alertTypeChooser';
-
 type RouteParams = {
   orgId: string;
   projectId: string;
@@ -53,7 +51,6 @@ class Create extends Component<Props, State> {
 
   componentDidMount() {
     const {organization, location, project} = this.props;
-    const hasWizard = organization.features.includes('alert-wizard');
 
     trackAnalyticsEvent({
       eventKey: 'new_alert_rule.viewed',
@@ -84,7 +81,7 @@ class Create extends Component<Props, State> {
             alertType: 'issue',
           });
         }
-      } else if (hasWizard) {
+      } else {
         browserHistory.replace(
           `/organizations/${organization.slug}/alerts/${project.id}/wizard`
         );
@@ -111,8 +108,6 @@ class Create extends Component<Props, State> {
     } = this.props;
     const {alertType, eventView, wizardTemplate} = this.state;
 
-    const hasWizard = organization.features.includes('alert-wizard');
-    const shouldShowAlertTypeChooser = hasMetricAlerts && !hasWizard;
     let wizardAlertType: undefined | WizardAlertType;
     if (location?.query?.createFromWizard) {
       wizardAlertType = wizardTemplate
@@ -147,14 +142,6 @@ class Create extends Component<Props, State> {
         </Layout.Header>
         <AlertConditionsBody>
           <Layout.Main fullWidth>
-            {shouldShowAlertTypeChooser && (
-              <AlertTypeChooser
-                organization={organization}
-                selected={alertType}
-                onChange={this.handleChangeAlertType}
-              />
-            )}
-
             {(!hasMetricAlerts || alertType === 'issue') && (
               <IssueRuleEditor {...this.props} project={project} />
             )}

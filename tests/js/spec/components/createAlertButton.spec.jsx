@@ -225,35 +225,10 @@ describe('CreateAlertFromViewButton', () => {
     expect(guide.props().onFinish).toBeDefined();
   });
 
-  it('redirects to alert builder with no project', async () => {
+  it('redirects to alert wizard with no project', async () => {
     jest.spyOn(navigation, 'navigateTo');
 
     const wrapper = generateWrappedComponentButton(organization);
-    wrapper.simulate('click');
-    expect(navigation.navigateTo).toHaveBeenCalledWith(
-      `/organizations/org-slug/alerts/:projectId/new/`,
-      undefined
-    );
-  });
-
-  it('redirects to alert builder with a project', async () => {
-    const wrapper = generateWrappedComponentButton(organization, {
-      projectSlug: 'proj-slug',
-    });
-
-    expect(wrapper.find('Button').props().to).toBe(
-      `/organizations/org-slug/alerts/proj-slug/new/`
-    );
-  });
-
-  it('redirects to the alert wizard w/ feature flag with no project', async () => {
-    jest.spyOn(navigation, 'navigateTo');
-    const wizardOrg = {
-      ...organization,
-      features: ['alert-wizard'],
-    };
-
-    const wrapper = generateWrappedComponentButton(wizardOrg);
     wrapper.simulate('click');
     expect(navigation.navigateTo).toHaveBeenCalledWith(
       `/organizations/org-slug/alerts/:projectId/wizard/`,
@@ -261,13 +236,11 @@ describe('CreateAlertFromViewButton', () => {
     );
   });
 
-  it('redirects to the alert wizard with a project', async () => {
-    const wizardOrg = {
-      ...organization,
-      features: ['alert-wizard'],
-    };
+  it('redirects to alert wizard with a project', async () => {
+    const wrapper = generateWrappedComponentButton(organization, {
+      projectSlug: 'proj-slug',
+    });
 
-    const wrapper = generateWrappedComponentButton(wizardOrg, {projectSlug: 'proj-slug'});
     expect(wrapper.find('Button').props().to).toBe(
       `/organizations/org-slug/alerts/proj-slug/wizard/`
     );

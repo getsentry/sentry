@@ -46,17 +46,15 @@ type Props = Omit<FormField['props'], 'children'> & {
 
 const getFieldOptionConfig = ({
   dataset,
-  organization,
   alertType,
 }: {
   dataset: Dataset;
-  organization: Organization;
   alertType?: AlertType;
 }) => {
   let config: OptionConfig;
   let hidePrimarySelector = false;
   let hideParameterSelector = false;
-  if (organization.features.includes('alert-wizard') && alertType) {
+  if (alertType) {
     config = getWizardAlertFieldConfig(alertType, dataset);
     hidePrimarySelector = hidePrimarySelectorSet.has(alertType);
     hideParameterSelector = hideParameterSelectorSet.has(alertType);
@@ -142,7 +140,6 @@ const MetricField = ({
         hideParameterSelector,
       } = getFieldOptionConfig({
         dataset: dataset as Dataset,
-        organization,
         alertType,
       });
       const fieldOptions = generateFieldOptions({organization, ...fieldOptionsConfig});
