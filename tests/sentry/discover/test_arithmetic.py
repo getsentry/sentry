@@ -17,11 +17,6 @@ op_map = {
 }
 
 
-def test_single_term():
-    result, _, _ = parse_arithmetic("12")
-    assert result == 12.0
-
-
 @pytest.mark.parametrize(
     "a,op,b",
     [
@@ -219,6 +214,10 @@ def test_unparseable_arithmetic(equation):
         "last_seen() + 1",
         # Mixing fields/functions is invalid
         "p50(transaction.duration) + transaction.duration",
+        # Single fields are invalid cause there's no reason to use arithmetic for them
+        "12",
+        "p50(transaction.duration)",
+        "measurements.lcp",
     ],
 )
 def test_invalid_arithmetic(equation):
