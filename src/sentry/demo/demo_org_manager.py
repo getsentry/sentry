@@ -58,7 +58,7 @@ def create_demo_org(quick=False) -> Organization:
             )
             react_project.add_team(team)
 
-            if settings.MOBILE_PROJECTS:
+            if settings.DEMO_MOBILE_PROJECTS:
                 react_native_project = Project.objects.create(
                     name="React-Native", organization=org, platform="react-native"
                 )
