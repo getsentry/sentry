@@ -159,3 +159,20 @@ class DemoOrgManagerTest(TestCase):
         assert org.status == OrganizationStatus.PENDING_DELETION
 
         mock_delete_organization.assert_called_once_with(kwargs={"object_id": org.id})
+
+    @override_settings(DEMO_MOBILE_PROJECTS=True)
+    def test_create_mobile_demo_org(self):
+        owner = User.objects.create(email=org_owner_email)
+
+        create_demo_org()
+
+        demo_org = DemoOrganization.objects.get(
+            organization__name=org_name, status=DemoOrgStatus.PENDING
+        )
+        org = demo_org.organization
+
+        assert OrganizationMember.objects.filter(
+            user=owner, organization=org, role="owner"
+        ).exists()
+
+        assert len(Project.objects.filter(organization=org)) == 5
