@@ -6,6 +6,7 @@ from zipfile import ZipFile
 
 from sentry import options
 from sentry.models import ReleaseArchive, ReleaseFile
+from sentry.models.distribution import Distribution
 from sentry.models.file import File
 from sentry.models.releasefile import ReleaseManifest
 from sentry.testutils import TestCase
@@ -90,7 +91,7 @@ class ReleaseFileCacheTest(TestCase):
 
 
 class ReleaseArchiveTestCase(TestCase):
-    def create_archive(self, fields, files):
+    def create_archive(self, fields, files, dist=None):
         manifest = dict(
             fields, files={filename: {"url": f"fake://{filename}"} for filename in files}
         )
@@ -105,7 +106,7 @@ class ReleaseArchiveTestCase(TestCase):
         file_.putfile(buffer)
         file_.update(timestamp=datetime(2021, 6, 11, 9, 13, 1, 317902, tzinfo=timezone.utc))
 
-        manifest = ReleaseManifest(self.release, None)
+        manifest = ReleaseManifest(self.release, dist)
 
         with ReleaseArchive(file_.getfile()) as archive:
             manifest.update(archive, file_)
@@ -154,6 +155,12 @@ class ReleaseArchiveTestCase(TestCase):
                 },
             },
         }
+
+        # See if creating a second manifest interferes:
+        dist = Distribution.objects.create(
+            organization_id=self.organization.id, release_id=self.release.id, name="foo"
+        )
+        self.create_archive(fields={}, files={"xyz": "123"}, dist=dist)
 
         archive2 = self.create_archive(
             fields={},

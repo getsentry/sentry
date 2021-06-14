@@ -254,19 +254,35 @@ class _ManifestGuard:
                 file_.putfile(BytesIO(json.dumps(manifest.data).encode()))
 
     def _get_or_create_file(self) -> Tuple[File, bool]:
+        # Make sure the appropriate rows are locked for update:
         qs = ReleaseFile.objects.select_related("file").select_for_update()
-        release_file, created = qs.get_or_create(
-            organization_id=self._release.organization_id,
-            release=self._release,
-            dist=self._dist,
-            name=MANIFEST_FILENAME,
-            file=File.objects.get_or_create(
-                name=MANIFEST_FILENAME,
-                type=MANIFEST_TYPE,
-            )[0],
-        )
 
-        return release_file.file, created
+        try:
+            return (
+                qs.get(
+                    organization_id=self._release.organization_id,
+                    release=self._release,
+                    dist=self._dist,
+                    name=MANIFEST_FILENAME,
+                ).file,
+                False,
+            )
+        except ReleaseFile.DoesNotExist:
+            # This function is called from within a db transaction, so there
+            # should be no race condition here
+            return (
+                qs.create(
+                    organization_id=self._release.organization_id,
+                    release=self._release,
+                    dist=self._dist,
+                    name=MANIFEST_FILENAME,
+                    file=File.objects.create(
+                        name=MANIFEST_FILENAME,
+                        type=MANIFEST_TYPE,
+                    ),
+                ).file,
+                True,
+            )
 
     def _get_file(self, lock: bool) -> Optional[File]:
         qs = ReleaseFile.objects.select_related("file")
@@ -317,7 +333,6 @@ class ReleaseManifest:
             info["date_created"] = archive_file.timestamp
             info["sha1"] = self._compute_sha1(archive, filename)
             info["size"] = archive.info(filename).file_size
-            # FIXME: more fields
             files_out[url] = info
 
         with self._manifest.writable_data(create=True) as manifest:
