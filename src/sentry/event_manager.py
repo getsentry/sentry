@@ -530,6 +530,7 @@ class EventManager:
         _track_outcome_accepted_many(jobs)
 
         self._data = job["event"].data.data
+
         return job["event"]
 
 
