@@ -16,6 +16,8 @@ InitialDestinations = Mapping[str, Tuple[int, None]]
 
 Destinations = Mapping[str, Tuple[int, Any]]
 
+EventstreamState = Any
+
 
 class UnmergeReplacement(abc.ABC):
     """
@@ -62,11 +64,13 @@ class UnmergeReplacement(abc.ABC):
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def start_snuba_replacement(self, project: Project, source_id: int, destination_id: int) -> Any:
+    def start_snuba_replacement(
+        self, project: Project, source_id: int, destination_id: int
+    ) -> EventstreamState:
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def stop_snuba_replacement(self, eventstream_state: Any) -> None:
+    def stop_snuba_replacement(self, eventstream_state: EventstreamState) -> None:
         raise NotImplementedError()
 
     @abc.abstractmethod
@@ -101,10 +105,12 @@ class PrimaryHashUnmergeReplacement(UnmergeReplacement):
     def primary_hashes_to_lock(self) -> Collection[str]:
         return self.fingerprints
 
-    def start_snuba_replacement(self, project: Project, source_id: int, destination_id: int) -> Any:
+    def start_snuba_replacement(
+        self, project: Project, source_id: int, destination_id: int
+    ) -> EventstreamState:
         return eventstream.start_unmerge(project.id, self.fingerprints, source_id, destination_id)
 
-    def stop_snuba_replacement(self, eventstream_state: Any) -> None:
+    def stop_snuba_replacement(self, eventstream_state: EventstreamState) -> None:
         eventstream.end_unmerge(eventstream_state)
 
     def run_postgres_replacement(
@@ -157,7 +163,7 @@ class UnmergeArgsBase(abc.ABC):
         last_event: Optional[Mapping[str, Any]] = None,
         batch_size: int = 500,
         source_fields_reset: bool = False,
-        eventstream_state: Any = None,
+        eventstream_state: EventstreamState = None,
         replacement: Optional[UnmergeReplacement] = None,
         locked_primary_hashes: Optional[Collection[str]] = None,
         destinations: Optional[Destinations] = None,
