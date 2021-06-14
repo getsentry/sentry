@@ -37,6 +37,8 @@ class UnmergeReplacement(abc.ABC):
             assert isinstance(replacement, UnmergeReplacement)
             return replacement
         elif fingerprints is not None:
+            # TODO(markus): Deprecate once we no longer use `fingerprints` arg
+            # (need to change group_hashes endpoint first)
             return PrimaryHashUnmergeReplacement(fingerprints=fingerprints)
         else:
             raise TypeError("Either fingerprints or replacement argument is required.")
