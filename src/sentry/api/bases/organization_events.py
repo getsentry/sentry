@@ -303,24 +303,22 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 for agg in configurable_aggregates:
                     if agg not in columns:
                         continue
-                    if threshold:
-                        new_field_name = configurable_aggregates[agg].format(threshold=threshold)
-                        column_map[agg] = new_field_name
-                        continue
 
-                    project_ids = params.get("project_id")
-                    threshold_configs = list(
-                        ProjectTransactionThreshold.objects.filter(
-                            organization_id=organization.id,
-                            project_id__in=project_ids,
-                        ).values_list("threshold", flat=True)
-                    )
+                    if threshold is None:
+                        project_ids = params.get("project_id")
+                        threshold_configs = list(
+                            ProjectTransactionThreshold.objects.filter(
+                                organization_id=organization.id,
+                                project_id__in=project_ids,
+                            ).values_list("threshold", flat=True)
+                        )
 
-                    projects_without_threshold = len(project_ids) - len(threshold_configs)
-                    threshold_configs.extend(
-                        [DEFAULT_PROJECT_THRESHOLD] * projects_without_threshold
-                    )
-                    threshold = int(mean(threshold_configs))
+                        projects_without_threshold = len(project_ids) - len(threshold_configs)
+                        threshold_configs.extend(
+                            [DEFAULT_PROJECT_THRESHOLD] * projects_without_threshold
+                        )
+                        threshold = int(mean(threshold_configs))
+
                     new_field_name = configurable_aggregates[agg].format(threshold=threshold)
                     column_map[agg] = new_field_name
 

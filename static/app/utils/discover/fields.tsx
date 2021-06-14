@@ -264,12 +264,12 @@ export const AGGREGATIONS = {
   },
   apdex: {
     getFieldOverrides({parameter, organization}: DefaultValueInputs) {
-      return organization.features.includes('project-transaction-threshold')
-        ? {required: false, placeholder: 'Automatic', defaultValue: ''}
-        : {
-            defaultValue:
-              organization.apdexThreshold?.toString() ?? parameter.defaultValue,
-          };
+      if (organization.features.includes('project-transaction-threshold')) {
+        return {required: false, placeholder: 'Automatic', defaultValue: ''};
+      }
+      return {
+        defaultValue: organization.apdexThreshold?.toString() ?? parameter.defaultValue,
+      };
     },
     parameters: [
       {
@@ -285,12 +285,12 @@ export const AGGREGATIONS = {
   },
   user_misery: {
     getFieldOverrides({parameter, organization}: DefaultValueInputs) {
-      return organization.features.includes('project-transaction-threshold')
-        ? {required: false, placeholder: 'Automatic', defaultValue: ''}
-        : {
-            defaultValue:
-              organization.apdexThreshold?.toString() ?? parameter.defaultValue,
-          };
+      if (organization.features.includes('project-transaction-threshold')) {
+        return {required: false, placeholder: 'Automatic', defaultValue: ''};
+      }
+      return {
+        defaultValue: organization.apdexThreshold?.toString() ?? parameter.defaultValue,
+      };
     },
     parameters: [
       {
@@ -321,12 +321,12 @@ export const AGGREGATIONS = {
       if (parameter.kind === 'column') {
         return {defaultValue: 'user'};
       }
-      return organization.features.includes('project-transaction-threshold')
-        ? {required: false, placeholder: 'Automatic', defaultValue: ''}
-        : {
-            defaultValue:
-              organization.apdexThreshold?.toString() ?? parameter.defaultValue,
-          };
+      if (organization.features.includes('project-transaction-threshold')) {
+        return {required: false, placeholder: 'Automatic', defaultValue: ''};
+      }
+      return {
+        defaultValue: organization.apdexThreshold?.toString() ?? parameter.defaultValue,
+      };
     },
     parameters: [
       {
