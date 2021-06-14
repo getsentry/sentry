@@ -3,19 +3,21 @@ import uuid
 from datetime import datetime, timedelta
 
 import pytz
+from django.utils import timezone
 
 from sentry.snuba.sessions import (
     _make_stats,
     check_has_health_data,
     get_adjacent_releases_based_on_adoption,
+    get_current_and_previous_crash_free_rates,
     get_oldest_health_data_for_releases,
     get_project_releases_by_stability,
     get_release_adoption,
     get_release_health_data_overview,
     get_release_sessions_time_bounds,
 )
-from sentry.utils.dates import to_timestamp
 from sentry.testutils import SnubaTestCase, TestCase
+from sentry.utils.dates import to_timestamp
 
 
 def format_timestamp(dt):
@@ -148,24 +150,28 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
         with session data older than 90 days should be exluded
         """
         project2 = self.create_project(
-            name="Bar2", slug="bar2", teams=[self.team], fire_project_created=True,
-            organization=self.organization
+            name="Bar2",
+            slug="bar2",
+            teams=[self.team],
+            fire_project_created=True,
+            organization=self.organization,
         )
 
-        date_100_days_ago = \
-            to_timestamp((datetime.utcnow() - timedelta(days=100)).replace(tzinfo=pytz.utc))
+        date_100_days_ago = to_timestamp(
+            (datetime.utcnow() - timedelta(days=100)).replace(tzinfo=pytz.utc)
+        )
         self.store_session(
-            generate_session_default_args({
-                "started": date_100_days_ago // 60 * 60,
-                "received": date_100_days_ago,
-                "project_id": project2.id,
-                "org_id": project2.organization_id,
-                "status": "exited"
-            })
+            generate_session_default_args(
+                {
+                    "started": date_100_days_ago // 60 * 60,
+                    "received": date_100_days_ago,
+                    "project_id": project2.id,
+                    "org_id": project2.organization_id,
+                    "status": "exited",
+                }
+            )
         )
-        data = check_has_health_data(
-            [self.project.id, project2.id]
-        )
+        data = check_has_health_data([self.project.id, project2.id])
         assert data == {self.project.id}
 
     def test_check_has_health_data_without_releases_should_include_sessions_lte_90_days(self):
@@ -175,19 +181,18 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
         session data earlier than 90 days should be included
         """
         project2 = self.create_project(
-            name="Bar2", slug="bar2", teams=[self.team], fire_project_created=True,
-            organization=self.organization
+            name="Bar2",
+            slug="bar2",
+            teams=[self.team],
+            fire_project_created=True,
+            organization=self.organization,
         )
         self.store_session(
-            generate_session_default_args({
-                "project_id": project2.id,
-                "org_id": project2.organization_id,
-                "status": "exited"
-            })
+            generate_session_default_args(
+                {"project_id": project2.id, "org_id": project2.organization_id, "status": "exited"}
+            )
         )
-        data = check_has_health_data(
-            [self.project.id, project2.id]
-        )
+        data = check_has_health_data([self.project.id, project2.id])
         assert data == {self.project.id, project2.id}
 
     def test_get_project_releases_by_stability(self):
@@ -1583,3 +1588,123 @@ class SnubaReleaseDetailPaginationOnCrashFreeUsersTest(
                 "prev_releases_list": [],
             },
         )
+
+
+class GetCrashFreeRateTestCase(TestCase, SnubaTestCase):
+    """
+    TestClass that tests that `get_current_and_previous_crash_free_rates` returns the correct
+    `currentCrashFreeRate` and `previousCrashFreeRate` for each project
+
+    TestData:
+    Project 1:
+        In the last 24h -> 2 Exited Sessions / 2 Total Sessions -> 100% Crash free rate
+        In the previous 24h (>24h & <48h) -> 2 Exited + 1 Crashed Sessions / 3 Sessions -> 66.7%
+
+    Project 2:
+        In the last 24h -> 1 Exited + 1 Crashed / 2 Total Sessions -> 50% Crash free rate
+        In the previous 24h (>24h & <48h) -> 0 Sessions -> None
+
+    Project 3:
+        In the last 24h -> 0 Sessions -> None
+        In the previous 24h (>24h & <48h) -> 4 Exited + 1 Crashed / 5 Total Sessions -> 80%
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.session_started = time.time() // 60 * 60
+        self.session_started_gt_24_lt_48 = self.session_started - 30 * 60 * 60
+        self.project2 = self.create_project(
+            name="Bar2",
+            slug="bar2",
+            teams=[self.team],
+            fire_project_created=True,
+            organization=self.organization,
+        )
+        self.project3 = self.create_project(
+            name="Bar3",
+            slug="bar3",
+            teams=[self.team],
+            fire_project_created=True,
+            organization=self.organization,
+        )
+
+        # Project 1
+        for _ in range(0, 2):
+            self.store_session(
+                generate_session_default_args(
+                    {
+                        "project_id": self.project.id,
+                        "org_id": self.project.organization_id,
+                        "status": "exited",
+                    }
+                )
+            )
+
+        for idx in range(0, 3):
+            status = "exited"
+            if idx == 2:
+                status = "crashed"
+            self.store_session(
+                generate_session_default_args(
+                    {
+                        "project_id": self.project.id,
+                        "org_id": self.project.organization_id,
+                        "status": status,
+                        "started": self.session_started_gt_24_lt_48,
+                    }
+                )
+            )
+
+        # Project 2
+        for i in range(0, 2):
+            status = "exited"
+            if i == 1:
+                status = "crashed"
+            self.store_session(
+                generate_session_default_args(
+                    {
+                        "project_id": self.project2.id,
+                        "org_id": self.project2.organization_id,
+                        "status": status,
+                    }
+                )
+            )
+
+        # Project 3
+        for i in range(0, 5):
+            status = "exited"
+            if i == 4:
+                status = "crashed"
+            self.store_session(
+                generate_session_default_args(
+                    {
+                        "project_id": self.project3.id,
+                        "org_id": self.project3.organization_id,
+                        "status": status,
+                        "started": self.session_started_gt_24_lt_48,
+                    }
+                )
+            )
+
+    def test_get_current_and_previous_crash_free_rates(self):
+        now = timezone.now()
+        last_24h_start = now - 24 * timedelta(hours=1)
+        last_48h_start = now - 2 * 24 * timedelta(hours=1)
+
+        data = get_current_and_previous_crash_free_rates(
+            project_ids=[self.project.id, self.project2.id, self.project3.id],
+            current_start=last_24h_start,
+            current_end=now,
+            previous_start=last_48h_start,
+            previous_end=last_24h_start,
+            rollup=86400,
+        )
+
+        assert data == {
+            self.project.id: {
+                "currentCrashFreeRate": 100,
+                "previousCrashFreeRate": 66.66666666666667,
+            },
+            self.project2.id: {"currentCrashFreeRate": 50.0, "previousCrashFreeRate": None},
+            self.project3.id: {"currentCrashFreeRate": None, "previousCrashFreeRate": 80.0},
+        }

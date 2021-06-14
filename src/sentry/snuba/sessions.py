@@ -121,11 +121,16 @@ def check_has_health_data(projects_list):
         filter_keys = {"project_id": list({x[0] for x in projects_list})}
         conditions = [["release", "IN", list(x[1] for x in projects_list)]]
         query_cols = ["release", "project_id"]
-        def data_tuple(x): return x["project_id"], x["release"]
+
+        def data_tuple(x):
+            return x["project_id"], x["release"]
+
     else:
         filter_keys = {"project_id": list({x for x in projects_list})}
         query_cols = ["project_id"]
-        def data_tuple(x): return x["project_id"]
+
+        def data_tuple(x):
+            return x["project_id"]
 
     raw_query_args = {
         "dataset": Dataset.Sessions,
@@ -133,14 +138,12 @@ def check_has_health_data(projects_list):
         "groupby": query_cols,
         "start": datetime.utcnow() - timedelta(days=90),
         "referrer": "sessions.health-data-check",
-        "filter_keys": filter_keys
+        "filter_keys": filter_keys,
     }
     if conditions is not None:
         raw_query_args.update({"conditions": conditions})
 
-    return {
-        data_tuple(x) for x in raw_query(**raw_query_args)["data"]
-    }
+    return {data_tuple(x) for x in raw_query(**raw_query_args)["data"]}
 
 
 def get_project_releases_by_stability(
@@ -941,3 +944,89 @@ def __get_scope_value_for_release(
     elif scope == "crash_free_users":
         scope_value = rq_row["users_crashed"] / rq_row["users"]
     return scope_value
+
+
+def __get_crash_free_rate(project_ids, start, end, rollup, projects_crash_free_rate_dict, key):
+    """
+    Helper function that executes a snuba query on project_ids to fetch the number of crashed
+    sessions and total sessions and returns the crash free rate for those project_ids.
+    Inputs:
+        * project_ids
+        * start
+        * end
+        * rollup
+        * projects_crash_free_rate_dict: Dictionary that contains project ids and their
+            corresponding crash free rates
+        * key: represents the key name that this crashFreeRate represents either
+            `currentCrashFreeRate` or `previousCrashFreeRate`
+    """
+    crash_free_totals = raw_query(
+        dataset=Dataset.Sessions,
+        selected_columns=["project_id", "sessions_crashed", "sessions"],
+        filter_keys={"project_id": project_ids},
+        start=start,
+        end=end,
+        rollup=rollup,
+        groupby=["project_id"],
+        referrer="sessions.totals",
+    )["data"]
+    for row in crash_free_totals:
+        projects_crash_free_rate_dict[row["project_id"]].update(
+            {key: 100 - (row["sessions_crashed"] / row["sessions"]) * 100}
+        )
+
+
+def get_current_and_previous_crash_free_rates(
+    project_ids, current_start, current_end, previous_start, previous_end, rollup
+):
+    """
+    Function that returns `currentCrashFreeRate` and the `previousCrashFreeRate` of projects
+    based on the inputs provided
+    Inputs:
+        * project_ids
+        * current_start: start interval of currentCrashFreeRate
+        * current_end: end interval of currentCrashFreeRate
+        * previous_start: start interval of previousCrashFreeRate
+        * previous_end: end interval of previousCrashFreeRate
+        * rollup
+    Returns:
+        A dictionary of project_id as key and as value the `currentCrashFreeRate` and the
+        `previousCrashFreeRate`
+
+        As an example:
+        {
+            1: {
+                "currentCrashFreeRate": 100,
+                "previousCrashFreeRate": 66.66666666666667
+            },
+            2: {
+                "currentCrashFreeRate": 50.0,
+                "previousCrashFreeRate": None
+            },
+            ...
+        }
+    """
+    projects_crash_free_rate_dict = {
+        prj: {"currentCrashFreeRate": None, "previousCrashFreeRate": None} for prj in project_ids
+    }
+
+    # currentCrashFreeRate
+    __get_crash_free_rate(
+        project_ids=project_ids,
+        start=current_start,
+        end=current_end,
+        rollup=rollup,
+        projects_crash_free_rate_dict=projects_crash_free_rate_dict,
+        key="currentCrashFreeRate",
+    )
+
+    # previousCrashFreeRate
+    __get_crash_free_rate(
+        project_ids=project_ids,
+        start=previous_start,
+        end=previous_end,
+        rollup=rollup,
+        projects_crash_free_rate_dict=projects_crash_free_rate_dict,
+        key="previousCrashFreeRate",
+    )
+    return projects_crash_free_rate_dict
