@@ -87,25 +87,6 @@ const _queryForStats = (
   });
 };
 
-const _queryForCrashFreeSessions = (api: Client, projects: string[], orgId: string) => {
-  const idQueryParams = projects.map(project => `${project}`);
-  const endpoint = `/organizations/${orgId}/sessions/`;
-
-  const query: Query = {
-    statsPeriod: '90d',
-    project: idQueryParams,
-    groupBy: ['project', 'session.status'],
-    field: 'sum(session)',
-    interval: '1d',
-  };
-
-  return api.requestPromise(endpoint, {
-    query,
-  });
-};
-
-let crashFreeRate;
-
 export const _debouncedLoadStats = debounce(
   (api: Client, projectSet: Set<string>, params: UpdateParams) => {
     const storedProjects: {[key: string]: Project} = ProjectsStatsStore.getAll();
@@ -121,18 +102,12 @@ export const _debouncedLoadStats = debounce(
 
     // Split projects into more manageable chunks to query, otherwise we can
     // potentially face server timeouts
-    const projectQueries = chunk(projects, MAX_PROJECTS_TO_FETCH).map(chunkedProjects =>
+    const queries = chunk(projects, MAX_PROJECTS_TO_FETCH).map(chunkedProjects =>
       _queryForStats(api, chunkedProjects, params.orgId, params.query)
     );
 
-    const crashQueries = chunk(projects, MAX_PROJECTS_TO_FETCH).map(chunkedProjects =>
-      _queryForCrashFreeSessions(api, chunkedProjects, params.orgId)
-    );
-    const queries = projectQueries.concat(crashQueries);
-
     Promise.all(queries)
       .then(results => {
-        crashFreeRate = results[1];
         ProjectActions.loadStatsForProjectSuccess(
           results.reduce((acc, result) => acc.concat(result), [])
         );
@@ -152,10 +127,6 @@ export function loadStatsForProject(api: Client, project: string, params: Update
   // and call a debounced function to fetch stats for list of projects
   _projectStatsToFetch.add(project);
   _debouncedLoadStats(api, _projectStatsToFetch, params);
-}
-
-export function loadCrashFreeForProject() {
-  return crashFreeRate;
 }
 
 export function setActiveProject(project: Project | null) {

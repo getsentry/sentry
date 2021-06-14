@@ -4,18 +4,24 @@ import round from 'lodash/round';
 
 import {loadStatsForProject} from 'app/actionCreators/projects';
 import {Client} from 'app/api';
-import AsyncComponent from 'app/components/asyncComponent';
 import IdBadge from 'app/components/idBadge';
 import Link from 'app/components/links/link';
 import BookmarkStar from 'app/components/projects/bookmarkStar';
 import QuestionTooltip from 'app/components/questionTooltip';
-import ScoreCard, {HeaderTitle, StyledPanel} from 'app/components/scoreCard';
+import ScoreCard, {
+  HeaderTitle,
+  Score,
+  ScoreWrapper,
+  StyledPanel,
+  Trend,
+} from 'app/components/scoreCard';
+import {releaseHealth} from 'app/data/platformCategories';
 import {IconArrow} from 'app/icons';
-import {t, tn} from 'app/locale';
+import {t} from 'app/locale';
 import ProjectsStatsStore from 'app/stores/projectsStatsStore';
 import space from 'app/styles/space';
-import {Organization, Project, SessionApiResponse} from 'app/types';
-import {defined, percent} from 'app/utils';
+import {Organization, Project} from 'app/types';
+import {defined} from 'app/utils';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import {formatAbbreviatedNumber} from 'app/utils/formatters';
 import withApi from 'app/utils/withApi';
@@ -23,25 +29,19 @@ import withOrganization from 'app/utils/withOrganization';
 import MissingReleasesButtons, {
   StyledButtonBar,
 } from 'app/views/projectDetail/missingFeatureButtons/missingReleasesButtons';
-import {displayCrashFreePercent, getCrashFreePercent} from 'app/views/releases/utils';
+import {displayCrashFreePercent} from 'app/views/releases/utils';
 
 import Chart from './chart';
 import Deploys, {DeployRows, GetStarted, TextOverflow} from './deploys';
 
-type Props = AsyncComponent['props'] & {
+type Props = {
   api: Client;
   organization: Organization;
   project: Project;
   hasProjectAccess: boolean;
 };
 
-type State = AsyncComponent['state'] & {
-  hasSessions: boolean | null;
-  currentSessions: SessionApiResponse | null;
-  previousSessions: SessionApiResponse | null;
-};
-
-class ProjectCard extends AsyncComponent<Props, State> {
+class ProjectCard extends Component<Props> {
   async componentDidMount() {
     const {organization, project, api} = this.props;
 
@@ -51,119 +51,80 @@ class ProjectCard extends AsyncComponent<Props, State> {
       projectId: project.id,
       query: {
         transactionStats: this.hasPerformance ? '1' : undefined,
+        sessionStats: '1',
       },
     });
-  }
-
-  calculateCrashFree(data?: SessionApiResponse | null) {
-    if (!data) {
-      return undefined;
-    }
-
-    const totalSessions = data.groups.reduce(
-      (acc, group) => acc + group.totals['sum(session)'],
-      0
-    );
-
-    const crashedSessions = data.groups.find(
-      group => group.by['session.status'] === 'crashed'
-    )?.totals['sum(session)'];
-
-    if (totalSessions === 0 || !defined(totalSessions) || !defined(crashedSessions)) {
-      return undefined;
-    }
-
-    const crashedSessionsPercent = percent(crashedSessions, totalSessions);
-
-    return getCrashFreePercent(100 - crashedSessionsPercent);
   }
 
   get hasPerformance() {
     return this.props.organization.features.includes('performance-view');
   }
 
-  isProjectStabilized() {
-    const {project} = this.props;
-    const projectId = project?.id;
-
-    return defined(projectId) && projectId === project.id;
-  }
-
-  get score() {
-    const {currentSessions} = this.state;
-
-    return this.calculateCrashFree(currentSessions);
-  }
-
-  get trend() {
-    const {previousSessions} = this.state;
-
-    const previousScore = this.calculateCrashFree(previousSessions);
-
-    if (!defined(this.score) || !defined(previousScore)) {
+  get crashFreeTrend() {
+    const {currentCrashFreeRate, previousCrashFreeRate} =
+      this.props.project.sessionStats || {};
+    if (!defined(currentCrashFreeRate) || !defined(previousCrashFreeRate)) {
       return undefined;
     }
 
-    return round(this.score - previousScore, 3);
+    return round(currentCrashFreeRate - previousCrashFreeRate, 3);
   }
 
-  get trendStatus(): React.ComponentProps<typeof ScoreCard>['trendStatus'] {
-    if (!this.trend) {
-      return undefined;
+  renderMissingFeatureCard() {
+    const {organization, project} = this.props;
+    if (project.platform && releaseHealth.includes(project.platform)) {
+      return (
+        <ScoreCard
+          title={t('Crash Free Sessions')}
+          score={<MissingReleasesButtons organization={organization} health />}
+        />
+      );
     }
 
-    return this.trend > 0 ? 'good' : 'bad';
-  }
-
-  renderScore() {
-    const {loading} = this.state;
-
-    if (loading || !defined(this.score)) {
-      return '\u2014';
-    }
-
-    return displayCrashFreePercent(this.score);
+    return (
+      <ScoreCard
+        title={t('Crash Free Sessions')}
+        score={
+          <NotAvailable>
+            {t('Not Available')}
+            <QuestionTooltip
+              title={t('Release Health is not yet supported on this platform.')}
+              size="xs"
+            />
+          </NotAvailable>
+        }
+      />
+    );
   }
 
   renderTrend() {
-    const {loading} = this.state;
+    const {currentCrashFreeRate} = this.props.project.sessionStats || {};
 
-    if (loading || !defined(this.score) || !defined(this.trend)) {
+    if (!defined(currentCrashFreeRate) || !defined(this.crashFreeTrend)) {
       return null;
     }
 
     return (
       <div>
-        {this.trend >= 0 ? (
+        {this.crashFreeTrend >= 0 ? (
           <IconArrow direction="up" size="xs" />
         ) : (
           <IconArrow direction="down" size="xs" />
         )}
-        {`${formatAbbreviatedNumber(Math.abs(this.trend))}\u0025`}
+        {`${formatAbbreviatedNumber(Math.abs(this.crashFreeTrend))}\u0025`}
       </div>
-    );
-  }
-
-  renderMissingFeatureCard() {
-    const {organization} = this.props;
-    return (
-      <ScoreCard
-        title={t('Crash Free Sessions')}
-        score={<MissingReleasesButtons organization={organization} health />}
-      />
     );
   }
 
   render() {
     const {organization, project, hasProjectAccess} = this.props;
-    const {stats, slug, transactionStats} = project;
+    const {stats, slug, transactionStats, sessionStats} = project;
+    const {hasHealthData, currentCrashFreeRate} = sessionStats || {};
     const totalErrors = stats?.reduce((sum, [_, value]) => sum + value, 0) ?? 0;
     const totalTransactions =
       transactionStats?.reduce((sum, [_, value]) => sum + value, 0) ?? 0;
     const zeroTransactions = totalTransactions === 0;
     const hasFirstEvent = Boolean(project.firstEvent || project.firstTransactionEvent);
-
-    const hasSessions = false;
 
     return (
       <div data-test-id={slug}>
@@ -184,7 +145,7 @@ class ProjectCard extends AsyncComponent<Props, State> {
                   data-test-id="project-errors"
                   to={`/organizations/${organization.slug}/issues/?project=${project.id}`}
                 >
-                  {tn('%s Error', '%s Errors', formatAbbreviatedNumber(totalErrors))}
+                  {t('errors: %s', formatAbbreviatedNumber(totalErrors))}
                 </Link>
                 {this.hasPerformance && (
                   <Fragment>
@@ -193,11 +154,7 @@ class ProjectCard extends AsyncComponent<Props, State> {
                       data-test-id="project-transactions"
                       to={`/organizations/${organization.slug}/performance/?project=${project.id}`}
                     >
-                      {tn(
-                        '%s Transaction',
-                        '%s Transactions',
-                        formatAbbreviatedNumber(totalTransactions)
-                      )}
+                      {t('transactions: %s', formatAbbreviatedNumber(totalTransactions))}
                       {zeroTransactions && (
                         <QuestionTooltip
                           title={t(
@@ -221,19 +178,29 @@ class ProjectCard extends AsyncComponent<Props, State> {
             </ChartContainer>
             <FooterWrapper>
               <ScoreCardWrapper>
-                {hasSessions ? (
+                {hasHealthData ? (
                   <ScoreCard
                     title={t('Crash Free Sessions')}
-                    score={this.renderScore()}
+                    score={
+                      defined(currentCrashFreeRate)
+                        ? displayCrashFreePercent(currentCrashFreeRate)
+                        : '\u2014'
+                    }
                     trend={this.renderTrend()}
-                    trendStatus={this.trendStatus}
+                    trendStatus={
+                      defined(this.crashFreeTrend)
+                        ? this.crashFreeTrend > 0
+                          ? 'good'
+                          : 'bad'
+                        : undefined
+                    }
                   />
                 ) : (
                   this.renderMissingFeatureCard()
                 )}
               </ScoreCardWrapper>
               <DeploysWrapper>
-                <ReleaseTitle>{'Latest Releases'}</ReleaseTitle>
+                <ReleaseTitle>{'Latest Deploys'}</ReleaseTitle>
                 <Deploys project={project} shorten />
               </DeploysWrapper>
             </FooterWrapper>
@@ -330,6 +297,7 @@ const StyledProjectCard = styled('div')`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   box-shadow: ${p => p.theme.dropShadowLight};
+  min-height: 326px;
 `;
 
 const FooterWrapper = styled('div')`
@@ -359,6 +327,16 @@ const ScoreCardWrapper = styled('div')`
   ${HeaderTitle} {
     color: ${p => p.theme.gray300};
     font-weight: 600;
+  }
+  ${ScoreWrapper} {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  ${Score} {
+    font-size: 28px;
+  }
+  ${Trend} {
+    margin-left: 0;
   }
 `;
 
@@ -438,6 +416,15 @@ const TransactionsLink = styled(Link)`
   > span {
     margin-left: ${space(0.5)};
   }
+`;
+
+const NotAvailable = styled('div')`
+  font-size: ${p => p.theme.fontSizeMedium};
+  font-weight: normal;
+  display: grid;
+  grid-template-columns: auto auto;
+  grid-gap: ${space(0.5)};
+  align-items: center;
 `;
 
 export {ProjectCard};
