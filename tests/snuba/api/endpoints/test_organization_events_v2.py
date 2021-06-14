@@ -758,27 +758,27 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         release_3 = self.create_release(version="test@1.2.5")
 
         release_1_e_1 = self.store_event(
-            data={"release": release_1.version},
+            data={"release": release_1.version, "timestamp": self.min_ago},
             project_id=self.project.id,
         ).event_id
         release_1_e_2 = self.store_event(
-            data={"release": release_1.version},
+            data={"release": release_1.version, "timestamp": self.min_ago},
             project_id=self.project.id,
         ).event_id
         release_2_e_1 = self.store_event(
-            data={"release": release_2.version},
+            data={"release": release_2.version, "timestamp": self.min_ago},
             project_id=self.project.id,
         ).event_id
         release_2_e_2 = self.store_event(
-            data={"release": release_2.version},
+            data={"release": release_2.version, "timestamp": self.min_ago},
             project_id=self.project.id,
         ).event_id
         release_3_e_1 = self.store_event(
-            data={"release": release_3.version},
+            data={"release": release_3.version, "timestamp": self.min_ago},
             project_id=self.project.id,
         ).event_id
         release_3_e_2 = self.store_event(
-            data={"release": release_3.version},
+            data={"release": release_3.version, "timestamp": self.min_ago},
             project_id=self.project.id,
         ).event_id
 
