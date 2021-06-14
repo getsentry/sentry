@@ -223,11 +223,13 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
 
         set_assemble_status(AssembleTask.ARTIFACTS, org_id, checksum, ChunkFileState.ASSEMBLING)
 
+        archive_filename = f"release-artifacts-{uuid.uuid4().hex}.zip"
+
         # Assemble the chunks into a temporary file
         rv = assemble_file(
             AssembleTask.ARTIFACTS,
             organization,
-            f"release-artifacts-{uuid.uuid4().hex}.zip",
+            archive_filename,
             checksum,
             chunks,
             file_type="release.bundle",
@@ -278,7 +280,16 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
             if options.get("processing.save-release-archives"):
                 min_size = options.get("processing.release-archive-min-files")
                 if num_files >= min_size:
-                    ReleaseManifest(release, dist).update(archive, bundle)
+
+                    releasefile = ReleaseFile.objects.create(
+                        name=bundle.name,
+                        release=release,
+                        organization_id=organization.id,
+                        dist=dist,
+                        file=bundle,
+                    )
+
+                    ReleaseManifest(release, dist).update(releasefile)
 
             # NOTE(jjbayer): Single files are still stored to enable
             # rolling back from release archives. Once release archives run

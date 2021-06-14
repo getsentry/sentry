@@ -5,7 +5,7 @@ from io import BytesIO
 from zipfile import ZipFile
 
 from sentry import options
-from sentry.models import ReleaseArchive, ReleaseFile
+from sentry.models import ReleaseFile
 from sentry.models.distribution import Distribution
 from sentry.models.file import File
 from sentry.models.releasefile import ReleaseManifest
@@ -102,16 +102,22 @@ class ReleaseArchiveTestCase(TestCase):
                 zf.writestr(filename, content)
 
         buffer.seek(0)
-        file_ = File.objects.create(name="foo")
+        file_ = File.objects.create(name=str(hash(tuple(files.items()))))
         file_.putfile(buffer)
         file_.update(timestamp=datetime(2021, 6, 11, 9, 13, 1, 317902, tzinfo=timezone.utc))
 
+        releasefile = ReleaseFile.objects.create(
+            name=file_.name,
+            release=self.release,
+            organization_id=self.organization.id,
+            dist=dist,
+            file=file_,
+        )
+
         manifest = ReleaseManifest(self.release, dist)
+        manifest.update(releasefile)
 
-        with ReleaseArchive(file_.getfile()) as archive:
-            manifest.update(archive, file_)
-
-        return file_
+        return releasefile
 
     def test_multi_archive(self):
         manifest = ReleaseManifest(self.release, None)
@@ -133,21 +139,21 @@ class ReleaseArchiveTestCase(TestCase):
         assert manifest.read() == {
             "files": {
                 "fake://bar": {
-                    "archive_id": archive1.id,
+                    "archive_ident": archive1.ident,
                     "date_created": "2021-06-11T09:13:01.317902Z",
                     "filename": "bar",
                     "sha1": "62cdb7020ff920e5aa642c3d4066950dd1f01f4d",
                     "size": 3,
                 },
                 "fake://baz": {
-                    "archive_id": archive1.id,
+                    "archive_ident": archive1.ident,
                     "date_created": "2021-06-11T09:13:01.317902Z",
                     "filename": "baz",
                     "sha1": "1a74885aa2771a6a0edcc80dbd0cf396dfaf1aab",
                     "size": 5,
                 },
                 "fake://foo": {
-                    "archive_id": archive1.id,
+                    "archive_ident": archive1.ident,
                     "date_created": "2021-06-11T09:13:01.317902Z",
                     "filename": "foo",
                     "sha1": "0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33",
@@ -175,28 +181,28 @@ class ReleaseArchiveTestCase(TestCase):
         expected = {
             "files": {
                 "fake://bar": {
-                    "archive_id": archive2.id,
+                    "archive_ident": archive2.ident,
                     "date_created": "2021-06-11T09:13:01.317902Z",
                     "filename": "bar",
                     "sha1": "a5d5c1bba91fdb6c669e1ae0413820885bbfc455",
                     "size": 3,
                 },
                 "fake://baz": {
-                    "archive_id": archive1.id,
+                    "archive_ident": archive1.ident,
                     "date_created": "2021-06-11T09:13:01.317902Z",
                     "filename": "baz",
                     "sha1": "1a74885aa2771a6a0edcc80dbd0cf396dfaf1aab",
                     "size": 5,
                 },
                 "fake://foo": {
-                    "archive_id": archive2.id,
+                    "archive_ident": archive2.ident,
                     "date_created": "2021-06-11T09:13:01.317902Z",
                     "filename": "foo",
                     "sha1": "0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33",
                     "size": 3,
                 },
                 "fake://zap": {
-                    "archive_id": archive2.id,
+                    "archive_ident": archive2.ident,
                     "date_created": "2021-06-11T09:13:01.317902Z",
                     "filename": "zap",
                     "sha1": "a7a9c12205f9cb1f53f8b6678265c9e8158f2a8f",

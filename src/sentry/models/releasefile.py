@@ -108,22 +108,14 @@ class ReleaseFileCache:
         return options.get("releasefile.cache-path")
 
     def getfile(self, releasefile):
-        return self.get_regular_file(releasefile.file, releasefile.organization_id)
-
-    def get_regular_file(self, file_: File, organization_id: int) -> FileObj:
-        """Get a ``File`` from the release file cache.
-
-        Release bundles are now stored as regular ``File``s (not as ``ReleaseFile``s),
-        but the same caching logic applies to them.
-        """
         cutoff = options.get("releasefile.cache-limit")
-        file_size = file_.size
+        file_size = releasefile.file.size
         if file_size < cutoff:
             metrics.timing("release_file.cache.get.size", file_size, tags={"cutoff": True})
-            return file_.getfile()
+            return releasefile.file.getfile()
 
-        file_id = str(file_.id)
-        organization_id = str(organization_id)
+        file_id = str(releasefile.file.id)
+        organization_id = str(releasefile.organization_id)
         file_path = os.path.join(self.cache_path, organization_id, file_id)
 
         hit = True
@@ -132,7 +124,7 @@ class ReleaseFileCache:
         except OSError as e:
             if e.errno != errno.ENOENT:
                 raise
-            file_.save_to(file_path)
+            releasefile.file.save_to(file_path)
             hit = False
 
         metrics.timing("release_file.cache.get.size", file_size, tags={"hit": hit, "cutoff": False})
@@ -306,37 +298,39 @@ class ReleaseManifest:
     """Manager of all uploaded artifact bundles and their common manifest"""
 
     def __init__(self, release: Release, dist: Optional[Distribution]):
+        self._release = release
+        self._dist = dist
         self._manifest = _ManifestGuard(release, dist)
 
     def read(self):
         """Get manifest data"""
         return self._manifest.readable_data()
 
-    def update(self, archive: ReleaseArchive, archive_file: File):
-        """Add information from release archive to manifest
+    def update(self, archive_releasefile: ReleaseFile):
+        """Add information from release archive to manifest"""
 
-        Assumes that archive is already open for reading.
-        """
-        local_manifest = archive.manifest
+        archive_file: File = archive_releasefile.file
+        with ReleaseArchive(archive_file.getfile()) as archive:
+            local_manifest = archive.manifest
 
-        files = local_manifest.get("files", {})
-        if not files:
-            return
+            files = local_manifest.get("files", {})
+            if not files:
+                return
 
-        files_out = {}
+            files_out = {}
 
-        for filename, info in files.items():
-            info = info.copy()
-            url = info.pop("url")
-            info["filename"] = filename
-            info["archive_id"] = archive_file.id
-            info["date_created"] = archive_file.timestamp
-            info["sha1"] = self._compute_sha1(archive, filename)
-            info["size"] = archive.info(filename).file_size
-            files_out[url] = info
+            for filename, info in files.items():
+                info = info.copy()
+                url = info.pop("url")
+                info["filename"] = filename
+                info["archive_ident"] = archive_releasefile.ident
+                info["date_created"] = archive_file.timestamp
+                info["sha1"] = self._compute_sha1(archive, filename)
+                info["size"] = archive.info(filename).file_size
+                files_out[url] = info
 
-        with self._manifest.writable_data(create=True) as manifest:
-            manifest.update_files(files_out)
+            with self._manifest.writable_data(create=True) as manifest:
+                manifest.update_files(files_out)
 
     def delete(self, url: str):
         """Delete a file from the manifest.

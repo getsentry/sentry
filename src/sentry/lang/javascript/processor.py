@@ -5,7 +5,6 @@ from typing import IO, Optional, Tuple
 
 from django.utils.encoding import force_bytes, force_text
 
-from sentry.models.file import File
 from sentry.models.releasefile import MANIFEST_FILENAME, ReleaseArchive, ReleaseManifest
 from sentry.utils import json
 
@@ -436,12 +435,12 @@ def fetch_release_archive(release, dist, url) -> Optional[IO]:
         # is not yet known
         return None
 
-    archive_id = info["archive_id"]
+    archive_ident = info["archive_ident"]
 
     # TODO(jjbayer): Could already extract filename from info and return
     # it later
 
-    cache_key = f"release-bundle:v1:{release.id}:{archive_id}"
+    cache_key = get_release_file_cache_key(release_id=release.id, releasefile_ident=archive_ident)
 
     result = cache.get(cache_key)
 
@@ -450,20 +449,20 @@ def fetch_release_archive(release, dist, url) -> Optional[IO]:
     elif result:
         return BytesIO(result)
     else:
-        qs = File.objects.filter(pk=archive_id, type="release.bundle")
+        qs = ReleaseFile.objects.filter(
+            release=release, dist=dist, ident=archive_ident
+        ).select_related("file")
         try:
-            file_ = qs[0]
+            releasefile = qs[0]
         except IndexError:
-            # This should not happen when there is an archive_id in the manifest
+            # This should not happen when there is an archive_ident in the manifest
             logger.error("sourcemaps.missing_archive", exc_info=sys.exc_info())
             # Cache as nonexistent:
             cache.set(cache_key, -1, 60)
             return None
         else:
             try:
-                file_ = fetch_retry_policy(
-                    lambda: ReleaseFile.cache.get_regular_file(file_, release.organization_id)
-                )
+                file_ = fetch_retry_policy(lambda: ReleaseFile.cache.getfile(releasefile))
             except Exception:
                 logger.error("sourcemaps.read_archive_failed", exc_info=sys.exc_info())
 

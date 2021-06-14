@@ -31,7 +31,7 @@ from sentry.lang.javascript.processor import (
     trim_line,
 )
 from sentry.models import EventError, File, Release, ReleaseFile
-from sentry.models.releasefile import MANIFEST_FILENAME, ReleaseArchive, ReleaseManifest
+from sentry.models.releasefile import MANIFEST_FILENAME, ReleaseManifest
 from sentry.testutils import TestCase
 from sentry.utils import json
 from sentry.utils.compat.mock import ANY, MagicMock, call, patch
@@ -520,8 +520,14 @@ class FetchFileTest(TestCase):
         compressed.seek(0)
         file_ = File.objects.create(name="foo", type="release.bundle")
         file_.putfile(compressed)
-        with ReleaseArchive(file_.getfile()) as archive:
-            ReleaseManifest(release, dist=None).update(archive, file_)
+        releasefile = ReleaseFile.objects.create(
+            name=file_.name,
+            release=release,
+            organization_id=self.organization.id,
+            dist=None,
+            file=file_,
+        )
+        ReleaseManifest(release, dist=None).update(releasefile)
 
         with self.options({"processing.use-release-archives-sample-rate": 1.0}):
             # Attempt to fetch nonexisting
@@ -577,49 +583,56 @@ class FetchFileTest(TestCase):
         cache_get.reset_mock()
         cache_set.reset_mock()
 
+        # With existing release file:
+
+        release2 = Release.objects.create(version="2", organization_id=self.project.organization_id)
         pseudo_archive = File.objects.create(name="", type="release.bundle")
         pseudo_archive.putfile(BytesIO(b"i_am_an_archive"))
-
+        releasefile = ReleaseFile.objects.create(
+            name=pseudo_archive.name,
+            release=release2,
+            organization_id=self.organization.id,
+            dist=None,
+            file=pseudo_archive,
+        )
         file = File.objects.create(name=MANIFEST_FILENAME, type="release.manifest")
         file.putfile(
-            BytesIO(json.dumps({"files": {"foo": {"archive_id": pseudo_archive.id}}}).encode())
+            BytesIO(json.dumps({"files": {"foo": {"archive_ident": releasefile.ident}}}).encode())
         )
-
-        release = Release.objects.create(version="2", organization_id=self.project.organization_id)
         ReleaseFile.objects.create(
             name=MANIFEST_FILENAME,
-            release=release,
+            release=release2,
             organization_id=self.project.organization_id,
             file=file,
         )
 
         # No we have one, call set again
-        result = fetch_release_archive(release, dist=None, url="foo")
+        result = fetch_release_archive(release2, dist=None, url="foo")
         assert result is not None
         assert len(relevant_calls(cache_get, "release-manifest")) == 1
         assert len(relevant_calls(cache_set, "release-manifest")) == 1
-        assert len(relevant_calls(cache_get, "release-bundle")) == 1
-        assert len(relevant_calls(cache_set, "release-bundle")) == 1
+        assert len(relevant_calls(cache_get, "releasefile")) == 1
+        assert len(relevant_calls(cache_set, "releasefile")) == 1
         cache_get.reset_mock()
         cache_set.reset_mock()
 
         # Second time, get it from cache
-        result = fetch_release_archive(release, dist=None, url="foo")
+        result = fetch_release_archive(release2, dist=None, url="foo")
         assert result is not None
         assert len(relevant_calls(cache_get, "release-manifest")) == 1
         assert len(relevant_calls(cache_set, "release-manifest")) == 0
-        assert len(relevant_calls(cache_get, "release-bundle")) == 1
-        assert len(relevant_calls(cache_set, "release-bundle")) == 0
+        assert len(relevant_calls(cache_get, "releasefile")) == 1
+        assert len(relevant_calls(cache_set, "releasefile")) == 0
         cache_get.reset_mock()
         cache_set.reset_mock()
 
         # For other file, get cached manifest but no release file
-        result = fetch_release_archive(release, dist=None, url="bar")
+        result = fetch_release_archive(release2, dist=None, url="bar")
         assert result is None
         assert len(relevant_calls(cache_get, "release-manifest")) == 1
         assert len(relevant_calls(cache_set, "release-manifest")) == 0
-        assert len(relevant_calls(cache_get, "release-bundle")) == 0
-        assert len(relevant_calls(cache_set, "release-bundle")) == 0
+        assert len(relevant_calls(cache_get, "releasefile")) == 0
+        assert len(relevant_calls(cache_set, "releasefile")) == 0
         cache_get.reset_mock()
         cache_set.reset_mock()
 
