@@ -773,6 +773,14 @@ class ParseSearchQueryTest(unittest.TestCase):
             with self.assertRaisesRegexp(InvalidSearchQuery, "Invalid boolean"):
                 parse_search_query(invalid_query)
 
+        assert parse_search_query("project_id:1") == [
+            SearchFilter(
+                key=SearchKey(name="project_id"),
+                operator="=",
+                value=SearchValue(raw_value=1),
+            )
+        ]
+
     def test_numeric_filter(self):
         # Numeric format should still return a string if field isn't
         # allowed
@@ -781,6 +789,13 @@ class ParseSearchQueryTest(unittest.TestCase):
                 key=SearchKey(name="random_field"),
                 operator="=",
                 value=SearchValue(raw_value=">500"),
+            )
+        ]
+        assert parse_search_query("project_id:-500") == [
+            SearchFilter(
+                key=SearchKey(name="project_id"),
+                operator="=",
+                value=SearchValue(raw_value=-500),
             )
         ]
 
@@ -932,6 +947,23 @@ class ParseSearchQueryTest(unittest.TestCase):
             )
         ]
 
+    def test_conditional_apdex_filter(self):
+        assert parse_search_query("apdex(400):>0.5") == [
+            SearchFilter(
+                key=AggregateKey(name="apdex(400)"),
+                operator=">",
+                value=SearchValue(raw_value=0.5),
+            )
+        ]
+
+        assert parse_search_query("apdex():>0.5") == [
+            SearchFilter(
+                key=AggregateKey(name="apdex()"),
+                operator=">",
+                value=SearchValue(raw_value=0.5),
+            )
+        ]
+
     def test_aggregate_duration_filter_overrides_numeric_shorthand(self):
         # 2m should mean 2 minutes for duration filters (as opposed to 2 million)
         assert parse_search_query("avg(transaction.duration):>2m") == [
@@ -947,12 +979,26 @@ class ParseSearchQueryTest(unittest.TestCase):
             parse_search_query("transaction.duration:>..500s")
 
     def test_invalid_aggregate_duration_filter(self):
-        with self.assertRaises(InvalidSearchQuery, expected_regex="not a valid duration value"):
-            parse_search_query("avg(transaction.duration):>..500s")
+        assert parse_search_query("avg(transaction.duration):>..500s") == [
+            SearchFilter(
+                key=SearchKey(name="message"),
+                operator="=",
+                value=SearchValue(raw_value="avg(transaction.duration):>..500s"),
+            )
+        ]
 
     def test_invalid_aggregate_percentage_filter(self):
-        with self.assertRaises(InvalidSearchQuery, expected_regex="not a valid percentage value"):
-            parse_search_query("percentage(transaction.duration, transaction.duration):>..500%")
+        assert parse_search_query(
+            "percentage(transaction.duration, transaction.duration):>..500%"
+        ) == [
+            SearchFilter(
+                key=SearchKey(name="message"),
+                operator="=",
+                value=SearchValue(
+                    raw_value="percentage(transaction.duration, transaction.duration):>..500%"
+                ),
+            )
+        ]
 
     def test_invalid_aggregate_column_with_duration_filter(self):
         with self.assertRaises(InvalidSearchQuery, regex="not a duration column"):

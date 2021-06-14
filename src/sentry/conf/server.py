@@ -945,6 +945,8 @@ SENTRY_FEATURES = {
     "organizations:performance-tag-explorer": False,
     # Enable landing improvements for performance
     "organizations:performance-landing-widgets": False,
+    # Enable views for transaction events page in performance
+    "organizations:performance-events-page": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See
@@ -957,6 +959,8 @@ SENTRY_FEATURES = {
     "organizations:notification-platform": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
+    # Enable sorting+filtering by semantic version of a release
+    "organizations:semver": False,
     # Enable basic SSO functionality, providing configurable single sign on
     # using services like GitHub / Google. This is *not* the same as the signup
     # and login with Github / Azure DevOps that sentry.io provides.
@@ -992,6 +996,8 @@ SENTRY_FEATURES = {
     "organizations:alert-wizard": True,
     # Enable the adoption chart in the releases page
     "organizations:release-adoption-chart": False,
+    # Enable the release adoption stage labels and sorting+filtering by them
+    "organizations:release-adoption-stage": False,
     # Store release bundles as zip files instead of single files
     "organizations:release-archives": False,
     # Enable the project level transaction thresholds

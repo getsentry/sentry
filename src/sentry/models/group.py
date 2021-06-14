@@ -28,6 +28,7 @@ from sentry.db.models import (
     Model,
     sane_repr,
 )
+from sentry.eventstore.models import Event
 from sentry.utils.http import absolute_uri
 from sentry.utils.numbers import base32_decode, base32_encode
 from sentry.utils.strings import strip, truncatechars
@@ -171,7 +172,7 @@ class EventOrdering(Enum):
 
 def get_oldest_or_latest_event_for_environments(
     ordering, environments=(), issue_id=None, project_id=None
-):
+) -> Optional[Event]:
     conditions = []
 
     if len(environments) > 0:
@@ -460,7 +461,7 @@ class Group(Model):
     def get_score(self):
         return type(self).calculate_score(self.times_seen, self.last_seen)
 
-    def get_latest_event(self):
+    def get_latest_event(self) -> Optional[Event]:
         if not hasattr(self, "_latest_event"):
             self._latest_event = self.get_latest_event_for_environments()
 
@@ -524,7 +525,7 @@ class Group(Model):
         """
         return self.data.get("type", "default")
 
-    def get_event_metadata(self):
+    def get_event_metadata(self) -> Mapping[str, str]:
         """
         Return the metadata of this issue.
 
@@ -533,7 +534,7 @@ class Group(Model):
         return self.data["metadata"]
 
     @property
-    def title(self):
+    def title(self) -> str:
         et = eventtypes.get(self.get_event_type())()
         return et.get_title(self.get_event_metadata())
 
