@@ -1,12 +1,13 @@
 import abc
 import dataclasses
 from dataclasses import dataclass
-from typing import Any, Collection, Mapping, Optional, Sequence, Tuple, Type, Union
+from typing import Any, Collection, Mapping, Optional, Sequence, Tuple, Union
 
 from sentry import eventstream
 from sentry.eventstore.models import Event
 from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
+from sentry.utils.datastructures import BidirectionalMapping
 
 _DEFAULT_UNMERGE_KEY = "default"
 
@@ -30,7 +31,9 @@ class UnmergeReplacement(abc.ABC):
     def parse_arguments(fingerprints: Any = None, replacement: Any = None) -> "UnmergeReplacement":
         if replacement is not None:
             if isinstance(replacement, dict):
-                replacement = _DISCRIMINATOR_REPLACEMENTS[replacement.pop("type")](**replacement)  # type: ignore
+                replacement = _REPLACEMENT_TYPE_LABELS.get_key(replacement.pop("type"))(
+                    **replacement
+                )
             assert isinstance(replacement, UnmergeReplacement)
             return replacement
         elif fingerprints is not None:
@@ -114,13 +117,11 @@ class PrimaryHashUnmergeReplacement(UnmergeReplacement):
         return {"fingerprints": self.fingerprints}
 
 
-_REPLACEMENT_DISCRIMINATORS: Mapping[Type[UnmergeReplacement], str] = {
-    PrimaryHashUnmergeReplacement: "primary_hash",
-}
-
-_DISCRIMINATOR_REPLACEMENTS: Mapping[str, Type[UnmergeReplacement]] = {
-    v: k for k, v in _REPLACEMENT_DISCRIMINATORS.items()
-}
+_REPLACEMENT_TYPE_LABELS: BidirectionalMapping = BidirectionalMapping(
+    {
+        PrimaryHashUnmergeReplacement: "primary_hash",
+    }
+)
 
 
 @dataclass(frozen=True)
@@ -195,7 +196,7 @@ class UnmergeArgsBase(abc.ABC):
         rv = dataclasses.asdict(self)
         rv["fingerprints"] = None
         rv["destination_id"] = None
-        rv["replacement"]["type"] = _REPLACEMENT_DISCRIMINATORS[type(self.replacement)]
+        rv["replacement"]["type"] = _REPLACEMENT_TYPE_LABELS[type(self.replacement)]
         return rv
 
 
