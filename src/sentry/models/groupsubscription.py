@@ -90,35 +90,35 @@ class GroupSubscriptionManager(BaseManager):
         """
         from sentry.models import NotificationSetting, User
 
-        users = User.objects.get_from_group(group)
-        user_ids = [user.id for user in users]
-        subscriptions = self.filter(group=group, user_id__in=user_ids)
+        all_possible_users = User.objects.get_from_group(group)
+        active_and_disabled_subscriptions = self.filter(group=group, user__in=all_possible_users)
         notification_settings = NotificationSetting.objects.get_for_recipient_by_parent(
             NotificationSettingTypes.WORKFLOW,
-            recipients=users,
+            recipients=all_possible_users,
             parent=group.project,
         )
         subscriptions_by_user_id = {
-            subscription.user_id: subscription for subscription in subscriptions
+            subscription.user_id: subscription for subscription in active_and_disabled_subscriptions
         }
         notification_settings_by_user = transform_to_notification_settings_by_user(
-            notification_settings, users
+            notification_settings, all_possible_users
         )
 
         result = defaultdict(dict)
-        for user in users:
+        for user in all_possible_users:
+            subscription = subscriptions_by_user_id[user.id]
             providers = where_should_be_participating(
                 user,
-                subscriptions_by_user_id,
+                subscription,
                 notification_settings_by_user,
             )
             for provider in providers:
-                value = getattr(
-                    subscriptions_by_user_id.get(user.id),
+                reason = getattr(
+                    subscription,
                     "reason",
                     GroupSubscriptionReason.implicit,
                 )
-                result[provider][user] = value
+                result[provider][user] = reason
 
         return result
 
