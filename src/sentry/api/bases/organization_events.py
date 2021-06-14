@@ -288,7 +288,20 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 # level thresholds in the request and use the legacy apdex calculation.
                 # TODO(snql): Alias the project_threshold_config column so it doesn't
                 # have to be in the SELECT statement and group by to be able to use new apdex.
-                if "apdex()" in columns:
+                configurable_aggregates = {
+                    "apdex()": "apdex({threshold})",
+                    "user_misery()": "user_misery({threshold})",
+                    "count_miserable(user)": "count_miserable(user,{threshold})",
+                }
+                threshold = None
+                for agg in configurable_aggregates:
+                    if agg not in columns:
+                        continue
+                    if threshold:
+                        new_field_name = configurable_aggregates[agg].format(threshold=threshold)
+                        column_map[agg] = new_field_name
+                        continue
+
                     project_ids = params.get("project_id")
                     threshold_configs = list(
                         ProjectTransactionThreshold.objects.filter(
@@ -301,9 +314,9 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     threshold_configs.extend(
                         [DEFAULT_PROJECT_THRESHOLD] * projects_without_threshold
                     )
-
                     threshold = int(mean(threshold_configs))
-                    column_map["apdex()"] = f"apdex({threshold})"
+                    new_field_name = configurable_aggregates[agg].format(threshold=threshold)
+                    column_map[agg] = new_field_name
 
                 query_columns = [column_map.get(column, column) for column in columns]
             with sentry_sdk.start_span(op="discover.endpoint", description="base.stats_query"):

@@ -263,17 +263,20 @@ export const AGGREGATIONS = {
     multiPlotType: 'line',
   },
   apdex: {
-    generateDefaultValue({parameter, organization}: DefaultValueInputs) {
+    getFieldOverrides({parameter, organization}: DefaultValueInputs) {
       return organization.features.includes('project-transaction-threshold')
-        ? ''
-        : organization.apdexThreshold?.toString() ?? parameter.defaultValue;
+        ? {required: false, placeholder: 'Automatic', defaultValue: ''}
+        : {
+            defaultValue:
+              organization.apdexThreshold?.toString() ?? parameter.defaultValue,
+          };
     },
     parameters: [
       {
         kind: 'value',
         dataType: 'number',
-        required: false,
-        placeholder: 'Automatic',
+        defaultValue: '300',
+        required: true,
       },
     ],
     outputType: 'number',
@@ -281,18 +284,20 @@ export const AGGREGATIONS = {
     multiPlotType: 'line',
   },
   user_misery: {
-    generateDefaultValue({parameter, organization}: DefaultValueInputs) {
+    getFieldOverrides({parameter, organization}: DefaultValueInputs) {
       return organization.features.includes('project-transaction-threshold')
-        ? ''
-        : organization.apdexThreshold?.toString() ?? parameter.defaultValue;
+        ? {required: false, placeholder: 'Automatic', defaultValue: ''}
+        : {
+            defaultValue:
+              organization.apdexThreshold?.toString() ?? parameter.defaultValue,
+          };
     },
     parameters: [
       {
         kind: 'value',
         dataType: 'number',
         defaultValue: '300',
-        required: false,
-        placeholder: 'Automatic',
+        required: true,
       },
     ],
     outputType: 'number',
@@ -312,13 +317,16 @@ export const AGGREGATIONS = {
     multiPlotType: 'area',
   },
   count_miserable: {
-    generateDefaultValue({parameter, organization}: DefaultValueInputs) {
+    getFieldOverrides({parameter, organization}: DefaultValueInputs) {
       if (parameter.kind === 'column') {
-        return 'user';
+        return {defaultValue: 'user'};
       }
       return organization.features.includes('project-transaction-threshold')
-        ? ''
-        : organization.apdexThreshold?.toString() ?? parameter.defaultValue;
+        ? {required: false, placeholder: 'Automatic', defaultValue: ''}
+        : {
+            defaultValue:
+              organization.apdexThreshold?.toString() ?? parameter.defaultValue,
+          };
     },
     parameters: [
       {
@@ -331,8 +339,7 @@ export const AGGREGATIONS = {
         kind: 'value',
         dataType: 'number',
         defaultValue: '300',
-        required: false,
-        placeholder: 'Automatic',
+        required: true,
       },
     ],
     outputType: 'number',
@@ -386,6 +393,9 @@ export type Aggregation = {
    * Optional because some functions cannot be plotted (strings/dates)
    */
   multiPlotType?: PlotType;
+  getFieldOverrides?: (
+    data: DefaultValueInputs
+  ) => Partial<Omit<AggregateParameter, 'kind'>>;
 };
 
 enum FieldKey {
@@ -654,12 +664,19 @@ export function generateAggregateFields(
   functions.forEach(func => {
     const parameters = AGGREGATIONS[func].parameters.map(param => {
       const generator = AGGREGATIONS[func].generateDefaultValue;
-      if (typeof generator === 'undefined') {
+      const overrides = AGGREGATIONS[func].getFieldOverrides;
+      if (typeof generator === 'undefined' && typeof overrides === 'undefined') {
         return param;
+      }
+      if (typeof generator !== 'undefined') {
+        return {
+          ...param,
+          defaultValue: generator({parameter: param, organization}),
+        };
       }
       return {
         ...param,
-        defaultValue: generator({parameter: param, organization}),
+        ...overrides({parameter: param, organization}),
       };
     });
 
