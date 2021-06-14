@@ -10,7 +10,7 @@ from sentry.utils import metrics
 from sentry.utils.snuba import Dataset, raw_query
 
 REQUIRED_ADOPTION_PERCENT = 0.1
-CHUNK_SIZE = 1
+CHUNK_SIZE = 1000
 MAX_SECONDS = 60
 
 logger = logging.getLogger("tasks.releasemonitor")
