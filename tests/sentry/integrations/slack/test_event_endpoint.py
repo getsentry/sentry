@@ -201,7 +201,7 @@ class MessageIMEventTest(BaseEventTest):
         data = json.loads(request.body)
         assert (
             self.get_block_type_text("section", data)
-            == "Here's a bunch of information about this app! Commands not working? Re-install the app!"
+            == "Here are the commands you can use. Commands not working? Re-install the app!"
         )
         assert self.get_block_type_text("actions", data) == "Sentry Docs"
 

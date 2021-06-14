@@ -4,13 +4,11 @@ from sentry import features
 from sentry.integrations.slack.message_builder import SlackBody
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 
-HEADER_MESSAGE = (
-    "Here's a bunch of information about this app! Commands not working? Re-install the app!"
-)
+HEADER_MESSAGE = "Here are the commands you can use. Commands not working? Re-install the app!"
 DM_COMMAND_HEADER = "*Direct Message Commands:*"
-DM_COMMANDS_MESSAGE = "• `/sentry link`: Link your Slack account to Sentry \n • `/sentry unlink`: Unlink your Slack account from Sentry\n • `/sentry help`, `help`: See this information again"
+DM_COMMANDS_MESSAGE = "• `/sentry link`: Link your Slack account to Sentry \n • `/sentry unlink`: Unlink your Slack account from Sentry\n • `/sentry help`, `help`: View this list of commands"
 CHANNEL_COMMANDS_HEADER = "*Channel Commands:*"
-CHANNEL_COMMANDS_MESSAGE = "• `/sentry link team`: Type this into the channel in which you want your team to receive issue alert notifications in"
+CHANNEL_COMMANDS_MESSAGE = "• `/sentry link team`: Type this into the channel in which you want your team to receive issue alert notifications"
 GENERAL_MESSAGE = "Just want to learn more about Sentry? Check out our documentation."
 
 EVENT_MESSAGE = (
