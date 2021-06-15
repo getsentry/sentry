@@ -1043,6 +1043,47 @@ class DataPopulation:
             self.safe_send_event(local_event)
         self.log_info("populate_generic_error.finished")
 
+    def populate_generic_transaction(
+        self, project: Project, file_path, dist_number, starting_release=0
+    ):
+        """
+        This function populates a single transaction
+        Occurrance times and durations are randomized
+        """
+        transaction = get_event_from_file(file_path)
+
+        self.log_info("populate_generic_transaction.start")
+
+        for (timestamp, day) in self.iter_timestamps(dist_number, starting_release):
+            transaction_user = self.generate_user()
+            trace_id = uuid4().hex
+            release = get_release_from_time(project.organization_id, timestamp)
+            release_sha = release.version
+
+            old_span_id = transaction["contexts"]["trace"]["span_id"]
+            ios_span_id = uuid4().hex[:16]
+            duration = self.gen_frontend_duration(day)
+
+            trace = {"trace_id": trace_id, "span_id": ios_span_id}
+
+            local_event = copy.deepcopy(transaction)
+            local_event.update(
+                project=project,
+                platform=project.platform,
+                event_id=uuid4().hex,
+                user=transaction_user,
+                release=release_sha,
+                timestamp=timestamp,
+                start_timestamp=timestamp - timedelta(seconds=duration),
+            )
+
+            update_context(local_event, trace)
+
+            self.fix_transaction_event(local_event, old_span_id)
+            self.safe_send_event(local_event)
+
+        self.log_info("populate_generic_error.finished")
+
     def populate_sessions(self, project, error_file):
         self.log_info("populate_sessions.start")
         dsn = ProjectKey.objects.get(project=project)
@@ -1137,6 +1178,9 @@ class DataPopulation:
             )
             self.populate_generic_error(
                 ios_project, "errors/ios/handled.json", 4, starting_release=2
+            )
+            self.populate_generic_transaction(
+                ios_project, "transactions/ios/ios_transaction.json", 2
             )
             self.populate_generic_error(
                 android_project, "errors/android/out_of_bounds.json", 5, starting_release=1
