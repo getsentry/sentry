@@ -1021,7 +1021,11 @@ def get_current_and_previous_crash_free_rates(
         totals = (
             healthy_sessions + errored_sessions + row["sessions_crashed"] + row["sessions_abnormal"]
         )
-        return 100 - (row["sessions_crashed"] / totals) * 100
+        try:
+            crash_free_rate = 100 - (row["sessions_crashed"] / totals) * 100
+        except ZeroDivisionError:
+            crash_free_rate = None
+        return crash_free_rate
 
     # currentCrashFreeRate
     current_crash_free_data = __get_crash_free_rate_data(

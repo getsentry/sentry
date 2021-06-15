@@ -5,6 +5,11 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import Input from 'app/views/settings/components/forms/controls/input';
 
+type Mark = {
+  value: number;
+  label?: string;
+};
+
 type Props = {
   name: string;
 
@@ -39,7 +44,9 @@ type Props = {
    * Array of allowed values. Make sure `value` is in this list.
    * THIS NEEDS TO BE SORTED
    */
-  allowedValues?: number[];
+  //allowedValues?: number[];
+
+  marks?: Mark[];
 
   /**
    * Show input control for custom values
@@ -65,38 +72,41 @@ type State = {
 
 class RangeSlider extends React.Component<Props, State> {
   state: State = {
-    sliderValue: this.props.allowedValues
+    sliderValue: this.props.marks
       ? // With `allowedValues` sliderValue will be the index to value in `allowedValues`
         // This is so we can snap the rangeSlider using `step`
         // This means that the range slider will have a uniform `step` in the UI
         // and scale won't match `allowedValues
         // e.g. with allowedValues = [0, 100, 1000, 10000] - in UI we'll have values = [0, 3] w/ step of 1
         // so it always snaps at 25% width
-        this.props.allowedValues.indexOf(Number(this.props.value || 0))
+        this.props.marks.findIndex(mark => mark.value === (this.props.value || 0))
       : this.props.value,
   };
 
   UNSAFE_componentWillReceiveProps(nextProps: Props) {
     // Update local state when re-rendered with next `props.value` (e.g if this is controlled)
     if (typeof nextProps.value !== 'undefined') {
-      const {allowedValues} = this.props;
+      const {marks} = this.props;
       let sliderValue = nextProps.value;
 
       // If `allowedValues` is defined, then `sliderValue` represents index to `allowedValues`
-      if (allowedValues && allowedValues.indexOf(Number(sliderValue || 0)) > -1) {
-        sliderValue = allowedValues.indexOf(Number(sliderValue || 0));
+      if (
+        marks &&
+        marks.findIndex(mark => mark.value === Number(sliderValue || 0)) > -1
+      ) {
+        sliderValue = marks.findIndex(mark => mark.value === Number(sliderValue || 0));
       }
       this.setState({sliderValue});
     }
   }
 
   getActualValue = (sliderValue: State['sliderValue']): number | '' => {
-    const {allowedValues} = this.props;
+    const {marks} = this.props;
     let value: number | '';
 
-    if (allowedValues) {
+    if (marks) {
       // If `allowedValues` is defined, then `sliderValue` represents index to `allowedValues`
-      value = allowedValues[sliderValue];
+      value = marks.find(mark => mark.value === sliderValue)?.value ?? 0;
     } else {
       value = sliderValue;
     }
@@ -145,7 +155,7 @@ class RangeSlider extends React.Component<Props, State> {
     const {
       name,
       disabled,
-      allowedValues,
+      marks,
       formatLabel,
       placeholder,
       showCustomInput,
@@ -155,11 +165,11 @@ class RangeSlider extends React.Component<Props, State> {
     let actualValue = sliderValue;
     let displayValue: React.ReactNode = actualValue;
 
-    if (allowedValues) {
+    if (marks) {
       step = 1;
       min = 0;
-      max = allowedValues.length - 1;
-      actualValue = allowedValues[sliderValue];
+      max = marks.length - 1;
+      actualValue = marks.find(mark => mark.value === sliderValue)?.value ?? 0;
       displayValue =
         typeof actualValue !== 'undefined' ? actualValue : t('Invalid value');
     }
@@ -179,7 +189,6 @@ class RangeSlider extends React.Component<Props, State> {
             step={step}
             disabled={disabled}
             onInput={this.handleInput}
-            onChange={() => {}}
             onMouseUp={this.handleBlur}
             onKeyUp={this.handleBlur}
             value={sliderValue}
@@ -212,7 +221,7 @@ const Slider = styled('input')<{hasLabel: boolean}>`
     height: 3px;
     cursor: pointer;
     background: ${p => p.theme.border};
-    border-radius: 3px;
+    border-radius: ${p => p.theme.borderRadius};
     border: 0;
   }
 
@@ -332,7 +341,7 @@ const Slider = styled('input')<{hasLabel: boolean}>`
 `;
 
 const Label = styled('label')`
-  font-size: 14px;
+  font-size: ${p => p.theme.fontSizeMedium};
   margin-bottom: ${p => p.theme.grid}px;
   color: ${p => p.theme.subText};
 `;
