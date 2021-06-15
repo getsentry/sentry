@@ -95,12 +95,11 @@ def _increase_level(group: Group, id: int, levels_overview: LevelsOverview, requ
     # We're upserting the hash here to make sure it exists. We have
     # observed that the materialized hash in postgres is mysteriously lost,
     # presumably because of secondary grouping or merge/unmerge.
-    grouphash, _created = GroupHash.objects.get_or_create(
-        project_id=group.project_id, hash=levels_overview.current_hash
+    grouphash, _created = GroupHash.objects.update_or_create(
+        project_id=group.project_id,
+        hash=levels_overview.current_hash,
+        defaults={"state": GroupHash.State.SPLIT, "group_id": None},
     )
-    grouphash.state = GroupHash.State.SPLIT
-    grouphash.group_id = None
-    grouphash.save()
 
     replacement = HierarchicalUnmergeReplacement(
         primary_hash=levels_overview.only_primary_hash,
