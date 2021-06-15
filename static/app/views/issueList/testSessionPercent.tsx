@@ -61,7 +61,7 @@ function SessionPercent({params, api, selection}: Props) {
           .subtract(Math.abs(period) - 1, 'hours')
           .toDate()
       );
-      const query = {...requestParams, start, end};
+      const query = {...requestParams, start, end, limit: 20};
       return api.requestPromise(`/organizations/${params.orgId}/issues/`, {
         method: 'GET',
         data: qs.stringify(query),
