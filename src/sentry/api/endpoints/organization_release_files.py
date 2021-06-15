@@ -132,7 +132,7 @@ class OrganizationReleaseFilesEndpoint(OrganizationReleasesBaseEndpoint):
 
         # Quickly check for the presence of this file before continuing with
         # the costly file upload process.
-        if ReleaseFile.public_objects.filter(
+        if ReleaseFile.objects.filter(
             organization_id=release.organization_id,
             release=release,
             name=full_name,
