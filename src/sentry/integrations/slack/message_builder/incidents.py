@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Optional
+from typing import Optional
 
 from sentry.incidents.models import AlertRuleTriggerAction, Incident
 from sentry.integrations.metric_alerts import incident_attachment_info
@@ -37,7 +37,7 @@ class SlackIncidentsMessageBuilder(SlackMessageBuilder):
         self.metric_value = metric_value
         self.method = method
 
-    def build(self, **kwargs: Any) -> SlackBody:
+    def build(self) -> SlackBody:
         data = incident_attachment_info(
             self.incident, self.metric_value, action=self.action, method=self.method
         )

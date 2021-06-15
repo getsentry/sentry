@@ -37,7 +37,7 @@ class SlackEventEndpoint(Endpoint):
             return self.respond()
         access_token = self._get_access_token(integration)
         headers = {"Authorization": "Bearer %s" % access_token}
-        payload = {"channel": channel, **SlackEventMessageBuilder().build(integration=integration)}
+        payload = {"channel": channel, **SlackEventMessageBuilder(integration).build()}
         client = SlackClient()
         try:
             client.post("/chat.postMessage", headers=headers, data=payload, json=True)

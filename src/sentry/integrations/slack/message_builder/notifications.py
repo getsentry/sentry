@@ -45,7 +45,7 @@ class SlackNotificationsMessageBuilder(SlackMessageBuilder):
         self.notification = notification
         self.context = context
 
-    def build(self, **kwargs: Any) -> SlackBody:
+    def build(self) -> SlackBody:
         if isinstance(self.notification, AlertRuleNotification):
             return SlackIssuesMessageBuilder(
                 self.notification.group,
