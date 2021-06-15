@@ -71,16 +71,18 @@ export enum BooleanOperator {
 export enum FilterType {
   Text = 'text',
   TextIn = 'textIn',
-  Time = 'time',
-  SpecificTime = 'specificTime',
-  RelativeTime = 'relativeTime',
+  Date = 'date',
+  SpecificDate = 'specificDate',
+  RelativeDate = 'relativeDate',
   Duration = 'duration',
   Numeric = 'numeric',
   NumericIn = 'numericIn',
   Boolean = 'boolean',
-  AggregateSimple = 'aggregateSimple',
-  AggregateTime = 'aggregateTime',
-  AggregateRelativeTime = 'aggregateRelativeTime',
+  AggregateDuration = 'aggregateDuration',
+  AggregatePercentage = 'aggregatePercentage',
+  AggregateNumeric = 'aggregateNumeric',
+  AggregateDate = 'aggregateDate',
+  AggregateRelativeDate = 'aggregateRelativeDate',
   Has = 'has',
   Is = 'is',
 }
@@ -124,19 +126,19 @@ export const filterTypeConfig = {
     validValues: [Token.ValueTextList],
     canNegate: true,
   },
-  [FilterType.Time]: {
+  [FilterType.Date]: {
     validKeys: [Token.KeySimple],
     validOps: allOperators,
     validValues: [Token.ValueIso8601Date],
     canNegate: false,
   },
-  [FilterType.SpecificTime]: {
+  [FilterType.SpecificDate]: {
     validKeys: [Token.KeySimple],
     validOps: [],
     validValues: [Token.ValueIso8601Date],
     canNegate: false,
   },
-  [FilterType.RelativeTime]: {
+  [FilterType.RelativeDate]: {
     validKeys: [Token.KeySimple],
     validOps: [],
     validValues: [Token.ValueRelativeDate],
@@ -166,19 +168,31 @@ export const filterTypeConfig = {
     validValues: [Token.ValueBoolean],
     canNegate: true,
   },
-  [FilterType.AggregateSimple]: {
+  [FilterType.AggregateDuration]: {
     validKeys: [Token.KeyAggregate],
     validOps: allOperators,
-    validValues: [Token.ValueDuration, Token.ValueNumber, Token.ValuePercentage],
+    validValues: [Token.ValueDuration],
     canNegate: true,
   },
-  [FilterType.AggregateTime]: {
+  [FilterType.AggregateNumeric]: {
+    validKeys: [Token.KeyAggregate],
+    validOps: allOperators,
+    validValues: [Token.ValueNumber],
+    canNegate: true,
+  },
+  [FilterType.AggregatePercentage]: {
+    validKeys: [Token.KeyAggregate],
+    validOps: allOperators,
+    validValues: [Token.ValuePercentage],
+    canNegate: true,
+  },
+  [FilterType.AggregateDate]: {
     validKeys: [Token.KeyAggregate],
     validOps: allOperators,
     validValues: [Token.ValueIso8601Date],
     canNegate: true,
   },
-  [FilterType.AggregateRelativeTime]: {
+  [FilterType.AggregateRelativeDate]: {
     validKeys: [Token.KeyAggregate],
     validOps: allOperators,
     validValues: [Token.ValueRelativeDate],
@@ -310,8 +324,8 @@ class TokenConverter {
   tokenKeyAggregate = (
     name: ReturnType<TokenConverter['tokenKeySimple']>,
     args: ReturnType<TokenConverter['tokenKeyAggregateArgs']> | null,
-    argsSpaceBefore: string,
-    argsSpaceAfter: string
+    argsSpaceBefore: ReturnType<TokenConverter['tokenSpaces']>,
+    argsSpaceAfter: ReturnType<TokenConverter['tokenSpaces']>
   ) =>
     this.makeToken({
       type: Token.KeyAggregate as const,
@@ -321,7 +335,10 @@ class TokenConverter {
       argsSpaceAfter,
     });
 
-  tokenKeyAggregateArgs = (arg1: string, args: ListItem<string>[]) =>
+  tokenKeyAggregateArgs = (
+    arg1: ReturnType<TokenConverter['tokenKeySimple']>,
+    args: ListItem<ReturnType<TokenConverter['tokenKeySimple']>>[]
+  ) =>
     this.makeToken({
       type: Token.KeyAggregateArgs as const,
       args: [{separator: '', value: arg1}, ...args.map(listJoiner)],
@@ -364,7 +381,7 @@ class TokenConverter {
   tokenValueBoolean = (value: string) =>
     this.makeToken({
       type: Token.ValueBoolean as const,
-      value: Boolean(value),
+      value: ['1', 'true'].includes(value.toLowerCase()),
     });
 
   tokenValueNumber = (value: string, unit: string) =>

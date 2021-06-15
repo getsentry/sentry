@@ -24,6 +24,32 @@ class KeyTransactionPermission(OrganizationPermission):
     }
 
 
+class LegacyKeyTransactionCountEndpoint(KeyTransactionBase):
+    permission_classes = (KeyTransactionPermission,)
+
+    def get(self, request, organization):
+        """
+        Check how many legacy Key Transactions a user has
+
+        This is used to show the guide to users who previously had key
+        transactions to update their team key transactions
+        """
+        if not self.has_feature(request, organization):
+            return Response(status=404)
+
+        projects = self.get_projects(request, organization)
+
+        try:
+            count = KeyTransaction.objects.filter(
+                organization=organization,
+                owner=request.user,
+                project__in=projects,
+            ).count()
+            return Response({"keyed": count}, status=200)
+        except KeyTransaction.DoesNotExist:
+            return Response({"keyed": 0}, status=200)
+
+
 class IsKeyTransactionEndpoint(KeyTransactionBase):
     permission_classes = (KeyTransactionPermission,)
 
@@ -236,9 +262,13 @@ class KeyTransactionTeamSerializer(Serializer):
         self.project_ids = {project.id for project in projects}
 
     def get_attrs(self, item_list, user, **kwargs):
-        team_key_transactions = TeamKeyTransaction.objects.filter(
-            project_team__in=ProjectTeam.objects.filter(team__in=item_list),
-        ).order_by("transaction", "project_team__project_id")
+        team_key_transactions = (
+            TeamKeyTransaction.objects.filter(
+                project_team__in=ProjectTeam.objects.filter(team__in=item_list),
+            )
+            .select_related("project_team__project", "project_team__team")
+            .order_by("transaction", "project_team__project_id")
+        )
 
         attrs = defaultdict(
             lambda: {

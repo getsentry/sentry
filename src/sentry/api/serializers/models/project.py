@@ -36,6 +36,7 @@ from sentry.models import (
 from sentry.notifications.helpers import transform_to_notification_settings_by_parent_id
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.snuba import discover
+from sentry.snuba.sessions import check_has_health_data, get_current_and_previous_crash_free_rates
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.compat import zip
 
@@ -155,6 +156,7 @@ class ProjectSerializer(Serializer):
         environment_id: Optional[str] = None,
         stats_period: Optional[str] = None,
         transaction_stats: Optional[str] = None,
+        session_stats: Optional[str] = None,
     ) -> None:
         if stats_period is not None:
             assert stats_period in STATS_PERIOD_CHOICES
@@ -162,6 +164,7 @@ class ProjectSerializer(Serializer):
         self.environment_id = environment_id
         self.stats_period = stats_period
         self.transaction_stats = transaction_stats
+        self.session_stats = session_stats
 
     def get_attrs(
         self, item_list: Sequence[Project], user: User, **kwargs: Any
@@ -201,12 +204,15 @@ class ProjectSerializer(Serializer):
         with measure_span("stats"):
             stats = None
             transaction_stats = None
+            session_stats = None
             project_ids = [o.id for o in item_list]
             if self.transaction_stats and self.stats_period:
                 stats = self.get_stats(project_ids, "!event.type:transaction")
                 transaction_stats = self.get_stats(project_ids, "event.type:transaction")
             elif self.stats_period:
                 stats = self.get_stats(project_ids, "!event.type:transaction")
+            if self.session_stats:
+                session_stats = self.get_session_stats(project_ids)
 
         avatars = {a.project_id: a for a in ProjectAvatar.objects.filter(project__in=item_list)}
         project_ids = [i.id for i in item_list]
@@ -243,6 +249,8 @@ class ProjectSerializer(Serializer):
                     serialized["stats"] = stats[project.id]
                 if transaction_stats:
                     serialized["transactionStats"] = transaction_stats[project.id]
+                if session_stats:
+                    serialized["sessionStats"] = session_stats[project.id]
         return result
 
     def get_stats(self, project_ids, query):
@@ -282,6 +290,47 @@ class ProjectSerializer(Serializer):
             results[project_id] = serialized
         return results
 
+    def get_session_stats(self, project_ids):
+        segments, interval = STATS_PERIOD_CHOICES[self.stats_period]
+
+        now = timezone.now()
+        current_interval_start = now - (segments * interval)
+        previous_interval_start = now - (2 * segments * interval)
+
+        project_health_data_dict = get_current_and_previous_crash_free_rates(
+            project_ids=project_ids,
+            current_start=current_interval_start,
+            current_end=now,
+            previous_start=previous_interval_start,
+            previous_end=current_interval_start,
+            rollup=int(interval.total_seconds()),
+        )
+
+        # list that contains ids of projects that has both `currentCrashFreeRate` and
+        # `previousCrashFreeRate` set to None and so we are not sure if they have health data or
+        # not and so we add those ids to this list to check later
+        check_has_health_data_ids = []
+
+        for project_id in project_ids:
+            current_crash_free_rate = project_health_data_dict[project_id]["currentCrashFreeRate"]
+            previous_crash_free_rate = project_health_data_dict[project_id]["previousCrashFreeRate"]
+
+            if [current_crash_free_rate, previous_crash_free_rate] != [None, None]:
+                project_health_data_dict[project_id]["hasHealthData"] = True
+            else:
+                project_health_data_dict[project_id]["hasHealthData"] = False
+                check_has_health_data_ids.append(project_id)
+
+        # For project ids we are not sure if they have health data in the last 90 days we
+        # call -> check_has_data with those ids and then update our `project_health_data_dict`
+        # accordingly
+        if check_has_health_data_ids:
+            projects_with_health_data = check_has_health_data(check_has_health_data_ids)
+            for project_id in projects_with_health_data:
+                project_health_data_dict[project_id]["hasHealthData"] = True
+
+        return project_health_data_dict
+
     def serialize(self, obj, attrs, user):
         status_label = STATUS_LABELS.get(obj.status, "unknown")
 
@@ -315,6 +364,8 @@ class ProjectSerializer(Serializer):
             context["stats"] = attrs["stats"]
         if "transactionStats" in attrs:
             context["transactionStats"] = attrs["transactionStats"]
+        if "sessionStats" in attrs:
+            context["sessionStats"] = attrs["sessionStats"]
         return context
 
 
@@ -375,12 +426,15 @@ class ProjectWithTeamSerializer(ProjectSerializer):
 
 class ProjectSummarySerializer(ProjectWithTeamSerializer):
     def __init__(
-        self, environment_id=None, stats_period=None, transaction_stats=None, collapse=None
+        self,
+        environment_id=None,
+        stats_period=None,
+        transaction_stats=None,
+        session_stats=None,
+        collapse=None,
     ):
         super(ProjectWithTeamSerializer, self).__init__(
-            environment_id,
-            stats_period,
-            transaction_stats,
+            environment_id, stats_period, transaction_stats, session_stats
         )
         self.collapse = collapse
 
@@ -509,6 +563,8 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             context["stats"] = attrs["stats"]
         if "transactionStats" in attrs:
             context["transactionStats"] = attrs["transactionStats"]
+        if "sessionStats" in attrs:
+            context["sessionStats"] = attrs["sessionStats"]
 
         return context
 

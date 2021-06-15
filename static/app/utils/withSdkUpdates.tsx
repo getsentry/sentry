@@ -1,6 +1,4 @@
 import * as React from 'react';
-import createReactClass from 'create-react-class';
-import Reflux from 'reflux';
 
 import {loadSdkUpdates} from 'app/actionCreators/sdkUpdates';
 import {Client} from 'app/api';
@@ -29,21 +27,17 @@ type Props = {
 };
 
 type State = {
-  sdkUpdates: ProjectSdkUpdates[];
+  sdkUpdates: ProjectSdkUpdates[] | null;
 };
 
 function withSdkUpdates<P extends InjectedProps>(
   WrappedComponent: React.ComponentType<P>
 ) {
-  const ProjectSdkSuggestions = createReactClass<
-    Props & Omit<P, keyof InjectedProps>,
+  class WithProjectSdkSuggestions extends React.Component<
+    Omit<P, keyof InjectedProps> & Props,
     State
-  >({
-    mixins: [Reflux.listenTo(SdkUpdatesStore, 'onSdkUpdatesUpdate') as any],
-
-    getInitialState() {
-      return {sdkUpdates: []};
-    },
+  > {
+    state: State = {sdkUpdates: []};
 
     componentDidMount() {
       const orgSlug = this.props.organization.slug;
@@ -56,21 +50,32 @@ function withSdkUpdates<P extends InjectedProps>(
       }
 
       loadSdkUpdates(this.props.api, orgSlug);
-    },
+    }
+
+    componentWillUnmount() {
+      this.unsubscribe();
+    }
+    unsubscribe = SdkUpdatesStore.listen(() => this.onSdkUpdatesUpdate(), undefined);
 
     onSdkUpdatesUpdate() {
       const sdkUpdates = SdkUpdatesStore.getUpdates(this.props.organization.slug) ?? null;
       this.setState({sdkUpdates});
-    },
+    }
 
     render() {
+      // TODO(ts) This unknown cast isn't great but Typescript complains about arbitrary
+      // types being possible. I think this is related to the additional HoC wrappers causing type data to
+      // be lost.
       return (
-        <WrappedComponent {...(this.props as P)} sdkUpdates={this.state.sdkUpdates} />
+        <WrappedComponent
+          {...((this.props as unknown) as P)}
+          sdkUpdates={this.state.sdkUpdates}
+        />
       );
-    },
-  });
+    }
+  }
 
-  return withOrganization(withApi(ProjectSdkSuggestions));
+  return withOrganization(withApi(WithProjectSdkSuggestions));
 }
 
 export default withSdkUpdates;

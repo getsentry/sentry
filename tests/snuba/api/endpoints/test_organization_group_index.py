@@ -34,6 +34,7 @@ from sentry.models import (
     add_group_to_inbox,
     remove_group_from_inbox,
 )
+from sentry.search.events.constants import SEMVER_ALIAS
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -1098,6 +1099,84 @@ class GroupListTest(APITestCase, SnubaTestCase):
         )
         assert response.status_code == 200
         assert len(response.data) == 0
+
+    def test_semver(self):
+        release_1 = self.create_release(version="test@1.2.3")
+        release_2 = self.create_release(version="test@1.2.4")
+        release_3 = self.create_release(version="test@1.2.5")
+
+        release_1_g_1 = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(minutes=1)),
+                "fingerprint": ["group-1"],
+                "release": release_1.version,
+            },
+            project_id=self.project.id,
+        ).group.id
+        release_1_g_2 = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(minutes=2)),
+                "fingerprint": ["group-2"],
+                "release": release_1.version,
+            },
+            project_id=self.project.id,
+        ).group.id
+        release_2_g_1 = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(minutes=3)),
+                "fingerprint": ["group-3"],
+                "release": release_2.version,
+            },
+            project_id=self.project.id,
+        ).group.id
+        release_2_g_2 = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(minutes=4)),
+                "fingerprint": ["group-4"],
+                "release": release_2.version,
+            },
+            project_id=self.project.id,
+        ).group.id
+        release_3_g_1 = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(minutes=5)),
+                "fingerprint": ["group-5"],
+                "release": release_3.version,
+            },
+            project_id=self.project.id,
+        ).group.id
+        release_3_g_2 = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(minutes=6)),
+                "fingerprint": ["group-6"],
+                "release": release_3.version,
+            },
+            project_id=self.project.id,
+        ).group.id
+        self.login_as(user=self.user)
+        response = self.get_response(sort_by="date", limit=10, query=f"{SEMVER_ALIAS}:>1.2.3")
+        assert response.status_code == 200, response.content
+        assert [int(r["id"]) for r in response.json()] == [
+            release_2_g_1,
+            release_2_g_2,
+            release_3_g_1,
+            release_3_g_2,
+        ]
+
+        response = self.get_response(sort_by="date", limit=10, query=f"{SEMVER_ALIAS}:>=1.2.3")
+        assert response.status_code == 200, response.content
+        assert [int(r["id"]) for r in response.json()] == [
+            release_1_g_1,
+            release_1_g_2,
+            release_2_g_1,
+            release_2_g_2,
+            release_3_g_1,
+            release_3_g_2,
+        ]
+
+        response = self.get_response(sort_by="date", limit=10, query=f"{SEMVER_ALIAS}:<1.2.4")
+        assert response.status_code == 200, response.content
+        assert [int(r["id"]) for r in response.json()] == [release_1_g_1, release_1_g_2]
 
     def test_aggregate_stats_regression_test(self):
         self.store_event(

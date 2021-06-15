@@ -1,6 +1,7 @@
-import {Fragment, useEffect, useState} from 'react';
+import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
+import debounce from 'lodash/debounce';
 
 import {Client} from 'app/api';
 import Button from 'app/components/button';
@@ -10,8 +11,9 @@ import ListItem from 'app/components/list/listItem';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
+import {DEFAULT_DEBOUNCE_DURATION} from 'app/constants';
 import {IconFlag} from 'app/icons';
-import {t, tct, tn} from 'app/locale';
+import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {Group, Organization, Project} from 'app/types';
 import {Event} from 'app/types/event';
@@ -30,10 +32,16 @@ type Props = {
   api: Client;
 };
 
+type ErrorCode = 'not_hierarchical' | 'no_events' | 'merged_issues' | 'missing_feature';
+
 type Error = {
   status: number;
   responseJSON?: {
-    detail: string;
+    detail: {
+      code: ErrorCode;
+      extra: Record<string, any>;
+      message: string;
+    };
   };
 };
 
@@ -75,6 +83,10 @@ function Grouping({api, groupId, location}: Props) {
   useEffect(() => {
     fetchGroupingLevelDetails();
   }, [activeGroupingLevel, location.query]);
+
+  const handleSetActiveGroupingLevel = debounce((groupingLevelId: string) => {
+    setActiveGroupingLevel(Number(groupingLevelId));
+  }, DEFAULT_DEBOUNCE_DURATION);
 
   async function fetchGroupingLevels() {
     setIsLoading(true);
@@ -135,19 +147,23 @@ function Grouping({api, groupId, location}: Props) {
 
   if (error) {
     if (error.status === 403 && error.responseJSON?.detail) {
+      const {message, code} = error.responseJSON.detail;
       return (
         <Wrapper>
           <EmptyMessage
+            size="large"
             icon={<IconFlag size="xl" />}
             action={
-              <Button
-                to={`/organizations/sentry/issues/${groupId}/merged/?${location.search}`}
-              >
-                {t('Unmerge issue')}
-              </Button>
+              code === 'merged_issues' ? (
+                <Button
+                  to={`/organizations/sentry/issues/${groupId}/merged/?${location.search}`}
+                >
+                  {t('Unmerge issue')}
+                </Button>
+              ) : undefined
             }
           >
-            {error.responseJSON.detail}
+            {message}
           </EmptyMessage>
         </Wrapper>
       );
@@ -169,10 +185,6 @@ function Grouping({api, groupId, location}: Props) {
     );
   }
 
-  //function handleRegroup() {
-  // Todo(Priscila): Implement it
-  //}
-
   const links = parseLinkHeader(pagination);
   const hasMore = links.previous?.results || links.next?.results;
 
@@ -180,76 +192,53 @@ function Grouping({api, groupId, location}: Props) {
     <Wrapper>
       <Description>
         {t(
-          'Sometimes you might want to split up the errors in an issue by different frames in the stacktrace. Below you can select which frames to regroup this issue by and see how many new issues will be created in the process.'
+          'Sometimes you might want to split up issues by additional frames or other criteria. Select a granularity level below and see how many new issues will be created in the process.'
         )}
       </Description>
       <div>
         <StyledList symbol="colored-numeric">
           <StyledListItem>
-            {t('Select levels')}
+            {t('Select level')}
             <StyledRangeSlider
               name="grouping-level"
               allowedValues={groupingLevels.map(groupingLevel =>
                 Number(groupingLevel.id)
               )}
               formatLabel={value => {
-                return value === 0
-                  ? t('Automatically grouped')
-                  : tn('%s level', '%s levels', value);
+                return value === 0 ? t('Automatically grouped') : t('Level %s', value);
               }}
               value={activeGroupingLevel ?? 0}
-              onChange={groupingLevelId =>
-                setActiveGroupingLevel(Number(groupingLevelId))
-              }
+              onChange={handleSetActiveGroupingLevel}
             />
           </StyledListItem>
           <StyledListItem>
-            {isGroupingLevelDetailsLoading ? (
-              <div>
-                <div>{t('What happens to this issue')}</div>
-                <LoadingIndicator mini />
-              </div>
-            ) : (
-              <Fragment>
-                <div>
-                  {t('What happens to this issue')}
-                  <WhatHappensDescription>
-                    {tct(
-                      `This issue will be deleted and [quantity] new issues will be created.`,
-                      {
-                        quantity: hasMore
-                          ? `${activeGroupingLevelDetails.length}+`
-                          : activeGroupingLevelDetails.length,
-                      }
-                    )}
-                  </WhatHappensDescription>
-                </div>
-                <NewIssues>
-                  {activeGroupingLevelDetails.map(activeGroupingLevelDetail => (
-                    <NewIssue
-                      key={activeGroupingLevelDetail.hash}
-                      event={activeGroupingLevelDetail.latestEvent}
-                    />
-                  ))}
-                </NewIssues>
-              </Fragment>
-            )}
+            <div>
+              {t('What happens to this issue')}
+              <WhatHappensDescription>
+                {tct(
+                  `This issue will be deleted and [quantity] new issues will be created.`,
+                  {
+                    quantity: hasMore
+                      ? `${activeGroupingLevelDetails.length}+`
+                      : activeGroupingLevelDetails.length,
+                  }
+                )}
+              </WhatHappensDescription>
+            </div>
+            <NewIssues>
+              {activeGroupingLevelDetails.map(({hash, latestEvent, eventCount}) => (
+                <NewIssue
+                  key={hash}
+                  sampleEvent={latestEvent}
+                  eventCount={eventCount}
+                  isReloading={isGroupingLevelDetailsLoading}
+                />
+              ))}
+            </NewIssues>
           </StyledListItem>
         </StyledList>
         <Pagination pageLinks={pagination} />
       </div>
-      <Action>
-        <Button
-          priority="primary"
-          disabled={
-            isGroupingLevelDetailsLoading ||
-            !activeGroupingLevel ||
-            activeGroupingLevel === 0
-          }
-        >
-          {t('Regroup')}
-        </Button>
-      </Action>
     </Wrapper>
   );
 }
@@ -259,6 +248,7 @@ export default withApi(Grouping);
 const Wrapper = styled('div')`
   flex: 1;
   display: grid;
+  align-content: flex-start;
   background: ${p => p.theme.background};
   grid-gap: ${space(2)};
   margin: -${space(3)} -${space(4)};
@@ -269,21 +259,13 @@ const Description = styled('p')`
   margin-bottom: ${space(0.5)};
 `;
 
-const Action = styled('div')`
-  border-top: 1px solid ${p => p.theme.border};
-  display: flex;
-  justify-content: flex-end;
-  padding: ${space(2)} 0 0;
-  margin-top: ${space(1)};
-`;
-
 const StyledListItem = styled(ListItem)`
   display: grid;
   grid-gap: ${space(1.5)};
 `;
 
 const StyledRangeSlider = styled(RangeSlider)`
-  max-width: 20%;
+  max-width: 300px;
 `;
 
 const StyledList = styled(List)`

@@ -221,7 +221,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
                     "start": iso_format(self.day_ago),
                     "end": iso_format(self.day_ago + timedelta(hours=2)),
                     "interval": "1h",
-                    "yAxis": "apdex_new()",
+                    "yAxis": "apdex()",
                 },
             )
         assert response.status_code == 200, response.content
@@ -253,7 +253,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
                     "start": iso_format(self.day_ago),
                     "end": iso_format(self.day_ago + timedelta(hours=2)),
                     "interval": "1h",
-                    "yAxis": "apdex_new()",
+                    "yAxis": "apdex()",
                 },
             )
         assert response.status_code == 200, response.content
@@ -270,7 +270,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
                     "start": iso_format(self.day_ago),
                     "end": iso_format(self.day_ago + timedelta(hours=2)),
                     "interval": "1h",
-                    "yAxis": ["user_count", "apdex_new()"],
+                    "yAxis": ["user_count", "apdex()"],
                 },
                 format="json",
             )
@@ -281,8 +281,8 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase):
             [{"count": 5}],
             [{"count": 0}],
         ]
-        response.data["apdex_new()"]["order"] == 1
-        assert [attrs for time, attrs in response.data["apdex_new()"]["data"]] == [
+        response.data["apdex()"]["order"] == 1
+        assert [attrs for time, attrs in response.data["apdex()"]["data"]] == [
             [{"count": 0.2}],
             [{"count": 0}],
         ]

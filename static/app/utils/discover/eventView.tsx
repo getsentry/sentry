@@ -297,8 +297,19 @@ class EventView {
     const environment = Array.isArray(props.environment) ? props.environment : [];
 
     // only include sort keys that are included in the fields
+    let equations = 0;
     const sortKeys = fields
-      .map(field => getSortKeyFromField(field, undefined))
+      .map(field => {
+        if (isEquation(field.field)) {
+          const sortKey = getSortKeyFromField(
+            {field: `equation[${equations}]`},
+            undefined
+          );
+          equations += 1;
+          return sortKey;
+        }
+        return getSortKeyFromField(field, undefined);
+      })
       .filter((sortKey): sortKey is string => !!sortKey);
 
     const sort = sorts.find(currentSort => sortKeys.includes(currentSort.field));
@@ -1146,7 +1157,10 @@ class EventView {
     return uniqBy(
       this.getAggregateFields()
         // Only include aggregates that make sense to be graphable (eg. not string or date)
-        .filter((field: Field) => isLegalYAxisType(aggregateOutputType(field.field)))
+        .filter(
+          (field: Field) =>
+            isLegalYAxisType(aggregateOutputType(field.field)) && !isEquation(field.field)
+        )
         .map((field: Field) => ({label: field.field, value: field.field}))
         .concat(CHART_AXIS_OPTIONS),
       'value'
@@ -1258,12 +1272,15 @@ export const isAPIPayloadSimilar = (
 
   for (const key of currentKeys) {
     const currentValue = current[key];
-    const currentTarget = Array.isArray(currentValue)
-      ? new Set(currentValue)
-      : currentValue;
+    // Exclude equation from becoming a set for comparison cause its order matters
+    const currentTarget =
+      Array.isArray(currentValue) && key !== 'equation'
+        ? new Set(currentValue)
+        : currentValue;
 
     const otherValue = other[key];
-    const otherTarget = Array.isArray(otherValue) ? new Set(otherValue) : otherValue;
+    const otherTarget =
+      Array.isArray(otherValue) && key !== 'equation' ? new Set(otherValue) : otherValue;
 
     if (!isEqual(currentTarget, otherTarget)) {
       return false;

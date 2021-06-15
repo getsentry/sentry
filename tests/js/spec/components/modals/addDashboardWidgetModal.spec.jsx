@@ -104,6 +104,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     await clickSubmit(wrapper);
 
     expect(widget.title).toEqual('Unique Users');
+    wrapper.unmount();
   });
 
   it('can add conditions', async function () {
@@ -124,6 +125,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
     expect(widget.queries).toHaveLength(1);
     expect(widget.queries[0].conditions).toEqual('color:blue');
+    wrapper.unmount();
   });
 
   it('can choose a field', async function () {
@@ -141,6 +143,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
     expect(widget.queries).toHaveLength(1);
     expect(widget.queries[0].fields).toEqual(['p95(transaction.duration)']);
+    wrapper.unmount();
   });
 
   it('can add additional fields', async function () {
@@ -164,6 +167,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
     expect(widget.queries).toHaveLength(1);
     expect(widget.queries[0].fields).toEqual(['count()', 'p95(transaction.duration)']);
+    wrapper.unmount();
   });
 
   it('can add and delete additional queries', async function () {
@@ -239,6 +243,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
       conditions: 'event.type:error',
       fields: ['count()'],
     });
+    wrapper.unmount();
   });
 
   it('can respond to validation feedback', async function () {
@@ -270,6 +275,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     // Nested object error should display
     const conditionError = wrapper.find('WidgetQueriesForm FieldErrorReason');
     expect(conditionError).toHaveLength(1);
+    wrapper.unmount();
   });
 
   it('can edit a widget', async function () {
@@ -347,6 +353,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     expect(widget.title).toEqual('New title');
 
     expect(eventsStatsMock).toHaveBeenCalledTimes(2);
+    wrapper.unmount();
   });
 
   it('renders column inputs for table widgets', async function () {
@@ -411,6 +418,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     // A new field should be added.
     expect(widget.queries[0].fields).toHaveLength(3);
     expect(widget.queries[0].fields[2]).toEqual('trace');
+    wrapper.unmount();
   });
 
   it('uses count() columns if there are no aggregate fields remaining when switching from table to chart', async function () {
@@ -449,6 +457,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
     expect(widget.queries).toHaveLength(1);
     expect(widget.queries[0].fields).toEqual(['count()']);
+    wrapper.unmount();
   });
 
   it('should filter out non-aggregate fields when switching from table to chart', async function () {
@@ -506,6 +515,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
 
     expect(widget.queries).toHaveLength(1);
     expect(widget.queries[0].fields).toEqual(['p95(transaction.duration)']);
+    wrapper.unmount();
   });
 
   it('should filter non-legal y-axis choices for timeseries widget charts', async function () {
@@ -544,6 +554,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     expect(widget.displayType).toEqual('line');
     expect(widget.queries).toHaveLength(1);
     expect(widget.queries[0].fields).toEqual(['any(measurements.lcp)']);
+    wrapper.unmount();
   });
 
   it('should not filter y-axis choices for big number widget charts', async function () {
@@ -577,6 +588,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     expect(widget.displayType).toEqual('big_number');
     expect(widget.queries).toHaveLength(1);
     expect(widget.queries[0].fields).toEqual(['count_unique(user.display)']);
+    wrapper.unmount();
   });
 
   it('should filter y-axis choices for world map widget charts', async function () {
@@ -639,6 +651,7 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     expect(widget.displayType).toEqual('world_map');
     expect(widget.queries).toHaveLength(1);
     expect(widget.queries[0].fields).toEqual(['count_unique(measurements.lcp)']);
+    wrapper.unmount();
   });
 
   it('should filter y-axis choices by output type when switching from big number to line chart', async function () {
@@ -687,5 +700,6 @@ describe('Modals -> AddDashboardWidgetModal', function () {
     expect(widget.displayType).toEqual('line');
     expect(widget.queries).toHaveLength(1);
     expect(widget.queries[0].fields).toEqual(['count()']);
+    wrapper.unmount();
   });
 });

@@ -15,11 +15,15 @@ def convert_build_code_to_build_number(build_code):
     if build_code is not None:
         try:
             build_code_as_int = int(build_code)
-            if build_code_as_int >= 0 and build_code_as_int.bit_length() <= 63:
+            if validate_bigint(build_code_as_int):
                 build_number = build_code_as_int
         except ValueError:
             pass
     return build_number
+
+
+def validate_bigint(value):
+    return isinstance(value, int) and value >= 0 and value.bit_length() <= 63
 
 
 UPDATE_QUERY = """
@@ -31,7 +35,7 @@ UPDATE_QUERY = """
     revision = data.revision,
     prerelease = data.prerelease,
     build_code = data.build_code,
-    build_number = data.build_number
+    build_number = data.build_number::bigint
     FROM (VALUES %s) AS data (id, package, major, minor, patch, revision, prerelease, build_code, build_number)
     WHERE sentry_release.id = data.id"""
 
@@ -51,6 +55,10 @@ def backfill_semver(apps, schema_editor):
 
         version_parsed = version_info.get("version_parsed")
         if version_parsed is None:
+            continue
+
+        bigint_fields = ["major", "minor", "patch", "revision"]
+        if not all(validate_bigint(version_parsed[field]) for field in bigint_fields):
             continue
 
         build_code = version_parsed.get("build_code")
