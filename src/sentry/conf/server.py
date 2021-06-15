@@ -997,8 +997,6 @@ SENTRY_FEATURES = {
     "organizations:images-loaded-v2": True,
     # Enable teams to have ownership of alert rules
     "organizations:team-alerts-ownership": False,
-    # Enable the new alert creation wizard
-    "organizations:alert-wizard": True,
     # Enable the adoption chart in the releases page
     "organizations:release-adoption-chart": False,
     # Enable the release adoption stage labels and sorting+filtering by them
@@ -2236,3 +2234,6 @@ DEMO_DATA_QUICK_GEN_PARAMS = {}
 
 # adds an extra JS to HTML template
 INJECTED_SCRIPT_ASSETS = []
+
+# adds mobile projects
+DEMO_MOBILE_PROJECTS = False

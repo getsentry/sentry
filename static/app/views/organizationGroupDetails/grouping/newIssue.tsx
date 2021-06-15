@@ -6,21 +6,22 @@ import space from 'app/styles/space';
 import {Event} from 'app/types/event';
 
 type Props = {
-  event: Event;
+  sampleEvent: Event;
+  eventCount: number;
+  isReloading: boolean;
 };
 
-function NewIssue({event}: Props) {
-  const {title, culprit, errors} = event;
-  const errorCount = errors.length;
+function NewIssue({sampleEvent, eventCount, isReloading}: Props) {
+  const {title, culprit} = sampleEvent;
   return (
-    <StyledCard interactive={false}>
+    <StyledCard interactive={false} isReloading={isReloading}>
       <div>
         <Title>{title}</Title>
         <CulPrint>{culprit}</CulPrint>
       </div>
       <ErrorsCount>
-        {errorCount}
-        <ErrorLabel>{tn('Error', 'Errors', errorCount)}</ErrorLabel>
+        {eventCount}
+        <ErrorLabel>{tn('Error', 'Errors', eventCount)}</ErrorLabel>
       </ErrorsCount>
     </StyledCard>
   );
@@ -28,7 +29,7 @@ function NewIssue({event}: Props) {
 
 export default NewIssue;
 
-const StyledCard = styled(Card)`
+const StyledCard = styled(Card)<{isReloading: boolean}>`
   margin-bottom: -1px;
   overflow: hidden;
   display: grid;
@@ -37,6 +38,12 @@ const StyledCard = styled(Card)`
   padding: ${space(1.5)} ${space(2)};
   grid-gap: ${space(2)};
   word-break: break-word;
+  ${p =>
+    p.isReloading &&
+    `
+      opacity: 0.5;
+      pointer-events: none;
+    `}
 `;
 
 const Title = styled('div')`

@@ -7,13 +7,15 @@ import {IssueSortOptions} from 'app/views/issueList/utils';
 
 import {DisplayOption} from '../list/utils';
 
+export const CRASH_FREE_DECIMAL_THRESHOLD = 95;
+
 export const roundDuration = (seconds: number) => {
   return round(seconds, seconds > 60 ? 0 : 3);
 };
 
 export const getCrashFreePercent = (
   percent: number,
-  decimalThreshold = 95,
+  decimalThreshold = CRASH_FREE_DECIMAL_THRESHOLD,
   decimalPlaces = 3
 ): number => {
   return round(percent, percent > decimalThreshold ? decimalPlaces : 0);
@@ -21,7 +23,7 @@ export const getCrashFreePercent = (
 
 export const displayCrashFreePercent = (
   percent: number,
-  decimalThreshold = 95,
+  decimalThreshold = CRASH_FREE_DECIMAL_THRESHOLD,
   decimalPlaces = 3
 ): string => {
   if (isNaN(percent)) {

@@ -5,7 +5,7 @@ import {Location} from 'history';
 import omit from 'lodash/omit';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import {openDebugFileSourceModal} from 'app/actionCreators/modal';
+import {closeModal, openDebugFileSourceModal} from 'app/actionCreators/modal';
 import ProjectActions from 'app/actions/projectActions';
 import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
@@ -211,10 +211,7 @@ function SymbolSources({
       sourceType: item.type,
       appStoreConnectContext,
       onSave: updatedData => handleUpdateSymbolSource(updatedData as Item, item.index),
-      onClose:
-        sourceConfig && sourceConfig.type === 'appStoreConnect'
-          ? undefined
-          : handleCloseImageDetailsModal,
+      onClose: handleCloseImageDetailsModal,
     });
   }
 
@@ -263,12 +260,12 @@ function SymbolSources({
 
       ProjectActions.updateSuccess(updatedProjectDetails);
       addSuccessMessage(successMessage);
+      closeModal();
       if (updatedItem && updatedItem.type === 'appStoreConnect') {
-        handleCloseImageDetailsModal();
         reloadPage();
       }
     } catch {
-      handleCloseImageDetailsModal();
+      closeModal();
       addErrorMessage(errorMessage);
     }
   }

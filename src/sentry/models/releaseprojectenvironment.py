@@ -19,9 +19,16 @@ class ReleaseProjectEnvironment(Model):
     last_seen = models.DateTimeField(default=timezone.now, db_index=True)
     last_deploy_id = BoundedPositiveIntegerField(null=True, db_index=True)
 
+    adopted = models.DateTimeField(null=True, blank=True)
+    unadopted = models.DateTimeField(null=True, blank=True)
+
     class Meta:
         app_label = "sentry"
         db_table = "sentry_releaseprojectenvironment"
+        index_together = (
+            ("project", "adopted", "environment"),
+            ("project", "unadopted", "environment"),
+        )
         unique_together = (("project", "release", "environment"),)
 
     __repr__ = sane_repr("project", "release", "environment")
