@@ -10,11 +10,9 @@ from sentry.notifications.helpers import (
     get_target_id,
     get_user_subscriptions_for_groups,
     get_values_by_provider_by_type,
-    should_be_participating,
     transform_to_notification_settings_by_parent_id,
     transform_to_notification_settings_by_user,
     validate,
-    where_should_be_participating,
     where_should_user_be_notified,
 )
 from sentry.notifications.notify import notification_providers
@@ -120,32 +118,6 @@ class NotificationHelpersTest(TestCase):
             ExternalProviders.EMAIL,
             ExternalProviders.SLACK,
         ]
-
-    def test_should_be_participating(self):
-        subscriptions_by_user_id = {ExternalProviders.EMAIL: {self.user: -1}}
-        self.assertTrue(
-            should_be_participating(
-                subscriptions_by_user_id, self.user, NotificationSettingOptionValues.ALWAYS
-            )
-        )
-
-    def test_where_should_be_participating(self):
-        subscriptions_by_user_id = {ExternalProviders.EMAIL: {self.user: -1}}
-        notification_settings = {
-            self.user: {
-                NotificationScopeType.USER: {
-                    ExternalProviders.EMAIL: NotificationSettingOptionValues.ALWAYS
-                }
-            }
-        }
-        assert (
-            where_should_be_participating(
-                self.user,
-                subscriptions_by_user_id,
-                notification_settings,
-            )
-            == [ExternalProviders.EMAIL]
-        )
 
     def test_get_deploy_values_by_provider_empty_settings(self):
         values_by_provider = get_values_by_provider_by_type(
