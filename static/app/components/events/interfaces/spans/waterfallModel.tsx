@@ -34,7 +34,7 @@ class WaterfallModel {
 
     this.parsedTrace = parseTrace(event);
     const rootSpan = generateRootSpan(this.parsedTrace);
-    this.rootSpan = new SpanTreeModel(rootSpan, this.parsedTrace.childSpans);
+    this.rootSpan = new SpanTreeModel(rootSpan, this.parsedTrace.childSpans, true);
 
     this.indexSearch(this.parsedTrace, rootSpan);
 

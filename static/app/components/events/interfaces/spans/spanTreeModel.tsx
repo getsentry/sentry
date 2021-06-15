@@ -7,9 +7,15 @@ class SpanTreeModel {
   // readonly state
   span: Readonly<SpanType>;
   children: Array<SpanTreeModel> = [];
+  isRoot: boolean;
 
-  constructor(parentSpan: SpanType, childSpans: SpanChildrenLookupType) {
+  constructor(
+    parentSpan: SpanType,
+    childSpans: SpanChildrenLookupType,
+    isRoot: boolean = false
+  ) {
     this.span = parentSpan;
+    this.isRoot = isRoot;
 
     const spanID = getSpanID(parentSpan);
     const spanChildren: Array<RawSpanType> = childSpans?.[spanID] ?? [];
