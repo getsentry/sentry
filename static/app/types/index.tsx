@@ -298,6 +298,11 @@ export type Project = {
   transactionStats?: TimeseriesValue[];
   latestRelease?: Release;
   options?: Record<string, boolean | string>;
+  sessionStats?: {
+    currentCrashFreeRate: number | null;
+    previousCrashFreeRate: number | null;
+    hasHealthData: boolean;
+  };
 } & AvatarProject;
 
 export type MinimalProject = Pick<Project, 'id' | 'slug' | 'platform'>;
