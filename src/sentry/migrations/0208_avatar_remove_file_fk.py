@@ -31,11 +31,19 @@ class Migration(migrations.Migration):
         ("sentry", "0207_release_adoption"),
     ]
 
+    avatar_models = (
+        "organizationavatar",
+        "projectavatar",
+        "sentryappavatar",
+        "useravatar",
+        "teamavatar",
+    )
+
     operations = [
         migrations.SeparateDatabaseAndState(
             database_operations=[
                 migrations.AlterField(
-                    model_name="organizationavatar",
+                    model_name=model_name,
                     name="file",
                     field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
                         db_constraint=False,
@@ -44,132 +52,27 @@ class Migration(migrations.Migration):
                         on_delete=django.db.models.deletion.SET_NULL,
                         to="sentry.File",
                     ),
-                ),
+                )
+                for model_name in avatar_models
             ],
             state_operations=[
-                migrations.RemoveField(
-                    model_name="organizationavatar",
-                    name="file",
-                ),
-                migrations.AddField(
-                    model_name="organizationavatar",
-                    name="file_id",
-                    field=sentry.db.models.fields.bounded.BoundedBigIntegerField(
-                        null=True, unique=True
-                    ),
-                ),
-            ],
-        ),
-        migrations.SeparateDatabaseAndState(
-            database_operations=[
-                migrations.AlterField(
-                    model_name="projectavatar",
-                    name="file",
-                    field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        db_constraint=False,
-                        unique=True,
-                        null=True,
-                        on_delete=django.db.models.deletion.SET_NULL,
-                        to="sentry.File",
-                    ),
-                ),
-            ],
-            state_operations=[
-                migrations.RemoveField(
-                    model_name="projectavatar",
-                    name="file",
-                ),
-                migrations.AddField(
-                    model_name="projectavatar",
-                    name="file_id",
-                    field=sentry.db.models.fields.bounded.BoundedBigIntegerField(
-                        null=True, unique=True
-                    ),
-                ),
-            ],
-        ),
-        migrations.SeparateDatabaseAndState(
-            database_operations=[
-                migrations.AlterField(
-                    model_name="sentryappavatar",
-                    name="file",
-                    field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        db_constraint=False,
-                        unique=True,
-                        null=True,
-                        on_delete=django.db.models.deletion.SET_NULL,
-                        to="sentry.File",
-                    ),
-                ),
-            ],
-            state_operations=[
-                migrations.RemoveField(
-                    model_name="sentryappavatar",
-                    name="file",
-                ),
-                migrations.AddField(
-                    model_name="sentryappavatar",
-                    name="file_id",
-                    field=sentry.db.models.fields.bounded.BoundedBigIntegerField(
-                        null=True, unique=True
-                    ),
-                ),
-            ],
-        ),
-        migrations.SeparateDatabaseAndState(
-            database_operations=[
-                migrations.AlterField(
-                    model_name="teamavatar",
-                    name="file",
-                    field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        db_constraint=False,
-                        unique=True,
-                        null=True,
-                        on_delete=django.db.models.deletion.SET_NULL,
-                        to="sentry.File",
-                    ),
-                ),
-            ],
-            state_operations=[
-                migrations.RemoveField(
-                    model_name="teamavatar",
-                    name="file",
-                ),
-                migrations.AddField(
-                    model_name="teamavatar",
-                    name="file_id",
-                    field=sentry.db.models.fields.bounded.BoundedBigIntegerField(
-                        null=True, unique=True
-                    ),
-                ),
-            ],
-        ),
-        migrations.SeparateDatabaseAndState(
-            database_operations=[
-                migrations.AlterField(
-                    model_name="useravatar",
-                    name="file",
-                    field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
-                        db_constraint=False,
-                        unique=True,
-                        null=True,
-                        on_delete=django.db.models.deletion.SET_NULL,
-                        to="sentry.File",
-                    ),
-                ),
-            ],
-            state_operations=[
-                migrations.RemoveField(
-                    model_name="useravatar",
-                    name="file",
-                ),
-                migrations.AddField(
-                    model_name="useravatar",
-                    name="file_id",
-                    field=sentry.db.models.fields.bounded.BoundedBigIntegerField(
-                        null=True, unique=True
-                    ),
-                ),
+                *[
+                    migrations.RemoveField(
+                        model_name=model_name,
+                        name="file",
+                    )
+                    for model_name in avatar_models
+                ],
+                *[
+                    migrations.AddField(
+                        model_name=model_name,
+                        name="file_id",
+                        field=sentry.db.models.fields.bounded.BoundedBigIntegerField(
+                            null=True, unique=True
+                        ),
+                    )
+                    for model_name in avatar_models
+                ],
             ],
         ),
     ]
