@@ -39,6 +39,8 @@ class Migration(migrations.Migration):
                     name="file",
                     field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
                         db_constraint=False,
+                        unique=True,
+                        null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         to="sentry.File",
                     ),
@@ -65,6 +67,8 @@ class Migration(migrations.Migration):
                     name="file",
                     field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
                         db_constraint=False,
+                        unique=True,
+                        null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         to="sentry.File",
                     ),
@@ -91,6 +95,8 @@ class Migration(migrations.Migration):
                     name="file",
                     field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
                         db_constraint=False,
+                        unique=True,
+                        null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         to="sentry.File",
                     ),
@@ -117,6 +123,8 @@ class Migration(migrations.Migration):
                     name="file",
                     field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
                         db_constraint=False,
+                        unique=True,
+                        null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         to="sentry.File",
                     ),
@@ -143,6 +151,8 @@ class Migration(migrations.Migration):
                     name="file",
                     field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
                         db_constraint=False,
+                        unique=True,
+                        null=True,
                         on_delete=django.db.models.deletion.SET_NULL,
                         to="sentry.File",
                     ),
