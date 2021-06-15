@@ -5,15 +5,17 @@ from django.http import HttpResponse
 from rest_framework.request import Request
 
 from sentry.api.base import Endpoint
+from sentry.integrations.slack.link_team import build_linking_url
 from sentry.integrations.slack.message_builder.help import SlackHelpMessageBuilder
 from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.requests.command import SlackCommandRequest
 
 logger = logging.getLogger("sentry.integrations.slack")
+LINK_TEAM_MESSAGE = "Link your Sentry team to this Slack channel! <{associate_url}|Link your team now> to receive notifications of issues in Sentry in Slack."
 
 
 def get_command(payload: Mapping[str, str]) -> str:
-    return payload.get("text", "").split(" ")[0].lower()
+    return payload.get("text", "").lower()
 
 
 class SlackCommandsEndpoint(Endpoint):
@@ -33,11 +35,25 @@ class SlackCommandsEndpoint(Endpoint):
 
         payload = slack_request.data
         command = get_command(payload)
-
+        # TODO(mgaeta): Add more commands.
         if command in ["help", ""]:
             return self.respond(SlackHelpMessageBuilder().build())
-
-        # TODO(mgaeta): Add more commands.
+        if command == "link team":
+            integration = slack_request.integration
+            channel_id = payload.get("channel_id", "")
+            channel_name = payload.get("channel_name", "")
+            user_id = payload.get("user_id", "")
+            response_url = payload.get("response_url")
+            associate_url = build_linking_url(
+                integration, user_id, channel_id, channel_name, response_url
+            )
+            return self.respond(
+                {
+                    "response_type": "ephemeral",
+                    "replace_original": False,
+                    "text": LINK_TEAM_MESSAGE.format(associate_url=associate_url),
+                }
+            )
 
         # If we cannot interpret the command, print help text.
         return self.respond(SlackHelpMessageBuilder(command).build())
