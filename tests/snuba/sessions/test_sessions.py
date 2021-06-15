@@ -1708,3 +1708,25 @@ class GetCrashFreeRateTestCase(TestCase, SnubaTestCase):
             self.project2.id: {"currentCrashFreeRate": 50.0, "previousCrashFreeRate": None},
             self.project3.id: {"currentCrashFreeRate": None, "previousCrashFreeRate": 80.0},
         }
+
+    def test_get_current_and_previous_crash_free_rates_with_zero_sessions(self):
+        now = timezone.now()
+        last_48h_start = now - 2 * 24 * timedelta(hours=1)
+        last_72h_start = now - 3 * 24 * timedelta(hours=1)
+        last_96h_start = now - 4 * 24 * timedelta(hours=1)
+
+        data = get_current_and_previous_crash_free_rates(
+            project_ids=[self.project.id],
+            current_start=last_72h_start,
+            current_end=last_48h_start,
+            previous_start=last_96h_start,
+            previous_end=last_72h_start,
+            rollup=86400,
+        )
+
+        assert data == {
+            self.project.id: {
+                "currentCrashFreeRate": None,
+                "previousCrashFreeRate": None,
+            },
+        }
