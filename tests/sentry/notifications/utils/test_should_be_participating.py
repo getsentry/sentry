@@ -49,20 +49,45 @@ class ShouldBeParticipatingTest(TestCase):
         value = should_be_participating(None, NotificationSettingOptionValues.SUBSCRIBE_ONLY)
         assert not value
 
+
+class WhereShouldBeParticipatingTest(TestCase):
+    def setUp(self) -> None:
+        self.user = User(id=1)
+
     def test_where_should_be_participating(self):
-        user = User(id=1)
         subscription = GroupSubscription(is_active=True)
         notification_settings = {
-            user: {
-                NotificationScopeType.USER: {
-                    ExternalProviders.EMAIL: NotificationSettingOptionValues.ALWAYS
+            self.user: {
+                NotificationScopeType.self.user: {
+                    ExternalProviders.EMAIL: NotificationSettingOptionValues.ALWAYS,
+                    ExternalProviders.SLACK: NotificationSettingOptionValues.SUBSCRIBE_ONLY,
+                    ExternalProviders.PAGERDUTY: NotificationSettingOptionValues.NEVER,
                 }
             }
         }
 
         providers = where_should_be_participating(
-            user,
+            self.user,
             subscription,
+            notification_settings,
+        )
+        assert providers == [ExternalProviders.EMAIL, ExternalProviders.SLACK]
+
+    def test_subscription_null(self):
+        self.user = self.user(id=1)
+        notification_settings = {
+            self.user: {
+                NotificationScopeType.self.user: {
+                    ExternalProviders.EMAIL: NotificationSettingOptionValues.ALWAYS,
+                    ExternalProviders.SLACK: NotificationSettingOptionValues.SUBSCRIBE_ONLY,
+                    ExternalProviders.PAGERDUTY: NotificationSettingOptionValues.NEVER,
+                }
+            }
+        }
+
+        providers = where_should_be_participating(
+            self.user,
+            None,
             notification_settings,
         )
         assert providers == [ExternalProviders.EMAIL]
