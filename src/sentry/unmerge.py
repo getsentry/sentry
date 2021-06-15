@@ -87,7 +87,7 @@ class UnmergeReplacement(abc.ABC):
     def get_activity_args(self, unmerge_key: str) -> Mapping[str, Any]:
         raise NotImplementedError()
 
-    def on_finish(self, project: Project, source_id: int):
+    def on_finish(self, project: Project, source_id: int) -> None:
         pass
 
 
@@ -158,7 +158,7 @@ class HierarchicalUnmergeReplacement(UnmergeReplacement):
         if event.get_primary_hash() != self.primary_hash:
             return None
 
-        hierarchical_hashes = event.data.get("hierarchical_hashes")
+        hierarchical_hashes: Optional[Sequence[str]] = event.data.get("hierarchical_hashes")
 
         if not hierarchical_hashes:
             return None
@@ -209,7 +209,7 @@ class HierarchicalUnmergeReplacement(UnmergeReplacement):
             "new_hierarchical_hash": unmerge_key,
         }
 
-    def on_finish(self, project: Project, source_id: int):
+    def on_finish(self, project: Project, source_id: int) -> None:
         eventstream.exclude_groups(project.id, [source_id])
 
 
