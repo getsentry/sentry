@@ -29,8 +29,11 @@ from sentry.models import (
     OrganizationAvatar,
     OrganizationOption,
     OrganizationStatus,
+    Project,
+    ProjectTransactionThreshold,
     UserEmail,
 )
+from sentry.models.transaction_threshold import TransactionMetric
 from sentry.tasks.deletion import delete_organization
 from sentry.utils.cache import memoize
 
@@ -423,6 +426,23 @@ class OrganizationSerializer(serializers.Serializer):
             and self.initial_data.get("requireEmailVerification") is True
         ):
             org.handle_email_verification_required(self.context["request"])
+
+        # Temporarily writing org-level apdex changes to ProjectTransactionThreshold
+        # for orgs who don't have the feature enabled so that when this
+        # feature is GA'ed it captures the orgs current apdex threshold.
+        if "apdexThreshold" in self.initial_data and not features.has(
+            "organizations:project-transaction-threshold", org
+        ):
+            for project in Project.objects.filter(organization_id=org.id):
+                ProjectTransactionThreshold.objects.update_or_create(
+                    organization_id=org.id,
+                    project_id=project.id,
+                    defaults={
+                        "threshold": int(self.initial_data["apdexThreshold"]),
+                        "metric": TransactionMetric.DURATION.value,
+                    },
+                )
+
         return org, changed_data
 
 
