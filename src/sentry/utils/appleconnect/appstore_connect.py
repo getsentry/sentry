@@ -110,7 +110,7 @@ def _get_appstore_info_paged_data(
 
 
 def get_pre_release_version_info(
-    session: Session, credentials: AppConnectCredentials, app_id: int
+    session: Session, credentials: AppConnectCredentials, app_id: str
 ) -> List[Dict[str, Any]]:
     """Get all prerelease builds version information for an application
 
@@ -150,7 +150,7 @@ def get_pre_release_version_info(
 
 
 def get_release_version_info(
-    session: Session, credentials: AppConnectCredentials, app_id: int
+    session: Session, credentials: AppConnectCredentials, app_id: str
 ) -> List[Dict[str, Any]]:
     """Get all release builds version information for an application
 
@@ -194,7 +194,7 @@ def get_release_version_info(
 
 
 def get_build_info(
-    session: Session, credentials: AppConnectCredentials, app_id: int
+    session: Session, credentials: AppConnectCredentials, app_id: str
 ) -> Dict[str, List[Dict[str, Any]]]:
     """Returns the build info for an application."""
     return {
@@ -218,7 +218,7 @@ def get_apps(session: Session, credentials: AppConnectCredentials) -> Optional[L
         apps = _get_appstore_info_paged_data(session, credentials, url)
         for app in apps:
             app_info = AppInfo(
-                app_id=int(app.get("id")),
+                app_id=app.get("id"),
                 bundle_id=safe.get_path(app, "attributes", "bundleId"),
                 name=safe.get_path(app, "attributes", "name"),
             )

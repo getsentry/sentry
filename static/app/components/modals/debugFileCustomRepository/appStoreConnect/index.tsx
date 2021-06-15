@@ -46,15 +46,16 @@ type ItunesRevalidationSessionContext = SessionContext & {
 };
 
 type IntialData = {
-  appId: number;
+  appId: string;
   appName: string;
   appconnectIssuer: string;
   appconnectKey: string;
   appconnectPrivateKey: string;
+  bundleId: string;
   id: string;
   itunesCreated: string;
   itunesPassword: string;
-  itunesPersonId: number;
+  itunesPersonId: string;
   itunesSession: string;
   itunesUser: string;
   name: string;
@@ -252,6 +253,7 @@ function AppStoreConnect({
           appconnectPrivateKey: stepOneData.privateKey,
           appName: stepTwoData.app.name,
           appId: stepTwoData.app.appId,
+          bundleId: stepTwoData.app.bundleId,
           orgId: stepFifthData.org.organizationId,
           orgName: stepFifthData.org.name,
           sessionContext: newSessionContext ?? sessionContext,
