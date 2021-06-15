@@ -13,6 +13,7 @@ PROJECT_NAME_ALIAS = "project.name"
 ISSUE_ALIAS = "issue"
 ISSUE_ID_ALIAS = "issue.id"
 RELEASE_ALIAS = "release"
+SEMVER_ALIAS = "sentry.semver"
 
 TAG_KEY_RE = re.compile(r"^tags\[(?P<tag>.*)\]$")
 # Based on general/src/protocol/tags.rs in relay
@@ -54,6 +55,7 @@ SEARCH_MAP = {
     "first_seen": "first_seen",
     "last_seen": "last_seen",
     "times_seen": "times_seen",
+    SEMVER_ALIAS: SEMVER_ALIAS,
 }
 SEARCH_MAP.update(**DATASETS[Dataset.Events])
 SEARCH_MAP.update(**DATASETS[Dataset.Discover])
@@ -65,7 +67,23 @@ DEFAULT_PROJECT_THRESHOLD = 300
 # Once we reach a certain threshold of fields handled should turn this into a denylist
 # use public facing field/function names for this list
 SNQL_FIELD_ALLOWLIST = {
-    "user.email",
-    "release",
     "environment",
+    "message",
+    "project",
+    "project.id",
+    "release",
+    "user.email",
 }
+
+OPERATOR_NEGATION_MAP = {
+    "=": "!=",
+    "<": ">=",
+    "<=": ">",
+    ">": "<=",
+    ">=": "<",
+    "IN": "NOT IN",
+}
+OPERATOR_TO_DJANGO = {">=": "gte", "<=": "lte", ">": "gt", "<": "lt"}
+
+SEMVER_MAX_SEARCH_RELEASES = 1000
+SEMVER_FAKE_PACKAGE = "__sentry_fake__"

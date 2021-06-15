@@ -22,7 +22,24 @@ def test_argument_parsing_endpoint():
         batch_size=500,
     )
 
-    assert UnmergeArgsBase.parse_arguments(**args.dump_arguments()) == args
+    dumped = args.dump_arguments()
+    assert dumped == {
+        "actor_id": None,
+        "batch_size": 500,
+        "destination_id": None,
+        "destinations": {},
+        "fingerprints": None,
+        "project_id": 123,
+        "replacement": {
+            "fingerprints": [
+                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            ],
+            "type": "primary_hash",
+        },
+        "source_id": 345,
+    }
+
+    assert UnmergeArgsBase.parse_arguments(**dumped) == args
 
 
 def test_argument_parsing_page2():

@@ -7,8 +7,16 @@ from sentry import eventstream
 from sentry.eventstore.models import Event
 from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
+from sentry.utils.datastructures import BidirectionalMapping
 
 _DEFAULT_UNMERGE_KEY = "default"
+
+# Weird type, but zero runtime cost in casting it to `Destinations`!
+InitialDestinations = Mapping[str, Tuple[int, None]]
+
+Destinations = Mapping[str, Tuple[int, Any]]
+
+EventstreamState = Any
 
 
 class UnmergeReplacement(abc.ABC):
@@ -24,9 +32,15 @@ class UnmergeReplacement(abc.ABC):
     @staticmethod
     def parse_arguments(fingerprints: Any = None, replacement: Any = None) -> "UnmergeReplacement":
         if replacement is not None:
+            if isinstance(replacement, dict):
+                replacement = _REPLACEMENT_TYPE_LABELS.get_key(replacement.pop("type"))(
+                    **replacement
+                )
             assert isinstance(replacement, UnmergeReplacement)
             return replacement
         elif fingerprints is not None:
+            # TODO(markus): Deprecate once we no longer use `fingerprints` arg
+            # (need to change group_hashes endpoint first)
             return PrimaryHashUnmergeReplacement(fingerprints=fingerprints)
         else:
             raise TypeError("Either fingerprints or replacement argument is required.")
@@ -39,7 +53,7 @@ class UnmergeReplacement(abc.ABC):
         The unmerge task iterates through all events of a group. This function
         should return which of them should land in the new group.
 
-        If the issue should be moved, a string should be returned. Events with
+        If the event should be moved, a string should be returned. Events with
         the same string are moved into the same issue.
         """
 
@@ -52,11 +66,11 @@ class UnmergeReplacement(abc.ABC):
     @abc.abstractmethod
     def start_snuba_replacement(
         self, project: Project, source_id: int, unmerge_key: str, destination_id: int
-    ) -> Any:
+    ) -> EventstreamState:
         raise NotImplementedError()
 
     @abc.abstractmethod
-    def stop_snuba_replacement(self, eventstream_state: Any) -> None:
+    def stop_snuba_replacement(self, eventstream_state: EventstreamState) -> None:
         raise NotImplementedError()
 
     @abc.abstractmethod
@@ -100,12 +114,11 @@ class PrimaryHashUnmergeReplacement(UnmergeReplacement):
 
     def start_snuba_replacement(
         self, project: Project, source_id: int, unmerge_key: str, destination_id: int
-    ) -> Any:
+    ) -> EventstreamState:
         return eventstream.start_unmerge(project.id, self.fingerprints, source_id, destination_id)
 
-    def stop_snuba_replacement(self, eventstream_state: Any) -> None:
-        if eventstream_state:
-            eventstream.end_unmerge(eventstream_state)
+    def stop_snuba_replacement(self, eventstream_state: EventstreamState) -> None:
+        eventstream.end_unmerge(eventstream_state)
 
     def run_postgres_replacement(
         self,
@@ -200,8 +213,16 @@ class HierarchicalUnmergeReplacement(UnmergeReplacement):
         eventstream.exclude_groups(project.id, [source_id])
 
 
+_REPLACEMENT_TYPE_LABELS: BidirectionalMapping = BidirectionalMapping(
+    {
+        PrimaryHashUnmergeReplacement: "primary_hash",
+        HierarchicalUnmergeReplacement: "hierarchical",
+    }
+)
+
+
 @dataclass(frozen=True)
-class UnmergeArgsBase:
+class UnmergeArgsBase(abc.ABC):
     """
     Parsed arguments of the Sentry unmerge task. Since events of the source
     issue are processed in batches, one can think of each batch as belonging to
@@ -218,7 +239,7 @@ class UnmergeArgsBase:
     project_id: int
     source_id: int
     replacement: UnmergeReplacement
-    actor_id: int
+    actor_id: Optional[int]
     batch_size: int
 
     @staticmethod
@@ -228,13 +249,13 @@ class UnmergeArgsBase:
         destination_id: Optional[int],
         fingerprints: Sequence[str],
         actor_id: Optional[int],
-        last_event: Optional[str] = None,
+        last_event: Optional[Mapping[str, Any]] = None,
         batch_size: int = 500,
         source_fields_reset: bool = False,
-        eventstream_state: Any = None,
+        eventstream_state: EventstreamState = None,
         replacement: Optional[UnmergeReplacement] = None,
         locked_primary_hashes: Optional[Collection[str]] = None,
-        destinations: Optional[Mapping[str, int]] = None,
+        destinations: Optional[Destinations] = None,
     ) -> "UnmergeArgs":
         if destinations is None:
             if destination_id is not None:
@@ -272,7 +293,7 @@ class UnmergeArgsBase:
         rv = dataclasses.asdict(self)
         rv["fingerprints"] = None
         rv["destination_id"] = None
-        rv["replacement"] = self.replacement
+        rv["replacement"]["type"] = _REPLACEMENT_TYPE_LABELS[type(self.replacement)]
         return rv
 
 
@@ -281,7 +302,7 @@ class InitialUnmergeArgs(UnmergeArgsBase):
     # In tests the destination task is passed in explicitly from the outside,
     # so we support unmerging into an existing destination group. In production
     # this does not happen.
-    destinations: Mapping[str, Tuple[int, Optional[Mapping[str, Any]]]]
+    destinations: InitialDestinations
 
 
 @dataclass(frozen=True)
@@ -292,7 +313,7 @@ class SuccessiveUnmergeArgs(UnmergeArgsBase):
     # unmerge may only start mutating data on a successive page, once it
     # actually has found an event that needs to be migrated.
     # (unmerge_key) -> (group_id, eventstream_state)
-    destinations: Mapping[str, Tuple[int, Optional[Mapping[str, Any]]]]
+    destinations: Destinations
 
     # likewise unmerge may only find "source" events (events that should not be
     # migrated) on the second page, only then (and only once) it can reset

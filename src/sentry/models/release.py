@@ -5,7 +5,7 @@ from time import time
 
 import sentry_sdk
 from django.db import IntegrityError, models, transaction
-from django.db.models import F
+from django.db.models import Case, F, When
 from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
@@ -56,9 +56,16 @@ class ReleaseProject(Model):
     release = FlexibleForeignKey("sentry.Release")
     new_groups = BoundedPositiveIntegerField(null=True, default=0)
 
+    adopted = models.DateTimeField(null=True, blank=True)
+    unadopted = models.DateTimeField(null=True, blank=True)
+
     class Meta:
         app_label = "sentry"
         db_table = "sentry_release_project"
+        index_together = (
+            ("project", "adopted"),
+            ("project", "unadopted"),
+        )
         unique_together = (("project", "release"),)
 
 
@@ -94,7 +101,36 @@ class ReleaseStatus:
             raise ValueError(repr(value))
 
 
+class ReleaseQuerySet(models.QuerySet):
+    def annotate_prerelease_column(self):
+        """
+        Adds a `prerelease_case` column to the queryset which is used to properly sort
+        by prerelease. We treat an empty (but not null) prerelease as higher than any
+        other value.
+        """
+        return self.annotate(
+            prerelease_case=Case(
+                When(prerelease="", then=1), default=0, output_field=models.IntegerField()
+            )
+        )
+
+    def filter_to_semver(self):
+        """
+        Filters the queryset to only include semver compatible rows
+        """
+        return self.filter(major__isnull=False)
+
+
 class ReleaseModelManager(models.Manager):
+    def get_queryset(self):
+        return ReleaseQuerySet(self.model, using=self._db)
+
+    def annotate_prerelease_column(self):
+        return self.get_queryset().annotate_prerelease_column()
+
+    def filter_to_semver(self):
+        return self.get_queryset().filter_to_semver()
+
     @staticmethod
     def _convert_build_code_to_build_number(build_code):
         """
@@ -109,11 +145,15 @@ class ReleaseModelManager(models.Manager):
         if build_code is not None:
             try:
                 build_code_as_int = int(build_code)
-                if build_code_as_int >= 0 and build_code_as_int.bit_length() <= 63:
+                if ReleaseModelManager.validate_bigint(build_code_as_int):
                     build_number = build_code_as_int
             except ValueError:
                 pass
         return build_number
+
+    @staticmethod
+    def validate_bigint(value):
+        return isinstance(value, int) and value >= 0 and value.bit_length() <= 63
 
     @staticmethod
     def _massage_semver_cols_into_release_object_data(kwargs):
@@ -129,7 +169,10 @@ class ReleaseModelManager(models.Manager):
                 package = version_info.get("package")
                 version_parsed = version_info.get("version_parsed")
 
-                if version_parsed is not None:
+                if version_parsed is not None and all(
+                    ReleaseModelManager.validate_bigint(version_parsed[field])
+                    for field in ("major", "minor", "patch", "revision")
+                ):
                     build_code = version_parsed.get("build_code")
                     build_number = ReleaseModelManager._convert_build_code_to_build_number(
                         build_code
@@ -251,6 +294,8 @@ class Release(Model):
         )
 
     __repr__ = sane_repr("organization_id", "version")
+
+    SEMVER_SORT_COLS = ["major", "minor", "patch", "revision", "prerelease_case", "prerelease"]
 
     def __eq__(self, other):
         """Make sure that specialized releases are only comparable to the same

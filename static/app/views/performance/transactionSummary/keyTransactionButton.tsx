@@ -99,7 +99,7 @@ class KeyTransactionButton extends Component<Props, State> {
   toggleKeyTransactionHandler = () => {
     const {eventView, api, organization, transactionName} = this.props;
     const {isKeyTransaction} = this.state;
-    const projects = eventView.project as number[];
+    const projects = eventView.project.map(String);
 
     trackAnalyticsEvent({
       eventName: 'Performance Views: Key Transaction toggle',

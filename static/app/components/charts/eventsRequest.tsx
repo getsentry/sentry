@@ -98,6 +98,10 @@ type EventsRequestPartialProps = {
    */
   environment?: Readonly<string[]>;
   /**
+   * List of team ids to query
+   */
+  team?: Readonly<string | string[]>;
+  /**
    * List of fields to group with when doing a topEvents request.
    */
   field?: string[];

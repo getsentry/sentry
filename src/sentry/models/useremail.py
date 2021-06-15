@@ -1,3 +1,4 @@
+from collections import defaultdict
 from datetime import timedelta
 
 from django.conf import settings
@@ -7,8 +8,21 @@ from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext_lazy as _
 
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
+from sentry.db.models.manager import BaseManager
 
 CHARACTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+
+
+class UserEmailManager(BaseManager):
+    def get_for_organization(self, organization):
+        return self.filter(user__sentry_orgmember_set__organization=organization)
+
+    def get_emails_by_user(self, organization):
+        emails_by_user = defaultdict(set)
+        user_emails = self.get_for_organization(organization).select_related("user")
+        for entry in user_emails:
+            emails_by_user[entry.user].add(entry.email)
+        return emails_by_user
 
 
 def default_validation_hash():
@@ -27,6 +41,7 @@ class UserEmail(Model):
         default=False,
         help_text=_("Designates whether this user has confirmed their email."),
     )
+    objects = UserEmailManager()
 
     class Meta:
         app_label = "sentry"

@@ -1,8 +1,7 @@
-import {Component, ComponentClass, ReactPortal} from 'react';
+import {Component, ComponentClass, Fragment, ReactPortal} from 'react';
 import ReactDOM from 'react-dom';
 import {Manager, Popper, Reference} from 'react-popper';
 import styled from '@emotion/styled';
-import partition from 'lodash/partition';
 import * as PopperJS from 'popper.js';
 
 import MenuHeader from 'app/components/actions/menuHeader';
@@ -12,22 +11,16 @@ import MenuItem from 'app/components/menuItem';
 import {TeamSelection} from 'app/components/performance/teamKeyTransactionsManager';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
-import {Team} from 'app/types';
+import {Project, Team} from 'app/types';
 import {defined} from 'app/utils';
 import {MAX_TEAM_KEY_TRANSACTIONS} from 'app/utils/performance/constants';
 
 export type TitleProps = Partial<ReturnType<GetActorPropsFn>> & {
-  keyedTeamsCount: number;
+  isOpen: boolean;
+  keyedTeams: Team[] | null;
+  initialValue?: number;
   disabled?: boolean;
 };
-
-function canKeyForTeam(team: Team, keyedTeams: Set<string>, counts: Map<string, number>) {
-  const isChecked = keyedTeams.has(team.id);
-  if (isChecked) {
-    return true;
-  }
-  return (counts.get(team.id) ?? 0) < MAX_TEAM_KEY_TRANSACTIONS;
-}
 
 type Props = {
   isLoading: boolean;
@@ -35,7 +28,7 @@ type Props = {
   title: ComponentClass<TitleProps>;
   handleToggleKeyTransaction: (selection: TeamSelection) => void;
   teams: Team[];
-  project: number;
+  project: Project;
   transactionName: string;
   keyedTeams: Set<string> | null;
   counts: Map<string, number> | null;
@@ -103,64 +96,107 @@ class TeamKeyTransaction extends Component<Props, State> {
     return enabled ? handleToggleKeyTransaction(selection) : undefined;
   };
 
+  partitionTeams(counts: Map<string, number>, keyedTeams: Set<string>) {
+    const {teams, project} = this.props;
+
+    const enabledTeams: Team[] = [];
+    const disabledTeams: Team[] = [];
+    const noAccessTeams: Team[] = [];
+
+    const projectTeams = new Set(project.teams.map(({id}) => id));
+    for (const team of teams) {
+      if (!projectTeams.has(team.id)) {
+        noAccessTeams.push(team);
+      } else if (
+        keyedTeams.has(team.id) ||
+        (counts.get(team.id) ?? 0) < MAX_TEAM_KEY_TRANSACTIONS
+      ) {
+        enabledTeams.push(team);
+      } else {
+        disabledTeams.push(team);
+      }
+    }
+
+    return {
+      enabledTeams,
+      disabledTeams,
+      noAccessTeams,
+    };
+  }
+
   renderMenuContent(counts: Map<string, number>, keyedTeams: Set<string>) {
     const {teams, project, transactionName} = this.props;
 
-    const [enabledTeams, disabledTeams] = partition(teams, team =>
-      canKeyForTeam(team, keyedTeams, counts)
+    const {enabledTeams, disabledTeams, noAccessTeams} = this.partitionTeams(
+      counts,
+      keyedTeams
     );
 
     const isMyTeamsEnabled = enabledTeams.length > 0;
     const myTeamsHandler = this.toggleSelection(isMyTeamsEnabled, {
-      type: 'my teams',
       action: enabledTeams.length === keyedTeams.size ? 'unkey' : 'key',
+      teamIds: enabledTeams.map(({id}) => id),
       project,
       transactionName,
     });
 
+    const hasTeamsWithAccess = enabledTeams.length + disabledTeams.length > 0;
+
     return (
       <DropdownContent>
-        <DropdownMenuHeader first>
-          {t('My Teams')}
-          <ActionItem>
-            <CheckboxFancy
-              isDisabled={!isMyTeamsEnabled}
-              isChecked={teams.length === keyedTeams.size}
-              isIndeterminate={teams.length > keyedTeams.size && keyedTeams.size > 0}
-              onClick={myTeamsHandler}
-            />
-          </ActionItem>
-        </DropdownMenuHeader>
-        {enabledTeams.map(team => (
-          <TeamKeyTransactionItem
-            key={team.slug}
-            team={team}
-            isKeyed={keyedTeams.has(team.id)}
-            disabled={false}
-            onSelect={this.toggleSelection(true, {
-              type: 'id',
-              action: keyedTeams.has(team.id) ? 'unkey' : 'key',
-              teamId: team.id,
-              project,
-              transactionName,
-            })}
-          />
-        ))}
-        {disabledTeams.map(team => (
-          <TeamKeyTransactionItem
-            key={team.slug}
-            team={team}
-            isKeyed={keyedTeams.has(team.id)}
-            disabled
-            onSelect={this.toggleSelection(true, {
-              type: 'id',
-              action: keyedTeams.has(team.id) ? 'unkey' : 'key',
-              teamId: team.id,
-              project,
-              transactionName,
-            })}
-          />
-        ))}
+        {hasTeamsWithAccess && (
+          <Fragment>
+            <DropdownMenuHeader first>
+              {t('My Teams with Access')}
+              <ActionItem>
+                <CheckboxFancy
+                  isDisabled={!isMyTeamsEnabled}
+                  isChecked={teams.length === keyedTeams.size}
+                  isIndeterminate={teams.length > keyedTeams.size && keyedTeams.size > 0}
+                  onClick={myTeamsHandler}
+                />
+              </ActionItem>
+            </DropdownMenuHeader>
+            {enabledTeams.map(team => (
+              <TeamKeyTransactionItem
+                key={team.slug}
+                team={team}
+                isKeyed={keyedTeams.has(team.id)}
+                disabled={false}
+                onSelect={this.toggleSelection(true, {
+                  action: keyedTeams.has(team.id) ? 'unkey' : 'key',
+                  teamIds: [team.id],
+                  project,
+                  transactionName,
+                })}
+              />
+            ))}
+            {disabledTeams.map(team => (
+              <TeamKeyTransactionItem
+                key={team.slug}
+                team={team}
+                isKeyed={keyedTeams.has(team.id)}
+                disabled
+                onSelect={this.toggleSelection(true, {
+                  action: keyedTeams.has(team.id) ? 'unkey' : 'key',
+                  teamIds: [team.id],
+                  project,
+                  transactionName,
+                })}
+              />
+            ))}
+          </Fragment>
+        )}
+        {noAccessTeams.length > 0 && (
+          <Fragment>
+            <DropdownMenuHeader first={!hasTeamsWithAccess}>
+              {t('My Teams without Access')}
+            </DropdownMenuHeader>
+            {noAccessTeams.map(team => (
+              <TeamKeyTransactionItem key={team.slug} team={team} disabled />
+            ))}
+          </Fragment>
+        )}
       </DropdownContent>
     );
   }
@@ -203,7 +239,7 @@ class TeamKeyTransaction extends Component<Props, State> {
   }
 
   render() {
-    const {isLoading, error, title: Title, keyedTeams, initialValue} = this.props;
+    const {isLoading, error, title: Title, keyedTeams, initialValue, teams} = this.props;
     const {isOpen} = this.state;
 
     const menu: ReactPortal | null = isOpen ? this.renderMenu() : null;
@@ -214,8 +250,12 @@ class TeamKeyTransaction extends Component<Props, State> {
           {({ref}) => (
             <div ref={ref}>
               <Title
+                isOpen={isOpen}
                 disabled={isLoading || Boolean(error)}
-                keyedTeamsCount={keyedTeams?.size ?? initialValue ?? 0}
+                keyedTeams={
+                  keyedTeams ? teams.filter(({id}) => keyedTeams.has(id)) : null
+                }
+                initialValue={initialValue}
                 onClick={this.toggleOpen}
               />
             </div>
@@ -229,9 +269,9 @@ class TeamKeyTransaction extends Component<Props, State> {
 
 type ItemProps = {
   team: Team;
-  isKeyed: boolean;
   disabled: boolean;
-  onSelect: () => void;
+  isKeyed?: boolean;
+  onSelect?: () => void;
 };
 
 function TeamKeyTransactionItem({team, isKeyed, disabled, onSelect}: ItemProps) {
@@ -243,9 +283,9 @@ function TeamKeyTransactionItem({team, isKeyed, disabled, onSelect}: ItemProps) 
       stopPropagation
     >
       <MenuItemContent>
-        {team.name}
+        {team.slug}
         <ActionItem>
-          {disabled ? (
+          {!defined(isKeyed) ? null : disabled ? (
             t('Max %s', MAX_TEAM_KEY_TRANSACTIONS)
           ) : (
             <CheckboxFancy isChecked={isKeyed} />
@@ -330,7 +370,7 @@ const DropdownMenuHeader = styled(MenuHeader)<{first?: boolean}>`
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  padding: ${space(1.5)} ${space(2)};
+  padding: ${space(1)} ${space(2)};
 
   background: ${p => p.theme.backgroundSecondary};
   ${p => p.first && 'border-radius: 2px'};
