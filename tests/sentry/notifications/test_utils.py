@@ -13,7 +13,6 @@ from sentry.notifications.helpers import (
     transform_to_notification_settings_by_parent_id,
     transform_to_notification_settings_by_user,
     validate,
-    where_should_user_be_notified,
 )
 from sentry.notifications.notify import notification_providers
 from sentry.notifications.types import (
@@ -92,32 +91,6 @@ class NotificationHelpersTest(TestCase):
             NotificationSettingTypes.WORKFLOW,
         )
         assert mapping == {ExternalProviders.EMAIL: NotificationSettingOptionValues.SUBSCRIBE_ONLY}
-
-    def test_where_should_user_be_notified(self):
-        notification_settings = {
-            self.user: {
-                NotificationScopeType.USER: {
-                    ExternalProviders.EMAIL: NotificationSettingOptionValues.ALWAYS
-                }
-            }
-        }
-        assert where_should_user_be_notified(notification_settings, self.user) == [
-            ExternalProviders.EMAIL
-        ]
-
-    def test_where_should_user_be_notified_two_providers(self):
-        notification_settings = {
-            self.user: {
-                NotificationScopeType.USER: {
-                    ExternalProviders.EMAIL: NotificationSettingOptionValues.ALWAYS,
-                    ExternalProviders.SLACK: NotificationSettingOptionValues.ALWAYS,
-                }
-            }
-        }
-        assert where_should_user_be_notified(notification_settings, self.user) == [
-            ExternalProviders.EMAIL,
-            ExternalProviders.SLACK,
-        ]
 
     def test_get_deploy_values_by_provider_empty_settings(self):
         values_by_provider = get_values_by_provider_by_type(
