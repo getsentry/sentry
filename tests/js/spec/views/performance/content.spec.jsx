@@ -243,6 +243,11 @@ describe('Performance > Content', function () {
       url: `/organizations/org-slug/key-transactions-list/`,
       body: [],
     });
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/legacy-key-transactions-count/`,
+      body: [],
+    });
   });
 
   afterEach(function () {

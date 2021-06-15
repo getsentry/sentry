@@ -1251,3 +1251,33 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
         url = reverse("sentry-api-0-organization-is-key-transactions", args=[self.org.slug])
         response = self.client.get(url)
         assert response.status_code == 404
+
+    def test_legacy_key_transactions_count(self):
+        with self.feature("organizations:performance-view"):
+            url = reverse(
+                "sentry-api-0-organization-legacy-key-transactions-count", args=[self.org.slug]
+            )
+            response = self.client.get(url, {"project": [self.project.id]})
+
+        assert response.status_code == 200
+        assert response.data["keyed"] == 0
+
+        event_data = load_data("transaction")
+        start_timestamp = iso_format(before_now(minutes=1))
+        end_timestamp = iso_format(before_now(minutes=1))
+        event_data.update({"start_timestamp": start_timestamp, "timestamp": end_timestamp})
+        KeyTransaction.objects.create(
+            owner=self.user,
+            organization=self.org,
+            transaction=event_data["transaction"],
+            project=self.project,
+        )
+
+        with self.feature("organizations:performance-view"):
+            url = reverse(
+                "sentry-api-0-organization-legacy-key-transactions-count", args=[self.org.slug]
+            )
+            response = self.client.get(url, {"project": [self.project.id]})
+
+        assert response.status_code == 200
+        assert response.data["keyed"] == 1
