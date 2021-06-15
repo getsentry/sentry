@@ -5,11 +5,7 @@ sudo.views
 :copyright: (c) 2020 by Matt Robenolt.
 :license: BSD, see LICENSE for more details.
 """
-try:
-    from urllib.parse import urlparse, urlunparse
-except ImportError:  # pragma: no cover
-    # Python 2 fallback
-    from urlparse import urlparse, urlunparse  # noqa
+from urllib.parse import urlparse, urlunparse
 
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ImproperlyConfigured
