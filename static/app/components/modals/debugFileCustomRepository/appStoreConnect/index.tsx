@@ -117,7 +117,7 @@ function AppStoreConnect({
   const [stepTwoData, setStepTwoData] = useState<StepTwoData>({
     app:
       initialData?.appId && initialData?.appName
-        ? {appId: initialData.appId, name: initialData.appName}
+        ? {appId: initialData.appId, name: initialData.appName, bundleId: initialData.bundleId}
         : undefined,
   });
 
