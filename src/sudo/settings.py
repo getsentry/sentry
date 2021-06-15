@@ -40,9 +40,7 @@ COOKIE_SALT = getattr(settings, "SUDO_COOKIE_SALT", "")
 
 # The name of the session attribute used to preserve the redirect destination
 # between the original page request and successful sudo login.
-REDIRECT_TO_FIELD_NAME = getattr(
-    settings, "SUDO_REDIRECT_TO_FIELD_NAME", "sudo_redirect_to"
-)
+REDIRECT_TO_FIELD_NAME = getattr(settings, "SUDO_REDIRECT_TO_FIELD_NAME", "sudo_redirect_to")
 
 # The url for the sudo page itself. May be a url or a view name
 URL = getattr(settings, "SUDO_URL", "sudo.views.sudo")

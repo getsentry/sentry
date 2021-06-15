@@ -5,17 +5,17 @@ sudo.middleware
 :copyright: (c) 2020 by Matt Robenolt.
 :license: BSD, see LICENSE for more details.
 """
+from django.utils.deprecation import MiddlewareMixin
+
 from sudo.settings import (
     COOKIE_DOMAIN,
     COOKIE_HTTPONLY,
     COOKIE_NAME,
     COOKIE_PATH,
-    COOKIE_SECURE,
     COOKIE_SALT,
+    COOKIE_SECURE,
 )
 from sudo.utils import has_sudo_privileges
-
-from django.utils.deprecation import MiddlewareMixin
 
 
 class SudoMiddleware(MiddlewareMixin):

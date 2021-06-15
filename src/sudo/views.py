@@ -16,17 +16,17 @@ from django.core.exceptions import ImproperlyConfigured
 from django.http import HttpResponseRedirect, QueryDict
 from django.shortcuts import resolve_url
 from django.template.response import TemplateResponse
-from django.views.decorators.debug import sensitive_post_parameters
-from django.views.decorators.cache import never_cache
-from django.views.decorators.csrf import csrf_protect
-from django.views.generic import View
 from django.utils.decorators import method_decorator
 from django.utils.http import is_safe_url
 from django.utils.module_loading import import_string
+from django.views.decorators.cache import never_cache
+from django.views.decorators.csrf import csrf_protect
+from django.views.decorators.debug import sensitive_post_parameters
+from django.views.generic import View
 
-from sudo.settings import REDIRECT_FIELD_NAME, REDIRECT_URL, REDIRECT_TO_FIELD_NAME, URL
-from sudo.utils import grant_sudo_privileges
 from sudo.forms import SudoForm
+from sudo.settings import REDIRECT_FIELD_NAME, REDIRECT_TO_FIELD_NAME, REDIRECT_URL, URL
+from sudo.utils import grant_sudo_privileges
 
 
 class SudoView(View):

@@ -19,7 +19,7 @@ class SudoForm(forms.Form):
 
     def __init__(self, user, *args, **kwargs):
         self.user = user
-        super(SudoForm, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def clean_password(self):
         username = self.user.get_username()
