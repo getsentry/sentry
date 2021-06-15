@@ -270,7 +270,7 @@ class OrganizationSerializer(serializers.Serializer):
         attrs = super().validate(attrs)
         if attrs.get("avatarType") == "upload":
             has_existing_file = OrganizationAvatar.objects.filter(
-                organization=self.context["organization"], file__isnull=False
+                organization=self.context["organization"], file_id__isnull=False
             ).exists()
             if not has_existing_file and not attrs.get("avatar"):
                 raise serializers.ValidationError(
