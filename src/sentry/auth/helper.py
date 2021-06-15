@@ -269,8 +269,8 @@ class AuthIdentityHandler:
             # this can happen if the SSO provider's internal ID changes
             auth_identity = self._get_auth_identity(user=self.user)
 
-        auth_is_new = auth_identity is None
-        if auth_is_new:
+        if auth_identity is None:
+            auth_is_new = True
             auth_identity = AuthIdentity.objects.create(
                 auth_provider=self.auth_provider,
                 user=self.user,
@@ -278,7 +278,7 @@ class AuthIdentityHandler:
                 data=identity.get("data", {}),
             )
         else:
-            assert auth_identity is not None  # for mypy
+            auth_is_new = False
 
             # TODO(dcramer): this might leave the user with duplicate accounts,
             # and in that kind of situation its very reasonable that we could
