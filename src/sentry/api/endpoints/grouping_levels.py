@@ -1,38 +1,38 @@
 from dataclasses import dataclass
 from typing import Sequence
 
-from rest_framework.exceptions import APIException
 from snuba_sdk.query import Column, Entity, Function, Query
 
 from sentry import features
 from sentry.api.bases import GroupEndpoint
 from sentry.api.endpoints.group_hashes_split import _get_group_filters
+from sentry.api.exceptions import SentryAPIException, status
 from sentry.models import Group, GroupHash
 from sentry.utils import snuba
 
 
-class NoEvents(APIException):
-    status_code = 403
-    default_detail = "This issue has no events."
-    default_code = "no_events"
+class NoEvents(SentryAPIException):
+    status_code = status.HTTP_403_FORBIDDEN
+    message = "This issue has no events."
+    code = "no_events"
 
 
-class MergedIssues(APIException):
-    status_code = 403
-    default_detail = "The issue can only contain one fingerprint. It needs to be fully unmerged before grouping levels can be shown."
-    default_code = "merged_issues"
+class MergedIssues(SentryAPIException):
+    status_code = status.HTTP_403_FORBIDDEN
+    code = "merged_issues"
+    message = "The issue can only contain one fingerprint. It needs to be fully unmerged before grouping levels can be shown."
 
 
-class MissingFeature(APIException):
-    status_code = 403
-    default_detail = "This project does not have the grouping tree feature."
-    default_code = "missing_feature"
+class MissingFeature(SentryAPIException):
+    status_code = status.HTTP_403_FORBIDDEN
+    code = "missing_feature"
+    message = "This project does not have the grouping tree feature."
 
 
-class NotHierarchical(APIException):
-    status_code = 403
-    default_detail = "This issue does not have hierarchical grouping."
-    default_code = "not_hierarchical"
+class NotHierarchical(SentryAPIException):
+    status_code = status.HTTP_403_FORBIDDEN
+    code = "not_hierarchical"
+    message = "This issue does not have hierarchical grouping."
 
 
 class GroupingLevelsEndpoint(GroupEndpoint):
