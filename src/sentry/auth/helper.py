@@ -1,4 +1,5 @@
 import logging
+from dataclasses import dataclass
 from typing import Any, Mapping, Optional
 from uuid import uuid4
 
@@ -120,18 +121,13 @@ class RedisBackedState:
 Identity = Mapping[str, Any]
 
 
+@dataclass(eq=True, frozen=True)
 class AuthIdentityHandler:
-    def __init__(
-        self,
-        auth_provider: AuthProvider,
-        provider: Provider,
-        organization: Organization,
-        request: HttpRequest,
-    ) -> None:
-        self.auth_provider: AuthProvider = auth_provider
-        self.provider: Provider = provider
-        self.organization: Organization = organization
-        self.request: HttpRequest = request
+
+    auth_provider: AuthProvider
+    provider: Provider
+    organization: Organization
+    request: HttpRequest
 
     @property
     def user(self) -> Any:
