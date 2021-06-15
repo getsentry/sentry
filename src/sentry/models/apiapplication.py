@@ -28,6 +28,7 @@ def generate_id():
 def generate_secret():
     return "sentry_cs_" + token_urlsafe(40).replace("-", "0").replace("_", "0")
 
+
 class ApiApplicationStatus:
     active = 0
     inactive = 1
