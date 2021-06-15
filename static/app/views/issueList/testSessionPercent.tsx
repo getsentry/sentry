@@ -7,6 +7,8 @@ import moment from 'moment';
 import * as qs from 'query-string';
 
 import {Client} from 'app/api';
+import Feature from 'app/components/acl/feature';
+import FeatureDisabled from 'app/components/acl/featureDisabled';
 import BaseChart from 'app/components/charts/baseChart';
 import MarkLine from 'app/components/charts/components/markLine';
 import Input from 'app/components/forms/input';
@@ -65,7 +67,13 @@ function SessionPercent({params, api, selection}: Props) {
         data: qs.stringify(query),
       });
     });
-    const results: Group[][] = await Promise.all(promises);
+
+    let results: Group[][];
+    try {
+      results = await Promise.all(promises);
+    } catch {
+      results = [];
+    }
 
     promises = timePeriods.map((period, idx) => {
       const start = getUtcDateString(
@@ -81,7 +89,7 @@ function SessionPercent({params, api, selection}: Props) {
         ...requestParams,
         start,
         end,
-        groups: results[idx].map(group => group.id),
+        groups: results[idx]?.map(group => group.id) ?? [],
       };
       if (query.groups.length === 0) {
         return Promise.resolve([]);
@@ -92,7 +100,12 @@ function SessionPercent({params, api, selection}: Props) {
         data: qs.stringify(query),
       });
     });
-    const statsResults: GroupStats[][] = await Promise.all(promises);
+    let statsResults: GroupStats[][];
+    try {
+      statsResults = await Promise.all(promises);
+    } catch {
+      statsResults = [];
+    }
     const statsMap = statsResults.map(issueStats => {
       const issueStatsMap = issueStats.reduce((acc, {id, sessionCount, count}) => {
         acc[id] = sessionCount ? (Number(count) / Number(sessionCount)) * 100 : 100;
@@ -110,7 +123,7 @@ function SessionPercent({params, api, selection}: Props) {
   }, []);
 
   return (
-    <div>
+    <Fragment>
       <Layout.Header>
         <Layout.HeaderContent>
           <Layout.Title>Session Threshold Percent</Layout.Title>
@@ -136,8 +149,8 @@ function SessionPercent({params, api, selection}: Props) {
               ScatterSeries({
                 data: timePeriods
                   .map((period, idx) => {
-                    const data = dataArr[idx];
-                    const stats = statsArr[idx];
+                    const data = dataArr[idx] ?? [];
+                    const stats = statsArr[idx] ?? [];
                     return data
                       .filter(group => stats[group.id] !== undefined)
                       .map(group => ({
@@ -152,7 +165,6 @@ function SessionPercent({params, api, selection}: Props) {
                 animationDuration: 0,
                 tooltip: {
                   formatter: (data: any) => {
-                    console.log(data.name, data);
                     return [
                       `<div class="tooltip-series"><div>`,
                       `<span class="tooltip-label">${data.name}</span>${data.value[1]}%`,
@@ -191,8 +203,8 @@ function SessionPercent({params, api, selection}: Props) {
           />
 
           {timePeriods.map((period, idx) => {
-            const data = dataArr[idx];
-            const stats = statsArr[idx];
+            const data = dataArr[idx] ?? [];
+            const stats = statsArr[idx] ?? [];
             return (
               <Fragment key={idx}>
                 <h4>{period} hours</h4>
@@ -201,7 +213,7 @@ function SessionPercent({params, api, selection}: Props) {
                     .filter(group => stats[group.id] > parseFloat(threshold))
                     .map(group => (
                       <li key={group.id}>
-                        {stats[group.id].toFixed(6)}% -{' '}
+                        {stats[group.id].toLocaleString()}% -{' '}
                         <Link to={`/organizations/${params.orgId}/issues/${group.id}/`}>
                           {group.title}
                         </Link>
@@ -213,11 +225,22 @@ function SessionPercent({params, api, selection}: Props) {
           })}
         </Layout.Main>
       </Layout.Body>
-    </div>
+    </Fragment>
   );
 }
 
-export default withApi(withGlobalSelection(SessionPercent));
+function SessionPercentWrapper(props: Props) {
+  return (
+    <Feature
+      features={['issue-percent-filters']}
+      renderDisabled={p => <FeatureDisabled features={p.features} hideHelpToggle />}
+    >
+      <SessionPercent {...props} />
+    </Feature>
+  );
+}
+
+export default withApi(withGlobalSelection(SessionPercentWrapper));
 
 const StyledInput = styled(Input)`
   width: 100px;
