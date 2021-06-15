@@ -65,6 +65,7 @@ class ReleaseFile(Model):
 
     __repr__ = sane_repr("release", "ident")
 
+    objects = models.Manager()  # The default manager.
     public_objects = PublicReleaseFileManager()
 
     class Meta:
