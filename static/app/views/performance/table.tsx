@@ -1,5 +1,6 @@
 import * as React from 'react';
 import * as ReactRouter from 'react-router';
+import styled from '@emotion/styled';
 import {Location, LocationDescriptorObject} from 'history';
 
 import {GuideAnchor} from 'app/components/assistant/guideAnchor';
@@ -8,7 +9,8 @@ import SortLink from 'app/components/gridEditable/sortLink';
 import Link from 'app/components/links/link';
 import Pagination from 'app/components/pagination';
 import Tooltip from 'app/components/tooltip';
-import {IconStar} from 'app/icons';
+import {IconQuestion, IconStar} from 'app/icons';
+import {t} from 'app/locale';
 import {Organization, Project} from 'app/types';
 import {defined} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
@@ -283,6 +285,21 @@ class Table extends React.Component<Props, State> {
     const currentSortKind = currentSort ? currentSort.kind : undefined;
     const currentSortField = currentSort ? currentSort.field : undefined;
 
+    if (field.field === 'span_ops_breakdown.relative') {
+      title = (
+        <React.Fragment>
+          {title}
+          <Tooltip
+            title={t(
+              'Durations are calculated by summing span durations over the course of the transaction. Percentages are then calculated by dividing the individual op duration by the sum of total op durations. Overlapping/parallel spans are only counted once.'
+            )}
+          >
+            <StyledIconQuestion size="xs" color="gray400" />
+          </Tooltip>
+        </React.Fragment>
+      );
+    }
+
     const sortLink = (
       <SortLink
         align={align}
@@ -463,5 +480,11 @@ class Table extends React.Component<Props, State> {
     );
   }
 }
+
+const StyledIconQuestion = styled(IconQuestion)`
+  position: relative;
+  top: 2px;
+  left: 4px;
+`;
 
 export default Table;
