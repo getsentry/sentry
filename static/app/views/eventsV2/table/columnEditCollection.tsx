@@ -9,7 +9,7 @@ import {IconAdd, IconDelete, IconGrabbable} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {LightWeightOrganization} from 'app/types';
-import {Column} from 'app/utils/discover/fields';
+import {AGGREGATIONS, Column} from 'app/utils/discover/fields';
 import theme from 'app/utils/theme';
 import {getPointerPosition} from 'app/utils/touch';
 import {setBodyUserSelect, UserSelectValues} from 'app/utils/userselect';
@@ -359,7 +359,9 @@ class ColumnEditCollection extends React.Component<Props, State> {
     // We always want at least 2 columns.
     const gridColumns = Math.max(
       ...columns.map(col =>
-        col.kind === 'function' && col.function[2] !== undefined ? 3 : 2
+        col.kind === 'function' && AGGREGATIONS[col.function[0]].parameters.length === 2
+          ? 3
+          : 2
       )
     );
 

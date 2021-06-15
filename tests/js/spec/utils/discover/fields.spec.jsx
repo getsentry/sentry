@@ -223,6 +223,23 @@ describe('generateAggregateFields', function () {
   });
 });
 
+describe('parameterOverrides', function () {
+  const organization = TestStubs.Organization();
+  it('handles parameter overrides', function () {
+    expect(generateAggregateFields(organization, [])).toContainEqual({
+      field: 'apdex(300)',
+    });
+    expect(generateAggregateFields(organization, [])).not.toContainEqual({
+      field: 'apdex()',
+    });
+    organization.features = ['project-transaction-threshold'];
+    expect(generateAggregateFields(organization, [])).not.toContainEqual({
+      field: 'apdex(300)',
+    });
+    expect(generateAggregateFields(organization, [])).toContainEqual({field: 'apdex()'});
+  });
+});
+
 describe('fieldAlignment()', function () {
   it('works with only field name', function () {
     expect(fieldAlignment('event.type')).toEqual('left');
