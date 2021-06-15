@@ -226,7 +226,8 @@ function Grouping({api, groupId, location}: Props) {
                   {activeGroupingLevelDetails.map(activeGroupingLevelDetail => (
                     <NewIssue
                       key={activeGroupingLevelDetail.hash}
-                      event={activeGroupingLevelDetail.latestEvent}
+                      sampleEvent={activeGroupingLevelDetail.latestEvent}
+                      eventCount={activeGroupingLevelDetail.eventCount}
                     />
                   ))}
                 </NewIssues>
