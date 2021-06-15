@@ -46,6 +46,7 @@ class RelatedIssues extends Component<Props> {
       end,
       groupStatsPeriod: 'auto',
       limit: 5,
+      ...(rule.environment ? {environment: rule.environment} : {}),
       sort: rule.aggregate === 'count_unique(user)' ? 'user' : 'freq',
       query: [
         rule.query,
