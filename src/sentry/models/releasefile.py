@@ -29,6 +29,22 @@ ARTIFACT_INDEX_FILENAME = "artifact-index.json"
 ARTIFACT_INDEX_TYPE = "release.artifact-index"
 
 
+class PublicReleaseFileManager(models.Manager):
+    """Manager for all release files that are not internal.
+
+    Internal release files include:
+    * Uploaded release archives
+    * Artifact index mapping URLs to release archives
+
+    This manager has the overhead of always joining the File table in order
+    to filter release files.
+
+    """
+
+    def get_queryset(self):
+        return super().get_queryset().select_related("file").filter(file__type="release.file")
+
+
 class ReleaseFile(Model):
     r"""
     A ReleaseFile is an association between a Release and a File.
@@ -48,6 +64,8 @@ class ReleaseFile(Model):
     dist = FlexibleForeignKey("sentry.Distribution", null=True)
 
     __repr__ = sane_repr("release", "ident")
+
+    public_objects = PublicReleaseFileManager()
 
     class Meta:
         unique_together = (("release", "ident"),)
