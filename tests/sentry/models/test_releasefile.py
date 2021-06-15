@@ -296,7 +296,7 @@ class ArtifactIndexGuardTestCase(TransactionTestCase):
             sleep(2 * self.tick)
             delete_from_artifact_index(release, dist, "foo")
 
-        update3 = self._create_update_fn(1, 2, {"abc": "666"})
+        update3 = self._create_update_fn(1, 2, {"abc": "666"}, create=False)
 
         threads = [Thread(target=update3), Thread(target=delete)]
         for thread in threads:

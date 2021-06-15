@@ -10,7 +10,7 @@ from typing import IO, ContextManager, Optional, Tuple
 from urllib.parse import urlsplit, urlunsplit
 
 from django.core.files.base import File as FileObj
-from django.db import IntegrityError, models, transaction
+from django.db import models, transaction
 
 from sentry import options
 from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
@@ -252,12 +252,8 @@ class _ArtifactIndexGuard:
     def _get_or_create_file(self) -> Tuple[File, bool]:
         """Insert the artifact index release file if it does not exist.
 
-        This was adapted from Django's get_or_create, with the following
-        differences:
-
-        1. We create a `File` instance in addition to the `ReleaseFile` instance
-        2. We lock the selected row for the current transaction, s.t. any
-           "read & write" operation to the manifest is atomic.
+        We lock the selected row for the current transaction, s.t. any
+        "read & write" operation to the manifest is atomic.
 
         :returns:
             - file - The File instance associated with the release file.
@@ -272,40 +268,19 @@ class _ArtifactIndexGuard:
         # this will lock the artifact index until the end of the current transaction
         qs = qs.select_for_update()
 
-        kwargs = dict(
+        releasefile, created = qs.get_or_create(
             organization_id=self._release.organization_id,
             release=self._release,
             dist=self._dist,
             name=ARTIFACT_INDEX_FILENAME,
+            file__type=ARTIFACT_INDEX_TYPE,  # Make sure we don't get a user-uploaded file
+            defaults={
+                "file": lambda: File.objects.create(
+                    name=ARTIFACT_INDEX_FILENAME,
+                    type=ARTIFACT_INDEX_TYPE,
+                )
+            },
         )
-
-        # Make sure we don't get a user-uploaded file:
-        get_kwargs = dict(kwargs, file__type=ARTIFACT_INDEX_TYPE)
-
-        created = False
-
-        # Adapted from Django's get_or_create
-        try:
-            releasefile = qs.get(**get_kwargs)
-        except ReleaseFile.DoesNotExist:
-            try:
-                with transaction.atomic():
-                    file_ = File.objects.create(
-                        name=ARTIFACT_INDEX_FILENAME,
-                        type=ARTIFACT_INDEX_TYPE,
-                    )
-                    releasefile = qs.create(
-                        **kwargs,
-                        file=file_,
-                    )
-                    created = True
-            except IntegrityError:
-                # Transaction was aborted, no need to delete `file_` manually
-                try:
-                    return qs.get(**get_kwargs).file, False
-                except ReleaseFile.DoesNotExist:
-                    pass
-                raise
 
         return releasefile.file, created
 
