@@ -1,5 +1,6 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
+import round from 'lodash/round';
 
 import {loadStatsForProject} from 'app/actionCreators/projects';
 import {Client} from 'app/api';
@@ -7,17 +8,34 @@ import IdBadge from 'app/components/idBadge';
 import Link from 'app/components/links/link';
 import BookmarkStar from 'app/components/projects/bookmarkStar';
 import QuestionTooltip from 'app/components/questionTooltip';
+import ScoreCard, {
+  HeaderTitle,
+  Score,
+  ScoreWrapper,
+  StyledPanel,
+  Trend,
+} from 'app/components/scoreCard';
+import {releaseHealth} from 'app/data/platformCategories';
+import {IconArrow} from 'app/icons';
 import {t} from 'app/locale';
 import ProjectsStatsStore from 'app/stores/projectsStatsStore';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
+import {defined} from 'app/utils';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import {formatAbbreviatedNumber} from 'app/utils/formatters';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
+import MissingReleasesButtons, {
+  StyledButtonBar,
+} from 'app/views/projectDetail/missingFeatureButtons/missingReleasesButtons';
+import {
+  CRASH_FREE_DECIMAL_THRESHOLD,
+  displayCrashFreePercent,
+} from 'app/views/releases/utils';
 
 import Chart from './chart';
-import Deploys from './deploys';
+import Deploys, {DeployRows, GetStarted, TextOverflow} from './deploys';
 
 type Props = {
   api: Client;
@@ -36,6 +54,7 @@ class ProjectCard extends Component<Props> {
       projectId: project.id,
       query: {
         transactionStats: this.hasPerformance ? '1' : undefined,
+        sessionStats: '1',
       },
     });
   }
@@ -44,9 +63,69 @@ class ProjectCard extends Component<Props> {
     return this.props.organization.features.includes('performance-view');
   }
 
+  get crashFreeTrend() {
+    const {currentCrashFreeRate, previousCrashFreeRate} =
+      this.props.project.sessionStats || {};
+    if (!defined(currentCrashFreeRate) || !defined(previousCrashFreeRate)) {
+      return undefined;
+    }
+
+    return round(
+      currentCrashFreeRate - previousCrashFreeRate,
+      currentCrashFreeRate > CRASH_FREE_DECIMAL_THRESHOLD ? 3 : 0
+    );
+  }
+
+  renderMissingFeatureCard() {
+    const {organization, project} = this.props;
+    if (project.platform && releaseHealth.includes(project.platform)) {
+      return (
+        <ScoreCard
+          title={t('Crash Free Sessions')}
+          score={<MissingReleasesButtons organization={organization} health />}
+        />
+      );
+    }
+
+    return (
+      <ScoreCard
+        title={t('Crash Free Sessions')}
+        score={
+          <NotAvailable>
+            {t('Not Available')}
+            <QuestionTooltip
+              title={t('Release Health is not yet supported on this platform.')}
+              size="xs"
+            />
+          </NotAvailable>
+        }
+      />
+    );
+  }
+
+  renderTrend() {
+    const {currentCrashFreeRate} = this.props.project.sessionStats || {};
+
+    if (!defined(currentCrashFreeRate) || !defined(this.crashFreeTrend)) {
+      return null;
+    }
+
+    return (
+      <div>
+        {this.crashFreeTrend >= 0 ? (
+          <IconArrow direction="up" size="xs" />
+        ) : (
+          <IconArrow direction="down" size="xs" />
+        )}
+        {`${formatAbbreviatedNumber(Math.abs(this.crashFreeTrend))}\u0025`}
+      </div>
+    );
+  }
+
   render() {
     const {organization, project, hasProjectAccess} = this.props;
-    const {stats, slug, transactionStats} = project;
+    const {stats, slug, transactionStats, sessionStats} = project;
+    const {hasHealthData, currentCrashFreeRate} = sessionStats || {};
     const totalErrors = stats?.reduce((sum, [_, value]) => sum + value, 0) ?? 0;
     const totalTransactions =
       transactionStats?.reduce((sum, [_, value]) => sum + value, 0) ?? 0;
@@ -103,7 +182,34 @@ class ProjectCard extends Component<Props> {
                 transactionStats={transactionStats}
               />
             </ChartContainer>
-            <Deploys project={project} />
+            <FooterWrapper>
+              <ScoreCardWrapper>
+                {hasHealthData ? (
+                  <ScoreCard
+                    title={t('Crash Free Sessions')}
+                    score={
+                      defined(currentCrashFreeRate)
+                        ? displayCrashFreePercent(currentCrashFreeRate)
+                        : '\u2014'
+                    }
+                    trend={this.renderTrend()}
+                    trendStatus={
+                      this.crashFreeTrend
+                        ? this.crashFreeTrend > 0
+                          ? 'good'
+                          : 'bad'
+                        : undefined
+                    }
+                  />
+                ) : (
+                  this.renderMissingFeatureCard()
+                )}
+              </ScoreCardWrapper>
+              <DeploysWrapper>
+                <ReleaseTitle>{'Latest Deploys'}</ReleaseTitle>
+                <Deploys project={project} shorten />
+              </DeploysWrapper>
+            </FooterWrapper>
           </StyledProjectCard>
         ) : (
           <LoadingCard />
@@ -197,6 +303,81 @@ const StyledProjectCard = styled('div')`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   box-shadow: ${p => p.theme.dropShadowLight};
+  min-height: 326px;
+`;
+
+const FooterWrapper = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  div {
+    border: none;
+    box-shadow: none;
+    font-size: ${p => p.theme.fontSizeMedium};
+    padding: 0;
+  }
+  ${StyledButtonBar} {
+    a {
+      background-color: ${p => p.theme.background};
+      border: 1px solid ${p => p.theme.border};
+      border-radius: ${p => p.theme.borderRadius};
+      color: ${p => p.theme.gray500};
+    }
+  }
+`;
+
+const ScoreCardWrapper = styled('div')`
+  margin: ${space(2)} 0 0 ${space(2)};
+  ${StyledPanel} {
+    min-height: auto;
+  }
+  ${HeaderTitle} {
+    color: ${p => p.theme.gray300};
+    font-weight: 600;
+  }
+  ${ScoreWrapper} {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  ${Score} {
+    font-size: 28px;
+  }
+  ${Trend} {
+    margin-left: 0;
+  }
+`;
+
+const DeploysWrapper = styled('div')`
+  margin-top: ${space(2)};
+  ${GetStarted} {
+    display: block;
+    height: 100%;
+  }
+  ${TextOverflow} {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-column-gap: ${space(1)};
+    div {
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
+    }
+    a {
+      display: grid;
+    }
+  }
+  ${DeployRows} {
+    grid-template-columns: 2fr auto;
+    margin-right: ${space(2)};
+    height: auto;
+    svg {
+      display: none;
+    }
+  }
+`;
+
+const ReleaseTitle = styled('span')`
+  color: ${p => p.theme.gray300};
+  font-weight: 600;
 `;
 
 const LoadingCard = styled('div')`
@@ -241,6 +422,15 @@ const TransactionsLink = styled(Link)`
   > span {
     margin-left: ${space(0.5)};
   }
+`;
+
+const NotAvailable = styled('div')`
+  font-size: ${p => p.theme.fontSizeMedium};
+  font-weight: normal;
+  display: grid;
+  grid-template-columns: auto auto;
+  grid-gap: ${space(0.5)};
+  align-items: center;
 `;
 
 export {ProjectCard};
