@@ -53,11 +53,11 @@ jobs:
             --cache-from ghcr.io/getsentry/sentry-ci:${{ steps.branch.outputs.branch }} \
             -t ghcr.io/getsentry/sentry-ci:latest \
             -t ghcr.io/getsentry/sentry-ci:${{ steps.branch.outputs.branch }} \
-            -t ghcr.io/getsentry/sentry-ci:$GITHUB_SHA
+            -t ghcr.io/getsentry/sentry-ci:${{ github.sha }}
 
       - name: Publish docker image
         run: |
-          docker push ghcr.io/getsentry/sentry-ci:$GITHUB_SHA
+          docker push ghcr.io/getsentry/sentry-ci:${{ github.sha }}
           docker push ghcr.io/getsentry/sentry-ci:${{ steps.branch.outputs.branch }}
           docker push ghcr.io/getsentry/sentry-ci:latest
 
@@ -159,12 +159,12 @@ jobs:
   acceptance:
     name: acceptance
     runs-on: ubuntu-20.04
-    timeout-minutes: 25
+    timeout-minutes: 10
     needs: [ensure_docker]
 
     strategy:
       matrix:
-        instance: [0, 1, 2, 3]
+        instance: [0]
 
     env:
       VISUAL_SNAPSHOT_ENABLE: 1
@@ -186,6 +186,23 @@ jobs:
         uses: ./.github/actions/setup-sentry-docker
         with:
           snuba: true
+
+      - run: |
+          echo "::group::docker stats"
+          docker ps
+          docker stats --no-stream
+          docker system df
+          echo "::endgroup::"
+
+          for container in `docker ps -q`; do
+            echo "::group::docker inspect $container"
+            docker inspect --format '{{.State}}' $container
+            echo "::endgroup::"
+
+            echo "::group::docker logs $container"
+            docker logs $container;
+            echo "::endgroup::"
+          done
 
       - name: Run tests
         id: test

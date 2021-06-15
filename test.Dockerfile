@@ -54,7 +54,7 @@ RUN set -x \
 ENV PIP_NO_CACHE_DIR=off
 ENV PIP_DISABLE_PIP_VERSION_CHECK=on
 ENV PIP_SRC=/.pip
-RUN pip install "pip>=20.0.2"
+RUN pip install --upgrade "pip==21.1.2" "wheel==0.36.2"
 
 # Install sentry dependencies.
 WORKDIR /usr/src/sentry

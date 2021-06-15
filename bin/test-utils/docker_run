@@ -7,9 +7,6 @@ cd "$(dirname "$0")/../.." || exit 1
 
 source bin/test-utils/build_config
 
-echo "github sha"
-echo "${GITHUB_SHA}"
-
 time docker pull "$GCR_URL/${IMAGE_NAME}:${GITHUB_SHA}"
 
 # NOTE: Any environment variables that need passed up from the build
