@@ -367,7 +367,7 @@ class TokenConverter {
   tokenValueBoolean = (value: string) =>
     this.makeToken({
       type: Token.ValueBoolean as const,
-      value: Boolean(value),
+      value: ['1', 'true'].includes(value.toLowerCase()),
     });
 
   tokenValueNumber = (value: string, unit: string) =>
