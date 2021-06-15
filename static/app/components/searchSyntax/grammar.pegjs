@@ -47,7 +47,9 @@ filter
   / boolean_filter
   / numeric_in_filter
   / numeric_filter
-  / aggregate_filter
+  / aggregate_duration_filter
+  / aggregate_numeric_filter
+  / aggregate_percentage_filter
   / aggregate_date_filter
   / aggregate_rel_date_filter
   / has_filter
@@ -97,14 +99,22 @@ numeric_filter
       return tc.tokenFilter(FilterType.Numeric, key, value, op, false);
     }
 
+// aggregate duration filter
+aggregate_duration_filter
+  = negation:negation? key:aggregate_key sep op:operator? value:duration_format {
+      return tc.tokenFilter(FilterType.AggregateDuration, key, value, op, !!negation);
+    }
+
+// aggregate percentage filter
+aggregate_percentage_filter
+  = negation:negation? key:aggregate_key sep op:operator? value:percentage_format {
+      return tc.tokenFilter(FilterType.AggregatePercentage, key, value, op, !!negation);
+    }
+
 // aggregate numeric filter
-aggregate_filter
-  = negation:negation?
-    key:aggregate_key
-    sep
-    op:operator?
-    value:(duration_format / numeric_value / percentage_format) {
-      return tc.tokenFilter(FilterType.AggregateSimple, key, value, op, !!negation);
+aggregate_numeric_filter
+  = negation:negation? key:aggregate_key sep op:operator? value:numeric_value {
+      return tc.tokenFilter(FilterType.AggregateNumeric, key, value, op, !!negation);
     }
 
 // aggregate date filter

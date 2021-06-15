@@ -78,7 +78,9 @@ export enum FilterType {
   Numeric = 'numeric',
   NumericIn = 'numericIn',
   Boolean = 'boolean',
-  AggregateSimple = 'aggregateSimple',
+  AggregateDuration = 'aggregateDuration',
+  AggregatePercentage = 'aggregatePercentage',
+  AggregateNumeric = 'aggregateNumeric',
   AggregateDate = 'aggregateDate',
   AggregateRelativeDate = 'aggregateRelativeDate',
   Has = 'has',
@@ -166,10 +168,22 @@ export const filterTypeConfig = {
     validValues: [Token.ValueBoolean],
     canNegate: true,
   },
-  [FilterType.AggregateSimple]: {
+  [FilterType.AggregateDuration]: {
     validKeys: [Token.KeyAggregate],
     validOps: allOperators,
-    validValues: [Token.ValueDuration, Token.ValueNumber, Token.ValuePercentage],
+    validValues: [Token.ValueDuration],
+    canNegate: true,
+  },
+  [FilterType.AggregateNumeric]: {
+    validKeys: [Token.KeyAggregate],
+    validOps: allOperators,
+    validValues: [Token.ValueNumber],
+    canNegate: true,
+  },
+  [FilterType.AggregatePercentage]: {
+    validKeys: [Token.KeyAggregate],
+    validOps: allOperators,
+    validValues: [Token.ValuePercentage],
     canNegate: true,
   },
   [FilterType.AggregateDate]: {
