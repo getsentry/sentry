@@ -8,9 +8,6 @@ sudo.utils
 from django.core.signing import BadSignature
 from django.utils.crypto import constant_time_compare, get_random_string
 
-# alias for backwards compatibility with older django-sudo versions
-from django.utils.http import is_safe_url  # NOQA
-
 from sudo.settings import COOKIE_AGE, COOKIE_NAME, COOKIE_SALT
 
 
