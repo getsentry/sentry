@@ -548,7 +548,7 @@ class AvatarPhotoView(View):
         except self.model.DoesNotExist:
             return HttpResponseNotFound()
 
-        photo = avatar.file
+        photo = avatar.get_file()
         if not photo:
             return HttpResponseNotFound()
 
