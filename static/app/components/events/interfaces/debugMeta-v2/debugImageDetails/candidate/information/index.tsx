@@ -65,63 +65,89 @@ function Information({
     return null;
   }
 
-  function getTimeSinceTooltipDescription(dateCreated: string) {
+  function getTimeSinceData(dateCreated: string) {
     const dateTime = <DateTime date={dateCreated} />;
 
     if (candidate.download.status === CandidateDownloadStatus.OK) {
-      return dateTime;
+      return {
+        tooltipDesc: dateTime,
+        displayIcon: false,
+      };
     }
 
     const uploadedBeforeEvent = moment(dateCreated).isBefore(eventDateReceived);
 
     if (uploadedBeforeEvent) {
       if (hasReprocessWarning) {
-        return (
+        return {
+          tooltipDesc: (
+            <React.Fragment>
+              {tct(
+                'This debug file was uploaded [when] before this event. It takes up to 1 hour for new files to propagate. To apply new debug information, reprocess this issue.',
+                {
+                  when: moment(eventDateReceived).from(dateCreated, true),
+                }
+              )}
+              <DateTimeWrapper>{dateTime}</DateTimeWrapper>
+            </React.Fragment>
+          ),
+          displayIcon: candidate.download.status === CandidateDownloadStatus.UNAPPLIED,
+        };
+      }
+
+      const uplodadedMinutesDiff = moment(eventDateReceived).diff(dateCreated, 'minutes');
+
+      if (uplodadedMinutesDiff >= 60) {
+        return {
+          tooltipDesc: dateTime,
+          displayIcon: false,
+        };
+      }
+
+      return {
+        tooltipDesc: (
           <React.Fragment>
             {tct(
-              'This debug file was uploaded [when] before this event. It takes up to 1 hour for new files to propagate. To apply new debug information, reprocess this issue.',
+              'This debug file was uploaded [when] before this event. It takes up to 1 hour for new files to propagate.',
               {
                 when: moment(eventDateReceived).from(dateCreated, true),
               }
             )}
             <DateTimeWrapper>{dateTime}</DateTimeWrapper>
           </React.Fragment>
-        );
-      }
-
-      return (
-        <React.Fragment>
-          {tct(
-            'This debug file was uploaded [when] before this event. It takes up to 1 hour for new files to propagate.',
-            {
-              when: moment(eventDateReceived).from(dateCreated, true),
-            }
-          )}
-          <DateTimeWrapper>{dateTime}</DateTimeWrapper>
-        </React.Fragment>
-      );
+        ),
+        displayIcon: candidate.download.status === CandidateDownloadStatus.UNAPPLIED,
+      };
     }
 
     if (hasReprocessWarning) {
-      <React.Fragment>
-        {tct(
-          'This debug file was uploaded [when] after this event. To apply new debug information, reprocess this issue.',
-          {
-            when: moment(dateCreated).from(eventDateReceived, true),
-          }
-        )}
-        <DateTimeWrapper>{dateTime}</DateTimeWrapper>
-      </React.Fragment>;
+      return {
+        tooltipDesc: (
+          <React.Fragment>
+            {tct(
+              'This debug file was uploaded [when] after this event. To apply new debug information, reprocess this issue.',
+              {
+                when: moment(dateCreated).from(eventDateReceived, true),
+              }
+            )}
+            <DateTimeWrapper>{dateTime}</DateTimeWrapper>
+          </React.Fragment>
+        ),
+        displayIcon: candidate.download.status === CandidateDownloadStatus.UNAPPLIED,
+      };
     }
 
-    return (
-      <React.Fragment>
-        {tct('This debug file was uploaded [when] after this event.', {
-          when: moment(eventDateReceived).from(dateCreated, true),
-        })}
-        <DateTimeWrapper>{dateTime}</DateTimeWrapper>
-      </React.Fragment>
-    );
+    return {
+      tooltipDesc: (
+        <React.Fragment>
+          {tct('This debug file was uploaded [when] after this event.', {
+            when: moment(eventDateReceived).from(dateCreated, true),
+          })}
+          <DateTimeWrapper>{dateTime}</DateTimeWrapper>
+        </React.Fragment>
+      ),
+      displayIcon: candidate.download.status === CandidateDownloadStatus.UNAPPLIED,
+    };
   }
 
   function renderProcessingInfo() {
@@ -181,13 +207,13 @@ function Information({
       | ImageCandidateInternalOk
       | ImageCandidateUnApplied;
 
+    const {tooltipDesc, displayIcon} = getTimeSinceData(dateCreated);
+
     return (
       <React.Fragment>
-        <Tooltip title={getTimeSinceTooltipDescription(dateCreated)}>
+        <Tooltip title={tooltipDesc}>
           <TimeSinceWrapper>
-            {candidate.download.status === CandidateDownloadStatus.UNAPPLIED && (
-              <IconWarning color="red300" size="xs" />
-            )}
+            {displayIcon && <IconWarning color="red300" size="xs" />}
             {tct('Uploaded [timesince]', {
               timesince: <TimeSince disabledAbsoluteTooltip date={dateCreated} />,
             })}
