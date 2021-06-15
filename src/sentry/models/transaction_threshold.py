@@ -8,13 +8,11 @@ from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey
 class TransactionMetric(Enum):
     DURATION = 1
     LCP = 2
-    FCP = 3
 
 
 TRANSACTION_METRICS = {
     TransactionMetric.DURATION.value: "duration",
     TransactionMetric.LCP.value: "lcp",
-    TransactionMetric.FCP.value: "fcp",
 }
 
 

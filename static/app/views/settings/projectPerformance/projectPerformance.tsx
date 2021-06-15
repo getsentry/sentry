@@ -89,7 +89,7 @@ class ProjectPerformance extends AsyncView<Props, State> {
         name: 'metric',
         type: 'select',
         label: t('Metric'),
-        choices: () => ['duration', 'lcp', 'fcp'],
+        choices: () => ['duration', 'lcp'],
         help: t(
           'Set the measurement to apply the Response Time Threshold to. This metric will be used to calculate the Apdex and User Misery Scores.'
         ),
