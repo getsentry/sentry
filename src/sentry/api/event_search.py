@@ -56,7 +56,9 @@ filter = date_filter
        / boolean_filter
        / numeric_in_filter
        / numeric_filter
-       / aggregate_filter
+       / aggregate_duration_filter
+       / aggregate_percentage_filter
+       / aggregate_numeric_filter
        / aggregate_date_filter
        / aggregate_rel_date_filter
        / has_filter
@@ -85,8 +87,14 @@ numeric_in_filter = search_key sep numeric_in_list
 # numeric comparison filter
 numeric_filter = search_key sep operator? numeric_value
 
+# aggregate duration filter
+aggregate_duration_filter = negation? aggregate_key sep operator? duration_format
+
+# aggregate percentage filter
+aggregate_percentage_filter = negation? aggregate_key sep operator? percentage_format
+
 # aggregate numeric filter
-aggregate_filter = negation? aggregate_key sep operator? (duration_format / numeric_value / percentage_format)
+aggregate_numeric_filter = negation? aggregate_key sep operator? numeric_value
 
 # aggregate for dates
 aggregate_date_filter = negation? aggregate_key sep operator? iso_8601_date_format
@@ -541,7 +549,6 @@ class SearchVisitor(NodeVisitor):
 
     def visit_duration_filter(self, node, children):
         (search_key, sep, operator, search_value) = children
-        search_value = search_value[1:]
 
         operator = operator[0] if not isinstance(operator, Node) else "="
         if self.is_duration_key(search_key.name):
@@ -597,39 +604,61 @@ class SearchVisitor(NodeVisitor):
         (search_key, _, operator, search_value) = children
         return self._handle_numeric_filter(search_key, operator, search_value)
 
-    def visit_aggregate_filter(self, node, children):
+    def visit_aggregate_duration_filter(self, node, children):
         (negation, search_key, _, operator, search_value) = children
         operator = handle_negation(negation, operator)
-        search_value = search_value[0]
 
         try:
-            aggregate_value = None
-            value_type = search_value[0]
-
-            if value_type in ["duration_format", "percentage_format"]:
-                # Even if the search value matches duration format, only act as duration for certain columns
-                function = resolve_field(
-                    search_key.name, self.params, functions_acl=FUNCTIONS.keys()
-                )
-                if function.aggregate is not None:
-                    if value_type == "percentage_format" and self.is_percentage_key(
-                        function.aggregate[0]
-                    ):
-                        aggregate_value = parse_percentage(search_value[1])
-                    # Extract column and function name out so we can check if we should parse as duration
-                    elif value_type == "duration_format" and self.is_duration_key(
-                        function.aggregate[1]
-                    ):
-                        aggregate_value = parse_duration(*search_value[1:])
-
-            if aggregate_value is None:
-                # Duration can fall through as a numeric value due to the
-                # overlapping 'm'
-                if len(search_value) == 3:
-                    search_value = search_value[1:]
+            # Even if the search value matches duration format, only act as
+            # duration for certain columns
+            function = resolve_field(search_key.name, self.params, functions_acl=FUNCTIONS.keys())
+            if function.aggregate is not None and self.is_duration_key(function.aggregate[1]):
+                aggregate_value = parse_duration(*search_value)
+            else:
+                # Duration overlaps with numeric values with `m` (million vs
+                # minutes). So we fall through to numeric if it's not a
+                # duration key
+                #
+                # TODO(epurkhsier): Should we validate that the field is
+                # numeric and do some other fallback if it's not?
                 aggregate_value = parse_numeric_value(*search_value)
         except ValueError:
             raise InvalidSearchQuery(f"Invalid aggregate query condition: {search_key}")
+        except InvalidQuery as exc:
+            raise InvalidSearchQuery(str(exc))
+
+        return AggregateFilter(search_key, operator, SearchValue(aggregate_value))
+
+    def visit_aggregate_percentage_filter(self, node, children):
+        (negation, search_key, _, operator, search_value) = children
+        operator = handle_negation(negation, operator)
+
+        aggregate_value = None
+
+        try:
+            # Even if the search value matches percentage format, only act as
+            # percentage for certain columns
+            function = resolve_field(search_key.name, self.params, functions_acl=FUNCTIONS.keys())
+            if function.aggregate is not None and self.is_percentage_key(function.aggregate[0]):
+                aggregate_value = parse_percentage(search_value)
+        except ValueError:
+            raise InvalidSearchQuery(f"Invalid aggregate query condition: {search_key}")
+        except InvalidQuery as exc:
+            raise InvalidSearchQuery(str(exc))
+
+        if aggregate_value is not None:
+            return AggregateFilter(search_key, operator, SearchValue(aggregate_value))
+
+        # Invalid formats fall back to text match
+        search_value = operator + search_value if operator != "=" else search_value
+        return AggregateFilter(search_key, "=", SearchValue(search_value))
+
+    def visit_aggregate_numeric_filter(self, node, children):
+        (negation, search_key, _, operator, search_value) = children
+        operator = handle_negation(negation, operator)
+
+        try:
+            aggregate_value = parse_numeric_value(*search_value)
         except InvalidQuery as exc:
             raise InvalidSearchQuery(str(exc))
 
@@ -646,6 +675,7 @@ class SearchVisitor(NodeVisitor):
                 raise InvalidSearchQuery(str(exc))
             return AggregateFilter(search_key, operator, SearchValue(search_value))
 
+        # Invalid formats fall back to text match
         search_value = operator + search_value if operator != "=" else search_value
         return AggregateFilter(search_key, "=", SearchValue(search_value))
 
@@ -668,6 +698,7 @@ class SearchVisitor(NodeVisitor):
 
             return AggregateFilter(search_key, operator, SearchValue(search_value))
 
+        # Invalid formats fall back to text match
         search_value = operator + search_value.text if operator != "=" else search_value
         return AggregateFilter(search_key, "=", SearchValue(search_value))
 
@@ -814,10 +845,10 @@ class SearchVisitor(NodeVisitor):
         return node
 
     def visit_duration_format(self, node, children):
-        return ["duration_format", children[0], children[1][0].text]
+        return [children[0], children[1][0].text]
 
     def visit_percentage_format(self, node, children):
-        return ["percentage_format", children[0]]
+        return children[0]
 
     def visit_operator(self, node, children):
         return node.text
