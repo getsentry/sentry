@@ -779,3 +779,20 @@ class SemverReleaseParseTestCase(TestCase):
         version = "hello world"
         release = Release.objects.create(organization=self.org, version=version)
         assert release.version == "hello world"
+
+    def test_parse_release_overflow_bigint(self):
+        """
+        Tests that we don't error if we have a version component that is larger than
+        a postgres bigint.
+        """
+        version = "org.example.FooApp@9223372036854775808.1.2.3-r1+12345"
+        release = Release.objects.create(organization=self.org, version=version)
+        assert release.version == version
+        assert release.major is None
+        assert release.minor is None
+        assert release.patch is None
+        assert release.revision is None
+        assert release.prerelease is None
+        assert release.build_code is None
+        assert release.build_number is None
+        assert release.package is None

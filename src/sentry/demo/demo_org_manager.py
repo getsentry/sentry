@@ -58,8 +58,23 @@ def create_demo_org(quick=False) -> Organization:
             )
             react_project.add_team(team)
 
-            populate_org_members(org, team)
+            if settings.DEMO_MOBILE_PROJECTS:
+                react_native_project = Project.objects.create(
+                    name="React-Native", organization=org, platform="react-native"
+                )
+                react_native_project.add_team(team)
 
+                android_project = Project.objects.create(
+                    name="Android", organization=org, platform="android"
+                )
+                android_project.add_team(team)
+
+                ios_project = Project.objects.create(
+                    name="iOS", organization=org, platform="apple-ios"
+                )
+                ios_project.add_team(team)
+
+            populate_org_members(org, team)
             # we'll be adding transactions later
             Project.objects.filter(organization=org).update(
                 flags=F("flags").bitor(Project.flags.has_transactions)

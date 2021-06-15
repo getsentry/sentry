@@ -98,6 +98,7 @@ export const doEventsRequest = (
 
 export type EventQuery = {
   field: string[];
+  equation?: string[];
   team?: string | string[];
   project?: string | string[];
   sort?: string | string[];
