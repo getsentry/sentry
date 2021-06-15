@@ -28,6 +28,7 @@ function getDeviceKnownData(
       key,
       ...knownDataDetails,
       meta: getMeta(data, key as keyof DeviceData),
+      subjectDataTestId: `device-context-${key.toLowerCase()}-value`,
     });
   }
 

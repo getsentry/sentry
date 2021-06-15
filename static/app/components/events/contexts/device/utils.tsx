@@ -56,7 +56,7 @@ export function formatStorage(
 }
 
 // List of common display resolutions taken from the source: https://en.wikipedia.org/wiki/Display_resolution#Common_display_resolutions
-const commonDisplayResolutions = {
+export const commonDisplayResolutions = {
   '640x360': 'nHD',
   '800x600': 'SVGA',
   '1024x768': 'XGA',
