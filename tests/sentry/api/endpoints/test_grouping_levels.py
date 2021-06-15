@@ -71,6 +71,7 @@ def _render_all_previews(client):
 
 @pytest.mark.django_db
 @pytest.mark.snuba
+@pytest.mark.skip(reason="flaky test")
 def test_error_conditions(client, default_project, reset_snuba, factories):
     group = Group.objects.create(project=default_project)
     grouphash = GroupHash.objects.create(
