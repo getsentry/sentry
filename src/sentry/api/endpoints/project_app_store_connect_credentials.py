@@ -147,12 +147,12 @@ class AppStoreConnectAppsEndpoint(ProjectEndpoint):
             {
                 "name":"Sentry Cocoa Sample iOS Swift",
                 "bundleId":"io.sentry.sample.iOS-Swift",
-                "appId": "1549832463",
+                "appId": 1549832463,
             },
             {
                 "name":"Sentry React Native Test",
                 "bundleId":"io.sentry.react-native-test",
-                "appId": "1268541530",
+                "appId": 1268541530,
             },
         ]
     }
@@ -199,7 +199,7 @@ class CreateSessionContextSerializer(serializers.Serializer):
     session_id = serializers.CharField(min_length=1, required=True)
     scnt = serializers.CharField(min_length=1, required=True)
     itunes_session = serializers.CharField(min_length=1, required=True)
-    itunes_person_id = serializers.CharField(min_length=1, required=True)
+    itunes_person_id = serializers.IntegerField(required=True)
     itunes_created = serializers.DateTimeField(required=True)
 
 
@@ -215,7 +215,7 @@ class AppStoreCreateCredentialsSerializer(serializers.Serializer):
     itunesUser = serializers.CharField(max_length=100, min_length=1, required=True)
     itunesPassword = serializers.CharField(max_length=512, min_length=1, required=True)
     appName = serializers.CharField(max_length=512, min_length=1, required=True)
-    appId = serializers.CharField(max_length=512, min_length=1, required=True)
+    appId = serializers.IntegerField(required=True)
     # this is the ITunes organization the user is a member of ( known as providers in Itunes terminology)
     orgId = serializers.IntegerField(required=True)
     orgName = serializers.CharField(max_length=100, required=True)
@@ -281,7 +281,7 @@ class UpdateSessionContextSerializer(serializers.Serializer):
     session_id = serializers.CharField(min_length=1, required=True)
     scnt = serializers.CharField(min_length=1, required=True)
     itunes_session = serializers.CharField(min_length=1, required=True)
-    itunes_person_id = serializers.CharField(min_length=1, required=True)
+    itunes_person_id = serializers.IntegerField(required=True)
     itunes_created = serializers.DateTimeField(required=True)
 
 
@@ -701,7 +701,7 @@ class AppStoreConnect2FactorAuthEndpoint(ProjectEndpoint):
                 "session_id": headers.session_id,
                 "scnt": headers.scnt,
                 "itunes_session": itunes_session,
-                "itunes_person_id": prs_id,  # TODO(flub): This is seemingly unused?
+                "itunes_person_id": int(prs_id),
                 "itunes_created": datetime.datetime.utcnow(),
             }
             return Response(

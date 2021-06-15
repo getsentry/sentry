@@ -46,7 +46,7 @@ type ItunesRevalidationSessionContext = SessionContext & {
 };
 
 type IntialData = {
-  appId: string;
+  appId: number;
   appName: string;
   appconnectIssuer: string;
   appconnectKey: string;
@@ -54,7 +54,7 @@ type IntialData = {
   id: string;
   itunesCreated: string;
   itunesPassword: string;
-  itunesPersonId: string;
+  itunesPersonId: number;
   itunesSession: string;
   itunesUser: string;
   name: string;
