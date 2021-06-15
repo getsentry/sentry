@@ -12,7 +12,7 @@ import FieldFromConfig from 'app/views/settings/components/forms/fieldFromConfig
 import Form from 'app/views/settings/components/forms/form';
 
 import AppStoreConnect from './appStoreConnect';
-import {getFormFields} from './utils';
+import {getFormFields, getInitialData} from './utils';
 
 type AppStoreConnectInitialData = React.ComponentProps<
   typeof AppStoreConnect
@@ -27,7 +27,7 @@ type Props = WithRouterProps<RouteParams, {}> & {
   /**
    * Callback invoked with the updated config value.
    */
-  onSave: (config: Record<string, string>) => void;
+  onSave: (config: Record<string, any>) => void;
   /**
    * Type of this source.
    */
@@ -37,11 +37,10 @@ type Props = WithRouterProps<RouteParams, {}> & {
   /**
    * The sourceConfig. May be empty to create a new one.
    */
-  sourceConfig?: Record<string, string>;
-} & ModalRenderProps;
+  sourceConfig?: Record<string, any>;
+} & Pick<ModalRenderProps, 'Header' | 'Body' | 'Footer'>;
 
 function DebugFileCustomRepository({
-  closeModal,
   Header,
   Body,
   Footer,
@@ -52,9 +51,8 @@ function DebugFileCustomRepository({
   location,
   appStoreConnectContext,
 }: Props) {
-  function handleSave(data: Record<string, string>) {
+  function handleSave(data: Record<string, any>) {
     onSave({...data, type: sourceType});
-    closeModal();
   }
 
   if (sourceType === 'appStoreConnect') {
@@ -74,6 +72,7 @@ function DebugFileCustomRepository({
   }
 
   const fields = getFormFields(sourceType);
+  const initialData = getInitialData(sourceConfig);
 
   return (
     <Fragment>
@@ -86,7 +85,7 @@ function DebugFileCustomRepository({
         <Form
           allowUndo
           requireChanges
-          initialData={sourceConfig}
+          initialData={initialData}
           onSubmit={handleSave}
           footerClass="modal-footer"
         >
