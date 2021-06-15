@@ -15,7 +15,11 @@ from sentry.models import AuditLogEntryEvent, AuthIdentity, InviteStatus, Organi
 from sentry.signals import member_invited
 from sentry.utils.cursors import SCIMCursor
 
-from .constants import SCIM_400_INVALID_FILTER, SCIM_409_USER_EXISTS
+from .constants import (
+    SCIM_400_INVALID_FILTER,
+    SCIM_400_TOO_MANY_PATCH_OPS_ERROR,
+    SCIM_409_USER_EXISTS,
+)
 from .utils import OrganizationSCIMMemberPermission, SCIMEndpoint, parse_filter_conditions
 
 ERR_ONLY_OWNER = "You cannot remove the only remaining owner of the organization."
@@ -50,7 +54,10 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         return Response(context)
 
     def patch(self, request, organization, member):
-        for operation in request.data.get("Operations", []):
+        operations = request.data.get("Operations", [])
+        if len(operations) > 100:
+            return Response(SCIM_400_TOO_MANY_PATCH_OPS_ERROR, status=400)
+        for operation in operations:
             # we only support setting active to False which deletes the orgmember
             if operation["value"]["active"] is False:
                 self._delete_member(request, organization, member)

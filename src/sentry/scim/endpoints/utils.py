@@ -107,11 +107,7 @@ def parse_filter_conditions(raw_filters):
         key = key.strip()
         value = value.strip()
 
-        # For USERS: Unique username should always be lowercase
-        if value[0] == '"' and value[-1] == '"':
-            value = value.replace('"', "")
-        if value[0] == "'" and value[-1] == "'":
-            value = value.replace("'", "")
+        value = value[1:-1]
 
         if key == "userName":
             value = value.lower()

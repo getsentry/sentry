@@ -25,7 +25,7 @@ CREATE_GROUP_POST_DATA = {
 }
 
 
-class SCIMUserTestsPermissions(APITestCase):
+class SCIMMemberTestsPermissions(APITestCase):
     def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
@@ -42,7 +42,7 @@ class SCIMUserTestsPermissions(APITestCase):
         assert response.status_code == 403
 
 
-class SCIMUserTests(APITestCase):
+class SCIMMemberTests(APITestCase):
     def setUp(self):
         super().setUp()
         auth_provider = AuthProvider.objects.create(
@@ -207,6 +207,26 @@ class SCIMUserTests(APITestCase):
         assert response.status_code == 204, response.content
         with pytest.raises(OrganizationMember.DoesNotExist):
             OrganizationMember.objects.get(organization=self.organization, id=member.id)
+
+    def test_member_detail_patch_too_many_ops(self):
+        member = self.create_member(user=self.create_user(), organization=self.organization)
+        url = reverse(
+            "sentry-api-0-organization-scim-member-details",
+            args=[self.organization.slug, member.id],
+        )
+        response = self.client.patch(
+            url,
+            {
+                "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+                "Operations": [{}] * 101,
+            },
+        )
+
+        assert response.status_code == 400, response.data
+        assert response.data == {
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+            "detail": "Too many patch ops sent, limit is 100.",
+        }
 
     # Disabling below test for now.
     # need to see what Okta admins would expect to happen with invited members
@@ -375,11 +395,11 @@ class SCIMGroupTests(APITestCase):
         response = self.client.get(url)
         assert response.status_code == 404, response.content
 
-        # see if we can get by without these errors
-        # assert response.data == {
-        #     "detail": "Group not found.",
-        #     "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
-        # }
+        assert response.data == {
+            "detail": "Group not found.",
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+        }
+
         # test team creation
         url = reverse(
             "sentry-api-0-organization-scim-team-index",
@@ -433,7 +453,7 @@ class SCIMGroupTests(APITestCase):
             ],
         }
 
-        # update a team name
+        # rename a team with the replace op
         url = reverse(
             "sentry-api-0-organization-scim-team-details", args=[self.organization.slug, team_id]
         )
@@ -688,7 +708,7 @@ class SCIMGroupTests(APITestCase):
                         "value": [
                             {
                                 "value": "100232",
-                                "display": "nope@ssentry.io",
+                                "display": "nope@doesnotexist.io",
                             }
                         ],
                     },
@@ -741,3 +761,43 @@ class SCIMGroupTests(APITestCase):
         )
         response = self.client.put(url)
         assert response.status_code == 403, response.data
+
+    def test_team_detail_patch_too_many_ops(self):
+        url = reverse(
+            "sentry-api-0-organization-scim-team-details",
+            args=[self.organization.slug, self.team.id],
+        )
+        response = self.client.patch(
+            url,
+            {
+                "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+                "Operations": [{}] * 101,
+            },
+        )
+
+        assert response.status_code == 400, response.data
+        assert response.data == {
+            "schemas": ["urn:ietf:params:scim:api:messages:2.0:Error"],
+            "detail": "Too many patch ops sent, limit is 100.",
+        }
+
+    def test_rename_team_azure_request(self):
+        url = reverse(
+            "sentry-api-0-organization-scim-team-details",
+            args=[self.organization.slug, self.team.id],
+        )
+        response = self.client.patch(
+            url,
+            {
+                "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+                "Operations": [{"op": "replace", "path": "displayName", "value": "theNewName"}],
+            },
+        )
+        assert response.status_code == 200, response.content
+        assert response.data == {
+            "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
+            "id": self.team.id,
+            "displayName": "thenewname",
+            "members": None,
+            "meta": {"resourceType": "Group"},
+        }

@@ -4,7 +4,6 @@ import re
 import sentry_sdk
 from django.db import IntegrityError, transaction
 from django.template.defaultfilters import slugify
-from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
@@ -26,6 +25,9 @@ from sentry.utils.cursors import SCIMCursor
 from .constants import (
     SCIM_400_INTEGRITY_ERROR,
     SCIM_400_INVALID_FILTER,
+    SCIM_400_TOO_MANY_PATCH_OPS_ERROR,
+    SCIM_400_UNSUPPORTED_ATTRIBUTE,
+    SCIM_404_GROUP_RES,
     SCIM_404_USER_RES,
     GroupPatchOps,
 )
@@ -35,15 +37,6 @@ delete_logger = logging.getLogger("sentry.deletions.api")
 
 
 CONFLICTING_SLUG_ERROR = "A team with this slug already exists."
-
-
-class SCIMTeamNameSerializer(serializers.Serializer):
-    name = serializers.CharField(max_length=64, required=True, allow_null=False, allow_blank=False)
-
-    def validate(self, attrs):
-        if not (attrs.get("name")):
-            raise serializers.ValidationError("Name is required")
-        return attrs
 
 
 class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
@@ -103,7 +96,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         try:
             kwargs["team"] = self._get_team(kwargs["organization"], team_id)
         except Team.DoesNotExist:
-            raise ResourceDoesNotExist
+            raise ResourceDoesNotExist(detail=SCIM_404_GROUP_RES)
         return (args, kwargs)
 
     def _get_team(self, organization, team_id):
@@ -163,11 +156,12 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
             )
             omt.delete()
 
-    def _rename_team_operation(self, request, operation, team):
+    def _rename_team_operation(self, request, new_name, team):
+        ##
         serializer = TeamSerializer(
             team,
             data={
-                "slug": slugify(operation["value"]["displayName"]),
+                "slug": slugify(new_name),
             },
             partial=True,
         )
@@ -187,9 +181,12 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         It does them sequentially and if any of them fail no operations should go through.
         The operations are add members, remove members, replace members, and rename team.
         """
+        operations = request.data.get("Operations", [])
+        if len(operations) > 100:
+            return Response(SCIM_400_TOO_MANY_PATCH_OPS_ERROR, status=400)
         try:
             with transaction.atomic():
-                for operation in request.data.get("Operations", []):
+                for operation in operations:
                     op = operation["op"].lower()
                     if op == GroupPatchOps.ADD and operation["path"] == "members":
                         self._add_members_operation(request, operation, team)
@@ -197,15 +194,28 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
                         # the members op contains a filter string like so:
                         # members[userName eq "baz@sentry.io"]
                         self._remove_members_operation(request, operation, team)
-                    elif op == GroupPatchOps.REPLACE and not operation.get("path", None):
-                        self._rename_team_operation(request, operation, team)
-                    elif op == GroupPatchOps.REPLACE and operation["path"] == "members":
-                        # delete all the current team members
-                        # and add the ones in the operation list
-                        with transaction.atomic():
-                            queryset = OrganizationMemberTeam.objects.filter(team_id=team.id)
-                            queryset.delete()
-                            self._add_members_operation(request, operation, team)
+                    elif op == GroupPatchOps.REPLACE:
+                        path = operation.get("path")
+
+                        if path == "members":
+                            # delete all the current team members
+                            # and replace with the ones in the operation list
+                            with transaction.atomic():
+                                queryset = OrganizationMemberTeam.objects.filter(team_id=team.id)
+                                queryset.delete()
+                                self._add_members_operation(request, operation, team)
+                        # azure and okta handle team name change operation differently
+                        elif path is None:
+                            # for okta
+                            self._rename_team_operation(
+                                request, operation["value"]["displayName"], team
+                            )
+                        elif path == "displayName":
+                            # for azure
+                            self._rename_team_operation(request, operation["value"], team)
+                        else:
+                            return Response(SCIM_400_UNSUPPORTED_ATTRIBUTE, status=400)
+
         except OrganizationMember.DoesNotExist:
             raise ResourceDoesNotExist(detail=SCIM_404_USER_RES)
         except IntegrityError as e:

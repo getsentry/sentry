@@ -32,6 +32,16 @@ SCIM_400_INTEGRITY_ERROR = {
     "detail": "Database Integrity Error.",
 }
 
+SCIM_400_TOO_MANY_PATCH_OPS_ERROR = {
+    "schemas": [SCIM_API_ERROR],
+    "detail": "Too many patch ops sent, limit is 100.",
+}
+
+SCIM_400_UNSUPPORTED_ATTRIBUTE = {
+    "schemas": [SCIM_API_ERROR],
+    "detail": "Invalid Replace attr. Only displayName and members supported.",
+}
+
 
 class GroupPatchOps(str, Enum):
     ADD = "add"
