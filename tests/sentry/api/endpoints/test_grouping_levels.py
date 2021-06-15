@@ -70,7 +70,7 @@ def _render_all_previews(client):
 
 
 @pytest.mark.django_db
-def test_error_missing_feature(client, default_project, reset_snuba, factories):
+def test_error_missing_feature(client, default_project):
     group = Group.objects.create(project=default_project)
 
     with Feature({"organizations:grouping-tree-ui": False}):
@@ -80,7 +80,7 @@ def test_error_missing_feature(client, default_project, reset_snuba, factories):
 
 
 @pytest.mark.django_db
-def test_error_no_events(client, default_project, reset_snuba, factories):
+def test_error_no_events(client, default_project):
     group = Group.objects.create(project=default_project)
 
     response = client.get(f"/api/0/issues/{group.id}/grouping/levels/", format="json")
