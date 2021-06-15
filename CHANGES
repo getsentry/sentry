@@ -5,6 +5,11 @@ Unreleased
 
 There will be a future change to where the frontend bundle will be loaded asynchronously. This will be a breaking change that can affect custom plugins that access certain globals in the django template. Please see https://forum.sentry.io/t/breaking-frontend-changes-for-custom-plugins/14184 for more information.
 
+21.7.1
+------
+
+- Before upgrading to 21.7.1 you must upgrade to 21.6.1 and run migrations. In 21.7.1 the ability to upgrade from south based migrations was removed.
+
 21.5.1
 ------
 
