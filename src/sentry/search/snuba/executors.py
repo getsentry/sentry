@@ -100,6 +100,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         project_ids,
         environment_ids,
         sort_field,
+        organization_id,
         cursor=None,
         group_ids=None,
         limit=None,
@@ -132,7 +133,9 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                 search_filter.key.name == "date"
             ):
                 continue
-            converted_filter = convert_search_filter_to_snuba_query(search_filter)
+            converted_filter = convert_search_filter_to_snuba_query(
+                search_filter, params={"organization_id": organization_id}
+            )
             converted_filter = self._transform_converted_filter(
                 search_filter, converted_filter, project_ids, environment_ids
             )
@@ -459,6 +462,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 end=end,
                 project_ids=[p.id for p in projects],
                 environment_ids=environments and [environment.id for environment in environments],
+                organization_id=projects[0].organization_id,
                 sort_field=sort_field,
                 cursor=cursor,
                 group_ids=group_ids,
@@ -606,6 +610,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 end=end,
                 project_ids=[p.id for p in projects],
                 environment_ids=environments and [environment.id for environment in environments],
+                organization_id=projects[0].organization_id,
                 sort_field=sort_field,
                 limit=sample_size,
                 offset=0,

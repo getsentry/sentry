@@ -1,4 +1,4 @@
-import {useContext, useEffect, useState} from 'react';
+import {Fragment, useContext, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {promptsCheck, promptsUpdate} from 'app/actionCreators/prompts';
@@ -7,6 +7,7 @@ import Alert from 'app/components/alert';
 import Button from 'app/components/button';
 import Link from 'app/components/links/link';
 import AppStoreConnectContext from 'app/components/projects/appStoreConnectContext';
+import {appStoreConnectAlertMessage} from 'app/components/projects/appStoreConnectContext/utils';
 import {IconClose, IconRefresh} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -14,8 +15,6 @@ import {Organization, Project} from 'app/types';
 import {AppStoreConnectValidationData} from 'app/types/debugFiles';
 import {promptIsDismissed} from 'app/utils/promptIsDismissed';
 import withApi from 'app/utils/withApi';
-
-import {appStoreConnectAlertMessage, getAppConnectStoreUpdateAlertMessage} from './utils';
 
 const APP_STORE_CONNECT_UPDATES = 'app_store_connect_updates';
 
@@ -37,7 +36,12 @@ function UpdateAlert({api, Wrapper, isCompact, project, organization, className}
   }, []);
 
   async function checkPrompt() {
-    if (!project) {
+    if (
+      !project ||
+      !appStoreConnectContext ||
+      !appStoreConnectContext.updateAlertMessage ||
+      isDismissed
+    ) {
       return;
     }
 
@@ -66,34 +70,37 @@ function UpdateAlert({api, Wrapper, isCompact, project, organization, className}
   }
 
   function renderMessage(
-    appConnectValidationData: AppStoreConnectValidationData,
+    appStoreConnectValidationData: AppStoreConnectValidationData,
     projectSettingsLink: string
   ) {
-    const appConnectStoreUpdateAlertMessage = getAppConnectStoreUpdateAlertMessage(
-      appConnectValidationData
-    );
-
-    if (!appConnectStoreUpdateAlertMessage) {
+    if (!appStoreConnectValidationData.updateAlertMessage) {
       return null;
     }
 
+    const {updateAlertMessage} = appStoreConnectValidationData;
+
     return (
       <div>
-        {appConnectStoreUpdateAlertMessage}&nbsp;
+        {updateAlertMessage}
         {isCompact && (
-          <Link
-            to={
-              appConnectStoreUpdateAlertMessage ===
-              appStoreConnectAlertMessage.appStoreCredentialsInvalid
-                ? projectSettingsLink
-                : `${projectSettingsLink}&revalidateItunesSession=true`
-            }
-          >
-            {appConnectStoreUpdateAlertMessage ===
-            appStoreConnectAlertMessage.isTodayAfterItunesSessionRefreshAt
-              ? t('We recommend that you update it in the project settings.')
-              : t('Update it in the project settings to reconnect.')}
-          </Link>
+          <Fragment>
+            &nbsp;
+            <Link
+              to={
+                updateAlertMessage ===
+                appStoreConnectAlertMessage.appStoreCredentialsInvalid
+                  ? projectSettingsLink
+                  : `${projectSettingsLink}&revalidateItunesSession=true`
+              }
+            >
+              {updateAlertMessage ===
+              appStoreConnectAlertMessage.isTodayAfterItunesSessionRefreshAt
+                ? t(
+                    'We recommend that you revalidate the session in the project settings'
+                  )
+                : t('Update it in the project settings to reconnect')}
+            </Link>
+          </Fragment>
         )}
       </div>
     );
@@ -118,8 +125,11 @@ function UpdateAlert({api, Wrapper, isCompact, project, organization, className}
           {t('Dismiss')}
         </Button>
         |
-        <Button priority="link" to={projectSettingsLink}>
-          {t('Review updates')}
+        <Button
+          priority="link"
+          to={`${projectSettingsLink}&revalidateItunesSession=true`}
+        >
+          {t('Update session')}
         </Button>
       </Actions>
     );
@@ -127,8 +137,8 @@ function UpdateAlert({api, Wrapper, isCompact, project, organization, className}
 
   if (
     !project ||
-    appStoreConnectContext.isLoading !== false ||
-    appStoreConnectContext.id === undefined ||
+    !appStoreConnectContext ||
+    !appStoreConnectContext.updateAlertMessage ||
     isDismissed
   ) {
     return null;

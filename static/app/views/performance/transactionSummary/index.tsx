@@ -17,7 +17,6 @@ import {trackAnalyticsEvent} from 'app/utils/analytics';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
 import {
-  AggregationKey,
   Column,
   isAggregateField,
   QueryFieldValue,
@@ -178,15 +177,15 @@ class TransactionSummary extends Component<Props, State> {
       ? [
           {
             kind: 'function',
-            function: ['count_miserable_new' as AggregationKey, 'user', undefined],
+            function: ['count_miserable', 'user', undefined],
           },
           {
             kind: 'function',
-            function: ['user_misery_new' as AggregationKey, '', undefined],
+            function: ['user_misery', '', undefined],
           },
           {
             kind: 'function',
-            function: ['apdex_new' as AggregationKey, '', undefined],
+            function: ['apdex', '', undefined],
           },
         ]
       : [

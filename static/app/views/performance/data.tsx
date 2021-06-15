@@ -55,7 +55,7 @@ export function getAxisOptions(organization: LightWeightOrganization): TooltipOp
   if (organization.features.includes('project-transaction-threshold')) {
     apdexOption = {
       tooltip: getTermHelp(organization, PERFORMANCE_TERM.APDEX_NEW),
-      value: `apdex_new()`,
+      value: 'apdex()',
       label: t('Apdex'),
     };
   } else {
@@ -186,9 +186,9 @@ export function getBackendAxisOptions(
   if (organization.features.includes('project-transaction-threshold')) {
     apdexOption = {
       tooltip: getTermHelp(organization, PERFORMANCE_TERM.APDEX),
-      value: `apdex_new()`,
+      value: 'apdex()',
       label: t('Apdex'),
-      field: `apdex_new()`,
+      field: 'apdex()',
     };
   } else {
     apdexOption = {
@@ -322,12 +322,7 @@ function generateGenericPerformanceEventView(
   ];
 
   const featureFields = organization.features.includes('project-transaction-threshold')
-    ? [
-        `apdex_new()`,
-        'count_unique(user)',
-        `count_miserable_new(user)`,
-        `user_misery_new()`,
-      ]
+    ? ['apdex()', 'count_unique(user)', 'count_miserable(user)', 'user_misery()']
     : [
         `apdex(${organization.apdexThreshold})`,
         'count_unique(user)',
@@ -396,12 +391,7 @@ function generateBackendPerformanceEventView(
   ];
 
   const featureFields = organization.features.includes('project-transaction-threshold')
-    ? [
-        `apdex_new()`,
-        'count_unique(user)',
-        `count_miserable_new(user)`,
-        `user_misery_new()`,
-      ]
+    ? ['apdex()', 'count_unique(user)', 'count_miserable(user)', 'user_misery()']
     : [
         `apdex(${organization.apdexThreshold})`,
         'count_unique(user)',
@@ -469,7 +459,7 @@ function generateFrontendPageloadPerformanceEventView(
   ];
 
   const featureFields = organization.features.includes('project-transaction-threshold')
-    ? ['count_unique(user)', `count_miserable_new(user)`, `user_misery_new()`]
+    ? ['count_unique(user)', 'count_miserable(user)', 'user_misery()']
     : [
         'count_unique(user)',
         `count_miserable(user,${organization.apdexThreshold})`,
@@ -538,7 +528,7 @@ function generateFrontendOtherPerformanceEventView(
   ];
 
   const featureFields = organization.features.includes('project-transaction-threshold')
-    ? ['count_unique(user)', `count_miserable_new(user)`, `user_misery_new()`]
+    ? ['count_unique(user)', 'count_miserable(user)', 'user_misery()']
     : [
         'count_unique(user)',
         `count_miserable(user,${organization.apdexThreshold})`,
@@ -593,7 +583,7 @@ export function generatePerformanceEventView(
   projects,
   isTrends = false
 ) {
-  let eventView = generateGenericPerformanceEventView(organization, location);
+  const eventView = generateGenericPerformanceEventView(organization, location);
   if (isTrends) {
     return eventView;
   }
@@ -601,22 +591,13 @@ export function generatePerformanceEventView(
   const display = getCurrentLandingDisplay(location, projects, eventView);
   switch (display?.field) {
     case LandingDisplayField.FRONTEND_PAGELOAD:
-      eventView = generateFrontendPageloadPerformanceEventView(organization, location);
-      break;
+      return generateFrontendPageloadPerformanceEventView(organization, location);
     case LandingDisplayField.FRONTEND_OTHER:
-      eventView = generateFrontendOtherPerformanceEventView(organization, location);
-      break;
+      return generateFrontendOtherPerformanceEventView(organization, location);
     case LandingDisplayField.BACKEND:
-      eventView = generateBackendPerformanceEventView(organization, location);
-      break;
+      return generateBackendPerformanceEventView(organization, location);
     default:
-      break;
-  }
-
-  if (organization.features.includes('team-key-transactions')) {
-    return eventView.withTeams(['myteams']);
-  } else {
-    return eventView;
+      return eventView;
   }
 }
 
@@ -671,10 +652,5 @@ export function generatePerformanceVitalDetailView(
   eventView.additionalConditions
     .addTagValues('event.type', ['transaction'])
     .addTagValues('has', [vitalName]);
-
-  if (organization.features.includes('team-key-transactions')) {
-    return eventView.withTeams(['myteams']);
-  } else {
-    return eventView;
-  }
+  return eventView;
 }

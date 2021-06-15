@@ -21,6 +21,7 @@ import {
   AGGREGATIONS,
   getAggregateAlias,
   getSpanOperationName,
+  isEquation,
   isRelativeSpanOperationBreakdownField,
   SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
@@ -515,6 +516,10 @@ export function getSortField(
     return field;
   }
 
+  if (isEquation(field)) {
+    return field;
+  }
+
   for (const alias in AGGREGATIONS) {
     if (field.startsWith(alias)) {
       return AGGREGATIONS[alias].isSortable ? field : null;
@@ -633,7 +638,6 @@ const RelativeOpsBreakdown = styled('div')`
 
 const RectangleRelativeOpsBreakdown = styled(RowRectangle)`
   position: relative;
-  top: 0;
   width: 100%;
 `;
 

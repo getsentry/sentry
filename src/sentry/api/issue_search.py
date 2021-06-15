@@ -8,6 +8,7 @@ from sentry.api.event_search import (
     SearchValue,
     SearchVisitor,
     event_search_grammar,
+    is_negated,
 )
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.group import STATUS_QUERY_CHOICES
@@ -56,7 +57,7 @@ class IssueSearchVisitor(SearchVisitor):
 
     def visit_is_filter(self, node, children):
         # the key is "is" here, which we don't need
-        negation, _, _, search_value = children
+        negation, _, _, _, search_value = children
 
         if search_value.raw_value.startswith("["):
             raise InvalidSearchQuery('"in" syntax invalid for "is" search')
@@ -70,7 +71,7 @@ class IssueSearchVisitor(SearchVisitor):
 
         search_key, search_value = self.is_filter_translators[search_value.raw_value]
 
-        operator = "!=" if self.is_negated(negation) else "="
+        operator = "!=" if is_negated(negation) else "="
 
         return SearchFilter(search_key, operator, search_value)
 
