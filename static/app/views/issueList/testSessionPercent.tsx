@@ -1,46 +1,41 @@
-import 'echarts/lib/chart/scatter';
-
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
-import {EChartOption} from 'echarts';
+import range from 'lodash/range';
 import moment from 'moment';
 import * as qs from 'query-string';
 
 import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
 import FeatureDisabled from 'app/components/acl/featureDisabled';
-import BaseChart from 'app/components/charts/baseChart';
-import MarkLine from 'app/components/charts/components/markLine';
 import Input from 'app/components/forms/input';
 import * as Layout from 'app/components/layouts/thirds';
 import Link from 'app/components/links/link';
-import space from 'app/styles/space';
-import {GlobalSelection, Group, GroupStats} from 'app/types';
+import {
+  GlobalSelection,
+  Group,
+  GroupStats,
+  Organization,
+  SavedQueryVersions,
+} from 'app/types';
 import {getUtcDateString} from 'app/utils/dates';
-import theme from 'app/utils/theme';
+import EventView from 'app/utils/discover/eventView';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
+import withOrganization from 'app/utils/withOrganization';
 
 type Props = {
   selection: GlobalSelection;
   params: {orgId: string};
+  organization: Organization;
   api: Client;
 };
 
-const timePeriods = [-1, -2, -3, -4, -5, -6, -7];
+const timePeriods = range(-1, -24 * 7, -1);
 const defaultValue = '0.1';
 
-function ScatterSeries(props: EChartOption.SeriesScatter): EChartOption.SeriesScatter {
-  return {
-    symbolSize: theme.charts.symbolSize,
-    ...props,
-    type: 'scatter',
-  };
-}
-
-function SessionPercent({params, api, selection}: Props) {
+function SessionPercent({params, api, selection, organization}: Props) {
   const [threshold, setThreshold] = useState(defaultValue);
-  const [dataArr, setData] = useState(timePeriods.map(() => [] as Group[]));
+  const [groups, setGroups] = useState<Group[]>([]);
   const [statsArr, setStats] = useState<Array<Record<string, number>>>([]);
 
   const requestParams = {
@@ -52,30 +47,29 @@ function SessionPercent({params, api, selection}: Props) {
   };
 
   const fetchData = async () => {
-    let promises = timePeriods.map(period => {
-      const start = getUtcDateString(
-        moment().subtract(Math.abs(period), 'hours').toDate()
-      );
-      const end = getUtcDateString(
-        moment()
-          .subtract(Math.abs(period) - 1, 'hours')
-          .toDate()
-      );
-      const query = {...requestParams, start, end, limit: 20};
-      return api.requestPromise(`/organizations/${params.orgId}/issues/`, {
-        method: 'GET',
-        data: qs.stringify(query),
-      });
-    });
-
-    let results: Group[][];
+    const issuesQuery = {...requestParams, limit: 25, statsPeriod: '7d'};
+    let results: Group[];
     try {
-      results = await Promise.all(promises);
+      results = await api.requestPromise(`/organizations/${params.orgId}/issues/`, {
+        method: 'GET',
+        data: qs.stringify(issuesQuery),
+      });
     } catch {
       results = [];
     }
 
-    promises = timePeriods.map((period, idx) => {
+    const groupIds = results.map(group => group.id);
+    if (groupIds.length === 0) {
+      setStats([]);
+      setGroups([]);
+      return;
+    }
+
+    setGroups(results);
+
+    const statsResults: GroupStats[][] = [];
+    for (let idx = 0; idx < timePeriods.length; idx++) {
+      const period = timePeriods[idx];
       const start = getUtcDateString(
         moment().subtract(Math.abs(period), 'hours').toDate()
       );
@@ -89,38 +83,66 @@ function SessionPercent({params, api, selection}: Props) {
         ...requestParams,
         start,
         end,
-        groups: results[idx]?.map(group => group.id) ?? [],
+        groups: groupIds,
       };
-      if (query.groups.length === 0) {
-        return Promise.resolve([]);
+
+      try {
+        const stats = await api.requestPromise(
+          `/organizations/${params.orgId}/issues-stats/`,
+          {
+            method: 'GET',
+            data: qs.stringify(query),
+          }
+        );
+        statsResults.push(stats);
+
+        const statsMap = statsResults.map(issueStats => {
+          const issueStatsMap = issueStats.reduce((acc, {id, sessionCount, count}) => {
+            if (Number(count) !== 0) {
+              acc[id] = sessionCount ? (Number(count) / Number(sessionCount)) * 100 : 100;
+            }
+            return acc;
+          }, {});
+          return issueStatsMap;
+        });
+
+        setStats(statsMap);
+      } catch {
+        // pass
       }
-
-      return api.requestPromise(`/organizations/${params.orgId}/issues-stats/`, {
-        method: 'GET',
-        data: qs.stringify(query),
-      });
-    });
-    let statsResults: GroupStats[][];
-    try {
-      statsResults = await Promise.all(promises);
-    } catch {
-      statsResults = [];
     }
-    const statsMap = statsResults.map(issueStats => {
-      const issueStatsMap = issueStats.reduce((acc, {id, sessionCount, count}) => {
-        acc[id] = sessionCount ? (Number(count) / Number(sessionCount)) * 100 : 100;
-        return acc;
-      }, {});
-      return issueStatsMap;
-    });
-
-    setStats(statsMap);
-    setData(results);
   };
 
   useEffect(() => {
     fetchData();
   }, []);
+
+  function getDiscoverUrl({title, id, type}: Group, period: number) {
+    const start = getUtcDateString(
+      moment()
+        .subtract(Math.abs(period - 2), 'hours')
+        .toDate()
+    );
+    const end = getUtcDateString(
+      moment()
+        .subtract(Math.abs(period) - 3, 'hours')
+        .toDate()
+    );
+    const discoverQuery = {
+      id: undefined,
+      name: title || type,
+      fields: ['title', 'release', 'environment', 'user.display', 'timestamp'],
+      orderby: '-timestamp',
+      query: `issue.id:${id}`,
+      projects: selection.projects,
+      version: 2 as SavedQueryVersions,
+      start,
+      end,
+    };
+
+    const discoverView = EventView.fromSavedQuery(discoverQuery);
+    return discoverView.getResultsViewUrlTarget(organization.slug);
+  }
 
   return (
     <Fragment>
@@ -138,85 +160,25 @@ function SessionPercent({params, api, selection}: Props) {
       </Layout.Header>
       <Layout.Body>
         <Layout.Main fullWidth>
-          <BaseChart
-            grid={{
-              left: 0,
-              right: space(2),
-              top: space(2),
-              bottom: 0,
-            }}
-            series={[
-              ScatterSeries({
-                data: timePeriods
-                  .map((period, idx) => {
-                    const data = dataArr[idx] ?? [];
-                    const stats = statsArr[idx] ?? [];
-                    return data
-                      .filter(group => stats[group.id] !== undefined)
-                      .map(group => ({
-                        name: group.title,
-                        value: [period, stats[group.id]],
-                      }));
-                  })
-                  .flat()
-                  .reverse(),
-                animation: false,
-                animationThreshold: 1,
-                animationDuration: 0,
-                tooltip: {
-                  formatter: (data: any) => {
-                    return [
-                      `<div class="tooltip-series"><div>`,
-                      `<span class="tooltip-label">${data.name}</span>${data.value[1]}%`,
-                      `</div></div>`,
-                      `<div class="tooltip-date">${data.value[0]} hours</div>`,
-                      `<div class="tooltip-arrow"></div>`,
-                    ].join('');
-                  },
-                },
-              }),
-              {
-                seriesName: 'Threshold',
-                type: 'line',
-                markLine: MarkLine({
-                  silent: true,
-                  lineStyle: {color: theme.gray200},
-                  data: [
-                    {
-                      yAxis: threshold,
-                    } as any,
-                  ],
-                  label: {
-                    show: true,
-                    position: 'insideEndTop',
-                    formatter: 'Threshold',
-                    color: theme.gray200,
-                    fontSize: 10,
-                  } as any,
-                }),
-                data: [],
-                animation: false,
-                animationThreshold: 1,
-                animationDuration: 0,
-              } as any,
-            ]}
-          />
-
           {timePeriods.map((period, idx) => {
-            const data = dataArr[idx] ?? [];
-            const stats = statsArr[idx] ?? [];
+            const stats = statsArr[idx];
+
+            if (!stats) {
+              return null;
+            }
+
             return (
               <Fragment key={idx}>
                 <h4>{period} hours</h4>
                 <ul>
-                  {data
-                    .filter(group => stats[group.id] > parseFloat(threshold))
+                  {groups
+                    .filter(
+                      group => stats[group.id] && stats[group.id] > parseFloat(threshold)
+                    )
                     .map(group => (
                       <li key={group.id}>
                         {stats[group.id].toLocaleString()}% -{' '}
-                        <Link to={`/organizations/${params.orgId}/issues/${group.id}/`}>
-                          {group.title}
-                        </Link>
+                        <Link to={getDiscoverUrl(group, period)}>{group.title}</Link>
                       </li>
                     ))}
                 </ul>
@@ -240,7 +202,7 @@ function SessionPercentWrapper(props: Props) {
   );
 }
 
-export default withApi(withGlobalSelection(SessionPercentWrapper));
+export default withApi(withGlobalSelection(withOrganization(SessionPercentWrapper)));
 
 const StyledInput = styled(Input)`
   width: 100px;
