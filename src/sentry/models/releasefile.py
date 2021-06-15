@@ -29,6 +29,22 @@ MANIFEST_FILENAME = "release-file-manifest.json"
 MANIFEST_TYPE = "release.manifest"
 
 
+class PublicReleaseFileManager(models.Manager):
+    """Manager for all release files that are not internal.
+
+    Internal release files include:
+    * Uploaded release archives
+    * Artifact index mapping URLs to release archives
+
+    This manager has the overhead of always joining the File table in order
+    to filter release files.
+
+    """
+
+    def get_queryset(self):
+        return super().get_queryset().select_related("file").filter(file__type="release.file")
+
+
 class ReleaseFile(Model):
     r"""
     A ReleaseFile is an association between a Release and a File.
@@ -48,6 +64,8 @@ class ReleaseFile(Model):
     dist = FlexibleForeignKey("sentry.Distribution", null=True)
 
     __repr__ = sane_repr("release", "ident")
+
+    public_objects = PublicReleaseFileManager()
 
     class Meta:
         unique_together = (("release", "ident"),)
@@ -100,11 +118,6 @@ class ReleaseFile(Model):
         if query:
             urls.append("~" + urlunsplit(uri_relative_without_query))
         return urls
-
-    @classmethod
-    def public_objects(cls):
-        """Exclude hidden release files such as release manifest, etc."""
-        return cls.objects.select_related("file").filter(file__type="release.file")
 
 
 class ReleaseFileCache:

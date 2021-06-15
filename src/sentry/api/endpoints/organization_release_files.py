@@ -57,8 +57,7 @@ class OrganizationReleaseFilesEndpoint(OrganizationReleasesBaseEndpoint):
             raise ResourceDoesNotExist
 
         file_list = (
-            ReleaseFile.public_objects()
-            .filter(release=release)
+            ReleaseFile.public_objects.filter(release=release)
             .select_related("file")
             .order_by("name")
         )
@@ -133,16 +132,12 @@ class OrganizationReleaseFilesEndpoint(OrganizationReleasesBaseEndpoint):
 
         # Quickly check for the presence of this file before continuing with
         # the costly file upload process.
-        if (
-            ReleaseFile.public_objects()
-            .filter(
-                organization_id=release.organization_id,
-                release=release,
-                name=full_name,
-                dist=dist,
-            )
-            .exists()
-        ):
+        if ReleaseFile.public_objects.filter(
+            organization_id=release.organization_id,
+            release=release,
+            name=full_name,
+            dist=dist,
+        ).exists():
             return Response({"detail": ERR_FILE_EXISTS}, status=409)
 
         headers = {"Content-Type": fileobj.content_type}

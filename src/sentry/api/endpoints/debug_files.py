@@ -429,8 +429,7 @@ class SourceMapsEndpoint(ProjectEndpoint):
 
         def serialize_results(results):
             file_counts = (
-                ReleaseFile.public_objects()
-                .filter(release_id__in=[r["id"] for r in results])
+                ReleaseFile.public_objects.filter(release_id__in=[r["id"] for r in results])
                 .values("release_id")
                 .annotate(count=Count("id"))
             )
