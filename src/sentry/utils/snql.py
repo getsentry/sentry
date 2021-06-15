@@ -65,6 +65,7 @@ dryrun_check = ReferrerCheck(
         "testing.test",
         "api.",
         "discover",
+        "sessions.",
     ],
     by_entity={},
 )
@@ -73,7 +74,7 @@ snql_check = ReferrerCheck(
     option="snuba.snql.snql_only",
     denylist=set(),
     allowlist=set(),
-    prefixes=["sessions.", "outcomes."],
+    prefixes=["outcomes."],
     by_entity={},
     is_dryrun=False,
 )
