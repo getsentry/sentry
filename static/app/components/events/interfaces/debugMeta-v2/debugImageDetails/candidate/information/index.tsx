@@ -68,7 +68,7 @@ function Information({
   function getTimeSinceData(dateCreated: string) {
     const dateTime = <DateTime date={dateCreated} />;
 
-    if (candidate.download.status === CandidateDownloadStatus.OK) {
+    if (candidate.download.status !== CandidateDownloadStatus.UNAPPLIED) {
       return {
         tooltipDesc: dateTime,
         displayIcon: false,
@@ -91,7 +91,7 @@ function Information({
               <DateTimeWrapper>{dateTime}</DateTimeWrapper>
             </React.Fragment>
           ),
-          displayIcon: candidate.download.status === CandidateDownloadStatus.UNAPPLIED,
+          displayIcon: true,
         };
       }
 
@@ -116,7 +116,7 @@ function Information({
             <DateTimeWrapper>{dateTime}</DateTimeWrapper>
           </React.Fragment>
         ),
-        displayIcon: candidate.download.status === CandidateDownloadStatus.UNAPPLIED,
+        displayIcon: true,
       };
     }
 
@@ -133,7 +133,7 @@ function Information({
             <DateTimeWrapper>{dateTime}</DateTimeWrapper>
           </React.Fragment>
         ),
-        displayIcon: candidate.download.status === CandidateDownloadStatus.UNAPPLIED,
+        displayIcon: true,
       };
     }
 
@@ -146,7 +146,7 @@ function Information({
           <DateTimeWrapper>{dateTime}</DateTimeWrapper>
         </React.Fragment>
       ),
-      displayIcon: candidate.download.status === CandidateDownloadStatus.UNAPPLIED,
+      displayIcon: true,
     };
   }
 
