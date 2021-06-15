@@ -1398,6 +1398,15 @@ FUNCTIONS = {
                             arrayElement(measurements.value, indexOf(measurements.key, 'lcp')),
                             NULL
                         ),
+                        equals(
+                            tupleElement(project_threshold_config, 1),
+                            'fcp'
+                        ),
+                        if(
+                            has(measurements.key, 'fcp'),
+                            arrayElement(measurements.value, indexOf(measurements.key, 'fcp')),
+                            NULL
+                        ),
                         duration
                     ),
                     tupleElement(project_threshold_config, 2)
@@ -1428,8 +1437,24 @@ FUNCTIONS = {
                 """
                 uniqIf(user, greater(
                     multiIf(
-                        equals(tupleElement(project_threshold_config, 1), 'lcp'),
-                        if(has(measurements.key, 'lcp'), arrayElement(measurements.value, indexOf(measurements.key, 'lcp')), NULL),
+                        equals(
+                            tupleElement(project_threshold_config, 1),
+                            'lcp'
+                        ),
+                        if(
+                            has(measurements.key, 'lcp'),
+                            arrayElement(measurements.value, indexOf(measurements.key, 'lcp')),
+                            NULL
+                        ),
+                        equals(
+                            tupleElement(project_threshold_config, 1),
+                            'fcp'
+                        ),
+                        if(
+                            has(measurements.key, 'fcp'),
+                            arrayElement(measurements.value, indexOf(measurements.key, 'fcp')),
+                            NULL
+                        ),
                         duration
                     ),
                     multiply(tupleElement(project_threshold_config, 2), 4)
@@ -1473,8 +1498,24 @@ FUNCTIONS = {
                         plus(
                             uniqIf(user, greater(
                                 multiIf(
-                                    equals(tupleElement(project_threshold_config, 1), 'lcp'),
-                                    if(has(measurements.key, 'lcp'), arrayElement(measurements.value, indexOf(measurements.key, 'lcp')), NULL),
+                                    equals(
+                                        tupleElement(project_threshold_config, 1),
+                                        'lcp'
+                                    ),
+                                    if(
+                                        has(measurements.key, 'lcp'),
+                                        arrayElement(measurements.value, indexOf(measurements.key, 'lcp')),
+                                        NULL
+                                    ),
+                                    equals(
+                                        tupleElement(project_threshold_config, 1),
+                                        'fcp'
+                                    ),
+                                    if(
+                                        has(measurements.key, 'fcp'),
+                                        arrayElement(measurements.value, indexOf(measurements.key, 'fcp')),
+                                        NULL
+                                    ),
                                     duration
                                 ),
                                 multiply(tupleElement(project_threshold_config, 2), 4)

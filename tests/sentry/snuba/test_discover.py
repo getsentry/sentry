@@ -1029,7 +1029,20 @@ class QueryTransformTest(TestCase):
             conditions=[],
             aggregations=[
                 [
-                    "apdex(multiIf(equals(tupleElement(project_threshold_config,1),'lcp'),if(has(measurements.key,'lcp'),arrayElement(measurements.value,indexOf(measurements.key,'lcp')),NULL),duration),tupleElement(project_threshold_config,2))",
+                    """apdex(
+                        multiIf(
+                            equals(tupleElement(project_threshold_config,1),'lcp'),
+                            if(has(measurements.key,'lcp'),arrayElement(measurements.value,indexOf(measurements.key,'lcp')),NULL),
+                            equals(tupleElement(project_threshold_config,1),'fcp'),
+                            if(has(measurements.key,'fcp'),arrayElement(measurements.value,indexOf(measurements.key,'fcp')),NULL),
+                            duration
+                        ),
+                        tupleElement(project_threshold_config,2)
+                    )""".replace(
+                        " ", ""
+                    ).replace(
+                        "\n", ""
+                    ),
                     None,
                     "apdex",
                 ]
@@ -1118,7 +1131,31 @@ class QueryTransformTest(TestCase):
             conditions=[],
             aggregations=[
                 [
-                    "ifNull(divide(plus(uniqIf(user,greater(multiIf(equals(tupleElement(project_threshold_config,1),'lcp'),if(has(measurements.key,'lcp'),arrayElement(measurements.value,indexOf(measurements.key,'lcp')),NULL),duration),multiply(tupleElement(project_threshold_config,2),4))),5.8875),plus(uniq(user),117.75)),0)",
+                    """
+                    ifNull(
+                        divide(
+                            plus(
+                                uniqIf(user, greater(
+                                    multiIf(
+                                        equals(tupleElement(project_threshold_config, 1), 'lcp'),
+                                        if(has(measurements.key, 'lcp'), arrayElement(measurements.value, indexOf(measurements.key, 'lcp')), NULL),
+                                        equals(tupleElement(project_threshold_config, 1), 'fcp'),
+                                        if(has(measurements.key, 'fcp'), arrayElement(measurements.value, indexOf(measurements.key, 'fcp')), NULL),
+                                        duration
+                                    ),
+                                    multiply(tupleElement(project_threshold_config, 2), 4)
+                                )),
+                                5.8875
+                            ),
+                            plus(uniq(user),117.75)
+                        ),
+                        0
+                    )
+                    """.replace(
+                        "\n", ""
+                    ).replace(
+                        " ", ""
+                    ),
                     None,
                     "user_misery",
                 ]
@@ -1431,6 +1468,8 @@ class QueryTransformTest(TestCase):
                         multiIf(
                             equals(tupleElement(project_threshold_config, 1), 'lcp'),
                             if(has(measurements.key, 'lcp'), arrayElement(measurements.value, indexOf(measurements.key, 'lcp')), NULL),
+                            equals(tupleElement(project_threshold_config, 1), 'fcp'),
+                            if(has(measurements.key, 'fcp'), arrayElement(measurements.value, indexOf(measurements.key, 'fcp')), NULL),
                             duration
                         ),
                         multiply(tupleElement(project_threshold_config, 2), 4)
