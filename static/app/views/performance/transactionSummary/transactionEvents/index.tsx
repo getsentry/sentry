@@ -167,7 +167,7 @@ function generateEventsEventView(
       fields,
       query: stringifyQueryObject(conditions),
       projects: [],
-      orderby: '-timestamp',
+      orderby: decodeScalar(location.query.sort, '-timestamp'),
     },
     location
   );

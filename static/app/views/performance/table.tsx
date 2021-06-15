@@ -297,7 +297,7 @@ class Table extends React.Component<Props, State> {
           return [this.renderBodyCell(tableData, teamKeyTransactionColumn, dataRow)];
         }
       }
-      return [];
+      return undefined;
     };
   };
 
@@ -336,16 +336,23 @@ class Table extends React.Component<Props, State> {
     const {eventView, organization, location, setError} = this.props;
 
     const {widths} = this.state;
+    const containsSpanOpsBreakdown = eventView
+      .getColumns()
+      .find(
+        (col: TableColumn<React.ReactText>) => col.name === 'span_ops_breakdown.relative'
+      );
     const columnOrder = eventView
       .getColumns()
       // remove key_transactions from the column order as we'll be rendering it
       // via a prepended column
+      // also remove spans if span_ops_breakdown is a column
       .filter(
         (col: TableColumn<React.ReactText>) =>
           col.name !== 'key_transaction' &&
           col.name !== 'team_key_transaction' &&
           !col.name.startsWith('count_miserable') &&
-          col.name !== 'project_threshold_config'
+          col.name !== 'project_threshold_config' &&
+          (!containsSpanOpsBreakdown || !col.name.startsWith('spans'))
       )
       .map((col: TableColumn<React.ReactText>, i: number) => {
         if (typeof widths[i] === 'number') {
@@ -357,7 +364,17 @@ class Table extends React.Component<Props, State> {
     const sortedEventView = this.getSortedEventView();
     const columnSortBy = sortedEventView.getSorts();
 
-    const prependColumnWidths = ['max-content'];
+    const containsKeyTransactionColumn = !!(
+      eventView
+        .getColumns()
+        .find((col: TableColumn<React.ReactText>) => col.name === 'key_transaction') ||
+      eventView
+        .getColumns()
+        .find((col: TableColumn<React.ReactText>) => col.name === 'team_key_transaction')
+    );
+    const prependColumnWidths = containsKeyTransactionColumn
+      ? ['max-content']
+      : undefined;
 
     return (
       <div>
@@ -368,25 +385,29 @@ class Table extends React.Component<Props, State> {
           setError={setError}
           referrer="api.performance.landing-table"
         >
-          {({pageLinks, isLoading, tableData}) => (
-            <React.Fragment>
-              <GridEditable
-                isLoading={isLoading}
-                data={tableData ? tableData.data : []}
-                columnOrder={columnOrder}
-                columnSortBy={columnSortBy}
-                grid={{
-                  onResizeColumn: this.handleResizeColumn,
-                  renderHeadCell: this.renderHeadCellWithMeta(tableData?.meta) as any,
-                  renderBodyCell: this.renderBodyCellWithData(tableData) as any,
-                  renderPrependColumns: this.renderPrependCellWithData(tableData) as any,
-                  prependColumnWidths,
-                }}
-                location={location}
-              />
-              <Pagination pageLinks={pageLinks} />
-            </React.Fragment>
-          )}
+          {({pageLinks, isLoading, tableData}) => {
+            return (
+              <React.Fragment>
+                <GridEditable
+                  isLoading={isLoading}
+                  data={tableData ? tableData.data : []}
+                  columnOrder={columnOrder}
+                  columnSortBy={columnSortBy}
+                  grid={{
+                    onResizeColumn: this.handleResizeColumn,
+                    renderHeadCell: this.renderHeadCellWithMeta(tableData?.meta) as any,
+                    renderBodyCell: this.renderBodyCellWithData(tableData) as any,
+                    renderPrependColumns: containsKeyTransactionColumn
+                      ? (this.renderPrependCellWithData(tableData) as any)
+                      : undefined,
+                    prependColumnWidths,
+                  }}
+                  location={location}
+                />
+                <Pagination pageLinks={pageLinks} />
+              </React.Fragment>
+            );
+          }}
         </DiscoverQuery>
       </div>
     );
