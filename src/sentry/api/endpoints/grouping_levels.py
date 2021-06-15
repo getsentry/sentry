@@ -146,10 +146,7 @@ def get_levels_overview(group):
 
 
 def _list_levels(group):
-    try:
-        fields = get_levels_overview(group)
-    except NoEvents:
-        return {"levels": []}
+    fields = get_levels_overview(group)
 
     # It is a little silly to transfer a list of integers rather than just
     # giving the UI a range, but in the future we may want to add

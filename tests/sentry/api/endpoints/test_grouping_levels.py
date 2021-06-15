@@ -269,8 +269,6 @@ level 2*
 """
     )
 
-    assert _render_all_previews(old_group) == ""
-
 
 @pytest.mark.django_db
 @pytest.mark.snuba
