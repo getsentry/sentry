@@ -3,19 +3,12 @@ from typing import Optional
 from sentry.integrations.slack.message_builder import SlackBody
 from sentry.integrations.slack.message_builder.base.base import SlackMessageBuilder
 
-AVAILABLE_COMMANDS = {
-    "help": "displays the available commands",
-    "link": "kicks off linking Slack and Sentry",
-    "unlink": "unlinks your identity",
-}
+from .event import DM_COMMANDS_MESSAGE
 
 
 def get_message(command: Optional[str] = None) -> str:
     unknown_command = f"Unknown command: `{command}`\n" if command else ""
-    commands_list = "\n".join(
-        f"• *{command}* - {description}" for command, description in AVAILABLE_COMMANDS.items()
-    )
-    return f"{unknown_command}Available Commands:\n{commands_list}"
+    return f"{unknown_command}Available Commands:\n{DM_COMMANDS_MESSAGE}"
 
 
 class SlackHelpMessageBuilder(SlackMessageBuilder):
