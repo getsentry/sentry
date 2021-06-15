@@ -583,7 +583,7 @@ class AppStoreConnectRequestSmsEndpoint(ProjectEndpoint):  # type: ignore
             phone_id=phone_info.id,
             push_mode=phone_info.push_mode,
         )
-        if init_phone_login is False:
+        if not init_phone_login:
             return Response("Phone 2fa failed", status=500)
 
         # success, return the new session context (add phone_id and push mode to the session context)
