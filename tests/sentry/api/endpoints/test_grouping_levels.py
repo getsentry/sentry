@@ -70,22 +70,35 @@ def _render_all_previews(client):
 
 
 @pytest.mark.django_db
-@pytest.mark.snuba
-@pytest.mark.skip(reason="flaky test")
-def test_error_conditions(client, default_project, reset_snuba, factories):
+def test_error_missing_feature(client, default_project, reset_snuba, factories):
     group = Group.objects.create(project=default_project)
-    grouphash = GroupHash.objects.create(
-        project=default_project, group=group, hash="d41d8cd98f00b204e9800998ecf8427e"
-    )
 
     with Feature({"organizations:grouping-tree-ui": False}):
         response = client.get(f"/api/0/issues/{group.id}/grouping/levels/", format="json")
         assert response.status_code == 403
         assert response.data["detail"]["code"] == "missing_feature"
 
+
+@pytest.mark.django_db
+def test_error_no_events(client, default_project, reset_snuba, factories):
+    group = Group.objects.create(project=default_project)
+
     response = client.get(f"/api/0/issues/{group.id}/grouping/levels/", format="json")
     assert response.status_code == 403
     assert response.data["detail"]["code"] == "no_events"
+
+
+@pytest.mark.django_db
+@pytest.mark.snuba
+def test_error_not_hierarchical(client, default_project, reset_snuba, factories):
+    group = Group.objects.create(project=default_project)
+    grouphash = GroupHash.objects.create(
+        project=default_project, group=group, hash="d41d8cd98f00b204e9800998ecf8427e"
+    )
+
+    # we cannot run one of the other test_error testcases here because it would
+    # populate Snuba caches. Then we would not be able to observe our write, at
+    # least not within the same second we wrote.
 
     factories.store_event(
         data={"message": "hello world", "checksum": grouphash.hash}, project_id=default_project.id
