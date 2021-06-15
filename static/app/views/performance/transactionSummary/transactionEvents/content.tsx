@@ -2,7 +2,7 @@ import * as React from 'react';
 import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location, Query} from 'history';
+import {Location} from 'history';
 import omit from 'lodash/omit';
 
 import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
@@ -83,7 +83,6 @@ class EventsPageContent extends React.Component<Props, State> {
   render() {
     const {eventView, location, organization, projects, transactionName} = this.props;
     const {incompatibleAlertNotice} = this.state;
-
     const transactionsListTitles = [
       t('event id'),
       t('user'),

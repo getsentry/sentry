@@ -20,7 +20,11 @@ import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 import CellAction, {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
 import {TableColumn} from 'app/views/eventsV2/table/types';
 
-import {transactionSummaryRouteWithQuery} from './transactionSummary/utils';
+import {
+  generateTraceLink,
+  generateTransactionLink,
+  transactionSummaryRouteWithQuery,
+} from './transactionSummary/utils';
 import {COLUMN_TITLES} from './data';
 
 export function getProjectID(
@@ -143,6 +147,48 @@ class Table extends React.Component<Props, State> {
       );
     }
 
+    if (field === 'id') {
+      const target = generateTransactionLink(eventView.name as string)(
+        organization,
+        dataRow,
+        location.query
+      );
+
+      return (
+        <CellAction
+          column={column}
+          dataRow={dataRow}
+          handleCellAction={this.handleCellAction(column)}
+          allowActions={allowActions}
+        >
+          <Link to={target} onClick={this.handleSummaryClick}>
+            {rendered}
+          </Link>
+        </CellAction>
+      );
+    }
+
+    if (field === 'trace') {
+      const target = generateTraceLink(eventView.name as string)(
+        organization,
+        dataRow,
+        location.query
+      );
+
+      return (
+        <CellAction
+          column={column}
+          dataRow={dataRow}
+          handleCellAction={this.handleCellAction(column)}
+          allowActions={allowActions}
+        >
+          <Link to={target} onClick={this.handleSummaryClick}>
+            {rendered}
+          </Link>
+        </CellAction>
+      );
+    }
+
     if (field.startsWith('key_transaction')) {
       // don't display per cell actions for key_transaction
       return rendered;
@@ -228,7 +274,11 @@ class Table extends React.Component<Props, State> {
       };
     }
     const currentSort = eventView.sortForField(field, tableMeta);
-    const canSort = isFieldSortable(field, tableMeta);
+    // Event id and Trace id are technically sortable but we don't want to sort them here since sorting by a uuid value doesn't make sense
+    const canSort =
+      field.field !== 'id' &&
+      field.field !== 'trace' &&
+      isFieldSortable(field, tableMeta);
 
     const currentSortKind = currentSort ? currentSort.kind : undefined;
     const currentSortField = currentSort ? currentSort.field : undefined;
