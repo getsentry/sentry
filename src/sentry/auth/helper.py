@@ -124,7 +124,7 @@ Identity = Mapping[str, Any]
 @dataclass(eq=True, frozen=True)
 class AuthIdentityHandler:
 
-    auth_provider: AuthProvider
+    auth_provider: Optional[AuthProvider]
     provider: Provider
     organization: Organization
     request: HttpRequest
