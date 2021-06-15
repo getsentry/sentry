@@ -1,5 +1,4 @@
 import datetime
-import itertools
 import logging
 from uuid import uuid4
 
@@ -13,6 +12,7 @@ from sentry.api.bases import GroupEndpoint
 from sentry.api.endpoints.grouping_levels import (
     LevelsOverview,
     MergedIssues,
+    NoEvents,
     check_feature,
     get_levels_overview,
 )
@@ -135,24 +135,34 @@ def _decrease_level(group: Group, id: int, levels_overview: LevelsOverview, requ
         Query("events", Entity("events"))
         .set_select(
             [
-                Column("group_id"),
                 Function(
-                    "argMax",
+                    "arrayDistinct", [Function("groupArray", [Column("group_id")])], "group_ids"
+                ),
+                Function(
+                    "arrayDistinct",
                     [
                         Function(
-                            "arraySlice",
+                            "arrayFlatten",
                             [
-                                Column("hierarchical_hashes"),
-                                id + 1,
+                                Function(
+                                    "groupArray",
+                                    [
+                                        Function(
+                                            "arraySlice",
+                                            [
+                                                Column("hierarchical_hashes"),
+                                                id + 1,
+                                            ],
+                                        )
+                                    ],
+                                )
                             ],
-                        ),
-                        Column("timestamp"),
+                        )
                     ],
                     "reset_hashes",
                 ),
             ]
         )
-        .set_groupby([Column("group_id")])
         .set_where(
             [
                 Condition(Column("primary_hash"), Op.EQ, levels_overview.only_primary_hash),
@@ -177,7 +187,11 @@ def _decrease_level(group: Group, id: int, levels_overview: LevelsOverview, requ
     group_ids_result = snuba.raw_snql_query(
         query, referrer="api.grouping_levels_details.decrease_level.get_group_ids"
     )["data"]
-    source_group_ids = [row["group_id"] for row in group_ids_result]
+
+    if not group_ids_result:
+        raise NoEvents()
+
+    source_group_ids = group_ids_result[0]["group_ids"]
 
     # This query only serves the purpose if any of the to-be-merged groups
     # contain merged issues.
@@ -212,15 +226,11 @@ def _decrease_level(group: Group, id: int, levels_overview: LevelsOverview, requ
         project_id=group.project_id, short_id=group.project.next_short_id()
     )
 
-    reset_hashes = set(
-        itertools.chain.from_iterable(row["reset_hashes"] for row in group_ids_result)
-    )
-
     # Disassociate all subhashes and reset their state, except for the one
     # hierarchical hash that we now group by (new_materialized_hash).
     with transaction.atomic():
         locked_grouphashes = GroupHash.objects.filter(
-            project_id=group.project_id, hash__in=reset_hashes
+            project_id=group.project_id, hash__in=group_ids_result[0]["reset_hashes"]
         ).select_for_update()
         ids = [gh.id for gh in locked_grouphashes]
         GroupHash.objects.filter(id__in=ids).exclude(hash=new_materialized_hash).update(
