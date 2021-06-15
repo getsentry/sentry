@@ -119,7 +119,7 @@ def distribution_v3(hour: int) -> int:
         return 6
     if hour > 3:
         return 2
-    return 1
+    return 2
 
 
 def distribution_v4(hour: int) -> int:
@@ -136,8 +136,8 @@ def distribution_v5(hour: int) -> int:
     if hour == 3:
         return 10
     if hour < 5:
-        return 3
-    return 1
+        return 7
+    return 2
 
 
 distribution_fns = [
@@ -1130,6 +1130,22 @@ class DataPopulation:
             )
         self.assign_issues()
 
+    def handle_mobile_scenario(self, ios_project: Project, android_project: Project):
+        with sentry_sdk.start_span(op="handle_mobile_scenario", description="populate_errors"):
+            self.populate_generic_error(
+                ios_project, "errors/ios/exc_bad_access.json", 3, starting_release=1
+            )
+            self.populate_generic_error(
+                ios_project, "errors/ios/handled.json", 4, starting_release=2
+            )
+            self.populate_generic_error(
+                android_project, "errors/android/out_of_bounds.json", 5, starting_release=1
+            )
+            self.populate_generic_error(
+                android_project, "errors/android/app_not_responding.json", 2, starting_release=2
+            )
+        self.assign_issues()
+
 
 def handle_react_python_scenario(react_project: Project, python_project: Project, quick=False):
     """
@@ -1137,3 +1153,11 @@ def handle_react_python_scenario(react_project: Project, python_project: Project
     """
     data_population = DataPopulation(python_project.organization, quick)
     data_population.handle_react_python_scenario(react_project, python_project)
+
+
+def handle_mobile_scenario(ios_project: Project, android_project: Project, quick=False):
+    """
+    Handles all data population for the iOS + Android + React-Native scenario
+    """
+    data_population = DataPopulation(ios_project.organization, quick)
+    data_population.handle_mobile_scenario(ios_project, android_project)

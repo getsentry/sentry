@@ -21,18 +21,6 @@
     ["user", "email:cbve@yahoo.com"],
     ["transaction", "sentry_cocoa.ViewController"]
   ],
-  "_meta": {
-    "user": {
-      "ip_address": {
-        "": {
-          "rem": [["strip-fields", "s", 0, 10]],
-          "err": [["invalid_data", {"reason": "expected an ip address"}]],
-          "len": 12,
-          "val": "[Filtered]"
-        }
-      }
-    }
-  },
   "_metrics": {"bytes.ingested.event": 2905, "bytes.stored.event": 3108},
   "breadcrumbs": {
     "values": [

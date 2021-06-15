@@ -22,18 +22,6 @@
     ["user", "id:1"],
     ["transaction", "UIInputWindowController"]
   ],
-  "_meta": {
-    "user": {
-      "ip_address": {
-        "": {
-          "rem": [["strip-fields", "s", 0, 10]],
-          "err": [["invalid_data", {"reason": "expected an ip address"}]],
-          "len": 12,
-          "val": "[Filtered]"
-        }
-      }
-    }
-  },
   "_metrics": {"bytes.ingested.event": 13074, "bytes.stored.event": 26006},
   "breadcrumbs": {
     "values": [
