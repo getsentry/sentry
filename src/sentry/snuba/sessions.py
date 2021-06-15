@@ -114,19 +114,20 @@ def check_has_health_data(projects_list):
         return set()
 
     conditions = None
+    projects_list = list(projects_list)
     # Check if projects_list also contains releases as a tuple of (project_id, releases)
     includes_releases = type(projects_list[0]) == tuple
 
     if includes_releases:
-        filter_keys = {"project_id": list({x[0] for x in projects_list})}
-        conditions = [["release", "IN", list(x[1] for x in projects_list)]]
+        filter_keys = {"project_id": {x[0] for x in projects_list}}
+        conditions = [["release", "IN", [x[1] for x in projects_list]]]
         query_cols = ["release", "project_id"]
 
         def data_tuple(x):
             return x["project_id"], x["release"]
 
     else:
-        filter_keys = {"project_id": list({x for x in projects_list})}
+        filter_keys = {"project_id": {x for x in projects_list}}
         query_cols = ["project_id"]
 
         def data_tuple(x):
