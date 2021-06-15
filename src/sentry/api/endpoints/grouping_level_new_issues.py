@@ -5,10 +5,10 @@ from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.orderby import Direction, OrderBy
 from snuba_sdk.query import Column, Entity, Function, Query
 
-from sentry import features, nodestore
+from sentry import nodestore
 from sentry.api.bases import GroupEndpoint
 from sentry.api.endpoints.group_hashes_split import _get_group_filters
-from sentry.api.endpoints.grouping_levels import LevelsOverview, get_levels_overview
+from sentry.api.endpoints.grouping_levels import LevelsOverview, check_feature, get_levels_overview
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.eventstore.models import Event
@@ -64,13 +64,7 @@ class GroupingLevelNewIssuesEndpoint(GroupEndpoint):
         the new issues are more than what the current issue has).
         """
 
-        if not features.has(
-            "organizations:grouping-tree-ui", group.project.organization, actor=request.user
-        ):
-            return self.respond(
-                {"error": "This project does not have the grouping tree feature"},
-                status=403,
-            )
+        check_feature(group.project.organization, request)
 
         def data_fn(offset=None, limit=None):
             return _query_snuba(group, id, offset=offset, limit=limit)
