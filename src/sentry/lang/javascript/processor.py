@@ -503,10 +503,10 @@ def fetch_release_artifact(url, release, dist):
         return result_from_cache(url, result)
 
     start = time.monotonic()
-    release_file = fetch_release_archive_for_url(release, dist, url)
-    if release_file is not None:
+    archive_file = fetch_release_archive_for_url(release, dist, url)
+    if archive_file is not None:
         try:
-            archive = ReleaseArchive(release_file)
+            archive = ReleaseArchive(archive_file)
         except BaseException as exc:
             logger.error("Failed to initialize archive for release %s", release.id, exc_info=exc)
             # TODO(jjbayer): cache error and return here
@@ -518,7 +518,7 @@ def fetch_release_artifact(url, release, dist):
                     # The manifest mapped the url to an archive, but the file
                     # is not there.
                     logger.error(
-                        "Release artifact %r not found in archive %s", url, release_file.id
+                        "Release artifact %r not found in archive %s", url, archive_file.id
                     )
                     cache.set(cache_key, -1, 60)
                     metrics.timing(

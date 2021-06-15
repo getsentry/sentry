@@ -13,6 +13,7 @@ from sentry.models import ReleaseFile
 from sentry.models.distribution import Distribution
 from sentry.models.file import File
 from sentry.models.releasefile import (
+    ARTIFACT_INDEX_FILENAME,
     _ArtifactIndexGuard,
     delete_from_artifact_index,
     read_artifact_index,
@@ -227,24 +228,23 @@ class ReleaseArchiveTestCase(TestCase):
 
 @pytest.mark.skip(reason="Causes 'There is 1 other session using the database.'")
 class ArtifactIndexGuardTestCase(TransactionTestCase):
-    def test_locking(self):
+    tick = 0.1  # seconds
 
+    def _create_update_fn(self, initial_delay, locked_delay, files, create):
+        def f():
+            sleep(initial_delay * self.tick)
+            with _ArtifactIndexGuard(self.release, None).writable_data(create=create) as data:
+                sleep(locked_delay * self.tick)
+                data.update_files(files)
+
+        return f
+
+    def test_locking(self):
         release = self.release
         dist = None
 
-        tick = 0.1  # seconds
-
-        def create_update_fn(initial_delay, locked_delay, files):
-            def f():
-                sleep(initial_delay * tick)
-                with _ArtifactIndexGuard(release, dist).writable_data(create=True) as data:
-                    sleep(locked_delay * tick)
-                    data.update_files(files)
-
-            return f
-
-        update1 = create_update_fn(0, 2, {"foo": "bar"})
-        update2 = create_update_fn(1, 2, {"123": "xyz"})
+        update1 = self._create_update_fn(0, 2, {"foo": "bar"}, create=True)
+        update2 = self._create_update_fn(1, 2, {"123": "xyz"}, create=True)
 
         threads = [Thread(target=update1), Thread(target=update2)]
         for thread in threads:
@@ -255,11 +255,14 @@ class ArtifactIndexGuardTestCase(TransactionTestCase):
         # Without locking, only key "123" would survive:
         assert read_artifact_index(release, dist)["files"].keys() == {"foo", "123"}
 
+        # Only one `File` was created:
+        assert File.objects.filter(name=ARTIFACT_INDEX_FILENAME).count() == 1
+
         def delete():
-            sleep(2 * tick)
+            sleep(2 * self.tick)
             delete_from_artifact_index(release, dist, "foo")
 
-        update3 = create_update_fn(1, 2, {"abc": "666"})
+        update3 = self._create_update_fn(1, 2, {"abc": "666"}, create=True)
 
         threads = [Thread(target=update3), Thread(target=delete)]
         for thread in threads:
@@ -271,26 +274,14 @@ class ArtifactIndexGuardTestCase(TransactionTestCase):
         assert read_artifact_index(release, dist)["files"].keys() == {"123", "abc"}
 
     def test_lock_existing(self):
-
         release = self.release
         dist = None
-
-        tick = 0.1  # seconds
 
         with _ArtifactIndexGuard(release, dist).writable_data(create=True) as data:
             data.update_files({"0": 0})
 
-        def create_update_fn(initial_delay, locked_delay, files):
-            def f():
-                sleep(initial_delay * tick)
-                with _ArtifactIndexGuard(release, dist).writable_data(create=False) as data:
-                    sleep(locked_delay * tick)
-                    data.update_files(files)
-
-            return f
-
-        update1 = create_update_fn(0, 2, {"foo": "bar"})
-        update2 = create_update_fn(1, 2, {"123": "xyz"})
+        update1 = self._create_update_fn(0, 2, {"foo": "bar"}, create=False)
+        update2 = self._create_update_fn(1, 2, {"123": "xyz"}, create=False)
 
         threads = [Thread(target=update1), Thread(target=update2)]
         for thread in threads:
@@ -302,10 +293,10 @@ class ArtifactIndexGuardTestCase(TransactionTestCase):
         assert read_artifact_index(release, dist)["files"].keys() == {"0", "foo", "123"}
 
         def delete():
-            sleep(2 * tick)
+            sleep(2 * self.tick)
             delete_from_artifact_index(release, dist, "foo")
 
-        update3 = create_update_fn(1, 2, {"abc": "666"})
+        update3 = self._create_update_fn(1, 2, {"abc": "666"})
 
         threads = [Thread(target=update3), Thread(target=delete)]
         for thread in threads:
