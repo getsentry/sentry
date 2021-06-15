@@ -5,7 +5,7 @@ from sentry.new_migrations.monkey.executor import SentryMigrationExecutor
 from sentry.new_migrations.monkey.fields import deconstruct
 from sentry.new_migrations.monkey.writer import SENTRY_MIGRATION_TEMPLATE
 
-LAST_VERIFIED_DJANGO_VERSION = (2, 0)  # temporary; unblocking tests
+LAST_VERIFIED_DJANGO_VERSION = (2, 0)
 CHECK_MESSAGE = """Looks like you're trying to upgrade Django! Since we monkeypatch
 the Django migration library in several places, please verify that we have the latest
 code, and that the monkeypatching still works as expected. Currently the main things
