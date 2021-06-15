@@ -143,7 +143,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
         )
         assert data == {(self.project.id, self.session_release)}
 
-    def test_check_has_health_data_without_releases_should_exlude_sessions_gt_90_days(self):
+    def test_check_has_health_data_without_releases_should_exclude_sessions_gt_90_days(self):
         """
         Test that ensures that `check_has_health_data` returns a set of projects that has health
         data within the last 90d if only a list of project ids is provided and that any project
@@ -194,6 +194,10 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
         )
         data = check_has_health_data([self.project.id, project2.id])
         assert data == {self.project.id, project2.id}
+
+    def test_check_has_health_data_does_not_crash_when_sending_projects_list_as_set(self):
+        data = check_has_health_data({self.project.id})
+        assert data == {self.project.id}
 
     def test_get_project_releases_by_stability(self):
         # Add an extra session with a different `distinct_id` so that sorting by users
