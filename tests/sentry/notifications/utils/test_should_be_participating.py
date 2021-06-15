@@ -58,7 +58,7 @@ class WhereShouldBeParticipatingTest(TestCase):
         subscription = GroupSubscription(is_active=True)
         notification_settings = {
             self.user: {
-                NotificationScopeType.self.user: {
+                NotificationScopeType.USER: {
                     ExternalProviders.EMAIL: NotificationSettingOptionValues.ALWAYS,
                     ExternalProviders.SLACK: NotificationSettingOptionValues.SUBSCRIBE_ONLY,
                     ExternalProviders.PAGERDUTY: NotificationSettingOptionValues.NEVER,
@@ -74,10 +74,10 @@ class WhereShouldBeParticipatingTest(TestCase):
         assert providers == [ExternalProviders.EMAIL, ExternalProviders.SLACK]
 
     def test_subscription_null(self):
-        self.user = self.user(id=1)
+        self.user = User(id=1)
         notification_settings = {
             self.user: {
-                NotificationScopeType.self.user: {
+                NotificationScopeType.USER: {
                     ExternalProviders.EMAIL: NotificationSettingOptionValues.ALWAYS,
                     ExternalProviders.SLACK: NotificationSettingOptionValues.SUBSCRIBE_ONLY,
                     ExternalProviders.PAGERDUTY: NotificationSettingOptionValues.NEVER,

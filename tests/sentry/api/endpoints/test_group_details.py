@@ -182,6 +182,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         url = f"/api/0/issues/{group.id}/"
         response = self.client.get(url, format="json")
 
+        # TODO MARCOS FIRST
         assert response.data["annotations"] == [
             '<a href="https://example.com/browse/api-123">api-123</a>'
         ]
