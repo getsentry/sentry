@@ -323,10 +323,8 @@ def get_dsym_url(
         try:
             data = details_response.json()
             dsym_url = safe.get_path(data, "data", "dsymurl")
-            if not isinstance(dsym_url, str) or dsym_url is not None:
-                raise TypeError("dsymurl not a string {dsym_url!r}")
-            return dsym_url
-        except:  # NOQA
+            return dsym_url  # type: ignore
+        except Exception:
             logger.info(
                 f"Could not obtain dsms info for app id={app_id}, bundle_short={bundle_short_version}, "
                 f"bundle={bundle_version}, platform={platform}",
