@@ -405,7 +405,6 @@ class File(Model):
 
             blob_fileobj = ContentFile(contents)
             blob = FileBlob.from_file(blob_fileobj, logger=logger)
-
             results.append(FileBlobIndex.objects.create(file=self, blob=blob, offset=offset))
             offset += blob.size
         self.size = offset

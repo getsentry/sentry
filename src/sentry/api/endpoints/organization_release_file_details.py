@@ -52,7 +52,7 @@ class OrganizationReleaseFileDetailsEndpoint(OrganizationReleasesBaseEndpoint):
             raise ResourceDoesNotExist
 
         try:
-            releasefile = ReleaseFile.objects.get(release=release, id=file_id)
+            releasefile = ReleaseFile.public_objects.get(release=release, id=file_id)
         except ReleaseFile.DoesNotExist:
             raise ResourceDoesNotExist
 
@@ -88,7 +88,7 @@ class OrganizationReleaseFileDetailsEndpoint(OrganizationReleasesBaseEndpoint):
             raise ResourceDoesNotExist
 
         try:
-            releasefile = ReleaseFile.objects.get(release=release, id=file_id)
+            releasefile = ReleaseFile.public_objects.get(release=release, id=file_id)
         except ReleaseFile.DoesNotExist:
             raise ResourceDoesNotExist
 
@@ -127,7 +127,7 @@ class OrganizationReleaseFileDetailsEndpoint(OrganizationReleasesBaseEndpoint):
             raise ResourceDoesNotExist
 
         try:
-            releasefile = ReleaseFile.objects.get(release=release, id=file_id)
+            releasefile = ReleaseFile.public_objects.get(release=release, id=file_id)
         except ReleaseFile.DoesNotExist:
             raise ResourceDoesNotExist
 
