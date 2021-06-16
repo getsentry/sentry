@@ -224,10 +224,9 @@ class ConvertUserValueTest(TestCase):
 
 class ConvertReleaseValueTest(TestCase):
     def test(self):
-        assert convert_release_value(["123"], [self.project], self.user, None) == ["123"]
+        assert convert_release_value(["123"], [self.project], self.user, None) == "123"
 
     def test_latest(self):
         release = self.create_release(self.project)
-        assert convert_release_value(["latest"], [self.project], self.user, None) == [
-            release.version
-        ]
+        assert convert_release_value(["latest"], [self.project], self.user, None) == release.version
+        assert convert_release_value(["14.*"], [self.project], self.user, None) == "14.*"

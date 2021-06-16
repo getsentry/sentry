@@ -1,5 +1,6 @@
 from dataclasses import asdict
 from functools import partial
+from typing import List, Union
 
 from sentry.api.event_search import AggregateFilter, SearchConfig, SearchValue, default_config
 from sentry.api.event_search import parse_search_query as base_parse_query
@@ -63,10 +64,13 @@ def convert_user_value(value, projects, user, environments):
     return [parse_user_value(username, user) for username in value]
 
 
-def convert_release_value(value, projects, user, environments):
+def convert_release_value(value, projects, user, environments) -> Union[str, List[str]]:
     # TODO: This will make N queries. This should be ok, we don't typically have large
     # lists of versions here, but we can look into batching it if needed.
-    return [parse_release(version, projects, environments) for version in value]
+    releases = [parse_release(version, projects, environments) for version in value]
+    if len(releases) == 1:
+        return releases[0]
+    return releases
 
 
 def convert_status_value(value, projects, user, environments):
