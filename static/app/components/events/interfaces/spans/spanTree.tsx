@@ -128,9 +128,10 @@ class SpanTree extends React.Component<PropType> {
   }
 
   generateLimitExceededMessage() {
-    const {trace} = this.props;
+    const {waterfallModel} = this.props;
+    const {parsedTrace} = waterfallModel;
 
-    if (hasAllSpans(trace)) {
+    if (hasAllSpans(parsedTrace)) {
       return null;
     }
 
