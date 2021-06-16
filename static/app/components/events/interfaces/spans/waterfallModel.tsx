@@ -15,7 +15,13 @@ import {
   RawSpanType,
   SpanFuseOptions,
 } from './types';
-import {generateRootSpan, getSpanID, parseTrace} from './utils';
+import {
+  generateRootSpan,
+  getSpanID,
+  parseTrace,
+  SpanBoundsType,
+  SpanGeneratedBoundsType,
+} from './utils';
 
 class WaterfallModel {
   // readonly state
@@ -28,6 +34,7 @@ class WaterfallModel {
   operationNameFilters: ActiveOperationFilter = noFilter;
   filterSpans: FilterSpans | undefined = undefined;
   searchQuery: string | undefined = undefined;
+  hiddenSpanGroups: Set<string>;
 
   constructor(event: Readonly<EventTransaction>) {
     this.event = event;
@@ -37,6 +44,10 @@ class WaterfallModel {
     this.rootSpan = new SpanTreeModel(rootSpan, this.parsedTrace.childSpans, true);
 
     this.indexSearch(this.parsedTrace, rootSpan);
+
+    // Set of span IDs whose sub-trees should be hidden. This is used for the
+    // span tree toggling product feature.
+    this.hiddenSpanGroups = new Set();
 
     makeObservable(this, {
       rootSpan: observable,
@@ -178,6 +189,25 @@ class WaterfallModel {
       spanIDs,
     };
   }
+
+  getWaterfall = ({
+    generateBounds,
+  }: {
+    generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
+  }) => {
+    return this.rootSpan.getSpansList({
+      operationNameFilters: this.operationNameFilters,
+      generateBounds,
+      treeDepth: 0,
+      isLastSibling: true,
+      continuingTreeDepths: [],
+      hiddenSpanGroups: this.hiddenSpanGroups,
+      spanGroups: new Set(),
+      filterSpans: this.filterSpans,
+      previousSiblingEndTimestamp: undefined,
+      event: this.event,
+    });
+  };
 }
 
 export default WaterfallModel;
