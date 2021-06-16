@@ -35,6 +35,7 @@ from sentry.search.events.constants import (
     PROJECT_ALIAS,
     PROJECT_NAME_ALIAS,
     RELEASE_ALIAS,
+    SEMVER_ALIAS,
     SEMVER_FAKE_PACKAGE,
     SEMVER_MAX_SEARCH_RELEASES,
     TEAM_KEY_TRANSACTION_ALIAS,
@@ -433,7 +434,7 @@ def parse_semver_search(
     else:
         # TODO: We want to parse partial strings like 1.*, etc. For now, we'll just
         # handle the basic case and fail otherwise
-        raise InvalidSearchQuery("Invalid format for semver query")
+        raise InvalidSearchQuery(f"Invalid format for semver query {version}")
 
 
 key_conversion_map: Mapping[
@@ -449,6 +450,7 @@ key_conversion_map: Mapping[
     "error.handled": _error_handled_filter_converter,
     KEY_TRANSACTION_ALIAS: _key_transaction_filter_converter,
     TEAM_KEY_TRANSACTION_ALIAS: _team_key_transaction_filter_converter,
+    SEMVER_ALIAS: parse_semver_search,
 }
 
 
@@ -700,7 +702,7 @@ def get_filter(query=None, params=None):
     parsed_terms = []
     if query is not None:
         try:
-            parsed_terms = parse_search_query(query, allow_boolean=True, params=params)
+            parsed_terms = parse_search_query(query, params=params)
         except ParseError as e:
             raise InvalidSearchQuery(f"Parse error: {e.expr.name} (column {e.column():d})")
 
@@ -890,7 +892,7 @@ class QueryFilter(QueryBase):
 
     def resolve_where(self, query: str) -> None:
         try:
-            parsed_terms = parse_search_query(query, allow_boolean=True, params=self.params)
+            parsed_terms = parse_search_query(query, params=self.params)
         except ParseError as e:
             raise InvalidSearchQuery(f"Parse error: {e.expr.name} (column {e.column():d})")
 

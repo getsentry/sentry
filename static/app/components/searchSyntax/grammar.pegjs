@@ -1,6 +1,8 @@
 {
-  const {TokenConverter, TermOperator, FilterType} = options;
-  const tc = new TokenConverter(text, location);
+  const {TokenConverter, TermOperator, FilterType, config} = options;
+  const tc = new TokenConverter({text, location, config});
+
+  const opDefault = TermOperator.Default;
 }
 
 search
@@ -47,7 +49,9 @@ filter
   / boolean_filter
   / numeric_in_filter
   / numeric_filter
-  / aggregate_filter
+  / aggregate_duration_filter
+  / aggregate_numeric_filter
+  / aggregate_percentage_filter
   / aggregate_date_filter
   / aggregate_rel_date_filter
   / has_filter
@@ -57,90 +61,138 @@ filter
 
 // filter for dates
 date_filter
-  = key:search_key sep op:operator value:iso_8601_date_format {
+  = key:search_key sep op:operator value:iso_8601_date_format &{
+      return tc.predicateFilter(FilterType.Date, key, value, op)
+    } {
       return tc.tokenFilter(FilterType.Date, key, value, op, false);
     }
 
 // filter for exact dates
 specific_date_filter
-  = key:search_key sep value:iso_8601_date_format {
-      return tc.tokenFilter(FilterType.SpecificDate, key, value, TermOperator.Default, false);
+  = key:search_key sep value:iso_8601_date_format &{
+      return tc.predicateFilter(FilterType.SpecificDate, key)
+    } {
+      return tc.tokenFilter(FilterType.SpecificDate, key, value, opDefault, false);
     }
 
 // filter for relative dates
 rel_date_filter
-  = key:search_key sep value:rel_date_format {
-      return tc.tokenFilter(FilterType.RelativeDate, key, value, TermOperator.Default, false);
+  = key:search_key sep value:rel_date_format &{
+      return tc.predicateFilter(FilterType.RelativeDate, key)
+    } {
+      return tc.tokenFilter(FilterType.RelativeDate, key, value, opDefault, false);
     }
 
 // filter for durations
 duration_filter
-  = key:search_key sep op:operator? value:duration_format {
+  = key:search_key sep op:operator? value:duration_format &{
+      return tc.predicateFilter(FilterType.Duration, key)
+    } {
       return tc.tokenFilter(FilterType.Duration, key, value, op, false);
     }
 
 // boolean comparison filter
 boolean_filter
-  = negation:negation? key:search_key sep value:boolean_value {
-      return tc.tokenFilter(FilterType.Boolean, key, value, TermOperator.Default, !!negation);
+  = negation:negation? key:search_key sep value:boolean_value &{
+      return tc.predicateFilter(FilterType.Boolean, key)
+    } {
+      return tc.tokenFilter(FilterType.Boolean, key, value, opDefault, !!negation);
     }
 
 // numeric in filter
 numeric_in_filter
-  = key:search_key sep value:numeric_in_list {
-      return tc.tokenFilter(FilterType.NumericIn, key, value, TermOperator.Default, false);
+  = key:search_key sep value:numeric_in_list &{
+      return tc.predicateFilter(FilterType.NumericIn, key)
+    } {
+      return tc.tokenFilter(FilterType.NumericIn, key, value, opDefault, false);
     }
 
 // numeric comparison filter
 numeric_filter
-  = key:search_key sep op:operator? value:numeric_value {
+  = key:search_key sep op:operator? value:numeric_value &{
+      return tc.predicateFilter(FilterType.Numeric, key)
+    } {
       return tc.tokenFilter(FilterType.Numeric, key, value, op, false);
     }
 
+// aggregate duration filter
+aggregate_duration_filter
+  = negation:negation? key:aggregate_key sep op:operator? value:duration_format &{
+      return tc.predicateFilter(FilterType.AggregateDuration, key)
+  } {
+      return tc.tokenFilter(FilterType.AggregateDuration, key, value, op, !!negation);
+    }
+
+// aggregate percentage filter
+aggregate_percentage_filter
+  = negation:negation? key:aggregate_key sep op:operator? value:percentage_format &{
+      return tc.predicateFilter(FilterType.AggregatePercentage, key)
+    } {
+      return tc.tokenFilter(FilterType.AggregatePercentage, key, value, op, !!negation);
+    }
+
 // aggregate numeric filter
-aggregate_filter
-  = negation:negation?
-    key:aggregate_key
-    sep
-    op:operator?
-    value:(duration_format / numeric_value / percentage_format) {
-      return tc.tokenFilter(FilterType.AggregateSimple, key, value, op, !!negation);
+aggregate_numeric_filter
+  = negation:negation? key:aggregate_key sep op:operator? value:numeric_value &{
+      return tc.predicateFilter(FilterType.AggregateNumeric, key)
+    } {
+      return tc.tokenFilter(FilterType.AggregateNumeric, key, value, op, !!negation);
     }
 
 // aggregate date filter
 aggregate_date_filter
-  = negation:negation? key:aggregate_key sep op:operator? value:iso_8601_date_format {
+  = negation:negation? key:aggregate_key sep op:operator? value:iso_8601_date_format &{
+      return tc.predicateFilter(FilterType.AggregateDate, key)
+    } {
       return tc.tokenFilter(FilterType.AggregateDate, key, value, op, !!negation);
     }
 
 // filter for relative dates
 aggregate_rel_date_filter
-  = negation:negation? key:aggregate_key sep op:operator? value:rel_date_format {
+  = negation:negation? key:aggregate_key sep op:operator? value:rel_date_format &{
+      return tc.predicateFilter(FilterType.AggregateRelativeDate, key)
+    } {
       return tc.tokenFilter(FilterType.AggregateRelativeDate, key, value, op, !!negation);
     }
 
 // has filter for not null type checks
 has_filter
-  = negation:negation? &"has:" key:search_key sep value:(search_key / search_value) {
-      return tc.tokenFilter(FilterType.Has, key, value, TermOperator.Default, !!negation);
+  = negation:negation? &"has:" key:search_key sep value:(search_key / search_value) &{
+      return tc.predicateFilter(FilterType.Has, key)
+    } {
+      return tc.tokenFilter(FilterType.Has, key, value, opDefault, !!negation);
     }
 
 // is filter. Specific to issue search
 is_filter
-  = negation:negation? &"is:" key:search_key sep value:search_value {
-      return tc.tokenFilter(FilterType.Has, key, value, TermOperator.Default, !!negation);
+  = negation:negation? &"is:" key:search_key sep value:search_value &{
+      return tc.predicateFilter(FilterType.Is, key)
+    } {
+      return tc.tokenFilter(FilterType.Is, key, value, opDefault, !!negation);
     }
 
 // in filter key:[val1, val2]
 text_in_filter
-  = negation:negation? key:text_key sep value:text_in_list {
-      return tc.tokenFilter(FilterType.TextIn, key, value, TermOperator.Default, !!negation);
+  = negation:negation? key:text_key sep value:text_in_list &{
+      return tc.predicateFilter(FilterType.TextIn, key)
+    } {
+      return tc.tokenFilter(FilterType.TextIn, key, value, opDefault, !!negation);
     }
 
 // standard key:val filter
+//
+// The text_filter is a little special since it may not have an operator
+// depending on the configuration of the search parser, thus we have a
+// predicate for the operator.
 text_filter
-  = negation:negation? key:text_key sep value:search_value {
-      return tc.tokenFilter(FilterType.Text, key, value, TermOperator.Default, !!negation);
+  = negation:negation?
+    key:text_key
+    sep
+    op:(operator &{ return tc.predicateTextOperator(key); })?
+    value:search_value &{
+      return tc.predicateFilter(FilterType.Text, key)
+    } {
+      return tc.tokenFilter(FilterType.Text, key, value, op ? op[0] : opDefault, !!negation);
     }
 
 // Filter keys

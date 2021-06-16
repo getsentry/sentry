@@ -278,13 +278,9 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         assert similar_items[1][1]["message:message:character-shingles"] < 1.0
 
         with self.tasks():
-            eventstream_state = eventstream.start_unmerge(
-                project.id, [list(events.keys())[0]], source.id, destination.id
-            )
             unmerge.delay(
                 project.id, source.id, destination.id, [list(events.keys())[0]], None, batch_size=5
             )
-            eventstream.end_unmerge(eventstream_state)
 
         assert (
             list(
@@ -314,9 +310,9 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             UserReport.objects.filter(group_id=source.id).values_list("event_id", flat=True)
         ) == set(destination_event_ids)
 
-        assert set(
+        assert list(
             GroupHash.objects.filter(group_id=source.id).values_list("hash", flat=True)
-        ) == set(itertools.islice(events.keys(), 2))
+        ) == [list(events.keys())[1]]
 
         assert set(
             GroupRelease.objects.filter(group_id=source.id).values_list(
@@ -341,7 +337,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
 
         assert set(
             GroupHash.objects.filter(group_id=destination.id).values_list("hash", flat=True)
-        ) == set(itertools.islice(events.keys(), 2, 3))
+        ) == {list(events.keys())[0], list(events.keys())[2]}
 
         assert set(
             GroupRelease.objects.filter(group_id=destination.id).values_list(

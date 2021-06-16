@@ -7,7 +7,7 @@ import pytz
 from django.utils import timezone
 
 from sentry import options
-from sentry.api.issue_search import IssueSearchVisitor, convert_query_values, parse_search_query
+from sentry.api.issue_search import convert_query_values, issue_search_config, parse_search_query
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import (
     Environment,
@@ -1992,11 +1992,11 @@ class EventsSnubaSearchTest(TestCase, SnubaTestCase):
             test_query("!has:%s" % key)
             if key == "error.handled":
                 val = 1
-            elif key in IssueSearchVisitor.numeric_keys:
+            elif key in issue_search_config.numeric_keys:
                 val = "123"
-            elif key in IssueSearchVisitor.date_keys:
+            elif key in issue_search_config.date_keys:
                 val = "2019-01-01"
-            elif key in IssueSearchVisitor.boolean_keys:
+            elif key in issue_search_config.boolean_keys:
                 val = "true"
             else:
                 val = "abadcafedeadbeefdeaffeedabadfeed"

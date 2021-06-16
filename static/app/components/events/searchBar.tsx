@@ -16,6 +16,7 @@ import {
   Field,
   FIELD_TAGS,
   isAggregateField,
+  isEquation,
   isMeasurement,
   TRACING_FIELDS,
 } from 'app/utils/discover/fields';
@@ -101,7 +102,10 @@ class SearchBar extends React.PureComponent<SearchBarProps> {
     const functionTags = fields
       ? Object.fromEntries(
           fields
-            .filter(item => !Object.keys(FIELD_TAGS).includes(item.field))
+            .filter(
+              item =>
+                !Object.keys(FIELD_TAGS).includes(item.field) && !isEquation(item.field)
+            )
             .map(item => [item.field, {key: item.field, name: item.field}])
         )
       : {};

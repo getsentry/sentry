@@ -13,8 +13,10 @@ class ProjectAgnosticRuleConditionsEndpoint(OrganizationEndpoint):
 
         def info_extractor(rule_cls):
             context = {"id": rule_cls.id, "label": rule_cls.label}
-            if hasattr(rule_cls, "form_fields"):
-                context["formFields"] = rule_cls.form_fields
+            node = rule_cls(None)
+            if hasattr(node, "form_fields"):
+                context["formFields"] = node.form_fields
+
             return context
 
         has_percent_condition = features.has("organizations:issue-percent-filters", organization)

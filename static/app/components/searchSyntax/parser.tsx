@@ -1,6 +1,13 @@
 import moment from 'moment';
 import {LocationRange} from 'pegjs';
 
+import {t} from 'app/locale';
+import {
+  isMeasurement,
+  isSpanOperationBreakdownField,
+  measurementType,
+} from 'app/utils/discover/fields';
+
 import grammar from './grammar.pegjs';
 
 type TextFn = () => string;
@@ -78,7 +85,9 @@ export enum FilterType {
   Numeric = 'numeric',
   NumericIn = 'numericIn',
   Boolean = 'boolean',
-  AggregateSimple = 'aggregateSimple',
+  AggregateDuration = 'aggregateDuration',
+  AggregatePercentage = 'aggregatePercentage',
+  AggregateNumeric = 'aggregateNumeric',
   AggregateDate = 'aggregateDate',
   AggregateRelativeDate = 'aggregateRelativeDate',
   Has = 'has',
@@ -166,10 +175,22 @@ export const filterTypeConfig = {
     validValues: [Token.ValueBoolean],
     canNegate: true,
   },
-  [FilterType.AggregateSimple]: {
+  [FilterType.AggregateDuration]: {
     validKeys: [Token.KeyAggregate],
     validOps: allOperators,
-    validValues: [Token.ValueDuration, Token.ValueNumber, Token.ValuePercentage],
+    validValues: [Token.ValueDuration],
+    canNegate: true,
+  },
+  [FilterType.AggregateNumeric]: {
+    validKeys: [Token.KeyAggregate],
+    validOps: allOperators,
+    validValues: [Token.ValueNumber],
+    canNegate: true,
+  },
+  [FilterType.AggregatePercentage]: {
+    validKeys: [Token.KeyAggregate],
+    validOps: allOperators,
+    validValues: [Token.ValuePercentage],
     canNegate: true,
   },
   [FilterType.AggregateDate]: {
@@ -209,6 +230,7 @@ type FilterMap = {
     value: KVConverter<FilterTypeConfig[F]['validValues'][number]>;
     operator: FilterTypeConfig[F]['validOps'][number];
     negated: FilterTypeConfig[F]['canNegate'] extends true ? boolean : false;
+    invalidReason: string | null;
   };
 };
 
@@ -222,16 +244,58 @@ type FilterMap = {
 type FilterResult = FilterMap[FilterType];
 
 /**
+ * Utility to get the string name of any type of key.
+ */
+const getKeyName = (
+  key: ReturnType<
+    TokenConverter['tokenKeySimple' | 'tokenKeyExplicitTag' | 'tokenKeyAggregate']
+  >
+) => {
+  switch (key.type) {
+    case Token.KeySimple:
+      return key.value;
+    case Token.KeyExplicitTag:
+      return key.key.value;
+    case Token.KeyAggregate:
+      return key.name.value;
+    default:
+      return '';
+  }
+};
+
+type TokenConverterOpts = {
+  text: TextFn;
+  location: LocationFn;
+  config: SearchConfig;
+};
+
+/**
  * Used to construct token results via the token grammar
  */
 class TokenConverter {
   text: TextFn;
   location: LocationFn;
+  config: SearchConfig;
 
-  constructor(text: TextFn, location: LocationFn) {
+  constructor({text, location, config}: TokenConverterOpts) {
     this.text = text;
     this.location = location;
+    this.config = config;
   }
+
+  /**
+   * Validates various types of keys
+   */
+  keyValidation = {
+    isNumeric: (key: string) => this.config.numericKeys.has(key) || isMeasurement(key),
+    isBoolean: (key: string) => this.config.booleanKeys.has(key),
+    isPercentage: (key: string) => this.config.percentageKeys.has(key),
+    isDate: (key: string) => this.config.dateKeys.has(key),
+    isDuration: (key: string) =>
+      this.config.durationKeys.has(key) ||
+      isSpanOperationBreakdownField(key) ||
+      measurementType(key) === 'duration',
+  };
 
   /**
    * Creates a token with common `text` and `location` keys.
@@ -263,6 +327,7 @@ class TokenConverter {
       key,
       operator: operator ?? TermOperator.Default,
       value,
+      invalidReason: type === FilterType.Text ? this.checkInvalidTextFilter(key) : null,
     } as FilterResult);
 
   tokenFreeText = (value: string, quoted: boolean) =>
@@ -367,7 +432,7 @@ class TokenConverter {
   tokenValueBoolean = (value: string) =>
     this.makeToken({
       type: Token.ValueBoolean as const,
-      value: Boolean(value),
+      value: ['1', 'true'].includes(value.toLowerCase()),
     });
 
   tokenValueNumber = (value: string, unit: string) =>
@@ -376,13 +441,6 @@ class TokenConverter {
       value,
       rawValue: Number(value) * (numberUnits[unit] ?? 1),
       unit,
-    });
-
-  tokenValueText = (value: string, quoted: boolean) =>
-    this.makeToken({
-      type: Token.ValueText as const,
-      value,
-      quoted,
     });
 
   tokenValueNumberList = (
@@ -402,6 +460,97 @@ class TokenConverter {
       type: Token.ValueTextList as const,
       items: [{separator: '', value: item1}, ...items.map(listJoiner)],
     });
+
+  tokenValueText = (value: string, quoted: boolean) =>
+    this.makeToken({
+      type: Token.ValueText as const,
+      value,
+      quoted,
+    });
+
+  /**
+   * This method is used while tokenizing to predicate whether a filter should
+   * match or not. We do this because not all keys are valid for specific
+   * filter types. For example, boolean filters should only match for keys
+   * which can be filtered as booleans.
+   *
+   * See [0] and look for &{ predicate } to understand how predicates are
+   * declared in the grammar
+   *
+   * [0]:https://pegjs.org/documentation
+   */
+  predicateFilter = <T extends FilterType>(type: T, key: FilterMap[T]['key']) => {
+    const keyName = getKeyName(key);
+    const aggregateKey = key as ReturnType<TokenConverter['tokenKeyAggregate']>;
+
+    const {isNumeric, isDuration, isBoolean, isDate, isPercentage} = this.keyValidation;
+
+    switch (type) {
+      case FilterType.Numeric:
+      case FilterType.NumericIn:
+        return isNumeric(keyName);
+
+      case FilterType.Duration:
+        return isDuration(keyName);
+
+      case FilterType.Boolean:
+        return isBoolean(keyName);
+
+      case FilterType.Date:
+      case FilterType.RelativeDate:
+      case FilterType.SpecificDate:
+        return isDate(keyName);
+
+      case FilterType.AggregateDuration:
+        return aggregateKey.args?.args.some(arg => isDuration(arg.value.value));
+
+      case FilterType.AggregateDate:
+        return aggregateKey.args?.args.some(arg => isDate(arg.value.value));
+
+      case FilterType.AggregatePercentage:
+        return aggregateKey.args?.args.some(arg => isPercentage(arg.value.value));
+
+      default:
+        return true;
+    }
+  };
+
+  /**
+   * Predicates weather a text filter have operators for specific keys.
+   */
+  predicateTextOperator = (key: FilterMap[FilterType.Text]['key']) =>
+    this.config.textOperatorKeys.has(getKeyName(key));
+
+  /**
+   * Validates that a text filter is not using a non-text key.
+   */
+  checkInvalidTextFilter = (key: FilterMap[FilterType]['key']) => {
+    // Explicit tag keys are always treated as text filters
+    if (key.type === Token.KeyExplicitTag) {
+      return null;
+    }
+
+    const keyName = getKeyName(key);
+
+    if (this.keyValidation.isDate(keyName)) {
+      return t(
+        'Invalid date format. Expected +/-duration (e.g. +1h) or ISO 8601-like (e.g. {now}).',
+        new Date().toISOString()
+      );
+    }
+
+    if (this.keyValidation.isBoolean(keyName)) {
+      return t('Invalid boolean. Expected true, 1, false, or 0.');
+    }
+
+    if (this.keyValidation.isNumeric(keyName)) {
+      return t(
+        'Invalid number. Expected number then optional k, m, or b suffix (e.g. 500k).'
+      );
+    }
+
+    return null;
+  };
 }
 
 /**
@@ -441,12 +590,95 @@ export type ParseResult = Array<
   | TokenResult<Token.Spaces>
 >;
 
+/**
+ * Configures behavior of search parsing
+ */
+export type SearchConfig = {
+  /**
+   * Keys which are considered valid for duration filters
+   */
+  durationKeys: Set<string>;
+  /**
+   * Text filter keys we allow to have operators
+   */
+  textOperatorKeys: Set<string>;
+  /**
+   * Keys considered valid for the percentage aggregate and may have percentage
+   * search values
+   */
+  percentageKeys: Set<string>;
+  /**
+   * Keys considered valid for numeric filter types
+   */
+  numericKeys: Set<string>;
+  /**
+   * Keys considered valid for date filter types
+   */
+  dateKeys: Set<string>;
+  /**
+   * Keys considered valid for boolean filter types
+   */
+  booleanKeys: Set<string>;
+  /**
+   * Enables boolean filtering (AND / OR)
+   */
+  allowBoolean: boolean;
+};
+
+const defaultConfig: SearchConfig = {
+  textOperatorKeys: new Set(['sentry.semver']),
+  durationKeys: new Set(['transaction.duration']),
+  percentageKeys: new Set(['percentage']),
+  numericKeys: new Set([
+    'project_id',
+    'project.id',
+    'issue.id',
+    'stack.colno',
+    'stack.lineno',
+    'stack.stack_level',
+    'transaction.duration',
+    'apdex',
+    'p75',
+    'p95',
+    'p99',
+    'failure_rate',
+    'count_miserable',
+    'user_misery',
+    'count_miserable_new',
+    'user_miser_new',
+  ]),
+  dateKeys: new Set([
+    'start',
+    'end',
+    'first_seen',
+    'last_seen',
+    'time',
+    'timestamp',
+    'timestamp.to_hour',
+    'timestamp.to_day',
+    'transaction.start_time',
+    'transaction.end_time',
+  ]),
+  booleanKeys: new Set([
+    'error.handled',
+    'error.unhandled',
+    'stack.in_app',
+    'key_transaction',
+    'team_key_transaction',
+  ]),
+  allowBoolean: true,
+};
+
 const options = {
   TokenConverter,
   TermOperator,
   FilterType,
+  config: defaultConfig,
 };
 
+/**
+ * Parse a search query into a ParseResult
+ */
 export function parseSearch(query: string): ParseResult {
   return grammar.parse(query, options);
 }
