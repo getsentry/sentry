@@ -3,15 +3,16 @@ from datetime import timedelta
 from django.urls import reverse
 from django.utils import timezone
 
+from sentry.mediators import GrantTypes
 from sentry.models import ApiApplication, ApiToken
 from sentry.testutils import APITestCase
 
 
 class TestSentryAppAuthorizations(APITestCase):
-    def setUp(self):
-        self.user = self.create_user()
-        self.org = self.create_organization()
+    endpoint = "sentry-api-0-sentry-app-authorizations"
+    method = "post"
 
+    def setUp(self):
         self.sentry_app = self.create_sentry_app(
             name="nulldb",
             organization=self.create_organization(),
@@ -27,29 +28,29 @@ class TestSentryAppAuthorizations(APITestCase):
         )
 
         self.install = self.create_sentry_app_installation(
-            organization=self.org, slug="nulldb", user=self.user
+            organization=self.organization, slug="nulldb", user=self.user
         )
 
-        self.url = reverse("sentry-api-0-sentry-app-authorizations", args=[self.install.uuid])
-
-    def _run_request(self, *args, **kwargs):
-        data = {
-            "client_id": self.sentry_app.application.client_id,
-            "client_secret": self.sentry_app.application.client_secret,
-            "grant_type": "authorization_code",
-            "code": self.install.api_grant.code,
-        }
-        data.update(**kwargs)
-        return self.client.post(self.url, data, headers={"Content-Type": "application/json"})
+    def get_response(self, *args, **params):
+        """Overriding `get_response` with some default data."""
+        return super().get_response(
+            self.install.uuid,
+            **{
+                "client_id": self.sentry_app.application.client_id,
+                "client_secret": self.sentry_app.application.client_secret,
+                "grant_type": GrantTypes.AUTHORIZATION,
+                "code": self.install.api_grant.code,
+                **params,
+            },
+        )
 
     def test_exchanges_for_token_successfully(self):
         expected_expires_at = (timezone.now() + timedelta(hours=8)).replace(second=0, microsecond=0)
 
-        response = self._run_request()
+        response = self.get_success_response()
 
         token = ApiToken.objects.get(application=self.sentry_app.application)
 
-        assert response.status_code == 201, response.content
         assert response.data["scopes"] == self.sentry_app.scope_list
         assert response.data["token"] == token.token
         assert response.data["refreshToken"] == token.refresh_token
@@ -59,58 +60,53 @@ class TestSentryAppAuthorizations(APITestCase):
         assert expires_at == expected_expires_at
 
     def test_incorrect_grant_type(self):
-        response = self._run_request(grant_type="notit")
-        assert response.status_code == 403
+        self.get_error_response(grant_type="notit", status_code=403)
 
     def test_invalid_installation(self):
         self.install = self.create_sentry_app_installation(
-            organization=self.org, slug="slowdb", user=self.user
+            organization=self.organization, slug="slowdb", user=self.user
         )
 
         # URL with this new Install's uuid in it
-        self.url = reverse("sentry-api-0-sentry-app-authorizations", args=[self.install.uuid])
-
-        response = self._run_request()
-        assert response.status_code == 403
+        self.get_error_response(self.install.uuid, status_code=403)
 
     def test_non_sentry_app_user(self):
         app = ApiApplication.objects.create(owner=self.create_user())
-        response = self._run_request(client_id=app.client_id, client_secret=app.client_secret)
-        assert response.status_code == 401
+        self.get_error_response(
+            client_id=app.client_id, client_secret=app.client_secret, status_code=401
+        )
 
     def test_invalid_grant(self):
-        response = self._run_request(code="123")
-        assert response.status_code == 403
+        self.get_error_response(code="123", status_code=403)
 
     def test_expired_grant(self):
         self.install.api_grant.update(expires_at=timezone.now() - timedelta(minutes=2))
-        response = self._run_request()
-        assert response.status_code == 403
+        response = self.get_error_response(status_code=403)
         assert response.data["error"] == "Grant has already expired."
 
     def test_request_with_exchanged_access_token(self):
-        response = self._run_request()
+        response = self.get_response()
         token = response.data["token"]
 
-        url = reverse("sentry-api-0-organization-details", args=[self.org.slug])
+        url = reverse("sentry-api-0-organization-details", args=[self.organization.slug])
 
         response = self.client.get(url, HTTP_AUTHORIZATION=f"Bearer {token}")
 
         assert response.status_code == 200
-        assert response.data["id"] == str(self.org.id)
+        assert response.data["id"] == str(self.organization.id)
 
     def test_state(self):
-        response = self._run_request(state="abc123")
+        response = self.get_success_response(state="abc123")
         assert response.data["state"] == "abc123"
 
     def test_refresh_token_exchange(self):
-        response = self._run_request()
+        response = self.get_success_response()
 
         token_id = response.data["id"]
         token = response.data["token"]
         refresh_token = response.data["refreshToken"]
 
-        response = self._run_request(
+        response = self.get_success_response(
             code=None, refresh_token=refresh_token, grant_type="refresh_token"
         )
 
