@@ -31,7 +31,6 @@ type Props = {
 
 function ProjectIssues({organization, location, projectId, api}: Props) {
   const [pageLinks, setPageLinks] = useState<string | undefined>();
-  const [onCursor, setOnCursor] = useState<(() => void) | undefined>();
 
   function handleOpenInIssuesClick() {
     trackAnalyticsEvent({
@@ -49,9 +48,8 @@ function ProjectIssues({organization, location, projectId, api}: Props) {
     });
   }
 
-  function handleFetchSuccess(groupListState, cursorHandler) {
+  function handleFetchSuccess(groupListState) {
     setPageLinks(groupListState.pageLinks);
-    setOnCursor(() => cursorHandler);
   }
 
   function getDiscoverUrl() {
@@ -130,7 +128,7 @@ function ProjectIssues({organization, location, projectId, api}: Props) {
           >
             {t('Open in Discover')}
           </DiscoverButton>
-          <StyledPagination pageLinks={pageLinks} onCursor={onCursor} />
+          <StyledPagination pageLinks={pageLinks} />
         </ButtonBar>
       </ControlsWrapper>
 

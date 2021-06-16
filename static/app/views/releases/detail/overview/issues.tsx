@@ -48,7 +48,6 @@ type Props = {
 type State = {
   issuesType: IssuesType;
   pageLinks?: string;
-  onCursor?: () => void;
 };
 
 class Issues extends Component<Props, State> {
@@ -145,8 +144,8 @@ class Issues extends Component<Props, State> {
     this.setState({issuesType});
   };
 
-  handleFetchSuccess = (groupListState, onCursor) => {
-    this.setState({pageLinks: groupListState.pageLinks, onCursor});
+  handleFetchSuccess = groupListState => {
+    this.setState({pageLinks: groupListState.pageLinks});
   };
 
   renderEmptyMessage = () => {
@@ -180,7 +179,7 @@ class Issues extends Component<Props, State> {
   };
 
   render() {
-    const {issuesType, pageLinks, onCursor} = this.state;
+    const {issuesType, pageLinks} = this.state;
     const {orgId} = this.props;
     const {path, queryParams} = this.getIssuesEndpoint();
     const issuesTypes = [
@@ -232,7 +231,7 @@ class Issues extends Component<Props, State> {
                 {t('Open in Discover')}
               </DiscoverButton>
             </GuideAnchor>
-            <StyledPagination pageLinks={pageLinks} onCursor={onCursor} />
+            <StyledPagination pageLinks={pageLinks} />
           </OpenInButtonBar>
         </ControlsWrapper>
         <div data-test-id="release-wrapper">
