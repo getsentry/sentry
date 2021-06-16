@@ -1,6 +1,4 @@
 import * as React from 'react';
-import createReactClass from 'create-react-class';
-import Reflux from 'reflux';
 
 import ProjectsStore from 'app/stores/projectsStore';
 import {Project} from 'app/types';
@@ -19,31 +17,38 @@ type State = {
 /**
  * Higher order component that uses ProjectsStore and provides a list of projects
  */
-const withProjects = <P extends InjectedProjectsProps>(
+function withProjects<P extends InjectedProjectsProps>(
   WrappedComponent: React.ComponentType<P>
-) =>
-  createReactClass<
+) {
+  class WithProjects extends React.Component<
     Omit<P, keyof InjectedProjectsProps> & Partial<InjectedProjectsProps>,
     State
-  >({
-    displayName: `withProjects(${getDisplayName(WrappedComponent)})`,
-    mixins: [Reflux.listenTo(ProjectsStore, 'onProjectUpdate') as any],
-    getInitialState() {
-      return ProjectsStore.getState();
-    },
+  > {
+    static displayName = `withProjects(${getDisplayName(WrappedComponent)})`;
 
-    onProjectUpdate() {
-      this.setState(ProjectsStore.getState());
-    },
+    state: State = ProjectsStore.getState();
+
+    componentWillUnmount() {
+      this.unsubscribe();
+    }
+
+    unsubscribe = ProjectsStore.listen(
+      () => this.setState(ProjectsStore.getState()),
+      undefined
+    );
+
     render() {
       return (
         <WrappedComponent
-          {...this.props}
+          {...(this.props as P)}
           projects={this.state.projects}
           loadingProjects={this.state.loading}
         />
       );
-    },
-  });
+    }
+  }
+
+  return WithProjects;
+}
 
 export default withProjects;
