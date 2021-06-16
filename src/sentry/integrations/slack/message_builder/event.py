@@ -11,7 +11,6 @@ DM_COMMAND_HEADER = "*Direct Message Commands:*"
 CHANNEL_COMMANDS_HEADER = "*Channel Commands:*"
 GENERAL_MESSAGE = "Just want to learn more about Sentry? Check out our documentation."
 
-
 DM_COMMANDS = {
     "link": "Link your Slack account to Sentry",
     "unlink": "Unlink your Slack account from Sentry",
@@ -21,19 +20,18 @@ CHANNEL_COMMANDS = {
     "link team": "Type this into the channel in which you want your team to receive issue alert notifications"
 }
 
-DM_COMMANDS_MESSAGE = "\n".join(
-    (
-        f"• `/sentry {command}`: {description}"
-        for command, description in sorted(tuple(DM_COMMANDS.items()))
-    )
-)
 
-CHANNEL_COMMANDS_MESSAGE = "\n".join(
-    (
-        f"• `/sentry {command}`: {description}"
-        for command, description in sorted(tuple(CHANNEL_COMMANDS.items()))
+def list_commands(commands: Mapping[str, str]) -> str:
+    return "\n".join(
+        (
+            f"• `/sentry {command}`: {description}"
+            for command, description in sorted(tuple(commands.items()))
+        )
     )
-)
+
+
+DM_COMMANDS_MESSAGE = list_commands(DM_COMMANDS)
+CHANNEL_COMMANDS_MESSAGE = list_commands(CHANNEL_COMMANDS)
 
 
 class SlackEventMessageBuilder(BlockSlackMessageBuilder):
