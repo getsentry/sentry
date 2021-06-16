@@ -1,4 +1,3 @@
-import pytest
 from django.template.response import TemplateResponse
 from django.test import override_settings
 
@@ -79,7 +78,6 @@ class SudoViewTestCase(BaseTestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response["Location"], "/lol")
 
-    @pytest.mark.django_db
     def test_redirect_after_successful_post(self):
         self.login()
         self.request.is_sudo = lambda: False
@@ -90,7 +88,6 @@ class SudoViewTestCase(BaseTestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response["Location"], REDIRECT_URL)
 
-    @pytest.mark.django_db
     def test_session_based_redirect(self):
         self.login()
         self.request.is_sudo = lambda: False
@@ -110,7 +107,6 @@ class SudoViewTestCase(BaseTestCase):
         self.assertNotEqual(response["Location"], REDIRECT_URL)
         self.assertFalse("redirect_to" in self.request.session)
 
-    @pytest.mark.django_db
     def test_session_based_redirect_bad_url(self):
         self.login()
         self.request.is_sudo = lambda: False
@@ -128,7 +124,6 @@ class SudoViewTestCase(BaseTestCase):
         response = sudo(self.request)
         self.assertEqual(response["Location"], REDIRECT_URL)
 
-    @pytest.mark.django_db
     def test_render_form_with_bad_password(self):
         self.login()
         self.request.is_sudo = lambda: False
