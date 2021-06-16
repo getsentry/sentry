@@ -28,7 +28,10 @@ org_name = "Org Name"
 class DemoOrgManagerTest(TestCase):
     @mock.patch("sentry.demo.demo_org_manager.handle_react_python_scenario")
     @mock.patch("sentry.demo.demo_org_manager.generate_random_name", return_value=org_name)
-    def test_create_demo_org(self, mock_generate_name, mock_handle_scenario):
+    @mock.patch("sentry.demo.demo_org_manager.generate_releases")
+    def test_create_demo_org(
+        self, mock_generate_releases, mock_generate_name, mock_handle_scenario
+    ):
         owner = User.objects.create(email=org_owner_email)
 
         create_demo_org()
@@ -46,7 +49,8 @@ class DemoOrgManagerTest(TestCase):
         mock_handle_scenario.assert_called_once_with(mock.ANY, mock.ANY, quick=False)
 
     @mock.patch("sentry.demo.demo_org_manager.generate_random_name", return_value=org_name)
-    def test_no_owner(self, mock_generate_name):
+    @mock.patch("sentry.demo.demo_org_manager.generate_releases")
+    def test_no_owner(self, mock_generate_releases, mock_generate_name):
         with pytest.raises(User.DoesNotExist):
             create_demo_org()
 
@@ -135,7 +139,8 @@ class DemoOrgManagerTest(TestCase):
         assert mock_create_user.call_count == 4
 
     @mock.patch("sentry.demo.demo_org_manager.handle_react_python_scenario")
-    def test_no_org_ready(self, mock_handle_scenario):
+    @mock.patch("sentry.demo.demo_org_manager.generate_releases")
+    def test_no_org_ready(self, mock_generate_releases, mock_handle_scenario):
         User.objects.create(email=org_owner_email)
         assign_demo_org()
         mock_handle_scenario.assert_called_once_with(mock.ANY, mock.ANY, quick=True)
@@ -143,8 +148,13 @@ class DemoOrgManagerTest(TestCase):
     @mock.patch("sentry.demo.demo_org_manager.delete_organization.apply_async")
     @mock.patch("sentry.demo.demo_org_manager.handle_react_python_scenario")
     @mock.patch("sentry.demo.demo_org_manager.generate_random_name", return_value=org_name)
+    @mock.patch("sentry.demo.demo_org_manager.generate_releases")
     def test_data_population_fails(
-        self, mock_generate_name, mock_handle_scenario, mock_delete_organization
+        self,
+        mock_generate_releases,
+        mock_generate_name,
+        mock_handle_scenario,
+        mock_delete_organization,
     ):
         User.objects.create(email=org_owner_email)
 
@@ -166,8 +176,13 @@ class DemoOrgManagerTest(TestCase):
     @mock.patch("sentry.demo.demo_org_manager.handle_react_python_scenario")
     @mock.patch("sentry.demo.demo_org_manager.handle_mobile_scenario")
     @mock.patch("sentry.demo.demo_org_manager.generate_random_name", return_value=org_name)
+    @mock.patch("sentry.demo.demo_org_manager.generate_releases")
     def test_create_mobile_demo_org(
-        self, mock_generate_name, mock_handle_mobile_scenario, mock_handle_scenario
+        self,
+        mock_generate_releases,
+        mock_generate_name,
+        mock_handle_mobile_scenario,
+        mock_handle_scenario,
     ):
         owner = User.objects.create(email=org_owner_email)
 
