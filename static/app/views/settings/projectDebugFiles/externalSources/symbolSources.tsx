@@ -198,7 +198,8 @@ function SymbolSources({
       return;
     }
 
-    const item = value.find(v => v.id === customRepository);
+    const itemIndex = value.findIndex(v => v.id === customRepository);
+    const item = value[itemIndex];
 
     if (!item) {
       return;
@@ -210,7 +211,7 @@ function SymbolSources({
       sourceConfig,
       sourceType: item.type,
       appStoreConnectContext,
-      onSave: updatedData => handleUpdateSymbolSource(updatedData as Item, item.index),
+      onSave: updatedData => handleUpdateSymbolSource(updatedData as Item, itemIndex),
       onClose: handleCloseImageDetailsModal,
     });
   }
@@ -238,7 +239,7 @@ function SymbolSources({
 
   async function handleChange(updatedSymbolSources: Item[], updatedItem?: Item) {
     const symbolSourcesWithoutErrors = updatedSymbolSources.map(updatedSymbolSource =>
-      omit(updatedSymbolSource, 'error')
+      omit(updatedSymbolSource, ['error', 'warning'])
     );
 
     const {successMessage, errorMessage} = getRequestMessages(
@@ -262,6 +263,9 @@ function SymbolSources({
       addSuccessMessage(successMessage);
       closeModal();
       if (updatedItem && updatedItem.type === 'appStoreConnect') {
+        // TODO(Priscila): check the reason why the closeModal doesn't call the function
+        // handleCloseImageDetailsModal when revalidating
+        handleCloseImageDetailsModal();
         reloadPage();
       }
     } catch {

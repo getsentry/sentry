@@ -1,7 +1,7 @@
 import logging
 import time
 from collections import namedtuple
-from typing import Any, Generator, List, Mapping, Optional
+from typing import Any, Dict, Generator, List, Mapping, Optional
 
 import jwt
 from requests import Session
@@ -13,7 +13,9 @@ logger = logging.getLogger(__name__)
 AppConnectCredentials = namedtuple("AppConnectCredentials", ["key_id", "key", "issuer_id"])
 
 
-def _get_authorization_header(credentials=AppConnectCredentials, expiry_sec=None) -> str:
+def _get_authorization_header(
+    credentials: AppConnectCredentials, expiry_sec: Optional[int] = None
+) -> str:
     """
     Creates a JWT (javascript web token) for use with app store connect API
 
@@ -63,18 +65,18 @@ def _get_appstore_info(
     if not response.ok:
         raise ValueError("Request failed", full_url, response.status_code, response.text)
     try:
-        return response.json()
+        return response.json()  # type: ignore
     except Exception as e:
         raise ValueError(
             "Response body not JSON", full_url, response.status_code, response.text
         ) from e
 
 
-def _get_next_page(response_json) -> str:
+def _get_next_page(response_json: Mapping[str, Any]) -> Optional[str]:
     """
     Gets the next page url from a app store connect paged response
     """
-    return safe.get_path(response_json, "links", "next")
+    return safe.get_path(response_json, "links", "next")  # type: ignore
 
 
 def _get_appstore_info_paged_data(
@@ -97,24 +99,29 @@ def _get_appstore_info_paged_data(
 
     :return: a generator with the contents of all the arrays from each page (flattened).
     """
-    while url is not None:
+    next_url: Optional[str] = url
+    while next_url is not None:
         response = _get_appstore_info(session, credentials, url)
+        if response is None:
+            return
         data = response["data"]
         yield from data
-        url = _get_next_page(response)
+        next_url = _get_next_page(response)
 
 
-def get_pre_release_version_info(session: Session, credentials: AppConnectCredentials, app_id: str):
-    """
-    Get all prerelease builds version information for an application
+def get_pre_release_version_info(
+    session: Session, credentials: AppConnectCredentials, app_id: str
+) -> List[Dict[str, Any]]:
+    """Get all prerelease builds version information for an application
 
     The release build version information has the following structure:
     platform: str - the platform for the build (e.g. IOS, MAC_OS ...)
-    short_version: str - the short version build info ( e.g. '1.0.1'), also called "train" in starship documentation
+    short_version: str - the short version build info ( e.g. '1.0.1'), also called "train"
+       in starship documentation
     id: str - the IID of the version
     versions: vec - a vector with builds
-        version: str - the version of the build (e.g. '101'), looks like the build number
-        id: str - the IID of the build
+       version: str - the version of the build (e.g. '101'), looks like the build number
+       id: str - the IID of the build
 
     NOTE: the pre release version information is identical to the release version information
     :return: a list of prerelease builds version information (see above)
@@ -123,7 +130,7 @@ def get_pre_release_version_info(session: Session, credentials: AppConnectCreden
     data = _get_appstore_info_paged_data(session, credentials, url)
     result = []
     for d in data:
-        versions = []
+        versions: List[Dict[str, Any]] = []
         v = {
             "platform": safe.get_path(d, "attributes", "platform"),
             "short_version": safe.get_path(d, "attributes", "version"),
@@ -142,17 +149,19 @@ def get_pre_release_version_info(session: Session, credentials: AppConnectCreden
     return result
 
 
-def get_release_version_info(session: Session, credentials: AppConnectCredentials, app_id: str):
-    """
-    Get all release builds version information for an application
+def get_release_version_info(
+    session: Session, credentials: AppConnectCredentials, app_id: str
+) -> List[Dict[str, Any]]:
+    """Get all release builds version information for an application
 
     The release build version information has the following structure:
     platform: str - the platform for the build (e.g. IOS, MAC_OS ...)
-    short_version: str - the short version build info ( e.g. '1.0.1'), also called "train" in starship documentation
+    short_version: str - the short version build info ( e.g. '1.0.1'), also called "train"
+       in starship documentation
     id: str - the IID of the version
     versions: vec - a vector with builds
-        version: str - the version of the build (e.g. '101'), looks like the build number
-        id: str - the IID of the build
+       version: str - the version of the build (e.g. '101'), looks like the build number
+       id: str - the IID of the build
 
     NOTE: the release version information is identical to the pre release version information
     :return: a list of release builds version information (see above)
@@ -161,7 +170,7 @@ def get_release_version_info(session: Session, credentials: AppConnectCredential
     data = _get_appstore_info_paged_data(session, credentials, url)
     result = []
     for d in data:
-        versions = []
+        versions: List[Dict[str, Any]] = []
         build_url = safe.get_path(d, "relationships", "build", "links", "related")
         v = {
             "platform": safe.get_path(d, "attributes", "platform"),
@@ -184,10 +193,10 @@ def get_release_version_info(session: Session, credentials: AppConnectCredential
     return result
 
 
-def get_build_info(session: Session, credentials: AppConnectCredentials, app_id: str):
-    """
-    Returns the build info for an application
-    """
+def get_build_info(
+    session: Session, credentials: AppConnectCredentials, app_id: str
+) -> Dict[str, List[Dict[str, Any]]]:
+    """Returns the build info for an application."""
     return {
         "pre_releases": get_pre_release_version_info(session, credentials, app_id),
         "releases": get_release_version_info(session, credentials, app_id),
