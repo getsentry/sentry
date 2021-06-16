@@ -1,10 +1,9 @@
 import logging
-import re
 from copy import copy
 from datetime import datetime
 from uuid import uuid4
 
-from django.db import models
+from django.db import models, transaction
 from django.db.models.query_utils import DeferredAttribute
 from pytz import UTC
 from rest_framework import serializers, status
@@ -528,9 +527,9 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                 if "apdexThreshold" in changed_data and not features.has(
                     "organizations:project-transaction-threshold", organization
                 ):
-                    match = re.match(r".*to (\d+)$", changed_data["apdexThreshold"])
-                    if match:
-                        apdex_threshold = int(match.group(1))
+                    apdex_threshold = serializer.validated_data.get("apdexThreshold")
+
+                    with transaction.atomic():
                         ProjectTransactionThreshold.objects.filter(
                             organization_id=organization.id
                         ).delete()
