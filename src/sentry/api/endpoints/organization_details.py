@@ -433,15 +433,23 @@ class OrganizationSerializer(serializers.Serializer):
         if "apdexThreshold" in self.initial_data and not features.has(
             "organizations:project-transaction-threshold", org
         ):
-            for project in Project.objects.filter(organization_id=org.id):
-                ProjectTransactionThreshold.objects.update_or_create(
-                    organization_id=org.id,
-                    project_id=project.id,
-                    defaults={
-                        "threshold": int(self.initial_data["apdexThreshold"]),
-                        "metric": TransactionMetric.DURATION.value,
-                    },
-                )
+            ProjectTransactionThreshold.objects.filter(organization_id=org.id).delete()
+
+            project_ids = Project.objects.filter(organization_id=org.id).values_list(
+                "id", flat=True
+            )
+
+            ProjectTransactionThreshold.objects.bulk_create(
+                [
+                    ProjectTransactionThreshold(
+                        project_id=project_id,
+                        organization_id=org.id,
+                        threshold=int(self.initial_data["apdexThreshold"]),
+                        metric=TransactionMetric.DURATION.value,
+                    )
+                    for project_id in project_ids
+                ]
+            )
 
         return org, changed_data
 
