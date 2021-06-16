@@ -1,20 +1,28 @@
 import click
 
+from django.conf import settings
 from sentry.runner.decorators import configuration
 
 
 def _upgrade(interactive, traceback, verbosity, repair, with_nodestore):
     from django.core.management import call_command as dj_call_command
 
-    dj_call_command(
-        "migrate",
-        interactive=interactive,
-        traceback=traceback,
-        verbosity=verbosity,
-        migrate=True,
-        merge=True,
-        ignore_ghost_migrations=True,
-    )
+    for db_conn in settings.DATABASES.keys():
+        # Always run migrations for the default connection.
+        # Also run migrations on connections that have migrations explicitly enabled.
+        # This is used for sentry.io as our production database runs on multiple hosts.
+        if db_conn == "default" or settings.DATABASES[db_conn].get("RUN_MIGRATIONS", False):
+            click.echo(f"Running migrations for {db_conn}")
+            dj_call_command(
+                "migrate",
+                database=db_conn,
+                interactive=interactive,
+                traceback=traceback,
+                verbosity=verbosity,
+                migrate=True,
+                merge=True,
+                ignore_ghost_migrations=True,
+            )
 
     if with_nodestore:
         from sentry import nodestore

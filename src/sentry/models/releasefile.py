@@ -1,23 +1,48 @@
 import errno
 import logging
 import os
-import warnings
 import zipfile
+from contextlib import contextmanager
+from hashlib import sha1
+from io import BytesIO
 from tempfile import TemporaryDirectory
-from typing import IO, Tuple
+from typing import IO, ContextManager, Optional, Tuple
 from urllib.parse import urlsplit, urlunsplit
 
 from django.core.files.base import File as FileObj
-from django.db import models
+from django.db import models, transaction
 
 from sentry import options
 from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Model, sane_repr
 from sentry.models import clear_cached_files
+from sentry.models.distribution import Distribution
+from sentry.models.file import File
+from sentry.models.release import Release
 from sentry.utils import json, metrics
 from sentry.utils.hashlib import sha1_text
 from sentry.utils.zip import safe_extract_zip
 
 logger = logging.getLogger(__name__)
+
+
+ARTIFACT_INDEX_FILENAME = "artifact-index.json"
+ARTIFACT_INDEX_TYPE = "release.artifact-index"
+
+
+class PublicReleaseFileManager(models.Manager):
+    """Manager for all release files that are not internal.
+
+    Internal release files include:
+    * Uploaded release archives
+    * Artifact index mapping URLs to release archives
+
+    This manager has the overhead of always joining the File table in order
+    to filter release files.
+
+    """
+
+    def get_queryset(self):
+        return super().get_queryset().select_related("file").filter(file__type="release.file")
 
 
 class ReleaseFile(Model):
@@ -39,6 +64,9 @@ class ReleaseFile(Model):
     dist = FlexibleForeignKey("sentry.Distribution", null=True)
 
     __repr__ = sane_repr("release", "ident")
+
+    objects = models.Manager()  # The default manager.
+    public_objects = PublicReleaseFileManager()
 
     class Meta:
         unique_together = (("release", "ident"),)
@@ -105,7 +133,7 @@ class ReleaseFileCache:
             metrics.timing("release_file.cache.get.size", file_size, tags={"cutoff": True})
             return releasefile.file.getfile()
 
-        file_id = str(releasefile.file_id)
+        file_id = str(releasefile.file.id)
         organization_id = str(releasefile.organization_id)
         file_path = os.path.join(self.cache_path, organization_id, file_id)
 
@@ -177,45 +205,177 @@ class ReleaseArchive:
         return temp_dir
 
 
-def merge_release_archives(file1: IO, archive2: ReleaseArchive, target: IO) -> bool:
-    """Append contents of archive2 to copy of file1
+class _ArtifactIndexData:
+    """Holds data of artifact index and keeps track of changes"""
 
-    Skip files that are already present in archive 1.
+    def __init__(self, data: dict, fresh=False):
+        self._data = data
+        self.changed = fresh
 
-    :returns: True if zip archive was written to target
+    @property
+    def data(self):
+        """Meant to be read-only"""
+        return self._data
+
+    def get(self, filename: str):
+        return self._data.get("files", {}).get(filename, None)
+
+    def update_files(self, files: dict):
+        if files:
+            self._data.setdefault("files", {}).update(files)
+            self.changed = True
+
+    def delete(self, filename: str):
+        self._data.get("files", {}).pop(filename, None)
+        self.changed = True
+
+
+class _ArtifactIndexGuard:
+    """Ensures atomic write operations to the artifact index"""
+
+    def __init__(self, release: Release, dist: Optional[Distribution]):
+        self._release = release
+        self._dist = dist
+
+    def readable_data(self) -> Optional[dict]:
+        """Simple read, no synchronization necessary"""
+        file_ = self._get_file(lock=False)
+        if file_ is not None:
+            with file_.getfile() as fp:
+                return json.load(fp)
+
+    @contextmanager
+    def writable_data(self, create: bool) -> ContextManager[_ArtifactIndexData]:
+        """Context manager for editable artifact index"""
+        with transaction.atomic():
+            if create:
+                file_, created = self._get_or_create_file()
+            else:
+                file_ = self._get_file(lock=True)
+                created = False
+
+            if file_ is None:
+                index_data = None
+            else:
+                if created:
+                    index_data = _ArtifactIndexData({}, fresh=True)
+                else:
+                    raw_data = json.load(file_.getfile())
+                    index_data = _ArtifactIndexData(raw_data)
+
+            yield index_data  # editable reference to index
+
+            if index_data is not None and index_data.changed:
+                file_.putfile(BytesIO(json.dumps(index_data.data).encode()))
+
+    def _get_or_create_file(self) -> Tuple[File, bool]:
+        """Insert the artifact index release file if it does not exist.
+
+        We lock the selected row for the current transaction, s.t. any
+        "read & write" operation to the manifest is atomic.
+
+        :returns:
+            - file - The File instance associated with the release file.
+              If created, this file does not have any content, so consider it
+              write-only.
+            - created - True if the release file was newly inserted.
+
+        """
+        qs = ReleaseFile.objects.select_related("file")
+
+        # Once the queryset is evaluated,
+        # this will lock the artifact index until the end of the current transaction
+        qs = qs.select_for_update()
+
+        releasefile, created = qs.get_or_create(
+            organization_id=self._release.organization_id,
+            release=self._release,
+            dist=self._dist,
+            name=ARTIFACT_INDEX_FILENAME,
+            file__type=ARTIFACT_INDEX_TYPE,  # Make sure we don't get a user-uploaded file
+            defaults={
+                "file": lambda: File.objects.create(
+                    name=ARTIFACT_INDEX_FILENAME,
+                    type=ARTIFACT_INDEX_TYPE,
+                )
+            },
+        )
+
+        return releasefile.file, created
+
+    def _get_file(self, lock: bool) -> Optional[File]:
+        qs = ReleaseFile.objects.select_related("file")
+        if lock:
+            qs = qs.select_for_update()
+        try:
+            release_file = qs.get(
+                organization_id=self._release.organization_id,
+                release=self._release,
+                dist=self._dist,
+                name=ARTIFACT_INDEX_FILENAME,
+                file__type=ARTIFACT_INDEX_TYPE,
+            )
+        except ReleaseFile.DoesNotExist:
+            return None
+        else:
+            return release_file.file
+
+
+def read_artifact_index(release: Release, dist: Optional[Distribution]) -> Optional[dict]:
+    """Get index data"""
+    guard = _ArtifactIndexGuard(release, dist)
+    return guard.readable_data()
+
+
+def _compute_sha1(archive: ReleaseArchive, url: str) -> str:
+    data = archive.read(url)
+    return sha1(data).hexdigest()
+
+
+def update_artifact_index(release: Release, dist: Optional[Distribution], archive_file: File):
+    """Add information from release archive to artifact index
+
+    :returns: The created ReleaseFile instance
     """
-    with ReleaseArchive(file1) as archive1:
-        manifest = archive1.manifest
+    releasefile = ReleaseFile.objects.create(
+        name=archive_file.name,
+        release=release,
+        organization_id=release.organization_id,
+        dist=dist,
+        file=archive_file,
+    )
+
+    files_out = {}
+    with ReleaseArchive(archive_file.getfile()) as archive:
+        manifest = archive.manifest
 
         files = manifest.get("files", {})
-        files2 = archive2.manifest.get("files", {})
+        if not files:
+            return
 
-        if any(
-            archive1.info(filename).CRC != archive2.info(filename).CRC
-            for filename in files.keys() & files2.keys()
-        ):
-            metrics.incr("release_file.archive.different_content")
+        for filename, info in files.items():
+            info = info.copy()
+            url = info.pop("url")
+            info["filename"] = filename
+            info["archive_ident"] = releasefile.ident
+            info["date_created"] = archive_file.timestamp
+            info["sha1"] = _compute_sha1(archive, filename)
+            info["size"] = archive.info(filename).file_size
+            files_out[url] = info
 
-        new_files = files2.keys() - files.keys()
-        if not new_files:
-            # Nothing to merge
-            return False
+    guard = _ArtifactIndexGuard(release, dist)
+    with guard.writable_data(create=True) as index_data:
+        index_data.update_files(files_out)
 
-        # Create a copy
-        file1.seek(0)
-        target.write(file1.read())
+    return releasefile
 
-    with zipfile.ZipFile(target, mode="a", compression=zipfile.ZIP_DEFLATED) as zip_file:
-        for filename in new_files:
-            zip_file.writestr(filename, archive2.read(filename))
-            files[filename] = files2[filename]
 
-        manifest["files"] = files
+def delete_from_artifact_index(release: Release, dist: Optional[Distribution], url: str):
+    """Delete the file with the given url from the manifest.
 
-        # This creates a duplicate entry for the manifest, which is okay-ish
-        # because the Python implementation prefers the latest version when reading
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            zip_file.writestr("manifest.json", json.dumps(manifest))
-
-    return True
+    Does *not* delete the file from the zip archive.
+    """
+    guard = _ArtifactIndexGuard(release, dist)
+    with guard.writable_data(create=False) as index_data:
+        if index_data is not None:
+            index_data.delete(url)

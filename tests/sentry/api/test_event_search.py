@@ -7,14 +7,14 @@ from freezegun import freeze_time
 
 from sentry.api.event_search import (
     AggregateKey,
+    SearchConfig,
     SearchFilter,
     SearchKey,
     SearchValue,
-    SearchVisitor,
-    event_search_grammar,
     parse_search_query,
 )
 from sentry.exceptions import InvalidSearchQuery
+from sentry.search.events.constants import SEMVER_ALIAS
 
 
 class ParseSearchQueryTest(unittest.TestCase):
@@ -718,16 +718,16 @@ class ParseSearchQueryTest(unittest.TestCase):
 
     def test_is_query_unsupported(self):
         with self.assertRaisesRegexp(
-            InvalidSearchQuery, ".*queries are only supported in issue search.*"
+            InvalidSearchQuery, ".*queries are not supported in this search.*"
         ):
             parse_search_query("is:unassigned")
 
     def test_key_remapping(self):
-        class RemapVisitor(SearchVisitor):
-            key_mappings = {"target_value": ["someValue", "legacy-value"]}
+        config = SearchConfig(key_mappings={"target_value": ["someValue", "legacy-value"]})
 
-        tree = event_search_grammar.parse("someValue:123 legacy-value:456 normal_value:hello")
-        assert RemapVisitor().visit(tree) == [
+        assert parse_search_query(
+            "someValue:123 legacy-value:456 normal_value:hello", config=config
+        ) == [
             SearchFilter(
                 key=SearchKey(name="target_value"), operator="=", value=SearchValue("123")
             ),
@@ -902,6 +902,34 @@ class ParseSearchQueryTest(unittest.TestCase):
         assert parse_search_query("!user.id:1") == [
             SearchFilter(
                 key=SearchKey(name="user.id"), operator="!=", value=SearchValue(raw_value="1")
+            )
+        ]
+
+    def test_semver(self):
+        assert parse_search_query(f"{SEMVER_ALIAS}:>1.2.3") == [
+            SearchFilter(
+                key=SearchKey(name=SEMVER_ALIAS), operator=">", value=SearchValue(raw_value="1.2.3")
+            )
+        ]
+        assert parse_search_query(f"{SEMVER_ALIAS}:>1.2.3-hi") == [
+            SearchFilter(
+                key=SearchKey(name=SEMVER_ALIAS),
+                operator=">",
+                value=SearchValue(raw_value="1.2.3-hi"),
+            )
+        ]
+        assert parse_search_query(f"{SEMVER_ALIAS}:>=1.2.3-hi") == [
+            SearchFilter(
+                key=SearchKey(name=SEMVER_ALIAS),
+                operator=">=",
+                value=SearchValue(raw_value="1.2.3-hi"),
+            )
+        ]
+        assert parse_search_query(f"{SEMVER_ALIAS}:1.2.3-hi") == [
+            SearchFilter(
+                key=SearchKey(name=SEMVER_ALIAS),
+                operator="=",
+                value=SearchValue(raw_value="1.2.3-hi"),
             )
         ]
 
