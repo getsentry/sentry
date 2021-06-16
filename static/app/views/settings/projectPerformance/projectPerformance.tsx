@@ -75,7 +75,7 @@ class ProjectPerformance extends AsyncView<Props, State> {
   }
 
   get formFields(): Field[] {
-    const fields: any[] = [
+    const fields: Field[] = [
       {
         name: 'threshold',
         type: 'string',
