@@ -352,11 +352,12 @@ class SpanTree extends React.Component<PropType> {
   };
 
   generateBounds() {
-    const {dragProps, trace} = this.props;
+    const {dragProps, waterfallModel} = this.props;
+    const {parsedTrace} = waterfallModel;
 
     return boundsGenerator({
-      traceStartTimestamp: trace.traceStartTimestamp,
-      traceEndTimestamp: trace.traceEndTimestamp,
+      traceStartTimestamp: parsedTrace.traceStartTimestamp,
+      traceEndTimestamp: parsedTrace.traceEndTimestamp,
       viewStart: dragProps.viewWindowStart,
       viewEnd: dragProps.viewWindowEnd,
     });
