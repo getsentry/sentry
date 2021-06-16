@@ -10,6 +10,7 @@ import {hideSidebar, showSidebar} from 'app/actionCreators/preferences';
 import SidebarPanelActions from 'app/actions/sidebarPanelActions';
 import Feature from 'app/components/acl/feature';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
+import HookOrDefault from 'app/components/hookOrDefault';
 import {extractSelectionParameters} from 'app/components/organizations/globalSelectionHeader/utils';
 import {
   IconActivity,
@@ -44,6 +45,11 @@ import ServiceIncidents from './serviceIncidents';
 import SidebarDropdown from './sidebarDropdown';
 import SidebarItem from './sidebarItem';
 import {SidebarOrientation, SidebarPanelKey} from './types';
+
+const SidebarOverride = HookOrDefault({
+  hookName: 'sidebar:item-override',
+  defaultComponent: ({children}) => <React.Fragment>{children({})}</React.Fragment>,
+});
 
 type ActivePanelType = SidebarPanelKey | '';
 
@@ -267,19 +273,24 @@ class Sidebar extends React.Component<Props, State> {
         features={['performance-view']}
         organization={organization}
       >
-        <SidebarItem
-          {...sidebarItemProps}
-          onClick={(_id, evt) =>
-            this.navigateWithGlobalSelection(
-              `/organizations/${organization.slug}/performance/`,
-              evt
-            )
-          }
-          icon={<IconLightning size="md" />}
-          label={<GuideAnchor target="performance">{t('Performance')}</GuideAnchor>}
-          to={`/organizations/${organization.slug}/performance/`}
-          id="performance"
-        />
+        <SidebarOverride>
+          {(overideProps: Partial<React.ComponentProps<typeof SidebarItem>>) => (
+            <SidebarItem
+              {...sidebarItemProps}
+              onClick={(_id, evt) =>
+                this.navigateWithGlobalSelection(
+                  `/organizations/${organization.slug}/performance/`,
+                  evt
+                )
+              }
+              icon={<IconLightning size="md" />}
+              label={<GuideAnchor target="performance">{t('Performance')}</GuideAnchor>}
+              to={`/organizations/${organization.slug}/performance/`}
+              id="performance"
+              {...overideProps}
+            />
+          )}
+        </SidebarOverride>
       </Feature>
     );
 

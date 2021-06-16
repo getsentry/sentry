@@ -1,3 +1,4 @@
+import React from 'react';
 import {Route, RouteComponentProps} from 'react-router';
 
 import {ChildrenRenderFn} from 'app/components/acl/feature';
@@ -145,6 +146,7 @@ export type InterfaceChromeHooks = {
   'sidebar:organization-dropdown-menu-bottom': GenericOrganizationComponentHook;
   'sidebar:bottom-items': SidebarBottomItemsHook;
   'sidebar:item-label': SidebarItemLabelHook;
+  'sidebar:item-override': SidebarItemOverrideHook;
   'help-modal:footer': HelpModalFooterHook;
 };
 
@@ -333,6 +335,14 @@ type SidebarItemLabelHook = () => React.ComponentType<{
    * The item label being wrapped
    */
   children: React.ReactNode;
+}>;
+
+type SidebarItemOverrideHook = () => React.ComponentType<{
+  id?: string;
+  /**
+   * The item label being wrapped
+   */
+  children: (props: Partial<React.ComponentProps<typeof SidebarItem>>) => React.ReactNode;
 }>;
 
 type SidebarProps = Pick<
