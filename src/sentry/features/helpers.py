@@ -1,4 +1,4 @@
-from typing import Any, Callable, Optional, Sequence
+from typing import Any, Sequence
 
 from rest_framework.response import Response
 
