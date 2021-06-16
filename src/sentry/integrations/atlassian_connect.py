@@ -1,6 +1,8 @@
 import hashlib
+from typing import Mapping, Optional, Sequence, Union
 
 from jwt import InvalidSignatureError
+from rest_framework.request import Request
 
 from sentry.models import Integration
 from sentry.utils import jwt
@@ -13,7 +15,9 @@ class AtlassianConnectValidationError(Exception):
     pass
 
 
-def get_query_hash(uri, method, query_params=None):
+def get_query_hash(
+    uri: str, method: str, query_params: Optional[Mapping[str, Union[str, Sequence[str]]]] = None
+) -> str:
     # see
     # https://developer.atlassian.com/static/connect/docs/latest/concepts/understanding-jwt.html#qsh
     uri = uri.rstrip("/")
@@ -35,7 +39,13 @@ def get_query_hash(uri, method, query_params=None):
     return hashlib.sha256(query_string.encode("utf8")).hexdigest()
 
 
-def get_integration_from_jwt(token, path, provider, query_params, method="GET"):
+def get_integration_from_jwt(
+    token: Optional[str],
+    path: str,
+    provider: str,
+    query_params: Optional[Mapping[str, str]],
+    method: str = "GET",
+) -> Integration:
     # https://developer.atlassian.com/static/connect/docs/latest/concepts/authentication.html
     # Extract the JWT token from the request's jwt query
     # parameter or the authorization header.
@@ -73,5 +83,5 @@ def get_integration_from_jwt(token, path, provider, query_params, method="GET"):
     return integration
 
 
-def get_integration_from_request(request, provider):
+def get_integration_from_request(request: Request, provider: str) -> Integration:
     return get_integration_from_jwt(request.GET.get("jwt"), request.path, provider, request.GET)
