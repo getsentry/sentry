@@ -208,9 +208,9 @@ class ReleaseArchive:
 class _ArtifactIndexData:
     """Holds data of artifact index and keeps track of changes"""
 
-    def __init__(self, data: dict):
+    def __init__(self, data: dict, fresh=False):
         self._data = data
-        self.changed = False
+        self.changed = fresh
 
     @property
     def data(self):
@@ -251,41 +251,51 @@ class _ArtifactIndexGuard:
     @contextmanager
     def writable_data(self, create: bool) -> ContextManager[_ArtifactIndexData]:
         """Context manager for editable artifact index"""
-        if create:
-            self._ensure_releasefile()
-
-        # No race condition here, because artifact index is never deleted
-
         with transaction.atomic():
-            # Lock the row for editing:
-            # NOTE: Do not select_related('file') here, because we do not
-            # want to lock the File table
-            qs = self._releasefile_qs().select_for_update()
-            try:
-                releasefile = qs[0]
-            except IndexError:
-                if create:
-                    raise RuntimeError("artifact index unexpectedly gone")
+            created = False
+            if create:
+                releasefile, created = self._get_or_create_releasefile()
+            else:
+                # Lock the row for editing:
+                # NOTE: Do not select_related('file') here, because we do not
+                # want to lock the File table
+                qs = self._releasefile_qs().select_for_update()
+                try:
+                    releasefile = qs[0]
+                except IndexError:
+                    releasefile = None
+
+            if releasefile is None:
                 index_data = None
             else:
-                source_file = releasefile.file
-                if source_file.type != ARTIFACT_INDEX_TYPE:
-                    raise RuntimeError("Unexpected file type for artifact index")
-                raw_data = json.load(source_file.getfile())
-                index_data = _ArtifactIndexData(raw_data)
+                if created:
+                    index_data = _ArtifactIndexData({}, fresh=True)
+                else:
+                    source_file = releasefile.file
+                    if source_file.type != ARTIFACT_INDEX_TYPE:
+                        raise RuntimeError("Unexpected file type for artifact index")
+                    raw_data = json.load(source_file.getfile())
+                    index_data = _ArtifactIndexData(raw_data)
 
             yield index_data  # editable reference to index
 
             if index_data is not None and index_data.changed:
-                target_file = File.objects.create(
-                    name=ARTIFACT_INDEX_FILENAME, type=ARTIFACT_INDEX_TYPE
-                )
-                old_file = releasefile.file
-                target_file.putfile(BytesIO(json.dumps(index_data.data).encode()))
-                releasefile.update(file=target_file)
-                old_file.delete()
+                if created:
+                    target_file = releasefile.file
+                else:
+                    target_file = File.objects.create(
+                        name=ARTIFACT_INDEX_FILENAME, type=ARTIFACT_INDEX_TYPE
+                    )
 
-    def _ensure_releasefile(self):
+                target_file.putfile(BytesIO(json.dumps(index_data.data).encode()))
+
+                if not created:
+                    # Update and clean existing
+                    old_file = releasefile.file
+                    releasefile.update(file=target_file)
+                    old_file.delete()
+
+    def _get_or_create_releasefile(self):
         """Make sure that the release file exists"""
 
         def create_empty_index():
@@ -296,7 +306,7 @@ class _ArtifactIndexGuard:
             file_.putfile(BytesIO(b"{}"))  # Empty JSON object
             return file_
 
-        ReleaseFile.objects.get_or_create(
+        return ReleaseFile.objects.select_for_update().get_or_create(
             **self._key_fields(),
             defaults={"file": create_empty_index},
         )
