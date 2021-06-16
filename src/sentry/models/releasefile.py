@@ -208,9 +208,9 @@ class ReleaseArchive:
 class _ArtifactIndexData:
     """Holds data of artifact index and keeps track of changes"""
 
-    def __init__(self, data: dict, fresh=False):
+    def __init__(self, data: dict):
         self._data = data
-        self.changed = fresh
+        self.changed = False
 
     @property
     def data(self):
@@ -239,30 +239,35 @@ class _ArtifactIndexGuard:
 
     def readable_data(self) -> Optional[dict]:
         """Simple read, no synchronization necessary"""
-        releasefile = self._get_releasefile(lock=False)
-        if releasefile is not None:
+        try:
+            releasefile = self._releasefile_qs()[0]
+        except IndexError:
+            return None
+        else:
             with releasefile.file.getfile() as fp:
                 return json.load(fp)
 
     @contextmanager
     def writable_data(self, create: bool) -> ContextManager[_ArtifactIndexData]:
         """Context manager for editable artifact index"""
-        with transaction.atomic():
-            if create:
-                releasefile, created = self._get_or_create_releasefile()
-            else:
-                releasefile = self._get_releasefile(lock=True)
-                created = False
+        if create:
+            self._ensure_releasefile()
 
-            if releasefile is None:
+        # No race condition here, because artifact index is never deleted
+
+        with transaction.atomic():
+            # Lock the row for editing:
+            qs = self._releasefile_qs().select_for_update()
+            try:
+                releasefile = qs[0]
+            except IndexError:
+                if create:
+                    raise RuntimeError("artifact index unexpectedly gone")
                 index_data = None
             else:
-                if created:
-                    index_data = _ArtifactIndexData({}, fresh=True)
-                else:
-                    source_file = releasefile.file
-                    raw_data = json.load(source_file.getfile())
-                    index_data = _ArtifactIndexData(raw_data)
+                source_file = releasefile.file
+                raw_data = json.load(source_file.getfile())
+                index_data = _ArtifactIndexData(raw_data)
 
             yield index_data  # editable reference to index
 
@@ -275,55 +280,35 @@ class _ArtifactIndexGuard:
                 releasefile.update(file=target_file)
                 old_file.delete()
 
-    def _get_or_create_releasefile(self) -> Tuple[ReleaseFile, bool]:
-        """Insert the artifact index release file if it does not exist.
+    def _ensure_releasefile(self):
+        """Make sure that the release file exists"""
 
-        We lock the selected row for the current transaction, s.t. any
-        "read & write" operation to the manifest is atomic.
+        def create_empty_index():
+            file_ = File.objects.create(
+                name=ARTIFACT_INDEX_FILENAME,
+                type=ARTIFACT_INDEX_TYPE,
+            )
+            file_.putfile(BytesIO(b"{}"))  # Empty JSON object
+            return file_
 
-        :returns:
-            - file - The ReleaseFile instance.
-              If created, its associated file does not have any content, so consider it
-              write-only.
-            - created - True if the release file was newly inserted.
+        ReleaseFile.objects.select_related("file").get_or_create(
+            **self._key_fields(),
+            defaults={"file": create_empty_index},
+        )
 
-        """
-        qs = ReleaseFile.objects.select_related("file")
+    def _releasefile_qs(self):
+        """QuerySet for selecting artifact index"""
+        return ReleaseFile.objects.filter(**self._key_fields()).select_related("file")
 
-        # Once the queryset is evaluated,
-        # this will lock the artifact index until the end of the current transaction
-        qs = qs.select_for_update()
-
-        return qs.get_or_create(
+    def _key_fields(self):
+        """Columns needed to identify the artifact index in the db"""
+        return dict(
             organization_id=self._release.organization_id,
             release=self._release,
             dist=self._dist,
             name=ARTIFACT_INDEX_FILENAME,
             file__type=ARTIFACT_INDEX_TYPE,  # Make sure we don't get a user-uploaded file
-            defaults={
-                "file": lambda: File.objects.create(
-                    name=ARTIFACT_INDEX_FILENAME,
-                    type=ARTIFACT_INDEX_TYPE,
-                )
-            },
         )
-
-    def _get_releasefile(self, lock: bool) -> Optional[ReleaseFile]:
-        qs = ReleaseFile.objects.select_related("file")
-        if lock:
-            qs = qs.select_for_update()
-        try:
-            release_file = qs.get(
-                organization_id=self._release.organization_id,
-                release_id=self._release.id,
-                dist=self._dist,
-                name=ARTIFACT_INDEX_FILENAME,
-                file__type=ARTIFACT_INDEX_TYPE,
-            )
-        except ReleaseFile.DoesNotExist:
-            return None
-        else:
-            return release_file
 
 
 def read_artifact_index(release: Release, dist: Optional[Distribution]) -> Optional[dict]:
