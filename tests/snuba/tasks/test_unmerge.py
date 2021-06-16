@@ -24,7 +24,6 @@ from sentry.tasks.unmerge import (
 )
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.helpers.features import with_feature
 from sentry.utils import redis
 from sentry.utils.compat import map
 from sentry.utils.compat.mock import patch
@@ -166,7 +165,6 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             "first_release": None,
         }
 
-    @with_feature("projects:similarity-indexing")
     def test_unmerge(self):
         now = before_now(minutes=5).replace(microsecond=0, tzinfo=pytz.utc)
 

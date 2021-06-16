@@ -130,12 +130,10 @@ class GroupHeader extends React.Component<Props, State> {
       organization,
       location,
     } = this.props;
-    const projectFeatures = new Set(project ? project.features : []);
     const organizationFeatures = new Set(organization ? organization.features : []);
     const userCount = group.userCount;
 
     const hasGroupingTreeUI = organizationFeatures.has('grouping-tree-ui');
-    const hasSimilarView = projectFeatures.has('similarity-view');
     const hasEventAttachments = organizationFeatures.has('event-attachments');
 
     let className = 'group-detail';
@@ -345,15 +343,13 @@ class GroupHeader extends React.Component<Props, State> {
               {t('Grouping')}
             </ListLink>
           )}
-          {hasSimilarView && (
-            <ListLink
-              to={`${baseUrl}similar/${location.search}`}
-              isActive={() => currentTab === TAB.SIMILAR_ISSUES}
-              disabled={disabledTabs.includes(TAB.SIMILAR_ISSUES)}
-            >
-              {t('Similar Issues')}
-            </ListLink>
-          )}
+          <ListLink
+            to={`${baseUrl}similar/${location.search}`}
+            isActive={() => currentTab === TAB.SIMILAR_ISSUES}
+            disabled={disabledTabs.includes(TAB.SIMILAR_ISSUES)}
+          >
+            {t('Similar Issues')}
+          </ListLink>
         </NavTabs>
       </div>
     );

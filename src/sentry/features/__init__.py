@@ -151,9 +151,7 @@ default_manager.add("projects:minidump", ProjectFeature)
 default_manager.add("projects:race-free-group-creation", ProjectFeature)
 default_manager.add("projects:rate-limits", ProjectFeature)
 default_manager.add("projects:servicehooks", ProjectFeature)
-default_manager.add("projects:similarity-indexing", ProjectFeature)
 default_manager.add("projects:similarity-indexing-v2", ProjectFeature)
-default_manager.add("projects:similarity-view", ProjectFeature)
 default_manager.add("projects:similarity-view-v2", ProjectFeature)
 
 # Project plugin features
