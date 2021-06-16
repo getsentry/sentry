@@ -1,13 +1,7 @@
 import styled from '@emotion/styled';
-import {LocationDescriptor, Query} from 'history';
+import {Query} from 'history';
 
 import space from 'app/styles/space';
-import {Organization} from 'app/types';
-import {TableDataRow} from 'app/utils/discover/discoverQuery';
-import {generateEventSlug} from 'app/utils/discover/urls';
-import {getTraceDetailsUrl} from 'app/views/performance/traceDetails/utils';
-
-import {getTransactionDetailsUrl} from '../utils';
 
 import {DisplayModes} from './charts';
 
@@ -63,32 +57,6 @@ export function transactionSummaryRouteWithQuery({
       trendFunction,
       trendColumn,
     },
-  };
-}
-
-export function generateTraceLink(dateSelection) {
-  return (
-    organization: Organization,
-    tableRow: TableDataRow,
-    _query: Query
-  ): LocationDescriptor => {
-    const traceId = `${tableRow.trace}`;
-    if (!traceId) {
-      return {};
-    }
-
-    return getTraceDetailsUrl(organization, traceId, dateSelection, {});
-  };
-}
-
-export function generateTransactionLink(transactionName: string) {
-  return (
-    organization: Organization,
-    tableRow: TableDataRow,
-    query: Query
-  ): LocationDescriptor => {
-    const eventSlug = generateEventSlug(tableRow);
-    return getTransactionDetailsUrl(organization, eventSlug, transactionName, query);
   };
 }
 

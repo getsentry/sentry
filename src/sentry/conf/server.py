@@ -950,8 +950,6 @@ SENTRY_FEATURES = {
     "organizations:performance-tag-explorer": False,
     # Enable landing improvements for performance
     "organizations:performance-landing-widgets": False,
-    # Enable views for transaction events page in performance
-    "organizations:performance-events-page": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See

@@ -110,7 +110,6 @@ default_manager.add("organizations:performance-mobile-vitals", OrganizationFeatu
 default_manager.add("organizations:performance-ops-breakdown", OrganizationFeature)
 default_manager.add("organizations:performance-tag-explorer", OrganizationFeature, True)
 default_manager.add("organizations:performance-tag-page", OrganizationFeature, True)
-default_manager.add("organizations:performance-events-page", OrganizationFeature, True)
 default_manager.add("organizations:performance-view", OrganizationFeature)
 default_manager.add("organizations:project-transaction-threshold", OrganizationFeature, True)
 default_manager.add("organizations:prompt-dashboards", OrganizationFeature)
