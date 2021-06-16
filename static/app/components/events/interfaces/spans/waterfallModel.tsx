@@ -62,6 +62,10 @@ class WaterfallModel {
       filterSpans: observable,
       searchQuery: observable,
       querySpanSearch: action,
+
+      // span group toggling
+      hiddenSpanGroups: observable,
+      toggleSpanGroup: action,
     });
   }
 
