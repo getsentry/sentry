@@ -427,7 +427,6 @@ class OrganizationSerializer(serializers.Serializer):
             and self.initial_data.get("requireEmailVerification") is True
         ):
             org.handle_email_verification_required(self.context["request"])
-
         return org, changed_data
 
 
@@ -471,8 +470,6 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         return self.respond(context)
 
     def put(self, request, organization):
-        from sentry import features
-
         """
         Update an Organization
         ``````````````````````
@@ -487,6 +484,8 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                             to be available and unique.
         :auth: required
         """
+        from sentry import features
+
         if request.access.has_scope("org:admin"):
             serializer_cls = OwnerOrganizationSerializer
         else:
