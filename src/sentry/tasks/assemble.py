@@ -280,7 +280,10 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
             if options.get("processing.save-release-archives"):
                 min_size = options.get("processing.release-archive-min-files")
                 if num_files >= min_size:
-                    update_artifact_index(release, dist, bundle)
+                    try:
+                        update_artifact_index(release, dist, bundle)
+                    except BaseException as exc:
+                        logger.error("Unable to update artifact index", exc_info=exc)
 
             # NOTE(jjbayer): Single files are still stored to enable
             # rolling back from release archives. Once release archives run
