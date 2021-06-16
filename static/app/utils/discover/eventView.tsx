@@ -1155,7 +1155,10 @@ class EventView {
     return uniqBy(
       this.getAggregateFields()
         // Only include aggregates that make sense to be graphable (eg. not string or date)
-        .filter((field: Field) => isLegalYAxisType(aggregateOutputType(field.field)))
+        .filter(
+          (field: Field) =>
+            isLegalYAxisType(aggregateOutputType(field.field)) && !isEquation(field.field)
+        )
         .map((field: Field) => ({label: field.field, value: field.field}))
         .concat(CHART_AXIS_OPTIONS),
       'value'
@@ -1267,12 +1270,15 @@ export const isAPIPayloadSimilar = (
 
   for (const key of currentKeys) {
     const currentValue = current[key];
-    const currentTarget = Array.isArray(currentValue)
-      ? new Set(currentValue)
-      : currentValue;
+    // Exclude equation from becoming a set for comparison cause its order matters
+    const currentTarget =
+      Array.isArray(currentValue) && key !== 'equation'
+        ? new Set(currentValue)
+        : currentValue;
 
     const otherValue = other[key];
-    const otherTarget = Array.isArray(otherValue) ? new Set(otherValue) : otherValue;
+    const otherTarget =
+      Array.isArray(otherValue) && key !== 'equation' ? new Set(otherValue) : otherValue;
 
     if (!isEqual(currentTarget, otherTarget)) {
       return false;

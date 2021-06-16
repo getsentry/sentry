@@ -101,21 +101,50 @@ def get_oldest_health_data_for_releases(project_releases):
     return rv
 
 
-def check_has_health_data(project_releases):
-    conditions = [["release", "IN", list(x[1] for x in project_releases)]]
-    filter_keys = {"project_id": list({x[0] for x in project_releases})}
-    return {
-        (x["project_id"], x["release"])
-        for x in raw_query(
-            dataset=Dataset.Sessions,
-            selected_columns=["release", "project_id"],
-            groupby=["release", "project_id"],
-            start=datetime.utcnow() - timedelta(days=90),
-            conditions=conditions,
-            referrer="sessions.health-data-check",
-            filter_keys=filter_keys,
-        )["data"]
+def check_has_health_data(projects_list):
+    """
+    Function that returns a set of all project_ids or (project, release) if they have health data
+    within the last 90 days based on a list of projects or a list of project, release combinations
+    provided as an arg.
+    Inputs:
+        * projects_list: Contains either a list of project ids or a list of tuple (project_id,
+        release)
+    """
+    if len(projects_list) == 0:
+        return set()
+
+    conditions = None
+    projects_list = list(projects_list)
+    # Check if projects_list also contains releases as a tuple of (project_id, releases)
+    includes_releases = type(projects_list[0]) == tuple
+
+    if includes_releases:
+        filter_keys = {"project_id": {x[0] for x in projects_list}}
+        conditions = [["release", "IN", [x[1] for x in projects_list]]]
+        query_cols = ["release", "project_id"]
+
+        def data_tuple(x):
+            return x["project_id"], x["release"]
+
+    else:
+        filter_keys = {"project_id": {x for x in projects_list}}
+        query_cols = ["project_id"]
+
+        def data_tuple(x):
+            return x["project_id"]
+
+    raw_query_args = {
+        "dataset": Dataset.Sessions,
+        "selected_columns": query_cols,
+        "groupby": query_cols,
+        "start": datetime.utcnow() - timedelta(days=90),
+        "referrer": "sessions.health-data-check",
+        "filter_keys": filter_keys,
     }
+    if conditions is not None:
+        raw_query_args.update({"conditions": conditions})
+
+    return {data_tuple(x) for x in raw_query(**raw_query_args)["data"]}
 
 
 def get_project_releases_by_stability(
@@ -916,3 +945,110 @@ def __get_scope_value_for_release(
     elif scope == "crash_free_users":
         scope_value = rq_row["users_crashed"] / rq_row["users"]
     return scope_value
+
+
+def __get_crash_free_rate_data(project_ids, start, end, rollup):
+    """
+    Helper function that executes a snuba query on project_ids to fetch the number of crashed
+    sessions and total sessions and returns the crash free rate for those project_ids.
+    Inputs:
+        * project_ids
+        * start
+        * end
+        * rollup
+    Returns:
+        Snuba query results
+    """
+    return raw_query(
+        dataset=Dataset.Sessions,
+        selected_columns=[
+            "project_id",
+            "sessions_crashed",
+            "sessions_errored",
+            "sessions_abnormal",
+            "sessions",
+        ],
+        filter_keys={"project_id": project_ids},
+        start=start,
+        end=end,
+        rollup=rollup,
+        groupby=["project_id"],
+        referrer="sessions.totals",
+    )["data"]
+
+
+def get_current_and_previous_crash_free_rates(
+    project_ids, current_start, current_end, previous_start, previous_end, rollup
+):
+    """
+    Function that returns `currentCrashFreeRate` and the `previousCrashFreeRate` of projects
+    based on the inputs provided
+    Inputs:
+        * project_ids
+        * current_start: start interval of currentCrashFreeRate
+        * current_end: end interval of currentCrashFreeRate
+        * previous_start: start interval of previousCrashFreeRate
+        * previous_end: end interval of previousCrashFreeRate
+        * rollup
+    Returns:
+        A dictionary of project_id as key and as value the `currentCrashFreeRate` and the
+        `previousCrashFreeRate`
+
+        As an example:
+        {
+            1: {
+                "currentCrashFreeRate": 100,
+                "previousCrashFreeRate": 66.66666666666667
+            },
+            2: {
+                "currentCrashFreeRate": 50.0,
+                "previousCrashFreeRate": None
+            },
+            ...
+        }
+    """
+    projects_crash_free_rate_dict = {
+        prj: {"currentCrashFreeRate": None, "previousCrashFreeRate": None} for prj in project_ids
+    }
+
+    def calculate_crash_free_percentage(row):
+        # XXX: Calculation is done in this way to clamp possible negative values and so to calculate
+        # crash free rates similar to how it is calculated here
+        # Ref: https://github.com/getsentry/sentry/pull/25543
+        healthy_sessions = max(row["sessions"] - row["sessions_errored"], 0)
+        errored_sessions = max(
+            row["sessions_errored"] - row["sessions_crashed"] - row["sessions_abnormal"], 0
+        )
+        totals = (
+            healthy_sessions + errored_sessions + row["sessions_crashed"] + row["sessions_abnormal"]
+        )
+        try:
+            crash_free_rate = 100 - (row["sessions_crashed"] / totals) * 100
+        except ZeroDivisionError:
+            crash_free_rate = None
+        return crash_free_rate
+
+    # currentCrashFreeRate
+    current_crash_free_data = __get_crash_free_rate_data(
+        project_ids=project_ids,
+        start=current_start,
+        end=current_end,
+        rollup=rollup,
+    )
+    for row in current_crash_free_data:
+        projects_crash_free_rate_dict[row["project_id"]].update(
+            {"currentCrashFreeRate": calculate_crash_free_percentage(row)}
+        )
+
+    # previousCrashFreeRate
+    previous_crash_free_data = __get_crash_free_rate_data(
+        project_ids=project_ids,
+        start=previous_start,
+        end=previous_end,
+        rollup=rollup,
+    )
+    for row in previous_crash_free_data:
+        projects_crash_free_rate_dict[row["project_id"]].update(
+            {"previousCrashFreeRate": calculate_crash_free_percentage(row)}
+        )
+    return projects_crash_free_rate_dict

@@ -77,7 +77,7 @@ class OrganizationReleaseMetaEndpoint(OrganizationReleasesBaseEndpoint):
             for pr in project_releases
         ]
 
-        release_file_count = ReleaseFile.objects.filter(release=release).count()
+        release_file_count = ReleaseFile.public_objects.filter(release=release).count()
 
         return Response(
             {
