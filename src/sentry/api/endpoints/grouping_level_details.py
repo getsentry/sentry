@@ -135,25 +135,18 @@ def _decrease_level(group: Group, id: int, levels_overview: LevelsOverview, requ
         Query("events", Entity("events"))
         .set_select(
             [
+                Function("groupUniqArray", [Column("group_id")], "group_ids"),
                 Function(
-                    "arrayDistinct", [Function("groupArray", [Column("group_id")])], "group_ids"
-                ),
-                Function(
-                    "arrayDistinct",
+                    "groupUniqArray",
                     [
                         Function(
-                            "arrayFlatten",
+                            "arrayJoin",
                             [
                                 Function(
-                                    "groupArray",
+                                    "arraySlice",
                                     [
-                                        Function(
-                                            "arraySlice",
-                                            [
-                                                Column("hierarchical_hashes"),
-                                                id + 1,
-                                            ],
-                                        )
+                                        Column("hierarchical_hashes"),
+                                        id + 1,
                                     ],
                                 )
                             ],
