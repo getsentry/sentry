@@ -46,7 +46,15 @@ jobs:
       - name: Build docker image
         run: |
           rm .dockerignore
+
+          # Required for layer caching
+          docker pull ghcr.io/getsentry/sentry-ci:${{ github.sha }} || \
+            docker pull ghcr.io/getsentry/sentry-ci:${{ steps.branch.outputs.branch }} || \
+            docker pull ghcr.io/getsentry/sentry-ci:latest || \
+            true
+
           docker build . \
+            --build-arg BUILDKIT_INLINE_CACHE=1 \
             -f test.Dockerfile \
             --cache-from ghcr.io/getsentry/sentry-ci:latest \
             --cache-from ghcr.io/getsentry/sentry-ci:${{ steps.branch.outputs.branch }} \
