@@ -3,8 +3,8 @@ from uuid import uuid4
 
 from sentry.models.eventattachment import EventAttachment
 from sentry.testutils import RelayStoreHelper, TransactionTestCase
-from sentry.testutils.helpers.datetime import before_now, iso_format, timestamp_format
 from sentry.testutils.helpers import Feature
+from sentry.testutils.helpers.datetime import before_now, iso_format, timestamp_format
 
 
 class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
