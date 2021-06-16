@@ -236,7 +236,7 @@ class _ArtifactIndexGuard:
     def __init__(self, release: Release, dist: Optional[Distribution]):
         self._release = release
         self._dist = dist
-        self._ident = ReleaseFile.get_ident(ARTIFACT_INDEX_FILENAME, dist)
+        self._ident = ReleaseFile.get_ident(ARTIFACT_INDEX_FILENAME, dist and dist.name)
 
     def readable_data(self) -> Optional[dict]:
         """Simple read, no synchronization necessary"""
