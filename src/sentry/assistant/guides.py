@@ -40,6 +40,7 @@ GUIDES = {
             "tag_explorer",
         ],
     },
+    "team_key_transactions": {"id": 18, "required_targets": ["team_key_transaction_header"]},
 }
 
 # demo mode has different guides

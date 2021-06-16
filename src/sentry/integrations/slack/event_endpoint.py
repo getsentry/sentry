@@ -2,13 +2,15 @@ from collections import defaultdict
 from typing import Any, Dict, List
 
 from sentry.api.base import Endpoint
+from sentry.integrations.slack.client import SlackClient
+from sentry.integrations.slack.message_builder.event import SlackEventMessageBuilder
+from sentry.integrations.slack.requests.base import SlackRequestError
+from sentry.integrations.slack.requests.event import SlackEventRequest
+from sentry.integrations.slack.unfurl import LinkType, UnfurlableUrl, link_handlers, match_link
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
 from sentry.web.decorators import transaction_start
 
-from .client import SlackClient
-from .requests import SlackEventRequest, SlackRequestError
-from .unfurl import LinkType, UnfurlableUrl, link_handlers, match_link
 from .utils import logger, parse_link
 
 
@@ -33,34 +35,9 @@ class SlackEventEndpoint(Endpoint):
         # that will cause an infinite loop of messages
         if data.get("bot_id"):
             return self.respond()
-
         access_token = self._get_access_token(integration)
-
         headers = {"Authorization": "Bearer %s" % access_token}
-        payload = {
-            "channel": channel,
-            "blocks": [
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": "Want to learn more about configuring alerts in Sentry? Check out our documentation.",
-                    },
-                },
-                {
-                    "type": "actions",
-                    "elements": [
-                        {
-                            "type": "button",
-                            "text": {"type": "plain_text", "text": "Sentry Docs"},
-                            "url": "https://docs.sentry.io/product/alerts-notifications/alerts/",
-                            "value": "sentry_docs_link_clicked",
-                        }
-                    ],
-                },
-            ],
-        }
-
+        payload = {"channel": channel, **SlackEventMessageBuilder(integration).build()}
         client = SlackClient()
         try:
             client.post("/chat.postMessage", headers=headers, data=payload, json=True)

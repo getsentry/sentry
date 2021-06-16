@@ -2,7 +2,8 @@ import * as React from 'react';
 import * as ReactRouter from 'react-router';
 import {Location, LocationDescriptorObject} from 'history';
 
-import {GuideAnchor} from 'app/components/assistant/guideAnchor';
+import {fetchLegacyKeyTransactionsCount} from 'app/actionCreators/performance';
+import GuideAnchor from 'app/components/assistant/guideAnchor';
 import GridEditable, {COL_WIDTH_UNDEFINED, GridColumn} from 'app/components/gridEditable';
 import SortLink from 'app/components/gridEditable/sortLink';
 import Link from 'app/components/links/link';
@@ -55,11 +56,27 @@ type Props = {
 
 type State = {
   widths: number[];
+  keyedTransactions: number | null;
 };
 class Table extends React.Component<Props, State> {
   state: State = {
     widths: [],
+    keyedTransactions: null,
   };
+
+  componentDidMount() {
+    this.fetchKeyTransactionCount();
+  }
+
+  async fetchKeyTransactionCount() {
+    const {organization} = this.props;
+    try {
+      const count = await fetchLegacyKeyTransactionsCount(organization.slug);
+      this.setState({keyedTransactions: count});
+    } catch (error) {
+      this.setState({keyedTransactions: null});
+    }
+  }
 
   handleCellAction = (column: TableColumn<keyof TableDataRow>) => {
     return (action: Actions, value: React.ReactText) => {
@@ -95,7 +112,7 @@ class Table extends React.Component<Props, State> {
     column: TableColumn<keyof TableDataRow>,
     dataRow: TableDataRow
   ): React.ReactNode {
-    const {eventView, organization, projects, location, summaryConditions} = this.props;
+    const {eventView, organization, projects, location} = this.props;
 
     if (!tableData || !tableData.meta) {
       return dataRow[column.key];
@@ -116,8 +133,12 @@ class Table extends React.Component<Props, State> {
     if (field === 'transaction') {
       const projectID = getProjectID(dataRow, projects);
       const summaryView = eventView.clone();
-      summaryView.query = summaryConditions;
-
+      if (dataRow['http.method']) {
+        summaryView.additionalConditions.setTagValues('http.method', [
+          dataRow['http.method'] as string,
+        ]);
+      }
+      summaryView.query = summaryView.getQueryWithAdditionalConditions();
       const target = transactionSummaryRouteWithQuery({
         orgSlug: organization.slug,
         transaction: String(dataRow.transaction) || '',
@@ -257,6 +278,8 @@ class Table extends React.Component<Props, State> {
 
   renderPrependCellWithData = (tableData: TableData | null) => {
     const {eventView} = this.props;
+    const {keyedTransactions} = this.state;
+
     const keyTransactionColumn = eventView
       .getColumns()
       .find((col: TableColumn<React.ReactText>) => col.name === 'key_transaction');
@@ -281,12 +304,24 @@ class Table extends React.Component<Props, State> {
       } else if (teamKeyTransactionColumn) {
         if (isHeader) {
           const star = (
-            <IconStar
-              key="keyTransaction"
-              color="yellow300"
-              isSolid
-              data-test-id="team-key-transaction-header"
-            />
+            <GuideAnchor
+              target="team_key_transaction_header"
+              position="top"
+              disabled={keyedTransactions === null} // wait for the legacy counts to load
+            >
+              <GuideAnchor
+                target="team_key_transaction_existing"
+                position="top"
+                disabled={!keyedTransactions}
+              >
+                <IconStar
+                  key="keyTransaction"
+                  color="yellow300"
+                  isSolid
+                  data-test-id="team-key-transaction-header"
+                />
+              </GuideAnchor>
+            </GuideAnchor>
           );
           return [this.renderHeadCell(tableData?.meta, teamKeyTransactionColumn, star)];
         } else {

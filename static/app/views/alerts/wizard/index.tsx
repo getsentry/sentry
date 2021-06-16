@@ -164,69 +164,67 @@ class AlertWizard extends Component<Props, State> {
       <Fragment>
         <SentryDocumentTitle title={title} projectSlug={projectId} />
 
-        <Feature features={['organizations:alert-wizard']}>
-          <Layout.Header>
-            <StyledHeaderContent>
-              <BuilderBreadCrumbs
-                hasMetricAlerts={hasMetricAlerts}
-                orgSlug={organization.slug}
-                projectSlug={projectId}
-                title={t('Select Alert')}
-                routes={routes}
-                location={location}
-                canChangeProject
-              />
-              <Layout.Title>{t('Select Alert')}</Layout.Title>
-            </StyledHeaderContent>
-          </Layout.Header>
-          <StyledLayoutBody>
-            <Layout.Main fullWidth>
-              <WizardBody>
-                <WizardOptions>
-                  <Styledh2>{t('Errors')}</Styledh2>
-                  {AlertWizardOptions.map(({categoryHeading, options}, i) => (
-                    <OptionsWrapper key={categoryHeading}>
-                      {i > 0 && <Styledh2>{categoryHeading}</Styledh2>}
-                      <RadioPanelGroup
-                        choices={options.map(alertType => {
-                          return [alertType, AlertWizardAlertNames[alertType]];
-                        })}
-                        onChange={this.handleChangeAlertOption}
-                        value={alertOption}
-                        label="alert-option"
-                      />
-                    </OptionsWrapper>
-                  ))}
-                </WizardOptions>
-                <WizardPanel visible={!!panelContent && !!alertOption}>
-                  <WizardPanelBody>
-                    <div>
-                      <PanelHeader>{AlertWizardAlertNames[alertOption]}</PanelHeader>
-                      <PanelBody withPadding>
-                        <PanelDescription>
-                          {panelContent.description}{' '}
-                          {panelContent.docsLink && (
-                            <ExternalLink href={panelContent.docsLink}>
-                              {t('Learn more')}
-                            </ExternalLink>
-                          )}
-                        </PanelDescription>
-                        <WizardImage src={panelContent.illustration} />
-                        <ExampleHeader>{t('Examples')}</ExampleHeader>
-                        <ExampleList symbol="bullet">
-                          {panelContent.examples.map((example, i) => (
-                            <ExampleItem key={i}>{example}</ExampleItem>
-                          ))}
-                        </ExampleList>
-                      </PanelBody>
-                    </div>
-                    <WizardFooter>{this.renderCreateAlertButton()}</WizardFooter>
-                  </WizardPanelBody>
-                </WizardPanel>
-              </WizardBody>
-            </Layout.Main>
-          </StyledLayoutBody>
-        </Feature>
+        <Layout.Header>
+          <StyledHeaderContent>
+            <BuilderBreadCrumbs
+              hasMetricAlerts={hasMetricAlerts}
+              orgSlug={organization.slug}
+              projectSlug={projectId}
+              title={t('Select Alert')}
+              routes={routes}
+              location={location}
+              canChangeProject
+            />
+            <Layout.Title>{t('Select Alert')}</Layout.Title>
+          </StyledHeaderContent>
+        </Layout.Header>
+        <StyledLayoutBody>
+          <Layout.Main fullWidth>
+            <WizardBody>
+              <WizardOptions>
+                <Styledh2>{t('Errors')}</Styledh2>
+                {AlertWizardOptions.map(({categoryHeading, options}, i) => (
+                  <OptionsWrapper key={categoryHeading}>
+                    {i > 0 && <Styledh2>{categoryHeading}</Styledh2>}
+                    <RadioPanelGroup
+                      choices={options.map(alertType => {
+                        return [alertType, AlertWizardAlertNames[alertType]];
+                      })}
+                      onChange={this.handleChangeAlertOption}
+                      value={alertOption}
+                      label="alert-option"
+                    />
+                  </OptionsWrapper>
+                ))}
+              </WizardOptions>
+              <WizardPanel visible={!!panelContent && !!alertOption}>
+                <WizardPanelBody>
+                  <div>
+                    <PanelHeader>{AlertWizardAlertNames[alertOption]}</PanelHeader>
+                    <PanelBody withPadding>
+                      <PanelDescription>
+                        {panelContent.description}{' '}
+                        {panelContent.docsLink && (
+                          <ExternalLink href={panelContent.docsLink}>
+                            {t('Learn more')}
+                          </ExternalLink>
+                        )}
+                      </PanelDescription>
+                      <WizardImage src={panelContent.illustration} />
+                      <ExampleHeader>{t('Examples')}</ExampleHeader>
+                      <ExampleList symbol="bullet">
+                        {panelContent.examples.map((example, i) => (
+                          <ExampleItem key={i}>{example}</ExampleItem>
+                        ))}
+                      </ExampleList>
+                    </PanelBody>
+                  </div>
+                  <WizardFooter>{this.renderCreateAlertButton()}</WizardFooter>
+                </WizardPanelBody>
+              </WizardPanel>
+            </WizardBody>
+          </Layout.Main>
+        </StyledLayoutBody>
       </Fragment>
     );
   }

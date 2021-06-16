@@ -65,6 +65,8 @@ function DurationChart(props: Props) {
 
   const _backupField = backupField ? [backupField] : [];
 
+  const apiPayload = eventView.getEventsAPIPayload(location);
+
   return (
     <EventsRequest
       organization={organization}
@@ -72,6 +74,7 @@ function DurationChart(props: Props) {
       period={globalSelection.datetime.period}
       project={globalSelection.projects}
       environment={globalSelection.environments}
+      team={apiPayload.team}
       start={start}
       end={end}
       interval={getInterval(
@@ -83,7 +86,7 @@ function DurationChart(props: Props) {
         true
       )}
       showLoading={false}
-      query={eventView.getEventsAPIPayload(location).query}
+      query={apiPayload.query}
       includePrevious={false}
       yAxis={[field, ..._backupField]}
       partial
