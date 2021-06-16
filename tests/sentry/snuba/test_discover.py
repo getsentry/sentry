@@ -3005,10 +3005,41 @@ class TimeseriesQueryTest(TimeseriesBase):
             rollup=3600,
         )
         assert len(result.data["data"]) == 3
-        keys = []
+        keys = set()
         for row in result.data["data"]:
-            keys.extend(list(row.keys()))
-        assert "count" in keys
+            keys.update(list(row.keys()))
+        assert "count_unique_user" in keys
+        assert "time" in keys
+
+    def test_equation_function(self):
+        result = discover.timeseries_query(
+            selected_columns=["equation|count() / 100"],
+            query="",
+            params={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=2),
+                "project_id": [self.project.id],
+            },
+            rollup=3600,
+        )
+        assert len(result.data["data"]) == 3
+        assert [0.02] == [val["equation[0]"] for val in result.data["data"] if "equation[0]" in val]
+
+        result = discover.timeseries_query(
+            selected_columns=["equation|count_unique(user) / 100"],
+            query="",
+            params={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=2),
+                "project_id": [self.project.id],
+            },
+            rollup=3600,
+        )
+        assert len(result.data["data"]) == 3
+        keys = set()
+        for row in result.data["data"]:
+            keys.update(list(row.keys()))
+        assert "equation[0]" in keys
         assert "time" in keys
 
     def test_zerofilling(self):

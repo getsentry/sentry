@@ -5,7 +5,7 @@ from collections import namedtuple
 import sentry_sdk
 
 from sentry import options
-from sentry.discover.arithmetic import resolve_equation_list
+from sentry.discover.arithmetic import EQUATION_PREFIX, resolve_equation_list
 from sentry.models import Group
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.fields import (
@@ -313,7 +313,7 @@ def prepare_discover_query(
 
     with sentry_sdk.start_span(op="discover.discover", description="query.field_translations"):
         if equations is not None:
-            resolved_equations = resolve_equation_list(equations, selected_columns)
+            resolved_equations, _ = resolve_equation_list(equations, selected_columns)
         else:
             resolved_equations = []
 
@@ -383,22 +383,37 @@ def prepare_discover_query(
     return PreparedQuery(snuba_filter, translated_columns, resolved_fields)
 
 
-def get_timeseries_snuba_filter(selected_columns, query, params, rollup, default_count=True):
+def get_timeseries_snuba_filter(selected_columns, query, params):
     snuba_filter = get_filter(query, params)
     if not snuba_filter.start and not snuba_filter.end:
         raise InvalidSearchQuery("Cannot get timeseries result without a start and end.")
 
-    snuba_filter.update_with(resolve_field_list(selected_columns, snuba_filter, auto_fields=False))
+    columns = []
+    equations = []
+    for column in selected_columns:
+        if column.startswith(EQUATION_PREFIX):
+            equations.append(column[len(EQUATION_PREFIX) :])
+        else:
+            columns.append(column)
+
+    if len(equations) > 0:
+        resolved_equations, updated_columns = resolve_equation_list(
+            equations, columns, aggregates_only=True, auto_add=True
+        )
+    else:
+        resolved_equations = []
+        updated_columns = columns
+
+    snuba_filter.update_with(
+        resolve_field_list(
+            updated_columns, snuba_filter, auto_fields=False, resolved_equations=resolved_equations
+        )
+    )
 
     # Resolve the public aliases into the discover dataset names.
     snuba_filter, translated_columns = resolve_discover_aliases(snuba_filter)
     if not snuba_filter.aggregations:
         raise InvalidSearchQuery("Cannot get timeseries result with no aggregation.")
-
-    # Change the alias of the first aggregation to count. This ensures compatibility
-    # with other parts of the timeseries endpoint expectations
-    if len(snuba_filter.aggregations) == 1 and default_count:
-        snuba_filter.aggregations[0][2] = "count"
 
     return snuba_filter, translated_columns
 
@@ -427,10 +442,18 @@ def timeseries_query(selected_columns, query, params, rollup, referrer=None):
         op="discover.discover", description="timeseries.filter_transform"
     ) as span:
         span.set_data("query", query)
-        snuba_filter, _ = get_timeseries_snuba_filter(selected_columns, query, params, rollup)
+        snuba_filter, _ = get_timeseries_snuba_filter(selected_columns, query, params)
 
     with sentry_sdk.start_span(op="discover.discover", description="timeseries.snuba_query"):
         result = raw_query(
+            # Hack cause equations on aggregates have to go in selected columns instead of aggregations
+            selected_columns=[
+                column
+                for column in snuba_filter.selected_columns
+                if isinstance(column, list)
+                and len(column) == 3
+                and column[-1].startswith("equation")
+            ],
             aggregations=snuba_filter.aggregations,
             conditions=snuba_filter.conditions,
             filter_keys=snuba_filter.filter_keys,
@@ -478,6 +501,7 @@ def top_events_timeseries(
     rollup,
     limit,
     organization,
+    equations=None,
     referrer=None,
     top_events=None,
     allow_empty=True,
@@ -510,6 +534,7 @@ def top_events_timeseries(
                 selected_columns,
                 query=user_query,
                 params=params,
+                equations=equations,
                 orderby=orderby,
                 limit=limit,
                 referrer=referrer,
@@ -525,8 +550,6 @@ def top_events_timeseries(
             list(sorted(set(timeseries_columns + selected_columns))),
             user_query,
             params,
-            rollup,
-            default_count=False,
         )
 
         for field in selected_columns:

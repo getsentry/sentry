@@ -28,6 +28,14 @@ from sentry.utils.math import mean
 from sentry.utils.snuba import MAX_FIELDS
 
 
+def resolve_axis_column(column: str, index=0) -> str:
+    return (
+        get_function_alias(column)
+        if not column.startswith(EQUATION_PREFIX)
+        else f"equation[{index}]"
+    )
+
+
 class OrganizationEventsEndpointBase(OrganizationEndpoint):
     def has_feature(self, organization, request):
         return features.has(
@@ -362,7 +370,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                         # Need to get function alias if count is a field, but not the axis
                         results[key] = serializer.serialize(
                             event_result,
-                            column=get_function_alias(query_columns[0]),
+                            column=resolve_axis_column(query_columns[0]),
                             allow_partial_buckets=allow_partial_buckets,
                         )
                 return results
@@ -371,7 +379,11 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     serializer, result, columns, query_columns, allow_partial_buckets
                 )
             else:
-                return serializer.serialize(result, allow_partial_buckets=allow_partial_buckets)
+                return serializer.serialize(
+                    result,
+                    resolve_axis_column(query_columns[0]),
+                    allow_partial_buckets=allow_partial_buckets,
+                )
 
     def serialize_multiple_axis(
         self, serializer, event_result, columns, query_columns, allow_partial_buckets
@@ -380,7 +392,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         result = {
             columns[index]: serializer.serialize(
                 event_result,
-                get_function_alias(query_column),
+                resolve_axis_column(query_column, index),
                 order=index,
                 allow_partial_buckets=allow_partial_buckets,
             )

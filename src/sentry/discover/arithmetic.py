@@ -275,22 +275,41 @@ def parse_arithmetic(
     return result, list(visitor.fields), list(visitor.functions)
 
 
-def resolve_equation_list(equations: List[str], selected_columns: List[str]) -> List[JsonQueryType]:
+def resolve_equation_list(
+    equations: List[str],
+    selected_columns: List[str],
+    aggregates_only: Optional[bool] = False,
+    auto_add: Optional[bool] = False,
+) -> List[JsonQueryType]:
     """Given a list of equation strings, resolve them to their equivalent snuba json query formats"""
     resolved_equations = []
+    resolved_columns = selected_columns[:]
     for index, equation in enumerate(equations):
         # only supporting 1 operation for now
         parsed_equation, fields, functions = parse_arithmetic(equation, max_operators=1)
+
+        if aggregates_only and len(functions) == 0:
+            raise InvalidSearchQuery("Only equations on functions are supported")
+
         for field in fields:
             if field not in selected_columns:
-                raise InvalidSearchQuery(f"{field} used in an equation but is not a selected field")
+                if auto_add:
+                    resolved_columns.append(field)
+                else:
+                    raise InvalidSearchQuery(
+                        f"{field} used in an equation but is not a selected field"
+                    )
         for function in functions:
             if function not in selected_columns:
-                raise InvalidSearchQuery(
-                    f"{function} used in an equation but is not a selected function"
-                )
+                if auto_add:
+                    resolved_columns.append(function)
+                else:
+                    raise InvalidSearchQuery(
+                        f"{function} used in an equation but is not a selected function"
+                    )
+
         # We just jam everything into resolved_equations because the json format can't take arithmetic in the aggregates
         # field, but can do the aliases in the selected_columns field
         # TODO(snql): we can do better
         resolved_equations.append(parsed_equation.to_snuba_json(f"equation[{index}]"))
-    return resolved_equations
+    return resolved_equations, resolved_columns
