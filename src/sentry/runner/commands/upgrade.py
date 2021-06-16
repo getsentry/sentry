@@ -1,6 +1,6 @@
 import click
-
 from django.conf import settings
+
 from sentry.runner.decorators import configuration
 
 
