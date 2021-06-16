@@ -239,9 +239,9 @@ class _ArtifactIndexGuard:
 
     def readable_data(self) -> Optional[dict]:
         """Simple read, no synchronization necessary"""
-        file_ = self._get_file(lock=False)
-        if file_ is not None:
-            with file_.getfile() as fp:
+        releasefile = self._get_releasefile(lock=False)
+        if releasefile is not None:
+            with releasefile.file.getfile() as fp:
                 return json.load(fp)
 
     @contextmanager
@@ -249,34 +249,41 @@ class _ArtifactIndexGuard:
         """Context manager for editable artifact index"""
         with transaction.atomic():
             if create:
-                file_, created = self._get_or_create_file()
+                releasefile, created = self._get_or_create_releasefile()
             else:
-                file_ = self._get_file(lock=True)
+                releasefile = self._get_releasefile(lock=True)
                 created = False
 
-            if file_ is None:
+            if releasefile is None:
                 index_data = None
             else:
                 if created:
                     index_data = _ArtifactIndexData({}, fresh=True)
                 else:
-                    raw_data = json.load(file_.getfile())
+                    source_file = releasefile.file
+                    raw_data = json.load(source_file.getfile())
                     index_data = _ArtifactIndexData(raw_data)
 
             yield index_data  # editable reference to index
 
             if index_data is not None and index_data.changed:
-                file_.putfile(BytesIO(json.dumps(index_data.data).encode()))
+                target_file = File.objects.create(
+                    name=ARTIFACT_INDEX_FILENAME, type=ARTIFACT_INDEX_TYPE
+                )
+                old_file = releasefile.file
+                target_file.putfile(BytesIO(json.dumps(index_data.data).encode()))
+                releasefile.update(file=target_file)
+                old_file.delete()
 
-    def _get_or_create_file(self) -> Tuple[File, bool]:
+    def _get_or_create_releasefile(self) -> Tuple[ReleaseFile, bool]:
         """Insert the artifact index release file if it does not exist.
 
         We lock the selected row for the current transaction, s.t. any
         "read & write" operation to the manifest is atomic.
 
         :returns:
-            - file - The File instance associated with the release file.
-              If created, this file does not have any content, so consider it
+            - file - The ReleaseFile instance.
+              If created, its associated file does not have any content, so consider it
               write-only.
             - created - True if the release file was newly inserted.
 
@@ -287,7 +294,7 @@ class _ArtifactIndexGuard:
         # this will lock the artifact index until the end of the current transaction
         qs = qs.select_for_update()
 
-        releasefile, created = qs.get_or_create(
+        return qs.get_or_create(
             organization_id=self._release.organization_id,
             release=self._release,
             dist=self._dist,
@@ -301,16 +308,14 @@ class _ArtifactIndexGuard:
             },
         )
 
-        return releasefile.file, created
-
-    def _get_file(self, lock: bool) -> Optional[File]:
+    def _get_releasefile(self, lock: bool) -> Optional[ReleaseFile]:
         qs = ReleaseFile.objects.select_related("file")
         if lock:
             qs = qs.select_for_update()
         try:
             release_file = qs.get(
                 organization_id=self._release.organization_id,
-                release=self._release,
+                release_id=self._release.id,
                 dist=self._dist,
                 name=ARTIFACT_INDEX_FILENAME,
                 file__type=ARTIFACT_INDEX_TYPE,
@@ -318,7 +323,7 @@ class _ArtifactIndexGuard:
         except ReleaseFile.DoesNotExist:
             return None
         else:
-            return release_file.file
+            return release_file
 
 
 def read_artifact_index(release: Release, dist: Optional[Distribution]) -> Optional[dict]:
