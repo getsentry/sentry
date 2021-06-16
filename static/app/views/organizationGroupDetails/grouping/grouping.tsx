@@ -4,25 +4,23 @@ import {Location} from 'history';
 import debounce from 'lodash/debounce';
 
 import {Client} from 'app/api';
-import Button from 'app/components/button';
-import EmptyStateWarning from 'app/components/emptyStateWarning';
 import List from 'app/components/list';
 import ListItem from 'app/components/list/listItem';
-import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
 import {DEFAULT_DEBOUNCE_DURATION} from 'app/constants';
-import {IconFlag} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {Group, Organization, Project} from 'app/types';
 import {Event} from 'app/types/event';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
 import withApi from 'app/utils/withApi';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import RangeSlider from 'app/views/settings/components/forms/controls/rangeSlider';
 
+import ErrorMessage from './errorMessage';
 import NewIssue from './newIssue';
+
+type Error = React.ComponentProps<typeof ErrorMessage>['error'];
 
 type Props = {
   organization: Organization;
@@ -30,19 +28,6 @@ type Props = {
   groupId: Group['id'];
   location: Location;
   api: Client;
-};
-
-type ErrorCode = 'not_hierarchical' | 'no_events' | 'merged_issues' | 'missing_feature';
-
-type Error = {
-  status: number;
-  responseJSON?: {
-    detail: {
-      code: ErrorCode;
-      extra: Record<string, any>;
-      message: string;
-    };
-  };
 };
 
 type GroupingLevelDetails = {
@@ -56,7 +41,7 @@ type GroupingLevel = {
   isCurrent: boolean;
 };
 
-function Grouping({api, groupId, location}: Props) {
+function Grouping({api, groupId, location, project, organization}: Props) {
   const [isLoading, setIsLoading] = useState(false);
   const [isGroupingLevelDetailsLoading, setIsGroupingLevelDetailsLoading] = useState(
     false
@@ -146,43 +131,11 @@ function Grouping({api, groupId, location}: Props) {
   }
 
   if (error) {
-    if (error.status === 403 && error.responseJSON?.detail) {
-      const {message, code} = error.responseJSON.detail;
-      return (
-        <Wrapper>
-          <EmptyMessage
-            size="large"
-            icon={<IconFlag size="xl" />}
-            action={
-              code === 'merged_issues' ? (
-                <Button
-                  to={`/organizations/sentry/issues/${groupId}/merged/?${location.search}`}
-                >
-                  {t('Unmerge issue')}
-                </Button>
-              ) : undefined
-            }
-          >
-            {message}
-          </EmptyMessage>
-        </Wrapper>
-      );
-    }
-
-    return (
-      <LoadingError
-        message={t('Unable to load grouping levels, please try again later')}
-        onRetry={fetchGroupingLevels}
-      />
-    );
+    return <ErrorMessage onRetry={fetchGroupingLevels} groupId={groupId} error={error} />;
   }
 
-  if (!groupingLevels.length) {
-    return (
-      <EmptyStateWarning withIcon={false}>
-        {t('No grouping levels have been found.')}
-      </EmptyStateWarning>
-    );
+  if (!activeGroupingLevelDetails.length) {
+    return <LoadingIndicator />;
   }
 
   const links = parseLinkHeader(pagination);
@@ -211,7 +164,7 @@ function Grouping({api, groupId, location}: Props) {
               onChange={handleSetActiveGroupingLevel}
             />
           </StyledListItem>
-          <StyledListItem>
+          <StyledListItem isReloading={isGroupingLevelDetailsLoading}>
             <div>
               {t('What happens to this issue')}
               <WhatHappensDescription>
@@ -231,7 +184,8 @@ function Grouping({api, groupId, location}: Props) {
                   key={hash}
                   sampleEvent={latestEvent}
                   eventCount={eventCount}
-                  isReloading={isGroupingLevelDetailsLoading}
+                  project={project}
+                  organization={organization}
                 />
               ))}
             </NewIssues>
@@ -259,9 +213,28 @@ const Description = styled('p')`
   margin-bottom: ${space(0.5)};
 `;
 
-const StyledListItem = styled(ListItem)`
+const NewIssues = styled('div')`
+  display: grid;
+  grid-gap: ${space(3)};
+`;
+
+const WhatHappensDescription = styled('div')`
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeLarge};
+`;
+
+const StyledListItem = styled(ListItem)<{isReloading?: boolean}>`
   display: grid;
   grid-gap: ${space(1.5)};
+
+  ${p =>
+    p.isReloading &&
+    `
+      ${NewIssues}, ${WhatHappensDescription} {
+        opacity: 0.5;
+        pointer-events: none;
+      }
+    `}
 `;
 
 const StyledRangeSlider = styled(RangeSlider)`
@@ -272,23 +245,4 @@ const StyledList = styled(List)`
   display: grid;
   grid-gap: ${space(2)};
   font-size: ${p => p.theme.fontSizeExtraLarge};
-`;
-
-const NewIssues = styled('div')`
-  display: grid;
-  grid-template-columns: minmax(100px, 1fr);
-  grid-gap: ${space(2)};
-
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    grid-template-columns: repeat(2, minmax(100px, 1fr));
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
-    grid-template-columns: repeat(3, minmax(100px, 1fr));
-  }
-`;
-
-const WhatHappensDescription = styled('div')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeLarge};
 `;
