@@ -17,7 +17,11 @@ import {trackAnalyticsEvent} from 'app/utils/analytics';
 import DiscoverQuery, {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
 import EventView, {EventData, isFieldSortable} from 'app/utils/discover/eventView';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
-import {fieldAlignment, getAggregateAlias} from 'app/utils/discover/fields';
+import {
+  fieldAlignment,
+  getAggregateAlias,
+  SPAN_OP_BREAKDOWN_FIELDS,
+} from 'app/utils/discover/fields';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 import CellAction, {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
 import {TableColumn} from 'app/views/eventsV2/table/types';
@@ -128,7 +132,14 @@ class Table extends React.Component<Props, State> {
       return dataRow[column.key];
     }
     const tableMeta = tableData.meta;
-
+    // Attach sort to the metadata if sorting by a span operation. This is so fieldRenderer will know which breakdown to display first.
+    if (
+      location.query.sort &&
+      typeof location.query.sort === 'string' &&
+      SPAN_OP_BREAKDOWN_FIELDS.includes(location.query.sort.replace(/^-/, ''))
+    ) {
+      dataRow.sortedBy = location.query.sort.replace(/^-/, '');
+    }
     const field = String(column.key);
     const fieldRenderer = getFieldRenderer(field, tableMeta);
     const rendered = fieldRenderer(dataRow, {organization, location});

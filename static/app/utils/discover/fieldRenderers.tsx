@@ -559,10 +559,18 @@ const spanOperationRelativeBreakdownRenderer = (
   }
 
   let otherPercentage = 1;
-
+  let orderedSpanOpsBreakdownFields;
+  if (data.sortedBy && SPAN_OP_BREAKDOWN_FIELDS.includes(data.sortedBy)) {
+    orderedSpanOpsBreakdownFields = [
+      data.sortedBy,
+      ...SPAN_OP_BREAKDOWN_FIELDS.filter(op => op !== data.sortedBy),
+    ];
+  } else {
+    orderedSpanOpsBreakdownFields = SPAN_OP_BREAKDOWN_FIELDS;
+  }
   return (
     <RelativeOpsBreakdown>
-      {SPAN_OP_BREAKDOWN_FIELDS.map(field => {
+      {orderedSpanOpsBreakdownFields.map(field => {
         if (!isDurationValue(data, field)) {
           return null;
         }
