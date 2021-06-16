@@ -104,4 +104,4 @@ def test_project_config_with_breakdown(default_project, insta_snapshot):
         cfg = get_project_config(default_project, full_config=True)
 
     cfg = cfg.to_dict()
-    insta_snapshot(cfg["config"]["breakdowns"])
+    insta_snapshot(cfg["config"]["breakdownsV2"])
