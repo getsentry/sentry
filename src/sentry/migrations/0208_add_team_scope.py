@@ -36,6 +36,9 @@ class Migration(migrations.Migration):
             name="scope_type",
             field=sentry.db.models.fields.bounded.BoundedPositiveIntegerField(
                 choices=[
+                    (sentry.notifications.types.NotificationScopeType(0), "user"),
+                    (sentry.notifications.types.NotificationScopeType(10), "organization"),
+                    (sentry.notifications.types.NotificationScopeType(20), "project"),
                     (sentry.notifications.types.NotificationScopeType(30), "team"),
                 ]
             ),
