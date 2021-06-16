@@ -528,7 +528,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                 if "apdexThreshold" in changed_data and not features.has(
                     "organizations:project-transaction-threshold", organization
                 ):
-                    match = re.match(r".*to (\d+)", changed_data["apdexThreshold"])
+                    match = re.match(r".*to (\d+)$", changed_data["apdexThreshold"])
                     if match:
                         apdex_threshold = int(match.group(1))
                         ProjectTransactionThreshold.objects.filter(
