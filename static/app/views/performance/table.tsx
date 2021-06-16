@@ -22,6 +22,9 @@ import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 import CellAction, {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
 import {TableColumn} from 'app/views/eventsV2/table/types';
 
+import OperationSort, {
+  TitleProps,
+} from './transactionSummary/transactionEvents/operationSort';
 import {
   generateTraceLink,
   generateTransactionLink,
@@ -46,6 +49,24 @@ export function getProjectID(
   }
 
   return project.id;
+}
+
+class OperationTitle extends React.Component<TitleProps> {
+  render() {
+    const {onClick} = this.props;
+    return (
+      <div onClick={onClick}>
+        <span>Operation Title</span>
+        <Tooltip
+          title={t(
+            'Durations are calculated by summing span durations over the course of the transaction. Percentages are then calculated by dividing the individual op duration by the sum of total op durations. Overlapping/parallel spans are only counted once.'
+          )}
+        >
+          <StyledIconQuestion size="xs" color="gray400" />
+        </Tooltip>
+      </div>
+    );
+  }
 }
 
 type Props = {
@@ -280,6 +301,7 @@ class Table extends React.Component<Props, State> {
     const canSort =
       field.field !== 'id' &&
       field.field !== 'trace' &&
+      field.field !== 'span_ops_breakdown.relative' &&
       isFieldSortable(field, tableMeta);
 
     const currentSortKind = currentSort ? currentSort.kind : undefined;
@@ -287,16 +309,12 @@ class Table extends React.Component<Props, State> {
 
     if (field.field === 'span_ops_breakdown.relative') {
       title = (
-        <React.Fragment>
-          {title}
-          <Tooltip
-            title={t(
-              'Durations are calculated by summing span durations over the course of the transaction. Percentages are then calculated by dividing the individual op duration by the sum of total op durations. Overlapping/parallel spans are only counted once.'
-            )}
-          >
-            <StyledIconQuestion size="xs" color="gray400" />
-          </Tooltip>
-        </React.Fragment>
+        <OperationSort
+          title={OperationTitle}
+          eventView={eventView}
+          tableMeta={tableMeta}
+          location={location}
+        />
       );
     }
 
