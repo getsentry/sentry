@@ -73,6 +73,12 @@ def convert_release_value(value, projects, user, environments) -> Union[str, Lis
     return releases
 
 
+def convert_first_release_value(value, projects, user, environments) -> Union[str, List[str]]:
+    # TODO: This will make N queries. This should be ok, we don't typically have large
+    # lists of versions here, but we can look into batching it if needed.
+    return [parse_release(version, projects, environments) for version in value]
+
+
 def convert_status_value(value, projects, user, environments):
     parsed = []
     for status in value:
@@ -88,7 +94,7 @@ value_converters = {
     "assigned_to": convert_actor_or_none_value,
     "bookmarked_by": convert_user_value,
     "subscribed_by": convert_user_value,
-    "first_release": convert_release_value,
+    "first_release": convert_first_release_value,
     "release": convert_release_value,
     "status": convert_status_value,
 }
@@ -110,9 +116,13 @@ def convert_query_values(search_filters, projects, user, environments):
             new_value = converter(
                 to_list(search_filter.value.raw_value), projects, user, environments
             )
+            if isinstance(new_value, list):
+                operator = "IN" if search_filter.operator in EQUALITY_OPERATORS else "NOT IN"
+            else:
+                operator = "=" if search_filter.operator in EQUALITY_OPERATORS else "!="
             search_filter = search_filter._replace(
                 value=SearchValue(new_value),
-                operator="IN" if search_filter.operator in EQUALITY_OPERATORS else "NOT IN",
+                operator=operator,
             )
         elif isinstance(search_filter, AggregateFilter):
             raise InvalidSearchQuery(
