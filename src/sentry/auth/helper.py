@@ -146,6 +146,13 @@ class AuthIdentityHandler:
         if not user_was_logged_in:
             raise self._NotLoggedIn()
 
+    @staticmethod
+    def _set_linked_flag(member: OrganizationMember) -> None:
+        if getattr(member.flags, "sso:invalid") or not getattr(member.flags, "sso:linked"):
+            setattr(member.flags, "sso:invalid", False)
+            setattr(member.flags, "sso:linked", True)
+            member.save()
+
     def handle_existing_identity(
         self,
         state: RedisBackedState,
@@ -171,10 +178,7 @@ class AuthIdentityHandler:
             # but still has access to rejoin
             member = self._handle_new_membership(auth_identity)
         else:
-            if getattr(member.flags, "sso:invalid") or not getattr(member.flags, "sso:linked"):
-                setattr(member.flags, "sso:invalid", False)
-                setattr(member.flags, "sso:linked", True)
-                member.save()
+            self._set_linked_flag(member)
 
         user = auth_identity.user
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
@@ -300,10 +304,7 @@ class AuthIdentityHandler:
 
         if member is None:
             member = self._get_organization_member()
-        if getattr(member.flags, "sso:invalid") or not getattr(member.flags, "sso:linked"):
-            setattr(member.flags, "sso:invalid", False)
-            setattr(member.flags, "sso:linked", True)
-            member.save()
+        self._set_linked_flag(member)
 
         if auth_is_new:
             AuditLogEntry.objects.create(
