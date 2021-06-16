@@ -10,6 +10,8 @@ import {Event} from 'app/types/event';
 import {Thread} from 'app/types/events';
 import {STACK_TYPE, STACK_VIEW} from 'app/types/stacktrace';
 
+import NoStackTraceMessage from '../noStackTraceMessage';
+
 type CrashContentProps = React.ComponentProps<typeof CrashContent>;
 
 type Props = {
@@ -17,7 +19,7 @@ type Props = {
   projectId: Project['id'];
   stackType: STACK_TYPE;
   newestFirst: boolean;
-  hasMissingStacktrace: boolean;
+  stackTraceNotFound: boolean;
   stackView?: STACK_VIEW;
   data?: Thread;
 } & Pick<CrashContentProps, 'exception' | 'stacktrace'>;
@@ -31,7 +33,7 @@ const Content = ({
   newestFirst,
   exception,
   stacktrace,
-  hasMissingStacktrace,
+  stackTraceNotFound,
 }: Props) => (
   <div className="thread">
     {data && (!isNil(data?.id) || !!data?.name) && (
@@ -45,16 +47,8 @@ const Content = ({
       </Pills>
     )}
 
-    {hasMissingStacktrace ? (
-      <div className="traceback missing-traceback">
-        <ul>
-          <li className="frame missing-frame">
-            <div className="title">
-              <i>{data?.crashed ? t('Thread Errored') : t('No or unknown stacktrace')}</i>
-            </div>
-          </li>
-        </ul>
-      </div>
+    {stackTraceNotFound ? (
+      <NoStackTraceMessage message={data?.crashed ? t('Thread Errored') : undefined} />
     ) : (
       <CrashContent
         event={event}

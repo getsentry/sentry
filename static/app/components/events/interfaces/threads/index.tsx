@@ -106,7 +106,7 @@ class Threads extends Component<Props, State> {
       ? getThreadStacktrace(stackType !== STACK_TYPE.ORIGINAL, activeThread)
       : undefined;
 
-    const hasMissingStacktrace = !(exception || stacktrace);
+    const stackTraceNotFound = !(exception || stacktrace);
     const hasMoreThanOneThread = threads.length > 1;
 
     return (
@@ -136,12 +136,12 @@ class Threads extends Component<Props, State> {
               title={t('Stack Trace')}
               newestFirst={newestFirst}
               hideGuide={hideGuide}
-              onChange={this.handleChangeNewestFirst}
+              onChange={!stackTraceNotFound ? this.handleChangeNewestFirst : undefined}
             />
           )
         }
         actions={
-          !hasMissingStacktrace && (
+          !stackTraceNotFound && (
             <CrashActions
               stackView={stackView}
               platform={event.platform}
@@ -165,7 +165,7 @@ class Threads extends Component<Props, State> {
           event={event}
           newestFirst={newestFirst}
           projectId={projectId}
-          hasMissingStacktrace={hasMissingStacktrace}
+          stackTraceNotFound={stackTraceNotFound}
         />
       </EventDataSection>
     );
