@@ -83,6 +83,7 @@ APP_STORE_CONNECT_SCHEMA = {
         "itunesPersonId",
         "appName",
         "appId",
+        "bundleId",
         "orgId",
         "orgName",
     ],
