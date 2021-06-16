@@ -16,6 +16,7 @@ from sentry.tasks.assemble import (
     get_assemble_status,
 )
 from sentry.testutils import TestCase
+from sentry.utils.compat.mock import patch
 
 
 class BaseAssembleTest(TestCase):
@@ -273,3 +274,28 @@ class AssembleArtifactsTest(BaseAssembleTest):
             AssembleTask.ARTIFACTS, self.organization.id, total_checksum
         )
         assert status == ChunkFileState.ERROR
+
+    @patch("sentry.tasks.assemble.update_artifact_index", side_effect=RuntimeError("foo"))
+    def test_failing_update(self, _):
+        bundle_file = self.create_artifact_bundle()
+        blob1 = FileBlob.from_file(ContentFile(bundle_file))
+        total_checksum = sha1(bundle_file).hexdigest()
+
+        with self.options(
+            {
+                "processing.save-release-archives": True,
+                "processing.release-archive-min-files": 1,
+            }
+        ):
+            assemble_artifacts(
+                org_id=self.organization.id,
+                version=self.release.version,
+                checksum=total_checksum,
+                chunks=[blob1.checksum],
+            )
+
+            # Status is still OK:
+            status, details = get_assemble_status(
+                AssembleTask.ARTIFACTS, self.organization.id, total_checksum
+            )
+            assert status == ChunkFileState.OK
