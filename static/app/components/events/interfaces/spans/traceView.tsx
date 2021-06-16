@@ -4,7 +4,6 @@ import {Observer} from 'mobx-react';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
 import {t} from 'app/locale';
 import {Organization} from 'app/types';
-import {EventTransaction} from 'app/types/event';
 
 import * as CursorGuideHandler from './cursorGuideHandler';
 import * as DividerHandlerManager from './dividerHandlerManager';
@@ -12,14 +11,11 @@ import DragManager, {DragManagerChildrenProps} from './dragManager';
 import TraceViewHeader from './header';
 import * as ScrollbarManager from './scrollbarManager';
 import SpanTree from './spanTree';
-import {ParsedTraceType} from './types';
-import {getTraceContext} from './utils';
+import {boundsGenerator, getTraceContext} from './utils';
 import WaterfallModel from './waterfallModel';
 
 type Props = {
   organization: Organization;
-  event: Readonly<EventTransaction>;
-  parsedTrace: ParsedTraceType;
   waterfallModel: WaterfallModel;
 };
 
@@ -28,22 +24,30 @@ class TraceView extends PureComponent<Props> {
   virtualScrollBarContainerRef = createRef<HTMLDivElement>();
   minimapInteractiveRef = createRef<HTMLDivElement>();
 
-  renderHeader = (dragProps: DragManagerChildrenProps, parsedTrace: ParsedTraceType) => (
-    <TraceViewHeader
-      organization={this.props.organization}
-      minimapInteractiveRef={this.minimapInteractiveRef}
-      dragProps={dragProps}
-      trace={parsedTrace}
-      event={this.props.event}
-      virtualScrollBarContainerRef={this.virtualScrollBarContainerRef}
-      operationNameFilters={this.props.waterfallModel.operationNameFilters}
-    />
+  renderHeader = (dragProps: DragManagerChildrenProps) => (
+    <Observer>
+      {() => {
+        const {waterfallModel} = this.props;
+
+        return (
+          <TraceViewHeader
+            organization={this.props.organization}
+            minimapInteractiveRef={this.minimapInteractiveRef}
+            dragProps={dragProps}
+            trace={waterfallModel.parsedTrace}
+            event={waterfallModel.event}
+            virtualScrollBarContainerRef={this.virtualScrollBarContainerRef}
+            operationNameFilters={this.props.waterfallModel.operationNameFilters}
+          />
+        );
+      }}
+    </Observer>
   );
 
   render() {
-    const {event, parsedTrace} = this.props;
+    const {organization, waterfallModel} = this.props;
 
-    if (!getTraceContext(event)) {
+    if (!getTraceContext(waterfallModel.event)) {
       return (
         <EmptyStateWarning>
           <p>{t('There is no trace for this transaction')}</p>
@@ -51,53 +55,57 @@ class TraceView extends PureComponent<Props> {
       );
     }
 
-    const {organization, waterfallModel} = this.props;
-
     return (
       <DragManager interactiveLayerRef={this.minimapInteractiveRef}>
         {(dragProps: DragManagerChildrenProps) => (
-          <CursorGuideHandler.Provider
-            interactiveLayerRef={this.minimapInteractiveRef}
-            dragProps={dragProps}
-            trace={parsedTrace}
-          >
-            <DividerHandlerManager.Provider interactiveLayerRef={this.traceViewRef}>
-              <DividerHandlerManager.Consumer>
-                {dividerHandlerChildrenProps => {
-                  return (
-                    <ScrollbarManager.Provider
-                      dividerPosition={dividerHandlerChildrenProps.dividerPosition}
-                      interactiveLayerRef={this.virtualScrollBarContainerRef}
-                      dragProps={dragProps}
-                    >
-                      {this.renderHeader(dragProps, parsedTrace)}
-                      <Observer>
-                        {() => {
-                          const generateBounds = boundsGenerator({
-                            traceStartTimestamp: parsedTrace.traceStartTimestamp,
-                            traceEndTimestamp: parsedTrace.traceEndTimestamp,
-                            viewStart: dragProps.viewWindowStart,
-                            viewEnd: dragProps.viewWindowEnd,
-                          });
-
-                          return (
-                            <SpanTree
-                              traceViewRef={this.traceViewRef}
-                              dragProps={dragProps}
-                              organization={organization}
-                              waterfallModel={waterfallModel}
-                              filterSpans={waterfallModel.filterSpans}
-                              spans={waterfallModel.getWaterfall({generateBounds})}
-                            />
-                          );
-                        }}
-                      </Observer>
-                    </ScrollbarManager.Provider>
-                  );
-                }}
-              </DividerHandlerManager.Consumer>
-            </DividerHandlerManager.Provider>
-          </CursorGuideHandler.Provider>
+          <Observer>
+            {() => {
+              const parsedTrace = waterfallModel.parsedTrace;
+              return (
+                <CursorGuideHandler.Provider
+                  interactiveLayerRef={this.minimapInteractiveRef}
+                  dragProps={dragProps}
+                  trace={parsedTrace}
+                >
+                  <DividerHandlerManager.Provider interactiveLayerRef={this.traceViewRef}>
+                    <DividerHandlerManager.Consumer>
+                      {dividerHandlerChildrenProps => {
+                        return (
+                          <ScrollbarManager.Provider
+                            dividerPosition={dividerHandlerChildrenProps.dividerPosition}
+                            interactiveLayerRef={this.virtualScrollBarContainerRef}
+                            dragProps={dragProps}
+                          >
+                            {this.renderHeader(dragProps)}
+                            <Observer>
+                              {() => {
+                                const generateBounds = boundsGenerator({
+                                  traceStartTimestamp: parsedTrace.traceStartTimestamp,
+                                  traceEndTimestamp: parsedTrace.traceEndTimestamp,
+                                  viewStart: dragProps.viewWindowStart,
+                                  viewEnd: dragProps.viewWindowEnd,
+                                });
+                                return (
+                                  <SpanTree
+                                    traceViewRef={this.traceViewRef}
+                                    dragProps={dragProps}
+                                    organization={organization}
+                                    waterfallModel={waterfallModel}
+                                    filterSpans={waterfallModel.filterSpans}
+                                    spans={waterfallModel.getWaterfall({generateBounds})}
+                                  />
+                                );
+                              }}
+                            </Observer>
+                          </ScrollbarManager.Provider>
+                        );
+                      }}
+                    </DividerHandlerManager.Consumer>
+                  </DividerHandlerManager.Provider>
+                </CursorGuideHandler.Provider>
+              );
+            }}
+          </Observer>
         )}
       </DragManager>
     );
