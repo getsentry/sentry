@@ -2,9 +2,19 @@ from django import forms
 from django.urls import reverse
 from django.views.decorators.cache import never_cache
 
-from sentry.models import ExternalActor, Integration, NotificationSetting, Team, TeamStatus
+from sentry.models import (
+    ExternalActor,
+    Identity,
+    IdentityProvider,
+    Integration,
+    NotificationSetting,
+    Organization,
+    OrganizationMember,
+    Team,
+    TeamStatus,
+)
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
-from sentry.shared_integrations.exceptions import ApiError
+from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign, unsign
@@ -40,18 +50,39 @@ class SelectTeamForm(forms.Form):
 
 
 class SlackLinkTeamView(BaseView):
+    def get_identity(self, integration, slack_id):
+        try:
+            idp = IdentityProvider.objects.get(type="slack", external_id=integration.external_id)
+        except IdentityProvider.DoesNotExist:
+            logger.error(
+                "slack.action.invalid-team-id", extra={"slack_id": integration.external_id}
+            )
+            return self.respond(status=403)
+
+        try:
+            identity = Identity.objects.select_related("user").get(idp=idp, external_id=slack_id)
+        except Identity.DoesNotExist:
+            # I don't think this could be possible but just in case
+            return self.respond(status=403)
+        return identity
+
+    def send_error_message(self, client, message, response_url):
+        payload = {
+            "replace_original": False,
+            "response_type": "ephemeral",
+            "text": message,
+        }
+        try:
+            client.post(response_url, data=payload, json=True)
+        except ApiError as e:
+            raise IntegrationError(self.message_from_error(e))
+        else:
+            return self.respond(status=403)
+
     @transaction_start("SlackLinkTeamView")
     @never_cache
     def handle(self, request, signed_params):
         params = unsign(signed_params)
-        """
-        # params:
-        #'integration_id': 15,
-        #'slack_id': UA1J9RTE1,
-        #'channel_id': CA2FRA079,
-        #'channel_name': general
-        #'response_url': 'https://hooks.slack.com/commands/TA17GH2QL/2177038069364/unDYN7ciEtuZGfCLEzR9KxMw'
-        """
         integration = Integration.objects.get(id=params["integration_id"])
         teams = Team.objects.filter(
             organization__in=integration.organizations.all(), status=TeamStatus.VISIBLE
@@ -73,22 +104,44 @@ class SlackLinkTeamView(BaseView):
             )
 
         team = Team.objects.get(id=team_id)
-        # TODO handle non-happy paths
-        # add a check to see if the team is already linked to any channel?
+        organization = Organization.objects.get_for_team_ids([team.id])[0]
+        identity = self.get_identity(integration, params["slack_id"])
+        org_member = OrganizationMember.objects.get(user=identity.user, organization=organization)
+        client = SlackClient()
+        # if the org has open membership and the user is an admin or above
+        # OR if closed, ensure user is admin AND member of the team
+        if not (
+            organization.flags.allow_joinleave and org_member.role in ["admin", "manager", "owner"]
+        ) or (org_member.role in ["admin", "manager", "owner"] and team in [org_member.teams]):
+            INSUFFICIENT_ROLE_MESSAGE = "You must be an admin or higher and a member of the team you wish to link in your Sentry organization to link teams."
+            # TODO(ceo) write a test for this case
+            self.send_error_message(client, INSUFFICIENT_ROLE_MESSAGE, params["response_url"])
+
+        already_linked = ExternalActor.objects.filter(
+            actor_id=team.actor_id,
+            organization=organization,
+            integration=integration,
+            provider=ExternalProviders.SLACK.value,
+        )
+        if already_linked:
+            ALREADY_LINKED_MESSAGE = (
+                f"The {team.slug} team has already been linked to a Slack channel."
+            )
+            self.send_error_message(client, ALREADY_LINKED_MESSAGE, params["response_url"])
+
         external_team, created = ExternalActor.objects.get_or_create(
             actor_id=team.actor_id,
-            organization=integration.organizations.all()[
-                0
-            ],  # I think you can only have a Slack installed on one org so this is safe?
+            organization=organization,
             integration=integration,
             provider=ExternalProviders.SLACK.value,
             external_name=params["channel_name"],
             external_id=params["channel_id"],
         )
 
+        # TODO handle non-happy paths
         if created:
             # turn on notifications for all of a team's projects
-            # maybe we can add checkboxes in the form later but this is quick n dirty
+            # this will change with a data migration I think :(
             team_projects = team.get_projects()
             for project in team_projects:
                 NotificationSetting.objects.update_settings(
@@ -104,8 +157,6 @@ class SlackLinkTeamView(BaseView):
                 "response_type": "ephemeral",
                 "text": f"The {team.slug} team will now receive notifications in this channel.",
             }
-
-            client = SlackClient()
             try:
                 client.post(params["response_url"], data=payload, json=True)
             except ApiError as e:

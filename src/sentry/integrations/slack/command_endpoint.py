@@ -9,9 +9,11 @@ from sentry.integrations.slack.link_team import build_linking_url
 from sentry.integrations.slack.message_builder.help import SlackHelpMessageBuilder
 from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.requests.command import SlackCommandRequest
+from sentry.models import Identity, IdentityProvider
 
 logger = logging.getLogger("sentry.integrations.slack")
 LINK_TEAM_MESSAGE = "Link your Sentry team to this Slack channel! <{associate_url}|Link your team now> to receive notifications of issues in Sentry in Slack."
+LINK_USER_MESSAGE = "Who dis? Type `/sentry link` to tell me and btw you better be an admin or you're still not gonna be able to link your team."
 
 
 def get_command(payload: Mapping[str, str]) -> str:
@@ -27,6 +29,7 @@ class SlackCommandsEndpoint(Endpoint):
         All Slack commands are handled by this endpoint. This block just
         validates the request and dispatches it to the right handler.
         """
+        logging_data = {}
         try:
             slack_request = SlackCommandRequest(request)
             slack_request.validate()
@@ -35,10 +38,29 @@ class SlackCommandsEndpoint(Endpoint):
 
         payload = slack_request.data
         command = get_command(payload)
+        logging_data["slack_team"] = slack_request.team_id
         # TODO(mgaeta): Add more commands.
         if command in ["help", ""]:
             return self.respond(SlackHelpMessageBuilder().build())
         if command == "link team":
+            user_id = payload.get("user_id")
+            try:
+                idp = IdentityProvider.objects.get(type="slack", external_id=slack_request.team_id)
+            except IdentityProvider.DoesNotExist:
+                logger.error("slack.action.invalid-team-id", extra=logging_data)
+                return self.respond(status=403)
+
+            try:
+                Identity.objects.select_related("user").get(idp=idp, external_id=user_id)
+            except Identity.DoesNotExist:
+                # TODO(ceo) write a test for this case
+                return self.respond(
+                    {
+                        "response_type": "ephemeral",
+                        "replace_original": False,
+                        "text": LINK_USER_MESSAGE,
+                    }
+                )
             integration = slack_request.integration
             channel_id = payload.get("channel_id", "")
             channel_name = payload.get("channel_name", "")
