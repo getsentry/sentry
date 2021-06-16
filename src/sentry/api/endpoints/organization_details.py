@@ -1,4 +1,5 @@
 import logging
+import re
 from copy import copy
 from datetime import datetime
 from uuid import uuid4
@@ -427,30 +428,6 @@ class OrganizationSerializer(serializers.Serializer):
         ):
             org.handle_email_verification_required(self.context["request"])
 
-        # Temporarily writing org-level apdex changes to ProjectTransactionThreshold
-        # for orgs who don't have the feature enabled so that when this
-        # feature is GA'ed it captures the orgs current apdex threshold.
-        if "apdexThreshold" in self.initial_data and not features.has(
-            "organizations:project-transaction-threshold", org
-        ):
-            ProjectTransactionThreshold.objects.filter(organization_id=org.id).delete()
-
-            project_ids = Project.objects.filter(organization_id=org.id).values_list(
-                "id", flat=True
-            )
-
-            ProjectTransactionThreshold.objects.bulk_create(
-                [
-                    ProjectTransactionThreshold(
-                        project_id=project_id,
-                        organization_id=org.id,
-                        threshold=int(self.initial_data["apdexThreshold"]),
-                        metric=TransactionMetric.DURATION.value,
-                    )
-                    for project_id in project_ids
-                ]
-            )
-
         return org, changed_data
 
 
@@ -494,6 +471,8 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         return self.respond(context)
 
     def put(self, request, organization):
+        from sentry import features
+
         """
         Update an Organization
         ``````````````````````
@@ -543,6 +522,35 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                     event=AuditLogEntryEvent.ORG_EDIT,
                     data=changed_data,
                 )
+
+                # Temporarily writing org-level apdex changes to ProjectTransactionThreshold
+                # for orgs who don't have the feature enabled so that when this
+                # feature is GA'ed it captures the orgs current apdex threshold.
+                if "apdexThreshold" in changed_data and not features.has(
+                    "organizations:project-transaction-threshold", organization
+                ):
+                    match = re.match(r".*to (\d+)", changed_data["apdexThreshold"])
+                    if match:
+                        apdex_threshold = int(match.group(1))
+                        ProjectTransactionThreshold.objects.filter(
+                            organization_id=organization.id
+                        ).delete()
+
+                        project_ids = Project.objects.filter(
+                            organization_id=organization.id
+                        ).values_list("id", flat=True)
+
+                        ProjectTransactionThreshold.objects.bulk_create(
+                            [
+                                ProjectTransactionThreshold(
+                                    project_id=project_id,
+                                    organization_id=organization.id,
+                                    threshold=int(apdex_threshold),
+                                    metric=TransactionMetric.DURATION.value,
+                                )
+                                for project_id in project_ids
+                            ]
+                        )
 
             context = serialize(
                 organization,
