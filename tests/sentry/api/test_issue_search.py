@@ -7,6 +7,7 @@ from sentry.api.event_search import (
 )
 from sentry.api.issue_search import (
     convert_actor_or_none_value,
+    convert_first_release_value,
     convert_query_values,
     convert_release_value,
     convert_user_value,
@@ -230,3 +231,15 @@ class ConvertReleaseValueTest(TestCase):
         release = self.create_release(self.project)
         assert convert_release_value(["latest"], [self.project], self.user, None) == release.version
         assert convert_release_value(["14.*"], [self.project], self.user, None) == "14.*"
+
+
+class ConvertFirstReleaseValueTest(TestCase):
+    def test(self):
+        assert convert_first_release_value(["123"], [self.project], self.user, None) == ["123"]
+
+    def test_latest(self):
+        release = self.create_release(self.project)
+        assert convert_first_release_value(["latest"], [self.project], self.user, None) == [
+            release.version
+        ]
+        assert convert_first_release_value(["14.*"], [self.project], self.user, None) == ["14.*"]

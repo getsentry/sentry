@@ -73,7 +73,7 @@ def convert_release_value(value, projects, user, environments) -> Union[str, Lis
     return releases
 
 
-def convert_first_release_value(value, projects, user, environments) -> Union[str, List[str]]:
+def convert_first_release_value(value, projects, user, environments) -> List[str]:
     # TODO: This will make N queries. This should be ok, we don't typically have large
     # lists of versions here, but we can look into batching it if needed.
     return [parse_release(version, projects, environments) for version in value]
