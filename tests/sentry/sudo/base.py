@@ -1,11 +1,11 @@
 import unittest
 
+from django.contrib.auth.models import AnonymousUser, User
 from django.test import RequestFactory
-from django.contrib.auth.models import User, AnonymousUser
 
 
-class StubPasswordBackend(object):
-    """ Stub backend
+class StubPasswordBackend:
+    """Stub backend
 
     Always authenticates when the password matches self.password
 

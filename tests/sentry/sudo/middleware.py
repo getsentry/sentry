@@ -1,13 +1,10 @@
-from .base import BaseTestCase
-
 from django.http import HttpResponse
 
-from sudo.settings import COOKIE_NAME
 from sudo.middleware import SudoMiddleware
-from sudo.utils import (
-    grant_sudo_privileges,
-    revoke_sudo_privileges,
-)
+from sudo.settings import COOKIE_NAME
+from sudo.utils import grant_sudo_privileges, revoke_sudo_privileges
+
+from .base import BaseTestCase
 
 
 class SudoMiddlewareTestCase(BaseTestCase):

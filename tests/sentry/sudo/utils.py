@@ -1,12 +1,8 @@
-from sudo.settings import COOKIE_NAME, COOKIE_AGE
-from sudo.utils import (
-    grant_sudo_privileges,
-    revoke_sudo_privileges,
-    has_sudo_privileges,
-)
-
 from django.core.signing import BadSignature
 from django.utils.http import is_safe_url
+
+from sudo.settings import COOKIE_AGE, COOKIE_NAME
+from sudo.utils import grant_sudo_privileges, has_sudo_privileges, revoke_sudo_privileges
 
 from .base import BaseTestCase
 
@@ -119,6 +115,8 @@ class IsSafeUrlTestCase(BaseTestCase):
         self.assertFalse(is_safe_url("http://mattrobenolt.com/", allowed_hosts={"example.com"}))
         self.assertFalse(is_safe_url("///example.com/", allowed_hosts=None))
         self.assertFalse(is_safe_url("ftp://example.com", allowed_hosts={"example.com"}))
-        self.assertFalse(is_safe_url("http://example.com\\@mattrobenolt.com", allowed_hosts={"example.com"}))
+        self.assertFalse(
+            is_safe_url("http://example.com\\@mattrobenolt.com", allowed_hosts={"example.com"})
+        )
         self.assertFalse(is_safe_url("http:///example.com", allowed_hosts={"example.com"}))
         self.assertFalse(is_safe_url("\x08//example.com", allowed_hosts={"example.com"}))

@@ -1,13 +1,10 @@
-from .base import BaseTestCase
-
 from django.template.response import TemplateResponse
 
-from sudo.settings import REDIRECT_FIELD_NAME, REDIRECT_URL, REDIRECT_TO_FIELD_NAME
-from sudo.views import (
-    sudo,
-    redirect_to_sudo,
-)
 from sudo.forms import SudoForm
+from sudo.settings import REDIRECT_FIELD_NAME, REDIRECT_TO_FIELD_NAME, REDIRECT_URL
+from sudo.views import redirect_to_sudo, sudo
+
+from .base import BaseTestCase
 
 
 class SudoViewTestCase(BaseTestCase):
@@ -22,9 +19,7 @@ class SudoViewTestCase(BaseTestCase):
         response = sudo(self.request)
         self.assertIsInstance(response, TemplateResponse)
         self.assertEqual(response.template_name, "sudo/sudo.html")  # default
-        self.assertEqual(
-            response.context_data[REDIRECT_FIELD_NAME], REDIRECT_URL
-        )  # default
+        self.assertEqual(response.context_data[REDIRECT_FIELD_NAME], REDIRECT_URL)  # default
         form = response.context_data["form"]
         self.assertIsInstance(form, SudoForm)
         self.assertEqual(form.user, self.user)
