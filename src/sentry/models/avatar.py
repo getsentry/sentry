@@ -44,8 +44,7 @@ class AvatarBase(Model):
         except File.DoesNotExist:
             # Best effort replication of previous behaviour with foreign key
             # which was set with on_delete=models.SET_NULL
-            self.file_id = None
-            self.save(update_fields=["file_id"])
+            self.update(file_id=None)
             return None
 
     def delete(self, *args, **kwargs):
