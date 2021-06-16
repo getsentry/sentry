@@ -6,6 +6,8 @@ from threading import Thread
 from time import sleep
 from zipfile import ZipFile
 
+import pytest
+
 from sentry import options
 from sentry.models import ReleaseFile
 from sentry.models.distribution import Distribution
@@ -224,7 +226,7 @@ class ReleaseArchiveTestCase(TestCase):
         assert file_.checksum == index["files"]["fake://foo"]["sha1"]
 
 
-# @pytest.mark.skip(reason="Causes 'There is 1 other session using the database.'")
+@pytest.mark.skip(reason="Causes 'There is 1 other session using the database.'")
 class ArtifactIndexGuardTestCase(TransactionTestCase):
     tick = 0.1  # seconds
 

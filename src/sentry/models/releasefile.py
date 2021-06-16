@@ -258,6 +258,8 @@ class _ArtifactIndexGuard:
 
         with transaction.atomic():
             # Lock the row for editing:
+            # NOTE: Do not select_related('file') here, because we do not
+            # want to lock the File table
             qs = self._releasefile_qs().select_for_update()
             try:
                 releasefile = qs[0]
@@ -267,6 +269,8 @@ class _ArtifactIndexGuard:
                 index_data = None
             else:
                 source_file = releasefile.file
+                if source_file.type != ARTIFACT_INDEX_TYPE:
+                    raise RuntimeError("Unexpected file type for artifact index")
                 raw_data = json.load(source_file.getfile())
                 index_data = _ArtifactIndexData(raw_data)
 
@@ -292,14 +296,14 @@ class _ArtifactIndexGuard:
             file_.putfile(BytesIO(b"{}"))  # Empty JSON object
             return file_
 
-        ReleaseFile.objects.select_related("file").get_or_create(
+        ReleaseFile.objects.get_or_create(
             **self._key_fields(),
             defaults={"file": create_empty_index},
         )
 
     def _releasefile_qs(self):
         """QuerySet for selecting artifact index"""
-        return ReleaseFile.objects.filter(**self._key_fields()).select_related("file")
+        return ReleaseFile.objects.filter(**self._key_fields())
 
     def _key_fields(self):
         """Columns needed to identify the artifact index in the db"""
@@ -308,7 +312,6 @@ class _ArtifactIndexGuard:
             release=self._release,
             dist=self._dist,
             name=ARTIFACT_INDEX_FILENAME,
-            file__type=ARTIFACT_INDEX_TYPE,  # Make sure we don't get a user-uploaded file
             ident=self._ident,
         )
 
