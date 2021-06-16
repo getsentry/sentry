@@ -236,63 +236,70 @@ class _ArtifactIndexGuard:
     def __init__(self, release: Release, dist: Optional[Distribution]):
         self._release = release
         self._dist = dist
+        self._ident = ReleaseFile.get_ident(ARTIFACT_INDEX_FILENAME, dist and dist.name)
 
     def readable_data(self) -> Optional[dict]:
         """Simple read, no synchronization necessary"""
-        file_ = self._get_file(lock=False)
-        if file_ is not None:
-            with file_.getfile() as fp:
+        try:
+            releasefile = self._releasefile_qs()[0]
+        except IndexError:
+            return None
+        else:
+            with releasefile.file.getfile() as fp:
                 return json.load(fp)
 
     @contextmanager
     def writable_data(self, create: bool) -> ContextManager[_ArtifactIndexData]:
         """Context manager for editable artifact index"""
         with transaction.atomic():
+            created = False
             if create:
-                file_, created = self._get_or_create_file()
+                releasefile, created = self._get_or_create_releasefile()
             else:
-                file_ = self._get_file(lock=True)
-                created = False
+                # Lock the row for editing:
+                # NOTE: Do not select_related('file') here, because we do not
+                # want to lock the File table
+                qs = self._releasefile_qs().select_for_update()
+                try:
+                    releasefile = qs[0]
+                except IndexError:
+                    releasefile = None
 
-            if file_ is None:
+            if releasefile is None:
                 index_data = None
             else:
                 if created:
                     index_data = _ArtifactIndexData({}, fresh=True)
                 else:
-                    raw_data = json.load(file_.getfile())
+                    source_file = releasefile.file
+                    if source_file.type != ARTIFACT_INDEX_TYPE:
+                        raise RuntimeError("Unexpected file type for artifact index")
+                    raw_data = json.load(source_file.getfile())
                     index_data = _ArtifactIndexData(raw_data)
 
             yield index_data  # editable reference to index
 
             if index_data is not None and index_data.changed:
-                file_.putfile(BytesIO(json.dumps(index_data.data).encode()))
+                if created:
+                    target_file = releasefile.file
+                else:
+                    target_file = File.objects.create(
+                        name=ARTIFACT_INDEX_FILENAME, type=ARTIFACT_INDEX_TYPE
+                    )
 
-    def _get_or_create_file(self) -> Tuple[File, bool]:
-        """Insert the artifact index release file if it does not exist.
+                target_file.putfile(BytesIO(json.dumps(index_data.data).encode()))
 
-        We lock the selected row for the current transaction, s.t. any
-        "read & write" operation to the manifest is atomic.
+                if not created:
+                    # Update and clean existing
+                    old_file = releasefile.file
+                    releasefile.update(file=target_file)
+                    old_file.delete()
 
-        :returns:
-            - file - The File instance associated with the release file.
-              If created, this file does not have any content, so consider it
-              write-only.
-            - created - True if the release file was newly inserted.
+    def _get_or_create_releasefile(self):
+        """Make sure that the release file exists"""
 
-        """
-        qs = ReleaseFile.objects.select_related("file")
-
-        # Once the queryset is evaluated,
-        # this will lock the artifact index until the end of the current transaction
-        qs = qs.select_for_update()
-
-        releasefile, created = qs.get_or_create(
-            organization_id=self._release.organization_id,
-            release=self._release,
-            dist=self._dist,
-            name=ARTIFACT_INDEX_FILENAME,
-            file__type=ARTIFACT_INDEX_TYPE,  # Make sure we don't get a user-uploaded file
+        return ReleaseFile.objects.select_for_update().get_or_create(
+            **self._key_fields(),
             defaults={
                 "file": lambda: File.objects.create(
                     name=ARTIFACT_INDEX_FILENAME,
@@ -301,24 +308,19 @@ class _ArtifactIndexGuard:
             },
         )
 
-        return releasefile.file, created
+    def _releasefile_qs(self):
+        """QuerySet for selecting artifact index"""
+        return ReleaseFile.objects.filter(**self._key_fields())
 
-    def _get_file(self, lock: bool) -> Optional[File]:
-        qs = ReleaseFile.objects.select_related("file")
-        if lock:
-            qs = qs.select_for_update()
-        try:
-            release_file = qs.get(
-                organization_id=self._release.organization_id,
-                release=self._release,
-                dist=self._dist,
-                name=ARTIFACT_INDEX_FILENAME,
-                file__type=ARTIFACT_INDEX_TYPE,
-            )
-        except ReleaseFile.DoesNotExist:
-            return None
-        else:
-            return release_file.file
+    def _key_fields(self):
+        """Columns needed to identify the artifact index in the db"""
+        return dict(
+            organization_id=self._release.organization_id,
+            release=self._release,
+            dist=self._dist,
+            name=ARTIFACT_INDEX_FILENAME,
+            ident=self._ident,
+        )
 
 
 def read_artifact_index(release: Release, dist: Optional[Distribution]) -> Optional[dict]:
