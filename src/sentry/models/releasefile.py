@@ -298,17 +298,14 @@ class _ArtifactIndexGuard:
     def _get_or_create_releasefile(self):
         """Make sure that the release file exists"""
 
-        def create_empty_index():
-            file_ = File.objects.create(
-                name=ARTIFACT_INDEX_FILENAME,
-                type=ARTIFACT_INDEX_TYPE,
-            )
-            file_.putfile(BytesIO(b"{}"))  # Empty JSON object
-            return file_
-
         return ReleaseFile.objects.select_for_update().get_or_create(
             **self._key_fields(),
-            defaults={"file": create_empty_index},
+            defaults={
+                "file": lambda: File.objects.create(
+                    name=ARTIFACT_INDEX_FILENAME,
+                    type=ARTIFACT_INDEX_TYPE,
+                )
+            },
         )
 
     def _releasefile_qs(self):
