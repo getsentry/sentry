@@ -1,4 +1,6 @@
+import pytest
 from django.template.response import TemplateResponse
+from django.test import override_settings
 
 from sudo.forms import SudoForm
 from sudo.settings import REDIRECT_FIELD_NAME, REDIRECT_TO_FIELD_NAME, REDIRECT_URL
@@ -7,11 +9,17 @@ from sudo.views import redirect_to_sudo, sudo
 from .base import BaseTestCase
 
 
+@override_settings(
+    AUTHENTICATION_BACKENDS=[
+        "tests.sentry.sudo.base.FooPasswordBackend",
+        "tests.sentry.sudo.base.StubPasswordBackend",
+    ]
+)
 class SudoViewTestCase(BaseTestCase):
     def test_enforces_logged_in(self):
         response = sudo(self.request)
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(response["Location"], "/accounts/login/?next=/foo")
+        self.assertEqual(response["Location"], "/auth/login/?next=/foo")
 
     def test_returns_template_response(self):
         self.login()
@@ -71,6 +79,7 @@ class SudoViewTestCase(BaseTestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response["Location"], "/lol")
 
+    @pytest.mark.django_db
     def test_redirect_after_successful_post(self):
         self.login()
         self.request.is_sudo = lambda: False
@@ -81,6 +90,7 @@ class SudoViewTestCase(BaseTestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response["Location"], REDIRECT_URL)
 
+    @pytest.mark.django_db
     def test_session_based_redirect(self):
         self.login()
         self.request.is_sudo = lambda: False
@@ -100,6 +110,7 @@ class SudoViewTestCase(BaseTestCase):
         self.assertNotEqual(response["Location"], REDIRECT_URL)
         self.assertFalse("redirect_to" in self.request.session)
 
+    @pytest.mark.django_db
     def test_session_based_redirect_bad_url(self):
         self.login()
         self.request.is_sudo = lambda: False
@@ -117,6 +128,7 @@ class SudoViewTestCase(BaseTestCase):
         response = sudo(self.request)
         self.assertEqual(response["Location"], REDIRECT_URL)
 
+    @pytest.mark.django_db
     def test_render_form_with_bad_password(self):
         self.login()
         self.request.is_sudo = lambda: False
@@ -133,14 +145,9 @@ class RedirectToSudoTestCase(BaseTestCase):
     def test_redirect_to_sudo_simple(self):
         response = redirect_to_sudo("/foo")
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(response["Location"], "/sudo/?next=/foo")
+        self.assertEqual(response["Location"], "/account/sudo/?next=/foo")
 
     def test_redirect_to_sudo_with_querystring(self):
         response = redirect_to_sudo("/foo?foo=bar")
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(response["Location"], "/sudo/?next=/foo%3Ffoo%3Dbar")
-
-    def test_redirect_to_sudo_custom_url(self):
-        response = redirect_to_sudo("/foo", "/lolsudo/")
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(response["Location"], "/lolsudo/?next=/foo")
+        self.assertEqual(response["Location"], "/account/sudo/?next=/foo%3Ffoo%3Dbar")

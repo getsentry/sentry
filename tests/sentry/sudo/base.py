@@ -1,7 +1,5 @@
-import unittest
-
 from django.contrib.auth.models import AnonymousUser, User
-from django.test import RequestFactory
+from django.test import RequestFactory, TestCase
 
 
 class StubPasswordBackend:
@@ -22,7 +20,7 @@ class FooPasswordBackend(StubPasswordBackend):
     password = "foo"
 
 
-class BaseTestCase(unittest.TestCase):
+class BaseTestCase(TestCase):
     def setUp(self):
         self.request = self.get("/foo")
         self.request.session = {}

@@ -1,4 +1,5 @@
 from django.forms import ValidationError
+from django.test import override_settings
 
 from sudo.forms import SudoForm
 
@@ -6,6 +7,12 @@ from .base import BaseTestCase
 from .models import EmailUser
 
 
+@override_settings(
+    AUTHENTICATION_BACKENDS=[
+        "tests.sentry.sudo.base.FooPasswordBackend",
+        "tests.sentry.sudo.base.StubPasswordBackend",
+    ]
+)
 class SudoFormTestCase(BaseTestCase):
     def setUp(self):
         super().setUp()
