@@ -1257,6 +1257,23 @@ class EventView {
   }
 }
 
+const isFieldsSimilar = (
+  currentValue: Array<string>,
+  otherValue: Array<string>
+): boolean => {
+  const currentEquations = currentValue.filter(isEquation);
+  const otherEquations = otherValue.filter(isEquation);
+  const currentFields = new Set(currentValue.filter(value => !isEquation(value)));
+  const otherFields = new Set(otherValue.filter(value => !isEquation(value)));
+
+  if (!isEqual(currentEquations, otherEquations)) {
+    return false;
+  } else if (!isEqual(currentFields, otherFields)) {
+    return false;
+  }
+  return true;
+};
+
 export const isAPIPayloadSimilar = (
   current: EventQuery & LocationQuery,
   other: EventQuery & LocationQuery
@@ -1270,18 +1287,22 @@ export const isAPIPayloadSimilar = (
 
   for (const key of currentKeys) {
     const currentValue = current[key];
-    // Exclude equation from becoming a set for comparison cause its order matters
-    const currentTarget =
-      Array.isArray(currentValue) && key !== 'equation'
+    const otherValue = other[key];
+    if (key === 'field') {
+      if (!isFieldsSimilar(currentValue, otherValue)) {
+        return false;
+      }
+    } else {
+      // Exclude equation from becoming a set for comparison cause its order matters
+      const currentTarget = Array.isArray(currentValue)
         ? new Set(currentValue)
         : currentValue;
 
-    const otherValue = other[key];
-    const otherTarget =
-      Array.isArray(otherValue) && key !== 'equation' ? new Set(otherValue) : otherValue;
+      const otherTarget = Array.isArray(otherValue) ? new Set(otherValue) : otherValue;
 
-    if (!isEqual(currentTarget, otherTarget)) {
-      return false;
+      if (!isEqual(currentTarget, otherTarget)) {
+        return false;
+      }
     }
   }
 
