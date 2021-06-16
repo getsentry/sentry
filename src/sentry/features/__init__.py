@@ -118,6 +118,7 @@ default_manager.add("organizations:relay", OrganizationFeature)
 default_manager.add("organizations:release-adoption-chart", OrganizationFeature, True)
 default_manager.add("organizations:release-adoption-stage", OrganizationFeature, True)
 default_manager.add("organizations:release-archives", OrganizationFeature)
+default_manager.add("organizations:release-comparison", OrganizationFeature, True)
 default_manager.add("organizations:reprocessing-v2", OrganizationFeature)
 default_manager.add("organizations:required-email-verification", OrganizationFeature, True)  # NOQA
 default_manager.add("organizations:rule-page", OrganizationFeature)
