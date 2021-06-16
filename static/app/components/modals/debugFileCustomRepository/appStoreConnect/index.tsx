@@ -68,7 +68,7 @@ type Props = Pick<ModalRenderProps, 'Header' | 'Body' | 'Footer'> & {
   api: Client;
   orgSlug: Organization['slug'];
   projectSlug: Project['slug'];
-  onSubmit: (data: Record<string, any>) => void;
+  onSubmit: (data: IntialData) => void;
   location: Location;
   appStoreConnectContext?: AppStoreConnectContextProps;
   initialData?: IntialData;
@@ -263,7 +263,7 @@ function AppStoreConnect({
           sessionContext: newSessionContext ?? sessionContext,
         },
       });
-      onSubmit(response);
+      onSubmit(response as IntialData);
     } catch (error) {
       setIsLoading(false);
       addErrorMessage(errorMessage);
