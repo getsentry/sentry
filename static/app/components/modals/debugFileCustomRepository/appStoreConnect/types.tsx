@@ -1,6 +1,7 @@
 export type AppStoreApp = {
   name: string;
   appId: string;
+  bundleId: string;
 };
 
 export type AppleStoreOrg = {

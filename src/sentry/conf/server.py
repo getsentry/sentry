@@ -1003,6 +1003,8 @@ SENTRY_FEATURES = {
     "organizations:release-adoption-stage": False,
     # Store release bundles as zip files instead of single files
     "organizations:release-archives": False,
+    # Enable the new release details experience
+    "organizations:release-comparison": False,
     # Enable the project level transaction thresholds
     "organizations:project-transaction-threshold": False,
     # Enable percent displays in issue stream
