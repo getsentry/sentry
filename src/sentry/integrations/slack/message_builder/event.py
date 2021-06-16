@@ -1,4 +1,6 @@
-from sentry import features
+from typing import Mapping
+
+from sentry.features.helpers import any_organization_has_feature
 from sentry.integrations.slack.message_builder import SlackBody
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.models import Integration
@@ -49,7 +51,7 @@ class SlackEventMessageBuilder(BlockSlackMessageBuilder):
                 )
             ]
         )
-        if not features.has(
+        if not any_organization_has_feature(
             "organizations:notification-platform", self.integration.organizations.all()
         ):
             return self._build_blocks(
