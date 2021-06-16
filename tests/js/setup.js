@@ -45,7 +45,7 @@ MockDate.set(constantDate);
  * Load all files in `tests/js/fixtures/*` as a module.
  * These will then be added to the `TestStubs` global below
  */
-const fixturesPath = `${__dirname}/sentry-test/fixtures`;
+const fixturesPath = `${__dirname}/../fixtures/js-stubs`;
 const fixtures = loadFixtures(fixturesPath);
 
 /**
