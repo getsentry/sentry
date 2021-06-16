@@ -22,6 +22,7 @@ from sentry.tasks.deletion import delete_organization
 from sentry.utils.email import create_fake_email
 
 from .data_population import (
+    generate_releases,
     handle_mobile_scenario,
     handle_react_python_scenario,
     populate_org_members,
@@ -41,6 +42,8 @@ def create_demo_org(quick=False) -> Organization:
 
             slug = slugify(name)
 
+            projects = []
+
             demo_org = DemoOrganization.create_org(name=name, slug=slug)
             org = demo_org.organization
 
@@ -56,33 +59,40 @@ def create_demo_org(quick=False) -> Organization:
                 name="Python", organization=org, platform="python"
             )
             python_project.add_team(team)
+            projects.append(python_project)
 
             react_project = Project.objects.create(
                 name="React", organization=org, platform="javascript-react"
             )
             react_project.add_team(team)
+            projects.append(react_project)
 
             if settings.DEMO_MOBILE_PROJECTS:
                 react_native_project = Project.objects.create(
                     name="React-Native", organization=org, platform="react-native"
                 )
                 react_native_project.add_team(team)
+                projects.append(react_native_project)
 
                 android_project = Project.objects.create(
                     name="Android", organization=org, platform="android"
                 )
                 android_project.add_team(team)
+                projects.append(android_project)
 
                 ios_project = Project.objects.create(
                     name="iOS", organization=org, platform="apple-ios"
                 )
                 ios_project.add_team(team)
+                projects.append(ios_project)
 
             populate_org_members(org, team)
             # we'll be adding transactions later
             Project.objects.filter(organization=org).update(
                 flags=F("flags").bitor(Project.flags.has_transactions)
             )
+
+            generate_releases(projects, quick)
 
         logger.info(
             "create_demo_org.post-transaction",
