@@ -1,6 +1,17 @@
 __all__ = ["FeatureManager"]
 
 from collections import defaultdict
+from typing import (
+    Any,
+    Iterable,
+    List,
+    Mapping,
+    MutableMapping,
+    MutableSet,
+    Optional,
+    Sequence,
+    Type,
+)
 
 import sentry_sdk
 from django.conf import settings
@@ -18,10 +29,10 @@ class RegisteredFeatureManager:
     handler, remove this class entirely
     """
 
-    def __init__(self):
-        self._handler_registry = defaultdict(list)
+    def __init__(self) -> None:
+        self._handler_registry: MutableMapping[str, List[Any]] = defaultdict(list)
 
-    def add_handler(self, handler):
+    def add_handler(self, handler: Any) -> None:
         """
         Register a feature handler.
 
@@ -31,14 +42,23 @@ class RegisteredFeatureManager:
         for feature_name in handler.features:
             self._handler_registry[feature_name].append(handler)
 
-    def _get_handler(self, feature, actor):
+    def _get_handler(self, feature: Feature, actor: Any) -> Optional[bool]:
         for handler in self._handler_registry[feature.name]:
             rv = handler(feature, actor)
             if rv is not None:
-                return rv
+                return bool(rv)
         return None
 
-    def has_for_batch(self, name, organization, objects, actor=None):
+    def _get_feature_class(self, name: str) -> Type[Feature]:
+        raise NotImplementedError
+
+    def has_for_batch(
+        self,
+        name: str,
+        organization: Any,
+        objects: Sequence[Any],
+        actor: Optional[Any] = None,
+    ) -> Mapping[Any, bool]:
         """
         Determine in a batch if a feature is enabled.
 
@@ -95,20 +115,20 @@ class RegisteredFeatureManager:
 
 # TODO: Change RegisteredFeatureManager back to object once it can be removed
 class FeatureManager(RegisteredFeatureManager):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
-        self._feature_registry = {}
-        self.entity_features = set()
-        self._entity_handler = None
+        self._feature_registry: MutableMapping[str, Type[Feature]] = {}
+        self.entity_features: MutableSet[str] = set()
+        self._entity_handler: Optional[Any] = None
 
-    def all(self, feature_type=Feature):
+    def all(self, feature_type: Type[Feature] = Feature) -> Mapping[str, Type[Feature]]:
         """
         Get a mapping of feature name -> feature class, optionally specific to a
         particular feature type.
         """
         return {k: v for k, v in self._feature_registry.items() if v == feature_type}
 
-    def add(self, name, cls=Feature, entity_feature=False):
+    def add(self, name: str, cls: Type[Feature] = Feature, entity_feature: bool = False) -> None:
         """
         Register a feature.
 
@@ -121,13 +141,13 @@ class FeatureManager(RegisteredFeatureManager):
             self.entity_features.add(name)
         self._feature_registry[name] = cls
 
-    def _get_feature_class(self, name):
+    def _get_feature_class(self, name: str) -> Type[Feature]:
         try:
             return self._feature_registry[name]
         except KeyError:
             raise FeatureNotRegistered(name)
 
-    def get(self, name: str, *args, **kwargs):
+    def get(self, name: str, *args: Any, **kwargs: Any) -> Feature:
         """
         Lookup a registered feature context scope given the feature name.
 
@@ -136,13 +156,13 @@ class FeatureManager(RegisteredFeatureManager):
         cls = self._get_feature_class(name)
         return cls(name, *args, **kwargs)
 
-    def add_entity_handler(self, handler):
+    def add_entity_handler(self, handler: Any) -> None:
         """
         Registers a handler that doesn't require a feature name match
         """
         self._entity_handler = handler
 
-    def has(self, name: str, *args, **kwargs) -> bool:
+    def has(self, name: str, *args: Any, **kwargs: Any) -> bool:
         """
         Determine if a feature is enabled. If a handler returns None, then the next
         mechanism is used for feature checking.
@@ -193,7 +213,13 @@ class FeatureManager(RegisteredFeatureManager):
         # Features are by default disabled if no plugin or default enables them
         return False
 
-    def batch_has(self, feature_names, actor=None, projects=None, organization=None):
+    def batch_has(
+        self,
+        feature_names: Sequence[str],
+        actor: Optional[Any] = None,
+        projects: Optional[Sequence[Any]] = None,
+        organization: Optional[Any] = None,
+    ) -> Optional[bool]:
         """
         Determine if multiple features are enabled. Unhandled flags will not be in
         the results if they cannot be handled.
@@ -202,8 +228,10 @@ class FeatureManager(RegisteredFeatureManager):
         OrganizationFeatures.
         """
         if self._entity_handler:
-            return self._entity_handler.batch_has(
-                feature_names, actor, projects=projects, organization=organization
+            return bool(
+                self._entity_handler.batch_has(
+                    feature_names, actor, projects=projects, organization=organization
+                )
             )
         else:
             return None
@@ -218,14 +246,21 @@ class FeatureCheckBatch:
     common parent organization.
     """
 
-    def __init__(self, manager, name, organization, objects, actor):
+    def __init__(
+        self,
+        manager: RegisteredFeatureManager,
+        name: str,
+        organization: Any,
+        objects: Iterable[Any],
+        actor: Any,
+    ) -> None:
         self._manager = manager
         self.feature_name = name
         self.organization = organization
         self.objects = objects
         self.actor = actor
 
-    def get_feature_objects(self):
+    def get_feature_objects(self) -> Mapping[Any, Feature]:
         """
         Iterate over individual Feature objects.
 

@@ -1,9 +1,13 @@
 from typing import Any, Sequence
 
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
 from sentry.models import Organization
+
+# TODO(mgaeta): It's not currently possible to make a Callable with kwargs.
+EndpointFunc = Any
 
 
 def any_organization_has_feature(
@@ -12,7 +16,9 @@ def any_organization_has_feature(
     return any([features.has(feature, organization, **kwargs) for organization in organizations])
 
 
-def requires_feature(feature, any_org=None):
+def requires_feature(
+    feature: str, any_org: Optional[bool] = None
+) -> Callable[[EndpointFunc], EndpointFunc]:
     """
     Require a feature flag to access an endpoint.
 
@@ -31,8 +37,8 @@ def requires_feature(feature, any_org=None):
         >>>     return Response()
     """
 
-    def decorator(func):
-        def wrapped(self, request, *args, **kwargs):
+    def decorator(func: EndpointFunc) -> EndpointFunc:
+        def wrapped(self: Any, request: Request, *args: Any, **kwargs: Any) -> Response:
             # The endpoint is accessible if any of the User's Orgs have the feature
             # flag enabled.
             if any_org:
