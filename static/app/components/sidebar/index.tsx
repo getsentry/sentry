@@ -273,7 +273,7 @@ class Sidebar extends React.Component<Props, State> {
         features={['performance-view']}
         organization={organization}
       >
-        <SidebarOverride>
+        <SidebarOverride id="performance">
           {(overideProps: Partial<React.ComponentProps<typeof SidebarItem>>) => (
             <SidebarItem
               {...sidebarItemProps}
