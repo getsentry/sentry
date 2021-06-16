@@ -11,7 +11,6 @@ datadog==0.29.3
 django-crispy-forms==1.7.2
 django-manifest-loader==1.0.0
 django-picklefield==1.0.0
-django-sudo==3.1.0
 Django==1.11.29
 djangorestframework==3.11.2
 email-reply-parser==0.5.12
