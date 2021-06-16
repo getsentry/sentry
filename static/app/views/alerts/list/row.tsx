@@ -105,7 +105,11 @@ class AlertListRow extends Component<Props> {
             <Title>
               <Link to={alertLink}>Alert #{incident.id}</Link>
               <div>
-                {t('Triggered ')} <TimeSince date={incident.dateStarted} extraShort />
+                {t('Triggered ')}{' '}
+                {getDynamicText({
+                  value: <TimeSince date={incident.dateStarted} extraShort />,
+                  fixed: '1w ago',
+                })}
                 <StyledTimeSeparator> | </StyledTimeSeparator>
                 {incident.status === IncidentStatus.CLOSED
                   ? tct('Active for [duration]', {
