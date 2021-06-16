@@ -160,10 +160,15 @@ class DemoOrgManagerTest(TestCase):
 
         mock_delete_organization.assert_called_once_with(kwargs={"object_id": org.id})
 
-    @override_settings(DEMO_MOBILE_PROJECTS=True)
+    @override_settings(
+        DEMO_MOBILE_PROJECTS=True, DEMO_MODE=True, DEMO_ORG_OWNER_EMAIL=org_owner_email
+    )
     @mock.patch("sentry.demo.demo_org_manager.handle_react_python_scenario")
+    @mock.patch("sentry.demo.demo_org_manager.handle_mobile_scenario")
     @mock.patch("sentry.demo.demo_org_manager.generate_random_name", return_value=org_name)
-    def test_create_mobile_demo_org(self, mock_generate_name, mock_handle_scenario):
+    def test_create_mobile_demo_org(
+        self, mock_generate_name, mock_handle_mobile_scenario, mock_handle_scenario
+    ):
         owner = User.objects.create(email=org_owner_email)
 
         create_demo_org()
@@ -179,3 +184,4 @@ class DemoOrgManagerTest(TestCase):
 
         assert len(Project.objects.filter(organization=org)) == 5
         mock_handle_scenario.assert_called_once_with(mock.ANY, mock.ANY, quick=False)
+        mock_handle_mobile_scenario.assert_called_once_with(mock.ANY, mock.ANY, quick=False)

@@ -57,7 +57,6 @@
   },
   "contexts": {
     "app": {
-      "app_start_time": "2021-02-11T13:10:34Z",
       "device_app_hash": "76b2897b369b05951cfdc9285516010920b608a9",
       "build_type": "debug",
       "app_identifier": "io.sentry.sample.iOS-Swift",

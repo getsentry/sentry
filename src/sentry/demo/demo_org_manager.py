@@ -89,9 +89,13 @@ def create_demo_org(quick=False) -> Organization:
             extra={"organization_slug": org.slug, "quick": quick},
         )
 
-        with sentry_sdk.start_span(op="handle_react_python_scenario"):
+        with sentry_sdk.start_span(op="handle_react_python_mobile_scenario"):
             try:
                 handle_react_python_scenario(react_project, python_project, quick=quick)
+
+                if settings.DEMO_MOBILE_PROJECTS:
+                    handle_mobile_scenario(ios_project, android_project, quick=quick)
+
             except Exception as e:
                 logger.error(
                     "create_demo_org.population_error",
@@ -102,21 +106,6 @@ def create_demo_org(quick=False) -> Organization:
                 org.save()
                 delete_organization.apply_async(kwargs={"object_id": org.id})
                 raise
-
-        if settings.DEMO_MOBILE_PROJECTS:
-            with sentry_sdk.start_span(op="handle_mobile_scenario"):
-                try:
-                    handle_mobile_scenario(ios_project, android_project, quick=quick)
-                except Exception as e:
-                    logger.error(
-                        "create_demo_org.population_error",
-                        extra={"organization_slug": org.slug, "quick": quick, "error": str(e)},
-                    )
-                    # delete the organization if data population fails
-                    org.status = OrganizationStatus.PENDING_DELETION
-                    org.save()
-                    delete_organization.apply_async(kwargs={"object_id": org.id})
-                    raise
 
         # update the org status now that it's populated
         demo_org.status = DemoOrgStatus.PENDING

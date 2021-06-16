@@ -72,7 +72,6 @@
       "type": "My Context"
     },
     "app": {
-      "app_start_time": "2021-01-06T23:35:56Z",
       "device_app_hash": "2e2521004d3aadf6e383318cba7c7c91fdf37961",
       "build_type": "simulator",
       "app_identifier": "sentry.sentry-cocoa",

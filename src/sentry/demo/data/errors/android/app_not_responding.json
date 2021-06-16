@@ -79,7 +79,6 @@
   },
   "contexts": {
     "app": {
-      "app_start_time": "2021-01-20T20:40:45.564Z",
       "app_identifier": "com.example.vu.android",
       "app_name": "android",
       "app_version": "1.7",

@@ -71,7 +71,6 @@
   "breakdowns": {"span_ops": {"total.time": {"value": 1770.999909}}},
   "contexts": {
     "app": {
-      "app_start_time": "2021-06-08T13:33:01Z",
       "device_app_hash": "2421fae1ac9237a8131e74883e52b0f7034a143f",
       "build_type": "test",
       "app_identifier": "io.sentry.sample.iOS-Swift",

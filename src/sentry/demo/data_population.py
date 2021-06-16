@@ -77,6 +77,7 @@ org_users = [
         "jennifer.song",
         "Jen Song",
     ),
+    ("roggenkemper", "Richard Roggenkemper"),
 ]
 
 logger = logging.getLogger(__name__)
@@ -1056,15 +1057,11 @@ class DataPopulation:
 
         for (timestamp, day) in self.iter_timestamps(dist_number, starting_release):
             transaction_user = self.generate_user()
-            trace_id = uuid4().hex
             release = get_release_from_time(project.organization_id, timestamp)
             release_sha = release.version
 
             old_span_id = transaction["contexts"]["trace"]["span_id"]
-            ios_span_id = uuid4().hex[:16]
             duration = self.gen_frontend_duration(day)
-
-            trace = {"trace_id": trace_id, "span_id": ios_span_id}
 
             local_event = copy.deepcopy(transaction)
             local_event.update(
@@ -1077,7 +1074,7 @@ class DataPopulation:
                 start_timestamp=timestamp - timedelta(seconds=duration),
             )
 
-            update_context(local_event, trace)
+            update_context(local_event)
 
             self.fix_transaction_event(local_event, old_span_id)
             self.safe_send_event(local_event)
