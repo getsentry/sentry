@@ -72,18 +72,25 @@ class TraceView extends PureComponent<Props> {
                     >
                       {this.renderHeader(dragProps, parsedTrace)}
                       <Observer>
-                        {() => (
-                          <SpanTree
-                            traceViewRef={this.traceViewRef}
-                            event={event}
-                            trace={parsedTrace}
-                            dragProps={dragProps}
-                            filterSpans={waterfallModel.filterSpans}
-                            organization={organization}
-                            operationNameFilters={waterfallModel.operationNameFilters}
-                            waterfallModel={waterfallModel}
-                          />
-                        )}
+                        {() => {
+                          const generateBounds = boundsGenerator({
+                            traceStartTimestamp: parsedTrace.traceStartTimestamp,
+                            traceEndTimestamp: parsedTrace.traceEndTimestamp,
+                            viewStart: dragProps.viewWindowStart,
+                            viewEnd: dragProps.viewWindowEnd,
+                          });
+
+                          return (
+                            <SpanTree
+                              traceViewRef={this.traceViewRef}
+                              dragProps={dragProps}
+                              organization={organization}
+                              waterfallModel={waterfallModel}
+                              filterSpans={waterfallModel.filterSpans}
+                              spans={waterfallModel.getWaterfall({generateBounds})}
+                            />
+                          );
+                        }}
                       </Observer>
                     </ScrollbarManager.Provider>
                   );
