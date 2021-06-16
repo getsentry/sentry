@@ -51,6 +51,7 @@ jobs:
             -f test.Dockerfile \
             --cache-from ghcr.io/getsentry/sentry-ci:latest \
             --cache-from ghcr.io/getsentry/sentry-ci:${{ steps.branch.outputs.branch }} \
+            --cache-to type=inline,mode=all \
             -t ghcr.io/getsentry/sentry-ci:latest \
             -t ghcr.io/getsentry/sentry-ci:${{ steps.branch.outputs.branch }} \
             -t ghcr.io/getsentry/sentry-ci:${{ github.sha }}
