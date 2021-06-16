@@ -34,6 +34,7 @@ import {
   SpanBoundsType,
   SpanGeneratedBoundsType,
 } from './utils';
+import WaterfallModel from './waterfallModel';
 
 type RenderedSpanTree = {
   spanTree: JSX.Element | null;
@@ -50,6 +51,7 @@ type PropType = ScrollbarManagerChildrenProps & {
   event: EventTransaction;
   operationNameFilters: ActiveOperationFilter;
   traceViewRef: React.RefObject<HTMLDivElement>;
+  waterfallModel: WaterfallModel;
 };
 
 class SpanTree extends React.Component<PropType> {

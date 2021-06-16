@@ -81,6 +81,7 @@ class TraceView extends PureComponent<Props> {
                             filterSpans={waterfallModel.filterSpans}
                             organization={organization}
                             operationNameFilters={waterfallModel.operationNameFilters}
+                            waterfallModel={waterfallModel}
                           />
                         )}
                       </Observer>
