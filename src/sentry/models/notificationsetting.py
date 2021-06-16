@@ -50,6 +50,7 @@ class NotificationSetting(Model):
             (NotificationScopeType.USER, "user"),
             (NotificationScopeType.ORGANIZATION, "organization"),
             (NotificationScopeType.PROJECT, "project"),
+            (NotificationScopeType.TEAM, "team"),
         ),
         null=False,
     )

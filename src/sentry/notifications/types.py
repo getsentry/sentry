@@ -87,12 +87,14 @@ class NotificationScopeType(Enum):
     USER = 0
     ORGANIZATION = 10
     PROJECT = 20
+    TEAM = 30
 
 
 NOTIFICATION_SCOPE_TYPE = {
     NotificationScopeType.USER: "user",
     NotificationScopeType.ORGANIZATION: "organization",
     NotificationScopeType.PROJECT: "project",
+    NotificationScopeType.TEAM: "team",
 }
 
 
