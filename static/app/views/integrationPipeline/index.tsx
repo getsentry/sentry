@@ -1,5 +1,5 @@
 async function integrationPipeline() {
-  const {init} =  await import('./init');
+  const {init} = await import('./init');
   init();
 }
 
