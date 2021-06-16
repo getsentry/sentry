@@ -48,15 +48,16 @@ class RelatedIssues extends Component<Props> {
         // transaction event fields
         TRACING_FIELDS.includes(tagKey) ||
         // event type can be "transaction" but we're searching for issues
-        tagKey === 'event.type' ||
-        // the project is already determined by the transaction,
-        // and issue search does not support the project filter
-        tagKey === 'project'
+        tagKey === 'event.type'
       ) {
         currentFilter.removeTag(tagKey);
       }
     });
     currentFilter.addQuery('is:unresolved').setTagValues('transaction', [transaction]);
+
+    // Filter out key_transaction from being passed to issues as it will cause an error.
+    currentFilter.removeTag('key_transaction');
+    currentFilter.removeTag('team_key_transaction');
 
     return {
       path: `/organizations/${organization.slug}/issues/`,
