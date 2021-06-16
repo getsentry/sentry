@@ -190,6 +190,15 @@ class WaterfallModel {
     };
   }
 
+  toggleSpanGroup = (spanID: string) => {
+    if (this.hiddenSpanGroups.has(spanID)) {
+      this.hiddenSpanGroups.delete(spanID);
+      return;
+    }
+
+    this.hiddenSpanGroups.add(spanID);
+  };
+
   getWaterfall = ({
     generateBounds,
   }: {
