@@ -431,86 +431,6 @@ def populate_org_members(org, team):
         OrganizationMemberTeam.objects.create(team=team, organizationmember=member, is_active=True)
 
 
-def generate_releases(projects, quick):
-    if quick:
-        config = settings.DEMO_DATA_QUICK_GEN_PARAMS
-    else:
-        config = settings.DEMO_DATA_GEN_PARAMS
-    NUM_RELEASES = config["NUM_RELEASES"]
-    MAX_DAYS = config["MAX_DAYS"]
-    release_time = timezone.now() - timedelta(days=MAX_DAYS)
-    hourly_release_cadence = MAX_DAYS * 24.0 / NUM_RELEASES
-    org = projects[0].organization
-    org_id = org.id
-    for i in range(NUM_RELEASES):
-        release = Release.objects.create(
-            version=f"{release_prefix}@3.{i}",
-            organization_id=org_id,
-            date_added=release_time,
-        )
-        for project in projects:
-            release.add_project(project)
-
-        # TODO: unhardcode params when we add more scenarios
-        raw_commits = generate_commits(
-            [
-                "components/ShoppingCart.js",
-                "components/Form.js",
-                "flask/app.py",
-                "purchase.py",
-            ],
-            ["js", "py"],
-        )
-
-        repo, _ = Repository.objects.get_or_create(
-            organization_id=org.id,
-            external_id="example/example",
-            defaults={
-                "name": "Example Repo",
-            },
-        )
-        authors = set()
-
-        for commit_index, raw_commit in enumerate(raw_commits):
-            author = CommitAuthor.objects.get_or_create(
-                organization_id=org.id,
-                email=raw_commit["author"][1],
-                defaults={"name": raw_commit["author"][0]},
-            )[0]
-            commit = Commit.objects.get_or_create(
-                organization_id=org.id,
-                repository_id=repo.id,
-                key=raw_commit["key"],
-                defaults={
-                    "author": author,
-                    "message": raw_commit["message"],
-                    "date_added": release_time,
-                },
-            )[0]
-            authors.add(author)
-
-            for file in raw_commit["files"]:
-                ReleaseFile.objects.get_or_create(
-                    organization_id=project.organization_id,
-                    release=release,
-                    name=file[0],
-                    file=File.objects.get_or_create(
-                        name=file[0], type="release.file", checksum="abcde" * 8, size=13043
-                    )[0],
-                    defaults={"organization_id": project.organization_id},
-                )
-
-                CommitFileChange.objects.get_or_create(
-                    organization_id=org.id, commit=commit, filename=file[0], type=file[1]
-                )
-
-            ReleaseCommit.objects.get_or_create(
-                organization_id=org.id, release=release, commit=commit, order=commit_index
-            )
-
-        release_time += timedelta(hours=hourly_release_cadence)
-
-
 class DataPopulation:
     """
     This class is used to populate data for a single organization
@@ -635,6 +555,82 @@ class DataPopulation:
         url = f"{endpoint}/api/{dsn.project_id}/envelope/?sentry_key={dsn.public_key}&sentry_version=7"
         resp = requests.post(url=url, data=body)
         resp.raise_for_status()
+
+    def generate_releases(self, projects):
+        config = self.get_config()
+        NUM_RELEASES = config["NUM_RELEASES"]
+        MAX_DAYS = config["MAX_DAYS"]
+        release_time = timezone.now() - timedelta(days=MAX_DAYS)
+        hourly_release_cadence = MAX_DAYS * 24.0 / NUM_RELEASES
+        org = projects[0].organization
+        org_id = org.id
+        for i in range(NUM_RELEASES):
+            release = Release.objects.create(
+                version=f"{release_prefix}@3.{i}",
+                organization_id=org_id,
+                date_added=release_time,
+            )
+            for project in projects:
+                release.add_project(project)
+
+            # TODO: unhardcode params when we add more scenarios
+            raw_commits = generate_commits(
+                [
+                    "components/ShoppingCart.js",
+                    "components/Form.js",
+                    "flask/app.py",
+                    "purchase.py",
+                ],
+                ["js", "py"],
+            )
+
+            repo, _ = Repository.objects.get_or_create(
+                organization_id=org.id,
+                external_id="example/example",
+                defaults={
+                    "name": "Example Repo",
+                },
+            )
+            authors = set()
+
+            for commit_index, raw_commit in enumerate(raw_commits):
+                author = CommitAuthor.objects.get_or_create(
+                    organization_id=org.id,
+                    email=raw_commit["author"][1],
+                    defaults={"name": raw_commit["author"][0]},
+                )[0]
+                commit = Commit.objects.get_or_create(
+                    organization_id=org.id,
+                    repository_id=repo.id,
+                    key=raw_commit["key"],
+                    defaults={
+                        "author": author,
+                        "message": raw_commit["message"],
+                        "date_added": release_time,
+                    },
+                )[0]
+                authors.add(author)
+
+                for file in raw_commit["files"]:
+                    ReleaseFile.objects.get_or_create(
+                        organization_id=project.organization_id,
+                        release=release,
+                        name=file[0],
+                        file=File.objects.get_or_create(
+                            name=file[0], type="release.file", checksum="abcde" * 8, size=13043
+                        )[0],
+                        defaults={"organization_id": project.organization_id},
+                    )
+
+                    CommitFileChange.objects.get_or_create(
+                        organization_id=org.id, commit=commit, filename=file[0], type=file[1]
+                    )
+
+                ReleaseCommit.objects.get_or_create(
+                    organization_id=org.id, release=release, commit=commit, order=commit_index
+                )
+
+            release_time += timedelta(hours=hourly_release_cadence)
 
     def generate_alerts(self, project):
         self.generate_metric_alert(project)
@@ -1189,19 +1185,3 @@ class DataPopulation:
                 android_project, "errors/android/app_not_responding.json", 2, starting_release=2
             )
         self.assign_issues()
-
-
-def handle_react_python_scenario(react_project: Project, python_project: Project, quick=False):
-    """
-    Handles all data population for the React + Python scenario
-    """
-    data_population = DataPopulation(python_project.organization, quick)
-    data_population.handle_react_python_scenario(react_project, python_project)
-
-
-def handle_mobile_scenario(ios_project: Project, android_project: Project, quick=False):
-    """
-    Handles all data population for the iOS + Android + React-Native scenario
-    """
-    data_population = DataPopulation(ios_project.organization, quick)
-    data_population.handle_mobile_scenario(ios_project, android_project)

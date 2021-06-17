@@ -5,14 +5,17 @@ import pytz
 from django.db import IntegrityError
 from django.test import override_settings
 
+from sentry.demo.data_population import DataPopulation
 from sentry.demo.demo_org_manager import assign_demo_org, create_demo_org
 from sentry.demo.models import DemoOrganization, DemoOrgStatus, DemoUser
+from sentry.demo.settings import DEMO_DATA_GEN_PARAMS
 from sentry.models import (
     Organization,
     OrganizationMember,
     OrganizationStatus,
     Project,
     ProjectKey,
+    Release,
     Team,
     User,
 )
@@ -23,15 +26,18 @@ from sentry.utils.email import create_fake_email
 org_owner_email = "james@example.com"
 org_name = "Org Name"
 
+DEMO_DATA_GEN_PARAMS = DEMO_DATA_GEN_PARAMS.copy()
+DEMO_DATA_GEN_PARAMS["MAX_DAYS"] = 1
+DEMO_DATA_GEN_PARAMS["SCALE_FACTOR"] = 0.05
 
-@override_settings(DEMO_MODE=True, DEMO_ORG_OWNER_EMAIL=org_owner_email)
+
+@override_settings(
+    DEMO_MODE=True, DEMO_ORG_OWNER_EMAIL=org_owner_email, DEMO_DATA_GEN_PARAMS=DEMO_DATA_GEN_PARAMS
+)
 class DemoOrgManagerTest(TestCase):
-    @mock.patch("sentry.demo.demo_org_manager.handle_react_python_scenario")
+    @mock.patch.object(DataPopulation, "handle_react_python_scenario")
     @mock.patch("sentry.demo.demo_org_manager.generate_random_name", return_value=org_name)
-    @mock.patch("sentry.demo.demo_org_manager.generate_releases")
-    def test_create_demo_org(
-        self, mock_generate_releases, mock_generate_name, mock_handle_scenario
-    ):
+    def test_create_demo_org(self, mock_generate_name, mock_handle_scenario):
         owner = User.objects.create(email=org_owner_email)
 
         create_demo_org()
@@ -46,10 +52,12 @@ class DemoOrgManagerTest(TestCase):
         ).exists()
 
         assert len(Project.objects.filter(organization=org)) == 2
-        mock_handle_scenario.assert_called_once_with(mock.ANY, mock.ANY, quick=False)
+        assert len(Release.objects.filter(organization=org)) == 3
+
+        mock_handle_scenario.assert_called_once_with(mock.ANY, mock.ANY)
 
     @mock.patch("sentry.demo.demo_org_manager.generate_random_name", return_value=org_name)
-    @mock.patch("sentry.demo.demo_org_manager.generate_releases")
+    @mock.patch.object(DataPopulation, "generate_releases")
     def test_no_owner(self, mock_generate_releases, mock_generate_name):
         with pytest.raises(User.DoesNotExist):
             create_demo_org()
@@ -138,17 +146,17 @@ class DemoOrgManagerTest(TestCase):
 
         assert mock_create_user.call_count == 4
 
-    @mock.patch("sentry.demo.demo_org_manager.handle_react_python_scenario")
-    @mock.patch("sentry.demo.demo_org_manager.generate_releases")
+    @mock.patch.object(DataPopulation, "handle_react_python_scenario")
+    @mock.patch.object(DataPopulation, "generate_releases")
     def test_no_org_ready(self, mock_generate_releases, mock_handle_scenario):
         User.objects.create(email=org_owner_email)
         assign_demo_org()
-        mock_handle_scenario.assert_called_once_with(mock.ANY, mock.ANY, quick=True)
+        mock_handle_scenario.assert_called_once_with(mock.ANY, mock.ANY)
 
     @mock.patch("sentry.demo.demo_org_manager.delete_organization.apply_async")
-    @mock.patch("sentry.demo.demo_org_manager.handle_react_python_scenario")
+    @mock.patch.object(DataPopulation, "handle_react_python_scenario")
     @mock.patch("sentry.demo.demo_org_manager.generate_random_name", return_value=org_name)
-    @mock.patch("sentry.demo.demo_org_manager.generate_releases")
+    @mock.patch.object(DataPopulation, "generate_releases")
     def test_data_population_fails(
         self,
         mock_generate_releases,
@@ -173,10 +181,10 @@ class DemoOrgManagerTest(TestCase):
     @override_settings(
         DEMO_MOBILE_PROJECTS=True, DEMO_MODE=True, DEMO_ORG_OWNER_EMAIL=org_owner_email
     )
-    @mock.patch("sentry.demo.demo_org_manager.handle_react_python_scenario")
-    @mock.patch("sentry.demo.demo_org_manager.handle_mobile_scenario")
+    @mock.patch.object(DataPopulation, "handle_react_python_scenario")
+    @mock.patch.object(DataPopulation, "handle_mobile_scenario")
     @mock.patch("sentry.demo.demo_org_manager.generate_random_name", return_value=org_name)
-    @mock.patch("sentry.demo.demo_org_manager.generate_releases")
+    @mock.patch.object(DataPopulation, "generate_releases")
     def test_create_mobile_demo_org(
         self,
         mock_generate_releases,
@@ -198,5 +206,5 @@ class DemoOrgManagerTest(TestCase):
         ).exists()
 
         assert len(Project.objects.filter(organization=org)) == 5
-        mock_handle_scenario.assert_called_once_with(mock.ANY, mock.ANY, quick=False)
-        mock_handle_mobile_scenario.assert_called_once_with(mock.ANY, mock.ANY, quick=False)
+        mock_handle_scenario.assert_called_once_with(mock.ANY, mock.ANY)
+        mock_handle_mobile_scenario.assert_called_once_with(mock.ANY, mock.ANY)

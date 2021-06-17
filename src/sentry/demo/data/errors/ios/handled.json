@@ -66,9 +66,7 @@
   },
   "contexts": {
     "My Context": {
-      "key1": "value1",
-      "key2": "value2",
-      "key3": "value3",
+      "Plan": "team_plan",
       "type": "My Context"
     },
     "app": {

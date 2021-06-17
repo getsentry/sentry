@@ -21,12 +21,7 @@ from sentry.models import (
 from sentry.tasks.deletion import delete_organization
 from sentry.utils.email import create_fake_email
 
-from .data_population import (
-    generate_releases,
-    handle_mobile_scenario,
-    handle_react_python_scenario,
-    populate_org_members,
-)
+from .data_population import DataPopulation, populate_org_members
 from .models import DemoOrganization, DemoOrgStatus, DemoUser
 from .utils import generate_random_name
 
@@ -92,8 +87,6 @@ def create_demo_org(quick=False) -> Organization:
                 flags=F("flags").bitor(Project.flags.has_transactions)
             )
 
-            generate_releases(projects, quick)
-
         logger.info(
             "create_demo_org.post-transaction",
             extra={"organization_slug": org.slug, "quick": quick},
@@ -101,10 +94,12 @@ def create_demo_org(quick=False) -> Organization:
 
         with sentry_sdk.start_span(op="handle_react_python_mobile_scenario"):
             try:
-                handle_react_python_scenario(react_project, python_project, quick=quick)
+                data_population = DataPopulation(org, quick=quick)
+                data_population.generate_releases(projects)
+                data_population.handle_react_python_scenario(react_project, python_project)
 
                 if settings.DEMO_MOBILE_PROJECTS:
-                    handle_mobile_scenario(ios_project, android_project, quick=quick)
+                    data_population.handle_mobile_scenario(ios_project, android_project)
 
             except Exception as e:
                 logger.error(
