@@ -74,8 +74,8 @@ org_users = [
     ("scefali", "Stephen Cefali"),
     ("aj", "AJ Jindal"),
     (
-        "jennifer.song",
-        "Jen Song",
+        "zac.propersi",
+        "Zac Propersi",
     ),
     ("roggenkemper", "Richard Roggenkemper"),
 ]
