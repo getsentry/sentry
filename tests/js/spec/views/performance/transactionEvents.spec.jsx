@@ -47,6 +47,11 @@ describe('Performance > TransactionSummary', function () {
       url: '/organizations/org-slug/sdk-updates/',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/org-slug/legacy-key-transactions-count/`,
+      body: [],
+    });
     // Transaction list response
     MockApiClient.addMockResponse(
       {
@@ -112,9 +117,9 @@ describe('Performance > TransactionSummary', function () {
     await tick();
     wrapper.update();
 
-    expect(wrapper.find('NavTabs').find({children: 'Events'}).find('Link')).toHaveLength(
-      1
-    );
+    expect(
+      wrapper.find('NavTabs').find({children: 'All Events'}).find('Link')
+    ).toHaveLength(1);
     expect(wrapper.find('SentryDocumentTitle')).toHaveLength(1);
     expect(wrapper.find('SearchBar')).toHaveLength(1);
     expect(wrapper.find('GridEditable')).toHaveLength(1);
