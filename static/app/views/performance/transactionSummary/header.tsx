@@ -17,6 +17,7 @@ import EventView from 'app/utils/discover/eventView';
 import {decodeScalar} from 'app/utils/queryString';
 import Breadcrumb from 'app/views/performance/breadcrumb';
 
+import {eventsRouteWithQuery} from './transactionEvents/utils';
 import {tagsRouteWithQuery} from './transactionTags/utils';
 import {vitalsRouteWithQuery} from './transactionVitals/utils';
 import KeyTransactionButton from './keyTransactionButton';
@@ -27,6 +28,7 @@ export enum Tab {
   TransactionSummary,
   RealUserMonitoring,
   Tags,
+  Events,
 }
 
 type Props = {
@@ -66,6 +68,15 @@ class TransactionHeader extends React.Component<Props> {
 
   trackTagsTabClick = () => {
     // TODO(k-fish): Add analytics for tags
+  };
+
+  trackEventsTabClick = () => {
+    const {organization} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.events.events_tab_clicked',
+      eventName: 'Performance Views: Events tab clicked',
+      organization_id: organization.id,
+    });
   };
 
   handleIncompatibleQuery: React.ComponentProps<
@@ -148,6 +159,13 @@ class TransactionHeader extends React.Component<Props> {
       query: location.query,
     });
 
+    const eventsTarget = eventsRouteWithQuery({
+      orgSlug: organization.slug,
+      transaction: transactionName,
+      projectID: decodeScalar(location.query.project),
+      query: location.query,
+    });
+
     return (
       <Layout.Header>
         <Layout.HeaderContent>
@@ -196,6 +214,15 @@ class TransactionHeader extends React.Component<Props> {
                 onClick={this.trackTagsTabClick}
               >
                 {t('Tags')}
+              </ListLink>
+            </Feature>
+            <Feature features={['organizations:performance-events-page']}>
+              <ListLink
+                to={eventsTarget}
+                isActive={() => currentTab === Tab.Events}
+                onClick={this.trackEventsTabClick}
+              >
+                {t('Events')}
               </ListLink>
             </Feature>
           </StyledNavTabs>

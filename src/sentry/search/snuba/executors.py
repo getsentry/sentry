@@ -70,7 +70,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
     @property
     @abstractmethod
     def dataset(self):
-        """"This function should return an enum from snuba.Dataset (like snuba.Dataset.Events)"""
+        """ "This function should return an enum from snuba.Dataset (like snuba.Dataset.Events)"""
         raise NotImplementedError
 
     @abstractmethod
@@ -100,6 +100,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         project_ids,
         environment_ids,
         sort_field,
+        organization_id,
         cursor=None,
         group_ids=None,
         limit=None,
@@ -132,7 +133,9 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
                 search_filter.key.name == "date"
             ):
                 continue
-            converted_filter = convert_search_filter_to_snuba_query(search_filter)
+            converted_filter = convert_search_filter_to_snuba_query(
+                search_filter, params={"organization_id": organization_id}
+            )
             converted_filter = self._transform_converted_filter(
                 search_filter, converted_filter, project_ids, environment_ids
             )
@@ -328,11 +331,9 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         # retention date, which may be closer than 90 days in the past, but
         # apparently `retention_window_start` can be None(?), so we need a
         # fallback.
-        retention_date = max(
-            [_f for _f in [retention_window_start, now - timedelta(days=90)] if _f]
-        )
+        retention_date = max(_f for _f in [retention_window_start, now - timedelta(days=90)] if _f)
         start_params = [date_from, retention_date, get_search_filter(search_filters, "date", ">")]
-        start = max([_f for _f in start_params if _f])
+        start = max(_f for _f in start_params if _f)
         end = max([retention_date, end])
 
         if start == retention_date and end == retention_date:
@@ -461,6 +462,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 end=end,
                 project_ids=[p.id for p in projects],
                 environment_ids=environments and [environment.id for environment in environments],
+                organization_id=projects[0].organization_id,
                 sort_field=sort_field,
                 cursor=cursor,
                 group_ids=group_ids,
@@ -608,6 +610,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 end=end,
                 project_ids=[p.id for p in projects],
                 environment_ids=environments and [environment.id for environment in environments],
+                organization_id=projects[0].organization_id,
                 sort_field=sort_field,
                 limit=sample_size,
                 offset=0,

@@ -2,6 +2,7 @@
 // longer need this import and can drop babel-preset-css-prop for babel-preset.
 /// <reference types="@emotion/react/types/css-prop" />
 
+import {FocusTrap} from 'focus-trap';
 import u2f from 'u2f-api';
 
 import exportGlobals from 'app/bootstrap/exportGlobals';
@@ -103,6 +104,18 @@ declare global {
      * See sentry/js/ads.js for how this global is disabled.
      */
     adblockSuspected?: boolean;
+
+    //typing currently used for demo add on
+    //TODO: improve typing
+    SentryApp?: {
+      HookStore: any;
+      ConfigStore: any;
+      Modal: any;
+      modalFocusTrap?: {
+        current?: FocusTrap;
+      };
+      getModalPortal: () => HTMLElement;
+    };
   }
 }
 
@@ -285,6 +298,11 @@ export type Project = {
   transactionStats?: TimeseriesValue[];
   latestRelease?: Release;
   options?: Record<string, boolean | string>;
+  sessionStats?: {
+    currentCrashFreeRate: number | null;
+    previousCrashFreeRate: number | null;
+    hasHealthData: boolean;
+  };
 } & AvatarProject;
 
 export type MinimalProject = Pick<Project, 'id' | 'slug' | 'platform'>;
@@ -1440,6 +1458,14 @@ type ReleaseData = {
   newGroups: number;
   versionInfo: VersionInfo;
   fileCount: number | null;
+  currentProjectMeta: {
+    nextReleaseVersion: string | null;
+    prevReleaseVersion: string | null;
+    sessionsLowerBound: string | null;
+    sessionsUpperBound: string | null;
+    firstReleaseVersion: string | null;
+    lastReleaseVersion: string | null;
+  };
 };
 
 type BaseRelease = {
@@ -1582,6 +1608,8 @@ export type NewQuery = {
   // Graph
   yAxis?: string;
   display?: string;
+
+  teams?: Readonly<('myteams' | number)[]>;
 };
 
 export type SavedQuery = NewQuery & {
@@ -1961,7 +1989,7 @@ export type ExceptionValue = {
   rawStacktrace: RawStacktrace;
   mechanism: Mechanism | null;
   module: string | null;
-  frames?: Frame[];
+  frames: Frame[] | null;
 };
 
 export type ExceptionType = {
@@ -2086,7 +2114,7 @@ export type KeyValueListData = {
 export type ExternalActorMapping = {
   id: string;
   externalName: string;
-  memberId?: string;
+  userId?: string;
   teamId?: string;
   sentryName: string;
 };

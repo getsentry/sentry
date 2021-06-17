@@ -16,7 +16,12 @@ import {GlobalSelection, Organization, Project} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
-import {Column, isAggregateField, WebVital} from 'app/utils/discover/fields';
+import {
+  Column,
+  isAggregateField,
+  QueryFieldValue,
+  WebVital,
+} from 'app/utils/discover/fields';
 import {removeHistogramQueryStrings} from 'app/utils/performance/histogram';
 import {decodeScalar} from 'app/utils/queryString';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
@@ -143,15 +148,7 @@ class TransactionSummary extends Component<Props, State> {
       []
     );
 
-    return eventView.withColumns([
-      {
-        kind: 'function',
-        function: ['apdex', threshold, undefined],
-      },
-      {
-        kind: 'function',
-        function: ['count_miserable', 'user', threshold],
-      },
+    const totalsColumns: QueryFieldValue[] = [
       {
         kind: 'function',
         function: ['p95', '', undefined],
@@ -172,10 +169,43 @@ class TransactionSummary extends Component<Props, State> {
         kind: 'function',
         function: ['tpm', '', undefined],
       },
-      {
-        kind: 'function',
-        function: ['user_misery', threshold, undefined],
-      },
+    ];
+
+    const featureColumns: QueryFieldValue[] = organization.features.includes(
+      'project-transaction-threshold'
+    )
+      ? [
+          {
+            kind: 'function',
+            function: ['count_miserable', 'user', undefined],
+          },
+          {
+            kind: 'function',
+            function: ['user_misery', '', undefined],
+          },
+          {
+            kind: 'function',
+            function: ['apdex', '', undefined],
+          },
+        ]
+      : [
+          {
+            kind: 'function',
+            function: ['count_miserable', 'user', threshold],
+          },
+          {
+            kind: 'function',
+            function: ['user_misery', threshold, undefined],
+          },
+          {
+            kind: 'function',
+            function: ['apdex', threshold, undefined],
+          },
+        ];
+
+    return eventView.withColumns([
+      ...totalsColumns,
+      ...featureColumns,
       ...vitals.map(
         vital =>
           ({

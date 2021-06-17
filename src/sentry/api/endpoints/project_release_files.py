@@ -13,8 +13,9 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import CombinedQuerysetIntermediary, CombinedQuerysetPaginator
 from sentry.api.serializers import serialize
 from sentry.models import File, Release, ReleaseFile
-from sentry.models.releasefile import ReleaseArchive
-from sentry.tasks.assemble import RELEASE_ARCHIVE_FILENAME, get_artifact_basename
+from sentry.models.distribution import Distribution
+from sentry.models.releasefile import read_artifact_index
+from sentry.tasks.assemble import get_artifact_basename
 
 ERR_FILE_EXISTS = "A file matching this name already exists for the given release"
 _filename_re = re.compile(r"[\n\t\r\f\v\\]")
@@ -63,8 +64,7 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint):
         file_list = None
         if not type_ or type_ == FileStorageType.INDIVIDUAL:
             file_list = (
-                ReleaseFile.objects.filter(release=release)
-                .exclude(name=RELEASE_ARCHIVE_FILENAME)
+                ReleaseFile.public_objects.filter(release=release)
                 .select_related("file")
                 .order_by("name")
             )
@@ -81,24 +81,18 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint):
         if file_list is not None:
             data_sources.append(CombinedQuerysetIntermediary(file_list, order_by=["name"]))
 
-        archive = None
         if not type_ or type_ == FileStorageType.ARCHIVED:
             # Get contents of release archive as well:
-            try:
-                release_archive_file = ReleaseFile.objects.select_related("file").get(
-                    release=release, name=RELEASE_ARCHIVE_FILENAME
-                )
-                file_ = ReleaseFile.cache.getfile(release_archive_file)
-                archive = ReleaseArchive(file_.file)
-            except ReleaseFile.DoesNotExist:
-                archive = None
-
-        if archive is not None:
-            with archive:
-                archived_list = ReleaseArchiveQuerySet(
-                    archive, release_archive_file.file.timestamp, query
-                )
-                data_sources.append(CombinedQuerysetIntermediary(archived_list, order_by=["name"]))
+            # TODO: test multiple dists
+            dists = Distribution.objects.filter(
+                organization_id=project.organization_id, release=release
+            )
+            for dist in list(dists) + [None]:
+                artifact_index = read_artifact_index(release, dist)
+                if artifact_index is not None:
+                    archived_list = ArtifactIndexQuerySet(artifact_index)
+                    intermediary = CombinedQuerysetIntermediary(archived_list, order_by=["name"])
+                    data_sources.append(intermediary)
 
         def on_results(r):
             results = serialize(load_dist(r), request.user)
@@ -262,23 +256,21 @@ class ListQuerySet:
         return ListQuerySet(self._files[index])
 
 
-class ReleaseArchiveQuerySet(ListQuerySet):
+class ArtifactIndexQuerySet(ListQuerySet):
     """Pseudo queryset offering a subset of QuerySet operations,"""
 
-    def __init__(self, archive: ReleaseArchive, timestamp, query=None):
+    def __init__(self, artifact_index: dict, query=None):
         # Assume manifest
         release_files = [
             ReleaseFile(
-                name=get_artifact_basename(info["url"]),
+                name=get_artifact_basename(url),
                 file=File(
                     headers=info.get("headers", {}),
-                    size=archive.get_file_size(filename),
-                    # archived artifacts do not have their own
-                    # TODO(jjbayer): On archive merge, write dateAdded into manifest
-                    timestamp=timestamp,
-                    # TODO: sha1
+                    size=info["size"],
+                    timestamp=info["date_created"],
+                    checksum=info["sha1"],
                 ),
             )
-            for filename, info in archive.manifest.get("files", {}).items()
+            for url, info in artifact_index.get("files", {}).items()
         ]
         super().__init__(release_files, query)

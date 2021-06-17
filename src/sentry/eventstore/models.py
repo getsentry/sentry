@@ -2,6 +2,7 @@ import string
 from collections import OrderedDict
 from datetime import datetime
 from hashlib import md5
+from typing import Mapping, Optional
 
 import pytz
 import sentry_sdk
@@ -130,11 +131,9 @@ class Event:
         # Nodestore implementation
         try:
             rv = sorted(
-                [
-                    (t, v)
-                    for t, v in get_path(self.data, "tags", filter=True) or ()
-                    if t is not None and v is not None
-                ]
+                (t, v)
+                for t, v in get_path(self.data, "tags", filter=True) or ()
+                if t is not None and v is not None
             )
             return rv
         except ValueError:
@@ -142,7 +141,7 @@ class Event:
             # vs ((tag, foo), (tag, bar))
             return []
 
-    def get_tag(self, key):
+    def get_tag(self, key: str) -> Optional[str]:
         for t, v in self.tags:
             if t == key:
                 return v
@@ -231,7 +230,7 @@ class Event:
         return None
 
     @property
-    def title(self):
+    def title(self) -> str:
         column = self.__get_column_name(Columns.TITLE)
         if column in self._snuba_data:
             return self._snuba_data[column]
@@ -309,7 +308,7 @@ class Event:
     def get_interface(self, name):
         return self.interfaces.get(name)
 
-    def get_event_metadata(self):
+    def get_event_metadata(self) -> Mapping[str, str]:
         """
         Return the metadata of this event.
 
@@ -373,7 +372,7 @@ class Event:
         return flat_hashes, hierarchical_hashes
 
     def get_sorted_grouping_variants(self, force_config=None):
-        """ Get grouping variants sorted into flat and hierarchical variants """
+        """Get grouping variants sorted into flat and hierarchical variants"""
         from sentry.grouping.api import sort_grouping_variants
 
         variants = self.get_grouping_variants(force_config)
@@ -381,7 +380,7 @@ class Event:
 
     @staticmethod
     def _hashes_from_sorted_grouping_variants(variants):
-        """ Create hashes from variants and filter out duplicates and None values """
+        """Create hashes from variants and filter out duplicates and None values"""
         filtered_hashes = []
         seen_hashes = set()
         for variant in variants:

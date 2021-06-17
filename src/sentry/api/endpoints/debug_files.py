@@ -428,9 +428,8 @@ class SourceMapsEndpoint(ProjectEndpoint):
             }
 
         def serialize_results(results):
-            file_count_map = {
-                r["id"]: Release.objects.get(pk=r["id"]).count_artifacts() for r in results
-            }
+            file_counts = Release.with_artifact_counts(id__in=[r["id"] for r in results])
+            file_count_map = {r.id: r.count for r in file_counts}
             return serialize(
                 [expose_release(r, file_count_map.get(r["id"], 0)) for r in results], request.user
             )

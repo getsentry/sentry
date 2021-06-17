@@ -20,6 +20,7 @@ import {
   Field,
   FIELDS,
   getAggregateAlias,
+  isEquation,
   isMeasurement,
   isSpanOperationBreakdownField,
   measurementType,
@@ -55,12 +56,18 @@ const TEMPLATE_TABLE_COLUMN: TableColumn<React.ReactText> = {
 export function decodeColumnOrder(
   fields: Readonly<Field[]>
 ): TableColumn<React.ReactText>[] {
+  let equations = 0;
   return fields.map((f: Field) => {
     const column: TableColumn<React.ReactText> = {...TEMPLATE_TABLE_COLUMN};
 
     const col = explodeFieldString(f.field);
-    column.key = f.field;
-    column.name = f.field;
+    let columnName = f.field;
+    if (isEquation(f.field)) {
+      columnName = `equation[${equations}]`;
+      equations += 1;
+    }
+    column.key = columnName;
+    column.name = columnName;
     column.width = f.width || COL_WIDTH_UNDEFINED;
 
     if (col.kind === 'function') {
@@ -445,13 +452,13 @@ export function generateFieldOptions({
   functions.forEach(func => {
     const ellipsis = aggregations[func].parameters.length ? '\u2026' : '';
     const parameters = aggregations[func].parameters.map(param => {
-      const generator = aggregations[func].generateDefaultValue;
-      if (typeof generator === 'undefined') {
+      const overrides = AGGREGATIONS[func].getFieldOverrides;
+      if (typeof overrides === 'undefined') {
         return param;
       }
       return {
         ...param,
-        defaultValue: generator({parameter: param, organization}),
+        ...overrides({parameter: param, organization}),
       };
     });
 
@@ -521,15 +528,6 @@ export function generateFieldOptions({
   }
 
   return fieldOptions;
-}
-
-const BANNER_DISMISSED_KEY = 'discover-banner-dismissed';
-
-export function isBannerHidden(): boolean {
-  return localStorage.getItem(BANNER_DISMISSED_KEY) === 'true';
-}
-export function setBannerHidden(value: boolean) {
-  localStorage.setItem(BANNER_DISMISSED_KEY, value ? 'true' : 'false');
 }
 
 const RENDER_PREBUILT_KEY = 'discover-render-prebuilt';

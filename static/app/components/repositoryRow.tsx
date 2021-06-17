@@ -7,6 +7,7 @@ import {Client} from 'app/api';
 import Access from 'app/components/acl/access';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
+import ExternalLink from 'app/components/links/externalLink';
 import {PanelItem} from 'app/components/panels';
 import RepositoryEditForm from 'app/components/repositoryEditForm';
 import Tooltip from 'app/components/tooltip';
@@ -162,7 +163,9 @@ class RepositoryRow extends Component<Props> {
                 {showProvider && repository.url && <span>&nbsp;&mdash;&nbsp;</span>}
                 {repository.url && (
                   <small>
-                    <a href={repository.url}>{repository.url.replace('https://', '')}</a>
+                    <ExternalLink href={repository.url}>
+                      {repository.url.replace('https://', '')}
+                    </ExternalLink>
                   </small>
                 )}
               </div>

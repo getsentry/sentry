@@ -49,6 +49,7 @@ from sentry.notifications.helpers import (
 )
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.reprocessing2 import get_progress
+from sentry.search.events.constants import SEMVER_ALIAS
 from sentry.search.events.filter import convert_search_filter_to_snuba_query
 from sentry.tagstore.snuba.backend import fix_tag_value_data
 from sentry.tsdb.snuba import SnubaTSDB
@@ -756,6 +757,10 @@ class GroupSerializerSnuba(GroupSerializerBase):
         "times_seen",
         "date",  # We merge this with start/end, so don't want to include it as its own
         # condition
+        # We don't need to filter by the semver query again here since we're
+        # filtering to specific groups. Saves us making a second query to
+        # postgres for no reason
+        SEMVER_ALIAS,
     }
 
     def __init__(
@@ -783,7 +788,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
         self.start = None
         start_params = [_f for _f in [start, get_search_filter(search_filters, "date", ">")] if _f]
         if start_params:
-            self.start = max([_f for _f in start_params if _f])
+            self.start = max(_f for _f in start_params if _f)
 
         self.end = None
         end_params = [_f for _f in [end, get_search_filter(search_filters, "date", "<")] if _f]

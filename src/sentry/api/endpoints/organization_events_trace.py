@@ -29,6 +29,7 @@ from sentry.api.serializers.models.event import get_tags_with_meta
 from sentry.eventstore.models import Event
 from sentry.models import Organization
 from sentry.snuba import discover
+from sentry.utils.numbers import format_grouped_length
 from sentry.utils.snuba import Dataset, SnubaQueryParams, bulk_raw_query
 from sentry.utils.validators import INVALID_EVENT_DETAILS, is_event_id
 
@@ -210,17 +211,6 @@ def child_sort_key(item: TraceEvent) -> List[int]:
         return [0]
 
 
-def group_length(length: int) -> str:
-    if length == 1:
-        return "1"
-    elif length < 10:
-        return "<10"
-    elif length < 100:
-        return "<100"
-    else:
-        return ">100"
-
-
 def query_trace_data(
     trace_id: str, params: Mapping[str, str]
 ) -> Tuple[Sequence[SnubaTransaction], Sequence[SnubaError]]:
@@ -345,14 +335,16 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):  # 
 
             sentry_sdk.set_tag("trace_view.trace", trace_id)
             sentry_sdk.set_tag("trace_view.transactions", len_transactions)
-            sentry_sdk.set_tag("trace_view.transactions.grouped", group_length(len_transactions))
+            sentry_sdk.set_tag(
+                "trace_view.transactions.grouped", format_grouped_length(len_transactions)
+            )
             projects: Set[int] = set()
             for transaction in transactions:
                 projects.add(transaction["project.id"])
 
             len_projects = len(projects)
             sentry_sdk.set_tag("trace_view.projects", len_projects)
-            sentry_sdk.set_tag("trace_view.projects.grouped", group_length(len_projects))
+            sentry_sdk.set_tag("trace_view.projects.grouped", format_grouped_length(len_projects))
 
     def get(self, request: HttpRequest, organization: Organization, trace_id: str) -> HttpResponse:
         if not self.has_feature(organization, request):
@@ -457,7 +449,7 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
         event_id: Optional[str],
         detailed: bool = False,
     ) -> Sequence[LightResponse]:
-        """ Because the light endpoint could potentially have gaps between root and event we return a flattened list """
+        """Because the light endpoint could potentially have gaps between root and event we return a flattened list"""
         if event_id is None:
             raise ParseError(detail="An event_id is required for the light trace")
         snuba_event, nodestore_event = self.get_current_transaction(transactions, errors, event_id)

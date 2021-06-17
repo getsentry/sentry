@@ -13,9 +13,11 @@ type Props = Pick<Form['props'], 'onSubmitSuccess' | 'onCancel'> &
     organization: Organization;
     integration: Integration;
     mapping?: ExternalActorMapping;
-    sentryNames: {id: string; name: string}[];
     type: 'user' | 'team';
     baseEndpoint?: string;
+    sentryNamesMapper: (v: any) => {id: string; name: string}[];
+    url: string;
+    onResults?: (data: any) => void;
   };
 
 export default class IntegrationExternalMappingForm extends Component<Props> {
@@ -34,8 +36,10 @@ export default class IntegrationExternalMappingForm extends Component<Props> {
   }
 
   get formFields(): Field[] {
-    const {sentryNames, type} = this.props;
-    const options = sentryNames.map(({name, id}) => ({value: id, label: name}));
+    const {type, sentryNamesMapper, url, mapping} = this.props;
+    const optionMapper = sentryNames =>
+      sentryNames.map(({name, id}) => ({value: id, label: name}));
+
     const fields: any[] = [
       {
         name: 'externalName',
@@ -48,21 +52,44 @@ export default class IntegrationExternalMappingForm extends Component<Props> {
     if (type === 'user') {
       fields.push({
         name: 'userId',
-        type: 'select',
+        type: 'select_async',
         required: true,
         label: tct('Sentry [type]', {type: capitalize(type)}),
         placeholder: t(`Choose your Sentry User`),
-        options,
+        url,
+        onResults: result => {
+          // For organizations with >100 users, we want to make sure their
+          // saved mapping gets populated in the results if it wouldn't have
+          // been in the inital 100 API results, which is why we add it here
+          if (mapping && !result.find(({user}) => user.id === mapping.userId)) {
+            result = [{id: mapping.userId, name: mapping.sentryName}, ...result];
+          }
+          this.props.onResults?.(result);
+          return optionMapper(sentryNamesMapper(result));
+        },
       });
     }
     if (type === 'team') {
       fields.push({
         name: 'teamId',
-        type: 'select',
+        type: 'select_async',
         required: true,
         label: tct('Sentry [type]', {type: capitalize(type)}),
         placeholder: t(`Choose your Sentry Team`),
-        options,
+        url,
+        onResults: result => {
+          // For organizations with >100 teams, we want to make sure their
+          // saved mapping gets populated in the results if it wouldn't have
+          // been in the inital 100 API results, which is why we add it here
+          if (mapping && !result.find(({id}) => id === mapping.teamId)) {
+            result = [{id: mapping.teamId, name: mapping.sentryName}, ...result];
+          }
+          // The team needs `this.props.onResults` so that we have team slug
+          // when a user submits a team mapping, the endpoint needs the slug
+          // as a path param: /teams/${organization.slug}/${team.slug}/external-teams/
+          this.props.onResults?.(result);
+          return optionMapper(sentryNamesMapper(result));
+        },
       });
     }
     return fields;

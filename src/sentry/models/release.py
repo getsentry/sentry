@@ -5,7 +5,8 @@ from time import time
 
 import sentry_sdk
 from django.db import IntegrityError, models, transaction
-from django.db.models import F
+
+from django.db.models import Case, F, Func, Sum, When
 from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
@@ -23,7 +24,6 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.models import CommitFileChange, GroupInboxRemoveAction, remove_group_from_inbox
-from sentry.models.releasefile import RELEASE_ARCHIVE_FILENAME, ReleaseArchive, ReleaseFile
 from sentry.signals import issue_resolved
 from sentry.utils import metrics
 from sentry.utils.cache import cache
@@ -57,9 +57,16 @@ class ReleaseProject(Model):
     release = FlexibleForeignKey("sentry.Release")
     new_groups = BoundedPositiveIntegerField(null=True, default=0)
 
+    adopted = models.DateTimeField(null=True, blank=True)
+    unadopted = models.DateTimeField(null=True, blank=True)
+
     class Meta:
         app_label = "sentry"
         db_table = "sentry_release_project"
+        index_together = (
+            ("project", "adopted"),
+            ("project", "unadopted"),
+        )
         unique_together = (("project", "release"),)
 
 
@@ -93,6 +100,109 @@ class ReleaseStatus:
             return "archived"
         else:
             raise ValueError(repr(value))
+
+
+class ReleaseQuerySet(models.QuerySet):
+    def annotate_prerelease_column(self):
+        """
+        Adds a `prerelease_case` column to the queryset which is used to properly sort
+        by prerelease. We treat an empty (but not null) prerelease as higher than any
+        other value.
+        """
+        return self.annotate(
+            prerelease_case=Case(
+                When(prerelease="", then=1), default=0, output_field=models.IntegerField()
+            )
+        )
+
+    def filter_to_semver(self):
+        """
+        Filters the queryset to only include semver compatible rows
+        """
+        return self.filter(major__isnull=False)
+
+
+class ReleaseModelManager(models.Manager):
+    def get_queryset(self):
+        return ReleaseQuerySet(self.model, using=self._db)
+
+    def annotate_prerelease_column(self):
+        return self.get_queryset().annotate_prerelease_column()
+
+    def filter_to_semver(self):
+        return self.get_queryset().filter_to_semver()
+
+    @staticmethod
+    def _convert_build_code_to_build_number(build_code):
+        """
+        Helper function that takes the build_code and checks if that build code can be parsed into
+        a 64 bit integer
+        Inputs:
+            * build_code: str
+        Returns:
+            * build_number
+        """
+        build_number = None
+        if build_code is not None:
+            try:
+                build_code_as_int = int(build_code)
+                if ReleaseModelManager.validate_bigint(build_code_as_int):
+                    build_number = build_code_as_int
+            except ValueError:
+                pass
+        return build_number
+
+    @staticmethod
+    def validate_bigint(value):
+        return isinstance(value, int) and value >= 0 and value.bit_length() <= 63
+
+    @staticmethod
+    def _massage_semver_cols_into_release_object_data(kwargs):
+        """
+        Helper function that takes kwargs as an argument and massages into it the release semver
+        columns (if possible)
+        Inputs:
+            * kwargs: data of the release that is about to be created
+        """
+        if "version" in kwargs:
+            try:
+                version_info = parse_release(kwargs["version"])
+                package = version_info.get("package")
+                version_parsed = version_info.get("version_parsed")
+
+                if version_parsed is not None and all(
+                    ReleaseModelManager.validate_bigint(version_parsed[field])
+                    for field in ("major", "minor", "patch", "revision")
+                ):
+                    build_code = version_parsed.get("build_code")
+                    build_number = ReleaseModelManager._convert_build_code_to_build_number(
+                        build_code
+                    )
+
+                    kwargs.update(
+                        {
+                            "major": version_parsed.get("major"),
+                            "minor": version_parsed.get("minor"),
+                            "patch": version_parsed.get("patch"),
+                            "revision": version_parsed.get("revision"),
+                            "prerelease": version_parsed.get("pre") or "",
+                            "build_code": build_code,
+                            "build_number": build_number,
+                            "package": package,
+                        }
+                    )
+            except RelayError:
+                # This can happen on invalid legacy releases
+                pass
+
+    def create(self, *args, **kwargs):
+        """
+        Override create method to parse semver release if it follows semver format, and updates the
+        release object that is about to be created with semver columns i.e. major, minor, patch,
+        revision, prerelease, build_code, build_number and package
+        """
+        self._massage_semver_cols_into_release_object_data(kwargs)
+        return super().create(*args, **kwargs)
 
 
 class Release(Model):
@@ -144,7 +254,8 @@ class Release(Model):
 
     # Denormalized semver columns. These will be filled if `version` matches at least
     # part of our more permissive model of semver:
-    # `<major>.<minor>.<patch>.<revision>-<prerelease>+<build_code>
+    # `<package>@<major>.<minor>.<patch>.<revision>-<prerelease>+<build_code>
+    package = models.TextField(null=True)
     major = models.BigIntegerField(null=True)
     minor = models.BigIntegerField(null=True)
     patch = models.BigIntegerField(null=True)
@@ -162,6 +273,9 @@ class Release(Model):
     # by the org release listing.
     _for_project_id = None
 
+    # Custom Model Manager required to override create method
+    objects = ReleaseModelManager()
+
     class Meta:
         app_label = "sentry"
         db_table = "sentry_release"
@@ -169,8 +283,11 @@ class Release(Model):
         # TODO(django2.2): Note that we create this index with each column ordered
         # descending. Django 2.2 allows us to specify functional indexes, which should
         # allow us to specify this on the model.
+        # We also use a functional index to order `prerelease` according to semver rules,
+        # which we can't express here for now.
         index_together = (
-            ("organization", "major", "minor", "patch", "revision"),
+            ("organization", "package", "major", "minor", "patch", "revision", "prerelease"),
+            ("organization", "major", "minor", "patch", "revision", "prerelease"),
             ("organization", "build_code"),
             ("organization", "build_number"),
             ("organization", "date_added"),
@@ -178,6 +295,8 @@ class Release(Model):
         )
 
     __repr__ = sane_repr("organization_id", "version")
+
+    SEMVER_SORT_COLS = ["major", "minor", "patch", "revision", "prerelease_case", "prerelease"]
 
     def __eq__(self, other):
         """Make sure that specialized releases are only comparable to the same
@@ -744,51 +863,23 @@ class Release(Model):
             releasefile.delete()
         self.delete()
 
-    def get_archive_release_file(self):
-        """Get ReleaseFile instance containing the release archive"""
-        try:
-            return ReleaseFile.objects.select_related("file").get(
-                release=self, name=RELEASE_ARCHIVE_FILENAME
-            )
-        except ReleaseFile.DoesNotExist:
-            return None
-
-    def get_release_archive(self):
-        """Get the release archive corresponding to this release if it exists.
-        The caller is responsible for closing the archive.
-        """
-        release_file = self.get_archive_release_file()
-        if release_file is not None:
-            file_ = ReleaseFile.cache.getfile(release_file)
-            return ReleaseArchive(file_.file)
-
-        return None
-
-    def count_release_files(self):
+    @classmethod
+    def with_artifact_counts(cls, *args, **kwargs):
+        # Have to exclude Releases without release files because COALESCE would
+        # give them an artifact count of 1
         return (
-            ReleaseFile.objects.filter(release=self).exclude(name=RELEASE_ARCHIVE_FILENAME).count()
+            cls.objects.filter(*args, **kwargs)
+            .exclude(releasefile__isnull=True)
+            .annotate(count=Sum(Func(F("releasefile__artifact_count"), 1, function="COALESCE")))
         )
 
-    def count_archived_artifacts(self):
-        archive = self.get_release_archive()
-        if archive is None:
-            return 0
-        else:
-            with archive:
-                return len(archive.manifest.get("files", {}))
-
     def count_artifacts(self):
-        """Count release files plus files bundled in release archive.
-        TODO(jjbayer): This is an expensive operation, might be better to persist
-        the artifact count in the same way as `commit_count`.
+        """Sum the artifact_counts of all release files.
 
-
-        NOTE: This will result in artifacts being counted 2x as long as we
-              store *both* archives and individual files.
-
+        An artifact count of NULL is interpreted as 1.
         """
-
-        release_files = self.count_release_files()
-        archived = self.count_archived_artifacts()
-
-        return release_files + archived
+        qs = Release.with_artifact_counts(pk=self.pk)
+        try:
+            return qs[0].count
+        except IndexError:
+            return 0

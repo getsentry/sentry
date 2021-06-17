@@ -21,8 +21,22 @@ type ChartData = Record<string, Series>;
 
 const SESSIONS_CHART_PALETTE = CHART_PALETTE[3];
 
-export function getInterval(datetimeObj: DateTimeObject) {
+type GetIntervalOptions = {
+  highFidelity?: boolean;
+};
+
+export function getInterval(
+  datetimeObj: DateTimeObject,
+  {highFidelity}: GetIntervalOptions = {}
+) {
   const diffInMinutes = getDiffInMinutes(datetimeObj);
+
+  if (
+    highFidelity &&
+    diffInMinutes < 360 // limit on backend is set to six hour
+  ) {
+    return '5m';
+  }
 
   if (diffInMinutes > TWO_WEEKS) {
     return '6h';

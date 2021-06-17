@@ -7,7 +7,7 @@ from django.core.exceptions import ValidationError
 from django.http import Http404
 
 from sentry.constants import ObjectStatus
-from sentry.models import IdentityProvider, Integration, Organization
+from sentry.models import Identity, IdentityProvider, IdentityStatus, Integration, Organization
 from sentry.shared_integrations.exceptions import (
     ApiError,
     DuplicateDisplayNameError,
@@ -18,19 +18,6 @@ from sentry.utils import json
 from .client import SlackClient
 
 logger = logging.getLogger("sentry.integrations.slack")
-
-# Attachment colors used for issues with no actions take
-LEVEL_TO_COLOR = {
-    "debug": "#fbe14f",
-    "info": "#2788ce",
-    "warning": "#FFC227",
-    "error": "#E03E2F",
-    "fatal": "#FA4747",
-}
-
-ACTIONED_ISSUE_COLOR = "#EDEEEF"
-INCIDENT_RESOLVED_COLOR = "#4dc771"
-
 
 MEMBER_PREFIX = "@"
 CHANNEL_PREFIX = "#"
@@ -245,9 +232,7 @@ def get_identity(user, organization_id, integration_id):
 
 
 def parse_link(url):
-    """
-    For data aggreggation purposes, rm unique information from URL
-    """
+    """For data aggregation purposes, remove unique information from URL."""
 
     url_parts = list(urlparse(url))
     query = dict(parse_qs(url_parts[4]))
@@ -269,3 +254,47 @@ def parse_link(url):
     parsed_path += "/" + str(url_parts[4])
 
     return parsed_path
+
+
+def get_slack_data_by_user(integration, organization, emails_by_user):
+    access_token = (
+        integration.metadata.get("user_access_token") or integration.metadata["access_token"]
+    )
+    headers = {"Authorization": "Bearer %s" % access_token}
+    client = SlackClient()
+
+    slack_data_by_user = {}
+    for user, emails in emails_by_user.items():
+        for email in emails:
+            try:
+                # TODO use users.list instead to reduce API calls
+                resp = client.get("/users.lookupByEmail/", headers=headers, params={"email": email})
+            except ApiError as e:
+                logger.info(
+                    "post_install.fail.slack_lookupByEmail",
+                    extra={
+                        "error": str(e),
+                        "organization": organization.slug,
+                        "integration_id": integration.id,
+                        "email": email,
+                    },
+                )
+                continue
+
+            if resp["ok"] is True:
+                slack_data_by_user[user] = {
+                    "email": resp["user"]["profile"]["email"],
+                    "team_id": resp["user"]["team_id"],
+                    "slack_id": resp["user"]["id"],
+                }
+                break
+    return slack_data_by_user
+
+
+def get_identities_by_user(idp, users):
+    identity_models = Identity.objects.filter(
+        idp=idp,
+        user__in=users,
+        status=IdentityStatus.VALID,
+    )
+    return {identity.user: identity for identity in identity_models}

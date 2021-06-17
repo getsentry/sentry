@@ -935,15 +935,10 @@ SENTRY_FEATURES = {
     "organizations:enterprise-perf": False,
     # Enable the API to importing CODEOWNERS for a project
     "organizations:integrations-codeowners": False,
-    # Special feature flag primarily used on the sentry.io SAAS product for
-    # easily enabling features while in early development.
-    "organizations:internal-catchall": False,
     # Enable inviting members to organizations.
     "organizations:invite-members": True,
     # Enable rate limits for inviting members.
     "organizations:invite-members-rate-limits": True,
-    # Enable org-wide saved searches and user pinned search
-    "organizations:org-saved-searches": False,
     # Prefix host with organization ID when giving users DSNs (can be
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
@@ -955,6 +950,8 @@ SENTRY_FEATURES = {
     "organizations:performance-tag-explorer": False,
     # Enable landing improvements for performance
     "organizations:performance-landing-widgets": False,
+    # Enable views for transaction events page in performance
+    "organizations:performance-events-page": False,
     # Enable the new Related Events feature
     "organizations:related-events": False,
     # Enable usage of external relays, for use with Relay. See
@@ -967,6 +964,8 @@ SENTRY_FEATURES = {
     "organizations:notification-platform": False,
     # Enable version 2 of reprocessing (completely distinct from v1)
     "organizations:reprocessing-v2": False,
+    # Enable sorting+filtering by semantic version of a release
+    "organizations:semver": False,
     # Enable basic SSO functionality, providing configurable single sign on
     # using services like GitHub / Google. This is *not* the same as the signup
     # and login with Github / Azure DevOps that sentry.io provides.
@@ -988,6 +987,8 @@ SENTRY_FEATURES = {
     "organizations:unhandled-issue-flag": True,
     # Enable inbox support in the issue stream
     "organizations:inbox": True,
+    # Enable percent-based conditions on issue rules
+    "organizations:issue-percent-filters": False,
     # Enable the new alert details ux design
     "organizations:alert-details-redesign": True,
     # Enable the new alert history filters
@@ -996,12 +997,14 @@ SENTRY_FEATURES = {
     "organizations:images-loaded-v2": True,
     # Enable teams to have ownership of alert rules
     "organizations:team-alerts-ownership": False,
-    # Enable the new alert creation wizard
-    "organizations:alert-wizard": True,
     # Enable the adoption chart in the releases page
     "organizations:release-adoption-chart": False,
+    # Enable the release adoption stage labels and sorting+filtering by them
+    "organizations:release-adoption-stage": False,
     # Store release bundles as zip files instead of single files
     "organizations:release-archives": False,
+    # Enable the new release details experience
+    "organizations:release-comparison": False,
     # Enable the project level transaction thresholds
     "organizations:project-transaction-threshold": False,
     # Enable percent displays in issue stream
@@ -1178,7 +1181,7 @@ SENTRY_ALLOW_PUBLIC_PROJECTS = True
 # Will an invite be sent when a member is added to an organization?
 SENTRY_ENABLE_INVITES = True
 
-# Default to not sending the Access-Control-Allow-Origin header on api/store
+# Origins allowed for session-based API access (via the Access-Control-Allow-Origin header)
 SENTRY_ALLOW_ORIGIN = None
 
 # Enable scraping of javascript context for source code
@@ -1999,6 +2002,8 @@ SENTRY_BUILTIN_SOURCES = {
 # Relay
 # List of PKs explicitly allowed by Sentry.  All relays here are always
 # registered as internal relays.
+# DEPRECATED !!! (18.May.2021) This entry has been deprecated in favour of
+# ~/.sentry/conf.yml (relay.static_auth)
 SENTRY_RELAY_WHITELIST_PK = [
     # NOTE (RaduW) This is the relay key for the relay instance used by devservices.
     # This should NOT be part of any production environment.
@@ -2231,3 +2236,6 @@ DEMO_DATA_QUICK_GEN_PARAMS = {}
 
 # adds an extra JS to HTML template
 INJECTED_SCRIPT_ASSETS = []
+
+# adds mobile projects
+DEMO_MOBILE_PROJECTS = False

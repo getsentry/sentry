@@ -4,6 +4,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.utils.snuba import DATASETS
 
 KEY_TRANSACTION_ALIAS = "key_transaction"
+PROJECT_THRESHOLD_CONFIG_ALIAS = "project_threshold_config"
 TEAM_KEY_TRANSACTION_ALIAS = "team_key_transaction"
 ERROR_UNHANDLED_ALIAS = "error.unhandled"
 USER_DISPLAY_ALIAS = "user.display"
@@ -12,6 +13,7 @@ PROJECT_NAME_ALIAS = "project.name"
 ISSUE_ALIAS = "issue"
 ISSUE_ID_ALIAS = "issue.id"
 RELEASE_ALIAS = "release"
+SEMVER_ALIAS = "sentry.semver"
 
 TAG_KEY_RE = re.compile(r"^tags\[(?P<tag>.*)\]$")
 # Based on general/src/protocol/tags.rs in relay
@@ -53,6 +55,35 @@ SEARCH_MAP = {
     "first_seen": "first_seen",
     "last_seen": "last_seen",
     "times_seen": "times_seen",
+    SEMVER_ALIAS: SEMVER_ALIAS,
 }
 SEARCH_MAP.update(**DATASETS[Dataset.Events])
 SEARCH_MAP.update(**DATASETS[Dataset.Discover])
+
+DEFAULT_PROJECT_THRESHOLD_METRIC = "duration"
+DEFAULT_PROJECT_THRESHOLD = 300
+
+# Allow list of fields that are compatible with the Snql Query Builder.
+# Once we reach a certain threshold of fields handled should turn this into a denylist
+# use public facing field/function names for this list
+SNQL_FIELD_ALLOWLIST = {
+    "environment",
+    "message",
+    "project",
+    "project.id",
+    "release",
+    "user.email",
+}
+
+OPERATOR_NEGATION_MAP = {
+    "=": "!=",
+    "<": ">=",
+    "<=": ">",
+    ">": "<=",
+    ">=": "<",
+    "IN": "NOT IN",
+}
+OPERATOR_TO_DJANGO = {">=": "gte", "<=": "lte", ">": "gt", "<": "lt"}
+
+SEMVER_MAX_SEARCH_RELEASES = 1000
+SEMVER_FAKE_PACKAGE = "__sentry_fake__"

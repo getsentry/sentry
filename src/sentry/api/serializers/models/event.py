@@ -38,7 +38,7 @@ def get_tags_with_meta(event):
         raw_tags = event.tags
 
     tags = sorted(
-        [
+        (
             {
                 "key": kv[0] and kv[0].split("sentry:", 1)[-1],
                 "value": kv[1],
@@ -52,7 +52,7 @@ def get_tags_with_meta(event):
             }
             for i, kv in enumerate(raw_tags)
             if kv is not None
-        ],
+        ),
         key=lambda x: x["key"] if x["key"] is not None else "",
     )
 

@@ -277,8 +277,8 @@ class ResolveFieldListTest(unittest.TestCase):
             ["max", "timestamp", "last_seen"],
             ["apdex(duration, 300)", None, "apdex_300"],
             [
-                "uniqIf",
-                ["user", ["greater", ["transaction.duration", 1200.0]]],
+                "uniqIf(user, greater(duration, 1200))",
+                None,
                 "count_miserable_user_300",
             ],
             [
@@ -335,8 +335,8 @@ class ResolveFieldListTest(unittest.TestCase):
             "issue.id",
             ["coalesce", ["user.email", "user.username", "user.ip"], "user.display"],
             "message",
-            "timestamp.to_hour",
-            "timestamp.to_day",
+            ["toStartOfHour", ["timestamp"], "timestamp.to_hour"],
+            ["toStartOfDay", ["timestamp"], "timestamp.to_day"],
             "project.id",
         ]
 
@@ -545,7 +545,7 @@ class ResolveFieldListTest(unittest.TestCase):
         assert "stddev(): expected 1 argument(s)" in str(err)
 
     def test_tpm_function_alias(self):
-        """ TPM should be functionally identical to EPM except in name """
+        """TPM should be functionally identical to EPM except in name"""
         fields = ["tpm()"]
         result = resolve_field_list(
             fields, eventstore.Filter(start=before_now(hours=2), end=before_now(hours=1))
@@ -1133,7 +1133,7 @@ class ResolveFieldListTest(unittest.TestCase):
         assert result["groupby"] == []
 
     def test_orderby_field_aggregate(self):
-        """ When there's only aggregates don't sort """
+        """When there's only aggregates don't sort"""
         fields = ["count(id)", "count_unique(user)"]
         result = resolve_field_list(fields, eventstore.Filter(orderby="-count(id)"))
         assert result["orderby"] is None

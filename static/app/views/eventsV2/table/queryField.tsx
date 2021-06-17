@@ -32,6 +32,7 @@ type ParameterDescription =
       value: string;
       dataType: ColumnType;
       required: boolean;
+      placeholder?: string;
     }
   | {
       kind: 'column';
@@ -158,6 +159,14 @@ class QueryField extends React.Component<Props> {
     }
 
     this.triggerChange(fieldValue);
+  };
+
+  handleEquationChange = (value: string) => {
+    const newColumn = cloneDeep(this.props.fieldValue);
+    if (newColumn.kind === FieldValueKind.EQUATION) {
+      newColumn.field = value;
+    }
+    this.triggerChange(newColumn);
   };
 
   handleFieldParameterChange = ({value}) => {
@@ -289,6 +298,7 @@ class QueryField extends React.Component<Props> {
               '',
             dataType: param.dataType,
             required: param.required,
+            placeholder: param.placeholder,
           };
         }
       );
@@ -351,6 +361,7 @@ class QueryField extends React.Component<Props> {
           required: descriptor.required,
           value: descriptor.value,
           onUpdate: handler,
+          placeholder: descriptor.placeholder,
           disabled,
         };
         switch (descriptor.dataType) {
@@ -441,6 +452,7 @@ class QueryField extends React.Component<Props> {
       className,
       takeFocus,
       filterPrimaryOptions,
+      fieldValue,
       inFieldLabels,
       disabled,
       hidePrimarySelector,
@@ -487,6 +499,21 @@ class QueryField extends React.Component<Props> {
     };
 
     const parameters = this.renderParameterInputs(parameterDescriptions);
+
+    if (fieldValue.kind === FieldValueKind.EQUATION) {
+      return (
+        <Container className={className} gridColumns={1}>
+          <BufferedInput
+            name="refinement"
+            key="parameter:text"
+            type="text"
+            required
+            value={fieldValue.field}
+            onUpdate={this.handleEquationChange}
+          />
+        </Container>
+      );
+    }
 
     return (
       <Container

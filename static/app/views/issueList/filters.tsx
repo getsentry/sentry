@@ -154,6 +154,7 @@ const SearchContainer = styled('div')<{isInbox?: boolean}>`
   display: flex;
   width: ${p => (p.isInbox ? '100%' : '70%')};
   flex-direction: ${p => (p.isInbox ? 'row-reverse' : 'row')};
+  align-items: flex-start;
 `;
 
 const SearchSelectorContainer = styled('div')<{isInbox?: boolean}>`

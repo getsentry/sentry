@@ -159,3 +159,23 @@ class DemoOrgManagerTest(TestCase):
         assert org.status == OrganizationStatus.PENDING_DELETION
 
         mock_delete_organization.assert_called_once_with(kwargs={"object_id": org.id})
+
+    @override_settings(DEMO_MOBILE_PROJECTS=True)
+    @mock.patch("sentry.demo.demo_org_manager.handle_react_python_scenario")
+    @mock.patch("sentry.demo.demo_org_manager.generate_random_name", return_value=org_name)
+    def test_create_mobile_demo_org(self, mock_generate_name, mock_handle_scenario):
+        owner = User.objects.create(email=org_owner_email)
+
+        create_demo_org()
+
+        demo_org = DemoOrganization.objects.get(
+            organization__name=org_name, status=DemoOrgStatus.PENDING
+        )
+        org = demo_org.organization
+
+        assert OrganizationMember.objects.filter(
+            user=owner, organization=org, role="owner"
+        ).exists()
+
+        assert len(Project.objects.filter(organization=org)) == 5
+        mock_handle_scenario.assert_called_once_with(mock.ANY, mock.ANY, quick=False)

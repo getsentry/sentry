@@ -5,7 +5,9 @@ from django.urls import reverse
 from pytz import utc
 
 from sentry.discover.models import KeyTransaction, TeamKeyTransaction
-from sentry.models import ApiKey
+from sentry.models import ApiKey, ProjectTeam, ProjectTransactionThreshold
+from sentry.models.transaction_threshold import TransactionMetric
+from sentry.search.events.constants import SEMVER_ALIAS
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -750,6 +752,66 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["issue.id"] == event2.group_id
         assert data[0]["release"] == "0.9"
 
+    def test_semver(self):
+        release_1 = self.create_release(version="test@1.2.3")
+        release_2 = self.create_release(version="test@1.2.4")
+        release_3 = self.create_release(version="test@1.2.5")
+
+        release_1_e_1 = self.store_event(
+            data={"release": release_1.version, "timestamp": self.min_ago},
+            project_id=self.project.id,
+        ).event_id
+        release_1_e_2 = self.store_event(
+            data={"release": release_1.version, "timestamp": self.min_ago},
+            project_id=self.project.id,
+        ).event_id
+        release_2_e_1 = self.store_event(
+            data={"release": release_2.version, "timestamp": self.min_ago},
+            project_id=self.project.id,
+        ).event_id
+        release_2_e_2 = self.store_event(
+            data={"release": release_2.version, "timestamp": self.min_ago},
+            project_id=self.project.id,
+        ).event_id
+        release_3_e_1 = self.store_event(
+            data={"release": release_3.version, "timestamp": self.min_ago},
+            project_id=self.project.id,
+        ).event_id
+        release_3_e_2 = self.store_event(
+            data={"release": release_3.version, "timestamp": self.min_ago},
+            project_id=self.project.id,
+        ).event_id
+
+        query = {"field": ["id"], "query": f"{SEMVER_ALIAS}:>1.2.3"}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert {r["id"] for r in response.data["data"]} == {
+            release_2_e_1,
+            release_2_e_2,
+            release_3_e_1,
+            release_3_e_2,
+        }
+
+        query = {"field": ["id"], "query": f"{SEMVER_ALIAS}:>=1.2.3"}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert {r["id"] for r in response.data["data"]} == {
+            release_1_e_1,
+            release_1_e_2,
+            release_2_e_1,
+            release_2_e_2,
+            release_3_e_1,
+            release_3_e_2,
+        }
+
+        query = {"field": ["id"], "query": f"{SEMVER_ALIAS}:<1.2.4"}
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert {r["id"] for r in response.data["data"]} == {
+            release_1_e_1,
+            release_1_e_2,
+        }
+
     def test_aliased_fields(self):
         project = self.create_project()
         event1 = self.store_event(
@@ -897,6 +959,79 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         data = response.data["data"]
         assert data[0]["count_miserable_user_300"] == 2
 
+    def test_count_miserable_new_alias_field(self):
+        project = self.create_project()
+
+        ProjectTransactionThreshold.objects.create(
+            project=project,
+            organization=project.organization,
+            threshold=400,
+            metric=TransactionMetric.DURATION.value,
+        )
+
+        events = [
+            ("one", 400),
+            ("one", 400),
+            ("two", 3000),
+            ("two", 3000),
+            ("three", 300),
+            ("three", 3000),
+        ]
+        for idx, event in enumerate(events):
+            data = load_data(
+                "transaction",
+                timestamp=before_now(minutes=(1 + idx)),
+                start_timestamp=before_now(minutes=(1 + idx), milliseconds=event[1]),
+            )
+            data["event_id"] = f"{idx}" * 32
+            data["transaction"] = f"/count_miserable/horribilis/{event[0]}"
+            data["user"] = {"email": f"{idx}@example.com"}
+            self.store_event(data, project_id=project.id)
+
+        query = {
+            "field": [
+                "transaction",
+                "count_miserable(user)",
+            ],
+            "query": "event.type:transaction",
+            project: [project.id],
+        }
+
+        # Cannot access it without feature enabled
+        response = self.do_request(query)
+        assert response.status_code == 404
+
+        response = self.do_request(
+            query,
+            features={
+                "organizations:discover-basic": True,
+                "organizations:project-transaction-threshold": True,
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 3
+        data = response.data["data"]
+        assert data[0]["count_miserable_user"] == 0
+        assert data[1]["count_miserable_user"] == 2
+        assert data[2]["count_miserable_user"] == 1
+
+        query["query"] = "event.type:transaction count_miserable(user):>0"
+
+        response = self.do_request(
+            query,
+            features={
+                "organizations:discover-basic": True,
+                "organizations:project-transaction-threshold": True,
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 2
+        data = response.data["data"]
+        assert abs(data[0]["count_miserable_user"]) == 2
+        assert abs(data[1]["count_miserable_user"]) == 1
+
     def test_user_misery_alias_field(self):
         project = self.create_project()
 
@@ -925,6 +1060,151 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert len(response.data["data"]) == 1
         data = response.data["data"]
         assert abs(data[0]["user_misery_300"] - 0.0653) < 0.0001
+
+    def test_apdex_new_alias_field(self):
+        project = self.create_project()
+
+        ProjectTransactionThreshold.objects.create(
+            project=project,
+            organization=project.organization,
+            threshold=400,
+            metric=TransactionMetric.DURATION.value,
+        )
+
+        events = [
+            ("one", 400),
+            ("one", 400),
+            ("two", 3000),
+            ("two", 3000),
+            ("three", 300),
+            ("three", 3000),
+        ]
+        for idx, event in enumerate(events):
+            data = load_data(
+                "transaction",
+                timestamp=before_now(minutes=(1 + idx)),
+                start_timestamp=before_now(minutes=(1 + idx), milliseconds=event[1]),
+            )
+            data["event_id"] = f"{idx}" * 32
+            data["transaction"] = f"/apdex/new/{event[0]}"
+            data["user"] = {"email": f"{idx}@example.com"}
+            self.store_event(data, project_id=project.id)
+
+        query = {
+            "field": [
+                "transaction",
+                "apdex()",
+            ],
+            "query": "event.type:transaction",
+            project: [project.id],
+        }
+
+        # Cannot access it without feature enabled
+        response = self.do_request(query)
+        assert response.status_code == 404
+
+        response = self.do_request(
+            query,
+            features={
+                "organizations:discover-basic": True,
+                "organizations:project-transaction-threshold": True,
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 3
+        data = response.data["data"]
+        assert data[0]["apdex"] == 1.0
+        assert data[1]["apdex"] == 0.5
+        assert data[2]["apdex"] == 0.0
+
+        query["query"] = "event.type:transaction apdex():>0.50"
+
+        response = self.do_request(
+            query,
+            features={
+                "organizations:discover-basic": True,
+                "organizations:project-transaction-threshold": True,
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        assert data[0]["apdex"] == 1.0
+
+    def test_user_misery_new_alias_field(self):
+        project = self.create_project()
+
+        ProjectTransactionThreshold.objects.create(
+            project=project,
+            organization=project.organization,
+            threshold=400,
+            metric=TransactionMetric.DURATION.value,
+        )
+
+        events = [
+            ("one", 400),
+            ("one", 400),
+            ("two", 3000),
+            ("two", 3000),
+            ("three", 300),
+            ("three", 3000),
+        ]
+        for idx, event in enumerate(events):
+            data = load_data(
+                "transaction",
+                timestamp=before_now(minutes=(1 + idx)),
+                start_timestamp=before_now(minutes=(1 + idx), milliseconds=event[1]),
+            )
+            data["event_id"] = f"{idx}" * 32
+            data["transaction"] = f"/count_miserable/horribilis/{event[0]}"
+            data["user"] = {"email": f"{idx}@example.com"}
+            self.store_event(data, project_id=project.id)
+
+        query = {
+            "field": [
+                "transaction",
+                "user_misery()",
+            ],
+            "query": "event.type:transaction",
+            project: [project.id],
+        }
+
+        # Cannot access it without feature enabled
+        response = self.do_request(query)
+        assert response.status_code == 404
+
+        response = self.do_request(
+            query,
+            features={
+                "organizations:discover-basic": True,
+                "organizations:project-transaction-threshold": True,
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 3
+        data = response.data["data"]
+        assert abs(data[0]["user_misery"] - 0.04916) < 0.0001
+        assert abs(data[1]["user_misery"] - 0.06586) < 0.0001
+        assert abs(data[2]["user_misery"] - 0.05751) < 0.0001
+
+        query["query"] = "event.type:transaction user_misery():>0.050"
+
+        response = self.do_request(
+            query,
+            features={
+                "organizations:discover-basic": True,
+                "organizations:project-transaction-threshold": True,
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 2
+        data = response.data["data"]
+        assert abs(data[0]["user_misery"] - 0.06586) < 0.0001
+        assert abs(data[1]["user_misery"] - 0.05751) < 0.0001
 
     def test_aggregation(self):
         project = self.create_project()
@@ -1822,6 +2102,70 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         # because we're ordering by `user.display`, we expect the results in sorted order
         assert result == ["catherine", "cathy@example.com"]
 
+    def test_any_field_alias(self):
+        day_ago = before_now(days=1).replace(hour=10, minute=11, second=12, microsecond=13)
+        project1 = self.create_project()
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "transaction": "/example",
+                "message": "how to make fast",
+                "timestamp": iso_format(day_ago),
+                "user": {"email": "cathy@example.com"},
+            },
+            project_id=project1.id,
+        )
+
+        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        query = {
+            "field": [
+                "event.type",
+                "any(user.display)",
+                "any(timestamp.to_day)",
+                "any(timestamp.to_hour)",
+            ],
+            "statsPeriod": "7d",
+        }
+        response = self.do_request(query, features=features)
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        result = {r["any_user_display"] for r in data}
+        assert result == {"cathy@example.com"}
+        result = {r["any_timestamp_to_day"][:19] for r in data}
+        assert result == {iso_format(day_ago.replace(hour=0, minute=0, second=0, microsecond=0))}
+        result = {r["any_timestamp_to_hour"][:19] for r in data}
+        assert result == {iso_format(day_ago.replace(minute=0, second=0, microsecond=0))}
+
+    def test_field_aliases_in_conflicting_functions(self):
+        day_ago = before_now(days=1).replace(hour=10, minute=11, second=12, microsecond=13)
+        project1 = self.create_project()
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "transaction": "/example",
+                "message": "how to make fast",
+                "timestamp": iso_format(day_ago),
+                "user": {"email": "cathy@example.com"},
+            },
+            project_id=project1.id,
+        )
+
+        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+
+        field_aliases = ["user.display", "timestamp.to_day", "timestamp.to_hour"]
+        for alias in field_aliases:
+            query = {
+                "field": [alias, f"any({alias})"],
+                "statsPeriod": "7d",
+            }
+            response = self.do_request(query, features=features)
+            assert response.status_code == 400, response.content
+            assert (
+                response.data["detail"]
+                == f"A single field cannot be used both inside and outside a function in the same query. To use {alias} you must first remove the function(s): any({alias})"
+            )
+
     @pytest.mark.skip(
         """
          For some reason ClickHouse errors when there are two of the same string literals
@@ -2006,6 +2350,67 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["user_misery_300"] == 0.058
         assert data[0]["failure_rate"] == 0.5
 
+        features = {
+            "organizations:discover-basic": True,
+            "organizations:global-views": True,
+            "organizations:project-transaction-threshold": True,
+        }
+
+        query = {
+            "field": [
+                "event.type",
+                "p50()",
+                "p75()",
+                "p95()",
+                "p99()",
+                "p100()",
+                "percentile(transaction.duration, 0.99)",
+                "apdex(300)",
+                "apdex()",
+                "count_miserable(user, 300)",
+                "user_misery(300)",
+                "failure_rate()",
+                "count_miserable(user)",
+                "user_misery()",
+            ],
+            "query": "event.type:transaction",
+            "project": [project.id],
+        }
+        response = self.do_request(query, features=features)
+        assert response.status_code == 200, response.content
+        meta = response.data["meta"]
+        assert meta["p50"] == "duration"
+        assert meta["p75"] == "duration"
+        assert meta["p95"] == "duration"
+        assert meta["p99"] == "duration"
+        assert meta["p100"] == "duration"
+        assert meta["percentile_transaction_duration_0_99"] == "duration"
+        assert meta["apdex_300"] == "number"
+        assert meta["apdex"] == "number"
+        assert meta["failure_rate"] == "percentage"
+        assert meta["user_misery_300"] == "number"
+        assert meta["count_miserable_user_300"] == "number"
+        assert meta["project_threshold_config"] == "string"
+        assert meta["user_misery"] == "number"
+        assert meta["count_miserable_user"] == "number"
+
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["p50"] == 5000
+        assert data[0]["p75"] == 5000
+        assert data[0]["p95"] == 5000
+        assert data[0]["p99"] == 5000
+        assert data[0]["p100"] == 5000
+        assert data[0]["percentile_transaction_duration_0_99"] == 5000
+        assert data[0]["apdex_300"] == 0.0
+        assert data[0]["apdex"] == 0.0
+        assert data[0]["count_miserable_user_300"] == 1
+        assert data[0]["user_misery_300"] == 0.058
+        assert data[0]["failure_rate"] == 0.5
+        assert data[0]["project_threshold_config"] == ["duration", 300]
+        assert data[0]["user_misery"] == 0.058
+        assert data[0]["count_miserable_user"] == 1
+
         query = {
             "field": ["event.type", "last_seen()", "latest_event()"],
             "query": "event.type:transaction",
@@ -2069,6 +2474,33 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert meta["user_misery_300"] == "number"
         data = response.data["data"]
         assert data[0]["user_misery_300"] == 0
+
+    def test_null_user_misery_new_returns_zero(self):
+        project = self.create_project()
+        data = load_data(
+            "transaction",
+            timestamp=before_now(minutes=2),
+            start_timestamp=before_now(minutes=2, seconds=5),
+        )
+        data["user"] = None
+        data["transaction"] = "/no_users/1"
+        self.store_event(data, project_id=project.id)
+        features = {
+            "organizations:discover-basic": True,
+            "organizations:project-transaction-threshold": True,
+        }
+
+        query = {
+            "field": ["user_misery()"],
+            "query": "event.type:transaction",
+        }
+
+        response = self.do_request(query, features=features)
+        assert response.status_code == 200, response.content
+        meta = response.data["meta"]
+        assert meta["user_misery"] == "number"
+        data = response.data["data"]
+        assert data[0]["user_misery"] == 0
 
     def test_all_aggregates_in_query(self):
         project = self.create_project()
@@ -3277,6 +3709,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         self.project.add_team(team1)
 
         team2 = self.create_team(organization=self.organization, name="Team B")
+        self.project.add_team(team2)
 
         transactions = ["/blah_transaction/"]
         key_transactions = [
@@ -3292,14 +3725,39 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             self.transaction_data["transaction"] = transaction
             self.store_event(self.transaction_data, self.project.id)
             TeamKeyTransaction.objects.create(
-                team=team,
                 organization=self.organization,
                 transaction=transaction,
-                project=self.project,
+                project_team=ProjectTeam.objects.get(project=self.project, team=team),
             )
 
         query = {
             "team": "myteams",
+            "project": [self.project.id],
+            "field": [
+                "team_key_transaction",
+                "transaction",
+                "transaction.status",
+                "project",
+                "epm()",
+                "failure_rate()",
+                "percentile(transaction.duration, 0.95)",
+            ],
+        }
+
+        query["orderby"] = ["team_key_transaction", "transaction"]
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 3
+        assert data[0]["team_key_transaction"] == 0
+        assert data[0]["transaction"] == "/blah_transaction/"
+        assert data[1]["team_key_transaction"] == 0
+        assert data[1]["transaction"] == "/zoo_transaction/"
+        assert data[2]["team_key_transaction"] == 1
+        assert data[2]["transaction"] == "/foo_transaction/"
+
+        # not specifying any teams should use my teams
+        query = {
             "project": [self.project.id],
             "field": [
                 "team_key_transaction",
@@ -3344,10 +3802,9 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             self.transaction_data["transaction"] = transaction
             self.store_event(self.transaction_data, self.project.id)
             TeamKeyTransaction.objects.create(
-                team=team,
                 organization=self.organization,
                 transaction=transaction,
-                project=self.project,
+                project_team=ProjectTeam.objects.get(project=self.project, team=team),
             )
 
         query = {
@@ -3410,10 +3867,12 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             self.transaction_data["transaction"] = transaction
             self.store_event(self.transaction_data, self.project.id)
             TeamKeyTransaction.objects.create(
-                team=team,
                 organization=self.organization,
+                project_team=ProjectTeam.objects.get(
+                    project=self.project,
+                    team=team,
+                ),
                 transaction=transaction,
-                project=self.project,
             )
 
         query = {
@@ -3472,6 +3931,57 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["team_key_transaction"] == 0
         assert data[0]["transaction"] == "/blah_transaction/"
 
+    def test_too_many_team_key_transactions(self):
+        MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS = 1
+        with mock.patch(
+            "sentry.search.events.fields.MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS",
+            MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS,
+        ):
+            team = self.create_team(organization=self.organization, name="Team A")
+            self.create_team_membership(team, user=self.user)
+            self.project.add_team(team)
+            project_team = ProjectTeam.objects.get(project=self.project, team=team)
+
+            for i in range(MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS + 1):
+                transaction = f"transaction-{team.id}-{i}"
+                self.transaction_data["transaction"] = transaction
+                self.store_event(self.transaction_data, self.project.id)
+
+            TeamKeyTransaction.objects.bulk_create(
+                [
+                    TeamKeyTransaction(
+                        organization=self.organization,
+                        project_team=project_team,
+                        transaction=f"transaction-{team.id}-{i}",
+                    )
+                    for i in range(MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS + 1)
+                ]
+            )
+
+            query = {
+                "team": "myteams",
+                "project": [self.project.id],
+                "orderby": "transaction",
+                "field": [
+                    "team_key_transaction",
+                    "transaction",
+                    "transaction.status",
+                    "project",
+                    "epm()",
+                    "failure_rate()",
+                    "percentile(transaction.duration, 0.95)",
+                ],
+            }
+
+            response = self.do_request(query)
+            assert response.status_code == 200, response.content
+            data = response.data["data"]
+            assert len(data) == 2
+            assert (
+                sum(row["team_key_transaction"] for row in data)
+                == MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS
+            )
+
     def test_no_pagination_param(self):
         self.store_event(
             data={"event_id": "a" * 32, "timestamp": self.min_ago, "fingerprint": ["group1"]},
@@ -3490,3 +4000,63 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200
         assert len(response.data["data"]) == 1
         assert response.data["data"][0]["apdex_300"] == 0
+
+    def test_equation_simple(self):
+        event_data = load_data("transaction", timestamp=before_now(minutes=1))
+        event_data["breakdowns"]["span_ops"]["ops.http"]["value"] = 1500
+        self.store_event(data=event_data, project_id=self.project.id)
+
+        query = {
+            "field": ["spans.http"],
+            "equation": ["spans.http / 3"],
+            "project": [self.project.id],
+            "query": "event.type:transaction",
+        }
+        response = self.do_request(
+            query,
+            {
+                "organizations:discover-basic": True,
+                "organizations:discover-arithmetic": True,
+            },
+        )
+        assert response.status_code == 200
+        assert len(response.data["data"]) == 1
+        assert (
+            response.data["data"][0]["equation[0]"]
+            == event_data["breakdowns"]["span_ops"]["ops.http"]["value"] / 3
+        )
+
+    def test_equation_operation_limit(self):
+        query = {
+            "field": ["spans.http"],
+            "equation": [f"spans.http{' * 2' * 2}"],
+            "project": [self.project.id],
+            "query": "event.type:transaction",
+        }
+        response = self.do_request(
+            query,
+            {
+                "organizations:discover-basic": True,
+                "organizations:discover-arithmetic": True,
+            },
+        )
+
+        assert response.status_code == 400
+
+    @mock.patch("sentry.api.bases.organization_events.MAX_FIELDS", 2)
+    def test_equation_field_limit(self):
+        query = {
+            "field": ["spans.http", "transaction.duration"],
+            "equation": ["5 * 2"],
+            "project": [self.project.id],
+            "query": "event.type:transaction",
+        }
+        response = self.do_request(
+            query,
+            {
+                "organizations:discover-basic": True,
+                "organizations:discover-arithmetic": True,
+            },
+        )
+
+        assert response.status_code == 400

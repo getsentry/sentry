@@ -6,7 +6,9 @@ from sentry.discover.models import (
     KeyTransaction,
     TeamKeyTransaction,
 )
+from sentry.models import ProjectTeam
 from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.samples import load_data
 
@@ -95,21 +97,23 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
         TeamKeyTransaction.objects.bulk_create(
             [
                 TeamKeyTransaction(
-                    team=team,
                     organization=self.org,
+                    project_team=project_team,
                     transaction=self.event_data["transaction"],
-                    project=self.project,
                 )
-                for team in [team1, team2]
+                for project_team in ProjectTeam.objects.filter(
+                    project=self.project, team__in=[team1, team2]
+                )
             ]
             + [
                 TeamKeyTransaction(
-                    team=team,
                     organization=self.org,
+                    project_team=project_team,
                     transaction="other-transaction",
-                    project=self.project,
                 )
-                for team in [team2, team3]
+                for project_team in ProjectTeam.objects.filter(
+                    project=self.project, team__in=[team2, team3]
+                )
             ]
         )
 
@@ -225,18 +229,41 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
             "team": [f"You do not have permission to access {other_team.name}"]
         }
 
+    def test_post_key_transaction_no_access_project(self):
+        team1 = self.create_team(organization=self.org, name="Team Foo")
+        self.create_team_membership(team1, user=self.user)
+        self.project.add_team(team1)
+
+        team2 = self.create_team(organization=self.org, name="Team Bar")
+        self.create_team_membership(team2, user=self.user)
+
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                data={
+                    "project": [self.project.id],
+                    "transaction": self.event_data["transaction"],
+                    "team": [team2.id],
+                },
+                format="json",
+            )
+
+        assert response.status_code == 400, response.content
+        assert response.data == {"detail": "Team does not have access to project"}
+
     def test_post_key_transactions_exceed_limit(self):
         team = self.create_team(organization=self.org, name="Team Foo")
         self.create_team_membership(team, user=self.user)
         self.project.add_team(team)
 
+        project_team = ProjectTeam.objects.get(project=self.project, team=team)
+
         TeamKeyTransaction.objects.bulk_create(
             [
                 TeamKeyTransaction(
-                    team=team,
                     organization=self.org,
+                    project_team=project_team,
                     transaction=f"{self.event_data['transaction']}-{i}",
-                    project=self.project,
                 )
                 for i in range(MAX_TEAM_KEY_TRANSACTIONS)
             ]
@@ -269,15 +296,16 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
         self.create_team_membership(team2, user=self.user)
         self.project.add_team(team2)
 
+        project_teams = ProjectTeam.objects.filter(project=self.project, team__in=[team1, team2])
+
         TeamKeyTransaction.objects.bulk_create(
             [
                 TeamKeyTransaction(
-                    team=team,
                     organization=self.org,
+                    project_team=project_team,
                     transaction=f"{self.event_data['transaction']}-{i}",
-                    project=self.project,
                 )
-                for team in [team1, team2]
+                for project_team in project_teams
                 for i in range(MAX_TEAM_KEY_TRANSACTIONS - 1)
             ]
         )
@@ -294,7 +322,7 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
             )
 
         assert response.status_code == 201, response.content
-        key_transactions = TeamKeyTransaction.objects.filter(team__in=[team1, team2])
+        key_transactions = TeamKeyTransaction.objects.filter(project_team__team__in=[team1, team2])
         assert len(key_transactions) == 2 * MAX_TEAM_KEY_TRANSACTIONS
 
     def test_post_key_transactions(self):
@@ -314,7 +342,7 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
             )
 
         assert response.status_code == 201, response.content
-        key_transactions = TeamKeyTransaction.objects.filter(team=team)
+        key_transactions = TeamKeyTransaction.objects.filter(project_team__team=team)
         assert len(key_transactions) == 1
 
     def test_post_key_transactions_duplicate(self):
@@ -322,11 +350,12 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
         self.create_team_membership(team, user=self.user)
         self.project.add_team(team)
 
+        project_team = ProjectTeam.objects.get(project=self.project, team=team)
+
         TeamKeyTransaction.objects.create(
-            team=team,
             organization=self.org,
+            project_team=project_team,
             transaction=self.event_data["transaction"],
-            project=self.project,
         )
 
         with self.feature(self.features):
@@ -342,7 +371,7 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
 
         assert response.status_code == 204, response.content
         key_transactions = TeamKeyTransaction.objects.filter(
-            project_id=self.project.id, transaction=self.event_data["transaction"], team_id=team.id
+            project_team=project_team, transaction=self.event_data["transaction"]
         )
         assert len(key_transactions) == 1
 
@@ -368,9 +397,10 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
 
         assert response.status_code == 201, response.content
         key_transactions = TeamKeyTransaction.objects.filter(
-            project_id=self.project.id,
+            project_team__in=ProjectTeam.objects.filter(
+                project=self.project, team__in=[team1, team2]
+            ),
             transaction=self.event_data["transaction"],
-            team_id__in=[team1.id, team2.id],
         )
         assert len(key_transactions) == 2
 
@@ -384,10 +414,9 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
         self.project.add_team(team2)
 
         TeamKeyTransaction.objects.create(
-            team=team1,
             organization=self.org,
+            project_team=ProjectTeam.objects.get(project=self.project, team=team1),
             transaction=self.event_data["transaction"],
-            project=self.project,
         )
 
         with self.feature(self.features):
@@ -403,9 +432,10 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
 
         assert response.status_code == 201, response.content
         key_transactions = TeamKeyTransaction.objects.filter(
-            project_id=self.project.id,
+            project_team__in=ProjectTeam.objects.filter(
+                project=self.project, team__in=[team1, team2]
+            ),
             transaction=self.event_data["transaction"],
-            team_id__in=[team1.id, team2.id],
         )
         assert len(key_transactions) == 2
 
@@ -462,7 +492,7 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
             )
 
         assert response.status_code == 204, response.content
-        key_transactions = TeamKeyTransaction.objects.filter(team=team)
+        key_transactions = TeamKeyTransaction.objects.filter(project_team__team=team)
         assert len(key_transactions) == 0
 
     def test_delete_key_transaction_no_access_team(self):
@@ -484,10 +514,9 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
         project.add_team(other_team)
 
         TeamKeyTransaction.objects.create(
-            team=other_team,
             organization=org,
+            project_team=ProjectTeam.objects.get(project=project, team=team),
             transaction=self.event_data["transaction"],
-            project=project,
         )
 
         with self.feature(self.features):
@@ -512,10 +541,9 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
         self.project.add_team(team)
 
         TeamKeyTransaction.objects.create(
-            team=team,
             organization=self.org,
+            project_team=ProjectTeam.objects.get(project=self.project, team=team),
             transaction=self.event_data["transaction"],
-            project=self.project,
         )
 
         with self.feature(self.features):
@@ -530,7 +558,7 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
             )
 
         assert response.status_code == 204, response.content
-        key_transactions = TeamKeyTransaction.objects.filter(team=team)
+        key_transactions = TeamKeyTransaction.objects.filter(project_team__team=team)
         assert len(key_transactions) == 0
 
     def test_delete_key_transaction_partially_existing_teams(self):
@@ -543,10 +571,9 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
         self.project.add_team(team2)
 
         TeamKeyTransaction.objects.create(
-            team=team1,
             organization=self.org,
+            project_team=ProjectTeam.objects.get(project=self.project, team=team1),
             transaction=self.event_data["transaction"],
-            project=self.project,
         )
 
         with self.feature(self.features):
@@ -563,10 +590,10 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
         assert response.status_code == 204, response.content
 
 
-class TeamKeyTransactionCountTest(TeamKeyTransactionTestBase):
+class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
     def setUp(self):
         super().setUp()
-        self.url = reverse("sentry-api-0-organization-key-transactions-count", args=[self.org.slug])
+        self.url = reverse("sentry-api-0-organization-key-transactions-list", args=[self.org.slug])
 
         self.team1 = self.create_team(organization=self.org, name="Team A")
         self.team2 = self.create_team(organization=self.org, name="Team B")
@@ -574,42 +601,49 @@ class TeamKeyTransactionCountTest(TeamKeyTransactionTestBase):
         self.team4 = self.create_team(organization=self.org, name="Team D")
         self.team5 = self.create_team(organization=self.org, name="Team E")
 
+        for team in [self.team1, self.team2, self.team3, self.team4, self.team5]:
+            self.project.add_team(team)
+
         # only join teams 1,2,3
         for team in [self.team1, self.team2, self.team3]:
             self.create_team_membership(team, user=self.user)
-            self.project.add_team(team)
 
         TeamKeyTransaction.objects.bulk_create(
             [
                 TeamKeyTransaction(
-                    team=team,
                     organization=self.org,
+                    project_team=project_team,
                     transaction=self.event_data["transaction"],
-                    project=self.project,
                 )
-                for team in [self.team2, self.team3]
+                for project_team in ProjectTeam.objects.filter(
+                    project=self.project, team__in=[self.team2, self.team3]
+                )
             ]
             + [
                 TeamKeyTransaction(
-                    team=team,
                     organization=self.org,
+                    project_team=project_team,
                     transaction="other-transaction",
-                    project=self.project,
                 )
-                for team in [self.team3, self.team4]
+                for project_team in ProjectTeam.objects.filter(
+                    project=self.project, team__in=[self.team3, self.team4]
+                )
             ]
         )
 
-    def test_get_no_team_key_transaction_count_feature(self):
+    def test_get_no_team_key_transaction_list_feature(self):
         with self.feature(self.base_features):
             response = self.client.get(
                 self.url,
-                data={"team": ["myteam"]},
+                data={
+                    "project": [self.project.id],
+                    "team": ["myteam"],
+                },
                 format="json",
             )
         assert response.status_code == 404, response.content
 
-    def test_get_key_transaction_count_no_permissions(self):
+    def test_get_key_transaction_list_no_permissions(self):
         org = self.create_organization(
             owner=self.user,  # use other user as owner
             name="foo",
@@ -629,19 +663,25 @@ class TeamKeyTransactionCountTest(TeamKeyTransactionTestBase):
 
         with self.feature(self.features):
             response = self.client.get(
-                reverse("sentry-api-0-organization-key-transactions-count", args=[org.slug]),
-                data={"team": ["myteams", other_team.id]},
+                reverse("sentry-api-0-organization-key-transactions-list", args=[org.slug]),
+                data={
+                    "project": [self.project.id],
+                    "team": ["myteams", other_team.id],
+                },
                 format="json",
             )
 
         assert response.status_code == 400, response.content
         assert response.data == f"Error: You do not have permission to access {other_team.name}"
 
-    def test_get_key_transaction_count_my_teams(self):
+    def test_get_key_transaction_list_my_teams(self):
         with self.feature(self.features):
             response = self.client.get(
                 self.url,
-                data={"team": ["myteams"]},
+                data={
+                    "project": [self.project.id],
+                    "team": ["myteams"],
+                },
                 format="json",
             )
 
@@ -650,22 +690,39 @@ class TeamKeyTransactionCountTest(TeamKeyTransactionTestBase):
             {
                 "team": str(self.team1.id),
                 "count": 0,
+                "keyed": [],
             },
             {
                 "team": str(self.team2.id),
                 "count": 1,
+                "keyed": [
+                    {
+                        "project_id": str(self.project.id),
+                        "transaction": self.event_data["transaction"],
+                    },
+                ],
             },
             {
                 "team": str(self.team3.id),
                 "count": 2,
+                "keyed": [
+                    {
+                        "project_id": str(self.project.id),
+                        "transaction": self.event_data["transaction"],
+                    },
+                    {"project_id": str(self.project.id), "transaction": "other-transaction"},
+                ],
             },
         ]
 
-    def test_get_key_transaction_count_other_teams(self):
+    def test_get_key_transaction_list_other_teams(self):
         with self.feature(self.features):
             response = self.client.get(
                 self.url,
-                data={"team": [self.team4.id, self.team5.id]},
+                data={
+                    "project": [self.project.id],
+                    "team": [self.team4.id, self.team5.id],
+                },
                 format="json",
             )
 
@@ -674,18 +731,25 @@ class TeamKeyTransactionCountTest(TeamKeyTransactionTestBase):
             {
                 "team": str(self.team4.id),
                 "count": 1,
+                "keyed": [
+                    {"project_id": str(self.project.id), "transaction": "other-transaction"},
+                ],
             },
             {
                 "team": str(self.team5.id),
                 "count": 0,
+                "keyed": [],
             },
         ]
 
-    def test_get_key_transaction_count_mixed_my_and_other_teams(self):
+    def test_get_key_transaction_list_mixed_my_and_other_teams(self):
         with self.feature(self.features):
             response = self.client.get(
                 self.url,
-                data={"team": ["myteams", self.team4.id, self.team5.id]},
+                data={
+                    "project": [self.project.id],
+                    "team": ["myteams", self.team4.id, self.team5.id],
+                },
                 format="json",
             )
 
@@ -694,22 +758,130 @@ class TeamKeyTransactionCountTest(TeamKeyTransactionTestBase):
             {
                 "team": str(self.team1.id),
                 "count": 0,
+                "keyed": [],
             },
             {
                 "team": str(self.team2.id),
                 "count": 1,
+                "keyed": [
+                    {
+                        "project_id": str(self.project.id),
+                        "transaction": self.event_data["transaction"],
+                    },
+                ],
             },
             {
                 "team": str(self.team3.id),
                 "count": 2,
+                "keyed": [
+                    {
+                        "project_id": str(self.project.id),
+                        "transaction": self.event_data["transaction"],
+                    },
+                    {"project_id": str(self.project.id), "transaction": "other-transaction"},
+                ],
             },
             {
                 "team": str(self.team4.id),
                 "count": 1,
+                "keyed": [
+                    {"project_id": str(self.project.id), "transaction": "other-transaction"},
+                ],
             },
             {
                 "team": str(self.team5.id),
                 "count": 0,
+                "keyed": [],
+            },
+        ]
+
+    def test_get_key_transaction_list_pagination(self):
+        user = self.create_user()
+        self.login_as(user=user)
+        org = self.create_organization(owner=user, name="foo")
+        project = self.create_project(name="baz", organization=org)
+
+        teams = []
+        for i in range(123):
+            team = self.create_team(organization=org, name=f"Team {i:02d}")
+            self.create_team_membership(team, user=user)
+            project.add_team(team)
+            teams.append(team)
+
+        # get the first page
+        with self.feature(self.features):
+            response = self.client.get(
+                reverse("sentry-api-0-organization-key-transactions-list", args=[org.slug]),
+                data={
+                    "project": [project.id],
+                    "team": ["myteams"],
+                },
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 100
+        links = {
+            link["rel"]: {"url": url, **link}
+            for url, link in parse_link_header(response["Link"]).items()
+        }
+        assert links["previous"]["results"] == "false"
+        assert links["next"]["results"] == "true"
+
+        # get the second page
+        with self.feature(self.features):
+            response = self.client.get(
+                reverse("sentry-api-0-organization-key-transactions-list", args=[org.slug]),
+                data={
+                    "project": [project.id],
+                    "team": ["myteams"],
+                    "cursor": links["next"]["cursor"],
+                },
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 23
+        links = {
+            link["rel"]: {"url": url, **link}
+            for url, link in parse_link_header(response["Link"]).items()
+        }
+        assert links["previous"]["results"] == "true"
+        assert links["next"]["results"] == "false"
+
+    def test_get_key_transaction_list_partial_project(self):
+        another_project = self.create_project(organization=self.org)
+        another_project.add_team(self.team2)
+
+        TeamKeyTransaction.objects.create(
+            organization=self.org,
+            project_team=ProjectTeam.objects.get(project=another_project, team=self.team2),
+            transaction="another-transaction",
+        )
+
+        with self.feature(self.features):
+            response = self.client.get(
+                self.url,
+                data={
+                    "project": [another_project.id],
+                    "team": [self.team2.id],
+                },
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+        assert response.data == [
+            {
+                "team": str(self.team2.id),
+                # the key transaction in self.project is counted but not in
+                # the list because self.project is not in the project param
+                "count": 2,
+                "keyed": [
+                    {
+                        "project_id": str(another_project.id),
+                        "transaction": "another-transaction",
+                    },
+                ],
             },
         ]
 
@@ -1079,3 +1251,33 @@ class KeyTransactionTest(APITestCase, SnubaTestCase):
         url = reverse("sentry-api-0-organization-is-key-transactions", args=[self.org.slug])
         response = self.client.get(url)
         assert response.status_code == 404
+
+    def test_legacy_key_transactions_count(self):
+        with self.feature("organizations:performance-view"):
+            url = reverse(
+                "sentry-api-0-organization-legacy-key-transactions-count", args=[self.org.slug]
+            )
+            response = self.client.get(url, {"project": [self.project.id]})
+
+        assert response.status_code == 200
+        assert response.data["keyed"] == 0
+
+        event_data = load_data("transaction")
+        start_timestamp = iso_format(before_now(minutes=1))
+        end_timestamp = iso_format(before_now(minutes=1))
+        event_data.update({"start_timestamp": start_timestamp, "timestamp": end_timestamp})
+        KeyTransaction.objects.create(
+            owner=self.user,
+            organization=self.org,
+            transaction=event_data["transaction"],
+            project=self.project,
+        )
+
+        with self.feature("organizations:performance-view"):
+            url = reverse(
+                "sentry-api-0-organization-legacy-key-transactions-count", args=[self.org.slug]
+            )
+            response = self.client.get(url, {"project": [self.project.id]})
+
+        assert response.status_code == 200
+        assert response.data["keyed"] == 1

@@ -41,11 +41,19 @@ function UserStats({
   transactionName,
 }: Props) {
   let userMisery = error !== null ? <div>{'\u2014'}</div> : <Placeholder height="34px" />;
-  const threshold = organization.apdexThreshold;
 
   if (!isLoading && error === null && totals) {
-    const miserableUsers = totals[`count_miserable_user_${threshold}`];
-    const userMiseryScore = totals[`user_misery_${threshold}`];
+    let miserableUsers, threshold: number | undefined;
+    let userMiseryScore: number;
+    if (organization.features.includes('project-transaction-threshold')) {
+      threshold = totals.project_threshold_config[1];
+      miserableUsers = totals.count_miserable_user;
+      userMiseryScore = totals.user_misery;
+    } else {
+      threshold = organization.apdexThreshold;
+      miserableUsers = totals[`count_miserable_user_${threshold}`];
+      userMiseryScore = totals[`user_misery_${threshold}`];
+    }
     const totalUsers = totals.count_unique_user;
     userMisery = (
       <UserMisery
@@ -100,7 +108,12 @@ function UserStats({
         {t('User Misery')}
         <QuestionTooltip
           position="top"
-          title={getTermHelp(organization, PERFORMANCE_TERM.USER_MISERY)}
+          title={getTermHelp(
+            organization,
+            organization.features.includes('project-transaction-threshold')
+              ? PERFORMANCE_TERM.USER_MISERY_NEW
+              : PERFORMANCE_TERM.USER_MISERY
+          )}
           size="sm"
         />
       </SectionHeading>

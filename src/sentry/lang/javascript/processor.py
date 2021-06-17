@@ -5,8 +5,8 @@ from typing import IO, Optional, Tuple
 
 from django.utils.encoding import force_bytes, force_text
 
-from sentry.models.releasefile import ReleaseArchive
-from sentry.tasks.assemble import RELEASE_ARCHIVE_FILENAME
+from sentry.models.releasefile import ARTIFACT_INDEX_FILENAME, ReleaseArchive, read_artifact_index
+from sentry.utils import json
 
 __all__ = ["JavaScriptStacktraceProcessor"]
 
@@ -392,17 +392,63 @@ def get_from_archive(url: str, archive: ReleaseArchive) -> Tuple[bytes, dict]:
     raise KeyError(f"Not found in archive: '{url}'")
 
 
+@metrics.wraps("sourcemaps.load_artifact_index")
+def get_artifact_index(release, dist):
+    dist_name = dist and dist.name or None
+
+    ident = ReleaseFile.get_ident(ARTIFACT_INDEX_FILENAME, dist_name)
+    cache_key = f"artifact-index:v1:{release.id}:{ident}"
+    result = cache.get(cache_key)
+    if result == -1:
+        index = None
+    elif result:
+        index = json.loads(result)
+    else:
+        index = read_artifact_index(release, dist)
+        cache_value = -1 if index is None else json.dumps(index)
+        # Only cache for a short time to keep the manifest up-to-date
+        cache.set(cache_key, cache_value, timeout=60)
+
+    return index
+
+
+def get_index_entry(release, dist, url) -> Optional[dict]:
+    try:
+        index = get_artifact_index(release, dist)
+    except BaseException as exc:
+        logger.error("sourcemaps.index_read_failed", exc_info=exc)
+        return None
+
+    if index:
+        for candidate in ReleaseFile.normalize(url):
+            entry = index.get("files", {}).get(candidate)
+            if entry:
+                return entry
+
+    return None
+
+
 @metrics.wraps("sourcemaps.fetch_release_archive")
-def fetch_release_archive(release, dist) -> Optional[IO]:
+def fetch_release_archive_for_url(release, dist, url) -> Optional[IO]:
     """Fetch release archive and cache if possible.
+
+    Multiple archives might have been uploaded, so we need the URL
+    to get the correct archive from the artifact index.
 
     If return value is not empty, the caller is responsible for closing the stream.
     """
-    dist_name = dist and dist.name or None
-    releasefile_ident = ReleaseFile.get_ident(RELEASE_ARCHIVE_FILENAME, dist_name)
-    cache_key = get_release_file_cache_key(
-        release_id=release.id, releasefile_ident=releasefile_ident
-    )
+    info = get_index_entry(release, dist, url)
+    if info is None:
+        # Cannot write negative cache entry here because ID of release archive
+        # is not yet known
+        return None
+
+    archive_ident = info["archive_ident"]
+
+    # TODO(jjbayer): Could already extract filename from info and return
+    # it later
+
+    cache_key = get_release_file_cache_key(release_id=release.id, releasefile_ident=archive_ident)
 
     result = cache.get(cache_key)
 
@@ -412,11 +458,13 @@ def fetch_release_archive(release, dist) -> Optional[IO]:
         return BytesIO(result)
     else:
         qs = ReleaseFile.objects.filter(
-            release=release, dist=dist, ident=releasefile_ident
+            release=release, dist=dist, ident=archive_ident
         ).select_related("file")
         try:
             releasefile = qs[0]
         except IndexError:
+            # This should not happen when there is an archive_ident in the manifest
+            logger.error("sourcemaps.missing_archive", exc_info=sys.exc_info())
             # Cache as nonexistent:
             cache.set(cache_key, -1, 60)
             return None
@@ -436,7 +484,7 @@ def fetch_release_archive(release, dist) -> Optional[IO]:
 
 
 def compress(fp: IO) -> Tuple[bytes, bytes]:
-    """ Alternative for compress_file when fp does not support chunks """
+    """Alternative for compress_file when fp does not support chunks"""
     content = fp.read()
     return zlib.compress(content), content
 
@@ -460,11 +508,10 @@ def fetch_release_artifact(url, release, dist):
         return result_from_cache(url, result)
 
     start = time.monotonic()
-
-    release_file = fetch_release_archive(release, dist)
-    if release_file is not None:
+    archive_file = fetch_release_archive_for_url(release, dist, url)
+    if archive_file is not None:
         try:
-            archive = ReleaseArchive(release_file)
+            archive = ReleaseArchive(archive_file)
         except BaseException as exc:
             logger.error("Failed to initialize archive for release %s", release.id, exc_info=exc)
             # TODO(jjbayer): cache error and return here
@@ -473,8 +520,10 @@ def fetch_release_artifact(url, release, dist):
                 try:
                     fp, headers = get_from_archive(url, archive)
                 except KeyError:
-                    logger.debug(
-                        "Release artifact %r not found in archive (release_id=%s)", url, release.id
+                    # The manifest mapped the url to an archive, but the file
+                    # is not there.
+                    logger.error(
+                        "Release artifact %r not found in archive %s", url, archive_file.id
                     )
                     cache.set(cache_key, -1, 60)
                     metrics.timing(
