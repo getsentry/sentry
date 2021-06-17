@@ -35,11 +35,9 @@ class SlackEventEndpoint(Endpoint):
         # that will cause an infinite loop of messages
         if data.get("bot_id"):
             return self.respond()
-
         access_token = self._get_access_token(integration)
         headers = {"Authorization": "Bearer %s" % access_token}
-        payload = {"channel": channel, **SlackEventMessageBuilder().build()}
-
+        payload = {"channel": channel, **SlackEventMessageBuilder(integration).build()}
         client = SlackClient()
         try:
             client.post("/chat.postMessage", headers=headers, data=payload, json=True)

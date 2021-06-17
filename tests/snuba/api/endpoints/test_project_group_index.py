@@ -293,6 +293,21 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert len(issues) == 1
         assert int(issues[0]["id"]) == group.id
 
+    def test_lookup_by_release_wildcard(self):
+        self.login_as(self.user)
+        version = "12345"
+        event = self.store_event(
+            data={"tags": {"sentry:release": version}}, project_id=self.project.id
+        )
+        group = event.group
+        release_wildcard = version[:3] + "*"
+        url = "{}?query={}".format(self.path, quote('release:"%s"' % release_wildcard))
+        response = self.client.get(url, format="json")
+        issues = json.loads(response.content)
+        assert response.status_code == 200
+        assert len(issues) == 1
+        assert int(issues[0]["id"]) == group.id
+
     def test_pending_delete_pending_merge_excluded(self):
         self.create_group(checksum="a" * 32, status=GroupStatus.PENDING_DELETION)
         group = self.create_group(checksum="b" * 32)
