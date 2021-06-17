@@ -1261,8 +1261,11 @@ const isFieldsSimilar = (
   currentValue: Array<string>,
   otherValue: Array<string>
 ): boolean => {
+  // For equation's their order matters because we alias them based on index
   const currentEquations = currentValue.filter(isEquation);
   const otherEquations = otherValue.filter(isEquation);
+
+  // Field orders don't matter, so using a set for comparison
   const currentFields = new Set(currentValue.filter(value => !isEquation(value)));
   const otherFields = new Set(otherValue.filter(value => !isEquation(value)));
 
@@ -1293,7 +1296,6 @@ export const isAPIPayloadSimilar = (
         return false;
       }
     } else {
-      // Exclude equation from becoming a set for comparison cause its order matters
       const currentTarget = Array.isArray(currentValue)
         ? new Set(currentValue)
         : currentValue;
