@@ -66,7 +66,7 @@ type Props = {
   forwardRef?: React.Ref<HTMLDivElement>;
 };
 
-function RangeSliderContent({
+function RangeSlider({
   value,
   allowedValues,
   showCustomInput,
@@ -120,8 +120,7 @@ function RangeSliderContent({
   }
 
   function handleCustomInputChange(e: ChangeEvent<HTMLInputElement>) {
-    const newSliderValue = parseInt(e.target.value, 10);
-    setSliderValue(isNaN(newSliderValue) ? 0 : value);
+    setSliderValue(parseInt(e.target.value, 10) || 0);
   }
 
   function handleBlur(e: MouseEvent<HTMLInputElement> | KeyboardEvent<HTMLInputElement>) {
@@ -160,9 +159,7 @@ function RangeSliderContent({
   return (
     <div className={className} ref={forwardRef}>
       {!showCustomInput && (
-        <Label htmlFor={name}>
-          {typeof formatLabel === 'function' ? formatLabel(actualValue) : displayValue}
-        </Label>
+        <Label htmlFor={name}>{formatLabel?.(actualValue) ?? displayValue}</Label>
       )}
       <SliderAndInputWrapper showCustomInput={showCustomInput}>
         <Slider
@@ -195,10 +192,8 @@ const RangeSliderContainer = React.forwardRef(function RangeSliderContainer(
   props: Props,
   ref: React.Ref<any>
 ) {
-  return <RangeSliderContent {...props} forwardRef={ref} />;
+  return <RangeSlider {...props} forwardRef={ref} />;
 });
-
-RangeSliderContainer.displayName = 'RangeSlider';
 
 export default RangeSliderContainer;
 
