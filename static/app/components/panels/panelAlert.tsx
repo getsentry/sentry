@@ -18,7 +18,6 @@ const DEFAULT_ICONS = {
 const PanelAlert = styled(({icon, ...props}: Props) => (
   <Alert {...props} icon={icon || DEFAULT_ICONS[props.type!]} system />
 ))`
-  align-items: center;
   margin: 0 0 1px 0;
   padding: ${space(2)};
   border-radius: 0;
