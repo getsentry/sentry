@@ -207,4 +207,4 @@ class DemoOrgManagerTest(TestCase):
 
         assert len(Project.objects.filter(organization=org)) == 5
         mock_handle_scenario.assert_called_once_with(mock.ANY, mock.ANY)
-        mock_handle_mobile_scenario.assert_called_once_with(mock.ANY, mock.ANY)
+        mock_handle_mobile_scenario.assert_called_once_with(mock.ANY, mock.ANY, mock.ANY)

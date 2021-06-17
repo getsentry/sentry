@@ -1167,7 +1167,9 @@ class DataPopulation:
             )
         self.assign_issues()
 
-    def handle_mobile_scenario(self, ios_project: Project, android_project: Project):
+    def handle_mobile_scenario(
+        self, ios_project: Project, android_project: Project, react_native_project: Project
+    ):
         with sentry_sdk.start_span(op="handle_mobile_scenario", description="populate_errors"):
             self.populate_generic_error(
                 ios_project, "errors/ios/exc_bad_access.json", 3, starting_release=1

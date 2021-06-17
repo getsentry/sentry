@@ -50,36 +50,20 @@ def create_demo_org(quick=False) -> Organization:
             )
 
             team = org.team_set.create(name=org.name)
-            python_project = Project.objects.create(
-                name="Python", organization=org, platform="python"
-            )
-            python_project.add_team(team)
-            projects.append(python_project)
 
-            react_project = Project.objects.create(
-                name="React", organization=org, platform="javascript-react"
-            )
-            react_project.add_team(team)
-            projects.append(react_project)
+            def create_project(name, platform):
+                project = Project.objects.create(name=name, organization=org, platform=platform)
+                project.add_team(team)
+                projects.append(project)
+                return project
+
+            python_project = create_project("Python", "python")
+            react_project = create_project("React", "javascript-react")
 
             if settings.DEMO_MOBILE_PROJECTS:
-                react_native_project = Project.objects.create(
-                    name="React-Native", organization=org, platform="react-native"
-                )
-                react_native_project.add_team(team)
-                projects.append(react_native_project)
-
-                android_project = Project.objects.create(
-                    name="Android", organization=org, platform="android"
-                )
-                android_project.add_team(team)
-                projects.append(android_project)
-
-                ios_project = Project.objects.create(
-                    name="iOS", organization=org, platform="apple-ios"
-                )
-                ios_project.add_team(team)
-                projects.append(ios_project)
+                react_native_project = create_project("React-Native", "react-native")
+                android_project = create_project("Android", "android")
+                ios_project = create_project("iOS", "apple-ios")
 
             populate_org_members(org, team)
             # we'll be adding transactions later
@@ -99,7 +83,9 @@ def create_demo_org(quick=False) -> Organization:
                 data_population.handle_react_python_scenario(react_project, python_project)
 
                 if settings.DEMO_MOBILE_PROJECTS:
-                    data_population.handle_mobile_scenario(ios_project, android_project)
+                    data_population.handle_mobile_scenario(
+                        ios_project, android_project, react_native_project
+                    )
 
             except Exception as e:
                 logger.error(
