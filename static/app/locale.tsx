@@ -5,7 +5,6 @@ import isObject from 'lodash/isObject';
 import isString from 'lodash/isString';
 import {sprintf} from 'sprintf-js';
 
-import {getTranslations} from 'app/translations';
 import localStorage from 'app/utils/localStorage';
 
 const markerStyles = {
@@ -42,8 +41,7 @@ let i18n: any = null;
  * translation functions, as this mutates a singleton translation object used
  * to lookup translations at runtime.
  */
-export function setLocale(locale: string) {
-  const translations = getTranslations(locale);
+export function setLocale(translations: any) {
   i18n = new Jed({
     domain: 'sentry',
     missing_key_callback: () => {},
@@ -51,11 +49,19 @@ export function setLocale(locale: string) {
       sentry: translations,
     },
   });
+
+  return i18n;
 }
 
-setLocale('en');
-
 type FormatArg = ComponentMap | React.ReactNode;
+
+/**
+ * Helper to return the i18n client, and initialize for the default locale (English)
+ * if it has otherwise not been initialized.
+ */
+function getClient() {
+  return i18n || setLocale(require('sentry-locale/en/LC_MESSAGES/django.po'));
+}
 
 /**
  * printf style string formatting which render as react nodes.
@@ -296,7 +302,7 @@ export function format(formatString: string, args: FormatArg[]) {
  * [0]: https://github.com/alexei/sprintf.js
  */
 export function gettext(string: string, ...args: FormatArg[]) {
-  const val: string = i18n.gettext(string);
+  const val: string = getClient().gettext(string);
 
   if (args.length === 0) {
     return mark(val);
@@ -336,7 +342,7 @@ export function ngettext(singular: string, plural: string, ...args: FormatArg[])
   }
 
   // XXX(ts): See XXX in gettext.
-  return mark(format(i18n.ngettext(singular, plural, countArg), args) as string);
+  return mark(format(getClient().ngettext(singular, plural, countArg), args) as string);
 }
 
 /**
@@ -356,7 +362,7 @@ export function ngettext(singular: string, plural: string, ...args: FormatArg[])
  * You may recursively nest additional groups within the grouped string values.
  */
 export function gettextComponentTemplate(template: string, components: ComponentMap) {
-  const tmpl = parseComponentTemplate(i18n.gettext(template));
+  const tmpl = parseComponentTemplate(getClient().gettext(template));
   return mark(renderTemplate(tmpl, components));
 }
 
