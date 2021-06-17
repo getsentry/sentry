@@ -20,6 +20,7 @@ from sentry.models import (
     AuthProvider,
     InviteStatus,
     OrganizationMember,
+    OrganizationMemberTeam,
 )
 from sentry.testutils import TestCase
 from sentry.utils.compat import mock
@@ -184,12 +185,39 @@ class HandleAttachIdentityTest(AuthIdentityHandlerTest):
         assert auth_identity.ident == self.identity["id"]
         assert auth_identity.data == self.identity["data"]
 
+        assert OrganizationMember.objects.filter(
+            organization=self.organization,
+            user=self.user,
+        ).exists()
+
+        for team in self.auth_provider.default_teams.all():
+            assert OrganizationMemberTeam.objects.create(
+                team=team, organizationmember__user=self.user
+            ).exists()
+
         assert AuditLogEntry.objects.filter(
             organization=self.organization,
             target_object=auth_identity.id,
             event=AuditLogEntryEvent.SSO_IDENTITY_LINK,
             data=auth_identity.get_audit_log_data(),
         ).exists()
+
+        assert mock_messages.add_message.called_with(
+            self.request, messages.SUCCESS, OK_LINK_IDENTITY
+        )
+
+    @mock.patch("sentry.auth.helper.messages")
+    def test_new_identity_with_existing_om(self, mock_messages):
+        user = self.set_up_user()
+        existing_om = OrganizationMember.objects.create(user=user, organization=self.organization)
+
+        auth_identity = self._handle_attach_identity()
+        assert auth_identity.ident == self.identity["id"]
+        assert auth_identity.data == self.identity["data"]
+
+        persisted_om = OrganizationMember.objects.get(id=existing_om.id)
+        assert getattr(persisted_om.flags, "sso:linked")
+        assert not getattr(persisted_om.flags, "sso:invalid")
 
         assert mock_messages.add_message.called_with(
             self.request, messages.SUCCESS, OK_LINK_IDENTITY
