@@ -289,6 +289,7 @@ describe('getFieldRenderer', function () {
       expectWidthAt('13.333%', 2);
       expectWidthAt('26.667%', 3);
     });
+
     it('renders operation breakdowns in sorted order when a sort field is provided', async function () {
       const renderer = getFieldRenderer(SPAN_OP_RELATIVE_BREAKDOWN_FIELD, {
         [SPAN_OP_RELATIVE_BREAKDOWN_FIELD]: 'string',

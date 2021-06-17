@@ -669,7 +669,6 @@ export function getFieldRenderer(
   }
 
   if (isRelativeSpanOperationBreakdownField(field)) {
-    console.log('returning relative breakdown renderer');
     return spanOperationRelativeBreakdownRenderer;
   }
 
