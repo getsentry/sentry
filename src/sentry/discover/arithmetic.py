@@ -6,6 +6,8 @@ from parsimonious.grammar import Grammar, NodeVisitor
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events.fields import get_function_alias
 
+# prefix on fields so we know they're equations
+EQUATION_PREFIX = "equation|"
 SUPPORTED_OPERATORS = {"plus", "minus", "multiply", "divide"}
 
 

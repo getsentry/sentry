@@ -38,7 +38,7 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
     def has_feature_for_fields(self, feature, organization, request, feature_fields):
         has_feature = features.has(feature, organization, actor=request.user)
 
-        columns = request.GET.getlist("field")[:]
+        columns = self.get_field_list(organization, request)
 
         if has_feature:
             return True
@@ -79,7 +79,7 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
 
         def data_fn(offset, limit):
             return discover.query(
-                selected_columns=request.GET.getlist("field")[:],
+                selected_columns=self.get_field_list(organization, request),
                 query=request.GET.get("query"),
                 params=params,
                 equations=self.get_equation_list(organization, request),

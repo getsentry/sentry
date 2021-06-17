@@ -47,7 +47,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             if top_events > 0:
                 return discover.top_events_timeseries(
                     timeseries_columns=query_columns,
-                    selected_columns=request.GET.getlist("field")[:],
+                    selected_columns=self.get_field_list(organization, request),
                     user_query=query,
                     params=params,
                     orderby=self.get_orderby(request),
