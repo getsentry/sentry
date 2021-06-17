@@ -60,7 +60,7 @@ class OperationTitle extends React.Component<TitleProps> {
     const {onClick} = this.props;
     return (
       <div onClick={onClick}>
-        <span>Operation Title</span>
+        <span>{t('operation duration')}</span>
         <Tooltip
           title={t(
             'Durations are calculated by summing span durations over the course of the transaction. Percentages are then calculated by dividing the individual op duration by the sum of total op durations. Overlapping/parallel spans are only counted once.'

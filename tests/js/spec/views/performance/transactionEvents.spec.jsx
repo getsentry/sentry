@@ -117,7 +117,7 @@ describe('Performance > TransactionSummary', function () {
     );
     expect(wrapper.find('SentryDocumentTitle')).toHaveLength(1);
     expect(wrapper.find('SearchBar')).toHaveLength(1);
-    expect(wrapper.find('PanelTable')).toHaveLength(1);
+    expect(wrapper.find('GridEditable')).toHaveLength(1);
     expect(wrapper.find('Pagination')).toHaveLength(1);
   });
 
@@ -152,9 +152,9 @@ describe('Performance > TransactionSummary', function () {
     await tick();
     wrapper.update();
 
-    expect(wrapper.find('PanelTableHeader')).toHaveLength(6);
+    expect(wrapper.find('GridHeadCell')).toHaveLength(6);
     expect(
-      wrapper.find('StyledNonLink').at(2).children().children().at(0).html()
+      wrapper.find('OperationTitle').children().children().children().at(0).html()
     ).toEqual(t('operation duration'));
   });
 
