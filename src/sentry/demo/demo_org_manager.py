@@ -21,7 +21,7 @@ from sentry.models import (
 from sentry.tasks.deletion import delete_organization
 from sentry.utils.email import create_fake_email
 
-from .data_population import handle_react_python_scenario, populate_org_members
+from .data_population import DataPopulation, populate_org_members
 from .models import DemoOrganization, DemoOrgStatus, DemoUser
 from .utils import generate_random_name
 
@@ -37,6 +37,8 @@ def create_demo_org(quick=False) -> Organization:
 
             slug = slugify(name)
 
+            projects = []
+
             demo_org = DemoOrganization.create_org(name=name, slug=slug)
             org = demo_org.organization
 
@@ -48,31 +50,20 @@ def create_demo_org(quick=False) -> Organization:
             )
 
             team = org.team_set.create(name=org.name)
-            python_project = Project.objects.create(
-                name="Python", organization=org, platform="python"
-            )
-            python_project.add_team(team)
 
-            react_project = Project.objects.create(
-                name="React", organization=org, platform="javascript-react"
-            )
-            react_project.add_team(team)
+            def create_project(name, platform):
+                project = Project.objects.create(name=name, organization=org, platform=platform)
+                project.add_team(team)
+                projects.append(project)
+                return project
+
+            python_project = create_project("Python", "python")
+            react_project = create_project("React", "javascript-react")
 
             if settings.DEMO_MOBILE_PROJECTS:
-                react_native_project = Project.objects.create(
-                    name="React-Native", organization=org, platform="react-native"
-                )
-                react_native_project.add_team(team)
-
-                android_project = Project.objects.create(
-                    name="Android", organization=org, platform="android"
-                )
-                android_project.add_team(team)
-
-                ios_project = Project.objects.create(
-                    name="iOS", organization=org, platform="apple-ios"
-                )
-                ios_project.add_team(team)
+                react_native_project = create_project("React-Native", "react-native")
+                android_project = create_project("Android", "android")
+                ios_project = create_project("iOS", "apple-ios")
 
             populate_org_members(org, team)
             # we'll be adding transactions later
@@ -85,9 +76,17 @@ def create_demo_org(quick=False) -> Organization:
             extra={"organization_slug": org.slug, "quick": quick},
         )
 
-        with sentry_sdk.start_span(op="handle_react_python_scenario"):
+        with sentry_sdk.start_span(op="handle_react_python_mobile_scenario"):
             try:
-                handle_react_python_scenario(react_project, python_project, quick=quick)
+                data_population = DataPopulation(org, quick=quick)
+                data_population.generate_releases(projects)
+                data_population.handle_react_python_scenario(react_project, python_project)
+
+                if settings.DEMO_MOBILE_PROJECTS:
+                    data_population.handle_mobile_scenario(
+                        ios_project, android_project, react_native_project
+                    )
+
             except Exception as e:
                 logger.error(
                     "create_demo_org.population_error",
