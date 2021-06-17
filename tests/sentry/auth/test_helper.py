@@ -299,3 +299,5 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
         context = self._test_simple(mock_render, "sentry/auth-confirm-link.html")
         assert context["existing_user"] is self.request.user
         assert "login_form" not in context
+
+    # TODO: More test cases for various values of request.POST.get("op")
