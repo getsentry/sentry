@@ -193,7 +193,7 @@ function RangeSliderContent({
 
 const RangeSliderContainer = React.forwardRef(function RangeSliderContainer(
   props: Props,
-  ref: React.Ref<HTMLDivElement>
+  ref: React.Ref<any>
 ) {
   return <RangeSliderContent {...props} forwardRef={ref} />;
 });

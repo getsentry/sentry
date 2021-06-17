@@ -91,6 +91,7 @@ const Alert = styled(
     children,
     className,
     system: _system, // don't forward to `div`
+    css: _css,
     ...props
   }: AlertProps) => {
     return (
