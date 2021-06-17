@@ -9,7 +9,7 @@ import Input from 'app/views/settings/components/forms/controls/input';
 
 const NONE_SELECTED = -1;
 
-function filterOptions(options: Column[]) {
+function filterOptions(options: Column[], partialTerm: string | null) {
   return options
     .filter(({kind}) => kind !== 'equation')
     .filter(option => {
@@ -20,7 +20,8 @@ function filterOptions(options: Column[]) {
     })
     .map(option => ({
       value: generateFieldAsString(option),
-    }));
+    }))
+    .filter(({value}) => (partialTerm ? value.includes(partialTerm) : true));
 }
 
 type DropdownOption = {
@@ -40,6 +41,7 @@ type Props = DefaultProps &
 type State = {
   query: string;
   partialTerm: string | null;
+  rawOptions: Column[];
   dropdownVisible: boolean;
   dropdownOptions: DropdownOption[];
   activeSelection: number;
@@ -50,16 +52,14 @@ export default class ArithmeticInput extends PureComponent<Props, State> {
     options: [],
   };
 
-  static getDerivedStateFromProps(props: Readonly<Props>, state: State) {
-    const oldDropdownOptions = state.dropdownOptions;
-    const newDropdownOptions = filterOptions(props.options);
-
-    const changed = !isEqual(oldDropdownOptions, newDropdownOptions);
+  static getDerivedStateFromProps(props: Readonly<Props>, state: State): State {
+    const changed = !isEqual(state.rawOptions, props.options);
 
     if (changed) {
       return {
         ...state,
-        dropdownOption: newDropdownOptions,
+        rawOptions: props.options,
+        dropdownOptions: filterOptions(props.options, state.partialTerm),
         activeSelection: NONE_SELECTED,
       };
     }
@@ -70,8 +70,9 @@ export default class ArithmeticInput extends PureComponent<Props, State> {
   state: State = {
     query: this.props.value,
     partialTerm: null,
+    rawOptions: this.props.options,
     dropdownVisible: false,
-    dropdownOptions: filterOptions(this.props.options),
+    dropdownOptions: filterOptions(this.props.options, null),
     activeSelection: NONE_SELECTED,
   };
 
@@ -225,18 +226,26 @@ export default class ArithmeticInput extends PureComponent<Props, State> {
   }
 
   updateAutocompleteOptions() {
+    const {options} = this.props;
+
     const {term} = this.splitQuery();
-    this.setState({partialTerm: term || null});
+    const partialTerm = term || null;
+
+    this.setState({
+      dropdownOptions: filterOptions(options, partialTerm),
+      partialTerm,
+    });
   }
 
   render() {
     const {onUpdate: _onUpdate, options: _options, ...props} = this.props;
-    const {partialTerm, dropdownVisible, dropdownOptions, activeSelection} = this.state;
+    const {dropdownVisible, dropdownOptions, activeSelection} = this.state;
     return (
       <Container isOpen={dropdownVisible}>
         <StyledInput
           {...props}
           ref={this.input}
+          autoComplete="off"
           className="form-control"
           value={this.state.query}
           onClick={this.handleClick}
@@ -247,9 +256,7 @@ export default class ArithmeticInput extends PureComponent<Props, State> {
         />
         <TermDropdown
           isOpen={dropdownVisible}
-          options={dropdownOptions.filter(({value}) =>
-            partialTerm ? value.includes(partialTerm) : true
-          )}
+          options={dropdownOptions}
           activeSelection={activeSelection}
           handleSelect={this.handleSelect}
         />
