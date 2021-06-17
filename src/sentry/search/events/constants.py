@@ -86,4 +86,3 @@ OPERATOR_NEGATION_MAP = {
 OPERATOR_TO_DJANGO = {">=": "gte", "<=": "lte", ">": "gt", "<": "lt"}
 
 SEMVER_MAX_SEARCH_RELEASES = 1000
-SEMVER_FAKE_PACKAGE = "__sentry_fake__"
