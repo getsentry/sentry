@@ -25,8 +25,10 @@ describe('Organization Rate Limits', function () {
   it('renders with initialData', function () {
     const wrapper = mountWithTheme(creator(), TestStubs.routerContext());
 
-    expect(wrapper.find('RangeSlider').first().prop('value')).toBe(70000);
-    expect(wrapper.find('RangeSlider').at(1).prop('value')).toBe(75);
+    expect(wrapper.find("RangeSlider[name='accountRateLimit']").prop('value')).toBe(
+      70000
+    );
+    expect(wrapper.find("RangeSlider[name='projectRateLimit']").prop('value')).toBe(75);
   });
 
   it('renders with maxRate and maxRateInterval set', function () {

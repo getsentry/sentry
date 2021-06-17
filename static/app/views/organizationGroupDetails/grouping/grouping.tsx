@@ -69,7 +69,7 @@ function Grouping({api, groupId, location, project, organization}: Props) {
     fetchGroupingLevelDetails();
   }, [activeGroupingLevel, location.query]);
 
-  const handleSetActiveGroupingLevel = debounce((groupingLevelId: string) => {
+  const handleSetActiveGroupingLevel = debounce((groupingLevelId: number | '') => {
     setActiveGroupingLevel(Number(groupingLevelId));
   }, DEFAULT_DEBOUNCE_DURATION);
 

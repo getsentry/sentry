@@ -378,6 +378,7 @@ describe('projectGeneralSettings', function () {
     it('can cancel unsaved changes for a field', async function () {
       await tick();
       wrapper.update();
+
       // Initially does not have "Cancel" button
       expect(wrapper.find('MessageAndActions button[aria-label="Cancel"]')).toHaveLength(
         0
@@ -390,7 +391,6 @@ describe('projectGeneralSettings', function () {
         .find('input[name="resolveAge"]')
         .simulate('input', {target: {value: 12}})
         .simulate('mouseUp');
-      await wrapper.update();
 
       // Has updated value
       expect(wrapper.find('input[name="resolveAge"]').prop('value')).toBe(12);

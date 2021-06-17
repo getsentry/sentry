@@ -126,8 +126,10 @@ type TextareaType = {type: 'textarea'} & {
   rows?: number;
 };
 
-type RangeType = {type: 'range'} & Omit<RangeSlider['props'], 'value'> & {
-    value?: Pick<RangeSlider['props'], 'value'>;
+type RangeSliderProps = React.ComponentProps<typeof RangeSlider>;
+
+type RangeType = {type: 'range'} & Omit<RangeSliderProps, 'value'> & {
+    value?: Pick<RangeSliderProps, 'value'>;
   };
 
 export type TableType = {
