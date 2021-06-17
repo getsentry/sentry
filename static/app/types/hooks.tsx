@@ -338,11 +338,11 @@ type SidebarItemLabelHook = () => React.ComponentType<{
 }>;
 
 type SidebarItemOverrideHook = () => React.ComponentType<{
-  id?: string;
   /**
    * The item label being wrapped
    */
   children: (props: Partial<React.ComponentProps<typeof SidebarItem>>) => React.ReactNode;
+  id?: string;
 }>;
 
 type SidebarProps = Pick<
