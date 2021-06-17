@@ -12,7 +12,7 @@ class UserAvatarTest(TestCase):
         user = self.create_user(email="a@example.com")
         photo = File.objects.create(name="test.png", type="avatar.file")
         photo.putfile(BytesIO(b"test"))
-        avatar = UserAvatar.objects.create(user=user, file=photo)
+        avatar = UserAvatar.objects.create(user=user, file_id=photo.id)
         url = reverse("sentry-user-avatar-url", kwargs={"avatar_id": avatar.ident})
         response = self.client.get(url)
         assert response.status_code == 200

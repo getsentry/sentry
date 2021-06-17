@@ -12,7 +12,7 @@ class ProjectAvatarTest(TestCase):
         project = self.create_project()
         photo = File.objects.create(name="test.png", type="avatar.file")
         photo.putfile(BytesIO(b"test"))
-        avatar = ProjectAvatar.objects.create(project=project, file=photo)
+        avatar = ProjectAvatar.objects.create(project=project, file_id=photo.id)
         url = reverse("sentry-project-avatar-url", kwargs={"avatar_id": avatar.ident})
         response = self.client.get(url)
         assert response.status_code == 200

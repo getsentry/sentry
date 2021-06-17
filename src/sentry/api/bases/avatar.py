@@ -16,7 +16,7 @@ class AvatarSerializer(serializers.Serializer):
         if attrs.get("avatar_type") == "upload":
             model_type = self.context["type"]
             has_existing_file = model_type.objects.filter(
-                file__isnull=False, **self.context["kwargs"]
+                file_id__isnull=False, **self.context["kwargs"]
             ).exists()
             if not has_existing_file and not attrs.get("avatar_photo"):
                 raise serializers.ValidationError(
