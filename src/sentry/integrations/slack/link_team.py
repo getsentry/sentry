@@ -20,6 +20,7 @@ from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign, unsign
 from sentry.web.decorators import transaction_start
 from sentry.web.frontend.base import BaseView
+from sentry.web.helpers import render_to_response
 
 from .client import SlackClient
 from .utils import logger
@@ -66,21 +67,30 @@ class SlackLinkTeamView(BaseView):
             return self.respond(status=403)
         return identity
 
-    def send_error_message(self, client, message, response_url):
+    def send_error_message(self, request, client, message, response_url, channel_id, integration):
+        token = integration.metadata.get("user_access_token") or integration.metadata["access_token"]
         payload = {
-            "replace_original": False,
-            "response_type": "ephemeral",
+            "token": token,
+            "channel": channel_id,
             "text": message,
         }
+        headers = {"Authorization": "Bearer %s" % token}
         try:
-            client.post(response_url, data=payload, json=True)
+            client.post("/chat.postMessage", headers=headers, data=payload, json=True)
         except ApiError as e:
-            raise IntegrationError(self.message_from_error(e))
+            message = str(e)
+            if message != "Expired url":
+                logger.error("slack.link-notify.response-error", extra={"error": message})
         else:
-            return self.respond(status=403)
+            # TODO create a new template for this, but we want to show a different page
+            return render_to_response(
+                "sentry/slack-linked-team.html",
+                request=request,
+                context={"channel_id": channel_id, "team_id": integration.external_id},
+            )
 
     @transaction_start("SlackLinkTeamView")
-    @never_cache
+    # @never_cache
     def handle(self, request, signed_params):
         params = unsign(signed_params)
         integration = Integration.objects.get(id=params["integration_id"])
@@ -115,7 +125,8 @@ class SlackLinkTeamView(BaseView):
         ) or (org_member.role in ["admin", "manager", "owner"] and team in [org_member.teams]):
             INSUFFICIENT_ROLE_MESSAGE = "You must be an admin or higher and a member of the team you wish to link in your Sentry organization to link teams."
             # TODO(ceo) write a test for this case
-            self.send_error_message(client, INSUFFICIENT_ROLE_MESSAGE, params["response_url"])
+            return self.send_error_message(request, client, INSUFFICIENT_ROLE_MESSAGE, params["response_url"], params["channel_id"], integration)
+
 
         already_linked = ExternalActor.objects.filter(
             actor_id=team.actor_id,
@@ -127,7 +138,7 @@ class SlackLinkTeamView(BaseView):
             ALREADY_LINKED_MESSAGE = (
                 f"The {team.slug} team has already been linked to a Slack channel."
             )
-            self.send_error_message(client, ALREADY_LINKED_MESSAGE, params["response_url"])
+            return self.send_error_message(request, client, ALREADY_LINKED_MESSAGE, params["response_url"], params["channel_id"], integration)
 
         external_team, created = ExternalActor.objects.get_or_create(
             actor_id=team.actor_id,
@@ -151,14 +162,16 @@ class SlackLinkTeamView(BaseView):
                     team=team,
                     project=project,
                 )
-
+            token = integration.metadata.get("user_access_token") or integration.metadata["access_token"]
+            headers = {"Authorization": "Bearer %s" % token}
             payload = {
-                "replace_original": False,
-                "response_type": "ephemeral",
+                "token": token,
+                "channel": params["channel_id"],
                 "text": f"The {team.slug} team will now receive notifications in this channel.",
             }
+            client = SlackClient()
             try:
-                client.post(params["response_url"], data=payload, json=True)
+                client.post("/chat.postMessage", headers=headers, data=payload, json=True)
             except ApiError as e:
                 message = str(e)
                 # If the user took their time to link their slack account, we may no
@@ -168,8 +181,8 @@ class SlackLinkTeamView(BaseView):
                 # XXX(epurkhiser): Yes the error string has a space in it.
                 if message != "Expired url":
                     logger.error("slack.link-notify.response-error", extra={"error": message})
-
-            return self.response(
+            return render_to_response(
                 "sentry/slack-linked-team.html",
-                {"channel_id": params["channel_id"], "team_id": integration.external_id},
+                request=request,
+                context={"channel_id": params["channel_id"], "team_id": integration.external_id},
             )
