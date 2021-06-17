@@ -2,13 +2,13 @@
 
 {% load i18n %}
 
-{% block title %}{% trans "Team Linked" %} | {{ block.super }}{% endblock %}
+{% block title %}{% trans heading_text %} | {{ block.super }}{% endblock %}
 {% block wrapperclass %}narrow auth{% endblock %}
 
 {% block main %}
   <div class="align-center">
     <p>
-      {% trans "Your team has now been linked to the Slack channel. You will now receive issue alert notifications there!" %}
+      {% trans body_text %}
     </p>
     <p>
       <a href="slack://channel?id={{ channel_id }}&team={{ team_id }}" class="btn btn-default btn-login-slack">

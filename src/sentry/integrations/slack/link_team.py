@@ -14,7 +14,7 @@ from sentry.models import (
     TeamStatus,
 )
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
-from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign, unsign
@@ -67,14 +67,11 @@ class SlackLinkTeamView(BaseView):
             return self.respond(status=403)
         return identity
 
-    def send_error_message(self, request, client, message, response_url, channel_id, integration):
-        token = (
-            integration.metadata.get("user_access_token") or integration.metadata["access_token"]
-        )
+    def send_slack_message(self, request, client, token, text, channel_id, integration):
         payload = {
             "token": token,
             "channel": channel_id,
-            "text": message,
+            "text": text["body"],
         }
         headers = {"Authorization": "Bearer %s" % token}
         try:
@@ -84,21 +81,27 @@ class SlackLinkTeamView(BaseView):
             if message != "Expired url":
                 logger.error("slack.link-notify.response-error", extra={"error": message})
         else:
-            # TODO create a new template for this, but we want to show a different page
             return render_to_response(
-                "sentry/slack-linked-team.html",
+                "sentry/slack-post-linked-team.html",
                 request=request,
-                context={"channel_id": channel_id, "team_id": integration.external_id},
+                context={
+                    "heading_text": text["heading"],
+                    "body_text": text["body"],
+                    "channel_id": channel_id,
+                    "team_id": integration.external_id,
+                },
             )
 
     @transaction_start("SlackLinkTeamView")
-    # @never_cache
+    @never_cache
     def handle(self, request, signed_params):
         params = unsign(signed_params)
         integration = Integration.objects.get(id=params["integration_id"])
         teams = Team.objects.filter(
             organization__in=integration.organizations.all(), status=TeamStatus.VISIBLE
         ).order_by("slug")
+        channel_name = params["channel_name"]
+        channel_id = params["channel_id"]
 
         form = SelectTeamForm(teams, request.POST or None)
         if form.is_valid():
@@ -110,29 +113,42 @@ class SlackLinkTeamView(BaseView):
                 {
                     "form": form,
                     "teams": teams,
-                    "channel_name": params["channel_name"],
+                    "channel_name": channel_name,
                     "provider": integration.get_provider(),
                 },
             )
 
         team = Team.objects.get(id=team_id)
+        INSUFFICIENT_ROLE_MESSAGE = {
+            "heading": "Insufficient role",
+            "body": f"You must be an admin or higher and a member of the {team.slug} team in your Sentry organization to link teams.",
+        }
+        ALREADY_LINKED_MESSAGE = {
+            "heading": "Already linked",
+            "body": f"The {team.slug} team has already been linked to a Slack channel.",
+        }
+        SUCCESS_LINKED_MESSAGE = {
+            "heading": "Team linked",
+            "body": f"The {team.slug} team will now receive issue alert notifications in the {channel_name} channel.",
+        }
         organization = Organization.objects.get_for_team_ids([team.id])[0]
         identity = self.get_identity(integration, params["slack_id"])
         org_member = OrganizationMember.objects.get(user=identity.user, organization=organization)
         client = SlackClient()
+        token = (
+            integration.metadata.get("user_access_token") or integration.metadata["access_token"]
+        )
         # if the org has open membership and the user is an admin or above
         # OR if closed, ensure user is admin AND member of the team
         if not (
             organization.flags.allow_joinleave and org_member.role in ["admin", "manager", "owner"]
         ) or (org_member.role in ["admin", "manager", "owner"] and team in [org_member.teams]):
-            INSUFFICIENT_ROLE_MESSAGE = "You must be an admin or higher and a member of the team you wish to link in your Sentry organization to link teams."
-            # TODO(ceo) write a test for this case
-            return self.send_error_message(
+            return self.send_slack_message(
                 request,
                 client,
+                token,
                 INSUFFICIENT_ROLE_MESSAGE,
-                params["response_url"],
-                params["channel_id"],
+                channel_id,
                 integration,
             )
 
@@ -143,15 +159,12 @@ class SlackLinkTeamView(BaseView):
             provider=ExternalProviders.SLACK.value,
         )
         if already_linked:
-            ALREADY_LINKED_MESSAGE = (
-                f"The {team.slug} team has already been linked to a Slack channel."
-            )
-            return self.send_error_message(
+            return self.send_slack_message(
                 request,
                 client,
+                token,
                 ALREADY_LINKED_MESSAGE,
-                params["response_url"],
-                params["channel_id"],
+                channel_id,
                 integration,
             )
 
@@ -160,14 +173,14 @@ class SlackLinkTeamView(BaseView):
             organization=organization,
             integration=integration,
             provider=ExternalProviders.SLACK.value,
-            external_name=params["channel_name"],
-            external_id=params["channel_id"],
+            external_name=channel_name,
+            external_id=channel_id,
         )
 
-        # TODO handle non-happy paths
         if created:
             # turn on notifications for all of a team's projects
-            # this will change with a data migration I think :(
+            # TODO(ceo): Update this when the manager has been updated to handle
+            # team scope types
             team_projects = team.get_projects()
             for project in team_projects:
                 NotificationSetting.objects.update_settings(
@@ -177,30 +190,11 @@ class SlackLinkTeamView(BaseView):
                     team=team,
                     project=project,
                 )
-            token = (
-                integration.metadata.get("user_access_token")
-                or integration.metadata["access_token"]
-            )
-            headers = {"Authorization": "Bearer %s" % token}
-            payload = {
-                "token": token,
-                "channel": params["channel_id"],
-                "text": f"The {team.slug} team will now receive notifications in this channel.",
-            }
-            client = SlackClient()
-            try:
-                client.post("/chat.postMessage", headers=headers, data=payload, json=True)
-            except ApiError as e:
-                message = str(e)
-                # If the user took their time to link their slack account, we may no
-                # longer be able to respond, and we're not guaranteed able to post into
-                # the channel. Ignore Expired url errors.
-                #
-                # XXX(epurkhiser): Yes the error string has a space in it.
-                if message != "Expired url":
-                    logger.error("slack.link-notify.response-error", extra={"error": message})
-            return render_to_response(
-                "sentry/slack-linked-team.html",
-                request=request,
-                context={"channel_id": params["channel_id"], "team_id": integration.external_id},
+            return self.send_slack_message(
+                request,
+                client,
+                token,
+                SUCCESS_LINKED_MESSAGE,
+                channel_id,
+                integration,
             )

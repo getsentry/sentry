@@ -24,12 +24,33 @@ class SlackCommandsEndpoint(Endpoint):
     authentication_classes = ()
     permission_classes = ()
 
+    def send_ephemeral_notification(self, message):
+        return self.respond(
+            {
+                "response_type": "ephemeral",
+                "replace_original": False,
+                "text": message,
+            }
+        )
+
+    def get_identity(self, team_id, user_id):
+        try:
+            idp = IdentityProvider.objects.get(type="slack", external_id=team_id)
+        except IdentityProvider.DoesNotExist:
+            logger.error("slack.action.invalid-team-id", extra={"slack_team": team_id})
+            return self.respond(status=403)
+
+        try:
+            identity = Identity.objects.select_related("user").get(idp=idp, external_id=user_id)
+        except Identity.DoesNotExist:
+            return self.send_ephemeral_notification(LINK_USER_MESSAGE)
+        return identity
+
     def post(self, request: Request) -> HttpResponse:
         """
         All Slack commands are handled by this endpoint. This block just
         validates the request and dispatches it to the right handler.
         """
-        logging_data = {}
         try:
             slack_request = SlackCommandRequest(request)
             slack_request.validate()
@@ -38,30 +59,13 @@ class SlackCommandsEndpoint(Endpoint):
 
         payload = slack_request.data
         command = get_command(payload)
-        logging_data["slack_team"] = slack_request.team_id
         # TODO(mgaeta): Add more commands.
         if command in ["help", ""]:
             return self.respond(SlackHelpMessageBuilder().build())
         if command == "link team":
-            user_id = payload.get("user_id")
-            try:
-                idp = IdentityProvider.objects.get(type="slack", external_id=slack_request.team_id)
-            except IdentityProvider.DoesNotExist:
-                logger.error("slack.action.invalid-team-id", extra=logging_data)
-                return self.respond(status=403)
-
-            try:
-                Identity.objects.select_related("user").get(idp=idp, external_id=user_id)
-            except Identity.DoesNotExist:
-                # TODO(ceo) write a test for this case
-                return self.respond(
-                    {
-                        "response_type": "ephemeral",
-                        "replace_original": False,
-                        "text": LINK_USER_MESSAGE,
-                    }
-                )
             integration = slack_request.integration
+            user_id = payload.get("user_id")
+            self.get_identity(slack_request.team_id, user_id)
             channel_id = payload.get("channel_id", "")
             channel_name = payload.get("channel_name", "")
             user_id = payload.get("user_id", "")
@@ -69,12 +73,8 @@ class SlackCommandsEndpoint(Endpoint):
             associate_url = build_linking_url(
                 integration, user_id, channel_id, channel_name, response_url
             )
-            return self.respond(
-                {
-                    "response_type": "ephemeral",
-                    "replace_original": False,
-                    "text": LINK_TEAM_MESSAGE.format(associate_url=associate_url),
-                }
+            return self.send_ephemeral_notification(
+                LINK_TEAM_MESSAGE.format(associate_url=associate_url)
             )
 
         # If we cannot interpret the command, print help text.

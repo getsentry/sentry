@@ -72,5 +72,26 @@ class SlackCommandsPostTest(SlackCommandsTest):
         assert_is_help_text(response)
 
     def test_link_team_command(self):
-        response = self.get_slack_response({"text": "link team", "team_id": self.external_id})
-        # add more stuff
+        """Test that we successfully link a team to a Slack channel"""
+        # response = self.get_slack_response({"text": "link team", "team_id": self.external_id})
+        pass
+
+    def test_link_team_identity_does_not_exist(self):
+        """Test that get_identity fails and we reply with the LINK_USER_MESSAGE"""
+        pass
+
+    def test_link_team_insufficient_role(self):
+        """Test that when a user whose role is insufficient and is not a member of the
+        team in question in a closed membership org attempts to link a team, we reject
+        them and reply with the INSUFFICIENT_ROLE_MESSAGE"""
+        pass
+
+    def test_link_team_insufficient_role_open_membership(self):
+        """Test that when a user whose role is insufficient in an open membership organization
+        attempts to link a team, we reject them and reply with the INSUFFICIENT_ROLE_MESSAGE"""
+        pass
+
+    def test_link_team_already_linked(self):
+        """Test that if a team has already been linked to a Slack channel when a user tries
+        to link them again, we reject the attempt and reply with the ALREADY_LINKED_MESSAGE"""
+        pass
