@@ -16,6 +16,7 @@ from sentry.api.serializers import serialize
 from sentry.models import Relay, RelayUsage
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
 from sentry.utils import json
+from sentry.web.decorators import transaction_start
 
 
 class RelayIdSerializer(serializers.Serializer):
@@ -36,6 +37,7 @@ class RelayRegisterChallengeEndpoint(Endpoint):
     authentication_classes = ()
     permission_classes = ()
 
+    @transaction_start("RelayRegisterChallengeEndpoint")
     def post(self, request):
         """
         Requests to Register a Relay
@@ -112,6 +114,7 @@ class RelayRegisterResponseEndpoint(Endpoint):
     authentication_classes = ()
     permission_classes = ()
 
+    @transaction_start("RelayRegisterResponseEndpoint")
     def post(self, request):
         """
         Registers a Relay

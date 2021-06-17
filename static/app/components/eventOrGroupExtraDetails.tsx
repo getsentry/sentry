@@ -21,8 +21,8 @@ import withOrganization from 'app/utils/withOrganization';
 
 type Props = WithRouterProps<{orgId: string}> & {
   data: Event | Group;
-  showAssignee?: boolean;
   organization: Organization;
+  showAssignee?: boolean;
   hasGuideAnchor?: boolean;
   showInboxTime?: boolean;
 };

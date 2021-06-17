@@ -54,8 +54,10 @@ from typing import Optional
 from uuid import uuid4
 
 import dateutil.parser
+import jsonschema
 import requests
 from rest_framework import serializers
+from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
@@ -65,8 +67,8 @@ from sentry.api.exceptions import (
     ItunesAuthenticationError,
     ItunesTwoFactorAuthenticationRequired,
 )
+from sentry.lang.native.symbolicator import APP_STORE_CONNECT_SCHEMA
 from sentry.models import Project
-from sentry.utils import fernet_encrypt as encrypt
 from sentry.utils import json
 from sentry.utils.appleconnect import appstore_connect, itunes_connect
 from sentry.utils.appleconnect.itunes_connect import ITunesHeaders
@@ -112,7 +114,7 @@ def get_app_store_config(
         raise ValueError("bad sources") from e
 
 
-class AppStoreConnectCredentialsSerializer(serializers.Serializer):
+class AppStoreConnectCredentialsSerializer(serializers.Serializer):  # type: ignore
     """Input validation for :class:`AppStoreConnectAppsEndpoint."""
 
     # an IID with the XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX format
@@ -123,7 +125,7 @@ class AppStoreConnectCredentialsSerializer(serializers.Serializer):
     appconnectPrivateKey = serializers.CharField(max_length=512, required=True)
 
 
-class AppStoreConnectAppsEndpoint(ProjectEndpoint):
+class AppStoreConnectAppsEndpoint(ProjectEndpoint):  # type: ignore
     """Retrieves available applications with provided credentials.
 
     ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/apps/``
@@ -163,7 +165,7 @@ class AppStoreConnectAppsEndpoint(ProjectEndpoint):
 
     permission_classes = [StrictProjectPermission]
 
-    def post(self, request, project):
+    def post(self, request: Request, project: Project) -> Response:
         if not features.has(
             APP_STORE_CONNECT_FEATURE_NAME, project.organization, actor=request.user
         ):
@@ -187,13 +189,24 @@ class AppStoreConnectAppsEndpoint(ProjectEndpoint):
         if apps is None:
             raise AppConnectAuthenticationError()
 
-        apps = [{"name": app.name, "bundleId": app.bundle_id, "appId": app.app_id} for app in apps]
-        result = {"apps": apps}
+        all_apps = [
+            {"name": app.name, "bundleId": app.bundle_id, "appId": app.app_id} for app in apps
+        ]
+        result = {"apps": all_apps}
 
         return Response(result, status=200)
 
 
-class AppStoreCreateCredentialsSerializer(serializers.Serializer):
+class CreateSessionContextSerializer(serializers.Serializer):  # type: ignore
+    auth_key = serializers.CharField(min_length=1, required=True)
+    session_id = serializers.CharField(min_length=1, required=True)
+    scnt = serializers.CharField(min_length=1, required=True)
+    itunes_session = serializers.CharField(min_length=1, required=True)
+    itunes_person_id = serializers.CharField(min_length=1, required=True)
+    itunes_created = serializers.DateTimeField(required=True)
+
+
+class AppStoreCreateCredentialsSerializer(serializers.Serializer):  # type: ignore
     """Input validation for :class:`AppStoreConnectCreateCredentialsEndpoint`."""
 
     # an IID with the XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX format
@@ -205,14 +218,15 @@ class AppStoreCreateCredentialsSerializer(serializers.Serializer):
     itunesUser = serializers.CharField(max_length=100, min_length=1, required=True)
     itunesPassword = serializers.CharField(max_length=512, min_length=1, required=True)
     appName = serializers.CharField(max_length=512, min_length=1, required=True)
-    appId = serializers.CharField(max_length=512, min_length=1, required=True)
-    sessionContext = serializers.CharField(min_length=1, required=True)
+    appId = serializers.CharField(min_length=1, required=True)
+    bundleId = serializers.CharField(min_length=1, required=True)
     # this is the ITunes organization the user is a member of ( known as providers in Itunes terminology)
     orgId = serializers.IntegerField(required=True)
     orgName = serializers.CharField(max_length=100, required=True)
+    sessionContext = CreateSessionContextSerializer(required=True)
 
 
-class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):
+class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
     """Returns all the App Store Connect symbol source settings ready to be saved.
 
     ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/``
@@ -236,7 +250,7 @@ class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):
 
     permission_classes = [StrictProjectPermission]
 
-    def post(self, request, project):
+    def post(self, request: Request, project: Project) -> Response:
         if not features.has(
             APP_STORE_CONNECT_FEATURE_NAME, project.organization, actor=request.user
         ):
@@ -247,38 +261,35 @@ class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
-        key = project.get_option(CREDENTIALS_KEY_NAME)
+        config = serializer.validated_data
+        session_context = config.pop("sessionContext")
 
-        if key is None:
-            # probably stage 1 login was not called
-            return Response(
-                "Invalid state. Must first call appstoreconnect/start/ endpoint.", status=400
-            )
+        config["type"] = "appStoreConnect"
+        config["id"] = uuid4().hex
+        config["name"] = "Apple App Store Connect"
+        config["itunesCreated"] = session_context.get("itunes_created")
+        config["itunesSession"] = session_context.get("itunes_session")
+        config["itunesPersonId"] = session_context.get("itunes_person_id")
 
-        credentials = serializer.validated_data
+        # We need to have a serialised datetime, but django-rest-framework de-serialised it
+        # into the class.  So, serialize it back.
+        clone = config.copy()
+        clone["itunesCreated"] = config["itunesCreated"].isoformat()
+        jsonschema.validate(clone, APP_STORE_CONNECT_SCHEMA)
 
-        encrypted_context = credentials.pop("sessionContext")
-
-        try:
-            validation_context = encrypt.decrypt_object(encrypted_context, key)
-            itunes_session = validation_context.get("itunes_session")
-            encrypted = {
-                "itunesSession": itunes_session,
-                "itunesPassword": credentials.get("itunesPassword"),
-                "appconnectPrivateKey": credentials.get("appconnectPrivateKey"),
-            }
-            credentials["encrypted"] = encrypt.encrypt_object(encrypted, key)
-            credentials["type"] = "appStoreConnect"
-            credentials["itunesCreated"] = validation_context.get("itunes_created")
-            credentials["id"] = uuid4().hex
-            credentials["name"] = "Apple App Store Connect"
-            # TODO(flub): validate this using the JSON schema in sentry.lang.native.symbolicator
-        except ValueError:
-            return Response("Invalid validation context passed.", status=400)
-        return Response(credentials, status=200)
+        return Response(config, status=200)
 
 
-class AppStoreUpdateCredentialsSerializer(serializers.Serializer):
+class UpdateSessionContextSerializer(serializers.Serializer):  # type: ignore
+    auth_key = serializers.CharField(min_length=1, required=True)
+    session_id = serializers.CharField(min_length=1, required=True)
+    scnt = serializers.CharField(min_length=1, required=True)
+    itunes_session = serializers.CharField(min_length=1, required=True)
+    itunes_person_id = serializers.CharField(min_length=1, required=True)
+    itunes_created = serializers.DateTimeField(required=True)
+
+
+class AppStoreUpdateCredentialsSerializer(serializers.Serializer):  # type: ignore
     """Input validation for :class:`AppStoreConnectUpdateCredentialsEndpoint`."""
 
     # an IID with the XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX format
@@ -290,14 +301,15 @@ class AppStoreUpdateCredentialsSerializer(serializers.Serializer):
     itunesUser = serializers.CharField(max_length=100, min_length=1, required=False)
     itunesPassword = serializers.CharField(max_length=512, min_length=1, required=False)
     appName = serializers.CharField(max_length=512, min_length=1, required=False)
-    appId = serializers.CharField(max_length=512, min_length=1, required=False)
-    sessionContext = serializers.CharField(min_length=1, required=False)
+    appId = serializers.CharField(min_length=1, required=False)
+    bundleId = serializers.CharField(min_length=1, required=False)
+    sessionContext = UpdateSessionContextSerializer(required=False)
     # this is the ITunes organization the user is a member of ( known as providers in Itunes terminology)
     orgId = serializers.IntegerField(required=False)
     orgName = serializers.CharField(max_length=100, required=False)
 
 
-class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):
+class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
     """Updates a subset of the existing credentials.
 
     ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/{id}/``
@@ -312,72 +324,45 @@ class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):
 
     permission_classes = [StrictProjectPermission]
 
-    def post(self, request, project, credentials_id):
+    def post(self, request: Request, project: Project, credentials_id: str) -> Response:
         if not features.has(
             APP_STORE_CONNECT_FEATURE_NAME, project.organization, actor=request.user
         ):
             return Response(status=404)
 
         serializer = AppStoreUpdateCredentialsSerializer(data=request.data)
-
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
         # get the existing credentials
         symbol_source_config = get_app_store_config(project, credentials_id)
-        key = project.get_option(CREDENTIALS_KEY_NAME)
-
-        if key is None or symbol_source_config is None:
+        if symbol_source_config is None:
             return Response(status=404)
 
-        try:
-            secrets = encrypt.decrypt_object(symbol_source_config.pop("encrypted"), key)
-        except ValueError:
-            return Response(status=500)
-
         # get the new credentials
-        new_credentials = serializer.validated_data
-        encrypted_context = new_credentials.get("sessionContext")
+        data = serializer.validated_data
+        session_context = data.pop("sessionContext")
 
-        new_itunes_session = None
-        new_itunes_created = None
-        if encrypted_context is not None:
-            try:
-                validation_context = encrypt.decrypt_object(encrypted_context, key)
-                new_itunes_session = validation_context.get("itunes_session")
-                new_itunes_created = validation_context.get("itunes_created")
-            except ValueError:
-                return Response("Invalid validation context passed.", status=400)
+        if session_context:
+            data["itunesCreated"] = session_context.get("itunes_created")
+            data["itunesSession"] = session_context.get("itunes_session")
+            data["itunesPersonId"] = session_context.get("itunes_person_id")
 
-        new_secrets = {}
+        symbol_source_config.update(data)
 
-        if new_itunes_session is not None:
-            new_secrets["itunesSession"] = new_itunes_session
+        # We need to have a serialised datetime, but django-rest-framework de-serialised it
+        # into the class.  So, serialize it back.
+        if isinstance(symbol_source_config["itunesCreated"], datetime.datetime):
+            clone = symbol_source_config.copy()
+            clone["itunesCreated"] = symbol_source_config["itunesCreated"].isoformat()
+        else:
+            clone = data
+        jsonschema.validate(clone, APP_STORE_CONNECT_SCHEMA)
 
-        new_itunes_password = new_credentials.get("itunesPassword")
-        if new_itunes_password is not None:
-            new_secrets["itunesPassword"] = new_itunes_password
-
-        new_appconnect_private_key = new_credentials.get("appconnectPrivateKey")
-        if new_appconnect_private_key is not None:
-            new_secrets["appconnectPrivateKey"] = new_appconnect_private_key
-
-        # merge the new and existing credentials
-
-        try:
-            secrets.update(new_secrets)
-            symbol_source_config.update(new_credentials)
-
-            symbol_source_config["encrypted"] = encrypt.encrypt_object(secrets, key)
-            symbol_source_config["itunesCreated"] = new_itunes_created
-            symbol_source_config["id"] = uuid4().hex
-            # TODO(flub): validate this using the JSON schema in sentry.lang.native.symbolicator
-        except ValueError:
-            return Response("Invalid validation context passed.", status=400)
         return Response(symbol_source_config, status=200)
 
 
-class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):
+class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: ignore
     """Validates both API credentials and if the stored ITunes session is still active.
 
     ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/validate/{id}/``
@@ -399,57 +384,47 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):
 
     permission_classes = [StrictProjectPermission]
 
-    def get(self, request, project, credentials_id):
+    def get(self, request: Request, project: Project, credentials_id: str) -> Response:
         if not features.has(
             APP_STORE_CONNECT_FEATURE_NAME, project.organization, actor=request.user
         ):
             return Response(status=404)
 
         symbol_source_cfg = get_app_store_config(project, credentials_id)
-        key = project.get_option(CREDENTIALS_KEY_NAME)
-
-        if key is None or symbol_source_cfg is None:
+        if symbol_source_cfg is None:
             return Response(status=404)
 
         if symbol_source_cfg.get("itunesCreated") is not None:
-            expiration_date = (
+            expiration_date: Optional[datetime.datetime] = (
                 dateutil.parser.isoparse(symbol_source_cfg.get("itunesCreated"))
                 + ITUNES_TOKEN_VALIDITY
             )
         else:
             expiration_date = None
 
-        try:
-            secrets = encrypt.decrypt_object(symbol_source_cfg.get("encrypted"), key)
-        except ValueError:
-            return Response(status=500)
-
         credentials = appstore_connect.AppConnectCredentials(
             key_id=symbol_source_cfg.get("appconnectKey"),
-            key=secrets.get("appconnectPrivateKey"),
+            key=symbol_source_cfg.get("appconnectPrivateKey"),
             issuer_id=symbol_source_cfg.get("appconnectIssuer"),
         )
 
         session = requests.Session()
         apps = appstore_connect.get_apps(session, credentials)
 
-        appstore_valid = apps is not None
-        itunes_connect.load_session_cookie(session, secrets.get("itunesSession"))
+        itunes_connect.load_session_cookie(session, symbol_source_cfg.get("itunesSession"))
         itunes_session_info = itunes_connect.get_session_info(session)
-
-        itunes_session_valid = itunes_session_info is not None
 
         return Response(
             {
-                "appstoreCredentialsValid": appstore_valid,
-                "itunesSessionValid": itunes_session_valid,
-                "itunesSessionRefreshAt": expiration_date if itunes_session_valid else None,
+                "appstoreCredentialsValid": apps is not None,
+                "itunesSessionValid": itunes_session_info is not None,
+                "itunesSessionRefreshAt": expiration_date if itunes_session_info else None,
             },
             status=200,
         )
 
 
-class AppStoreConnectStartAuthSerializer(serializers.Serializer):
+class AppStoreConnectStartAuthSerializer(serializers.Serializer):  # type: ignore
     """Input validation for :class:`AppStoreConnectStartAuthEndpoint."""
 
     itunesUser = serializers.CharField(max_length=100, min_length=1, required=False)
@@ -457,7 +432,7 @@ class AppStoreConnectStartAuthSerializer(serializers.Serializer):
     id = serializers.CharField(max_length=40, min_length=1, required=False)
 
 
-class AppStoreConnectStartAuthEndpoint(ProjectEndpoint):
+class AppStoreConnectStartAuthEndpoint(ProjectEndpoint):  # type: ignore
     """Starts iTunes login sequence.
 
     ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/start/``
@@ -487,15 +462,16 @@ class AppStoreConnectStartAuthEndpoint(ProjectEndpoint):
 
     In either case both those calls **must** include the ``sessionContext`` as returned by
     the response to this endpoint:
+
     ```json
     {
-        "sessionContext": "xxxx"
+        "sessionContext": { ... },
     }
     """
 
     permission_classes = [StrictProjectPermission]
 
-    def post(self, request, project):
+    def post(self, request: Request, project: Project) -> Response:
         if not features.has(
             APP_STORE_CONNECT_FEATURE_NAME, project.organization, actor=request.user
         ):
@@ -509,44 +485,22 @@ class AppStoreConnectStartAuthEndpoint(ProjectEndpoint):
         password = serializer.validated_data.get("itunesPassword")
         credentials_id = serializer.validated_data.get("id")
 
-        key = project.get_option(CREDENTIALS_KEY_NAME)
+        if credentials_id is not None:
+            symbol_source_config = get_app_store_config(project, credentials_id)
+            if symbol_source_config is None:
+                return Response("No credentials found.", status=400)
 
-        if key is None:
-            # no encryption key for this project, create one
-            key = encrypt.create_key()
-            project.update_option(CREDENTIALS_KEY_NAME, key)
-        else:
-            # we have an encryption key, see if the credentials were not
-            # supplied and we just want to re validate the session
-            if user_name is None or password is None:
-                # credentials not supplied use saved credentials
-
-                credentials = get_app_store_config(project, credentials_id)
-                if key is None or credentials is None:
-                    return Response("No credentials provided.", status=400)
-
-                try:
-                    secrets = encrypt.decrypt_object(credentials.get("encrypted"), key)
-                except ValueError:
-                    return Response("Invalid credentials state.", status=500)
-
-                user_name = credentials.get("itunesUser")
-                password = secrets.get("itunesPassword")
-
-                if user_name is None or password is None:
-                    return Response("Invalid credentials.", status=500)
-
-        session = requests.session()
-
-        auth_key = itunes_connect.get_auth_service_key(session)
-
-        if auth_key is None:
-            return Response("Could not contact itunes store.", status=500)
+            user_name = symbol_source_config.get("itunesUser")
+            password = symbol_source_config.get("itunesPassword")
 
         if user_name is None:
             return Response("No user name provided.", status=400)
         if password is None:
             return Response("No password provided.", status=400)
+
+        session = requests.session()
+
+        auth_key = itunes_connect.get_auth_service_key(session)
 
         init_login_result = itunes_connect.initiate_login(
             session, service_key=auth_key, account_name=user_name, password=password
@@ -554,25 +508,31 @@ class AppStoreConnectStartAuthEndpoint(ProjectEndpoint):
         if init_login_result is None:
             raise ItunesAuthenticationError()
 
-        # send session context to be used in next calls
-        session_context = {
-            "auth_key": auth_key,
-            "session_id": init_login_result.session_id,
-            "scnt": init_login_result.scnt,
-        }
-
         return Response(
-            {"sessionContext": encrypt.encrypt_object(session_context, key)}, status=200
+            {
+                "sessionContext": {
+                    "auth_key": auth_key,
+                    "session_id": init_login_result.session_id,
+                    "scnt": init_login_result.scnt,
+                }
+            },
+            status=200,
         )
 
 
-class AppStoreConnectRequestSmsSerializer(serializers.Serializer):
+class RequestSmsSessionContextSerializer(serializers.Serializer):  # type: ignore
+    auth_key = serializers.CharField(min_length=1, required=True)
+    session_id = serializers.CharField(min_length=1, required=True)
+    scnt = serializers.CharField(min_length=1, required=True)
+
+
+class AppStoreConnectRequestSmsSerializer(serializers.Serializer):  # type: ignore
     """Input validation for :class:`AppStoreConnectRequestSmsEndpoint`."""
 
-    sessionContext = serializers.CharField(min_length=1, required=True)
+    sessionContext = RequestSmsSessionContextSerializer(required=True)
 
 
-class AppStoreConnectRequestSmsEndpoint(ProjectEndpoint):
+class AppStoreConnectRequestSmsEndpoint(ProjectEndpoint):  # type: ignore
     """Switches an iTunes login to using SMS for 2FA.
 
     ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/requestSms/``
@@ -582,7 +542,7 @@ class AppStoreConnectRequestSmsEndpoint(ProjectEndpoint):
     provide the ``sessionContext`` from that response in the request body:
     ```json
     {
-        "sessionContext": "xxxx"
+        "sessionContext": { ... }
     }
     ```
 
@@ -594,42 +554,25 @@ class AppStoreConnectRequestSmsEndpoint(ProjectEndpoint):
 
     permission_classes = [StrictProjectPermission]
 
-    def post(self, request, project):
+    def post(self, request: Request, project: Project) -> Response:
         if not features.has(
             APP_STORE_CONNECT_FEATURE_NAME, project.organization, actor=request.user
         ):
             return Response(status=404)
 
         serializer = AppStoreConnectRequestSmsSerializer(data=request.data)
-
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
+        data = serializer.validated_data["sessionContext"]
+
+        headers = ITunesHeaders(session_id=data.get("session_id"), scnt=data.get("scnt"))
+        auth_key = data.get("auth_key")
 
         session = requests.Session()
-
-        encrypted_context = serializer.validated_data.get("sessionContext")
-        key = project.get_option(CREDENTIALS_KEY_NAME)
-
-        if key is None:
-            return Response(
-                "Invalid state. Must first call appstoreconnect/start/ endpoint.", status=400
-            )
-
-        try:
-            # recover the headers set in the first step authentication
-            session_context = encrypt.decrypt_object(encrypted_context, key)
-            headers = ITunesHeaders(
-                session_id=session_context.get("session_id"), scnt=session_context.get("scnt")
-            )
-            auth_key = session_context.get("auth_key")
-
-        except ValueError:
-            return Response("Invalid validation context passed.", status=400)
 
         phone_info = itunes_connect.get_trusted_phone_info(
             session, service_key=auth_key, headers=headers
         )
-
         if phone_info is None:
             return Response("Could not get phone info", status=400)
 
@@ -640,47 +583,53 @@ class AppStoreConnectRequestSmsEndpoint(ProjectEndpoint):
             phone_id=phone_info.id,
             push_mode=phone_info.push_mode,
         )
-
-        if init_phone_login is None:
+        if not init_phone_login:
             return Response("Phone 2fa failed", status=500)
 
         # success, return the new session context (add phone_id and push mode to the session context)
-        session_context["phone_id"] = phone_info.id
-        session_context["push_mode"] = phone_info.push_mode
-        encrypted_context = encrypt.encrypt_object(session_context, key)
-        return Response({"sessionContext": encrypted_context}, status=200)
+        data["phone_id"] = phone_info.id
+        data["push_mode"] = phone_info.push_mode
+        return Response({"sessionContext": data}, status=200)
 
 
-class AppStoreConnect2FactorAuthSerializer(serializers.Serializer):
+class TwoFactorAuthSessionContextSerializer(serializers.Serializer):  # type: ignore
+    auth_key = serializers.CharField(min_length=1, required=True)
+    session_id = serializers.CharField(min_length=1, required=True)
+    scnt = serializers.CharField(min_length=1, required=True)
+    phone_id = serializers.CharField(min_length=1, required=False)
+    push_mode = serializers.CharField(min_length=1, required=False)
+
+
+class AppStoreConnect2FactorAuthSerializer(serializers.Serializer):  # type: ignore
     """Input validation for :class:`AppStoreConnect2FactorAuthEndpoint."""
 
+    sessionContext = TwoFactorAuthSessionContextSerializer(required=True)
     code = serializers.CharField(max_length=10, required=True)
     useSms = serializers.BooleanField(required=True)
-    sessionContext = serializers.CharField(min_length=1, required=True)
 
 
-class AppStoreConnect2FactorAuthEndpoint(ProjectEndpoint):
+class AppStoreConnect2FactorAuthEndpoint(ProjectEndpoint):  # type: ignore
     """Completes the 2FA iTunes login, returning a valid session.
 
     ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/2fa/``
 
-    The request most contain the code provided by the user as well as the ``sessionContext``
+    The request must contain the code provided by the user as well as the ``sessionContext``
     provided by either the :class:`AppStoreConnectStartAuthEndpoint`
     (``projects/{org_slug}/{proj_slug}/appstoreconnect/start/``) call or the
     :class:`AppStoreConnectRequestSmsmEndpoint`
     (``projects/{org_slug}/{proj_slug}/appstoreconnect/requestSms/``) call:
     ```json
     {
+        "sessionContext": { ... },
         "code": "324784",
-        "useSms": false,
-        "sessionContext": "xxxx",
+        "useSms": false,  # or true if requestSms was called,
     }
     ```
 
     If the login was successful this will return:
     ```json
     {
-        "sessionContext": "xxxx",
+        "sessionContext": { ... },
         "organizations": [
             { "name": "My org", "organizationId": 1234},
             { "name": "Org 2", "organizationId": 4423}
@@ -688,7 +637,7 @@ class AppStoreConnect2FactorAuthEndpoint(ProjectEndpoint):
     }
     ```
 
-    Note that the ``sessionContext`` **is different** from the one passed in, it must be
+    Note that the ``sessionContext`` **is different** from the ones passed in, it must be
     passed to :class:`AppStoreConnectCreateCredentialsEndpoint`
     (``projects/{org_slug}/{proj_slug}/appstoreconnect/``).
 
@@ -698,13 +647,13 @@ class AppStoreConnect2FactorAuthEndpoint(ProjectEndpoint):
     (``projects/{org_slug}/{proj_slug}/appstoreconnect/``)
 
     If refreshing a session instead of creating a new one only the ``sessionContext`` needs
-    to be updated uinsg :class:`AppStoreConnectUpdateCredentialsEndpoint`
+    to be updated using :class:`AppStoreConnectUpdateCredentialsEndpoint`
     (``projects/{org_slug}/{proj_slug}/appstoreconnect/{id}/``).
     """
 
     permission_classes = [StrictProjectPermission]
 
-    def post(self, request, project):
+    def post(self, request: Request, project: Project) -> Response:
         if not features.has(
             APP_STORE_CONNECT_FEATURE_NAME, project.organization, actor=request.user
         ):
@@ -713,73 +662,57 @@ class AppStoreConnect2FactorAuthEndpoint(ProjectEndpoint):
         serializer = AppStoreConnect2FactorAuthSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
+        data = serializer.validated_data
+        session_context = data["sessionContext"]
 
-        encrypted_context = serializer.validated_data.get("sessionContext")
-        key = project.get_option(CREDENTIALS_KEY_NAME)
-        use_sms = serializer.validated_data.get("useSms")
-        code = serializer.validated_data.get("code")
+        session = requests.Session()
+        headers = ITunesHeaders(
+            session_id=session_context.get("session_id"), scnt=session_context.get("scnt")
+        )
 
-        if key is None:
-            # probably stage 1 login was not called
+        if data.get("useSms"):
+            success = itunes_connect.send_phone_authentication_confirmation_code(
+                session,
+                service_key=session_context.get("auth_key"),
+                headers=headers,
+                phone_id=session_context.get("phone_id"),
+                push_mode=session_context.get("push_mode"),
+                security_code=data.get("code"),
+            )
+        else:
+            success = itunes_connect.send_authentication_confirmation_code(
+                session,
+                service_key=session_context.get("auth_key"),
+                headers=headers,
+                security_code=data.get("code"),
+            )
+        if success:
+            session_info = itunes_connect.get_session_info(session)
+            if session_info is None:
+                return Response("Session info failed.", status=500)
+
+            existing_providers = get_path(session_info, "availableProviders")
+            providers = [
+                {"name": provider.get("name"), "organizationId": provider.get("providerId")}
+                for provider in existing_providers
+            ]
+            prs_id = get_path(session_info, "user", "prsId")
+
+            itunes_session = itunes_connect.get_session_cookie(session)
+            new_session_context = {
+                "auth_key": session_context.get("auth_key"),
+                "session_id": headers.session_id,
+                "scnt": headers.scnt,
+                "itunes_session": itunes_session,
+                "itunes_person_id": prs_id,
+                "itunes_created": datetime.datetime.utcnow(),
+            }
             return Response(
-                "Invalid state. Must first call appstoreconnect/start/ endpoint.", status=400
+                {
+                    "sessionContext": new_session_context,
+                    "organizations": providers,
+                },
+                status=200,
             )
-
-        try:
-            # recover the headers set in the first step authentication
-            session_context = encrypt.decrypt_object(encrypted_context, key)
-            headers = ITunesHeaders(
-                session_id=session_context.get("session_id"), scnt=session_context.get("scnt")
-            )
-            auth_key = session_context.get("auth_key")
-
-            session = requests.Session()
-
-            if use_sms:
-                phone_id = session_context.get("phone_id")
-                push_mode = session_context.get("push_mode")
-                success = itunes_connect.send_phone_authentication_confirmation_code(
-                    session,
-                    service_key=auth_key,
-                    headers=headers,
-                    phone_id=phone_id,
-                    push_mode=push_mode,
-                    security_code=code,
-                )
-            else:
-                success = itunes_connect.send_authentication_confirmation_code(
-                    session, service_key=auth_key, headers=headers, security_code=code
-                )
-
-            if success:
-                session_info = itunes_connect.get_session_info(session)
-
-                if session_info is None:
-                    return Response("session info failed", status=500)
-
-                existing_providers = get_path(session_info, "availableProviders")
-                providers = [
-                    {"name": provider.get("name"), "organizationId": provider.get("providerId")}
-                    for provider in existing_providers
-                ]
-                prs_id = get_path(session_info, "user", "prsId")
-
-                itunes_session = itunes_connect.get_session_cookie(session)
-                session_context = {
-                    "auth_key": auth_key,
-                    "session_id": headers.session_id,
-                    "scnt": headers.scnt,
-                    "itunes_session": itunes_session,
-                    "itunes_person_id": prs_id,
-                    "itunes_created": datetime.datetime.utcnow(),
-                }
-                encrypted_context = encrypt.encrypt_object(session_context, key)
-
-                response_body = {"sessionContext": encrypted_context, "organizations": providers}
-
-                return Response(response_body, status=200)
-            else:
-                raise ItunesTwoFactorAuthenticationRequired()
-
-        except ValueError:
-            return Response("Invalid validation context passed.", status=400)
+        else:
+            raise ItunesTwoFactorAuthenticationRequired()

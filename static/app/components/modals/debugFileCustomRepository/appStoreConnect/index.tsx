@@ -33,16 +33,30 @@ import {
   StepTwoData,
 } from './types';
 
+type SessionContext = {
+  auth_key: string;
+  scnt: string;
+  session_id: string;
+};
+
+type ItunesRevalidationSessionContext = SessionContext & {
+  itunes_created: string;
+  itunes_person_id: string;
+  itunes_session: string;
+};
+
 type IntialData = {
   appId: string;
   appName: string;
   appconnectIssuer: string;
   appconnectKey: string;
   appconnectPrivateKey: string;
-  encrypted: string;
+  bundleId: string;
   id: string;
   itunesCreated: string;
   itunesPassword: string;
+  itunesPersonId: string;
+  itunesSession: string;
   itunesUser: string;
   name: string;
   orgId: number;
@@ -54,7 +68,7 @@ type Props = Pick<ModalRenderProps, 'Header' | 'Body' | 'Footer'> & {
   api: Client;
   orgSlug: Organization['slug'];
   projectSlug: Project['slug'];
-  onSubmit: (data: Record<string, any>) => void;
+  onSubmit: (data: IntialData) => void;
   location: Location;
   appStoreConnectContext?: AppStoreConnectContextProps;
   initialData?: IntialData;
@@ -90,7 +104,9 @@ function AppStoreConnect({
   const [appStoreApps, setAppStoreApps] = useState<AppStoreApp[]>([]);
   const [appleStoreOrgs, setAppleStoreOrgs] = useState<AppleStoreOrg[]>([]);
   const [useSms, setUseSms] = useState(false);
-  const [sessionContext, setSessionContext] = useState('');
+  const [sessionContext, setSessionContext] = useState<SessionContext | undefined>(
+    undefined
+  );
 
   const [stepOneData, setStepOneData] = useState<StepOneData>({
     issuer: initialData?.appconnectIssuer,
@@ -101,7 +117,11 @@ function AppStoreConnect({
   const [stepTwoData, setStepTwoData] = useState<StepTwoData>({
     app:
       initialData?.appId && initialData?.appName
-        ? {appId: initialData.appId, name: initialData.appName}
+        ? {
+            appId: initialData.appId,
+            name: initialData.appName,
+            bundleId: initialData.bundleId,
+          }
         : undefined,
   });
 
@@ -205,7 +225,7 @@ function AppStoreConnect({
     }
   }
 
-  async function persistData(newSessionContext?: string) {
+  async function persistData(newSessionContext?: ItunesRevalidationSessionContext) {
     if (!stepTwoData.app || !stepFifthData.org || !stepThreeData.username) {
       return;
     }
@@ -237,13 +257,13 @@ function AppStoreConnect({
           appconnectPrivateKey: stepOneData.privateKey,
           appName: stepTwoData.app.name,
           appId: stepTwoData.app.appId,
+          bundleId: stepTwoData.app.bundleId,
           orgId: stepFifthData.org.organizationId,
           orgName: stepFifthData.org.name,
           sessionContext: newSessionContext ?? sessionContext,
         },
       });
-
-      onSubmit(response);
+      onSubmit(response as IntialData);
     } catch (error) {
       setIsLoading(false);
       addErrorMessage(errorMessage);

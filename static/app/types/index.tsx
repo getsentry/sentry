@@ -298,6 +298,11 @@ export type Project = {
   transactionStats?: TimeseriesValue[];
   latestRelease?: Release;
   options?: Record<string, boolean | string>;
+  sessionStats?: {
+    currentCrashFreeRate: number | null;
+    previousCrashFreeRate: number | null;
+    hasHealthData: boolean;
+  };
 } & AvatarProject;
 
 export type MinimalProject = Pick<Project, 'id' | 'slug' | 'platform'>;
@@ -1984,7 +1989,7 @@ export type ExceptionValue = {
   rawStacktrace: RawStacktrace;
   mechanism: Mechanism | null;
   module: string | null;
-  frames?: Frame[];
+  frames: Frame[] | null;
 };
 
 export type ExceptionType = {

@@ -32,6 +32,7 @@ type ParameterDescription =
       value: string;
       dataType: ColumnType;
       required: boolean;
+      placeholder?: string;
     }
   | {
       kind: 'column';
@@ -297,6 +298,7 @@ class QueryField extends React.Component<Props> {
               '',
             dataType: param.dataType,
             required: param.required,
+            placeholder: param.placeholder,
           };
         }
       );
@@ -359,6 +361,7 @@ class QueryField extends React.Component<Props> {
           required: descriptor.required,
           value: descriptor.value,
           onUpdate: handler,
+          placeholder: descriptor.placeholder,
           disabled,
         };
         switch (descriptor.dataType) {

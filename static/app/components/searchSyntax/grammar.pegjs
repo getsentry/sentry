@@ -1,6 +1,8 @@
 {
-  const {TokenConverter, TermOperator, FilterType} = options;
-  const tc = new TokenConverter(text, location);
+  const {TokenConverter, TermOperator, FilterType, config} = options;
+  const tc = new TokenConverter({text, location, config});
+
+  const opDefault = TermOperator.Default;
 }
 
 search
@@ -40,118 +42,168 @@ free_parens
 // All key:value filter types
 
 filter
-  = time_filter
-  / specific_time_filter
-  / rel_time_filter
+  = date_filter
+  / specific_date_filter
+  / rel_date_filter
   / duration_filter
   / boolean_filter
   / numeric_in_filter
   / numeric_filter
-  / aggregate_filter
-  / aggregate_time_filter
-  / aggregate_rel_time_filter
+  / aggregate_duration_filter
+  / aggregate_numeric_filter
+  / aggregate_percentage_filter
+  / aggregate_date_filter
+  / aggregate_rel_date_filter
   / has_filter
   / is_filter
   / text_in_filter
   / text_filter
 
 // filter for dates
-time_filter
-  = key:search_key sep op:operator value:iso_8601_date_format {
-      return tc.tokenFilter(FilterType.Time, key, value, op, false);
+date_filter
+  = key:search_key sep op:operator value:iso_8601_date_format &{
+      return tc.predicateFilter(FilterType.Date, key, value, op)
+    } {
+      return tc.tokenFilter(FilterType.Date, key, value, op, false);
     }
 
 // filter for exact dates
-specific_time_filter
-  = key:search_key sep value:iso_8601_date_format {
-      return tc.tokenFilter(FilterType.SpecificTime, key, value, TermOperator.Default, false);
+specific_date_filter
+  = key:search_key sep value:iso_8601_date_format &{
+      return tc.predicateFilter(FilterType.SpecificDate, key)
+    } {
+      return tc.tokenFilter(FilterType.SpecificDate, key, value, opDefault, false);
     }
 
 // filter for relative dates
-rel_time_filter
-  = key:search_key sep value:rel_date_format {
-      return tc.tokenFilter(FilterType.RelativeTime, key, value, TermOperator.Default, false);
+rel_date_filter
+  = key:search_key sep value:rel_date_format &{
+      return tc.predicateFilter(FilterType.RelativeDate, key)
+    } {
+      return tc.tokenFilter(FilterType.RelativeDate, key, value, opDefault, false);
     }
 
 // filter for durations
 duration_filter
-  = key:search_key sep op:operator? value:duration_format {
+  = key:search_key sep op:operator? value:duration_format &{
+      return tc.predicateFilter(FilterType.Duration, key)
+    } {
       return tc.tokenFilter(FilterType.Duration, key, value, op, false);
     }
 
 // boolean comparison filter
 boolean_filter
-  = negation:negation? key:search_key sep value:boolean_value {
-      return tc.tokenFilter(FilterType.Boolean, key, value, TermOperator.Default, !!negation);
+  = negation:negation? key:search_key sep value:boolean_value &{
+      return tc.predicateFilter(FilterType.Boolean, key)
+    } {
+      return tc.tokenFilter(FilterType.Boolean, key, value, opDefault, !!negation);
     }
 
 // numeric in filter
 numeric_in_filter
-  = key:search_key sep value:numeric_in_list {
-      return tc.tokenFilter(FilterType.NumericIn, key, value, TermOperator.Default, false);
+  = key:search_key sep value:numeric_in_list &{
+      return tc.predicateFilter(FilterType.NumericIn, key)
+    } {
+      return tc.tokenFilter(FilterType.NumericIn, key, value, opDefault, false);
     }
 
 // numeric comparison filter
 numeric_filter
-  = key:search_key sep op:operator? value:numeric_value {
+  = key:search_key sep op:operator? value:numeric_value &{
+      return tc.predicateFilter(FilterType.Numeric, key)
+    } {
       return tc.tokenFilter(FilterType.Numeric, key, value, op, false);
     }
 
-// aggregate numeric filter
-aggregate_filter
-  = negation:negation?
-    key:aggregate_key
-    sep
-    op:operator?
-    value:(duration_format / numeric_value / percentage_format) {
-      return tc.tokenFilter(FilterType.AggregateSimple, key, value, op, !!negation);
+// aggregate duration filter
+aggregate_duration_filter
+  = negation:negation? key:aggregate_key sep op:operator? value:duration_format &{
+      return tc.predicateFilter(FilterType.AggregateDuration, key)
+  } {
+      return tc.tokenFilter(FilterType.AggregateDuration, key, value, op, !!negation);
     }
 
-// aggregate time filter
-aggregate_time_filter
-  = negation:negation? key:aggregate_key sep op:operator? value:iso_8601_date_format {
-      return tc.tokenFilter(FilterType.AggregateTime, key, value, op, !!negation);
+// aggregate percentage filter
+aggregate_percentage_filter
+  = negation:negation? key:aggregate_key sep op:operator? value:percentage_format &{
+      return tc.predicateFilter(FilterType.AggregatePercentage, key)
+    } {
+      return tc.tokenFilter(FilterType.AggregatePercentage, key, value, op, !!negation);
+    }
+
+// aggregate numeric filter
+aggregate_numeric_filter
+  = negation:negation? key:aggregate_key sep op:operator? value:numeric_value &{
+      return tc.predicateFilter(FilterType.AggregateNumeric, key)
+    } {
+      return tc.tokenFilter(FilterType.AggregateNumeric, key, value, op, !!negation);
+    }
+
+// aggregate date filter
+aggregate_date_filter
+  = negation:negation? key:aggregate_key sep op:operator? value:iso_8601_date_format &{
+      return tc.predicateFilter(FilterType.AggregateDate, key)
+    } {
+      return tc.tokenFilter(FilterType.AggregateDate, key, value, op, !!negation);
     }
 
 // filter for relative dates
-aggregate_rel_time_filter
-  = negation:negation? key:aggregate_key sep op:operator? value:rel_date_format {
-      return tc.tokenFilter(FilterType.AggregateRelativeTime, key, value, op, !!negation);
+aggregate_rel_date_filter
+  = negation:negation? key:aggregate_key sep op:operator? value:rel_date_format &{
+      return tc.predicateFilter(FilterType.AggregateRelativeDate, key)
+    } {
+      return tc.tokenFilter(FilterType.AggregateRelativeDate, key, value, op, !!negation);
     }
 
 // has filter for not null type checks
 has_filter
-  = negation:negation? &"has" key:search_key sep value:(search_key / search_value) {
-      return tc.tokenFilter(FilterType.Has, key, value, TermOperator.Default, !!negation);
+  = negation:negation? &"has:" key:search_key sep value:(search_key / search_value) &{
+      return tc.predicateFilter(FilterType.Has, key)
+    } {
+      return tc.tokenFilter(FilterType.Has, key, value, opDefault, !!negation);
     }
 
 // is filter. Specific to issue search
 is_filter
-  = negation:negation? &"is" key:search_key sep value:search_value {
-      return tc.tokenFilter(FilterType.Has, key, value, TermOperator.Default, !!negation);
+  = negation:negation? &"is:" key:search_key sep value:search_value &{
+      return tc.predicateFilter(FilterType.Is, key)
+    } {
+      return tc.tokenFilter(FilterType.Is, key, value, opDefault, !!negation);
     }
 
 // in filter key:[val1, val2]
 text_in_filter
-  = negation:negation? key:text_key sep value:text_in_list {
-      return tc.tokenFilter(FilterType.TextIn, key, value, TermOperator.Default, !!negation);
+  = negation:negation? key:text_key sep value:text_in_list &{
+      return tc.predicateFilter(FilterType.TextIn, key)
+    } {
+      return tc.tokenFilter(FilterType.TextIn, key, value, opDefault, !!negation);
     }
 
 // standard key:val filter
+//
+// The text_filter is a little special since it may not have an operator
+// depending on the configuration of the search parser, thus we have a
+// predicate for the operator.
 text_filter
-  = negation:negation? key:text_key sep value:search_value {
-      return tc.tokenFilter(FilterType.Text, key, value, TermOperator.Default, !!negation);
+  = negation:negation?
+    key:text_key
+    sep
+    op:(operator &{ return tc.predicateTextOperator(key); })?
+    value:search_value &{
+      return tc.predicateFilter(FilterType.Text, key)
+    } {
+      return tc.tokenFilter(FilterType.Text, key, value, op ? op[0] : opDefault, !!negation);
     }
 
 // Filter keys
 key
-  = value:[a-zA-Z0-9_\.-]+ {
+  = value:[a-zA-Z0-9_.-]+ {
       return tc.tokenKeySimple(value.join(''), false);
     }
 
 quoted_key
-  = '"' key:key '"' {
-      return tc.tokenKeySimple(key.value, true);
+  = '"' key:[a-zA-Z0-9_.:-]+ '"' {
+      return tc.tokenKeySimple(key.join(''), true);
     }
 
 explicit_tag_key
@@ -179,7 +231,7 @@ text_key
 // Filter values
 
 value
-  = value:[^() ]* {
+  = value:[^()\t\n ]* {
       return tc.tokenValueText(value.join(''), false);
     }
 
@@ -189,44 +241,61 @@ quoted_value
     }
 
 in_value
-  = (&in_value_termination [^(), ])* {
+  = (&in_value_termination in_value_char)+ {
         return tc.tokenValueText(text(), false);
     }
 
-// See: https://stackoverflow.com/a/39617181/790169
-in_value_termination
-  = [^(), ] (!in_value_terminator [^(), ])* in_value_terminator
-
-in_value_terminator
-  = closed_bracket / spaces comma
-
-text_value
+text_in_value
   = quoted_value / in_value
 
 search_value
   = quoted_value / value
 
 numeric_value
-  = value:("-"? [0-9\.]+) unit:[kmb]? &(end_set / comma / closed_bracket) {
-      return tc.tokenValueNumber(value.flat().join(''), unit);
+  = value:("-"? numeric) unit:[kmb]? &(end_value / comma / closed_bracket) {
+      return tc.tokenValueNumber(value.join(''), unit);
     }
 
 boolean_value
-  = value:("true"i / "1" / "false"i / "0") end_lookahead {
+  = value:("true"i / "1" / "false"i / "0") &end_value {
       return tc.tokenValueBoolean(value);
     }
 
 text_in_list
-  = open_bracket item1:text_value items:(spaces comma spaces text_value)* closed_bracket {
+  = open_bracket
+    item1:text_in_value
+    items:(spaces comma spaces text_in_value)*
+    closed_bracket
+    &end_value {
       return tc.tokenValueTextList(item1, items);
     }
 
 numeric_in_list
-  = open_bracket item1:numeric_value items:(spaces comma spaces numeric_value)* closed_bracket {
+  = open_bracket
+    item1:numeric_value
+    items:(spaces comma spaces numeric_value)*
+    closed_bracket
+    &end_value {
       return tc.tokenValueNumberList(item1, items);
     }
 
+// See: https://stackoverflow.com/a/39617181/790169
+in_value_termination
+  = in_value_char (!in_value_end in_value_char)* in_value_end
+
+in_value_char
+  = [^(), ]
+
+in_value_end
+  = closed_bracket / (spaces comma)
+
 // Format values
+
+// XXX: Since pegjs does not support regex there is no easy way to repeat
+// groups n times. So we have some dumb tokens here to handle that. We don't do
+// this in the backend grammar since we just use regex there.
+num2 = [0-9] [0-9]
+num4 = [0-9] [0-9] [0-9] [0-9]
 
 date_format = num4 "-" num2 "-" num2
 time_format = "T" num2 ":" num2 ":" num2 ("." ms_format)?
@@ -234,32 +303,33 @@ ms_format   = [0-9] [0-9]? [0-9]? [0-9]? [0-9]? [0-9]?
 tz_format   = [+-] num2 ":" num2
 
 iso_8601_date_format
-  = date_format time_format? ("Z" / tz_format)? end_lookahead {
+  = date_format time_format? ("Z" / tz_format)? &end_value {
       return tc.tokenValueIso8601Date(text());
     }
 
 rel_date_format
-  = sign:[+-] value:[0-9]+ unit:[wdhm] end_lookahead {
+  = sign:[+-] value:[0-9]+ unit:[wdhm] &end_value {
       return tc.tokenValueRelativeDate(value.join(''), sign, unit);
     }
 
 duration_format
-  = value:[0-9\.]+
+  = value:numeric
     unit:("ms"/"s"/"min"/"m"/"hr"/"h"/"day"/"d"/"wk"/"w")
-    end_lookahead {
-      return tc.tokenValueDuration(value.join(''), unit);
+    &end_value {
+      return tc.tokenValueDuration(value, unit);
     }
 
 percentage_format
-  = value:[0-9\.]+ "%" {
-      return tc.tokenValuePercentage(value.join(''));
+  = value:numeric "%" {
+      return tc.tokenValuePercentage(value);
     }
 
 // NOTE: the order in which these operators are listed matters because for
 // example, if < comes before <= it will match that even if the operator is <=
 operator       = ">=" / "<=" / ">" / "<" / "=" / "!="
-or_operator    = "OR"i  &(" " / eol)
-and_operator   = "AND"i &(" " / eol)
+or_operator    = "OR"i  &end_value
+and_operator   = "AND"i &end_value
+numeric        = [0-9]+ ("." [0-9]*)? { return text(); }
 open_paren     = "("
 closed_paren   = ")"
 open_bracket   = "["
@@ -268,10 +338,5 @@ sep            = ":"
 negation       = "!"
 comma          = ","
 spaces         = " "* { return tc.tokenSpaces(text()) }
-eol            = !.
-num            = [0-9]
-num2           = num num
-num4           = num num num num
 
-end_set = " " / "\\" / ")" / eol
-end_lookahead = &end_set
+end_value = [\t\n )] / !.

@@ -433,8 +433,12 @@ const SPECIAL_FIELDS: SpecialFields = {
   },
 };
 
+type SpecialFunctionFieldRenderer = (
+  fieldName: string
+) => (data: EventData, baggage: RenderFunctionBaggage) => React.ReactNode;
+
 type SpecialFunctions = {
-  user_misery: SpecialFieldRenderFunc;
+  user_misery: SpecialFunctionFieldRenderer;
 };
 
 /**
@@ -442,38 +446,37 @@ type SpecialFunctions = {
  * or they require custom UI formatting that can't be handled by the datatype formatters.
  */
 const SPECIAL_FUNCTIONS: SpecialFunctions = {
-  user_misery: data => {
-    let userMiseryField: string = '';
-    let countMiserableUserField: string = '';
-    let projectThresholdConfig: string = '';
-    for (const field in data) {
-      if (field.startsWith('user_misery')) {
-        userMiseryField = field;
-      } else if (
-        field.startsWith('count_miserable_user') ||
-        field.startsWith('count_miserable_new_user')
-      ) {
-        countMiserableUserField = field;
-      } else if (field === 'project_threshold_config') {
-        projectThresholdConfig = field;
-      }
+  user_misery: fieldName => data => {
+    const userMiseryField = fieldName;
+
+    if (!(userMiseryField in data)) {
+      return <NumberContainer>{emptyValue}</NumberContainer>;
     }
 
-    if (!userMiseryField) {
-      return <NumberContainer>{emptyValue}</NumberContainer>;
+    const projectThresholdConfig = 'project_threshold_config';
+    let countMiserableUserField: string = '';
+
+    let miseryLimit: number | undefined = parseInt(
+      userMiseryField.split('_').pop() || '',
+      10
+    );
+    if (isNaN(miseryLimit)) {
+      countMiserableUserField = 'count_miserable_user';
+      if (projectThresholdConfig in data) {
+        miseryLimit = data[projectThresholdConfig][1];
+      } else {
+        miseryLimit = undefined;
+      }
+    } else {
+      countMiserableUserField = `count_miserable_user_${miseryLimit}`;
     }
 
     const uniqueUsers = data.count_unique_user;
     const userMisery = data[userMiseryField];
 
-    let miseryLimit = parseInt(userMiseryField.split('_').pop() || '', 10);
-    if (isNaN(miseryLimit)) {
-      miseryLimit = projectThresholdConfig ? data[projectThresholdConfig][1] : undefined;
-    }
-
     let miserableUsers: number | undefined;
 
-    if (countMiserableUserField) {
+    if (countMiserableUserField in data) {
       const countMiserableMiseryLimit = parseInt(
         countMiserableUserField.split('_').pop() || '',
         10
@@ -638,7 +641,6 @@ const RelativeOpsBreakdown = styled('div')`
 
 const RectangleRelativeOpsBreakdown = styled(RowRectangle)`
   position: relative;
-  top: 0;
   width: 100%;
 `;
 
@@ -670,7 +672,7 @@ export function getFieldRenderer(
 
   for (const alias in SPECIAL_FUNCTIONS) {
     if (fieldName.startsWith(alias)) {
-      return SPECIAL_FUNCTIONS[alias];
+      return SPECIAL_FUNCTIONS[alias](fieldName);
     }
   }
 

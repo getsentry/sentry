@@ -4,6 +4,7 @@ from copy import deepcopy
 from datetime import datetime
 from typing import List, Union
 
+import sentry_sdk
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 
 # TODO remove import aliases on snql Functions&Columns
@@ -34,6 +35,7 @@ from sentry.search.events.constants import (
     VALID_FIELD_PATTERN,
 )
 from sentry.utils.compat import zip
+from sentry.utils.numbers import format_grouped_length
 from sentry.utils.snuba import (
     get_json_type,
     is_duration_measurement,
@@ -220,18 +222,21 @@ def team_key_transaction_expression(organization_id, team_ids, project_ids):
         )
         .order_by("transaction", "project_team__project_id")
         .values("transaction", "project_team__project_id")
-        .distinct("transaction", "project_team__project_id")
+        .distinct("transaction", "project_team__project_id")[:MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS]
     )
 
     count = len(team_key_transactions)
 
+    # NOTE: this raw count is not 100% accurate because if it exceeds
+    # `MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS`, it will not be reflected
+    sentry_sdk.set_tag("team_key_txns.count", count)
+    sentry_sdk.set_tag(
+        "team_key_txns.count.grouped", format_grouped_length(count, [10, 100, 250, 500])
+    )
+
     # There are no team key transactions marked, so hard code false into the query.
     if count == 0:
         return ["toInt8", [0]]
-    elif count > MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS:
-        raise InvalidSearchQuery(
-            f"You have selected teams with too many transactions. The limit is {MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS}. Change the active filters to try again."
-        )
 
     return [
         "in",
@@ -655,7 +660,7 @@ def resolve_function(field, match=None, params=None, functions_acl=False):
         if alias is None:
             alias = get_function_alias_with_columns(function.name, columns)
 
-        if arguments[condition.arg]:
+        if arguments[condition.arg] is not None:
             snuba_string = match.format(**arguments)
         else:
             snuba_string = fallback.format(**arguments)
@@ -1412,7 +1417,9 @@ FUNCTIONS = {
             calculated_args=[
                 {
                     "name": "tolerated",
-                    "fn": lambda args: args["satisfaction"] * 4.0 if args["satisfaction"] else None,
+                    "fn": lambda args: args["satisfaction"] * 4.0
+                    if args["satisfaction"] is not None
+                    else None,
                 }
             ],
             conditional_transform=ConditionalFunction(
@@ -1451,7 +1458,9 @@ FUNCTIONS = {
             calculated_args=[
                 {
                     "name": "tolerated",
-                    "fn": lambda args: args["satisfaction"] * 4.0 if args["satisfaction"] else None,
+                    "fn": lambda args: args["satisfaction"] * 4.0
+                    if args["satisfaction"] is not None
+                    else None,
                 },
                 {"name": "parameter_sum", "fn": lambda args: args["alpha"] + args["beta"]},
             ],
@@ -1860,12 +1869,50 @@ class QueryFields(QueryBase):
     """Field logic for a snql query"""
 
     def resolve_select(self, selected_columns: List[str]) -> None:
+        project_key = None
+        # If project is requested, we need to map ids to their names since snuba only has ids
+        if "project" in selected_columns:
+            selected_columns.remove("project")
+            project_key = "project"
+        # since project.name is more specific, if both are included use project.name instead of project
+        if PROJECT_NAME_ALIAS in selected_columns:
+            selected_columns.remove(PROJECT_NAME_ALIAS)
+            project_key = PROJECT_NAME_ALIAS
+
         for field in selected_columns:
             if field.strip() == "":
                 continue
             resolved_field = self.resolve_field(field)
             if isinstance(resolved_field, SnqlColumn) and resolved_field not in self.columns:
                 self.columns.append(resolved_field)
+
+        if project_key:
+            self.columns.append(self.project_slug_transform(project_key))
+
+    def project_slug_transform(self, project_key: str) -> SnqlFunction:
+        """When project is a selected column we need to create a transform to turn them back into slugs"""
+        project_ids = {
+            project_id
+            for project_id in self.params.get("project_id", [])
+            if isinstance(project_id, int)
+        }
+
+        # Try to reduce the size of the transform by using any existing conditions on projects
+        if len(self.projects_to_filter) > 0:
+            project_ids &= self.projects_to_filter
+
+        projects = Project.objects.filter(id__in=project_ids).values("slug", "id")
+
+        return SnqlFunction(
+            "transform",
+            [
+                self.column("project.id"),
+                [project["id"] for project in projects],
+                [project["slug"] for project in projects],
+                "",
+            ],
+            project_key,
+        )
 
     def resolve_field(self, field: str) -> Union[SnqlColumn, SnqlFunction]:
         match = is_function(field)
@@ -1889,13 +1936,21 @@ class QueryFields(QueryBase):
     @property
     def orderby(self) -> List[OrderBy]:
         validated = []
-        for column in self.orderby_columns:
-            bare_column = self.column(column.lstrip("-"))
-            direction = Direction.DESC if column.startswith("-") else Direction.ASC
+        for orderby in self.orderby_columns:
+            bare_orderby = orderby.lstrip("-")
+            resolved_orderby = self.column(bare_orderby)
+            direction = Direction.DESC if orderby.startswith("-") else Direction.ASC
 
-            if bare_column in self.columns:
-                validated.append(OrderBy(bare_column, direction))
-                continue
+            for selected_column in self.columns:
+                if isinstance(selected_column, SnqlColumn) and selected_column == resolved_orderby:
+                    validated.append(OrderBy(selected_column, direction))
+                    continue
+                elif (
+                    isinstance(selected_column, SnqlFunction)
+                    and selected_column.alias == bare_orderby
+                ):
+                    validated.append(OrderBy(selected_column, direction))
+                    continue
 
             # TODO: orderby aggregations
 

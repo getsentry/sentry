@@ -5,7 +5,7 @@ import {Location} from 'history';
 import omit from 'lodash/omit';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import {openDebugFileSourceModal} from 'app/actionCreators/modal';
+import {closeModal, openDebugFileSourceModal} from 'app/actionCreators/modal';
 import ProjectActions from 'app/actions/projectActions';
 import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
@@ -198,7 +198,8 @@ function SymbolSources({
       return;
     }
 
-    const item = value.find(v => v.id === customRepository);
+    const itemIndex = value.findIndex(v => v.id === customRepository);
+    const item = value[itemIndex];
 
     if (!item) {
       return;
@@ -210,11 +211,8 @@ function SymbolSources({
       sourceConfig,
       sourceType: item.type,
       appStoreConnectContext,
-      onSave: updatedData => handleUpdateSymbolSource(updatedData as Item, item.index),
-      onClose:
-        sourceConfig && sourceConfig.type === 'appStoreConnect'
-          ? undefined
-          : handleCloseImageDetailsModal,
+      onSave: updatedData => handleUpdateSymbolSource(updatedData as Item, itemIndex),
+      onClose: handleCloseImageDetailsModal,
     });
   }
 
@@ -241,7 +239,7 @@ function SymbolSources({
 
   async function handleChange(updatedSymbolSources: Item[], updatedItem?: Item) {
     const symbolSourcesWithoutErrors = updatedSymbolSources.map(updatedSymbolSource =>
-      omit(updatedSymbolSource, 'error')
+      omit(updatedSymbolSource, ['error', 'warning'])
     );
 
     const {successMessage, errorMessage} = getRequestMessages(
@@ -263,11 +261,15 @@ function SymbolSources({
 
       ProjectActions.updateSuccess(updatedProjectDetails);
       addSuccessMessage(successMessage);
+      closeModal();
       if (updatedItem && updatedItem.type === 'appStoreConnect') {
+        // TODO(Priscila): check the reason why the closeModal doesn't call the function
+        // handleCloseImageDetailsModal when revalidating
         handleCloseImageDetailsModal();
         reloadPage();
       }
     } catch {
+      closeModal();
       addErrorMessage(errorMessage);
     }
   }
@@ -376,6 +378,7 @@ function SymbolSources({
           removeConfirm={{
             onConfirm: item => {
               if (item.type === 'appStoreConnect') {
+                handleCloseImageDetailsModal();
                 window.location.reload();
               }
             },

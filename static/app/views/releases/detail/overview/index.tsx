@@ -8,6 +8,7 @@ import TransactionsList, {DropdownOption} from 'app/components/discover/transact
 import {Body, Main, Side} from 'app/components/layouts/thirds';
 import {t} from 'app/locale';
 import {GlobalSelection, NewQuery, Organization, ReleaseProject} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {getUtcDateString} from 'app/utils/dates';
 import {TableDataRow} from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
@@ -67,9 +68,19 @@ class ReleaseOverview extends AsyncView<Props> {
     );
   }
 
-  handleYAxisChange = (yAxis: YAxis) => {
-    const {location, router} = this.props;
-    const {eventType: _eventType, vitalType: _vitalType, ...query} = location.query;
+  handleYAxisChange = (yAxis: YAxis, project: ReleaseProject) => {
+    const {location, router, organization} = this.props;
+    const {eventType, vitalType, ...query} = location.query;
+
+    trackAnalyticsEvent({
+      eventKey: `release_detail.change_chart`,
+      eventName: `Release Detail: Change Chart`,
+      organization_id: parseInt(organization.id, 10),
+      display: yAxis,
+      eventType,
+      vitalType,
+      platform: project.platform,
+    });
 
     router.push({
       ...location,
@@ -77,8 +88,17 @@ class ReleaseOverview extends AsyncView<Props> {
     });
   };
 
-  handleEventTypeChange = (eventType: EventType) => {
-    const {location, router} = this.props;
+  handleEventTypeChange = (eventType: EventType, project: ReleaseProject) => {
+    const {location, router, organization} = this.props;
+
+    trackAnalyticsEvent({
+      eventKey: `release_detail.change_chart`,
+      eventName: `Release Detail: Change Chart`,
+      organization_id: parseInt(organization.id, 10),
+      display: YAxis.EVENTS,
+      eventType,
+      platform: project.platform,
+    });
 
     router.push({
       ...location,
@@ -86,8 +106,17 @@ class ReleaseOverview extends AsyncView<Props> {
     });
   };
 
-  handleVitalTypeChange = (vitalType: WebVital) => {
-    const {location, router} = this.props;
+  handleVitalTypeChange = (vitalType: WebVital, project: ReleaseProject) => {
+    const {location, router, organization} = this.props;
+
+    trackAnalyticsEvent({
+      eventKey: `release_detail.change_chart`,
+      eventName: `Release Detail: Change Chart`,
+      organization_id: parseInt(organization.id, 10),
+      display: YAxis.COUNT_VITAL,
+      vitalType,
+      platform: project.platform,
+    });
 
     router.push({
       ...location,
@@ -300,11 +329,11 @@ class ReleaseOverview extends AsyncView<Props> {
                     releaseMeta={releaseMeta}
                     selection={selection}
                     yAxis={yAxis}
-                    onYAxisChange={this.handleYAxisChange}
+                    onYAxisChange={display => this.handleYAxisChange(display, project)}
                     eventType={eventType}
-                    onEventTypeChange={this.handleEventTypeChange}
+                    onEventTypeChange={type => this.handleEventTypeChange(type, project)}
                     vitalType={vitalType}
-                    onVitalTypeChange={this.handleVitalTypeChange}
+                    onVitalTypeChange={type => this.handleVitalTypeChange(type, project)}
                     router={router}
                     organization={organization}
                     hasHealthData={hasHealthData}

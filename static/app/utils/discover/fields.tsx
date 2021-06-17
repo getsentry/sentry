@@ -40,6 +40,7 @@ export type AggregateParameter =
       dataType: ColumnType;
       defaultValue?: string;
       required: boolean;
+      placeholder?: string;
     };
 
 export type AggregationRefinement = string | undefined;
@@ -262,8 +263,13 @@ export const AGGREGATIONS = {
     multiPlotType: 'line',
   },
   apdex: {
-    generateDefaultValue({parameter, organization}: DefaultValueInputs) {
-      return organization.apdexThreshold?.toString() ?? parameter.defaultValue;
+    getFieldOverrides({parameter, organization}: DefaultValueInputs) {
+      if (organization.features.includes('project-transaction-threshold')) {
+        return {required: false, placeholder: 'Automatic', defaultValue: ''};
+      }
+      return {
+        defaultValue: organization.apdexThreshold?.toString() ?? parameter.defaultValue,
+      };
     },
     parameters: [
       {
@@ -278,8 +284,13 @@ export const AGGREGATIONS = {
     multiPlotType: 'line',
   },
   user_misery: {
-    generateDefaultValue({parameter, organization}: DefaultValueInputs) {
-      return organization.apdexThreshold?.toString() ?? parameter.defaultValue;
+    getFieldOverrides({parameter, organization}: DefaultValueInputs) {
+      if (organization.features.includes('project-transaction-threshold')) {
+        return {required: false, placeholder: 'Automatic', defaultValue: ''};
+      }
+      return {
+        defaultValue: organization.apdexThreshold?.toString() ?? parameter.defaultValue,
+      };
     },
     parameters: [
       {
@@ -306,11 +317,16 @@ export const AGGREGATIONS = {
     multiPlotType: 'area',
   },
   count_miserable: {
-    generateDefaultValue({parameter, organization}: DefaultValueInputs) {
+    getFieldOverrides({parameter, organization}: DefaultValueInputs) {
       if (parameter.kind === 'column') {
-        return 'user';
+        return {defaultValue: 'user'};
       }
-      return organization.apdexThreshold?.toString() ?? parameter.defaultValue;
+      if (organization.features.includes('project-transaction-threshold')) {
+        return {required: false, placeholder: 'Automatic', defaultValue: ''};
+      }
+      return {
+        defaultValue: organization.apdexThreshold?.toString() ?? parameter.defaultValue,
+      };
     },
     parameters: [
       {
@@ -356,11 +372,6 @@ type DefaultValueInputs = {
 
 export type Aggregation = {
   /**
-   * Used by functions that need to define their default values dynamically
-   * based on the organization, or parameter data.
-   */
-  generateDefaultValue?: (data: DefaultValueInputs) => string;
-  /**
    * List of parameters for the function.
    */
   parameters: Readonly<AggregateParameter[]>;
@@ -377,6 +388,9 @@ export type Aggregation = {
    * Optional because some functions cannot be plotted (strings/dates)
    */
   multiPlotType?: PlotType;
+  getFieldOverrides?: (
+    data: DefaultValueInputs
+  ) => Partial<Omit<AggregateParameter, 'kind'>>;
 };
 
 enum FieldKey {
@@ -574,6 +588,8 @@ export const TRACING_FIELDS = [
   'user_misery',
   'eps',
   'epm',
+  'key_transaction',
+  'team_key_transaction',
   ...Object.keys(MEASUREMENTS),
 ];
 
@@ -644,13 +660,13 @@ export function generateAggregateFields(
   const fields = Object.values(eventFields).map(field => field.field);
   functions.forEach(func => {
     const parameters = AGGREGATIONS[func].parameters.map(param => {
-      const generator = AGGREGATIONS[func].generateDefaultValue;
-      if (typeof generator === 'undefined') {
+      const overrides = AGGREGATIONS[func].getFieldOverrides;
+      if (typeof overrides === 'undefined') {
         return param;
       }
       return {
         ...param,
-        defaultValue: generator({parameter: param, organization}),
+        ...overrides({parameter: param, organization}),
       };
     });
 
@@ -667,6 +683,10 @@ export function generateAggregateFields(
 }
 
 export function explodeFieldString(field: string): Column {
+  if (isEquation(field)) {
+    return {kind: 'equation', field: getEquation(field)};
+  }
+
   const results = field.match(AGGREGATE_PATTERN);
 
   if (results && results.length >= 3) {
@@ -678,9 +698,6 @@ export function explodeFieldString(field: string): Column {
         results[3] as AggregationRefinement,
       ],
     };
-  }
-  if (isEquation(field)) {
-    return {kind: 'equation', field: getEquation(field)};
   }
 
   return {kind: 'field', field};
