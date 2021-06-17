@@ -8,7 +8,9 @@ import GroupSimilarIssues from 'app/views/organizationGroupDetails/groupSimilarI
 describe('Issues Similar View', function () {
   let mock;
 
-  const project = TestStubs.Project();
+  const project = TestStubs.Project({
+    features: ['similarity-view'],
+  });
 
   const routerContext = TestStubs.routerContext([
     {

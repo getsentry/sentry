@@ -10,6 +10,7 @@ export function ActivityFeed(params) {
         'minidump',
         'rate-limits',
         'similarity-indexing',
+        'similarity-view',
         'data-forwarding',
       ],
       color: '#bf873f',

@@ -126,7 +126,8 @@ def _build_dispatcher(methodname):
     v2_method = getattr(features2, methodname)
 
     def inner(project, *args, **kwargs):
-        v1_method(*args, **kwargs)
+        if project is None or feature_flags.has("projects:similarity-indexing", project):
+            v1_method(*args, **kwargs)
 
         if project is None or feature_flags.has("projects:similarity-indexing-v2", project):
             v2_method(*args, **kwargs)

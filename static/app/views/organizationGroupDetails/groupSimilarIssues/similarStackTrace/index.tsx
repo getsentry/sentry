@@ -111,16 +111,19 @@ class SimilarStackTrace extends React.Component<Props, State> {
     this.setState({loading: true, error: false});
 
     const reqs: Parameters<typeof GroupingStore.onFetch>[0] = [];
-    const version = this.state.v2 ? '2' : '1';
 
-    reqs.push({
-      endpoint: `/issues/${params.groupId}/similar/?${queryString.stringify({
-        ...location.query,
-        limit: 50,
-        version,
-      })}`,
-      dataKey: 'similar',
-    });
+    if (this.hasSimilarityFeature()) {
+      const version = this.state.v2 ? '2' : '1';
+
+      reqs.push({
+        endpoint: `/issues/${params.groupId}/similar/?${queryString.stringify({
+          ...location.query,
+          limit: 50,
+          version,
+        })}`,
+        dataKey: 'similar',
+      });
+    }
 
     GroupingActions.fetch(reqs);
   }
@@ -154,6 +157,10 @@ class SimilarStackTrace extends React.Component<Props, State> {
     return this.props.project.features.includes('similarity-view-v2');
   }
 
+  hasSimilarityFeature() {
+    return this.props.project.features.includes('similarity-view');
+  }
+
   toggleSimilarityVersion = () => {
     this.setState(prevState => ({v2: !prevState.v2}), this.fetchData);
   };
@@ -175,6 +182,7 @@ class SimilarStackTrace extends React.Component<Props, State> {
     const isError = error && !isLoading;
     const isLoadedSuccessfully = !isError && !isLoading;
     const hasSimilarItems =
+      this.hasSimilarityFeature() &&
       (similarItems.length >= 0 || filteredSimilarItems.length >= 0) &&
       isLoadedSuccessfully;
 
