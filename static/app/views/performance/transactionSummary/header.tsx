@@ -222,7 +222,7 @@ class TransactionHeader extends React.Component<Props> {
                 isActive={() => currentTab === Tab.Events}
                 onClick={this.trackEventsTabClick}
               >
-                {t('Events')}
+                {t('All Events')}
               </ListLink>
             </Feature>
           </StyledNavTabs>
