@@ -413,7 +413,12 @@ def get_artifact_index(release, dist):
 
 
 def get_index_entry(release, dist, url) -> Optional[dict]:
-    index = get_artifact_index(release, dist)
+    try:
+        index = get_artifact_index(release, dist)
+    except BaseException as exc:
+        logger.error("sourcemaps.index_read_failed", exc_info=exc)
+        return None
+
     if index:
         for candidate in ReleaseFile.normalize(url):
             entry = index.get("files", {}).get(candidate)
