@@ -524,7 +524,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                 # Temporarily writing org-level apdex changes to ProjectTransactionThreshold
                 # for orgs who don't have the feature enabled so that when this
                 # feature is GA'ed it captures the orgs current apdex threshold.
-                if "apdexThreshold" in changed_data and not features.has(
+                if serializer.validated_data.get("apdexThreshold") is not None and not features.has(
                     "organizations:project-transaction-threshold", organization
                 ):
                     apdex_threshold = serializer.validated_data.get("apdexThreshold")
