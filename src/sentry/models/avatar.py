@@ -5,7 +5,7 @@ from django.db import models, transaction
 from django.utils.encoding import force_bytes
 from PIL import Image
 
-from sentry.db.models import FlexibleForeignKey, Model
+from sentry.db.models import BoundedBigIntegerField, Model
 from sentry.utils.cache import cache
 
 
@@ -22,7 +22,7 @@ class AvatarBase(Model):
 
     FILE_TYPE = None
 
-    file = FlexibleForeignKey("sentry.File", unique=True, null=True, on_delete=models.SET_NULL)
+    file_id = BoundedBigIntegerField(unique=True, null=True)
     ident = models.CharField(max_length=32, unique=True, db_index=True)
 
     class Meta:
@@ -33,9 +33,24 @@ class AvatarBase(Model):
             self.ident = uuid4().hex
         return super().save(*args, **kwargs)
 
+    def get_file(self):
+        from sentry.models import File
+
+        if self.file_id is None:
+            return None
+
+        try:
+            return File.objects.get(pk=self.file_id)
+        except File.DoesNotExist:
+            # Best effort replication of previous behaviour with foreign key
+            # which was set with on_delete=models.SET_NULL
+            self.update(file_id=None)
+            return None
+
     def delete(self, *args, **kwargs):
-        if self.file:
-            self.file.delete()
+        file = self.get_file()
+        if file:
+            file.delete()
         return super().delete(*args, **kwargs)
 
     def get_cache_key(self, size):
@@ -45,14 +60,15 @@ class AvatarBase(Model):
         cache.delete_many([self.get_cache_key(x) for x in self.ALLOWED_SIZES])
 
     def get_cached_photo(self, size):
-        if not self.file:
+        file = self.get_file()
+        if not file:
             return
         if size not in self.ALLOWED_SIZES:
             size = min(self.ALLOWED_SIZES, key=lambda x: abs(x - size))
         cache_key = self.get_cache_key(size)
         photo = cache.get(cache_key)
         if photo is None:
-            photo_file = self.file.getfile()
+            photo_file = file.getfile()
             with Image.open(photo_file) as image:
                 image = image.resize((size, size), Image.LANCZOS)
                 image_file = BytesIO()
@@ -78,11 +94,12 @@ class AvatarBase(Model):
 
         with transaction.atomic():
             instance, created = cls.objects.get_or_create(**relation)
-            if instance.file and photo:
-                instance.file.delete()
+            file = instance.get_file()
+            if file and photo:
+                file.delete()
 
             if photo:
-                instance.file = photo
+                instance.file_id = photo.id
                 instance.ident = uuid4().hex
 
             instance.avatar_type = [i for i, n in cls.AVATAR_TYPES if n == type][0]

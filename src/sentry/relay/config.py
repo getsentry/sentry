@@ -167,7 +167,7 @@ def get_project_config(project, full_config=True, project_keys=None):
         return ProjectConfig(project, **cfg)
 
     if features.has("organizations:performance-ops-breakdown", project.organization):
-        cfg["config"]["breakdowns"] = project.get_option("sentry:breakdowns")
+        cfg["config"]["breakdownsV2"] = project.get_option("sentry:breakdowns")
     with Hub.current.start_span(op="get_filter_settings"):
         cfg["config"]["filterSettings"] = get_filter_settings(project)
     with Hub.current.start_span(op="get_grouping_config_dict_for_project"):

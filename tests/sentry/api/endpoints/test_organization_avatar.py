@@ -29,7 +29,7 @@ class OrganizationAvatarPutTest(OrganizationAvatarTestBase):
 
         avatar = OrganizationAvatar.objects.get(organization=self.organization)
         assert avatar.get_avatar_type_display() == "upload"
-        assert avatar.file
+        assert avatar.file_id
 
     def test_put_bad(self):
         OrganizationAvatar.objects.create(organization=self.organization)

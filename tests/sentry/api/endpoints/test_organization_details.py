@@ -215,7 +215,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
         avatar = OrganizationAvatar.objects.get(organization=self.organization)
         assert avatar.get_avatar_type_display() == "upload"
-        assert avatar.file
+        assert avatar.file_id
 
     def test_various_options(self):
         initial = self.organization.get_audit_log_data()

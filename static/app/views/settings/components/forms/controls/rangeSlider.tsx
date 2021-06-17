@@ -1,12 +1,22 @@
-import * as React from 'react';
+import React, {ChangeEvent, KeyboardEvent, MouseEvent, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {defined} from 'app/utils';
 import Input from 'app/views/settings/components/forms/controls/input';
 
 type Props = {
   name: string;
+
+  /**
+   * String is a valid type here only for empty string
+   * Otherwise react complains:
+   * "`value` prop on `input` should not be null. Consider using an empty string to clear the component or `undefined` for uncontrolled components."
+   *
+   * And we want this to be a controlled input when value is empty
+   */
+  value: number | '';
 
   /**
    * min allowed value, not needed if using `allowedValues`
@@ -18,14 +28,6 @@ type Props = {
    */
   max?: number;
 
-  /**
-   * String is a valid type here only for empty string
-   * Otherwise react complains:
-   * "`value` prop on `input` should not be null. Consider using an empty string to clear the component or `undefined` for uncontrolled components."
-   *
-   * And we want this to be a controlled input when value is empty
-   */
-  value: number | '';
   step?: number;
   disabled?: boolean;
 
@@ -46,7 +48,9 @@ type Props = {
    */
   showCustomInput?: boolean;
 
-  // Placeholder for custom input
+  /**
+   * Placeholder for custom input
+   */
   placeholder?: string;
 
   /**
@@ -54,152 +58,144 @@ type Props = {
    * Used for "smart" Fields to trigger a "blur" event. `onChange` can
    * be triggered quite frequently
    */
-  onBlur?: (value, event?) => void;
-  onChange?: Function;
+  onBlur?: (
+    event: MouseEvent<HTMLInputElement> | KeyboardEvent<HTMLInputElement>
+  ) => void;
+  onChange?: (value: Props['value'], event: ChangeEvent<HTMLInputElement>) => void;
   className?: string;
+  forwardRef?: React.Ref<HTMLDivElement>;
 };
 
-type State = {
-  sliderValue: number | '';
-};
+function RangeSlider({
+  value,
+  allowedValues,
+  showCustomInput,
+  name,
+  disabled,
+  placeholder,
+  formatLabel,
+  className,
+  onBlur,
+  onChange,
+  forwardRef,
+  ...props
+}: Props) {
+  const [sliderValue, setSliderValue] = useState(
+    allowedValues ? allowedValues.indexOf(Number(value || 0)) : value
+  );
 
-class RangeSlider extends React.Component<Props, State> {
-  state: State = {
-    sliderValue: this.props.allowedValues
-      ? // With `allowedValues` sliderValue will be the index to value in `allowedValues`
-        // This is so we can snap the rangeSlider using `step`
-        // This means that the range slider will have a uniform `step` in the UI
-        // and scale won't match `allowedValues
-        // e.g. with allowedValues = [0, 100, 1000, 10000] - in UI we'll have values = [0, 3] w/ step of 1
-        // so it always snaps at 25% width
-        this.props.allowedValues.indexOf(Number(this.props.value || 0))
-      : this.props.value,
-  };
+  useEffect(() => {
+    updateSliderValue();
+  }, [value]);
 
-  UNSAFE_componentWillReceiveProps(nextProps: Props) {
-    // Update local state when re-rendered with next `props.value` (e.g if this is controlled)
-    if (typeof nextProps.value !== 'undefined') {
-      const {allowedValues} = this.props;
-      let sliderValue = nextProps.value;
-
-      // If `allowedValues` is defined, then `sliderValue` represents index to `allowedValues`
-      if (allowedValues && allowedValues.indexOf(Number(sliderValue || 0)) > -1) {
-        sliderValue = allowedValues.indexOf(Number(sliderValue || 0));
-      }
-      this.setState({sliderValue});
+  function updateSliderValue() {
+    if (!defined(value)) {
+      return;
     }
+
+    const newSliderValueIndex = allowedValues?.indexOf(Number(value || 0)) ?? -1;
+
+    // If `allowedValues` is defined, then `sliderValue` represents index to `allowedValues`
+    if (newSliderValueIndex > -1) {
+      setSliderValue(newSliderValueIndex);
+      return;
+    }
+
+    setSliderValue(value);
   }
 
-  getActualValue = (sliderValue: State['sliderValue']): number | '' => {
-    const {allowedValues} = this.props;
-    let value: number | '';
-
-    if (allowedValues) {
-      // If `allowedValues` is defined, then `sliderValue` represents index to `allowedValues`
-      value = allowedValues[sliderValue];
-    } else {
-      value = sliderValue;
+  function getActualValue(newSliderValue: Props['value']): Props['value'] {
+    if (!allowedValues) {
+      return newSliderValue;
     }
 
-    return value;
-  };
+    // If `allowedValues` is defined, then `sliderValue` represents index to `allowedValues`
+    return allowedValues[newSliderValue];
+  }
 
-  setValue = value => {
-    this.setState({
-      sliderValue: value,
-    });
-  };
+  function handleInput(e: ChangeEvent<HTMLInputElement>) {
+    const newSliderValue = parseInt(e.target.value, 10);
+    setSliderValue(newSliderValue);
+    onChange?.(getActualValue(newSliderValue), e);
+  }
 
-  changeValue = (value, e) => {
-    if (this.props.onChange) {
-      this.props.onChange(this.getActualValue(value), e);
-    }
-  };
+  function handleCustomInputChange(e: ChangeEvent<HTMLInputElement>) {
+    setSliderValue(parseInt(e.target.value, 10) || 0);
+  }
 
-  handleInput = e => {
-    const sliderValue = parseInt(e.target.value, 10);
-    this.setValue(sliderValue);
-    this.changeValue(sliderValue, e);
-  };
-
-  handleBlur = e => {
-    const {onBlur} = this.props;
+  function handleBlur(e: MouseEvent<HTMLInputElement> | KeyboardEvent<HTMLInputElement>) {
     if (typeof onBlur !== 'function') {
       return;
     }
 
     onBlur(e);
-  };
+  }
 
-  handleCustomInputChange = e => {
-    const value = parseInt(e.target.value, 10);
-    this.setValue(isNaN(value) ? 0 : value);
-  };
-
-  handleCustomInputBlur = e => {
-    this.handleInput(e);
-  };
-
-  render() {
-    let {min, max, step} = this.props;
-    const {
-      name,
-      disabled,
-      allowedValues,
-      formatLabel,
-      placeholder,
-      showCustomInput,
-      className,
-    } = this.props;
-    const {sliderValue} = this.state;
-    let actualValue = sliderValue;
-    let displayValue: React.ReactNode = actualValue;
-
-    if (allowedValues) {
-      step = 1;
-      min = 0;
-      max = allowedValues.length - 1;
-      actualValue = allowedValues[sliderValue];
-      displayValue =
-        typeof actualValue !== 'undefined' ? actualValue : t('Invalid value');
+  function getSliderData() {
+    if (!allowedValues) {
+      const {min, max, step} = props;
+      return {
+        min,
+        max,
+        step,
+        actualValue: sliderValue,
+        displayValue: sliderValue,
+      };
     }
 
-    displayValue =
-      typeof formatLabel === 'function' ? formatLabel(actualValue) : displayValue;
+    const actualValue = allowedValues[sliderValue];
 
-    return (
-      <div className={className}>
-        {!showCustomInput && <Label htmlFor={name}>{displayValue}</Label>}
-        <SliderAndInputWrapper showCustomInput={showCustomInput}>
-          <Slider
-            type="range"
-            name={name}
-            min={min}
-            max={max}
-            step={step}
-            disabled={disabled}
-            onInput={this.handleInput}
-            onChange={() => {}}
-            onMouseUp={this.handleBlur}
-            onKeyUp={this.handleBlur}
-            value={sliderValue}
-            hasLabel={!showCustomInput}
-          />
-          {showCustomInput && (
-            <Input
-              placeholder={placeholder}
-              value={sliderValue}
-              onChange={this.handleCustomInputChange}
-              onBlur={this.handleCustomInputBlur}
-            />
-          )}
-        </SliderAndInputWrapper>
-      </div>
-    );
+    return {
+      step: 1,
+      min: 0,
+      max: allowedValues.length - 1,
+      actualValue,
+      displayValue: defined(actualValue) ? actualValue : t('Invalid value'),
+    };
   }
+
+  const {min, max, step, actualValue, displayValue} = getSliderData();
+
+  return (
+    <div className={className} ref={forwardRef}>
+      {!showCustomInput && (
+        <Label htmlFor={name}>{formatLabel?.(actualValue) ?? displayValue}</Label>
+      )}
+      <SliderAndInputWrapper showCustomInput={showCustomInput}>
+        <Slider
+          type="range"
+          name={name}
+          min={min}
+          max={max}
+          step={step}
+          disabled={disabled}
+          onInput={handleInput}
+          onMouseUp={handleBlur}
+          onKeyUp={handleBlur}
+          value={sliderValue}
+          hasLabel={!showCustomInput}
+        />
+        {showCustomInput && (
+          <Input
+            placeholder={placeholder}
+            value={sliderValue}
+            onChange={handleCustomInputChange}
+            onBlur={handleInput}
+          />
+        )}
+      </SliderAndInputWrapper>
+    </div>
+  );
 }
 
-export default RangeSlider;
+const RangeSliderContainer = React.forwardRef(function RangeSliderContainer(
+  props: Props,
+  ref: React.Ref<any>
+) {
+  return <RangeSlider {...props} forwardRef={ref} />;
+});
+
+export default RangeSliderContainer;
 
 const Slider = styled('input')<{hasLabel: boolean}>`
   /* stylelint-disable-next-line property-no-vendor-prefix */
