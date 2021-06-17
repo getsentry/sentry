@@ -206,6 +206,8 @@ class AssembleArtifactsTest(BaseAssembleTest):
                     chunks=[blob1.checksum],
                 )
 
+                assert self.release.count_artifacts() == 2
+
                 status, details = get_assemble_status(
                     AssembleTask.ARTIFACTS, self.organization.id, total_checksum
                 )
