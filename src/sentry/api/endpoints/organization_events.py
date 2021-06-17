@@ -70,9 +70,9 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
             request,
             feature_fields=[
                 "project_threshold_config",
-                "count_miserable_new(user)",
-                "user_misery_new()",
-                "apdex_new()",
+                "count_miserable(user)",
+                "user_misery()",
+                "apdex()",
             ],
         ):
             return Response(status=404)
@@ -82,9 +82,7 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
                 selected_columns=request.GET.getlist("field")[:],
                 query=request.GET.get("query"),
                 params=params,
-                equations=request.GET.getlist("equation")[:]
-                if self.has_arithmetic(organization, request)
-                else [],
+                equations=self.get_equation_list(organization, request),
                 orderby=self.get_orderby(request),
                 offset=offset,
                 limit=limit,

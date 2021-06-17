@@ -787,7 +787,7 @@ class SnubaTagStorage(TagStorage):
                 # and resolve it to the corresponding snuba query
                 resolver = snuba.resolve_column(dataset)
                 snuba_name = FIELD_ALIASES[USER_DISPLAY_ALIAS].get_field()
-                snuba.resolve_complex_column(snuba_name, resolver)
+                snuba.resolve_complex_column(snuba_name, resolver, [])
             elif snuba_name in BLACKLISTED_COLUMNS:
                 snuba_name = f"tags[{key}]"
 

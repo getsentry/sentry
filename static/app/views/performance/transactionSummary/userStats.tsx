@@ -47,8 +47,8 @@ function UserStats({
     let userMiseryScore: number;
     if (organization.features.includes('project-transaction-threshold')) {
       threshold = totals.project_threshold_config[1];
-      miserableUsers = totals.count_miserable_new_user;
-      userMiseryScore = totals.user_misery_new;
+      miserableUsers = totals.count_miserable_user;
+      userMiseryScore = totals.user_misery;
     } else {
       threshold = organization.apdexThreshold;
       miserableUsers = totals[`count_miserable_user_${threshold}`];

@@ -14,7 +14,7 @@ type State = {
 };
 
 class GroupCheckBox extends Component<Props, State> {
-  state = {
+  state: State = {
     isSelected: SelectedGroupStore.isSelected(this.props.id),
   };
 

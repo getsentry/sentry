@@ -8,7 +8,7 @@ LABEL org.opencontainers.image.vendor="Functional Software, Inc."
 LABEL org.opencontainers.image.authors="oss@sentry.io"
 
 # Sane defaults for pip
-ENV PIP_NO_CACHE_DIR=off \
+ENV PIP_NO_CACHE_DIR=1 \
   PIP_DISABLE_PIP_VERSION_CHECK=1
 
 RUN apt-get update && apt-get install -y --no-install-recommends \

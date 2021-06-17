@@ -1,11 +1,25 @@
 import errno
 import os
+from datetime import datetime, timezone
 from io import BytesIO
+from threading import Thread
+from time import sleep
 from zipfile import ZipFile
 
+import pytest
+
 from sentry import options
-from sentry.models import ReleaseArchive, ReleaseFile, merge_release_archives
-from sentry.testutils import TestCase
+from sentry.models import ReleaseFile
+from sentry.models.distribution import Distribution
+from sentry.models.file import File
+from sentry.models.releasefile import (
+    ARTIFACT_INDEX_FILENAME,
+    _ArtifactIndexGuard,
+    delete_from_artifact_index,
+    read_artifact_index,
+    update_artifact_index,
+)
+from sentry.testutils import TestCase, TransactionTestCase
 from sentry.utils import json
 
 
@@ -101,8 +115,7 @@ class ReleaseFileCacheTest(TestCase):
 
 
 class ReleaseArchiveTestCase(TestCase):
-    @staticmethod
-    def create_archive(fields, files, raw=False):
+    def create_archive(self, fields, files, dist=None):
         manifest = dict(
             fields, files={filename: {"url": f"fake://{filename}"} for filename in files}
         )
@@ -112,81 +125,198 @@ class ReleaseArchiveTestCase(TestCase):
             for filename, content in files.items():
                 zf.writestr(filename, content)
 
-        return buffer if raw else ReleaseArchive(buffer)
+        buffer.seek(0)
+        file_ = File.objects.create(name=str(hash(tuple(files.items()))))
+        file_.putfile(buffer)
+        file_.update(timestamp=datetime(2021, 6, 11, 9, 13, 1, 317902, tzinfo=timezone.utc))
 
-    def test_merge(self):
+        return update_artifact_index(self.release, dist, file_)
+
+    def test_multi_archive(self):
+        assert read_artifact_index(self.release, None) is None
+
+        # Delete does nothing
+        delete_from_artifact_index(self.release, None, "foo")
+
         archive1 = self.create_archive(
-            fields={
-                "org": 1,
-                "release": 666,
-                "dist": 3,
-            },
-            files={
-                "foo": "foo",
-                "bar": "BAR",
-            },
-            raw=True,
-        )
-        archive2 = self.create_archive(
-            fields={
-                "org": 1,
-                "release": 2,
-                "dist": 3,
-            },
+            fields={},
             files={
                 "foo": "foo",
                 "bar": "bar",
-                "baz": "baz",
+                "baz": "bazaa",
             },
         )
 
-        buffer = BytesIO()
-
-        assert merge_release_archives(archive1, archive2, buffer) is True
-
-        archive3 = ReleaseArchive(buffer)
-
-        assert archive3.manifest["org"] == 1
-        assert archive3.manifest["release"] == 666
-        assert archive3.manifest["dist"] == 3
-
-        assert archive3.manifest["files"].keys() == {"foo", "bar", "baz"}
-
-        # Make sure everything was saved:
-        peristed_manifest = archive3._read_manifest()
-        assert peristed_manifest == archive3.manifest
-
-        assert archive3.read("foo") == b"foo"
-        assert archive3.read("bar") == b"BAR"  # no overwrite
-        assert archive3.read("baz") == b"baz"
-
-    def test_merge_nothing(self):
-        archive1 = self.create_archive(
-            fields={
-                "org": 1,
-                "release": 2,
-                "dist": 3,
+        assert read_artifact_index(self.release, None) == {
+            "files": {
+                "fake://bar": {
+                    "archive_ident": archive1.ident,
+                    "date_created": "2021-06-11T09:13:01.317902Z",
+                    "filename": "bar",
+                    "sha1": "62cdb7020ff920e5aa642c3d4066950dd1f01f4d",
+                    "size": 3,
+                },
+                "fake://baz": {
+                    "archive_ident": archive1.ident,
+                    "date_created": "2021-06-11T09:13:01.317902Z",
+                    "filename": "baz",
+                    "sha1": "1a74885aa2771a6a0edcc80dbd0cf396dfaf1aab",
+                    "size": 5,
+                },
+                "fake://foo": {
+                    "archive_ident": archive1.ident,
+                    "date_created": "2021-06-11T09:13:01.317902Z",
+                    "filename": "foo",
+                    "sha1": "0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33",
+                    "size": 3,
+                },
             },
-            files={
-                "foo": "foo",
-                "bar": "bar",
-                "baz": "baz",
-            },
-            raw=True,
+        }
+
+        # See if creating a second manifest interferes:
+        dist = Distribution.objects.create(
+            organization_id=self.organization.id, release_id=self.release.id, name="foo"
         )
+        self.create_archive(fields={}, files={"xyz": "123"}, dist=dist)
+
         archive2 = self.create_archive(
-            fields={
-                "org": 1,
-                "release": 666,
-                "dist": 3,
-            },
+            fields={},
             files={
                 "foo": "foo",
                 "bar": "BAR",
+                "zap": "zapz",
             },
         )
 
-        buffer = BytesIO()
+        # Two files were overwritten, one was added
+        expected = {
+            "files": {
+                "fake://bar": {
+                    "archive_ident": archive2.ident,
+                    "date_created": "2021-06-11T09:13:01.317902Z",
+                    "filename": "bar",
+                    "sha1": "a5d5c1bba91fdb6c669e1ae0413820885bbfc455",
+                    "size": 3,
+                },
+                "fake://baz": {
+                    "archive_ident": archive1.ident,
+                    "date_created": "2021-06-11T09:13:01.317902Z",
+                    "filename": "baz",
+                    "sha1": "1a74885aa2771a6a0edcc80dbd0cf396dfaf1aab",
+                    "size": 5,
+                },
+                "fake://foo": {
+                    "archive_ident": archive2.ident,
+                    "date_created": "2021-06-11T09:13:01.317902Z",
+                    "filename": "foo",
+                    "sha1": "0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33",
+                    "size": 3,
+                },
+                "fake://zap": {
+                    "archive_ident": archive2.ident,
+                    "date_created": "2021-06-11T09:13:01.317902Z",
+                    "filename": "zap",
+                    "sha1": "a7a9c12205f9cb1f53f8b6678265c9e8158f2a8f",
+                    "size": 4,
+                },
+            },
+        }
 
-        # Nothing added:
-        assert merge_release_archives(archive1, archive2, buffer) is False
+        assert read_artifact_index(self.release, None) == expected
+
+        # Deletion works:
+        delete_from_artifact_index(self.release, None, "fake://foo")
+        expected["files"].pop("fake://foo")
+        assert read_artifact_index(self.release, None) == expected
+
+    def test_same_sha(self):
+        """Stand-alone release file has same sha1 as one in manifest"""
+        self.create_archive(fields={}, files={"foo": "bar"})
+        file_ = File.objects.create()
+        file_.putfile(BytesIO(b"bar"))
+        self.create_release_file(file=file_)
+
+        index = read_artifact_index(self.release, None)
+        assert file_.checksum == index["files"]["fake://foo"]["sha1"]
+
+
+@pytest.mark.skip(reason="Causes 'There is 1 other session using the database.'")
+class ArtifactIndexGuardTestCase(TransactionTestCase):
+    tick = 0.1  # seconds
+
+    def _create_update_fn(self, initial_delay, locked_delay, files, create):
+        def f():
+            sleep(initial_delay * self.tick)
+            with _ArtifactIndexGuard(self.release, None).writable_data(create=create) as data:
+                sleep(locked_delay * self.tick)
+                data.update_files(files)
+
+        return f
+
+    def test_locking(self):
+        release = self.release
+        dist = None
+
+        update1 = self._create_update_fn(0, 2, {"foo": "bar"}, create=True)
+        update2 = self._create_update_fn(1, 2, {"123": "xyz"}, create=True)
+
+        threads = [Thread(target=update1), Thread(target=update2)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+
+        # Without locking, only key "123" would survive:
+        assert read_artifact_index(release, dist)["files"].keys() == {"foo", "123"}
+
+        # Only one `File` was created:
+        assert File.objects.filter(name=ARTIFACT_INDEX_FILENAME).count() == 1
+
+        def delete():
+            sleep(2 * self.tick)
+            delete_from_artifact_index(release, dist, "foo")
+
+        update3 = self._create_update_fn(1, 2, {"abc": "666"}, create=True)
+
+        threads = [Thread(target=update3), Thread(target=delete)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+
+        # Without locking, the delete would be surpassed by the slow update:
+        assert read_artifact_index(release, dist)["files"].keys() == {"123", "abc"}
+
+    def test_lock_existing(self):
+        release = self.release
+        dist = None
+
+        with _ArtifactIndexGuard(release, dist).writable_data(create=True) as data:
+            data.update_files({"0": 0})
+
+        update1 = self._create_update_fn(0, 2, {"foo": "bar"}, create=False)
+        update2 = self._create_update_fn(1, 2, {"123": "xyz"}, create=False)
+
+        threads = [Thread(target=update1), Thread(target=update2)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+
+        # Without locking, only keys "0", "123" would survive:
+        assert read_artifact_index(release, dist)["files"].keys() == {"0", "foo", "123"}
+
+        def delete():
+            sleep(2 * self.tick)
+            delete_from_artifact_index(release, dist, "foo")
+
+        update3 = self._create_update_fn(1, 2, {"abc": "666"}, create=False)
+
+        threads = [Thread(target=update3), Thread(target=delete)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join()
+
+        # Without locking, the delete would be surpassed by the slow update:
+        assert read_artifact_index(release, dist)["files"].keys() == {"0", "123", "abc"}

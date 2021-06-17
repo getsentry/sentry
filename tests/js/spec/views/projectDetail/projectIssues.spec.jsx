@@ -4,7 +4,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import ProjectIssues from 'app/views/projectDetail/projectIssues';
 
 describe('ProjectDetail > ProjectIssues', function () {
-  let endpointMock, filteredEndpointMock;
+  let endpointMock, filteredEndpointMock, wrapper;
   const {organization, router, routerContext} = initializeOrg({
     organization: {
       features: ['discover-basic'],
@@ -30,10 +30,11 @@ describe('ProjectDetail > ProjectIssues', function () {
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
+    wrapper.unmount();
   });
 
   it('renders a list', function () {
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <ProjectIssues organization={organization} location={router.location} />,
       routerContext
     );
@@ -43,7 +44,7 @@ describe('ProjectDetail > ProjectIssues', function () {
   });
 
   it('renders a link to Issues', function () {
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <ProjectIssues organization={organization} location={router.location} />,
       routerContext
     );
@@ -62,7 +63,7 @@ describe('ProjectDetail > ProjectIssues', function () {
   });
 
   it('renders a link to Discover', function () {
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <ProjectIssues organization={organization} location={router.location} />,
       routerContext
     );
@@ -83,7 +84,7 @@ describe('ProjectDetail > ProjectIssues', function () {
   });
 
   it('changes according to global header', function () {
-    const wrapper = mountWithTheme(
+    wrapper = mountWithTheme(
       <ProjectIssues
         organization={organization}
         location={{

@@ -1,4 +1,5 @@
 import {Component, createContext, ReactNode} from 'react';
+import isEqual from 'lodash/isEqual';
 
 import {
   fetchTeamKeyTransactions,
@@ -7,23 +8,15 @@ import {
 } from 'app/actionCreators/performance';
 import {Client} from 'app/api';
 import {t} from 'app/locale';
-import {Organization, Team} from 'app/types';
+import {Organization, Project, Team} from 'app/types';
 import withApi from 'app/utils/withApi';
 
-export type SelectionBase = {
+export type TeamSelection = {
   action: 'key' | 'unkey';
-  project: number;
+  project: Project;
   transactionName: string;
+  teamIds: string[];
 };
-export type MyTeamSelection = SelectionBase & {type: 'my teams'};
-export type TeamIdSelection = SelectionBase & {type: 'id'; teamId: string};
-export type TeamSelection = MyTeamSelection | TeamIdSelection;
-
-export function isMyTeamSelection(
-  selection: TeamSelection
-): selection is MyTeamSelection {
-  return selection.type === 'my teams';
-}
 
 export type TeamKeyTransactionManagerChildrenProps = {
   teams: Team[];
@@ -76,18 +69,14 @@ class UnwrappedProvider extends Component<Props> {
 
   componentDidUpdate(prevProps: Props) {
     const orgSlugChanged = prevProps.organization.slug !== this.props.organization.slug;
-    const selectedTeamsChanged =
-      prevProps.selectedTeams.length !== this.props.selectedTeams.length ||
-      prevProps.selectedTeams.every(
-        (teamId, i) => this.props.selectedTeams[i] !== teamId
-      );
-    const selectedProjectsChanged =
-      prevProps.selectedProjects &&
-      this.props.selectedProjects &&
-      prevProps.selectedProjects.length !== this.props.selectedProjects.length &&
-      prevProps.selectedProjects.every(
-        (projectId, i) => this.props.selectedProjects?.[i] !== projectId
-      );
+    const selectedTeamsChanged = !isEqual(
+      prevProps.selectedTeams,
+      this.props.selectedTeams
+    );
+    const selectedProjectsChanged = !isEqual(
+      prevProps.selectedProjects,
+      this.props.selectedProjects
+    );
 
     if (orgSlugChanged || selectedTeamsChanged || selectedProjectsChanged) {
       this.fetchData();
@@ -154,12 +143,8 @@ class UnwrappedProvider extends Component<Props> {
   handleToggleKeyTransaction = async (selection: TeamSelection) => {
     const {api, organization} = this.props;
     const {teamKeyTransactions} = this.state;
-    const {action, project, transactionName} = selection;
+    const {action, project, transactionName, teamIds} = selection;
     const isKeyTransaction = action === 'unkey';
-
-    const {teamIds} = isMyTeamSelection(selection)
-      ? this.toggleKeyTransactionForMyTeams()
-      : this.toggleKeyTransactionForTeam(selection);
 
     const teamIdSet = new Set(teamIds);
 
@@ -174,7 +159,7 @@ class UnwrappedProvider extends Component<Props> {
           count: count - 1,
           keyed: keyed.filter(
             keyTransaction =>
-              keyTransaction.project_id !== String(project) ||
+              keyTransaction.project_id !== project.id ||
               keyTransaction.transaction !== transactionName
           ),
         };
@@ -185,7 +170,7 @@ class UnwrappedProvider extends Component<Props> {
           keyed: [
             ...keyed,
             {
-              project_id: String(project),
+              project_id: project.id,
               transaction: transactionName,
             },
           ],
@@ -198,7 +183,7 @@ class UnwrappedProvider extends Component<Props> {
         api,
         isKeyTransaction,
         organization.slug,
-        [project],
+        [project.id],
         transactionName,
         teamIds
       );
@@ -209,22 +194,6 @@ class UnwrappedProvider extends Component<Props> {
       });
     }
   };
-
-  toggleKeyTransactionForMyTeams() {
-    const {teams} = this.props;
-
-    return {
-      teamIds: teams.filter(({isMember}) => isMember).map(({id}) => id),
-    };
-  }
-
-  toggleKeyTransactionForTeam(selection: TeamIdSelection) {
-    const {teamId} = selection;
-
-    return {
-      teamIds: [teamId],
-    };
-  }
 
   render() {
     const {teams} = this.props;

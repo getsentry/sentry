@@ -9,6 +9,7 @@ import Breadcrumbs from 'app/components/breadcrumbs';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import CreateAlertButton from 'app/components/createAlertButton';
+import GlobalAppStoreConnectUpdateAlert from 'app/components/globalAppStoreConnectUpdateAlert';
 import GlobalSdkUpdateAlert from 'app/components/globalSdkUpdateAlert';
 import IdBadge from 'app/components/idBadge';
 import * as Layout from 'app/components/layouts/thirds';
@@ -81,6 +82,7 @@ class ProjectDetail extends AsyncView<Props, State> {
   async fetchSessionsExistence() {
     const {organization, location} = this.props;
     const projectId = location.query.project;
+
     if (!projectId) {
       return;
     }
@@ -263,6 +265,10 @@ class ProjectDetail extends AsyncView<Props, State> {
 
             <Layout.Body>
               <StyledSdkUpdatesAlert />
+              <StyledGlobalAppStoreConnectUpdateAlert
+                project={project}
+                organization={organization}
+              />
               <Layout.Main>
                 <ProjectScoreCards
                   organization={organization}
@@ -338,6 +344,16 @@ const StyledSdkUpdatesAlert = styled(GlobalSdkUpdateAlert)`
 `;
 
 StyledSdkUpdatesAlert.defaultProps = {
+  Wrapper: p => <Layout.Main fullWidth {...p} />,
+};
+
+const StyledGlobalAppStoreConnectUpdateAlert = styled(GlobalAppStoreConnectUpdateAlert)`
+  @media (min-width: ${p => p.theme.breakpoints[1]}) {
+    margin-bottom: 0;
+  }
+`;
+
+StyledGlobalAppStoreConnectUpdateAlert.defaultProps = {
   Wrapper: p => <Layout.Main fullWidth {...p} />,
 };
 
