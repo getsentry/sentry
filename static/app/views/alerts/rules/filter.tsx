@@ -41,19 +41,21 @@ function FilterSection({id, label, items, toggleSection, toggleFilter}: SectionP
           }}
         />
       </Header>
-      {items.map(item => (
-        <ListItem
-          key={item.value}
-          isChecked={item.checked}
-          onClick={event => {
-            event.stopPropagation();
-            toggleFilter(id, item.value);
-          }}
-        >
-          <TeamName>{item.label}</TeamName>
-          <CheckboxFancy isChecked={item.checked} />
-        </ListItem>
-      ))}
+      {items
+        .filter(item => !item.filtered)
+        .map(item => (
+          <ListItem
+            key={item.value}
+            isChecked={item.checked}
+            onClick={event => {
+              event.stopPropagation();
+              toggleFilter(id, item.value);
+            }}
+          >
+            <TeamName>{item.label}</TeamName>
+            <CheckboxFancy isChecked={item.checked} />
+          </ListItem>
+        ))}
     </Fragment>
   );
 }
