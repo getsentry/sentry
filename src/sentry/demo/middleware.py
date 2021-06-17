@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.http import HttpResponseRedirect, JsonResponse
 from django.urls import reverse
+from django.utils.deprecation import MiddlewareMixin
 
 from sentry.models import OrganizationMember
 from sentry.utils import auth
@@ -13,7 +14,7 @@ login_route = reverse("sentry-login")
 login_redirect_route = "https://sentry.io/demo/sandbox/"
 
 
-class DemoMiddleware:
+class DemoMiddleware(MiddlewareMixin):
     def process_view(self, request, view_func, view_args, view_kwargs):
         if not settings.DEMO_MODE:
             raise Exception("Demo mode misconfigured")

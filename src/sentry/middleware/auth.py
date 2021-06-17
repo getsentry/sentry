@@ -1,5 +1,6 @@
 from django.contrib.auth import get_user as auth_get_user
 from django.contrib.auth.models import AnonymousUser
+from django.utils.deprecation import MiddlewareMixin
 from django.utils.functional import SimpleLazyObject
 
 from sentry.models import UserIP
@@ -35,7 +36,7 @@ def get_user(request):
     return request._cached_user
 
 
-class AuthenticationMiddleware:
+class AuthenticationMiddleware(MiddlewareMixin):
     def process_request(self, request):
         request.user_from_signed_request = False
 
