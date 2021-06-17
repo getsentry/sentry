@@ -404,7 +404,7 @@ class Table extends React.Component<Props, State> {
           return [this.renderBodyCell(tableData, teamKeyTransactionColumn, dataRow)];
         }
       }
-      return undefined;
+      return [];
     };
   };
 
