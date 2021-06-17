@@ -70,3 +70,7 @@ class SlackCommandsPostTest(SlackCommandsTest):
     def test_help_command(self):
         response = self.get_slack_response({"text": "help", "team_id": self.external_id})
         assert_is_help_text(response)
+
+    def test_link_team_command(self):
+        response = self.get_slack_response({"text": "link team", "team_id": self.external_id})
+        # add more stuff

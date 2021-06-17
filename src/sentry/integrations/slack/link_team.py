@@ -68,7 +68,9 @@ class SlackLinkTeamView(BaseView):
         return identity
 
     def send_error_message(self, request, client, message, response_url, channel_id, integration):
-        token = integration.metadata.get("user_access_token") or integration.metadata["access_token"]
+        token = (
+            integration.metadata.get("user_access_token") or integration.metadata["access_token"]
+        )
         payload = {
             "token": token,
             "channel": channel_id,
@@ -125,8 +127,14 @@ class SlackLinkTeamView(BaseView):
         ) or (org_member.role in ["admin", "manager", "owner"] and team in [org_member.teams]):
             INSUFFICIENT_ROLE_MESSAGE = "You must be an admin or higher and a member of the team you wish to link in your Sentry organization to link teams."
             # TODO(ceo) write a test for this case
-            return self.send_error_message(request, client, INSUFFICIENT_ROLE_MESSAGE, params["response_url"], params["channel_id"], integration)
-
+            return self.send_error_message(
+                request,
+                client,
+                INSUFFICIENT_ROLE_MESSAGE,
+                params["response_url"],
+                params["channel_id"],
+                integration,
+            )
 
         already_linked = ExternalActor.objects.filter(
             actor_id=team.actor_id,
@@ -138,7 +146,14 @@ class SlackLinkTeamView(BaseView):
             ALREADY_LINKED_MESSAGE = (
                 f"The {team.slug} team has already been linked to a Slack channel."
             )
-            return self.send_error_message(request, client, ALREADY_LINKED_MESSAGE, params["response_url"], params["channel_id"], integration)
+            return self.send_error_message(
+                request,
+                client,
+                ALREADY_LINKED_MESSAGE,
+                params["response_url"],
+                params["channel_id"],
+                integration,
+            )
 
         external_team, created = ExternalActor.objects.get_or_create(
             actor_id=team.actor_id,
@@ -162,7 +177,10 @@ class SlackLinkTeamView(BaseView):
                     team=team,
                     project=project,
                 )
-            token = integration.metadata.get("user_access_token") or integration.metadata["access_token"]
+            token = (
+                integration.metadata.get("user_access_token")
+                or integration.metadata["access_token"]
+            )
             headers = {"Authorization": "Bearer %s" % token}
             payload = {
                 "token": token,
