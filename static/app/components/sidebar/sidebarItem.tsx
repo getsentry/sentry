@@ -68,7 +68,7 @@ type Props = ReactRouter.WithRouterProps & {
   /**
    * An optional prefix that can be used to reset the "new" indicator
    */
-  isNewCacheBustKey?: string;
+  isNewCacheKeySuffix?: string;
 };
 
 const SidebarItem = ({
@@ -86,7 +86,7 @@ const SidebarItem = ({
   collapsed,
   className,
   orientation,
-  isNewCacheBustKey,
+  isNewCacheKeySuffix,
   onClick,
   ...props
 }: Props) => {
@@ -112,7 +112,7 @@ const SidebarItem = ({
   const isTop = orientation === 'top';
   const placement = isTop ? 'bottom' : 'right';
 
-  const seenSuffix = isNewCacheBustKey ?? '';
+  const seenSuffix = isNewCacheKeySuffix ?? '';
   const isNewSeenKey = `sidebar-new-seen:${id}${seenSuffix}`;
   const showIsNew = isNew && !localStorage.getItem(isNewSeenKey);
 
