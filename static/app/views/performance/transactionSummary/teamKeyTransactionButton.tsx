@@ -11,6 +11,7 @@ import {t, tn} from 'app/locale';
 import {Organization, Project, Team} from 'app/types';
 import {defined} from 'app/utils';
 import EventView from 'app/utils/discover/eventView';
+import {isActiveSuperuser} from 'app/utils/isActiveSuperuser';
 import withProjects from 'app/utils/withProjects';
 import withTeams from 'app/utils/withTeams';
 
@@ -95,7 +96,8 @@ function TeamKeyTransactionButtonWrapper({
     return <TitleButton isOpen={false} disabled keyedTeams={null} />;
   }
 
-  const userTeams = teams.filter(({isMember}) => isMember);
+  const isSuperuser = isActiveSuperuser();
+  const userTeams = teams.filter(({isMember}) => isMember || isSuperuser);
 
   return (
     <TeamKeyTransactionManager.Provider

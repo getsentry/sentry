@@ -14,6 +14,7 @@ import {Organization, Project, Team} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
 import {generateAggregateFields} from 'app/utils/discover/fields';
+import {isActiveSuperuser} from 'app/utils/isActiveSuperuser';
 import {decodeScalar} from 'app/utils/queryString';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 import withTeams from 'app/utils/withTeams';
@@ -221,7 +222,9 @@ class LandingContent extends Component<Props, State> {
 
     const currentLandingDisplay = getCurrentLandingDisplay(location, projects, eventView);
     const filterString = getTransactionSearchQuery(location, eventView.query);
-    const userTeams = teams.filter(({isMember}) => isMember);
+
+    const isSuperuser = isActiveSuperuser();
+    const userTeams = teams.filter(({isMember}) => isMember || isSuperuser);
 
     return (
       <Fragment>
