@@ -508,7 +508,7 @@ class QueryField extends React.Component<Props> {
       return (
         <Container className={className} gridColumns={1}>
           <ArithmeticInput
-            name="refinement"
+            name="arithmetic"
             key="parameter:text"
             type="text"
             required
