@@ -203,27 +203,34 @@ class HandleAttachIdentityTest(AuthIdentityHandlerTest):
         assert returned_identity == existing_identity
         assert not mock_messages.add_message.called
 
-    def test_wipe_other_identity(self):
-        request_user, existing_identity = self.set_up_user_identity()
-        other_profile = self.create_user()
+    def _test_with_identity_belonging_to_another_user(self, request_user):
+        other_user = self.create_user()
 
         # The user logs in with credentials from this other identity
         AuthIdentity.objects.create(
-            user=other_profile, auth_provider=self.auth_provider, ident=self.identity["id"]
+            user=other_user, auth_provider=self.auth_provider, ident=self.identity["id"]
         )
-        OrganizationMember.objects.create(user=other_profile, organization=self.organization)
+        OrganizationMember.objects.create(user=other_user, organization=self.organization)
 
         returned_identity = self._handle_attach_identity()
+        assert returned_identity.user == request_user
         assert returned_identity.ident == self.identity["id"]
         assert returned_identity.data == self.identity["data"]
 
-        assert not AuthIdentity.objects.filter(id=existing_identity.id).exists()
-
         persisted_om = OrganizationMember.objects.get(
-            user=other_profile, organization=self.organization
+            user=other_user, organization=self.organization
         )
         assert not getattr(persisted_om.flags, "sso:linked")
         assert getattr(persisted_om.flags, "sso:invalid")
+
+    def test_login_with_other_identity(self):
+        request_user = self.set_up_user()
+        self._test_with_identity_belonging_to_another_user(request_user)
+
+    def test_wipe_existing_identity(self):
+        request_user, existing_identity = self.set_up_user_identity()
+        self._test_with_identity_belonging_to_another_user(request_user)
+        assert not AuthIdentity.objects.filter(id=existing_identity.id).exists()
 
 
 class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
