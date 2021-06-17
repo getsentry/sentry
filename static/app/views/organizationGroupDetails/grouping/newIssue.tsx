@@ -1,36 +1,63 @@
 import styled from '@emotion/styled';
 
-import Card from 'app/components/card';
+import EventOrGroupHeader from 'app/components/eventOrGroupHeader';
+import ProjectBadge from 'app/components/idBadge/projectBadge';
+import {PanelItem} from 'app/components/panels';
+import ShortId from 'app/components/shortId';
+import TimeSince from 'app/components/timeSince';
+import {IconClock} from 'app/icons';
 import {tn} from 'app/locale';
 import space from 'app/styles/space';
+import {Organization, Project} from 'app/types';
 import {Event} from 'app/types/event';
 
 type Props = {
   sampleEvent: Event;
   eventCount: number;
+  organization: Organization;
+  project?: Project;
 };
 
-function NewIssue({sampleEvent, eventCount}: Props) {
-  const {title, culprit} = sampleEvent;
+function NewIssue({sampleEvent, eventCount, organization, project}: Props) {
   return (
-    <StyledCard interactive={false}>
+    <StyledPanelItem>
       <div>
-        <Title>{title}</Title>
-        <CulPrint>{culprit}</CulPrint>
+        <EventOrGroupHeader
+          data={sampleEvent}
+          organization={organization}
+          hideIcons
+          hideLevel
+        />
+        <Details>
+          {project && (
+            <GroupShortId
+              shortId={project.slug}
+              avatar={
+                project && <ProjectBadge project={project} avatarSize={14} hideName />
+              }
+              onClick={e => {
+                // prevent the clicks from propagating so that the short id can be selected
+                e.stopPropagation();
+              }}
+            />
+          )}
+          <TimeWrapper>
+            <IconClock size="xs" />
+            <TimeSince date={sampleEvent.dateCreated} />
+          </TimeWrapper>
+        </Details>
       </div>
       <ErrorsCount>
         {eventCount}
         <ErrorLabel>{tn('Error', 'Errors', eventCount)}</ErrorLabel>
       </ErrorsCount>
-    </StyledCard>
+    </StyledPanelItem>
   );
 }
 
 export default NewIssue;
 
-const StyledCard = styled(Card)`
-  margin-bottom: -1px;
-  overflow: hidden;
+const StyledPanelItem = styled(PanelItem)`
   display: grid;
   grid-template-columns: 1fr max-content;
   align-items: center;
@@ -39,19 +66,34 @@ const StyledCard = styled(Card)`
   word-break: break-word;
 `;
 
-const Title = styled('div')`
-  font-size: ${p => p.theme.fontSizeLarge};
-  font-weight: 700;
+const Details = styled('div')`
+  margin-top: ${space(0.5)};
+  display: grid;
+  grid-auto-flow: column;
+  grid-gap: ${space(2)};
+  justify-content: flex-start;
 `;
 
-const CulPrint = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
+const GroupShortId = styled(ShortId)`
+  flex-shrink: 0;
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.subText};
+`;
+
+const TimeWrapper = styled('div')`
+  display: grid;
+  grid-gap: ${space(0.5)};
+  grid-template-columns: min-content 1fr;
+  align-items: center;
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.subText};
 `;
 
 const ErrorsCount = styled('div')`
   display: grid;
   align-items: center;
   justify-items: center;
+  font-size: ${p => p.theme.fontSizeLarge};
 `;
 
 const ErrorLabel = styled('div')`

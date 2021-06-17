@@ -29,7 +29,7 @@ const EmptyMessage = styled(
   }: EmptyMessageProps) => (
     <div data-test-id="empty-message" {...props}>
       {icon && <IconWrapper>{icon}</IconWrapper>}
-      {title && <Title>{title}</Title>}
+      {title && <Title noMargin={!description && !children && !action}>{title}</Title>}
       {description && <Description>{description}</Description>}
       {children && <Description noMargin>{children}</Description>}
       {action && <Action>{action}</Action>}
@@ -60,9 +60,9 @@ const IconWrapper = styled('div')`
   margin-bottom: ${space(1)};
 `;
 
-const Title = styled('strong')`
+const Title = styled('strong')<{noMargin: boolean}>`
   font-size: ${p => p.theme.fontSizeExtraLarge};
-  margin-bottom: ${space(1)};
+  ${p => !p.noMargin && `margin-bottom: ${space(1)};`}
 `;
 
 const Description = styled(TextBlock)`

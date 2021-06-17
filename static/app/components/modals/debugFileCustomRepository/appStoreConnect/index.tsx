@@ -51,6 +51,7 @@ type IntialData = {
   appconnectIssuer: string;
   appconnectKey: string;
   appconnectPrivateKey: string;
+  bundleId: string;
   id: string;
   itunesCreated: string;
   itunesPassword: string;
@@ -67,7 +68,7 @@ type Props = Pick<ModalRenderProps, 'Header' | 'Body' | 'Footer'> & {
   api: Client;
   orgSlug: Organization['slug'];
   projectSlug: Project['slug'];
-  onSubmit: (data: Record<string, any>) => void;
+  onSubmit: (data: IntialData) => void;
   location: Location;
   appStoreConnectContext?: AppStoreConnectContextProps;
   initialData?: IntialData;
@@ -116,7 +117,11 @@ function AppStoreConnect({
   const [stepTwoData, setStepTwoData] = useState<StepTwoData>({
     app:
       initialData?.appId && initialData?.appName
-        ? {appId: initialData.appId, name: initialData.appName}
+        ? {
+            appId: initialData.appId,
+            name: initialData.appName,
+            bundleId: initialData.bundleId,
+          }
         : undefined,
   });
 
@@ -252,12 +257,13 @@ function AppStoreConnect({
           appconnectPrivateKey: stepOneData.privateKey,
           appName: stepTwoData.app.name,
           appId: stepTwoData.app.appId,
+          bundleId: stepTwoData.app.bundleId,
           orgId: stepFifthData.org.organizationId,
           orgName: stepFifthData.org.name,
           sessionContext: newSessionContext ?? sessionContext,
         },
       });
-      onSubmit(response);
+      onSubmit(response as IntialData);
     } catch (error) {
       setIsLoading(false);
       addErrorMessage(errorMessage);

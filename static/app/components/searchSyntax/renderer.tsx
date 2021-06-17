@@ -3,7 +3,6 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
-import {Theme} from 'app/utils/theme';
 
 import {ParseResult, parseSearch, Token, TokenResult} from './parser';
 
@@ -109,16 +108,20 @@ const SearchQuery = styled('span')`
   font-family: ${p => p.theme.text.familyMono};
 `;
 
-const FilterToken = styled('span')``;
+const FilterToken = styled('span')`
+  --token-bg: ${p => p.theme.searchTokenBackground};
+  --token-border: ${p => p.theme.searchTokenBorder};
+  --token-value-color: ${p => p.theme.blue300};
+`;
 
-const filterCss = (theme: Theme) => css`
-  background: ${theme.searchTokenBackground};
-  border: 0.5px solid ${theme.searchTokenBorder};
+const filterCss = css`
+  background: var(--token-bg);
+  border: 0.5px solid var(--token-border);
   padding: ${space(0.25)} 0;
 `;
 
 const Negation = styled('span')`
-  ${p => filterCss(p.theme)};
+  ${filterCss};
   border-right: none;
   padding-left: 1px;
   margin-left: -2px;
@@ -128,7 +131,7 @@ const Negation = styled('span')`
 `;
 
 const Key = styled('span')<{negated: boolean}>`
-  ${p => filterCss(p.theme)};
+  ${filterCss};
   border-right: none;
   font-weight: bold;
   ${p =>
@@ -158,7 +161,7 @@ const ExplicitKey = styled('span')<{prefix: string}>`
 `;
 
 const Operator = styled('span')`
-  ${p => filterCss(p.theme)};
+  ${filterCss};
   border-left: none;
   border-right: none;
   margin: -1px 0;
@@ -166,10 +169,10 @@ const Operator = styled('span')`
 `;
 
 const Value = styled('span')`
-  ${p => filterCss(p.theme)};
+  ${filterCss};
   border-left: none;
   border-radius: 0 2px 2px 0;
-  color: ${p => p.theme.blue300};
+  color: var(--token-value-color);
   margin: -1px -2px -1px 0;
   padding-right: 1px;
 `;
