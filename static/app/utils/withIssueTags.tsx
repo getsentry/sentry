@@ -1,7 +1,5 @@
 import * as React from 'react';
-import createReactClass from 'create-react-class';
 import assign from 'lodash/assign';
-import Reflux from 'reflux';
 
 import MemberListStore from 'app/stores/memberListStore';
 import TagStore from 'app/stores/tagStore';
@@ -34,19 +32,15 @@ const getUsername = ({isManaged, username, email}: User) => {
  * HOC for getting tags and many useful issue attributes as 'tags' for use
  * in autocomplete selectors or condition builders.
  */
-const withIssueTags = <P extends InjectedTagsProps>(
+function withIssueTags<P extends InjectedTagsProps>(
   WrappedComponent: React.ComponentType<P>
-) =>
-  createReactClass<Omit<P, keyof InjectedTagsProps>, State>({
-    displayName: `withIssueTags(${getDisplayName(WrappedComponent)})`,
+) {
+  class WithIssueTags extends React.Component<P, State> {
+    static displayName = `withIssueTags(${getDisplayName(WrappedComponent)})`;
 
-    mixins: [
-      Reflux.listenTo(MemberListStore, 'onMemberListStoreChange') as any,
-      Reflux.listenTo(TeamStore, 'onTeamStoreChange') as any,
-      Reflux.listenTo(TagStore, 'onTagsUpdate') as any,
-    ],
+    constructor(props, context) {
+      super(props, context);
 
-    getInitialState() {
       const tags = assign(
         {},
         TagStore.getAllTags(),
@@ -56,20 +50,26 @@ const withIssueTags = <P extends InjectedTagsProps>(
       const users = MemberListStore.getAll();
       const teams = TeamStore.getAll();
 
-      return {tags, users, teams};
-    },
+      this.state = {tags, users, teams};
+    }
 
-    onMemberListStoreChange(users: User[]) {
+    componentWillUnmount() {
+      this.unsubscribeMembers();
+      this.unsubscribeTeams();
+      this.unsubscribeTags();
+    }
+
+    unsubscribeMembers = MemberListStore.listen((users: User[]) => {
       this.setState({users});
       this.setAssigned();
-    },
+    }, undefined);
 
-    onTeamStoreChange() {
+    unsubscribeTeams = TeamStore.listen(() => {
       this.setState({teams: TeamStore.getAll()});
       this.setAssigned();
-    },
+    }, undefined);
 
-    onTagsUpdate(storeTags: TagCollection) {
+    unsubscribeTags = TagStore.listen((storeTags: TagCollection) => {
       const tags = assign(
         {},
         storeTags,
@@ -78,7 +78,7 @@ const withIssueTags = <P extends InjectedTagsProps>(
       );
       this.setState({tags});
       this.setAssigned();
-    },
+    }, undefined);
 
     setAssigned() {
       const {tags, users, teams} = this.state;
@@ -107,12 +107,15 @@ const withIssueTags = <P extends InjectedTagsProps>(
           },
         },
       });
-    },
+    }
 
     render() {
       const {tags, ...props} = this.props as P;
       return <WrappedComponent {...({tags: tags ?? this.state.tags, ...props} as P)} />;
-    },
-  });
+    }
+  }
+
+  return WithIssueTags;
+}
 
 export default withIssueTags;
