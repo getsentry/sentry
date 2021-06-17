@@ -304,7 +304,7 @@ class MergingOffsetPaginator(OffsetPaginator):
         if offset < 0:
             raise BadPaginationError("Pagination offset cannot be negative")
 
-        primary_results = self.data_load_func(offset=offset, limit=limit)
+        primary_results = self.data_load_func(offset=offset, limit=self.max_limit)
 
         queryset = self.apply_to_queryset(self.queryset, primary_results)
 
