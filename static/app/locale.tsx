@@ -14,6 +14,14 @@ const markerStyles = {
 
 const LOCALE_DEBUG = localStorage.getItem('localeDebug') === '1';
 
+export const DEFAULT_LOCALE_DATA = {
+  '': {
+    domain: 'sentry',
+    lang: 'en',
+    plural_forms: 'nplurals=2; plural=(n != 1);',
+  },
+};
+
 export function setLocaleDebug(value: boolean) {
   localStorage.setItem('localeDebug', value ? '1' : '0');
   // eslint-disable-next-line no-console
@@ -60,7 +68,7 @@ type FormatArg = ComponentMap | React.ReactNode;
  * if it has otherwise not been initialized.
  */
 function getClient() {
-  return i18n || setLocale(require('sentry-locale/en/LC_MESSAGES/django.po'));
+  return i18n || setLocale(DEFAULT_LOCALE_DATA);
 }
 
 /**

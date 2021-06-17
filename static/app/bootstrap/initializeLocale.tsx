@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/react';
 import * as qs from 'query-string';
 
-import {setLocale} from 'app/locale';
+import {DEFAULT_LOCALE_DATA, setLocale} from 'app/locale';
 import {Config} from 'app/types';
 
 // zh-cn => zh_CN
@@ -24,8 +24,7 @@ async function getTranslations(language: string) {
     });
 
     // Default locale if not found
-    // @ts-ignore
-    return await import('sentry-locale/en/LC_MESSAGES/django.po');
+    return DEFAULT_LOCALE_DATA;
   }
 }
 

@@ -59,13 +59,6 @@ ConfigStore.loadInitialData({
  */
 jest.mock('lodash/debounce', () => jest.fn(fn => fn));
 jest.mock('app/utils/recreateRoute');
-jest.mock('sentry-locale/en/LC_MESSAGES/django.po', () => ({
-  '': {
-    domain: 'the_domain',
-    lang: 'en',
-    plural_forms: 'nplurals=2; plural=(n != 1);',
-  },
-}));
 jest.mock('app/api');
 jest.mock('app/utils/domId');
 jest.mock('app/utils/withOrganization');
