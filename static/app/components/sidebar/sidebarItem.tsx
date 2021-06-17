@@ -65,6 +65,10 @@ type Props = ReactRouter.WithRouterProps & {
    * Sidebar is at "top" or "left" of screen
    */
   orientation: SidebarOrientation;
+  /**
+   * An optional prefix that can be used to reset the "new" indicator
+   */
+  localStorageNewSuffix?: string;
 };
 
 const SidebarItem = ({
@@ -82,6 +86,7 @@ const SidebarItem = ({
   collapsed,
   className,
   orientation,
+  localStorageNewSuffix,
   onClick,
   ...props
 }: Props) => {
@@ -107,7 +112,8 @@ const SidebarItem = ({
   const isTop = orientation === 'top';
   const placement = isTop ? 'bottom' : 'right';
 
-  const isNewSeenKey = `sidebar-new-seen:${id}`;
+  const seenSuffix = localStorageNewSuffix ?? '';
+  const isNewSeenKey = `sidebar-new-seen:${id}${seenSuffix}`;
   const showIsNew = isNew && !localStorage.getItem(isNewSeenKey);
 
   return (
