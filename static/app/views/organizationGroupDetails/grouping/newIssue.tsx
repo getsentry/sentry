@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
-import Card from 'app/components/card';
 import EventOrGroupHeader from 'app/components/eventOrGroupHeader';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
+import {PanelItem} from 'app/components/panels';
 import ShortId from 'app/components/shortId';
 import TimeSince from 'app/components/timeSince';
 import {IconClock} from 'app/icons';
@@ -20,7 +20,7 @@ type Props = {
 
 function NewIssue({sampleEvent, eventCount, organization, project}: Props) {
   return (
-    <StyledCard interactive={false}>
+    <StyledPanelItem>
       <div>
         <EventOrGroupHeader
           data={sampleEvent}
@@ -51,15 +51,13 @@ function NewIssue({sampleEvent, eventCount, organization, project}: Props) {
         {eventCount}
         <ErrorLabel>{tn('Error', 'Errors', eventCount)}</ErrorLabel>
       </ErrorsCount>
-    </StyledCard>
+    </StyledPanelItem>
   );
 }
 
 export default NewIssue;
 
-const StyledCard = styled(Card)`
-  margin-bottom: -1px;
-  overflow: hidden;
+const StyledPanelItem = styled(PanelItem)`
   display: grid;
   grid-template-columns: 1fr max-content;
   align-items: center;
