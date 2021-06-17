@@ -5,11 +5,13 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import omit from 'lodash/omit';
 
+import Alert from 'app/components/alert';
 import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
 import SearchBar from 'app/components/events/searchBar';
 import GlobalSdkUpdateAlert from 'app/components/globalSdkUpdateAlert';
 import * as Layout from 'app/components/layouts/thirds';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
+import {IconFlag} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
@@ -76,6 +78,20 @@ class EventsPageContent extends React.Component<Props, State> {
     this.setState({incompatibleAlertNotice});
   };
 
+  renderError() {
+    const {error} = this.state;
+
+    if (!error) {
+      return null;
+    }
+
+    return (
+      <Alert type="error" icon={<IconFlag size="md" />}>
+        {error}
+      </Alert>
+    );
+  }
+
   setError = (error: string | undefined) => {
     this.setState({error});
   };
@@ -109,6 +125,7 @@ class EventsPageContent extends React.Component<Props, State> {
         />
         <Layout.Body>
           <StyledSdkUpdatesAlert />
+          {this.renderError()}
           {incompatibleAlertNotice && (
             <Layout.Main fullWidth>{incompatibleAlertNotice}</Layout.Main>
           )}

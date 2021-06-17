@@ -198,29 +198,9 @@ class Table extends React.Component<Props, State> {
       );
     }
 
-    if (field === 'id') {
-      const target = generateTransactionLink(eventView.name as string)(
-        organization,
-        dataRow,
-        location.query
-      );
-
-      return (
-        <CellAction
-          column={column}
-          dataRow={dataRow}
-          handleCellAction={this.handleCellAction(column)}
-          allowActions={allowActions}
-        >
-          <Link to={target} onClick={this.handleSummaryClick}>
-            {rendered}
-          </Link>
-        </CellAction>
-      );
-    }
-
-    if (field === 'trace') {
-      const target = generateTraceLink(eventView.name as string)(
+    if (field === 'id' || field === 'trace') {
+      const generateLink = field === 'id' ? generateTransactionLink : generateTraceLink;
+      const target = generateLink(eventView.name as string)(
         organization,
         dataRow,
         location.query
