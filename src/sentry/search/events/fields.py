@@ -159,7 +159,9 @@ def project_threshold_config_expression(organization_id, project_ids):
     if num_configured == 0:
         return ["tuple", [f"'{DEFAULT_PROJECT_THRESHOLD_METRIC}'", DEFAULT_PROJECT_THRESHOLD]]
     elif num_configured > MAX_QUERYABLE_TRANSACTION_THRESHOLDS:
-        raise InvalidSearchQuery("Too many configured thresholds, try with fewer projects.")
+        raise InvalidSearchQuery(
+            f"Exceeded {MAX_QUERYABLE_TRANSACTION_THRESHOLDS} configured transaction thresholds limit, try with fewer Projects."
+        )
 
     return [
         "if",

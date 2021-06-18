@@ -8,7 +8,6 @@ from sentry.discover.models import KeyTransaction, TeamKeyTransaction
 from sentry.models import ApiKey, ProjectTeam, ProjectTransactionThreshold
 from sentry.models.transaction_threshold import TransactionMetric
 from sentry.search.events.constants import SEMVER_ALIAS
-from sentry.search.events.fields import MAX_QUERYABLE_TRANSACTION_THRESHOLDS
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -16,6 +15,8 @@ from sentry.utils import json
 from sentry.utils.compat import mock, zip
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import QueryExecutionError, QueryIllegalTypeOfArgument, RateLimitExceeded
+
+MAX_QUERYABLE_TRANSACTION_THRESHOLDS = 1
 
 
 class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
@@ -960,6 +961,10 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         data = response.data["data"]
         assert data[0]["count_miserable_user_300"] == 2
 
+    @mock.patch(
+        "sentry.search.events.fields.MAX_QUERYABLE_TRANSACTION_THRESHOLDS",
+        MAX_QUERYABLE_TRANSACTION_THRESHOLDS,
+    )
     def test_too_many_transaction_thresholds(self):
         project_transaction_thresholds = []
         project_ids = []
@@ -1015,7 +1020,10 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         )
 
         assert response.status_code == 400
-        assert "Too many configured thresholds, try with fewer projects." in response.data["detail"]
+        assert (
+            response.data["detail"]
+            == "Exceeded 1 configured transaction thresholds limit, try with fewer Projects."
+        )
 
     def test_count_miserable_new_alias_field(self):
         project = self.create_project()
