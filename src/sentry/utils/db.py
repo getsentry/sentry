@@ -1,5 +1,32 @@
+import sentry_sdk
 from django.db import DEFAULT_DB_ALIAS, connections
 from django.db.models.fields.related_descriptors import ReverseOneToOneDescriptor
+from sentry_sdk.integrations import Integration
+
+
+class DjangoAtomicIntegration(Integration):
+    identifier = "django_atomic"
+
+    @staticmethod
+    def setup_once():
+        from django.db.transaction import Atomic
+
+        original_enter = Atomic.__enter__
+        original_exit = Atomic.__exit__
+
+        def _enter(self):
+            self._sentry_sdk_span = sentry_sdk.start_span(op="transaction.atomic")
+            self._sentry_sdk_span.set_data("using", self.using)
+            self._sentry_sdk_span.__enter__()
+            return original_enter(self)
+
+        def _exit(self, exc_type, exc_value, traceback):
+            rv = original_exit(self, exc_type, exc_value, traceback)
+            self._sentry_sdk_span.__exit__(exc_type, exc_value, traceback)
+            return rv
+
+        Atomic.__enter__ = _enter
+        Atomic.__exit__ = _exit
 
 
 def attach_foreignkey(objects, field, related=(), database=None):
