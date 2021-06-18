@@ -86,9 +86,9 @@ class EventsPageContent extends React.Component<Props, State> {
     }
 
     return (
-      <Alert type="error" icon={<IconFlag size="md" />}>
+      <StyledAlert type="error" icon={<IconFlag size="md" />}>
         {error}
-      </Alert>
+      </StyledAlert>
     );
   }
 
@@ -179,9 +179,15 @@ const Search = (props: Props) => {
   );
 };
 
+const StyledAlert = styled(Alert)`
+  grid-column: 1/3;
+  margin: 0;
+`;
+
 const StyledSearchBar = styled(SearchBar)`
   flex-grow: 1;
 `;
+
 const StyledTable = styled('div')`
   flex-grow: 1;
   padding-top: ${space(2)};

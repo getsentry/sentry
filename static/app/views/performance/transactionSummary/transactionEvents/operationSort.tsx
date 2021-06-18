@@ -1,6 +1,7 @@
 import {Component, ComponentClass, ReactPortal} from 'react';
 import ReactDOM from 'react-dom';
 import {Manager, Popper, Reference} from 'react-popper';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptorObject} from 'history';
 import * as PopperJS from 'popper.js';
@@ -8,6 +9,7 @@ import * as PopperJS from 'popper.js';
 import {GetActorPropsFn} from 'app/components/dropdownMenu';
 import MenuItem from 'app/components/menuItem';
 import Radio from 'app/components/radio';
+import {t} from 'app/locale';
 import {TableData} from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
 
@@ -95,47 +97,65 @@ class OperationSort extends Component<Props, State> {
 
     return (
       <DropdownContent>
-        <DropdownMenuItem to={generateSortLink({field: 'spans.http'})} stopPropagation>
+        <DropdownMenuItem>
           <MenuItemContent>
-            <Radio
-              radioSize="small"
-              onChange={() => {}}
-              checked={location.query.sort === '-spans.http'}
-            />
-            <MenuItemText>Sort By HTTP</MenuItemText>
+            <RadioLabel key="http">
+              <StyledRadio
+                aria-label="http"
+                radioSize="small"
+                checked={location.query.sort === '-spans.http'}
+                onClick={() => {
+                  const sortLink = generateSortLink({field: 'spans.http'});
+                  if (sortLink) browserHistory.push(sortLink);
+                }}
+              />
+              <span>{t('Sort By HTTP')}</span>
+            </RadioLabel>
           </MenuItemContent>
         </DropdownMenuItem>
-        <DropdownMenuItem to={generateSortLink({field: 'spans.db'})} stopPropagation>
+        <DropdownMenuItem>
           <MenuItemContent>
-            <Radio
-              radioSize="small"
-              onChange={() => {}}
-              checked={location.query.sort === '-spans.db'}
-            />
-            <MenuItemText>Sort By DB</MenuItemText>
+            <RadioLabel>
+              <StyledRadio
+                radioSize="small"
+                checked={location.query.sort === '-spans.db'}
+                onClick={() => {
+                  const sortLink = generateSortLink({field: 'spans.db'});
+                  if (sortLink) browserHistory.push(sortLink);
+                }}
+              />
+              <span>{t('Sort By DB')}</span>
+            </RadioLabel>
           </MenuItemContent>
         </DropdownMenuItem>
-        <DropdownMenuItem
-          to={generateSortLink({field: 'spans.resource'})}
-          stopPropagation
-        >
+        <DropdownMenuItem>
           <MenuItemContent>
-            <Radio
-              radioSize="small"
-              onChange={() => {}}
-              checked={location.query.sort === '-spans.resource'}
-            />
-            <MenuItemText>Sort By Resources</MenuItemText>
+            <RadioLabel>
+              <StyledRadio
+                radioSize="small"
+                checked={location.query.sort === '-spans.resource'}
+                onClick={() => {
+                  const sortLink = generateSortLink({field: 'spans.resource'});
+                  if (sortLink) browserHistory.push(sortLink);
+                }}
+              />
+              <span>{t('Sort By Resources')}</span>
+            </RadioLabel>
           </MenuItemContent>
         </DropdownMenuItem>
-        <DropdownMenuItem to={generateSortLink({field: 'spans.browser'})} stopPropagation>
+        <DropdownMenuItem>
           <MenuItemContent>
-            <Radio
-              radioSize="small"
-              onChange={() => {}}
-              checked={location.query.sort === '-spans.browser'}
-            />
-            <MenuItemText>Sort By Browser</MenuItemText>
+            <RadioLabel>
+              <StyledRadio
+                radioSize="small"
+                checked={location.query.sort === '-spans.browser'}
+                onClick={() => {
+                  const sortLink = generateSortLink({field: 'spans.browser'});
+                  if (sortLink) browserHistory.push(sortLink);
+                }}
+              />
+              <span>{t('Sort By Browser')}</span>
+            </RadioLabel>
           </MenuItemContent>
         </DropdownMenuItem>
       </DropdownContent>
@@ -256,6 +276,7 @@ const DropdownWrapper = styled('div')`
     }
   }
 `;
+
 const DropdownMenuItem = styled(MenuItem)`
   font-size: ${p => p.theme.fontSizeMedium};
 
@@ -273,8 +294,23 @@ const MenuItemContent = styled('div')`
   color: ${p => p.theme.gray500};
 `;
 
-const MenuItemText = styled('span')`
-  padding-left: 10px;
+const RadioLabel = styled('label')`
+  display: grid;
+  cursor: pointer;
+  grid-gap: 0.25em 0.5em;
+  grid-template-columns: max-content auto;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+  cursor: pointer;
+  outline: none;
+  font-weight: normal;
+  margin: 0;
+`;
+
+const StyledRadio = styled(Radio)`
+  margin: 0;
 `;
 
 const DropdownContent = styled('div')`
