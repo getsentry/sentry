@@ -4093,7 +4093,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
     def test_equation_operation_limit(self):
         query = {
-            "field": ["spans.http", f"equation|spans.http{' * 2' * 2}"],
+            "field": ["spans.http", f"equation|spans.http{' * 2' * 11}"],
             "project": [self.project.id],
             "query": "event.type:transaction",
         }
