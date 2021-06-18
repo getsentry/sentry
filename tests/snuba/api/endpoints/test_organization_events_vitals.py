@@ -91,6 +91,28 @@ class OrganizationEventsVitalsEndpointTest(APITestCase, SnubaTestCase):
             "p75": 4000,
         }
 
+    def test_simple_with_refining_user_misery_filter(self):
+        self.query.update({"query": "user_misery():>0.050"})
+
+        data = self.transaction_data.copy()
+        for lcp in [2000, 3000, 5000]:
+            self.store_event(
+                data,
+                {"lcp": lcp},
+                project_id=self.project.id,
+            )
+
+        self.query.update({"vital": ["measurements.lcp"]})
+        response = self.do_request()
+        assert response.status_code == 200, response.content
+        assert response.data["measurements.lcp"] == {
+            "good": 1,
+            "meh": 1,
+            "poor": 1,
+            "total": 3,
+            "p75": 4000,
+        }
+
     def test_grouping(self):
         counts = [
             (100, 2),
