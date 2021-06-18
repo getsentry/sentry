@@ -5,7 +5,7 @@ from collections import namedtuple
 import sentry_sdk
 
 from sentry import options
-from sentry.discover.arithmetic import EQUATION_PREFIX, resolve_equation_list
+from sentry.discover.arithmetic import is_equation, resolve_equation_list, strip_equation
 from sentry.models import Group
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.fields import (
@@ -391,8 +391,8 @@ def get_timeseries_snuba_filter(selected_columns, query, params):
     columns = []
     equations = []
     for column in selected_columns:
-        if column.startswith(EQUATION_PREFIX):
-            equations.append(column[len(EQUATION_PREFIX) :])
+        if is_equation(column):
+            equations.append(strip_equation(column))
         else:
             columns.append(column)
 
@@ -450,6 +450,7 @@ def timeseries_query(selected_columns, query, params, rollup, referrer=None):
             selected_columns=[
                 column
                 for column in snuba_filter.selected_columns
+                # Check that the column is a list with 3 items, and the alias in the third item is an equation
                 if isinstance(column, list)
                 and len(column) == 3
                 and column[-1].startswith("equation")
