@@ -30,10 +30,10 @@ class OperationSort extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
 
-    let portal = document.getElementById('team-key-transaction-portal');
+    let portal = document.getElementById('transaction-events-portal');
     if (!portal) {
       portal = document.createElement('div');
-      portal.setAttribute('id', 'team-key-transaction-portal');
+      portal.setAttribute('id', 'transaction-events-portal');
       document.body.appendChild(portal);
     }
     this.portalEl = portal;
