@@ -21,14 +21,14 @@ type Props = {
 function NewIssue({sampleEvent, eventCount, organization, project}: Props) {
   return (
     <StyledPanelItem>
-      <div>
+      <EventDetails>
         <EventOrGroupHeader
           data={sampleEvent}
           organization={organization}
           hideIcons
           hideLevel
         />
-        <Details>
+        <ExtraInfo>
           {project && (
             <GroupShortId
               shortId={project.slug}
@@ -45,8 +45,8 @@ function NewIssue({sampleEvent, eventCount, organization, project}: Props) {
             <IconClock size="xs" />
             <TimeSince date={sampleEvent.dateCreated} />
           </TimeWrapper>
-        </Details>
-      </div>
+        </ExtraInfo>
+      </EventDetails>
       <ErrorsCount>
         {eventCount}
         <ErrorLabel>{tn('Error', 'Errors', eventCount)}</ErrorLabel>
@@ -66,7 +66,11 @@ const StyledPanelItem = styled(PanelItem)`
   word-break: break-word;
 `;
 
-const Details = styled('div')`
+const EventDetails = styled('div')`
+  overflow: hidden;
+`;
+
+const ExtraInfo = styled('div')`
   margin-top: ${space(0.5)};
   display: grid;
   grid-auto-flow: column;

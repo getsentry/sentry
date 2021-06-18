@@ -4,11 +4,10 @@ import {Location} from 'history';
 import debounce from 'lodash/debounce';
 
 import {Client} from 'app/api';
-import List from 'app/components/list';
-import ListItem from 'app/components/list/listItem';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
-import {Panel, PanelBody} from 'app/components/panels';
+import PaginationCaption from 'app/components/pagination/paginationCaption';
+import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
 import {DEFAULT_DEBOUNCE_DURATION} from 'app/constants';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
@@ -141,18 +140,19 @@ function Grouping({api, groupId, location, project, organization}: Props) {
 
   const links = parseLinkHeader(pagination);
   const hasMore = links.previous?.results || links.next?.results;
+  const paginationCurrentQuantity = activeGroupingLevelDetails.length;
 
   return (
     <Wrapper>
-      <Description>
-        {t(
-          'This issue is built up of multiple events that sentry thinks come from the same root-cause. Use this page to drill down into more fine-grained groups.'
-        )}
-      </Description>
-      <div>
-        <StyledList symbol="colored-numeric">
-          <StyledListItem>
-            {t('Select level')}
+      <Panel>
+        <PanelHeader>{t('Issue drill down')}</PanelHeader>
+        <PanelBody withPadding>
+          <Description>
+            {t(
+              'This issue is built up of multiple events that sentry thinks come from the same root-cause. Use this page to drill down this issue into more fine-grained groups.'
+            )}
+          </Description>
+          <Content>
             <SliderWrapper>
               {t('Fewer issues')}
               <StyledRangeSlider
@@ -166,25 +166,8 @@ function Grouping({api, groupId, location, project, organization}: Props) {
               />
               {t('More issues')}
             </SliderWrapper>
-          </StyledListItem>
-          <StyledListItem isReloading={isGroupingLevelDetailsLoading}>
             <div>
-              {t('What happens to this issue')}
-              <WhatHappensDescription>
-                {activeGroupingLevelDetails.length > 1
-                  ? tct(
-                      `This issue will be deleted and [quantity] new issues will be created.`,
-                      {
-                        quantity: hasMore
-                          ? `${activeGroupingLevelDetails.length}+`
-                          : activeGroupingLevelDetails.length,
-                      }
-                    )
-                  : t('This issue will be deleted and a new issue will be created.')}
-              </WhatHappensDescription>
-            </div>
-            <NewIssues>
-              <PanelBody>
+              <NewIssues isReloading={isGroupingLevelDetailsLoading}>
                 {activeGroupingLevelDetails.map(({hash, latestEvent, eventCount}) => (
                   <NewIssue
                     key={hash}
@@ -194,12 +177,29 @@ function Grouping({api, groupId, location, project, organization}: Props) {
                     organization={organization}
                   />
                 ))}
-              </PanelBody>
-            </NewIssues>
-          </StyledListItem>
-        </StyledList>
-        <Pagination pageLinks={pagination} />
-      </div>
+              </NewIssues>
+              <StyledPagination
+                pageLinks={pagination}
+                caption={
+                  <PaginationCaption
+                    caption={
+                      hasMore
+                        ? tct('Showing [current] of [total] Issues', {
+                            current: paginationCurrentQuantity,
+                            total: `${paginationCurrentQuantity}+`,
+                          })
+                        : tct('Showing [current] of [total] Issue', {
+                            current: paginationCurrentQuantity,
+                            total: paginationCurrentQuantity,
+                          })
+                    }
+                  />
+                }
+              />
+            </div>
+          </Content>
+        </PanelBody>
+      </Panel>
     </Wrapper>
   );
 }
@@ -211,34 +211,33 @@ const Wrapper = styled('div')`
   display: grid;
   align-content: flex-start;
   background: ${p => p.theme.background};
-  grid-gap: ${space(2)};
   margin: -${space(3)} -${space(4)};
   padding: ${space(3)} ${space(4)};
 `;
 
 const Description = styled('p')`
-  margin-bottom: ${space(0.5)};
+  && {
+    margin-bottom: ${space(2)};
+  }
 `;
 
-const NewIssues = styled(Panel)``;
-
-const WhatHappensDescription = styled('div')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeLarge};
-`;
-
-const StyledListItem = styled(ListItem)<{isReloading?: boolean}>`
+const Content = styled('div')`
   display: grid;
-  grid-gap: ${space(1.5)};
+  grid-gap: ${space(3)};
+`;
 
+const NewIssues = styled(Panel)<{isReloading: boolean}>`
+  margin-bottom: 0;
   ${p =>
     p.isReloading &&
     `
-      ${NewIssues}, ${WhatHappensDescription} {
-        opacity: 0.5;
-        pointer-events: none;
-      }
-    `}
+    opacity: 0.5;
+    pointer-events: none;
+  `}
+`;
+
+const StyledPagination = styled(Pagination)`
+  margin-top: ${space(1.5)};
 `;
 
 const SliderWrapper = styled('div')`
@@ -276,10 +275,4 @@ const StyledRangeSlider = styled(RangeSlider)`
     left: auto;
     right: auto;
   }
-`;
-
-const StyledList = styled(List)`
-  display: grid;
-  grid-gap: ${space(2)};
-  font-size: ${p => p.theme.fontSizeExtraLarge};
 `;
