@@ -3612,3 +3612,32 @@ class ArithmeticTest(SnubaTestCase, TestCase):
         result = results["data"][0]
         assert result["equation[0]"] == result["p50_transaction_duration"] + 2
         assert result["equation[1]"] == result["p50_transaction_duration"] / result["count"]
+
+    def test_multiple_operators(self):
+        results = discover.query(
+            selected_columns=[
+                "p50(transaction.duration)",
+                "p100(transaction.duration)",
+                "count()",
+            ],
+            equations=[
+                "p50(transaction.duration) / p100(transaction.duration) * 100",
+                "100 + count() * 5 - 3 / 5",
+                "count() + count() / count() * count() - count()",
+            ],
+            query=self.query,
+            params=self.params,
+        )
+        assert len(results["data"]) == 1
+        result = results["data"][0]
+        assert (
+            result["equation[0]"]
+            == result["p50_transaction_duration"] / result["p100_transaction_duration"] * 100
+        )
+        assert result["equation[1]"] == 100 + result["count"] * 5 - 3 / 5
+        assert (
+            result["equation[2]"]
+            == result["count"]
+            + result["count"] / result["count"] * result["count"]
+            - result["count"]
+        )
