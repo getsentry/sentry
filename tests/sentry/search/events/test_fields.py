@@ -1398,3 +1398,71 @@ class ResolveFieldListTest(unittest.TestCase):
             )
 
         assert "and 3 more" in str(error)
+
+    def test_count_if_field_with_duration(self):
+        fields = ["count_if(transaction.duration, less, 10)"]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["aggregations"] == [
+            [
+                "countIf",
+                [
+                    [
+                        "less",
+                        ["transaction.duration", 10],
+                    ],
+                ],
+                "count_if_transaction_duration_less_10",
+            ],
+        ]
+        fields = ["count_if(spans.http, lessOrEquals, 100)"]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["aggregations"] == [
+            [
+                "countIf",
+                [
+                    [
+                        "lessOrEquals",
+                        ["spans.http", 100],
+                    ],
+                ],
+                "count_if_spans_http_lessOrEquals_100",
+            ],
+        ]
+
+    def test_count_if_field_with_tag(self):
+        fields = ["count_if(http.status_code, equals, 200)"]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["aggregations"] == [
+            [
+                "countIf",
+                [
+                    [
+                        "equals",
+                        ["http.status_code", "'200'"],
+                    ],
+                ],
+                "count_if_http_status_code_equals_200",
+            ],
+        ]
+
+        fields = ["count_if(http.status_code, notEquals, 400)"]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["aggregations"] == [
+            [
+                "countIf",
+                [
+                    [
+                        "notEquals",
+                        ["http.status_code", "'400'"],
+                    ],
+                ],
+                "count_if_http_status_code_notEquals_400",
+            ],
+        ]
+
+    def test_invalid_count_if_fields(self):
+        with self.assertRaises(InvalidSearchQuery):
+            resolve_field_list(["count_if(project, equals, sentry)"], eventstore.Filter())
+
+        with self.assertRaises(InvalidSearchQuery):
+            resolve_field_list(["count_if(stack.function, equals, test)"], eventstore.Filter())
