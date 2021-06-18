@@ -101,7 +101,7 @@ class OperationSort extends Component<Props, State> {
           <MenuItemContent>
             <RadioLabel key="http">
               <StyledRadio
-                aria-label="http"
+                readOnly
                 radioSize="small"
                 checked={location.query.sort === '-spans.http'}
                 onClick={() => {
@@ -117,6 +117,7 @@ class OperationSort extends Component<Props, State> {
           <MenuItemContent>
             <RadioLabel>
               <StyledRadio
+                readOnly
                 radioSize="small"
                 checked={location.query.sort === '-spans.db'}
                 onClick={() => {
@@ -132,6 +133,7 @@ class OperationSort extends Component<Props, State> {
           <MenuItemContent>
             <RadioLabel>
               <StyledRadio
+                readOnly
                 radioSize="small"
                 checked={location.query.sort === '-spans.resource'}
                 onClick={() => {
@@ -147,6 +149,7 @@ class OperationSort extends Component<Props, State> {
           <MenuItemContent>
             <RadioLabel>
               <StyledRadio
+                readOnly
                 radioSize="small"
                 checked={location.query.sort === '-spans.browser'}
                 onClick={() => {
