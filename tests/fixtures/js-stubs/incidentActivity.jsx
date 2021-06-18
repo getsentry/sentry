@@ -1,4 +1,4 @@
-import {User} from 'sentry-test/fixtures/user';
+import {User} from './user';
 
 export function IncidentActivity(params) {
   return {

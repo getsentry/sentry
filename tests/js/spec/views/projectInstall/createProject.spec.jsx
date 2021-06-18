@@ -1,5 +1,4 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
-import {MOCK_RESP_VERBOSE} from 'sentry-test/fixtures/ruleConditions';
 
 import {openCreateTeamModal} from 'app/actionCreators/modal';
 import {CreateProject} from 'app/views/projectInstall/createProject';
@@ -177,7 +176,7 @@ describe('CreateProject', function () {
       props.organization.teams = [{slug: 'test', id: '1', name: 'test', hasAccess: true}];
       MockApiClient.addMockResponse({
         url: `/projects/${props.organization.slug}/rule-conditions/`,
-        body: MOCK_RESP_VERBOSE,
+        body: TestStubs.MOCK_RESP_VERBOSE,
       });
     });
 

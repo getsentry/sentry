@@ -1,26 +1,26 @@
-import {Fragment, useEffect, useState} from 'react';
+import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
+import debounce from 'lodash/debounce';
 
 import {Client} from 'app/api';
-import Button from 'app/components/button';
-import EmptyStateWarning from 'app/components/emptyStateWarning';
 import List from 'app/components/list';
 import ListItem from 'app/components/list/listItem';
-import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
-import {IconFlag} from 'app/icons';
+import {DEFAULT_DEBOUNCE_DURATION} from 'app/constants';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {Group, Organization, Project} from 'app/types';
 import {Event} from 'app/types/event';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
 import withApi from 'app/utils/withApi';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
 import RangeSlider from 'app/views/settings/components/forms/controls/rangeSlider';
 
+import ErrorMessage from './errorMessage';
 import NewIssue from './newIssue';
+
+type Error = React.ComponentProps<typeof ErrorMessage>['error'];
 
 type Props = {
   organization: Organization;
@@ -28,13 +28,6 @@ type Props = {
   groupId: Group['id'];
   location: Location;
   api: Client;
-};
-
-type Error = {
-  status: number;
-  responseJSON?: {
-    detail: string;
-  };
 };
 
 type GroupingLevelDetails = {
@@ -48,7 +41,7 @@ type GroupingLevel = {
   isCurrent: boolean;
 };
 
-function Grouping({api, groupId, location}: Props) {
+function Grouping({api, groupId, location, project, organization}: Props) {
   const [isLoading, setIsLoading] = useState(false);
   const [isGroupingLevelDetailsLoading, setIsGroupingLevelDetailsLoading] = useState(
     false
@@ -75,6 +68,10 @@ function Grouping({api, groupId, location}: Props) {
   useEffect(() => {
     fetchGroupingLevelDetails();
   }, [activeGroupingLevel, location.query]);
+
+  const handleSetActiveGroupingLevel = debounce((groupingLevelId: number | '') => {
+    setActiveGroupingLevel(Number(groupingLevelId));
+  }, DEFAULT_DEBOUNCE_DURATION);
 
   async function fetchGroupingLevels() {
     setIsLoading(true);
@@ -134,44 +131,12 @@ function Grouping({api, groupId, location}: Props) {
   }
 
   if (error) {
-    if (error.status === 403 && error.responseJSON?.detail) {
-      return (
-        <Wrapper>
-          <EmptyMessage
-            icon={<IconFlag size="xl" />}
-            action={
-              <Button
-                to={`/organizations/sentry/issues/${groupId}/merged/?${location.search}`}
-              >
-                {t('Unmerge issue')}
-              </Button>
-            }
-          >
-            {error.responseJSON.detail}
-          </EmptyMessage>
-        </Wrapper>
-      );
-    }
-
-    return (
-      <LoadingError
-        message={t('Unable to load grouping levels, please try again later')}
-        onRetry={fetchGroupingLevels}
-      />
-    );
+    return <ErrorMessage onRetry={fetchGroupingLevels} groupId={groupId} error={error} />;
   }
 
-  if (!groupingLevels.length) {
-    return (
-      <EmptyStateWarning withIcon={false}>
-        {t('No grouping levels have been found.')}
-      </EmptyStateWarning>
-    );
+  if (!activeGroupingLevelDetails.length) {
+    return <LoadingIndicator />;
   }
-
-  //function handleRegroup() {
-  // Todo(Priscila): Implement it
-  //}
 
   const links = parseLinkHeader(pagination);
   const hasMore = links.previous?.results || links.next?.results;
@@ -196,58 +161,38 @@ function Grouping({api, groupId, location}: Props) {
                 return value === 0 ? t('Automatically grouped') : t('Level %s', value);
               }}
               value={activeGroupingLevel ?? 0}
-              onChange={groupingLevelId =>
-                setActiveGroupingLevel(Number(groupingLevelId))
-              }
+              onChange={handleSetActiveGroupingLevel}
             />
           </StyledListItem>
-          <StyledListItem>
-            {isGroupingLevelDetailsLoading ? (
-              <div>
-                <div>{t('What happens to this issue')}</div>
-                <LoadingIndicator mini />
-              </div>
-            ) : (
-              <Fragment>
-                <div>
-                  {t('What happens to this issue')}
-                  <WhatHappensDescription>
-                    {tct(
-                      `This issue will be deleted and [quantity] new issues will be created.`,
-                      {
-                        quantity: hasMore
-                          ? `${activeGroupingLevelDetails.length}+`
-                          : activeGroupingLevelDetails.length,
-                      }
-                    )}
-                  </WhatHappensDescription>
-                </div>
-                <NewIssues>
-                  {activeGroupingLevelDetails.map(activeGroupingLevelDetail => (
-                    <NewIssue
-                      key={activeGroupingLevelDetail.hash}
-                      event={activeGroupingLevelDetail.latestEvent}
-                    />
-                  ))}
-                </NewIssues>
-              </Fragment>
-            )}
+          <StyledListItem isReloading={isGroupingLevelDetailsLoading}>
+            <div>
+              {t('What happens to this issue')}
+              <WhatHappensDescription>
+                {tct(
+                  `This issue will be deleted and [quantity] new issues will be created.`,
+                  {
+                    quantity: hasMore
+                      ? `${activeGroupingLevelDetails.length}+`
+                      : activeGroupingLevelDetails.length,
+                  }
+                )}
+              </WhatHappensDescription>
+            </div>
+            <NewIssues>
+              {activeGroupingLevelDetails.map(({hash, latestEvent, eventCount}) => (
+                <NewIssue
+                  key={hash}
+                  sampleEvent={latestEvent}
+                  eventCount={eventCount}
+                  project={project}
+                  organization={organization}
+                />
+              ))}
+            </NewIssues>
           </StyledListItem>
         </StyledList>
         <Pagination pageLinks={pagination} />
       </div>
-      <Action>
-        <Button
-          priority="primary"
-          disabled={
-            isGroupingLevelDetailsLoading ||
-            !activeGroupingLevel ||
-            activeGroupingLevel === 0
-          }
-        >
-          {t('Regroup')}
-        </Button>
-      </Action>
     </Wrapper>
   );
 }
@@ -257,6 +202,7 @@ export default withApi(Grouping);
 const Wrapper = styled('div')`
   flex: 1;
   display: grid;
+  align-content: flex-start;
   background: ${p => p.theme.background};
   grid-gap: ${space(2)};
   margin: -${space(3)} -${space(4)};
@@ -267,44 +213,36 @@ const Description = styled('p')`
   margin-bottom: ${space(0.5)};
 `;
 
-const Action = styled('div')`
-  border-top: 1px solid ${p => p.theme.border};
-  display: flex;
-  justify-content: flex-end;
-  padding: ${space(2)} 0 0;
-  margin-top: ${space(1)};
+const NewIssues = styled('div')`
+  display: grid;
+  grid-gap: ${space(3)};
 `;
 
-const StyledListItem = styled(ListItem)`
+const WhatHappensDescription = styled('div')`
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeLarge};
+`;
+
+const StyledListItem = styled(ListItem)<{isReloading?: boolean}>`
   display: grid;
   grid-gap: ${space(1.5)};
+
+  ${p =>
+    p.isReloading &&
+    `
+      ${NewIssues}, ${WhatHappensDescription} {
+        opacity: 0.5;
+        pointer-events: none;
+      }
+    `}
 `;
 
 const StyledRangeSlider = styled(RangeSlider)`
-  max-width: 20%;
+  max-width: 300px;
 `;
 
 const StyledList = styled(List)`
   display: grid;
   grid-gap: ${space(2)};
   font-size: ${p => p.theme.fontSizeExtraLarge};
-`;
-
-const NewIssues = styled('div')`
-  display: grid;
-  grid-template-columns: minmax(100px, 1fr);
-  grid-gap: ${space(2)};
-
-  @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    grid-template-columns: repeat(2, minmax(100px, 1fr));
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints[2]}) {
-    grid-template-columns: repeat(3, minmax(100px, 1fr));
-  }
-`;
-
-const WhatHappensDescription = styled('div')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeLarge};
 `;

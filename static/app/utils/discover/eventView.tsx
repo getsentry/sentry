@@ -1157,7 +1157,10 @@ class EventView {
     return uniqBy(
       this.getAggregateFields()
         // Only include aggregates that make sense to be graphable (eg. not string or date)
-        .filter((field: Field) => isLegalYAxisType(aggregateOutputType(field.field)))
+        .filter(
+          (field: Field) =>
+            isLegalYAxisType(aggregateOutputType(field.field)) && !isEquation(field.field)
+        )
         .map((field: Field) => ({label: field.field, value: field.field}))
         .concat(CHART_AXIS_OPTIONS),
       'value'
