@@ -150,6 +150,12 @@ def project_threshold_config_expression(organization_id, project_ids):
     )
 
     num_configured = threshold_configs.count()
+    sentry_sdk.set_tag("project_threshold.count", num_configured)
+    sentry_sdk.set_tag(
+        "project_threshold.count.grouped",
+        format_grouped_length(num_configured, [10, 100, 250, 500]),
+    )
+
     if num_configured == 0:
         return ["tuple", [f"'{DEFAULT_PROJECT_THRESHOLD_METRIC}'", DEFAULT_PROJECT_THRESHOLD]]
     elif num_configured > MAX_QUERYABLE_TRANSACTION_THRESHOLDS:
