@@ -229,6 +229,10 @@ const StyledPanelTable = styled(PanelTable)<{isReloading: boolean}>`
     `}
 
   > * {
+    padding: ${space(1.5)} ${space(2)};
+    :nth-child(-n + 2) {
+      padding: ${space(2)};
+    }
     :nth-child(2n) {
       display: flex;
       text-align: right;
