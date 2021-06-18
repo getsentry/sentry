@@ -103,7 +103,7 @@ class OperationSort extends Component<Props, State> {
               <StyledRadio
                 readOnly
                 radioSize="small"
-                checked={location.query.sort === '-spans.http'}
+                checked={eventView.sorts.some(({field}) => field === 'spans.http')}
                 onClick={() => {
                   const sortLink = generateSortLink({field: 'spans.http'});
                   if (sortLink) browserHistory.push(sortLink);
@@ -119,7 +119,7 @@ class OperationSort extends Component<Props, State> {
               <StyledRadio
                 readOnly
                 radioSize="small"
-                checked={location.query.sort === '-spans.db'}
+                checked={eventView.sorts.some(({field}) => field === 'spans.db')}
                 onClick={() => {
                   const sortLink = generateSortLink({field: 'spans.db'});
                   if (sortLink) browserHistory.push(sortLink);
@@ -135,7 +135,7 @@ class OperationSort extends Component<Props, State> {
               <StyledRadio
                 readOnly
                 radioSize="small"
-                checked={location.query.sort === '-spans.resource'}
+                checked={eventView.sorts.some(({field}) => field === 'spans.resource')}
                 onClick={() => {
                   const sortLink = generateSortLink({field: 'spans.resource'});
                   if (sortLink) browserHistory.push(sortLink);
@@ -151,7 +151,7 @@ class OperationSort extends Component<Props, State> {
               <StyledRadio
                 readOnly
                 radioSize="small"
-                checked={location.query.sort === '-spans.browser'}
+                checked={eventView.sorts.some(({field}) => field === 'spans.browser')}
                 onClick={() => {
                   const sortLink = generateSortLink({field: 'spans.browser'});
                   if (sortLink) browserHistory.push(sortLink);
