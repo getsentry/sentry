@@ -146,16 +146,12 @@ class ReleaseFileDeleteTest(APITestCase):
         )
         release.add_project(project)
 
-        assert release.count_artifacts() == 0
-
         releasefile = ReleaseFile.objects.create(
             organization_id=project.organization_id,
             release=release,
             file=File.objects.create(name="application.js", type="release.file"),
             name="http://example.com/application.js",
         )
-
-        assert release.count_artifacts() == 1
 
         url = reverse(
             "sentry-api-0-project-release-file-details",
@@ -173,4 +169,3 @@ class ReleaseFileDeleteTest(APITestCase):
 
         assert not ReleaseFile.objects.filter(id=releasefile.id).exists()
         assert not File.objects.filter(id=releasefile.file.id).exists()
-        assert release.count_artifacts() == 0

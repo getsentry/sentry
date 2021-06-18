@@ -63,12 +63,6 @@ class ReleaseFile(Model):
     name = models.TextField()
     dist = FlexibleForeignKey("sentry.Distribution", null=True)
 
-    #: For classic file uploads, this field is 1.
-    #: For release archives, this field is 0.
-    #: For artifact indexes, this field is the number of artifacts contained
-    #: in the index.
-    artifact_count = BoundedPositiveIntegerField(null=True, default=1)
-
     __repr__ = sane_repr("release", "ident")
 
     objects = models.Manager()  # The default manager.
@@ -223,10 +217,6 @@ class _ArtifactIndexData:
         """Meant to be read-only"""
         return self._data
 
-    @property
-    def num_files(self):
-        return len(self._data.get("files", {}))
-
     def get(self, filename: str):
         return self._data.get("files", {}).get(filename, None)
 
@@ -299,14 +289,10 @@ class _ArtifactIndexGuard:
 
                 target_file.putfile(BytesIO(json.dumps(index_data.data).encode()))
 
-                artifact_count = index_data.num_files
-                if created:
-                    # NOTE: could pass this to into get_or_create instead
-                    releasefile.update(artifact_count=artifact_count)
-                else:
+                if not created:
                     # Update and clean existing
                     old_file = releasefile.file
-                    releasefile.update(file=target_file, artifact_count=artifact_count)
+                    releasefile.update(file=target_file)
                     old_file.delete()
 
     def _get_or_create_releasefile(self):
@@ -359,7 +345,6 @@ def update_artifact_index(release: Release, dist: Optional[Distribution], archiv
         organization_id=release.organization_id,
         dist=dist,
         file=archive_file,
-        artifact_count=0,  # Artifacts will be counted with artifact index
     )
 
     files_out = {}
