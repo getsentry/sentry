@@ -51,6 +51,8 @@ SAMPLED_URL_NAMES = {
     "sentry-api-0-organization-stats": settings.SAMPLED_DEFAULT_RATE,
     "sentry-api-0-organization-stats-v2": settings.SAMPLED_DEFAULT_RATE,
     "sentry-api-0-project-stats": 0.1,  # lower rate because of high TPM
+    # debug files
+    "sentry-api-0-assemble-dif-files": 0.1,
 }
 if settings.ADDITIONAL_SAMPLED_URLS:
     SAMPLED_URL_NAMES.update(settings.ADDITIONAL_SAMPLED_URLS)
