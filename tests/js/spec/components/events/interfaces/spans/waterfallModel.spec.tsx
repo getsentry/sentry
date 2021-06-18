@@ -93,6 +93,135 @@ describe('WaterfallModel', () => {
     ],
   } as EventTransaction;
 
+  const fullWaterfall: EnhancedProcessedSpanType[] = [
+    {
+      type: 'root_span',
+      span: {
+        trace_id: '8cbbc19c0f54447ab702f00263262726',
+        span_id: 'a934857184bdf5a6',
+        start_timestamp: 1622079935.86141,
+        timestamp: 1622079940.032905,
+        description: undefined,
+        parent_span_id: undefined,
+        op: 'pageload',
+        data: {},
+        status: 'unknown',
+      },
+      numOfSpanChildren: 3,
+      treeDepth: 0,
+      isLastSibling: true,
+      continuingTreeDepths: [],
+    },
+    {
+      type: 'span',
+      span: {
+        timestamp: 1622079937.227645,
+        start_timestamp: 1622079936.90689,
+        description: 'GET /api/0/organizations/?member=1',
+        op: 'http',
+        span_id: 'b23703998ae619e7',
+        parent_span_id: 'a934857184bdf5a6',
+        trace_id: '8cbbc19c0f54447ab702f00263262726',
+        status: 'ok',
+        tags: {'http.status_code': '200'},
+        data: {method: 'GET', type: 'fetch', url: '/api/0/organizations/?member=1'},
+      },
+      numOfSpanChildren: 0,
+      treeDepth: 1,
+      isLastSibling: false,
+      continuingTreeDepths: [],
+    },
+    {
+      type: 'gap',
+      span: {
+        type: 'gap',
+        start_timestamp: 1622079937.227645,
+        timestamp: 1622079937.907515,
+        description: 'Missing instrumentation',
+        isOrphan: false,
+      },
+      numOfSpanChildren: 0,
+      treeDepth: 1,
+      isLastSibling: false,
+      continuingTreeDepths: [],
+    },
+    {
+      type: 'span',
+      span: {
+        timestamp: 1622079938.20331,
+        start_timestamp: 1622079937.907515,
+        description: 'GET /api/0/internal/health/',
+        op: 'http',
+        span_id: 'a453cc713e5baf9c',
+        parent_span_id: 'a934857184bdf5a6',
+        trace_id: '8cbbc19c0f54447ab702f00263262726',
+        status: 'ok',
+        tags: {'http.status_code': '200'},
+        data: {method: 'GET', type: 'fetch', url: '/api/0/internal/health/'},
+      },
+      numOfSpanChildren: 1,
+      treeDepth: 1,
+      isLastSibling: false,
+      continuingTreeDepths: [],
+    },
+    {
+      type: 'span',
+      span: {
+        timestamp: 1622079936.05839,
+        start_timestamp: 1622079936.048125,
+        description: '/_static/dist/sentry/sentry.541f5b.css',
+        op: 'resource.link',
+        span_id: 'a23f26b939d1a735',
+        parent_span_id: 'a453cc713e5baf9c',
+        trace_id: '8cbbc19c0f54447ab702f00263262726',
+        data: {
+          'Decoded Body Size': 159248,
+          'Encoded Body Size': 159248,
+          'Transfer Size': 275,
+        },
+      },
+      numOfSpanChildren: 0,
+      treeDepth: 2,
+      isLastSibling: true,
+      continuingTreeDepths: [1],
+    },
+    {
+      type: 'gap',
+      span: {
+        type: 'gap',
+        start_timestamp: 1622079938.20331,
+        timestamp: 1622079938.31431,
+        description: 'Missing instrumentation',
+        isOrphan: false,
+      },
+      numOfSpanChildren: 0,
+      treeDepth: 1,
+      isLastSibling: false,
+      continuingTreeDepths: [],
+    },
+    {
+      type: 'span',
+      span: {
+        timestamp: 1622079938.32451,
+        start_timestamp: 1622079938.31431,
+        description: '/_static/dist/sentry/sentry.541f5b.min.css',
+        op: 'css',
+        span_id: 'b5795cf4ba68bbb4',
+        parent_span_id: 'a934857184bdf5a6',
+        trace_id: '8cbbc19c0f54447ab702f00263262726',
+        data: {
+          'Decoded Body Size': 159248,
+          'Encoded Body Size': 159248,
+          'Transfer Size': 275,
+        },
+      },
+      numOfSpanChildren: 0,
+      treeDepth: 1,
+      isLastSibling: true,
+      continuingTreeDepths: [],
+    },
+  ];
+
   it('isEvent', () => {
     const waterfallModel = new WaterfallModel(event);
 
@@ -208,135 +337,6 @@ describe('WaterfallModel', () => {
     // @ts-expect-error
     await tick();
 
-    const fullWaterfall: EnhancedProcessedSpanType[] = [
-      {
-        type: 'root_span',
-        span: {
-          trace_id: '8cbbc19c0f54447ab702f00263262726',
-          span_id: 'a934857184bdf5a6',
-          start_timestamp: 1622079935.86141,
-          timestamp: 1622079940.032905,
-          description: undefined,
-          parent_span_id: undefined,
-          op: 'pageload',
-          data: {},
-          status: 'unknown',
-        },
-        numOfSpanChildren: 3,
-        treeDepth: 0,
-        isLastSibling: true,
-        continuingTreeDepths: [],
-      },
-      {
-        type: 'span',
-        span: {
-          timestamp: 1622079937.227645,
-          start_timestamp: 1622079936.90689,
-          description: 'GET /api/0/organizations/?member=1',
-          op: 'http',
-          span_id: 'b23703998ae619e7',
-          parent_span_id: 'a934857184bdf5a6',
-          trace_id: '8cbbc19c0f54447ab702f00263262726',
-          status: 'ok',
-          tags: {'http.status_code': '200'},
-          data: {method: 'GET', type: 'fetch', url: '/api/0/organizations/?member=1'},
-        },
-        numOfSpanChildren: 0,
-        treeDepth: 1,
-        isLastSibling: false,
-        continuingTreeDepths: [],
-      },
-      {
-        type: 'gap',
-        span: {
-          type: 'gap',
-          start_timestamp: 1622079937.227645,
-          timestamp: 1622079937.907515,
-          description: 'Missing instrumentation',
-          isOrphan: false,
-        },
-        numOfSpanChildren: 0,
-        treeDepth: 1,
-        isLastSibling: false,
-        continuingTreeDepths: [],
-      },
-      {
-        type: 'span',
-        span: {
-          timestamp: 1622079938.20331,
-          start_timestamp: 1622079937.907515,
-          description: 'GET /api/0/internal/health/',
-          op: 'http',
-          span_id: 'a453cc713e5baf9c',
-          parent_span_id: 'a934857184bdf5a6',
-          trace_id: '8cbbc19c0f54447ab702f00263262726',
-          status: 'ok',
-          tags: {'http.status_code': '200'},
-          data: {method: 'GET', type: 'fetch', url: '/api/0/internal/health/'},
-        },
-        numOfSpanChildren: 1,
-        treeDepth: 1,
-        isLastSibling: false,
-        continuingTreeDepths: [],
-      },
-      {
-        type: 'span',
-        span: {
-          timestamp: 1622079936.05839,
-          start_timestamp: 1622079936.048125,
-          description: '/_static/dist/sentry/sentry.541f5b.css',
-          op: 'resource.link',
-          span_id: 'a23f26b939d1a735',
-          parent_span_id: 'a453cc713e5baf9c',
-          trace_id: '8cbbc19c0f54447ab702f00263262726',
-          data: {
-            'Decoded Body Size': 159248,
-            'Encoded Body Size': 159248,
-            'Transfer Size': 275,
-          },
-        },
-        numOfSpanChildren: 0,
-        treeDepth: 2,
-        isLastSibling: true,
-        continuingTreeDepths: [1],
-      },
-      {
-        type: 'gap',
-        span: {
-          type: 'gap',
-          start_timestamp: 1622079938.20331,
-          timestamp: 1622079938.31431,
-          description: 'Missing instrumentation',
-          isOrphan: false,
-        },
-        numOfSpanChildren: 0,
-        treeDepth: 1,
-        isLastSibling: false,
-        continuingTreeDepths: [],
-      },
-      {
-        type: 'span',
-        span: {
-          timestamp: 1622079938.32451,
-          start_timestamp: 1622079938.31431,
-          description: '/_static/dist/sentry/sentry.541f5b.min.css',
-          op: 'css',
-          span_id: 'b5795cf4ba68bbb4',
-          parent_span_id: 'a934857184bdf5a6',
-          trace_id: '8cbbc19c0f54447ab702f00263262726',
-          data: {
-            'Decoded Body Size': 159248,
-            'Encoded Body Size': 159248,
-            'Transfer Size': 275,
-          },
-        },
-        numOfSpanChildren: 0,
-        treeDepth: 1,
-        isLastSibling: true,
-        continuingTreeDepths: [],
-      },
-    ];
-
     // show all spans in the waterfall
     let spans = waterfallModel.getWaterfall({
       viewStart: 0,
@@ -423,5 +423,41 @@ describe('WaterfallModel', () => {
         span: fullWaterfall[6].span,
       },
     ]);
+  });
+
+  it('toggleSpanGroup()', () => {
+    const waterfallModel = new WaterfallModel(event);
+
+    let spans = waterfallModel.getWaterfall({
+      viewStart: 0,
+      viewEnd: 1,
+    });
+
+    expect(spans).toEqual(fullWaterfall);
+
+    // toggle a span group to hide their sub-tree
+    waterfallModel.toggleSpanGroup('a453cc713e5baf9c');
+
+    spans = waterfallModel.getWaterfall({
+      viewStart: 0,
+      viewEnd: 1,
+    });
+
+    expect(spans).toEqual(
+      fullWaterfall.filter((_span, index) => {
+        // 5th span should be hidden
+        return index != 4;
+      })
+    );
+
+    // toggle a span group to reveal their sub-tree
+    waterfallModel.toggleSpanGroup('a453cc713e5baf9c');
+
+    spans = waterfallModel.getWaterfall({
+      viewStart: 0,
+      viewEnd: 1,
+    });
+
+    expect(spans).toEqual(fullWaterfall);
   });
 });
