@@ -7,11 +7,11 @@ import {Client} from 'app/api';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
 import PaginationCaption from 'app/components/pagination/paginationCaption';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import {PanelTable} from 'app/components/panels';
 import {DEFAULT_DEBOUNCE_DURATION} from 'app/constants';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import {Group, Organization, Project} from 'app/types';
+import {Group, Organization} from 'app/types';
 import {Event} from 'app/types/event';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
 import withApi from 'app/utils/withApi';
@@ -24,7 +24,6 @@ type Error = React.ComponentProps<typeof ErrorMessage>['error'];
 
 type Props = {
   organization: Organization;
-  project: Project;
   groupId: Group['id'];
   location: Location;
   api: Client;
@@ -41,7 +40,7 @@ type GroupingLevel = {
   isCurrent: boolean;
 };
 
-function Grouping({api, groupId, location, project, organization}: Props) {
+function Grouping({api, groupId, location, organization}: Props) {
   const [isLoading, setIsLoading] = useState(false);
   const [isGroupingLevelDetailsLoading, setIsGroupingLevelDetailsLoading] = useState(
     false
@@ -144,62 +143,57 @@ function Grouping({api, groupId, location, project, organization}: Props) {
 
   return (
     <Wrapper>
-      <Panel>
-        <PanelHeader>{t('Issue drill down')}</PanelHeader>
-        <PanelBody withPadding>
-          <Description>
-            {t(
-              'This issue is built up of multiple events that sentry thinks come from the same root-cause. Use this page to drill down this issue into more fine-grained groups.'
-            )}
-          </Description>
-          <Content>
-            <SliderWrapper>
-              {t('Fewer issues')}
-              <StyledRangeSlider
-                name="grouping-level"
-                allowedValues={groupingLevels.map(groupingLevel =>
-                  Number(groupingLevel.id)
-                )}
-                value={activeGroupingLevel ?? 0}
-                onChange={handleSetActiveGroupingLevel}
-                showLabel={false}
+      <Description>
+        {t(
+          'This issue is built up of multiple events that sentry thinks come from the same root-cause. Use this page to drill down this issue into more fine-grained groups.'
+        )}
+      </Description>
+      <Content>
+        <SliderWrapper>
+          {t('Fewer issues')}
+          <StyledRangeSlider
+            name="grouping-level"
+            allowedValues={groupingLevels.map(groupingLevel => Number(groupingLevel.id))}
+            value={activeGroupingLevel ?? 0}
+            onChange={handleSetActiveGroupingLevel}
+            showLabel={false}
+          />
+          {t('More issues')}
+        </SliderWrapper>
+        <div>
+          <StyledPanelTable
+            isReloading={isGroupingLevelDetailsLoading}
+            headers={['', t('Events')]}
+          >
+            {activeGroupingLevelDetails.map(({hash, latestEvent, eventCount}) => (
+              <NewIssue
+                key={hash}
+                sampleEvent={latestEvent}
+                eventCount={eventCount}
+                organization={organization}
               />
-              {t('More issues')}
-            </SliderWrapper>
-            <div>
-              <NewIssues isReloading={isGroupingLevelDetailsLoading}>
-                {activeGroupingLevelDetails.map(({hash, latestEvent, eventCount}) => (
-                  <NewIssue
-                    key={hash}
-                    sampleEvent={latestEvent}
-                    eventCount={eventCount}
-                    project={project}
-                    organization={organization}
-                  />
-                ))}
-              </NewIssues>
-              <StyledPagination
-                pageLinks={pagination}
+            ))}
+          </StyledPanelTable>
+          <StyledPagination
+            pageLinks={pagination}
+            caption={
+              <PaginationCaption
                 caption={
-                  <PaginationCaption
-                    caption={
-                      hasMore
-                        ? tct('Showing [current] of [total] Issues', {
-                            current: paginationCurrentQuantity,
-                            total: `${paginationCurrentQuantity}+`,
-                          })
-                        : tct('Showing [current] of [total] Issue', {
-                            current: paginationCurrentQuantity,
-                            total: paginationCurrentQuantity,
-                          })
-                    }
-                  />
+                  hasMore
+                    ? tct('Showing [current] of [total] Issues', {
+                        current: paginationCurrentQuantity,
+                        total: `${paginationCurrentQuantity}+`,
+                      })
+                    : tct('Showing [current] of [total] Issue', {
+                        current: paginationCurrentQuantity,
+                        total: paginationCurrentQuantity,
+                      })
                 }
               />
-            </div>
-          </Content>
-        </PanelBody>
-      </Panel>
+            }
+          />
+        </div>
+      </Content>
     </Wrapper>
   );
 }
@@ -210,7 +204,6 @@ const Wrapper = styled('div')`
   flex: 1;
   display: grid;
   align-content: flex-start;
-  background: ${p => p.theme.background};
   margin: -${space(3)} -${space(4)};
   padding: ${space(3)} ${space(4)};
 `;
@@ -226,18 +219,30 @@ const Content = styled('div')`
   grid-gap: ${space(3)};
 `;
 
-const NewIssues = styled(Panel)<{isReloading: boolean}>`
-  margin-bottom: 0;
+const StyledPanelTable = styled(PanelTable)<{isReloading: boolean}>`
+  grid-template-columns: 1fr max-content;
   ${p =>
     p.isReloading &&
     `
-    opacity: 0.5;
-    pointer-events: none;
-  `}
+      opacity: 0.5;
+      pointer-events: none;
+    `}
+
+  > * {
+    :nth-child(2n) {
+      display: flex;
+      text-align: right;
+      justify-content: flex-end;
+      width: 60px;
+      @media (min-width: ${p => p.theme.breakpoints[3]}) {
+        width: 80px;
+      }
+    }
+  }
 `;
 
 const StyledPagination = styled(Pagination)`
-  margin-top: ${space(1.5)};
+  margin-top: 0;
 `;
 
 const SliderWrapper = styled('div')`
