@@ -26,6 +26,14 @@ type PropType = ScrollbarManagerChildrenProps & {
 class SpanTree extends React.Component<PropType> {
   shouldComponentUpdate(nextProps: PropType) {
     if (
+      this.props.dragProps.isDragging !== nextProps.dragProps.isDragging ||
+      this.props.dragProps.isWindowSelectionDragging !==
+        nextProps.dragProps.isWindowSelectionDragging
+    ) {
+      return true;
+    }
+
+    if (
       nextProps.dragProps.isDragging ||
       nextProps.dragProps.isWindowSelectionDragging ||
       isEqual(this.props.spans, nextProps.spans)
