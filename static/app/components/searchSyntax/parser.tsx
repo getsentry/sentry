@@ -234,8 +234,6 @@ type FilterMap = {
   };
 };
 
-type TextFilter = FilterMap[FilterType.Text];
-
 /**
  * The Filter type discriminates on the FilterType enum using the `filter` key.
  *
@@ -329,7 +327,7 @@ class TokenConverter {
       key,
       operator: operator ?? TermOperator.Default,
       value,
-      invalidReason: this.checkInvalidFilter(type, key, value),
+      invalidReason: type === FilterType.Text ? this.checkInvalidTextFilter(key) : null,
     } as FilterResult);
 
   tokenFreeText = (value: string, quoted: boolean) =>
@@ -520,35 +518,19 @@ class TokenConverter {
   /**
    * Predicates weather a text filter have operators for specific keys.
    */
-  predicateTextOperator = (key: TextFilter['key']) =>
+  predicateTextOperator = (key: FilterMap[FilterType.Text]['key']) =>
     this.config.textOperatorKeys.has(getKeyName(key));
-
-  checkInvalidFilter = <T extends FilterType>(
-    type: T,
-    key: FilterMap[T]['key'],
-    value: FilterMap[T]['value']
-  ) =>
-    type !== FilterType.Text
-      ? null
-      : this.checkInvalidTextFilter(
-          key as TextFilter['key'],
-          value as TextFilter['value']
-        );
 
   /**
    * Validates that a text filter is not using a non-text key.
    */
-  checkInvalidTextFilter = (key: TextFilter['key'], value: TextFilter['value']) => {
+  checkInvalidTextFilter = (key: FilterMap[FilterType]['key']) => {
     // Explicit tag keys are always treated as text filters
     if (key.type === Token.KeyExplicitTag) {
       return null;
     }
 
     const keyName = getKeyName(key);
-
-    if (this.keyValidation.isDuration(keyName)) {
-      return t('Invalid duration. Expected number followed by duration unit suffix.');
-    }
 
     if (this.keyValidation.isDate(keyName)) {
       return t(
@@ -565,14 +547,6 @@ class TokenConverter {
       return t(
         'Invalid number. Expected number then optional k, m, or b suffix (e.g. 500k).'
       );
-    }
-
-    if (!value.quoted && /(?<!\\)"/.test(value.value)) {
-      return t('Quotes must enclose text or be escaped.');
-    }
-
-    if (!value.quoted && value.value === '') {
-      return t('Filter must have a value');
     }
 
     return null;
