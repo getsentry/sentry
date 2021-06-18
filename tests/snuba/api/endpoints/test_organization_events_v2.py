@@ -8,6 +8,7 @@ from sentry.discover.models import KeyTransaction, TeamKeyTransaction
 from sentry.models import ApiKey, ProjectTeam, ProjectTransactionThreshold
 from sentry.models.transaction_threshold import TransactionMetric
 from sentry.search.events.constants import SEMVER_ALIAS
+from sentry.search.events.fields import MAX_QUERYABLE_TRANSACTION_THRESHOLDS
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -958,6 +959,63 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert len(response.data["data"]) == 1
         data = response.data["data"]
         assert data[0]["count_miserable_user_300"] == 2
+
+    def test_too_many_transaction_thresholds(self):
+        project_transaction_thresholds = []
+        project_ids = []
+        for i in range(MAX_QUERYABLE_TRANSACTION_THRESHOLDS + 1):
+            project = self.create_project(name=f"bulk_txn_{i}")
+            project_ids.append(project.id)
+            project_transaction_thresholds.append(
+                ProjectTransactionThreshold(
+                    organization=self.organization,
+                    project=project,
+                    threshold=400,
+                    metric=TransactionMetric.LCP.value,
+                )
+            )
+
+        ProjectTransactionThreshold.objects.bulk_create(project_transaction_thresholds)
+
+        events = [
+            ("one", 400),
+            ("one", 400),
+            ("two", 3000),
+            ("two", 3000),
+            ("three", 300),
+            ("three", 3000),
+        ]
+        for idx, event in enumerate(events):
+            data = load_data(
+                "transaction",
+                timestamp=before_now(minutes=(1 + idx)),
+                start_timestamp=before_now(minutes=(1 + idx), milliseconds=event[1]),
+            )
+            data["event_id"] = f"{idx}" * 32
+            data["transaction"] = f"/count_miserable/horribilis/{event[0]}"
+            data["user"] = {"email": f"{idx}@example.com"}
+            self.store_event(data, project_id=project_ids[0])
+
+        query = {
+            "field": [
+                "transaction",
+                "count_miserable(user)",
+            ],
+            "query": "event.type:transaction",
+            project: project_ids,
+        }
+
+        response = self.do_request(
+            query,
+            features={
+                "organizations:discover-basic": True,
+                "organizations:project-transaction-threshold": True,
+                "organizations:global-views": True,
+            },
+        )
+
+        assert response.status_code == 400
+        assert "Too many configured thresholds, try with fewer projects." in response.data["detail"]
 
     def test_count_miserable_new_alias_field(self):
         project = self.create_project()

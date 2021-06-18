@@ -44,6 +44,7 @@ from sentry.utils.snuba import (
 )
 
 MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS = 500
+MAX_QUERYABLE_TRANSACTION_THRESHOLDS = 500
 
 ConditionalFunction = namedtuple("ConditionalFunction", "condition match fallback")
 FunctionDetails = namedtuple("FunctionDetails", "field instance arguments")
@@ -148,8 +149,11 @@ def project_threshold_config_expression(organization_id, project_ids):
         .values("project_id", "threshold", "metric")
     )
 
-    if not threshold_configs.count():
+    num_configured = threshold_configs.count()
+    if num_configured == 0:
         return ["tuple", [f"'{DEFAULT_PROJECT_THRESHOLD_METRIC}'", DEFAULT_PROJECT_THRESHOLD]]
+    elif num_configured > MAX_QUERYABLE_TRANSACTION_THRESHOLDS:
+        raise InvalidSearchQuery("Too many configured thresholds, try with fewer projects.")
 
     return [
         "if",
