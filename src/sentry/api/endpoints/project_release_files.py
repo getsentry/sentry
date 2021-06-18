@@ -50,7 +50,9 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint):
         data_sources = []
 
         file_list = (
-            ReleaseFile.public_objects.filter(release=release, artifact_count__gt=0)
+            ReleaseFile.public_objects.filter(
+                release=release, artifact_count__gt=0
+            )  # FIXME: or None
             .select_related("file")
             .order_by("name")
         )
@@ -80,17 +82,12 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint):
                 artifact_index = None
 
             if artifact_index is not None:
-                archived_list = ArtifactIndexQuerySet(artifact_index)
+                archived_list = ArtifactIndexQuerySet(artifact_index, query=query, dist=dist)
                 intermediary = CombinedQuerysetIntermediary(archived_list, order_by=["name"])
                 data_sources.append(intermediary)
 
         def on_results(r):
-            results = serialize(load_dist(r), request.user)
-            for result in results:
-                if result["id"] == "None":
-                    result.pop("id")
-
-            return results
+            return serialize(load_dist(r), request.user)
 
         return self.paginate(
             request=request,
@@ -243,21 +240,27 @@ class ListQuerySet:
         return ListQuerySet(self._files[index])
 
 
+def pseudo_releasefile(url, info, dist):
+    """Create a pseudo-ReleaseFile from an ArtifactIndex entry"""
+    return ReleaseFile(
+        name=url,
+        file=File(
+            headers=info.get("headers", {}),
+            size=info["size"],
+            timestamp=info["date_created"],
+            checksum=info["sha1"],
+        ),
+        dist=dist,
+    )
+
+
 class ArtifactIndexQuerySet(ListQuerySet):
     """Pseudo queryset offering a subset of QuerySet operations,"""
 
-    def __init__(self, artifact_index: dict, query=None):
+    def __init__(self, artifact_index: dict, query=None, dist=None):
         # Assume manifest
         release_files = [
-            ReleaseFile(
-                name=url,
-                file=File(
-                    headers=info.get("headers", {}),
-                    size=info["size"],
-                    timestamp=info["date_created"],
-                    checksum=info["sha1"],
-                ),
-            )
+            pseudo_releasefile(url, info, dist)
             for url, info in artifact_index.get("files", {}).items()
         ]
         super().__init__(release_files, query)

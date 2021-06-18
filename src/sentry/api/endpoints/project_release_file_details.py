@@ -6,9 +6,13 @@ from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.endpoints.debug_files import has_download_permission
+from sentry.api.endpoints.project_release_files import pseudo_releasefile
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
+from sentry.api.serializers.models.release_file import decode_release_file_id
 from sentry.models import Release, ReleaseFile
+from sentry.models.distribution import Distribution
+from sentry.models.releasefile import read_artifact_index
 
 
 class ReleaseFileSerializer(serializers.Serializer):
@@ -30,6 +34,39 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint):
             " ".join(releasefile.name.split())
         )
         return response
+
+    def _get_releasefile(self, release: Release, file_id: str):
+        """Fetch ReleaseFile either from db or from artifact_index"""
+        try:
+            id = decode_release_file_id(file_id)
+        except ValueError:
+            raise ResourceDoesNotExist
+        if isinstance(id, int):
+            try:
+                return ReleaseFile.public_objects.get(release=release, id=file_id)
+            except ReleaseFile.DoesNotExist:
+                raise ResourceDoesNotExist
+        else:
+            dist, url = id
+            if dist is not None:
+                # NOTE: Could do one less query if `read_artifact_index` accepted
+                # `dist_name`
+                try:
+                    dist = Distribution.objects.get(
+                        organization_id=release.organization_id, name=dist, release=release
+                    )
+                except Distribution.DoesNotExist:
+                    raise ResourceDoesNotExist
+
+            index = read_artifact_index(release, dist)
+            if index is None:
+                raise ResourceDoesNotExist
+            try:
+                entry = index.get("files", {})[url]
+            except KeyError:
+                raise ResourceDoesNotExist
+            else:
+                return pseudo_releasefile(url, entry, dist)
 
     def get(self, request, project, version, file_id):
         """
@@ -55,10 +92,7 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint):
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
 
-        try:
-            releasefile = ReleaseFile.public_objects.get(release=release, id=file_id)
-        except ReleaseFile.DoesNotExist:
-            raise ResourceDoesNotExist
+        releasefile = self._get_releasefile(release, file_id)
 
         download_requested = request.GET.get("download") is not None
         if download_requested and (has_download_permission(request, project)):
