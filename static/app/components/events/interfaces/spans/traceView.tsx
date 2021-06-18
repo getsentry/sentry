@@ -11,7 +11,7 @@ import DragManager, {DragManagerChildrenProps} from './dragManager';
 import TraceViewHeader from './header';
 import * as ScrollbarManager from './scrollbarManager';
 import SpanTree from './spanTree';
-import {boundsGenerator, getTraceContext} from './utils';
+import {getTraceContext} from './utils';
 import WaterfallModel from './waterfallModel';
 
 type Props = {
@@ -79,12 +79,6 @@ class TraceView extends PureComponent<Props> {
                             {this.renderHeader(dragProps)}
                             <Observer>
                               {() => {
-                                const generateBounds = boundsGenerator({
-                                  traceStartTimestamp: parsedTrace.traceStartTimestamp,
-                                  traceEndTimestamp: parsedTrace.traceEndTimestamp,
-                                  viewStart: dragProps.viewWindowStart,
-                                  viewEnd: dragProps.viewWindowEnd,
-                                });
                                 return (
                                   <SpanTree
                                     traceViewRef={this.traceViewRef}
@@ -92,7 +86,10 @@ class TraceView extends PureComponent<Props> {
                                     organization={organization}
                                     waterfallModel={waterfallModel}
                                     filterSpans={waterfallModel.filterSpans}
-                                    spans={waterfallModel.getWaterfall({generateBounds})}
+                                    spans={waterfallModel.getWaterfall({
+                                      viewStart: dragProps.viewWindowStart,
+                                      viewEnd: dragProps.viewWindowEnd,
+                                    })}
                                   />
                                 );
                               }}

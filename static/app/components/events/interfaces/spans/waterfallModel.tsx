@@ -15,13 +15,7 @@ import {
   RawSpanType,
   SpanFuseOptions,
 } from './types';
-import {
-  generateRootSpan,
-  getSpanID,
-  parseTrace,
-  SpanBoundsType,
-  SpanGeneratedBoundsType,
-} from './utils';
+import {boundsGenerator, generateRootSpan, getSpanID, parseTrace} from './utils';
 
 class WaterfallModel {
   // readonly state
@@ -203,11 +197,33 @@ class WaterfallModel {
     this.hiddenSpanGroups.add(spanID);
   };
 
-  getWaterfall = ({
-    generateBounds,
+  generateBounds = ({
+    viewStart,
+    viewEnd,
   }: {
-    generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
+    viewStart: number; // in [0, 1]
+    viewEnd: number; // in [0, 1]
   }) => {
+    return boundsGenerator({
+      traceStartTimestamp: this.parsedTrace.traceStartTimestamp,
+      traceEndTimestamp: this.parsedTrace.traceEndTimestamp,
+      viewStart,
+      viewEnd,
+    });
+  };
+
+  getWaterfall = ({
+    viewStart,
+    viewEnd,
+  }: {
+    viewStart: number; // in [0, 1]
+    viewEnd: number; // in [0, 1]
+  }) => {
+    const generateBounds = this.generateBounds({
+      viewStart,
+      viewEnd,
+    });
+
     return this.rootSpan.getSpansList({
       operationNameFilters: this.operationNameFilters,
       generateBounds,

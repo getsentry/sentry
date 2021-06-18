@@ -11,7 +11,7 @@ import {DragManagerChildrenProps} from './dragManager';
 import {ScrollbarManagerChildrenProps, withScrollbarManager} from './scrollbarManager';
 import SpanBar from './spanBar';
 import {EnhancedProcessedSpanType, FilterSpans, ParsedTraceType} from './types';
-import {boundsGenerator, getSpanID, getSpanOperation} from './utils';
+import {getSpanID, getSpanOperation} from './utils';
 import WaterfallModel from './waterfallModel';
 
 type PropType = ScrollbarManagerChildrenProps & {
@@ -121,18 +121,6 @@ class SpanTree extends React.Component<PropType> {
     );
   }
 
-  generateBounds() {
-    const {dragProps, waterfallModel} = this.props;
-    const {parsedTrace} = waterfallModel;
-
-    return boundsGenerator({
-      traceStartTimestamp: parsedTrace.traceStartTimestamp,
-      traceEndTimestamp: parsedTrace.traceEndTimestamp,
-      viewStart: dragProps.viewWindowStart,
-      viewEnd: dragProps.viewWindowEnd,
-    });
-  }
-
   toggleSpanTree = (spanID: string) => () => {
     this.props.waterfallModel.toggleSpanGroup(spanID);
     // Update horizontal scroll states after this subtree was either hidden or
@@ -141,8 +129,11 @@ class SpanTree extends React.Component<PropType> {
   };
 
   render() {
-    const {waterfallModel, spans, organization} = this.props;
-    const generateBounds = this.generateBounds();
+    const {waterfallModel, spans, organization, dragProps} = this.props;
+    const generateBounds = waterfallModel.generateBounds({
+      viewStart: dragProps.viewWindowStart,
+      viewEnd: dragProps.viewWindowEnd,
+    });
 
     type AccType = {
       numOfSpansOutOfViewAbove: number;
