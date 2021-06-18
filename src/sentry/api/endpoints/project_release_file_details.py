@@ -1,7 +1,10 @@
 import posixpath
+from typing import Optional
+from zipfile import ZipFile
 
 from django.http import StreamingHttpResponse
 from rest_framework import serializers
+from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
@@ -12,11 +15,29 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.release_file import decode_release_file_id
 from sentry.models import Release, ReleaseFile
 from sentry.models.distribution import Distribution
-from sentry.models.releasefile import read_artifact_index
+from sentry.models.releasefile import delete_from_artifact_index, read_artifact_index
+
+#: Cannot update release artifacts in release archives
+INVALID_UPDATE_MESSAGE = "Can only update release files with integer IDs"
 
 
 class ReleaseFileSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=200, required=True)
+
+
+def _entry_from_index(release: Release, dist: Optional[Distribution], url: str) -> ReleaseFile:
+    index = read_artifact_index(release, dist)
+    if index is None:
+        raise ResourceDoesNotExist
+    try:
+        return index.get("files", {})[url]
+    except KeyError:
+        raise ResourceDoesNotExist
+
+
+def _get_from_index(release: Release, dist: Optional[Distribution], url: str) -> ReleaseFile:
+    entry = _entry_from_index(release, dist, url)
+    return pseudo_releasefile(url, entry, dist)
 
 
 class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint):
@@ -35,7 +56,28 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint):
         )
         return response
 
-    def _get_releasefile(self, release: Release, file_id: str):
+    def download_from_archive(self, release, entry):
+        archive_ident = entry["archive_ident"]
+
+        # Do not use ReleaseFileCache here, we view download as a singular event
+        archive_file = ReleaseFile.objects.get(release=release, ident=archive_ident)
+        archive = ZipFile(archive_file.file.getfile())
+        fp = archive.open(entry["filename"])
+        headers = entry.get("headers", {})
+
+        response = StreamingHttpResponse(
+            iter(lambda: fp.read(4096), b""),
+            content_type=headers.get("content-type", "application/octet-stream"),
+        )
+        response["Content-Length"] = entry["size"]
+        response["Content-Disposition"] = 'attachment; filename="%s"' % posixpath.basename(
+            " ".join(entry["filename"].split())
+        )
+
+        # TODO: close file
+        return response
+
+    def _get_releasefile(self, release: Release, file_id: str, index_op=_get_from_index):
         """Fetch ReleaseFile either from db or from artifact_index"""
         try:
             id = decode_release_file_id(file_id)
@@ -58,15 +100,7 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint):
                 except Distribution.DoesNotExist:
                     raise ResourceDoesNotExist
 
-            index = read_artifact_index(release, dist)
-            if index is None:
-                raise ResourceDoesNotExist
-            try:
-                entry = index.get("files", {})[url]
-            except KeyError:
-                raise ResourceDoesNotExist
-            else:
-                return pseudo_releasefile(url, entry, dist)
+            return index_op(release, dist, url)
 
     def get(self, request, project, version, file_id):
         """
@@ -85,6 +119,10 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint):
         :pparam string file_id: the ID of the file to retrieve.
         :auth: required
         """
+        download_requested = request.GET.get("download") is not None
+        if download_requested and not has_download_permission(request, project):
+            return Response(status=403)
+
         try:
             release = Release.objects.get(
                 organization_id=project.organization_id, projects=project, version=version
@@ -92,13 +130,15 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint):
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
 
-        releasefile = self._get_releasefile(release, file_id)
+        getter = _entry_from_index if download_requested else _get_from_index
+        releasefile = self._get_releasefile(release, file_id, getter)
 
-        download_requested = request.GET.get("download") is not None
-        if download_requested and (has_download_permission(request, project)):
-            return self.download(releasefile)
-        elif download_requested:
-            return Response(status=403)
+        if download_requested:
+            if isinstance(releasefile, ReleaseFile):
+                return self.download(releasefile)
+            else:
+                return self.download_from_archive(release, releasefile)
+
         return Response(serialize(releasefile, request.user))
 
     def put(self, request, project, version, file_id):
@@ -118,6 +158,12 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint):
         :param string name: the new name of the file.
         :auth: required
         """
+
+        try:
+            int(file_id)
+        except ValueError:
+            raise ParseError(INVALID_UPDATE_MESSAGE)
+
         try:
             release = Release.objects.get(
                 organization_id=project.organization_id, projects=project, version=version
@@ -148,7 +194,8 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint):
 
         Permanently remove a file from a release.
 
-        This will also remove the physical file from storage.
+        This will also remove the physical file from storage, except if it is
+        stored as part of an artifact bundle.
 
         :pparam string organization_slug: the slug of the organization the
                                           release belongs to.
@@ -165,10 +212,10 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint):
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
 
-        try:
-            releasefile = ReleaseFile.public_objects.get(release=release, id=file_id)
-        except ReleaseFile.DoesNotExist:
-            raise ResourceDoesNotExist
+        releasefile = self._get_releasefile(release, file_id, delete_from_artifact_index)
+        if releasefile is None:
+            # was deleted from index
+            return Response(status=204)
 
         file = releasefile.file
 
