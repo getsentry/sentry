@@ -4950,7 +4950,6 @@ class Migration(migrations.Migration):
                 ("status", models.PositiveSmallIntegerField(default=1)),
                 ("type", models.PositiveSmallIntegerField(default=1)),
                 ("title", models.TextField()),
-                ("query", models.TextField()),
                 ("date_started", models.DateTimeField(default=django.utils.timezone.now)),
                 ("date_detected", models.DateTimeField(default=django.utils.timezone.now)),
                 ("date_added", models.DateTimeField(default=django.utils.timezone.now)),
