@@ -102,7 +102,6 @@ class SlackLinkTeamView(BaseView):
         ).order_by("slug")
         channel_name = params["channel_name"]
         channel_id = params["channel_id"]
-
         form = SelectTeamForm(teams, request.POST or None)
         if form.is_valid():
             team_id = form.cleaned_data["team"]

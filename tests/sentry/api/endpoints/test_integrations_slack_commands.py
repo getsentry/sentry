@@ -1,14 +1,18 @@
 from typing import Mapping, Optional
 from urllib.parse import urlencode
 
+import responses
 from django.urls import reverse
 from requests import Response
 from rest_framework import status
 
 from sentry import options
+from sentry.integrations.slack.command_endpoint import LINK_USER_MESSAGE
+from sentry.integrations.slack.link_team import build_linking_url
 from sentry.integrations.slack.util.auth import set_signing_secret
-from sentry.models import Integration
-from sentry.testutils import APITestCase
+from sentry.models import ExternalActor, Identity, IdentityProvider, IdentityStatus, Integration
+from sentry.testutils import APITestCase, TestCase
+from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 
 
@@ -19,7 +23,7 @@ def assert_is_help_text(response: Response, expected_command: Optional[str] = No
         assert expected_command in data["text"]
 
 
-class SlackCommandsTest(APITestCase):
+class SlackCommandsTest(APITestCase, TestCase):
     endpoint = "sentry-integration-slack-commands"
 
     def get_slack_response(
@@ -40,8 +44,15 @@ class SlackCommandsTest(APITestCase):
         super().setUp()
         self.external_id = "slack:1"
         self.integration = Integration.objects.create(
-            provider="slack", name="Slack", external_id=self.external_id
+            provider="slack",
+            name="Slack",
+            external_id=self.external_id,
+            metadata={
+                "access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
+                "installation_type": "born_as_bot",
+            },
         )
+        self.integration.add_organization(self.organization, self.user)
 
 
 class SlackCommandsGetTest(SlackCommandsTest):
@@ -71,14 +82,82 @@ class SlackCommandsPostTest(SlackCommandsTest):
         response = self.get_slack_response({"text": "help", "team_id": self.external_id})
         assert_is_help_text(response)
 
+    @responses.activate
     def test_link_team_command(self):
         """Test that we successfully link a team to a Slack channel"""
-        # response = self.get_slack_response({"text": "link team", "team_id": self.external_id})
-        pass
+        self.login_as(self.user)
+        idp = IdentityProvider.objects.create(type="slack", external_id="slack:1", config={})
+        Identity.objects.create(
+            external_id="UXXXXXXX1",
+            idp=idp,
+            user=self.user,
+            status=IdentityStatus.VALID,
+            scopes=[],
+        )
+        response = self.get_slack_response(
+            {"text": "link team", "team_id": self.external_id, "user_id": "UXXXXXXX1"}
+        )
+        data = json.loads(str(response.content.decode("utf-8")))
+        assert "Link your Sentry team to this Slack channel!" in data["text"]
+        linking_url = build_linking_url(
+            self.integration,
+            "UXXXXXXX1",
+            "CXXXXXXX9",
+            "general",
+            "http://example.slack.com/response_url",
+        )
+
+        resp = self.client.get(linking_url)
+
+        assert resp.status_code == 200
+        self.assertTemplateUsed(resp, "sentry/slack-link-team.html")
+
+        responses.add(
+            method=responses.POST,
+            url="https://slack.com/api/chat.postMessage",
+            body='{"ok": true}',
+            status=200,
+            content_type="application/json",
+        )
+
+        data = urlencode({"team": self.team.id})
+        resp = self.client.post(linking_url, data, content_type="application/x-www-form-urlencoded")
+        assert resp.status_code == 200
+        self.assertTemplateUsed(resp, "sentry/slack-post-linked-team.html")
+        external_actor = ExternalActor.objects.filter(
+            actor_id=self.team.actor_id,
+            organization=self.organization,
+            integration=self.integration,
+            provider=ExternalProviders.SLACK.value,
+            external_name="general",
+            external_id="CXXXXXXX9",
+        )
+        assert len(external_actor) == 1
+        assert external_actor[0].id == 1
+
+        assert len(responses.calls) >= 1
+        data = json.loads(str(responses.calls[0].request.body.decode("utf-8")))
+        assert (
+            f"The {self.team.slug} team will now receive issue alert notifications in the {external_actor[0].external_name} channel."
+            in data["text"]
+        )
+
+    def test_link_team_idp_does_not_exist(self):
+        """Test that get_identity fails if we cannot find a matching idp"""
+        IdentityProvider.objects.create(type="slack", external_id="slack:2", config={})
+        self.get_slack_response(
+            {"text": "link team", "team_id": self.external_id, "user_id": "UA1J9RTE1"},
+            status_code=404,
+        )
 
     def test_link_team_identity_does_not_exist(self):
-        """Test that get_identity fails and we reply with the LINK_USER_MESSAGE"""
-        pass
+        """Test that get_identity fails if the user has no Identity and we reply with the LINK_USER_MESSAGE"""
+        IdentityProvider.objects.create(type="slack", external_id="slack:1", config={})
+        response = self.get_slack_response(
+            {"text": "link team", "team_id": self.external_id, "user_id": "UXXXXXXX1"}
+        )
+        data = json.loads(str(response.content.decode("utf-8")))
+        assert LINK_USER_MESSAGE in data["text"]
 
     def test_link_team_insufficient_role(self):
         """Test that when a user whose role is insufficient and is not a member of the
