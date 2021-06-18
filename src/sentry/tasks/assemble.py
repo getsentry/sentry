@@ -159,49 +159,36 @@ class AssembleArtifactsError(Exception):
     pass
 
 
-def _simple_update(
-    release_file: ReleaseFile, new_file: File, new_archive: ReleaseArchive, additional_fields: dict
-) -> bool:
+def _simple_update(release_file: ReleaseFile, new_file: File, new_archive: ReleaseArchive):
     """Update function used in _upsert_release_file"""
     old_file = release_file.file
-    release_file.update(file=new_file, **additional_fields)
+    release_file.update(file=new_file)
     old_file.delete()
 
-    return True
 
-
-def _upsert_release_file(
-    file: File, archive: ReleaseArchive, update_fn, key_fields, additional_fields
-) -> bool:
-    success = False
+def _upsert_release_file(file: File, archive: ReleaseArchive, update_fn, **kwargs):
     release_file = None
 
     # Release files must have unique names within their release
     # and dist. If a matching file already exists, replace its
     # file with the new one; otherwise create it.
     try:
-        release_file = ReleaseFile.objects.get(**key_fields)
+        release_file = ReleaseFile.objects.get(**kwargs)
     except ReleaseFile.DoesNotExist:
         try:
             with transaction.atomic():
-                release_file = ReleaseFile.objects.create(
-                    file=file, **dict(key_fields, **additional_fields)
-                )
+                release_file = ReleaseFile.objects.create(file=file, **kwargs)
         except IntegrityError:
             # NB: This indicates a race, where another assemble task or
             # file upload job has just created a conflicting file. Since
             # we're upserting here anyway, yield to the faster actor and
             # do not try again.
             file.delete()
-        else:
-            success = True
     else:
-        success = update_fn(release_file, file, archive, additional_fields)
-
-    return success
+        update_fn(release_file, file, archive)
 
 
-def _store_single_files(archive: ReleaseArchive, meta: dict, count_as_artifacts: bool):
+def _store_single_files(archive: ReleaseArchive, meta: dict):
     try:
         temp_dir = archive.extract()
     except BaseException:
@@ -222,8 +209,7 @@ def _store_single_files(archive: ReleaseArchive, meta: dict, count_as_artifacts:
                 file.putfile(fp, logger=logger)
 
             kwargs = dict(meta, name=artifact_url)
-            extra_fields = {"artifact_count": 1 if count_as_artifacts else 0}
-            _upsert_release_file(file, None, _simple_update, kwargs, extra_fields)
+            _upsert_release_file(file, None, _simple_update, **kwargs)
 
 
 @instrumented_task(name="sentry.tasks.assemble.assemble_artifacts", queue="assemble")
@@ -283,21 +269,19 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
             if dist_name:
                 dist = release.add_dist(dist_name)
 
-            num_files = len(manifest.get("files", {}))
-
             meta = {  # Required for release file creation
                 "organization_id": organization.id,
                 "release": release,
                 "dist": dist,
             }
 
-            saved_as_archive = False
+            num_files = len(manifest.get("files", {}))
+
             if options.get("processing.save-release-archives"):
                 min_size = options.get("processing.release-archive-min-files")
                 if num_files >= min_size:
                     try:
                         update_artifact_index(release, dist, bundle)
-                        saved_as_archive = True
                     except BaseException as exc:
                         logger.error("Unable to update artifact index", exc_info=exc)
 
@@ -305,8 +289,7 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
             # rolling back from release archives. Once release archives run
             # smoothely, this call can be removed / only called when feature
             # flag is off.
-            count_as_artifacts = not saved_as_archive
-            _store_single_files(archive, meta, count_as_artifacts)
+            _store_single_files(archive, meta)
 
             # Count files extracted, to compare them to release files endpoint
             metrics.incr("tasks.assemble.extracted_files", amount=num_files)

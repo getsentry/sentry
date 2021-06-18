@@ -181,6 +181,7 @@ class AssembleDifTest(BaseAssembleTest):
 class AssembleArtifactsTest(BaseAssembleTest):
     def setUp(self):
         super().setUp()
+        self.release = self.create_release(version="my-unique-release.1")
 
     def test_artifacts(self):
         bundle_file = self.create_artifact_bundle()
@@ -195,18 +196,12 @@ class AssembleArtifactsTest(BaseAssembleTest):
                 }
             ):
 
-                ReleaseFile.objects.filter(release=self.release).delete()
-
-                assert self.release.count_artifacts() == 0
-
                 assemble_artifacts(
                     org_id=self.organization.id,
                     version=self.release.version,
                     checksum=total_checksum,
                     chunks=[blob1.checksum],
                 )
-
-                assert self.release.count_artifacts() == 2
 
                 status, details = get_assemble_status(
                     AssembleTask.ARTIFACTS, self.organization.id, total_checksum

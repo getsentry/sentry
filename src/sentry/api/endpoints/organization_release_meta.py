@@ -5,7 +5,14 @@ from rest_framework.response import Response
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers.models.release import expose_version_info
-from sentry.models import CommitFileChange, ProjectPlatform, Release, ReleaseCommit, ReleaseProject
+from sentry.models import (
+    CommitFileChange,
+    ProjectPlatform,
+    Release,
+    ReleaseCommit,
+    ReleaseFile,
+    ReleaseProject,
+)
 
 
 class OrganizationReleaseMetaEndpoint(OrganizationReleasesBaseEndpoint):
@@ -70,6 +77,8 @@ class OrganizationReleaseMetaEndpoint(OrganizationReleasesBaseEndpoint):
             for pr in project_releases
         ]
 
+        release_file_count = ReleaseFile.public_objects.filter(release=release).count()
+
         return Response(
             {
                 "version": release.version,
@@ -80,6 +89,6 @@ class OrganizationReleaseMetaEndpoint(OrganizationReleasesBaseEndpoint):
                 "commitCount": release.commit_count,
                 "released": release.date_released or release.date_added,
                 "commitFilesChanged": commit_files_changed,
-                "releaseFileCount": release.count_artifacts(),
+                "releaseFileCount": release_file_count,
             }
         )
