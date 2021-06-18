@@ -53,7 +53,7 @@ class RelatedIssues extends Component<Props> {
         rule.eventTypes?.length
           ? `event.type:[${rule.eventTypes.join(`, `)}]`
           : DATASET_EVENT_TYPE_FILTERS[rule.dataset],
-      ],
+      ].join(' '),
       project: projects.map(project => project.id),
     };
     const issueSearch = {
