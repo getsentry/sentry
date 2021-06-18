@@ -1,0 +1,17 @@
+[
+  {
+    "query": "stack.colno:>3s",
+    "result": [
+      {
+        "type": "filter",
+        "filter": "text",
+        "negated": false,
+        "invalidReason": "Invalid number. Expected number then optional k, m, or b suffix (e.g. 500k).",
+        "key": {"type": "keySimple", "value": "stack.colno", "quoted": false},
+        "operator": "",
+        "value": {"type": "valueText", "value": ">3s", "quoted": false}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  }
+]
