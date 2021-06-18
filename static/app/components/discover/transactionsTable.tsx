@@ -79,7 +79,7 @@ class TransactionsTable extends React.PureComponent<Props> {
                       {title}
                       <Tooltip
                         title={t(
-                          'Durations are calculated by summing span durations over the course of the transaction. Percentages are then calculated by dividing the individual op duration by the sum of total op durations. Overlapping/parallel spans are only counted once.'
+                          'Span durations are summed over the course of an entire transaction. Any overlapping spans are only counted once.'
                         )}
                       >
                         <StyledIconQuestion size="xs" color="gray400" />
