@@ -15,6 +15,7 @@ export type FormSearchField = {
 
 type StoreInterface = {
   reset: () => void;
+  get: () => Internals['searchMap'];
 };
 
 type Internals = {
@@ -33,7 +34,7 @@ const formSearchStoreConfig: Reflux.StoreDefinition & Internals & StoreInterface
     this.listenTo(FormSearchActions.loadSearchMap, this.onLoadSearchMap);
   },
 
-  getInitialState() {
+  get() {
     return this.searchMap;
   },
 
