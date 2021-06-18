@@ -180,11 +180,11 @@ function Grouping({api, groupId, location, organization}: Props) {
               <PaginationCaption
                 caption={
                   hasMore
-                    ? tct('Showing [current] of [total] Issues', {
+                    ? tct('Showing [current] of [total] results', {
                         current: paginationCurrentQuantity,
                         total: `${paginationCurrentQuantity}+`,
                       })
-                    : tct('Showing [current] of [total] Issue', {
+                    : tct('Showing [current] of [total] result', {
                         current: paginationCurrentQuantity,
                         total: paginationCurrentQuantity,
                       })
@@ -220,7 +220,7 @@ const Content = styled('div')`
 `;
 
 const StyledPanelTable = styled(PanelTable)<{isReloading: boolean}>`
-  grid-template-columns: 1fr max-content;
+  grid-template-columns: 1fr minmax(60px, auto);
   ${p =>
     p.isReloading &&
     `
@@ -233,11 +233,11 @@ const StyledPanelTable = styled(PanelTable)<{isReloading: boolean}>`
       display: flex;
       text-align: right;
       justify-content: flex-end;
-      width: 60px;
-      @media (min-width: ${p => p.theme.breakpoints[3]}) {
-        width: 80px;
-      }
     }
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+    grid-template-columns: 1fr minmax(80px, auto);
   }
 `;
 
