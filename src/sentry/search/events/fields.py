@@ -1640,6 +1640,20 @@ FUNCTIONS = {
             redundant_grouping=True,
         ),
         Function(
+            "cov",
+            required_args=[NumericColumnNoLookup("column1"), NumericColumnNoLookup("column2")],
+            aggregate=["covarSamp", [ArgValue("column1"), ArgValue("column2")], None],
+            default_result_type="number",
+            redundant_grouping=True,
+        ),
+        Function(
+            "corr",
+            required_args=[NumericColumnNoLookup("column1"), NumericColumnNoLookup("column2")],
+            aggregate=["corr", [ArgValue("column1"), ArgValue("column2")], None],
+            default_result_type="number",
+            redundant_grouping=True,
+        ),
+        Function(
             "sum",
             required_args=[NumericColumnNoLookup("column")],
             aggregate=["sum", ArgValue("column"), None],
