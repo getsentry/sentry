@@ -9,12 +9,14 @@ import GlobalSelectionHeader from 'app/components/organizations/globalSelectionH
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {t} from 'app/locale';
 import {GlobalSelection, Organization, Project} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
 import {
   isAggregateField,
   SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'app/utils/discover/fields';
+import {removeHistogramQueryStrings} from 'app/utils/performance/histogram';
 import {decodeScalar} from 'app/utils/queryString';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
@@ -22,6 +24,12 @@ import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
 
 import {getTransactionName} from '../../utils';
+import {
+  decodeFilterFromLocation,
+  filterToLocationQuery,
+  SpanOperationBreakdownFilter,
+} from '../filter';
+import {ZOOM_END, ZOOM_START} from '../latencyChart';
 
 import EventsPageContent from './content';
 
@@ -33,11 +41,13 @@ type Props = {
 } & Pick<WithRouterProps, 'router'>;
 
 type State = {
+  spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
   eventView: EventView | undefined;
 };
 
 class TransactionEvents extends Component<Props, State> {
   state: State = {
+    spanOperationBreakdownFilter: decodeFilterFromLocation(this.props.location),
     eventView: generateEventsEventView(
       this.props.location,
       getTransactionName(this.props.location)
@@ -47,12 +57,37 @@ class TransactionEvents extends Component<Props, State> {
   static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
     return {
       ...prevState,
+      spanOperationBreakdownFilter: decodeFilterFromLocation(nextProps.location),
       eventView: generateEventsEventView(
         nextProps.location,
         getTransactionName(nextProps.location)
       ),
     };
   }
+
+  onChangeFilter = (newFilter: SpanOperationBreakdownFilter) => {
+    const {location, organization} = this.props;
+
+    trackAnalyticsEvent({
+      eventName: 'Performance Views: Filter Dropdown',
+      eventKey: 'performance_views.filter_dropdown.selection',
+      organization_id: parseInt(organization.id, 10),
+      action: newFilter as string,
+    });
+
+    const nextQuery: Location['query'] = {
+      ...removeHistogramQueryStrings(location, [ZOOM_START, ZOOM_END]),
+      ...filterToLocationQuery(newFilter),
+    };
+
+    if (newFilter === SpanOperationBreakdownFilter.None) {
+      delete nextQuery.breakdown;
+    }
+    browserHistory.push({
+      pathname: location.pathname,
+      query: nextQuery,
+    });
+  };
 
   getDocumentTitle(): string {
     const name = getTransactionName(this.props.location);
@@ -119,6 +154,8 @@ class TransactionEvents extends Component<Props, State> {
                 transactionName={transactionName}
                 organization={organization}
                 projects={projects}
+                onChangeFilter={this.onChangeFilter}
+                spanOperationBreakdownFilter={this.state.spanOperationBreakdownFilter}
               />
             </LightWeightNoProjectMessage>
           </GlobalSelectionHeader>
@@ -155,9 +192,13 @@ function generateEventsEventView(
     'transaction.duration',
     'trace',
     'timestamp',
-    'spans.total.time',
   ];
-  fields.push(...SPAN_OP_BREAKDOWN_FIELDS);
+  const breakdown = decodeFilterFromLocation(location);
+  if (breakdown !== SpanOperationBreakdownFilter.None) {
+    fields.splice(2, 1, `spans.${breakdown}`);
+  } else {
+    fields.push(...SPAN_OP_BREAKDOWN_FIELDS, 'spans.total.time');
+  }
 
   return EventView.fromNewQueryWithLocation(
     {
