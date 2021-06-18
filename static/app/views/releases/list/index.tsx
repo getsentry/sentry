@@ -336,11 +336,11 @@ class ReleasesList extends AsyncView<Props, State> {
                 <AlertText>
                   <div>
                     {t(
-                      'Setup Release Health for this project to view user adoption, usage of the application, percentage of crashes, and session data.'
+                      'To track user adoption, crash rates, session data and more, add Release Health to your current setup.'
                     )}
                   </div>
-                  <ExternalLink href="https://docs.sentry.io/product/releases/health/">
-                    {t('Learn more')}
+                  <ExternalLink href="https://docs.sentry.io/product/releases/health/setup/">
+                    {t('Add Release Health')}
                   </ExternalLink>
                 </AlertText>
               </Alert>
