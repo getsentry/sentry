@@ -33,13 +33,11 @@ type Props = {
 
 type State = {
   parsedTrace: ParsedTraceType;
-  searchQuery: string | undefined;
   waterfallModel: WaterfallModel;
 };
 
 class SpansInterface extends PureComponent<Props, State> {
   state: State = {
-    searchQuery: undefined,
     parsedTrace: parseTrace(this.props.event),
     waterfallModel: new WaterfallModel(this.props.event),
   };
@@ -57,9 +55,8 @@ class SpansInterface extends PureComponent<Props, State> {
   }
 
   handleSpanFilter = (searchQuery: string) => {
-    this.setState({
-      searchQuery: searchQuery || undefined,
-    });
+    const {waterfallModel} = this.state;
+    waterfallModel.querySpanSearch(searchQuery);
   };
 
   renderTraceErrorsAlert({
@@ -163,10 +160,10 @@ class SpansInterface extends PureComponent<Props, State> {
                 errors: quickTrace?.currentEvent?.errors,
                 parsedTrace,
               })}
-              <Search>
-                <Observer>
-                  {() => {
-                    return (
+              <Observer>
+                {() => {
+                  return (
+                    <Search>
                       <Filter
                         operationNameCounts={waterfallModel.operationNameCounts}
                         operationNameFilter={waterfallModel.operationNameFilters}
@@ -177,26 +174,25 @@ class SpansInterface extends PureComponent<Props, State> {
                           waterfallModel.toggleAllOperationNameFilters
                         }
                       />
-                    );
-                  }}
-                </Observer>
-                <StyledSearchBar
-                  defaultQuery=""
-                  query={this.state.searchQuery || ''}
-                  placeholder={t('Search for spans')}
-                  onSearch={this.handleSpanFilter}
-                />
-              </Search>
+                      <StyledSearchBar
+                        defaultQuery=""
+                        query={waterfallModel.searchQuery || ''}
+                        placeholder={t('Search for spans')}
+                        onSearch={this.handleSpanFilter}
+                      />
+                    </Search>
+                  );
+                }}
+              </Observer>
               <Panel>
                 <Observer>
                   {() => {
                     return (
                       <TraceView
                         event={event}
-                        searchQuery={this.state.searchQuery}
+                        waterfallModel={waterfallModel}
                         organization={organization}
                         parsedTrace={parsedTrace}
-                        operationNameFilters={waterfallModel.operationNameFilters}
                       />
                     );
                   }}
