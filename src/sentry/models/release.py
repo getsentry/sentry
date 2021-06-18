@@ -2,10 +2,11 @@ import itertools
 import logging
 import re
 from time import time
+from typing import List, Mapping
 
 import sentry_sdk
 from django.db import IntegrityError, models, transaction
-from django.db.models import Case, F, Func, Q, Sum, Value, When
+from django.db.models import Case, F, Func, Q, Value, When
 from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
@@ -929,23 +930,26 @@ class Release(Model):
             releasefile.delete()
         self.delete()
 
-    @classmethod
-    def with_artifact_counts(cls, *args, **kwargs):
-        # Have to exclude Releases without release files because COALESCE would
-        # give them an artifact count of 1
-        return (
-            cls.objects.filter(*args, **kwargs)
-            .exclude(releasefile__isnull=True)
-            .annotate(count=Sum(Func(F("releasefile__artifact_count"), 1, function="COALESCE")))
-        )
-
     def count_artifacts(self):
         """Sum the artifact_counts of all release files.
 
         An artifact count of NULL is interpreted as 1.
         """
-        qs = Release.with_artifact_counts(pk=self.pk)
-        try:
-            return qs[0].count
-        except IndexError:
-            return 0
+        counts = get_artifact_counts([self.id])
+        return counts.get(self.id, 0)
+
+
+def get_artifact_counts(release_ids: List[int]) -> Mapping[int, int]:
+    """Get artifact count grouped by IDs"""
+    query = """
+    SELECT
+        release_id AS id, sum(COALESCE(artifact_count, 1)) AS count
+    FROM
+        sentry_releasefile
+    WHERE
+        release_id = ANY(%s)
+    GROUP BY
+        release_id;
+    """
+    qs = Release.objects.raw(query, params=[release_ids])
+    return {r.id: r.count for r in qs}
