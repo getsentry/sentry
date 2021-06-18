@@ -22,7 +22,9 @@ class DjangoAtomicIntegration(Integration):
 
         def _exit(self, exc_type, exc_value, traceback):
             rv = original_exit(self, exc_type, exc_value, traceback)
-            self._sentry_sdk_span.__exit__(exc_type, exc_value, traceback)
+            if hasattr(self, "_sentry_sdk_span"):
+                self._sentry_sdk_span.__exit__(exc_type, exc_value, traceback)
+                del self._sentry_sdk_span
             return rv
 
         Atomic.__enter__ = _enter
