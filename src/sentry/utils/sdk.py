@@ -10,6 +10,7 @@ from sentry_sdk.utils import logger as sdk_logger
 
 from sentry import options
 from sentry.utils import metrics
+from sentry.utils.db import DjangoAtomicIntegration
 from sentry.utils.rust import RustInfoIntegration
 
 UNSAFE_FILES = (
@@ -273,6 +274,7 @@ def configure_sdk():
     sentry_sdk.init(
         transport=MultiplexingTransport(),
         integrations=[
+            DjangoAtomicIntegration(),
             DjangoIntegration(),
             CeleryIntegration(),
             LoggingIntegration(event_level=None),
