@@ -13,7 +13,7 @@ function PaginationCaption({caption}: Props) {
 export default PaginationCaption;
 
 const Wrapper = styled('span')`
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeMedium};
   margin-right: ${space(2)};
 `;

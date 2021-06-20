@@ -27,7 +27,7 @@ function NewIssue({sampleEvent, eventCount, organization}: Props) {
         />
         <ExtraInfo>
           <TimeWrapper>
-            <IconClock size="11px" color="gray300" />
+            <StyledIconClock size="11px" />
             <TimeSince date={sampleEvent.dateCreated} suffix={t('old')} />
           </TimeWrapper>
         </ExtraInfo>
@@ -62,4 +62,8 @@ const TimeWrapper = styled('div')`
 const EventCount = styled('div')`
   align-items: center;
   line-height: 1.1;
+`;
+
+const StyledIconClock = styled(IconClock)`
+  color: ${p => p.theme.subText};
 `;

@@ -145,7 +145,7 @@ function Grouping({api, groupId, location, organization}: Props) {
     <Wrapper>
       <Description>
         {t(
-          'This issue is built up of multiple events that sentry thinks come from the same root-cause. Use this page to refine this issue into more fine-grained groups.'
+          'This issue is an aggregate of multiple events that sentry determined originate from the same root-cause. Use this page to explore more detailed groupings that exist within this issue.'
         )}
       </Description>
       <Content>
@@ -257,7 +257,7 @@ const SliderWrapper = styled('div')`
   align-items: flex-start;
   position: relative;
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.subText};
   padding-bottom: ${space(2)};
 
   @media (min-width: 700px) {
