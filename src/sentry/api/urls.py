@@ -308,7 +308,6 @@ from .endpoints.project_release_commits import ProjectReleaseCommitsEndpoint
 from .endpoints.project_release_details import ProjectReleaseDetailsEndpoint
 from .endpoints.project_release_file_details import ProjectReleaseFileDetailsEndpoint
 from .endpoints.project_release_files import ProjectReleaseFilesEndpoint
-from .endpoints.project_release_files_meta import ProjectReleaseFilesMetaEndpoint
 from .endpoints.project_release_repositories import ProjectReleaseRepositories
 from .endpoints.project_release_setup import ProjectReleaseSetupCompletionEndpoint
 from .endpoints.project_release_stats import ProjectReleaseStatsEndpoint
@@ -1698,11 +1697,6 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/files/$",
                     ProjectReleaseFilesEndpoint.as_view(),
                     name="sentry-api-0-project-release-files",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/files-meta/$",
-                    ProjectReleaseFilesMetaEndpoint.as_view(),
-                    name="sentry-api-0-project-release-files-meta",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/files/(?P<file_id>[^/]+)/$",
