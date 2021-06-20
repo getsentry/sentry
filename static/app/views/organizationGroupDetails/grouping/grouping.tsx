@@ -13,6 +13,7 @@ import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {Group, Organization} from 'app/types';
 import {Event} from 'app/types/event';
+import {defined} from 'app/utils';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
 import withApi from 'app/utils/withApi';
 import RangeSlider from 'app/views/settings/components/forms/controls/rangeSlider';
@@ -87,7 +88,7 @@ function Grouping({api, groupId, location, organization}: Props) {
   }
 
   async function fetchGroupingLevelDetails() {
-    if (!groupingLevels.length) {
+    if (!groupingLevels.length || !defined(activeGroupingLevel)) {
       return;
     }
 
@@ -118,11 +119,16 @@ function Grouping({api, groupId, location, organization}: Props) {
   }
 
   function setSecondGrouping() {
-    const secondGrouping = groupingLevels[1];
-    if (!secondGrouping) {
+    if (!groupingLevels.length) {
       return;
     }
-    setActiveGroupingLevel(Number(secondGrouping.id));
+
+    if (groupingLevels.length === 2) {
+      setActiveGroupingLevel(Number(groupingLevels[1].id));
+      return;
+    }
+
+    setActiveGroupingLevel(Number(groupingLevels[0].id));
   }
 
   if (isLoading) {
