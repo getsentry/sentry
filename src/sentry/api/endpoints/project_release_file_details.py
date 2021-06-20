@@ -40,10 +40,14 @@ def _get_from_index(release: Release, dist: Optional[Distribution], url: str) ->
     return pseudo_releasefile(url, entry, dist)
 
 
-class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint):
-    permission_classes = (ProjectReleasePermission,)
+class ReleaseFileDetailsMixin:
+    """Shared functionality of ProjectReleaseFileDetails and OrganizationReleaseFileDetails
 
-    def download(self, releasefile):
+    Only has class methods, but keep it as a class to be consistent with ReleaseFilesMixin.
+    """
+
+    @staticmethod
+    def download(releasefile):
         file = releasefile.file
         fp = file.getfile()
         response = StreamingHttpResponse(
@@ -56,7 +60,8 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint):
         )
         return response
 
-    def download_from_archive(self, release, entry):
+    @staticmethod
+    def download_from_archive(release, entry):
         archive_ident = entry["archive_ident"]
 
         # Do not use ReleaseFileCache here, we view download as a singular event
@@ -77,7 +82,8 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint):
         # TODO: close file
         return response
 
-    def _get_releasefile(self, release: Release, file_id: str, index_op=_get_from_index):
+    @staticmethod
+    def _get_releasefile(release: Release, file_id: str, index_op=_get_from_index):
         """Fetch ReleaseFile either from db or from artifact_index"""
         try:
             id = decode_release_file_id(file_id)
@@ -102,6 +108,76 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint):
 
             return index_op(release, dist, url)
 
+    @classmethod
+    def get_releasefile(cls, request, release, file_id, check_permission_fn):
+        download_requested = request.GET.get("download") is not None
+        getter = _entry_from_index if download_requested else _get_from_index
+        releasefile = cls._get_releasefile(release, file_id, getter)
+
+        if download_requested and check_permission_fn():
+            if isinstance(releasefile, ReleaseFile):
+                return cls.download(releasefile)
+            else:
+                return cls.download_from_archive(release, releasefile)
+        elif download_requested:
+            return Response(status=403)
+
+        return Response(serialize(releasefile, request.user))
+
+    @staticmethod
+    def update_releasefile(request, release, file_id):
+        try:
+            int(file_id)
+        except ValueError:
+            raise ParseError(INVALID_UPDATE_MESSAGE)
+
+        try:
+            releasefile = ReleaseFile.public_objects.get(release=release, id=file_id)
+        except ReleaseFile.DoesNotExist:
+            raise ResourceDoesNotExist
+
+        serializer = ReleaseFileSerializer(data=request.data)
+
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+
+        result = serializer.validated_data
+
+        releasefile.update(name=result["name"])
+
+        return Response(serialize(releasefile, request.user))
+
+    @classmethod
+    def delete_releasefile(cls, release, file_id):
+        result = cls._get_releasefile(release, file_id, delete_from_artifact_index)
+        if result is True:
+            # was successfully deleted from index
+            return Response(status=204)
+        if result is False:
+            # was not found in index
+            return Response(status=404)
+
+        # At this point, assume that result is individual release file, not an archived artifact
+        releasefile = result
+
+        try:
+            releasefile = ReleaseFile.public_objects.get(release=release, id=file_id)
+        except ReleaseFile.DoesNotExist:
+            raise ResourceDoesNotExist
+
+        file = releasefile.file
+
+        # TODO(dcramer): this doesnt handle a failure from file.deletefile() to
+        # the actual deletion of the db row
+        releasefile.delete()
+        file.delete()
+
+        return Response(status=204)
+
+
+class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint, ReleaseFileDetailsMixin):
+    permission_classes = (ProjectReleasePermission,)
+
     def get(self, request, project, version, file_id):
         """
         Retrieve a Project Release's File
@@ -119,10 +195,6 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint):
         :pparam string file_id: the ID of the file to retrieve.
         :auth: required
         """
-        download_requested = request.GET.get("download") is not None
-        if download_requested and not has_download_permission(request, project):
-            return Response(status=403)
-
         try:
             release = Release.objects.get(
                 organization_id=project.organization_id, projects=project, version=version
@@ -130,16 +202,12 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint):
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
 
-        getter = _entry_from_index if download_requested else _get_from_index
-        releasefile = self._get_releasefile(release, file_id, getter)
-
-        if download_requested:
-            if isinstance(releasefile, ReleaseFile):
-                return self.download(releasefile)
-            else:
-                return self.download_from_archive(release, releasefile)
-
-        return Response(serialize(releasefile, request.user))
+        return self.get_releasefile(
+            request,
+            release,
+            file_id,
+            check_permission_fn=lambda: has_download_permission(request, project),
+        )
 
     def put(self, request, project, version, file_id):
         """
@@ -160,32 +228,13 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint):
         """
 
         try:
-            int(file_id)
-        except ValueError:
-            raise ParseError(INVALID_UPDATE_MESSAGE)
-
-        try:
             release = Release.objects.get(
                 organization_id=project.organization_id, projects=project, version=version
             )
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
 
-        try:
-            releasefile = ReleaseFile.public_objects.get(release=release, id=file_id)
-        except ReleaseFile.DoesNotExist:
-            raise ResourceDoesNotExist
-
-        serializer = ReleaseFileSerializer(data=request.data)
-
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
-
-        result = serializer.validated_data
-
-        releasefile.update(name=result["name"])
-
-        return Response(serialize(releasefile, request.user))
+        return self.update_releasefile(request, release, file_id)
 
     def delete(self, request, project, version, file_id):
         """
@@ -212,16 +261,4 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint):
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
 
-        releasefile = self._get_releasefile(release, file_id, delete_from_artifact_index)
-        if releasefile is None:
-            # was deleted from index
-            return Response(status=204)
-
-        file = releasefile.file
-
-        # TODO(dcramer): this doesnt handle a failure from file.deletefile() to
-        # the actual deletion of the db row
-        releasefile.delete()
-        file.delete()
-
-        return Response(status=204)
+        return self.delete_releasefile(release, file_id)
