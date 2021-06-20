@@ -1,7 +1,9 @@
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 
+from sentry.db.models.fields import uuid
 from sentry.models import File, Release, ReleaseFile
+from sentry.models.releasefile import ARTIFACT_INDEX_FILENAME
 from sentry.testutils import APITestCase
 
 
@@ -35,6 +37,69 @@ class ReleaseFilesListTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(releasefile.id)
+
+    def test_with_archive(self):
+        project = self.project
+        release = self.release
+        self.login_as(user=self.user)
+        url = reverse(
+            "sentry-api-0-project-release-files",
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_slug": project.slug,
+                "version": release.version,
+            },
+        )
+
+        # Nothing there yet
+        response = self.client.get(url)
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 0
+
+        def create_release_file(**kwargs):
+            name = uuid.uuid4().hex
+            return ReleaseFile.objects.create(
+                organization_id=project.organization_id,
+                release=release,
+                file=File.objects.create(name=name, type="release.file"),
+                name=name,
+                **kwargs,
+            )
+
+        # artifact count of 0 is excluded
+        create_release_file(artifact_count=0)
+        response = self.client.get(url)
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 0
+
+        # artifact index without artifact_count is excluded
+        self.create_release_archive()
+        ReleaseFile.objects.get(release=release, name=ARTIFACT_INDEX_FILENAME).update(
+            artifact_count=None
+        )
+        response = self.client.get(url)
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 0
+
+        # artifact index with artifact_count is included
+        ReleaseFile.objects.get(release=release, name=ARTIFACT_INDEX_FILENAME).update(
+            artifact_count=42
+        )
+        response = self.client.get(url)
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 2
+
+        # Individual file with artifact_count=None is included
+        create_release_file(artifact_count=None)
+        response = self.client.get(url)
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 3
+
+        # Individual file with artifact_count=1 is included
+        create_release_file(artifact_count=1)
+        response = self.client.get(url)
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 4
 
 
 class ReleaseFileCreateTest(APITestCase):

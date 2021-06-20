@@ -19,6 +19,9 @@ ERR_FILE_EXISTS = "A file matching this name already exists for the given releas
 _filename_re = re.compile(r"[\n\t\r\f\v\\]")
 
 
+logger = logging.getLogger(__name__)
+
+
 class ProjectReleaseFilesEndpoint(ProjectEndpoint):
     permission_classes = (ProjectReleasePermission,)
 
@@ -49,13 +52,9 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint):
 
         data_sources = []
 
-        file_list = (
-            ReleaseFile.public_objects.filter(
-                release=release, artifact_count__gt=0
-            )  # FIXME: or None
-            .select_related("file")
-            .order_by("name")
-        )
+        # Exclude files which are also present in archive:
+        file_list = ReleaseFile.public_objects.filter(release=release).exclude(artifact_count=0)
+        file_list = file_list.select_related("file").order_by("name")
 
         if query:
             if not isinstance(query, list):
@@ -76,9 +75,10 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint):
         )
         for dist in list(dists) + [None]:
             try:
-                artifact_index = read_artifact_index(release, dist)
-            except BaseException:
-                # TODO: log error here
+                # Only Read from artifact index if it has a positive artifact count
+                artifact_index = read_artifact_index(release, dist, artifact_count__isnull=0)
+            except BaseException as exc:
+                logger.error("Failed to read artifact index", exc_info=exc)
                 artifact_index = None
 
             if artifact_index is not None:

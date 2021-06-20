@@ -241,10 +241,11 @@ class _ArtifactIndexData:
 class _ArtifactIndexGuard:
     """Ensures atomic write operations to the artifact index"""
 
-    def __init__(self, release: Release, dist: Optional[Distribution]):
+    def __init__(self, release: Release, dist: Optional[Distribution], **filter_args):
         self._release = release
         self._dist = dist
         self._ident = ReleaseFile.get_ident(ARTIFACT_INDEX_FILENAME, dist and dist.name)
+        self._filter_args = filter_args  # Extra constraints on artifact index release file
 
     def readable_data(self) -> Optional[dict]:
         """Simple read, no synchronization necessary"""
@@ -322,7 +323,7 @@ class _ArtifactIndexGuard:
 
     def _releasefile_qs(self):
         """QuerySet for selecting artifact index"""
-        return ReleaseFile.objects.filter(**self._key_fields())
+        return ReleaseFile.objects.filter(**self._key_fields(), **self._filter_args)
 
     def _key_fields(self):
         """Columns needed to identify the artifact index in the db"""
@@ -335,9 +336,11 @@ class _ArtifactIndexGuard:
         )
 
 
-def read_artifact_index(release: Release, dist: Optional[Distribution]) -> Optional[dict]:
+def read_artifact_index(
+    release: Release, dist: Optional[Distribution], **filter_args
+) -> Optional[dict]:
     """Get index data"""
-    guard = _ArtifactIndexGuard(release, dist)
+    guard = _ArtifactIndexGuard(release, dist, **filter_args)
     return guard.readable_data()
 
 
