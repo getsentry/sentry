@@ -98,7 +98,7 @@ class ReleaseFileDetailsTest(APITestCase):
     def test_archived(self):
         self.login_as(user=self.user)
         self.create_release_archive()
-        id = urlsafe_b64encode("_~/index.js")
+        id = urlsafe_b64encode(b"_~/index.js")
         response = self._get(id)
         assert response.status_code == 200
         assert response.data["id"] == id

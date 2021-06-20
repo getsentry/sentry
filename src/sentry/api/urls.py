@@ -1225,7 +1225,7 @@ urlpatterns = [
                     name="sentry-api-0-organization-release-files",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/releases/(?P<version>[^/]+)/files/(?P<file_id>\d+)/$",
+                    r"^(?P<organization_slug>[^\/]+)/releases/(?P<version>[^/]+)/files/(?P<file_id>[^/]+)/$",
                     OrganizationReleaseFileDetailsEndpoint.as_view(),
                     name="sentry-api-0-organization-release-file-details",
                 ),
