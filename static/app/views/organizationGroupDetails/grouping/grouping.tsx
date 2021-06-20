@@ -145,7 +145,7 @@ function Grouping({api, groupId, location, organization}: Props) {
     <Wrapper>
       <Description>
         {t(
-          'This issue is built up of multiple events that sentry thinks come from the same root-cause. Use this page to drill down this issue into more fine-grained groups.'
+          'This issue is built up of multiple events that sentry thinks come from the same root-cause. Use this page to refine this issue into more fine-grained groups.'
         )}
       </Description>
       <Content>
