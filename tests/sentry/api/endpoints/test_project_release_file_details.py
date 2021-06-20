@@ -273,9 +273,7 @@ class ReleaseFileDeleteTest(APITestCase):
 
         assert self.release.count_artifacts() == 2
 
-        id = urlsafe_b64encode(b"_~/index.js")
-
-        url = reverse(
+        url = lambda id: reverse(
             "sentry-api-0-project-release-file-details",
             kwargs={
                 "organization_slug": self.organization.slug,
@@ -285,6 +283,15 @@ class ReleaseFileDeleteTest(APITestCase):
             },
         )
 
-        response = self.client.delete(url)
+        id = urlsafe_b64encode(b"_~/index.js")
+        response = self.client.delete(url(id))
         assert response.status_code == 204
+        assert self.release.count_artifacts() == 1
+
+        response = self.client.delete(url(urlsafe_b64encode(b"invalid_id")))
+        assert response.status_code == 404
+        assert self.release.count_artifacts() == 1
+
+        response = self.client.delete(url(urlsafe_b64encode(b"_~/does_not_exist.js")))
+        assert response.status_code == 404
         assert self.release.count_artifacts() == 1

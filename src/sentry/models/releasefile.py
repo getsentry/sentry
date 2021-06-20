@@ -233,9 +233,13 @@ class _ArtifactIndexData:
             self._data.setdefault("files", {}).update(files)
             self.changed = True
 
-    def delete(self, filename: str):
-        self._data.get("files", {}).pop(filename, None)
-        self.changed = True
+    def delete(self, filename: str) -> bool:
+        result = self._data.get("files", {}).pop(filename, None)
+        deleted = result is not None
+        if deleted:
+            self.changed = True
+
+        return deleted
 
 
 class _ArtifactIndexGuard:
@@ -388,12 +392,16 @@ def update_artifact_index(release: Release, dist: Optional[Distribution], archiv
     return releasefile
 
 
-def delete_from_artifact_index(release: Release, dist: Optional[Distribution], url: str):
+def delete_from_artifact_index(release: Release, dist: Optional[Distribution], url: str) -> bool:
     """Delete the file with the given url from the manifest.
 
     Does *not* delete the file from the zip archive.
+
+    :returns: True if deleted
     """
     guard = _ArtifactIndexGuard(release, dist)
     with guard.writable_data(create=False) as index_data:
         if index_data is not None:
-            index_data.delete(url)
+            return index_data.delete(url)
+
+    return False
