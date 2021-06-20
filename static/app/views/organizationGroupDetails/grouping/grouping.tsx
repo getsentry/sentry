@@ -8,6 +8,7 @@ import List from 'app/components/list';
 import ListItem from 'app/components/list/listItem';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
+import {Panel, PanelBody} from 'app/components/panels';
 import {DEFAULT_DEBOUNCE_DURATION} from 'app/constants';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
@@ -62,14 +63,14 @@ function Grouping({api, groupId, location, project, organization}: Props) {
   }, []);
 
   useEffect(() => {
-    setCurrentGrouping();
+    setSecondGrouping();
   }, [groupingLevels]);
 
   useEffect(() => {
     fetchGroupingLevelDetails();
   }, [activeGroupingLevel, location.query]);
 
-  const handleSetActiveGroupingLevel = debounce((groupingLevelId: string) => {
+  const handleSetActiveGroupingLevel = debounce((groupingLevelId: number | '') => {
     setActiveGroupingLevel(Number(groupingLevelId));
   }, DEFAULT_DEBOUNCE_DURATION);
 
@@ -118,12 +119,12 @@ function Grouping({api, groupId, location, project, organization}: Props) {
     }
   }
 
-  function setCurrentGrouping() {
-    const currentGrouping = groupingLevels.find(groupingLevel => groupingLevel.isCurrent);
-    if (!currentGrouping) {
+  function setSecondGrouping() {
+    const secondGrouping = groupingLevels[1];
+    if (!secondGrouping) {
       return;
     }
-    setActiveGroupingLevel(Number(currentGrouping.id));
+    setActiveGroupingLevel(Number(secondGrouping.id));
   }
 
   if (isLoading) {
@@ -145,49 +146,55 @@ function Grouping({api, groupId, location, project, organization}: Props) {
     <Wrapper>
       <Description>
         {t(
-          'Sometimes you might want to split up issues by additional frames or other criteria. Select a granularity level below and see how many new issues will be created in the process.'
+          'This issue is built up of multiple events that sentry thinks come from the same root-cause. Use this page to drill down into more fine-grained groups.'
         )}
       </Description>
       <div>
         <StyledList symbol="colored-numeric">
           <StyledListItem>
             {t('Select level')}
-            <StyledRangeSlider
-              name="grouping-level"
-              allowedValues={groupingLevels.map(groupingLevel =>
-                Number(groupingLevel.id)
-              )}
-              formatLabel={value => {
-                return value === 0 ? t('Automatically grouped') : t('Level %s', value);
-              }}
-              value={activeGroupingLevel ?? 0}
-              onChange={handleSetActiveGroupingLevel}
-            />
+            <SliderWrapper>
+              {t('Fewer issues')}
+              <StyledRangeSlider
+                name="grouping-level"
+                allowedValues={groupingLevels.map(groupingLevel =>
+                  Number(groupingLevel.id)
+                )}
+                value={activeGroupingLevel ?? 0}
+                onChange={handleSetActiveGroupingLevel}
+                showLabel={false}
+              />
+              {t('More issues')}
+            </SliderWrapper>
           </StyledListItem>
           <StyledListItem isReloading={isGroupingLevelDetailsLoading}>
             <div>
               {t('What happens to this issue')}
               <WhatHappensDescription>
-                {tct(
-                  `This issue will be deleted and [quantity] new issues will be created.`,
-                  {
-                    quantity: hasMore
-                      ? `${activeGroupingLevelDetails.length}+`
-                      : activeGroupingLevelDetails.length,
-                  }
-                )}
+                {activeGroupingLevelDetails.length > 1
+                  ? tct(
+                      `This issue will be deleted and [quantity] new issues will be created.`,
+                      {
+                        quantity: hasMore
+                          ? `${activeGroupingLevelDetails.length}+`
+                          : activeGroupingLevelDetails.length,
+                      }
+                    )
+                  : t('This issue will be deleted and a new issue will be created.')}
               </WhatHappensDescription>
             </div>
             <NewIssues>
-              {activeGroupingLevelDetails.map(({hash, latestEvent, eventCount}) => (
-                <NewIssue
-                  key={hash}
-                  sampleEvent={latestEvent}
-                  eventCount={eventCount}
-                  project={project}
-                  organization={organization}
-                />
-              ))}
+              <PanelBody>
+                {activeGroupingLevelDetails.map(({hash, latestEvent, eventCount}) => (
+                  <NewIssue
+                    key={hash}
+                    sampleEvent={latestEvent}
+                    eventCount={eventCount}
+                    project={project}
+                    organization={organization}
+                  />
+                ))}
+              </PanelBody>
             </NewIssues>
           </StyledListItem>
         </StyledList>
@@ -213,10 +220,7 @@ const Description = styled('p')`
   margin-bottom: ${space(0.5)};
 `;
 
-const NewIssues = styled('div')`
-  display: grid;
-  grid-gap: ${space(3)};
-`;
+const NewIssues = styled(Panel)``;
 
 const WhatHappensDescription = styled('div')`
   color: ${p => p.theme.subText};
@@ -237,8 +241,41 @@ const StyledListItem = styled(ListItem)<{isReloading?: boolean}>`
     `}
 `;
 
+const SliderWrapper = styled('div')`
+  display: grid;
+  grid-gap: ${space(1.5)};
+  grid-template-columns: max-content max-content;
+  justify-content: space-between;
+  align-items: flex-start;
+  position: relative;
+  font-size: ${p => p.theme.fontSizeMedium};
+  color: ${p => p.theme.gray400};
+  padding-bottom: ${space(2)};
+
+  @media (min-width: 700px) {
+    grid-template-columns: max-content minmax(270px, auto) max-content;
+    align-items: center;
+    justify-content: flex-start;
+    padding-bottom: 0;
+  }
+`;
+
 const StyledRangeSlider = styled(RangeSlider)`
-  max-width: 300px;
+  input {
+    margin-top: 0;
+    margin-bottom: 0;
+  }
+
+  position: absolute;
+  bottom: 0;
+  left: ${space(1.5)};
+  right: ${space(1.5)};
+
+  @media (min-width: 700px) {
+    position: static;
+    left: auto;
+    right: auto;
+  }
 `;
 
 const StyledList = styled(List)`

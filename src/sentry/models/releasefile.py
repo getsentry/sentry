@@ -63,8 +63,10 @@ class ReleaseFile(Model):
     name = models.TextField()
     dist = FlexibleForeignKey("sentry.Distribution", null=True)
 
-    #: For release archives, this field contains the number of files within
-    #: the archive.
+    #: For classic file uploads, this field is 1.
+    #: For release archives, this field is 0.
+    #: For artifact indexes, this field is the number of artifacts contained
+    #: in the index.
     artifact_count = BoundedPositiveIntegerField(null=True, default=1)
 
     __repr__ = sane_repr("release", "ident")

@@ -27,7 +27,7 @@ class Migration(migrations.Migration):
     atomic = True
 
     dependencies = [
-        ("sentry", "0208_add_team_scope"),
+        ("sentry", "0210_backfill_project_transaction_thresholds"),
     ]
 
     operations = [
