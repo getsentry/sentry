@@ -26,7 +26,7 @@ import {AvatarProject, Organization, Project} from 'app/types';
 import {formatPercentage, getDuration} from 'app/utils/formatters';
 import TrendsDiscoverQuery from 'app/utils/performance/trends/trendsDiscoverQuery';
 import {decodeScalar} from 'app/utils/queryString';
-import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {tokenizeSearch} from 'app/utils/tokenizeSearch';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
@@ -165,7 +165,7 @@ function handleFilterTransaction(location: Location, transaction: string) {
 
   conditions.addTagValues('!transaction', [transaction]);
 
-  const query = stringifyQueryObject(conditions);
+  const query = conditions.formatString();
 
   browserHistory.push({
     pathname: location.pathname,
@@ -194,7 +194,7 @@ function handleFilterDuration(location: Location, value: number, symbol: FilterS
 
   conditions.addTagValues(durationTag, [`${symbol}${value}`]);
 
-  const query = stringifyQueryObject(conditions);
+  const query = conditions.formatString();
 
   browserHistory.push({
     pathname: location.pathname,

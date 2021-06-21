@@ -24,7 +24,7 @@ import {
 } from 'app/utils/discover/fields';
 import {removeHistogramQueryStrings} from 'app/utils/performance/histogram';
 import {decodeScalar} from 'app/utils/queryString';
-import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {tokenizeSearch} from 'app/utils/tokenizeSearch';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
@@ -323,7 +323,7 @@ function generateSummaryEventView(
       version: 2,
       name: transactionName,
       fields,
-      query: stringifyQueryObject(conditions),
+      query: conditions.formatString(),
       projects: [],
     },
     location
