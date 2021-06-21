@@ -62,6 +62,9 @@ class Operation:
     def to_snuba_json(self, alias: Optional[str] = None) -> JsonQueryType:
         """Convert this tree of Operations to the equivalent snuba json"""
         lhs = self.lhs.to_snuba_json() if isinstance(self.lhs, Operation) else self.lhs
+        # TODO(snql): This is a hack so the json syntax doesn't turn lhs into a function
+        if isinstance(lhs, str):
+            lhs = ["toFloat64", [lhs]]
         rhs = self.rhs.to_snuba_json() if isinstance(self.rhs, Operation) else self.rhs
         result = [self.operator, [lhs, rhs]]
         if alias:
@@ -292,8 +295,7 @@ def resolve_equation_list(
     resolved_equations = []
     resolved_columns = selected_columns[:]
     for index, equation in enumerate(equations):
-        # only supporting 1 operation for now
-        parsed_equation, fields, functions = parse_arithmetic(equation, max_operators=1)
+        parsed_equation, fields, functions = parse_arithmetic(equation)
 
         if aggregates_only and len(functions) == 0:
             raise InvalidSearchQuery("Only equations on aggregate functions are supported")

@@ -44,6 +44,7 @@ from sentry.utils.snuba import (
 )
 
 MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS = 500
+MAX_QUERYABLE_TRANSACTION_THRESHOLDS = 500
 
 ConditionalFunction = namedtuple("ConditionalFunction", "condition match fallback")
 FunctionDetails = namedtuple("FunctionDetails", "field instance arguments")
@@ -148,8 +149,19 @@ def project_threshold_config_expression(organization_id, project_ids):
         .values("project_id", "threshold", "metric")
     )
 
-    if not threshold_configs.count():
+    num_configured = threshold_configs.count()
+    sentry_sdk.set_tag("project_threshold.count", num_configured)
+    sentry_sdk.set_tag(
+        "project_threshold.count.grouped",
+        format_grouped_length(num_configured, [10, 100, 250, 500]),
+    )
+
+    if num_configured == 0:
         return ["tuple", [f"'{DEFAULT_PROJECT_THRESHOLD_METRIC}'", DEFAULT_PROJECT_THRESHOLD]]
+    elif num_configured > MAX_QUERYABLE_TRANSACTION_THRESHOLDS:
+        raise InvalidSearchQuery(
+            f"Exceeded {MAX_QUERYABLE_TRANSACTION_THRESHOLDS} configured transaction thresholds limit, try with fewer Projects."
+        )
 
     return [
         "if",
@@ -1636,6 +1648,20 @@ FUNCTIONS = {
             "stddev",
             required_args=[NumericColumnNoLookup("column")],
             aggregate=["stddevSamp", ArgValue("column"), None],
+            default_result_type="number",
+            redundant_grouping=True,
+        ),
+        Function(
+            "cov",
+            required_args=[NumericColumnNoLookup("column1"), NumericColumnNoLookup("column2")],
+            aggregate=["covarSamp", [ArgValue("column1"), ArgValue("column2")], None],
+            default_result_type="number",
+            redundant_grouping=True,
+        ),
+        Function(
+            "corr",
+            required_args=[NumericColumnNoLookup("column1"), NumericColumnNoLookup("column2")],
+            aggregate=["corr", [ArgValue("column1"), ArgValue("column2")], None],
             default_result_type="number",
             redundant_grouping=True,
         ),

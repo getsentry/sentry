@@ -42,14 +42,14 @@ class SuggestedOwners extends React.Component<Props, State> {
   componentDidUpdate(prevProps: Props) {
     if (this.props.event && prevProps.event) {
       if (this.props.event.id !== prevProps.event.id) {
-        //two events, with different IDs
+        // two events, with different IDs
         this.fetchData(this.props.event);
       }
       return;
     }
 
     if (this.props.event) {
-      //going from having no event to having an event
+      // going from having no event to having an event
       this.fetchData(this.props.event);
     }
   }
