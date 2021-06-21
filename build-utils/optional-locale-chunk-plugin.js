@@ -1,5 +1,5 @@
-/*eslint-env node*/
-/*eslint import/no-nodejs-modules:0 */
+/* eslint-env node */
+/* eslint import/no-nodejs-modules:0 */
 
 /**
  * When our locales are codesplit into cache groups, webpack expects that all
