@@ -433,8 +433,7 @@ def resolve_field_list(
         if "project.id" not in fields:
             fields.append("project.id")
 
-    snuba_condition_aggregates = snuba_filter.condition_aggregates or []
-    for field in fields[:] + snuba_condition_aggregates:
+    for field in fields[:]:
         if isinstance(field, str) and field in {
             "apdex()",
             "count_miserable(user)",
@@ -462,6 +461,14 @@ def resolve_field_list(
     # Only auto aggregate when there's one other so the group by is not unexpectedly changed
     if auto_aggregations and snuba_filter.having and len(aggregations) > 0:
         for agg in snuba_filter.condition_aggregates:
+            if isinstance(agg, str) and agg in {
+                "apdex()",
+                "count_miserable(user)",
+                "user_misery()",
+            }:
+                if PROJECT_THRESHOLD_CONFIG_ALIAS not in fields:
+                    fields.append(PROJECT_THRESHOLD_CONFIG_ALIAS)
+
             if agg not in snuba_filter.aliases:
                 function = resolve_field(agg, snuba_filter.params, functions_acl)
                 if function.aggregate is not None and function.aggregate not in aggregations:
