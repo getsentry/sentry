@@ -12,7 +12,7 @@ from sentry.api.base import LINK_HEADER
 from sentry.api.bases import NoProjects, OrganizationEndpoint
 from sentry.api.helpers.teams import get_teams
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
-from sentry.discover.arithmetic import EQUATION_PREFIX, ArithmeticError
+from sentry.discover.arithmetic import ArithmeticError, is_equation, strip_equation
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Organization, Team
 from sentry.models.group import Group
@@ -28,6 +28,10 @@ from sentry.utils.math import mean
 from sentry.utils.snuba import MAX_FIELDS
 
 
+def resolve_axis_column(column: str, index=0) -> str:
+    return get_function_alias(column) if not is_equation(column) else f"equation[{index}]"
+
+
 class OrganizationEventsEndpointBase(OrganizationEndpoint):
     def has_feature(self, organization, request):
         return features.has(
@@ -41,20 +45,16 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         """equations have a prefix so that they can be easily included alongside our existing fields"""
         if self.has_arithmetic(organization, request):
             return [
-                field[len(EQUATION_PREFIX) :]
+                strip_equation(field)
                 for field in request.GET.getlist("field")[:]
-                if field.startswith(EQUATION_PREFIX)
+                if is_equation(field)
             ]
         else:
             return []
 
     def get_field_list(self, organization: Organization, request: HttpRequest) -> Sequence[str]:
         if self.has_arithmetic(organization, request):
-            return [
-                field
-                for field in request.GET.getlist("field")[:]
-                if not field.startswith(EQUATION_PREFIX)
-            ]
+            return [field for field in request.GET.getlist("field")[:] if not is_equation(field)]
         else:
             return request.GET.getlist("field")[:]
 
@@ -369,7 +369,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                         # Need to get function alias if count is a field, but not the axis
                         results[key] = serializer.serialize(
                             event_result,
-                            column=get_function_alias(query_columns[0]),
+                            column=resolve_axis_column(query_columns[0]),
                             allow_partial_buckets=allow_partial_buckets,
                         )
                 return results
@@ -378,7 +378,11 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     serializer, result, columns, query_columns, allow_partial_buckets
                 )
             else:
-                return serializer.serialize(result, allow_partial_buckets=allow_partial_buckets)
+                return serializer.serialize(
+                    result,
+                    resolve_axis_column(query_columns[0]),
+                    allow_partial_buckets=allow_partial_buckets,
+                )
 
     def serialize_multiple_axis(
         self, serializer, event_result, columns, query_columns, allow_partial_buckets
@@ -387,7 +391,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         result = {
             columns[index]: serializer.serialize(
                 event_result,
-                get_function_alias(query_column),
+                resolve_axis_column(query_column, index),
                 order=index,
                 allow_partial_buckets=allow_partial_buckets,
             )

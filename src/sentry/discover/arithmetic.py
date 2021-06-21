@@ -278,22 +278,60 @@ def parse_arithmetic(
     return result, list(visitor.fields), list(visitor.functions)
 
 
-def resolve_equation_list(equations: List[str], selected_columns: List[str]) -> List[JsonQueryType]:
-    """Given a list of equation strings, resolve them to their equivalent snuba json query formats"""
+def resolve_equation_list(
+    equations: List[str],
+    selected_columns: List[str],
+    aggregates_only: Optional[bool] = False,
+    auto_add: Optional[bool] = False,
+) -> Tuple[List[JsonQueryType], List[str]]:
+    """Given a list of equation strings, resolve them to their equivalent snuba json query formats
+    :param equations: list of equations strings that haven't been parsed yet
+    :param selected_columns: list of public aliases from the endpoint, can be a mix of fields and aggregates
+    :param aggregates_only: Optional parameter whether we need to enforce equations don't include fields
+        intended for use with event-stats where fields aren't compatible since they change grouping
+    :param: auto_add: Optional parameter that will take any fields in the equation that's missing in the
+        selected_columns and return a new list with them added
+    """
     resolved_equations = []
+    resolved_columns = selected_columns[:]
     for index, equation in enumerate(equations):
-        # only supporting 1 operation for now
         parsed_equation, fields, functions = parse_arithmetic(equation)
+
+        if aggregates_only and len(functions) == 0:
+            raise InvalidSearchQuery("Only equations on aggregate functions are supported")
+
         for field in fields:
             if field not in selected_columns:
-                raise InvalidSearchQuery(f"{field} used in an equation but is not a selected field")
+                if auto_add:
+                    resolved_columns.append(field)
+                else:
+                    raise InvalidSearchQuery(
+                        f"{field} used in an equation but is not a selected field"
+                    )
         for function in functions:
             if function not in selected_columns:
-                raise InvalidSearchQuery(
-                    f"{function} used in an equation but is not a selected function"
-                )
+                if auto_add:
+                    resolved_columns.append(function)
+                else:
+                    raise InvalidSearchQuery(
+                        f"{function} used in an equation but is not a selected function"
+                    )
+
         # We just jam everything into resolved_equations because the json format can't take arithmetic in the aggregates
         # field, but can do the aliases in the selected_columns field
         # TODO(snql): we can do better
         resolved_equations.append(parsed_equation.to_snuba_json(f"equation[{index}]"))
-    return resolved_equations
+    return resolved_equations, resolved_columns
+
+
+def is_equation(field: str) -> bool:
+    """check if a public alias is an equation, which start with the equation prefix
+    eg. `equation|5 + 5`
+    """
+    return field.startswith(EQUATION_PREFIX)
+
+
+def strip_equation(field: str) -> str:
+    """remove the equation prefix from a public field alias"""
+    assert is_equation(field), f"{field} does not start with {EQUATION_PREFIX}"
+    return field[len(EQUATION_PREFIX) :]

@@ -48,6 +48,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                 return discover.top_events_timeseries(
                     timeseries_columns=query_columns,
                     selected_columns=self.get_field_list(organization, request),
+                    equations=self.get_equation_list(organization, request),
                     user_query=query,
                     params=params,
                     orderby=self.get_orderby(request),
