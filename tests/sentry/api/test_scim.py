@@ -801,3 +801,23 @@ class SCIMGroupTests(APITestCase):
             "members": None,
             "meta": {"resourceType": "Group"},
         }
+
+
+class SCIMSchemaEndpointTest(APITestCase):
+    def setUp(self):
+        super().setUp()
+        auth_provider = AuthProvider.objects.create(
+            organization=self.organization, provider="dummy"
+        )
+        with self.feature({"organizations:sso-scim": True}):
+            auth_provider.enable_scim(self.user)
+            auth_provider.save()
+        self.login_as(user=self.user)
+
+    def test_schema_200s(self):
+        url = reverse(
+            "sentry-api-0-organization-scim-schema-index",
+            args=[self.organization.slug],
+        )
+        response = self.client.get(url)
+        assert response.status_code == 200, response.content
