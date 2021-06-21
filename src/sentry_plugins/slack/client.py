@@ -15,11 +15,10 @@ class SlackApiClient(ApiClient):
 
     def request(self, data):
         try:
-            resp = self._request(
+            return self._request(
                 path=self.webhook, method="post", data=data, json=False, allow_text=True
             )
         except ApiError as e:
             # Ignore 404 from slack webhooks
             if e.code != 404:
                 raise e
-        return resp
