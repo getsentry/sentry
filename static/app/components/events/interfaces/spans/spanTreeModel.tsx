@@ -1,5 +1,6 @@
-import {computed, makeObservable} from 'mobx';
+import {action, computed, makeObservable, observable} from 'mobx';
 
+import {Client} from 'app/api';
 import {t} from 'app/locale';
 import {EventTransaction} from 'app/types/event';
 
@@ -14,25 +15,36 @@ import {
   TreeDepthType,
 } from './types';
 import {
+  generateRootSpan,
   getSpanID,
   getSpanOperation,
   isEventFromBrowserJavaScriptSDK,
   isOrphanSpan,
+  parseTrace,
   SpanBoundsType,
   SpanGeneratedBoundsType,
 } from './utils';
 
 class SpanTreeModel {
+  api: Client;
+
   // readonly state
   span: Readonly<SpanType>;
   children: Array<SpanTreeModel> = [];
   isRoot: boolean;
 
+  // readable/writable state
+  loadingEmbeddedChildren: boolean = false;
+  showEmbeddedChildren: boolean = false;
+  embeddedChildren: Array<SpanTreeModel> = [];
+
   constructor(
     parentSpan: SpanType,
     childSpans: SpanChildrenLookupType,
+    api: Client,
     isRoot: boolean = false
   ) {
+    this.api = api;
     this.span = parentSpan;
     this.isRoot = isRoot;
 
@@ -47,11 +59,16 @@ class SpanTreeModel {
     delete childSpans[spanID];
 
     this.children = spanChildren.map(span => {
-      return new SpanTreeModel(span, childSpans);
+      return new SpanTreeModel(span, childSpans, api);
     });
 
     makeObservable(this, {
       operationNameCounts: computed.struct,
+      showEmbeddedChildren: observable,
+      embeddedChildren: observable,
+      loadingEmbeddedChildren: observable,
+      toggleEmbeddedChildren: action,
+      fetchEmbeddedTransactions: action,
     });
   }
 
@@ -136,6 +153,8 @@ class SpanTreeModel {
       treeDepth,
       isLastSibling: false,
       continuingTreeDepths,
+      showEmbeddedChildren: false,
+      toggleEmbeddedChildren: undefined,
     };
     return gapSpan;
   }
@@ -180,7 +199,11 @@ class SpanTreeModel {
     const childSpanGroup = new Set(spanGroups);
     childSpanGroup.add(parentSpanID);
 
-    const {descendants} = this.children.reduce(
+    const descendantsSource = this.showEmbeddedChildren
+      ? [...this.embeddedChildren, ...this.children]
+      : this.children;
+
+    const {descendants} = descendantsSource.reduce(
       (
         acc: {
           descendants: EnhancedProcessedSpanType[];
@@ -208,7 +231,12 @@ class SpanTreeModel {
 
         return acc;
       },
-      {descendants: [], previousSiblingEndTimestamp: undefined}
+      {
+        descendants: this.loadingEmbeddedChildren
+          ? [{type: 'loading_embedded_transactions'}]
+          : [],
+        previousSiblingEndTimestamp: undefined,
+      }
     );
 
     for (const hiddenSpanGroup of hiddenSpanGroups) {
@@ -246,10 +274,12 @@ class SpanTreeModel {
     const wrappedSpan: EnhancedProcessedSpanType = {
       type: this.isRoot ? 'root_span' : 'span',
       span: this.span,
-      numOfSpanChildren: this.children.length,
+      numOfSpanChildren: descendantsSource.length,
       treeDepth,
       isLastSibling,
       continuingTreeDepths,
+      showEmbeddedChildren: this.showEmbeddedChildren,
+      toggleEmbeddedChildren: this.toggleEmbeddedChildren,
     };
     const gapSpan = this.generateSpanGap(
       event,
@@ -264,6 +294,47 @@ class SpanTreeModel {
 
     return [wrappedSpan, ...descendants];
   };
+
+  toggleEmbeddedChildren = (props: {orgSlug: string; eventSlug: string}) => {
+    this.showEmbeddedChildren = !this.showEmbeddedChildren;
+
+    if (this.showEmbeddedChildren && this.embeddedChildren.length === 0) {
+      this.fetchEmbeddedTransactions(props);
+    }
+  };
+
+  fetchEmbeddedTransactions({orgSlug, eventSlug}: {orgSlug: string; eventSlug: string}) {
+    const url = `/organizations/${orgSlug}/events/${eventSlug}/`;
+
+    this.loadingEmbeddedChildren = true;
+
+    this.api
+      .requestPromise(url, {
+        method: 'GET',
+        query: {},
+      })
+      .then(
+        action('fetchEmbeddedTransactionsSuccess', (event: EventTransaction) => {
+          if (!event) {
+            return;
+          }
+
+          const parsedTrace = parseTrace(event);
+          const rootSpan = generateRootSpan(parsedTrace);
+          const parsedRootSpan = new SpanTreeModel(
+            rootSpan,
+            parsedTrace.childSpans,
+            this.api,
+            false
+          );
+
+          this.embeddedChildren = [parsedRootSpan];
+        })
+      )
+      .finally(() => {
+        this.loadingEmbeddedChildren = false;
+      });
+  }
 }
 
 export default SpanTreeModel;

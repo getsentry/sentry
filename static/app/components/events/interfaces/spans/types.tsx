@@ -49,6 +49,10 @@ type CommonEnhancedProcessedSpanType = {
   treeDepth: number;
   isLastSibling: boolean;
   continuingTreeDepths: Array<TreeDepthType>;
+  showEmbeddedChildren: boolean;
+  toggleEmbeddedChildren:
+    | ((props: {orgSlug: string; eventSlug: string}) => void)
+    | undefined;
 };
 
 // ProcessedSpanType with additional information
@@ -72,6 +76,9 @@ export type EnhancedProcessedSpanType =
   | {
       type: 'out_of_view';
       span: SpanType;
+    }
+  | {
+      type: 'loading_embedded_transactions';
     };
 
 export type SpanEntry = {

@@ -39,6 +39,7 @@ import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {EventTransaction} from 'app/types/event';
 import {defined} from 'app/utils';
+import {generateEventSlug} from 'app/utils/discover/urls';
 import * as QuickTraceContext from 'app/utils/performance/quickTrace/quickTraceContext';
 import {QuickTraceContextChildrenProps} from 'app/utils/performance/quickTrace/quickTraceContext';
 import {QuickTraceEvent, TraceError} from 'app/utils/performance/quickTrace/types';
@@ -104,6 +105,10 @@ type SpanBarProps = {
   isRoot?: boolean;
   toggleSpanTree: () => void;
   isCurrentSpanFilteredOut: boolean;
+  showEmbeddedChildren: boolean;
+  toggleEmbeddedChildren:
+    | ((props: {orgSlug: string; eventSlug: string}) => void)
+    | undefined;
 };
 
 type SpanBarState = {
@@ -718,8 +723,26 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   renderEmbeddedTransactionsBadge(
     transactions: QuickTraceEvent[] | null
   ): React.ReactNode {
+    const {toggleEmbeddedChildren, organization} = this.props;
+
     if (transactions && transactions.length === 1) {
-      return <EmbeddedTransactionBadge expanded />;
+      const transaction = transactions[0];
+      return (
+        <EmbeddedTransactionBadge
+          expanded={!!this.props.showEmbeddedChildren}
+          onClick={() => {
+            if (toggleEmbeddedChildren) {
+              toggleEmbeddedChildren({
+                orgSlug: organization.slug,
+                eventSlug: generateEventSlug({
+                  id: transaction.event_id,
+                  project: transaction.project_slug,
+                }),
+              });
+            }
+          }}
+        />
+      );
     }
     return null;
   }
