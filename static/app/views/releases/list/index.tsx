@@ -29,6 +29,7 @@ import {
   ReleaseStatus,
   SessionApiResponse,
 } from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import Projects from 'app/utils/projects';
 import routeTitleGen from 'app/utils/routeTitle';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
@@ -241,6 +242,19 @@ class ReleasesList extends AsyncView<Props, State> {
     });
   };
 
+  trackAddReleaseHealth = () => {
+    const {organization, selection} = this.props;
+
+    if (organization.id && selection.projects[0]) {
+      trackAnalyticsEvent({
+        eventKey: `releases_list.click_add_release_health`,
+        eventName: `Releases List: Click Add Release Health`,
+        organization_id: parseInt(organization.id, 10),
+        project_id: selection.projects[0],
+      });
+    }
+  };
+
   shouldShowLoadingIndicator() {
     const {loading, releases, reloading} = this.state;
 
@@ -325,34 +339,35 @@ class ReleasesList extends AsyncView<Props, State> {
     }
 
     return (
-      <Feature features={['organizations:release-adoption-chart']}>
-        <Projects orgId={organization.slug} slugs={[selectedProject.slug]}>
-          {({projects, initiallyLoaded, fetchError}) => {
-            const project = projects && projects.length === 1 && projects[0];
-            const projectCanHaveReleases =
-              project && project.platform && releaseHealth.includes(project.platform);
+      <Projects orgId={organization.slug} slugs={[selectedProject.slug]}>
+        {({projects, initiallyLoaded, fetchError}) => {
+          const project = projects && projects.length === 1 && projects[0];
+          const projectCanHaveReleases =
+            project && project.platform && releaseHealth.includes(project.platform);
 
-            if (!initiallyLoaded || fetchError || !projectCanHaveReleases) {
-              return null;
-            }
+          if (!initiallyLoaded || fetchError || !projectCanHaveReleases) {
+            return null;
+          }
 
-            return (
-              <Alert type="info" icon={<IconInfo size="md" />}>
-                <AlertText>
-                  <div>
-                    {t(
-                      'Setup Release Health for this project to view user adoption, usage of the application, percentage of crashes, and session data.'
-                    )}
-                  </div>
-                  <ExternalLink href="https://docs.sentry.io/product/releases/health/">
-                    {t('Learn more')}
-                  </ExternalLink>
-                </AlertText>
-              </Alert>
-            );
-          }}
-        </Projects>
-      </Feature>
+          return (
+            <Alert type="info" icon={<IconInfo size="md" />}>
+              <AlertText>
+                <div>
+                  {t(
+                    'To track user adoption, crash rates, session data and more, add Release Health to your current setup.'
+                  )}
+                </div>
+                <ExternalLink
+                  href="https://docs.sentry.io/product/releases/health/setup/"
+                  onClick={this.trackAddReleaseHealth}
+                >
+                  {t('Add Release Health')}
+                </ExternalLink>
+              </AlertText>
+            </Alert>
+          );
+        }}
+      </Projects>
     );
   }
 
