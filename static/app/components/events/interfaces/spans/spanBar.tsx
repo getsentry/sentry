@@ -725,6 +725,10 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
   ): React.ReactNode {
     const {toggleEmbeddedChildren, organization} = this.props;
 
+    if (!organization.features.includes('unified-span-view')) {
+      return null;
+    }
+
     if (transactions && transactions.length === 1) {
       const transaction = transactions[0];
       return (
