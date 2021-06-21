@@ -446,7 +446,7 @@ describe('WaterfallModel', () => {
     expect(spans).toEqual(
       fullWaterfall.filter((_span, index) => {
         // 5th span should be hidden
-        return index != 4;
+        return index !== 4;
       })
     );
 
