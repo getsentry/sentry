@@ -270,7 +270,7 @@ export default class AsyncComponent<
     });
   };
 
-  onRequestSuccess(_resp /*{stateKey, data, jqXHR}*/) {
+  onRequestSuccess(_resp /* {stateKey, data, jqXHR} */) {
     // Allow children to implement this
   }
 

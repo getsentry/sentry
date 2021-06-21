@@ -1,4 +1,4 @@
-/*eslint-env node*/
+/* eslint-env node */
 const path = require('path'); // eslint-disable-line
 
 let testMatch;

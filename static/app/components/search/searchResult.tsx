@@ -143,7 +143,7 @@ const Content = styled('div')`
 `;
 
 const IconWrapper = styled('div')`
-  ${/* sc-selector*/ StyledSettingsSearch} & {
+  ${/* sc-selector */ StyledSettingsSearch} & {
     color: inherit;
   }
 `;
