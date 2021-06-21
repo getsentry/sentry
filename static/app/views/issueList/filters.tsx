@@ -58,16 +58,6 @@ class IssueListFilters extends React.Component<Props> {
     return (
       <PageHeader>
         <SearchContainer>
-          <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
-          <Feature features={['issue-percent-display']} organization={organization}>
-            <IssueListDisplayOptions
-              onDisplayChange={onDisplayChange}
-              display={display}
-              hasSessions={hasSessions}
-              hasMultipleProjectsSelected={selectedProjects.length !== 1}
-            />
-          </Feature>
-
           <SearchSelectorContainer>
             <ClassNames>
               {({css}) => (
@@ -94,25 +84,32 @@ class IssueListFilters extends React.Component<Props> {
               )}
             </ClassNames>
           </SearchSelectorContainer>
+
+          <Feature features={['issue-percent-display']} organization={organization}>
+            <IssueListDisplayOptions
+              onDisplayChange={onDisplayChange}
+              display={display}
+              hasSessions={hasSessions}
+              hasMultipleProjectsSelected={selectedProjects.length !== 1}
+            />
+          </Feature>
+          <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
         </SearchContainer>
       </PageHeader>
     );
   }
 }
 
-const SearchContainer = styled('div')<{isInbox?: boolean}>`
+const SearchContainer = styled('div')`
   display: flex;
-  width: ${p => (p.isInbox ? '100%' : '70%')};
-  flex-direction: ${p => (p.isInbox ? 'row-reverse' : 'row')};
+  width: 100%;
   align-items: flex-start;
 `;
 
-const SearchSelectorContainer = styled('div')<{isInbox?: boolean}>`
+const SearchSelectorContainer = styled('div')`
   display: flex;
   flex-grow: 1;
-
-  margin-right: ${p => (p.isInbox ? space(1) : 0)};
-  margin-left: ${p => (p.isInbox ? 0 : space(1))};
+  margin-right: ${space(1)};
 `;
 
 export default IssueListFilters;
