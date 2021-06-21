@@ -3672,3 +3672,38 @@ class ArithmeticTest(SnubaTestCase, TestCase):
             + result["count"] / result["count"] * result["count"]
             - result["count"]
         )
+
+    def test_nan_equation_results(self):
+        for i in range(1, 3):
+            event_data = load_data("transaction")
+            # Half of duration so we don't get weird rounding differences when comparing the results
+            event_data["breakdowns"]["span_ops"]["ops.http"]["value"] = 0
+            event_data["start_timestamp"] = iso_format(self.day_ago + timedelta(minutes=30))
+            event_data["timestamp"] = iso_format(self.day_ago + timedelta(minutes=30, seconds=3))
+            self.store_event(data=event_data, project_id=self.project.id)
+        query_params = {
+            "selected_columns": [
+                "spans.http",
+                "transaction.duration",
+            ],
+            "equations": [
+                "transaction.duration / spans.http",  # inf
+                "spans.http / spans.http",  # nan
+            ],
+            "orderby": ["equation[0]"],
+            "query": self.query,
+            "params": self.params,
+        }
+        results = discover.query(**query_params)
+        assert len(results["data"]) == 3
+        assert [result["equation[0]"] for result in results["data"]] == [2, None, None]
+
+        query_params["orderby"] = ["equation[1]"]
+        results = discover.query(**query_params)
+        assert len(results["data"]) == 3
+        assert [result["equation[1]"] for result in results["data"]] == [1, 0, 0]
+
+        query_params["orderby"] = ["-equation[0]"]
+        results = discover.query(**query_params)
+        assert len(results["data"]) == 3
+        assert [result["equation[0]"] for result in results["data"]] == [None, None, 2]
