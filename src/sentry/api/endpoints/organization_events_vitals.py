@@ -55,7 +55,7 @@ class OrganizationEventsVitalsEndpoint(OrganizationEventsV2EndpointBase):
                 referrer="api.events.vitals",
                 auto_fields=True,
                 auto_aggregations=True,
-                use_aggregate_conditions=True,
+                use_aggregate_conditions=False,
             )
 
         results = {}
