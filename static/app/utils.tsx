@@ -261,7 +261,7 @@ export function sortProjects(projects: Array<Project>): Array<Project> {
   return projects.sort(projectDisplayCompare);
 }
 
-//build actorIds
+// build actorIds
 export const buildUserId = id => `user:${id}`;
 export const buildTeamId = id => `team:${id}`;
 

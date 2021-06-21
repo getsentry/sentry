@@ -247,7 +247,7 @@ export default class AsyncComponent<
       let query = (params && params.query) || {};
       // If paginate option then pass entire `query` object to API call
       // It should only be expecting `query.cursor` for pagination
-      if (options.paginate || locationQuery.cursor) {
+      if ((options.paginate || locationQuery.cursor) && !options.disableEntireQuery) {
         query = {...locationQuery, ...query};
       }
 
@@ -301,7 +301,7 @@ export default class AsyncComponent<
         return state;
       },
       () => {
-        //if everything is loaded and we don't have an error, call the callback
+        // if everything is loaded and we don't have an error, call the callback
         if (this.state.remainingRequests === 0 && !this.state.error) {
           this.onLoadAllEndpointsSuccess();
         }

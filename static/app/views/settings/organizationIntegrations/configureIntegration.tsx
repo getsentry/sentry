@@ -143,7 +143,7 @@ class ConfigureIntegration extends AsyncView<Props, State> {
     return action;
   };
 
-  //TODO(Steve): Refactor components into separate tabs and use more generic tab logic
+  // TODO(Steve): Refactor components into separate tabs and use more generic tab logic
   renderMainTab(provider: IntegrationProvider) {
     const {orgId} = this.props.params;
     const {integration} = this.state;
@@ -229,13 +229,13 @@ class ConfigureIntegration extends AsyncView<Props, State> {
     );
   }
 
-  //renders everything below header
+  // renders everything below header
   renderMainContent(provider: IntegrationProvider) {
-    //if no code mappings, render the single tab
+    // if no code mappings, render the single tab
     if (!this.hasStacktraceLinking(provider)) {
       return this.renderMainTab(provider);
     }
-    //otherwise render the tab view
+    // otherwise render the tab view
     const tabs = [
       ['repos', t('Repositories')],
       ['codeMappings', t('Code Mappings')],
