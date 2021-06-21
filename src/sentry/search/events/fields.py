@@ -468,6 +468,10 @@ def resolve_field_list(
             }:
                 if PROJECT_THRESHOLD_CONFIG_ALIAS not in fields:
                     fields.append(PROJECT_THRESHOLD_CONFIG_ALIAS)
+                    function = resolve_field(
+                        PROJECT_THRESHOLD_CONFIG_ALIAS, snuba_filter.params, functions_acl
+                    )
+                    columns.append(function.column)
 
             if agg not in snuba_filter.aliases:
                 function = resolve_field(agg, snuba_filter.params, functions_acl)
