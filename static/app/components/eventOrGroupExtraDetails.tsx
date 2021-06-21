@@ -17,7 +17,6 @@ import {Event} from 'app/types/event';
 
 type Props = WithRouterProps<{orgId: string}> & {
   data: Event | Group;
-  organization: Organization;
   showAssignee?: boolean;
   hasGuideAnchor?: boolean;
   showInboxTime?: boolean;
