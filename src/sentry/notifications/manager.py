@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Union
+from typing import TYPE_CHECKING, Dict, Iterable, List, Mapping, Optional, Sequence, Union
 
 from django.db import transaction
 from django.db.models import Q, QuerySet
@@ -20,6 +20,9 @@ from sentry.notifications.types import (
 )
 from sentry.types.integrations import ExternalProviders
 
+if TYPE_CHECKING:
+    from sentry.models import NotificationSetting, Organization, Project, Team, User
+
 
 class NotificationsManager(BaseManager):  # type: ignore
     """
@@ -30,10 +33,10 @@ class NotificationsManager(BaseManager):  # type: ignore
         self,
         provider: ExternalProviders,
         type: NotificationSettingTypes,
-        user: Optional[Any] = None,
-        team: Optional[Any] = None,
-        project: Optional[Any] = None,
-        organization: Optional[Any] = None,
+        user: Optional["User"] = None,
+        team: Optional["Team"] = None,
+        project: Optional["Project"] = None,
+        organization: Optional["Organization"] = None,
     ) -> NotificationSettingOptionValues:
         """
         One and only one of (user, team, project, or organization)
@@ -55,10 +58,10 @@ class NotificationsManager(BaseManager):  # type: ignore
         provider: ExternalProviders,
         type: NotificationSettingTypes,
         value: NotificationSettingOptionValues,
-        user: Optional[Any] = None,
-        team: Optional[Any] = None,
-        project: Optional[Any] = None,
-        organization: Optional[Any] = None,
+        user: Optional["User"] = None,
+        team: Optional["Team"] = None,
+        project: Optional["Project"] = None,
+        organization: Optional["Organization"] = None,
     ) -> None:
         """
         Save a target's notification preferences.
@@ -103,10 +106,10 @@ class NotificationsManager(BaseManager):  # type: ignore
         self,
         provider: ExternalProviders,
         type: NotificationSettingTypes,
-        user: Optional[Any] = None,
-        team: Optional[Any] = None,
-        project: Optional[Any] = None,
-        organization: Optional[Any] = None,
+        user: Optional["User"] = None,
+        team: Optional["Team"] = None,
+        project: Optional["Project"] = None,
+        organization: Optional["Organization"] = None,
     ) -> None:
         """
         We don't anticipate this function will be used by the API but is useful
@@ -142,16 +145,20 @@ class NotificationsManager(BaseManager):  # type: ignore
 
         return self.filter(**filters)
 
-    def remove_for_user(self, user: Any, type: Optional[NotificationSettingTypes] = None) -> None:
+    def remove_for_user(
+        self, user: "User", type: Optional[NotificationSettingTypes] = None
+    ) -> None:
         """Bulk delete all Notification Settings for a USER, optionally by type."""
         self._filter(target_ids=[user.actor_id], type=type).delete()
 
-    def remove_for_team(self, team: Any, type: Optional[NotificationSettingTypes] = None) -> None:
+    def remove_for_team(
+        self, team: "Team", type: Optional[NotificationSettingTypes] = None
+    ) -> None:
         """Bulk delete all Notification Settings for a TEAM, optionally by type."""
         self._filter(target_ids=[team.actor_id], type=type).delete()
 
     def remove_for_project(
-        self, project: Any, type: Optional[NotificationSettingTypes] = None
+        self, project: "Project", type: Optional[NotificationSettingTypes] = None
     ) -> None:
         """Bulk delete all Notification Settings for a PROJECT, optionally by type."""
         self._filter(
@@ -161,7 +168,7 @@ class NotificationsManager(BaseManager):  # type: ignore
         ).delete()
 
     def remove_for_organization(
-        self, organization: Any, type: Optional[NotificationSettingTypes] = None
+        self, organization: "Organization", type: Optional[NotificationSettingTypes] = None
     ) -> None:
         """Bulk delete all Notification Settings for an ENTIRE ORGANIZATION, optionally by type."""
         self._filter(
@@ -174,10 +181,10 @@ class NotificationsManager(BaseManager):  # type: ignore
         self,
         provider: ExternalProviders,
         type: NotificationSettingTypes,
-        user: Optional[Any] = None,
-        team: Optional[Any] = None,
-        project: Optional[Any] = None,
-        organization: Optional[Any] = None,
+        user: Optional["User"] = None,
+        team: Optional["Team"] = None,
+        project: Optional["Project"] = None,
+        organization: Optional["Organization"] = None,
     ) -> QuerySet:
         """Wrapper for .filter that translates object parameters to scopes and targets."""
         user_id_option = getattr(user, "id", None)
@@ -190,8 +197,8 @@ class NotificationsManager(BaseManager):  # type: ignore
     def get_for_user_by_projects(
         self,
         type: NotificationSettingTypes,
-        user: Any,
-        parents: List[Any],
+        user: "User",
+        parents: List[Union["Organization", "Project"]],
     ) -> QuerySet:
         """
         Find all of a user's notification settings for a list of projects or
@@ -214,8 +221,8 @@ class NotificationsManager(BaseManager):  # type: ignore
     def get_for_users_by_parent(
         self,
         type: NotificationSettingTypes,
-        parent: Any,
-        users: List[Any],
+        parent: Union["Organization", "Project"],
+        users: Sequence["User"],
     ) -> QuerySet:
         """
         Find all of a project/organization's notification settings for a list of users.
@@ -238,8 +245,8 @@ class NotificationsManager(BaseManager):  # type: ignore
     def get_for_recipient_by_parent(
         self,
         type: NotificationSettingTypes,
-        parent: Any,
-        recipient: Any,
+        parent: Union["Organization", "Project"],
+        recipient: "User",
     ) -> QuerySet:
         """
         Find all of a project/organization's notification settings for a recipient.
@@ -255,9 +262,9 @@ class NotificationsManager(BaseManager):  # type: ignore
 
     def filter_to_subscribed_users(
         self,
-        project: Any,
-        users: List[Any],
-    ) -> Mapping[ExternalProviders, Iterable[Any]]:
+        project: "Project",
+        users: List["User"],
+    ) -> Mapping[ExternalProviders, Iterable["User"]]:
         """
         Filters a list of users down to the users by provider who are subscribed to alerts.
         We check both the project level settings and global default settings.
@@ -276,8 +283,8 @@ class NotificationsManager(BaseManager):  # type: ignore
         return mapping
 
     def get_notification_recipients(
-        self, project: Any
-    ) -> Mapping[ExternalProviders, Iterable[Any]]:
+        self, project: "Project"
+    ) -> Mapping[ExternalProviders, Iterable["User"]]:
         """
         Return a set of users that should receive Issue Alert emails for a given
         project. To start, we get the set of all users. Then we fetch all of
@@ -293,7 +300,7 @@ class NotificationsManager(BaseManager):  # type: ignore
 
     def update_settings_bulk(
         self,
-        notification_settings: Iterable[Any],
+        notification_settings: Sequence["NotificationSetting"],
         target_id: int,
     ) -> None:
         """
