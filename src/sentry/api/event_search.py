@@ -617,7 +617,16 @@ class SearchVisitor(NodeVisitor):
             # Even if the search value matches duration format, only act as
             # duration for certain columns
             function = resolve_field(search_key.name, self.params, functions_acl=FUNCTIONS.keys())
-            if function.aggregate is not None and self.is_duration_key(function.aggregate[1]):
+
+            is_duration_key = False
+            if function.aggregate is not None:
+                args = function.aggregate[1]
+                if isinstance(args, list):
+                    is_duration_key = all(self.is_duration_key(arg) for arg in args)
+                else:
+                    is_duration_key = self.is_duration_key(args)
+
+            if is_duration_key:
                 aggregate_value = parse_duration(*search_value)
             else:
                 # Duration overlaps with numeric values with `m` (million vs
