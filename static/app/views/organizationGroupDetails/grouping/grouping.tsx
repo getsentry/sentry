@@ -123,7 +123,7 @@ function Grouping({api, groupId, location, organization}: Props) {
       return;
     }
 
-    if (groupingLevels.length === 2) {
+    if (groupingLevels.length > 1) {
       setActiveGroupingLevel(Number(groupingLevels[1].id));
       return;
     }
