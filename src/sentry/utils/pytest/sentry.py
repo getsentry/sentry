@@ -82,10 +82,10 @@ def pytest_configure(config):
 
     # Replace real sudo middleware with our mock sudo middleware
     # to assert that the user is always in sudo mode
-    middleware = list(settings.MIDDLEWARE_CLASSES)
+    middleware = list(settings.MIDDLEWARE)
     sudo = middleware.index("sentry.middleware.sudo.SudoMiddleware")
     middleware[sudo] = "sentry.testutils.middleware.SudoMiddleware"
-    settings.MIDDLEWARE_CLASSES = tuple(middleware)
+    settings.MIDDLEWARE = tuple(middleware)
 
     settings.SENTRY_OPTIONS["cloudflare.secret-key"] = "cloudflare-secret-key"
 
