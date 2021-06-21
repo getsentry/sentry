@@ -453,7 +453,7 @@ def timeseries_query(selected_columns, query, params, rollup, referrer=None):
                 # Check that the column is a list with 3 items, and the alias in the third item is an equation
                 if isinstance(column, list)
                 and len(column) == 3
-                and column[-1].startswith("equation")
+                and column[-1].startswith("equation[")
             ],
             aggregations=snuba_filter.aggregations,
             conditions=snuba_filter.conditions,
