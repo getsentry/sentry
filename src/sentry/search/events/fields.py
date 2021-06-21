@@ -464,8 +464,8 @@ def resolve_field_list(
                             aggregate_fields[format_column_as_key(function.aggregate[1])].add(field)
 
     check_aggregations = snuba_filter.having and len(aggregations) > 0
-    snuba_filter_condition_aggregates = set(
-        snuba_filter.condition_aggregates or [] if check_aggregations else set()
+    snuba_filter_condition_aggregates = (
+        set(snuba_filter.condition_aggregates or []) if check_aggregations else set()
     )
     for field in set(fields[:]).union(snuba_filter_condition_aggregates):
         if isinstance(field, str) and field in {
