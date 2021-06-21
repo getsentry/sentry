@@ -535,6 +535,10 @@ class Group(Model):
 
     @property
     def title(self) -> str:
+        current_tree_label = self.get_event_metadata().get("current_tree_label")
+        if current_tree_label is not None:
+            return " | ".join(current_tree_label)
+
         et = eventtypes.get(self.get_event_type())()
         return et.get_title(self.get_event_metadata())
 

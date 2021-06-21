@@ -23,6 +23,7 @@ from sentry.constants import (
     DataCategory,
 )
 from sentry.culprit import generate_culprit
+from sentry.eventstore.models import CalculatedHashes
 from sentry.eventstore.processing import event_processing_store
 from sentry.grouping.api import (
     BackgroundGroupingConfigLoader,
@@ -77,7 +78,7 @@ from sentry.utils.cache import cache_key_for_event
 from sentry.utils.canonical import CanonicalKeyDict
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.outcomes import Outcome, track_outcome
-from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
+from sentry.utils.safe import get_path, safe_execute, set_path, setdefault_path, trim
 
 logger = logging.getLogger("sentry.events")
 
@@ -352,7 +353,7 @@ class EventManager:
         if do_background_grouping_before:
             _run_background_grouping(project, job)
 
-        secondary_flat_hashes = []
+        secondary_hashes = None
 
         try:
             if (project.get_option("sentry:secondary_grouping_expiry") or 0) >= time.time():
@@ -360,8 +361,9 @@ class EventManager:
                     secondary_event = copy.deepcopy(job["event"])
                     loader = SecondaryGroupingConfigLoader()
                     secondary_grouping_config = loader.get_config_dict(project)
-                    _calculate_event_grouping(project, secondary_event, secondary_grouping_config)
-                    secondary_flat_hashes.extend(secondary_event.data["hashes"])
+                    secondary_hashes = _calculate_event_grouping(
+                        project, secondary_event, secondary_grouping_config
+                    )
         except Exception:
             sentry_sdk.capture_exception()
 
@@ -375,19 +377,24 @@ class EventManager:
         with sentry_sdk.start_span(op="event_manager.save.calculate_event_grouping"), metrics.timer(
             "event_manager.calculate_event_grouping"
         ):
-            _calculate_event_grouping(project, job["event"], grouping_config)
+            hashes = _calculate_event_grouping(project, job["event"], grouping_config)
 
-        flat_hashes = job["event"].data["hashes"] + secondary_flat_hashes
-        hierarchical_hashes = job["event"].data.get("hierarchical_hashes") or []
+        hashes = CalculatedHashes(
+            hashes=hashes.hashes + (secondary_hashes and secondary_hashes.hashes or []),
+            hierarchical_hashes=hashes.hierarchical_hashes,
+            tree_labels=hashes.tree_labels,
+        )
 
         if not do_background_grouping_before:
             _run_background_grouping(project, job)
 
         _materialize_metadata_many(jobs)
 
-        # The group gets the same metadata as the event when it's flushed but
-        # additionally the `last_received` key is set.  This key is used by
-        # _save_aggregate.
+        # In principle the group gets the same metadata as the event, so common
+        # attributes can be defined in eventtypes.
+        #
+        # Additionally the `last_received` key is set for group metadata.  This
+        # key is used by _save_aggregate.
         group_metadata = dict(job["materialized_metadata"])
         group_metadata["last_received"] = job["received_timestamp"]
         kwargs = {
@@ -401,6 +408,13 @@ class EventManager:
             "active_at": job["event"].datetime,
             "data": group_metadata,
         }
+
+        # In save_aggregate we store current_tree_label for the group metadata,
+        # and finest_tree_label for the event itself.
+        finest_tree_label = get_path(job["data"], "hierarchical_tree_labels", -1)
+        if finest_tree_label is not None:
+            job["data"]["metadata"] = dict(job["data"]["metadata"])
+            job["data"]["metadata"]["finest_tree_label"] = finest_tree_label
 
         if job["release"]:
             kwargs["first_release"] = job["release"]
@@ -417,8 +431,7 @@ class EventManager:
             with sentry_sdk.start_span(op="event_manager.save.save_aggregate_fn"):
                 job["group"], job["is_new"], job["is_regression"] = _save_aggregate(
                     event=job["event"],
-                    flat_hashes=flat_hashes,
-                    hierarchical_hashes=hierarchical_hashes,
+                    hashes=hashes,
                     release=job["release"],
                     **kwargs,
                 )
@@ -536,7 +549,7 @@ class EventManager:
 
 @metrics.wraps("event_manager.background_grouping")
 def _calculate_background_grouping(project, event, config):
-    _calculate_event_grouping(project, event, config)
+    return _calculate_event_grouping(project, event, config)
 
 
 def _run_background_grouping(project, job):
@@ -957,11 +970,11 @@ def get_culprit(data):
     )
 
 
-def _save_aggregate(event, flat_hashes, hierarchical_hashes, release, **kwargs):
+def _save_aggregate(event, hashes, release, **kwargs):
     project = event.project
 
     flat_grouphashes = [
-        GroupHash.objects.get_or_create(project=project, hash=hash)[0] for hash in flat_hashes
+        GroupHash.objects.get_or_create(project=project, hash=hash)[0] for hash in hashes.hashes
     ]
 
     # The root_hierarchical_hash is the least specific hash within the tree, so
@@ -970,18 +983,31 @@ def _save_aggregate(event, flat_hashes, hierarchical_hashes, release, **kwargs):
     # this for select_for_update mostly provides sufficient synchronization
     # when groups are created and also relieves contention by locking a more
     # specific hash than `hierarchical_hashes[0]`.
-    existing_group_id, root_hierarchical_hash = _find_existing_group_id(
-        project, flat_grouphashes, hierarchical_hashes
+    existing_grouphash, root_hierarchical_hash = _find_existing_group_id(
+        project, flat_grouphashes, hashes.hierarchical_hashes
     )
 
     if root_hierarchical_hash is not None:
         root_hierarchical_grouphash = GroupHash.objects.get_or_create(
             project=project, hash=root_hierarchical_hash
         )[0]
+
+        set_path(
+            kwargs,
+            "data",
+            "metadata",
+            "current_tree_label",
+            value=hashes.tree_label_from_hash(
+                existing_grouphash.hash
+                if existing_grouphash is not None
+                else root_hierarchical_hash
+            ),
+        )
+
     else:
         root_hierarchical_grouphash = None
 
-    if existing_group_id is None:
+    if existing_grouphash is None:
 
         if killswitch_matches_context(
             "store.load-shed-group-creation-projects",
@@ -1006,10 +1032,10 @@ def _save_aggregate(event, flat_hashes, hierarchical_hashes, release, **kwargs):
 
             all_hashes = list(GroupHash.objects.filter(id__in=all_hash_ids).select_for_update())
 
-            flat_grouphashes = [gh for gh in all_hashes if gh.hash in flat_hashes]
+            flat_grouphashes = [gh for gh in all_hashes if gh.hash in hashes.hashes]
 
-            existing_group_id, root_hierarchical_hash = _find_existing_group_id(
-                project, flat_grouphashes, hierarchical_hashes
+            existing_grouphash, root_hierarchical_hash = _find_existing_group_id(
+                project, flat_grouphashes, hashes.hierarchical_hashes
             )
 
             if root_hierarchical_hash is not None:
@@ -1019,7 +1045,7 @@ def _save_aggregate(event, flat_hashes, hierarchical_hashes, release, **kwargs):
             else:
                 root_hierarchical_grouphash = None
 
-            if existing_group_id is None:
+            if existing_grouphash is None:
 
                 try:
                     short_id = project.next_short_id()
@@ -1070,7 +1096,7 @@ def _save_aggregate(event, flat_hashes, hierarchical_hashes, release, **kwargs):
 
                 return group, is_new, is_regression
 
-    group = Group.objects.get(id=existing_group_id)
+    group = Group.objects.get(id=existing_grouphash.group_id)
 
     is_new = False
 
@@ -1163,7 +1189,7 @@ def _find_existing_group_id(
 
     for group_hash in all_grouphashes:
         if group_hash.group_id is not None:
-            return group_hash.group_id, root_hierarchical_hash
+            return group_hash, root_hierarchical_hash
 
         # When refactoring for hierarchical grouping, we noticed that a
         # tombstone may get ignored entirely if there is another hash *before*
@@ -1593,7 +1619,7 @@ def _materialize_event_metrics(jobs):
 
 
 @metrics.wraps("save_event.calculate_event_grouping")
-def _calculate_event_grouping(project, event, grouping_config):
+def _calculate_event_grouping(project, event, grouping_config) -> CalculatedHashes:
     """
     Main entrypoint for modifying/enhancing and grouping an event, writes
     hashes back into event payload.
@@ -1625,14 +1651,13 @@ def _calculate_event_grouping(project, event, grouping_config):
         # event.  If that config has since been deleted (because it was an
         # experimental grouping config) we fall back to the default.
         try:
-            flat_hashes, hierarchical_hashes = event.get_hashes(grouping_config)
+            hashes = event.get_hashes(grouping_config)
         except GroupingConfigNotFound:
             event.data["grouping_config"] = get_grouping_config_dict_for_project(project)
-            flat_hashes, hierarchical_hashes = event.get_hashes()
+            hashes = event.get_hashes()
 
-    event.data["hashes"] = flat_hashes
-    if hierarchical_hashes:
-        event.data["hierarchical_hashes"] = hierarchical_hashes
+    hashes.write_to_event(event.data)
+    return hashes
 
 
 @metrics.wraps("event_manager.save_transaction_events")

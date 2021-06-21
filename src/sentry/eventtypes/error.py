@@ -44,11 +44,19 @@ class ErrorEvent(BaseEvent):
         return rv
 
     def compute_title(self, metadata):
+        # Both of those properties are set within EventManager
+        if "finest_tree_label" in metadata:
+            return " | ".join(metadata["finest_tree_label"])
+
+        if "current_tree_label" in metadata:
+            return " | ".join(metadata["current_tree_label"])
+
         ty = metadata.get("type")
         if ty is None:
             return metadata.get("function") or "<unknown>"
         if not metadata.get("value"):
             return ty
+
         return "{}: {}".format(ty, truncatechars(metadata["value"].splitlines()[0], 100))
 
     def get_location(self, metadata):

@@ -5,7 +5,7 @@ from threading import Thread
 import pytest
 
 from sentry.event_manager import _save_aggregate
-from sentry.eventstore.models import Event
+from sentry.eventstore.models import CalculatedHashes, Event
 
 
 @pytest.mark.django_db(transaction=True)
@@ -57,8 +57,11 @@ def test_group_creation_race(monkeypatch, default_project, is_race_free):
         return_values.append(
             _save_aggregate(
                 evt,
-                flat_hashes=["a" * 32, "b" * 32],
-                hierarchical_hashes=[],
+                hashes=CalculatedHashes(
+                    hashes=["a" * 32, "b" * 32],
+                    hierarchical_hashes=[],
+                    tree_labels=[],
+                ),
                 release=None,
                 data=data,
                 level=10,
