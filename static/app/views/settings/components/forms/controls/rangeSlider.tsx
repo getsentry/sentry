@@ -47,6 +47,10 @@ type Props = {
    * Show input control for custom values
    */
   showCustomInput?: boolean;
+  /**
+   * Show label with current value
+   */
+  showLabel?: boolean;
 
   /**
    * Placeholder for custom input
@@ -78,6 +82,7 @@ function RangeSlider({
   onBlur,
   onChange,
   forwardRef,
+  showLabel = true,
   ...props
 }: Props) {
   const [sliderValue, setSliderValue] = useState(
@@ -158,7 +163,7 @@ function RangeSlider({
 
   return (
     <div className={className} ref={forwardRef}>
-      {!showCustomInput && (
+      {!showCustomInput && showLabel && (
         <Label htmlFor={name}>{formatLabel?.(actualValue) ?? displayValue}</Label>
       )}
       <SliderAndInputWrapper showCustomInput={showCustomInput}>

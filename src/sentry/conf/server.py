@@ -70,8 +70,6 @@ DEBUG = IS_DEV
 
 ADMIN_ENABLED = DEBUG
 
-MAINTENANCE = False
-
 ADMINS = ()
 
 # Hosts that are considered in the same network (including VPNs).
@@ -277,15 +275,12 @@ USE_TZ = True
 # response modifying middleware reset the Content-Length header.
 # This is because CommonMiddleware Sets the Content-Length header for non-streaming responses.
 MIDDLEWARE_CLASSES = (
-    "sentry.middleware.proxy.DecompressBodyMiddleware",
+    "sentry.middleware.health.HealthCheck",
     "sentry.middleware.security.SecurityHeadersMiddleware",
-    "sentry.middleware.maintenance.ServicesUnavailableMiddleware",
     "sentry.middleware.env.SentryEnvMiddleware",
     "sentry.middleware.proxy.SetRemoteAddrFromForwardedFor",
-    "sentry.middleware.debug.NoIfModifiedSinceMiddleware",
     "sentry.middleware.stats.RequestTimingMiddleware",
     "sentry.middleware.stats.ResponseCodeMiddleware",
-    "sentry.middleware.health.HealthCheck",  # Must exist before CommonMiddleware
     "django.middleware.common.CommonMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -893,7 +888,10 @@ SENTRY_FEATURES = {
     "organizations:incidents": False,
     # Enable the new Metrics page
     "organizations:metrics": False,
-    # Automatically extract metrics during ingestion
+    # Automatically extract metrics during ingestion.
+    #
+    # XXX(ja): DO NOT ENABLE UNTIL THIS NOTICE IS GONE. Relay experiences
+    # gradual slowdown when this is enabled for too many projects.
     "organizations:metrics-extraction": False,
     # Enable metric aggregate in metric alert rule builder
     "organizations:metric-alert-builder-aggregate": False,
