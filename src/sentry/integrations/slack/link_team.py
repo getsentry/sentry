@@ -178,8 +178,7 @@ class SlackLinkTeamView(BaseView):
 
         if created:
             # turn on notifications for all of a team's projects
-            # TODO(ceo): Update this when the manager has been updated to handle
-            # team scope types
+            # TODO(ceo): Update this when API-1951 has been merged
             team_projects = team.get_projects()
             for project in team_projects:
                 NotificationSetting.objects.update_settings(
