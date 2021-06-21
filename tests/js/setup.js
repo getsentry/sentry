@@ -218,3 +218,11 @@ window.TestStubs = {
   AllAuthenticators: () => Object.values(fixtures.Authenticators()).map(x => x()),
   ...fixtures,
 };
+
+// We now need to re-define `window.location`, otherwise we can't spyOn certain methods
+// as `window.location` is read-only
+Object.defineProperty(window, 'location', {
+  value: {...window.location, assign: jest.fn(), reload: jest.fn()},
+  configurable: true,
+  writable: true,
+});
