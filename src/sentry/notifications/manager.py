@@ -53,6 +53,28 @@ class NotificationsManager(BaseManager):  # type: ignore
             else NotificationSettingOptionValues.DEFAULT
         )
 
+    def _update_settings(
+        self,
+        provider: ExternalProviders,
+        type: NotificationSettingTypes,
+        value: NotificationSettingOptionValues,
+        scope_type: NotificationScopeType,
+        scope_identifier: int,
+        target_id: int,
+    ) -> None:
+        """Save a NotificationSettings row."""
+        with transaction.atomic():
+            setting, created = self.get_or_create(
+                provider=provider.value,
+                type=type.value,
+                scope_type=scope_type.value,
+                scope_identifier=scope_identifier,
+                target_id=target_id,
+                defaults={"value": value.value},
+            )
+            if not created and setting.value != value.value:
+                setting.update(value=value.value)
+
     def update_settings(
         self,
         provider: ExternalProviders,
@@ -90,17 +112,7 @@ class NotificationsManager(BaseManager):  # type: ignore
         )
         target_id = get_target_id(user, team)
 
-        with transaction.atomic():
-            setting, created = self.get_or_create(
-                provider=provider.value,
-                type=type.value,
-                scope_type=scope_type.value,
-                scope_identifier=scope_identifier,
-                target_id=target_id,
-                defaults={"value": value.value},
-            )
-            if not created and setting.value != value.value:
-                setting.update(value=value.value)
+        self._update_settings(provider, type, value, scope_type, scope_identifier, target_id)
 
     def remove_settings(
         self,
@@ -313,14 +325,6 @@ class NotificationsManager(BaseManager):  # type: ignore
             if value == NotificationSettingOptionValues.DEFAULT:
                 self._filter(provider, type, scope_type, scope_identifier, [target_id]).delete()
             else:
-                with transaction.atomic():
-                    setting, created = self.get_or_create(
-                        provider=provider.value,
-                        type=type.value,
-                        scope_type=scope_type.value,
-                        scope_identifier=scope_identifier,
-                        target_id=target_id,
-                        defaults={"value": value.value},
-                    )
-                    if not created and setting.value != value.value:
-                        setting.update(value=value.value)
+                self._update_settings(
+                    provider, type, value, scope_type, scope_identifier, target_id
+                )
