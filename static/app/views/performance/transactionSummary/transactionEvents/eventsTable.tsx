@@ -17,7 +17,11 @@ import {trackAnalyticsEvent} from 'app/utils/analytics';
 import DiscoverQuery, {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
 import EventView, {EventData, isFieldSortable} from 'app/utils/discover/eventView';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
-import {fieldAlignment, getAggregateAlias} from 'app/utils/discover/fields';
+import {
+  fieldAlignment,
+  getAggregateAlias,
+  SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
+} from 'app/utils/discover/fields';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 import CellAction, {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
 import {TableColumn} from 'app/views/eventsV2/table/types';
@@ -228,13 +232,13 @@ class EventsTable extends React.Component<Props, State> {
     const canSort =
       field.field !== 'id' &&
       field.field !== 'trace' &&
-      field.field !== 'span_ops_breakdown.relative' &&
+      field.field !== SPAN_OP_RELATIVE_BREAKDOWN_FIELD &&
       isFieldSortable(field, tableMeta);
 
     const currentSortKind = currentSort ? currentSort.kind : undefined;
     const currentSortField = currentSort ? currentSort.field : undefined;
 
-    if (field.field === 'span_ops_breakdown.relative') {
+    if (field.field === SPAN_OP_RELATIVE_BREAKDOWN_FIELD) {
       title = (
         <OperationSort
           title={OperationTitle}
@@ -286,7 +290,8 @@ class EventsTable extends React.Component<Props, State> {
     const containsSpanOpsBreakdown = eventView
       .getColumns()
       .find(
-        (col: TableColumn<React.ReactText>) => col.name === 'span_ops_breakdown.relative'
+        (col: TableColumn<React.ReactText>) =>
+          col.name === SPAN_OP_RELATIVE_BREAKDOWN_FIELD
       );
     const columnOrder = eventView
       .getColumns()

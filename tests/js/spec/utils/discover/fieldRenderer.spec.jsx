@@ -295,10 +295,12 @@ describe('getFieldRenderer', function () {
         [SPAN_OP_RELATIVE_BREAKDOWN_FIELD]: 'string',
       });
 
-      data.sortedBy = 'spans.db';
-
       const wrapper = mountWithTheme(
-        renderer(data, {location, organization}),
+        renderer(data, {
+          location,
+          organization,
+          eventView: {sorts: [{field: 'spans.db'}]},
+        }),
         context.routerContext
       );
 
