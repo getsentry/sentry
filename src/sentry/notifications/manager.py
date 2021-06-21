@@ -106,10 +106,7 @@ class NotificationsManager(BaseManager):  # type: ignore
         if not validate(type, value):
             raise Exception(f"value '{value}' is not valid for type '{type}'")
 
-        user_id_option = getattr(user, "id", None)
-        scope_type, scope_identifier = get_scope(
-            user_id_option, project=project, organization=organization
-        )
+        scope_type, scope_identifier = get_scope(user, team, project, organization)
         target_id = get_target_id(user, team)
 
         self._update_settings(provider, type, value, scope_type, scope_identifier, target_id)
@@ -199,10 +196,7 @@ class NotificationsManager(BaseManager):  # type: ignore
         organization: Optional["Organization"] = None,
     ) -> QuerySet:
         """Wrapper for .filter that translates object parameters to scopes and targets."""
-        user_id_option = getattr(user, "id", None)
-        scope_type, scope_identifier = get_scope(
-            user_id_option, project=project, organization=organization
-        )
+        scope_type, scope_identifier = get_scope(user, team, project, organization)
         target_id = get_target_id(user, team)
         return self._filter(provider, type, scope_type, scope_identifier, [target_id])
 

@@ -246,23 +246,28 @@ def get_scope_type(type: NotificationSettingTypes) -> NotificationScopeType:
 
 
 def get_scope(
-    user_id: int, project: Optional[Any] = None, organization: Optional[Any] = None
+    user: Optional["User"] = None,
+    team: Optional["Team"] = None,
+    project: Optional["Project"] = None,
+    organization: Optional["Organization"] = None,
 ) -> Tuple[NotificationScopeType, int]:
     """
     Figure out the scope from parameters and return it as a tuple.
-    TODO(mgaeta): Make sure user_id is in the project or organization.
+    TODO(mgaeta): Make sure the user/team is in the project/organization.
     """
-
     if project:
         return NotificationScopeType.PROJECT, project.id
 
     if organization:
         return NotificationScopeType.ORGANIZATION, organization.id
 
-    if user_id:
-        return NotificationScopeType.USER, user_id
+    if user:
+        return NotificationScopeType.USER, user.id
 
-    raise Exception("scope must be either user, organization, or project")
+    if team:
+        return NotificationScopeType.TEAM, team.id
+
+    raise Exception("scope must be either user, team, organization, or project")
 
 
 def get_target_id(user: Optional["User"] = None, team: Optional["Team"] = None) -> int:
