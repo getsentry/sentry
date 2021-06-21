@@ -433,14 +433,17 @@ def resolve_field_list(
         if "project.id" not in fields:
             fields.append("project.id")
 
+    project_threshold_config = False
+    requires_project_threshold_config = {
+        "apdex()",
+        "count_miserable(user)",
+        "user_misery()",
+    }
     for field in fields[:]:
-        if isinstance(field, str) and field in {
-            "apdex()",
-            "count_miserable(user)",
-            "user_misery()",
-        }:
+        if isinstance(field, str) and field in requires_project_threshold_config:
             if PROJECT_THRESHOLD_CONFIG_ALIAS not in fields:
                 fields.append(PROJECT_THRESHOLD_CONFIG_ALIAS)
+                project_threshold_config = True
                 break
 
     for field in fields:
@@ -461,17 +464,14 @@ def resolve_field_list(
     # Only auto aggregate when there's one other so the group by is not unexpectedly changed
     if auto_aggregations and snuba_filter.having and len(aggregations) > 0:
         for agg in snuba_filter.condition_aggregates:
-            if isinstance(agg, str) and agg in {
-                "apdex()",
-                "count_miserable(user)",
-                "user_misery()",
-            }:
-                if PROJECT_THRESHOLD_CONFIG_ALIAS not in fields:
+            if isinstance(agg, str) and agg in requires_project_threshold_config:
+                if not project_threshold_config:
                     fields.append(PROJECT_THRESHOLD_CONFIG_ALIAS)
                     function = resolve_field(
                         PROJECT_THRESHOLD_CONFIG_ALIAS, snuba_filter.params, functions_acl
                     )
                     columns.append(function.column)
+                    project_threshold_config = True
 
             if agg not in snuba_filter.aliases:
                 function = resolve_field(agg, snuba_filter.params, functions_acl)
