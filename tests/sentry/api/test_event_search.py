@@ -3,6 +3,7 @@ import os
 import unittest
 from datetime import timedelta
 
+import pytest
 from django.utils import timezone
 from freezegun import freeze_time
 
@@ -363,6 +364,23 @@ class ParseSearchQueryBackendTest(unittest.TestCase):
         # quoted key
         assert parse_search_query('!has:"hi:there"') == [
             SearchFilter(key=SearchKey(name="hi:there"), operator="=", value=SearchValue(""))
+        ]
+
+    def test_allowed_keys(self):
+        config = SearchConfig(allowed_keys=["good_key"])
+
+        assert parse_search_query("good_key:123 bad_key:123 text") == [
+            SearchFilter(key=SearchKey(name="good_key"), operator="=", value=SearchValue("123")),
+            SearchFilter(key=SearchKey(name="bad_key"), operator="=", value=SearchValue("123")),
+            SearchFilter(key=SearchKey(name="message"), operator="=", value=SearchValue("text")),
+        ]
+
+        with pytest.raises(InvalidSearchQuery, match="Invalid key for this search"):
+            assert parse_search_query("good_key:123 bad_key:123 text", config=config)
+
+        assert parse_search_query("good_key:123 text", config=config) == [
+            SearchFilter(key=SearchKey(name="good_key"), operator="=", value=SearchValue("123")),
+            SearchFilter(key=SearchKey(name="message"), operator="=", value=SearchValue("text")),
         ]
 
     def test_invalid_aggregate_column_with_duration_filter(self):
