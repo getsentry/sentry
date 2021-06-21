@@ -378,7 +378,7 @@ class ParseSearchQueryBackendTest(unittest.TestCase):
         with pytest.raises(InvalidSearchQuery, match="Invalid key for this search"):
             assert parse_search_query("good_key:123 bad_key:123 text", config=config)
 
-        assert parse_search_query("good_key:123 text") == [
+        assert parse_search_query("good_key:123 text", config=config) == [
             SearchFilter(key=SearchKey(name="good_key"), operator="=", value=SearchValue("123")),
             SearchFilter(key=SearchKey(name="message"), operator="=", value=SearchValue("text")),
         ]
