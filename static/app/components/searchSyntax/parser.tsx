@@ -572,7 +572,7 @@ class TokenConverter {
     }
 
     if (!value.quoted && value.value === '') {
-      return t('Filter must have a value');
+      return t('Filter must have a value.');
     }
 
     return null;
