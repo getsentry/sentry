@@ -396,7 +396,7 @@ class SearchConfig:
 
     @classmethod
     def create_from(cls, search_config: "SearchConfig", **overrides):
-        config = SearchConfig(**asdict(search_config))
+        config = cls(**asdict(search_config))
         for key, val in overrides.items():
             setattr(config, key, val)
         return config
