@@ -77,5 +77,6 @@ class DemoMiddleware(MiddlewareMixin):
         with sentry_sdk.start_transaction(op="auto_login", name="auto_login", sampled=True):
             sentry_sdk.set_tag("user_id", member.user_id)
             sentry_sdk.set_tag("organization_id", member.organization_id)
+            sentry_sdk.set_tag("ip_address", request.META["REMOTE_ADDR"])
 
             auth.login(request, member.user)
