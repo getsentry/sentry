@@ -85,7 +85,12 @@ class ReleasesList extends AsyncView<Props, State> {
     };
 
     const endpoints: ReturnType<AsyncView['getEndpoints']> = [
-      ['releases', `/organizations/${organization.slug}/releases/`, {query}],
+      [
+        'releases',
+        `/organizations/${organization.slug}/releases/`,
+        {query},
+        {disableEntireQuery: true},
+      ],
     ];
 
     return endpoints;
