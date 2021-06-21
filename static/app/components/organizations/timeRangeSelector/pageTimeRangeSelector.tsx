@@ -51,7 +51,7 @@ const DropdownDate = styled(Panel)<{isCalendarOpen: boolean}>`
   color: ${p => p.theme.textColor};
   z-index: ${p => p.theme.zIndex.globalSelectionHeader};
 
-  /* TimeRageRoot in TimeRangeSelector */
+  /* TimeRangeRoot in TimeRangeSelector */
   > div {
     width: 100%;
     align-self: stretch;
