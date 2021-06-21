@@ -144,7 +144,7 @@ async function createPluginResults(
   const plugins = (await pluginsPromise) || [];
   return plugins
     .filter(plugin => {
-      //show a plugin if it is not hidden (aka legacy) or if we have projects with it configured
+      // show a plugin if it is not hidden (aka legacy) or if we have projects with it configured
       return !plugin.isHidden || !!plugin.projectList.length;
     })
     .map(plugin => ({
@@ -210,7 +210,7 @@ async function createSentryAppResults(
   }));
 }
 
-//Not really async but we need to return a promise
+// Not really async but we need to return a promise
 async function creatDocIntegrationResults(orgId: string): Promise<ResultItem[]> {
   return documentIntegrationList.map(integration => ({
     title: integration.name,
@@ -442,7 +442,7 @@ class ApiSource extends React.Component<Props, State> {
       this.getDirectResults([shortIdLookup, eventIdLookup]),
     ]);
 
-    //TODO(XXX): Might consider adding logic to maintain consistent ordering of results so things don't switch positions
+    // TODO(XXX): Might consider adding logic to maintain consistent ordering of results so things don't switch positions
     const fuzzy = createFuzzySearch<ResultItem>(searchResults, {
       ...searchOptions,
       keys: ['title', 'description'],

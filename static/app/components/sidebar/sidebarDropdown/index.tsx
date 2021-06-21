@@ -26,7 +26,7 @@ import {CommonSidebarProps} from '../types';
 import Divider from './divider.styled';
 import SwitchOrganization from './switchOrganization';
 
-//TODO: make org and user optional props
+// TODO: make org and user optional props
 type Props = Pick<CommonSidebarProps, 'orientation' | 'collapsed'> & {
   api: Client;
   org: Organization;

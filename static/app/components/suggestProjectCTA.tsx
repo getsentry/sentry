@@ -52,22 +52,22 @@ class SuggestProjectCTA extends Component<Props, State> {
     this.fetchData();
   }
 
-  //Returns the matched user agent string
-  //otherwise, returns an empty string
+  // Returns the matched user agent string
+  // otherwise, returns an empty string
   get matchedUserAgentString() {
     const {entries} = this.props.event;
     const requestEntry = entries.find(item => item.type === 'request');
     if (!requestEntry) {
       return '';
     }
-    //find the user agent header out of our list of headers
+    // find the user agent header out of our list of headers
     const userAgent = (requestEntry as EntryRequest)?.data?.headers?.find(
       item => item[0].toLowerCase() === 'user-agent'
     );
     if (!userAgent) {
       return '';
     }
-    //check if any of our mobile agent headers matches the event mobile agent
+    // check if any of our mobile agent headers matches the event mobile agent
     return (
       MOBILE_USER_AGENTS.find(mobileAgent =>
         userAgent[1]?.toLowerCase().includes(mobileAgent.toLowerCase())
@@ -75,15 +75,15 @@ class SuggestProjectCTA extends Component<Props, State> {
     );
   }
 
-  //check our projects to see if there is a mobile project
+  // check our projects to see if there is a mobile project
   get hasMobileProject() {
     return this.props.projects.some(project =>
       MOBILE_PLATFORMS.includes(project.platform || '')
     );
   }
 
-  //returns true if the current event is mobile from the user agent
-  //or if we found a mobile event with the API
+  // returns true if the current event is mobile from the user agent
+  // or if we found a mobile event with the API
   get hasMobileEvent() {
     const {mobileEventResult} = this.state;
     return !!this.matchedUserAgentString || !!mobileEventResult;
@@ -103,13 +103,13 @@ class SuggestProjectCTA extends Component<Props, State> {
   }
 
   async fetchData() {
-    //no need to catch error since we have error boundary wrapping
+    // no need to catch error since we have error boundary wrapping
     const [isDismissed, mobileEventResult] = await Promise.all([
       this.checkMobilePrompt(),
       this.checkOrgHasMobileEvent(),
     ]);
 
-    //set the new state
+    // set the new state
     this.setState(
       {
         isDismissed,
@@ -119,7 +119,7 @@ class SuggestProjectCTA extends Component<Props, State> {
       () => {
         const matchedUserAgentString = this.matchedUserAgentString;
         if (this.showCTA) {
-          //now record the results
+          // now record the results
           trackAdvancedAnalyticsEvent(
             'growth.show_mobile_prompt_banner',
             {
@@ -150,7 +150,7 @@ class SuggestProjectCTA extends Component<Props, State> {
   async checkMobilePrompt() {
     const {api, organization} = this.props;
 
-    //check our prompt backend
+    // check our prompt backend
     const promptData = await promptsCheck(api, {
       organizationId: organization.id,
       feature: 'suggest_mobile_project',

@@ -52,7 +52,7 @@ export function trackAdvancedAnalyticsEvent<T extends AnalyticsKey>(
 
     const eventName = allEventMap[eventKey];
 
-    //we should always have a session id but if we don't, we should generate one
+    // we should always have a session id but if we don't, we should generate one
     if (hasAnalyticsDebug() && !sessionId) {
       // eslint-disable-next-line no-console
       console.warn(`analytics_session_id absent from event ${eventKey}`);
@@ -62,7 +62,7 @@ export function trackAdvancedAnalyticsEvent<T extends AnalyticsKey>(
     let custom_referrer: string | undefined;
 
     try {
-      //pull the referrer from the query parameter of the page
+      // pull the referrer from the query parameter of the page
       const {referrer} = qs.parse(window.location.search) || {};
       if (typeof referrer === 'string') {
         // Amplitude has its own referrer which inteferes with our custom referrer
@@ -74,7 +74,7 @@ export function trackAdvancedAnalyticsEvent<T extends AnalyticsKey>(
       // e.g. unencoded "%"
     }
 
-    //if org is null, we want organization_id to be null
+    // if org is null, we want organization_id to be null
     const organization_id = org ? org.id : org;
 
     let params = {
@@ -91,7 +91,7 @@ export function trackAdvancedAnalyticsEvent<T extends AnalyticsKey>(
       params = mapValuesFn(params) as any;
     }
 
-    //could put this into a debug method or for the main trackAnalyticsEvent event
+    // could put this into a debug method or for the main trackAnalyticsEvent event
     if (hasAnalyticsDebug()) {
       // eslint-disable-next-line no-console
       console.log('trackAdvancedAnalytics', params);

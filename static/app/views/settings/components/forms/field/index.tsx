@@ -85,7 +85,7 @@ type Props = InheritedFieldControlProps &
      * Error message to display for the field
      */
     error?: string;
-    validate?: Function; //TODO(TS): Do we need this?
+    validate?: Function; // TODO(TS): Do we need this?
     /**
      * The control to render. May be given a function to render with resolved
      * props.

@@ -83,8 +83,8 @@ class PluginSettings<
 
   onSubmit() {
     if (!this.state.wasConfiguredOnPageLoad) {
-      //Users cannot install plugins like other integrations but we need the events for the funnel
-      //we will treat a user saving a plugin that wasn't already configured as an installation event
+      // Users cannot install plugins like other integrations but we need the events for the funnel
+      // we will treat a user saving a plugin that wasn't already configured as an installation event
       this.trackPluginEvent('integrations.installation_start');
     }
 
@@ -140,7 +140,7 @@ class PluginSettings<
         data.config.forEach((field: BackendField) => {
           formData[field.name] = field.value || field.defaultValue;
           initialData[field.name] = field.value;
-          //for simplicity sake, we will consider a plugin was configured if we have any value that is stored in the DB
+          // for simplicity sake, we will consider a plugin was configured if we have any value that is stored in the DB
           wasConfiguredOnPageLoad = wasConfiguredOnPageLoad || !!field.value;
         });
         this.setState(

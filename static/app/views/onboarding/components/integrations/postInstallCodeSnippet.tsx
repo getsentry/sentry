@@ -16,7 +16,7 @@ export default function PostInstallCodeSnippet({
   platform,
   isOnboarding,
 }: Props) {
-  //currently supporting both Python and Node
+  // currently supporting both Python and Node
   const token_punctuation: string = platform === 'python-awslambda' ? '()' : '();';
   return (
     <div>

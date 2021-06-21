@@ -31,10 +31,10 @@ type State = {
   featureData: IntegrationFeature[];
 } & AsyncComponent['state'];
 
-//No longer a modal anymore but yea :)
+// No longer a modal anymore but yea :)
 export default class SentryAppDetailsModal extends AsyncComponent<Props, State> {
   componentDidUpdate(prevProps: Props) {
-    //if the user changes org, count this as a fresh event to track
+    // if the user changes org, count this as a fresh event to track
     if (this.props.organization.id !== prevProps.organization.id) {
       this.trackOpened();
     }
@@ -80,8 +80,8 @@ export default class SentryAppDetailsModal extends AsyncComponent<Props, State> 
 
   async onInstall() {
     const {onInstall} = this.props;
-    //we want to make sure install finishes before we close the modal
-    //and we should close the modal if there is an error as well
+    // we want to make sure install finishes before we close the modal
+    // and we should close the modal if there is an error as well
     try {
       await onInstall();
     } catch (_err) {

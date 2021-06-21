@@ -22,7 +22,7 @@ const SettingsNavigationGroup = (props: NavigationGroupProps) => {
     });
 
     const handleClick = () => {
-      //only call the analytics event if the URL is changing
+      // only call the analytics event if the URL is changing
       if (recordAnalytics && to !== window.location.pathname) {
         trackAnalyticsEvent({
           organization_id: organization ? organization.id : null,

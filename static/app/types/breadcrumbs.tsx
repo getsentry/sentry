@@ -32,7 +32,7 @@ export enum BreadcrumbType {
 
 type BreadcrumbTypeBase = {
   level: BreadcrumbLevelType;
-  timestamp?: string; //it's recommended
+  timestamp?: string; // it's recommended
   category?: string | null;
   message?: string;
   event_id?: string;

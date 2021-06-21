@@ -24,7 +24,7 @@ describe('SentryAppExternalIssueActions', () => {
         name: sentryApp.name,
       },
     });
-    //unable to use the selectByValue here so remove the select option
+    // unable to use the selectByValue here so remove the select option
     component.schema.create.required_fields.pop();
     install = TestStubs.SentryAppInstallation({sentryApp});
     submitUrl = `/sentry-app-installations/${install.uuid}/external-issue-actions/`;

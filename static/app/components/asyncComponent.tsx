@@ -301,7 +301,7 @@ export default class AsyncComponent<
         return state;
       },
       () => {
-        //if everything is loaded and we don't have an error, call the callback
+        // if everything is loaded and we don't have an error, call the callback
         if (this.state.remainingRequests === 0 && !this.state.error) {
           this.onLoadAllEndpointsSuccess();
         }

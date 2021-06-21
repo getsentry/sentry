@@ -24,7 +24,7 @@ import AsyncView from 'app/views/asyncView';
 import AddIntegration from 'app/views/organizationIntegrations/addIntegration';
 import Field from 'app/views/settings/components/forms/field';
 
-//installationId present for Github flow
+// installationId present for Github flow
 type Props = RouteComponentProps<{integrationSlug: string; installationId?: string}, {}>;
 
 type State = AsyncView['state'] & {
@@ -47,7 +47,7 @@ export default class IntegrationOrganizationLink extends AsyncView<Props, State>
     startSession?: boolean
   ) => {
     const {organization, provider} = this.state;
-    //should have these set but need to make TS happy
+    // should have these set but need to make TS happy
     if (!organization || !provider) {
       return;
     }
@@ -57,7 +57,7 @@ export default class IntegrationOrganizationLink extends AsyncView<Props, State>
       {
         integration_type: 'first_party',
         integration: provider.key,
-        //We actually don't know if it's installed but neither does the user in the view and multiple installs is possible
+        // We actually don't know if it's installed but neither does the user in the view and multiple installs is possible
         already_installed: false,
         view: 'external_install',
       },
@@ -87,7 +87,7 @@ export default class IntegrationOrganizationLink extends AsyncView<Props, State>
   };
 
   onLoadAllEndpointsSuccess() {
-    //auto select the org if there is only one
+    // auto select the org if there is only one
     const {organizations} = this.state;
     if (organizations.length === 1) {
       this.onSelectOrg({value: organizations[0].slug});
@@ -126,7 +126,7 @@ export default class IntegrationOrganizationLink extends AsyncView<Props, State>
     return organization?.access.includes('org:integrations');
   };
 
-  //used with Github to redirect to the the integration detail
+  // used with Github to redirect to the the integration detail
   onInstallWithInstallationId = (data: Integration) => {
     const {organization} = this.state;
     const orgId = organization && organization.slug;
@@ -135,7 +135,7 @@ export default class IntegrationOrganizationLink extends AsyncView<Props, State>
     );
   };
 
-  //non-Github redirects to the extension view where the backend will finish the installation
+  // non-Github redirects to the extension view where the backend will finish the installation
   finishInstallation = () => {
     // add the selected org to the query parameters and then redirect back to configure
     const {selectedOrgSlug} = this.state;
@@ -167,10 +167,10 @@ export default class IntegrationOrganizationLink extends AsyncView<Props, State>
 
     const {IntegrationDirectoryFeatures} = getIntegrationFeatureGate();
 
-    //Github uses a different installation flow with the installationId as a parameter
-    //We have to wrap our installation button with AddIntegration so we can get the
-    //addIntegrationWithInstallationId callback.
-    //if we don't hve an installationId, we need to use the finishInstallation callback.
+    // Github uses a different installation flow with the installationId as a parameter
+    // We have to wrap our installation button with AddIntegration so we can get the
+    // addIntegrationWithInstallationId callback.
+    // if we don't hve an installationId, we need to use the finishInstallation callback.
     return (
       <IntegrationDirectoryFeatures
         organization={organization}
@@ -224,7 +224,7 @@ export default class IntegrationOrganizationLink extends AsyncView<Props, State>
 
   customValueContainer = containerProps => {
     const valueList = containerProps.getValue();
-    //if no value set, we want to return the default component that is rendered
+    // if no value set, we want to return the default component that is rendered
     if (valueList.length === 0) {
       return <components.ValueContainer {...containerProps} />;
     }

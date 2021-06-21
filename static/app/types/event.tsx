@@ -63,7 +63,7 @@ type EntryStacktrace = {
 
 type EntrySpans = {
   type: EntryType.SPANS;
-  data: any; //data is not used
+  data: any; // data is not used
 };
 
 type EntryMessage = {

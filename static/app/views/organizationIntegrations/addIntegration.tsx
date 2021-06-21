@@ -13,7 +13,7 @@ type Props = {
   provider: IntegrationProvider;
   onInstall: (data: IntegrationWithConfig) => void;
   account?: string;
-  organization: Organization; //for analytics
+  organization: Organization; // for analytics
   analyticsParams?: {
     view:
       | 'integrations_directory_integration_detail'
@@ -38,7 +38,7 @@ export default class AddIntegration extends React.Component<Props> {
   dialog: Window | null = null;
 
   computeCenteredWindow(width: number, height: number) {
-    //Taken from: https://stackoverflow.com/questions/4068373/center-a-popup-window-on-screen
+    // Taken from: https://stackoverflow.com/questions/4068373/center-a-popup-window-on-screen
     const screenLeft =
       window.screenLeft !== undefined ? window.screenLeft : window.screenX;
 

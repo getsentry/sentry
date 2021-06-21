@@ -47,7 +47,7 @@ class IntegrationExternalUserMappings extends AsyncComponent<Props, State> {
       addSuccessMessage(t('Deletion successful'));
       this.fetchData();
     } catch {
-      //no 4xx errors should happen on delete
+      // no 4xx errors should happen on delete
       addErrorMessage(t('An error occurred'));
     }
   };

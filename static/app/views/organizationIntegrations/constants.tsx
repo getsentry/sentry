@@ -64,7 +64,7 @@ export const POPULARITY_WEIGHT: {
   'amazon-sqs': 2,
   splunk: 2,
 
-  //doc integrations
+  // doc integrations
   fullstory: 8,
   datadog: 8,
   netlify: 8,

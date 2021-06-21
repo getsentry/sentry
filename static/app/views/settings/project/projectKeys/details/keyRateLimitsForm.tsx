@@ -132,7 +132,7 @@ class KeyRateLimitsForm extends React.Component<Props> {
                   label={t('Rate Limit')}
                   disabled={disabled || !hasFeature}
                   validate={({form}) => {
-                    //TODO(TS): is validate actually doing anything because it's an unexpected prop
+                    // TODO(TS): is validate actually doing anything because it's an unexpected prop
                     const isValid =
                       form &&
                       form.rateLimit &&

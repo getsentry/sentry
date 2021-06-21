@@ -27,7 +27,7 @@ export type Props = {
   organization: Organization;
   onResetConfiguration: (projectId: string) => void;
   onPluginEnableStatusChange: (projectId: string, status: boolean) => void;
-  trackIntegrationEvent: (eventKey: IntegrationAnalyticsKey) => void; //analytics callback
+  trackIntegrationEvent: (eventKey: IntegrationAnalyticsKey) => void; // analytics callback
   className?: string;
 };
 
@@ -104,7 +104,7 @@ export class InstalledPlugin extends Component<Props> {
   };
 
   get projectForBadge(): AvatarProject {
-    //this function returns the project as needed for the ProjectBadge component
+    // this function returns the project as needed for the ProjectBadge component
     const {projectItem} = this.props;
     return {
       slug: projectItem.projectSlug,

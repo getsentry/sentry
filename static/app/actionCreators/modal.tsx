@@ -191,7 +191,7 @@ export type SentryAppDetailsModalOptions = {
   isInstalled: boolean;
   onInstall: () => Promise<void>;
   organization: Organization;
-  onCloseModal?: () => void; //used for analytics
+  onCloseModal?: () => void; // used for analytics
 };
 
 type DebugFileSourceModalOptions = {

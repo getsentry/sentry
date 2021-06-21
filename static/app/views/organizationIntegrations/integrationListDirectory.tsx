@@ -129,19 +129,19 @@ export class IntegrationListDirectory extends AsyncComponent<
   }
 
   trackPageViewed() {
-    //count the number of installed apps
+    // count the number of installed apps
 
     const {integrations, publishedApps, plugins} = this.state;
     const integrationsInstalled = new Set();
-    //add installed integrations
+    // add installed integrations
     integrations?.forEach((integration: Integration) => {
       integrationsInstalled.add(integration.provider.key);
     });
-    //add sentry apps
+    // add sentry apps
     publishedApps?.filter(this.getAppInstall).forEach((sentryApp: SentryApp) => {
       integrationsInstalled.add(sentryApp.slug);
     });
-    //add plugins
+    // add plugins
     plugins?.forEach((plugin: PluginWithProjectList) => {
       if (plugin.projectList.length) {
         integrationsInstalled.add(plugin.slug);
@@ -199,7 +199,7 @@ export class IntegrationListDirectory extends AsyncComponent<
   getAppInstall = (app: SentryApp) =>
     this.state.appInstalls?.find(i => i.app.slug === app.slug);
 
-  //Returns 0 if uninstalled, 1 if pending, and 2 if installed
+  // Returns 0 if uninstalled, 1 if pending, and 2 if installed
   getInstallValue(integration: AppOrProviderOrPlugin) {
     const {integrations} = this.state;
 
@@ -239,17 +239,17 @@ export class IntegrationListDirectory extends AsyncComponent<
 
   sortIntegrations(integrations: AppOrProviderOrPlugin[]) {
     return integrations.sort((a: AppOrProviderOrPlugin, b: AppOrProviderOrPlugin) => {
-      //sort by whether installed first
+      // sort by whether installed first
       const diffWeight = this.sortByInstalled(a, b);
       if (diffWeight !== 0) {
         return diffWeight;
       }
-      //then sort by popularity
+      // then sort by popularity
       const diffPop = this.sortByPopularity(a, b);
       if (diffPop !== 0) {
         return diffPop;
       }
-      //then sort by name
+      // then sort by name
       return this.sortByName(a, b);
     });
   }
@@ -364,7 +364,7 @@ export class IntegrationListDirectory extends AsyncComponent<
   // Rendering
   renderProvider = (provider: IntegrationProvider) => {
     const {organization} = this.props;
-    //find the integration installations for that provider
+    // find the integration installations for that provider
     const integrations =
       this.state.integrations?.filter(i => i.provider.key === provider.key) ?? [];
 
@@ -389,7 +389,7 @@ export class IntegrationListDirectory extends AsyncComponent<
 
     const isLegacy = plugin.isHidden;
     const displayName = `${plugin.name} ${isLegacy ? '(Legacy)' : ''}`;
-    //hide legacy integrations if we don't have any projects with them
+    // hide legacy integrations if we don't have any projects with them
     if (isLegacy && !plugin.projectList.length) {
       return null;
     }
@@ -409,7 +409,7 @@ export class IntegrationListDirectory extends AsyncComponent<
     );
   };
 
-  //render either an internal or non-internal app
+  // render either an internal or non-internal app
   renderSentryApp = (app: SentryApp) => {
     const {organization} = this.props;
     const status = getSentryAppInstallStatus(this.getAppInstall(app));

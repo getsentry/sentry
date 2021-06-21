@@ -56,7 +56,7 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
       router,
     } = this.props;
 
-    //redirect for internal integrations
+    // redirect for internal integrations
     if (this.sentryApp.status === 'internal') {
       router.push(
         `/settings/${organization.slug}/developer-settings/${integrationSlug}/`
@@ -85,7 +85,7 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
   }
 
   get resourceLinks() {
-    //only show links for published sentry apps
+    // only show links for published sentry apps
     if (this.sentryApp.status !== 'published') {
       return [];
     }
@@ -140,7 +140,7 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
     // installSentryApp adds a message on failure
     const install = await installSentryApp(this.api, organization.slug, sentryApp);
 
-    //installation is complete if the status is installed
+    // installation is complete if the status is installed
     if (install.status === 'installed') {
       this.trackIntegrationEvent('integrations.installation_complete', {
         integration_status: sentryApp.status,
@@ -151,8 +151,8 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
       addSuccessMessage(t(`${sentryApp.slug} successfully installed.`));
       this.setState({appInstalls: [install, ...this.state.appInstalls]});
 
-      //hack for split so we can show the install ID to users for them to copy
-      //Will remove once the proper fix is in place
+      // hack for split so we can show the install ID to users for them to copy
+      // Will remove once the proper fix is in place
       if (['split', 'split-dev', 'split-testing'].includes(sentryApp.slug)) {
         openModal(({closeModal}) => (
           <SplitInstallationIdModal
@@ -244,8 +244,8 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
           message={tct('Are you sure you want to remove the [slug] installation?', {
             slug: this.integrationSlug,
           })}
-          onConfirm={() => this.handleUninstall(install)} //called when the user confirms the action
-          onConfirming={this.recordUninstallClicked} //called when the confirm modal opens
+          onConfirm={() => this.handleUninstall(install)} // called when the user confirms the action
+          onConfirming={this.recordUninstallClicked} // called when the confirm modal opens
           priority="danger"
         >
           <StyledUninstallButton size="small" data-test-id="sentry-app-uninstall">
@@ -274,7 +274,7 @@ class SentryAppDetailedView extends AbstractIntegrationDetailedView<
     return this.renderRequestIntegrationButton();
   }
 
-  //no configurations for sentry apps
+  // no configurations for sentry apps
   renderConfigurations() {
     return null;
   }

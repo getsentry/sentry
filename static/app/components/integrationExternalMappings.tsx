@@ -130,7 +130,7 @@ const StyledButton = styled(Button)`
   margin: ${space(0.5)};
 `;
 
-//Columns below
+// Columns below
 const Column = styled('span')`
   overflow: hidden;
   overflow-wrap: break-word;

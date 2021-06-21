@@ -35,7 +35,7 @@ function ProcessingIcon({processingInfo}: Props) {
           new Error('Unknown image candidate ProcessingIcon status')
         );
       });
-      return null; //this shall never happen
+      return null; // this shall never happen
     }
   }
 }

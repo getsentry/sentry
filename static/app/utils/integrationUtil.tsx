@@ -26,8 +26,8 @@ import {EventParameters, trackAdvancedAnalyticsEvent} from 'app/utils/advancedAn
 import {IntegrationAnalyticsKey} from 'app/utils/integrationEvents';
 
 const mapIntegrationParams = analyticsParams => {
-  //Reload expects integration_status even though it's not relevant for non-sentry apps
-  //Passing in a dummy value of published in those cases
+  // Reload expects integration_status even though it's not relevant for non-sentry apps
+  // Passing in a dummy value of published in those cases
   const fullParams = {...analyticsParams};
   if (analyticsParams.integration && analyticsParams.integration_type !== 'sentry_app') {
     fullParams.integration_status = 'published';
@@ -35,8 +35,8 @@ const mapIntegrationParams = analyticsParams => {
   return fullParams;
 };
 
-//wrapper around trackAdvancedAnalyticsEvent which has some extra
-//data massaging above
+// wrapper around trackAdvancedAnalyticsEvent which has some extra
+// data massaging above
 export function trackIntegrationEvent<T extends IntegrationAnalyticsKey>(
   eventKey: T,
   analyticsParams: EventParameters[T],
@@ -212,8 +212,8 @@ export const getIntegrationIcon = (integrationType?: string, size?: string) => {
   }
 };
 
-//used for project creation and onboarding
-//determines what integration maps to what project platform
+// used for project creation and onboarding
+// determines what integration maps to what project platform
 export const platfromToIntegrationMap = {
   'node-awslambda': 'aws_lambda',
   'python-awslambda': 'aws_lambda',
