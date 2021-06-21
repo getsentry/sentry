@@ -432,7 +432,7 @@ class GithubWebhookEndpoint(GithubWebhookBase):
         try:
             organization = Organization.objects.get_from_cache(id=organization_id)
         except Organization.DoesNotExist:
-            logger.error(
+            logger.info(
                 "github.webhook.invalid-organization", extra={"organization_id": organization_id}
             )
             return HttpResponse(status=400)
