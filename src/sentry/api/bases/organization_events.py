@@ -1,6 +1,8 @@
 from contextlib import contextmanager
+from typing import Sequence
 
 import sentry_sdk
+from django.http import HttpRequest
 from django.utils.http import urlquote
 from rest_framework.exceptions import APIException, ParseError
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
@@ -10,9 +12,9 @@ from sentry.api.base import LINK_HEADER
 from sentry.api.bases import NoProjects, OrganizationEndpoint
 from sentry.api.helpers.teams import get_teams
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
-from sentry.discover.arithmetic import ArithmeticError
+from sentry.discover.arithmetic import EQUATION_PREFIX, ArithmeticError
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import Team
+from sentry.models import Organization, Team
 from sentry.models.group import Group
 from sentry.models.transaction_threshold import ProjectTransactionThreshold
 from sentry.search.events.constants import DEFAULT_PROJECT_THRESHOLD
@@ -35,11 +37,26 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
     def has_arithmetic(self, organization, request):
         return features.has("organizations:discover-arithmetic", organization, actor=request.user)
 
-    def get_equation_list(self, organization, request):
+    def get_equation_list(self, organization: Organization, request: HttpRequest) -> Sequence[str]:
+        """equations have a prefix so that they can be easily included alongside our existing fields"""
         if self.has_arithmetic(organization, request):
-            return request.GET.getlist("equation")[:]
+            return [
+                field[len(EQUATION_PREFIX) :]
+                for field in request.GET.getlist("field")[:]
+                if field.startswith(EQUATION_PREFIX)
+            ]
         else:
             return []
+
+    def get_field_list(self, organization: Organization, request: HttpRequest) -> Sequence[str]:
+        if self.has_arithmetic(organization, request):
+            return [
+                field
+                for field in request.GET.getlist("field")[:]
+                if not field.startswith(EQUATION_PREFIX)
+            ]
+        else:
+            return request.GET.getlist("field")[:]
 
     def get_snuba_filter(self, request, organization, params=None):
         if params is None:
@@ -50,10 +67,20 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         except InvalidSearchQuery as e:
             raise ParseError(detail=str(e))
 
+    def get_team_ids(self, request, organization):
+        if not request.user:
+            return []
+
+        teams = get_teams(request, organization)
+        if not teams:
+            teams = Team.objects.get_for_user(organization, request.user)
+
+        return [team.id for team in teams]
+
     def get_snuba_params(self, request, organization, check_global_views=True):
         with sentry_sdk.start_span(op="discover.endpoint", description="filter_params"):
             if (
-                len(request.GET.getlist("field"))
+                len(self.get_field_list(organization, request))
                 + len(self.get_equation_list(organization, request))
                 > MAX_FIELDS
             ):
@@ -64,10 +91,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             params = self.get_filter_params(request, organization)
             params = self.quantize_date_params(request, params)
             params["user_id"] = request.user.id if request.user else None
-            teams = get_teams(request, organization)
-            if not teams:
-                teams = Team.objects.get_for_user(organization, request.user)
-            params["team_id"] = [team.id for team in teams]
+            params["team_id"] = self.get_team_ids(request, organization)
 
             if check_global_views:
                 has_global_views = features.has(
@@ -217,7 +241,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             for row in results:
                 row["transaction.status"] = SPAN_STATUS_CODE_TO_NAME.get(row["transaction.status"])
 
-        fields = request.GET.getlist("field")
+        fields = self.get_field_list(organization, request)
         if "issue" in fields:  # Look up the short ID and return that in the results
             self.handle_issues(results, project_ids, organization)
 
