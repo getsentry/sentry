@@ -168,7 +168,7 @@ class TeamDetails extends React.Component<Props, State> {
       return <LoadingError onRetry={this.fetchData} />;
     }
 
-    const routePrefix = recreateRoute('', {routes, params, stepBack: -1}); //`/organizations/${orgId}/teams/${teamId}`;
+    const routePrefix = recreateRoute('', {routes, params, stepBack: -1}); // `/organizations/${orgId}/teams/${teamId}`;
     return (
       <div>
         <SentryDocumentTitle title={t('Team Details')} orgSlug={params.orgId} />

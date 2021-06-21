@@ -5,8 +5,9 @@ from collections import namedtuple
 import sentry_sdk
 
 from sentry import options
-from sentry.discover.arithmetic import resolve_equation_list
+from sentry.discover.arithmetic import is_equation, resolve_equation_list, strip_equation
 from sentry.models import Group
+from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.fields import (
     FIELD_ALIASES,
     InvalidSearchQuery,
@@ -32,6 +33,7 @@ from sentry.utils.snuba import (
     is_span_op_breakdown,
     naiveify_datetime,
     raw_query,
+    raw_snql_query,
     resolve_column,
     resolve_snuba_aliases,
     to_naive_timestamp,
@@ -40,6 +42,7 @@ from sentry.utils.snuba import (
 __all__ = (
     "PaginationResult",
     "InvalidSearchQuery",
+    "wip_snql_query",
     "query",
     "prepare_discover_query",
     "timeseries_query",
@@ -148,8 +151,13 @@ def transform_data(result, translated_columns, snuba_filter):
     def get_row(row):
         transformed = {}
         for key, value in row.items():
-            if isinstance(value, float) and math.isnan(value):
-                value = 0
+            if isinstance(value, float):
+                # 0 for nan, and none for inf were chosen arbitrarily, nan and inf are invalid json
+                # so needed to pick something valid to use instead
+                if math.isnan(value):
+                    value = 0
+                elif math.isinf(value):
+                    value = None
             transformed[translated_columns.get(key, key)] = value
 
         return transformed
@@ -166,6 +174,32 @@ def transform_data(result, translated_columns, snuba_filter):
                 result["data"], snuba_filter.start, snuba_filter.end, rollup, snuba_filter.orderby
             )
 
+    return result
+
+
+def wip_snql_query(
+    selected_columns,
+    query,
+    params,
+    equations=None,
+    orderby=None,
+    offset=None,
+    limit=50,
+    referrer=None,
+    auto_fields=False,
+    auto_aggregations=False,
+    use_aggregate_conditions=False,
+    conditions=None,
+    functions_acl=None,
+):
+    """
+    Replacement API for query using snql, this function is still a work in
+    progress and is not ready for use in production
+    """
+    snql_query = QueryBuilder(
+        Dataset.Discover, params, query, selected_columns, orderby, limit
+    ).get_snql_query()
+    result = raw_snql_query(snql_query, referrer)
     return result
 
 
@@ -283,6 +317,11 @@ def prepare_discover_query(
             snuba_filter.having = []
 
     with sentry_sdk.start_span(op="discover.discover", description="query.field_translations"):
+        if equations is not None:
+            resolved_equations, _ = resolve_equation_list(equations, selected_columns)
+        else:
+            resolved_equations = []
+
         if orderby is not None:
             orderby = list(orderby) if isinstance(orderby, (list, tuple)) else [orderby]
             snuba_filter.orderby = [get_function_alias(o) for o in orderby]
@@ -293,14 +332,10 @@ def prepare_discover_query(
             auto_fields=auto_fields,
             auto_aggregations=auto_aggregations,
             functions_acl=functions_acl,
+            resolved_equations=resolved_equations,
         )
 
         snuba_filter.update_with(resolved_fields)
-
-        if equations is not None:
-            resolved_equations = resolve_equation_list(equations, snuba_filter)
-
-            snuba_filter.update_with(resolved_equations)
 
         # Resolve the public aliases into the discover dataset names.
         snuba_filter, translated_columns = resolve_discover_aliases(snuba_filter)
@@ -353,22 +388,37 @@ def prepare_discover_query(
     return PreparedQuery(snuba_filter, translated_columns, resolved_fields)
 
 
-def get_timeseries_snuba_filter(selected_columns, query, params, rollup, default_count=True):
+def get_timeseries_snuba_filter(selected_columns, query, params):
     snuba_filter = get_filter(query, params)
     if not snuba_filter.start and not snuba_filter.end:
         raise InvalidSearchQuery("Cannot get timeseries result without a start and end.")
 
-    snuba_filter.update_with(resolve_field_list(selected_columns, snuba_filter, auto_fields=False))
+    columns = []
+    equations = []
+    for column in selected_columns:
+        if is_equation(column):
+            equations.append(strip_equation(column))
+        else:
+            columns.append(column)
+
+    if len(equations) > 0:
+        resolved_equations, updated_columns = resolve_equation_list(
+            equations, columns, aggregates_only=True, auto_add=True
+        )
+    else:
+        resolved_equations = []
+        updated_columns = columns
+
+    snuba_filter.update_with(
+        resolve_field_list(
+            updated_columns, snuba_filter, auto_fields=False, resolved_equations=resolved_equations
+        )
+    )
 
     # Resolve the public aliases into the discover dataset names.
     snuba_filter, translated_columns = resolve_discover_aliases(snuba_filter)
     if not snuba_filter.aggregations:
         raise InvalidSearchQuery("Cannot get timeseries result with no aggregation.")
-
-    # Change the alias of the first aggregation to count. This ensures compatibility
-    # with other parts of the timeseries endpoint expectations
-    if len(snuba_filter.aggregations) == 1 and default_count:
-        snuba_filter.aggregations[0][2] = "count"
 
     return snuba_filter, translated_columns
 
@@ -397,10 +447,19 @@ def timeseries_query(selected_columns, query, params, rollup, referrer=None):
         op="discover.discover", description="timeseries.filter_transform"
     ) as span:
         span.set_data("query", query)
-        snuba_filter, _ = get_timeseries_snuba_filter(selected_columns, query, params, rollup)
+        snuba_filter, _ = get_timeseries_snuba_filter(selected_columns, query, params)
 
     with sentry_sdk.start_span(op="discover.discover", description="timeseries.snuba_query"):
         result = raw_query(
+            # Hack cause equations on aggregates have to go in selected columns instead of aggregations
+            selected_columns=[
+                column
+                for column in snuba_filter.selected_columns
+                # Check that the column is a list with 3 items, and the alias in the third item is an equation
+                if isinstance(column, list)
+                and len(column) == 3
+                and column[-1].startswith("equation[")
+            ],
             aggregations=snuba_filter.aggregations,
             conditions=snuba_filter.conditions,
             filter_keys=snuba_filter.filter_keys,
@@ -448,6 +507,7 @@ def top_events_timeseries(
     rollup,
     limit,
     organization,
+    equations=None,
     referrer=None,
     top_events=None,
     allow_empty=True,
@@ -480,6 +540,7 @@ def top_events_timeseries(
                 selected_columns,
                 query=user_query,
                 params=params,
+                equations=equations,
                 orderby=orderby,
                 limit=limit,
                 referrer=referrer,
@@ -495,8 +556,6 @@ def top_events_timeseries(
             list(sorted(set(timeseries_columns + selected_columns))),
             user_query,
             params,
-            rollup,
-            default_count=False,
         )
 
         for field in selected_columns:

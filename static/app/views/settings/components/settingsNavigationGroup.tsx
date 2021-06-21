@@ -8,48 +8,54 @@ import {NavigationGroupProps} from 'app/views/settings/types';
 const SettingsNavigationGroup = (props: NavigationGroupProps) => {
   const {organization, project, name, items} = props;
 
+  const navLinks = items.map(({path, title, index, show, badge, id, recordAnalytics}) => {
+    if (typeof show === 'function' && !show(props)) {
+      return null;
+    }
+    if (typeof show !== 'undefined' && !show) {
+      return null;
+    }
+    const badgeResult = typeof badge === 'function' ? badge(props) : null;
+    const to = replaceRouterParams(path, {
+      ...(organization ? {orgId: organization.slug} : {}),
+      ...(project ? {projectId: project.slug} : {}),
+    });
+
+    const handleClick = () => {
+      // only call the analytics event if the URL is changing
+      if (recordAnalytics && to !== window.location.pathname) {
+        trackAnalyticsEvent({
+          organization_id: organization ? organization.id : null,
+          project_id: project && project.id,
+          eventName: 'Sidebar Item Clicked',
+          eventKey: 'sidebar.item_clicked',
+          sidebar_item_id: id,
+          dest: path,
+        });
+      }
+    };
+
+    return (
+      <SettingsNavItem
+        key={title}
+        to={to}
+        label={title}
+        index={index}
+        badge={badgeResult}
+        id={id}
+        onClick={handleClick}
+      />
+    );
+  });
+
+  if (!navLinks.some(link => link !== null)) {
+    return null;
+  }
+
   return (
     <NavSection data-test-id={name}>
       <SettingsHeading>{name}</SettingsHeading>
-      {items.map(({path, title, index, show, badge, id, recordAnalytics}) => {
-        if (typeof show === 'function' && !show(props)) {
-          return null;
-        }
-        if (typeof show !== 'undefined' && !show) {
-          return null;
-        }
-        const badgeResult = typeof badge === 'function' ? badge(props) : null;
-        const to = replaceRouterParams(path, {
-          ...(organization ? {orgId: organization.slug} : {}),
-          ...(project ? {projectId: project.slug} : {}),
-        });
-
-        const handleClick = () => {
-          //only call the analytics event if the URL is changing
-          if (recordAnalytics && to !== window.location.pathname) {
-            trackAnalyticsEvent({
-              organization_id: organization ? organization.id : null,
-              project_id: project && project.id,
-              eventName: 'Sidebar Item Clicked',
-              eventKey: 'sidebar.item_clicked',
-              sidebar_item_id: id,
-              dest: path,
-            });
-          }
-        };
-
-        return (
-          <SettingsNavItem
-            key={title}
-            to={to}
-            label={title}
-            index={index}
-            badge={badgeResult}
-            id={id}
-            onClick={handleClick}
-          />
-        );
-      })}
+      {navLinks}
     </NavSection>
   );
 };

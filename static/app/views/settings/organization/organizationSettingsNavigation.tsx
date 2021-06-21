@@ -1,6 +1,4 @@
 import * as React from 'react';
-import createReactClass from 'create-react-class';
-import Reflux from 'reflux';
 
 import HookStore from 'app/stores/hookStore';
 import {Organization} from 'app/types';
@@ -19,27 +17,32 @@ type State = {
   hooks: React.ReactElement[];
 };
 
-const OrganizationSettingsNavigation = createReactClass<Props, State>({
-  displayName: 'OrganizationSettingsNavigation',
+class OrganizationSettingsNavigation extends React.Component<Props, State> {
+  state: State = this.getHooks();
+
+  componentDidMount() {
+    // eslint-disable-next-line react/no-did-mount-set-state
+    this.setState(this.getHooks());
+  }
+
+  componentWillUnmount() {
+    this.unsubscribe();
+  }
 
   /**
    * TODO(epurkhiser): Becase the settings organization navigation hooks
    * do not conform to a normal component style hook, and take a single
    * parameter 'organization', we cannot use the `Hook` component here,
-   * and must resort to using the mixin style HookStore to retrieve hook data.
+   * and must resort to using listening to the HookStore to retrieve hook data.
    *
    * We should update the hook interface for the two hooks used here
    */
-  mixins: [Reflux.listenTo(HookStore, 'handleHooks') as any],
-
-  getInitialState() {
-    return this.getHooks();
-  },
-
-  componentDidMount() {
-    // eslint-disable-next-line react/no-did-mount-set-state
-    this.setState(this.getHooks());
-  },
+  unsubscribe = HookStore.listen(
+    (hookName: HookName, hooks: Hooks['settings:organization-navigation-config'][]) => {
+      this.handleHooks(hookName, hooks);
+    },
+    undefined
+  );
 
   getHooks() {
     // Allow injection via getsentry et all
@@ -53,7 +56,7 @@ const OrganizationSettingsNavigation = createReactClass<Props, State>({
         cb(organization)
       ),
     };
-  },
+  }
 
   handleHooks(name: HookName, hooks: Hooks['settings:organization-navigation-config'][]) {
     const org = this.props.organization;
@@ -61,7 +64,7 @@ const OrganizationSettingsNavigation = createReactClass<Props, State>({
       return;
     }
     this.setState({hookConfigs: hooks.map(cb => cb(org))});
-  },
+  }
 
   render() {
     const {hooks, hookConfigs} = this.state as State;
@@ -79,7 +82,7 @@ const OrganizationSettingsNavigation = createReactClass<Props, State>({
         hookConfigs={hookConfigs}
       />
     );
-  },
-});
+  }
+}
 
 export default withOrganization(OrganizationSettingsNavigation);

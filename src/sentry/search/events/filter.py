@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Callable, Mapping, Optional, Sequence, Union
+from typing import Callable, List, Mapping, Optional, Sequence, Tuple, Union
 
 from parsimonious.exceptions import ParseError
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
@@ -17,7 +17,7 @@ from sentry.api.event_search import (
     parse_search_query,
 )
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import Project
+from sentry.models import Project, Release
 from sentry.models.group import Group
 from sentry.search.events.base import QueryBase
 from sentry.search.events.constants import (
@@ -28,9 +28,13 @@ from sentry.search.events.constants import (
     ISSUE_ID_ALIAS,
     KEY_TRANSACTION_ALIAS,
     NO_CONVERSION_FIELDS,
+    OPERATOR_NEGATION_MAP,
+    OPERATOR_TO_DJANGO,
     PROJECT_ALIAS,
     PROJECT_NAME_ALIAS,
     RELEASE_ALIAS,
+    SEMVER_ALIAS,
+    SEMVER_MAX_SEARCH_RELEASES,
     TEAM_KEY_TRANSACTION_ALIAS,
     USER_DISPLAY_ALIAS,
 )
@@ -321,6 +325,74 @@ def _team_key_transaction_filter_converter(
     )
 
 
+def _flip_field_sort(field: str):
+    return field[1:] if field.startswith("-") else f"-{field}"
+
+
+def parse_semver_search(
+    search_filter: SearchFilter,
+    name: str,
+    params: Optional[Mapping[str, Union[int, str, datetime]]],
+) -> Tuple[str, str, Sequence[str]]:
+    """
+    Parses a semver query search and returns a snuba condition to filter to the
+    requested releases.
+
+    Since we only have semver information available in Postgres currently, we query
+    Postgres and return a list of versions to include/exclude. For most customers this
+    will work well, however some have extremely large numbers of releases, and we can't
+    pass them all to Snuba. To try and serve reasonable results, we:
+     - Attempt to query based on the initial semver query. If this returns
+       MAX_SEMVER_SEARCH_RELEASES results, we invert the query and see if it returns
+       fewer results. If so, we use a `NOT IN` snuba condition instead of an `IN`.
+     - Order the results such that the versions we return are semantically closest to
+       the passed filter. This means that when searching for `>= 1.0.0`, we'll return
+       version 1.0.0, 1.0.1, 1.1.0 before 9.x.x.
+    """
+    if not params or "organization_id" not in params:
+        raise ValueError("organization_id is a required param")
+
+    organization_id: int = params["organization_id"]
+    version: str = search_filter.value.value
+    operator: str = search_filter.operator
+
+    # Note that we sort this such that if we end up fetching more than
+    # MAX_SEMVER_SEARCH_RELEASES, we will return the releases that are closest to
+    # the passed filter.
+    order_by = Release.SEMVER_SORT_COLS
+    if operator.startswith("<"):
+        order_by = list(map(_flip_field_sort, order_by))
+    qs = (
+        Release.objects.filter_by_semver(organization_id, OPERATOR_TO_DJANGO[operator], version)
+        .values_list("version", flat=True)
+        .order_by(*order_by)[:SEMVER_MAX_SEARCH_RELEASES]
+    )
+    versions = list(qs)
+    final_operator = "IN"
+    if len(versions) == SEMVER_MAX_SEARCH_RELEASES:
+        # We want to limit how many versions we pass through to Snuba. If we've hit
+        # the limit, make an extra query and see whether the inverse has fewer ids.
+        # If so, we can do a NOT IN query with these ids instead. Otherwise, we just
+        # do our best.
+        operator = OPERATOR_NEGATION_MAP[operator]
+        # Note that the `order_by` here is important for index usage. Postgres seems
+        # to seq scan with this query if the `order_by` isn't included, so we
+        # include it even though we don't really care about order for this query
+        qs_flipped = (
+            Release.objects.filter_by_semver(organization_id, OPERATOR_TO_DJANGO[operator], version)
+            .order_by(*map(_flip_field_sort, order_by))
+            .values_list("version", flat=True)[:SEMVER_MAX_SEARCH_RELEASES]
+        )
+
+        exclude_versions = list(qs_flipped)
+        if exclude_versions and len(exclude_versions) < len(versions):
+            # Do a negative search instead
+            final_operator = "NOT IN"
+            versions = exclude_versions
+
+    return ["release", final_operator, versions]
+
+
 key_conversion_map: Mapping[
     str,
     Callable[[SearchFilter, str, Mapping[str, Union[int, str, datetime]]], Optional[Sequence[any]]],
@@ -334,6 +406,7 @@ key_conversion_map: Mapping[
     "error.handled": _error_handled_filter_converter,
     KEY_TRANSACTION_ALIAS: _key_transaction_filter_converter,
     TEAM_KEY_TRANSACTION_ALIAS: _team_key_transaction_filter_converter,
+    SEMVER_ALIAS: parse_semver_search,
 }
 
 
@@ -585,7 +658,7 @@ def get_filter(query=None, params=None):
     parsed_terms = []
     if query is not None:
         try:
-            parsed_terms = parse_search_query(query, allow_boolean=True, params=params)
+            parsed_terms = parse_search_query(query, params=params)
         except ParseError as e:
             raise InvalidSearchQuery(f"Parse error: {e.expr.name} (column {e.column():d})")
 
@@ -775,7 +848,7 @@ class QueryFilter(QueryBase):
 
     def resolve_where(self, query: str) -> None:
         try:
-            parsed_terms = parse_search_query(query, allow_boolean=True, params=self.params)
+            parsed_terms = parse_search_query(query, params=self.params)
         except ParseError as e:
             raise InvalidSearchQuery(f"Parse error: {e.expr.name} (column {e.column():d})")
 
@@ -806,7 +879,8 @@ class QueryFilter(QueryBase):
         self.where.append(Condition(self.column("timestamp"), Op.GTE, start))
         self.where.append(Condition(self.column("timestamp"), Op.LT, end))
 
-        if "project_id" in self.params:
+        # If we already have projects_to_filter, there's no need to add an additional project filter
+        if "project_id" in self.params and len(self.projects_to_filter) == 0:
             self.where.append(
                 Condition(
                     self.column("project_id"),
@@ -851,6 +925,46 @@ class QueryFilter(QueryBase):
         else:
             return env_conditions[0]
 
+    def _project_slug_filter_converter(
+        self,
+        search_filter: SearchFilter,
+        _: str,
+    ) -> Optional[WhereType]:
+        """Convert project slugs to ids and create a filter based on those.
+        This is cause we only store project ids in clickhouse.
+        """
+        value = search_filter.value.value
+
+        if Op(search_filter.operator) == Op.EQ and value == "":
+            raise InvalidSearchQuery(
+                'Cannot query for has:project or project:"" as every event will have a project'
+            )
+
+        slugs = to_list(value)
+        project_slugs: Mapping[str, int] = {
+            slug: project_id for slug, project_id in self.project_slugs.items() if slug in slugs
+        }
+        missing: List[str] = [slug for slug in slugs if slug not in project_slugs]
+        if missing and search_filter.operator in EQUALITY_OPERATORS:
+            raise InvalidSearchQuery(
+                f"Invalid query. Project(s) {', '.join(missing)} do not exist or are not actively selected."
+            )
+        # Sorted for consistent query results
+        project_ids = list(sorted(project_slugs.values()))
+        if project_ids:
+            # Create a new search filter with the correct values
+            converted_filter = self.convert_search_filter_to_condition(
+                SearchFilter(
+                    SearchKey("project.id"),
+                    search_filter.operator,
+                    SearchValue(project_ids if search_filter.is_in_filter else project_ids[0]),
+                )
+            )
+            if converted_filter:
+                if search_filter.operator in EQUALITY_OPERATORS:
+                    self.projects_to_filter.update(project_ids)
+                return converted_filter
+
     def format_search_filter(self, term: SearchFilter) -> Optional[WhereType]:
         """For now this function seems a bit redundant inside QueryFilter but
         most of the logic from hte existing format_search_filter hasn't been
@@ -866,8 +980,10 @@ class QueryFilter(QueryBase):
         self,
         search_filter: SearchFilter,
     ) -> Optional[WhereType]:
-        key_conversion_map: Mapping[str, Callable[[SearchFilter, str], WhereType]] = {
+        key_conversion_map: Mapping[str, Callable[[SearchFilter, str], Optional[WhereType]]] = {
             "environment": self._environment_filter_converter,
+            PROJECT_ALIAS: self._project_slug_filter_converter,
+            PROJECT_NAME_ALIAS: self._project_slug_filter_converter,
         }
         name = search_filter.key.name
         value = search_filter.value.value

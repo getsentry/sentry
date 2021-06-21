@@ -23,7 +23,13 @@ import EventView, {
   pickRelevantLocationQueryStrings,
 } from 'app/utils/discover/eventView';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
-import {Column, fieldAlignment, getAggregateAlias} from 'app/utils/discover/fields';
+import {
+  Column,
+  fieldAlignment,
+  getAggregateAlias,
+  getEquationAliasIndex,
+  isEquationAlias,
+} from 'app/utils/discover/fields';
 import {DisplayModes, TOP_N} from 'app/utils/discover/types';
 import {eventDetailsRouteWithEventView, generateEventSlug} from 'app/utils/discover/urls';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
@@ -195,7 +201,7 @@ class TableView extends React.Component<TableViewProps> {
     const currentSort = eventView.sortForField(field, tableMeta);
     const canSort = isFieldSortable(field, tableMeta);
 
-    return (
+    const sortLink = (
       <SortLink
         align={align}
         title={column.name}
@@ -204,6 +210,14 @@ class TableView extends React.Component<TableViewProps> {
         generateSortLink={generateSortLink}
       />
     );
+    if (isEquationAlias(column.name)) {
+      return (
+        <Tooltip title={eventView.getEquations()[getEquationAliasIndex(column.name)]}>
+          {sortLink}
+        </Tooltip>
+      );
+    }
+    return sortLink;
   };
 
   _renderGridBodyCell = (
@@ -430,6 +444,7 @@ class TableView extends React.Component<TableViewProps> {
       title,
       eventView,
       isLoading,
+      error,
       tableData,
       location,
       onChangeShowTags,
@@ -440,6 +455,7 @@ class TableView extends React.Component<TableViewProps> {
       <TableActions
         title={title}
         isLoading={isLoading}
+        error={error}
         organization={organization}
         eventView={eventView}
         onEdit={this.handleEditColumns}

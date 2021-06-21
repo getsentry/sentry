@@ -1,31 +1,21 @@
 import hashlib
 import logging
-from io import BytesIO
 from os import path
 
 from django.db import IntegrityError, transaction
 
-from sentry import app, options
+from sentry import options
 from sentry.api.serializers import serialize
 from sentry.cache import default_cache
+from sentry.db.models.fields import uuid
 from sentry.models import File, Organization, Release, ReleaseFile
-from sentry.models.releasefile import ReleaseArchive, merge_release_archives
+from sentry.models.releasefile import ReleaseArchive, update_artifact_index
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.files import get_max_file_size
-from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.sdk import bind_organization_context, configure_scope
 
 logger = logging.getLogger(__name__)
-
-
-#: Name for the bundle stored as a release file
-RELEASE_ARCHIVE_FILENAME = "release-artifacts.zip"
-
-#: Parameter used for `blocking_acquire`
-RELEASE_ARCHIVE_MERGE_INITIAL_DELAY = 0.2  # seconds
-#: How long should we try to acquire the lock?
-RELEASE_ARCHIVE_MERGE_TIMEOUT = 60  # seconds
 
 
 class ChunkFileState:
@@ -198,34 +188,6 @@ def _upsert_release_file(file: File, archive: ReleaseArchive, update_fn, **kwarg
         update_fn(release_file, file, archive)
 
 
-@metrics.wraps("tasks.assemble.merge_archives")
-def _merge_archives(release_file: ReleaseFile, new_file: File, new_archive: ReleaseArchive):
-    old_file = release_file.file
-    with ReleaseArchive(old_file.getfile().file) as old_archive:
-        buffer = BytesIO()
-
-        lock_key = f"assemble:merge_archives:{release_file.id}"
-        lock = app.locks.get(lock_key, duration=60)
-
-        try:
-            with lock.blocking_acquire(
-                RELEASE_ARCHIVE_MERGE_INITIAL_DELAY, RELEASE_ARCHIVE_MERGE_TIMEOUT
-            ):
-                merge_release_archives(old_archive, new_archive, buffer)
-
-                replacement = File.objects.create(name=old_file.name, type=old_file.type)
-                buffer.seek(0)
-                replacement.putfile(buffer)
-                release_file.update(file=replacement)
-
-                old_file.delete()
-
-        except UnableToAcquireLock as error:
-            logger.error("merge_archives.fail", extra={"error": error})
-
-    new_file.delete()
-
-
 def _store_single_files(archive: ReleaseArchive, meta: dict):
     try:
         temp_dir = archive.extract()
@@ -261,11 +223,13 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
 
         set_assemble_status(AssembleTask.ARTIFACTS, org_id, checksum, ChunkFileState.ASSEMBLING)
 
+        archive_filename = f"release-artifacts-{uuid.uuid4().hex}.zip"
+
         # Assemble the chunks into a temporary file
         rv = assemble_file(
             AssembleTask.ARTIFACTS,
             organization,
-            RELEASE_ARCHIVE_FILENAME,
+            archive_filename,
             checksum,
             chunks,
             file_type="release.bundle",
@@ -316,8 +280,10 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
             if options.get("processing.save-release-archives"):
                 min_size = options.get("processing.release-archive-min-files")
                 if num_files >= min_size:
-                    kwargs = dict(meta, name=RELEASE_ARCHIVE_FILENAME)
-                    _upsert_release_file(bundle, archive, _merge_archives, **kwargs)
+                    try:
+                        update_artifact_index(release, dist, bundle)
+                    except BaseException as exc:
+                        logger.error("Unable to update artifact index", exc_info=exc)
 
             # NOTE(jjbayer): Single files are still stored to enable
             # rolling back from release archives. Once release archives run

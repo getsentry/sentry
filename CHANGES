@@ -1,3 +1,23 @@
+21.7.1
+------
+
+### Breaking Change
+
+If you are upgrading from a release prior to 10.0.0 you need to first upgrade to 21.6.1 and run migrations.
+For more information [see the upgrade guide](https://develop.sentry.dev/self-hosted/#hard-stops).
+
+21.6.1
+------
+
+- No documented changes.
+
+21.6.0
+------
+
+### Deprecation Warning
+
+There will be a future change to where the frontend bundle will be loaded asynchronously. This will be a breaking change that can affect custom plugins that access certain globals in the django template. Please see https://forum.sentry.io/t/breaking-frontend-changes-for-custom-plugins/14184 for more information.
+
 21.5.1
 ------
 

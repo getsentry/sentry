@@ -5,6 +5,7 @@ import TeamKeyTransaction, {
   TitleProps,
 } from 'app/components/performance/teamKeyTransaction';
 import * as TeamKeyTransactionManager from 'app/components/performance/teamKeyTransactionsManager';
+import Tooltip from 'app/components/tooltip';
 import {IconStar} from 'app/icons';
 import {Organization, Project, Team} from 'app/types';
 import {defined} from 'app/utils';
@@ -13,7 +14,8 @@ import withTeams from 'app/utils/withTeams';
 
 class TitleStar extends Component<TitleProps> {
   render() {
-    const {keyedTeamsCount, ...props} = this.props;
+    const {isOpen, keyedTeams, initialValue, ...props} = this.props;
+    const keyedTeamsCount = keyedTeams?.length ?? initialValue ?? 0;
     const star = (
       <IconStar
         color={keyedTeamsCount ? 'yellow300' : 'gray200'}
@@ -21,7 +23,13 @@ class TitleStar extends Component<TitleProps> {
         data-test-id="team-key-transaction-column"
       />
     );
-    return <Button {...props} icon={star} borderless size="zero" />;
+    const button = <Button {...props} icon={star} borderless size="zero" />;
+    if (!isOpen && keyedTeams?.length) {
+      const teamSlugs = keyedTeams.map(({slug}) => slug).join(', ');
+      return <Tooltip title={teamSlugs}>{button}</Tooltip>;
+    } else {
+      return button;
+    }
   }
 }
 
@@ -33,7 +41,7 @@ type BaseProps = {
 
 type Props = BaseProps &
   TeamKeyTransactionManager.TeamKeyTransactionManagerChildrenProps & {
-    project: number;
+    project: Project;
     transactionName: string;
   };
 
@@ -45,7 +53,7 @@ function TeamKeyTransactionField({
   transactionName,
   ...props
 }: Props) {
-  const keyedTeams = getKeyedTeams(String(project), transactionName);
+  const keyedTeams = getKeyedTeams(project.id, transactionName);
 
   return (
     <TeamKeyTransaction
@@ -74,13 +82,19 @@ function TeamKeyTransactionFieldWrapper({
   ...props
 }: WrapperProps) {
   const project = projects.find(proj => proj.slug === projectSlug);
-  const projectId = project ? parseInt(project.id, 10) : null;
 
   // All these fields need to be defined in order to toggle a team key
   // transaction. Since they are not defined, just render a plain star
   // with no interactions.
-  if (!defined(projectId) || !defined(transactionName)) {
-    return <TitleStar keyedTeamsCount={Number(isKeyTransaction)} />;
+  if (!defined(project) || !defined(transactionName)) {
+    return (
+      <TitleStar
+        isOpen={false}
+        disabled
+        keyedTeams={null}
+        initialValue={Number(isKeyTransaction)}
+      />
+    );
   }
 
   return (
@@ -88,7 +102,7 @@ function TeamKeyTransactionFieldWrapper({
       {results => (
         <TeamKeyTransactionField
           isKeyTransaction={isKeyTransaction}
-          project={projectId}
+          project={project}
           transactionName={transactionName}
           {...props}
           {...results}

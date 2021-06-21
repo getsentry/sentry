@@ -6,6 +6,7 @@ from sentry.discover.endpoints.discover_key_transactions import (
     IsKeyTransactionEndpoint,
     KeyTransactionEndpoint,
     KeyTransactionListEndpoint,
+    LegacyKeyTransactionCountEndpoint,
 )
 from sentry.discover.endpoints.discover_query import DiscoverQueryEndpoint
 from sentry.discover.endpoints.discover_saved_queries import DiscoverSavedQueriesEndpoint
@@ -46,6 +47,8 @@ from sentry.incidents.endpoints.project_alert_rule_index import (
 from sentry.incidents.endpoints.project_alert_rule_task_details import (
     ProjectAlertRuleTaskDetailsEndpoint,
 )
+from sentry.scim.endpoints.members import OrganizationSCIMMemberDetails, OrganizationSCIMMemberIndex
+from sentry.scim.endpoints.teams import OrganizationSCIMTeamDetails, OrganizationSCIMTeamIndex
 
 from .endpoints.accept_organization_invite import AcceptOrganizationInvite
 from .endpoints.accept_project_transfer import AcceptProjectTransferEndpoint
@@ -801,6 +804,11 @@ urlpatterns = [
                     name="sentry-api-0-organization-key-transactions-list",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/legacy-key-transactions-count/$",
+                    LegacyKeyTransactionCountEndpoint.as_view(),
+                    name="sentry-api-0-organization-legacy-key-transactions-count",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/is-key-transactions/$",
                     IsKeyTransactionEndpoint.as_view(),
                     name="sentry-api-0-organization-is-key-transactions",
@@ -1327,6 +1335,33 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/request-project-creation/$",
                     OrganizationRequestProjectCreation.as_view(),
                     name="sentry-api-0-organization-request-project-creation",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/scim/v2/",
+                    include(
+                        [
+                            url(
+                                r"^Users$",
+                                OrganizationSCIMMemberIndex.as_view(),
+                                name="sentry-api-0-organization-scim-member-index",
+                            ),
+                            url(
+                                r"^Users/(?P<member_id>\d+)$",
+                                OrganizationSCIMMemberDetails.as_view(),
+                                name="sentry-api-0-organization-scim-member-details",
+                            ),
+                            url(
+                                r"^Groups$",
+                                OrganizationSCIMTeamIndex.as_view(),
+                                name="sentry-api-0-organization-scim-team-index",
+                            ),
+                            url(
+                                r"^Groups/(?P<team_id>\d+)$",
+                                OrganizationSCIMTeamDetails.as_view(),
+                                name="sentry-api-0-organization-scim-team-details",
+                            ),
+                        ]
+                    ),
                 ),
             ]
         ),

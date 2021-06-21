@@ -15,7 +15,11 @@ import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {t} from 'app/locale';
 import {GlobalSelection, NewQuery, SavedQuery, SelectValue, User} from 'app/types';
 import {decodeList, decodeScalar} from 'app/utils/queryString';
-import {TableColumn, TableColumnSort} from 'app/views/eventsV2/table/types';
+import {
+  FieldValueKind,
+  TableColumn,
+  TableColumnSort,
+} from 'app/views/eventsV2/table/types';
 import {decodeColumnOrder} from 'app/views/eventsV2/utils';
 
 import {statsPeriodToDays} from '../dates';
@@ -29,7 +33,9 @@ import {
   Field,
   generateFieldAsString,
   getAggregateAlias,
+  getEquation,
   isAggregateField,
+  isEquation,
   isLegalYAxisType,
   Sort,
 } from './fields';
@@ -291,8 +297,19 @@ class EventView {
     const environment = Array.isArray(props.environment) ? props.environment : [];
 
     // only include sort keys that are included in the fields
+    let equations = 0;
     const sortKeys = fields
-      .map(field => getSortKeyFromField(field, undefined))
+      .map(field => {
+        if (isEquation(field.field)) {
+          const sortKey = getSortKeyFromField(
+            {field: `equation[${equations}]`},
+            undefined
+          );
+          equations += 1;
+          return sortKey;
+        }
+        return getSortKeyFromField(field, undefined);
+      })
       .filter((sortKey): sortKey is string => !!sortKey);
 
     const sort = sorts.find(currentSort => sortKeys.includes(currentSort.field));
@@ -628,6 +645,12 @@ class EventView {
     return this.fields.map(field => field.field);
   }
 
+  getEquations(): string[] {
+    return this.fields
+      .filter(field => isEquation(field.field))
+      .map(field => getEquation(field.field));
+  }
+
   getAggregateFields(): Field[] {
     return this.fields.filter(field => isAggregateField(field.field));
   }
@@ -692,7 +715,7 @@ class EventView {
     const fields: Field[] = columns
       .filter(
         col =>
-          (col.kind === 'field' && col.field) ||
+          ((col.kind === 'field' || col.kind === FieldValueKind.EQUATION) && col.field) ||
           (col.kind === 'function' && col.function[0])
       )
       .map(col => generateFieldAsString(col))
@@ -973,7 +996,16 @@ class EventView {
   ): Exclude<EventQuery & LocationQuery, 'sort' | 'cursor'> {
     const payload = this.getEventsAPIPayload(location);
 
-    const remove = ['id', 'name', 'per_page', 'sort', 'cursor', 'field', 'interval'];
+    const remove = [
+      'id',
+      'name',
+      'per_page',
+      'sort',
+      'cursor',
+      'field',
+      'equation',
+      'interval',
+    ];
     for (const key of remove) {
       delete payload[key];
     }
@@ -1123,7 +1155,10 @@ class EventView {
     return uniqBy(
       this.getAggregateFields()
         // Only include aggregates that make sense to be graphable (eg. not string or date)
-        .filter((field: Field) => isLegalYAxisType(aggregateOutputType(field.field)))
+        .filter(
+          (field: Field) =>
+            isLegalYAxisType(aggregateOutputType(field.field)) && !isEquation(field.field)
+        )
         .map((field: Field) => ({label: field.field, value: field.field}))
         .concat(CHART_AXIS_OPTIONS),
       'value'
@@ -1222,6 +1257,26 @@ class EventView {
   }
 }
 
+const isFieldsSimilar = (
+  currentValue: Array<string>,
+  otherValue: Array<string>
+): boolean => {
+  // For equation's their order matters because we alias them based on index
+  const currentEquations = currentValue.filter(isEquation);
+  const otherEquations = otherValue.filter(isEquation);
+
+  // Field orders don't matter, so using a set for comparison
+  const currentFields = new Set(currentValue.filter(value => !isEquation(value)));
+  const otherFields = new Set(otherValue.filter(value => !isEquation(value)));
+
+  if (!isEqual(currentEquations, otherEquations)) {
+    return false;
+  } else if (!isEqual(currentFields, otherFields)) {
+    return false;
+  }
+  return true;
+};
+
 export const isAPIPayloadSimilar = (
   current: EventQuery & LocationQuery,
   other: EventQuery & LocationQuery
@@ -1235,15 +1290,21 @@ export const isAPIPayloadSimilar = (
 
   for (const key of currentKeys) {
     const currentValue = current[key];
-    const currentTarget = Array.isArray(currentValue)
-      ? new Set(currentValue)
-      : currentValue;
-
     const otherValue = other[key];
-    const otherTarget = Array.isArray(otherValue) ? new Set(otherValue) : otherValue;
+    if (key === 'field') {
+      if (!isFieldsSimilar(currentValue, otherValue)) {
+        return false;
+      }
+    } else {
+      const currentTarget = Array.isArray(currentValue)
+        ? new Set(currentValue)
+        : currentValue;
 
-    if (!isEqual(currentTarget, otherTarget)) {
-      return false;
+      const otherTarget = Array.isArray(otherValue) ? new Set(otherValue) : otherValue;
+
+      if (!isEqual(currentTarget, otherTarget)) {
+        return false;
+      }
     }
   }
 

@@ -21,6 +21,7 @@ import {
   AGGREGATIONS,
   getAggregateAlias,
   getSpanOperationName,
+  isEquation,
   isRelativeSpanOperationBreakdownField,
   SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
@@ -432,8 +433,12 @@ const SPECIAL_FIELDS: SpecialFields = {
   },
 };
 
+type SpecialFunctionFieldRenderer = (
+  fieldName: string
+) => (data: EventData, baggage: RenderFunctionBaggage) => React.ReactNode;
+
 type SpecialFunctions = {
-  user_misery: SpecialFieldRenderFunc;
+  user_misery: SpecialFunctionFieldRenderer;
 };
 
 /**
@@ -441,38 +446,41 @@ type SpecialFunctions = {
  * or they require custom UI formatting that can't be handled by the datatype formatters.
  */
 const SPECIAL_FUNCTIONS: SpecialFunctions = {
-  user_misery: data => {
-    let userMiseryField: string = '';
-    let countMiserableUserField: string = '';
-    let projectThresholdConfig: string = '';
-    for (const field in data) {
-      if (field.startsWith('user_misery')) {
-        userMiseryField = field;
-      } else if (
-        field.startsWith('count_miserable_user') ||
-        field.startsWith('count_miserable_new_user')
-      ) {
-        countMiserableUserField = field;
-      } else if (field === 'project_threshold_config') {
-        projectThresholdConfig = field;
-      }
-    }
+  user_misery: fieldName => data => {
+    const userMiseryField = fieldName;
 
-    if (!userMiseryField) {
+    if (!(userMiseryField in data)) {
       return <NumberContainer>{emptyValue}</NumberContainer>;
     }
 
-    const uniqueUsers = data.count_unique_user;
     const userMisery = data[userMiseryField];
-
-    let miseryLimit = parseInt(userMiseryField.split('_').pop() || '', 10);
-    if (isNaN(miseryLimit)) {
-      miseryLimit = projectThresholdConfig ? data[projectThresholdConfig][1] : undefined;
+    if (userMisery === null || isNaN(userMisery)) {
+      return <NumberContainer>{emptyValue}</NumberContainer>;
     }
+
+    const projectThresholdConfig = 'project_threshold_config';
+    let countMiserableUserField: string = '';
+
+    let miseryLimit: number | undefined = parseInt(
+      userMiseryField.split('_').pop() || '',
+      10
+    );
+    if (isNaN(miseryLimit)) {
+      countMiserableUserField = 'count_miserable_user';
+      if (projectThresholdConfig in data) {
+        miseryLimit = data[projectThresholdConfig][1];
+      } else {
+        miseryLimit = undefined;
+      }
+    } else {
+      countMiserableUserField = `count_miserable_user_${miseryLimit}`;
+    }
+
+    const uniqueUsers = data.count_unique_user;
 
     let miserableUsers: number | undefined;
 
-    if (countMiserableUserField) {
+    if (countMiserableUserField in data) {
       const countMiserableMiseryLimit = parseInt(
         countMiserableUserField.split('_').pop() || '',
         10
@@ -515,6 +523,10 @@ export function getSortField(
     return field;
   }
 
+  if (isEquation(field)) {
+    return field;
+  }
+
   for (const alias in AGGREGATIONS) {
     if (field.startsWith(alias)) {
       return AGGREGATIONS[alias].isSortable ? field : null;
@@ -539,7 +551,11 @@ const spanOperationRelativeBreakdownRenderer = (
   data: EventData,
   {location, organization}: RenderFunctionBaggage
 ): React.ReactNode => {
-  const cumulativeSpanOpBreakdown = data['spans.total.time'];
+  const sumOfSpanTime = SPAN_OP_BREAKDOWN_FIELDS.reduce(
+    (prev, curr) => (isDurationValue(data, curr) ? prev + data[curr] : prev),
+    0
+  );
+  const cumulativeSpanOpBreakdown = Math.max(sumOfSpanTime, data['transaction.duration']);
 
   if (
     !isDurationValue(data, 'spans.total.time') ||
@@ -570,7 +586,7 @@ const spanOperationRelativeBreakdownRenderer = (
             <Tooltip
               title={
                 <div>
-                  <div>{`${operationName} ${formatPercentage(widthPercentage, 0)}`}</div>
+                  <div>{operationName}</div>
                   <div>
                     <Duration
                       seconds={spanOpDuration / 1000}
@@ -629,7 +645,6 @@ const RelativeOpsBreakdown = styled('div')`
 
 const RectangleRelativeOpsBreakdown = styled(RowRectangle)`
   position: relative;
-  top: 0;
   width: 100%;
 `;
 
@@ -661,7 +676,7 @@ export function getFieldRenderer(
 
   for (const alias in SPECIAL_FUNCTIONS) {
     if (fieldName.startsWith(alias)) {
-      return SPECIAL_FUNCTIONS[alias];
+      return SPECIAL_FUNCTIONS[alias](fieldName);
     }
   }
 

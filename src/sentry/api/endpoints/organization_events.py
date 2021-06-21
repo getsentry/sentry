@@ -38,7 +38,7 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
     def has_feature_for_fields(self, feature, organization, request, feature_fields):
         has_feature = features.has(feature, organization, actor=request.user)
 
-        columns = request.GET.getlist("field")[:]
+        columns = self.get_field_list(organization, request)
 
         if has_feature:
             return True
@@ -70,21 +70,19 @@ class OrganizationEventsV2Endpoint(OrganizationEventsV2EndpointBase):
             request,
             feature_fields=[
                 "project_threshold_config",
-                "count_miserable_new(user)",
-                "user_misery_new()",
-                "apdex_new()",
+                "count_miserable(user)",
+                "user_misery()",
+                "apdex()",
             ],
         ):
             return Response(status=404)
 
         def data_fn(offset, limit):
             return discover.query(
-                selected_columns=request.GET.getlist("field")[:],
+                selected_columns=self.get_field_list(organization, request),
                 query=request.GET.get("query"),
                 params=params,
-                equations=request.GET.getlist("equation")[:]
-                if self.has_arithmetic(organization, request)
-                else [],
+                equations=self.get_equation_list(organization, request),
                 orderby=self.get_orderby(request),
                 offset=offset,
                 limit=limit,

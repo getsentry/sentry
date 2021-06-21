@@ -3128,6 +3128,77 @@ describe('isAPIPayloadSimilar', function () {
 
       expect(results).toBe(false);
     });
+
+    it('it is similar if column order changes', function () {
+      const thisEventView = new EventView(state);
+      const location = {};
+      const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
+
+      state.fields.reverse();
+      const otherEventView = new EventView(state);
+      const otherLocation = {};
+      const otherAPIPayload = otherEventView.getEventsAPIPayload(otherLocation);
+
+      const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
+
+      expect(results).toBe(true);
+    });
+
+    it('it is similar if equation order relatively same', function () {
+      const equationField = {field: 'equation|failure_count() / count()'};
+      const otherEquationField = {field: 'equation|failure_count() / 2'};
+      state.fields = [
+        {field: 'project.id'},
+        {field: 'count()'},
+        equationField,
+        otherEquationField,
+      ];
+      const thisEventView = new EventView(state);
+      const location = {};
+      const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
+
+      state.fields = [
+        equationField,
+        {field: 'project.id'},
+        {field: 'count()'},
+        otherEquationField,
+      ];
+      const otherEventView = new EventView(state);
+      const otherLocation = {};
+      const otherAPIPayload = otherEventView.getEventsAPIPayload(otherLocation);
+
+      const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
+
+      expect(results).toBe(true);
+    });
+
+    it('it is not similar if equation order changes', function () {
+      const equationField = {field: 'equation|failure_count() / count()'};
+      const otherEquationField = {field: 'equation|failure_count() / 2'};
+      state.fields = [
+        {field: 'project.id'},
+        {field: 'count()'},
+        equationField,
+        otherEquationField,
+      ];
+      const thisEventView = new EventView(state);
+      const location = {};
+      const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
+
+      state.fields = [
+        {field: 'project.id'},
+        {field: 'count()'},
+        otherEquationField,
+        equationField,
+      ];
+      const otherEventView = new EventView(state);
+      const otherLocation = {};
+      const otherAPIPayload = otherEventView.getEventsAPIPayload(otherLocation);
+
+      const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
+
+      expect(results).toBe(false);
+    });
   });
 
   describe('getFacetsAPIPayload', function () {

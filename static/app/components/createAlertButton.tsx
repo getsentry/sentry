@@ -208,7 +208,7 @@ type CreateAlertFromViewButtonProps = React.ComponentProps<typeof Button> & {
 
 function incompatibleYAxis(eventView: EventView): boolean {
   const column = explodeFieldString(eventView.getYAxis());
-  if (column.kind === 'field') {
+  if (column.kind === 'field' || column.kind === 'equation') {
     return true;
   }
 
@@ -337,11 +337,9 @@ const CreateAlertButton = withApi(
       showPermissionGuide,
       ...buttonProps
     }: Props) => {
-      const hasWizard = organization.features.includes('alert-wizard');
       const createAlertUrl = (providedProj: string) => {
         const alertsBaseUrl = `/organizations/${organization.slug}/alerts/${providedProj}`;
-        const subUrl = hasWizard ? 'wizard' : 'new';
-        return `${alertsBaseUrl}/${subUrl}/${referrer ? `?referrer=${referrer}` : ''}`;
+        return `${alertsBaseUrl}/wizard/${referrer ? `?referrer=${referrer}` : ''}`;
       };
 
       function handleClickWithoutProject(event: React.MouseEvent) {

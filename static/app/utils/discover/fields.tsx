@@ -40,6 +40,7 @@ export type AggregateParameter =
       dataType: ColumnType;
       defaultValue?: string;
       required: boolean;
+      placeholder?: string;
     };
 
 export type AggregationRefinement = string | undefined;
@@ -51,6 +52,10 @@ export type AggregationRefinement = string | undefined;
 export type QueryFieldValue =
   | {
       kind: 'field';
+      field: string;
+    }
+  | {
+      kind: 'equation';
       field: string;
     }
   | {
@@ -258,8 +263,13 @@ export const AGGREGATIONS = {
     multiPlotType: 'line',
   },
   apdex: {
-    generateDefaultValue({parameter, organization}: DefaultValueInputs) {
-      return organization.apdexThreshold?.toString() ?? parameter.defaultValue;
+    getFieldOverrides({parameter, organization}: DefaultValueInputs) {
+      if (organization.features.includes('project-transaction-threshold')) {
+        return {required: false, placeholder: 'Automatic', defaultValue: ''};
+      }
+      return {
+        defaultValue: organization.apdexThreshold?.toString() ?? parameter.defaultValue,
+      };
     },
     parameters: [
       {
@@ -274,8 +284,13 @@ export const AGGREGATIONS = {
     multiPlotType: 'line',
   },
   user_misery: {
-    generateDefaultValue({parameter, organization}: DefaultValueInputs) {
-      return organization.apdexThreshold?.toString() ?? parameter.defaultValue;
+    getFieldOverrides({parameter, organization}: DefaultValueInputs) {
+      if (organization.features.includes('project-transaction-threshold')) {
+        return {required: false, placeholder: 'Automatic', defaultValue: ''};
+      }
+      return {
+        defaultValue: organization.apdexThreshold?.toString() ?? parameter.defaultValue,
+      };
     },
     parameters: [
       {
@@ -302,11 +317,16 @@ export const AGGREGATIONS = {
     multiPlotType: 'area',
   },
   count_miserable: {
-    generateDefaultValue({parameter, organization}: DefaultValueInputs) {
+    getFieldOverrides({parameter, organization}: DefaultValueInputs) {
       if (parameter.kind === 'column') {
-        return 'user';
+        return {defaultValue: 'user'};
       }
-      return organization.apdexThreshold?.toString() ?? parameter.defaultValue;
+      if (organization.features.includes('project-transaction-threshold')) {
+        return {required: false, placeholder: 'Automatic', defaultValue: ''};
+      }
+      return {
+        defaultValue: organization.apdexThreshold?.toString() ?? parameter.defaultValue,
+      };
     },
     parameters: [
       {
@@ -352,11 +372,6 @@ type DefaultValueInputs = {
 
 export type Aggregation = {
   /**
-   * Used by functions that need to define their default values dynamically
-   * based on the organization, or parameter data.
-   */
-  generateDefaultValue?: (data: DefaultValueInputs) => string;
-  /**
    * List of parameters for the function.
    */
   parameters: Readonly<AggregateParameter[]>;
@@ -373,6 +388,9 @@ export type Aggregation = {
    * Optional because some functions cannot be plotted (strings/dates)
    */
   multiPlotType?: PlotType;
+  getFieldOverrides?: (
+    data: DefaultValueInputs
+  ) => Partial<Omit<AggregateParameter, 'kind'>>;
 };
 
 enum FieldKey {
@@ -568,11 +586,10 @@ export const TRACING_FIELDS = [
   'apdex',
   'count_miserable',
   'user_misery',
-  'apdex_new',
-  'count_miserable_new',
-  'user_misery_new',
   'eps',
   'epm',
+  'key_transaction',
+  'team_key_transaction',
   ...Object.keys(MEASUREMENTS),
 ];
 
@@ -609,6 +626,31 @@ export function getAggregateArg(field: string): string | null {
   return null;
 }
 
+// `|` is an invalid field character, so it is used to determine whether a field is an equation or not
+const EQUATION_PREFIX = 'equation|';
+const EQUATION_ALIAS_PATTERN = /^equation\[(\d+)\]$/;
+
+export function isEquation(field: string): boolean {
+  return field.startsWith(EQUATION_PREFIX);
+}
+
+export function isEquationAlias(field: string): boolean {
+  return EQUATION_ALIAS_PATTERN.test(field);
+}
+
+export function getEquationAliasIndex(field: string): number {
+  const results = field.match(EQUATION_ALIAS_PATTERN);
+
+  if (results && results.length === 2) {
+    return parseInt(results[1], 10);
+  }
+  return -1;
+}
+
+export function getEquation(field: string): string {
+  return field.slice(EQUATION_PREFIX.length);
+}
+
 export function generateAggregateFields(
   organization: LightWeightOrganization,
   eventFields: readonly Field[] | Field[],
@@ -618,13 +660,13 @@ export function generateAggregateFields(
   const fields = Object.values(eventFields).map(field => field.field);
   functions.forEach(func => {
     const parameters = AGGREGATIONS[func].parameters.map(param => {
-      const generator = AGGREGATIONS[func].generateDefaultValue;
-      if (typeof generator === 'undefined') {
+      const overrides = AGGREGATIONS[func].getFieldOverrides;
+      if (typeof overrides === 'undefined') {
         return param;
       }
       return {
         ...param,
-        defaultValue: generator({parameter: param, organization}),
+        ...overrides({parameter: param, organization}),
       };
     });
 
@@ -641,6 +683,10 @@ export function generateAggregateFields(
 }
 
 export function explodeFieldString(field: string): Column {
+  if (isEquation(field)) {
+    return {kind: 'equation', field: getEquation(field)};
+  }
+
   const results = field.match(AGGREGATE_PATTERN);
 
   if (results && results.length >= 3) {
@@ -660,6 +706,8 @@ export function explodeFieldString(field: string): Column {
 export function generateFieldAsString(value: QueryFieldValue): string {
   if (value.kind === 'field') {
     return value.field;
+  } else if (value.kind === 'equation') {
+    return `${EQUATION_PREFIX}${value.field}`;
   }
 
   const aggregation = value.function[0];
@@ -747,14 +795,6 @@ export function aggregateFunctionOutputType(
     return measurementType(firstArg);
   } else if (firstArg && isSpanOperationBreakdownField(firstArg)) {
     return 'duration';
-  }
-
-  // This is temporary since these don't fulfill any of
-  // the conditions above. Will be removed when these fields
-  // are added to the list of aggregations with an explicit
-  // return type.
-  if (funcName.startsWith('user_misery_new') || funcName.startsWith('apdex_new')) {
-    return 'number';
   }
 
   return null;

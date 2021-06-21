@@ -1,8 +1,11 @@
 import hashlib
+from typing import Mapping, Optional, Sequence, Union
 
-import jwt
+from jwt import InvalidSignatureError
+from rest_framework.request import Request
 
 from sentry.models import Integration
+from sentry.utils import jwt
 from sentry.utils.http import percent_encode
 
 __all__ = ["AtlassianConnectValidationError", "get_query_hash", "get_integration_from_request"]
@@ -12,7 +15,9 @@ class AtlassianConnectValidationError(Exception):
     pass
 
 
-def get_query_hash(uri, method, query_params=None):
+def get_query_hash(
+    uri: str, method: str, query_params: Optional[Mapping[str, Union[str, Sequence[str]]]] = None
+) -> str:
     # see
     # https://developer.atlassian.com/static/connect/docs/latest/concepts/understanding-jwt.html#qsh
     uri = uri.rstrip("/")
@@ -34,7 +39,13 @@ def get_query_hash(uri, method, query_params=None):
     return hashlib.sha256(query_string.encode("utf8")).hexdigest()
 
 
-def get_integration_from_jwt(token, path, provider, query_params, method="GET"):
+def get_integration_from_jwt(
+    token: Optional[str],
+    path: str,
+    provider: str,
+    query_params: Optional[Mapping[str, str]],
+    method: str = "GET",
+) -> Integration:
     # https://developer.atlassian.com/static/connect/docs/latest/concepts/authentication.html
     # Extract the JWT token from the request's jwt query
     # parameter or the authorization header.
@@ -42,7 +53,7 @@ def get_integration_from_jwt(token, path, provider, query_params, method="GET"):
         raise AtlassianConnectValidationError("No token parameter")
     # Decode the JWT token, without verification. This gives
     # you a header JSON object, a claims JSON object, and a signature.
-    decoded = jwt.decode(token, verify=False)
+    decoded = jwt.peek_claims(token)
     # Extract the issuer ('iss') claim from the decoded, unverified
     # claims object. This is the clientKey for the tenant - an identifier
     # for the Atlassian application making the call
@@ -53,16 +64,15 @@ def get_integration_from_jwt(token, path, provider, query_params, method="GET"):
         integration = Integration.objects.get(provider=provider, external_id=issuer)
     except Integration.DoesNotExist:
         raise AtlassianConnectValidationError("No integration found")
-    # Verify the signature with the sharedSecret and
-    # the algorithm specified in the header's alg field.
-    options = {}
-    # If it's BitBucket, we only need the token + shared secret
-    # it will fail on this: https://github.com/jpadilla/pyjwt/blob/d25c92ca5e9980ca7bc8b31420bf36e3f4a9e3f0/jwt/api_jwt.py#L190
-    # if we try to verify the audience
-    if provider == "bitbucket":
-        options = {"verify_aud": False}
+    # Verify the signature with the sharedSecret and the algorithm specified in the header's
+    # alg field.  We only need the token + shared secret and do not want to provide an
+    # audience to the JWT validation that is require to match.  Bitbucket does give us an
+    # audience claim however, so disable verification of this.
+    try:
+        decoded_verified = jwt.decode(token, integration.metadata["shared_secret"], audience=False)
+    except InvalidSignatureError:
+        raise AtlassianConnectValidationError("Signature is invalid")
 
-    decoded_verified = jwt.decode(token, integration.metadata["shared_secret"], options=options)
     # Verify the query has not been tampered by Creating a Query Hash
     # and comparing it against the qsh claim on the verified token.
 
@@ -73,5 +83,5 @@ def get_integration_from_jwt(token, path, provider, query_params, method="GET"):
     return integration
 
 
-def get_integration_from_request(request, provider):
+def get_integration_from_request(request: Request, provider: str) -> Integration:
     return get_integration_from_jwt(request.GET.get("jwt"), request.path, provider, request.GET)

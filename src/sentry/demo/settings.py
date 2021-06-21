@@ -23,7 +23,7 @@ CELERYBEAT_SCHEDULE["demo_delete_initializing_orgs"] = {
     "schedule": timedelta(minutes=10),
     "options": {"expires": 3600, "queue": "cleanup"},
 }
-MIDDLEWARE_CLASSES = MIDDLEWARE_CLASSES + ("sentry.demo.middleware.DemoMiddleware",)
+MIDDLEWARE = MIDDLEWARE + ("sentry.demo.middleware.DemoMiddleware",)
 INSTALLED_APPS = INSTALLED_APPS + ("sentry.demo.apps.Config",)
 ROOT_URLCONF = "sentry.demo.urls"
 
@@ -48,3 +48,5 @@ DEMO_DATA_GEN_PARAMS = {
 # parameters for an org when quickly generating them synchronously
 DEMO_DATA_QUICK_GEN_PARAMS = DEMO_DATA_GEN_PARAMS.copy()
 DEMO_DATA_QUICK_GEN_PARAMS.update(MAX_DAYS=1, SCALE_FACTOR=0.25, NAME_STEP_SIZE=200)
+
+DEMO_MOBILE_PROJECTS = False

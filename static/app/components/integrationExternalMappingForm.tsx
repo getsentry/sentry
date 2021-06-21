@@ -61,7 +61,7 @@ export default class IntegrationExternalMappingForm extends Component<Props> {
           // For organizations with >100 users, we want to make sure their
           // saved mapping gets populated in the results if it wouldn't have
           // been in the inital 100 API results, which is why we add it here
-          if (mapping && !result.find(({id}) => id === mapping.userId)) {
+          if (mapping && !result.find(({user}) => user.id === mapping.userId)) {
             result = [{id: mapping.userId, name: mapping.sentryName}, ...result];
           }
           this.props.onResults?.(result);

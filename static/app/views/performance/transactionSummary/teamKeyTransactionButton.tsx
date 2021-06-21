@@ -1,15 +1,18 @@
 import {Component} from 'react';
-import styled from '@emotion/styled';
 
 import Button from 'app/components/button';
 import TeamKeyTransactionComponent, {
   TitleProps,
 } from 'app/components/performance/teamKeyTransaction';
 import * as TeamKeyTransactionManager from 'app/components/performance/teamKeyTransactionsManager';
+import Tooltip from 'app/components/tooltip';
 import {IconStar} from 'app/icons';
 import {t, tn} from 'app/locale';
-import {Organization, Team} from 'app/types';
+import {Organization, Project, Team} from 'app/types';
+import {defined} from 'app/utils';
 import EventView from 'app/utils/discover/eventView';
+import {isActiveSuperuser} from 'app/utils/isActiveSuperuser';
+import withProjects from 'app/utils/withProjects';
 import withTeams from 'app/utils/withTeams';
 
 /**
@@ -18,17 +21,25 @@ import withTeams from 'app/utils/withTeams';
  */
 class TitleButton extends Component<TitleProps> {
   render() {
-    const {keyedTeamsCount, ...props} = this.props;
-    return (
-      <StyledButton
+    const {isOpen, keyedTeams, ...props} = this.props;
+    const keyedTeamsCount = keyedTeams?.length ?? 0;
+    const button = (
+      <Button
         {...props}
         icon={keyedTeamsCount ? <IconStar color="yellow300" isSolid /> : <IconStar />}
       >
         {keyedTeamsCount
           ? tn('Starred for Team', 'Starred for Teams', keyedTeamsCount)
           : t('Star for Team')}
-      </StyledButton>
+      </Button>
     );
+
+    if (!isOpen && keyedTeams?.length) {
+      const teamSlugs = keyedTeams.map(({slug}) => slug).join(', ');
+      return <Tooltip title={teamSlugs}>{button}</Tooltip>;
+    } else {
+      return button;
+    }
   }
 }
 
@@ -40,7 +51,7 @@ type BaseProps = {
 
 type Props = BaseProps &
   TeamKeyTransactionManager.TeamKeyTransactionManagerChildrenProps & {
-    project: number;
+    project: Project;
   };
 
 function TeamKeyTransactionButton({
@@ -50,7 +61,7 @@ function TeamKeyTransactionButton({
   transactionName,
   ...props
 }: Props) {
-  const keyedTeams = getKeyedTeams(String(project), transactionName);
+  const keyedTeams = getKeyedTeams(project.id, transactionName);
   return (
     <TeamKeyTransactionComponent
       counts={counts}
@@ -65,20 +76,28 @@ function TeamKeyTransactionButton({
 
 type WrapperProps = BaseProps & {
   eventView: EventView;
+  projects: Project[];
 };
 
 function TeamKeyTransactionButtonWrapper({
   eventView,
   organization,
   teams,
+  projects,
   ...props
 }: WrapperProps) {
   if (eventView.project.length !== 1) {
-    return <TitleButton disabled keyedTeamsCount={0} />;
+    return <TitleButton isOpen={false} disabled keyedTeams={null} />;
   }
 
-  const projectId = eventView.project[0];
-  const userTeams = teams.filter(({isMember}) => isMember);
+  const projectId = String(eventView.project[0]);
+  const project = projects.find(proj => proj.id === projectId);
+  if (!defined(project)) {
+    return <TitleButton isOpen={false} disabled keyedTeams={null} />;
+  }
+
+  const isSuperuser = isActiveSuperuser();
+  const userTeams = teams.filter(({isMember}) => isMember || isSuperuser);
 
   return (
     <TeamKeyTransactionManager.Provider
@@ -91,7 +110,7 @@ function TeamKeyTransactionButtonWrapper({
         {results => (
           <TeamKeyTransactionButton
             organization={organization}
-            project={projectId}
+            project={project}
             {...props}
             {...results}
           />
@@ -101,8 +120,4 @@ function TeamKeyTransactionButtonWrapper({
   );
 }
 
-const StyledButton = styled(Button)`
-  width: 180px;
-`;
-
-export default withTeams(TeamKeyTransactionButtonWrapper);
+export default withTeams(withProjects(TeamKeyTransactionButtonWrapper));

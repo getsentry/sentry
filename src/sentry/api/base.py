@@ -92,12 +92,20 @@ class Endpoint(APIView):
     authentication_classes = DEFAULT_AUTHENTICATION
     permission_classes = (NoPermission,)
 
+    cursor_name = "cursor"
+
     def build_cursor_link(self, request, name, cursor):
-        querystring = "&".join(
-            f"{urlquote(k)}={urlquote(v)}" for k, v in request.GET.items() if k != "cursor"
-        )
+        querystring = None
+        if request.GET.get("cursor") is None:
+            querystring = request.GET.urlencode()
+        else:
+            mutable_query_dict = request.GET.copy()
+            mutable_query_dict.pop("cursor")
+            querystring = mutable_query_dict.urlencode()
+
         base_url = absolute_uri(urlquote(request.path))
-        if querystring:
+
+        if querystring is not None:
             base_url = f"{base_url}?{querystring}"
         else:
             base_url = base_url + "?"
@@ -300,9 +308,9 @@ class Endpoint(APIView):
         per_page = self.get_per_page(request, default_per_page, max_per_page)
 
         input_cursor = None
-        if request.GET.get("cursor"):
+        if request.GET.get(self.cursor_name):
             try:
-                input_cursor = cursor_cls.from_string(request.GET.get("cursor"))
+                input_cursor = cursor_cls.from_string(request.GET.get(self.cursor_name))
             except ValueError:
                 raise ParseError(detail="Invalid cursor parameter.")
 

@@ -51,5 +51,6 @@ class QueryBuilder(QueryFields, QueryFilter):
             select=self.select,
             where=self.where,
             groupby=self.groupby,
+            orderby=self.orderby,
             limit=self.limit,
         )

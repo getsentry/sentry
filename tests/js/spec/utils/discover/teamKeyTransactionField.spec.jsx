@@ -13,11 +13,11 @@ async function clickTeamKeyTransactionDropdown(wrapper) {
 
 describe('TeamKeyTransactionField', function () {
   const organization = TestStubs.Organization();
-  const project = TestStubs.Project();
   const teams = [
     TestStubs.Team({id: '1', slug: 'team1', name: 'Team 1'}),
     TestStubs.Team({id: '2', slug: 'team2', name: 'Team 2'}),
   ];
+  const project = TestStubs.Project({teams});
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
@@ -69,7 +69,7 @@ describe('TeamKeyTransactionField', function () {
     const entries = wrapper.find('DropdownMenuItem');
     expect(entries.length).toBe(2);
     entries.forEach((entry, i) => {
-      expect(entry.text()).toEqual(teams[i].name);
+      expect(entry.text()).toEqual(teams[i].slug);
       expect(entry.find('CheckboxFancy').props().isChecked).toBeTruthy();
     });
   });
@@ -121,7 +121,7 @@ describe('TeamKeyTransactionField', function () {
     const entries = wrapper.find('DropdownMenuItem');
     expect(entries.length).toBe(2);
     entries.forEach((entry, i) => {
-      expect(entry.text()).toEqual(teams[i].name);
+      expect(entry.text()).toEqual(teams[i].slug);
     });
     expect(entries.at(0).find('CheckboxFancy').props().isChecked).toBeTruthy();
     expect(entries.at(1).find('CheckboxFancy').props().isChecked).toBeFalsy();
@@ -171,7 +171,7 @@ describe('TeamKeyTransactionField', function () {
     const entries = wrapper.find('DropdownMenuItem');
     expect(entries.length).toBe(2);
     entries.forEach((entry, i) => {
-      expect(entry.text()).toEqual(teams[i].name);
+      expect(entry.text()).toEqual(teams[i].slug);
       expect(entry.find('CheckboxFancy').props().isChecked).toBeFalsy();
     });
   });
@@ -414,5 +414,54 @@ describe('TeamKeyTransactionField', function () {
     expect(headerCheckbox.props().isIndeterminate).toBeFalsy();
 
     expect(deleteTeamKeyTransactionsMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('should render teams without access separately', async function () {
+    const myTeams = [...teams, TestStubs.Team({id: '3', slug: 'team3', name: 'Team 3'})];
+    TeamStore.loadInitialData(myTeams);
+
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/${organization.slug}/key-transactions-list/`,
+      body: myTeams.map(({id}) => ({
+        team: id,
+        count: 0,
+        keyed: [],
+      })),
+    });
+
+    const wrapper = mountWithTheme(
+      <TeamKeyTransactionManager.Provider
+        organization={organization}
+        teams={myTeams}
+        selectedTeams={['myteams']}
+      >
+        <TeamKeyTransactionField
+          isKeyTransaction
+          organization={organization}
+          projectSlug={project.slug}
+          transactionName="transaction"
+        />
+      </TeamKeyTransactionManager.Provider>
+    );
+    await tick();
+    wrapper.update();
+
+    clickTeamKeyTransactionDropdown(wrapper);
+
+    const headers = wrapper.find('DropdownMenuHeader');
+    expect(headers.length).toEqual(2);
+    expect(headers.at(0).text()).toEqual('My Teams with Access');
+    expect(headers.at(1).text()).toEqual('My Teams without Access');
+
+    const entries = wrapper.find('DropdownMenuItem');
+    expect(entries.length).toEqual(3);
+    entries.forEach((entry, i) => {
+      expect(entry.text()).toEqual(myTeams[i].slug);
+    });
+    expect(entries.at(0).find('CheckboxFancy').exists()).toBeTruthy();
+    expect(entries.at(1).find('CheckboxFancy').exists()).toBeTruthy();
+    // this team does not have access so there is no checkbox
+    expect(entries.at(2).find('CheckboxFancy').exists()).toBeFalsy();
   });
 });

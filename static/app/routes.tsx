@@ -878,7 +878,7 @@ function routes() {
         {/* A route tree for lightweight organizational detail views. We place
       this above the heavyweight organization detail views because there
       exist some redirects from deprecated routes which should not take
-      precedence over these lightweight routes*/}
+      precedence over these lightweight routes */}
         <Route component={errorHandler(LightWeightOrganizationDetails)}>
           <Route
             path="/organizations/:orgId/projects/"
@@ -1378,6 +1378,13 @@ function routes() {
               path="/organizations/:orgId/performance/summary/tags/"
               componentPromise={() =>
                 import('app/views/performance/transactionSummary/transactionTags')
+              }
+              component={errorHandler(LazyLoad)}
+            />
+            <Route
+              path="/organizations/:orgId/performance/summary/events/"
+              componentPromise={() =>
+                import('app/views/performance/transactionSummary/transactionEvents')
               }
               component={errorHandler(LazyLoad)}
             />

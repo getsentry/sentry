@@ -15,10 +15,14 @@ class ReleaseFileSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=200, required=True)
 
 
-class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint):
-    permission_classes = (ProjectReleasePermission,)
+class ReleaseFileDetailsMixin:
+    """Shared functionality of ProjectReleaseFileDetails and OrganizationReleaseFileDetails
 
-    def download(self, releasefile):
+    Only has class methods, but keep it as a class to be consistent with ReleaseFilesMixin.
+    """
+
+    @staticmethod
+    def download(releasefile):
         file = releasefile.file
         fp = file.getfile()
         response = StreamingHttpResponse(
@@ -30,6 +34,58 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint):
             " ".join(releasefile.name.split())
         )
         return response
+
+    @classmethod
+    def get_releasefile(cls, request, release, file_id, check_permission_fn):
+        try:
+            releasefile = ReleaseFile.public_objects.get(release=release, id=file_id)
+        except ReleaseFile.DoesNotExist:
+            raise ResourceDoesNotExist
+
+        download_requested = request.GET.get("download") is not None
+        if download_requested and check_permission_fn():
+            return cls.download(releasefile)
+        elif download_requested:
+            return Response(status=403)
+        return Response(serialize(releasefile, request.user))
+
+    @staticmethod
+    def update_releasefile(request, release, file_id):
+        try:
+            releasefile = ReleaseFile.public_objects.get(release=release, id=file_id)
+        except ReleaseFile.DoesNotExist:
+            raise ResourceDoesNotExist
+
+        serializer = ReleaseFileSerializer(data=request.data)
+
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+
+        result = serializer.validated_data
+
+        releasefile.update(name=result["name"])
+
+        return Response(serialize(releasefile, request.user))
+
+    @staticmethod
+    def delete_releasefile(release, file_id):
+        try:
+            releasefile = ReleaseFile.public_objects.get(release=release, id=file_id)
+        except ReleaseFile.DoesNotExist:
+            raise ResourceDoesNotExist
+
+        file = releasefile.file
+
+        # TODO(dcramer): this doesnt handle a failure from file.deletefile() to
+        # the actual deletion of the db row
+        releasefile.delete()
+        file.delete()
+
+        return Response(status=204)
+
+
+class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint, ReleaseFileDetailsMixin):
+    permission_classes = (ProjectReleasePermission,)
 
     def get(self, request, project, version, file_id):
         """
@@ -55,17 +111,12 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint):
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
 
-        try:
-            releasefile = ReleaseFile.objects.get(release=release, id=file_id)
-        except ReleaseFile.DoesNotExist:
-            raise ResourceDoesNotExist
-
-        download_requested = request.GET.get("download") is not None
-        if download_requested and (has_download_permission(request, project)):
-            return self.download(releasefile)
-        elif download_requested:
-            return Response(status=403)
-        return Response(serialize(releasefile, request.user))
+        return self.get_releasefile(
+            request,
+            release,
+            file_id,
+            check_permission_fn=lambda: has_download_permission(request, project),
+        )
 
     def put(self, request, project, version, file_id):
         """
@@ -91,21 +142,7 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint):
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
 
-        try:
-            releasefile = ReleaseFile.objects.get(release=release, id=file_id)
-        except ReleaseFile.DoesNotExist:
-            raise ResourceDoesNotExist
-
-        serializer = ReleaseFileSerializer(data=request.data)
-
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
-
-        result = serializer.validated_data
-
-        releasefile.update(name=result["name"])
-
-        return Response(serialize(releasefile, request.user))
+        return self.update_releasefile(request, release, file_id)
 
     def delete(self, request, project, version, file_id):
         """
@@ -131,16 +168,4 @@ class ProjectReleaseFileDetailsEndpoint(ProjectEndpoint):
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
 
-        try:
-            releasefile = ReleaseFile.objects.get(release=release, id=file_id)
-        except ReleaseFile.DoesNotExist:
-            raise ResourceDoesNotExist
-
-        file = releasefile.file
-
-        # TODO(dcramer): this doesnt handle a failure from file.deletefile() to
-        # the actual deletion of the db row
-        releasefile.delete()
-        file.delete()
-
-        return Response(status=204)
+        return self.delete_releasefile(release, file_id)

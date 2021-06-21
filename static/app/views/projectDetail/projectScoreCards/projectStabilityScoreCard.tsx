@@ -58,7 +58,7 @@ class ProjectStabilityScoreCard extends AsyncComponent<Props, State> {
       project: projects[0],
       field: 'sum(session)',
       groupBy: 'session.status',
-      interval: getDiffInMinutes(datetime) >= 24 * 60 ? '1d' : '1h',
+      interval: getDiffInMinutes(datetime) > 24 * 60 ? '1d' : '1h',
     };
 
     // Unfortunately we can't do something like statsPeriod=28d&interval=14d to get scores for this and previous interval with the single request

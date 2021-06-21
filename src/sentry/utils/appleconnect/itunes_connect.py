@@ -15,29 +15,24 @@ from sentry.utils import safe
 logger = logging.getLogger(__name__)
 
 
-def _session_cookie_name() -> str:
-    """Returns the name of the cookie used by itunes API for the session"""
-    return "myacinfo"
+SESSION_COOKIE_NAME = "myacinfo"
 
 
-def load_session_cookie(session: Session, session_cookie_value: str):
-    """
-    Tries to load the Itunes session cookie in the current session.
+def load_session_cookie(session: Session, session_cookie_value: str) -> None:
+    """Loads the itunes session cookie in the current session.
 
-    If the session is still valid the user will be logged in.
-
+    If the iTunes session is still valid the user will be logged in inside the session.
     """
 
-    session.cookies.set(_session_cookie_name(), session_cookie_value)
+    session.cookies.set(SESSION_COOKIE_NAME, session_cookie_value)  # type: ignore
 
 
 def get_session_cookie(session: Session) -> Optional[str]:
-    """
-    Tries to extract the session cookies
+    """Extracts the session cookies.
 
     :return: the session cookie if available
     """
-    return session.cookies.get(_session_cookie_name())
+    return session.cookies.get(SESSION_COOKIE_NAME)  # type: ignore
 
 
 def get_session_info(session: Session) -> Optional[Any]:
@@ -274,7 +269,23 @@ def send_authentication_confirmation_code(
     return response.ok
 
 
-def set_provider(session: Session, content_provider_id: int, user_id: str):
+def set_provider(session: Session, content_provider_id: int) -> None:
+    """Sets the active organisation for the user in this session.
+
+    ITunes allows users to be part of multiple organisations, or providers as it is called
+    in the API.  On a session you need to activate one before you can use the apps of that
+    organisation.
+    """
+    user_details_url = (
+        "https://appstoreconnect.apple.com//WebObjects/iTunesConnect.woa/ra/user/detail"
+    )
+    user_details_response = session.get(user_details_url)
+    if user_details_response.status_code != HTTPStatus.OK:
+        raise ValueError(
+            f"Failed to get user details: {user_details_response}: {user_details_response.json()}"
+        )
+    user_id = safe.get_path(user_details_response.json(), "data", "sessionToken", "dsId")
+
     url = "https://appstoreconnect.apple.com//WebObjects/iTunesConnect.woa/ra/v1/session/webSession"
     logger.debug(f"POST {url}")
 
@@ -285,7 +296,10 @@ def set_provider(session: Session, content_provider_id: int, user_id: str):
             "dsId": user_id,
         },
     )
-    return select_provider_response
+    if select_provider_response.status_code != HTTPStatus.OK:
+        raise ValueError(
+            f"Failed to set provider: {select_provider_response}: {select_provider_response.json()}"
+        )
 
 
 def get_dsym_url(
@@ -308,8 +322,9 @@ def get_dsym_url(
     if details_response.status_code == HTTPStatus.OK:
         try:
             data = details_response.json()
-            return safe.get_path(data, "data", "dsymurl")
-        except:  # NOQA
+            dsym_url = safe.get_path(data, "data", "dsymurl")
+            return dsym_url  # type: ignore
+        except Exception:
             logger.info(
                 f"Could not obtain dsms info for app id={app_id}, bundle_short={bundle_short_version}, "
                 f"bundle={bundle_version}, platform={platform}",

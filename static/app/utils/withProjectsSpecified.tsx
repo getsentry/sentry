@@ -1,7 +1,5 @@
-/* eslint-disable react/prop-types */
 import * as React from 'react';
-import createReactClass from 'create-react-class';
-import Reflux from 'reflux';
+import isEqual from 'lodash/isEqual';
 
 import ProjectsStore from 'app/stores/projectsStore';
 import {Project} from 'app/types';
@@ -24,19 +22,33 @@ type State = {
 /**
  * Higher order component that takes specificProjectSlugs and provides list of that projects from ProjectsStore
  */
-const withProjectsSpecified = <P extends InjectedProjectsProps>(
+function withProjectsSpecified<P extends InjectedProjectsProps>(
   WrappedComponent: React.ComponentType<P>
-) =>
-  createReactClass<Props & Omit<P, keyof InjectedProjectsProps>, State>({
-    displayName: `withProjectsSpecified(${getDisplayName(WrappedComponent)})`,
-    mixins: [Reflux.listenTo(ProjectsStore, 'onProjectUpdate') as any],
-    getInitialState() {
-      return ProjectsStore.getState(this.props.specificProjectSlugs);
-    },
+) {
+  class WithProjectsSpecified extends React.Component<
+    Props & Omit<P, keyof InjectedProjectsProps>,
+    State
+  > {
+    static displayName = `withProjectsSpecified(${getDisplayName(WrappedComponent)})`;
 
-    onProjectUpdate() {
-      this.setState(ProjectsStore.getState(this.props.specificProjectSlugs));
-    },
+    state = ProjectsStore.getState(this.props.specificProjectSlugs);
+
+    static getDerivedStateFromProps(nextProps: Readonly<Props>): State {
+      return ProjectsStore.getState(nextProps.specificProjectSlugs);
+    }
+
+    componentWillUnmount() {
+      this.unsubscribe();
+    }
+
+    unsubscribe = ProjectsStore.listen(() => {
+      const storeState = ProjectsStore.getState(this.props.specificProjectSlugs);
+
+      if (!isEqual(this.state, storeState)) {
+        this.setState(storeState);
+      }
+    }, undefined);
+
     render() {
       return (
         <WrappedComponent
@@ -45,7 +57,10 @@ const withProjectsSpecified = <P extends InjectedProjectsProps>(
           loadingProjects={this.state.loading}
         />
       );
-    },
-  });
+    }
+  }
+
+  return WithProjectsSpecified;
+}
 
 export default withProjectsSpecified;

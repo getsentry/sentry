@@ -286,6 +286,28 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
         },
       ],
     },
+    {
+      guide: 'team_key_transactions',
+      requiredTargets: ['team_key_transaction_header'],
+      steps: [
+        {
+          title: t('Key Transactions'),
+          target: 'team_key_transaction_header',
+          description: t(
+            'Software development is a team sport. Key Transactions allow you to mark important transactions and share them with your team.'
+          ),
+          nextText: t('Great'),
+        },
+        {
+          title: t('Migrating Key Transactions'),
+          target: 'team_key_transaction_existing',
+          description: t(
+            'To migrate your previous key transactions, you will have to mark them as a key transaction again for your team. Sorry about that.'
+          ),
+          nextText: t('Fine'),
+        },
+      ],
+    },
   ];
 }
 
@@ -294,7 +316,7 @@ function getDemoModeGuides(): GuidesContent {
     {
       guide: 'sidebar',
       requiredTargets: ['projects', 'issues'],
-      priority: 1, //lower number means higher priority
+      priority: 1, // lower number means higher priority
       markOthersAsSeen: true,
       steps: [
         {
