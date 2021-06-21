@@ -15,42 +15,12 @@ from sentry.db.models import (
 
 logger = logging.getLogger(__name__)
 
+
 # TODO(dcramer): pull in enum library
-
-
 class IdentityStatus:
     UNKNOWN = 0
     VALID = 1
     INVALID = 2
-
-
-class IdentityProvider(Model):
-    """
-    An IdentityProvider is an instance of a provider.
-
-    The IdentityProvider is unique on the type of provider (eg github, slack,
-    google, etc).
-
-    A SAML identity provide might look like this, type: onelogin, instance:
-    acme-org.onelogin.com.
-    """
-
-    __include_in_export__ = False
-
-    type = models.CharField(max_length=64)
-    config = EncryptedJsonField()
-    date_added = models.DateTimeField(default=timezone.now, null=True)
-    external_id = models.CharField(max_length=64, null=True)
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_identityprovider"
-        unique_together = (("type", "external_id"),)
-
-    def get_provider(self):
-        from sentry.identity import get
-
-        return get(self.type)
 
 
 class Identity(Model):

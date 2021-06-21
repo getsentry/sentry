@@ -58,6 +58,7 @@ from .groupsnooze import *  # NOQA
 from .groupsubscription import *  # NOQA
 from .grouptombstone import *  # NOQA
 from .identity import *  # NOQA
+from .identityprovider import *  # NOQA
 from .integration import *  # NOQA
 from .integrationfeature import *  # NOQA
 from .latestreporeleaseenvironment import *  # NOQA
