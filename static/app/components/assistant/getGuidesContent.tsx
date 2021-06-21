@@ -198,19 +198,6 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
       ],
     },
     {
-      guide: 'user_misery',
-      requiredTargets: ['user_misery'],
-      steps: [
-        {
-          title: t('User Misery'),
-          target: 'user_misery',
-          description: t(
-            `Make users less miserable. Our User Misery Index now combines unique miserable users both by number and percentage. Plus, you can sort User Misery to identify your site’s most frustrating transactions.`
-          ),
-        },
-      ],
-    },
-    {
       guide: 'stack_trace_preview',
       requiredTargets: ['issue_stream_title'],
       dateThreshold: new Date(2021, 2, 15),
