@@ -308,6 +308,19 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
         },
       ],
     },
+    {
+      guide: 'project_transaction_threshold',
+      requiredTargets: ['project_transaction_threshold'],
+      steps: [
+        {
+          title: t('Set Thresholds per Project'),
+          target: 'project_transaction_threshold',
+          description: t(
+            'Use different metrics to gauge performance across multiple projects. Set response time thresholds per Project for the Apdex and User Misery scores in [Project] > Settings > Performance.'
+          ),
+        },
+      ],
+    },
   ];
 }
 

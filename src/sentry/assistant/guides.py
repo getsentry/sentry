@@ -41,6 +41,10 @@ GUIDES = {
         ],
     },
     "team_key_transactions": {"id": 18, "required_targets": ["team_key_transaction_header"]},
+    "project_transaction_threshold": {
+        "id": 19,
+        "required_targets": ["project_transaction_threshold"],
+    },
 }
 
 # demo mode has different guides
