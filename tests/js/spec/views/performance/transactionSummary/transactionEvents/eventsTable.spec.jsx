@@ -8,7 +8,7 @@ import {
   SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'app/utils/discover/fields';
-import Table from 'app/views/performance/table';
+import EventsTable from 'app/views/performance/transactionSummary/transactionEvents/eventsTable';
 
 function initializeData({features: additionalFeatures = [], query = {}} = {}) {
   const features = ['discover-basic', 'performance-view', ...additionalFeatures];
@@ -149,13 +149,11 @@ describe('Performance GridEditable Table', function () {
       initialData.router.location
     );
     const wrapper = mountWithTheme(
-      <Table
+      <EventsTable
         eventView={eventView}
-        projects={[]}
         organization={organization}
         location={initialData.router.location}
         setError={this.setError}
-        summaryConditions={eventView.getQueryWithAdditionalConditions()}
         columnTitles={transactionsListTitles}
       />,
       initialData.routerContext
@@ -165,76 +163,6 @@ describe('Performance GridEditable Table', function () {
 
     expect(wrapper.find('GridHeadCell')).toHaveLength(6);
     expect(wrapper.find('GridHeadCellStatic')).toHaveLength(0);
-    expect(wrapper.find('OperationSort')).toHaveLength(1);
-  });
-
-  it('prepends key transactions column if present in the event view', async function () {
-    const initialData = initializeData({features: ['performance-events-page']});
-    fields.push('key_transaction');
-    const eventView = EventView.fromNewQueryWithLocation(
-      {
-        id: undefined,
-        version: 2,
-        name: 'transactionName',
-        fields,
-        query,
-        projects: [],
-        orderby: '-timestamp',
-      },
-      initialData.router.location
-    );
-    const wrapper = mountWithTheme(
-      <Table
-        eventView={eventView}
-        projects={[]}
-        organization={organization}
-        location={initialData.router.location}
-        setError={this.setError}
-        summaryConditions={eventView.getQueryWithAdditionalConditions()}
-        columnTitles={transactionsListTitles}
-      />,
-      initialData.routerContext
-    );
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('GridHeadCell')).toHaveLength(6);
-    expect(wrapper.find('GridHeadCellStatic')).toHaveLength(1);
-    expect(wrapper.find('OperationSort')).toHaveLength(1);
-  });
-
-  it('prepends team key transactions column if present in the event view', async function () {
-    const initialData = initializeData({features: ['performance-events-page']});
-    fields.push('team_key_transaction');
-    const eventView = EventView.fromNewQueryWithLocation(
-      {
-        id: undefined,
-        version: 2,
-        name: 'transactionName',
-        fields,
-        query,
-        projects: [],
-        orderby: '-timestamp',
-      },
-      initialData.router.location
-    );
-    const wrapper = mountWithTheme(
-      <Table
-        eventView={eventView}
-        projects={[]}
-        organization={organization}
-        location={initialData.router.location}
-        setError={this.setError}
-        summaryConditions={eventView.getQueryWithAdditionalConditions()}
-        columnTitles={transactionsListTitles}
-      />,
-      initialData.routerContext
-    );
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('GridHeadCell')).toHaveLength(6);
-    expect(wrapper.find('GridHeadCellStatic')).toHaveLength(1);
     expect(wrapper.find('OperationSort')).toHaveLength(1);
   });
 });
