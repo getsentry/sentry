@@ -4,8 +4,6 @@ import styled from '@emotion/styled';
 import GroupingActions from 'app/actions/groupingActions';
 import Checkbox from 'app/components/checkbox';
 import EventOrGroupHeader from 'app/components/eventOrGroupHeader';
-import List from 'app/components/list';
-import ListItem from 'app/components/list/listItem';
 import Tooltip from 'app/components/tooltip';
 import {IconChevron} from 'app/icons';
 import GroupingStore, {Fingerprint} from 'app/stores/groupingStore';
@@ -96,7 +94,7 @@ class MergedItem extends React.Component<Props, State> {
 
   render() {
     const {fingerprint, organization} = this.props;
-    const {latestEvent, id, label, children} = fingerprint;
+    const {latestEvent, id, label} = fingerprint;
     const {collapsed, busy, checked} = this.state;
     const checkboxDisabled = busy;
 
@@ -136,28 +134,6 @@ class MergedItem extends React.Component<Props, State> {
                   hideLevel
                 />
               </EventDetails>
-            )}
-
-            {!!children?.length && (
-              <ChildGroup>
-                {children.map(({childId, childLabel, latestEvent: childLatestEvent}) => (
-                  <ListItem key={childId}>
-                    <FingerprintLabel htmlFor={childId}>
-                      {this.renderFingerprint(childId, childLabel)}
-                    </FingerprintLabel>
-                    {childLatestEvent && (
-                      <EventDetails className="event-details">
-                        <EventOrGroupHeader
-                          data={childLatestEvent}
-                          organization={organization}
-                          hideIcons
-                          hideLevel
-                        />
-                      </EventDetails>
-                    )}
-                  </ListItem>
-                ))}
-              </ChildGroup>
             )}
           </MergedEventList>
         )}
@@ -226,12 +202,6 @@ const EventDetails = styled('div')`
   .event-list & {
     padding: ${space(1)};
   }
-`;
-
-const ChildGroup = styled(List)`
-  list-style: none;
-  padding: ${space(0.5)} 0 0 ${space(4)};
-  border-top: 1px solid ${p => p.theme.innerBorder};
 `;
 
 export default MergedItem;

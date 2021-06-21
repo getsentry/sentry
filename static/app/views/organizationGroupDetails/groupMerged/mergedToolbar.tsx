@@ -10,15 +10,12 @@ import {t, tct} from 'app/locale';
 import GroupingStore from 'app/stores/groupingStore';
 import space from 'app/styles/space';
 import {Group, Organization, Project} from 'app/types';
-import withOrganization from 'app/utils/withOrganization';
 
 type Props = {
-  organization?: Organization;
   orgId: Organization['slug'];
   project: Project;
   groupId: Group['id'];
   onUnmerge: () => void;
-  onSplit: () => void;
   onToggleCollapse: () => void;
 };
 
@@ -94,8 +91,8 @@ class MergedToolbar extends React.Component<Props, State> {
   };
 
   render() {
-    const {onUnmerge, onSplit, onToggleCollapse, organization} = this.props;
-    const hasGroupingTreeFeature = organization?.features?.includes('grouping-tree-ui');
+    const {onUnmerge, onToggleCollapse} = this.props;
+
     const {
       unmergeList,
       unmergeLastCollapsed,
@@ -122,22 +119,6 @@ class MergedToolbar extends React.Component<Props, State> {
             </Button>
           </Confirm>
 
-          {hasGroupingTreeFeature && (
-            <Confirm
-              onConfirm={onSplit}
-              message={t(
-                'These events will be grouped into a new issue by more specific criteria (for instance more frames). Are you sure you want to split them out of the existing issue?'
-              )}
-            >
-              <Button
-                size="small"
-                title={tct('Splitting out [unmergeCount] events', {unmergeCount})}
-              >
-                {t('Split')} ({unmergeCount || 0})
-              </Button>
-            </Confirm>
-          )}
-
           <CompareButton
             size="small"
             disabled={!enableFingerprintCompare}
@@ -154,7 +135,7 @@ class MergedToolbar extends React.Component<Props, State> {
   }
 }
 
-export default withOrganization(MergedToolbar);
+export default MergedToolbar;
 
 const CompareButton = styled(Button)`
   margin-left: ${space(1)};
