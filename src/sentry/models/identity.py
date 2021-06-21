@@ -1,10 +1,12 @@
 import logging
+from enum import Enum
 
 from django.conf import settings
 from django.db import models
 from django.db.models import Q
 from django.utils import timezone
 
+from bitfield import BitField
 from sentry.db.models import (
     ArrayField,
     BoundedPositiveIntegerField,
@@ -15,10 +17,8 @@ from sentry.db.models import (
 
 logger = logging.getLogger(__name__)
 
-# TODO(dcramer): pull in enum library
 
-
-class IdentityStatus:
+class IdentityStatus(Enum):
     UNKNOWN = 0
     VALID = 1
     INVALID = 2
@@ -36,11 +36,43 @@ class IdentityProvider(Model):
     """
 
     __include_in_export__ = False
+    organization = FlexibleForeignKey("sentry.Organization", blank=True, null=True)
 
+    # To be renamed to "provider" because this is a bad column name
     type = models.CharField(max_length=64)
-    config = EncryptedJsonField()
-    date_added = models.DateTimeField(default=timezone.now, null=True)
+    # Replacing "type"
+    provider = models.CharField(max_length=64, null=True)
+
+    # To be renamed to "provider_id", because we're already renaming "type"
     external_id = models.CharField(max_length=64, null=True)
+    # Replacing "external_id"
+    provider_id = models.CharField(max_length=64, null=True)
+    config = EncryptedJsonField()
+
+    date_added = models.DateTimeField(default=timezone.now, null=True)
+
+    # SSO-specific fields
+    is_sso = models.BooleanField(default=False)
+    sso_default_team = models.OneToOneField(
+        "sentry.Team", blank=True, null=True, on_delete=models.SET_NULL
+    )
+    sso_default_role = BoundedPositiveIntegerField(default=0)
+    sso_default_global_access = models.BooleanField(default=False)
+    sso_flags = BitField(
+        flags=(
+            ("allow_unlinked", "Grant access to members who have not linked SSO accounts."),
+            ("scim_enabled", "Enable SCIM for member and team provisioning and syncing"),
+        ),
+        default=0,
+    )
+
+    # To be deleted after migration
+    authprovider = models.OneToOneField(
+        "sentry.AuthProvider",
+        blank=True,
+        null=True,
+        on_delete=models.SET_NULL,
+    )
 
     class Meta:
         app_label = "sentry"
@@ -64,7 +96,7 @@ class Identity(Model):
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL)
     external_id = models.TextField()
     data = EncryptedJsonField()
-    status = BoundedPositiveIntegerField(default=IdentityStatus.UNKNOWN)
+    status = BoundedPositiveIntegerField(default=IdentityStatus.UNKNOWN.value)
     scopes = ArrayField()
     date_verified = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)

@@ -30,8 +30,8 @@ class AuthProvider(Model):
     config = EncryptedJsonField()
 
     date_added = models.DateTimeField(default=timezone.now)
-    sync_time = BoundedPositiveIntegerField(null=True)
-    last_sync = models.DateTimeField(null=True)
+    sync_time = BoundedPositiveIntegerField(null=True)  # Not used at all
+    last_sync = models.DateTimeField(null=True)  # Not used at all
 
     default_role = BoundedPositiveIntegerField(default=50)
     default_global_access = models.BooleanField(default=True)
