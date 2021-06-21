@@ -72,7 +72,6 @@
     "dompurify": "^2.2.9",
     "downsample": "1.4.0",
     "echarts": "4.7.0",
-    "echarts-for-react": "2.0.16",
     "file-loader": "^6.2.0",
     "focus-trap": "^6.5.1",
     "focus-visible": "^5.2.0",

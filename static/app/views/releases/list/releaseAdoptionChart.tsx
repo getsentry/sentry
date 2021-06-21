@@ -180,9 +180,100 @@ class ReleaseAdoptionChart extends AsyncComponent<Props, State> {
     );
   }
 
-  render() {
-    const {activeDisplay, router, selection} = this.props;
+  renderChart() {
+    const {router, selection} = this.props;
     const {start, end, period, utc} = selection.datetime;
+    const {loading, reloading, sessions} = this.state;
+    const releasesSeries = this.getReleasesSeries();
+
+    const interval = this.getInterval();
+    const numDataPoints = releasesSeries[0].data.length;
+
+    return (
+      <TransitionChart loading={loading} reloading={reloading}>
+        <TransparentLoadingMask visible={reloading} />
+        <ChartZoom router={router} period={period} utc={utc} start={start} end={end}>
+          {zoomRenderProps => (
+            <LineChart
+              {...zoomRenderProps}
+              grid={{left: '10px', right: '10px', top: '40px', bottom: '0px'}}
+              series={releasesSeries}
+              yAxis={{
+                min: 0,
+                max: 100,
+                type: 'value',
+                interval: 10,
+                splitNumber: 10,
+                data: [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100],
+                axisLabel: {
+                  formatter: '{value}%',
+                },
+              }}
+              tooltip={{
+                formatter: seriesParams => {
+                  const series = Array.isArray(seriesParams)
+                    ? seriesParams
+                    : [seriesParams];
+                  const timestamp = series[0].data[0];
+                  const [first, second, third, ...rest] = series
+                    .filter(s => s.data[1] > 0)
+                    .sort((a, b) => b.data[1] - a.data[1]);
+
+                  const restSum = rest.reduce((acc, s) => acc + s.data[1], 0);
+
+                  const seriesToRender = compact([first, second, third]);
+
+                  if (rest.length) {
+                    seriesToRender.push({
+                      seriesName: tn('%s Other', '%s Others', rest.length),
+                      data: [timestamp, restSum],
+                      marker:
+                        '<span style="display:inline-block;margin-right:5px;border-radius:10px;width:10px;height:10px;"></span>',
+                    });
+                  }
+
+                  if (!seriesToRender.length) {
+                    return '<div/>';
+                  }
+
+                  const periodObj = parseStatsPeriod(interval) || {
+                        periodLength: 'd',
+                        period: '1',
+                      };
+                      const intervalStart = moment(timestamp).format('MMM D LT');
+                      const intervalEnd = (
+                        series[0].dataIndex === numDataPoints - 1
+                          ? moment(sessions.end)
+                          : moment(timestamp).add(
+                              parseInt(periodObj.period, 10),
+                              periodObj.periodLength as StatsPeriodType
+                            )
+                      ).format('MMM D LT');return [
+                    '<div class="tooltip-series">',
+                    seriesToRender
+                      .map(
+                        s =>
+                          `<div><span class="tooltip-label">${s.marker}<strong>${
+                            s.seriesName && truncationFormatter(s.seriesName, 12)
+                          }</strong></span>${s.data[1].toFixed(2)}%</div>`
+                      )
+                      .join(''),
+                    '</div>',
+                    `<div class="tooltip-date">${intervalStart} &mdash; ${intervalEnd}</div>`,
+                    `<div class="tooltip-arrow"></div>`,
+                  ].join('');
+                },
+              }}
+              onClick={this.handleClick}
+            />
+          )}
+        </ChartZoom>
+      </TransitionChart>
+    )
+  }
+
+  render() {
+    const {activeDisplay} = this.props;
     const {loading, reloading, sessions} = this.state;
     const releasesSeries = this.getReleasesSeries();
     const totalCount = this.getTotal();
@@ -195,96 +286,13 @@ class ReleaseAdoptionChart extends AsyncComponent<Props, State> {
       return null;
     }
 
-    const interval = this.getInterval();
-    const numDataPoints = releasesSeries[0].data.length;
-
     return (
       <Panel>
         <PanelBody withPadding>
           <ChartHeader>
             <ChartTitle>{t('Releases Adopted')}</ChartTitle>
           </ChartHeader>
-          <TransitionChart loading={loading} reloading={reloading}>
-            <TransparentLoadingMask visible={reloading} />
-            <ChartZoom router={router} period={period} utc={utc} start={start} end={end}>
-              {zoomRenderProps => (
-                <LineChart
-                  {...zoomRenderProps}
-                  grid={{left: '10px', right: '10px', top: '40px', bottom: '0px'}}
-                  series={releasesSeries}
-                  yAxis={{
-                    min: 0,
-                    max: 100,
-                    type: 'value',
-                    interval: 10,
-                    splitNumber: 10,
-                    data: [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100],
-                    axisLabel: {
-                      formatter: '{value}%',
-                    },
-                  }}
-                  tooltip={{
-                    formatter: seriesParams => {
-                      const series = Array.isArray(seriesParams)
-                        ? seriesParams
-                        : [seriesParams];
-                      const timestamp = series[0].data[0];
-                      const [first, second, third, ...rest] = series
-                        .filter(s => s.data[1] > 0)
-                        .sort((a, b) => b.data[1] - a.data[1]);
-
-                      const restSum = rest.reduce((acc, s) => acc + s.data[1], 0);
-
-                      const seriesToRender = compact([first, second, third]);
-
-                      if (rest.length) {
-                        seriesToRender.push({
-                          seriesName: tn('%s Other', '%s Others', rest.length),
-                          data: [timestamp, restSum],
-                          marker:
-                            '<span style="display:inline-block;margin-right:5px;border-radius:10px;width:10px;height:10px;"></span>',
-                        });
-                      }
-
-                      if (!seriesToRender.length) {
-                        return '<div/>';
-                      }
-
-                      const periodObj = parseStatsPeriod(interval) || {
-                        periodLength: 'd',
-                        period: '1',
-                      };
-                      const intervalStart = moment(timestamp).format('MMM D LT');
-                      const intervalEnd = (
-                        series[0].dataIndex === numDataPoints - 1
-                          ? moment(sessions.end)
-                          : moment(timestamp).add(
-                              parseInt(periodObj.period, 10),
-                              periodObj.periodLength as StatsPeriodType
-                            )
-                      ).format('MMM D LT');
-
-                      return [
-                        '<div class="tooltip-series">',
-                        seriesToRender
-                          .map(
-                            s =>
-                              `<div><span class="tooltip-label">${s.marker}<strong>${
-                                s.seriesName && truncationFormatter(s.seriesName, 12)
-                              }</strong></span>${s.data[1].toFixed(2)}%</div>`
-                          )
-                          .join(''),
-                        '</div>',
-                        `<div class="tooltip-date">${intervalStart} &mdash; ${intervalEnd}</div>`,
-                        `<div class="tooltip-arrow"></div>`,
-                      ].join('');
-                    },
-                  }}
-                  onClick={this.handleClick}
-                />
-              )}
-            </ChartZoom>
-          </TransitionChart>
+          {this.renderChart()}
         </PanelBody>
         <ChartFooter>
           <InlineContainer>

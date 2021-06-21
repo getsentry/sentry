@@ -4,7 +4,6 @@ import * as React from 'react';
 import {withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import echarts, {EChartOption, ECharts} from 'echarts/lib/echarts';
-import ReactEchartsCore from 'echarts-for-react/lib/core';
 
 import {IS_ACCEPTANCE_TEST} from 'app/constants';
 import space from 'app/styles/space';
@@ -23,6 +22,7 @@ import {
 } from 'app/types/echarts';
 import {Theme} from 'app/utils/theme';
 
+import ChartCore from './chartCore';
 import Grid from './components/grid';
 import Legend from './components/legend';
 import Tooltip from './components/tooltip';
@@ -30,6 +30,7 @@ import XAxis from './components/xAxis';
 import YAxis from './components/yAxis';
 import LineSeries from './series/lineSeries';
 import {getDimensionValue} from './utils';
+import {EchartsProps} from './types';
 
 // TODO(ts): What is the series type? EChartOption.Series's data cannot have
 // `onClick` since it's typically an array.
@@ -46,8 +47,7 @@ const handleClick = (clickSeries: any, instance: ECharts) => {
   }
 };
 
-type ReactEchartProps = React.ComponentProps<typeof ReactEchartsCore>;
-type ReactEChartOpts = NonNullable<ReactEchartProps['opts']>;
+type ReactEChartOpts = NonNullable<EchartsProps['opts']>;
 
 /**
  * Used for some properties that can be truncated
@@ -156,7 +156,7 @@ type Props = {
    * theme name
    * example theme: https://github.com/apache/incubator-echarts/blob/master/theme/dark.js
    */
-  echartsTheme?: ReactEchartProps['theme'];
+  echartsTheme?: EchartsProps['theme'];
   /**
    * states whether or not to merge with previous `option`
    */
@@ -184,7 +184,8 @@ type Props = {
   /**
    * Forwarded Ref
    */
-  forwardedRef?: React.Ref<ReactEchartsCore>;
+
+  forwardedRef?: React.Ref<React.Component>;
   /**
    * Custom chart props that are implemented by us (and not a feature of eCharts)
    *
@@ -411,13 +412,13 @@ function BaseChartUnwrapped({
         rendered: (props, instance) => onRendered?.(props, instance),
         legendselectchanged: (props, instance) =>
           onLegendSelectChanged?.(props, instance),
-      } as ReactEchartProps['onEvents']),
+      } as EchartsProps['onEvents']),
     [onclick, onHighlight, onMouseOver, onDataZoom, onRestore, onFinished, onRendered]
   );
 
   return (
     <ChartContainer>
-      <ReactEchartsCore
+      <ChartCore
         ref={forwardedRef}
         echarts={echarts}
         notMerge={notMerge}

@@ -4,14 +4,14 @@ import {EChartOption} from 'echarts';
 import {Series} from 'app/types/echarts';
 
 import LineSeries from './series/lineSeries';
-import BaseChart from './baseChart';
+import BaseChart from './baseChart2';
 
 type ChartProps = React.ComponentProps<typeof BaseChart>;
 
 export type LineChartSeries = Series &
   Omit<EChartOption.SeriesLine, 'data' | 'name'> & {
-    dataArray?: EChartOption.SeriesLine['data'];
-  };
+  dataArray?: EChartOption.SeriesLine['data'];
+};
 
 type Props = Omit<ChartProps, 'series'> & {
   series: LineChartSeries[];
