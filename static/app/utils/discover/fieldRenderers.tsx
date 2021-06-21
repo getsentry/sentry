@@ -453,6 +453,11 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
       return <NumberContainer>{emptyValue}</NumberContainer>;
     }
 
+    const userMisery = data[userMiseryField];
+    if (userMisery === null || isNaN(userMisery)) {
+      return <NumberContainer>{emptyValue}</NumberContainer>;
+    }
+
     const projectThresholdConfig = 'project_threshold_config';
     let countMiserableUserField: string = '';
 
@@ -472,7 +477,6 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
     }
 
     const uniqueUsers = data.count_unique_user;
-    const userMisery = data[userMiseryField];
 
     let miserableUsers: number | undefined;
 
