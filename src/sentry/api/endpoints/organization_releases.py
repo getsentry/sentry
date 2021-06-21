@@ -11,6 +11,7 @@ from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ConflictError, InvalidRepository
 from sentry.api.paginator import MergingOffsetPaginator, OffsetPaginator
+from sentry.api.release_search import RELEASE_FREE_TEXT_KEY, parse_search_query
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import (
     ListField,
@@ -200,13 +201,16 @@ class OrganizationReleasesEndpoint(
         queryset = add_environment_to_queryset(queryset, filter_params)
 
         if query:
-            query_q = Q(version__icontains=query)
+            search_filters = parse_search_query(query)
+            # TODO: Handle semver here as well
+            for search_filter in search_filters:
+                if search_filter.key.name == RELEASE_FREE_TEXT_KEY:
+                    query_q = Q(version__icontains=query)
+                    suffix_match = _release_suffix.match(query)
+                    if suffix_match is not None:
+                        query_q |= Q(version__icontains="%s+%s" % suffix_match.groups())
 
-            suffix_match = _release_suffix.match(query)
-            if suffix_match is not None:
-                query_q |= Q(version__icontains="%s+%s" % suffix_match.groups())
-
-            queryset = queryset.filter(query_q)
+                    queryset = queryset.filter(query_q)
 
         select_extra = {}
 
