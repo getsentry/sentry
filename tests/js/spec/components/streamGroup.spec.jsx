@@ -58,7 +58,7 @@ describe('StreamGroup', function () {
     expect(component).toSnapshot();
   });
 
-  it('marks as reviewed while on for review tab', function () {
+  it('marks as reviewed', function () {
     const {routerContext, organization} = initializeOrg();
     const wrapper = mountWithTheme(
       <StreamGroup
@@ -74,7 +74,6 @@ describe('StreamGroup', function () {
       routerContext
     );
 
-    expect(wrapper).toSnapshot();
     const streamGroup = wrapper.find('StreamGroup');
     expect(streamGroup.state('reviewed')).toBe(false);
     GROUP_1.inbox = false;
