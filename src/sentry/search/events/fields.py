@@ -449,8 +449,7 @@ def resolve_field_list(
                     aggregate_fields[format_column_as_key(function.aggregate[1])].add(field)
 
     # Only auto aggregate when there's one other so the group by is not unexpectedly changed
-    auto_aggregate = auto_aggregations and snuba_filter.having and len(aggregations) > 0
-    if auto_aggregate:
+    if auto_aggregations and snuba_filter.having and len(aggregations) > 0:
         for agg in snuba_filter.condition_aggregates:
             if agg not in snuba_filter.aliases:
                 function = resolve_field(agg, snuba_filter.params, functions_acl)
@@ -464,10 +463,7 @@ def resolve_field_list(
                         if function.details.instance.redundant_grouping:
                             aggregate_fields[format_column_as_key(function.aggregate[1])].add(field)
 
-    snuba_filter_condition_aggregates = (
-        set(snuba_filter.condition_aggregates or []) if auto_aggregate else set()
-    )
-    for field in set(fields[:]).union(snuba_filter_condition_aggregates):
+    for field in aggregations:
         if isinstance(field, str) and field in {
             "apdex()",
             "count_miserable(user)",
