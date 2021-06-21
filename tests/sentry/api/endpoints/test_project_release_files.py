@@ -3,6 +3,7 @@ from django.urls import reverse
 
 from sentry.db.models.fields import uuid
 from sentry.models import File, Release, ReleaseFile
+from sentry.models.distribution import Distribution
 from sentry.models.releasefile import ARTIFACT_INDEX_FILENAME
 from sentry.testutils import APITestCase
 
@@ -81,6 +82,14 @@ class ReleaseFilesListTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
 
+        # artifact index with artifact_count=0 is excluded
+        ReleaseFile.objects.get(release=release, name=ARTIFACT_INDEX_FILENAME).update(
+            artifact_count=0
+        )
+        response = self.client.get(url)
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 0
+
         # artifact index with artifact_count is included
         ReleaseFile.objects.get(release=release, name=ARTIFACT_INDEX_FILENAME).update(
             artifact_count=42
@@ -100,6 +109,17 @@ class ReleaseFilesListTest(APITestCase):
         response = self.client.get(url)
         assert response.status_code == 200, response.content
         assert len(response.data) == 4
+
+        # Additional dist is included
+        self.create_release_archive(
+            dist=Distribution.objects.create(
+                organization_id=self.organization.id, release=release, name="foo"
+            )
+        )
+        response = self.client.get(url)
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 6
+        print(response.data)
 
 
 class ReleaseFileCreateTest(APITestCase):

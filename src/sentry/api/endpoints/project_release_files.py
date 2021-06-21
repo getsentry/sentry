@@ -59,16 +59,14 @@ class ReleaseFilesMixin:
                 condition |= Q(name__icontains=name)
             file_list = file_list.filter(condition)
 
-        if file_list is not None:
-            data_sources.append(CombinedQuerysetIntermediary(file_list, order_by=["name"]))
+        data_sources.append(CombinedQuerysetIntermediary(file_list, order_by=["name"]))
 
         # Get contents of release archive as well:
-        # TODO: test multiple dists
         dists = Distribution.objects.filter(organization_id=organization_id, release=release)
         for dist in list(dists) + [None]:
             try:
                 # Only Read from artifact index if it has a positive artifact count
-                artifact_index = read_artifact_index(release, dist, artifact_count__isnull=0)
+                artifact_index = read_artifact_index(release, dist, artifact_count__gt=0)
             except BaseException as exc:
                 logger.error("Failed to read artifact index", exc_info=exc)
                 artifact_index = None
