@@ -39,9 +39,11 @@ describe('Performance GridEditable Table', function () {
   let fields;
   let organization;
   let data;
+  let transactionName;
   const query =
     'transaction.duration:<15m event.type:transaction transaction:/api/0/organizations/{organization_slug}/eventsv2/';
   beforeEach(function () {
+    transactionName = 'transactionName';
     transactionsListTitles = [
       t('event id'),
       t('user'),
@@ -169,6 +171,7 @@ describe('Performance GridEditable Table', function () {
         location={initialData.router.location}
         setError={this.setError}
         columnTitles={transactionsListTitles}
+        transactionName={transactionName}
       />,
       initialData.routerContext
     );
@@ -217,6 +220,7 @@ describe('Performance GridEditable Table', function () {
         location={initialData.router.location}
         setError={this.setError}
         columnTitles={transactionsListTitles}
+        transactionName={transactionName}
       />,
       initialData.routerContext
     );

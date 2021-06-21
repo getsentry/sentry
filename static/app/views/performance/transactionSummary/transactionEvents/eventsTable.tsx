@@ -17,11 +17,7 @@ import {trackAnalyticsEvent} from 'app/utils/analytics';
 import DiscoverQuery, {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
 import EventView, {EventData, isFieldSortable} from 'app/utils/discover/eventView';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
-import {
-  fieldAlignment,
-  getAggregateAlias,
-  SPAN_OP_BREAKDOWN_FIELDS,
-} from 'app/utils/discover/fields';
+import {fieldAlignment, getAggregateAlias} from 'app/utils/discover/fields';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 import CellAction, {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
 import {TableColumn} from 'app/views/eventsV2/table/types';
@@ -74,6 +70,7 @@ type Props = {
   location: Location;
   setError: (msg: string | undefined) => void;
   columnTitles?: string[];
+  transactionName: string;
 };
 
 type State = {
@@ -119,23 +116,15 @@ class EventsTable extends React.Component<Props, State> {
     column: TableColumn<keyof TableDataRow>,
     dataRow: TableDataRow
   ): React.ReactNode {
-    const {eventView, organization, location} = this.props;
+    const {eventView, organization, location, transactionName} = this.props;
 
     if (!tableData || !tableData.meta) {
       return dataRow[column.key];
     }
     const tableMeta = tableData.meta;
-    // Attach sort to the metadata if sorting by a span operation. This is so fieldRenderer will know which breakdown to display first.
-    if (
-      location.query.sort &&
-      typeof location.query.sort === 'string' &&
-      SPAN_OP_BREAKDOWN_FIELDS.includes(location.query.sort.replace(/^-/, ''))
-    ) {
-      dataRow.sortedBy = location.query.sort.replace(/^-/, '');
-    }
     const field = String(column.key);
     const fieldRenderer = getFieldRenderer(field, tableMeta);
-    const rendered = fieldRenderer(dataRow, {organization, location});
+    const rendered = fieldRenderer(dataRow, {organization, location, eventView});
 
     const allowActions = [
       Actions.ADD,
@@ -146,11 +135,7 @@ class EventsTable extends React.Component<Props, State> {
 
     if (field === 'id' || field === 'trace') {
       const generateLink = field === 'id' ? generateTransactionLink : generateTraceLink;
-      const target = generateLink(eventView.name as string)(
-        organization,
-        dataRow,
-        location.query
-      );
+      const target = generateLink(transactionName)(organization, dataRow, location.query);
 
       return (
         <CellAction

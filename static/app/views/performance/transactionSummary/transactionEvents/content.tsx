@@ -24,7 +24,7 @@ import {TableColumn} from 'app/views/eventsV2/table/types';
 import {getCurrentLandingDisplay, LandingDisplayField} from '../../landing/utils';
 import TransactionHeader, {Tab} from '../header';
 
-import Table from './eventsTable';
+import EventsTable from './eventsTable';
 
 type Props = {
   location: Location;
@@ -133,12 +133,13 @@ class EventsPageContent extends React.Component<Props, State> {
           <Layout.Main fullWidth>
             <Search {...this.props} />
             <StyledTable>
-              <Table
+              <EventsTable
                 eventView={eventView}
                 organization={organization}
                 location={location}
                 setError={this.setError}
                 columnTitles={transactionsListTitles}
+                transactionName={transactionName}
               />
             </StyledTable>
           </Layout.Main>

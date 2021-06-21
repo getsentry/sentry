@@ -17,6 +17,7 @@ import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import {defined} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
+import EventView, {EventData, MetaType} from 'app/utils/discover/eventView';
 import {
   AGGREGATIONS,
   getAggregateAlias,
@@ -37,7 +38,6 @@ import {
 } from 'app/views/performance/transactionSummary/filter';
 
 import ArrayValue from './arrayValue';
-import {EventData, MetaType} from './eventView';
 import KeyTransactionField from './keyTransactionField';
 import {
   BarContainer,
@@ -58,6 +58,7 @@ import TeamKeyTransactionField from './teamKeyTransactionField';
 type RenderFunctionBaggage = {
   organization: Organization;
   location: Location;
+  eventView?: EventView;
 };
 
 type FieldFormatterRenderFunction = (field: string, data: EventData) => React.ReactNode;
@@ -545,7 +546,7 @@ const isDurationValue = (data: EventData, field: string): boolean => {
 
 const spanOperationRelativeBreakdownRenderer = (
   data: EventData,
-  {location, organization}: RenderFunctionBaggage
+  {location, organization, eventView}: RenderFunctionBaggage
 ): React.ReactNode => {
   const sumOfSpanTime = SPAN_OP_BREAKDOWN_FIELDS.reduce(
     (prev, curr) => (isDurationValue(data, curr) ? prev + data[curr] : prev),
@@ -563,10 +564,13 @@ const spanOperationRelativeBreakdownRenderer = (
 
   let otherPercentage = 1;
   let orderedSpanOpsBreakdownFields;
-  if (data.sortedBy && SPAN_OP_BREAKDOWN_FIELDS.includes(data.sortedBy)) {
+  if (
+    eventView?.sorts?.[0].field &&
+    SPAN_OP_BREAKDOWN_FIELDS.includes(eventView.sorts[0].field)
+  ) {
     orderedSpanOpsBreakdownFields = [
-      data.sortedBy,
-      ...SPAN_OP_BREAKDOWN_FIELDS.filter(op => op !== data.sortedBy),
+      eventView.sorts[0].field,
+      ...SPAN_OP_BREAKDOWN_FIELDS.filter(op => op !== eventView.sorts[0].field),
     ];
   } else {
     orderedSpanOpsBreakdownFields = SPAN_OP_BREAKDOWN_FIELDS;
