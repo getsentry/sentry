@@ -151,8 +151,13 @@ def transform_data(result, translated_columns, snuba_filter):
     def get_row(row):
         transformed = {}
         for key, value in row.items():
-            if isinstance(value, float) and math.isnan(value):
-                value = 0
+            if isinstance(value, float):
+                # 0 for nan, and none for inf were chosen arbitrarily, nan and inf are invalid json
+                # so needed to pick something valid to use instead
+                if math.isnan(value):
+                    value = 0
+                elif math.isinf(value):
+                    value = None
             transformed[translated_columns.get(key, key)] = value
 
         return transformed
