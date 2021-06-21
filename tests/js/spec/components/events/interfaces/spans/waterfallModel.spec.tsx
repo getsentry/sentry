@@ -160,4 +160,26 @@ describe('WaterfallModel', () => {
     waterfallModel.toggleAllOperationNameFilters();
     expect(waterfallModel.operationNameFilters).toEqual(noFilter);
   });
+
+  it('querySpanSearch', async () => {
+    const waterfallModel = new WaterfallModel(event);
+    expect(waterfallModel.fuse).toBe(undefined);
+
+    // Fuzzy search needs to be loaded asynchronously
+    // @ts-expect-error
+    await tick();
+
+    // expect fuse index to be created
+    expect(waterfallModel.fuse).not.toBe(undefined);
+
+    expect(waterfallModel.filterSpans).toBe(undefined);
+    expect(waterfallModel.searchQuery).toBe(undefined);
+
+    waterfallModel.querySpanSearch('GET /api/0/organizations/?member=1');
+
+    expect(Array.from(waterfallModel.filterSpans!.spanIDs).sort()).toEqual(
+      ['a453cc713e5baf9c', 'b23703998ae619e7'].sort()
+    );
+    expect(waterfallModel.searchQuery).toBe('GET /api/0/organizations/?member=1');
+  });
 });

@@ -154,7 +154,7 @@ class GroupList extends React.Component<Props, State> {
   }
 
   handleCursorChange(
-    cursor: string,
+    cursor: string | undefined,
     path: string,
     query: Record<string, any>,
     pageDiff: number
@@ -163,19 +163,18 @@ class GroupList extends React.Component<Props, State> {
     let nextPage: number | undefined = isNaN(queryPageInt)
       ? pageDiff
       : queryPageInt + pageDiff;
-    let nextCursor: string | undefined = cursor;
 
     // unset cursor and page when we navigate back to the first page
     // also reset cursor if somehow the previous button is enabled on
     // first page and user attempts to go backwards
     if (nextPage <= 0) {
-      nextCursor = undefined;
+      cursor = undefined;
       nextPage = undefined;
     }
 
     browserHistory.push({
       pathname: path,
-      query: {...query, cursor: nextCursor},
+      query: {...query, cursor, page: nextPage},
     });
   }
 

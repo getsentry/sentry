@@ -176,6 +176,11 @@ def get_project_releases_by_stability(
     filter_keys = {"project_id": project_ids}
     rv = []
 
+    # Filter out releases with zero users when sorting by either `users` or `crash_free_users`
+    having_dict = {}
+    if scope in ["users", "crash_free_users"]:
+        having_dict["having"] = [["users", ">", 0]]
+
     for x in raw_query(
         dataset=Dataset.Sessions,
         selected_columns=["project_id", "release"],
@@ -185,6 +190,7 @@ def get_project_releases_by_stability(
         offset=offset,
         limit=limit,
         conditions=conditions,
+        **having_dict,
         filter_keys=filter_keys,
         referrer="sessions.stability-sort",
     )["data"]:
