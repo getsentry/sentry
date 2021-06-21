@@ -96,12 +96,12 @@ const ProjectAndBranch = styled('div')`
   color: ${p => p.theme.gray300};
 `;
 
-//match the line height of the badge
+// match the line height of the badge
 const BranchWrapper = styled('div')`
   line-height: 1.2;
 `;
 
-//Columns below
+// Columns below
 const Column = styled('span')`
   overflow: hidden;
   overflow-wrap: break-word;

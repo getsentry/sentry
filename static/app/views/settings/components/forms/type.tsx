@@ -115,7 +115,7 @@ type InputType = {type: 'string' | 'secret'} & {
 type SelectControlType = {type: 'choice' | 'select'} & {
   multiple?: boolean;
   allowClear?: boolean;
-  options?: Array<{label: string; value: any}>; //for new select
+  options?: Array<{label: string; value: any}>; // for new select
   defaultOptions?: Array<{label: string; value: any}> | boolean;
   filterOption?: ReturnType<typeof createFilter>;
   noOptionsMessage?: () => string;
@@ -147,10 +147,10 @@ export type TableType = {
    * The confirmation message before a a row is deleted
    */
   confirmDeleteMessage?: string;
-  //TODO(TS): Should we have addButtonText and allowEmpty here as well?
+  // TODO(TS): Should we have addButtonText and allowEmpty here as well?
 };
 
-//maps a sentry project to another field
+// maps a sentry project to another field
 export type ProjectMapperType = {
   type: 'project_mapper';
   mappedDropdown: {
@@ -159,7 +159,7 @@ export type ProjectMapperType = {
   };
   sentryProjects: Array<AvatarProject & {id: number; name: string}>;
   nextButton: {
-    text: string; //url comes from the `next` parameter in the QS
+    text: string; // url comes from the `next` parameter in the QS
     description?: string;
     allowedDomain: string;
   };
@@ -170,7 +170,7 @@ export type ChoiceMapperType = {
   type: 'choice_mapper';
 } & ChoiceMapperProps;
 
-//selects a sentry project with avatars
+// selects a sentry project with avatars
 export type SentryProjectSelectorType = {
   type: 'sentry_project_selector';
   projects: Project[];

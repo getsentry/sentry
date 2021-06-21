@@ -16,7 +16,7 @@ const getPlaceholderForType = (type: ActionType) => {
     case ActionType.SLACK:
       return '@username or #channel';
     case ActionType.MSTEAMS:
-      //no prefixes for msteams
+      // no prefixes for msteams
       return 'username or channel';
     case ActionType.PAGERDUTY:
       return 'service';
