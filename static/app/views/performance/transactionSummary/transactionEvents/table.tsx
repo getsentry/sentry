@@ -1,5 +1,6 @@
 import * as React from 'react';
 import * as ReactRouter from 'react-router';
+import styled from '@emotion/styled';
 import {Location, LocationDescriptorObject} from 'history';
 
 import {fetchLegacyKeyTransactionsCount} from 'app/actionCreators/performance';
@@ -9,20 +10,31 @@ import SortLink from 'app/components/gridEditable/sortLink';
 import Link from 'app/components/links/link';
 import Pagination from 'app/components/pagination';
 import Tooltip from 'app/components/tooltip';
-import {IconStar} from 'app/icons';
+import {IconQuestion, IconStar} from 'app/icons';
+import {t} from 'app/locale';
 import {Organization, Project} from 'app/types';
 import {defined} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import DiscoverQuery, {TableData, TableDataRow} from 'app/utils/discover/discoverQuery';
 import EventView, {EventData, isFieldSortable} from 'app/utils/discover/eventView';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
-import {fieldAlignment, getAggregateAlias} from 'app/utils/discover/fields';
+import {
+  fieldAlignment,
+  getAggregateAlias,
+  SPAN_OP_BREAKDOWN_FIELDS,
+} from 'app/utils/discover/fields';
 import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
 import CellAction, {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
 import {TableColumn} from 'app/views/eventsV2/table/types';
 
-import {transactionSummaryRouteWithQuery} from './transactionSummary/utils';
-import {COLUMN_TITLES} from './data';
+import {COLUMN_TITLES} from '../../data';
+import {
+  generateTraceLink,
+  generateTransactionLink,
+  transactionSummaryRouteWithQuery,
+} from '../utils';
+
+import OperationSort, {TitleProps} from './operationSort';
 
 export function getProjectID(
   eventData: EventData,
@@ -41,6 +53,24 @@ export function getProjectID(
   }
 
   return project.id;
+}
+
+class OperationTitle extends React.Component<TitleProps> {
+  render() {
+    const {onClick} = this.props;
+    return (
+      <div onClick={onClick}>
+        <span>{t('operation duration')}</span>
+        <Tooltip
+          title={t(
+            'Span durations are summed over the course of an entire transaction. Any overlapping spans are only counted once.'
+          )}
+        >
+          <StyledIconQuestion size="xs" color="gray400" />
+        </Tooltip>
+      </div>
+    );
+  }
 }
 
 type Props = {
@@ -118,7 +148,14 @@ class Table extends React.Component<Props, State> {
       return dataRow[column.key];
     }
     const tableMeta = tableData.meta;
-
+    // Attach sort to the metadata if sorting by a span operation. This is so fieldRenderer will know which breakdown to display first.
+    if (
+      location.query.sort &&
+      typeof location.query.sort === 'string' &&
+      SPAN_OP_BREAKDOWN_FIELDS.includes(location.query.sort.replace(/^-/, ''))
+    ) {
+      dataRow.sortedBy = location.query.sort.replace(/^-/, '');
+    }
     const field = String(column.key);
     const fieldRenderer = getFieldRenderer(field, tableMeta);
     const rendered = fieldRenderer(dataRow, {organization, location});
@@ -145,6 +182,28 @@ class Table extends React.Component<Props, State> {
         query: summaryView.generateQueryStringObject(),
         projectID,
       });
+
+      return (
+        <CellAction
+          column={column}
+          dataRow={dataRow}
+          handleCellAction={this.handleCellAction(column)}
+          allowActions={allowActions}
+        >
+          <Link to={target} onClick={this.handleSummaryClick}>
+            {rendered}
+          </Link>
+        </CellAction>
+      );
+    }
+
+    if (field === 'id' || field === 'trace') {
+      const generateLink = field === 'id' ? generateTransactionLink : generateTraceLink;
+      const target = generateLink(eventView.name as string)(
+        organization,
+        dataRow,
+        location.query
+      );
 
       return (
         <CellAction
@@ -245,10 +304,26 @@ class Table extends React.Component<Props, State> {
       };
     }
     const currentSort = eventView.sortForField(field, tableMeta);
-    const canSort = isFieldSortable(field, tableMeta);
+    // Event id and Trace id are technically sortable but we don't want to sort them here since sorting by a uuid value doesn't make sense
+    const canSort =
+      field.field !== 'id' &&
+      field.field !== 'trace' &&
+      field.field !== 'span_ops_breakdown.relative' &&
+      isFieldSortable(field, tableMeta);
 
     const currentSortKind = currentSort ? currentSort.kind : undefined;
     const currentSortField = currentSort ? currentSort.field : undefined;
+
+    if (field.field === 'span_ops_breakdown.relative') {
+      title = (
+        <OperationSort
+          title={OperationTitle}
+          eventView={eventView}
+          tableMeta={tableMeta}
+          location={location}
+        />
+      );
+    }
 
     const sortLink = (
       <SortLink
@@ -367,16 +442,23 @@ class Table extends React.Component<Props, State> {
     const {eventView, organization, location, setError} = this.props;
 
     const {widths} = this.state;
+    const containsSpanOpsBreakdown = eventView
+      .getColumns()
+      .find(
+        (col: TableColumn<React.ReactText>) => col.name === 'span_ops_breakdown.relative'
+      );
     const columnOrder = eventView
       .getColumns()
       // remove key_transactions from the column order as we'll be rendering it
       // via a prepended column
+      // also remove spans if span_ops_breakdown is a column
       .filter(
         (col: TableColumn<React.ReactText>) =>
           col.name !== 'key_transaction' &&
           col.name !== 'team_key_transaction' &&
           !col.name.startsWith('count_miserable') &&
-          col.name !== 'project_threshold_config'
+          col.name !== 'project_threshold_config' &&
+          (!containsSpanOpsBreakdown || !col.name.startsWith('spans'))
       )
       .map((col: TableColumn<React.ReactText>, i: number) => {
         if (typeof widths[i] === 'number') {
@@ -388,7 +470,17 @@ class Table extends React.Component<Props, State> {
     const sortedEventView = this.getSortedEventView();
     const columnSortBy = sortedEventView.getSorts();
 
-    const prependColumnWidths = ['max-content'];
+    const containsKeyTransactionColumn = !!(
+      eventView
+        .getColumns()
+        .find((col: TableColumn<React.ReactText>) => col.name === 'key_transaction') ||
+      eventView
+        .getColumns()
+        .find((col: TableColumn<React.ReactText>) => col.name === 'team_key_transaction')
+    );
+    const prependColumnWidths = containsKeyTransactionColumn
+      ? ['max-content']
+      : undefined;
 
     return (
       <div>
@@ -399,29 +491,39 @@ class Table extends React.Component<Props, State> {
           setError={setError}
           referrer="api.performance.landing-table"
         >
-          {({pageLinks, isLoading, tableData}) => (
-            <React.Fragment>
-              <GridEditable
-                isLoading={isLoading}
-                data={tableData ? tableData.data : []}
-                columnOrder={columnOrder}
-                columnSortBy={columnSortBy}
-                grid={{
-                  onResizeColumn: this.handleResizeColumn,
-                  renderHeadCell: this.renderHeadCellWithMeta(tableData?.meta) as any,
-                  renderBodyCell: this.renderBodyCellWithData(tableData) as any,
-                  renderPrependColumns: this.renderPrependCellWithData(tableData) as any,
-                  prependColumnWidths,
-                }}
-                location={location}
-              />
-              <Pagination pageLinks={pageLinks} />
-            </React.Fragment>
-          )}
+          {({pageLinks, isLoading, tableData}) => {
+            return (
+              <React.Fragment>
+                <GridEditable
+                  isLoading={isLoading}
+                  data={tableData ? tableData.data : []}
+                  columnOrder={columnOrder}
+                  columnSortBy={columnSortBy}
+                  grid={{
+                    onResizeColumn: this.handleResizeColumn,
+                    renderHeadCell: this.renderHeadCellWithMeta(tableData?.meta) as any,
+                    renderBodyCell: this.renderBodyCellWithData(tableData) as any,
+                    renderPrependColumns: containsKeyTransactionColumn
+                      ? (this.renderPrependCellWithData(tableData) as any)
+                      : undefined,
+                    prependColumnWidths,
+                  }}
+                  location={location}
+                />
+                <Pagination pageLinks={pageLinks} />
+              </React.Fragment>
+            );
+          }}
         </DiscoverQuery>
       </div>
     );
   }
 }
+
+const StyledIconQuestion = styled(IconQuestion)`
+  position: relative;
+  top: 2px;
+  left: 4px;
+`;
 
 export default Table;

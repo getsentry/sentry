@@ -22,8 +22,9 @@ import {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
 import {TableColumn} from 'app/views/eventsV2/table/types';
 
 import {getCurrentLandingDisplay, LandingDisplayField} from '../../landing/utils';
-import Table from '../../table';
 import TransactionHeader, {Tab} from '../header';
+
+import Table from './table';
 
 type Props = {
   location: Location;
