@@ -89,7 +89,7 @@ describe('Organization Developer Settings', function () {
     });
 
     it('can make a request to publish an integration', async () => {
-      //add mocks that App calls
+      // add mocks that App calls
       Client.addMockResponse({
         url: '/internal/health/',
         body: {
@@ -125,7 +125,7 @@ describe('Organization Developer Settings', function () {
         method: 'POST',
       });
 
-      //mock with App to render modal
+      // mock with App to render modal
       wrapper = mountWithTheme(
         <App>
           <OrganizationDeveloperSettings params={{orgId: org.slug}} organization={org} />

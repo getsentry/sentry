@@ -3005,10 +3005,41 @@ class TimeseriesQueryTest(TimeseriesBase):
             rollup=3600,
         )
         assert len(result.data["data"]) == 3
-        keys = []
+        keys = set()
         for row in result.data["data"]:
-            keys.extend(list(row.keys()))
-        assert "count" in keys
+            keys.update(list(row.keys()))
+        assert "count_unique_user" in keys
+        assert "time" in keys
+
+    def test_equation_function(self):
+        result = discover.timeseries_query(
+            selected_columns=["equation|count() / 100"],
+            query="",
+            params={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=2),
+                "project_id": [self.project.id],
+            },
+            rollup=3600,
+        )
+        assert len(result.data["data"]) == 3
+        assert [0.02] == [val["equation[0]"] for val in result.data["data"] if "equation[0]" in val]
+
+        result = discover.timeseries_query(
+            selected_columns=["equation|count_unique(user) / 100"],
+            query="",
+            params={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=2),
+                "project_id": [self.project.id],
+            },
+            rollup=3600,
+        )
+        assert len(result.data["data"]) == 3
+        keys = set()
+        for row in result.data["data"]:
+            keys.update(list(row.keys()))
+        assert "equation[0]" in keys
         assert "time" in keys
 
     def test_zerofilling(self):
@@ -3612,3 +3643,32 @@ class ArithmeticTest(SnubaTestCase, TestCase):
         result = results["data"][0]
         assert result["equation[0]"] == result["p50_transaction_duration"] + 2
         assert result["equation[1]"] == result["p50_transaction_duration"] / result["count"]
+
+    def test_multiple_operators(self):
+        results = discover.query(
+            selected_columns=[
+                "p50(transaction.duration)",
+                "p100(transaction.duration)",
+                "count()",
+            ],
+            equations=[
+                "p50(transaction.duration) / p100(transaction.duration) * 100",
+                "100 + count() * 5 - 3 / 5",
+                "count() + count() / count() * count() - count()",
+            ],
+            query=self.query,
+            params=self.params,
+        )
+        assert len(results["data"]) == 1
+        result = results["data"][0]
+        assert (
+            result["equation[0]"]
+            == result["p50_transaction_duration"] / result["p100_transaction_duration"] * 100
+        )
+        assert result["equation[1]"] == 100 + result["count"] * 5 - 3 / 5
+        assert (
+            result["equation[2]"]
+            == result["count"]
+            + result["count"] / result["count"] * result["count"]
+            - result["count"]
+        )

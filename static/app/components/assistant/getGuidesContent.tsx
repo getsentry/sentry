@@ -316,7 +316,7 @@ function getDemoModeGuides(): GuidesContent {
     {
       guide: 'sidebar',
       requiredTargets: ['projects', 'issues'],
-      priority: 1, //lower number means higher priority
+      priority: 1, // lower number means higher priority
       markOthersAsSeen: true,
       steps: [
         {
