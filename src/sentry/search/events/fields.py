@@ -433,7 +433,8 @@ def resolve_field_list(
         if "project.id" not in fields:
             fields.append("project.id")
 
-    for field in fields[:] + snuba_filter.condition_aggregates:
+    snuba_condition_aggregates = snuba_filter.condition_aggregates or []
+    for field in fields[:] + snuba_condition_aggregates:
         if isinstance(field, str) and field in {
             "apdex()",
             "count_miserable(user)",
