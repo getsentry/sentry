@@ -27,7 +27,7 @@ export function getInnerNameLabel(name: DynamicSamplingInnerName) {
       return t('Legacy Browsers');
     default: {
       Sentry.captureException(new Error('Unknown dynamic sampling condition inner name'));
-      return null; //this shall never happen
+      return null; // this shall never happen
     }
   }
 }

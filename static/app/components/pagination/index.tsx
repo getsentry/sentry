@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import {Component, ReactElement} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Query} from 'history';
@@ -8,6 +8,7 @@ import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import {IconChevron} from 'app/icons';
 import {t} from 'app/locale';
+import space from 'app/styles/space';
 import {callIfFunction} from 'app/utils/callIfFunction';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
 
@@ -27,9 +28,13 @@ type DefaultProps = {
 };
 
 type Props = DefaultProps & {
-  className?: string;
   pageLinks?: string | null;
   to?: string;
+  /**
+   * The caption must be the PaginationCaption component
+   */
+  caption?: ReactElement;
+  className?: string;
 };
 
 class Pagination extends Component<Props> {
@@ -40,7 +45,7 @@ class Pagination extends Component<Props> {
   static defaultProps = defaultProps;
 
   render() {
-    const {className, onCursor, pageLinks, size} = this.props;
+    const {className, onCursor, pageLinks, size, caption} = this.props;
     if (!pageLinks) {
       return null;
     }
@@ -53,7 +58,8 @@ class Pagination extends Component<Props> {
     const nextDisabled = links.next.results === false;
 
     return (
-      <div className={className}>
+      <Wrapper className={className}>
+        {caption}
         <ButtonBar merged>
           <Button
             icon={<IconChevron direction="left" size="sm" />}
@@ -74,14 +80,16 @@ class Pagination extends Component<Props> {
             }}
           />
         </ButtonBar>
-      </div>
+      </Wrapper>
     );
   }
 }
 
-export default styled(Pagination)`
+const Wrapper = styled('div')`
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  margin: 20px 0 0 0;
+  margin: ${space(3)} 0 0 0;
 `;
+
+export default Pagination;

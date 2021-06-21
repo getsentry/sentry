@@ -8,7 +8,7 @@ type ShowParams = MobilePromptBannerParams & {
   mobileEventClientOsName: string;
 };
 
-//define the event key to payload mappings
+// define the event key to payload mappings
 export type GrowthEventParameters = {
   'growth.show_mobile_prompt_banner': ShowParams;
   'growth.dismissed_mobile_prompt_banner': MobilePromptBannerParams;
