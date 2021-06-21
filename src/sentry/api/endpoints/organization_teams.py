@@ -56,6 +56,8 @@ class TeamSerializer(serializers.Serializer):
 class OrganizationTeamsEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationTeamsPermission,)
 
+    team_serializer = team_serializers.TeamSerializer
+
     def get(self, request, organization):
         """
         List an Organization's Teams
@@ -124,7 +126,10 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
             paginator_cls=OffsetPaginator,
         )
 
-    def post(self, request, organization):
+    def should_add_creator_to_team(self, request):
+        return request.user.is_authenticated
+
+    def post(self, request, organization, **kwargs):
         """
         Create a new Team
         ``````````````````
@@ -164,8 +169,7 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
                 team_created.send_robust(
                     organization=organization, user=request.user, team=team, sender=self.__class__
                 )
-
-            if request.user.is_authenticated:
+            if self.should_add_creator_to_team(request):
                 try:
                     member = OrganizationMember.objects.get(
                         user=request.user, organization=organization
@@ -182,6 +186,8 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
                 event=AuditLogEntryEvent.TEAM_ADD,
                 data=team.get_audit_log_data(),
             )
-
-            return Response(serialize(team, request.user), status=201)
+            return Response(
+                serialize(team, request.user, self.team_serializer()),
+                status=201,
+            )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
