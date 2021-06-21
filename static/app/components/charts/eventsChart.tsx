@@ -21,7 +21,7 @@ import {DateString, OrganizationSummary} from 'app/types';
 import {Series} from 'app/types/echarts';
 import {defined} from 'app/utils';
 import {axisLabelFormatter, tooltipFormatter} from 'app/utils/discover/charts';
-import {aggregateMultiPlotType} from 'app/utils/discover/fields';
+import {aggregateMultiPlotType, getEquation, isEquation} from 'app/utils/discover/fields';
 import {Theme} from 'app/utils/theme';
 
 import EventsRequest from './eventsRequest';
@@ -386,9 +386,13 @@ class EventsChart extends React.Component<EventsChartProps> {
     // Include previous only on relative dates (defaults to relative if no start and end)
     const includePrevious = !disablePrevious && !start && !end;
 
+    let yAxisLabel = isEquation(yAxis) ? getEquation(yAxis) : yAxis;
+    if (yAxisLabel.length > 60) {
+      yAxisLabel = yAxisLabel.substr(0, 60) + '...';
+    }
     const previousSeriesName =
-      previousName ?? (yAxis ? t('previous %s', yAxis) : undefined);
-    const currentSeriesName = currentName ?? yAxis;
+      previousName ?? (yAxisLabel ? t('previous %s', yAxisLabel) : undefined);
+    const currentSeriesName = currentName ?? yAxisLabel;
 
     const intervalVal = showDaily ? '1d' : interval || getInterval(this.props, true);
 

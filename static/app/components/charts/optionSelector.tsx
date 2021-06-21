@@ -8,6 +8,7 @@ import DropdownButton from 'app/components/dropdownButton';
 import {DropdownItem} from 'app/components/dropdownControl';
 import DropdownMenu from 'app/components/dropdownMenu';
 import Tooltip from 'app/components/tooltip';
+import Truncate from 'app/components/truncate';
 import space from 'app/styles/space';
 import {SelectValue} from 'app/types';
 
@@ -67,7 +68,11 @@ class OptionSelector extends Component<Props, State> {
             {({isOpen, getMenuProps, getActorProps}) => (
               <Fragment>
                 <StyledDropdownButton {...getActorProps()} size="zero" isOpen={isOpen}>
-                  {selectedOption.label}
+                  <Truncate
+                    value={String(selectedOption.label)}
+                    maxLength={60}
+                    expandable={false}
+                  />
                 </StyledDropdownButton>
                 <StyledDropdownBubble
                   {...getMenuProps()}
@@ -88,7 +93,12 @@ class OptionSelector extends Component<Props, State> {
                       data-test-id={`option-${opt.value}`}
                     >
                       <Tooltip title={opt.tooltip} containerDisplayMode="inline">
-                        {opt.label}
+                        <StyledTruncate
+                          isActive={selected === opt.value}
+                          value={String(opt.label)}
+                          maxLength={60}
+                          expandDirection="left"
+                        />
                       </Tooltip>
                     </StyledDropdownItem>
                   ))}
@@ -101,6 +111,20 @@ class OptionSelector extends Component<Props, State> {
     );
   }
 }
+
+const StyledTruncate = styled(Truncate)<{
+  isActive: boolean;
+}>`
+  & span {
+    ${p =>
+      p.isActive &&
+      `
+      color: ${p.theme.white};
+      background: ${p.theme.active};
+      border: none;
+    `}
+  }
+`;
 
 const MenuContainer = styled('div')`
   display: inline-block;
@@ -118,6 +142,7 @@ const StyledDropdownBubble = styled(DropdownBubble)<{
   minWidth?: number;
 }>`
   display: ${p => (p.isOpen ? 'block' : 'none')};
+  overflow: visible;
   ${p =>
     p.minWidth && p.width === 'auto' && `min-width: calc(${p.minWidth}px + ${space(3)})`};
 `;
