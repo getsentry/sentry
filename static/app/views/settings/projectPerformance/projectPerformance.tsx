@@ -52,6 +52,7 @@ class ProjectPerformance extends AsyncView<Props, State> {
 
   handleDelete = () => {
     const {orgId, projectId} = this.props.params;
+    const {organization} = this.props;
 
     this.setState({
       loading: true,
@@ -59,6 +60,13 @@ class ProjectPerformance extends AsyncView<Props, State> {
 
     this.api.request(`/projects/${orgId}/${projectId}/transaction-threshold/configure/`, {
       method: 'DELETE',
+      success: () => {
+        trackAnalyticsEvent({
+          eventKey: 'performance_views.project_transaction_threshold.clear',
+          eventName: 'Project Transaction Threshold: Cleared',
+          organization_id: organization.id,
+        });
+      },
       complete: () => this.fetchData(),
     });
   };
@@ -127,9 +135,9 @@ class ProjectPerformance extends AsyncView<Props, State> {
             const initial = this.initialData;
             const changedThreshold = initial.metric === resp.metric;
             trackAnalyticsEvent({
-              eventKey: 'project_transaction_threshold.changed',
+              eventKey: 'performance_views.project_transaction_threshold.change',
               eventName: 'Project Transaction Threshold: Changed',
-              organization_id: this.props.organization.id,
+              organization_id: organization.id,
               from: changedThreshold ? initial.threshold : initial.metric,
               to: changedThreshold ? resp.threshold : resp.metric,
               key: changedThreshold ? 'threshold' : 'metric',
