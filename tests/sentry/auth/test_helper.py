@@ -13,6 +13,7 @@ from sentry.models import (
     AuthProvider,
     InviteStatus,
     OrganizationMember,
+    OrganizationMemberTeam,
 )
 from sentry.testutils import TestCase
 from sentry.utils.compat import mock
@@ -164,12 +165,39 @@ class HandleAttachIdentityTest(AuthIdentityHandlerTest):
         assert auth_identity.ident == self.identity["id"]
         assert auth_identity.data == self.identity["data"]
 
+        assert OrganizationMember.objects.filter(
+            organization=self.organization,
+            user=self.user,
+        ).exists()
+
+        for team in self.auth_provider.default_teams.all():
+            assert OrganizationMemberTeam.objects.create(
+                team=team, organizationmember__user=self.user
+            ).exists()
+
         assert AuditLogEntry.objects.filter(
             organization=self.organization,
             target_object=auth_identity.id,
             event=AuditLogEntryEvent.SSO_IDENTITY_LINK,
             data=auth_identity.get_audit_log_data(),
         ).exists()
+
+        assert mock_messages.add_message.called_with(
+            self.request, messages.SUCCESS, OK_LINK_IDENTITY
+        )
+
+    @mock.patch("sentry.auth.helper.messages")
+    def test_new_identity_with_existing_om(self, mock_messages):
+        user = self.set_up_user()
+        existing_om = OrganizationMember.objects.create(user=user, organization=self.organization)
+
+        auth_identity = self.handler.handle_attach_identity(self.identity)
+        assert auth_identity.ident == self.identity["id"]
+        assert auth_identity.data == self.identity["data"]
+
+        persisted_om = OrganizationMember.objects.get(id=existing_om.id)
+        assert getattr(persisted_om.flags, "sso:linked")
+        assert not getattr(persisted_om.flags, "sso:invalid")
 
         assert mock_messages.add_message.called_with(
             self.request, messages.SUCCESS, OK_LINK_IDENTITY
@@ -183,27 +211,34 @@ class HandleAttachIdentityTest(AuthIdentityHandlerTest):
         assert returned_identity == existing_identity
         assert not mock_messages.add_message.called
 
-    def test_wipe_other_identity(self):
-        request_user, existing_identity = self.set_up_user_identity()
-        other_profile = self.create_user()
+    def _test_with_identity_belonging_to_another_user(self, request_user):
+        other_user = self.create_user()
 
         # The user logs in with credentials from this other identity
         AuthIdentity.objects.create(
-            user=other_profile, auth_provider=self.auth_provider, ident=self.identity["id"]
+            user=other_user, auth_provider=self.auth_provider, ident=self.identity["id"]
         )
-        OrganizationMember.objects.create(user=other_profile, organization=self.organization)
+        OrganizationMember.objects.create(user=other_user, organization=self.organization)
 
         returned_identity = self.handler.handle_attach_identity(self.identity)
+        assert returned_identity.user == request_user
         assert returned_identity.ident == self.identity["id"]
         assert returned_identity.data == self.identity["data"]
 
-        assert not AuthIdentity.objects.filter(id=existing_identity.id).exists()
-
         persisted_om = OrganizationMember.objects.get(
-            user=other_profile, organization=self.organization
+            user=other_user, organization=self.organization
         )
         assert not getattr(persisted_om.flags, "sso:linked")
         assert getattr(persisted_om.flags, "sso:invalid")
+
+    def test_login_with_other_identity(self):
+        request_user = self.set_up_user()
+        self._test_with_identity_belonging_to_another_user(request_user)
+
+    def test_wipe_existing_identity(self):
+        request_user, existing_identity = self.set_up_user_identity()
+        self._test_with_identity_belonging_to_another_user(request_user)
+        assert not AuthIdentity.objects.filter(id=existing_identity.id).exists()
 
 
 class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
@@ -237,3 +272,5 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
         context = self._test_simple(mock_render, "sentry/auth-confirm-link.html")
         assert context["existing_user"] is self.request.user
         assert "login_form" not in context
+
+    # TODO: More test cases for various values of request.POST.get("op")

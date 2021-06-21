@@ -56,13 +56,13 @@ export default class TableField extends React.Component<Props> {
     const saveChanges = (nextValue: object[]) => {
       onChange?.(nextValue, []);
 
-      //nextValue is an array of ObservableObjectAdministration objects
+      // nextValue is an array of ObservableObjectAdministration objects
       const validValues = !flatten(Object.values(nextValue).map(Object.entries)).some(
-        ([key, val]) => key !== 'id' && !val //don't allow empty values except if it's the ID field
+        ([key, val]) => key !== 'id' && !val // don't allow empty values except if it's the ID field
       );
 
       if (allowEmpty || validValues) {
-        //TOOD: add debouncing or use a form save button
+        // TOOD: add debouncing or use a form save button
         onBlur?.(nextValue, []);
       }
     };
@@ -89,7 +89,7 @@ export default class TableField extends React.Component<Props> {
       saveChanges(newValue);
     };
 
-    //should not be a function for this component
+    // should not be a function for this component
     const disabled = typeof rawDisabled === 'function' ? false : rawDisabled;
 
     const button = (
@@ -171,7 +171,7 @@ export default class TableField extends React.Component<Props> {
   };
 
   render() {
-    //We need formatMessageValue=false since we're saving an object
+    // We need formatMessageValue=false since we're saving an object
     // and there isn't a great way to render the
     // change within the toast. Just turn off displaying the from/to portion of
     // the message

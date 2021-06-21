@@ -111,7 +111,7 @@ def authorization_header(token: str, *, scheme: str = "Bearer") -> Mapping[str, 
     authorization header.
 
     Typically JWT uses the token in the "Bearer" scheme for the authorisation header.  If
-    you need to use a differnt scheme use the `scheme` argument to change this.
+    you need to use a different scheme use the `scheme` argument to change this.
 
     :param token: The JWT token to use in the authorization header.
     :param scheme: The authorisation scheme to use.

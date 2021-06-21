@@ -3,7 +3,7 @@ from copy import copy
 from datetime import datetime
 from uuid import uuid4
 
-from django.db import models
+from django.db import models, transaction
 from django.db.models.query_utils import DeferredAttribute
 from pytz import UTC
 from rest_framework import serializers, status
@@ -29,8 +29,11 @@ from sentry.models import (
     OrganizationAvatar,
     OrganizationOption,
     OrganizationStatus,
+    Project,
+    ProjectTransactionThreshold,
     UserEmail,
 )
+from sentry.models.transaction_threshold import TransactionMetric
 from sentry.tasks.deletion import delete_organization
 from sentry.utils.cache import memoize
 
@@ -270,7 +273,7 @@ class OrganizationSerializer(serializers.Serializer):
         attrs = super().validate(attrs)
         if attrs.get("avatarType") == "upload":
             has_existing_file = OrganizationAvatar.objects.filter(
-                organization=self.context["organization"], file__isnull=False
+                organization=self.context["organization"], file_id__isnull=False
             ).exists()
             if not has_existing_file and not attrs.get("avatar"):
                 raise serializers.ValidationError(
@@ -480,6 +483,8 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                             to be available and unique.
         :auth: required
         """
+        from sentry import features
+
         if request.access.has_scope("org:admin"):
             serializer_cls = OwnerOrganizationSerializer
         else:
@@ -515,6 +520,35 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                     event=AuditLogEntryEvent.ORG_EDIT,
                     data=changed_data,
                 )
+
+                # Temporarily writing org-level apdex changes to ProjectTransactionThreshold
+                # for orgs who don't have the feature enabled so that when this
+                # feature is GA'ed it captures the orgs current apdex threshold.
+                if serializer.validated_data.get("apdexThreshold") is not None and not features.has(
+                    "organizations:project-transaction-threshold", organization
+                ):
+                    apdex_threshold = serializer.validated_data.get("apdexThreshold")
+
+                    with transaction.atomic():
+                        ProjectTransactionThreshold.objects.filter(
+                            organization_id=organization.id
+                        ).delete()
+
+                        project_ids = Project.objects.filter(
+                            organization_id=organization.id
+                        ).values_list("id", flat=True)
+
+                        ProjectTransactionThreshold.objects.bulk_create(
+                            [
+                                ProjectTransactionThreshold(
+                                    project_id=project_id,
+                                    organization_id=organization.id,
+                                    threshold=int(apdex_threshold),
+                                    metric=TransactionMetric.DURATION.value,
+                                )
+                                for project_id in project_ids
+                            ]
+                        )
 
             context = serialize(
                 organization,

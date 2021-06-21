@@ -58,7 +58,7 @@ const IntegrationRow = (props: Props) => {
     if (type === 'sentryApp') {
       return publishStatus !== 'published' && <PublishStatus status={publishStatus} />;
     }
-    //TODO: Use proper translations
+    // TODO: Use proper translations
     return configurations > 0 ? (
       <StyledLink to={`${baseUrl}?tab=configurations`}>{`${configurations} Configuration${
         configurations > 1 ? 's' : ''
@@ -67,7 +67,7 @@ const IntegrationRow = (props: Props) => {
   };
 
   const renderStatus = () => {
-    //status should be undefined for document integrations
+    // status should be undefined for document integrations
     if (status) {
       return <IntegrationStatus status={status} />;
     }

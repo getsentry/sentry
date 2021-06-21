@@ -1,5 +1,6 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
+import isEqual from 'lodash/isEqual';
 
 import {MessageRow} from 'app/components/performance/waterfall/messageRow';
 import {pickBarColour} from 'app/components/performance/waterfall/utils';
@@ -9,9 +10,10 @@ import {EventTransaction} from 'app/types/event';
 
 import {DragManagerChildrenProps} from './dragManager';
 import {ActiveOperationFilter} from './filter';
+import {ScrollbarManagerChildrenProps, withScrollbarManager} from './scrollbarManager';
 import SpanGroup from './spanGroup';
-import {FilterSpans} from './traceView';
 import {
+  FilterSpans,
   GapSpanType,
   OrphanTreeDepth,
   ParsedTraceType,
@@ -40,7 +42,7 @@ type RenderedSpanTree = {
   numOfFilteredSpansAbove: number;
 };
 
-type PropType = {
+type PropType = ScrollbarManagerChildrenProps & {
   organization: Organization;
   trace: ParsedTraceType;
   dragProps: DragManagerChildrenProps;
@@ -57,6 +59,13 @@ class SpanTree extends React.Component<PropType> {
     }
 
     return true;
+  }
+
+  componentDidUpdate(prevProps: PropType) {
+    if (!isEqual(prevProps.filterSpans, this.props.filterSpans)) {
+      // Update horizontal scroll states after a search has been performed
+      this.props.updateScrollState();
+    }
   }
 
   generateInfoMessage(input: {
@@ -439,4 +448,4 @@ function hasAllSpans(trace: ParsedTraceType): boolean {
   return missingDuration < 0.1;
 }
 
-export default SpanTree;
+export default withScrollbarManager(SpanTree);

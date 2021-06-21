@@ -74,9 +74,10 @@ org_users = [
     ("scefali", "Stephen Cefali"),
     ("aj", "AJ Jindal"),
     (
-        "jennifer.song",
-        "Jen Song",
+        "zac.propersi",
+        "Zac Propersi",
     ),
+    ("roggenkemper", "Richard Roggenkemper"),
 ]
 
 logger = logging.getLogger(__name__)
@@ -119,7 +120,7 @@ def distribution_v3(hour: int) -> int:
         return 6
     if hour > 3:
         return 2
-    return 1
+    return 2
 
 
 def distribution_v4(hour: int) -> int:
@@ -136,8 +137,8 @@ def distribution_v5(hour: int) -> int:
     if hour == 3:
         return 10
     if hour < 5:
-        return 3
-    return 1
+        return 7
+    return 2
 
 
 distribution_fns = [
@@ -1043,6 +1044,43 @@ class DataPopulation:
             self.safe_send_event(local_event)
         self.log_info("populate_generic_error.finished")
 
+    def populate_generic_transaction(
+        self, project: Project, file_path, dist_number, starting_release=0
+    ):
+        """
+        This function populates a single transaction
+        Occurrance times and durations are randomized
+        """
+        transaction = get_event_from_file(file_path)
+
+        self.log_info("populate_generic_transaction.start")
+
+        for (timestamp, day) in self.iter_timestamps(dist_number, starting_release):
+            transaction_user = self.generate_user()
+            release = get_release_from_time(project.organization_id, timestamp)
+            release_sha = release.version
+
+            old_span_id = transaction["contexts"]["trace"]["span_id"]
+            duration = self.gen_frontend_duration(day)
+
+            local_event = copy.deepcopy(transaction)
+            local_event.update(
+                project=project,
+                platform=project.platform,
+                event_id=uuid4().hex,
+                user=transaction_user,
+                release=release_sha,
+                timestamp=timestamp,
+                start_timestamp=timestamp - timedelta(seconds=duration),
+            )
+
+            update_context(local_event)
+
+            self.fix_transaction_event(local_event, old_span_id)
+            self.safe_send_event(local_event)
+
+        self.log_info("populate_generic_error.finished")
+
     def populate_sessions(self, project, error_file):
         self.log_info("populate_sessions.start")
         dsn = ProjectKey.objects.get(project=project)
@@ -1098,7 +1136,6 @@ class DataPopulation:
         with sentry_sdk.start_span(
             op="handle_react_python_scenario", description="pre_event_setup"
         ):
-            self.generate_releases([react_project, python_project])
             self.generate_alerts(python_project)
             self.generate_saved_query(react_project, "/productstore", "Product Store by Browser")
         if not self.get_config_var("DISABLE_SESSIONS"):
@@ -1130,10 +1167,23 @@ class DataPopulation:
             )
         self.assign_issues()
 
-
-def handle_react_python_scenario(react_project: Project, python_project: Project, quick=False):
-    """
-    Handles all data population for the React + Python scenario
-    """
-    data_population = DataPopulation(python_project.organization, quick)
-    data_population.handle_react_python_scenario(react_project, python_project)
+    def handle_mobile_scenario(
+        self, ios_project: Project, android_project: Project, react_native_project: Project
+    ):
+        with sentry_sdk.start_span(op="handle_mobile_scenario", description="populate_errors"):
+            self.populate_generic_error(
+                ios_project, "errors/ios/exc_bad_access.json", 3, starting_release=1
+            )
+            self.populate_generic_error(
+                ios_project, "errors/ios/handled.json", 4, starting_release=2
+            )
+            self.populate_generic_transaction(
+                ios_project, "transactions/ios/ios_transaction.json", 2
+            )
+            self.populate_generic_error(
+                android_project, "errors/android/out_of_bounds.json", 5, starting_release=1
+            )
+            self.populate_generic_error(
+                android_project, "errors/android/app_not_responding.json", 2, starting_release=2
+            )
+        self.assign_issues()
