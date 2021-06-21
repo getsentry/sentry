@@ -54,7 +54,7 @@ function Conditions({condition}: Props) {
     }
     default: {
       Sentry.captureException(new Error('Unknown dynamic sampling condition operator'));
-      return null; //this shall not happen
+      return null; // this shall not happen
     }
   }
 }
