@@ -66,17 +66,14 @@ commit_message_base_messages = [
 
 base_paths_by_file_type = {"js": ["components/", "views/"], "py": ["flask/", "routes/"]}
 
-crash_free_rate_by_release = [1.0, 0.99, 0.9]
+crash_free_rate_by_release = [0.9997, 0.97, 0.89]
 # higher crash rate if we are doing a quick org
-crash_free_rate_by_release_quick = [1.0, 0.95, 0.75]
+crash_free_rate_by_release_quick = [0.999, 0.95, 0.8]
 
 org_users = [
     ("scefali", "Stephen Cefali"),
     ("aj", "AJ Jindal"),
-    (
-        "zac.propersi",
-        "Zac Propersi",
-    ),
+    ("zac.propersi", "Zac Propersi"),
     ("roggenkemper", "Richard Roggenkemper"),
 ]
 
@@ -529,44 +526,25 @@ class DataPopulation:
             self.log_info("safe_send_event.snuba_error")
             time.sleep(config["ERROR_BACKOFF_TIME"])
 
-    # @catch_and_log_errors
-    # def send_session(self, sid, user_id, dsn, time, release, **kwargs):
-    #     """
-    #     Creates an envelope payload for a session and posts it to Relay
-    #     """
-    #     formatted_time = time.isoformat()
-    #     envelope_headers = "{}"
-    #     item_headers = json.dumps({"type": "session"})
-    #     data = {
-    #         "sid": sid,
-    #         "did": str(user_id),
-    #         "started": formatted_time,
-    #         "duration": random.randrange(2, 60),
-    #         "attrs": {
-    #             "release": release,
-    #             "environment": "prod",
-    #         },
-    #     }
-    #     data.update(**kwargs)
-    #     core = json.dumps(data)
-
-    #     body = f"{envelope_headers}\n{item_headers}\n{core}"
-    #     endpoint = dsn.get_endpoint()
-    #     url = f"{endpoint}/api/{dsn.project_id}/envelope/?sentry_key={dsn.public_key}&sentry_version=7"
-    #     resp = requests.post(url=url, data=body)
-    #     resp.raise_for_status()
-
     @catch_and_log_errors
     def send_session(self, sid, user_id, dsn, time, release, **kwargs):
         """
-        Creates an envelope payload for a session aggregate and posts it to Relay
+        Creates an envelope payload for a session and posts it to Relay
         """
         formatted_time = time.isoformat()
         envelope_headers = "{}"
-        item_headers = json.dumps({"type": "sessions"})
-
-        data = {"started": formatted_time, "exited": True, "errored": True}
-
+        item_headers = json.dumps({"type": "session"})
+        data = {
+            "sid": sid,
+            "did": str(user_id),
+            "started": formatted_time,
+            "duration": random.randrange(2, 60),
+            "attrs": {
+                "release": release,
+                "environment": "prod",
+            },
+        }
+        data.update(**kwargs)
         core = json.dumps(data)
 
         body = f"{envelope_headers}\n{item_headers}\n{core}"
@@ -1100,55 +1078,46 @@ class DataPopulation:
 
         self.log_info("populate_generic_error.finished")
 
-    def populate_sessions(self, project, error_file):
+    @catch_and_log_errors
+    def populate_sessions(self, project, distribution_fn_num: int):
         self.log_info("populate_sessions.start")
+
         dsn = ProjectKey.objects.get(project=project)
 
-        error = get_event_from_file(error_file)
+        num = 500
 
-        for (timestamp, day) in self.iter_timestamps(4):
-            transaction_user = self.generate_user()
-            sid = uuid4().hex
+        for (timestamp, day) in self.iter_timestamps(distribution_fn_num):
+            # transaction_user = self.generate_user()
+            # sid = uuid4().hex
             release = get_release_from_time(project.organization_id, timestamp)
             version = release.version
-
-            # initialize the session
-            session_data = {
-                "init": True,
-            }
-            self.send_session(sid, transaction_user["id"], dsn, timestamp, version, **session_data)
-
-            # determine if this session should crash or exit with success
+            # determine rate at which sessions should crash or exit with success
             rate_by_release_num = (
                 crash_free_rate_by_release_quick if self.quick else crash_free_rate_by_release
             )
             # get the release num from the last part of the version
             release_num = int(version.split(".")[-1])
             threshold = rate_by_release_num[release_num]
-            outcome = random.random()
-            if outcome > threshold:
-                # if crash, make an error for it
-                local_event = copy.deepcopy(error)
-                local_event.update(
-                    project=project,
-                    platform=project.platform,
-                    timestamp=timestamp,
-                    user=transaction_user,
-                    release=version,
-                )
-                update_context(local_event)
-                self.fix_error_event(local_event)
-                self.safe_send_event(local_event)
 
-                data = {
-                    "status": "crashed",
-                }
-            else:
-                data = {
-                    "status": "exited",
-                }
+            formatted_time = timestamp.isoformat()
+            envelope_headers = "{}"
+            item_headers = json.dumps({"type": "sessions"})
 
-            self.send_session(sid, transaction_user["id"], dsn, timestamp, version, **data)
+            exited = random.uniform(0.8, 1.2) * num * threshold
+            errored = random.uniform(0.8, 1.2) * num * (1 - threshold)
+
+            data = {
+                "aggregates": [{"started": formatted_time, "exited": exited, "errored": errored}],
+                "attrs": {"release": release_num, "environment": "prod"},
+            }
+
+            core = json.dumps(data)
+            body = f"{envelope_headers}\n{item_headers}\n{core}"
+            endpoint = dsn.get_endpoint()
+            url = f"{endpoint}/api/{dsn.project_id}/envelope/?sentry_key={dsn.public_key}&sentry_version=7"
+            resp = requests.post(url=url, data=body)
+            resp.raise_for_status()
+
         self.log_info("populate_sessions.end")
 
     def handle_react_python_scenario(self, react_project: Project, python_project: Project):
@@ -1161,8 +1130,10 @@ class DataPopulation:
             with sentry_sdk.start_span(
                 op="handle_react_python_scenario", description="populate_sessions"
             ):
-                self.populate_sessions(react_project, "sessions/react_unhandled_exception.json")
-                self.populate_sessions(python_project, "sessions/python_unhandled_exception.json")
+                # self.populate_sessions(react_project, "sessions/react_unhandled_exception.json")
+                # self.populate_sessions(python_project, "sessions/python_unhandled_exception.json")
+                self.populate_sessions(react_project, 4)
+                self.populate_sessions(python_project, 5)
         with sentry_sdk.start_span(
             op="handle_react_python_scenario", description="populate_connected_events"
         ):
