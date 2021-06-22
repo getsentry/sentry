@@ -1,5 +1,5 @@
-/*eslint-env node*/
-/*eslint import/no-nodejs-modules:0 */
+/* eslint-env node */
+/* eslint import/no-nodejs-modules:0 */
 const path = require('path');
 const webpack = require('webpack');
 const appConfig = require('../webpack.config');
@@ -94,6 +94,11 @@ module.exports = ({config} = {config: emptyConfig}) => {
       },
       fallback: {
         ...appConfig.resolve.fallback,
+        // XXX(epurkhiser): As per [0] assert is required for
+        // @storybook/addons-docs, but seems we can just noop the pollyfill.
+        //
+        // [0]: https://gist.github.com/shilman/8856ea1786dcd247139b47b270912324#gistcomment-3681971
+        assert: false,
       },
     },
   };
