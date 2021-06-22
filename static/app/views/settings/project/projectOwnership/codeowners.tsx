@@ -29,7 +29,7 @@ class CodeOwnersPanel extends Component<Props> {
       onDelete(codeowner);
       addSuccessMessage(t('Deletion successful'));
     } catch {
-      //no 4xx errors should happen on delete
+      // no 4xx errors should happen on delete
       addErrorMessage(t('An error occurred'));
     }
   };

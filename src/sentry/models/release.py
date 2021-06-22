@@ -2,10 +2,11 @@ import itertools
 import logging
 import re
 from time import time
+from typing import List, Mapping
 
 import sentry_sdk
 from django.db import IntegrityError, models, transaction
-from django.db.models import Case, F, Func, Q, Value, When
+from django.db.models import Case, F, Func, Q, Sum, Value, When
 from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
@@ -928,3 +929,24 @@ class Release(Model):
             releasefile.file.delete()
             releasefile.delete()
         self.delete()
+
+    def count_artifacts(self):
+        """Sum the artifact_counts of all release files.
+
+        An artifact count of NULL is interpreted as 1.
+        """
+        counts = get_artifact_counts([self.id])
+        return counts.get(self.id, 0)
+
+
+def get_artifact_counts(release_ids: List[int]) -> Mapping[int, int]:
+    """Get artifact count grouped by IDs"""
+    from sentry.models.releasefile import ReleaseFile
+
+    qs = (
+        ReleaseFile.objects.filter(release_id__in=release_ids)
+        .annotate(count=Sum(Func(F("artifact_count"), 1, function="COALESCE")))
+        .values_list("release_id", "count")
+    )
+    qs.query.group_by = ["release_id"]
+    return dict(qs)

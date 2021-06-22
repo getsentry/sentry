@@ -8,6 +8,7 @@ export function Project(params) {
     isBookmarked: false,
     teams: [],
     environments: [],
+    features: [],
     ...params,
   };
 }
