@@ -1037,6 +1037,14 @@ class IssueListOverview extends React.Component<Props, State> {
       ),
     });
 
+    // TODO(workflow): When organization:inbox flag is removed add 'sentry.semver' to tagStore
+    if (organization.features.includes('semver') && !tags['sentry.semver']) {
+      tags['sentry.semver'] = {
+        key: 'esentry.semver',
+        name: 'sentry.semver',
+      };
+    }
+
     const projectIds = selection?.projects?.map(p => p.toString());
     const orgSlug = organization.slug;
 
