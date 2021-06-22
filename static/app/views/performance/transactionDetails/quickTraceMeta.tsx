@@ -101,7 +101,7 @@ export default function QuickTraceMeta({
 
     footer = (
       <Link to={traceTarget} onClick={() => handleTraceLink(organization)}>
-        {tct('Trace ID: [id][events]', {
+        {tct('View Full Trace: [id][events]', {
           id: getShortEventId(traceId ?? ''),
           events: traceMeta
             ? tn(' (%s event)', ' (%s events)', traceMeta.transactions + traceMeta.errors)
@@ -141,9 +141,9 @@ export default function QuickTraceMeta({
 export function QuickTraceMetaBase({body, footer}: {body: ReactNode; footer: ReactNode}) {
   return (
     <MetaData
-      headingText={t('Quick Trace')}
+      headingText={t('Trace Navigator')}
       tooltipText={t(
-        'A minified version of the full trace. Related frontend and backend services can be added to provide further visibility.'
+        'An abbreviated version of the full trace. Related frontend and backend services can be added to provide further visibility.'
       )}
       bodyText={<div data-test-id="quick-trace-body">{body}</div>}
       subtext={<div data-test-id="quick-trace-footer">{footer}</div>}
