@@ -111,8 +111,8 @@ type ParsedQuickTrace = {
    */
   root: QuickTraceEvent | null;
   /**
-   * `[]` represents the lack of ancestors in a full quick trace
-   * `null` represents the uncertainty of ancestors in a lite quick trace
+   * `[]` represents the lack of ancestors in a full trace navigator
+   * `null` represents the uncertainty of ancestors in a lite trace navigator
    */
   ancestors: QuickTraceEvent[] | null;
   /**
@@ -122,12 +122,12 @@ type ParsedQuickTrace = {
   parent: QuickTraceEvent | null;
   current: QuickTraceEvent;
   /**
-   * `[]` represents the lack of children in a full/lite quick trace
+   * `[]` represents the lack of children in a full/lite trace navigator
    */
   children: QuickTraceEvent[];
   /**
-   * `[]` represents the lack of descendants in a full quick trace
-   * `null` represents the uncertainty of descendants in a lite quick trace
+   * `[]` represents the lack of descendants in a full trace navigator
+   * `null` represents the uncertainty of descendants in a lite trace navigator
    */
   descendants: QuickTraceEvent[] | null;
 };
@@ -140,14 +140,14 @@ export function parseQuickTrace(
   const {type, trace} = quickTrace;
 
   if (type === 'empty' || trace === null) {
-    throw new Error('Current event not in quick trace!');
+    throw new Error('Current event not in trace navigator!');
   }
 
   const isFullTrace = type === 'full';
 
   const current = trace.find(e => isCurrentEvent(e, event)) ?? null;
   if (current === null) {
-    throw new Error('Current event not in quick trace!');
+    throw new Error('Current event not in trace navigator!');
   }
 
   /**

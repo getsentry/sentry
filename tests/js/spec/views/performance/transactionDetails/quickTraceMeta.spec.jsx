@@ -45,7 +45,7 @@ describe('QuickTraceMeta', function () {
       true
     );
     expect(wrapper.find('div[data-test-id="quick-trace-footer"]').text()).toEqual(
-      `Trace ID: ${'a'.repeat(8)} (0 events)`
+      `View Full Trace: ${'a'.repeat(8)} (0 events)`
     );
   });
 
@@ -76,7 +76,7 @@ describe('QuickTraceMeta', function () {
       wrapper.find('div[data-test-id="quick-trace-body"] Placeholder').exists()
     ).toBe(true);
     expect(wrapper.find('div[data-test-id="quick-trace-footer"]').text()).toEqual(
-      `Trace ID: ${'a'.repeat(8)} (0 events)`
+      `View Full Trace: ${'a'.repeat(8)} (0 events)`
     );
   });
 
@@ -105,7 +105,7 @@ describe('QuickTraceMeta', function () {
     expect(wrapper.find('MetaData').exists()).toBe(true);
     expect(wrapper.find('div[data-test-id="quick-trace-body"]').text()).toEqual('\u2014');
     expect(wrapper.find('div[data-test-id="quick-trace-footer"]').text()).toEqual(
-      `Trace ID: ${'a'.repeat(8)} (0 events)`
+      `View Full Trace: ${'a'.repeat(8)} (0 events)`
     );
   });
 
