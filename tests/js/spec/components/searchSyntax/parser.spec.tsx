@@ -38,9 +38,9 @@ const normalizeResult = (tokens: TokenResult<Token>[]) =>
     // @ts-ignore
     delete token.config;
 
-    if (token.type === Token.Filter && token.invalidReason === null) {
+    if (token.type === Token.Filter && token.invalid === null) {
       // @ts-ignore
-      delete token.invalidReason;
+      delete token.invalid;
     }
 
     if (token.type === Token.ValueIso8601Date) {

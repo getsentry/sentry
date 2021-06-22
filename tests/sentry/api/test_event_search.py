@@ -63,10 +63,10 @@ def result_transformer(result):
             return None
 
         if token["type"] == "filter":
-            # Filters with an invalidReason raises to signal to the test runner
-            # that we should expect this exception
-            if token.get("invalidReason"):
-                raise InvalidSearchQuery(token["invalidReason"])
+            # Filters with an invalid reason raises to signal to the test
+            # runner that we should expect this exception
+            if token.get("invalid"):
+                raise InvalidSearchQuery(token["invalid"]["reason"])
 
             # Transform the operator to match for list values
             if token["value"]["type"] in ["valueTextList", "valueNumberList"]:
