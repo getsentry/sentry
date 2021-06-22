@@ -1466,6 +1466,7 @@ class ParseSemverSearchTest(TestCase):
         self.run_test(">=", "1.2.4", "IN", [release_2.version])
         self.run_test("<", "1.2.4", "IN", [release.version])
         self.run_test("<=", "1.2.3", "IN", [release.version])
+        self.run_test("=", "1.2.4", "IN", [release_2.version])
 
     def test_invert_query(self):
         # Tests that flipping the query works and uses a NOT IN. Test all operators to
