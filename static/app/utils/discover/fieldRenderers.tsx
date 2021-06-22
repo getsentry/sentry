@@ -568,13 +568,11 @@ const spanOperationRelativeBreakdownRenderer = (
 
   let otherPercentage = 1;
   let orderedSpanOpsBreakdownFields;
-  if (
-    eventView?.sorts?.[0].field &&
-    SPAN_OP_BREAKDOWN_FIELDS.includes(eventView.sorts[0].field)
-  ) {
+  const sortingOnField = eventView?.sorts?.[0].field;
+  if (sortingOnField && SPAN_OP_BREAKDOWN_FIELDS.includes(sortingOnField)) {
     orderedSpanOpsBreakdownFields = [
-      eventView.sorts[0].field,
-      ...SPAN_OP_BREAKDOWN_FIELDS.filter(op => op !== eventView.sorts[0].field),
+      sortingOnField,
+      ...SPAN_OP_BREAKDOWN_FIELDS.filter(op => op !== sortingOnField),
     ];
   } else {
     orderedSpanOpsBreakdownFields = SPAN_OP_BREAKDOWN_FIELDS;

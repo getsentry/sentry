@@ -78,89 +78,50 @@ class OperationSort extends Component<Props, State> {
     this.setState(({isOpen}) => ({isOpen: !isOpen}));
   };
 
-  renderMenuContent() {
+  generateSortLink(field): LocationDescriptorObject | undefined {
     const {eventView, tableMeta, location} = this.props;
-
-    function generateSortLink(field): LocationDescriptorObject | undefined {
-      if (!tableMeta) {
-        return undefined;
-      }
-
-      const nextEventView = eventView.sortOnField(field, tableMeta, 'desc');
-      const queryStringObject = nextEventView.generateQueryStringObject();
-
-      return {
-        ...location,
-        query: {...location.query, sort: queryStringObject.sort},
-      };
+    if (!tableMeta) {
+      return undefined;
     }
 
+    const nextEventView = eventView.sortOnField(field, tableMeta, 'desc');
+    const queryStringObject = nextEventView.generateQueryStringObject();
+
+    return {
+      ...location,
+      query: {...location.query, sort: queryStringObject.sort},
+    };
+  }
+
+  renderMenuItem(operation, title) {
+    const {eventView} = this.props;
+    return (
+      <DropdownMenuItem>
+        <MenuItemContent>
+          <RadioLabel key="http">
+            <StyledRadio
+              readOnly
+              radioSize="small"
+              checked={eventView.sorts.some(({field}) => field === operation)}
+              onClick={() => {
+                const sortLink = this.generateSortLink({field: operation});
+                if (sortLink) browserHistory.push(sortLink);
+              }}
+            />
+            <span>{title}</span>
+          </RadioLabel>
+        </MenuItemContent>
+      </DropdownMenuItem>
+    );
+  }
+
+  renderMenuContent() {
     return (
       <DropdownContent>
-        <DropdownMenuItem>
-          <MenuItemContent>
-            <RadioLabel key="http">
-              <StyledRadio
-                readOnly
-                radioSize="small"
-                checked={eventView.sorts.some(({field}) => field === 'spans.http')}
-                onClick={() => {
-                  const sortLink = generateSortLink({field: 'spans.http'});
-                  if (sortLink) browserHistory.push(sortLink);
-                }}
-              />
-              <span>{t('Sort By HTTP')}</span>
-            </RadioLabel>
-          </MenuItemContent>
-        </DropdownMenuItem>
-        <DropdownMenuItem>
-          <MenuItemContent>
-            <RadioLabel>
-              <StyledRadio
-                readOnly
-                radioSize="small"
-                checked={eventView.sorts.some(({field}) => field === 'spans.db')}
-                onClick={() => {
-                  const sortLink = generateSortLink({field: 'spans.db'});
-                  if (sortLink) browserHistory.push(sortLink);
-                }}
-              />
-              <span>{t('Sort By DB')}</span>
-            </RadioLabel>
-          </MenuItemContent>
-        </DropdownMenuItem>
-        <DropdownMenuItem>
-          <MenuItemContent>
-            <RadioLabel>
-              <StyledRadio
-                readOnly
-                radioSize="small"
-                checked={eventView.sorts.some(({field}) => field === 'spans.resource')}
-                onClick={() => {
-                  const sortLink = generateSortLink({field: 'spans.resource'});
-                  if (sortLink) browserHistory.push(sortLink);
-                }}
-              />
-              <span>{t('Sort By Resources')}</span>
-            </RadioLabel>
-          </MenuItemContent>
-        </DropdownMenuItem>
-        <DropdownMenuItem>
-          <MenuItemContent>
-            <RadioLabel>
-              <StyledRadio
-                readOnly
-                radioSize="small"
-                checked={eventView.sorts.some(({field}) => field === 'spans.browser')}
-                onClick={() => {
-                  const sortLink = generateSortLink({field: 'spans.browser'});
-                  if (sortLink) browserHistory.push(sortLink);
-                }}
-              />
-              <span>{t('Sort By Browser')}</span>
-            </RadioLabel>
-          </MenuItemContent>
-        </DropdownMenuItem>
+        {this.renderMenuItem('spans.http', t('Sort By HTTP'))}
+        {this.renderMenuItem('spans.db', t('Sort By DB'))}
+        {this.renderMenuItem('spans.resource', t('Sort By Resource'))}
+        {this.renderMenuItem('spans.browser', t('Sort By Browser'))}
       </DropdownContent>
     );
   }
