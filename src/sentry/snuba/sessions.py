@@ -607,6 +607,10 @@ def get_release_sessions_time_bounds(project_id, release, org_id, environments=N
         Dictionary with two keys "sessions_lower_bound" and "sessions_upper_bound" that
     correspond to when the first session occurred and when the last session occurred respectively
     """
+
+    def iso_format_snuba_datetime(date):
+        return datetime.strptime(date, "%Y-%m-%dT%H:%M:%S+00:00").isoformat()[:19] + "Z"
+
     release_sessions_time_bounds = {
         "sessions_lower_bound": None,
         "sessions_upper_bound": None,
@@ -641,9 +645,10 @@ def get_release_sessions_time_bounds(project_id, release, org_id, environments=N
         # P.S. To avoid confusion the `0` timestamp which is '1970-01-01 00:00:00'
         # is rendered as '0000-00-00 00:00:00' in clickhouse shell
         if set(rv.values()) != {formatted_unix_start_time}:
+
             release_sessions_time_bounds = {
-                "sessions_lower_bound": rv["first_session_started"],
-                "sessions_upper_bound": rv["last_session_started"],
+                "sessions_lower_bound": iso_format_snuba_datetime(rv["first_session_started"]),
+                "sessions_upper_bound": iso_format_snuba_datetime(rv["last_session_started"]),
             }
     return release_sessions_time_bounds
 
