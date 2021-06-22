@@ -127,9 +127,9 @@
     "tslib": "^2.2.0",
     "typescript": "^4.2.4",
     "u2f-api": "1.0.10",
-    "webpack": "5.27.2",
-    "webpack-cli": "4.5.0",
-    "webpack-manifest-plugin": "^3.1.0",
+    "webpack": "5.40.0",
+    "webpack-cli": "4.7.2",
+    "webpack-manifest-plugin": "^3.1.1",
     "webpack-remove-empty-scripts": "^0.7.1",
     "wink-jaro-distance": "^2.0.0",
     "zxcvbn": "^4.4.2"
@@ -170,7 +170,7 @@
     "react-refresh": "^0.8.3",
     "react-test-renderer": "17.0.2",
     "size-limit": "^4.5.6",
-    "speed-measure-webpack-plugin": "^1.4.0",
+    "speed-measure-webpack-plugin": "^1.5.0",
     "stylelint": "13.13.1",
     "stylelint-config-prettier": "^8.0.2",
     "stylelint-config-recommended": "^5.0.0",
@@ -186,14 +186,14 @@
   "resolutions": {
     "**/rrweb": "^0.7.33",
     "**/is-svg": ">=4.2.2",
-    "webpack": "5.27.2",
+    "webpack": "5.40.0",
     "css-loader": "^5.0.0",
     "dotenv-webpack": "^6.0.0",
     "html-webpack-plugin": "^5.0.0",
     "less-loader": "^8.0.0",
     "style-loader": "^2.0.0",
     "terser-webpack-plugin": "^5.0.0",
-    "webpack-virtual-modules": "^0.4.2"
+    "webpack-virtual-modules": "^0.4.3"
   },
   "APIMethod": "stub",
   "proxyURL": "http://localhost:8000",
