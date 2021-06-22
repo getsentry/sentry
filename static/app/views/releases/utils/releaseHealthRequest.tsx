@@ -24,7 +24,7 @@ import {
   SessionApiResponse,
 } from 'app/types';
 import {defined, percent} from 'app/utils';
-import {QueryResults, stringifyQueryObject} from 'app/utils/tokenizeSearch';
+import {QueryResults} from 'app/utils/tokenizeSearch';
 import withApi from 'app/utils/withApi';
 
 import {DisplayOption} from '../list/utils';
@@ -142,18 +142,16 @@ class ReleaseHealthRequest extends React.Component<Props, State> {
     const {location, selection, defaultStatsPeriod, releases} = this.props;
 
     return {
-      query: stringifyQueryObject(
-        new QueryResults(
-          releases.reduce((acc, release, index, allReleases) => {
-            acc.push(`release:"${release}"`);
-            if (index < allReleases.length - 1) {
-              acc.push('OR');
-            }
+      query: new QueryResults(
+        releases.reduce((acc, release, index, allReleases) => {
+          acc.push(`release:"${release}"`);
+          if (index < allReleases.length - 1) {
+            acc.push('OR');
+          }
 
-            return acc;
-          }, [] as string[])
-        )
-      ),
+          return acc;
+        }, [] as string[])
+      ).formatString(),
       interval: getInterval(selection.datetime),
       ...getParams(pick(location.query, Object.values(URL_PARAM)), {
         defaultStatsPeriod,

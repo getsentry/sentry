@@ -20,11 +20,7 @@ import {GlobalSelection, Organization, Project} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
 import {decodeScalar} from 'app/utils/queryString';
-import {
-  QueryResults,
-  stringifyQueryObject,
-  tokenizeSearch,
-} from 'app/utils/tokenizeSearch';
+import {QueryResults, tokenizeSearch} from 'app/utils/tokenizeSearch';
 import withApi from 'app/utils/withApi';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
@@ -166,7 +162,7 @@ class PerformanceContent extends Component<Props, State> {
         `<${DEFAULT_MAX_DURATION}`,
       ]);
     }
-    newQuery.query = stringifyQueryObject(modifiedConditions);
+    newQuery.query = modifiedConditions.formatString();
 
     browserHistory.push({
       pathname: getPerformanceTrendsUrl(organization),

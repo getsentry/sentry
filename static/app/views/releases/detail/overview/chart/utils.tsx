@@ -11,7 +11,7 @@ import EventView from 'app/utils/discover/eventView';
 import {getAggregateAlias, WebVital} from 'app/utils/discover/fields';
 import {formatVersion} from 'app/utils/formatters';
 import {WEB_VITAL_DETAILS} from 'app/utils/performance/vitals/constants';
-import {QueryResults, stringifyQueryObject} from 'app/utils/tokenizeSearch';
+import {QueryResults} from 'app/utils/tokenizeSearch';
 import {getCrashFreePercent} from 'app/views/releases/utils';
 import {sessionTerm} from 'app/views/releases/utils/sessionTerm';
 
@@ -86,11 +86,9 @@ export function getReleaseEventView(
       );
       return EventView.fromSavedQuery({
         ...baseQuery,
-        query: stringifyQueryObject(
-          new QueryResults(
-            ['event.type:transaction', releaseFilter, ...statusFilters].filter(Boolean)
-          )
-        ),
+        query: new QueryResults(
+          ['event.type:transaction', releaseFilter, ...statusFilters].filter(Boolean)
+        ).formatString(),
       });
     case YAxis.COUNT_VITAL:
     case YAxis.COUNT_DURATION:
@@ -101,32 +99,31 @@ export function getReleaseEventView(
           : WEB_VITAL_DETAILS[vitalType].poorThreshold;
       return EventView.fromSavedQuery({
         ...baseQuery,
-        query: stringifyQueryObject(
-          new QueryResults(
-            [
-              'event.type:transaction',
-              releaseFilter,
-              threshold ? `${column}:>${threshold}` : '',
-            ].filter(Boolean)
-          )
-        ),
+        query: new QueryResults(
+          [
+            'event.type:transaction',
+            releaseFilter,
+            threshold ? `${column}:>${threshold}` : '',
+          ].filter(Boolean)
+        ).formatString(),
       });
     case YAxis.EVENTS:
       const eventTypeFilter =
         eventType === EventType.ALL ? '' : `event.type:${eventType}`;
       return EventView.fromSavedQuery({
         ...baseQuery,
-        query: stringifyQueryObject(
-          new QueryResults([releaseFilter, eventTypeFilter].filter(Boolean))
-        ),
+        query: new QueryResults(
+          [releaseFilter, eventTypeFilter].filter(Boolean)
+        ).formatString(),
       });
     default:
       return EventView.fromSavedQuery({
         ...baseQuery,
         fields: ['issue', 'title', 'count()', 'count_unique(user)', 'project'],
-        query: stringifyQueryObject(
-          new QueryResults([`release:${version}`, '!event.type:transaction'])
-        ),
+        query: new QueryResults([
+          `release:${version}`,
+          '!event.type:transaction',
+        ]).formatString(),
         orderby: '-count',
       });
   }

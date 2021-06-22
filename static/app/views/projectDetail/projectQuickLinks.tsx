@@ -10,7 +10,7 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import {decodeScalar} from 'app/utils/queryString';
-import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {tokenizeSearch} from 'app/utils/tokenizeSearch';
 import {DEFAULT_MAX_DURATION} from 'app/views/performance/trends/utils';
 import {
   getPerformanceLandingUrl,
@@ -37,7 +37,7 @@ function ProjectQuickLinks({organization, project, location}: Props) {
       query: {
         project: project?.id,
         cursor: undefined,
-        query: stringifyQueryObject(conditions),
+        query: conditions.formatString(),
       },
     };
   }

@@ -2,7 +2,7 @@ import round from 'lodash/round';
 
 import {tn} from 'app/locale';
 import {Release, ReleaseStatus} from 'app/types';
-import {QueryResults, stringifyQueryObject} from 'app/utils/tokenizeSearch';
+import {QueryResults} from 'app/utils/tokenizeSearch';
 import {IssueSortOptions} from 'app/views/issueList/utils';
 
 import {DisplayOption} from '../list/utils';
@@ -56,7 +56,7 @@ export const getReleaseNewIssuesUrl = (
       statsPeriod: undefined,
       start: undefined,
       end: undefined,
-      query: stringifyQueryObject(new QueryResults([`firstRelease:${version}`])),
+      query: new QueryResults([`firstRelease:${version}`]).formatString(),
       sort: IssueSortOptions.FREQ,
     },
   };
@@ -71,9 +71,10 @@ export const getReleaseUnhandledIssuesUrl = (
     pathname: `/organizations/${orgSlug}/issues/`,
     query: {
       project: projectId,
-      query: stringifyQueryObject(
-        new QueryResults([`release:${version}`, 'error.unhandled:true'])
-      ),
+      query: new QueryResults([
+        `release:${version}`,
+        'error.unhandled:true',
+      ]).formatString(),
       sort: IssueSortOptions.FREQ,
     },
   };

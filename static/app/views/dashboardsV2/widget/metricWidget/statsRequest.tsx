@@ -10,7 +10,7 @@ import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {t} from 'app/locale';
 import {GlobalSelection, Organization, Project, SessionApiResponse} from 'app/types';
 import {Series} from 'app/types/echarts';
-import {QueryResults, stringifyQueryObject} from 'app/utils/tokenizeSearch';
+import {QueryResults} from 'app/utils/tokenizeSearch';
 import {getInterval} from 'app/views/releases/detail/overview/chart/utils';
 import {roundDuration} from 'app/views/releases/utils';
 
@@ -109,7 +109,7 @@ function StatsRequest({
           .filter(tag => !!tag);
 
         if (!!tagsWithDoubleQuotes.length) {
-          query.query = stringifyQueryObject(new QueryResults(tagsWithDoubleQuotes));
+          query.query = new QueryResults(tagsWithDoubleQuotes).formatString();
         }
       }
 

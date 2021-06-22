@@ -16,7 +16,7 @@ import EventView from 'app/utils/discover/eventView';
 import {generateAggregateFields} from 'app/utils/discover/fields';
 import {isActiveSuperuser} from 'app/utils/isActiveSuperuser';
 import {decodeScalar} from 'app/utils/queryString';
-import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {tokenizeSearch} from 'app/utils/tokenizeSearch';
 import withTeams from 'app/utils/withTeams';
 
 import Charts from '../charts/index';
@@ -61,7 +61,7 @@ class LandingContent extends Component<Props, State> {
     const parsed = tokenizeSearch(query);
     parsed.query = [];
 
-    return stringifyQueryObject(parsed);
+    return parsed.formatString();
   }
 
   handleLandingDisplayChange = (field: string) => {
@@ -94,7 +94,7 @@ class LandingContent extends Component<Props, State> {
       pathname: location.pathname,
       query: {
         ...newQuery,
-        query: stringifyQueryObject(searchConditions),
+        query: searchConditions.formatString(),
         landingDisplay: field,
       },
     });

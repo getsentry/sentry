@@ -1,9 +1,4 @@
-import {
-  QueryResults,
-  stringifyQueryObject,
-  tokenizeSearch,
-  TokenType,
-} from 'app/utils/tokenizeSearch';
+import {QueryResults, tokenizeSearch, TokenType} from 'app/utils/tokenizeSearch';
 
 describe('utils/tokenizeSearch', function () {
   describe('tokenizeSearch()', function () {
@@ -379,7 +374,7 @@ describe('utils/tokenizeSearch', function () {
     });
   });
 
-  describe('stringifyQueryObject()', function () {
+  describe('QueryResults.formatString', function () {
     const cases = [
       {
         name: 'should convert a basic object to a query string',
@@ -485,7 +480,7 @@ describe('utils/tokenizeSearch', function () {
     ];
 
     for (const {name, string, object} of cases) {
-      it(name, () => expect(stringifyQueryObject(object)).toEqual(string));
+      it(name, () => expect(object.formatString()).toEqual(string));
     }
   });
 });

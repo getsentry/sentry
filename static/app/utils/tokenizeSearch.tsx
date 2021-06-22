@@ -296,13 +296,6 @@ export function tokenizeSearch(query: string) {
 }
 
 /**
- * Convert a QueryResults object back to a query string
- */
-export function stringifyQueryObject(results: QueryResults) {
-  return results.formatString();
-}
-
-/**
  * Splits search strings into tokens for parsing by tokenizeSearch.
  *
  * Should stay in sync with src.sentry.search.utils:split_query_into_tokens

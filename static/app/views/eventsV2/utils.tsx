@@ -28,7 +28,7 @@ import {
 } from 'app/utils/discover/fields';
 import {getTitle} from 'app/utils/events';
 import localStorage from 'app/utils/localStorage';
-import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {tokenizeSearch} from 'app/utils/tokenizeSearch';
 
 import {FieldValue, FieldValueKind, TableColumn} from './table/types';
 import {ALL_VIEWS, TRANSACTION_VIEWS, WEB_VITALS_VIEWS} from './data';
@@ -416,7 +416,7 @@ function generateExpandedConditions(
     parsedQuery.setTagValues(key, [value]);
   }
 
-  return stringifyQueryObject(parsedQuery);
+  return parsedQuery.formatString();
 }
 
 type FieldGeneratorOpts = {

@@ -14,7 +14,7 @@ import {t} from 'app/locale';
 import {LightWeightOrganization} from 'app/types';
 import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
-import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {tokenizeSearch} from 'app/utils/tokenizeSearch';
 import {getTermHelp, PERFORMANCE_TERM} from 'app/views/performance/data';
 
 type Props = {
@@ -76,7 +76,7 @@ function StatusBreakdown({eventView, location, organization}: Props) {
                 query: {
                   ...location.query,
                   cursor: undefined,
-                  query: stringifyQueryObject(query),
+                  query: query.formatString(),
                 },
               });
             },

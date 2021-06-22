@@ -24,7 +24,7 @@ import {computeBuckets, formatHistogramData} from 'app/utils/performance/histogr
 import {Vital} from 'app/utils/performance/vitals/types';
 import {VitalData} from 'app/utils/performance/vitals/vitalsCardsDiscoverQuery';
 import {Theme} from 'app/utils/theme';
-import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {tokenizeSearch} from 'app/utils/tokenizeSearch';
 
 import {VitalBar} from '../../landing/vitalsCards';
 import {
@@ -176,7 +176,7 @@ class VitalCard extends Component<Props, State> {
         query.addTagValues(column, [`<=${max}`]);
       }
     }
-    newEventView.query = stringifyQueryObject(query);
+    newEventView.query = query.formatString();
 
     return (
       <CardSummary>
