@@ -11,8 +11,7 @@ import {PanelTable} from 'app/components/panels';
 import {DEFAULT_DEBOUNCE_DURATION} from 'app/constants';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import {EventMetadata, Group, Organization} from 'app/types';
-import {Event} from 'app/types/event';
+import {BaseGroup, Group, Organization} from 'app/types';
 import {defined} from 'app/utils';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
 import withApi from 'app/utils/withApi';
@@ -30,14 +29,10 @@ type Props = {
   api: Client;
 };
 
-// this type is basically a barebones group, the attributes are a subset of
-// BaseGroup
-type GroupingLevelDetails = {
+type GroupingLevelDetails = Partial<Pick<BaseGroup, 'title' | 'metadata'>> & {
   eventCount: number;
   hash: string;
-  title?: string;
-  metadata?: EventMetadata;
-  latestEvent: Event;
+  latestEvent: BaseGroup['latestEvent'];
 };
 
 type GroupingLevel = {
