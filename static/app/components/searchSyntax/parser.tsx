@@ -104,6 +104,12 @@ const allOperators = [
   TermOperator.NotEqual,
 ] as const;
 
+const basicOperators = [TermOperator.Default, TermOperator.NotEqual] as const;
+
+export const interchangeableFilterOperators = {
+  [FilterType.SpecificDate]: [FilterType.Date],
+};
+
 const textKeys = [Token.KeySimple, Token.KeyExplicitTag] as const;
 
 const numberUnits = {
@@ -123,7 +129,7 @@ const numberUnits = {
 export const filterTypeConfig = {
   [FilterType.Text]: {
     validKeys: textKeys,
-    validOps: [],
+    validOps: basicOperators,
     validValues: [Token.ValueText],
     canNegate: true,
   },
@@ -171,7 +177,7 @@ export const filterTypeConfig = {
   },
   [FilterType.Boolean]: {
     validKeys: [Token.KeySimple],
-    validOps: [],
+    validOps: basicOperators,
     validValues: [Token.ValueBoolean],
     canNegate: true,
   },
@@ -207,13 +213,13 @@ export const filterTypeConfig = {
   },
   [FilterType.Has]: {
     validKeys: [Token.KeySimple],
-    validOps: [],
+    validOps: basicOperators,
     validValues: [],
     canNegate: true,
   },
   [FilterType.Is]: {
     validKeys: [Token.KeySimple],
-    validOps: [],
+    validOps: basicOperators,
     validValues: [Token.ValueText],
     canNegate: true,
   },
@@ -738,9 +744,10 @@ const defaultConfig: SearchConfig = {
   dateKeys: new Set([
     'start',
     'end',
-    'first_seen',
-    'last_seen',
+    'firstSeen',
+    'lastSeen',
     'time',
+    'event.timestamp',
     'timestamp',
     'timestamp.to_hour',
     'timestamp.to_day',

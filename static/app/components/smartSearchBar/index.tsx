@@ -5,6 +5,7 @@ import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
+import {LocationRange} from 'pegjs';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {fetchRecentSearches, saveRecentSearch} from 'app/actionCreators/savedSearches';
@@ -12,7 +13,15 @@ import {Client} from 'app/api';
 import ButtonBar from 'app/components/buttonBar';
 import DropdownLink from 'app/components/dropdownLink';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import {ParseResult, parseSearch} from 'app/components/searchSyntax/parser';
+import {
+  filterTypeConfig,
+  interchangeableFilterOperators,
+  ParseResult,
+  parseSearch,
+  TermOperator,
+  Token,
+  TokenResult,
+} from 'app/components/searchSyntax/parser';
 import HighlightQuery from 'app/components/searchSyntax/renderer';
 import {
   DEFAULT_DEBOUNCE_DURATION,
@@ -94,6 +103,13 @@ type ActionBarItem = {
    * The action component to render
    */
   Action: React.ComponentType<ActionProps>;
+};
+
+type AutocompleteGroup = {
+  searchItems: SearchItem[];
+  recentSearchItems: SearchItem[] | undefined;
+  tagName: string;
+  type: ItemType;
 };
 
 type Props = WithRouterProps & {
@@ -513,6 +529,10 @@ class SmartSearchBar extends React.Component<Props, State> {
   };
 
   onKeyUp = (evt: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (evt.key === 'ArrowLeft' || evt.key === 'ArrowRight') {
+      this.updateAutoCompleteItems();
+    }
+
     // Other keys are managed at onKeyDown function
     if (evt.key !== 'Escape') {
       return;
@@ -749,13 +769,230 @@ class SmartSearchBar extends React.Component<Props, State> {
     return [];
   };
 
+  generateValueAutocompleteGroup = async (
+    tagName: string,
+    query: string
+  ): Promise<AutocompleteGroup | null> => {
+    const {prepareQuery, excludeEnvironment} = this.props;
+    const supportedTags = this.props.supportedTags ?? {};
+
+    const preparedQuery =
+      typeof prepareQuery === 'function' ? prepareQuery(query) : query;
+
+    // filter existing items immediately, until API can return
+    // with actual tag value results
+    const filteredSearchGroups = !preparedQuery
+      ? this.state.searchGroups
+      : this.state.searchGroups.filter(
+          item => item.value && item.value.indexOf(preparedQuery) !== -1
+        );
+
+    this.setState({
+      searchTerm: query,
+      searchGroups: filteredSearchGroups,
+    });
+
+    const tag = supportedTags[tagName];
+
+    if (!tag) {
+      return {
+        searchItems: [],
+        recentSearchItems: [],
+        tagName,
+        type: 'invalid-tag',
+      };
+    }
+
+    // Ignore the environment tag if the feature is active and
+    // excludeEnvironment = true
+    if (excludeEnvironment && tagName === 'environment') {
+      return null;
+    }
+
+    const fetchTagValuesFn =
+      tag.key === 'firstRelease'
+        ? this.getReleases
+        : tag.predefined
+        ? this.getPredefinedTagValues
+        : this.getTagValues;
+
+    const [tagValues, recentSearches] = await Promise.all([
+      fetchTagValuesFn(tag, preparedQuery),
+      this.getRecentSearches(),
+    ]);
+
+    return {
+      searchItems: tagValues ?? [],
+      recentSearchItems: recentSearches ?? [],
+      tagName: tag.key,
+      type: 'tag-value',
+    };
+  };
+
+  generateOpAutocompleteEntries(
+    validOps: readonly TermOperator[],
+    tag: string
+  ): SearchItem[] {
+    const operatorMap = {
+      [TermOperator.Default]: {
+        type: 'tag-operator' as ItemType,
+        value: ':',
+        desc: t(`${tag}:[value] is equal to`),
+      },
+      [TermOperator.GreaterThanEqual]: {
+        type: 'tag-operator' as ItemType,
+        value: ':>=',
+        desc: t(`${tag}:>=[value] is greater than or equal to`),
+      },
+      [TermOperator.LessThanEqual]: {
+        type: 'tag-operator' as ItemType,
+        value: ':<=',
+        desc: t(`${tag}:<=[value] is less than or equal to`),
+      },
+      [TermOperator.GreaterThan]: {
+        type: 'tag-operator' as ItemType,
+        value: ':>',
+        desc: t(`${tag}:>[value] is greater than`),
+      },
+      [TermOperator.LessThan]: {
+        type: 'tag-operator' as ItemType,
+        value: ':<',
+        desc: t(`${tag}:<[value] is less than`),
+      },
+      [TermOperator.Equal]: {
+        type: 'tag-operator' as ItemType,
+        value: ':=',
+        desc: t(`${tag}:=[value] is equal to`),
+      },
+      [TermOperator.NotEqual]: {
+        type: 'tag-operator' as ItemType,
+        value: '!:',
+        desc: t(`!${tag}:[value] is not equal to`),
+      },
+    };
+    return validOps.map(op => operatorMap[op]);
+  }
+
+  getValidOps(filterToken: TokenResult<Token.Filter>): readonly TermOperator[] {
+    const types = filterToken.invalid?.expectedType ?? [filterToken.filter];
+    const filterType = interchangeableFilterOperators[types[0]]
+      ? interchangeableFilterOperators[types[0]][0]
+      : types[0];
+    const config = filterTypeConfig[filterType];
+    return config.validOps ?? [''];
+  }
+
+  generateOpAutocompleteGroup(
+    validOps: readonly TermOperator[],
+    tagName: string
+  ): AutocompleteGroup {
+    const operatorItems = this.generateOpAutocompleteEntries(validOps, tagName);
+    return {
+      searchItems: operatorItems,
+      recentSearchItems: undefined,
+      tagName: '',
+      type: 'tag-operator' as ItemType,
+    };
+  }
+
+  withinTokenLocation(node: {location: LocationRange}, position: number) {
+    return position >= node.location.start.offset && position <= node.location.end.offset;
+  }
+
+  getCursorToken = (AST: ParseResult, cursor: number): ParseResult[number] | null => {
+    // traverse AST to find first matching filter based on cursor position
+    for (const node of AST) {
+      if (node !== Token.Spaces && this.withinTokenLocation(node, cursor)) {
+        // traverse into a logic group to find specific filter
+        if (node.type === Token.LogicGroup) {
+          return this.getCursorToken(node.inner, cursor);
+        }
+        return node;
+      }
+    }
+    return null;
+  };
+
   updateAutoCompleteItems = async () => {
     if (this.blurTimeout) {
       clearTimeout(this.blurTimeout);
       this.blurTimeout = undefined;
     }
 
+    const {organization} = this.props;
     const cursor = this.getCursorPosition();
+    let AST: ParseResult | null = null;
+    if (organization.features.includes('search-syntax-highlight')) {
+      try {
+        AST = parseSearch(this.state.query);
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.log(err);
+      }
+    }
+    if (AST) {
+      const filterNode = this.getCursorToken(AST, cursor);
+      if (filterNode && filterNode.type === Token.Filter) {
+        // check if we are on the tag, value, or operator
+        if (this.withinTokenLocation(filterNode.value, cursor)) {
+          const node = filterNode.value;
+          const tagName = filterNode.key.text;
+
+          const supportedTags = this.props.supportedTags ?? {};
+          const tag = supportedTags[tagName];
+
+          const valueGroup = await this.generateValueAutocompleteGroup(
+            tagName,
+            node.text
+          );
+          const autocompleteGroups = valueGroup ? [valueGroup] : [];
+
+          // show operator group if at beginning of value
+          if (cursor === node.location.start.offset) {
+            const opGroup = this.generateOpAutocompleteGroup(
+              this.getValidOps(filterNode),
+              tag.key
+            );
+            autocompleteGroups.unshift(opGroup);
+          }
+
+          this.updateAutoCompleteStateMultiHeader(autocompleteGroups);
+          return;
+        } else if (this.withinTokenLocation(filterNode.key, cursor)) {
+          const node = filterNode.key;
+          const tagKeys = this.getTagKeys(node.text);
+          const recentSearches = await this.getRecentSearches();
+
+          const tagGroup: AutocompleteGroup = {
+            searchItems: tagKeys,
+            recentSearchItems: recentSearches ?? [],
+            tagName: node.text,
+            type: 'tag-key' as ItemType,
+          };
+          const autocompleteGroups = [tagGroup];
+          // show operator group if at end of key
+          if (cursor === node.location.end.offset) {
+            const opGroup = this.generateOpAutocompleteGroup(
+              this.getValidOps(filterNode),
+              node.text
+            );
+            autocompleteGroups.unshift(opGroup);
+          }
+          this.updateAutoCompleteStateMultiHeader(autocompleteGroups);
+          return;
+        } else {
+          // show operator autocomplete group
+          const node = filterNode.key;
+          const opGroup = this.generateOpAutocompleteGroup(
+            this.getValidOps(filterNode),
+            node.text
+          );
+          this.updateAutoCompleteStateMultiHeader([opGroup]);
+          return;
+        }
+      }
+    }
+
     let query = this.state.query;
 
     // Don't continue if the query hasn't changed
@@ -820,9 +1057,6 @@ class SmartSearchBar extends React.Component<Props, State> {
       return;
     }
 
-    const {prepareQuery, excludeEnvironment} = this.props;
-    const supportedTags = this.props.supportedTags ?? {};
-
     // TODO(billy): Better parsing for these examples
     //
     // > sentry:release:
@@ -832,54 +1066,16 @@ class SmartSearchBar extends React.Component<Props, State> {
     // e.g. given "!gpu" we want "gpu"
     tagName = tagName.replace(new RegExp(`^${NEGATION_OPERATOR}`), '');
     query = last.slice(index + 1);
-    const preparedQuery =
-      typeof prepareQuery === 'function' ? prepareQuery(query) : query;
-
-    // filter existing items immediately, until API can return
-    // with actual tag value results
-    const filteredSearchGroups = !preparedQuery
-      ? this.state.searchGroups
-      : this.state.searchGroups.filter(
-          item => item.value && item.value.indexOf(preparedQuery) !== -1
-        );
-
-    this.setState({
-      searchTerm: query,
-      searchGroups: filteredSearchGroups,
-    });
-
-    const tag = supportedTags[tagName];
-
-    if (!tag) {
-      this.updateAutoCompleteState([], [], tagName, 'invalid-tag');
+    const valueGroup = await this.generateValueAutocompleteGroup(tagName, query);
+    if (valueGroup) {
+      this.updateAutoCompleteState(
+        valueGroup.searchItems ?? [],
+        valueGroup.recentSearchItems ?? [],
+        valueGroup.tagName,
+        valueGroup.type
+      );
       return;
     }
-
-    // Ignore the environment tag if the feature is active and
-    // excludeEnvironment = true
-    if (excludeEnvironment && tagName === 'environment') {
-      return;
-    }
-
-    const fetchTagValuesFn =
-      tag.key === 'firstRelease'
-        ? this.getReleases
-        : tag.predefined
-        ? this.getPredefinedTagValues
-        : this.getTagValues;
-
-    const [tagValues, recentSearches] = await Promise.all([
-      fetchTagValuesFn(tag, preparedQuery),
-      this.getRecentSearches(),
-    ]);
-
-    this.updateAutoCompleteState(
-      tagValues ?? [],
-      recentSearches ?? [],
-      tag.key,
-      'tag-value'
-    );
-    return;
   };
 
   /**
@@ -914,6 +1110,37 @@ class SmartSearchBar extends React.Component<Props, State> {
     );
   }
 
+  /**
+   * Updates autocomplete dropdown items and autocomplete index state
+   *
+   * @param groups Groups that will be used to populate the autocomplete dropdown
+   */
+  updateAutoCompleteStateMultiHeader = (groups: AutocompleteGroup[]) => {
+    const {hasRecentSearches, maxSearchItems, maxQueryLength} = this.props;
+    const query = this.state.query;
+    const queryCharsLeft =
+      maxQueryLength && query ? maxQueryLength - query.length : undefined;
+    const searchGroups = {
+      searchGroups: [] as SearchGroup[],
+      flatSearchItems: [] as SearchItem[],
+      activeSearchItem: -1,
+    };
+    for (const group of groups) {
+      const {searchItems, recentSearchItems, tagName, type} = group;
+      const searchGroup = createSearchGroups(
+        searchItems,
+        hasRecentSearches ? recentSearchItems : undefined,
+        tagName,
+        type,
+        maxSearchItems,
+        queryCharsLeft
+      );
+      searchGroups.searchGroups.push(...searchGroup.searchGroups);
+      searchGroups.flatSearchItems.push(...searchGroup.flatSearchItems);
+    }
+    this.setState(searchGroups);
+  };
+
   onAutoComplete = (replaceText: string, item: SearchItem) => {
     if (item.type === 'recent-search') {
       trackAnalyticsEvent({
@@ -932,9 +1159,69 @@ class SmartSearchBar extends React.Component<Props, State> {
 
       return;
     }
-
     const cursor = this.getCursorPosition();
     const query = this.state.query;
+
+    const {organization} = this.props;
+    let AST: ParseResult | null = null;
+    if (organization.features.includes('search-syntax-highlight')) {
+      try {
+        AST = parseSearch(this.state.query);
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.log(err);
+      }
+    }
+    if (AST) {
+      const filterNode = this.getCursorToken(AST, cursor);
+      if (filterNode && filterNode.type === Token.Filter) {
+        let clauseStart: null | number = null;
+        let clauseEnd: null | number = null;
+        let replaceToken = replaceText;
+        if (item.type === 'tag-operator') {
+          // this is an operator
+          const valueLocation = filterNode.value.location;
+          clauseStart = filterNode.location.start.offset;
+          clauseEnd = valueLocation.start.offset;
+          if (replaceText === '!:') {
+            replaceToken = `!${filterNode.key.text}:`;
+          } else {
+            replaceToken = `${filterNode.key.text}${replaceText}`;
+          }
+        } else if (this.withinTokenLocation(filterNode.value, cursor)) {
+          const location = filterNode.value.location;
+          const keyLocation = filterNode.key.location;
+          clauseStart = keyLocation.end.offset + 1;
+          clauseEnd = location.end.offset;
+        } else if (this.withinTokenLocation(filterNode.key, cursor)) {
+          // If the token is a key, then trim off the end to avoid duplicate ':'
+          const location = filterNode.key.location;
+          clauseStart = location.start.offset;
+          clauseEnd = location.end.offset + 1;
+        }
+        if (clauseStart !== null && clauseEnd !== null) {
+          const beforeClause = query.substring(0, clauseStart);
+          const endClause = query.substring(clauseEnd);
+          const newQuery = `${beforeClause}${replaceToken}${endClause}`;
+
+          this.setState({query: newQuery}, () => {
+            // setting a new input value will lose focus; restore it
+            if (this.searchInput.current) {
+              this.searchInput.current.focus();
+              // set cursor to be end of the autocomplete clause
+              const newCursorPosition = beforeClause.length + replaceToken.length;
+              this.searchInput.current.selectionStart = newCursorPosition;
+              this.searchInput.current.selectionEnd = newCursorPosition;
+            }
+
+            // then update the autocomplete box with new items
+            this.updateAutoCompleteItems();
+            this.props.onChange?.(newQuery, new MouseEvent('click') as any);
+          });
+          return;
+        }
+      }
+    }
 
     const lastTermIndex = getLastTermIndex(query, cursor);
     const terms = getQueryTerms(query, lastTermIndex);
