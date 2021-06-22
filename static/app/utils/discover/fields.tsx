@@ -895,3 +895,24 @@ export function getSpanOperationName(field: string): string | null {
   }
   return null;
 }
+
+export function getColumnType(column: Column): ColumnType {
+  if (column.kind === 'function') {
+    const outputType = aggregateFunctionOutputType(
+      column.function[0],
+      column.function[1]
+    );
+    if (outputType !== null) {
+      return outputType;
+    }
+  } else if (column.kind === 'field') {
+    if (FIELDS.hasOwnProperty(column.field)) {
+      return FIELDS[column.field];
+    } else if (isMeasurement(column.field)) {
+      return measurementType(column.field);
+    } else if (isSpanOperationBreakdownField(column.field)) {
+      return 'duration';
+    }
+  }
+  return 'string';
+}

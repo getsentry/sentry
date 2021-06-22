@@ -12,12 +12,14 @@ import {SelectValue} from 'app/types';
 import {
   AggregateParameter,
   AggregationKey,
+  Column,
   ColumnType,
   QueryFieldValue,
   ValidateColumnTypes,
 } from 'app/utils/discover/fields';
 import Input from 'app/views/settings/components/forms/controls/input';
 
+import ArithmeticInput from './arithmeticInput';
 import {FieldValue, FieldValueColumns, FieldValueKind} from './types';
 
 type FieldValueOption = SelectValue<FieldValue>;
@@ -76,6 +78,7 @@ type Props = {
   disabled?: boolean;
   hidePrimarySelector?: boolean;
   hideParameterSelector?: boolean;
+  otherColumns?: Column[];
 };
 
 // Type for completing generics in react-select
@@ -457,6 +460,7 @@ class QueryField extends React.Component<Props> {
       disabled,
       hidePrimarySelector,
       gridColumns,
+      otherColumns,
     } = this.props;
     const {field, fieldOptions, parameterDescriptions} = this.getFieldData();
 
@@ -503,13 +507,14 @@ class QueryField extends React.Component<Props> {
     if (fieldValue.kind === FieldValueKind.EQUATION) {
       return (
         <Container className={className} gridColumns={1}>
-          <BufferedInput
-            name="refinement"
+          <ArithmeticInput
+            name="arithmetic"
             key="parameter:text"
             type="text"
             required
             value={fieldValue.field}
             onUpdate={this.handleEquationChange}
+            options={otherColumns}
           />
         </Container>
       );

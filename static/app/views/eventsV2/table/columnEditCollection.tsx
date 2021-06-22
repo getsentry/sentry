@@ -283,7 +283,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
       gridColumns = 2,
     }: {canDelete?: boolean; isGhost?: boolean; gridColumns: number}
   ) {
-    const {fieldOptions} = this.props;
+    const {columns, fieldOptions} = this.props;
     const {isDragging, draggingTargetIndex, draggingIndex} = this.state;
 
     let placeholder: React.ReactNode = null;
@@ -330,6 +330,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
             fieldValue={col}
             onChange={value => this.handleUpdateColumn(i, value)}
             takeFocus={i === this.props.columns.length - 1}
+            otherColumns={columns}
           />
           {canDelete ? (
             <Button
