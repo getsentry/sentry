@@ -2499,6 +2499,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 "avg(transaction.duration)",
                 "stddev(transaction.duration)",
                 "var(transaction.duration)",
+                "cov(transaction.duration, transaction.duration)",
+                "corr(transaction.duration, transaction.duration)",
                 "sum(transaction.duration)",
             ],
             "query": "event.type:transaction",
@@ -2515,6 +2517,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["avg_transaction_duration"] == 5000
         assert data[0]["stddev_transaction_duration"] == 0.0
         assert data[0]["var_transaction_duration"] == 0.0
+        assert data[0]["cov_transaction_duration_transaction_duration"] == 0.0
+        assert data[0]["corr_transaction_duration_transaction_duration"] == 0.0
         assert data[0]["sum_transaction_duration"] == 10000
 
     def test_null_user_misery_returns_zero(self):
@@ -2658,6 +2662,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 "sum(transaction.duration)",
                 "stddev(transaction.duration)",
                 "var(transaction.duration)",
+                "cov(transaction.duration, transaction.duration)",
+                "corr(transaction.duration, transaction.duration)",
             ],
             "query": " ".join(
                 [
@@ -2668,6 +2674,9 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                     "sum(transaction.duration):>1000",
                     "stddev(transaction.duration):>=0.0",
                     "var(transaction.duration):>=0.0",
+                    "cov(transaction.duration, transaction.duration):>=0.0",
+                    # correlation is nan because variance is 0
+                    # "corr(transaction.duration, transaction.duration):>=0.0",
                 ]
             ),
         }
@@ -2678,9 +2687,11 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["min_transaction_duration"] == 5000
         assert data[0]["max_transaction_duration"] == 5000
         assert data[0]["avg_transaction_duration"] == 5000
+        assert data[0]["sum_transaction_duration"] == 10000
         assert data[0]["stddev_transaction_duration"] == 0.0
         assert data[0]["var_transaction_duration"] == 0.0
-        assert data[0]["sum_transaction_duration"] == 10000
+        assert data[0]["cov_transaction_duration_transaction_duration"] == 0.0
+        assert data[0]["corr_transaction_duration_transaction_duration"] == 0.0
 
         query = {
             "field": ["event.type", "apdex(400)"],

@@ -51,7 +51,7 @@ class ContextData extends React.Component<Props, State> {
       return <AnnotatedText value={v} meta={meta} />;
     }
 
-    /*eslint no-shadow:0*/
+    /* eslint no-shadow:0 */
     function walk(value: Value, depth: number) {
       let i = 0;
       const children: React.ReactNode[] = [];

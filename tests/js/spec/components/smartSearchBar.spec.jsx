@@ -110,7 +110,7 @@ describe('SmartSearchBar', function () {
     await tick();
 
     expect(searchBar.find('textarea').props().value).toEqual(
-      'device:"this is filled with spaces"'
+      'device:"this is filled with spaces" '
     );
   });
 
@@ -145,7 +145,7 @@ describe('SmartSearchBar', function () {
     await tick();
 
     expect(searchBar.find('textarea').props().value).toEqual(
-      'device:"this \\" is \\" filled \\" with \\" quotes"'
+      'device:"this \\" is \\" filled \\" with \\" quotes" '
     );
   });
 
