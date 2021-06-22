@@ -80,7 +80,7 @@ describe('decodeColumnOrder', function () {
       name: 'count()',
       column: {
         kind: 'function',
-        function: ['count', '', undefined],
+        function: ['count', undefined, undefined],
       },
       width: 123,
       isSortable: true,
