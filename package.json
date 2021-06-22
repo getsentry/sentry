@@ -75,7 +75,7 @@
     "echarts": "4.7.0",
     "echarts-for-react": "2.0.16",
     "file-loader": "^6.2.0",
-    "focus-trap": "^6.4.0",
+    "focus-trap": "^6.5.1",
     "focus-visible": "^5.2.0",
     "fork-ts-checker-webpack-plugin": "^4.1.2",
     "framer-motion": "^4.1.11",
