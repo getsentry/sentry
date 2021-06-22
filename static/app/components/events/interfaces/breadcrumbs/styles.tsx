@@ -33,6 +33,7 @@ const GridCell = styled('div')<{
   hasError?: boolean;
   isLastItem?: boolean;
 }>`
+  overflow: hidden;
   height: 100%;
   position: relative;
   white-space: pre-wrap;
