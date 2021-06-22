@@ -4,8 +4,6 @@ import BreadcrumbDropdown from 'app/views/settings/components/settingsBreadcrumb
 
 jest.useFakeTimers();
 
-const CLOSE_DELAY = 0;
-
 describe('Settings Breadcrumb Dropdown', function () {
   let wrapper;
   const selectMock = jest.fn();
