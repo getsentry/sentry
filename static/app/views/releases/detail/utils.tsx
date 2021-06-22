@@ -13,7 +13,7 @@ import {
 } from 'app/types';
 import {getUtcDateString} from 'app/utils/dates';
 import EventView from 'app/utils/discover/eventView';
-import {QueryResults, stringifyQueryObject} from 'app/utils/tokenizeSearch';
+import {QueryResults} from 'app/utils/tokenizeSearch';
 
 export type CommitsByRepository = {
   [key: string]: Commit[];
@@ -117,9 +117,11 @@ export function getReleaseEventView(
     version: 2,
     name: `${t('Release Apdex')}`,
     fields: [apdexField],
-    query: stringifyQueryObject(
-      new QueryResults([`release:${version}`, 'event.type:transaction', 'count():>0'])
-    ),
+    query: new QueryResults([
+      `release:${version}`,
+      'event.type:transaction',
+      'count():>0',
+    ]).formatString(),
     range: period,
     environment: environments,
     projects,
