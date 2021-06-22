@@ -29,7 +29,6 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.eventstore.models import Event
-from sentry.eventtypes.error import format_title_from_tree_label
 from sentry.utils.http import absolute_uri
 from sentry.utils.numbers import base32_decode, base32_encode
 from sentry.utils.strings import strip, truncatechars
@@ -536,10 +535,6 @@ class Group(Model):
 
     @property
     def title(self) -> str:
-        current_tree_label = self.get_event_metadata().get("current_tree_label")
-        if current_tree_label is not None:
-            return format_title_from_tree_label(current_tree_label)
-
         et = eventtypes.get(self.get_event_type())()
         return et.get_title(self.get_event_metadata())
 
