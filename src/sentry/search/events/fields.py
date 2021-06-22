@@ -433,16 +433,6 @@ def resolve_field_list(
         if "project.id" not in fields:
             fields.append("project.id")
 
-    for field in fields[:]:
-        if isinstance(field, str) and field in {
-            "apdex()",
-            "count_miserable(user)",
-            "user_misery()",
-        }:
-            if PROJECT_THRESHOLD_CONFIG_ALIAS not in fields:
-                fields.append(PROJECT_THRESHOLD_CONFIG_ALIAS)
-                break
-
     for field in fields:
         if isinstance(field, str) and field.strip() == "":
             continue
@@ -459,7 +449,8 @@ def resolve_field_list(
                     aggregate_fields[format_column_as_key(function.aggregate[1])].add(field)
 
     # Only auto aggregate when there's one other so the group by is not unexpectedly changed
-    if auto_aggregations and snuba_filter.having and len(aggregations) > 0:
+    auto_aggregate = auto_aggregations and snuba_filter.having and len(aggregations) > 0
+    if auto_aggregate:
         for agg in snuba_filter.condition_aggregates:
             if agg not in snuba_filter.aliases:
                 function = resolve_field(agg, snuba_filter.params, functions_acl)
@@ -472,6 +463,23 @@ def resolve_field_list(
 
                         if function.details.instance.redundant_grouping:
                             aggregate_fields[format_column_as_key(function.aggregate[1])].add(field)
+
+    snuba_filter_condition_aggregates = (
+        set(snuba_filter.condition_aggregates or []) if auto_aggregate else set()
+    )
+    for field in set(fields[:]).union(snuba_filter_condition_aggregates):
+        if isinstance(field, str) and field in {
+            "apdex()",
+            "count_miserable(user)",
+            "user_misery()",
+        }:
+            if PROJECT_THRESHOLD_CONFIG_ALIAS not in fields:
+                fields.append(PROJECT_THRESHOLD_CONFIG_ALIAS)
+                function = resolve_field(
+                    PROJECT_THRESHOLD_CONFIG_ALIAS, snuba_filter.params, functions_acl
+                )
+                columns.append(function.column)
+                break
 
     rollup = snuba_filter.rollup
     if not rollup and auto_fields:
@@ -1648,6 +1656,20 @@ FUNCTIONS = {
             "stddev",
             required_args=[NumericColumnNoLookup("column")],
             aggregate=["stddevSamp", ArgValue("column"), None],
+            default_result_type="number",
+            redundant_grouping=True,
+        ),
+        Function(
+            "cov",
+            required_args=[NumericColumnNoLookup("column1"), NumericColumnNoLookup("column2")],
+            aggregate=["covarSamp", [ArgValue("column1"), ArgValue("column2")], None],
+            default_result_type="number",
+            redundant_grouping=True,
+        ),
+        Function(
+            "corr",
+            required_args=[NumericColumnNoLookup("column1"), NumericColumnNoLookup("column2")],
+            aggregate=["corr", [ArgValue("column1"), ArgValue("column2")], None],
             default_result_type="number",
             redundant_grouping=True,
         ),

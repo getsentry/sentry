@@ -878,7 +878,7 @@ function routes() {
         {/* A route tree for lightweight organizational detail views. We place
       this above the heavyweight organization detail views because there
       exist some redirects from deprecated routes which should not take
-      precedence over these lightweight routes*/}
+      precedence over these lightweight routes */}
         <Route component={errorHandler(LightWeightOrganizationDetails)}>
           <Route
             path="/organizations/:orgId/projects/"

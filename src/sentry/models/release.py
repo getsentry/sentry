@@ -6,7 +6,7 @@ from typing import List, Mapping
 
 import sentry_sdk
 from django.db import IntegrityError, models, transaction
-from django.db.models import Case, F, Func, Q, Value, When
+from django.db.models import Case, F, Func, Q, Sum, Value, When
 from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
@@ -941,15 +941,12 @@ class Release(Model):
 
 def get_artifact_counts(release_ids: List[int]) -> Mapping[int, int]:
     """Get artifact count grouped by IDs"""
-    query = """
-    SELECT
-        release_id AS id, sum(COALESCE(artifact_count, 1)) AS count
-    FROM
-        sentry_releasefile
-    WHERE
-        release_id = ANY(%s)
-    GROUP BY
-        release_id;
-    """
-    qs = Release.objects.raw(query, params=[release_ids])
-    return {r.id: r.count for r in qs}
+    from sentry.models.releasefile import ReleaseFile
+
+    qs = (
+        ReleaseFile.objects.filter(release_id__in=release_ids)
+        .annotate(count=Sum(Func(F("artifact_count"), 1, function="COALESCE")))
+        .values_list("release_id", "count")
+    )
+    qs.query.group_by = ["release_id"]
+    return dict(qs)

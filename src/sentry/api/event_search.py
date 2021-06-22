@@ -1,6 +1,6 @@
 import re
 from collections import namedtuple
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from typing import Any, List, Mapping, NamedTuple, Sequence, Set, Tuple, Union
 
@@ -387,6 +387,20 @@ class SearchConfig:
     # Enables boolean filtering (AND / OR)
     allow_boolean = True
 
+    # Allows us to specify an allowlist of keys we will accept for this search.
+    # If empty, allow all keys.
+    allowed_keys: Set[str] = field(default_factory=set)
+
+    # Which key we should return any free text under
+    free_text_key = "message"
+
+    @classmethod
+    def create_from(cls, search_config: "SearchConfig", **overrides):
+        config = cls(**asdict(search_config))
+        for key, val in overrides.items():
+            setattr(config, key, val)
+        return config
+
 
 class SearchVisitor(NodeVisitor):
     unwrapped_exceptions = (InvalidSearchQuery,)
@@ -446,13 +460,13 @@ class SearchVisitor(NodeVisitor):
     def visit_free_text(self, node, children):
         if not children[0]:
             return None
-        return SearchFilter(SearchKey("message"), "=", SearchValue(children[0]))
+        return SearchFilter(SearchKey(self.config.free_text_key), "=", SearchValue(children[0]))
 
     def visit_paren_group(self, node, children):
         if not self.config.allow_boolean:
             # It's possible to have a valid search that includes parens, so we
             # can't just error out when we find a paren expression.
-            return SearchFilter(SearchKey("message"), "=", SearchValue(node.text))
+            return SearchFilter(SearchKey(self.config.free_text_key), "=", SearchValue(node.text))
 
         children = remove_space(remove_optional_nodes(flatten(children)))
         children = flatten(children[1])
@@ -617,7 +631,16 @@ class SearchVisitor(NodeVisitor):
             # Even if the search value matches duration format, only act as
             # duration for certain columns
             function = resolve_field(search_key.name, self.params, functions_acl=FUNCTIONS.keys())
-            if function.aggregate is not None and self.is_duration_key(function.aggregate[1]):
+
+            is_duration_key = False
+            if function.aggregate is not None:
+                args = function.aggregate[1]
+                if isinstance(args, list):
+                    is_duration_key = all(self.is_duration_key(arg) for arg in args)
+                else:
+                    is_duration_key = self.is_duration_key(args)
+
+            if is_duration_key:
                 aggregate_value = parse_duration(*search_value)
             else:
                 # Duration overlaps with numeric values with `m` (million vs
@@ -808,6 +831,8 @@ class SearchVisitor(NodeVisitor):
 
     def visit_search_key(self, node, children):
         key = children[0]
+        if self.config.allowed_keys and key not in self.config.allowed_keys:
+            raise InvalidSearchQuery("Invalid key for this search")
         return SearchKey(self.key_mappings_lookup.get(key, key))
 
     def visit_text_key(self, node, children):
@@ -961,7 +986,7 @@ default_config = SearchConfig(
 )
 
 
-def parse_search_query(query, config=None, params=None):
+def parse_search_query(query, config=None, params=None) -> Sequence[SearchFilter]:
     if config is None:
         config = default_config
 

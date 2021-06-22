@@ -1,0 +1,34 @@
+[
+  {
+    "query": "avg(transaction.duration):>500s",
+    "result": [
+      {
+        "type": "filter",
+        "filter": "aggregateDuration",
+        "negated": false,
+        "key": {
+          "type": "keyAggregate",
+          "name": {"type": "keySimple", "value": "avg", "quoted": false},
+          "args": {
+            "type": "keyAggregateArgs",
+            "args": [
+              {
+                "separator": "",
+                "value": {
+                  "type": "keySimple",
+                  "value": "transaction.duration",
+                  "quoted": false
+                }
+              }
+            ]
+          },
+          "argsSpaceBefore": {"type": "spaces", "value": ""},
+          "argsSpaceAfter": {"type": "spaces", "value": ""}
+        },
+        "operator": ">",
+        "value": {"type": "valueDuration", "value": 500, "unit": "s"}
+      },
+      {"type": "spaces", "value": ""}
+    ]
+  }
+]

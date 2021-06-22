@@ -81,7 +81,7 @@ class ClippedBox extends React.PureComponent<Props, State> {
     }
 
     if (!this.state.isClipped && renderedHeight > this.props.clipHeight) {
-      /*eslint react/no-did-mount-set-state:0*/
+      /* eslint react/no-did-mount-set-state:0 */
       // okay if this causes re-render; cannot determine until
       // rendered first anyways
       this.setState({
