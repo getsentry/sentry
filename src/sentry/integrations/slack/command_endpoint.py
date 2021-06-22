@@ -13,7 +13,7 @@ from sentry.models import Identity, IdentityProvider
 
 logger = logging.getLogger("sentry.integrations.slack")
 LINK_TEAM_MESSAGE = "Link your Sentry team to this Slack channel! <{associate_url}|Link your team now> to receive notifications of issues in Sentry in Slack."
-LINK_USER_MESSAGE = "Who dis? Type `/sentry link` to tell me and btw you better be an admin or you're still not gonna be able to link your team."
+LINK_USER_MESSAGE = "You must first link your identity to Sentry by typing /sentry link. Be aware that you must be an admin or higher in your Sentry organization to link your team."
 
 
 def get_command(payload: Mapping[str, str]) -> str:

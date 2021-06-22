@@ -139,9 +139,10 @@ class SlackLinkTeamView(BaseView):
         )
         # if the org has open membership and the user is an admin or above
         # OR if closed, ensure user is admin AND member of the team
-        if not (
-            organization.flags.allow_joinleave and org_member.role in ["admin", "manager", "owner"]
-        ) or (org_member.role in ["admin", "manager", "owner"] and team in [org_member.teams]):
+        allowed_roles = ["admin", "manager", "owner"]
+        if not (organization.flags.allow_joinleave and org_member.role in allowed_roles) or (
+            org_member.role in allowed_roles and team in [org_member.teams]
+        ):
             return self.send_slack_message(
                 request,
                 client,
