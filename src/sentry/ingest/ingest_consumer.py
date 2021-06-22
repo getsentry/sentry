@@ -144,7 +144,7 @@ class IngestConsumerWorker(AbstractBatchWorker):
                     results[future].callback(future)
 
                 metrics.timing(
-                    "ingest_consumer.process_other_messages_batch_normalized",
+                    "ingest_consumer.process_other_messages_batch.normalized",
                     (time.monotonic() - other_messages_flush_start) / len(other_messages),
                 )
 
