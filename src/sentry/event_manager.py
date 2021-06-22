@@ -983,7 +983,7 @@ def _save_aggregate(event, hashes, release, **kwargs):
     # this for select_for_update mostly provides sufficient synchronization
     # when groups are created and also relieves contention by locking a more
     # specific hash than `hierarchical_hashes[0]`.
-    existing_grouphash, root_hierarchical_hash = _find_existing_group_id(
+    existing_grouphash, root_hierarchical_hash = _find_existing_grouphash(
         project, flat_grouphashes, hashes.hierarchical_hashes
     )
 
@@ -1034,7 +1034,7 @@ def _save_aggregate(event, hashes, release, **kwargs):
 
             flat_grouphashes = [gh for gh in all_hashes if gh.hash in hashes.hashes]
 
-            existing_grouphash, root_hierarchical_hash = _find_existing_group_id(
+            existing_grouphash, root_hierarchical_hash = _find_existing_grouphash(
                 project, flat_grouphashes, hashes.hierarchical_hashes
             )
 
@@ -1141,7 +1141,7 @@ def _save_aggregate(event, hashes, release, **kwargs):
     return group, is_new, is_regression
 
 
-def _find_existing_group_id(
+def _find_existing_grouphash(
     project,
     flat_grouphashes,
     hierarchical_hashes,
