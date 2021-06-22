@@ -26,9 +26,8 @@ import {getCurrentLandingDisplay, LandingDisplayField} from '../../landing/utils
 import Filter, {filterToSearchConditions, SpanOperationBreakdownFilter} from '../filter';
 import TransactionHeader, {Tab} from '../header';
 
-import {EventsFilterOption, getEventsFilterOptions} from './utils';
-
 import EventsTable from './eventsTable';
+import {EventsFilterOption, getEventsFilterOptions} from './utils';
 
 type Props = {
   location: Location;
@@ -43,7 +42,7 @@ type Props = {
 type State = {
   incompatibleAlertNotice: React.ReactNode;
   error: string | undefined;
-  currentEventsFilterOption?: EventsFilterOption:
+  currentEventsFilterOption?: EventsFilterOption;
 };
 
 class EventsPageContent extends React.Component<Props, State> {
@@ -105,6 +104,10 @@ class EventsPageContent extends React.Component<Props, State> {
     this.setState({error});
   };
 
+  handleEventsFilterOptionChange = eventKey => {
+    console.log(eventKey);
+  };
+
   render() {
     let {eventView} = this.props;
     const {
@@ -157,7 +160,11 @@ class EventsPageContent extends React.Component<Props, State> {
             <Layout.Main fullWidth>{incompatibleAlertNotice}</Layout.Main>
           )}
           <Layout.Main fullWidth>
-            <Search {...this.props} handleEventsFilterOptionChange={this.handleEventsFilterOptionChange} currentEventsFilterOption={this.state.currentEventsFilterOption}/>
+            <Search
+              {...this.props}
+              handleEventsFilterOptionChange={this.handleEventsFilterOptionChange}
+              eventsFilterOption={this.state.currentEventsFilterOption}
+            />
             <StyledTable>
               <EventsTable
                 eventView={eventView}
@@ -175,7 +182,12 @@ class EventsPageContent extends React.Component<Props, State> {
   }
 }
 
-const Search = (props: Props & {handleEventsFilterOptionChange: (eventKey: any) => void, eventsFilterOption: EventsFilterOption}) => {
+const Search = (
+  props: Props & {
+    handleEventsFilterOptionChange: (eventKey: any) => void;
+    eventsFilterOption?: EventsFilterOption;
+  }
+) => {
   const {
     eventView,
     location,
@@ -183,7 +195,7 @@ const Search = (props: Props & {handleEventsFilterOptionChange: (eventKey: any) 
     spanOperationBreakdownFilter,
     onChangeFilter,
     handleEventsFilterOptionChange,
-    eventsFilterOption
+    eventsFilterOption,
   } = props;
 
   const handleSearch = (query: string) => {
@@ -221,17 +233,19 @@ const Search = (props: Props & {handleEventsFilterOptionChange: (eventKey: any) 
         <DropdownControl buttonProps={{prefix: t('Display')}} label="TODO">
           {/* TODO */}
           {getEventsFilterOptions(spanOperationBreakdownFilter, 1000).map(
-            ({sort, value, label}) => (
-              <DropdownItem
-                key={value}
-                onSelect={handleEventsFilterOptionChange}
-                eventKey={value}
-                data-test-id={value}
-                isActive={value === eventsFilterOption}
-              >
-                {label}
-              </DropdownItem>
-            )
+            ({sort, value, label}) => {
+              return (
+                <DropdownItem
+                  key={value}
+                  onSelect={handleEventsFilterOptionChange}
+                  eventKey={sort}
+                  data-test-id={value}
+                  isActive={eventsFilterOption && value === eventsFilterOption.value}
+                >
+                  {label}
+                </DropdownItem>
+              );
+            }
           )}
         </DropdownControl>
       </LatencyDropdown>

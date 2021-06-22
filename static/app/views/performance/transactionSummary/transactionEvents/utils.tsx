@@ -30,7 +30,7 @@ export function getEventsFilterOptions(
     {
       sort: {
         kind: 'asc',
-        field: filterToField(spanOperationBreakdownFilter) || 'timestamp',
+        field: filterToField(spanOperationBreakdownFilter) || 'transaction.duration',
       },
       value: EventsFilterOptionNames.FASTEST,
       label: t('Fastest %s', spanOperationBreakdownFilterTextFragment),
@@ -39,7 +39,7 @@ export function getEventsFilterOptions(
       query: [['transaction.duration', `<=${p95.toFixed(0)}`]],
       sort: {
         kind: 'desc',
-        field: filterToField(spanOperationBreakdownFilter) || 'timestamp',
+        field: filterToField(spanOperationBreakdownFilter) || 'transaction.duration',
       },
       value: EventsFilterOptionNames.SLOW,
       label: t('Slow %s (p95)', spanOperationBreakdownFilterTextFragment),
@@ -47,7 +47,7 @@ export function getEventsFilterOptions(
     {
       sort: {
         kind: 'desc',
-        field: filterToField(spanOperationBreakdownFilter) || 'timestamp',
+        field: filterToField(spanOperationBreakdownFilter) || 'transaction.duration',
       },
       value: EventsFilterOptionNames.OUTLIER,
       label: t('Outlier %s (p100)', spanOperationBreakdownFilterTextFragment),
