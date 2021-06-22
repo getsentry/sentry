@@ -128,7 +128,7 @@
     "typescript": "^4.2.4",
     "u2f-api": "1.0.10",
     "webpack": "5.27.2",
-    "webpack-cli": "4.5.0",
+    "webpack-cli": "4.7.2",
     "webpack-manifest-plugin": "^3.1.0",
     "webpack-remove-empty-scripts": "^0.7.1",
     "wink-jaro-distance": "^2.0.0",
