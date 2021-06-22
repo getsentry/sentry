@@ -143,6 +143,8 @@ class ReleasesList extends AsyncView<Props, State> {
         return SortOption.SESSIONS;
       case SortOption.USERS_24_HOURS:
         return SortOption.USERS_24_HOURS;
+      case SortOption.SESSIONS_24_HOURS:
+        return SortOption.SESSIONS_24_HOURS;
       case SortOption.BUILD:
         return SortOption.BUILD;
       case SortOption.SEMVER:
@@ -236,9 +238,15 @@ class ReleasesList extends AsyncView<Props, State> {
   handleDisplay = (display: string) => {
     const {location, router} = this.props;
 
+    let sort = location.query.sort;
+    if (sort === SortOption.USERS_24_HOURS && display === DisplayOption.SESSIONS)
+      sort = SortOption.SESSIONS_24_HOURS;
+    else if (sort === SortOption.SESSIONS_24_HOURS && display === DisplayOption.USERS)
+      sort = SortOption.USERS_24_HOURS;
+
     router.push({
       ...location,
-      query: {...location.query, cursor: undefined, display},
+      query: {...location.query, cursor: undefined, display, sort},
     });
   };
 
@@ -293,6 +301,16 @@ class ReleasesList extends AsyncView<Props, State> {
       return (
         <EmptyStateWarning small>
           {t('There are no releases with active user data (users in the last 24 hours).')}
+        </EmptyStateWarning>
+      );
+    }
+
+    if (activeSort === SortOption.SESSIONS_24_HOURS) {
+      return (
+        <EmptyStateWarning small>
+          {t(
+            'There are no releases with active session data (sessions in the last 24 hours).'
+          )}
         </EmptyStateWarning>
       );
     }
@@ -490,6 +508,7 @@ class ReleasesList extends AsyncView<Props, State> {
               />
               <ReleaseListSortOptions
                 selected={activeSort}
+                selectedDisplay={activeDisplay}
                 onSelect={this.handleSortBy}
                 organization={organization}
               />
