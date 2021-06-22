@@ -60,9 +60,7 @@ class SlackCommandsEndpoint(Endpoint):
                 )
                 raise Http404
 
-            try:
-                Identity.objects.select_related("user").get(idp=idp, external_id=user_id)
-            except Identity.DoesNotExist:
+            if not Identity.objects.filter(idp=idp, external_id=user_id).exists():
                 return self.send_ephemeral_notification(LINK_USER_MESSAGE)
             channel_id = payload.get("channel_id", "")
             channel_name = payload.get("channel_name", "")
