@@ -1,4 +1,4 @@
-from typing import List, Optional, Set, Union
+from typing import List, Mapping, MutableMapping, Optional, Set, Union
 
 from django.utils.functional import cached_property
 from snuba_sdk.column import Column
@@ -28,13 +28,14 @@ class QueryBase:
         self.dataset = dataset
         if isinstance(orderby, str) and orderby != "":
             orderby = [orderby]
-        self.orderby_columns: List[str] = orderby if orderby else []
+        self.orderby_columns: Union[List[str], str] = orderby if orderby else []
         self.projects_to_filter: Set[int] = set()
+        self.translated_columns: MutableMapping[str, str] = dict()
 
         self.resolve_column_name = resolve_column(self.dataset)
 
     @cached_property
-    def project_slugs(self):
+    def project_slugs(self) -> Mapping[str, int]:
         project_ids = self.params.get("project_id", [])
 
         if len(project_ids) > 0:

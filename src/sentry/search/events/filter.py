@@ -60,7 +60,7 @@ def translate_transaction_status(val):
     return SPAN_STATUS_NAME_TO_CODE[val]
 
 
-def to_list(value):
+def to_list(value: Union[List[str], str]) -> List[str]:
     if isinstance(value, list):
         return value
     return [value]
@@ -846,23 +846,29 @@ def format_search_filter(term, params):
 class QueryFilter(QueryBase):
     """Filter logic for a snql query"""
 
-    def resolve_where(self, query: str) -> None:
+    def resolve_where(self, query: Optional[str]) -> List[WhereType]:
+        if query is None:
+            return []
+
         try:
             parsed_terms = parse_search_query(query, params=self.params)
         except ParseError as e:
             raise InvalidSearchQuery(f"Parse error: {e.expr.name} (column {e.column():d})")
 
-        for term in parsed_terms:
-            if isinstance(term, SearchFilter):
-                conditions = self.format_search_filter(term)
-                if conditions:
-                    self.where.append(conditions)
+        conditions = [
+            self.format_search_filter(term)
+            for term in parsed_terms
+            if isinstance(term, SearchFilter)
+        ]
+        return [condition for condition in conditions if condition]
 
-    def resolve_params(self) -> None:
+    def resolve_params(self) -> List[WhereType]:
         """Keys included as url params take precedent if same key is included in search
         They are also considered safe and to have had access rules applied unlike conditions
         from the query string.
         """
+        conditions = []
+
         # start/end are required so that we can run a query in a reasonable amount of time
         if "start" not in self.params or "end" not in self.params:
             raise InvalidSearchQuery("Cannot query without a valid date range")
@@ -876,12 +882,12 @@ class QueryFilter(QueryBase):
             isinstance(project_id, int) for project_id in self.params.get("project_id", [])
         ), "All project id params must be ints"
 
-        self.where.append(Condition(self.column("timestamp"), Op.GTE, start))
-        self.where.append(Condition(self.column("timestamp"), Op.LT, end))
+        conditions.append(Condition(self.column("timestamp"), Op.GTE, start))
+        conditions.append(Condition(self.column("timestamp"), Op.LT, end))
 
         # If we already have projects_to_filter, there's no need to add an additional project filter
         if "project_id" in self.params and len(self.projects_to_filter) == 0:
-            self.where.append(
+            conditions.append(
                 Condition(
                     self.column("project_id"),
                     Op.IN,
@@ -895,7 +901,9 @@ class QueryFilter(QueryBase):
             )
             condition = self._environment_filter_converter(term, "environment")
             if condition:
-                self.where.append(condition)
+                conditions.append(condition)
+
+        return conditions
 
     def _environment_filter_converter(
         self,
@@ -967,14 +975,42 @@ class QueryFilter(QueryBase):
 
     def format_search_filter(self, term: SearchFilter) -> Optional[WhereType]:
         """For now this function seems a bit redundant inside QueryFilter but
-        most of the logic from hte existing format_search_filter hasn't been
+        most of the logic from the existing format_search_filter hasn't been
         converted over yet
         """
-        converted_filter = self.convert_search_filter_to_condition(term)
-        if converted_filter:
-            return converted_filter
+        name = term.key.name
+        value = term.value.value
+
+        if name == ISSUE_ALIAS:
+            operator = term.operator
+            value = to_list(value)
+            # `unknown` is a special value for when there is no issue associated with the event
+            group_short_ids = [v for v in value if v and v != "unknown"]
+            filter_values = ["" for v in value if not v or v == "unknown"]
+
+            if group_short_ids and self.params and "organization_id" in self.params:
+                try:
+                    groups = Group.objects.by_qualified_short_id_bulk(
+                        self.params["organization_id"],
+                        group_short_ids,
+                    )
+                except Exception:
+                    raise InvalidSearchQuery(
+                        f"Invalid value '{group_short_ids}' for 'issue:' filter"
+                    )
+                else:
+                    filter_values.extend(sorted(g.id for g in groups))
+
+            term = SearchFilter(
+                SearchKey("issue.id"),
+                operator,
+                SearchValue(filter_values if term.is_in_filter else filter_values[0]),
+            )
+            converted_filter = self.convert_search_filter_to_condition(term)
+            return converted_filter if converted_filter else None
         else:
-            return None
+            converted_filter = self.convert_search_filter_to_condition(term)
+            return converted_filter if converted_filter else None
 
     def convert_search_filter_to_condition(
         self,
@@ -994,7 +1030,7 @@ class QueryFilter(QueryBase):
             name = f"tags[{name}]"
 
         if name in NO_CONVERSION_FIELDS:
-            return
+            return None
         elif name in key_conversion_map:
             return key_conversion_map[name](search_filter, name)
         elif name in self.field_allowlist:

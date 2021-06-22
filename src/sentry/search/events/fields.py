@@ -2,7 +2,7 @@ import re
 from collections import defaultdict, namedtuple
 from copy import deepcopy
 from datetime import datetime
-from typing import List, Union
+from typing import List, Optional, Union
 
 import sentry_sdk
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
@@ -23,6 +23,8 @@ from sentry.search.events.constants import (
     DEFAULT_PROJECT_THRESHOLD_METRIC,
     ERROR_UNHANDLED_ALIAS,
     FUNCTION_PATTERN,
+    ISSUE_ALIAS,
+    ISSUE_ID_ALIAS,
     KEY_TRANSACTION_ALIAS,
     PROJECT_ALIAS,
     PROJECT_NAME_ALIAS,
@@ -76,6 +78,15 @@ class PseudoField:
         expression = self.get_expression(params)
         if expression is not None:
             expression.append(self.alias)
+            return expression
+        return self.alias
+
+    def get_snql_expression(self, params):
+        return None
+
+    def get_snql_field(self, params=None):
+        expression = self.get_snql_expression(params)
+        if expression is not None:
             return expression
         return self.alias
 
@@ -322,6 +333,28 @@ FIELD_ALIASES = {
             result_type="boolean",
         ),
     ]
+}
+
+
+class FieldAlias:
+    def __init__(self, expression_fn, return_type=None) -> None:
+        self.expression_fn = expression_fn
+        self.return_type = return_type
+
+    def get_column(self, params) -> SnqlFunction:
+        return self.expression_fn(params)
+
+
+SNQL_FIELD_ALIASES = {
+    # TODO: Remove the `toUInt64` once Column supports aliases
+    ISSUE_ALIAS: FieldAlias(
+        # NOTE: `ISSUE_ALIAS` simply maps to the id, meaning that post processing is required to
+        # insert the true issue short id into the response.
+        lambda _: SnqlFunction("toUInt64", [SnqlColumn("group_id")], "issue.id")
+    ),
+    ISSUE_ID_ALIAS: FieldAlias(
+        lambda _: SnqlFunction("toUInt64", [SnqlColumn("group_id")], "issue.id")
+    ),
 }
 
 
@@ -1904,7 +1937,15 @@ FUNCTION_ALIAS_PATTERN = re.compile(r"^({}).*".format("|".join(list(FUNCTIONS.ke
 class QueryFields(QueryBase):
     """Field logic for a snql query"""
 
-    def resolve_select(self, selected_columns: List[str]) -> None:
+    # set of snql supported FIELD_ALIASES
+    field_alias_allow_list = {"issue"}
+
+    def resolve_select(
+        self, selected_columns: Optional[List[str]]
+    ) -> List[Union[SnqlColumn, SnqlFunction]]:
+        if selected_columns is None:
+            return []
+
         project_key = None
         # If project is requested, we need to map ids to their names since snuba only has ids
         if "project" in selected_columns:
@@ -1915,15 +1956,21 @@ class QueryFields(QueryBase):
             selected_columns.remove(PROJECT_NAME_ALIAS)
             project_key = PROJECT_NAME_ALIAS
 
+        columns = []
+
         for field in selected_columns:
             if field.strip() == "":
                 continue
             resolved_field = self.resolve_field(field)
-            if isinstance(resolved_field, SnqlColumn) and resolved_field not in self.columns:
-                self.columns.append(resolved_field)
+            if (
+                isinstance(resolved_field, SnqlColumn) or isinstance(resolved_field, SnqlFunction)
+            ) and resolved_field not in self.columns:
+                columns.append(resolved_field)
 
         if project_key:
-            self.columns.append(self.project_slug_transform(project_key))
+            columns.append(self.project_slug_transform(project_key))
+
+        return columns
 
     def project_slug_transform(self, project_key: str) -> SnqlFunction:
         """When project is a selected column we need to create a transform to turn them back into slugs"""
@@ -1955,7 +2002,9 @@ class QueryFields(QueryBase):
         if match:
             raise NotImplementedError(f"{field} not implemented in snql field parsing yet")
 
-        if field in FIELD_ALIASES:
+        if field in FIELD_ALIASES or field in SNQL_FIELD_ALIASES:
+            if field in SNQL_FIELD_ALIASES:
+                return SNQL_FIELD_ALIASES[field].get_column(self.params)
             raise NotImplementedError(f"{field} not implemented in snql field parsing yet")
 
         tag_match = TAG_KEY_RE.search(field)
@@ -1974,7 +2023,7 @@ class QueryFields(QueryBase):
         validated = []
         for orderby in self.orderby_columns:
             bare_orderby = orderby.lstrip("-")
-            resolved_orderby = self.column(bare_orderby)
+            resolved_orderby = self.resolve_field(bare_orderby)
             direction = Direction.DESC if orderby.startswith("-") else Direction.ASC
 
             for selected_column in self.columns:

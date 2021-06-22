@@ -73,6 +73,8 @@ SNQL_FIELD_ALLOWLIST = {
     "project.id",
     "release",
     "user.email",
+    "issue",
+    "issue.id",
 }
 
 OPERATOR_NEGATION_MAP = {

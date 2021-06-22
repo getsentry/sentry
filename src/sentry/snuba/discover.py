@@ -196,11 +196,10 @@ def wip_snql_query(
     Replacement API for query using snql, this function is still a work in
     progress and is not ready for use in production
     """
-    snql_query = QueryBuilder(
-        Dataset.Discover, params, query, selected_columns, orderby, limit
-    ).get_snql_query()
-    result = raw_snql_query(snql_query, referrer)
-    return result
+    builder = QueryBuilder(Dataset.Discover, params, query, selected_columns, orderby, limit)
+    snql_query = builder.get_snql_query()
+    results = raw_snql_query(snql_query, referrer)
+    return builder.process_results(results)
 
 
 def query(
