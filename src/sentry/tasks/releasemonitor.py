@@ -101,8 +101,6 @@ def process_projects_with_sessions(org_id, project_ids):
                         dataset="sessions",
                         match=Entity("sessions"),
                         select=[
-                            Column("org_id"),
-                            Column("project_id"),
                             Column("sessions"),
                         ],
                         groupby=[
