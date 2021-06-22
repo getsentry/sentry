@@ -10,10 +10,16 @@ import {
 } from 'app/utils/discover/fields';
 import EventsTable from 'app/views/performance/transactionSummary/transactionEvents/eventsTable';
 
-function initializeData({features: additionalFeatures = [], query = {}} = {}) {
+type Data = {
+  features: string[];
+};
+
+function initializeData({features: additionalFeatures = []}: Data) {
   const features = ['discover-basic', 'performance-view', ...additionalFeatures];
+  // @ts-expect-error
   const organization = TestStubs.Organization({
     features,
+    // @ts-expect-error
     projects: [TestStubs.Project()],
     apdexThreshold: 400,
   });
@@ -25,10 +31,11 @@ function initializeData({features: additionalFeatures = [], query = {}} = {}) {
           transaction: '/performance',
           project: 1,
           transactionCursor: '1:0:0',
-          ...query,
         },
       },
     },
+    project: 1,
+    projects: [],
   });
   ProjectsStore.loadInitialData(initialData.organization.projects);
   return initialData;
@@ -62,23 +69,29 @@ describe('Performance GridEditable Table', function () {
       'spans.total.time',
       ...SPAN_OP_BREAKDOWN_FIELDS,
     ];
+    // @ts-expect-error
     organization = TestStubs.Organization();
+    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
     });
+    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/is-key-transactions/',
       body: [],
     });
+    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: '/prompts-activity/',
       body: {},
     });
+    // @ts-expect-error
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sdk-updates/',
       body: [],
     });
+    // @ts-expect-error
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/legacy-key-transactions-count/`,
@@ -115,6 +128,7 @@ describe('Performance GridEditable Table', function () {
       },
     ];
     // Transaction list response
+    // @ts-expect-error
     MockApiClient.addMockResponse(
       {
         url: '/organizations/org-slug/eventsv2/',
@@ -145,6 +159,7 @@ describe('Performance GridEditable Table', function () {
   });
 
   afterEach(function () {
+    // @ts-expect-error
     MockApiClient.clearMockResponses();
     ProjectsStore.reset();
     jest.clearAllMocks();
@@ -169,12 +184,13 @@ describe('Performance GridEditable Table', function () {
         eventView={eventView}
         organization={organization}
         location={initialData.router.location}
-        setError={this.setError}
+        setError={() => {}}
         columnTitles={transactionsListTitles}
         transactionName={transactionName}
       />,
       initialData.routerContext
     );
+    // @ts-expect-error
     await tick();
     wrapper.update();
 
@@ -218,12 +234,13 @@ describe('Performance GridEditable Table', function () {
         eventView={eventView}
         organization={organization}
         location={initialData.router.location}
-        setError={this.setError}
+        setError={() => {}}
         columnTitles={transactionsListTitles}
         transactionName={transactionName}
       />,
       initialData.routerContext
     );
+    // @ts-expect-error
     await tick();
     wrapper.update();
 
