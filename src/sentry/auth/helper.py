@@ -633,6 +633,10 @@ class AuthHelper:
         # flow or if the user is somehow circumventing a chunk of it
         self.signature = md5_text(" ".join(av.get_ident() for av in self.pipeline)).hexdigest()
 
+        self.auth_handler = AuthIdentityHandler(
+            self.auth_provider, self.provider, self.organization, self.request
+        )
+
     def pipeline_is_valid(self):
         if not self.state.is_valid():
             return False
@@ -698,12 +702,6 @@ class AuthHelper:
             response = self._finish_setup_pipeline(identity)
 
         return response
-
-    @property
-    def auth_handler(self):
-        return AuthIdentityHandler(
-            self.auth_provider, self.provider, self.organization, self.request
-        )
 
     @transaction.atomic
     def _finish_login_pipeline(self, identity: Identity):
