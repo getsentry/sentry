@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/react';
+import * as moment from 'moment';
 import * as qs from 'query-string';
 
 import {DEFAULT_LOCALE_DATA, setLocale} from 'app/locale';
@@ -12,6 +13,11 @@ function convertToDjangoLocaleFormat(language: string) {
 
 async function getTranslations(language: string) {
   language = convertToDjangoLocaleFormat(language);
+
+  // No need to load the english locale
+  if (language === 'en') {
+    return DEFAULT_LOCALE_DATA;
+  }
 
   try {
     return await import(`sentry-locale/${language}/LC_MESSAGES/django.po`);
@@ -56,6 +62,17 @@ export async function initializeLocale(config: Config) {
     ? queryString.lang[0]
     : queryString.lang;
   const languageCode = queryStringLang || config.languageCode || 'en';
-  const translations = await getTranslations(languageCode);
-  setLocale(translations);
+
+  try {
+    const translations = await getTranslations(languageCode);
+    setLocale(translations);
+
+    // No need to import english
+    if (languageCode !== 'en') {
+      await import(`moment/locale/${languageCode}`);
+      moment.locale(languageCode);
+    }
+  } catch (err) {
+    Sentry.captureException(err);
+  }
 }
