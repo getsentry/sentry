@@ -78,7 +78,7 @@
     "focus-trap": "^6.5.1",
     "focus-visible": "^5.2.0",
     "fork-ts-checker-webpack-plugin": "^4.1.2",
-    "framer-motion": "^4.1.11",
+    "framer-motion": "^4.1.17",
     "fuse.js": "^3.4.6",
     "gettext-parser": "1.3.1",
     "intersection-observer": "^0.12.0",
