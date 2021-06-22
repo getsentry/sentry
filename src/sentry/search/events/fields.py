@@ -463,9 +463,11 @@ def resolve_field_list(
                         if function.details.instance.redundant_grouping:
                             aggregate_fields[format_column_as_key(function.aggregate[1])].add(field)
 
-    check_aggregations = snuba_filter.having and len(aggregations) > 0
+    check_aggregations = (
+        snuba_filter.having and len(aggregations) > 0 and snuba_filter.condition_aggregates
+    )
     snuba_filter_condition_aggregates = (
-        set(snuba_filter.condition_aggregates or []) if check_aggregations else set()
+        set(snuba_filter.condition_aggregates) if check_aggregations else set()
     )
     for field in set(fields[:]).union(snuba_filter_condition_aggregates):
         if isinstance(field, str) and field in {
