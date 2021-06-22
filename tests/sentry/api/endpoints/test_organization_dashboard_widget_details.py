@@ -1,6 +1,7 @@
 from django.urls import reverse
 
 from sentry.testutils import OrganizationDashboardWidgetTestCase
+from sentry.testutils.helpers.datetime import before_now, iso_format
 
 
 class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTestCase):
@@ -113,6 +114,43 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
                     "name": "",
                     "fields": ["epm()"],
                     "conditions": f"project:{self.project.name}",
+                    "orderby": "",
+                }
+            ],
+        }
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 200, response.data
+
+    def test_issue_search_condition(self):
+        self.user = self.create_user(is_superuser=False)
+        self.create_member(
+            user=self.user, organization=self.organization, role="member", teams=[self.team]
+        )
+        self.login_as(self.user)
+
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "transaction": "/example",
+                "message": "how to make fast",
+                "timestamp": iso_format(before_now(minutes=2)),
+                "fingerprint": ["group_1"],
+            },
+            project_id=self.project.id,
+        )
+
+        data = {
+            "title": "EPM Big Number",
+            "displayType": "big_number",
+            "queries": [
+                {
+                    "name": "",
+                    "fields": ["epm()"],
+                    "conditions": f"issue:{event.group.qualified_short_id}",
                     "orderby": "",
                 }
             ],
