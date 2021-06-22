@@ -8,9 +8,8 @@ import {defined} from 'app/utils';
 
 import {getFullLanguageDescription, getRelativeTimeFromEventDateCreated} from '../utils';
 
-import formatMemory from './formatMemory';
-import formatStorage from './formatStorage';
 import {DeviceData, DeviceKnownDataType} from './types';
+import {formatMemory, formatStorage} from './utils';
 
 type Output = {
   subject: string;

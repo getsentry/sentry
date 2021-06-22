@@ -92,4 +92,5 @@ const Trend = styled('div')<TrendProps>`
   overflow: hidden;
 `;
 
+export {HeaderTitle, StyledPanel, Score, ScoreWrapper, Trend};
 export default ScoreCard;

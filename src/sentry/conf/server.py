@@ -70,8 +70,6 @@ DEBUG = IS_DEV
 
 ADMIN_ENABLED = DEBUG
 
-MAINTENANCE = False
-
 ADMINS = ()
 
 # Hosts that are considered in the same network (including VPNs).
@@ -276,16 +274,13 @@ USE_TZ = True
 # so that responses aren't modified after Content-Length is set, or have the
 # response modifying middleware reset the Content-Length header.
 # This is because CommonMiddleware Sets the Content-Length header for non-streaming responses.
-MIDDLEWARE_CLASSES = (
-    "sentry.middleware.proxy.DecompressBodyMiddleware",
+MIDDLEWARE = (
+    "sentry.middleware.health.HealthCheck",
     "sentry.middleware.security.SecurityHeadersMiddleware",
-    "sentry.middleware.maintenance.ServicesUnavailableMiddleware",
     "sentry.middleware.env.SentryEnvMiddleware",
     "sentry.middleware.proxy.SetRemoteAddrFromForwardedFor",
-    "sentry.middleware.debug.NoIfModifiedSinceMiddleware",
     "sentry.middleware.stats.RequestTimingMiddleware",
     "sentry.middleware.stats.ResponseCodeMiddleware",
-    "sentry.middleware.health.HealthCheck",  # Must exist before CommonMiddleware
     "django.middleware.common.CommonMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -901,7 +896,10 @@ SENTRY_FEATURES = {
     "organizations:incidents": False,
     # Enable the new Metrics page
     "organizations:metrics": False,
-    # Automatically extract metrics during ingestion
+    # Automatically extract metrics during ingestion.
+    #
+    # XXX(ja): DO NOT ENABLE UNTIL THIS NOTICE IS GONE. Relay experiences
+    # gradual slowdown when this is enabled for too many projects.
     "organizations:metrics-extraction": False,
     # Enable metric aggregate in metric alert rule builder
     "organizations:metric-alert-builder-aggregate": False,
@@ -1005,14 +1003,14 @@ SENTRY_FEATURES = {
     "organizations:images-loaded-v2": True,
     # Enable teams to have ownership of alert rules
     "organizations:team-alerts-ownership": False,
-    # Enable the new alert creation wizard
-    "organizations:alert-wizard": True,
     # Enable the adoption chart in the releases page
     "organizations:release-adoption-chart": False,
     # Enable the release adoption stage labels and sorting+filtering by them
     "organizations:release-adoption-stage": False,
     # Store release bundles as zip files instead of single files
     "organizations:release-archives": False,
+    # Enable the new release details experience
+    "organizations:release-comparison": False,
     # Enable the project level transaction thresholds
     "organizations:project-transaction-threshold": False,
     # Enable percent displays in issue stream
@@ -1038,8 +1036,6 @@ SENTRY_FEATURES = {
     "projects:race-free-group-creation": True,
     # Enable functionality for rate-limiting events on projects.
     "projects:rate-limits": True,
-    # Enable functionality for sampling of events on projects.
-    "projects:sample-events": False,
     # Enable functionality to trigger service hooks upon event ingestion.
     "projects:servicehooks": False,
     # Use Kafka (instead of Celery) for ingestion pipeline.

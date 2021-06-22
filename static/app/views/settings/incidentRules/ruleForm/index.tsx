@@ -11,7 +11,6 @@ import {
 } from 'app/actionCreators/indicator';
 import {fetchOrganizationTags} from 'app/actionCreators/tags';
 import Access from 'app/components/acl/access';
-import Feature from 'app/components/acl/feature';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
 import Confirm from 'app/components/confirm';
@@ -36,7 +35,6 @@ import hasThresholdValue from 'app/views/settings/incidentRules/utils/hasThresho
 
 import {addOrUpdateRule} from '../actions';
 import {createDefaultTrigger} from '../constants';
-import RuleConditionsForm from '../ruleConditionsForm';
 import RuleConditionsFormForWizard from '../ruleConditionsFormForWizard';
 import {
   AlertRuleThresholdType,
@@ -632,7 +630,6 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
         }
       />
     );
-    const chart = <TriggersChart {...chartProps} />;
 
     const ownerId = rule.owner?.split(':')[1];
     const canEdit =
@@ -708,43 +705,22 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
             }
             submitLabel={t('Save Rule')}
           >
-            <Feature organization={organization} features={['alert-wizard']}>
-              {({hasFeature}) =>
-                hasFeature ? (
-                  <List symbol="colored-numeric">
-                    <RuleConditionsFormForWizard
-                      api={this.api}
-                      projectSlug={params.projectId}
-                      organization={organization}
-                      disabled={!hasAccess || !canEdit}
-                      thresholdChart={wizardBuilderChart}
-                      onFilterSearch={this.handleFilterUpdate}
-                      allowChangeEventTypes={isCustomMetric || dataset === Dataset.ERRORS}
-                      alertType={isCustomMetric ? 'custom' : alertType}
-                    />
-                    <AlertListItem>{t('Set thresholds to trigger alert')}</AlertListItem>
-                    {triggerForm(hasAccess)}
-                    <StyledListItem>{t('Add a rule name and team')}</StyledListItem>
-                    {ruleNameOwnerForm(hasAccess)}
-                  </List>
-                ) : (
-                  <React.Fragment>
-                    <RuleConditionsForm
-                      api={this.api}
-                      projectSlug={params.projectId}
-                      organization={organization}
-                      disabled={!hasAccess || !canEdit}
-                      thresholdChart={chart}
-                      onFilterSearch={this.handleFilterUpdate}
-                    />
-                    <List symbol="colored-numeric" initialCounterValue={2}>
-                      {triggerForm(hasAccess)}
-                      {ruleNameOwnerForm(hasAccess)}
-                    </List>
-                  </React.Fragment>
-                )
-              }
-            </Feature>
+            <List symbol="colored-numeric">
+              <RuleConditionsFormForWizard
+                api={this.api}
+                projectSlug={params.projectId}
+                organization={organization}
+                disabled={!hasAccess || !canEdit}
+                thresholdChart={wizardBuilderChart}
+                onFilterSearch={this.handleFilterUpdate}
+                allowChangeEventTypes={isCustomMetric || dataset === Dataset.ERRORS}
+                alertType={isCustomMetric ? 'custom' : alertType}
+              />
+              <AlertListItem>{t('Set thresholds to trigger alert')}</AlertListItem>
+              {triggerForm(hasAccess)}
+              <StyledListItem>{t('Add a rule name and team')}</StyledListItem>
+              {ruleNameOwnerForm(hasAccess)}
+            </List>
           </Form>
         )}
       </Access>

@@ -1,62 +1,69 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import Card from 'app/components/card';
-import {tn} from 'app/locale';
+import EventOrGroupHeader from 'app/components/eventOrGroupHeader';
+import TimeSince from 'app/components/timeSince';
+import {IconClock} from 'app/icons';
+import {t} from 'app/locale';
 import space from 'app/styles/space';
+import {Organization} from 'app/types';
 import {Event} from 'app/types/event';
 
 type Props = {
-  event: Event;
+  sampleEvent: Event;
+  eventCount: number;
+  organization: Organization;
 };
 
-function NewIssue({event}: Props) {
-  const {title, culprit, errors} = event;
-  const errorCount = errors.length;
+function NewIssue({sampleEvent, eventCount, organization}: Props) {
   return (
-    <StyledCard interactive={false}>
-      <div>
-        <Title>{title}</Title>
-        <CulPrint>{culprit}</CulPrint>
-      </div>
-      <ErrorsCount>
-        {errorCount}
-        <ErrorLabel>{tn('Error', 'Errors', errorCount)}</ErrorLabel>
-      </ErrorsCount>
-    </StyledCard>
+    <Fragment>
+      <EventDetails>
+        <EventOrGroupHeader
+          data={sampleEvent}
+          organization={organization}
+          hideIcons
+          hideLevel
+        />
+        <ExtraInfo>
+          <TimeWrapper>
+            <StyledIconClock size="11px" />
+            <TimeSince date={sampleEvent.dateCreated} suffix={t('old')} />
+          </TimeWrapper>
+        </ExtraInfo>
+      </EventDetails>
+      <EventCount>{eventCount}</EventCount>
+    </Fragment>
   );
 }
 
 export default NewIssue;
 
-const StyledCard = styled(Card)`
-  margin-bottom: -1px;
+const EventDetails = styled('div')`
   overflow: hidden;
+  line-height: 1.1;
+`;
+
+const ExtraInfo = styled('div')`
   display: grid;
-  grid-template-columns: 1fr max-content;
-  align-items: center;
-  padding: ${space(1.5)} ${space(2)};
+  grid-auto-flow: column;
   grid-gap: ${space(2)};
-  word-break: break-word;
+  justify-content: flex-start;
 `;
 
-const Title = styled('div')`
-  font-size: ${p => p.theme.fontSizeLarge};
-  font-weight: 700;
-`;
-
-const CulPrint = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
-`;
-
-const ErrorsCount = styled('div')`
+const TimeWrapper = styled('div')`
   display: grid;
+  grid-gap: ${space(0.5)};
+  grid-template-columns: max-content 1fr;
   align-items: center;
-  justify-items: center;
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
-const ErrorLabel = styled('div')`
-  text-transform: uppercase;
-  font-weight: 500;
-  color: ${p => p.theme.gray300};
-  font-size: ${p => p.theme.fontSizeSmall};
+const EventCount = styled('div')`
+  align-items: center;
+  line-height: 1.1;
+`;
+
+const StyledIconClock = styled(IconClock)`
+  color: ${p => p.theme.subText};
 `;

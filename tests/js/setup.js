@@ -1,4 +1,3 @@
-/* global __dirname */
 import Adapter from '@wojtekmaj/enzyme-adapter-react-17';
 import Enzyme from 'enzyme'; // eslint-disable-line no-restricted-imports
 import MockDate from 'mockdate';
@@ -45,8 +44,7 @@ MockDate.set(constantDate);
  * Load all files in `tests/js/fixtures/*` as a module.
  * These will then be added to the `TestStubs` global below
  */
-const fixturesPath = `${__dirname}/sentry-test/fixtures`;
-const fixtures = loadFixtures(fixturesPath);
+const fixtures = loadFixtures('js-stubs', {flatten: true});
 
 /**
  * Global testing configuration
@@ -220,3 +218,11 @@ window.TestStubs = {
   AllAuthenticators: () => Object.values(fixtures.Authenticators()).map(x => x()),
   ...fixtures,
 };
+
+// We now need to re-define `window.location`, otherwise we can't spyOn certain methods
+// as `window.location` is read-only
+Object.defineProperty(window, 'location', {
+  value: {...window.location, assign: jest.fn(), reload: jest.fn()},
+  configurable: true,
+  writable: true,
+});

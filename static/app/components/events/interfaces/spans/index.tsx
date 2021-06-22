@@ -1,6 +1,7 @@
-import {Component} from 'react';
+import {PureComponent} from 'react';
 import * as ReactRouter from 'react-router';
 import styled from '@emotion/styled';
+import {Observer} from 'mobx-react';
 
 import Alert from 'app/components/alert';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
@@ -19,15 +20,11 @@ import {TraceError} from 'app/utils/performance/quickTrace/types';
 import withOrganization from 'app/utils/withOrganization';
 
 import * as AnchorLinkManager from './anchorLinkManager';
-import Filter, {
-  ActiveOperationFilter,
-  noFilter,
-  toggleAllFilters,
-  toggleFilter,
-} from './filter';
+import Filter from './filter';
 import TraceView from './traceView';
 import {ParsedTraceType} from './types';
 import {parseTrace, scrollToSpan} from './utils';
+import WaterfallModel from './waterfallModel';
 
 type Props = {
   event: EventTransaction;
@@ -36,28 +33,30 @@ type Props = {
 
 type State = {
   parsedTrace: ParsedTraceType;
-  searchQuery: string | undefined;
-  operationNameFilters: ActiveOperationFilter;
+  waterfallModel: WaterfallModel;
 };
 
-class SpansInterface extends Component<Props, State> {
+class SpansInterface extends PureComponent<Props, State> {
   state: State = {
-    searchQuery: undefined,
     parsedTrace: parseTrace(this.props.event),
-    operationNameFilters: noFilter,
+    waterfallModel: new WaterfallModel(this.props.event),
   };
 
   static getDerivedStateFromProps(props: Readonly<Props>, state: State): State {
+    if (state.waterfallModel.isEvent(props.event)) {
+      return state;
+    }
+
     return {
       ...state,
       parsedTrace: parseTrace(props.event),
+      waterfallModel: new WaterfallModel(props.event),
     };
   }
 
   handleSpanFilter = (searchQuery: string) => {
-    this.setState({
-      searchQuery: searchQuery || undefined,
-    });
+    const {waterfallModel} = this.state;
+    waterfallModel.querySpanSearch(searchQuery);
   };
 
   renderTraceErrorsAlert({
@@ -147,26 +146,9 @@ class SpansInterface extends Component<Props, State> {
     );
   }
 
-  toggleOperationNameFilter = (operationName: string) => {
-    this.setState(prevState => ({
-      operationNameFilters: toggleFilter(prevState.operationNameFilters, operationName),
-    }));
-  };
-
-  toggleAllOperationNameFilters = (operationNames: string[]) => {
-    this.setState(prevState => {
-      return {
-        operationNameFilters: toggleAllFilters(
-          prevState.operationNameFilters,
-          operationNames
-        ),
-      };
-    });
-  };
-
   render() {
     const {event, organization} = this.props;
-    const {parsedTrace} = this.state;
+    const {parsedTrace, waterfallModel} = this.state;
 
     return (
       <Container hasErrors={!objectIsEmpty(event.errors)}>
@@ -178,28 +160,43 @@ class SpansInterface extends Component<Props, State> {
                 errors: quickTrace?.currentEvent?.errors,
                 parsedTrace,
               })}
-              <Search>
-                <Filter
-                  parsedTrace={parsedTrace}
-                  operationNameFilter={this.state.operationNameFilters}
-                  toggleOperationNameFilter={this.toggleOperationNameFilter}
-                  toggleAllOperationNameFilters={this.toggleAllOperationNameFilters}
-                />
-                <StyledSearchBar
-                  defaultQuery=""
-                  query={this.state.searchQuery || ''}
-                  placeholder={t('Search for spans')}
-                  onSearch={this.handleSpanFilter}
-                />
-              </Search>
+              <Observer>
+                {() => {
+                  return (
+                    <Search>
+                      <Filter
+                        operationNameCounts={waterfallModel.operationNameCounts}
+                        operationNameFilter={waterfallModel.operationNameFilters}
+                        toggleOperationNameFilter={
+                          waterfallModel.toggleOperationNameFilter
+                        }
+                        toggleAllOperationNameFilters={
+                          waterfallModel.toggleAllOperationNameFilters
+                        }
+                      />
+                      <StyledSearchBar
+                        defaultQuery=""
+                        query={waterfallModel.searchQuery || ''}
+                        placeholder={t('Search for spans')}
+                        onSearch={this.handleSpanFilter}
+                      />
+                    </Search>
+                  );
+                }}
+              </Observer>
               <Panel>
-                <TraceView
-                  event={event}
-                  searchQuery={this.state.searchQuery}
-                  organization={organization}
-                  parsedTrace={parsedTrace}
-                  operationNameFilters={this.state.operationNameFilters}
-                />
+                <Observer>
+                  {() => {
+                    return (
+                      <TraceView
+                        event={event}
+                        waterfallModel={waterfallModel}
+                        organization={organization}
+                        parsedTrace={parsedTrace}
+                      />
+                    );
+                  }}
+                </Observer>
                 <GuideAnchorWrapper>
                   <GuideAnchor target="span_tree" position="bottom" />
                 </GuideAnchorWrapper>

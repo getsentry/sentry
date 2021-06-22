@@ -1,6 +1,8 @@
 from contextlib import contextmanager
+from typing import Sequence
 
 import sentry_sdk
+from django.http import HttpRequest
 from django.utils.http import urlquote
 from rest_framework.exceptions import APIException, ParseError
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
@@ -10,9 +12,9 @@ from sentry.api.base import LINK_HEADER
 from sentry.api.bases import NoProjects, OrganizationEndpoint
 from sentry.api.helpers.teams import get_teams
 from sentry.api.serializers.snuba import SnubaTSResultSerializer
-from sentry.discover.arithmetic import ArithmeticError
+from sentry.discover.arithmetic import ArithmeticError, is_equation, strip_equation
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models import Team
+from sentry.models import Organization, Team
 from sentry.models.group import Group
 from sentry.models.transaction_threshold import ProjectTransactionThreshold
 from sentry.search.events.constants import DEFAULT_PROJECT_THRESHOLD
@@ -26,6 +28,10 @@ from sentry.utils.math import mean
 from sentry.utils.snuba import MAX_FIELDS
 
 
+def resolve_axis_column(column: str, index=0) -> str:
+    return get_function_alias(column) if not is_equation(column) else f"equation[{index}]"
+
+
 class OrganizationEventsEndpointBase(OrganizationEndpoint):
     def has_feature(self, organization, request):
         return features.has(
@@ -35,11 +41,22 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
     def has_arithmetic(self, organization, request):
         return features.has("organizations:discover-arithmetic", organization, actor=request.user)
 
-    def get_equation_list(self, organization, request):
+    def get_equation_list(self, organization: Organization, request: HttpRequest) -> Sequence[str]:
+        """equations have a prefix so that they can be easily included alongside our existing fields"""
         if self.has_arithmetic(organization, request):
-            return request.GET.getlist("equation")[:]
+            return [
+                strip_equation(field)
+                for field in request.GET.getlist("field")[:]
+                if is_equation(field)
+            ]
         else:
             return []
+
+    def get_field_list(self, organization: Organization, request: HttpRequest) -> Sequence[str]:
+        if self.has_arithmetic(organization, request):
+            return [field for field in request.GET.getlist("field")[:] if not is_equation(field)]
+        else:
+            return request.GET.getlist("field")[:]
 
     def get_snuba_filter(self, request, organization, params=None):
         if params is None:
@@ -50,10 +67,20 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         except InvalidSearchQuery as e:
             raise ParseError(detail=str(e))
 
+    def get_team_ids(self, request, organization):
+        if not request.user:
+            return []
+
+        teams = get_teams(request, organization)
+        if not teams:
+            teams = Team.objects.get_for_user(organization, request.user)
+
+        return [team.id for team in teams]
+
     def get_snuba_params(self, request, organization, check_global_views=True):
         with sentry_sdk.start_span(op="discover.endpoint", description="filter_params"):
             if (
-                len(request.GET.getlist("field"))
+                len(self.get_field_list(organization, request))
                 + len(self.get_equation_list(organization, request))
                 > MAX_FIELDS
             ):
@@ -64,10 +91,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             params = self.get_filter_params(request, organization)
             params = self.quantize_date_params(request, params)
             params["user_id"] = request.user.id if request.user else None
-            teams = get_teams(request, organization)
-            if not teams:
-                teams = Team.objects.get_for_user(organization, request.user)
-            params["team_id"] = [team.id for team in teams]
+            params["team_id"] = self.get_team_ids(request, organization)
 
             if check_global_views:
                 has_global_views = features.has(
@@ -217,7 +241,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             for row in results:
                 row["transaction.status"] = SPAN_STATUS_CODE_TO_NAME.get(row["transaction.status"])
 
-        fields = request.GET.getlist("field")
+        fields = self.get_field_list(organization, request)
         if "issue" in fields:  # Look up the short ID and return that in the results
             self.handle_issues(results, project_ids, organization)
 
@@ -291,25 +315,38 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 # For the new apdex, we need to add project threshold config as a selected
                 # column which means the group by for the time series won't work.
                 # As a temporary solution, we will calculate the mean of all the project
-                # level thresholds in the request and use the legacy apdex calculation.
+                # level thresholds in the request and use the legacy apdex, user_misery
+                # or count_miserable calculation.
                 # TODO(snql): Alias the project_threshold_config column so it doesn't
-                # have to be in the SELECT statement and group by to be able to use new apdex.
-                if "apdex()" in columns:
-                    project_ids = params.get("project_id")
-                    threshold_configs = list(
-                        ProjectTransactionThreshold.objects.filter(
-                            organization_id=organization.id,
-                            project_id__in=project_ids,
-                        ).values_list("threshold", flat=True)
-                    )
+                # have to be in the SELECT statement and group by to be able to use new apdex,
+                # user_misery and count_miserable.
+                configurable_aggregates = {
+                    "apdex()": "apdex({threshold})",
+                    "user_misery()": "user_misery({threshold})",
+                    "count_miserable(user)": "count_miserable(user,{threshold})",
+                }
+                threshold = None
+                for agg in configurable_aggregates:
+                    if agg not in columns:
+                        continue
 
-                    projects_without_threshold = len(project_ids) - len(threshold_configs)
-                    threshold_configs.extend(
-                        [DEFAULT_PROJECT_THRESHOLD] * projects_without_threshold
-                    )
+                    if threshold is None:
+                        project_ids = params.get("project_id")
+                        threshold_configs = list(
+                            ProjectTransactionThreshold.objects.filter(
+                                organization_id=organization.id,
+                                project_id__in=project_ids,
+                            ).values_list("threshold", flat=True)
+                        )
 
-                    threshold = int(mean(threshold_configs))
-                    column_map["apdex()"] = f"apdex({threshold})"
+                        projects_without_threshold = len(project_ids) - len(threshold_configs)
+                        threshold_configs.extend(
+                            [DEFAULT_PROJECT_THRESHOLD] * projects_without_threshold
+                        )
+                        threshold = int(mean(threshold_configs))
+
+                    new_field_name = configurable_aggregates[agg].format(threshold=threshold)
+                    column_map[agg] = new_field_name
 
                 query_columns = [column_map.get(column, column) for column in columns]
             with sentry_sdk.start_span(op="discover.endpoint", description="base.stats_query"):
@@ -332,7 +369,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                         # Need to get function alias if count is a field, but not the axis
                         results[key] = serializer.serialize(
                             event_result,
-                            column=get_function_alias(query_columns[0]),
+                            column=resolve_axis_column(query_columns[0]),
                             allow_partial_buckets=allow_partial_buckets,
                         )
                 return results
@@ -341,7 +378,11 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     serializer, result, columns, query_columns, allow_partial_buckets
                 )
             else:
-                return serializer.serialize(result, allow_partial_buckets=allow_partial_buckets)
+                return serializer.serialize(
+                    result,
+                    resolve_axis_column(query_columns[0]),
+                    allow_partial_buckets=allow_partial_buckets,
+                )
 
     def serialize_multiple_axis(
         self, serializer, event_result, columns, query_columns, allow_partial_buckets
@@ -350,7 +391,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         result = {
             columns[index]: serializer.serialize(
                 event_result,
-                get_function_alias(query_column),
+                resolve_axis_column(query_column, index),
                 order=index,
                 allow_partial_buckets=allow_partial_buckets,
             )

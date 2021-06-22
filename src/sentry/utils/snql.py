@@ -55,7 +55,6 @@ dryrun_check = ReferrerCheck(
     allowlist=set(),
     prefixes=[
         "tsdb-modelid:",
-        "incidents.",
         "tagstore.",
         "group.",
         "search",
@@ -73,7 +72,7 @@ snql_check = ReferrerCheck(
     option="snuba.snql.snql_only",
     denylist=set(),
     allowlist=set(),
-    prefixes=["sessions.", "outcomes."],
+    prefixes=["outcomes.", "sessions.", "incidents."],
     by_entity={},
     is_dryrun=False,
 )

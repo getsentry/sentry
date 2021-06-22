@@ -602,6 +602,24 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert len(issues) == 1
         assert int(issues[0]["id"]) == event.group.id
 
+    def test_lookup_by_release_wildcard(self):
+        self.login_as(self.user)
+        project = self.project
+        release = Release.objects.create(organization=project.organization, version="12345")
+        release.add_project(project)
+        event = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=1)),
+                "tags": {"sentry:release": release.version},
+            },
+            project_id=project.id,
+        )
+
+        response = self.get_valid_response(release=release.version[:3] + "*")
+        issues = json.loads(response.content)
+        assert len(issues) == 1
+        assert int(issues[0]["id"]) == event.group.id
+
     def test_pending_delete_pending_merge_excluded(self):
         events = []
         for i in "abcd":
@@ -1593,7 +1611,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
                 group = Group.objects.get(id=group.id)
                 assert group.status == GroupStatus.RESOLVED
 
-                assert response.data == {"status": "resolved", "statusDetails": {}}
+                assert response.data == {"status": "resolved", "statusDetails": {}, "inbox": None}
                 mock_sync_status_outbound.assert_called_once_with(
                     external_issue, True, group.project_id
                 )
@@ -1718,7 +1736,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             response = self.get_valid_response(
                 qs_params={"id": [group1.id, group2.id], "group4": group4.id}, status="resolved"
             )
-        assert response.data == {"status": "resolved", "statusDetails": {}}
+        assert response.data == {"status": "resolved", "statusDetails": {}, "inbox": None}
 
         new_group1 = Group.objects.get(id=group1.id)
         assert new_group1.resolved_at is not None

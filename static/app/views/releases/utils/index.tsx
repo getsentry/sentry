@@ -2,10 +2,12 @@ import round from 'lodash/round';
 
 import {tn} from 'app/locale';
 import {Release, ReleaseStatus} from 'app/types';
-import {QueryResults, stringifyQueryObject} from 'app/utils/tokenizeSearch';
+import {QueryResults} from 'app/utils/tokenizeSearch';
 import {IssueSortOptions} from 'app/views/issueList/utils';
 
 import {DisplayOption} from '../list/utils';
+
+export const CRASH_FREE_DECIMAL_THRESHOLD = 95;
 
 export const roundDuration = (seconds: number) => {
   return round(seconds, seconds > 60 ? 0 : 3);
@@ -13,7 +15,7 @@ export const roundDuration = (seconds: number) => {
 
 export const getCrashFreePercent = (
   percent: number,
-  decimalThreshold = 95,
+  decimalThreshold = CRASH_FREE_DECIMAL_THRESHOLD,
   decimalPlaces = 3
 ): number => {
   return round(percent, percent > decimalThreshold ? decimalPlaces : 0);
@@ -21,7 +23,7 @@ export const getCrashFreePercent = (
 
 export const displayCrashFreePercent = (
   percent: number,
-  decimalThreshold = 95,
+  decimalThreshold = CRASH_FREE_DECIMAL_THRESHOLD,
   decimalPlaces = 3
 ): string => {
   if (isNaN(percent)) {
@@ -54,7 +56,7 @@ export const getReleaseNewIssuesUrl = (
       statsPeriod: undefined,
       start: undefined,
       end: undefined,
-      query: stringifyQueryObject(new QueryResults([`firstRelease:${version}`])),
+      query: new QueryResults([`firstRelease:${version}`]).formatString(),
       sort: IssueSortOptions.FREQ,
     },
   };
@@ -69,9 +71,10 @@ export const getReleaseUnhandledIssuesUrl = (
     pathname: `/organizations/${orgSlug}/issues/`,
     query: {
       project: projectId,
-      query: stringifyQueryObject(
-        new QueryResults([`release:${version}`, 'error.unhandled:true'])
-      ),
+      query: new QueryResults([
+        `release:${version}`,
+        'error.unhandled:true',
+      ]).formatString(),
       sort: IssueSortOptions.FREQ,
     },
   };

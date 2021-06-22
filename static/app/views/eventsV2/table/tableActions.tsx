@@ -18,6 +18,7 @@ import {downloadAsCsv} from '../utils';
 
 type Props = {
   isLoading: boolean;
+  error: string | null;
   title: string;
   organization: OrganizationSummary;
   eventView: EventView;
@@ -48,11 +49,10 @@ function renderDownloadButton(canEdit: boolean, props: Props) {
   );
 }
 
-function renderBrowserExportButton(canEdit: boolean, {isLoading, ...props}: Props) {
-  const disabled = isLoading || canEdit === false;
-  const onClick = disabled
-    ? undefined
-    : () => handleDownloadAsCsv(props.title, {isLoading, ...props});
+function renderBrowserExportButton(canEdit: boolean, props: Props) {
+  const {isLoading, error} = props;
+  const disabled = isLoading || error !== null || canEdit === false;
+  const onClick = disabled ? undefined : () => handleDownloadAsCsv(props.title, props);
 
   return (
     <Button
@@ -68,8 +68,8 @@ function renderBrowserExportButton(canEdit: boolean, {isLoading, ...props}: Prop
 }
 
 function renderAsyncExportButton(canEdit: boolean, props: Props) {
-  const {isLoading, location, eventView} = props;
-  const disabled = isLoading || canEdit === false;
+  const {isLoading, error, location, eventView} = props;
+  const disabled = isLoading || error !== null || canEdit === false;
   return (
     <DataExport
       payload={{

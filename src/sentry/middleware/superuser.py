@@ -1,9 +1,10 @@
 from django.conf import settings
+from django.utils.deprecation import MiddlewareMixin
 
 from sentry.auth.superuser import Superuser, logger
 
 
-class SuperuserMiddleware:
+class SuperuserMiddleware(MiddlewareMixin):
     def process_request(self, request):
         # This avoids touching user session, which means we avoid
         # setting `Vary: Cookie` as a response header which will

@@ -44,6 +44,7 @@ from sentry.utils.snuba import (
 )
 
 MAX_QUERYABLE_TEAM_KEY_TRANSACTIONS = 500
+MAX_QUERYABLE_TRANSACTION_THRESHOLDS = 500
 
 ConditionalFunction = namedtuple("ConditionalFunction", "condition match fallback")
 FunctionDetails = namedtuple("FunctionDetails", "field instance arguments")
@@ -148,8 +149,19 @@ def project_threshold_config_expression(organization_id, project_ids):
         .values("project_id", "threshold", "metric")
     )
 
-    if not threshold_configs.count():
+    num_configured = threshold_configs.count()
+    sentry_sdk.set_tag("project_threshold.count", num_configured)
+    sentry_sdk.set_tag(
+        "project_threshold.count.grouped",
+        format_grouped_length(num_configured, [10, 100, 250, 500]),
+    )
+
+    if num_configured == 0:
         return ["tuple", [f"'{DEFAULT_PROJECT_THRESHOLD_METRIC}'", DEFAULT_PROJECT_THRESHOLD]]
+    elif num_configured > MAX_QUERYABLE_TRANSACTION_THRESHOLDS:
+        raise InvalidSearchQuery(
+            f"Exceeded {MAX_QUERYABLE_TRANSACTION_THRESHOLDS} configured transaction thresholds limit, try with fewer Projects."
+        )
 
     return [
         "if",
@@ -421,16 +433,6 @@ def resolve_field_list(
         if "project.id" not in fields:
             fields.append("project.id")
 
-    for field in fields[:]:
-        if isinstance(field, str) and field in {
-            "apdex()",
-            "count_miserable(user)",
-            "user_misery()",
-        }:
-            if PROJECT_THRESHOLD_CONFIG_ALIAS not in fields:
-                fields.append(PROJECT_THRESHOLD_CONFIG_ALIAS)
-                break
-
     for field in fields:
         if isinstance(field, str) and field.strip() == "":
             continue
@@ -460,6 +462,26 @@ def resolve_field_list(
 
                         if function.details.instance.redundant_grouping:
                             aggregate_fields[format_column_as_key(function.aggregate[1])].add(field)
+
+    check_aggregations = (
+        snuba_filter.having and len(aggregations) > 0 and snuba_filter.condition_aggregates
+    )
+    snuba_filter_condition_aggregates = (
+        set(snuba_filter.condition_aggregates) if check_aggregations else set()
+    )
+    for field in set(fields[:]).union(snuba_filter_condition_aggregates):
+        if isinstance(field, str) and field in {
+            "apdex()",
+            "count_miserable(user)",
+            "user_misery()",
+        }:
+            if PROJECT_THRESHOLD_CONFIG_ALIAS not in fields:
+                fields.append(PROJECT_THRESHOLD_CONFIG_ALIAS)
+                function = resolve_field(
+                    PROJECT_THRESHOLD_CONFIG_ALIAS, snuba_filter.params, functions_acl
+                )
+                columns.append(function.column)
+                break
 
     rollup = snuba_filter.rollup
     if not rollup and auto_fields:
@@ -1636,6 +1658,20 @@ FUNCTIONS = {
             "stddev",
             required_args=[NumericColumnNoLookup("column")],
             aggregate=["stddevSamp", ArgValue("column"), None],
+            default_result_type="number",
+            redundant_grouping=True,
+        ),
+        Function(
+            "cov",
+            required_args=[NumericColumnNoLookup("column1"), NumericColumnNoLookup("column2")],
+            aggregate=["covarSamp", [ArgValue("column1"), ArgValue("column2")], None],
+            default_result_type="number",
+            redundant_grouping=True,
+        ),
+        Function(
+            "corr",
+            required_args=[NumericColumnNoLookup("column1"), NumericColumnNoLookup("column2")],
+            aggregate=["corr", [ArgValue("column1"), ArgValue("column2")], None],
             default_result_type="number",
             redundant_grouping=True,
         ),

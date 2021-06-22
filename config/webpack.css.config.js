@@ -1,5 +1,5 @@
-/*eslint-env node*/
-/*eslint import/no-nodejs-modules:0 */
+/* eslint-env node */
+/* eslint import/no-nodejs-modules:0 */
 const config = require('../webpack.config');
 
 config.entry = {

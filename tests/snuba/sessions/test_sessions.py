@@ -143,7 +143,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
         )
         assert data == {(self.project.id, self.session_release)}
 
-    def test_check_has_health_data_without_releases_should_exlude_sessions_gt_90_days(self):
+    def test_check_has_health_data_without_releases_should_exclude_sessions_gt_90_days(self):
         """
         Test that ensures that `check_has_health_data` returns a set of projects that has health
         data within the last 90d if only a list of project ids is provided and that any project
@@ -195,6 +195,10 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
         data = check_has_health_data([self.project.id, project2.id])
         assert data == {self.project.id, project2.id}
 
+    def test_check_has_health_data_does_not_crash_when_sending_projects_list_as_set(self):
+        data = check_has_health_data({self.project.id})
+        assert data == {self.project.id}
+
     def test_get_project_releases_by_stability(self):
         # Add an extra session with a different `distinct_id` so that sorting by users
         # is stable
@@ -239,6 +243,43 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
                 (self.project.id, self.session_crashed_release),
                 (self.project.id, self.session_release),
             ]
+
+    def test_get_project_releases_by_stability_for_releases_with_users_data(self):
+        """
+        Test that ensures if releases contain no users data, then those releases should not be
+        returned on `users` and `crash_free_users` sorts
+        """
+        self.store_session(
+            {
+                "session_id": "bd1521fc-d27c-11eb-b8bc-0242ac130003",
+                "status": "ok",
+                "seq": 0,
+                "release": "release-with-no-users",
+                "environment": "prod",
+                "retention_days": 90,
+                "org_id": self.project.organization_id,
+                "project_id": self.project.id,
+                "duration": None,
+                "errors": 0,
+                "started": self.session_started,
+                "received": self.received,
+            }
+        )
+        data = get_project_releases_by_stability(
+            [self.project.id], offset=0, limit=100, scope="users", stats_period="24h"
+        )
+        assert data == [
+            (self.project.id, self.session_release),
+            (self.project.id, self.session_crashed_release),
+        ]
+
+        data = get_project_releases_by_stability(
+            [self.project.id], offset=0, limit=100, scope="crash_free_users", stats_period="24h"
+        )
+        assert data == [
+            (self.project.id, self.session_crashed_release),
+            (self.project.id, self.session_release),
+        ]
 
     def test_get_release_adoption(self):
         data = get_release_adoption(
@@ -465,11 +506,15 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
             }
         )
 
-        expected_formatted_lower_bound = format_timestamp(
-            datetime.utcfromtimestamp(self.session_started - 3600 * 2).replace(minute=0)
+        expected_formatted_lower_bound = (
+            datetime.utcfromtimestamp(self.session_started - 3600 * 2)
+            .replace(minute=0)
+            .isoformat()[:19]
+            + "Z"
         )
-        expected_formatted_upper_bound = format_timestamp(
-            datetime.utcfromtimestamp(self.session_started).replace(minute=0)
+
+        expected_formatted_upper_bound = (
+            datetime.utcfromtimestamp(self.session_started).replace(minute=0).isoformat()[:19] + "Z"
         )
 
         # Test for self.session_release
@@ -1707,4 +1752,26 @@ class GetCrashFreeRateTestCase(TestCase, SnubaTestCase):
             },
             self.project2.id: {"currentCrashFreeRate": 50.0, "previousCrashFreeRate": None},
             self.project3.id: {"currentCrashFreeRate": None, "previousCrashFreeRate": 80.0},
+        }
+
+    def test_get_current_and_previous_crash_free_rates_with_zero_sessions(self):
+        now = timezone.now()
+        last_48h_start = now - 2 * 24 * timedelta(hours=1)
+        last_72h_start = now - 3 * 24 * timedelta(hours=1)
+        last_96h_start = now - 4 * 24 * timedelta(hours=1)
+
+        data = get_current_and_previous_crash_free_rates(
+            project_ids=[self.project.id],
+            current_start=last_72h_start,
+            current_end=last_48h_start,
+            previous_start=last_96h_start,
+            previous_end=last_72h_start,
+            rollup=86400,
+        )
+
+        assert data == {
+            self.project.id: {
+                "currentCrashFreeRate": None,
+                "previousCrashFreeRate": None,
+            },
         }

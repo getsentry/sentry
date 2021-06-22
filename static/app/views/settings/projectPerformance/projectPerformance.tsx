@@ -7,6 +7,7 @@ import LoadingIndicator from 'app/components/loadingIndicator';
 import {PanelItem} from 'app/components/panels';
 import {t} from 'app/locale';
 import {Organization, Project} from 'app/types';
+import {trackAnalyticsEvent} from 'app/utils/analytics';
 import routeTitleGen from 'app/utils/routeTitle';
 import AsyncView from 'app/views/asyncView';
 import Form from 'app/views/settings/components/forms/form';
@@ -51,6 +52,7 @@ class ProjectPerformance extends AsyncView<Props, State> {
 
   handleDelete = () => {
     const {orgId, projectId} = this.props.params;
+    const {organization} = this.props;
 
     this.setState({
       loading: true,
@@ -58,6 +60,13 @@ class ProjectPerformance extends AsyncView<Props, State> {
 
     this.api.request(`/projects/${orgId}/${projectId}/transaction-threshold/configure/`, {
       method: 'DELETE',
+      success: () => {
+        trackAnalyticsEvent({
+          eventKey: 'performance_views.project_transaction_threshold.clear',
+          eventName: 'Project Transaction Threshold: Cleared',
+          organization_id: organization.id,
+        });
+      },
       complete: () => this.fetchData(),
     });
   };
@@ -75,7 +84,7 @@ class ProjectPerformance extends AsyncView<Props, State> {
   }
 
   get formFields(): Field[] {
-    const fields: any[] = [
+    const fields: Field[] = [
       {
         name: 'threshold',
         type: 'string',
@@ -89,7 +98,10 @@ class ProjectPerformance extends AsyncView<Props, State> {
         name: 'metric',
         type: 'select',
         label: t('Metric'),
-        choices: () => ['duration', 'lcp', 'fcp'],
+        choices: [
+          ['duration', t('Transaction Duration')],
+          ['lcp', t('Largest Contentful Paint')],
+        ],
         help: t(
           'Set the measurement to apply the Response Time Threshold to. This metric will be used to calculate the Apdex and User Misery Scores.'
         ),
@@ -120,6 +132,16 @@ class ProjectPerformance extends AsyncView<Props, State> {
           apiMethod="POST"
           apiEndpoint={endpoint}
           onSubmitSuccess={resp => {
+            const initial = this.initialData;
+            const changedThreshold = initial.metric === resp.metric;
+            trackAnalyticsEvent({
+              eventKey: 'performance_views.project_transaction_threshold.change',
+              eventName: 'Project Transaction Threshold: Changed',
+              organization_id: organization.id,
+              from: changedThreshold ? initial.threshold : initial.metric,
+              to: changedThreshold ? resp.threshold : resp.metric,
+              key: changedThreshold ? 'threshold' : 'metric',
+            });
             this.setState({threshold: resp});
           }}
         >

@@ -791,7 +791,6 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 "builtinSymbolSources": get_value_with_default("sentry:builtin_symbol_sources"),
                 "symbolSources": attrs["options"].get("sentry:symbol_sources"),
                 "dynamicSampling": get_value_with_default("sentry:dynamic_sampling"),
-                "breakdowns": get_value_with_default("sentry:breakdowns"),
             }
         )
         return data

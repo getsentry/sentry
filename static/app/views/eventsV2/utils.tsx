@@ -28,7 +28,7 @@ import {
 } from 'app/utils/discover/fields';
 import {getTitle} from 'app/utils/events';
 import localStorage from 'app/utils/localStorage';
-import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {tokenizeSearch} from 'app/utils/tokenizeSearch';
 
 import {FieldValue, FieldValueKind, TableColumn} from './table/types';
 import {ALL_VIEWS, TRANSACTION_VIEWS, WEB_VITALS_VIEWS} from './data';
@@ -416,7 +416,7 @@ function generateExpandedConditions(
     parsedQuery.setTagValues(key, [value]);
   }
 
-  return stringifyQueryObject(parsedQuery);
+  return parsedQuery.formatString();
 }
 
 type FieldGeneratorOpts = {
@@ -452,13 +452,13 @@ export function generateFieldOptions({
   functions.forEach(func => {
     const ellipsis = aggregations[func].parameters.length ? '\u2026' : '';
     const parameters = aggregations[func].parameters.map(param => {
-      const generator = aggregations[func].generateDefaultValue;
-      if (typeof generator === 'undefined') {
+      const overrides = AGGREGATIONS[func].getFieldOverrides;
+      if (typeof overrides === 'undefined') {
         return param;
       }
       return {
         ...param,
-        defaultValue: generator({parameter: param, organization}),
+        ...overrides({parameter: param, organization}),
       };
     });
 
