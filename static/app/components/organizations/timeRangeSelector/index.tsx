@@ -231,7 +231,7 @@ class TimeRangeSelector extends React.PureComponent<Props, State> {
   };
 
   handleAbsoluteClick = () => {
-    const {relative, onChange} = this.props;
+    const {relative, onChange, defaultPeriod} = this.props;
 
     // Set default range to equivalent of last relative period,
     // or use default stats period
@@ -239,7 +239,7 @@ class TimeRangeSelector extends React.PureComponent<Props, State> {
       relative: null,
       start: getPeriodAgo(
         'hours',
-        parsePeriodToHours(relative || DEFAULT_STATS_PERIOD)
+        parsePeriodToHours(relative || defaultPeriod || DEFAULT_STATS_PERIOD)
       ).toDate(),
       end: new Date(),
     };
@@ -270,10 +270,10 @@ class TimeRangeSelector extends React.PureComponent<Props, State> {
   };
 
   handleClear = () => {
-    const {onChange} = this.props;
+    const {onChange, defaultPeriod} = this.props;
 
     const newDateTime: ChangeData = {
-      relative: DEFAULT_STATS_PERIOD,
+      relative: defaultPeriod || DEFAULT_STATS_PERIOD,
       start: undefined,
       end: undefined,
       utc: null,
@@ -371,10 +371,12 @@ class TimeRangeSelector extends React.PureComponent<Props, State> {
       isAbsoluteSelected && start && end ? (
         <DateSummary start={start} end={end} />
       ) : (
-        getRelativeSummary(relative || defaultPeriod)
+        getRelativeSummary(relative || defaultPeriod || DEFAULT_STATS_PERIOD)
       );
 
-    const relativeSelected = isAbsoluteSelected ? '' : relative || defaultPeriod;
+    const relativeSelected = isAbsoluteSelected
+      ? ''
+      : relative || defaultPeriod || DEFAULT_STATS_PERIOD;
 
     return (
       <DropdownMenu
