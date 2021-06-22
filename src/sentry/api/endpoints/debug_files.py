@@ -4,7 +4,7 @@ import re
 
 import jsonschema
 from django.db import transaction
-from django.db.models import Count, Q
+from django.db.models import Q
 from django.http import Http404, HttpResponse, StreamingHttpResponse
 from rest_framework.response import Response
 from symbolic import SymbolicError, normalize_debug_id
@@ -25,6 +25,7 @@ from sentry.models import (
     ReleaseFile,
     create_files_from_dif_zip,
 )
+from sentry.models.release import get_artifact_counts
 from sentry.tasks.assemble import (
     AssembleTask,
     ChunkFileState,
@@ -428,12 +429,7 @@ class SourceMapsEndpoint(ProjectEndpoint):
             }
 
         def serialize_results(results):
-            file_counts = (
-                ReleaseFile.public_objects.filter(release_id__in=[r["id"] for r in results])
-                .values("release_id")
-                .annotate(count=Count("id"))
-            )
-            file_count_map = {r["release_id"]: r["count"] for r in file_counts}
+            file_count_map = get_artifact_counts([r["id"] for r in results])
             return serialize(
                 [expose_release(r, file_count_map.get(r["id"], 0)) for r in results], request.user
             )

@@ -40,6 +40,8 @@ class ReleaseFileCreateTest(APITestCase):
         release = Release.objects.create(organization_id=project.organization_id, version="1")
         release.add_project(project)
 
+        assert release.count_artifacts() == 0
+
         url = reverse(
             "sentry-api-0-organization-release-files",
             kwargs={"organization_slug": project.organization.slug, "version": release.version},
@@ -58,6 +60,8 @@ class ReleaseFileCreateTest(APITestCase):
             },
             format="multipart",
         )
+
+        assert release.count_artifacts() == 1
 
         assert response.status_code == 201, response.content
 
