@@ -19,6 +19,7 @@ import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import {
   fieldAlignment,
   getAggregateAlias,
+  isSpanOperationBreakdownField,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'app/utils/discover/fields';
 import {tokenizeSearch} from 'app/utils/tokenizeSearch';
@@ -289,7 +290,7 @@ class EventsTable extends React.Component<Props, State> {
       .getColumns()
       .filter(
         (col: TableColumn<React.ReactText>) =>
-          !containsSpanOpsBreakdown || !col.name.startsWith('spans')
+          !containsSpanOpsBreakdown || !isSpanOperationBreakdownField(col.name)
       )
       .map((col: TableColumn<React.ReactText>, i: number) => {
         if (typeof widths[i] === 'number') {
