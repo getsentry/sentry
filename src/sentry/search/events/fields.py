@@ -81,15 +81,6 @@ class PseudoField:
             return expression
         return self.alias
 
-    def get_snql_expression(self, params):
-        return None
-
-    def get_snql_field(self, params=None):
-        expression = self.get_snql_expression(params)
-        if expression is not None:
-            return expression
-        return self.alias
-
     def validate(self):
         assert self.alias is not None, f"{self.name}: alias is required"
         assert (
@@ -1936,9 +1927,6 @@ FUNCTION_ALIAS_PATTERN = re.compile(r"^({}).*".format("|".join(list(FUNCTIONS.ke
 
 class QueryFields(QueryBase):
     """Field logic for a snql query"""
-
-    # set of snql supported FIELD_ALIASES
-    field_alias_allow_list = {"issue"}
 
     def resolve_select(
         self, selected_columns: Optional[List[str]]
