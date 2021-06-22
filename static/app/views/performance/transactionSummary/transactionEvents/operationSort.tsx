@@ -263,11 +263,7 @@ const RadioLabel = styled('label')`
   cursor: pointer;
   grid-gap: 0.25em 0.5em;
   grid-template-columns: max-content auto;
-  -webkit-align-items: center;
-  -webkit-box-align: center;
-  -ms-flex-align: center;
   align-items: center;
-  cursor: pointer;
   outline: none;
   font-weight: normal;
   margin: 0;
