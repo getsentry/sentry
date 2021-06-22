@@ -2,6 +2,7 @@ import itertools
 import logging
 import re
 from time import time
+from typing import List, Mapping
 
 import sentry_sdk
 from django.db import IntegrityError, models, transaction
@@ -929,23 +930,23 @@ class Release(Model):
             releasefile.delete()
         self.delete()
 
-    @classmethod
-    def with_artifact_counts(cls, *args, **kwargs):
-        # Have to exclude Releases without release files because COALESCE would
-        # give them an artifact count of 1
-        return (
-            cls.objects.filter(*args, **kwargs)
-            .exclude(releasefile__isnull=True)
-            .annotate(count=Sum(Func(F("releasefile__artifact_count"), 1, function="COALESCE")))
-        )
-
     def count_artifacts(self):
         """Sum the artifact_counts of all release files.
 
         An artifact count of NULL is interpreted as 1.
         """
-        qs = Release.with_artifact_counts(pk=self.pk)
-        try:
-            return qs[0].count
-        except IndexError:
-            return 0
+        counts = get_artifact_counts([self.id])
+        return counts.get(self.id, 0)
+
+
+def get_artifact_counts(release_ids: List[int]) -> Mapping[int, int]:
+    """Get artifact count grouped by IDs"""
+    from sentry.models.releasefile import ReleaseFile
+
+    qs = (
+        ReleaseFile.objects.filter(release_id__in=release_ids)
+        .annotate(count=Sum(Func(F("artifact_count"), 1, function="COALESCE")))
+        .values_list("release_id", "count")
+    )
+    qs.query.group_by = ["release_id"]
+    return dict(qs)

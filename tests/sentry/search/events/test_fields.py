@@ -544,6 +544,74 @@ class ResolveFieldListTest(unittest.TestCase):
 
         assert "stddev(): expected 1 argument(s)" in str(err)
 
+    def test_cov_function(self):
+        fields = [
+            "cov(transaction.duration, measurements.fcp)",
+            "cov(transaction.duration, spans.browser)",
+            "cov(transaction.duration, transaction.duration)",
+        ]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["aggregations"] == [
+            [
+                "covarSamp",
+                ["transaction.duration", "measurements.fcp"],
+                "cov_transaction_duration_measurements_fcp",
+            ],
+            [
+                "covarSamp",
+                ["transaction.duration", "spans.browser"],
+                "cov_transaction_duration_spans_browser",
+            ],
+            [
+                "covarSamp",
+                ["transaction.duration", "transaction.duration"],
+                "cov_transaction_duration_transaction_duration",
+            ],
+        ]
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["cov(user.display, timestamp)"]
+            result = resolve_field_list(fields, eventstore.Filter())
+
+        assert (
+            "cov(user.display, timestamp): column1 argument invalid: user.display is not a numeric column"
+            in str(err)
+        )
+
+    def test_corr_function(self):
+        fields = [
+            "corr(transaction.duration, measurements.fcp)",
+            "corr(transaction.duration, spans.browser)",
+            "corr(transaction.duration, transaction.duration)",
+        ]
+        result = resolve_field_list(fields, eventstore.Filter())
+        assert result["aggregations"] == [
+            [
+                "corr",
+                ["transaction.duration", "measurements.fcp"],
+                "corr_transaction_duration_measurements_fcp",
+            ],
+            [
+                "corr",
+                ["transaction.duration", "spans.browser"],
+                "corr_transaction_duration_spans_browser",
+            ],
+            [
+                "corr",
+                ["transaction.duration", "transaction.duration"],
+                "corr_transaction_duration_transaction_duration",
+            ],
+        ]
+
+        with pytest.raises(InvalidSearchQuery) as err:
+            fields = ["corr(user.display, timestamp)"]
+            result = resolve_field_list(fields, eventstore.Filter())
+
+        assert (
+            "corr(user.display, timestamp): column1 argument invalid: user.display is not a numeric column"
+            in str(err)
+        )
+
     def test_tpm_function_alias(self):
         """TPM should be functionally identical to EPM except in name"""
         fields = ["tpm()"]

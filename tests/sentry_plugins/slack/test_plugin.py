@@ -1,11 +1,13 @@
 from urllib.parse import parse_qs
 
+import pytest
 import responses
 from exam import fixture
 
 from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR
 from sentry.models import Rule
 from sentry.plugins.base import Notification
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils import PluginTestCase
 from sentry.utils import json
 from sentry_plugins.slack.plugin import SlackPlugin
@@ -127,3 +129,28 @@ class SlackPluginTest(PluginTestCase):
                 }
             ],
         }
+
+    @responses.activate
+    def test_no_error_on_404(self):
+        responses.add("POST", "http://example.com/slack", status=404)
+        self.plugin.set_option("webhook", "http://example.com/slack", self.project)
+
+        event = self.store_event(
+            data={"message": "Hello world", "level": "warning", "culprit": "foo.bar"},
+            project_id=self.project.id,
+        )
+
+        rule = Rule.objects.create(project=self.project, label="my rule")
+
+        notification = Notification(event=event, rule=rule)
+
+        # No exception since 404s are supposed to be ignored
+        with self.options({"system.url-prefix": "http://example.com"}):
+            self.plugin.notify(notification)
+
+        responses.replace("POST", "http://example.com/slack", status=400)
+
+        # Other exceptions should not be ignored
+        with self.options({"system.url-prefix": "http://example.com"}):
+            with pytest.raises(ApiError):
+                self.plugin.notify(notification)

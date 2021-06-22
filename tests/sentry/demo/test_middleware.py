@@ -3,7 +3,7 @@ from django.test import override_settings
 from django.urls import reverse
 
 from sentry.demo.models import DemoUser
-from sentry.demo.settings import MIDDLEWARE_CLASSES
+from sentry.demo.settings import MIDDLEWARE
 from sentry.testutils import APITestCase
 from sentry.utils import auth
 from sentry.utils.compat import mock
@@ -11,7 +11,7 @@ from sentry.utils.compat import mock
 orig_login = auth.login
 
 
-@override_settings(MIDDLEWARE_CLASSES=MIDDLEWARE_CLASSES, DEMO_MODE=True)
+@override_settings(MIDDLEWARE=MIDDLEWARE, DEMO_MODE=True)
 class DemoMiddlewareTest(APITestCase):
     def setUp(self):
         super().setUp()

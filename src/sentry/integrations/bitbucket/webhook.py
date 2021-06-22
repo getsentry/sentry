@@ -10,23 +10,13 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 
+from sentry.integrations.bitbucket.constants import BITBUCKET_IP_RANGES, BITBUCKET_IPS
 from sentry.models import Commit, CommitAuthor, Organization, Repository
 from sentry.plugins.providers import IntegrationRepositoryProvider
 from sentry.utils import json
 
 logger = logging.getLogger("sentry.webhooks")
 
-# Bitbucket Cloud IP range:
-# https://confluence.atlassian.com/bitbucket/manage-webhooks-735643732.html#Managewebhooks-trigger_webhookTriggeringwebhooks
-BITBUCKET_IP_RANGES = (
-    ipaddress.ip_network("104.192.136.0/21"),
-    # Not documented in the webhook docs, but defined here:
-    # https://bitbucket.org/blog/new-ip-addresses-bitbucket-cloud
-    ipaddress.ip_network("18.205.93.0/25"),
-    ipaddress.ip_network("18.234.32.128/25"),
-    ipaddress.ip_network("13.52.5.0/25"),
-)
-BITBUCKET_IPS = ["34.198.203.127", "34.198.178.64", "34.198.32.85"]
 PROVIDER_NAME = "integrations:bitbucket"
 
 

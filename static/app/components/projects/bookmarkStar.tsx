@@ -41,10 +41,10 @@ const BookmarkStar = ({
       addErrorMessage(t('Unable to toggle bookmark for %s', project.slug));
     });
 
-    //needed to dismiss tooltip
+    // needed to dismiss tooltip
     (document.activeElement as HTMLElement).blur();
 
-    //prevent dropdowns from closing
+    // prevent dropdowns from closing
     event.stopPropagation();
 
     if (onToggle) {
