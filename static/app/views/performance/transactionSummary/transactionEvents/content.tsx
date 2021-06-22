@@ -27,11 +27,7 @@ import Filter, {filterToSearchConditions, SpanOperationBreakdownFilter} from '..
 import TransactionHeader, {Tab} from '../header';
 
 import EventsTable from './eventsTable';
-import {
-  EventsDisplayFilter,
-  EventsDisplayFilterName,
-  getEventsFilterOptions,
-} from './utils';
+import {EventsDisplayFilterName, getEventsFilterOptions} from './utils';
 
 type Props = {
   location: Location;
@@ -42,7 +38,7 @@ type Props = {
   spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
   onChangeSpanOperationBreakdownFilter: (newFilter: SpanOperationBreakdownFilter) => void;
   eventsDisplayFilter: EventsDisplayFilterName;
-  onChangeEventsDisplayFilter: (eventKey: EventsDisplayFilter) => void;
+  onChangeEventsDisplayFilter: (eventsDisplayFilter: EventsDisplayFilterName) => void;
 };
 
 type State = {
@@ -230,17 +226,16 @@ const Search = (props: Props) => {
         <DropdownControl buttonProps={{prefix: t('Display')}} label={eventsDisplayFilter}>
           {/* TODO */}
           {getEventsFilterOptions(spanOperationBreakdownFilter, 1000).map(
-            filterOption => {
-              const value = filterOption.value;
+            ({value, label}) => {
               return (
                 <DropdownItem
                   key={value}
                   onSelect={onChangeEventsDisplayFilter}
-                  eventKey={filterOption}
+                  eventKey={value}
                   data-test-id={value}
                   isActive={eventsDisplayFilter === value}
                 >
-                  {filterOption.label}
+                  {label}
                 </DropdownItem>
               );
             }

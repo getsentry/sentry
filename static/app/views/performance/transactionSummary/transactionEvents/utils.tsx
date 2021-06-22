@@ -103,7 +103,7 @@ export function decodeEventsDisplayFilterFromLocation(location: Location) {
   );
 }
 
-export function filterEventsDisplayToLocationQuery(option: SpanOperationBreakdownFilter) {
+export function filterEventsDisplayToLocationQuery(option: EventsDisplayFilterName) {
   return {
     showTransactions: option as string,
   };
