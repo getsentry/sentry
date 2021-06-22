@@ -13,7 +13,6 @@ const FixStyleOnlyEntriesPlugin = require('webpack-remove-empty-scripts');
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 
 const IntegrationDocsFetchPlugin = require('./build-utils/integration-docs-fetch-plugin');
-const OptionalLocaleChunkPlugin = require('./build-utils/optional-locale-chunk-plugin');
 const SentryInstrumentation = require('./build-utils/sentry-instrumentation');
 const LastBuiltPlugin = require('./build-utils/last-built-plugin');
 const babelConfig = require('./babel.config');
@@ -324,12 +323,6 @@ let appConfig = {
         SPA_DSN: JSON.stringify(SENTRY_SPA_DSN),
       },
     }),
-
-    /**
-     * See above for locale chunks. These plugins help with that
-     * functionality.
-     */
-    new OptionalLocaleChunkPlugin(),
 
     /**
      * This removes empty js files for style only entries (e.g. sentry.less)
