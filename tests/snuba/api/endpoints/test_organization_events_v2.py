@@ -4078,7 +4078,6 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
             "project": [self.project.id],
         }
         response = self.do_request(query)
-        print(response.data)
         assert response.status_code == 200
         assert len(response.data["data"]) == 1
 
@@ -4087,3 +4086,37 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
         assert response.data["data"][0]["count_if_sub_customer_is_Enterprise_42_equals_yes"] == 1
         assert response.data["data"][0]["count_if_sub_customer_is_Enterprise_42_notEquals_yes"] == 4
+
+    def test_count_if_filter(self):
+        for i in range(5):
+            data = load_data(
+                "transaction",
+                timestamp=before_now(minutes=(1 + i)),
+                start_timestamp=before_now(minutes=(1 + i), milliseconds=100 if i < 3 else 200),
+            )
+            data["tags"] = {"sub_customer.is-Enterprise-42": "yes" if i == 0 else "no"}
+            self.store_event(data, project_id=self.project.id)
+
+        query = {
+            "field": [
+                "count_if(transaction.duration, less, 150)",
+            ],
+            "query": "count_if(transaction.duration, less, 150):>2",
+            "project": [self.project.id],
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200
+        assert len(response.data["data"]) == 1
+
+        assert response.data["data"][0]["count_if_transaction_duration_less_150"] == 3
+
+        query = {
+            "field": [
+                "count_if(transaction.duration, less, 150)",
+            ],
+            "query": "count_if(transaction.duration, less, 150):<2",
+            "project": [self.project.id],
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200
+        assert len(response.data["data"]) == 0

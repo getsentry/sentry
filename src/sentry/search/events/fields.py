@@ -260,7 +260,7 @@ def team_key_transaction_expression(organization_id, team_ids, project_ids):
     ]
 
 
-def calculate_count_if_value(args: Mapping[str, str]) -> Union[float, str]:
+def normalize_count_if_value(args: Mapping[str, str]) -> Union[float, str]:
     """Ensures that the type of the third parameter is compatible with the first
     and cast the value if needed
     eg. duration = numeric_value, and not duration = string_value
@@ -268,11 +268,7 @@ def calculate_count_if_value(args: Mapping[str, str]) -> Union[float, str]:
     column = args["column"]
     condition = args["condition"]
     value = args["value"]
-    if (
-        column == "transaction.duration"
-        or is_duration_measurement(column)
-        or is_span_op_breakdown(column)
-    ):
+    if column == "transaction.duration" or is_measurement(column) or is_span_op_breakdown(column):
         try:
             value = float(value.strip("'"))
         except Exception:
@@ -280,10 +276,10 @@ def calculate_count_if_value(args: Mapping[str, str]) -> Union[float, str]:
 
     # TODO: not supporting field aliases or arrays yet
     elif column in FIELD_ALIASES or column in ARRAY_FIELDS:
-        raise InvalidSearchQuery(f"{column} not supported by count_if")
+        raise InvalidSearchQuery(f"{column} is not supported by count_if")
     # At this point only string or tag columns are left
     elif condition not in ["equals", "notEquals"]:
-        raise InvalidSearchQuery(f"{condition} not compatible with {column}")
+        raise InvalidSearchQuery(f"{condition} is not compatible with {column}")
     return value
 
 
@@ -1825,6 +1821,7 @@ FUNCTIONS = {
         Function(
             "count_if",
             required_args=[
+                # This is a FunctionArg cause the column can be a tag as well
                 FunctionArg("column"),
                 ConditionArg("condition"),
                 StringArg("value"),
@@ -1832,7 +1829,7 @@ FUNCTIONS = {
             calculated_args=[
                 {
                     "name": "typed_value",
-                    "fn": calculate_count_if_value,
+                    "fn": normalize_count_if_value,
                 }
             ],
             aggregate=[

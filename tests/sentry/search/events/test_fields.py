@@ -1461,8 +1461,23 @@ class ResolveFieldListTest(unittest.TestCase):
         ]
 
     def test_invalid_count_if_fields(self):
-        with self.assertRaises(InvalidSearchQuery):
-            resolve_field_list(["count_if(project, equals, sentry)"], eventstore.Filter())
+        with self.assertRaises(InvalidSearchQuery) as query_error:
+            resolve_field_list(
+                ["count_if(transaction.duration, equals, sentry)"], eventstore.Filter()
+            )
+        assert (
+            str(query_error.exception)
+            == "'sentry' is not a valid value to compare with transaction.duration"
+        )
 
-        with self.assertRaises(InvalidSearchQuery):
+        with self.assertRaises(InvalidSearchQuery) as query_error:
+            resolve_field_list(["count_if(project, equals, sentry)"], eventstore.Filter())
+        assert str(query_error.exception) == "project is not supported by count_if"
+
+        with self.assertRaises(InvalidSearchQuery) as query_error:
             resolve_field_list(["count_if(stack.function, equals, test)"], eventstore.Filter())
+        assert str(query_error.exception) == "stack.function is not supported by count_if"
+
+        with self.assertRaises(InvalidSearchQuery) as query_error:
+            resolve_field_list(["count_if(http.status_code, greater, test)"], eventstore.Filter())
+        assert str(query_error.exception) == "greater is not compatible with http.status_code"
