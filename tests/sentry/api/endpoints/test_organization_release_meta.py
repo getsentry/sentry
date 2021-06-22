@@ -1,6 +1,3 @@
-import zipfile
-from io import BytesIO
-
 from django.urls import reverse
 
 from sentry.models import (
@@ -12,7 +9,6 @@ from sentry.models import (
     ReleaseFile,
     Repository,
 )
-from sentry.models.releasefile import RELEASE_ARCHIVE_FILENAME
 from sentry.testutils import APITestCase
 from sentry.utils import json
 
@@ -101,32 +97,7 @@ class ReleaseMetaTest(APITestCase):
         release = Release.objects.create(organization_id=org.id, version="abcabcabc")
         release.add_project(project)
 
-        manifest = {
-            "org": self.organization.slug,
-            "release": release.version,
-            "files": {
-                "files/_/_/file1.js": {
-                    "url": "http://example.com/file1.js",
-                },
-                "files/_/_/file2.js": {
-                    "url": "http://example.com/file2.js",
-                },
-            },
-        }
-        file_like = BytesIO()
-        with zipfile.ZipFile(file_like, "w") as zip:
-            zip.writestr("manifest.json", json.dumps(manifest))
-        file_like.seek(0)
-
-        file = File.objects.create(name=RELEASE_ARCHIVE_FILENAME)
-        file.putfile(file_like)
-
-        ReleaseFile.objects.create(
-            name=RELEASE_ARCHIVE_FILENAME,
-            release=release,
-            organization_id=project.organization_id,
-            file=file,
-        )
+        self.create_release_archive(release=release.version)
 
         self.create_member(teams=[team1], user=user, organization=org)
 
