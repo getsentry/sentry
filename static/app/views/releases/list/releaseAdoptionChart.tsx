@@ -106,6 +106,7 @@ class ReleaseAdoptionChart extends AsyncComponent<Props, State> {
             groupBy: ['release'],
             field: [sessionDisplayToField(activeDisplay)],
             query: location.query.query ? `release:${location.query.query}` : undefined,
+            highFidelityRange: true,
           },
         },
       ],

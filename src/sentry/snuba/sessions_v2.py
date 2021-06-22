@@ -237,6 +237,7 @@ class QueryDefinition:
 
     def __init__(self, query, params, allow_minute_resolution=False):
         self.query = query.get("query", "")
+        high_fidelity_range = query.get("highFidelityRange", False)
         raw_fields = query.getlist("field", [])
         raw_groupby = query.getlist("groupBy", [])
 
@@ -255,7 +256,9 @@ class QueryDefinition:
                 raise InvalidField(f'Invalid groupBy: "{key}"')
             self.groupby.append(GROUPBY_MAP[key])
 
-        start, end, rollup = get_constrained_date_range(query, allow_minute_resolution)
+        start, end, rollup = get_constrained_date_range(
+            query, allow_minute_resolution, high_fidelity_range=high_fidelity_range
+        )
         self.rollup = rollup
         self.start = start
         self.end = end
@@ -297,7 +300,7 @@ class InvalidParams(Exception):
 
 
 def get_constrained_date_range(
-    params, allow_minute_resolution=False, max_points=MAX_POINTS
+    params, allow_minute_resolution=False, max_points=MAX_POINTS, high_fidelity_range=False
 ) -> Tuple[datetime, datetime, int]:
     interval = parse_stats_period(params.get("interval", "1h"))
     interval = int(3600 if interval is None else interval.total_seconds())
@@ -369,6 +372,9 @@ def get_constrained_date_range(
     # of "realtime" queries to one minute into the future to get a one-minute cache instead.
     if end > now:
         end = to_datetime(ONE_MINUTE * (math.floor(to_timestamp(now) / ONE_MINUTE) + 1))
+
+    if high_fidelity_range:
+        start = end - date_range
 
     return start, end, interval
 
