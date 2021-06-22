@@ -32,6 +32,11 @@ import {
 import {ZOOM_END, ZOOM_START} from '../latencyChart';
 
 import EventsPageContent from './content';
+import {
+  decodeEventsDisplayFilterFromLocation,
+  EventsDisplayFilterName,
+  filterEventsDisplayToLocationQuery,
+} from './utils';
 
 type Props = {
   location: Location;
@@ -42,12 +47,14 @@ type Props = {
 
 type State = {
   spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
+  eventsDisplayFilter: EventsDisplayFilterName;
   eventView: EventView | undefined;
 };
 
 class TransactionEvents extends Component<Props, State> {
   state: State = {
     spanOperationBreakdownFilter: decodeFilterFromLocation(this.props.location),
+    eventsDisplayFilter: decodeEventsDisplayFilterFromLocation(this.props.location),
     eventView: generateEventsEventView(
       this.props.location,
       getTransactionName(this.props.location)
@@ -58,6 +65,7 @@ class TransactionEvents extends Component<Props, State> {
     return {
       ...prevState,
       spanOperationBreakdownFilter: decodeFilterFromLocation(nextProps.location),
+      eventsDisplayFilter: decodeEventsDisplayFilterFromLocation(nextProps.location),
       eventView: generateEventsEventView(
         nextProps.location,
         getTransactionName(nextProps.location)
@@ -65,7 +73,7 @@ class TransactionEvents extends Component<Props, State> {
     };
   }
 
-  onChangeFilter = (newFilter: SpanOperationBreakdownFilter) => {
+  onChangeSpanOperationBreakdownFilter = (newFilter: SpanOperationBreakdownFilter) => {
     const {location, organization} = this.props;
 
     trackAnalyticsEvent({
@@ -82,6 +90,30 @@ class TransactionEvents extends Component<Props, State> {
 
     if (newFilter === SpanOperationBreakdownFilter.None) {
       delete nextQuery.breakdown;
+    }
+    browserHistory.push({
+      pathname: location.pathname,
+      query: nextQuery,
+    });
+  };
+
+  onChangeEventsDisplayFilter = (newFilter: EventsDisplayFilterName) => {
+    const {location, organization} = this.props;
+
+    trackAnalyticsEvent({
+      eventName: 'Performance Views: Filter Dropdown',
+      eventKey: 'performance_views.filter_dropdown.selection',
+      organization_id: parseInt(organization.id, 10),
+      action: newFilter as string,
+    });
+
+    const nextQuery: Location['query'] = {
+      ...removeHistogramQueryStrings(location, [ZOOM_START, ZOOM_END]),
+      ...filterEventsDisplayToLocationQuery(newFilter),
+    };
+
+    if (newFilter === EventsDisplayFilterName.NONE) {
+      delete nextQuery.showTransaction;
     }
     browserHistory.push({
       pathname: location.pathname,
@@ -154,8 +186,12 @@ class TransactionEvents extends Component<Props, State> {
                 transactionName={transactionName}
                 organization={organization}
                 projects={projects}
-                onChangeFilter={this.onChangeFilter}
                 spanOperationBreakdownFilter={this.state.spanOperationBreakdownFilter}
+                onChangeSpanOperationBreakdownFilter={
+                  this.onChangeSpanOperationBreakdownFilter
+                }
+                eventsDisplayFilter={this.state.eventsDisplayFilter}
+                onChangeEventsDisplayFilter={this.onChangeEventsDisplayFilter}
               />
             </LightWeightNoProjectMessage>
           </GlobalSelectionHeader>

@@ -1,19 +1,21 @@
-import {Query} from 'history';
+import {Location, Query} from 'history';
 
 import {t} from 'app/locale';
+import {decodeScalar} from 'app/utils/queryString';
 
 import {filterToField, SpanOperationBreakdownFilter} from '../filter';
 
-export enum EventsFilterOptionNames {
+export enum EventsDisplayFilterName {
+  NONE = 'none',
   FASTEST = 'fastest',
   SLOW = 'slow',
   OUTLIER = 'outlier',
   RECENT = 'recent',
 }
 
-export type EventsFilterOption = {
+export type EventsDisplayFilter = {
   sort: {kind: string; field: string};
-  value: EventsFilterOptionNames;
+  value: EventsDisplayFilterName;
   label: string;
   query?: string[][];
 };
@@ -21,7 +23,7 @@ export type EventsFilterOption = {
 export function getEventsFilterOptions(
   spanOperationBreakdownFilter: SpanOperationBreakdownFilter,
   p95: number
-): EventsFilterOption[] {
+): EventsDisplayFilter[] {
   const spanOperationBreakdownFilterTextFragment =
     spanOperationBreakdownFilter !== SpanOperationBreakdownFilter.None
       ? `${spanOperationBreakdownFilter} Operations`
@@ -32,7 +34,7 @@ export function getEventsFilterOptions(
         kind: 'asc',
         field: filterToField(spanOperationBreakdownFilter) || 'transaction.duration',
       },
-      value: EventsFilterOptionNames.FASTEST,
+      value: EventsDisplayFilterName.FASTEST,
       label: t('Fastest %s', spanOperationBreakdownFilterTextFragment),
     },
     {
@@ -41,7 +43,7 @@ export function getEventsFilterOptions(
         kind: 'desc',
         field: filterToField(spanOperationBreakdownFilter) || 'transaction.duration',
       },
-      value: EventsFilterOptionNames.SLOW,
+      value: EventsDisplayFilterName.SLOW,
       label: t('Slow %s (p95)', spanOperationBreakdownFilterTextFragment),
     },
     {
@@ -49,12 +51,12 @@ export function getEventsFilterOptions(
         kind: 'desc',
         field: filterToField(spanOperationBreakdownFilter) || 'transaction.duration',
       },
-      value: EventsFilterOptionNames.OUTLIER,
+      value: EventsDisplayFilterName.OUTLIER,
       label: t('Outlier %s (p100)', spanOperationBreakdownFilterTextFragment),
     },
     {
       sort: {kind: 'desc', field: 'timestamp'},
-      value: EventsFilterOptionNames.RECENT,
+      value: EventsDisplayFilterName.RECENT,
       label: t('Recent Transactions'),
     },
   ];
@@ -83,5 +85,26 @@ export function eventsRouteWithQuery({
       end: query.end,
       query: query.query,
     },
+  };
+}
+
+function stringToFilter(option: string) {
+  if (
+    Object.values(EventsDisplayFilterName).includes(option as EventsDisplayFilterName)
+  ) {
+    return option as EventsDisplayFilterName;
+  }
+
+  return EventsDisplayFilterName.NONE;
+}
+export function decodeEventsDisplayFilterFromLocation(location: Location) {
+  return stringToFilter(
+    decodeScalar(location.query.showTransactions, EventsDisplayFilterName.NONE)
+  );
+}
+
+export function filterEventsDisplayToLocationQuery(option: SpanOperationBreakdownFilter) {
+  return {
+    showTransactions: option as string,
   };
 }
