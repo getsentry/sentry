@@ -4,16 +4,11 @@ import styled from '@emotion/styled';
 
 import Feature from 'app/components/acl/feature';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
-import PageHeading from 'app/components/pageHeading';
-import QueryCount from 'app/components/queryCount';
-import {t} from 'app/locale';
 import {PageHeader} from 'app/styles/organization';
 import space from 'app/styles/space';
 import {Organization, SavedSearch} from 'app/types';
-import {trackAnalyticsEvent} from 'app/utils/analytics';
 
 import IssueListDisplayOptions from './displayOptions';
-import SavedSearchSelector from './savedSearchSelector';
 import IssueListSearchBar from './searchBar';
 import IssueListSortOptions from './sortOptions';
 import {TagValueLoader} from './types';
@@ -23,14 +18,11 @@ type IssueListSearchBarProps = React.ComponentProps<typeof IssueListSearchBar>;
 
 type Props = {
   organization: Organization;
-  savedSearchList: SavedSearch[];
   savedSearch: SavedSearch;
   display: IssueDisplayOptions;
   sort: string;
   query: string;
   isSearchDisabled: boolean;
-  queryCount: number;
-  queryMaxCount: number;
   hasSessions: boolean;
   selectedProjects: number[];
 
@@ -38,37 +30,16 @@ type Props = {
   onSortChange: (sort: string) => void;
   onSearch: (query: string) => void;
   onSidebarToggle: (event: React.MouseEvent) => void;
-  onSavedSearchSelect: (search: SavedSearch) => void;
-  onSavedSearchDelete: (search: SavedSearch) => void;
   tagValueLoader: TagValueLoader;
   tags: NonNullable<IssueListSearchBarProps['supportedTags']>;
-  isInbox?: boolean;
 };
 
 class IssueListFilters extends React.Component<Props> {
-  handleSavedSearchSelect = (savedSearch: SavedSearch) => {
-    trackAnalyticsEvent({
-      eventKey: 'organization_saved_search.selected',
-      eventName: 'Organization Saved Search: Selected saved search',
-      organization_id: this.props.organization.id,
-      query: savedSearch.query,
-      search_type: 'issues',
-      id: savedSearch.id ? parseInt(savedSearch.id, 10) : -1,
-    });
-
-    if (this.props.onSavedSearchSelect) {
-      this.props.onSavedSearchSelect(savedSearch);
-    }
-  };
-
   render() {
     const {
       organization,
       savedSearch,
-      queryCount,
-      queryMaxCount,
       query,
-      savedSearchList,
       isSearchDisabled,
       sort,
       display,
@@ -77,47 +48,17 @@ class IssueListFilters extends React.Component<Props> {
 
       onSidebarToggle,
       onSearch,
-      onSavedSearchDelete,
       onSortChange,
       onDisplayChange,
       tagValueLoader,
       tags,
-      isInbox,
     } = this.props;
     const isAssignedQuery = /\bassigned:/.test(query);
 
     return (
       <PageHeader>
-        {!isInbox && (
-          <PageHeading>
-            {t('Issues')} <QueryCount count={queryCount} max={queryMaxCount} />
-          </PageHeading>
-        )}
-
-        <SearchContainer isInbox={isInbox}>
-          <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
-          <Feature features={['issue-percent-display']} organization={organization}>
-            <IssueListDisplayOptions
-              onDisplayChange={onDisplayChange}
-              display={display}
-              hasSessions={hasSessions}
-              hasMultipleProjectsSelected={selectedProjects.length !== 1}
-            />
-          </Feature>
-
-          <SearchSelectorContainer isInbox={isInbox}>
-            {!isInbox && (
-              <SavedSearchSelector
-                key={query}
-                organization={organization}
-                savedSearchList={savedSearchList}
-                onSavedSearchSelect={this.handleSavedSearchSelect}
-                onSavedSearchDelete={onSavedSearchDelete}
-                query={query}
-                sort={sort}
-              />
-            )}
-
+        <SearchContainer>
+          <SearchSelectorContainer>
             <ClassNames>
               {({css}) => (
                 <GuideAnchor
@@ -138,31 +79,37 @@ class IssueListFilters extends React.Component<Props> {
                     tagValueLoader={tagValueLoader}
                     savedSearch={savedSearch}
                     onSidebarToggle={onSidebarToggle}
-                    isInbox={isInbox}
                   />
                 </GuideAnchor>
               )}
             </ClassNames>
           </SearchSelectorContainer>
+
+          <Feature features={['issue-percent-display']} organization={organization}>
+            <IssueListDisplayOptions
+              onDisplayChange={onDisplayChange}
+              display={display}
+              hasSessions={hasSessions}
+              hasMultipleProjectsSelected={selectedProjects.length !== 1}
+            />
+          </Feature>
+          <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
         </SearchContainer>
       </PageHeader>
     );
   }
 }
 
-const SearchContainer = styled('div')<{isInbox?: boolean}>`
+const SearchContainer = styled('div')`
   display: flex;
-  width: ${p => (p.isInbox ? '100%' : '70%')};
-  flex-direction: ${p => (p.isInbox ? 'row-reverse' : 'row')};
+  width: 100%;
   align-items: flex-start;
 `;
 
-const SearchSelectorContainer = styled('div')<{isInbox?: boolean}>`
+const SearchSelectorContainer = styled('div')`
   display: flex;
   flex-grow: 1;
-
-  margin-right: ${p => (p.isInbox ? space(1) : 0)};
-  margin-left: ${p => (p.isInbox ? 0 : space(1))};
+  margin-right: ${space(1)};
 `;
 
 export default IssueListFilters;

@@ -246,17 +246,14 @@ class GroupDetails extends React.Component<Props, State> {
   }
 
   getGroupQuery(): Record<string, string | string[]> {
-    const {environments, organization} = this.props;
+    const {environments} = this.props;
 
     // Note, we do not want to include the environment key at all if there are no environments
     const query: Record<string, string | string[]> = {
       ...(environments ? {environment: environments} : {}),
+      expand: 'inbox',
+      collapse: 'release',
     };
-
-    if (organization?.features?.includes('inbox')) {
-      query.expand = 'inbox';
-    }
-    query.collapse = 'release';
 
     return query;
   }

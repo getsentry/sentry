@@ -54,16 +54,12 @@ describe('StreamGroup', function () {
     await tick();
 
     expect(component.find('GuideAnchor').exists()).toBe(true);
-    expect(component.find('GuideAnchor')).toHaveLength(2);
+    expect(component.find('GuideAnchor')).toHaveLength(3);
     expect(component).toSnapshot();
   });
 
-  it('marks as reviewed while on inbox tab', function () {
-    const {routerContext, organization} = initializeOrg({
-      organization: {
-        features: ['inbox'],
-      },
-    });
+  it('marks as reviewed', function () {
+    const {routerContext, organization} = initializeOrg();
     const wrapper = mountWithTheme(
       <StreamGroup
         id="1337"
@@ -78,7 +74,6 @@ describe('StreamGroup', function () {
       routerContext
     );
 
-    expect(wrapper).toSnapshot();
     const streamGroup = wrapper.find('StreamGroup');
     expect(streamGroup.state('reviewed')).toBe(false);
     GROUP_1.inbox = false;
@@ -87,11 +82,7 @@ describe('StreamGroup', function () {
   });
 
   it('tracks clicks from issues stream', function () {
-    const {routerContext, organization} = initializeOrg({
-      organization: {
-        features: ['inbox'],
-      },
-    });
+    const {routerContext, organization} = initializeOrg();
     const wrapper = mountWithTheme(
       <StreamGroup
         id="1337"

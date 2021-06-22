@@ -493,7 +493,7 @@ def rate_limit_endpoint(limit=1, window=1):
     return inner
 
 
-def update_groups(request, group_ids, projects, organization_id, search_fn, has_inbox=False):
+def update_groups(request, group_ids, projects, organization_id, search_fn):
     if group_ids:
         group_list = Group.objects.filter(
             project__organization_id=organization_id, project__in=projects, id__in=group_ids
@@ -684,8 +684,7 @@ def update_groups(request, group_ids, projects, organization_id, search_fn, has_
                 remove_group_from_inbox(
                     group, action=GroupInboxRemoveAction.RESOLVED, user=acting_user
                 )
-                if has_inbox:
-                    result["inbox"] = None
+                result["inbox"] = None
 
                 assigned_to = self_subscribe_and_assign_issue(acting_user, group)
                 if assigned_to is not None:
@@ -733,8 +732,7 @@ def update_groups(request, group_ids, projects, organization_id, search_fn, has_
                     remove_group_from_inbox(
                         group, action=GroupInboxRemoveAction.IGNORED, user=acting_user
                     )
-                if has_inbox:
-                    result["inbox"] = None
+                result["inbox"] = None
 
                 ignore_duration = (
                     statusDetails.pop("ignoreDuration", None)

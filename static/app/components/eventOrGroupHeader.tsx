@@ -13,9 +13,7 @@ import {Group, GroupTombstone, Level, Organization} from 'app/types';
 import {Event} from 'app/types/event';
 import {getLocation, getMessage} from 'app/utils/events';
 import withOrganization from 'app/utils/withOrganization';
-import UnhandledTag, {
-  TagAndMessageWrapper,
-} from 'app/views/organizationGroupDetails/unhandledTag';
+import {TagAndMessageWrapper} from 'app/views/organizationGroupDetails/unhandledTag';
 
 type DefaultProps = {
   includeLink: boolean;
@@ -115,19 +113,16 @@ class EventOrGroupHeader extends Component<Props> {
   }
 
   render() {
-    const {className, size, data, organization} = this.props;
+    const {className, size, data} = this.props;
     const location = getLocation(data);
     const message = getMessage(data);
-    const {isUnhandled} = data as Group;
-    const showUnhandled = isUnhandled && !organization.features.includes('inbox');
 
     return (
       <div className={className} data-test-id="event-issue-header">
         <Title size={size}>{this.getTitle()}</Title>
         {location && <Location size={size}>{location}</Location>}
-        {(message || showUnhandled) && (
+        {message && (
           <StyledTagAndMessageWrapper size={size}>
-            {showUnhandled && <UnhandledTag />}
             {message && <Message>{message}</Message>}
           </StyledTagAndMessageWrapper>
         )}

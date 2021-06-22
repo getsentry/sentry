@@ -33,7 +33,7 @@ import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 
 import GroupActions from './actions';
-import UnhandledTag, {TagAndMessageWrapper} from './unhandledTag';
+import {TagAndMessageWrapper} from './unhandledTag';
 import {ReprocessingStatus} from './utils';
 
 const TAB = {
@@ -151,7 +151,6 @@ class GroupHeader extends React.Component<Props, State> {
     const {memberList} = this.state;
     const orgId = organization.slug;
     const message = getMessage(group);
-    const hasInbox = organization.features?.includes('inbox');
 
     const searchTermWithoutQuery = omit(location.query, 'query');
     const eventRouteToObject = {
@@ -170,18 +169,17 @@ class GroupHeader extends React.Component<Props, State> {
               <h3>
                 <EventOrGroupTitle hasGuideAnchor data={group} />
               </h3>
-              {hasInbox && group.inbox && (
+              {group.inbox && (
                 <InboxReasonWrapper>
                   <InboxReason inbox={group.inbox} fontSize="md" />
                 </InboxReasonWrapper>
               )}
             </TitleWrapper>
             <StyledTagAndMessageWrapper>
-              {hasInbox && group.level && <ErrorLevel level={group.level} size="11px" />}
-              {group.isUnhandled && (hasInbox ? <UnhandledInboxTag /> : <UnhandledTag />)}
+              {group.level && <ErrorLevel level={group.level} size="11px" />}
+              {group.isUnhandled && <UnhandledInboxTag />}
               <EventMessage
                 message={message}
-                level={hasInbox ? undefined : group.level}
                 annotations={
                   <React.Fragment>
                     {group.logger && (

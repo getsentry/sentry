@@ -37,7 +37,6 @@ type Props = {
   confirmMessage?: React.ReactNode;
   confirmLabel?: string;
   isIgnored?: boolean;
-  hasInbox?: boolean;
 };
 
 const IgnoreActions = ({
@@ -47,7 +46,6 @@ const IgnoreActions = ({
   confirmMessage,
   confirmLabel = t('Ignore'),
   isIgnored = false,
-  hasInbox = false,
 }: Props) => {
   const onIgnore = (statusDetails: ResolutionStatusDetails) => {
     return onUpdate({
@@ -117,37 +115,28 @@ const IgnoreActions = ({
 
   return (
     <ButtonBar merged>
-      {!hasInbox && (
-        <ActionLink
-          {...actionLinkProps}
-          type="button"
-          title={t('Ignore')}
-          onAction={() => onUpdate({status: ResolutionStatus.IGNORED})}
-          icon={<IconMute size="xs" />}
-        >
-          {t('Ignore')}
-        </ActionLink>
-      )}
-
+      <ActionLink
+        {...actionLinkProps}
+        type="button"
+        title={t('Ignore')}
+        onAction={() => onUpdate({status: ResolutionStatus.IGNORED})}
+        icon={<IconMute size="xs" />}
+      >
+        {t('Ignore')}
+      </ActionLink>
       <StyledDropdownLink
         customTitle={
-          hasInbox ? (
-            <IconMute size="xs" color="gray300" />
-          ) : (
-            <ActionButton
-              disabled={disabled}
-              icon={<IconChevron direction="down" size="xs" />}
-            />
-          )
+          <ActionButton
+            disabled={disabled}
+            icon={<IconChevron direction="down" size="xs" />}
+          />
         }
         alwaysRenderMenu
         disabled={disabled}
-        anchorRight={hasInbox}
-        hasInbox
       >
         <MenuHeader>{t('Ignore')}</MenuHeader>
 
-        <DropdownMenuItem hasInbox={hasInbox}>
+        <DropdownMenuItem>
           <DropdownLink
             title={
               <ActionSubMenu>
@@ -162,7 +151,7 @@ const IgnoreActions = ({
             alwaysRenderMenu
           >
             {IGNORE_DURATIONS.map(duration => (
-              <DropdownMenuItem hasInbox={hasInbox} key={duration}>
+              <DropdownMenuItem key={duration}>
                 <StyledForActionLink
                   {...actionLinkProps}
                   onAction={() => onIgnore({ignoreDuration: duration})}
@@ -173,7 +162,7 @@ const IgnoreActions = ({
                 </StyledForActionLink>
               </DropdownMenuItem>
             ))}
-            <DropdownMenuItem hasInbox={hasInbox}>
+            <DropdownMenuItem>
               <ActionSubMenu>
                 <a onClick={openCustomIgnoreDuration}>{t('Custom')}</a>
               </ActionSubMenu>
@@ -181,7 +170,7 @@ const IgnoreActions = ({
           </DropdownLink>
         </DropdownMenuItem>
 
-        <DropdownMenuItem hasInbox={hasInbox}>
+        <DropdownMenuItem>
           <DropdownLink
             title={
               <ActionSubMenu>
@@ -196,7 +185,7 @@ const IgnoreActions = ({
             alwaysRenderMenu
           >
             {IGNORE_COUNTS.map(count => (
-              <DropdownMenuItem hasInbox={hasInbox} key={count}>
+              <DropdownMenuItem key={count}>
                 <DropdownLink
                   title={
                     <ActionSubMenu>
@@ -212,7 +201,7 @@ const IgnoreActions = ({
                   isNestedDropdown
                   alwaysRenderMenu
                 >
-                  <DropdownMenuItem hasInbox={hasInbox}>
+                  <DropdownMenuItem>
                     <StyledActionLink
                       {...actionLinkProps}
                       onAction={() => onIgnore({ignoreCount: count})}
@@ -221,7 +210,7 @@ const IgnoreActions = ({
                     </StyledActionLink>
                   </DropdownMenuItem>
                   {IGNORE_WINDOWS.map(([hours, label]) => (
-                    <DropdownMenuItem hasInbox={hasInbox} key={hours}>
+                    <DropdownMenuItem key={hours}>
                       <StyledActionLink
                         {...actionLinkProps}
                         onAction={() =>
@@ -238,14 +227,14 @@ const IgnoreActions = ({
                 </DropdownLink>
               </DropdownMenuItem>
             ))}
-            <DropdownMenuItem hasInbox={hasInbox}>
+            <DropdownMenuItem>
               <ActionSubMenu>
                 <a onClick={openCustomIngoreCount}>{t('Custom')}</a>
               </ActionSubMenu>
             </DropdownMenuItem>
           </DropdownLink>
         </DropdownMenuItem>
-        <DropdownMenuItem hasInbox={hasInbox}>
+        <DropdownMenuItem>
           <DropdownLink
             title={
               <ActionSubMenu>
@@ -260,7 +249,7 @@ const IgnoreActions = ({
             alwaysRenderMenu
           >
             {IGNORE_COUNTS.map(count => (
-              <DropdownMenuItem hasInbox={hasInbox} key={count}>
+              <DropdownMenuItem key={count}>
                 <DropdownLink
                   title={
                     <ActionSubMenu>
@@ -274,7 +263,7 @@ const IgnoreActions = ({
                   isNestedDropdown
                   alwaysRenderMenu
                 >
-                  <DropdownMenuItem hasInbox={hasInbox}>
+                  <DropdownMenuItem>
                     <StyledActionLink
                       {...actionLinkProps}
                       onAction={() => onIgnore({ignoreUserCount: count})}
@@ -283,7 +272,7 @@ const IgnoreActions = ({
                     </StyledActionLink>
                   </DropdownMenuItem>
                   {IGNORE_WINDOWS.map(([hours, label]) => (
-                    <DropdownMenuItem hasInbox={hasInbox} key={hours}>
+                    <DropdownMenuItem key={hours}>
                       <StyledActionLink
                         {...actionLinkProps}
                         onAction={() =>
@@ -300,7 +289,7 @@ const IgnoreActions = ({
                 </DropdownLink>
               </DropdownMenuItem>
             ))}
-            <DropdownMenuItem hasInbox={hasInbox}>
+            <DropdownMenuItem>
               <ActionSubMenu>
                 <a onClick={openCustomIgnoreUserCount}>{t('Custom')}</a>
               </ActionSubMenu>
@@ -332,15 +321,13 @@ const StyledForActionLink = styled(ActionLink)`
   ${actionLinkCss};
 `;
 
-// The icon with no text label needs the height reduced for row actions
-const StyledDropdownLink = styled(DropdownLink)<{hasInbox: boolean}>`
-  ${p => (p.hasInbox ? 'line-height: 0' : '')};
+const StyledDropdownLink = styled(DropdownLink)`
   transition: none;
   border-top-left-radius: 0 !important;
   border-bottom-left-radius: 0 !important;
 `;
 
-const DropdownMenuItem = styled('li')<{hasInbox: boolean}>`
+const DropdownMenuItem = styled('li')`
   :not(:last-child) {
     border-bottom: 1px solid ${p => p.theme.innerBorder};
   }
@@ -361,12 +348,6 @@ const DropdownMenuItem = styled('li')<{hasInbox: boolean}>`
   &:hover > span {
     background: ${p => p.theme.focus};
   }
-  ${p =>
-    p.hasInbox &&
-    `
-      flex: 1;
-      justify-content: flex-start;
-    `};
 `;
 
 const ActionSubMenu = styled('span')`

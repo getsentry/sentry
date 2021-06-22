@@ -192,13 +192,6 @@ class GroupActivity extends Component<Props, State> {
                   );
                 }
 
-                if (
-                  item.type === GroupActivityType.MARK_REVIEWED &&
-                  !organization?.features?.includes('inbox')
-                ) {
-                  return null;
-                }
-
                 return (
                   <ErrorBoundary mini key={`item-${item.id}`}>
                     <ActivityItem

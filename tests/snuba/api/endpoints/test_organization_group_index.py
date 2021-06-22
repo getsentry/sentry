@@ -1611,7 +1611,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
                 group = Group.objects.get(id=group.id)
                 assert group.status == GroupStatus.RESOLVED
 
-                assert response.data == {"status": "resolved", "statusDetails": {}}
+                assert response.data == {"status": "resolved", "statusDetails": {}, "inbox": None}
                 mock_sync_status_outbound.assert_called_once_with(
                     external_issue, True, group.project_id
                 )
@@ -1736,7 +1736,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             response = self.get_valid_response(
                 qs_params={"id": [group1.id, group2.id], "group4": group4.id}, status="resolved"
             )
-        assert response.data == {"status": "resolved", "statusDetails": {}}
+        assert response.data == {"status": "resolved", "statusDetails": {}, "inbox": None}
 
         new_group1 = Group.objects.get(id=group1.id)
         assert new_group1.resolved_at is not None
