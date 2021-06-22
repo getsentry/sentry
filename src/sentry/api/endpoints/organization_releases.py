@@ -27,6 +27,7 @@ from sentry.models import (
     ReleaseProject,
     ReleaseStatus,
 )
+from sentry.search.events.constants import OPERATOR_TO_DJANGO, SEMVER_ALIAS
 from sentry.signals import release_created
 from sentry.snuba.sessions import (
     STATS_PERIODS,
@@ -211,6 +212,13 @@ class OrganizationReleasesEndpoint(
                         query_q |= Q(version__icontains="%s+%s" % suffix_match.groups())
 
                     queryset = queryset.filter(query_q)
+
+                if search_filter.key.name == SEMVER_ALIAS:
+                    queryset = queryset.filter_by_semver(
+                        organization.id,
+                        OPERATOR_TO_DJANGO[search_filter.operator],
+                        search_filter.value.raw_value,
+                    )
 
         select_extra = {}
 
