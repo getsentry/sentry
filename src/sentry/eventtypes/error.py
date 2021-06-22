@@ -17,6 +17,10 @@ def get_crash_location(data):
         return frame.get("filename") or frame.get("abs_path"), func
 
 
+def format_title_from_tree_label(tree_label):
+    return " | ".join(tree_label)
+
+
 class ErrorEvent(BaseEvent):
     key = "error"
 
@@ -46,10 +50,10 @@ class ErrorEvent(BaseEvent):
     def compute_title(self, metadata):
         # Both of those properties are set within EventManager
         if "finest_tree_label" in metadata:
-            return " | ".join(metadata["finest_tree_label"])
+            return format_title_from_tree_label(metadata["finest_tree_label"])
 
         if "current_tree_label" in metadata:
-            return " | ".join(metadata["current_tree_label"])
+            return format_title_from_tree_label(metadata["current_tree_label"])
 
         ty = metadata.get("type")
         if ty is None:
