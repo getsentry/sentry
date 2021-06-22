@@ -37,7 +37,7 @@
     "@types/jest": "^26.0.23",
     "@types/jquery": "^2.0.53",
     "@types/js-cookie": "^2.2.6",
-    "@types/lodash": "^4.14.168",
+    "@types/lodash": "^4.14.170",
     "@types/marked": "^0.7.2",
     "@types/papaparse": "^5.2.5",
     "@types/pegjs": "^0.10.2",
