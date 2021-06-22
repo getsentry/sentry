@@ -676,5 +676,5 @@
   "timestamp": 1624257106.587,
   "title": "Error: Unhandled Promise Rejection",
   "type": "error",
-  "version": "7"
+  "version": "7.1.3"
 }

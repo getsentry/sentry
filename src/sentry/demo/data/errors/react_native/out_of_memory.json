@@ -1,8 +1,8 @@
 {
   "event_id": "d6a806a9361146a6bb936e12aaf60183",
   "project": 5428561,
-  "release": "2.5.1",
-  "dist": "2.5.1.0",
+  "release": "2.5.2",
+  "dist": "2.5.2.0",
   "platform": "cocoa",
   "message": "",
   "datetime": "2021-06-21T06:21:39.599000Z",
@@ -18,8 +18,8 @@
     ["os", "iOS 14.4"],
     ["os.name", "iOS"],
     ["os.rooted", "no"],
-    ["dist", "2.5.1.0"],
-    ["release", "2.5.1"],
+    ["dist", "2.5.2.0"],
+    ["release", "2.5.2"],
     ["user", "id:A581BE46-B38D-4ED5-9462-E606432F8BA5"]
   ],
   "_metrics": {"bytes.ingested.event": 1231, "bytes.stored.event": 2392},
