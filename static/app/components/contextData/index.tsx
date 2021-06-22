@@ -22,7 +22,6 @@ type Props = React.HTMLAttributes<HTMLPreElement> & {
   maxDefaultDepth?: number;
   meta?: Meta;
   jsonConsts?: boolean;
-  className?: string;
 };
 
 type State = {
@@ -166,12 +165,11 @@ class ContextData extends React.Component<Props, State> {
       withAnnotatedText: _withAnnotatedText,
       meta: _meta,
       children,
-      className,
       ...other
     } = this.props;
 
     return (
-      <pre {...other} className={className}>
+      <pre {...other}>
         {this.renderValue(data)}
         {children}
       </pre>
