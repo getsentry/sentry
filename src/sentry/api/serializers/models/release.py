@@ -116,7 +116,7 @@ def get_users_for_authors(organization_id, authors, user=None):
         cache.set_many(to_cache)
 
     metrics.incr("sentry.release.get_users_for_authors.missed", amount=len(missed))
-    metrics.incr("sentry.tasks.process_suspect_commits.total", amount=len(results))
+    metrics.incr("sentry.release.get_users_for_authors.total", amount=len(results))
     return results
 
 

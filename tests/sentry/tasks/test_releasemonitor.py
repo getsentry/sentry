@@ -307,6 +307,92 @@ class TestReleaseMonitor(TestCase, SnubaTestCase):
             unadopted__gte=now,
         ).exists()
 
-    # def test_multi_org(self):
-    #     # TODO: Implement a multi-org test?
-    #     pass
+    # def test_monitor_release_adoption(self):
+    #     # Temporarily commented out since org data is hardcoded for early release.
+    #     # Create a second org for this test (I think this org needs permissiond, the last test fails because we don't get session data for this org from snuba)
+    #     now = timezone.now()
+    #     self.org2 = self.create_organization(
+    #         name="Yet Another Test Org",
+    #         owner=self.user,
+    #     )
+    #     self.org2_project = self.create_project(organization=self.org2)
+    #     self.org2_project.update(flags=F("flags").bitor(Project.flags.has_releases))
+
+    #     self.org2_release = self.create_release(project=self.org2_project, version="org@2.0.0")
+    #     self.org2_environment = self.create_environment(
+    #         name="yae", project=self.project_with_session_data
+    #     )
+    #     self.org2_rpe = ReleaseProjectEnvironment.objects.create(
+    #         project_id=self.org2_project.id,
+    #         release_id=self.org2_release.id,
+    #         environment_id=self.org2_environment.id,
+    #     )
+
+    #     # Tests the scheduled task to ensure it properly processes each org
+    #     self.bulk_store_sessions(
+    #         [
+    #             self.session_dict(
+    #                 i,
+    #                 self.project_with_session_data.id,
+    #                 self.release.version,
+    #                 self.environment.name,
+    #             )
+    #             for i in range(11)
+    #         ]
+    #     )
+    #     self.bulk_store_sessions(
+    #         [
+    #             self.session_dict(i, self.project2.id, self.release.version, self.environment2.name)
+    #             for i in range(1)
+    #         ]
+    #     )
+
+    #     with self.tasks():
+    #         monitor_release_adoption()
+
+    #     assert ReleaseProjectEnvironment.objects.filter(
+    #         project_id=self.project_with_session_data.id,
+    #         release_id=self.release.id,
+    #         environment_id=self.environment.id,
+    #         adopted__gte=now,
+    #         unadopted=None,
+    #     ).exists()
+
+    #     assert ReleaseProjectEnvironment.objects.filter(
+    #         project_id=self.org2_project.id,
+    #         release_id=self.org2_release.id,
+    #         environment_id=self.org2_environment.id,
+    #         adopted=None,
+    #         unadopted=None,
+    #     ).exists()
+
+    #     self.bulk_store_sessions(
+    #         [
+    #             self.session_dict(
+    #                 i,
+    #                 self.org2_project.id,
+    #                 self.org2_release.version,
+    #                 self.org2_environment.name,
+    #             )
+    #             for i in range(20)
+    #         ]
+    #     )
+
+    #     with self.tasks():
+    #         monitor_release_adoption()
+
+    #     assert ReleaseProjectEnvironment.objects.filter(
+    #         project_id=self.project_with_session_data.id,
+    #         release_id=self.release.id,
+    #         environment_id=self.environment.id,
+    #         adopted__gte=now,
+    #         unadopted=None,
+    #     ).exists()
+
+    #     assert ReleaseProjectEnvironment.objects.filter(
+    #         project_id=self.org2_project.id,
+    #         release_id=self.org2_release.id,
+    #         environment_id=self.org2_environment.id,
+    #         adopted__gte=now,
+    #         unadopted=None,
+    #     ).exists()

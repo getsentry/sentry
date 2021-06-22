@@ -607,6 +607,10 @@ CELERY_QUEUES = [
         "releasemonitor.monitor_release_adoption",
         routing_key="releasemonitor.monitor_release_adoption",
     ),
+    Queue(
+        "releasemonitor.process_projects_with_sessions",
+        routing_key="releasemonitor.process_projects_with_sessions",
+    ),
     Queue("incidents", routing_key="incidents"),
     Queue("incident_snapshots", routing_key="incident_snapshots"),
     Queue("integrations", routing_key="integrations"),
