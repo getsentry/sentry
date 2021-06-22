@@ -638,7 +638,6 @@
       }
     ]
   },
-  "extra": {"componentStack": "[undefined]", "jsEngine": "[undefined]"},
   "fingerprint": ["{{ default }}"],
   "grouping_config": {
     "enhancements": "eJybzDRxY3J-bm5-npWRgaGlroGxrpHxBABcYgcZ",
