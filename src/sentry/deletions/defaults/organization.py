@@ -3,7 +3,7 @@ from ..base import ModelDeletionTask, ModelRelation
 
 class OrganizationDeletionTask(ModelDeletionTask):
     def get_child_relations(self, instance):
-        from sentry.discover.models import DiscoverSavedQuery, KeyTransaction
+        from sentry.discover.models import DiscoverSavedQuery, KeyTransaction, TeamKeyTransaction
         from sentry.incidents.models import AlertRule, Incident
         from sentry.models import (
             Commit,
@@ -47,6 +47,7 @@ class OrganizationDeletionTask(ModelDeletionTask):
             Dashboard,
             DiscoverSavedQuery,
             KeyTransaction,
+            TeamKeyTransaction,
             ExternalIssue,
             PromptsActivity,
             Incident,
