@@ -99,7 +99,7 @@
         "data": {
           "method": "POST",
           "status_code": 200,
-          "url": "http://localhost:8081/symbolicate"
+          "url": "https://app.example.com/symbolicate"
         }
       },
       {
@@ -110,7 +110,7 @@
         "data": {
           "method": "GET",
           "status_code": 404,
-          "url": "http://localhost:8081//Users/jennmueng/Documents/sentry/sentry-react-native/sample/src/screens/HomeScreen.tsx"
+          "url": "https://app.example.com/src/Documents/sentry/sentry-react-native/sample/src/screens/HomeScreen.tsx"
         }
       },
       {
@@ -121,7 +121,7 @@
         "data": {
           "method": "GET",
           "status_code": 404,
-          "url": "http://localhost:8081/HomeScreen.tsx"
+          "url": "https://app.example.com/HomeScreen.tsx"
         }
       },
       {
@@ -132,7 +132,7 @@
         "data": {
           "method": "GET",
           "status_code": 404,
-          "url": "http://localhost:8081/screens/HomeScreen.tsx"
+          "url": "https://app.example.com/screens/HomeScreen.tsx"
         }
       },
       {
@@ -143,7 +143,7 @@
         "data": {
           "method": "GET",
           "status_code": 200,
-          "url": "http://localhost:8081/src/screens/HomeScreen.tsx"
+          "url": "https://app.example.com/src/screens/HomeScreen.tsx"
         }
       },
       {
@@ -304,7 +304,7 @@
         "data": {
           "method": "POST",
           "status_code": 200,
-          "url": "http://localhost:8081/symbolicate"
+          "url": "https://app.example.com/symbolicate"
         }
       },
       {
@@ -315,7 +315,7 @@
         "data": {
           "method": "GET",
           "status_code": 404,
-          "url": "http://localhost:8081//Users/jennmueng/Documents/sentry/sentry-react-native/sample/src/screens/HomeScreen.tsx"
+          "url": "https://app.example.com/src/Documents/sentry/sentry-react-native/sample/src/screens/HomeScreen.tsx"
         }
       },
       {
@@ -326,7 +326,7 @@
         "data": {
           "method": "GET",
           "status_code": 404,
-          "url": "http://localhost:8081/HomeScreen.tsx"
+          "url": "https://app.example.com/HomeScreen.tsx"
         }
       },
       {
@@ -337,7 +337,7 @@
         "data": {
           "method": "GET",
           "status_code": 404,
-          "url": "http://localhost:8081/screens/HomeScreen.tsx"
+          "url": "https://app.example.com/screens/HomeScreen.tsx"
         }
       },
       {
@@ -348,7 +348,7 @@
         "data": {
           "method": "GET",
           "status_code": 200,
-          "url": "http://localhost:8081/src/screens/HomeScreen.tsx"
+          "url": "https://app.example.com1/src/screens/HomeScreen.tsx"
         }
       },
       {
@@ -419,7 +419,7 @@
         "data": {
           "method": "POST",
           "status_code": 200,
-          "url": "http://localhost:8081/symbolicate"
+          "url": "https://app.example.com/symbolicate"
         }
       },
       {
@@ -463,7 +463,7 @@
             {
               "message": "Unhandled Promise Rejection",
               "name": "Error",
-              "stack": "http://localhost:8081/index.bundle?platform=ios&dev=true&minify=false&modulesOnly=false&runModule=true&app=io.sentry.sample:142323:26\ntryCallTwo@http://localhost:8081/index.bundle?platform=ios&dev=true&minify=false&modulesOnly=false&runModule=true&app=io.sentry.sample:31427:9\ndoResolve@http://localhost:8081/index.bundle?platform=ios&dev=true&minify=false&modulesOnly=false&runModule=true&app=io.sentry.sample:31591:25\nPromise@http://localhost:8081/index.bundle?platform=ios&dev=true&minify=false&modulesOnly=false&runModule=true&app=io.sentry.sample:31450:14\nonPress@http://localhost:8081/index.bundle?platform=ios&dev=true&minify=false&modulesOnly=false&runModule=true&app=io.sentry.sample:142322:20\n_performTransitionSideEffects@http://localhost:8081/index.bundle?platform=ios&dev=true&minify=false&modulesOnly=false&runModule=true&app=io.sentry.sample:56551:22\n_receiveSignal@http://localhost:8081/index.bundle?platform=ios&dev=true&minify=false&modulesOnly=false&runModule=true&app=io.sentry.sample:56493:45\nonResponderRelease@http://localhost:8081/index.bundle?platform=ios&dev=true&minify=false&modulesOnly=false&runModule=true&app=io.sentry.sample:56400:34\ninvokeGuardedCallbackProd@http://localhost:8081/index.bundle?platform=ios&dev=true&minify=false&modulesOnly=false&runModule=true&app=io.sentry.sample:9434:21\ninvokeGuardedCallback@http://localhost:8081/index.bundle?platform=ios&dev=true&minify=false&modulesOnly=false&runModule=true&app=io.sentry.sample:9538:42\ninvokeGuardedCallbackAndCatchFirstError@http://localhost:8081/index.bundle?platform=ios&dev=true&minify=false&modulesOnly=false&runModule=true&app=io.sentry.sample:9542:36\nexecuteDispatch@http://localhost:8081/index.bundle?platform=ios&dev=true&minify=false&modulesOnly=false&runModule=true&app=io.sentry.sample:9614:48\nexecuteDispatchesInOrder@http://localhost:8081/index.bundle?platform=ios&dev=true&minify=false&modulesOnly=false&runModule=true&app=io.sentry.sample:9634:26\nexecuteDispatchesAndRelease@http://localhost:8081/..."
+              "stack": "https://app.example.com/index.bundle?platform=ios&dev=true&minify=false&modulesOnly=false&runModule=true&app=io.sentry.sample:142323:26\ntryCallTwo@https://app.example.com/index.bundle?platform=ios&dev=true&minify=false&modulesOnly=false&runModule=true&app=io.sentry.sample:31427:9\ndoResolve@https://app.example.com/index.bundle?platform=ios&dev=true&minify=false&modulesOnly=false&runModule=true&app=io.sentry.sample:31591:25\nPromise@https://app.example.com/index.bundle?platform=ios&dev=true&minify=false&modulesOnly=false&runModule=true&app=io.sentry.sample:31450:14\nonPress@https://app.example.com/index.bundle?platform=ios&dev=true&minify=false&modulesOnly=false&runModule=true&app=io.sentry.sample:142322:20\n_performTransitionSideEffects@https://app.example.com/index.bundle?platform=ios&dev=true&minify=false&modulesOnly=false&runModule=true&app=io.sentry.sample:56551:22\n_receiveSignal@https://app.example.com/index.bundle?platform=ios&dev=true&minify=false&modulesOnly=false&runModule=true&app=io.sentry.sample:56493:45\nonResponderRelease@https://app.example.com/index.bundle?platform=ios&dev=true&minify=false&modulesOnly=false&runModule=true&app=io.sentry.sample:56400:34\ninvokeGuardedCallbackProd@https://app.example.com/index.bundle?platform=ios&dev=true&minify=false&modulesOnly=false&runModule=true&app=io.sentry.sample:9434:21\ninvokeGuardedCallback@https://app.example.com/index.bundle?platform=ios&dev=true&minify=false&modulesOnly=false&runModule=true&app=io.sentry.sample:9538:42\ninvokeGuardedCallbackAndCatchFirstError@https://app.example.com/index.bundle?platform=ios&dev=true&minify=false&modulesOnly=false&runModule=true&app=io.sentry.sample:9542:36\nexecuteDispatch@https://app.example.com/index.bundle?platform=ios&dev=true&minify=false&modulesOnly=false&runModule=true&app=io.sentry.sample:9614:48\nexecuteDispatchesInOrder@https://app.example.com/index.bundle?platform=ios&dev=true&minify=false&modulesOnly=false&runModule=true&app=io.sentry.sample:9634:26\nexecuteDispatchesAndRelease@https://app.example.com/..."
             }
           ]
         }
@@ -472,7 +472,6 @@
   },
   "contexts": {
     "app": {
-      "app_start_time": "2021-06-21T05:35:33Z",
       "device_app_hash": "1b94d8374b00174250159b2d866c28a336f51e98",
       "build_type": "simulator",
       "app_identifier": "io.sentry.sample",

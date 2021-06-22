@@ -25,7 +25,6 @@
   "_metrics": {"bytes.ingested.event": 1231, "bytes.stored.event": 2392},
   "contexts": {
     "app": {
-      "app_start_time": "2021-06-21T05:35:33Z",
       "device_app_hash": "1b94d8374b00174250159b2d866c28a336f51e98",
       "build_type": "simulator",
       "app_identifier": "io.sentry.sample",
