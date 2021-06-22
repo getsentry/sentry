@@ -253,10 +253,5 @@ class SentryEnvironment extends JsDomEnvironment {
     }
   }
 }
-class SentryEnvironment2 extends JsDomEnvironment {
-  constructor(config) {
-    super(config);
-  }
-}
 
 module.exports = SentryEnvironment;

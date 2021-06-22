@@ -58,7 +58,6 @@
     "@types/reflux": "0.4.1",
     "@types/scroll-to-element": "^2.0.1",
     "@types/webpack-dev-server": "^3.11.4",
-    "@visual-snapshot/jest-environment": "2.0.0-beta.0",
     "ansicolor": "^1.1.95",
     "babel-loader": "^8.1.0",
     "babel-plugin-add-react-displayname": "^0.0.5",
