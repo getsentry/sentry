@@ -529,25 +529,44 @@ class DataPopulation:
             self.log_info("safe_send_event.snuba_error")
             time.sleep(config["ERROR_BACKOFF_TIME"])
 
+    # @catch_and_log_errors
+    # def send_session(self, sid, user_id, dsn, time, release, **kwargs):
+    #     """
+    #     Creates an envelope payload for a session and posts it to Relay
+    #     """
+    #     formatted_time = time.isoformat()
+    #     envelope_headers = "{}"
+    #     item_headers = json.dumps({"type": "session"})
+    #     data = {
+    #         "sid": sid,
+    #         "did": str(user_id),
+    #         "started": formatted_time,
+    #         "duration": random.randrange(2, 60),
+    #         "attrs": {
+    #             "release": release,
+    #             "environment": "prod",
+    #         },
+    #     }
+    #     data.update(**kwargs)
+    #     core = json.dumps(data)
+
+    #     body = f"{envelope_headers}\n{item_headers}\n{core}"
+    #     endpoint = dsn.get_endpoint()
+    #     url = f"{endpoint}/api/{dsn.project_id}/envelope/?sentry_key={dsn.public_key}&sentry_version=7"
+    #     resp = requests.post(url=url, data=body)
+    #     resp.raise_for_status()
+
     @catch_and_log_errors
     def send_session(self, sid, user_id, dsn, time, release, **kwargs):
         """
-        Creates an envelope payload for a session and posts it to Relay
+        Creates an envelope payload for a session aggregate and posts it to Relay
         """
         formatted_time = time.isoformat()
         envelope_headers = "{}"
-        item_headers = json.dumps({"type": "session"})
-        data = {
-            "sid": sid,
-            "did": str(user_id),
-            "started": formatted_time,
-            "duration": random.randrange(2, 60),
-            "attrs": {
-                "release": release,
-                "environment": "prod",
-            },
-        }
-        data.update(**kwargs)
+        item_headers = json.dumps({"type": "sessions"})
+
+        data = {"started": formatted_time, "exited": True, "errored": True}
+
         core = json.dumps(data)
 
         body = f"{envelope_headers}\n{item_headers}\n{core}"
@@ -1085,7 +1104,7 @@ class DataPopulation:
         self.log_info("populate_sessions.start")
         dsn = ProjectKey.objects.get(project=project)
 
-        react_error = get_event_from_file(error_file)
+        error = get_event_from_file(error_file)
 
         for (timestamp, day) in self.iter_timestamps(4):
             transaction_user = self.generate_user()
@@ -1109,7 +1128,7 @@ class DataPopulation:
             outcome = random.random()
             if outcome > threshold:
                 # if crash, make an error for it
-                local_event = copy.deepcopy(react_error)
+                local_event = copy.deepcopy(error)
                 local_event.update(
                     project=project,
                     platform=project.platform,
