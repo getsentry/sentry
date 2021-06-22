@@ -15,6 +15,7 @@ class OrganizationDeletionTask(ModelDeletionTask):
             ExternalIssue,
             OrganizationMember,
             Project,
+            ProjectTransactionThreshold,
             PromptsActivity,
             PullRequest,
             Release,
@@ -51,6 +52,7 @@ class OrganizationDeletionTask(ModelDeletionTask):
             PromptsActivity,
             Incident,
             AlertRule,
+            ProjectTransactionThreshold,
         )
         relations.extend([ModelRelation(m, {"organization_id": instance.id}) for m in model_list])
 
