@@ -1,6 +1,7 @@
 import functools
 import logging
 import random
+import time
 from concurrent.futures import Future, ThreadPoolExecutor, as_completed
 from typing import (
     Any,
@@ -125,6 +126,8 @@ class IngestConsumerWorker(AbstractBatchWorker):
 
         if other_messages:
             with metrics.timer("ingest_consumer.process_other_messages_batch"):
+                other_messages_flush_start = time.monotonic()
+
                 # Keep a mapping of futures to their metadata so that we can
                 # easily associate a future with its callback once completed.
                 results: MutableMapping["Future[Any]", "AsyncResult[Any]"] = {}
@@ -139,6 +142,11 @@ class IngestConsumerWorker(AbstractBatchWorker):
                 # callbacks (on the main thread) as results are ready.
                 for future in as_completed(results.keys()):
                     results[future].callback(future)
+
+                metrics.timing(
+                    "ingest_consumer.process_other_messages_batch_normalized",
+                    (time.monotonic() - other_messages_flush_start) / len(other_messages),
+                )
 
     def shutdown(self):
         if self.__process_event_executor is not None:
