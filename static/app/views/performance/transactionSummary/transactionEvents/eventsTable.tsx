@@ -305,7 +305,7 @@ class EventsTable extends React.Component<Props, State> {
           orgSlug={organization.slug}
           location={location}
           setError={setError}
-          referrer="api.performance.landing-table"
+          referrer="api.performance.transaction-events"
         >
           {({pageLinks, isLoading, tableData}) => {
             return (
