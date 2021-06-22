@@ -67,6 +67,16 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         except InvalidSearchQuery as e:
             raise ParseError(detail=str(e))
 
+    def get_team_ids(self, request, organization):
+        if not request.user:
+            return []
+
+        teams = get_teams(request, organization)
+        if not teams:
+            teams = Team.objects.get_for_user(organization, request.user)
+
+        return [team.id for team in teams]
+
     def get_snuba_params(self, request, organization, check_global_views=True):
         with sentry_sdk.start_span(op="discover.endpoint", description="filter_params"):
             if (
@@ -81,10 +91,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             params = self.get_filter_params(request, organization)
             params = self.quantize_date_params(request, params)
             params["user_id"] = request.user.id if request.user else None
-            teams = get_teams(request, organization)
-            if not teams:
-                teams = Team.objects.get_for_user(organization, request.user)
-            params["team_id"] = [team.id for team in teams]
+            params["team_id"] = self.get_team_ids(request, organization)
 
             if check_global_views:
                 has_global_views = features.has(

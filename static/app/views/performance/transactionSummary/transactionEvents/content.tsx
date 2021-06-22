@@ -29,6 +29,8 @@ import TransactionHeader, {Tab} from '../header';
 
 import {EventsFilterOption, getEventsFilterOptions} from './utils';
 
+import EventsTable from './eventsTable';
+
 type Props = {
   location: Location;
   eventView: EventView;
@@ -94,9 +96,9 @@ class EventsPageContent extends React.Component<Props, State> {
     }
 
     return (
-      <Alert type="error" icon={<IconFlag size="md" />}>
+      <StyledAlert type="error" icon={<IconFlag size="md" />}>
         {error}
-      </Alert>
+      </StyledAlert>
     );
   }
 
@@ -158,14 +160,13 @@ class EventsPageContent extends React.Component<Props, State> {
           <Layout.Main fullWidth>
             <Search {...this.props} handleEventsFilterOptionChange={this.handleEventsFilterOptionChange} currentEventsFilterOption={this.state.currentEventsFilterOption}/>
             <StyledTable>
-              <Table
+              <EventsTable
                 eventView={eventView}
-                projects={projects}
                 organization={organization}
                 location={location}
                 setError={this.setError}
-                summaryConditions={eventView.getQueryWithAdditionalConditions()}
                 columnTitles={transactionsListTitles}
+                transactionName={transactionName}
               />
             </StyledTable>
           </Layout.Main>
@@ -245,9 +246,15 @@ const SearchWrapper = styled('div')`
   margin-bottom: ${space(3)};
 `;
 
+const StyledAlert = styled(Alert)`
+  grid-column: 1/3;
+  margin: 0;
+`;
+
 const StyledSearchBar = styled(SearchBar)`
   flex-grow: 1;
 `;
+
 const StyledTable = styled('div')`
   flex-grow: 1;
 `;

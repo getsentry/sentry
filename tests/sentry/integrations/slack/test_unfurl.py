@@ -122,7 +122,12 @@ class UnfurlTest(TestCase):
             UnfurlableUrl(url=url, args=args),
         ]
 
-        with self.feature("organizations:chart-unfurls"):
+        with self.feature(
+            [
+                "organizations:discover-basic",
+                "organizations:chart-unfurls",
+            ]
+        ):
             unfurls = link_handlers[link_type].fn(self.request, self.integration, links)
 
         assert unfurls[url] == build_discover_attachment(
@@ -165,10 +170,11 @@ class UnfurlTest(TestCase):
         ]
 
         with self.feature(
-            {
-                "organizations:discover": True,
-                "organizations:chart-unfurls": True,
-            }
+            [
+                "organizations:discover",
+                "organizations:discover-basic",
+                "organizations:chart-unfurls",
+            ]
         ):
             unfurls = link_handlers[link_type].fn(self.request, self.integration, links)
 

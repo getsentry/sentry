@@ -8,7 +8,7 @@ import {
   SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'app/utils/discover/fields';
-import Table from 'app/views/performance/table';
+import EventsTable from 'app/views/performance/transactionSummary/transactionEvents/eventsTable';
 
 function initializeData({features: additionalFeatures = [], query = {}} = {}) {
   const features = ['discover-basic', 'performance-view', ...additionalFeatures];
@@ -38,9 +38,12 @@ describe('Performance GridEditable Table', function () {
   let transactionsListTitles;
   let fields;
   let organization;
+  let data;
+  let transactionName;
   const query =
     'transaction.duration:<15m event.type:transaction transaction:/api/0/organizations/{organization_slug}/eventsv2/';
   beforeEach(function () {
+    transactionName = 'transactionName';
     transactionsListTitles = [
       t('event id'),
       t('user'),
@@ -81,6 +84,36 @@ describe('Performance GridEditable Table', function () {
       url: `/organizations/org-slug/legacy-key-transactions-count/`,
       body: [],
     });
+    data = [
+      {
+        id: 'deadbeef',
+        'user.display': 'uhoh@example.com',
+        'transaction.duration': 400,
+        'project.id': 1,
+        timestamp: '2020-05-21T15:31:18+00:00',
+        trace: '1234',
+        'span_ops_breakdown.relative': '',
+        'spans.browser': 100,
+        'spans.db': 30,
+        'spans.http': 170,
+        'spans.resource': 100,
+        'spans.total.time': 400,
+      },
+      {
+        id: 'moredeadbeef',
+        'user.display': 'moreuhoh@example.com',
+        'transaction.duration': 600,
+        'project.id': 1,
+        timestamp: '2020-05-22T15:31:18+00:00',
+        trace: '4321',
+        'span_ops_breakdown.relative': '',
+        'spans.browser': 100,
+        'spans.db': 300,
+        'spans.http': 100,
+        'spans.resource': 100,
+        'spans.total.time': 600,
+      },
+    ];
     // Transaction list response
     MockApiClient.addMockResponse(
       {
@@ -98,24 +131,7 @@ describe('Performance GridEditable Table', function () {
             'project.id': 'integer',
             timestamp: 'date',
           },
-          data: [
-            {
-              id: 'deadbeef',
-              'user.display': 'uhoh@example.com',
-              'transaction.duration': 400,
-              'project.id': 1,
-              timestamp: '2020-05-21T15:31:18+00:00',
-              trace: '1234',
-            },
-            {
-              id: 'moredeadbeef',
-              'user.display': 'moreuhoh@example.com',
-              'transaction.duration': 600,
-              'project.id': 1,
-              timestamp: '2020-05-22T15:31:18+00:00',
-              trace: '4321',
-            },
-          ],
+          data,
         },
       },
       {
@@ -134,7 +150,7 @@ describe('Performance GridEditable Table', function () {
     jest.clearAllMocks();
   });
 
-  it('renders basic UI elements when feature flagged', async function () {
+  it('renders ops breakdown bar when querying for span_ops_breakdown.relative', async function () {
     const initialData = initializeData({features: ['performance-events-page']});
     const eventView = EventView.fromNewQueryWithLocation(
       {
@@ -149,14 +165,13 @@ describe('Performance GridEditable Table', function () {
       initialData.router.location
     );
     const wrapper = mountWithTheme(
-      <Table
+      <EventsTable
         eventView={eventView}
-        projects={[]}
         organization={organization}
         location={initialData.router.location}
         setError={this.setError}
-        summaryConditions={eventView.getQueryWithAdditionalConditions()}
         columnTitles={transactionsListTitles}
+        transactionName={transactionName}
       />,
       initialData.routerContext
     );
@@ -166,11 +181,26 @@ describe('Performance GridEditable Table', function () {
     expect(wrapper.find('GridHeadCell')).toHaveLength(6);
     expect(wrapper.find('GridHeadCellStatic')).toHaveLength(0);
     expect(wrapper.find('OperationSort')).toHaveLength(1);
+    expect(wrapper.find('RelativeOpsBreakdown')).toHaveLength(2);
   });
 
-  it('prepends key transactions column if present in the event view', async function () {
+  it('renders basic columns without ops breakdown when not querying for span_ops_breakdown.relative', async function () {
     const initialData = initializeData({features: ['performance-events-page']});
-    fields.push('key_transaction');
+    fields = [
+      'id',
+      'user.display',
+      'transaction.duration',
+      'trace',
+      'timestamp',
+      'spans.http',
+    ];
+    data.forEach(result => {
+      delete result['span_ops_breakdown.relative'];
+      delete result['spans.resource'];
+      delete result['spans.browser'];
+      delete result['spans.db'];
+      delete result['spans.total.time'];
+    });
     const eventView = EventView.fromNewQueryWithLocation(
       {
         id: undefined,
@@ -184,14 +214,13 @@ describe('Performance GridEditable Table', function () {
       initialData.router.location
     );
     const wrapper = mountWithTheme(
-      <Table
+      <EventsTable
         eventView={eventView}
-        projects={[]}
         organization={organization}
         location={initialData.router.location}
         setError={this.setError}
-        summaryConditions={eventView.getQueryWithAdditionalConditions()}
         columnTitles={transactionsListTitles}
+        transactionName={transactionName}
       />,
       initialData.routerContext
     );
@@ -199,42 +228,8 @@ describe('Performance GridEditable Table', function () {
     wrapper.update();
 
     expect(wrapper.find('GridHeadCell')).toHaveLength(6);
-    expect(wrapper.find('GridHeadCellStatic')).toHaveLength(1);
-    expect(wrapper.find('OperationSort')).toHaveLength(1);
-  });
-
-  it('prepends team key transactions column if present in the event view', async function () {
-    const initialData = initializeData({features: ['performance-events-page']});
-    fields.push('team_key_transaction');
-    const eventView = EventView.fromNewQueryWithLocation(
-      {
-        id: undefined,
-        version: 2,
-        name: 'transactionName',
-        fields,
-        query,
-        projects: [],
-        orderby: '-timestamp',
-      },
-      initialData.router.location
-    );
-    const wrapper = mountWithTheme(
-      <Table
-        eventView={eventView}
-        projects={[]}
-        organization={organization}
-        location={initialData.router.location}
-        setError={this.setError}
-        summaryConditions={eventView.getQueryWithAdditionalConditions()}
-        columnTitles={transactionsListTitles}
-      />,
-      initialData.routerContext
-    );
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('GridHeadCell')).toHaveLength(6);
-    expect(wrapper.find('GridHeadCellStatic')).toHaveLength(1);
-    expect(wrapper.find('OperationSort')).toHaveLength(1);
+    expect(wrapper.find('GridHeadCellStatic')).toHaveLength(0);
+    expect(wrapper.find('OperationSort')).toHaveLength(0);
+    expect(wrapper.find('RelativeOpsBreakdown')).toHaveLength(0);
   });
 });

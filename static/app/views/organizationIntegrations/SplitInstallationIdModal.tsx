@@ -17,7 +17,7 @@ type Props = {
  */
 export default class SplitInstallationIdModal extends Component<Props> {
   onCopy = async () =>
-    //This hack is needed because the normal copying methods with TextCopyInput do not work correctly
+    // This hack is needed because the normal copying methods with TextCopyInput do not work correctly
     await navigator.clipboard.writeText(this.props.installationId);
 
   handleContinue = () => {
@@ -31,7 +31,7 @@ export default class SplitInstallationIdModal extends Component<Props> {
 
   render() {
     const {installationId, closeModal} = this.props;
-    //no need to translate this temporary component
+    // no need to translate this temporary component
     return (
       <div>
         <ItemHolder>
