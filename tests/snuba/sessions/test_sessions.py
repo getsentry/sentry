@@ -506,11 +506,15 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
             }
         )
 
-        expected_formatted_lower_bound = format_timestamp(
-            datetime.utcfromtimestamp(self.session_started - 3600 * 2).replace(minute=0)
+        expected_formatted_lower_bound = (
+            datetime.utcfromtimestamp(self.session_started - 3600 * 2)
+            .replace(minute=0)
+            .isoformat()[:19]
+            + "Z"
         )
-        expected_formatted_upper_bound = format_timestamp(
-            datetime.utcfromtimestamp(self.session_started).replace(minute=0)
+
+        expected_formatted_upper_bound = (
+            datetime.utcfromtimestamp(self.session_started).replace(minute=0).isoformat()[:19] + "Z"
         )
 
         # Test for self.session_release
