@@ -173,12 +173,14 @@ function Grouping({api, groupId, location, organization}: Props) {
             {activeGroupingLevelDetails.map(
               ({hash, title, metadata, latestEvent, eventCount}) => {
                 // XXX(markus): Ugly hack to make NewIssue show the right things.
-                latestEvent.metadata = metadata || latestEvent.metadata;
-                latestEvent.title = title || latestEvent.title;
                 return (
                   <NewIssue
                     key={hash}
-                    sampleEvent={latestEvent}
+                    sampleEvent={{
+                      ...latestEvent,
+                      metadata: metadata || latestEvent.metadata,
+                      title: title || latestEvent.title,
+                    }}
                     eventCount={eventCount}
                     organization={organization}
                   />
