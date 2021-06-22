@@ -3,7 +3,6 @@ import * as ReactRouter from 'react-router';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptorObject} from 'history';
 
-import GuideAnchor from 'app/components/assistant/guideAnchor';
 import GridEditable, {COL_WIDTH_UNDEFINED, GridColumn} from 'app/components/gridEditable';
 import SortLink from 'app/components/gridEditable/sortLink';
 import Link from 'app/components/links/link';
@@ -259,13 +258,6 @@ class EventsTable extends React.Component<Props, State> {
         onClick={() => this.onSortClick(currentSortKind, currentSortField)}
       />
     );
-    if (field.field.startsWith('user_misery')) {
-      return (
-        <GuideAnchor target="user_misery" position="top">
-          {sortLink}
-        </GuideAnchor>
-      );
-    }
     return sortLink;
   }
 
