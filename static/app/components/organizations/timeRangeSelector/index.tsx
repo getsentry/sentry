@@ -78,6 +78,15 @@ const defaultProps = {
    * Show relative date selectors
    */
   showRelative: true,
+  /**
+   * When the default period is selected, it is visually dimmed and
+   * makes the selector unclearable.
+   */
+  defaultPeriod: DEFAULT_STATS_PERIOD,
+  /**
+   * Callback when value changes
+   */
+  onChange: (() => {}) as (data: ChangeData) => void,
 };
 
 type Props = ReactRouter.WithRouterProps & {
@@ -90,12 +99,6 @@ type Props = ReactRouter.WithRouterProps & {
    * End date value for absolute date selector
    */
   end: DateString;
-
-  /**
-   * When the default period is selected, it is visually dimmed and
-   * makes the selector unclearable.
-   */
-  defaultPeriod: string;
 
   /**
    * Relative date value
@@ -116,11 +119,6 @@ type Props = ReactRouter.WithRouterProps & {
    * Replace the default calendar icon for label
    */
   label?: React.ReactNode;
-
-  /**
-   * Callback when value changes
-   */
-  onChange: (data: ChangeData) => void;
 
   /**
    * Callback when "Update" button is clicked

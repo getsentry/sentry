@@ -3,17 +3,12 @@ import styled from '@emotion/styled';
 
 import TimeRangeSelector from 'app/components/organizations/timeRangeSelector';
 import {Panel} from 'app/components/panels';
-import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'app/constants';
+import {DEFAULT_RELATIVE_PERIODS} from 'app/constants';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 
-type Props = Omit<
-  ComponentProps<typeof TimeRangeSelector>,
-  'defaultPeriod' | 'onChange'
-> & {
+type Props = ComponentProps<typeof TimeRangeSelector> & {
   className?: string;
-  defaultPeriod?: ComponentProps<typeof TimeRangeSelector>['defaultPeriod'];
-  onChange?: ComponentProps<typeof TimeRangeSelector>['onChange'];
 };
 
 function PageTimeRangeSelector({className, ...props}: Props) {
@@ -24,8 +19,6 @@ function PageTimeRangeSelector({className, ...props}: Props) {
       <TimeRangeSelector
         label={<DropdownLabel>{t('Date Range:')}</DropdownLabel>}
         onToggleSelector={isOpen => setIsCalendarOpen(isOpen)}
-        defaultPeriod={DEFAULT_STATS_PERIOD}
-        onChange={() => {}}
         relativeOptions={DEFAULT_RELATIVE_PERIODS}
         {...props}
       />
