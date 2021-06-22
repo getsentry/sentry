@@ -243,6 +243,7 @@ const SidebarItemIcon = styled('span')`
   height: 22px;
   font-size: 20px;
   align-items: center;
+  flex-shrink: 0;
 
   svg {
     display: block;
