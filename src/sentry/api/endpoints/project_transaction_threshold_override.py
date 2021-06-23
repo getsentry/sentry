@@ -4,8 +4,9 @@ from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
 from sentry import features
-from sentry.api.bases.organization import OrganizationPermission
+from sentry.api.bases import ProjectTransactionThresholdOverridePermission
 from sentry.api.bases.organization_events import OrganizationEventsV2EndpointBase
+from sentry.api.endpoints.project_transaction_threshold import DEFAULT_THRESHOLD
 from sentry.api.serializers import serialize
 from sentry.models.transaction_threshold import (
     TRANSACTION_METRICS,
@@ -13,20 +14,7 @@ from sentry.models.transaction_threshold import (
     TransactionMetric,
 )
 
-DEFAULT_THRESHOLD = {
-    "id": "",
-    "threshold": "300",
-    "metric": "duration",
-}
-
-
-class ProjectTransactionThreshold(OrganizationPermission):
-    scope_map = {
-        "GET": ["org:read"],
-        "POST": ["org:read"],
-        "PUT": ["org:read"],
-        "DELETE": ["org:read"],
-    }
+MAX_TRANSACTION_THRESHOLDS_PER_PROJECT = 100
 
 
 class ProjectTransactionThresholdOverrideSerializer(serializers.Serializer):
@@ -51,18 +39,23 @@ class ProjectTransactionThresholdOverrideSerializer(serializers.Serializer):
         data = super().validate(data)
         organization = self.context.get("organization")
         project = self.context.get("project")
-        count = ProjectTransactionThresholdOverride.objects.filter(
-            project=project, organization=organization
-        ).count()
-        if count > 100:
+        count = (
+            ProjectTransactionThresholdOverride.objects.filter(
+                project=project, organization=organization
+            )
+            .exclude(transaction=data["transaction"])
+            .count()
+        )
+
+        if count >= MAX_TRANSACTION_THRESHOLDS_PER_PROJECT:
             raise serializers.ValidationError(
-                "At most 100 configured transaction thresholds per project."
+                f"At most {MAX_TRANSACTION_THRESHOLDS_PER_PROJECT} configured transaction thresholds per project."
             )
         return data
 
 
 class ProjectTransactionThresholdOverrideEndpoint(OrganizationEventsV2EndpointBase):
-    permission_classes = (ProjectTransactionThreshold,)
+    permission_classes = (ProjectTransactionThresholdOverridePermission,)
 
     def has_feature(self, organization, request):
         return features.has(

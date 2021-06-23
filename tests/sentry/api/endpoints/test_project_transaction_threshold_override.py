@@ -6,6 +6,7 @@ from sentry.models.transaction_threshold import (
 )
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.utils.compat import mock
 from sentry.utils.samples import load_data
 
 
@@ -17,9 +18,9 @@ class ProjectTransactionThresholdOverrideTest(APITestCase):
 
         self.login_as(user=self.user)
 
-        self.org = self.create_organization(owner=self.user, name="Captain Planet")
-        self.team = self.create_team(organization=self.org, name="Planeteers", members=[self.user])
-        self.project = self.create_project(organization=self.org, teams=[self.team], name="Earth")
+        self.org = self.create_organization(owner=self.user)
+        self.team = self.create_team(organization=self.org, members=[self.user])
+        self.project = self.create_project(organization=self.org, teams=[self.team])
 
         self.url = reverse(
             "sentry-api-0-organization-project-transaction-threshold-override",
@@ -78,6 +79,7 @@ class ProjectTransactionThresholdOverrideTest(APITestCase):
             organization=self.project.organization,
             threshold=300,
             metric=TransactionMetric.DURATION.value,
+            transaction=self.data["transaction"],
         )
 
         response = self.client.get(
@@ -119,11 +121,43 @@ class ProjectTransactionThresholdOverrideTest(APITestCase):
             organization=self.org,
         ).exists()
 
+    def test_creating_too_many_project_thresholds_raises_error(self):
+        ProjectTransactionThresholdOverride.objects.create(
+            project=self.project,
+            organization=self.project.organization,
+            threshold=300,
+            metric=TransactionMetric.DURATION.value,
+            transaction="fire",
+        )
+
+        MAX_TRANSACTION_THRESHOLDS_PER_PROJECT = 1
+        with mock.patch(
+            "sentry.api.endpoints.project_transaction_threshold_override.MAX_TRANSACTION_THRESHOLDS_PER_PROJECT",
+            MAX_TRANSACTION_THRESHOLDS_PER_PROJECT,
+        ):
+            with self.feature(self.feature_name):
+                response = self.client.post(
+                    self.url,
+                    data={
+                        "transaction": self.data["transaction"],
+                        "project": [self.project.id],
+                        "metric": "duration",
+                        "threshold": "600",
+                    },
+                )
+
+            assert response.status_code == 400
+            assert response.data == {
+                "non_field_errors": ["At most 1 configured transaction thresholds per project."]
+            }
+
     def test_update_project_threshold(self):
         with self.feature(self.feature_name):
             response = self.client.post(
                 self.url,
                 data={
+                    "transaction": self.data["transaction"],
+                    "project": [self.project.id],
                     "metric": "duration",
                     "threshold": "300",
                 },
@@ -137,13 +171,15 @@ class ProjectTransactionThresholdOverrideTest(APITestCase):
             response = self.client.post(
                 self.url,
                 data={
+                    "transaction": self.data["transaction"],
+                    "project": [self.project.id],
                     "metric": "lcp",
-                    "threshold": "400",
+                    "threshold": "600",
                 },
             )
 
         assert response.status_code == 200, response.content
-        assert response.data["threshold"] == "400"
+        assert response.data["threshold"] == "600"
         assert response.data["metric"] == "lcp"
 
     def test_clear_project_threshold(self):
@@ -161,7 +197,13 @@ class ProjectTransactionThresholdOverrideTest(APITestCase):
         ).exists()
 
         with self.feature(self.feature_name):
-            response = self.client.delete(self.url)
+            response = self.client.delete(
+                self.url,
+                data={
+                    "project": [self.project.id],
+                    "transaction": self.data["transaction"],
+                },
+            )
 
         assert response.status_code == 204
         assert not ProjectTransactionThresholdOverride.objects.filter(
