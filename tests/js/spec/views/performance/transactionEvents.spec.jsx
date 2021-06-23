@@ -47,11 +47,6 @@ describe('Performance > TransactionSummary', function () {
       url: '/organizations/org-slug/sdk-updates/',
       body: [],
     });
-    MockApiClient.addMockResponse({
-      method: 'GET',
-      url: `/organizations/org-slug/legacy-key-transactions-count/`,
-      body: [],
-    });
     // Transaction list response
     MockApiClient.addMockResponse(
       {

@@ -106,7 +106,7 @@ function EventEntry({entry, projectSlug, event, organization, groupId}: Props) {
       );
     default:
       // this should not happen
-      /*eslint no-console:0*/
+      /* eslint no-console:0 */
       window.console &&
         console.error &&
         console.error('Unregistered interface: ' + (entry as any).type);

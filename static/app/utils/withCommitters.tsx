@@ -1,6 +1,4 @@
 import * as React from 'react';
-import createReactClass from 'create-react-class';
-import Reflux from 'reflux';
 
 import {getCommitters} from 'app/actionCreators/committers';
 import {Client} from 'app/api';
@@ -22,41 +20,50 @@ type DependentProps = {
 // HOC (suggestedOwners, eventCause) do not have loading/error states. However,
 // the store maintains those states if it is needed in the future.
 type InjectedProps = {
-  committers: Committer[];
+  committers?: Committer[];
 };
 
 const initialState: InjectedProps = {
   committers: [],
 };
 
-const withCommitters = <P extends DependentProps>(
+function withCommitters<P extends DependentProps>(
   WrappedComponent: React.ComponentType<P>
-) =>
-  createReactClass<
+) {
+  class WithCommitters extends React.Component<
     Omit<P, keyof InjectedProps> & Partial<InjectedProps> & DependentProps,
     InjectedProps
-  >({
-    displayName: `withCommitters(${getDisplayName(WrappedComponent)})`,
+  > {
+    static displayName = `withCommitters(${getDisplayName(WrappedComponent)})`;
+    /*
     mixins: [Reflux.listenTo(CommitterStore, 'onStoreUpdate') as any],
+     */
 
-    getInitialState() {
-      const {organization, project, event} = this.props as P & DependentProps;
+    constructor(props: P, context: any) {
+      super(props, context);
+
+      const {organization, project, event} = this.props;
       const repoData = CommitterStore.get(organization.slug, project.slug, event.id);
 
-      return {...initialState, ...repoData};
-    },
+      this.state = {...initialState, ...repoData} as InjectedProps;
+    }
 
     componentDidMount() {
-      const {group} = this.props as P & DependentProps;
+      const {group} = this.props;
 
       // No committers if group doesn't have any releases
       if (!!group?.firstRelease) {
         this.fetchCommitters();
       }
-    },
+    }
+
+    componentWillUnmount() {
+      this.unsubscribe();
+    }
+    unsubscribe = CommitterStore.listen(() => this.onStoreUpdate(), undefined);
 
     fetchCommitters() {
-      const {api, organization, project, event} = this.props as P & DependentProps;
+      const {api, organization, project, event} = this.props;
       const repoData = CommitterStore.get(organization.slug, project.slug, event.id);
 
       if (
@@ -69,16 +76,16 @@ const withCommitters = <P extends DependentProps>(
           eventId: event.id,
         });
       }
-    },
+    }
 
     onStoreUpdate() {
-      const {organization, project, event} = this.props as P & DependentProps;
+      const {organization, project, event} = this.props;
       const repoData = CommitterStore.get(organization.slug, project.slug, event.id);
       this.setState({committers: repoData.committers});
-    },
+    }
 
     render() {
-      const {committers = []} = this.state as InjectedProps;
+      const {committers = []} = this.state;
 
       // XXX: We do not pass loading/error states because the components using
       // this HOC (suggestedOwners, eventCause) do not have loading/error states
@@ -88,7 +95,9 @@ const withCommitters = <P extends DependentProps>(
           committers={committers}
         />
       );
-    },
-  });
+    }
+  }
+  return WithCommitters;
+}
 
 export default withCommitters;

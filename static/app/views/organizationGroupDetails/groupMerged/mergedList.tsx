@@ -17,7 +17,6 @@ type Props = {
    * From GroupMergedView -> handleUnmerge
    */
   onUnmerge: () => void;
-  onSplit: () => void;
   /*
    * From GroupingActions.toggleCollapseFingerprints
    */
@@ -34,7 +33,6 @@ function MergedList({
   pageLinks,
   onToggleCollapse,
   onUnmerge,
-  onSplit,
   organization,
   groupId,
   project,
@@ -65,7 +63,6 @@ function MergedList({
         <MergedToolbar
           onToggleCollapse={onToggleCollapse}
           onUnmerge={onUnmerge}
-          onSplit={onSplit}
           orgId={organization.slug}
           project={project}
           groupId={groupId}

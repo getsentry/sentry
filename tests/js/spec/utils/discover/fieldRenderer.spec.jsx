@@ -266,6 +266,9 @@ describe('getFieldRenderer', function () {
   });
 
   describe('ops breakdown', () => {
+    const getWidth = (wrapper, index) =>
+      wrapper.children().children().at(index).getDOMNode().style.width;
+
     it('can render operation breakdowns', async function () {
       const renderer = getFieldRenderer(SPAN_OP_RELATIVE_BREAKDOWN_FIELD, {
         [SPAN_OP_RELATIVE_BREAKDOWN_FIELD]: 'string',
@@ -278,16 +281,10 @@ describe('getFieldRenderer', function () {
 
       const value = wrapper.find('RelativeOpsBreakdown');
       expect(value).toHaveLength(1);
-
-      const expectWidthAt = (width, index) => {
-        expect(value.children().children().at(index).getDOMNode().style.width).toEqual(
-          width
-        );
-      };
-      expectWidthAt('20.000%', 0);
-      expectWidthAt('40.000%', 1);
-      expectWidthAt('13.333%', 2);
-      expectWidthAt('26.667%', 3);
+      expect(getWidth(value, 0)).toEqual('20.000%');
+      expect(getWidth(value, 1)).toEqual('40.000%');
+      expect(getWidth(value, 2)).toEqual('13.333%');
+      expect(getWidth(value, 3)).toEqual('26.667%');
     });
 
     it('renders operation breakdowns in sorted order when a sort field is provided', async function () {
@@ -306,16 +303,10 @@ describe('getFieldRenderer', function () {
 
       const value = wrapper.find('RelativeOpsBreakdown');
       expect(value).toHaveLength(1);
-
-      const expectWidthAt = (width, index) => {
-        expect(value.children().children().at(index).getDOMNode().style.width).toEqual(
-          width
-        );
-      };
-      expectWidthAt('20.000%', 1);
-      expectWidthAt('40.000%', 0);
-      expectWidthAt('13.333%', 2);
-      expectWidthAt('26.667%', 3);
+      expect(getWidth(value, 0)).toEqual('40.000%');
+      expect(getWidth(value, 1)).toEqual('20.000%');
+      expect(getWidth(value, 2)).toEqual('13.333%');
+      expect(getWidth(value, 3)).toEqual('26.667%');
     });
   });
 });
