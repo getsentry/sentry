@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 
 from django.db.models import Q, Subquery
 from django.utils import timezone
+from sentry_sdk import capture_exception
 
 # from snuba_sdk import Condition, Column, Direction, Entity, Granularity, Op, OrderBy, Query
 from snuba_sdk.conditions import Condition, Op
@@ -24,7 +25,7 @@ logger = logging.getLogger("tasks.releasemonitor")
 
 @instrumented_task(
     name="sentry.tasks.monitor_release_adoption",
-    queue="releasemonitor.monitor_release_adoption",
+    queue="releasemonitor",
     default_retry_delay=5,
     max_retries=5,
 )
@@ -79,7 +80,7 @@ def monitor_release_adoption(**kwargs):
 
 @instrumented_task(
     name="sentry.tasks.process_projects_with_sessions",
-    queue="releasemonitor.process_projects_with_sessions",
+    queue="releasemonitor",
     default_retry_delay=5,
     max_retries=5,
 )
@@ -153,16 +154,9 @@ def process_projects_with_sessions(org_id, project_ids):
                             adopted_ids.append(rpe.id)
                             if rpe.adopted is None:
                                 rpe.update(adopted=timezone.now())
-                    except ReleaseProjectEnvironment.DoesNotExist:
-                        logger.info(
-                            "process_projects_with_sessions.skipped_update",
-                            extra={
-                                "project_id": row["project_id"],
-                                "environment": row["environment"],
-                                "release": row["release"],
-                                "reason": "ReleaseProjectEnvironment.DoesNotExist",
-                            },
-                        )
+                    except ReleaseProjectEnvironment.DoesNotExist as exc:
+                        metrics.incr("sentry.tasks.process_projects_with_sessions.skipped_update")
+                        capture_exception(exc)
 
             if not more_results:
                 break

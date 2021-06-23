@@ -552,6 +552,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.integrations",
     "sentry.tasks.members",
     "sentry.tasks.merge",
+    "sentry.tasks.monitor_release_adoption",
     "sentry.tasks.options",
     "sentry.tasks.ping",
     "sentry.tasks.post_process",
@@ -599,12 +600,8 @@ CELERY_QUEUES = [
         "group_owners.process_suspect_commits", routing_key="group_owners.process_suspect_commits"
     ),
     Queue(
-        "releasemonitor.monitor_release_adoption",
-        routing_key="releasemonitor.monitor_release_adoption",
-    ),
-    Queue(
-        "releasemonitor.process_projects_with_sessions",
-        routing_key="releasemonitor.process_projects_with_sessions",
+        "releasemonitor",
+        routing_key="releasemonitor",
     ),
     Queue("incidents", routing_key="incidents"),
     Queue("incident_snapshots", routing_key="incident_snapshots"),
@@ -736,8 +733,8 @@ CELERYBEAT_SCHEDULE = {
     },
     "monitor-release-adoption": {
         "task": "sentry.tasks.monitor_release_adoption",
-        "schedule": timedelta(hours=1),
-        "options": {"expires": 3600, "queue": "releasemonitor.monitor_release_adoption"},
+        "schedule": crontab(minute=0),
+        "options": {"expires": 3600, "queue": "releasemonitor"},
     },
     "fetch-release-registry-data": {
         "task": "sentry.tasks.release_registry.fetch_release_registry_data",
