@@ -13,6 +13,7 @@ import AsyncView from 'app/views/asyncView';
 import Form from 'app/views/settings/components/forms/form';
 import JsonForm from 'app/views/settings/components/forms/jsonForm';
 import SettingsPageHeader from 'app/views/settings/components/settingsPageHeader';
+import PermissionAlert from 'app/views/settings/project/permissionAlert';
 
 import {Field} from '../components/forms/type';
 
@@ -125,6 +126,7 @@ class ProjectPerformance extends AsyncView<Props, State> {
     return (
       <React.Fragment>
         <SettingsPageHeader title={t('Performance')} />
+        <PermissionAlert />
         <Form
           saveOnBlur
           allowUndo
