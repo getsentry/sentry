@@ -1459,6 +1459,9 @@ class ParseSemverSearchTest(TestCase):
             expected_releases,
         ]
 
+    def test_empty(self):
+        self.run_test(">", "1.2.3", "IN", [])
+
     def test(self):
         release = self.create_release(version="test@1.2.3")
         release_2 = self.create_release(version="test@1.2.4")
