@@ -1,5 +1,5 @@
 import logging
-from typing import Mapping
+from typing import Mapping, Sequence, Tuple
 
 from django.http import Http404, HttpResponse
 from rest_framework.request import Request
@@ -16,11 +16,12 @@ LINK_TEAM_MESSAGE = "Link your Sentry team to this Slack channel! <{associate_ur
 LINK_USER_MESSAGE = "You must first link your identity to Sentry by typing /sentry link. Be aware that you must be an admin or higher in your Sentry organization to link your team."
 
 
-def get_command_and_args(payload: Mapping[str, str]) -> str:
-    text = payload.get("text", "").split(" ")
-    command = text[0]
-    args = " ".join(text[1:]) if len(text) > 1 else None
-    return command, args
+def get_command_and_args(payload: Mapping[str, str]) -> Tuple[str, Sequence[str]]:
+    text = payload.get("text", "").lower().split()
+    if not text:
+        return "", []
+
+    return text[0], text[1:]
 
 
 class SlackCommandsEndpoint(Endpoint):
@@ -53,7 +54,7 @@ class SlackCommandsEndpoint(Endpoint):
         if command in ["help", ""]:
             return self.respond(SlackHelpMessageBuilder().build())
         if command == "link":
-            if args == "team":
+            if args and args[0] == "team":
                 integration = slack_request.integration
                 user_id = payload.get("user_id")
                 try:
