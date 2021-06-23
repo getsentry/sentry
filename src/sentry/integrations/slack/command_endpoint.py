@@ -16,8 +16,11 @@ LINK_TEAM_MESSAGE = "Link your Sentry team to this Slack channel! <{associate_ur
 LINK_USER_MESSAGE = "You must first link your identity to Sentry by typing /sentry link. Be aware that you must be an admin or higher in your Sentry organization to link your team."
 
 
-def get_command(payload: Mapping[str, str]) -> str:
-    return payload.get("text", "").lower()
+def get_command_and_args(payload: Mapping[str, str]) -> str:
+    text = payload.get("text", "").split(" ")
+    command = text[0]
+    args = " ".join(text[1:]) if len(text) > 1 else None
+    return command, args
 
 
 class SlackCommandsEndpoint(Endpoint):
@@ -45,33 +48,36 @@ class SlackCommandsEndpoint(Endpoint):
             return self.respond(status=e.status)
 
         payload = slack_request.data
-        command = get_command(payload)
+        command, args = get_command_and_args(payload)
         # TODO(mgaeta): Add more commands.
         if command in ["help", ""]:
             return self.respond(SlackHelpMessageBuilder().build())
-        if command == "link team":
-            integration = slack_request.integration
-            user_id = payload.get("user_id")
-            try:
-                idp = IdentityProvider.objects.get(type="slack", external_id=slack_request.team_id)
-            except IdentityProvider.DoesNotExist:
-                logger.error(
-                    "slack.action.invalid-team-id", extra={"slack_team": slack_request.team_id}
-                )
-                raise Http404
+        if command == "link":
+            if args == "team":
+                integration = slack_request.integration
+                user_id = payload.get("user_id")
+                try:
+                    idp = IdentityProvider.objects.get(
+                        type="slack", external_id=slack_request.team_id
+                    )
+                except IdentityProvider.DoesNotExist:
+                    logger.error(
+                        "slack.action.invalid-team-id", extra={"slack_team": slack_request.team_id}
+                    )
+                    raise Http404
 
-            if not Identity.objects.filter(idp=idp, external_id=user_id).exists():
-                return self.send_ephemeral_notification(LINK_USER_MESSAGE)
-            channel_id = payload.get("channel_id", "")
-            channel_name = payload.get("channel_name", "")
-            user_id = payload.get("user_id", "")
-            response_url = payload.get("response_url")
-            associate_url = build_linking_url(
-                integration, user_id, channel_id, channel_name, response_url
-            )
-            return self.send_ephemeral_notification(
-                LINK_TEAM_MESSAGE.format(associate_url=associate_url)
-            )
+                if not Identity.objects.filter(idp=idp, external_id=user_id).exists():
+                    return self.send_ephemeral_notification(LINK_USER_MESSAGE)
+                channel_id = payload.get("channel_id", "")
+                channel_name = payload.get("channel_name", "")
+                user_id = payload.get("user_id", "")
+                response_url = payload.get("response_url")
+                associate_url = build_linking_url(
+                    integration, user_id, channel_id, channel_name, response_url
+                )
+                return self.send_ephemeral_notification(
+                    LINK_TEAM_MESSAGE.format(associate_url=associate_url)
+                )
 
         # If we cannot interpret the command, print help text.
         return self.respond(SlackHelpMessageBuilder(command).build())
