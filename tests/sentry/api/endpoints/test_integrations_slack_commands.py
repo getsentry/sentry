@@ -287,3 +287,23 @@ class SlackCommandsLinkTeamTest(SlackCommandsTest):
         assert (
             f"The {self.team.slug} team has already been linked to a Slack channel." in data["text"]
         )
+
+    def test_error_page(self):
+        """Test that we successfully render an error page when bad form data is sent."""
+        assert "Link your Sentry team to this Slack channel!" in self.data["text"]
+        linking_url = build_linking_url(
+            self.integration,
+            "UXXXXXXX1",
+            "CXXXXXXX9",
+            "general",
+            "http://example.slack.com/response_url",
+        )
+
+        resp = self.client.get(linking_url)
+        assert resp.status_code == 200
+        self.assertTemplateUsed(resp, "sentry/slack-link-team.html")
+
+        data = urlencode({"team": ["some", "garbage"]})
+        resp = self.client.post(linking_url, data, content_type="application/x-www-form-urlencoded")
+        assert resp.status_code == 200
+        self.assertTemplateUsed(resp, "sentry/slack-link-team-error.html")

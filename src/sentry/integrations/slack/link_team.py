@@ -1,8 +1,6 @@
 from django import forms
-from django.http import Http404
 from django.urls import reverse
 from django.views.decorators.cache import never_cache
-from rest_framework.response import Response
 
 from sentry.models import (
     ExternalActor,
@@ -51,21 +49,32 @@ class SelectTeamForm(forms.Form):
 
 
 class SlackLinkTeamView(BaseView):
-    def get_identity(self, integration, slack_id):
+    def get_identity(self, request, integration, slack_id):
         try:
             idp = IdentityProvider.objects.get(type="slack", external_id=integration.external_id)
         except IdentityProvider.DoesNotExist:
             logger.error(
                 "slack.action.invalid-team-id", extra={"slack_id": integration.external_id}
             )
-            return self.respond(status=403)
+            return self.render_error_page(request, body_text="HTTP 403: Invalid team ID")
 
         try:
             identity = Identity.objects.select_related("user").get(idp=idp, external_id=slack_id)
         except Identity.DoesNotExist:
-            # I don't think this could be possible but just in case
-            return self.respond(status=403)
+            logger.error(
+                "slack.action.missing-identity", extra={"slack_id": integration.external_id}
+            )
+            return self.render_error_page(
+                request, body_text="HTTP 403: User identity does not exist"
+            )
         return identity
+
+    def render_error_page(self, request, body_text):
+        return render_to_response(
+            "sentry/slack-link-team-error.html",
+            request=request,
+            context={"body_text": body_text},
+        )
 
     def send_slack_message(self, request, client, token, text, channel_id, integration):
         payload = {
@@ -103,11 +112,11 @@ class SlackLinkTeamView(BaseView):
         channel_id = params["channel_id"]
         form = SelectTeamForm(teams, request.POST or None)
         if request.method not in ["POST", "GET"]:
-            return Response(status=405)
+            return self.render_error_page(request, body_text="HTTP 405: Method not allowed")
 
         if request.method == "POST":
             if not form.is_valid():
-                return Response(status=400)
+                return self.render_error_page(request, body_text="HTTP 400: Bad request")
             team_id = form.cleaned_data["team"]
 
         if request.method == "GET":
@@ -123,7 +132,7 @@ class SlackLinkTeamView(BaseView):
 
         team = Team.objects.get(id=team_id, organization=organization)
         if not team:
-            raise Http404
+            return self.render_error_page(body_text="HTTP 404: Team does not exist")
 
         INSUFFICIENT_ROLE_MESSAGE = {
             "heading": "Insufficient role",
@@ -137,7 +146,7 @@ class SlackLinkTeamView(BaseView):
             "heading": "Team linked",
             "body": f"The {team.slug} team will now receive issue alert notifications in the {channel_name} channel.",
         }
-        identity = self.get_identity(integration, params["slack_id"])
+        identity = self.get_identity(request, integration, params["slack_id"])
         org_member = OrganizationMember.objects.get(user=identity.user, organization=organization)
         client = SlackClient()
         token = (
