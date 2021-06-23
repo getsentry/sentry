@@ -362,6 +362,9 @@ let appConfig = {
           new ForkTsCheckerWebpackPlugin({
             typescript: {
               configFile: path.resolve(__dirname, './config/tsconfig.build.json'),
+              configOverwrite: {
+                compilerOptions: {incremental: true},
+              },
             },
           }),
         ]
