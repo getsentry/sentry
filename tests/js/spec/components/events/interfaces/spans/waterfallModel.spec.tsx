@@ -2,6 +2,7 @@ import {ActiveFilter, noFilter} from 'app/components/events/interfaces/spans/fil
 import {EnhancedProcessedSpanType} from 'app/components/events/interfaces/spans/types';
 import WaterfallModel from 'app/components/events/interfaces/spans/waterfallModel';
 import {EntryType, EventTransaction} from 'app/types/event';
+import {assert} from 'app/types/utils';
 
 describe('WaterfallModel', () => {
   const event = {
@@ -111,6 +112,8 @@ describe('WaterfallModel', () => {
       treeDepth: 0,
       isLastSibling: true,
       continuingTreeDepths: [],
+      showEmbeddedChildren: false,
+      toggleEmbeddedChildren: expect.any(Function),
     },
     {
       type: 'span',
@@ -130,6 +133,8 @@ describe('WaterfallModel', () => {
       treeDepth: 1,
       isLastSibling: false,
       continuingTreeDepths: [],
+      showEmbeddedChildren: false,
+      toggleEmbeddedChildren: expect.any(Function),
     },
     {
       type: 'gap',
@@ -144,6 +149,8 @@ describe('WaterfallModel', () => {
       treeDepth: 1,
       isLastSibling: false,
       continuingTreeDepths: [],
+      showEmbeddedChildren: false,
+      toggleEmbeddedChildren: undefined,
     },
     {
       type: 'span',
@@ -163,6 +170,8 @@ describe('WaterfallModel', () => {
       treeDepth: 1,
       isLastSibling: false,
       continuingTreeDepths: [],
+      showEmbeddedChildren: false,
+      toggleEmbeddedChildren: expect.any(Function),
     },
     {
       type: 'span',
@@ -184,6 +193,8 @@ describe('WaterfallModel', () => {
       treeDepth: 2,
       isLastSibling: true,
       continuingTreeDepths: [1],
+      showEmbeddedChildren: false,
+      toggleEmbeddedChildren: expect.any(Function),
     },
     {
       type: 'gap',
@@ -198,6 +209,8 @@ describe('WaterfallModel', () => {
       treeDepth: 1,
       isLastSibling: false,
       continuingTreeDepths: [],
+      showEmbeddedChildren: false,
+      toggleEmbeddedChildren: undefined,
     },
     {
       type: 'span',
@@ -219,6 +232,8 @@ describe('WaterfallModel', () => {
       treeDepth: 1,
       isLastSibling: true,
       continuingTreeDepths: [],
+      showEmbeddedChildren: false,
+      toggleEmbeddedChildren: expect.any(Function),
     },
   ];
 
@@ -353,11 +368,13 @@ describe('WaterfallModel', () => {
 
     const expected = [...fullWaterfall];
 
+    assert(fullWaterfall[1].type !== 'loading_embedded_transactions');
     expected[1] = {
       type: 'out_of_view',
       span: fullWaterfall[1].span,
     } as EnhancedProcessedSpanType;
 
+    assert(fullWaterfall[4].type !== 'loading_embedded_transactions');
     expected[4] = {
       type: 'out_of_view',
       span: fullWaterfall[4].span,
@@ -372,6 +389,8 @@ describe('WaterfallModel', () => {
       viewEnd: 0.65,
     });
 
+    assert(fullWaterfall[0].type !== 'loading_embedded_transactions');
+    assert(fullWaterfall[6].type !== 'loading_embedded_transactions');
     expect(spans).toEqual([
       {
         type: 'filtered_out',

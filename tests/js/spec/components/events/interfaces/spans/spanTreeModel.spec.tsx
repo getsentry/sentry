@@ -1,8 +1,11 @@
+import {Client} from 'app/api';
 import SpanTreeModel from 'app/components/events/interfaces/spans/spanTreeModel';
 import {generateRootSpan, parseTrace} from 'app/components/events/interfaces/spans/utils';
 import {EntryType, EventTransaction} from 'app/types/event';
 
 describe('SpanTreeModel', () => {
+  const api: Client = new Client();
+
   const event = {
     id: '2b658a829a21496b87fd1f14a61abf65',
     eventID: '2b658a829a21496b87fd1f14a61abf65',
@@ -82,7 +85,7 @@ describe('SpanTreeModel', () => {
     const parsedTrace = parseTrace(event);
     const rootSpan = generateRootSpan(parsedTrace);
 
-    const spanTreeModel = new SpanTreeModel(rootSpan, parsedTrace.childSpans);
+    const spanTreeModel = new SpanTreeModel(rootSpan, parsedTrace.childSpans, api);
 
     expect(spanTreeModel.children).toHaveLength(2);
   });
@@ -120,7 +123,7 @@ describe('SpanTreeModel', () => {
     const parsedTrace = parseTrace(event2);
     const rootSpan = generateRootSpan(parsedTrace);
 
-    const spanTreeModel = new SpanTreeModel(rootSpan, parsedTrace.childSpans);
+    const spanTreeModel = new SpanTreeModel(rootSpan, parsedTrace.childSpans, api);
     expect(spanTreeModel.children).toHaveLength(1);
   });
 
@@ -128,7 +131,7 @@ describe('SpanTreeModel', () => {
     const parsedTrace = parseTrace(event);
     const rootSpan = generateRootSpan(parsedTrace);
 
-    const spanTreeModel = new SpanTreeModel(rootSpan, parsedTrace.childSpans);
+    const spanTreeModel = new SpanTreeModel(rootSpan, parsedTrace.childSpans, api);
 
     expect(Object.fromEntries(spanTreeModel.operationNameCounts)).toMatchObject({
       http: 2,
