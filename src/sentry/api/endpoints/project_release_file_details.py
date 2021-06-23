@@ -2,7 +2,7 @@ import posixpath
 from typing import Optional
 from zipfile import ZipFile
 
-from django.http import StreamingHttpResponse
+from django.http.response import FileResponse
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
@@ -50,8 +50,8 @@ class ReleaseFileDetailsMixin:
     def download(releasefile):
         file = releasefile.file
         fp = file.getfile()
-        response = StreamingHttpResponse(
-            iter(lambda: fp.read(4096), b""),
+        response = FileResponse(
+            fp,
             content_type=file.headers.get("content-type", "application/octet-stream"),
         )
         response["Content-Length"] = file.size
@@ -70,8 +70,8 @@ class ReleaseFileDetailsMixin:
         fp = archive.open(entry["filename"])
         headers = entry.get("headers", {})
 
-        response = StreamingHttpResponse(
-            iter(lambda: fp.read(4096), b""),
+        response = FileResponse(
+            fp,
             content_type=headers.get("content-type", "application/octet-stream"),
         )
         response["Content-Length"] = entry["size"]
@@ -79,7 +79,6 @@ class ReleaseFileDetailsMixin:
             " ".join(entry["filename"].split())
         )
 
-        # TODO: close file
         return response
 
     @staticmethod
