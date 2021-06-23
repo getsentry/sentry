@@ -89,21 +89,28 @@ def _generate_culprit(event):
     return generate_culprit(data)
 
 
+def group_metadata_from_event_metadata(event):
+    # XXX(markus): current_tree_label will have to be fixed once one can
+    # set the level, right now we can get away with setting the outermost
+    # level because that's the default and you can't change it.
+    #
+    # There's more stuff that has to change in unmerge anyway, wrt which hashes
+    # are persisted if split/unsplit ever lands.
+
+    rv = dict(event.data["metadata"])
+    current_tree_label = get_path(event.data, "hierarchical_tree_labels", 0) or None
+    if current_tree_label is not None:
+        rv["current_tree_label"] = current_tree_label
+
+    return rv
+
+
 initial_fields = {
     "culprit": lambda event: _generate_culprit(event),
     "data": lambda event: {
         "last_received": event.data.get("received") or float(event.datetime.strftime("%s")),
         "type": event.data["type"],
-        # XXX(markus): current_tree_label will have to be fixed once one can
-        # set the level, right now we can get away with setting the outermost
-        # level because that's the default and you can't change it.
-        #
-        # There's more stuff that has to change in unmerge wrt which hashes are
-        # persisted if split/unsplit ever lands.
-        "metadata": {
-            "current_tree_label": get_path(event.data, "hierarchical_tree_labels", 0) or None,
-            **event.data["metadata"],
-        },
+        "metadata": group_metadata_from_event_metadata(event),
     },
     "last_seen": lambda event: event.datetime,
     "level": lambda event: LOG_LEVELS_MAP.get(event.get_tag("level"), logging.ERROR),
