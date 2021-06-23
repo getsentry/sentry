@@ -17,7 +17,6 @@ type Value = null | string | boolean | number | {[key: string]: Value} | Value[]
 
 type Props = React.HTMLAttributes<HTMLPreElement> & {
   data: Value;
-  onToggle?: () => void;
   preserveQuotes?: boolean;
   withAnnotatedText?: boolean;
   maxDefaultDepth?: number;
@@ -43,7 +42,6 @@ class ContextData extends React.Component<Props, State> {
       withAnnotatedText,
       jsonConsts,
       maxDefaultDepth,
-      onToggle,
     } = this.props;
     const maxDepth = maxDefaultDepth ?? 2;
 
@@ -118,11 +116,7 @@ class ContextData extends React.Component<Props, State> {
         return (
           <span className="val-array">
             <span className="val-array-marker">{'['}</span>
-            <Toggle
-              highUp={depth <= maxDepth}
-              wrapClassName="val-array-items"
-              onClick={onToggle}
-            >
+            <Toggle highUp={depth <= maxDepth} wrapClassName="val-array-items">
               {children}
             </Toggle>
             <span className="val-array-marker">{']'}</span>
@@ -154,11 +148,7 @@ class ContextData extends React.Component<Props, State> {
       return (
         <span className="val-dict">
           <span className="val-dict-marker">{'{'}</span>
-          <Toggle
-            highUp={depth <= maxDepth - 1}
-            onClick={onToggle}
-            wrapClassName="val-dict-items"
-          >
+          <Toggle highUp={depth <= maxDepth - 1} wrapClassName="val-dict-items">
             {children}
           </Toggle>
           <span className="val-dict-marker">{'}'}</span>
