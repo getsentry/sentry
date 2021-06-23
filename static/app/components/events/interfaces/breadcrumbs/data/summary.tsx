@@ -49,6 +49,8 @@ const ContextDataWrapper = styled('div')`
   border-radius: ${p => p.theme.borderRadius};
   max-height: 100%;
   height: 100%;
+  overflow: hidden;
+
   pre {
     margin: 0;
     padding: 0;
