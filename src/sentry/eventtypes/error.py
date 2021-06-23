@@ -24,7 +24,7 @@ def format_title_from_tree_label(tree_label):
 class ErrorEvent(BaseEvent):
     key = "error"
 
-    def extract_metadata(self, data, for_group=False):
+    def extract_metadata(self, data):
         exception = get_path(data, "exception", "values", -1)
         if not exception:
             return {}

@@ -6,7 +6,7 @@ from .base import BaseEvent
 class TransactionEvent(BaseEvent):
     key = "transaction"
 
-    def extract_metadata(self, data, for_group=False):
+    def extract_metadata(self, data):
         description = get_path(data, "contexts", "trace", "description")
         transaction = get_path(data, "transaction")
         return {"title": description or transaction, "location": transaction}

@@ -26,7 +26,7 @@ def _normalize_uri(value):
 
 
 class SecurityEvent(BaseEvent):
-    def extract_metadata(self, data, for_group=False):
+    def extract_metadata(self, data):
         # Relay normalizes the message for security reports into the log entry
         # field, so we grab the message from there.
         # (https://github.com/getsentry/relay/pull/558)
@@ -50,7 +50,7 @@ class SecurityEvent(BaseEvent):
 class CspEvent(SecurityEvent):
     key = "csp"
 
-    def extract_metadata(self, data, for_group=False):
+    def extract_metadata(self, data):
         metadata = SecurityEvent.extract_metadata(self, data)
         metadata["uri"] = _normalize_uri(data["csp"].get("blocked_uri") or "")
         metadata["directive"] = data["csp"].get("effective_directive")
@@ -60,7 +60,7 @@ class CspEvent(SecurityEvent):
 class HpkpEvent(SecurityEvent):
     key = "hpkp"
 
-    def extract_metadata(self, data, for_group=False):
+    def extract_metadata(self, data):
         metadata = SecurityEvent.extract_metadata(self, data)
         metadata["origin"] = data["hpkp"].get("hostname")
         return metadata
@@ -69,7 +69,7 @@ class HpkpEvent(SecurityEvent):
 class ExpectCTEvent(SecurityEvent):
     key = "expectct"
 
-    def extract_metadata(self, data, for_group=False):
+    def extract_metadata(self, data):
         metadata = SecurityEvent.extract_metadata(self, data)
         metadata["origin"] = data["expectct"].get("hostname")
         return metadata
@@ -78,7 +78,7 @@ class ExpectCTEvent(SecurityEvent):
 class ExpectStapleEvent(SecurityEvent):
     key = "expectstaple"
 
-    def extract_metadata(self, data, for_group=False):
+    def extract_metadata(self, data):
         metadata = SecurityEvent.extract_metadata(self, data)
         metadata["origin"] = data["expectstaple"].get("hostname")
         return metadata

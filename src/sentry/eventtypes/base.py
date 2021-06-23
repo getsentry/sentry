@@ -44,7 +44,7 @@ class BaseEvent:
 class DefaultEvent(BaseEvent):
     key = "default"
 
-    def extract_metadata(self, data, for_group=False):
+    def extract_metadata(self, data):
         message = strip(
             get_path(data, "logentry", "formatted") or get_path(data, "logentry", "message")
         )
