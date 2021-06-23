@@ -2070,6 +2070,8 @@ export type SeriesApi = {
 };
 
 export type SessionApiResponse = SeriesApi & {
+  start: DateString;
+  end: DateString;
   query: string;
   intervals: string[];
   groups: {

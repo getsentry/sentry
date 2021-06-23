@@ -7,10 +7,9 @@ type Props = {
   highUp: boolean;
   wrapClassName: string;
   children: React.ReactNode;
-  onClick?: () => void;
 };
 
-function Toggle({highUp, wrapClassName, onClick, children}: Props) {
+function Toggle({highUp, wrapClassName, children}: Props) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   if (Children.count(children) === 0) {
@@ -29,7 +28,6 @@ function Toggle({highUp, wrapClassName, onClick, children}: Props) {
         isExpanded={isExpanded}
         onClick={evt => {
           setIsExpanded(!isExpanded);
-          onClick?.();
           evt.preventDefault();
         }}
       >
