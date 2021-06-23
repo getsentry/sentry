@@ -22,30 +22,33 @@ function Summary({kvData, children}: Props) {
   }
 
   return (
-    <Wrapper withBackground>
-      <ContextData data={kvData} withAnnotatedText>
-        {children ? <StyledCode>{children}</StyledCode> : null}
-      </ContextData>
+    <Wrapper>
+      {children && <StyledCode>{children}</StyledCode>}
+      <ContextDataWrapper>
+        <ContextData data={kvData} withAnnotatedText />
+      </ContextDataWrapper>
     </Wrapper>
   );
 }
 
 export default Summary;
 
-const Wrapper = styled('div')<{withBackground?: boolean}>`
+const Wrapper = styled('div')`
   max-height: 100%;
   height: 100%;
   word-break: break-all;
-  word-wrap: break-word;
   font-size: ${p => p.theme.fontSizeSmall};
-  ${p =>
-    p.withBackground &&
-    `
-      padding: ${space(1)};
-      background: #f7f8f9;
-      border-radius: ${p.theme.borderRadius};
-    `}
+  font-family: ${p => p.theme.text.familyMono};
+  display: grid;
+  grid-gap: ${space(0.5)};
+`;
 
+const ContextDataWrapper = styled('div')`
+  padding: ${space(1)};
+  background: #f7f8f9;
+  border-radius: ${p => p.theme.borderRadius};
+  max-height: 100%;
+  height: 100%;
   pre {
     margin: 0;
     padding: 0;
@@ -61,4 +64,5 @@ const StyledCode = styled('code')`
   font-size: inherit;
   white-space: pre-wrap;
   background: none;
+  padding: 0;
 `;
