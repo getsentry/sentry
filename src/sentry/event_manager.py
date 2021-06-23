@@ -399,6 +399,8 @@ class EventManager:
             "last_seen": job["event"].datetime,
             "first_seen": job["event"].datetime,
             "active_at": job["event"].datetime,
+            "metadata": dict(job["event_metadata"]),
+            "received_timestamp": job["received_timestamp"],
         }
 
         if job["release"]:
@@ -418,7 +420,6 @@ class EventManager:
                     event=job["event"],
                     hashes=hashes,
                     release=job["release"],
-                    received_timestamp=job["received_timestamp"],
                     **kwargs,
                 )
         except HashDiscarded:
@@ -703,10 +704,19 @@ def _materialize_metadata_many(jobs):
         # the point of metadata materialization as we need to ensure that
         # processing happens before.
         data = job["data"]
-        job["culprit"] = get_culprit(data)
-        job["materialized_metadata"] = metadata = materialize_metadata(data)
-        data.update(metadata)
-        data["culprit"] = job["culprit"]
+        event_type = get_event_type(data)
+        event_metadata = event_type.get_metadata(data)
+        job["event_metadata"] = dict(event_metadata)
+        data.update(materialize_metadata(data, event_type, event_metadata))
+
+        # In save_aggregate we store current_tree_label for the group metadata,
+        # and finest_tree_label for the event's own title.
+
+        finest_tree_label = get_path(data, "hierarchical_tree_labels", -1)
+        if finest_tree_label is not None:
+            job["data"]["metadata"]["finest_tree_label"] = finest_tree_label
+
+        job["culprit"] = data["culprit"]
 
 
 @metrics.wraps("save_event.get_or_create_environment_many")
@@ -933,20 +943,19 @@ def get_event_type(data):
     return eventtypes.get(data.get("type", "default"))()
 
 
-def materialize_metadata(data, for_group=False, inject_metadata=None):
+def materialize_metadata(data, event_type, event_metadata):
     """Returns the materialized metadata to be merged with group or
-    event data.  This currently produces the keys `type`, `metadata`,
-    `title` and `location`.  This should most likely also produce
-    `culprit` here.
-    """
-    event_type = get_event_type(data)
-    event_metadata = event_type.get_metadata(data, for_group=for_group)
+    event data.  This currently produces the keys `type`, `culprit`,
+    `metadata`, `title` and `location`.
 
-    if inject_metadata:
-        event_metadata.update(inject_metadata)
+    """
+
+    # XXX(markus): Ideally this wouldn't take data or event_type, and instead
+    # calculate culprit + type from event_metadata
 
     return {
         "type": event_type.key,
+        "culprit": get_culprit(data),
         "metadata": event_metadata,
         "title": event_type.get_title(event_metadata),
         "location": event_type.get_location(event_metadata),
@@ -960,7 +969,7 @@ def get_culprit(data):
     )
 
 
-def _save_aggregate(event, hashes, release, received_timestamp, **kwargs):
+def _save_aggregate(event, hashes, release, metadata, received_timestamp, **kwargs):
     project = event.project
 
     flat_grouphashes = [
@@ -977,14 +986,12 @@ def _save_aggregate(event, hashes, release, received_timestamp, **kwargs):
         project, flat_grouphashes, hashes.hierarchical_hashes
     )
 
-    inject_metadata = {"last_received": received_timestamp}
-
     if root_hierarchical_hash is not None:
         root_hierarchical_grouphash = GroupHash.objects.get_or_create(
             project=project, hash=root_hierarchical_hash
         )[0]
 
-        inject_metadata["current_tree_label"] = hashes.tree_label_from_hash(
+        metadata["current_tree_label"] = hashes.tree_label_from_hash(
             existing_grouphash.hash if existing_grouphash is not None else root_hierarchical_hash
         )
 
@@ -994,11 +1001,14 @@ def _save_aggregate(event, hashes, release, received_timestamp, **kwargs):
     # In principle the group gets the same metadata as the event, so common
     # attributes can be defined in eventtypes.
     #
-    # Additionally the `last_received` key is set for group metadata.  This
-    # key is used by _save_aggregate.
+    # Additionally the `last_received` key is set for group metadata, later in
+    # _save_aggregate
     kwargs["data"] = materialize_metadata(
-        event.data, for_group=True, inject_metadata=inject_metadata
+        event.data,
+        get_event_type(event.data),
+        metadata,
     )
+    kwargs["data"]["last_received"] = received_timestamp
 
     if existing_grouphash is None:
 

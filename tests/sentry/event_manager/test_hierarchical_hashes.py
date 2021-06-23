@@ -27,6 +27,7 @@ def fast_save(default_project, task_runner):
                     tree_labels=[["foo"], ["bar"], ["baz"], ["bam"]],
                 ),
                 release=None,
+                metadata={},
                 received_timestamp=None,
                 level=10,
                 culprit="",

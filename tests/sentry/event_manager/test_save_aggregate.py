@@ -63,7 +63,8 @@ def test_group_creation_race(monkeypatch, default_project, is_race_free):
                     tree_labels=[],
                 ),
                 release=None,
-                data=data,
+                metadata={},
+                received_timestamp=None,
                 level=10,
                 culprit="",
             )
