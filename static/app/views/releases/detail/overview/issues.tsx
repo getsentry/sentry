@@ -1,10 +1,13 @@
 import {Component, Fragment} from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import pick from 'lodash/pick';
+import * as qs from 'query-string';
 
+import {Client} from 'app/api';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
-import Button from 'app/components/button';
+import Button, {ButtonLabel} from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import DiscoverButton from 'app/components/discoverButton';
 import DropdownButton from 'app/components/dropdownButton';
@@ -12,12 +15,15 @@ import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import GroupList from 'app/components/issues/groupList';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import Pagination from 'app/components/pagination';
+import QueryCount from 'app/components/queryCount';
 import {DEFAULT_RELATIVE_PERIODS} from 'app/constants';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import {GlobalSelection} from 'app/types';
+import {GlobalSelection, Organization} from 'app/types';
 import {QueryResults, stringifyQueryObject} from 'app/utils/tokenizeSearch';
+import withApi from 'app/utils/withApi';
+import withOrganization from 'app/utils/withOrganization';
 import {IssueSortOptions} from 'app/views/issueList/utils';
 
 import EmptyState from '../emptyState';
@@ -38,7 +44,8 @@ type IssuesQueryParams = {
 };
 
 type Props = {
-  orgId: string;
+  api: Client;
+  organization: Organization;
   version: string;
   selection: GlobalSelection;
   location: Location;
@@ -49,22 +56,63 @@ type State = {
   issuesType: IssuesType;
   pageLinks?: string;
   onCursor?: () => void;
+  count: {
+    firstRelease: number;
+    release: number;
+    resolved: number;
+    unhandled: number;
+  };
 };
 
 class Issues extends Component<Props, State> {
-  state: State = {
-    issuesType: IssuesType.NEW,
-  };
+  state: State = this.getInitialState();
+
+  getInitialState() {
+    const {location} = this.props;
+    const query = location.query ? location.query.query : null;
+    const issuesTypeState = !query
+      ? IssuesType.NEW
+      : query.includes('first-release')
+      ? IssuesType.NEW
+      : query.includes('error.handled:0')
+      ? IssuesType.UNHANDLED
+      : query.includes('is:resolved')
+      ? IssuesType.RESOLVED
+      : IssuesType.ALL;
+    return {
+      issuesType: issuesTypeState,
+      count: {
+        firstRelease: 0,
+        release: 0,
+        resolved: 0,
+        unhandled: 0,
+      },
+    };
+  }
+
+  componentDidMount() {
+    this.fetchIssuesCount();
+  }
+
+  shouldComponentUpdate(nextProps: Props) {
+    if (this.props.location.query) {
+      if (this.props.location.query.query !== nextProps.location.query.query) {
+        return true;
+      }
+    }
+
+    return true;
+  }
 
   getDiscoverUrl() {
-    const {version, orgId, selection} = this.props;
+    const {version, organization, selection} = this.props;
     const discoverView = getReleaseEventView(selection, version);
 
-    return discoverView.getResultsViewUrlTarget(orgId);
+    return discoverView.getResultsViewUrlTarget(organization.slug);
   }
 
   getIssuesUrl() {
-    const {version, orgId} = this.props;
+    const {version, organization} = this.props;
     const {issuesType} = this.state;
     const {queryParams} = this.getIssuesEndpoint();
     const query = new QueryResults([]);
@@ -78,13 +126,18 @@ class Issues extends Component<Props, State> {
         query.setTagValues('error.handled', ['0']);
         break;
       case IssuesType.RESOLVED:
+        query.setTagValues('release', [version]);
+        query.setTagValues('is', ['resolved']);
+        break;
       case IssuesType.ALL:
+        query.setTagValues('release', [version]);
+        break;
       default:
         query.setTagValues('release', [version]);
     }
 
     return {
-      pathname: `/organizations/${orgId}/issues/`,
+      pathname: `/organizations/${organization.slug}/issues/`,
       query: {
         ...queryParams,
         limit: undefined,
@@ -95,7 +148,7 @@ class Issues extends Component<Props, State> {
   }
 
   getIssuesEndpoint(): {path: string; queryParams: IssuesQueryParams} {
-    const {version, orgId, location, defaultStatsPeriod} = this.props;
+    const {version, organization, location, defaultStatsPeriod} = this.props;
     const {issuesType} = this.state;
     const queryParams = {
       ...getParams(pick(location.query, [...Object.values(URL_PARAM), 'cursor']), {
@@ -108,7 +161,7 @@ class Issues extends Component<Props, State> {
     switch (issuesType) {
       case IssuesType.ALL:
         return {
-          path: `/organizations/${orgId}/issues/`,
+          path: `/organizations/${organization.slug}/issues/`,
           queryParams: {
             ...queryParams,
             query: stringifyQueryObject(new QueryResults([`release:${version}`])),
@@ -116,12 +169,17 @@ class Issues extends Component<Props, State> {
         };
       case IssuesType.RESOLVED:
         return {
-          path: `/organizations/${orgId}/releases/${version}/resolved/`,
-          queryParams: {...queryParams, query: ''},
+          path: `/organizations/${organization.slug}/issues/`,
+          queryParams: {
+            ...queryParams,
+            query: stringifyQueryObject(
+              new QueryResults([`release:${version}`, 'is:resolved'])
+            ),
+          },
         };
       case IssuesType.UNHANDLED:
         return {
-          path: `/organizations/${orgId}/issues/`,
+          path: `/organizations/${organization.slug}/issues/`,
           queryParams: {
             ...queryParams,
             query: stringifyQueryObject(
@@ -132,7 +190,7 @@ class Issues extends Component<Props, State> {
       case IssuesType.NEW:
       default:
         return {
-          path: `/organizations/${orgId}/issues/`,
+          path: `/organizations/${organization.slug}/issues/`,
           queryParams: {
             ...queryParams,
             query: stringifyQueryObject(new QueryResults([`first-release:${version}`])),
@@ -141,7 +199,64 @@ class Issues extends Component<Props, State> {
     }
   }
 
+  async fetchIssuesCount() {
+    const {api, version} = this.props;
+    const endpoint = this.getIssueCountEndpoint();
+
+    try {
+      const response = await api.requestPromise(endpoint);
+      this.setState({
+        count: {
+          release: response[`release:${version}`],
+          firstRelease: response[`first-release:${version}`],
+          resolved: response['is:resolved'],
+          unhandled: response['error.handled:0'],
+        },
+      });
+    } catch {
+      // do nothing
+    }
+  }
+
+  getIssueCountEndpoint() {
+    const {organization, version} = this.props;
+    const path = `/organizations/${organization.slug}/issues-count/`;
+    const params = [
+      `first-release:${version}`,
+      `release:${version}`,
+      'is:resolved',
+      'error.handled:0',
+    ];
+    const queryParams = params.map(param => param);
+    const queryParameters = {
+      query: queryParams,
+    };
+
+    return `${path}?${qs.stringify(queryParameters)}`;
+  }
+
   handleIssuesTypeSelection = (issuesType: IssuesType) => {
+    const {location, version} = this.props;
+    const issuesTypeQuery =
+      issuesType === IssuesType.ALL
+        ? `release:${version}`
+        : issuesType === IssuesType.NEW
+        ? `first-release:${version}`
+        : issuesType === IssuesType.RESOLVED
+        ? 'is:resolved'
+        : issuesType === IssuesType.UNHANDLED
+        ? 'error.handled:0'
+        : `release:${version}`;
+
+    const to = {
+      ...location,
+      query: {
+        ...location.query,
+        query: issuesTypeQuery,
+      },
+    };
+
+    browserHistory.replace(to);
     this.setState({issuesType});
   };
 
@@ -180,9 +295,10 @@ class Issues extends Component<Props, State> {
   };
 
   render() {
-    const {issuesType, pageLinks, onCursor} = this.state;
-    const {orgId} = this.props;
+    const {issuesType, count, pageLinks, onCursor} = this.state;
+    const {organization} = this.props;
     const {path, queryParams} = this.getIssuesEndpoint();
+    const hasReleaseComparison = organization.features.includes('release-comparison');
     const issuesTypes = [
       {value: IssuesType.NEW, label: t('New Issues')},
       {value: IssuesType.RESOLVED, label: t('Resolved Issues')},
@@ -193,30 +309,82 @@ class Issues extends Component<Props, State> {
     return (
       <Fragment>
         <ControlsWrapper>
-          <DropdownControl
-            button={({isOpen, getActorProps}) => (
-              <StyledDropdownButton
-                {...getActorProps()}
-                isOpen={isOpen}
-                prefix={t('Filter')}
+          {hasReleaseComparison ? (
+            <StyledButtonBar active={issuesType} merged>
+              <Button
+                barId={IssuesType.NEW}
                 size="small"
+                onClick={() => this.handleIssuesTypeSelection(IssuesType.NEW)}
               >
-                {issuesTypes.find(i => i.value === issuesType)?.label}
-              </StyledDropdownButton>
-            )}
-          >
-            {issuesTypes.map(({value, label}) => (
-              <StyledDropdownItem
-                key={value}
-                onSelect={this.handleIssuesTypeSelection}
-                data-test-id={`filter-${value}`}
-                eventKey={value}
-                isActive={value === issuesType}
+                {t('New Issues')}
+                <StyledQueryCount
+                  count={count.firstRelease}
+                  max={99}
+                  hideParens
+                  hideIfEmpty
+                />
+              </Button>
+              <Button
+                barId={IssuesType.RESOLVED}
+                size="small"
+                onClick={() => this.handleIssuesTypeSelection(IssuesType.RESOLVED)}
               >
-                {label}
-              </StyledDropdownItem>
-            ))}
-          </DropdownControl>
+                {t('Resolved Issues')}
+                <StyledQueryCount
+                  count={count.resolved}
+                  max={99}
+                  hideParens
+                  hideIfEmpty
+                />
+              </Button>
+              <Button
+                barId={IssuesType.UNHANDLED}
+                size="small"
+                onClick={() => this.handleIssuesTypeSelection(IssuesType.UNHANDLED)}
+              >
+                {t('Unhandled Issues')}
+                <StyledQueryCount
+                  count={count.unhandled}
+                  max={99}
+                  hideParens
+                  hideIfEmpty
+                />
+              </Button>
+              <Button
+                barId={IssuesType.ALL}
+                size="small"
+                onClick={() => this.handleIssuesTypeSelection(IssuesType.ALL)}
+              >
+                {t('All Issues')}
+                <StyledQueryCount count={count.release} max={99} hideParens hideIfEmpty />
+              </Button>
+            </StyledButtonBar>
+          ) : (
+            <DropdownControl
+              button={({isOpen, getActorProps}) => (
+                <StyledDropdownButton
+                  {...getActorProps()}
+                  isOpen={isOpen}
+                  prefix={t('Filter')}
+                  size="small"
+                >
+                  {issuesTypes.find(i => i.value === issuesType)?.label}
+                </StyledDropdownButton>
+              )}
+            >
+              {issuesTypes.map(({value, label}) => (
+                <StyledDropdownItem
+                  key={value}
+                  onSelect={this.handleIssuesTypeSelection}
+                  data-test-id={`filter-${value}`}
+                  eventKey={value}
+                  isActive={value === issuesType}
+                >
+                  {label}
+                </StyledDropdownItem>
+              ))}
+            </DropdownControl>
+          )}
 
           <OpenInButtonBar gap={1}>
             <Button to={this.getIssuesUrl()} size="small" data-test-id="issues-button">
@@ -224,20 +392,24 @@ class Issues extends Component<Props, State> {
             </Button>
 
             <GuideAnchor target="release_issues_open_in_discover">
-              <DiscoverButton
-                to={this.getDiscoverUrl()}
-                size="small"
-                data-test-id="discover-button"
-              >
-                {t('Open in Discover')}
-              </DiscoverButton>
+              {hasReleaseComparison ? null : (
+                <DiscoverButton
+                  to={this.getDiscoverUrl()}
+                  size="small"
+                  data-test-id="discover-button"
+                >
+                  {t('Open in Discover')}
+                </DiscoverButton>
+              )}
             </GuideAnchor>
-            <StyledPagination pageLinks={pageLinks} onCursor={onCursor} />
+            {hasReleaseComparison ? null : (
+              <StyledPagination pageLinks={pageLinks} onCursor={onCursor} />
+            )}
           </OpenInButtonBar>
         </ControlsWrapper>
         <div data-test-id="release-wrapper">
           <GroupList
-            orgId={orgId}
+            orgId={organization.slug}
             endpointPath={path}
             queryParams={queryParams}
             query=""
@@ -269,6 +441,25 @@ const OpenInButtonBar = styled(ButtonBar)`
   }
 `;
 
+const StyledQueryCount = styled(QueryCount)``;
+
+const StyledButtonBar = styled(ButtonBar)`
+  grid-template-columns: repeat(4, 1fr);
+  ${ButtonLabel} {
+    grid-gap: ${space(0.5)};
+    span:last-child {
+      color: ${p => p.theme.gray400};
+    }
+  }
+  .active {
+    ${ButtonLabel} {
+      span:last-child {
+        color: ${p => p.theme.gray100};
+      }
+    }
+  }
+`;
+
 const StyledDropdownButton = styled(DropdownButton)`
   min-width: 145px;
 `;
@@ -281,4 +472,4 @@ const StyledPagination = styled(Pagination)`
   margin: 0;
 `;
 
-export default Issues;
+export default withApi(withOrganization(Issues));
