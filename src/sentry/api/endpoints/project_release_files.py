@@ -10,6 +10,7 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import ChainPaginator
 from sentry.api.serializers import serialize
+from sentry.constants import MAX_RELEASE_FILES_OFFSET
 from sentry.models import Distribution, File, Release, ReleaseFile
 from sentry.models.releasefile import read_artifact_index
 
@@ -85,6 +86,7 @@ class ReleaseFilesMixin:
             request=request,
             sources=data_sources,
             paginator_cls=ChainPaginator,
+            max_offset=MAX_RELEASE_FILES_OFFSET,
             on_results=on_results,
         )
 
