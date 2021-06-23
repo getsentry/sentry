@@ -771,7 +771,7 @@ export function explodeFieldString(field: string): Column {
       kind: 'function',
       function: [
         results.name as AggregationKey,
-        results.arguments[0],
+        results.arguments[0] ?? '',
         results.arguments[1] as AggregationRefinement,
       ],
     };
