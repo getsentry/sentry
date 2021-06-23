@@ -163,7 +163,7 @@ class SpanTree extends React.Component<PropType> {
             return acc;
           }
           default: {
-            // continue
+            break;
           }
         }
 
