@@ -114,12 +114,11 @@ class SpanTreeModel {
     const shouldIncludeGap = !isEventFromBrowserJavaScriptSDK(event);
 
     const isValidGap =
+      shouldIncludeGap &&
       typeof previousSiblingEndTimestamp === 'number' &&
       previousSiblingEndTimestamp < this.span.start_timestamp &&
       // gap is at least 100 ms
-      this.span.start_timestamp - previousSiblingEndTimestamp >= 0.1 &&
-      shouldIncludeGap;
-
+      this.span.start_timestamp - previousSiblingEndTimestamp >= 0.1;
     if (!isValidGap) {
       return undefined;
     }
