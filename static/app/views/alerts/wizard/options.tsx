@@ -260,9 +260,10 @@ export const hideParameterSelectorSet = new Set<AlertType>([
   'cls',
 ]);
 
-export function getFunctionHelpText(
-  alertType: AlertType
-): {labelText: string; timeWindowText?: string} {
+export function getFunctionHelpText(alertType: AlertType): {
+  labelText: string;
+  timeWindowText?: string;
+} {
   const timeWindowText = t('over');
   if (alertType === 'apdex') {
     return {

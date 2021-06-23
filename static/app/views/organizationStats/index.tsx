@@ -70,7 +70,12 @@ export class OrganizationStats extends Component<Props> {
   get dataDatetime(): DateTimeObject {
     const query = this.props.location?.query ?? {};
 
-    const {start, end, statsPeriod, utc: utcString} = getParams(query, {
+    const {
+      start,
+      end,
+      statsPeriod,
+      utc: utcString,
+    } = getParams(query, {
       allowEmptyPeriod: true,
       allowAbsoluteDatetime: true,
       allowAbsolutePageDatetime: true,
