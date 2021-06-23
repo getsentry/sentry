@@ -162,7 +162,7 @@ class ReleaseQuerySet(models.QuerySet):
             )
 
             return (
-                Release.objects.filter(release_filter)
+                self.filter(release_filter)
                 .annotate_prerelease_column()
                 .annotate(
                     semver=Func(

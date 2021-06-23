@@ -17,7 +17,7 @@ import Pagination from 'app/components/pagination';
 import SearchBar from 'app/components/searchBar';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
-import {releaseHealth} from 'app/data/platformCategories';
+import {desktop, mobile, releaseHealth} from 'app/data/platformCategories';
 import {IconInfo} from 'app/icons';
 import {t} from 'app/locale';
 import {PageContent, PageHeader} from 'app/styles/organization';
@@ -25,6 +25,7 @@ import space from 'app/styles/space';
 import {
   GlobalSelection,
   Organization,
+  Project,
   Release,
   ReleaseStatus,
   SessionApiResponse,
@@ -173,6 +174,14 @@ class ReleasesList extends AsyncView<Props, State> {
       default:
         return StatusOption.ACTIVE;
     }
+  }
+
+  getSelectedProject(): Project | undefined {
+    const {selection, organization} = this.props;
+
+    const selectedProjectId =
+      selection.projects && selection.projects.length === 1 && selection.projects[0];
+    return organization.projects?.find(p => p.id === `${selectedProjectId}`);
   }
 
   async fetchSessionsExistence() {
@@ -325,16 +334,21 @@ class ReleasesList extends AsyncView<Props, State> {
   }
 
   renderHealthCta() {
-    const {selection, organization} = this.props;
+    const {organization} = this.props;
     const {hasSessions, releases} = this.state;
 
-    const selectedProjectId =
-      selection.projects && selection.projects.length === 1 && selection.projects[0];
-    const selectedProject = organization.projects?.find(
-      p => p.id === `${selectedProjectId}`
-    );
+    const selectedProject = this.getSelectedProject();
+    const isMobileProject =
+      selectedProject &&
+      selectedProject.platform &&
+      ([...mobile, ...desktop] as string[]).includes(selectedProject.platform as string);
 
-    if (!selectedProject || hasSessions !== false || !releases?.length) {
+    if (
+      !selectedProject ||
+      hasSessions !== false ||
+      !releases?.length ||
+      !isMobileProject
+    ) {
       return null;
     }
 
@@ -397,9 +411,17 @@ class ReleasesList extends AsyncView<Props, State> {
           const singleProjectSelected =
             selection.projects?.length === 1 &&
             selection.projects[0] !== ALL_ACCESS_PROJECTS;
+          const selectedProject = this.getSelectedProject();
+          const isMobileProject =
+            selectedProject &&
+            selectedProject.platform &&
+            ([...mobile, ...desktop] as string[]).includes(
+              selectedProject.platform as string
+            );
+
           return (
             <Fragment>
-              {singleProjectSelected && hasSessions && (
+              {singleProjectSelected && hasSessions && isMobileProject && (
                 <Feature features={['organizations:release-adoption-chart']}>
                   <ReleaseAdoptionChart
                     organization={organization}
