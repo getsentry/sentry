@@ -78,8 +78,8 @@ class ProjectTransactionThresholdEndpoint(ProjectEndpoint):
 
         data = serializer.validated_data
 
-        with transaction.atomic():
-            try:
+        try:
+            with transaction.atomic():
                 project_threshold = ProjectTransactionThreshold.objects.get(
                     project=project,
                     organization=project.organization,
@@ -89,9 +89,10 @@ class ProjectTransactionThresholdEndpoint(ProjectEndpoint):
                 project_threshold.edited_by = request.user
                 project_threshold.save()
 
-                created = False
+            created = False
 
-            except ProjectTransactionThreshold.DoesNotExist:
+        except ProjectTransactionThreshold.DoesNotExist:
+            with transaction.atomic():
                 project_threshold = ProjectTransactionThreshold.objects.create(
                     project=project,
                     organization=project.organization,
@@ -100,7 +101,7 @@ class ProjectTransactionThresholdEndpoint(ProjectEndpoint):
                     edited_by=request.user,
                 )
 
-                created = True
+            created = True
 
         return Response(
             serialize(

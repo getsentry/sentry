@@ -1,5 +1,8 @@
 from django.conf.urls import include, url
 
+from sentry.api.endpoints.project_transaction_threshold_override import (
+    ProjectTransactionThresholdOverrideEndpoint,
+)
 from sentry.data_export.endpoints.data_export import DataExportEndpoint
 from sentry.data_export.endpoints.data_export_details import DataExportDetailsEndpoint
 from sentry.discover.endpoints.discover_key_transactions import (
@@ -816,6 +819,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/related-issues/$",
                     OrganizationEventsRelatedIssuesEndpoint.as_view(),
                     name="sentry-api-0-organization-related-issues",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/project-transaction-threshold-override/$",
+                    ProjectTransactionThresholdOverrideEndpoint.as_view(),
+                    name="sentry-api-0-organization-project-transaction-threshold-override",
                 ),
                 # Dashboards
                 url(

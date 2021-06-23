@@ -112,6 +112,9 @@ default_manager.add("organizations:performance-tag-page", OrganizationFeature, T
 default_manager.add("organizations:performance-events-page", OrganizationFeature, True)
 default_manager.add("organizations:performance-view", OrganizationFeature)
 default_manager.add("organizations:project-transaction-threshold", OrganizationFeature, True)
+default_manager.add(
+    "organizations:project-transaction-threshold-override", OrganizationFeature, True
+)
 default_manager.add("organizations:prompt-dashboards", OrganizationFeature)
 default_manager.add("organizations:related-events", OrganizationFeature)
 default_manager.add("organizations:relay", OrganizationFeature)
