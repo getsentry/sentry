@@ -7,9 +7,9 @@ from django.db import migrations
 from sentry import eventstore
 from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.snuba import (
-    SnubaError,
-    QueryOutsideRetentionError,
     QueryOutsideGroupActivityError,
+    QueryOutsideRetentionError,
+    SnubaError,
 )
 
 logger = logging.getLogger(__name__)
@@ -28,7 +28,7 @@ def backfill_user_reports(apps, schema_editor):
         try:
             event = eventstore.get_event_by_id(report.project_id, report.event_id)
         except (SnubaError, QueryOutsideGroupActivityError, QueryOutsideRetentionError) as se:
-            logger.warn(
+            logger.warning(
                 "failed to fetch event %s for project %d: %s"
                 % (report.event_id, report.project_id, se)
             )
