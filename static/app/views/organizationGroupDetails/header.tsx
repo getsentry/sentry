@@ -121,15 +121,8 @@ class GroupHeader extends React.Component<Props, State> {
   }
 
   render() {
-    const {
-      project,
-      group,
-      currentTab,
-      baseUrl,
-      event,
-      organization,
-      location,
-    } = this.props;
+    const {project, group, currentTab, baseUrl, event, organization, location} =
+      this.props;
     const projectFeatures = new Set(project ? project.features : []);
     const organizationFeatures = new Set(organization ? organization.features : []);
     const userCount = group.userCount;
