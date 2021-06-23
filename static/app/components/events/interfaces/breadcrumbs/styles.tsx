@@ -32,9 +32,9 @@ const IconWrapper = styled('div', {
 const GridCell = styled('div')<{
   hasError?: boolean;
   isLastItem?: boolean;
+  height?: number;
 }>`
-  overflow: hidden;
-  height: 100%;
+  height: ${p => (p.height ? `${p.height}px` : '100%')};
   position: relative;
   white-space: pre-wrap;
   word-break: break-all;

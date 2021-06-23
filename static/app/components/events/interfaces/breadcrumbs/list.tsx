@@ -71,7 +71,11 @@ class ListContainer extends React.Component<Props, State> {
     this.setState({scrollbarSize: size});
   };
 
-  renderBody(breadcrumb: BreadcrumbsWithDetails[0], isLastItem = false) {
+  renderBody(
+    breadcrumb: BreadcrumbsWithDetails[0],
+    height: string | number | undefined,
+    isLastItem = false
+  ) {
     const {event, orgId, searchTerm, relativeTime, displayRelativeTime} = this.props;
     return (
       <ListBody
@@ -82,6 +86,7 @@ class ListContainer extends React.Component<Props, State> {
         relativeTime={relativeTime}
         displayRelativeTime={displayRelativeTime}
         isLastItem={isLastItem}
+        height={height ? Number(height) : undefined}
       />
     );
   }
@@ -90,6 +95,7 @@ class ListContainer extends React.Component<Props, State> {
     const {breadcrumbs} = this.props;
     const breadcrumb = breadcrumbs[index];
     const isLastItem = breadcrumbs[breadcrumbs.length - 1].id === breadcrumb.id;
+    const {height} = style;
     return (
       <CellMeasurer
         cache={cache}
@@ -101,11 +107,11 @@ class ListContainer extends React.Component<Props, State> {
         {({measure}) =>
           isLastItem ? (
             <Row style={style} onLoad={measure} data-test-id="last-crumb">
-              {this.renderBody(breadcrumb, isLastItem)}
+              {this.renderBody(breadcrumb, height, isLastItem)}
             </Row>
           ) : (
             <Row style={style} onLoad={measure}>
-              {this.renderBody(breadcrumb)}
+              {this.renderBody(breadcrumb, height)}
             </Row>
           )
         }

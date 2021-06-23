@@ -21,6 +21,7 @@ type Props = {
   isLastItem: boolean;
   relativeTime: string;
   displayRelativeTime: boolean;
+  height?: number;
 };
 
 const ListBody = memo(
@@ -32,6 +33,7 @@ const ListBody = memo(
     displayRelativeTime,
     searchTerm,
     isLastItem,
+    height,
   }: Props) => {
     const hasError = breadcrumb.type === BreadcrumbType.ERROR;
 
@@ -45,7 +47,7 @@ const ListBody = memo(
         <GridCellCategory hasError={hasError} isLastItem={isLastItem}>
           <Category category={breadcrumb?.category} searchTerm={searchTerm} />
         </GridCellCategory>
-        <GridCell hasError={hasError} isLastItem={isLastItem}>
+        <GridCell hasError={hasError} isLastItem={isLastItem} height={height}>
           <Data
             event={event}
             orgId={orgId}
