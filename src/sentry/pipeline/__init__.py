@@ -9,7 +9,7 @@ from sentry import analytics
 from sentry.models import Model, Organization
 from sentry.utils import json
 from sentry.utils.hashlib import md5_text
-from sentry.utils.session_store import RedisSessionStore
+from sentry.utils.session_store import RedisSessionStore, redis_property
 from sentry.web.frontend.base import BaseView
 from sentry.web.helpers import render_to_response
 
@@ -110,10 +110,22 @@ class NestedPipelineView(PipelineView):
         return nested_pipeline.current_step()
 
 
+class PipelineSessionStore(RedisSessionStore):
+    uid = redis_property("uid")
+    provider_model_id = redis_property("provider_model_id")
+    provider_key = redis_property("provider_key")
+    org_id = redis_property("org_id")
+    signature = redis_property("signature")
+    step_index = redis_property("step_index")
+    config = redis_property("config")
+    data = redis_property("data")
+
+
 @dataclass
 class PipelineRequestState:
     """Initial pipeline attributes from a request."""
 
+    state: PipelineSessionStore
     provider_model: Model
     organization: Organization
     provider_key: str
@@ -156,15 +168,15 @@ class Pipeline:
     pipeline_name = None
     provider_manager = None
     provider_model_cls = None
+    session_store_cls = PipelineSessionStore
 
     @classmethod
     def get_for_request(cls, request):
-        state = RedisSessionStore(request, cls.pipeline_name, ttl=INTEGRATION_EXPIRATION_TTL)
-        if not state.is_valid():
+        req_state = cls.unpack_state(request)
+        if not req_state:
             return None
 
-        req_state = cls.unpack_state(state)
-        config = state.config
+        config = req_state.state.config
         return cls(
             request,
             organization=req_state.organization,
@@ -174,7 +186,11 @@ class Pipeline:
         )
 
     @classmethod
-    def unpack_state(cls, state) -> PipelineRequestState:
+    def unpack_state(cls, request) -> Optional[PipelineRequestState]:
+        state = cls.session_store_cls(request, cls.pipeline_name, ttl=INTEGRATION_EXPIRATION_TTL)
+        if not state.is_valid():
+            return None
+
         provider_model = None
         if state.provider_model_id:
             provider_model = cls.provider_model_cls.objects.get(id=state.provider_model_id)
@@ -185,7 +201,7 @@ class Pipeline:
 
         provider_key = state.provider_key
 
-        return PipelineRequestState(provider_model, organization, provider_key)
+        return PipelineRequestState(state, provider_model, organization, provider_key)
 
     def get_provider(self, provider_key: str):
         return self.provider_manager.get(provider_key)
@@ -196,7 +212,9 @@ class Pipeline:
 
         self.request = request
         self.organization = organization
-        self.state = RedisSessionStore(request, self.pipeline_name, ttl=INTEGRATION_EXPIRATION_TTL)
+        self.state = self.session_store_cls(
+            request, self.pipeline_name, ttl=INTEGRATION_EXPIRATION_TTL
+        )
         self.provider_model = provider_model
         self.provider = self.get_provider(provider_key)
 

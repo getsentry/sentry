@@ -13,6 +13,13 @@ class RedisSessionStore:
     the request session. Useful for storing data too large to be stored into
     the session cookie.
 
+    The attributes to be backed by Redis must be declared in a subclass using
+    the `redis_proerty` function. For example:
+
+    >>> class HotDogSessionStore(RedisSessionStore):
+    >>>     bun = redis_proerty("bun")
+    >>>     condiment = redis_proerty("condiment")
+
     NOTE: Assigning attributes immediately saves their value back into the
           redis key assigned for this store. Be aware of the multiple
           round-trips implication of this.
@@ -38,10 +45,12 @@ class RedisSessionStore:
     modified within the provided ttl.
     """
 
+    redis_namespace = "session-cache"
+
     def __init__(self, request, prefix, ttl=EXPIRATION_TTL):
-        self.__dict__["request"] = request
-        self.__dict__["prefix"] = prefix
-        self.__dict__["ttl"] = ttl
+        self.request = request
+        self.prefix = prefix
+        self.ttl = ttl
 
     @property
     def _client(self):
@@ -59,7 +68,7 @@ class RedisSessionStore:
         if initial_state is None:
             initial_state = {}
 
-        redis_key = f"session-cache:{self.prefix}:{uuid4().hex}"
+        redis_key = f"{self.redis_namespace}:{self.prefix}:{uuid4().hex}"
 
         self.request.session[self.session_key] = redis_key
 
@@ -72,6 +81,7 @@ class RedisSessionStore:
 
         self._client.delete(self.redis_key)
         del self.request.session[self.session_key]
+        self.request.session.modified = True
 
     def is_valid(self):
         return self.redis_key and self._client.get(self.redis_key)
@@ -86,19 +96,25 @@ class RedisSessionStore:
 
         return loads(state_json)
 
-    def __getattr__(self, key):
-        state = self.get_state()
+
+def redis_property(key: str):
+    """Declare a property backed by Redis on a RedisSessionStore class."""
+
+    def getter(store: "RedisSessionStore"):
+        state = store.get_state()
 
         try:
             return state[key] if state else None
         except KeyError as e:
             raise AttributeError(e)
 
-    def __setattr__(self, key, value):
-        state = self.get_state()
+    def setter(store: "RedisSessionStore", value):
+        state = store.get_state()
 
         if state is None:
             return
 
         state[key] = value
-        self._client.setex(self.redis_key, self.ttl, dumps(state))
+        store._client.setex(store.redis_key, store.ttl, dumps(state))
+
+    return property(getter, setter)

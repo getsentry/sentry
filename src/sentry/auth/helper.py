@@ -11,7 +11,6 @@ from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 from django.views import View
 
-import sentry.utils.json as json
 from sentry import features
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_cookie
 from sentry.app import locks
@@ -29,15 +28,15 @@ from sentry.models import (
     User,
     UserEmail,
 )
-from sentry.pipeline import Pipeline
+from sentry.pipeline import Pipeline, PipelineSessionStore
 from sentry.signals import sso_enabled, user_signup
 from sentry.tasks.auth import email_missing_links
 from sentry.utils import auth, metrics
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.hashlib import md5_text
 from sentry.utils.http import absolute_uri
-from sentry.utils.redis import clusters
 from sentry.utils.retries import TimedRetryPolicy
+from sentry.utils.session_store import redis_property
 from sentry.web.forms.accounts import AuthenticationForm
 from sentry.web.helpers import render_to_response
 
@@ -58,62 +57,14 @@ ERR_NOT_AUTHED = _("You must be authenticated to link accounts.")
 ERR_INVALID_IDENTITY = _("The provider did not return a valid user identity.")
 
 
-class RedisBackedState:
-    # Expire the pipeline after 10 minutes of inactivity.
-    EXPIRATION_TTL = 10 * 60
-
-    def __init__(self, request):
-        self.__dict__["request"] = request
+class RedisBackedState(PipelineSessionStore):
+    redis_namespace = "auth"
 
     @property
-    def _client(self):
-        return clusters.get("default").get_local_client_for_key(self.auth_key)
+    def session_key(self):
+        return "auth_key"
 
-    @property
-    def auth_key(self):
-        return self.request.session.get("auth_key")
-
-    def regenerate(self, initial_state):
-        auth_key = f"auth:pipeline:{uuid4().hex}"
-
-        self.request.session["auth_key"] = auth_key
-        self.request.session.modified = True
-
-        value = json.dumps(initial_state)
-        self._client.setex(auth_key, self.EXPIRATION_TTL, value)
-
-    def clear(self):
-        if not self.auth_key:
-            return
-
-        self._client.delete(self.auth_key)
-        del self.request.session["auth_key"]
-        self.request.session.modified = True
-
-    def is_valid(self):
-        return self.auth_key and self._client.get(self.auth_key)
-
-    def get_state(self):
-        if not self.auth_key:
-            return None
-
-        state_json = self._client.get(self.auth_key)
-        if not state_json:
-            return None
-
-        return json.loads(state_json)
-
-    def __getattr__(self, key):
-        state = self.get_state()
-        return state[key] if state else None
-
-    def __setattr__(self, key, value):
-        state = self.get_state()
-        if not state:
-            return
-
-        state[key] = value
-        self._client.setex(self.auth_key, self.EXPIRATION_TTL, json.dumps(state))
+    flow = redis_property("flow")
 
 
 def handle_existing_identity(
@@ -553,21 +504,21 @@ class AuthHelper(Pipeline):
     # configuring the provider
     FLOW_SETUP_PROVIDER = 2
 
-    pipeline_name = "auth_provider"
+    pipeline_name = "pipeline"
     provider_manager = manager
     provider_model_cls = AuthProvider
+    session_store_cls = RedisBackedState
 
     @classmethod
     def get_for_request(cls, request):
-        state = RedisBackedState(request)
-        if not state.is_valid():
+        req_state = cls.unpack_state(request)
+        if not req_state:
             return None
 
-        req_state = cls.unpack_state(state)
         if not req_state.organization:
             logging.info("Invalid SSO data found")
             return None
-        flow = state.flow
+        flow = req_state.state.flow
 
         return cls(
             request,
