@@ -299,8 +299,10 @@ class SpanTreeModel {
     this.showEmbeddedChildren = !this.showEmbeddedChildren;
 
     if (this.showEmbeddedChildren && this.embeddedChildren.length === 0) {
-      this.fetchEmbeddedTransactions(props);
+      return this.fetchEmbeddedTransactions(props);
     }
+
+    return Promise.resolve(undefined);
   };
 
   fetchEmbeddedTransactions({orgSlug, eventSlug}: {orgSlug: string; eventSlug: string}) {
@@ -308,7 +310,7 @@ class SpanTreeModel {
 
     this.loadingEmbeddedChildren = true;
 
-    this.api
+    return this.api
       .requestPromise(url, {
         method: 'GET',
         query: {},
