@@ -4,6 +4,7 @@ import sys
 
 import requirements
 
+
 def main():
     """
     We cannot have non-specifier requirements if we want to publish to PyPI
@@ -13,13 +14,16 @@ def main():
     with open("requirements-base.txt") as reqs_file:
         if any(not req.specifier for req in requirements.parse(reqs_file)):
             print(
-                [
-                    "You cannot use dependencies that are not on PyPI directly.",
-                    "See PEP440: https://www.python.org/dev/peps/pep-0440/#direct-references",
-                ].join("\n"),
-                file=sys.stderr
+                "\n".join(
+                    [
+                        "You cannot use dependencies that are not on PyPI directly.",
+                        "See PEP440: https://www.python.org/dev/peps/pep-0440/#direct-references",
+                    ]
+                ),
+                file=sys.stderr,
             )
-            sys.exit(1);
+            sys.exit(1)
+
 
 if __name__ == "__main__":
-    main();
+    main()
