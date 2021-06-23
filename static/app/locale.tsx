@@ -1,4 +1,5 @@
 import * as React from 'react';
+import * as Sentry from '@sentry/react';
 import Jed from 'jed';
 import isArray from 'lodash/isArray';
 import isObject from 'lodash/isObject';
@@ -68,7 +69,16 @@ type FormatArg = ComponentMap | React.ReactNode;
  * if it has otherwise not been initialized.
  */
 function getClient() {
-  return i18n || setLocale(DEFAULT_LOCALE_DATA);
+  if (!i18n) {
+    // If this happens, it could mean that an import was added/changed where
+    // locale initialization does not happen soon enough.
+    const warning = new Error('Locale not set, defaulting to English');
+    console.error(warning); // eslint-disable-line no-console
+    Sentry.captureException(warning);
+    return setLocale(DEFAULT_LOCALE_DATA);
+  }
+
+  return i18n;
 }
 
 /**
