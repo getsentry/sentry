@@ -689,7 +689,7 @@ export function parseArguments(functionText: string, columnText: string): string
     } else if (columnText[j] === ',') {
       // when we see a comma outside of a quoted string
       // it is an argument separator
-      args.push(columnText.substr(i, j - i).trim());
+      args.push(columnText.substring(i, j).trim());
       i = j + 1;
     }
     j += 1;
@@ -697,7 +697,7 @@ export function parseArguments(functionText: string, columnText: string): string
 
   if (i !== j) {
     // add in the last argument if any
-    args.push(columnText.substr(i).trim());
+    args.push(columnText.substring(i).trim());
   }
 
   return args;
