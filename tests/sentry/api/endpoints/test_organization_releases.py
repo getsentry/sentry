@@ -261,6 +261,9 @@ class OrganizationReleaseListTest(APITestCase):
         response = self.get_valid_response(self.organization.slug, query=f"{SEMVER_ALIAS}:>=1.2.3")
         assert [r["version"] for r in response.data] == [release_2.version, release_1.version]
 
+        response = self.get_valid_response(self.organization.slug, query=f"{SEMVER_ALIAS}:1.2.*")
+        assert [r["version"] for r in response.data] == [release_2.version, release_1.version]
+
         response = self.get_valid_response(
             self.organization.slug, query=f"{SEMVER_ALIAS}:>=1.2.3", sort="semver"
         )
