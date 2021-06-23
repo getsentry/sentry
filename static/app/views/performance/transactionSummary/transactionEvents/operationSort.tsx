@@ -98,7 +98,7 @@ class OperationSort extends Component<Props, State> {
     return (
       <DropdownMenuItem>
         <MenuItemContent>
-          <RadioLabel key="http">
+          <RadioLabel>
             <StyledRadio
               readOnly
               radioSize="small"
