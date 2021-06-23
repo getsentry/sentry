@@ -10,10 +10,13 @@ updates:
     reviewers:
       - "@getsentry/owners-js-build"
     ignore:
-      # We ignore everything that hasn't yet been upgrade, this way we will
-      # only get the _freshest_ of new packages to consider upgrading
-      - dependency-name: "@babel/core"
-      - dependency-name: "@babel/plugin-proposal-class-properties"
+      # Babel updates all really should happen in unison, so let's keep these
+      # ignored for now and manually handle it
+      #
+      # XXX(epurkhiser): Explicitly don't ignore core so we can be reminded to
+      # upgrade all of them.
+      #
+      # - dependency-name: "@babel/core"
       - dependency-name: "@babel/plugin-proposal-decorators"
       - dependency-name: "@babel/plugin-transform-react-jsx"
       - dependency-name: "@babel/plugin-transform-react-jsx-source"
@@ -22,9 +25,9 @@ updates:
       - dependency-name: "@babel/preset-react"
       - dependency-name: "@babel/preset-typescript"
       - dependency-name: "@babel/runtime"
-      - dependency-name: "@dnd-kit/core"
-      - dependency-name: "@dnd-kit/sortable"
-      - dependency-name: "@sentry-internal/global-search"
+
+      # We ignore everything that hasn't yet been upgrade, this way we will
+      # only get the _freshest_ of new packages to consider upgrading
       - dependency-name: "@sentry/release-parser"
       - dependency-name: "@sentry/rrweb"
       - dependency-name: "@size-limit/preset-small-lib"
@@ -42,7 +45,6 @@ updates:
       - dependency-name: "clean-webpack-plugin"
       - dependency-name: "compression-webpack-plugin"
       - dependency-name: "copy-text-to-clipboard"
-      - dependency-name: "core-js"
       - dependency-name: "create-react-class"
       - dependency-name: "css-loader"
       - dependency-name: "css-minimizer-webpack-plugin"
@@ -61,11 +63,7 @@ updates:
       - dependency-name: "less-loader"
       - dependency-name: "marked"
       - dependency-name: "mini-css-extract-plugin"
-      - dependency-name: "mobx"
-      - dependency-name: "mobx-react"
       - dependency-name: "papaparse"
-      - dependency-name: "prettier"
-      - dependency-name: "query-string"
       - dependency-name: "react-date-range"
       - dependency-name: "react-lazyload"
       - dependency-name: "react-mentions"
@@ -79,6 +77,4 @@ updates:
       - dependency-name: "size-limit"
       - dependency-name: "sprintf-js"
       - dependency-name: "terser-webpack-plugin"
-      - dependency-name: "tslib"
-      - dependency-name: "typescript"
       - dependency-name: "u2f-api"
