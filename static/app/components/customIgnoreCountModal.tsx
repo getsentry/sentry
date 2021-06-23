@@ -48,15 +48,8 @@ class CustomIgnoreCountModal extends Component<Props, State> {
   };
 
   render() {
-    const {
-      Header,
-      Footer,
-      Body,
-      countLabel,
-      label,
-      closeModal,
-      windowChoices,
-    } = this.props;
+    const {Header, Footer, Body, countLabel, label, closeModal, windowChoices} =
+      this.props;
     const {count, window} = this.state;
     return (
       <Fragment>

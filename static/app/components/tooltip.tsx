@@ -137,22 +137,20 @@ class Tooltip extends React.Component<Props, State> {
   delayTimeout: number | null = null;
   delayHideTimeout: number | null = null;
 
-  getPortal = memoize(
-    (usesGlobalPortal): HTMLElement => {
-      if (usesGlobalPortal) {
-        let portal = document.getElementById('tooltip-portal');
-        if (!portal) {
-          portal = document.createElement('div');
-          portal.setAttribute('id', 'tooltip-portal');
-          document.body.appendChild(portal);
-        }
-        return portal;
+  getPortal = memoize((usesGlobalPortal): HTMLElement => {
+    if (usesGlobalPortal) {
+      let portal = document.getElementById('tooltip-portal');
+      if (!portal) {
+        portal = document.createElement('div');
+        portal.setAttribute('id', 'tooltip-portal');
+        document.body.appendChild(portal);
       }
-      const portal = document.createElement('div');
-      document.body.appendChild(portal);
       return portal;
     }
-  );
+    const portal = document.createElement('div');
+    document.body.appendChild(portal);
+    return portal;
+  });
 
   setOpen = () => {
     this.setState({isOpen: true});

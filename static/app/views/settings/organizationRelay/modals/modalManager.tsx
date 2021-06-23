@@ -146,29 +146,31 @@ class DialogManager<
     }
   };
 
-  handleValidate = <F extends keyof Values>(field: F) => () => {
-    const isFieldValueEmpty = !this.state.values[field].replace(/\s/g, '');
+  handleValidate =
+    <F extends keyof Values>(field: F) =>
+    () => {
+      const isFieldValueEmpty = !this.state.values[field].replace(/\s/g, '');
 
-    const fieldErrorAlreadyExist = this.state.errors[field];
+      const fieldErrorAlreadyExist = this.state.errors[field];
 
-    if (isFieldValueEmpty && fieldErrorAlreadyExist) {
-      return;
-    }
+      if (isFieldValueEmpty && fieldErrorAlreadyExist) {
+        return;
+      }
 
-    if (isFieldValueEmpty && !fieldErrorAlreadyExist) {
-      this.setState(prevState => ({
-        errors: {
-          ...prevState.errors,
-          [field]: t('Field Required'),
-        },
-      }));
-      return;
-    }
+      if (isFieldValueEmpty && !fieldErrorAlreadyExist) {
+        this.setState(prevState => ({
+          errors: {
+            ...prevState.errors,
+            [field]: t('Field Required'),
+          },
+        }));
+        return;
+      }
 
-    if (!isFieldValueEmpty && fieldErrorAlreadyExist) {
-      this.clearError(field);
-    }
-  };
+      if (!isFieldValueEmpty && fieldErrorAlreadyExist) {
+        this.clearError(field);
+      }
+    };
 
   handleValidateKey = () => {
     const {savedRelays} = this.props;

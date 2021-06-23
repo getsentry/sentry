@@ -35,14 +35,8 @@ class TotalCrashFreeUsers extends AsyncComponent<Props, State> {
   shouldReload = true;
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {
-      location,
-      defaultStatsPeriod,
-      organization,
-      projectSlug,
-      version,
-      selection,
-    } = this.props;
+    const {location, defaultStatsPeriod, organization, projectSlug, version, selection} =
+      this.props;
 
     return [
       [

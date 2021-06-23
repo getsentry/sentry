@@ -36,15 +36,8 @@ type Props = {
 };
 
 export default function ActionTargetSelector(props: Props) {
-  const {
-    action,
-    availableAction,
-    disabled,
-    loading,
-    onChange,
-    organization,
-    project,
-  } = props;
+  const {action, availableAction, disabled, loading, onChange, organization, project} =
+    props;
 
   const handleChangeTargetIdentifier = (value: SelectValue<string>) => {
     onChange(value.value);

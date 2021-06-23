@@ -42,14 +42,8 @@ class Clipboard extends Component<Props> {
   element?: ReturnType<typeof ReactDOM.findDOMNode>;
 
   handleClick = () => {
-    const {
-      value,
-      hideMessages,
-      successMessage,
-      errorMessage,
-      onSuccess,
-      onError,
-    } = this.props;
+    const {value, hideMessages, successMessage, errorMessage, onSuccess, onError} =
+      this.props;
     // Copy returns whether it succeeded to copy the text
     const success = copy(value);
     if (!success) {

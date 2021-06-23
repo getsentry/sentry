@@ -42,11 +42,11 @@ type State = {
 class Form extends React.Component<Props<Values, KeysOfUnion<Values>>, State> {
   state: State = {displayEventId: !!this.props.eventId?.value};
 
-  handleChange = <K extends keyof Values>(field: K) => (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    this.props.onChange(field, event.target.value);
-  };
+  handleChange =
+    <K extends keyof Values>(field: K) =>
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      this.props.onChange(field, event.target.value);
+    };
 
   handleToggleEventId = () => {
     this.setState(prevState => ({displayEventId: !prevState.displayEventId}));

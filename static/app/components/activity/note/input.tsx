@@ -156,16 +156,8 @@ class NoteInputComponent extends React.Component<Props, State> {
 
   render() {
     const {preview, value} = this.state;
-    const {
-      modelId,
-      busy,
-      placeholder,
-      minHeight,
-      errorJSON,
-      memberList,
-      teams,
-      theme,
-    } = this.props;
+    const {modelId, busy, placeholder, minHeight, errorJSON, memberList, teams, theme} =
+      this.props;
 
     const existingItem = !!modelId;
     const btnText = existingItem ? t('Save Comment') : t('Post Comment');

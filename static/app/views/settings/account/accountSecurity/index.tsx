@@ -79,13 +79,8 @@ class AccountSecurity extends AsyncView<Props> {
   };
 
   renderBody() {
-    const {
-      authenticators,
-      countEnrolled,
-      deleteDisabled,
-      onDisable,
-      hasVerifiedEmail,
-    } = this.props;
+    const {authenticators, countEnrolled, deleteDisabled, onDisable, hasVerifiedEmail} =
+      this.props;
     const isEmpty = !authenticators?.length;
     return (
       <div>

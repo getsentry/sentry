@@ -101,38 +101,38 @@ class DragManager extends React.Component<DragManagerProps, DragManagerState> {
 
   hasInteractiveLayer = (): boolean => !!this.props.interactiveLayerRef.current;
 
-  onDragStart = (viewHandle: ViewHandleType) => (
-    event: React.MouseEvent<HTMLDivElement, MouseEvent>
-  ) => {
-    const isDragging = this.state.isDragging || this.state.isWindowSelectionDragging;
+  onDragStart =
+    (viewHandle: ViewHandleType) =>
+    (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
+      const isDragging = this.state.isDragging || this.state.isWindowSelectionDragging;
 
-    if (isDragging || event.type !== 'mousedown' || !this.hasInteractiveLayer()) {
-      return;
-    }
+      if (isDragging || event.type !== 'mousedown' || !this.hasInteractiveLayer()) {
+        return;
+      }
 
-    // prevent the user from selecting things outside the minimap when dragging
-    // the mouse cursor outside the minimap
+      // prevent the user from selecting things outside the minimap when dragging
+      // the mouse cursor outside the minimap
 
-    this.previousUserSelect = setBodyUserSelect({
-      userSelect: 'none',
-      MozUserSelect: 'none',
-      msUserSelect: 'none',
-      webkitUserSelect: 'none',
-    });
+      this.previousUserSelect = setBodyUserSelect({
+        userSelect: 'none',
+        MozUserSelect: 'none',
+        msUserSelect: 'none',
+        webkitUserSelect: 'none',
+      });
 
-    // attach event listeners so that the mouse cursor can drag outside of the
-    // minimap
-    window.addEventListener('mousemove', this.onDragMove);
-    window.addEventListener('mouseup', this.onDragEnd);
+      // attach event listeners so that the mouse cursor can drag outside of the
+      // minimap
+      window.addEventListener('mousemove', this.onDragMove);
+      window.addEventListener('mouseup', this.onDragEnd);
 
-    // indicate drag has begun
+      // indicate drag has begun
 
-    this.setState({
-      isDragging: true,
-      isWindowSelectionDragging: false,
-      currentDraggingHandle: viewHandle,
-    });
-  };
+      this.setState({
+        isDragging: true,
+        isWindowSelectionDragging: false,
+        currentDraggingHandle: viewHandle,
+      });
+    };
 
   onLeftHandleDragStart = (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
     this.onDragStart(ViewHandleType.Left)(event);

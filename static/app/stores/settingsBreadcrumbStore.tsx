@@ -21,39 +21,38 @@ type Internals = {
   pathMap: Record<string, string>;
 };
 
-const storeConfig: Reflux.StoreDefinition &
-  SettingsBreadcrumbStoreInterface &
-  Internals = {
-  pathMap: {},
-  init() {
-    this.reset();
-    this.listenTo(SettingsBreadcrumbActions.mapTitle, this.onUpdateRouteMap);
-    this.listenTo(SettingsBreadcrumbActions.trimMappings, this.onTrimMappings);
-  },
+const storeConfig: Reflux.StoreDefinition & SettingsBreadcrumbStoreInterface & Internals =
+  {
+    pathMap: {},
+    init() {
+      this.reset();
+      this.listenTo(SettingsBreadcrumbActions.mapTitle, this.onUpdateRouteMap);
+      this.listenTo(SettingsBreadcrumbActions.trimMappings, this.onTrimMappings);
+    },
 
-  reset() {
-    this.pathMap = {};
-  },
+    reset() {
+      this.pathMap = {};
+    },
 
-  getPathMap() {
-    return this.pathMap;
-  },
+    getPathMap() {
+      return this.pathMap;
+    },
 
-  onUpdateRouteMap({routes, title}) {
-    this.pathMap[getRouteStringFromRoutes(routes)] = title;
-    this.trigger(this.pathMap);
-  },
+    onUpdateRouteMap({routes, title}) {
+      this.pathMap[getRouteStringFromRoutes(routes)] = title;
+      this.trigger(this.pathMap);
+    },
 
-  onTrimMappings(routes) {
-    const routePath = getRouteStringFromRoutes(routes);
-    for (const fullPath in this.pathMap) {
-      if (!routePath.startsWith(fullPath)) {
-        delete this.pathMap[fullPath];
+    onTrimMappings(routes) {
+      const routePath = getRouteStringFromRoutes(routes);
+      for (const fullPath in this.pathMap) {
+        if (!routePath.startsWith(fullPath)) {
+          delete this.pathMap[fullPath];
+        }
       }
-    }
-    this.trigger(this.pathMap);
-  },
-};
+      this.trigger(this.pathMap);
+    },
+  };
 
 type SettingsBreadcrumbStore = Reflux.Store & SettingsBreadcrumbStoreInterface;
 

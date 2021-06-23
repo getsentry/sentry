@@ -88,14 +88,8 @@ class BarChartZoom extends React.Component<Props> {
     // These values are null when the user uses the toolbox included in ECharts
     // to navigate back through zoom history, but we hide it below.
     if (axis.rangeStart !== null && axis.rangeEnd !== null) {
-      const {
-        buckets,
-        location,
-        paramStart,
-        paramEnd,
-        minZoomWidth,
-        onHistoryPush,
-      } = this.props;
+      const {buckets, location, paramStart, paramEnd, minZoomWidth, onHistoryPush} =
+        this.props;
       const {start} = buckets[axis.rangeStart];
       const {end} = buckets[axis.rangeEnd];
 

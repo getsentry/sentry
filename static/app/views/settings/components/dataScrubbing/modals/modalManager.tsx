@@ -239,29 +239,31 @@ class ModalManager<T extends ProjectId> extends React.Component<Props<T>, State>
     this.setState({isFormValid});
   }
 
-  handleValidate = <K extends keyof Values>(field: K) => () => {
-    const isFieldValueEmpty = !this.state.values[field].trim();
+  handleValidate =
+    <K extends keyof Values>(field: K) =>
+    () => {
+      const isFieldValueEmpty = !this.state.values[field].trim();
 
-    const fieldErrorAlreadyExist = this.state.errors[field];
+      const fieldErrorAlreadyExist = this.state.errors[field];
 
-    if (isFieldValueEmpty && fieldErrorAlreadyExist) {
-      return;
-    }
+      if (isFieldValueEmpty && fieldErrorAlreadyExist) {
+        return;
+      }
 
-    if (isFieldValueEmpty && !fieldErrorAlreadyExist) {
-      this.setState(prevState => ({
-        errors: {
-          ...prevState.errors,
-          [field]: t('Field Required'),
-        },
-      }));
-      return;
-    }
+      if (isFieldValueEmpty && !fieldErrorAlreadyExist) {
+        this.setState(prevState => ({
+          errors: {
+            ...prevState.errors,
+            [field]: t('Field Required'),
+          },
+        }));
+        return;
+      }
 
-    if (!isFieldValueEmpty && fieldErrorAlreadyExist) {
-      this.clearError(field);
-    }
-  };
+      if (!isFieldValueEmpty && fieldErrorAlreadyExist) {
+        this.clearError(field);
+      }
+    };
 
   handleUpdateEventId = (eventId: string) => {
     if (eventId === this.state.eventId.value) {

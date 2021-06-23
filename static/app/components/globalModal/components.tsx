@@ -73,14 +73,13 @@ type HeaderProps = {
  * Creates a ModalHeader that includes props to enable the close button
  */
 const makeClosableHeader = (closeModal: () => void) => {
-  const ClosableHeader: React.FC<
-    React.ComponentProps<typeof ModalHeader> & HeaderProps
-  > = ({closeButton, children, ...props}) => (
-    <ModalHeader {...props}>
-      {children}
-      {closeButton && <CloseButton onClick={closeModal} />}
-    </ModalHeader>
-  );
+  const ClosableHeader: React.FC<React.ComponentProps<typeof ModalHeader> & HeaderProps> =
+    ({closeButton, children, ...props}) => (
+      <ModalHeader {...props}>
+        {children}
+        {closeButton && <CloseButton onClick={closeModal} />}
+      </ModalHeader>
+    );
 
   ClosableHeader.displayName = 'Header';
 
@@ -90,10 +89,9 @@ const makeClosableHeader = (closeModal: () => void) => {
 /**
  * Creates a CloseButton component that is connected to the provided closeModal trigger
  */
-const makeCloseButton = (
-  closeModal: () => void
-): React.FC<React.ComponentProps<typeof CloseButton>> => props => (
-  <CloseButton {...props} onClick={closeModal} />
-);
+const makeCloseButton =
+  (closeModal: () => void): React.FC<React.ComponentProps<typeof CloseButton>> =>
+  props =>
+    <CloseButton {...props} onClick={closeModal} />;
 
 export {makeClosableHeader, makeCloseButton, ModalBody, ModalFooter};

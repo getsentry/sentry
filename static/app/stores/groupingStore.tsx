@@ -82,9 +82,7 @@ export type Fingerprint = {
 
 type ResponseProcessors = {
   merged: (item: ApiFingerprint[]) => Fingerprint[];
-  similar: (
-    data: [Group, ScoreMap]
-  ) => {
+  similar: (data: [Group, ScoreMap]) => {
     issue: Group;
     score: ScoreMap;
     scoresByInterface: Record<string, Array<[string, number | null]>>;

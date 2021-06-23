@@ -66,9 +66,8 @@ class TimelineIncident extends React.Component<IncidentProps> {
         (activity.value &&
           activity.value === `${IncidentStatus.OPENED}` &&
           activities.find(({type}) => type === IncidentActivityType.DETECTED));
-      const activityDuration = (nextActivity
-        ? moment(nextActivity.dateCreated)
-        : moment()
+      const activityDuration = (
+        nextActivity ? moment(nextActivity.dateCreated) : moment()
       ).diff(moment(activity.dateCreated), 'milliseconds');
 
       title = t('Alert status changed');

@@ -177,14 +177,8 @@ class DateRange extends React.Component<Props, State> {
   };
 
   render() {
-    const {
-      className,
-      maxPickableDays,
-      utc,
-      showTimePicker,
-      onChangeUtc,
-      theme,
-    } = this.props;
+    const {className, maxPickableDays, utc, showTimePicker, onChangeUtc, theme} =
+      this.props;
     const start = this.props.start ?? '';
     const end = this.props.end ?? '';
 

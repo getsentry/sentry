@@ -101,7 +101,7 @@ function withExperiment<
     }
 
     getProps<P extends ExperimentType>() {
-      return (this.props as unknown) as ExpectedProps<P>;
+      return this.props as unknown as ExpectedProps<P>;
     }
 
     get config() {

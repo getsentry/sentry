@@ -997,15 +997,8 @@ class IssueListOverview extends React.Component<Props, State> {
       itemsRemoved,
       hasSessions,
     } = this.state;
-    const {
-      organization,
-      savedSearch,
-      savedSearches,
-      tags,
-      selection,
-      location,
-      router,
-    } = this.props;
+    const {organization, savedSearch, savedSearches, tags, selection, location, router} =
+      this.props;
     const links = parseLinkHeader(pageLinks);
     const query = this.getQuery();
     const queryPageInt = parseInt(location.query.page, 10);

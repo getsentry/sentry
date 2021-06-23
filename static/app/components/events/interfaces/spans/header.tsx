@@ -536,9 +536,7 @@ class ActualMinimap extends React.PureComponent<{
     }).spanTree;
   }
 
-  getBounds(
-    bounds: SpanGeneratedBoundsType
-  ): {
+  getBounds(bounds: SpanGeneratedBoundsType): {
     left: string;
     width: string;
   } {

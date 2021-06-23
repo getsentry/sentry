@@ -157,14 +157,8 @@ class WidgetCardChart extends React.Component<WidgetCardChartProps> {
   }
 
   render() {
-    const {
-      theme,
-      tableResults,
-      timeseriesResults,
-      errorMessage,
-      loading,
-      widget,
-    } = this.props;
+    const {theme, tableResults, timeseriesResults, errorMessage, loading, widget} =
+      this.props;
 
     if (widget.displayType === 'table') {
       return (

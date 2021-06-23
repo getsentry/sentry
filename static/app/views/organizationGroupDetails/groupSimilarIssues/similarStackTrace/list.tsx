@@ -68,16 +68,8 @@ class List extends Component<Props, State> {
     this.setState({showAllItems: true});
   };
   render() {
-    const {
-      orgId,
-      groupId,
-      project,
-      items,
-      filteredItems,
-      pageLinks,
-      onMerge,
-      v2,
-    } = this.props;
+    const {orgId, groupId, project, items, filteredItems, pageLinks, onMerge, v2} =
+      this.props;
 
     const {showAllItems} = this.state;
 

@@ -144,12 +144,9 @@ class AlertRuleDetails extends Component<Props, State> {
       const rulePromise = fetchAlertRule(orgId, ruleId).then(rule =>
         this.setState({rule})
       );
-      const incidentsPromise = fetchIncidentsForRule(
-        orgId,
-        ruleId,
-        start,
-        end
-      ).then(incidents => this.setState({incidents}));
+      const incidentsPromise = fetchIncidentsForRule(orgId, ruleId, start, end).then(
+        incidents => this.setState({incidents})
+      );
       await Promise.all([rulePromise, incidentsPromise]);
       this.setState({isLoading: false, hasError: false});
     } catch (_err) {

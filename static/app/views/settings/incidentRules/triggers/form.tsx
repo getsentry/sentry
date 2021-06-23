@@ -124,13 +124,11 @@ class TriggerFormContainer extends React.Component<TriggerFormContainerProps> {
     fetchOrgMembers(api, organization.slug);
   }
 
-  handleChangeTrigger = (triggerIndex: number) => (
-    trigger: Trigger,
-    changeObj: Partial<Trigger>
-  ) => {
-    const {onChange} = this.props;
-    onChange(triggerIndex, trigger, changeObj);
-  };
+  handleChangeTrigger =
+    (triggerIndex: number) => (trigger: Trigger, changeObj: Partial<Trigger>) => {
+      const {onChange} = this.props;
+      onChange(triggerIndex, trigger, changeObj);
+    };
 
   handleChangeResolveTrigger = (trigger: Trigger, _: Partial<Trigger>) => {
     const {onResolveThresholdChange} = this.props;

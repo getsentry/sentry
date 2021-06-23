@@ -138,13 +138,11 @@ export default class SentryAppExternalInstallation extends AsyncView<Props, Stat
     this.setState({selectedOrgSlug: orgSlug, reloading: true});
 
     try {
-      const [organization, installations]: [
-        Organization,
-        SentryAppInstallation[]
-      ] = await Promise.all([
-        this.api.requestPromise(`/organizations/${orgSlug}/`),
-        this.api.requestPromise(`/organizations/${orgSlug}/sentry-app-installations/`),
-      ]);
+      const [organization, installations]: [Organization, SentryAppInstallation[]] =
+        await Promise.all([
+          this.api.requestPromise(`/organizations/${orgSlug}/`),
+          this.api.requestPromise(`/organizations/${orgSlug}/sentry-app-installations/`),
+        ]);
       const isInstalled = installations
         .map(install => install.app.slug)
         .includes(this.sentryAppSlug);

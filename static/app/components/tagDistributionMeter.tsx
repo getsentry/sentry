@@ -45,14 +45,8 @@ export default class TagDistributionMeter extends React.Component<Props> {
   };
 
   renderTitle() {
-    const {
-      segments,
-      totalValues,
-      title,
-      isLoading,
-      hasError,
-      showReleasePackage,
-    } = this.props;
+    const {segments, totalValues, title, isLoading, hasError, showReleasePackage} =
+      this.props;
 
     if (!Array.isArray(segments) || segments.length <= 0) {
       return (

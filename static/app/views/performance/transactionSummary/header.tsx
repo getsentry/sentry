@@ -130,13 +130,8 @@ class TransactionHeader extends React.Component<Props> {
   }
 
   render() {
-    const {
-      organization,
-      location,
-      transactionName,
-      currentTab,
-      hasWebVitals,
-    } = this.props;
+    const {organization, location, transactionName, currentTab, hasWebVitals} =
+      this.props;
 
     const summaryTarget = transactionSummaryRouteWithQuery({
       orgSlug: organization.slug,

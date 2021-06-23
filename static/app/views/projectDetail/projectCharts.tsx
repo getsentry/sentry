@@ -264,15 +264,8 @@ class ProjectCharts extends Component<Props, State> {
   };
 
   render() {
-    const {
-      api,
-      router,
-      location,
-      organization,
-      theme,
-      projectId,
-      hasSessions,
-    } = this.props;
+    const {api, router, location, organization, theme, projectId, hasSessions} =
+      this.props;
     const {totalValues} = this.state;
     const hasDiscover = organization.features.includes('discover-basic');
     const displayMode = this.displayMode;

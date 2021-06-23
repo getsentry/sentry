@@ -43,9 +43,8 @@ const List = ({
   return (
     <Wrapper>
       {Object.keys(relaysByPublicKey).map(relayByPublicKey => {
-        const {name, description, created, activities} = relaysByPublicKey[
-          relayByPublicKey
-        ];
+        const {name, description, created, activities} =
+          relaysByPublicKey[relayByPublicKey];
         return (
           <Card key={relayByPublicKey}>
             <CardHeader

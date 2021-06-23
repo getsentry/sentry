@@ -382,11 +382,8 @@ class SpanTree extends React.Component<PropType> {
   };
 
   render() {
-    const {
-      spanTree,
-      numOfSpansOutOfViewAbove,
-      numOfFilteredSpansAbove,
-    } = this.renderRootSpan();
+    const {spanTree, numOfSpansOutOfViewAbove, numOfFilteredSpansAbove} =
+      this.renderRootSpan();
 
     const infoMessage = this.generateInfoMessage({
       isCurrentSpanHidden: false,

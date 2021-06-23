@@ -42,16 +42,8 @@ class ProjectPluginRow extends PureComponent<Props> {
   };
 
   render() {
-    const {
-      id,
-      name,
-      slug,
-      version,
-      author,
-      hasConfiguration,
-      enabled,
-      canDisable,
-    } = this.props;
+    const {id, name, slug, version, author, hasConfiguration, enabled, canDisable} =
+      this.props;
 
     const configureUrl = recreateRoute(id, this.props);
     return (

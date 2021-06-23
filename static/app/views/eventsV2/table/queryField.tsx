@@ -327,12 +327,8 @@ class QueryField extends React.Component<Props> {
   }
 
   renderParameterInputs(parameters: ParameterDescription[]): React.ReactNode[] {
-    const {
-      disabled,
-      inFieldLabels,
-      filterAggregateParameters,
-      hideParameterSelector,
-    } = this.props;
+    const {disabled, inFieldLabels, filterAggregateParameters, hideParameterSelector} =
+      this.props;
     const inputs = parameters.map((descriptor: ParameterDescription, index: number) => {
       if (descriptor.kind === 'column' && descriptor.options.length > 0) {
         if (hideParameterSelector) {

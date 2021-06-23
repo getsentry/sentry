@@ -70,9 +70,8 @@ function SymbolSources({
     openDebugFileSourceDialog();
   }, [location.query, appStoreConnectContext]);
 
-  const hasAppConnectStoreFeatureFlag = !!organization.features?.includes(
-    'app-store-connect'
-  );
+  const hasAppConnectStoreFeatureFlag =
+    !!organization.features?.includes('app-store-connect');
 
   if (
     hasAppConnectStoreFeatureFlag &&

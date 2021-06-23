@@ -137,16 +137,16 @@ class FiltersAndSampling extends AsyncView<Props, State> {
     );
   };
 
-  handleAddRule = <T extends keyof Pick<State, 'errorRules' | 'transactionRules'>>(
-    type: T
-  ) => () => {
-    if (type === 'errorRules') {
-      this.handleOpenErrorRule()();
-      return;
-    }
+  handleAddRule =
+    <T extends keyof Pick<State, 'errorRules' | 'transactionRules'>>(type: T) =>
+    () => {
+      if (type === 'errorRules') {
+        this.handleOpenErrorRule()();
+        return;
+      }
 
-    this.handleOpenTransactionRule()();
-  };
+      this.handleOpenTransactionRule()();
+    };
 
   handleEditRule = (rule: DynamicSamplingRule) => () => {
     if (rule.type === DynamicSamplingRuleType.ERROR) {

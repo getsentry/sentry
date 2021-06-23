@@ -64,9 +64,9 @@ class NotificationSettingsByProjects extends AsyncComponent<Props, State> {
     const {projects: stateProjects} = this.state;
 
     return Object.fromEntries(
-      Object.values(
-        groupByOrganization(sortProjects(stateProjects))
-      ).map(({organization, projects}) => [`${organization.name} Projects`, projects])
+      Object.values(groupByOrganization(sortProjects(stateProjects))).map(
+        ({organization, projects}) => [`${organization.name} Projects`, projects]
+      )
     );
   };
 

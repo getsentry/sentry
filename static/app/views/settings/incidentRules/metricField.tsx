@@ -136,14 +136,11 @@ const MetricField = ({
     {({onChange, value, model, disabled}) => {
       const dataset = model.getValue('dataset');
 
-      const {
-        fieldOptionsConfig,
-        hidePrimarySelector,
-        hideParameterSelector,
-      } = getFieldOptionConfig({
-        dataset: dataset as Dataset,
-        alertType,
-      });
+      const {fieldOptionsConfig, hidePrimarySelector, hideParameterSelector} =
+        getFieldOptionConfig({
+          dataset: dataset as Dataset,
+          alertType,
+        });
       const fieldOptions = generateFieldOptions({organization, ...fieldOptionsConfig});
       const fieldValue = explodeFieldString(value ?? '');
 

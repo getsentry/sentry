@@ -55,15 +55,8 @@ class CustomResolutionModal extends React.Component<Props, State> {
     }));
 
   render() {
-    const {
-      orgSlug,
-      projectSlug,
-      closeModal,
-      onSelected,
-      Header,
-      Body,
-      Footer,
-    } = this.props;
+    const {orgSlug, projectSlug, closeModal, onSelected, Header, Body, Footer} =
+      this.props;
     const url = projectSlug
       ? `/projects/${orgSlug}/${projectSlug}/releases/`
       : `/organizations/${orgSlug}/releases/`;

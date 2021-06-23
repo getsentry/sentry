@@ -32,16 +32,8 @@ type Props = RequestProps & {
 };
 
 function getHistogramRequestPayload(props: RequestProps) {
-  const {
-    fields,
-    numBuckets,
-    min,
-    max,
-    precision,
-    dataFilter,
-    eventView,
-    location,
-  } = props;
+  const {fields, numBuckets, min, max, precision, dataFilter, eventView, location} =
+    props;
   const baseApiPayload = {
     field: fields,
     numBuckets,

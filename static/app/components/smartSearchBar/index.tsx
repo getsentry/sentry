@@ -391,13 +391,8 @@ class SmartSearchBar extends React.Component<Props, State> {
   };
 
   doSearch = async () => {
-    const {
-      onSearch,
-      onSavedRecentSearch,
-      api,
-      organization,
-      savedSearchType,
-    } = this.props;
+    const {onSearch, onSavedRecentSearch, api, organization, savedSearchType} =
+      this.props;
     this.blur();
     const query = removeSpace(this.state.query);
     callIfFunction(onSearch, query);

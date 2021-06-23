@@ -17,9 +17,10 @@ type StatuspageIncident = {
   incident_updates: {body: string}[];
 };
 
-function getIncidentsFromIncidentResponse(
-  statuspageIncidents: StatuspageIncident[]
-): {incidents: SentryServiceIncident[]; indicator: IncidentImpact} {
+function getIncidentsFromIncidentResponse(statuspageIncidents: StatuspageIncident[]): {
+  incidents: SentryServiceIncident[];
+  indicator: IncidentImpact;
+} {
   if (statuspageIncidents === null || statuspageIncidents.length === 0) {
     return {incidents: [], indicator: 'none'};
   }

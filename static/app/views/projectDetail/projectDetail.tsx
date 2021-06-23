@@ -178,14 +178,8 @@ class ProjectDetail extends AsyncView<Props, State> {
   }
 
   renderBody() {
-    const {
-      organization,
-      params,
-      location,
-      router,
-      loadingProjects,
-      selection,
-    } = this.props;
+    const {organization, params, location, router, loadingProjects, selection} =
+      this.props;
     const project = this.project;
     const {hasSessions} = this.state;
     const hasPerformance = organization.features.includes('performance-view');

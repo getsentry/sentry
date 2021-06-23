@@ -65,12 +65,8 @@ function IncompatibleQueryAlert({
   orgId,
   onClose,
 }: AlertProps) {
-  const {
-    hasProjectError,
-    hasEnvironmentError,
-    hasEventTypeError,
-    hasYAxisError,
-  } = incompatibleQuery;
+  const {hasProjectError, hasEnvironmentError, hasEventTypeError, hasYAxisError} =
+    incompatibleQuery;
 
   const totalErrors = Object.values(incompatibleQuery).filter(val => val === true).length;
 
