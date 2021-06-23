@@ -34,11 +34,13 @@ const Form = ({
   onValidateKey,
   onSave,
 }: Props) => {
-  const handleChange = (field: FormField) => (
-    event: React.ChangeEvent<HTMLTextAreaElement> | React.ChangeEvent<HTMLInputElement>
-  ) => {
-    onChange(field, event.target.value);
-  };
+  const handleChange =
+    (field: FormField) =>
+    (
+      event: React.ChangeEvent<HTMLTextAreaElement> | React.ChangeEvent<HTMLInputElement>
+    ) => {
+      onChange(field, event.target.value);
+    };
 
   const handleSubmit = () => {
     if (isFormValid) {

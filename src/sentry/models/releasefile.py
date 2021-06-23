@@ -6,7 +6,7 @@ from contextlib import contextmanager
 from hashlib import sha1
 from io import BytesIO
 from tempfile import TemporaryDirectory
-from typing import IO, ContextManager, Optional, Tuple
+from typing import IO, Optional, Tuple
 from urllib.parse import urlsplit, urlunsplit
 
 from django.core.files.base import File as FileObj
@@ -62,6 +62,12 @@ class ReleaseFile(Model):
     ident = models.CharField(max_length=40)
     name = models.TextField()
     dist = FlexibleForeignKey("sentry.Distribution", null=True)
+
+    #: For classic file uploads, this field is 1.
+    #: For release archives, this field is 0.
+    #: For artifact indexes, this field is the number of artifacts contained
+    #: in the index.
+    artifact_count = BoundedPositiveIntegerField(null=True, default=1)
 
     __repr__ = sane_repr("release", "ident")
 
@@ -217,6 +223,10 @@ class _ArtifactIndexData:
         """Meant to be read-only"""
         return self._data
 
+    @property
+    def num_files(self):
+        return len(self._data.get("files", {}))
+
     def get(self, filename: str):
         return self._data.get("files", {}).get(filename, None)
 
@@ -249,12 +259,12 @@ class _ArtifactIndexGuard:
                 return json.load(fp)
 
     @contextmanager
-    def writable_data(self, create: bool) -> ContextManager[_ArtifactIndexData]:
+    def writable_data(self, create: bool, initial_artifact_count=None):
         """Context manager for editable artifact index"""
         with transaction.atomic():
             created = False
             if create:
-                releasefile, created = self._get_or_create_releasefile()
+                releasefile, created = self._get_or_create_releasefile(initial_artifact_count)
             else:
                 # Lock the row for editing:
                 # NOTE: Do not select_related('file') here, because we do not
@@ -289,22 +299,23 @@ class _ArtifactIndexGuard:
 
                 target_file.putfile(BytesIO(json.dumps(index_data.data).encode()))
 
+                artifact_count = index_data.num_files
                 if not created:
                     # Update and clean existing
                     old_file = releasefile.file
-                    releasefile.update(file=target_file)
+                    releasefile.update(file=target_file, artifact_count=artifact_count)
                     old_file.delete()
 
-    def _get_or_create_releasefile(self):
+    def _get_or_create_releasefile(self, initial_artifact_count):
         """Make sure that the release file exists"""
-
         return ReleaseFile.objects.select_for_update().get_or_create(
             **self._key_fields(),
             defaults={
+                "artifact_count": initial_artifact_count,
                 "file": lambda: File.objects.create(
                     name=ARTIFACT_INDEX_FILENAME,
                     type=ARTIFACT_INDEX_TYPE,
-                )
+                ),
             },
         )
 
@@ -345,6 +356,7 @@ def update_artifact_index(release: Release, dist: Optional[Distribution], archiv
         organization_id=release.organization_id,
         dist=dist,
         file=archive_file,
+        artifact_count=0,  # Artifacts will be counted with artifact index
     )
 
     files_out = {}
@@ -366,7 +378,7 @@ def update_artifact_index(release: Release, dist: Optional[Distribution], archiv
             files_out[url] = info
 
     guard = _ArtifactIndexGuard(release, dist)
-    with guard.writable_data(create=True) as index_data:
+    with guard.writable_data(create=True, initial_artifact_count=len(files_out)) as index_data:
         index_data.update_files(files_out)
 
     return releasefile

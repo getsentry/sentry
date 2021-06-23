@@ -5,7 +5,7 @@ import {t} from 'app/locale';
 import {LightWeightOrganization, NewQuery, SelectValue} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import {decodeScalar} from 'app/utils/queryString';
-import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {tokenizeSearch} from 'app/utils/tokenizeSearch';
 
 import {getCurrentLandingDisplay, LandingDisplayField} from './landing/utils';
 import {
@@ -363,7 +363,7 @@ function generateGenericPerformanceEventView(
     conditions.setTagValues('transaction', [`*${conditions.query.join(' ')}*`]);
     conditions.query = [];
   }
-  savedQuery.query = stringifyQueryObject(conditions);
+  savedQuery.query = conditions.formatString();
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
   eventView.additionalConditions.addTagValues('event.type', ['transaction']);
@@ -432,7 +432,7 @@ function generateBackendPerformanceEventView(
     conditions.setTagValues('transaction', [`*${conditions.query.join(' ')}*`]);
     conditions.query = [];
   }
-  savedQuery.query = stringifyQueryObject(conditions);
+  savedQuery.query = conditions.formatString();
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
   eventView.additionalConditions.addTagValues('event.type', ['transaction']);
@@ -499,7 +499,7 @@ function generateFrontendPageloadPerformanceEventView(
     conditions.setTagValues('transaction', [`*${conditions.query.join(' ')}*`]);
     conditions.query = [];
   }
-  savedQuery.query = stringifyQueryObject(conditions);
+  savedQuery.query = conditions.formatString();
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
   eventView.additionalConditions
@@ -568,7 +568,7 @@ function generateFrontendOtherPerformanceEventView(
     conditions.setTagValues('transaction', [`*${conditions.query.join(' ')}*`]);
     conditions.query = [];
   }
-  savedQuery.query = stringifyQueryObject(conditions);
+  savedQuery.query = conditions.formatString();
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
   eventView.additionalConditions
@@ -646,7 +646,7 @@ export function generatePerformanceVitalDetailView(
     conditions.setTagValues('transaction', [`*${conditions.query.join(' ')}*`]);
     conditions.query = [];
   }
-  savedQuery.query = stringifyQueryObject(conditions);
+  savedQuery.query = conditions.formatString();
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
   eventView.additionalConditions

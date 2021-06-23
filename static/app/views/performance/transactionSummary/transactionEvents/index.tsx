@@ -16,7 +16,7 @@ import {
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
-import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {tokenizeSearch} from 'app/utils/tokenizeSearch';
 import withGlobalSelection from 'app/utils/withGlobalSelection';
 import withOrganization from 'app/utils/withOrganization';
 import withProjects from 'app/utils/withProjects';
@@ -165,9 +165,9 @@ function generateEventsEventView(
       version: 2,
       name: transactionName,
       fields,
-      query: stringifyQueryObject(conditions),
+      query: conditions.formatString(),
       projects: [],
-      orderby: '-timestamp',
+      orderby: decodeScalar(location.query.sort, '-timestamp'),
     },
     location
   );

@@ -1190,10 +1190,11 @@ export type RepositoryProjectPathConfig = BaseRepositoryProjectPathConfig & {
   provider: BaseIntegrationProvider | null;
 };
 
-export type RepositoryProjectPathConfigWithIntegration = BaseRepositoryProjectPathConfig & {
-  integrationId: string;
-  provider: BaseIntegrationProvider;
-};
+export type RepositoryProjectPathConfigWithIntegration =
+  BaseRepositoryProjectPathConfig & {
+    integrationId: string;
+    provider: BaseIntegrationProvider;
+  };
 
 export type PullRequest = {
   id: string;
@@ -2071,6 +2072,8 @@ export type SeriesApi = {
 };
 
 export type SessionApiResponse = SeriesApi & {
+  start: DateString;
+  end: DateString;
   query: string;
   intervals: string[];
   groups: {

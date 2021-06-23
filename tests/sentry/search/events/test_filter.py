@@ -1443,7 +1443,7 @@ class ParseSemverSearchTest(TestCase):
 
     def test_invalid_query(self):
         key = "semver"
-        filter = SearchFilter(SearchKey(key), ">", SearchValue("1.2.*"))
+        filter = SearchFilter(SearchKey(key), ">", SearchValue("1.2.hi"))
         with pytest.raises(InvalidSearchQuery, match="Invalid format for semver query"):
             parse_semver_search(filter, key, {"organization_id": self.organization.id})
 
@@ -1466,6 +1466,7 @@ class ParseSemverSearchTest(TestCase):
         self.run_test(">=", "1.2.4", "IN", [release_2.version])
         self.run_test("<", "1.2.4", "IN", [release.version])
         self.run_test("<=", "1.2.3", "IN", [release.version])
+        self.run_test("=", "1.2.4", "IN", [release_2.version])
 
     def test_invert_query(self):
         # Tests that flipping the query works and uses a NOT IN. Test all operators to
@@ -1531,3 +1532,21 @@ class ParseSemverSearchTest(TestCase):
         self.run_test(">", "1.2.3", "IN", [release_4.version, release_5.version])
         self.run_test(">", "1.2.3.4", "IN", [release_5.version])
         self.run_test(">", "2", "IN", [])
+
+    def test_wildcard(self):
+        release_1 = self.create_release(version="test@1.0.0.0")
+        release_2 = self.create_release(version="test@1.2.0.0")
+        release_3 = self.create_release(version="test@1.2.3.0")
+        release_4 = self.create_release(version="test@1.2.3.4")
+        release_5 = self.create_release(version="test@2.0.0.0")
+
+        self.run_test(
+            "=",
+            "1.X",
+            "IN",
+            [release_1.version, release_2.version, release_3.version, release_4.version],
+        )
+        self.run_test("=", "1.2.*", "IN", [release_2.version, release_3.version, release_4.version])
+        self.run_test("=", "1.2.3.*", "IN", [release_3.version, release_4.version])
+        self.run_test("=", "1.2.3.4", "IN", [release_4.version])
+        self.run_test("=", "2.*", "IN", [release_5.version])

@@ -42,9 +42,8 @@ type GroupingLevel = {
 
 function Grouping({api, groupId, location, organization}: Props) {
   const [isLoading, setIsLoading] = useState(false);
-  const [isGroupingLevelDetailsLoading, setIsGroupingLevelDetailsLoading] = useState(
-    false
-  );
+  const [isGroupingLevelDetailsLoading, setIsGroupingLevelDetailsLoading] =
+    useState(false);
   const [error, setError] = useState<undefined | Error>(undefined);
   const [groupingLevels, setGroupingLevels] = useState<GroupingLevel[]>([]);
   const [activeGroupingLevel, setActiveGroupingLevel] = useState<number | undefined>(

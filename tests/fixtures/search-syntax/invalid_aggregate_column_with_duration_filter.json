@@ -1,0 +1,9 @@
+[
+  {
+    "query": "avg(stack.colno):>500s",
+    "result": [
+      {"type": "freeText", "quoted": false, "value": "avg(stack.colno):>500s"},
+      {"type": "spaces", "value": ""}
+    ]
+  }
+]
