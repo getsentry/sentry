@@ -11,7 +11,6 @@ from sentry.api.serializers import serialize
 from sentry.models.transaction_threshold import (
     TRANSACTION_METRICS,
     ProjectTransactionThresholdOverride,
-    TransactionMetric,
 )
 
 MAX_TRANSACTION_THRESHOLDS_PER_PROJECT = 100
@@ -19,8 +18,8 @@ MAX_TRANSACTION_THRESHOLDS_PER_PROJECT = 100
 
 class ProjectTransactionThresholdOverrideSerializer(serializers.Serializer):
     transaction = serializers.CharField(required=True, max_length=200)
-    threshold = serializers.IntegerField(required=False)
-    metric = serializers.CharField(required=False)
+    threshold = serializers.IntegerField(required=True)
+    metric = serializers.CharField(required=True)
 
     def validate_metric(self, metric):
         for key, value in TRANSACTION_METRICS.items():
@@ -46,11 +45,11 @@ class ProjectTransactionThresholdOverrideSerializer(serializers.Serializer):
             .exclude(transaction=data["transaction"])
             .count()
         )
-
         if count >= MAX_TRANSACTION_THRESHOLDS_PER_PROJECT:
             raise serializers.ValidationError(
                 f"At most {MAX_TRANSACTION_THRESHOLDS_PER_PROJECT} configured transaction thresholds per project."
             )
+
         return data
 
 
@@ -66,9 +65,9 @@ class ProjectTransactionThresholdOverrideEndpoint(OrganizationEventsV2EndpointBa
 
     def get_project(self, request, organization):
         projects = self.get_projects(request, organization)
-
         if len(projects) != 1:
             raise ParseError("Only 1 project per transaction threshold")
+
         return projects[0]
 
     def get(self, request, organization):
@@ -100,7 +99,6 @@ class ProjectTransactionThresholdOverrideEndpoint(OrganizationEventsV2EndpointBa
             ),
             status.HTTP_200_OK,
         )
-        return
 
     def post(self, request, organization):
         if not self.has_feature(organization, request):
@@ -120,34 +118,20 @@ class ProjectTransactionThresholdOverrideEndpoint(OrganizationEventsV2EndpointBa
 
         data = serializer.validated_data
 
-        try:
-            with transaction.atomic():
-                transaction_threshold = ProjectTransactionThresholdOverride.objects.get(
-                    transaction=data["transaction"],
-                    project_id=project.id,
-                    organization_id=organization.id,
-                )
-                transaction_threshold.threshold = (
-                    data.get("threshold") or transaction_threshold.threshold
-                )
-                transaction_threshold.metric = data.get("metric") or transaction_threshold.metric
-                transaction_threshold.edited_by = request.user
-                transaction_threshold.save()
-
-            created = False
-
-        except ProjectTransactionThresholdOverride.DoesNotExist:
-            with transaction.atomic():
-                transaction_threshold = ProjectTransactionThresholdOverride.objects.create(
-                    transaction=data["transaction"],
-                    project_id=project.id,
-                    organization_id=organization.id,
-                    threshold=data.get("threshold", 300),
-                    metric=data.get("metric", TransactionMetric.DURATION.value),
-                    edited_by=request.user,
-                )
-
-            created = True
+        with transaction.atomic():
+            (
+                transaction_threshold,
+                created,
+            ) = ProjectTransactionThresholdOverride.objects.update_or_create(
+                transaction=data["transaction"],
+                project_id=project.id,
+                organization_id=organization.id,
+                defaults={
+                    "threshold": data["threshold"],
+                    "metric": data["metric"],
+                    "edited_by": request.user,
+                },
+            )
 
         return Response(
             serialize(
@@ -173,4 +157,5 @@ class ProjectTransactionThresholdOverrideEndpoint(OrganizationEventsV2EndpointBa
             return Response(status=status.HTTP_204_NO_CONTENT)
 
         transaction_threshold.delete()
+
         return Response(status=status.HTTP_204_NO_CONTENT)
