@@ -85,7 +85,7 @@ export class QueryResults {
       if (tokenState === TokenType.QUERY && token.length) {
         this.addQuery(token);
       } else if (tokenState === TokenType.TAG) {
-        this.addStringTag(token);
+        this.addStringTag(token, false);
       }
 
       if (trailingParen !== '') {
@@ -121,17 +121,17 @@ export class QueryResults {
     return formattedTokens.join(' ').trim();
   }
 
-  addStringTag(value: string) {
+  addStringTag(value: string, shouldEscape = true) {
     const [key, tag] = formatTag(value);
-    this.addTagValues(key, [tag]);
+    this.addTagValues(key, [tag], shouldEscape);
     return this;
   }
 
-  addTagValues(tag: string, tagValues: string[]) {
+  addTagValues(tag: string, tagValues: string[], shouldEscape = true) {
     for (const t of tagValues) {
       // Tag values that we insert through the UI can contain special characters
       // that need to escaped. User entered filters should not be escaped.
-      const escaped = escapeTagValue(t);
+      const escaped = shouldEscape ? escapeTagValue(t) : t;
       this.tagValues[tag] = Array.isArray(this.tagValues[tag])
         ? [...this.tagValues[tag], escaped]
         : [escaped];
@@ -141,9 +141,9 @@ export class QueryResults {
     return this;
   }
 
-  setTagValues(tag: string, tagValues: string[]) {
+  setTagValues(tag: string, tagValues: string[], shouldEscape = true) {
     this.removeTag(tag);
-    this.addTagValues(tag, tagValues);
+    this.addTagValues(tag, tagValues, shouldEscape);
     return this;
   }
 
