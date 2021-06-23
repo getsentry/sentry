@@ -293,9 +293,11 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
             {!loading && (
               <PanelHeader>
                 <TableLayout>
-                  <div>{t('Alert')}</div>
                   <div>{t('Alert Rule')}</div>
+                  <div>{t('Triggered')}</div>
+                  <div>{t('Duration')}</div>
                   <div>{t('Project')}</div>
+                  <div>{t('Alert ID')}</div>
                   <div>
                     <Feature
                       features={['team-alerts-ownership']}

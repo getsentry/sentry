@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import memoize from 'lodash/memoize';
 import moment from 'moment';
@@ -9,9 +9,12 @@ import ErrorBoundary from 'app/components/errorBoundary';
 import IdBadge from 'app/components/idBadge';
 import Link from 'app/components/links/link';
 import {PanelItem} from 'app/components/panels';
+import Tag from 'app/components/tag';
 import TimeSince from 'app/components/timeSince';
-import {t, tct} from 'app/locale';
+import {t} from 'app/locale';
+import TeamStore from 'app/stores/teamStore';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
+import space from 'app/styles/space';
 import {Actor, Organization, Project} from 'app/types';
 import {getUtcDateString} from 'app/utils/dates';
 import getDynamicText from 'app/utils/getDynamicText';
@@ -94,8 +97,12 @@ class AlertListRow extends Component<Props> {
         };
     const hasAlertOwnership = organization.features.includes('team-alerts-ownership');
     const ownerId = incident.alertRule.owner?.split(':')[1];
+    let teamName = '';
+    if (ownerId) {
+      teamName = TeamStore.getById(ownerId)?.name ?? '';
+    }
     const teamActor = ownerId
-      ? {type: 'team' as Actor['type'], id: ownerId, name: ''}
+      ? {type: 'team' as Actor['type'], id: ownerId, name: teamName}
       : null;
 
     return (
@@ -103,36 +110,39 @@ class AlertListRow extends Component<Props> {
         <IncidentPanelItem>
           <TableLayout>
             <Title>
-              <Link to={alertLink}>Alert #{incident.id}</Link>
-              <div>
-                {t('Triggered ')}{' '}
-                {getDynamicText({
-                  value: <TimeSince date={incident.dateStarted} extraShort />,
-                  fixed: '1w ago',
-                })}
-                <StyledTimeSeparator> | </StyledTimeSeparator>
-                {incident.status === IncidentStatus.CLOSED
-                  ? tct('Active for [duration]', {
-                      duration: (
-                        <Duration
-                          seconds={getDynamicText({value: duration, fixed: 1200})}
-                        />
-                      ),
-                    })
-                  : t('Still Active')}
-              </div>
+              <Link to={alertLink}>{incident.title}</Link>
             </Title>
 
-            <div>{incident.title}</div>
+            <div>
+              {getDynamicText({
+                value: <TimeSince date={incident.dateStarted} extraShort />,
+                fixed: '1w ago',
+              })}
+            </div>
+            <div>
+              {incident.status === IncidentStatus.CLOSED ? (
+                <Duration seconds={getDynamicText({value: duration, fixed: 1200})} />
+              ) : (
+                <Tag type="warning">{t('Still Active')}</Tag>
+              )}
+            </div>
 
             <ProjectBadge
               avatarSize={18}
               project={!projectsLoaded ? {slug} : this.getProject(slug, projects)}
             />
+            <div>#{incident.id}</div>
 
             <FlexCenter>
               {hasAlertOwnership &&
-                (teamActor ? <ActorAvatar actor={teamActor} size={24} /> : '-')}
+                (teamActor ? (
+                  <Fragment>
+                    <StyledActorAvatar actor={teamActor} size={24} hasTooltip={false} />{' '}
+                    <TeamWrapper>{teamActor.name}</TeamWrapper>
+                  </Fragment>
+                ) : (
+                  '-'
+                ))}
             </FlexCenter>
           </TableLayout>
         </IncidentPanelItem>
@@ -141,16 +151,12 @@ class AlertListRow extends Component<Props> {
   }
 }
 
+const Title = styled('div')`
+  ${overflowEllipsis}
+`;
+
 const ProjectBadge = styled(IdBadge)`
   flex-shrink: 0;
-`;
-
-const StyledTimeSeparator = styled('span')`
-  color: ${p => p.theme.gray200};
-`;
-
-const Title = styled('span')`
-  ${overflowEllipsis}
 `;
 
 const IncidentPanelItem = styled(PanelItem)`
@@ -158,8 +164,17 @@ const IncidentPanelItem = styled(PanelItem)`
 `;
 
 const FlexCenter = styled('div')`
+  ${overflowEllipsis}
   display: flex;
   align-items: center;
+`;
+
+const TeamWrapper = styled('span')`
+  ${overflowEllipsis}
+`;
+
+const StyledActorAvatar = styled(ActorAvatar)`
+  margin-right: ${space(1)};
 `;
 
 export default AlertListRow;
