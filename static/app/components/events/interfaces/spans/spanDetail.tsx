@@ -43,6 +43,8 @@ import InlineDocs from './inlineDocs';
 import {ParsedTraceType, ProcessedSpanType, rawSpanKeys, RawSpanType} from './types';
 import {getTraceDateTimeRange, isGapSpan, isOrphanSpan, scrollToSpan} from './utils';
 
+const DEFAULT_ERRORS_VISIBLE = 5;
+
 const SIZE_DATA_KEYS = ['Encoded Body Size', 'Decoded Body Size', 'Transfer Size'];
 
 type TransactionResult = {
@@ -227,10 +229,9 @@ class SpanDetail extends React.Component<Props, State> {
       return null;
     }
 
-    const defaultErrorsVisible = 5;
     const visibleErrors = errorsOpened
       ? relatedErrors
-      : relatedErrors.slice(0, defaultErrorsVisible);
+      : relatedErrors.slice(0, DEFAULT_ERRORS_VISIBLE);
 
     return (
       <Alert system type="error" icon={<IconWarning size="md" />}>
@@ -254,7 +255,7 @@ class SpanDetail extends React.Component<Props, State> {
             </React.Fragment>
           ))}
         </ErrorMessageContent>
-        {relatedErrors.length > defaultErrorsVisible && (
+        {relatedErrors.length > DEFAULT_ERRORS_VISIBLE && (
           <ErrorToggle size="xsmall" onClick={this.toggleErrors}>
             {errorsOpened ? t('Show less') : t('Show more')}
           </ErrorToggle>
