@@ -48,7 +48,6 @@ updates:
       - dependency-name: "clean-webpack-plugin"
       - dependency-name: "compression-webpack-plugin"
       - dependency-name: "copy-text-to-clipboard"
-      - dependency-name: "core-js"
       - dependency-name: "create-react-class"
       - dependency-name: "css-loader"
       - dependency-name: "css-minimizer-webpack-plugin"
