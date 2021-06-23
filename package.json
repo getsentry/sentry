@@ -145,7 +145,7 @@
     "@storybook/addons": "^6.2.9",
     "@storybook/builder-webpack5": "^6.2.9",
     "@storybook/react": "^6.2.9",
-    "@storybook/theming": "^6.2.9",
+    "@storybook/theming": "^6.3.0",
     "@visual-snapshot/jest": "^3.0.0",
     "@wojtekmaj/enzyme-adapter-react-17": "0.6.1",
     "babel-eslint": "^10.1.0",
