@@ -60,7 +60,30 @@ class SlackCommandsGetTest(SlackCommandsTest):
         self.get_error_response(status_code=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 
-class SlackCommandsPostTest(SlackCommandsTest):
+class SlackCommandsHelpTest(SlackCommandsTest):
+    method = "post"
+
+    def test_invalid_signature(self):
+        # The `get_error_response` method doesn't use a signature.
+        self.get_error_response(status_code=status.HTTP_400_BAD_REQUEST)
+
+    def test_missing_team(self):
+        self.get_slack_response({"text": ""}, status_code=status.HTTP_403_FORBIDDEN)
+
+    def test_missing_command(self):
+        response = self.get_slack_response({"text": "", "team_id": self.external_id})
+        assert_is_help_text(response)
+
+    def test_invalid_command(self):
+        response = self.get_slack_response({"text": "invalid command", "team_id": self.external_id})
+        assert_is_help_text(response, "invalid")
+
+    def test_help_command(self):
+        response = self.get_slack_response({"text": "help", "team_id": self.external_id})
+        assert_is_help_text(response)
+
+
+class SlackCommandsLinkTeamTest(SlackCommandsTest):
     method = "post"
 
     def setUp(self):
@@ -93,25 +116,6 @@ class SlackCommandsPostTest(SlackCommandsTest):
             external_name="general",
             external_id="CXXXXXXX9",
         )
-
-    def test_invalid_signature(self):
-        # The `get_error_response` method doesn't use a signature.
-        self.get_error_response(status_code=status.HTTP_400_BAD_REQUEST)
-
-    def test_missing_team(self):
-        self.get_slack_response({"text": ""}, status_code=status.HTTP_403_FORBIDDEN)
-
-    def test_missing_command(self):
-        response = self.get_slack_response({"text": "", "team_id": self.external_id})
-        assert_is_help_text(response)
-
-    def test_invalid_command(self):
-        response = self.get_slack_response({"text": "invalid command", "team_id": self.external_id})
-        assert_is_help_text(response, "invalid")
-
-    def test_help_command(self):
-        response = self.get_slack_response({"text": "help", "team_id": self.external_id})
-        assert_is_help_text(response)
 
     @responses.activate
     def test_link_team_command(self):
