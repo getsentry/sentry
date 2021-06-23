@@ -84,11 +84,11 @@ export function ProjectAlertRuleConfiguration(params = {}) {
           interval: {
             type: 'choice',
             choices: [
-              ['1m', 'one minute'],
-              ['5m', 'five minutes'],
-              ['10m', 'ten minutes'],
+              ['1m', '1 minute'],
+              ['5m', '5 minutes'],
+              ['10m', '10 minutes'],
               ['30m', '30 minutes'],
-              ['1h', 'one hour'],
+              ['1h', '1 hour'],
             ],
           },
           value: {placeholder: 100, type: 'number'},
