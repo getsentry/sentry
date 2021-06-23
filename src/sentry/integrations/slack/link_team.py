@@ -1,6 +1,8 @@
 from django import forms
+from django.http import Http404
 from django.urls import reverse
 from django.views.decorators.cache import never_cache
+from rest_framework.response import Response
 
 from sentry.models import (
     ExternalActor,
@@ -103,6 +105,9 @@ class SlackLinkTeamView(BaseView):
         channel_name = params["channel_name"]
         channel_id = params["channel_id"]
         form = SelectTeamForm(teams, request.POST or None)
+        if request.method == "POST" and not form.is_valid():
+            return Response(status=422)
+
         if form.is_valid():
             team_id = form.cleaned_data["team"]
 
@@ -118,6 +123,9 @@ class SlackLinkTeamView(BaseView):
             )
 
         team = Team.objects.get(id=team_id)
+        if not team:
+            raise Http404
+
         INSUFFICIENT_ROLE_MESSAGE = {
             "heading": "Insufficient role",
             "body": f"You must be an admin or higher and a member of the {team.slug} team in your Sentry organization to link teams.",
@@ -152,13 +160,12 @@ class SlackLinkTeamView(BaseView):
                 integration,
             )
 
-        already_linked = ExternalActor.objects.filter(
+        if ExternalActor.objects.filter(
             actor_id=team.actor_id,
             organization=organization,
             integration=integration,
             provider=ExternalProviders.SLACK.value,
-        )
-        if already_linked:
+        ).exists():
             return self.send_slack_message(
                 request,
                 client,
