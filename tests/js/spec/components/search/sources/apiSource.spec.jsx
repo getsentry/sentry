@@ -174,8 +174,7 @@ describe('ApiSource', function () {
               description: 'event description',
               sourceType: 'event',
               resultType: 'event',
-              to:
-                '/org-slug/project-slug/issues/1/events/12345678901234567890123456789012/',
+              to: '/org-slug/project-slug/issues/1/events/12345678901234567890123456789012/',
             }),
             score: 1,
           },

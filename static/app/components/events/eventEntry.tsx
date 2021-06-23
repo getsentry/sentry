@@ -72,9 +72,8 @@ function EventEntry({entry, projectSlug, event, organization, groupId}: Props) {
     }
     case EntryType.DEBUGMETA:
       const {data} = entry;
-      const hasImagesLoadedV2Feature = !!organization.features?.includes(
-        'images-loaded-v2'
-      );
+      const hasImagesLoadedV2Feature =
+        !!organization.features?.includes('images-loaded-v2');
 
       if (hasImagesLoadedV2Feature) {
         return (

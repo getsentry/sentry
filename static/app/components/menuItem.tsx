@@ -125,15 +125,8 @@ class MenuItem extends React.Component<Props> {
   };
 
   render() {
-    const {
-      header,
-      divider,
-      isActive,
-      noAnchor,
-      className,
-      children,
-      ...props
-    } = this.props;
+    const {header, divider, isActive, noAnchor, className, children, ...props} =
+      this.props;
 
     let renderChildren: React.ReactNode | null = null;
     if (noAnchor) {

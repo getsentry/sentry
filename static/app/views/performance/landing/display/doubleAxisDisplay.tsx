@@ -8,7 +8,7 @@ import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
-import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {tokenizeSearch} from 'app/utils/tokenizeSearch';
 import withApi from 'app/utils/withApi';
 
 import _Footer from '../../charts/footer';
@@ -40,7 +40,7 @@ function DoubleAxisDisplay(props: Props) {
       `>=${Math.round(minValue)}`,
       `<${Math.round(maxValue)}`,
     ]);
-    const query = stringifyQueryObject(conditions);
+    const query = conditions.formatString();
 
     trackAnalyticsEvent({
       eventKey: 'performance_views.landingv2.display.filter_change',

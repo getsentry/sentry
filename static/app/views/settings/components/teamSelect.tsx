@@ -134,12 +134,8 @@ class TeamSelect extends React.Component<Props, State> {
   }
 
   renderBody() {
-    const {
-      organization,
-      selectedTeams,
-      disabled,
-      confirmLastTeamRemoveMessage,
-    } = this.props;
+    const {organization, selectedTeams, disabled, confirmLastTeamRemoveMessage} =
+      this.props;
 
     if (selectedTeams.length === 0) {
       return <EmptyMessage>{t('No Teams assigned')}</EmptyMessage>;

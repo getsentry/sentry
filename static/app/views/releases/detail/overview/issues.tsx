@@ -17,7 +17,7 @@ import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {GlobalSelection} from 'app/types';
-import {QueryResults, stringifyQueryObject} from 'app/utils/tokenizeSearch';
+import {QueryResults} from 'app/utils/tokenizeSearch';
 import {IssueSortOptions} from 'app/views/issueList/utils';
 
 import EmptyState from '../emptyState';
@@ -89,7 +89,7 @@ class Issues extends Component<Props, State> {
         ...queryParams,
         limit: undefined,
         cursor: undefined,
-        query: stringifyQueryObject(query),
+        query: query.formatString(),
       },
     };
   }
@@ -111,7 +111,7 @@ class Issues extends Component<Props, State> {
           path: `/organizations/${orgId}/issues/`,
           queryParams: {
             ...queryParams,
-            query: stringifyQueryObject(new QueryResults([`release:${version}`])),
+            query: new QueryResults([`release:${version}`]).formatString(),
           },
         };
       case IssuesType.RESOLVED:
@@ -124,9 +124,10 @@ class Issues extends Component<Props, State> {
           path: `/organizations/${orgId}/issues/`,
           queryParams: {
             ...queryParams,
-            query: stringifyQueryObject(
-              new QueryResults([`release:${version}`, 'error.handled:0'])
-            ),
+            query: new QueryResults([
+              `release:${version}`,
+              'error.handled:0',
+            ]).formatString(),
           },
         };
       case IssuesType.NEW:
@@ -135,7 +136,7 @@ class Issues extends Component<Props, State> {
           path: `/organizations/${orgId}/issues/`,
           queryParams: {
             ...queryParams,
-            query: stringifyQueryObject(new QueryResults([`first-release:${version}`])),
+            query: new QueryResults([`first-release:${version}`]).formatString(),
           },
         };
     }
