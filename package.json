@@ -159,7 +159,7 @@
     "eslint": "5.11.1",
     "eslint-config-sentry-app": "1.58.0",
     "eslint-plugin-simple-import-sort": "^6.0.0",
-    "html-webpack-plugin": "^5.3.1",
+    "html-webpack-plugin": "^5.3.2",
     "jest": "26.6.3",
     "jest-canvas-mock": "^2.3.1",
     "jest-circus": "26.6.3",
