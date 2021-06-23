@@ -119,7 +119,63 @@ class ReleaseFilesListTest(APITestCase):
         response = self.client.get(url)
         assert response.status_code == 200, response.content
         assert len(response.data) == 6
-        print(response.data)
+
+        # All returned objects have the same keys, regardless of their data source:
+        assert all(data.keys() == response.data[0].keys() for data in response.data)
+
+    def test_sort_order(self):
+        self.login_as(user=self.user)
+        url = reverse(
+            "sentry-api-0-project-release-files",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+                "version": self.release.version,
+            },
+        )
+        self.create_release_archive()
+        response = self.client.get(url)
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 2
+        assert response.data[0]["name"] == "~/index.js"
+        assert response.data[1]["name"] == "~/index.js.map"
+
+    def test_archive_search(self):
+        self.login_as(user=self.user)
+        url = reverse(
+            "sentry-api-0-project-release-files",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+                "version": self.release.version,
+            },
+        )
+        self.create_release_archive()
+        response = self.client.get(url + "?query=map")
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["name"] == "~/index.js.map"
+
+    def test_archive_paging(self):
+        self.login_as(user=self.user)
+        url = reverse(
+            "sentry-api-0-project-release-files",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+                "version": self.release.version,
+            },
+        )
+        self.create_release_archive()
+        response = self.client.get(url + "?cursor=0:1:0&per_page=1")
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["name"] == "~/index.js"
+
+        response = self.client.get(url + "?cursor=1:1:0&per_page=1")
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["name"] == "~/index.js.map"
 
 
 class ReleaseFileCreateTest(APITestCase):

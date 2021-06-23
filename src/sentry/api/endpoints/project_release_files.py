@@ -1,14 +1,14 @@
 import logging
 import re
+from typing import List, Optional
 
-from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist
 from django.db import IntegrityError, transaction
 from django.db.models import Q
 from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.paginator import CombinedQuerysetIntermediary, CombinedQuerysetPaginator
+from sentry.api.paginator import ChainPaginator
 from sentry.api.serializers import serialize
 from sentry.models import Distribution, File, Release, ReleaseFile
 from sentry.models.releasefile import read_artifact_index
@@ -59,7 +59,7 @@ class ReleaseFilesMixin:
                 condition |= Q(name__icontains=name)
             file_list = file_list.filter(condition)
 
-        data_sources.append(CombinedQuerysetIntermediary(file_list, order_by=["name"]))
+        data_sources.append(file_list.order_by("name"))
 
         # Get contents of release archive as well:
         dists = Distribution.objects.filter(organization_id=organization_id, release=release)
@@ -72,17 +72,19 @@ class ReleaseFilesMixin:
                 artifact_index = None
 
             if artifact_index is not None:
-                archived_list = ArtifactIndexQuerySet(artifact_index, query=query, dist=dist)
-                intermediary = CombinedQuerysetIntermediary(archived_list, order_by=["name"])
-                data_sources.append(intermediary)
+                files = artifact_index.get("files", {})
+                source = ArtifactSource(dist, files, query)
+                data_sources.append(source)
 
         def on_results(r):
             return serialize(load_dist(r), request.user)
 
+        # NOTE: Returned release files are ordered by name within their block,
+        # (i.e. per index file), but not overall
         return self.paginate(
             request=request,
-            intermediaries=data_sources,
-            paginator_cls=CombinedQuerysetPaginator,
+            sources=data_sources,
+            paginator_cls=ChainPaginator,
             on_results=on_results,
         )
 
@@ -152,45 +154,34 @@ class ReleaseFilesMixin:
         return Response(serialize(releasefile, request.user), status=201)
 
 
-class ListQuerySet:
-    """Pseudo queryset offering a subset of QuerySet operations"""
+class ArtifactSource:
+    """Provides artifact data to ChainPaginator on-demand"""
 
-    def __init__(self, release_files, query=None):
-        self._files = [
-            # Mimic "or" operation applied for real querysets:
-            rf
-            for rf in release_files
-            if not query or any(search_string.lower() in rf.name.lower() for search_string in query)
-        ]
+    def __init__(self, dist: Optional[Distribution], files: dict, query: List[str]):
+        self._dist = dist
+        self._files = files.items()
+        self._query = query
+        self._ready = False
 
-    def get(self):
-        files = self._files
-        if not files:
-            raise ObjectDoesNotExist
-        if len(files) > 1:
-            raise MultipleObjectsReturned
+    def __len__(self):
+        return len(self._files)
 
-        return files[0]
+    def __getitem__(self, range):
+        self._ensure_ready()
 
-    def annotate(self, **kwargs):
-        if kwargs:
-            raise NotImplementedError
+        return [pseudo_releasefile(url, info, self._dist) for url, info in self._files[range]]
 
-        return self
-
-    def filter(self, **kwargs):
-        if kwargs:
-            raise NotImplementedError
-
-        return self
-
-    def order_by(self, key):
-        return ListQuerySet(sorted(self._files, key=lambda f: getattr(f, key)))
-
-    def __getitem__(self, index):
-        if isinstance(index, int):
-            return self._files[index]
-        return ListQuerySet(self._files[index])
+    def _ensure_ready(self):
+        if not self._ready:
+            query = self._query
+            self._files = [
+                # Mimic "or" operation applied for real querysets:
+                (url, info)
+                for url, info in self._files
+                if not query or any(search_string.lower() in url.lower() for search_string in query)
+            ]
+            self._files.sort(key=lambda item: item[0])
+            self._ready = True
 
 
 def pseudo_releasefile(url, info, dist):
@@ -205,18 +196,6 @@ def pseudo_releasefile(url, info, dist):
         ),
         dist=dist,
     )
-
-
-class ArtifactIndexQuerySet(ListQuerySet):
-    """Pseudo queryset offering a subset of QuerySet operations,"""
-
-    def __init__(self, artifact_index: dict, query=None, dist=None):
-        # Assume manifest
-        release_files = [
-            pseudo_releasefile(url, info, dist)
-            for url, info in artifact_index.get("files", {}).items()
-        ]
-        super().__init__(release_files, query)
 
 
 class ProjectReleaseFilesEndpoint(ProjectEndpoint, ReleaseFilesMixin):
