@@ -48,7 +48,6 @@ updates:
       - dependency-name: "copy-text-to-clipboard"
       - dependency-name: "create-react-class"
       - dependency-name: "css-loader"
-      - dependency-name: "css-minimizer-webpack-plugin"
       - dependency-name: "dotenv-webpack"
       - dependency-name: "echarts"
       - dependency-name: "echarts-for-react"
