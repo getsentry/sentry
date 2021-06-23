@@ -103,7 +103,7 @@
     "process": "^0.11.10",
     "prop-types": "^15.6.0",
     "qrcode.react": "^1.0.1",
-    "query-string": "7.0.0",
+    "query-string": "7.0.1",
     "react": "17.0.2",
     "react-autosize-textarea": "7.1.0",
     "react-date-range": "^1.1.3",
