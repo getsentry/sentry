@@ -10,10 +10,8 @@ from sentry.models import (
     IdentityProvider,
     Integration,
     NotificationSetting,
-    Organization,
     OrganizationMember,
     Team,
-    TeamStatus,
 )
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.shared_integrations.exceptions import ApiError
@@ -99,19 +97,20 @@ class SlackLinkTeamView(BaseView):
     def handle(self, request, signed_params):
         params = unsign(signed_params)
         integration = Integration.objects.get(id=params["integration_id"])
-        teams = Team.objects.filter(
-            organization__in=integration.organizations.all(), status=TeamStatus.VISIBLE
-        ).order_by("slug")
+        organization = integration.organizations.all()[0]
+        teams = Team.objects.get_for_user(organization, request.user)
         channel_name = params["channel_name"]
         channel_id = params["channel_id"]
         form = SelectTeamForm(teams, request.POST or None)
-        if request.method == "POST" and not form.is_valid():
-            return Response(status=422)
+        if request.method not in ["POST", "GET"]:
+            return Response(status=405)
 
-        if form.is_valid():
+        if request.method == "POST":
+            if not form.is_valid():
+                return Response(status=400)
             team_id = form.cleaned_data["team"]
 
-        if request.method != "POST":
+        if request.method == "GET":
             return self.respond(
                 "sentry/slack-link-team.html",
                 {
@@ -122,13 +121,13 @@ class SlackLinkTeamView(BaseView):
                 },
             )
 
-        team = Team.objects.get(id=team_id)
+        team = Team.objects.get(id=team_id, organization=organization)
         if not team:
             raise Http404
 
         INSUFFICIENT_ROLE_MESSAGE = {
             "heading": "Insufficient role",
-            "body": f"You must be an admin or higher and a member of the {team.slug} team in your Sentry organization to link teams.",
+            "body": "You must be an admin or higher to link teams.",
         }
         ALREADY_LINKED_MESSAGE = {
             "heading": "Already linked",
@@ -138,18 +137,16 @@ class SlackLinkTeamView(BaseView):
             "heading": "Team linked",
             "body": f"The {team.slug} team will now receive issue alert notifications in the {channel_name} channel.",
         }
-        organization = Organization.objects.get_for_team_ids([team.id])[0]
         identity = self.get_identity(integration, params["slack_id"])
         org_member = OrganizationMember.objects.get(user=identity.user, organization=organization)
         client = SlackClient()
         token = (
             integration.metadata.get("user_access_token") or integration.metadata["access_token"]
         )
-        # if the org has open membership and the user is an admin or above
-        # OR if closed, ensure user is admin AND member of the team
         allowed_roles = ["admin", "manager", "owner"]
-        if not (organization.flags.allow_joinleave and org_member.role in allowed_roles) or (
-            org_member.role in allowed_roles and team in [org_member.teams]
+        if not (
+            org_member.role in allowed_roles
+            and (organization.flags.allow_joinleave or team in [org_member.teams])
         ):
             return self.send_slack_message(
                 request,

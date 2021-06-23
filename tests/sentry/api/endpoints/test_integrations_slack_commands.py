@@ -212,7 +212,9 @@ class SlackCommandsPostTest(SlackCommandsTest):
         attempts to link a team, we reject them and reply with the INSUFFICIENT_ROLE_MESSAGE"""
         self.organization.flags.allow_joinleave = True
         user2 = self.create_user()
-        self.create_member(user=user2, role="member", organization=self.organization)
+        self.create_member(
+            teams=[self.team], user=user2, role="member", organization=self.organization
+        )
         self.login_as(user2)
         Identity.objects.create(
             external_id="UXXXXXXX2",
