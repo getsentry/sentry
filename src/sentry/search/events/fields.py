@@ -980,9 +980,6 @@ class Column(FunctionArg):
 
 
 class ColumnNoLookup(Column):
-    def __init__(self, name, **kwargs):
-        super().__init__(name, **kwargs)
-
     def normalize(self, value, params):
         super().normalize(value, params)
         return value
