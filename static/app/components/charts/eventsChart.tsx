@@ -386,8 +386,8 @@ class EventsChart extends React.Component<EventsChartProps> {
     // Include previous only on relative dates (defaults to relative if no start and end)
     const includePrevious = !disablePrevious && !start && !end;
 
-    let yAxisLabel = isEquation(yAxis) ? getEquation(yAxis) : yAxis;
-    if (yAxisLabel.length > 60) {
+    let yAxisLabel = yAxis && isEquation(yAxis) ? getEquation(yAxis) : yAxis;
+    if (yAxisLabel && yAxisLabel.length > 60) {
       yAxisLabel = yAxisLabel.substr(0, 60) + '...';
     }
     const previousSeriesName =
