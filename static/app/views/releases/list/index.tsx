@@ -356,17 +356,8 @@ class ReleasesList extends AsyncView<Props, State> {
     const {hasSessions, releases} = this.state;
 
     const selectedProject = this.getSelectedProject();
-    const isMobileProject =
-      selectedProject &&
-      selectedProject.platform &&
-      ([...mobile, ...desktop] as string[]).includes(selectedProject.platform as string);
 
-    if (
-      !selectedProject ||
-      hasSessions !== false ||
-      !releases?.length ||
-      !isMobileProject
-    ) {
+    if (!selectedProject || hasSessions !== false || !releases?.length) {
       return null;
     }
 
