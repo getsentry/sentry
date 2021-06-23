@@ -9,6 +9,7 @@ import {DropdownItem} from 'app/components/dropdownControl';
 import DropdownMenu from 'app/components/dropdownMenu';
 import Tooltip from 'app/components/tooltip';
 import Truncate from 'app/components/truncate';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {SelectValue} from 'app/types';
 
@@ -109,10 +110,8 @@ class OptionSelector extends Component<Props, State> {
 }
 
 const TruncatedLabel = styled('span')`
+  ${overflowEllipsis};
   max-width: 400px;
-  text-overflow: ellipsis;
-  overflow: hidden;
-  white-space: nowrap;
 `;
 
 const StyledTruncate = styled(Truncate)<{
