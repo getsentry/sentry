@@ -183,27 +183,6 @@ supportedLocales
     };
   });
 
-/**
- * Restrict translation files that are pulled in through app/translations.jsx
- * and through moment/locale/* to only those which we create bundles for via
- * locale/catalogs.json.
- *
- * Without this, webpack will still output all of the unused locale files despite
- * the application never loading any of them.
- */
-const localeRestrictionPlugins = [
-  new webpack.ContextReplacementPlugin(
-    /sentry-locale$/,
-    path.join(__dirname, 'src', 'sentry', 'locale', path.sep),
-    true,
-    new RegExp(`(${supportedLocales.join('|')})/.*\\.po$`)
-  ),
-  new webpack.ContextReplacementPlugin(
-    /moment\/locale/,
-    new RegExp(`(${supportedLanguages.join('|')})\\.js$`)
-  ),
-];
-
 const babelOptions = {...babelConfig, cacheDirectory: true};
 const babelLoaderConfig = {
   loader: 'babel-loader',
@@ -357,8 +336,26 @@ let appConfig = {
         ]
       : []),
 
-    ...localeRestrictionPlugins,
+    /**
+     * Restrict translation files that are pulled in through app/translations.jsx
+     * and through moment/locale/* to only those which we create bundles for via
+     * locale/catalogs.json.
+     *
+     * Without this, webpack will still output all of the unused locale files despite
+     * the application never loading any of them.
+     */
+    new webpack.ContextReplacementPlugin(
+      /sentry-locale$/,
+      path.join(__dirname, 'src', 'sentry', 'locale', path.sep),
+      true,
+      new RegExp(`(${supportedLocales.join('|')})/.*\\.po$`)
+    ),
+    new webpack.ContextReplacementPlugin(
+      /moment\/locale/,
+      new RegExp(`(${supportedLanguages.join('|')})\\.js$`)
+    ),
   ],
+
   resolve: {
     alias: {
       app: path.join(staticPrefix, 'app'),
