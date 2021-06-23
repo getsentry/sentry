@@ -68,7 +68,7 @@ function withSdkUpdates<P extends InjectedProps>(
       // be lost.
       return (
         <WrappedComponent
-          {...((this.props as unknown) as P)}
+          {...(this.props as unknown as P)}
           sdkUpdates={this.state.sdkUpdates}
         />
       );
