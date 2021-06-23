@@ -70,7 +70,6 @@ updates:
       - dependency-name: "mobx-react"
       - dependency-name: "papaparse"
       - dependency-name: "prettier"
-      - dependency-name: "query-string"
       - dependency-name: "react-date-range"
       - dependency-name: "react-lazyload"
       - dependency-name: "react-mentions"
