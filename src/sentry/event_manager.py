@@ -418,7 +418,8 @@ class EventManager:
                     event=job["event"],
                     hashes=hashes,
                     release=job["release"],
-                    received_timestamp=job["received_timestamp"] ** kwargs,
+                    received_timestamp=job["received_timestamp"],
+                    **kwargs,
                 )
         except HashDiscarded:
             discard_event(job, attachments)
