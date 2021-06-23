@@ -139,6 +139,7 @@ class ArithmeticVisitor(NodeVisitor):
     }
     function_allowlist = {
         "count",
+        "count_if",
         "count_unique",
         "failure_count",
         "min",
