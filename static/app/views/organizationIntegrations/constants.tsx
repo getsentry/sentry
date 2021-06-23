@@ -73,6 +73,7 @@ export const POPULARITY_WEIGHT: {
   bitbucket_pipelines: 8,
   github_actions: 8,
   octohook: 8,
+  n8n: 8,
 } as const;
 
 export const documentIntegrationList: DocumentIntegration[] = [
@@ -265,6 +266,26 @@ export const documentIntegrationList: DocumentIntegration[] = [
     ],
     resourceLinks: [
       {title: 'Documentation', url: 'https://docs.octohook.com/integrations/sentry.html'},
+    ],
+  },
+  {
+    slug: 'n8n',
+    name: 'n8n',
+    author: 'n8n',
+    docUrl: 'https://n8n.io/integrations/n8n-nodes-base.sentryIo',
+    description:
+      'n8n is an extendable workflow automation tool which enables you to connect anything to everything via its open, fair-code model.',
+    features: [
+      {
+        featureGate: 'webhook',
+        description: 'Automatically connect Sentry to third-party apps with n8n.',
+      },
+    ],
+    resourceLinks: [
+      {
+        title: 'Documentation',
+        url: 'https://n8n.io/integrations/n8n-nodes-base.sentryIo',
+      },
     ],
   },
 ];

@@ -24,6 +24,7 @@ import komodor from 'sentry-logos/logo-komodor.svg';
 import lighthouse from 'sentry-logos/logo-lighthouse.svg';
 import linear from 'sentry-logos/logo-linear.svg';
 import msteams from 'sentry-logos/logo-msteams.svg';
+import n8n from 'sentry-logos/logo-n8n.svg';
 import netlify from 'sentry-logos/logo-netlify.svg';
 import octohook from 'sentry-logos/logo-octohook.svg';
 import opsgenie from 'sentry-logos/logo-opsgenie.svg';
@@ -90,6 +91,7 @@ export const ICON_PATHS = {
   lighthouse,
   linear,
   msteams,
+  n8n,
   netlify,
   octohook,
   opsgenie,
