@@ -14,8 +14,9 @@ import json  # NOQA
 import os
 import subprocess
 import sys
-import requirements
 from subprocess import Popen, check_output
+
+import requirements
 
 os.environ["PYFLAKES_NODOCTEST"] = "1"
 os.environ["SENTRY_PRECOMMIT"] = "1"
@@ -294,6 +295,7 @@ def run_formatter(cmd, file_list, prompt_on_changes=True):
                     status = subprocess.Popen(["git", "update-index", "--add"] + file_list).wait()
         has_errors = status != 0
     return has_errors
+
 
 def check_requirements():
     """
