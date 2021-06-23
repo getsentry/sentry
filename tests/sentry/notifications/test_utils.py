@@ -4,7 +4,6 @@ from sentry.notifications.helpers import (
     collect_groups_by_project,
     get_fallback_settings,
     get_groups_for_query,
-    get_scope,
     get_scope_type,
     get_settings_by_provider,
     get_subscription_from_attributes,
@@ -30,7 +29,7 @@ from sentry.types.integrations import ExternalProviders
 
 class NotificationHelpersTest(TestCase):
     def setUp(self):
-        super(TestCase, self).setUp()
+        super().setUp()
 
         NotificationSetting.objects.update_settings(
             ExternalProviders.SLACK,
@@ -276,23 +275,6 @@ class NotificationHelpersTest(TestCase):
             not get_scope_type(NotificationSettingTypes.ISSUE_ALERTS)
             == NotificationScopeType.ORGANIZATION
         )
-
-    def test_get_scope(self):
-        scope_type, scope_identifier = get_scope(self.user.id, project=None, organization=None)
-        assert scope_type == NotificationScopeType.USER
-        assert scope_identifier == self.user.id
-
-        scope_type, scope_identifier = get_scope(
-            self.user.id, project=self.project, organization=None
-        )
-        assert scope_type == NotificationScopeType.PROJECT
-        assert scope_identifier == self.project.id
-
-        scope_type, scope_identifier = get_scope(
-            self.user.id, project=None, organization=self.organization
-        )
-        assert scope_type == NotificationScopeType.ORGANIZATION
-        assert scope_identifier == self.organization.id
 
     def test_get_target_id(self):
         assert get_target_id(self.user) == self.user.actor_id
