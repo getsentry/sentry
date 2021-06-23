@@ -4,7 +4,7 @@ MAX_LAYERS = 5
 
 
 def get_stacktrace_hierarchy(main_variant, components, frames, inverted_hierarchy):
-    main_variant.update(tree_label="<entire stacktrace>")
+    main_variant.update(tree_label=["<entire stacktrace>"])
 
     frames_iter = list(zip(frames, components))
     if not inverted_hierarchy:
