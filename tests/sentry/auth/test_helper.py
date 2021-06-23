@@ -327,15 +327,15 @@ class AuthHelperTest(TestCase):
         initial_state = {
             "org_id": self.organization.id,
             "flow": flow,
-            "auth_provider": self.auth_provider.id,
+            "provider_model_id": self.auth_provider.id,
             "provider_key": None,
         }
         local_client = clusters.get("default").get_local_client_for_key(self.auth_key)
         local_client.set(self.auth_key, json.dumps(initial_state))
 
         helper = AuthHelper.get_for_request(self.request)
-        helper.init_pipeline()
-        assert helper.pipeline_is_valid()
+        helper.initialize()
+        assert helper.is_valid()
 
         first_step = helper.current_step()
         assert first_step.status_code == 200

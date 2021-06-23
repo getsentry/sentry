@@ -1,8 +1,12 @@
 import logging
+from dataclasses import dataclass
 from types import LambdaType
+from typing import Any, Dict, Optional, Sequence
+
+from django.views import View
 
 from sentry import analytics
-from sentry.models import Organization
+from sentry.models import Model, Organization
 from sentry.utils import json
 from sentry.utils.hashlib import md5_text
 from sentry.utils.session_store import RedisSessionStore
@@ -106,6 +110,23 @@ class NestedPipelineView(PipelineView):
         return nested_pipeline.current_step()
 
 
+@dataclass
+class PipelineRequestState:
+    """Initial pipeline attributes from a request."""
+
+    provider_model: Model
+    organization: Organization
+    provider_key: str
+
+
+@dataclass
+class PipelineAnalyticsEntry:
+    """Attributes to describe a pipeline in analytics records."""
+
+    event_type: str
+    pipeline_type: str
+
+
 class Pipeline:
     """
     Pipeline provides a mechanism to guide the user through a request
@@ -142,6 +163,18 @@ class Pipeline:
         if not state.is_valid():
             return None
 
+        req_state = cls.unpack_state(state)
+        config = state.config
+        return cls(
+            request,
+            organization=req_state.organization,
+            provider_key=req_state.provider_key,
+            provider_model=req_state.provider_model,
+            config=config,
+        )
+
+    @classmethod
+    def unpack_state(cls, state) -> PipelineRequestState:
         provider_model = None
         if state.provider_model_id:
             provider_model = cls.provider_model_cls.objects.get(id=state.provider_model_id)
@@ -151,15 +184,11 @@ class Pipeline:
             organization = Organization.objects.get(id=state.org_id)
 
         provider_key = state.provider_key
-        config = state.config
 
-        return cls(
-            request,
-            organization=organization,
-            provider_key=provider_key,
-            provider_model=provider_model,
-            config=config,
-        )
+        return PipelineRequestState(provider_model, organization, provider_key)
+
+    def get_provider(self, provider_key: str):
+        return self.provider_manager.get(provider_key)
 
     def __init__(self, request, provider_key, organization=None, provider_model=None, config=None):
         if config is None:
@@ -168,8 +197,8 @@ class Pipeline:
         self.request = request
         self.organization = organization
         self.state = RedisSessionStore(request, self.pipeline_name, ttl=INTEGRATION_EXPIRATION_TTL)
-        self.provider = self.provider_manager.get(provider_key)
         self.provider_model = provider_model
+        self.provider = self.get_provider(provider_key)
 
         self.config = config
         self.provider.set_pipeline(self)
@@ -183,7 +212,7 @@ class Pipeline:
         pipe_ids = [f"{type(v).__module__}.{type(v).__name__}" for v in self.pipeline_views]
         self.signature = md5_text(*pipe_ids).hexdigest()
 
-    def get_pipeline_views(self):
+    def get_pipeline_views(self) -> Sequence[View]:
         """
         Retrieve the pipeline views from the provider.
 
@@ -193,22 +222,23 @@ class Pipeline:
         """
         return self.provider.get_pipeline_views()
 
-    def is_valid(self):
+    def is_valid(self) -> bool:
         return self.state.is_valid() and self.state.signature == self.signature
 
-    def initialize(self):
-        self.state.regenerate(
-            {
-                "uid": self.request.user.id if self.request.user.is_authenticated else None,
-                "provider_model_id": self.provider_model.id if self.provider_model else None,
-                "provider_key": self.provider.key,
-                "org_id": self.organization.id if self.organization else None,
-                "step_index": 0,
-                "signature": self.signature,
-                "config": self.config,
-                "data": {},
-            }
-        )
+    def initialize(self) -> None:
+        self.state.regenerate(self.get_initial_state())
+
+    def get_initial_state(self) -> Dict[str, Any]:
+        return {
+            "uid": self.request.user.id if self.request.user.is_authenticated else None,
+            "provider_model_id": self.provider_model.id if self.provider_model else None,
+            "provider_key": self.provider.key,
+            "org_id": self.organization.id if self.organization else None,
+            "step_index": 0,
+            "signature": self.signature,
+            "config": self.config,
+            "data": {},
+        }
 
     def clear_session(self):
         self.state.clear()
@@ -228,6 +258,13 @@ class Pipeline:
         if isinstance(step, LambdaType):
             step = step()
 
+        return self.dispatch_to(step)
+
+    def dispatch_to(self, step: View):
+        """Dispatch to a view expected by this pipeline.
+
+        A subclass may override this if its views take other parameters.
+        """
         return step.dispatch(request=self.request, pipeline=self)
 
     def error(self, message):
@@ -247,16 +284,23 @@ class Pipeline:
         Render the next step.
         """
         self.state.step_index += step_size
-        if self.organization:
+
+        analytics_entry = self.get_analytics_entry()
+        if analytics_entry and self.organization:
             analytics.record(
-                "integrations.pipeline_step",
+                analytics_entry.event_type,
                 user_id=self.request.user.id,
                 organization_id=self.organization.id,
                 integration=self.provider.key,
                 step_index=self.state.step_index,
-                pipeline_type="reauth" if self.fetch_state("integration_id") else "install",
+                pipeline_type=analytics_entry.pipeline_type,
             )
+
         return self.current_step()
+
+    def get_analytics_entry(self) -> Optional[PipelineAnalyticsEntry]:
+        """Return analytics attributes for this pipeline."""
+        return None
 
     def finish_pipeline(self):
         """

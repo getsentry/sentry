@@ -9,6 +9,7 @@ from django.http import HttpResponseRedirect
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
+from django.views import View
 
 import sentry.utils.json as json
 from sentry import features
@@ -28,6 +29,7 @@ from sentry.models import (
     User,
     UserEmail,
 )
+from sentry.pipeline import Pipeline
 from sentry.signals import sso_enabled, user_signup
 from sentry.tasks.auth import email_missing_links
 from sentry.utils import auth, metrics
@@ -525,7 +527,7 @@ def handle_new_user(auth_provider, organization, request, identity):
     return auth_identity
 
 
-class AuthHelper:
+class AuthHelper(Pipeline):
     """
     Helper class which is passed into AuthView's.
 
@@ -551,104 +553,64 @@ class AuthHelper:
     # configuring the provider
     FLOW_SETUP_PROVIDER = 2
 
+    pipeline_name = "auth_provider"
+    provider_manager = manager
+    provider_model_cls = AuthProvider
+
     @classmethod
     def get_for_request(cls, request):
         state = RedisBackedState(request)
         if not state.is_valid():
             return None
 
-        organization_id = state.org_id
-        if not organization_id:
+        req_state = cls.unpack_state(state)
+        if not req_state.organization:
             logging.info("Invalid SSO data found")
             return None
-
         flow = state.flow
-        auth_provider_id = state.auth_provider
-        provider_key = state.provider_key
-        if auth_provider_id:
-            auth_provider = AuthProvider.objects.get(id=auth_provider_id)
-        elif provider_key:
-            auth_provider = None
-
-        organization = Organization.objects.get(id=state.org_id)
 
         return cls(
-            request, organization, flow, auth_provider=auth_provider, provider_key=provider_key
+            request,
+            req_state.organization,
+            flow,
+            auth_provider=req_state.provider_model,
+            provider_key=req_state.provider_key,
         )
 
     def __init__(self, request, organization, flow, auth_provider=None, provider_key=None):
         assert provider_key or auth_provider
-
-        self.request = request
-        self.auth_provider = auth_provider
-        self.organization = organization
         self.flow = flow
-        self.state = RedisBackedState(request)
+        super().__init__(request, provider_key, organization, auth_provider)
 
-        if auth_provider:
-            provider = auth_provider.get_provider()
+    def get_provider(self, provider_key):
+        if self.provider_model:
+            return self.provider_model.get_provider()
         elif provider_key:
-            provider = manager.get(provider_key)
+            return super().get_provider(provider_key)
         else:
             raise NotImplementedError
 
-        self.provider = provider
-        if flow == self.FLOW_LOGIN:
-            self.pipeline = provider.get_auth_pipeline()
-        elif flow == self.FLOW_SETUP_PROVIDER:
-            self.pipeline = provider.get_setup_pipeline()
+    def get_pipeline_views(self):
+        if self.flow == self.FLOW_LOGIN:
+            return self.provider.get_auth_pipeline()
+        elif self.flow == self.FLOW_SETUP_PROVIDER:
+            return self.provider.get_setup_pipeline()
         else:
             raise NotImplementedError
 
-        # we serialize the pipeline to be [AuthView().get_ident(), ...] which
-        # allows us to determine if the pipeline has changed during the auth
-        # flow or if the user is somehow circumventing a chunk of it
-        self.signature = md5_text(" ".join(av.get_ident() for av in self.pipeline)).hexdigest()
+    def is_valid(self):
+        return super().is_valid() and self.state.flow in (self.FLOW_LOGIN, self.FLOW_SETUP_PROVIDER)
 
-    def pipeline_is_valid(self):
-        if not self.state.is_valid():
-            return False
-        if self.state.flow not in (self.FLOW_LOGIN, self.FLOW_SETUP_PROVIDER):
-            return False
-        return self.state.signature == self.signature
-
-    def init_pipeline(self):
-        self.state.regenerate(
-            {
-                "uid": self.request.user.id if self.request.user.is_authenticated else None,
-                "auth_provider": self.auth_provider.id if self.auth_provider else None,
-                "provider_key": self.provider.key,
-                "org_id": self.organization.id,
-                "step_index": 0,
-                "signature": self.signature,
-                "flow": self.flow,
-                "data": {},
-            }
-        )
+    def get_initial_state(self):
+        state = super().get_initial_state()
+        state.update({"flow": self.flow})
+        return state
 
     def get_redirect_url(self):
         return absolute_uri(reverse("sentry-auth-sso"))
 
-    def clear_session(self):
-        self.state.clear()
-
-    def current_step(self):
-        """
-        Render the current step.
-        """
-        step_index = self.state.step_index
-
-        if step_index == len(self.pipeline):
-            return self.finish_pipeline()
-
-        return self.pipeline[step_index].dispatch(request=self.request, helper=self)
-
-    def next_step(self):
-        """
-        Render the next step.
-        """
-        self.state.step_index += 1
-        return self.current_step()
+    def dispatch_to(self, step: View):
+        return step.dispatch(request=self.request, helper=self)
 
     def finish_pipeline(self):
         data = self.fetch_state()
@@ -686,7 +648,7 @@ class AuthHelper:
         already authenticated an optional button to associate the identity with
         their account.
         """
-        auth_provider = self.auth_provider
+        auth_provider = self.provider_model
         user_id = identity["id"]
 
         lock = locks.get(f"sso:auth:{auth_provider.id}:{md5_text(user_id).hexdigest()}", duration=5)
@@ -720,7 +682,7 @@ class AuthHelper:
                         extra={
                             "organization_id": self.organization.id,
                             "user_id": self.request.user.id,
-                            "auth_provider_id": self.auth_provider.id,
+                            "auth_provider_id": self.provider_model.id,
                             "idp_identity_id": identity["id"],
                             "idp_identity_email": identity["email"],
                         },
@@ -729,7 +691,7 @@ class AuthHelper:
                 return handle_unknown_identity(
                     self.request,
                     self.organization,
-                    self.auth_provider,
+                    self.provider_model,
                     self.provider,
                     self.state,
                     identity,
@@ -745,17 +707,17 @@ class AuthHelper:
                     return handle_unknown_identity(
                         self.request,
                         self.organization,
-                        self.auth_provider,
+                        self.provider_model,
                         self.provider,
                         self.state,
                         identity,
                     )
                 auth_identity = handle_attach_identity(
-                    self.auth_provider, self.request, self.organization, self.provider, identity
+                    self.provider_model, self.request, self.organization, self.provider, identity
                 )
 
             return handle_existing_identity(
-                self.auth_provider,
+                self.provider_model,
                 self.provider,
                 self.organization,
                 self.request,
@@ -789,12 +751,12 @@ class AuthHelper:
         # since only SSO or require 2FA can be enabled
         self.disable_2fa_required()
 
-        self.auth_provider = AuthProvider.objects.create(
+        self.provider_model = AuthProvider.objects.create(
             organization=self.organization, provider=self.provider.key, config=config
         )
 
         handle_attach_identity(
-            self.auth_provider, self.request, self.organization, self.provider, identity, om
+            self.provider_model, self.request, self.organization, self.provider, identity, om
         )
 
         auth.mark_sso_complete(request, self.organization.id)
@@ -810,9 +772,9 @@ class AuthHelper:
             organization=self.organization,
             actor=request.user,
             ip_address=request.META["REMOTE_ADDR"],
-            target_object=self.auth_provider.id,
+            target_object=self.provider_model.id,
             event=AuditLogEntryEvent.SSO_ENABLE,
-            data=self.auth_provider.get_audit_log_data(),
+            data=self.provider_model.get_audit_log_data(),
         )
 
         email_missing_links.delay(self.organization.id, request.user.id, self.provider.key)
@@ -853,15 +815,6 @@ class AuthHelper:
         messages.add_message(self.request, messages.ERROR, f"Authentication error: {message}")
 
         return HttpResponseRedirect(redirect_uri)
-
-    def bind_state(self, key, value):
-        data = self.state.data or {}
-        data[key] = value
-
-        self.state.data = data
-
-    def fetch_state(self, key=None):
-        return self.state.data if key is None else self.state.data.get(key)
 
     def disable_2fa_required(self):
         require_2fa = self.organization.flags.require_2fa

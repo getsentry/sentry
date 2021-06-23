@@ -3,6 +3,7 @@ from django.http import HttpResponse
 from sentry.auth.provider import MigratingIdentityId, Provider
 from sentry.auth.providers.saml2.provider import SCIMMixin
 from sentry.auth.view import AuthView
+from sentry.pipeline import PipelineProvider
 
 
 class AskEmail(AuthView):
@@ -18,7 +19,7 @@ class AskEmail(AuthView):
         return HttpResponse(DummyProvider.TEMPLATE)
 
 
-class DummyProvider(SCIMMixin, Provider):
+class DummyProvider(SCIMMixin, Provider, PipelineProvider):
     TEMPLATE = '<form method="POST"><input type="email" name="email" /></form>'
     name = "Dummy"
 
