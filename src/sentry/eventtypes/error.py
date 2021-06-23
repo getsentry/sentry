@@ -24,7 +24,7 @@ def format_title_from_tree_label(tree_label):
 class ErrorEvent(BaseEvent):
     key = "error"
 
-    def extract_metadata(self, data):
+    def extract_metadata(self, data, for_group=False):
         exception = get_path(data, "exception", "values", -1)
         if not exception:
             return {}
@@ -45,14 +45,22 @@ class ErrorEvent(BaseEvent):
             if func:
                 rv["function"] = func
 
+        # In save_aggregate we store current_tree_label for the group metadata,
+        # and finest_tree_label for the event itself.
+
+        if not for_group:
+            finest_tree_label = get_path(data, "hierarchical_tree_labels", -1)
+            if finest_tree_label is not None:
+                rv["finest_tree_label"] = finest_tree_label
+
         return rv
 
     def compute_title(self, metadata):
         # Both of those properties are set within EventManager
-        if "finest_tree_label" in metadata:
+        if metadata.get("finest_tree_label"):
             return format_title_from_tree_label(metadata["finest_tree_label"])
 
-        if "current_tree_label" in metadata:
+        if metadata.get("current_tree_label"):
             return format_title_from_tree_label(metadata["current_tree_label"])
 
         ty = metadata.get("type")

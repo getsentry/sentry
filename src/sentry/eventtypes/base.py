@@ -9,12 +9,12 @@ from sentry.utils.strings import strip, truncatechars
 class BaseEvent:
     id = None
 
-    def get_metadata(self, data):
+    def get_metadata(self, data, for_group=False):
         metadata = {}
         title = data.get("title")
         if title is not None:
             metadata["title"] = title
-        for key, value in self.extract_metadata(data).items():
+        for key, value in self.extract_metadata(data, for_group=for_group).items():
             # If we already have a custom title, do not override with the
             # computed title.
             if key not in metadata:
@@ -44,7 +44,7 @@ class BaseEvent:
 class DefaultEvent(BaseEvent):
     key = "default"
 
-    def extract_metadata(self, data):
+    def extract_metadata(self, data, for_group=False):
         message = strip(
             get_path(data, "logentry", "formatted") or get_path(data, "logentry", "message")
         )

@@ -11,7 +11,7 @@ from sentry.models import Group, GroupHash
 @pytest.fixture
 def fast_save(default_project, task_runner):
     def inner(last_frame):
-        data = {"timestamp": time.time()}
+        data = {"timestamp": time.time(), "type": "error"}
         evt = Event(
             default_project.id,
             uuid.uuid4().hex,
@@ -27,7 +27,7 @@ def fast_save(default_project, task_runner):
                     tree_labels=[["foo"], ["bar"], ["baz"], ["bam"]],
                 ),
                 release=None,
-                data=data,
+                received_timestamp=None,
                 level=10,
                 culprit="",
             )
