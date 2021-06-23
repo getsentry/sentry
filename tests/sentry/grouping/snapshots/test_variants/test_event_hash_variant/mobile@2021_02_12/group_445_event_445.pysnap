@@ -1,11 +1,11 @@
 ---
-created: '2021-05-05T18:04:38.810135Z'
+created: '2021-06-23T18:06:08.946164Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
   hash: "af9d758f026c55155ef957140783a1b0"
-  tree_label: "raise | stripped_application_code [throw]"
+  tree_label: "raise | stripped_application_code"
   component:
     app-depth-1*
       exception*
