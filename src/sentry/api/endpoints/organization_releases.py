@@ -236,7 +236,7 @@ class OrganizationReleasesEndpoint(
             queryset = queryset.filter(build_number__isnull=False).order_by("-build_number")
             paginator_kwargs["order_by"] = "-build_number"
         elif sort == "semver":
-            order_by = [f"-{col}" for col in Release.SEMVER_SORT_COLS]
+            order_by = [f"-{col}" for col in Release.SEMVER_COLS]
             queryset = queryset.annotate_prerelease_column().filter_to_semver().order_by(*order_by)
             paginator_kwargs["order_by"] = order_by
         elif sort in self.SESSION_SORTS:
