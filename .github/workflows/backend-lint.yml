@@ -89,6 +89,8 @@ jobs:
           filters: |
             all:
               - added|modified: '**/*.py'
+              - added|modified: 'requirements-*.txt'
+
 
       - name: Run pre-commit on changed files
         if: steps.changes.outputs.backend == 'true'
