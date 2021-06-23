@@ -1,4 +1,4 @@
-/*eslint-env node*/
+/* eslint-env node */
 module.exports = {
   processors: ['stylelint-processor-styled-components'],
   extends: [

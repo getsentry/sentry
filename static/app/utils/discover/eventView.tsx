@@ -23,7 +23,7 @@ import {
 import {decodeColumnOrder} from 'app/views/eventsV2/utils';
 
 import {statsPeriodToDays} from '../dates';
-import {QueryResults, stringifyQueryObject, tokenizeSearch} from '../tokenizeSearch';
+import {QueryResults, tokenizeSearch} from '../tokenizeSearch';
 
 import {getSortField} from './fieldRenderers';
 import {
@@ -1260,7 +1260,7 @@ class EventView {
     Object.entries(this.additionalConditions.tagValues).forEach(([tag, tagValues]) => {
       conditions.addTagValues(tag, tagValues);
     });
-    return stringifyQueryObject(conditions);
+    return conditions.formatString();
   }
 }
 

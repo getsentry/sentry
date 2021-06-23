@@ -1,5 +1,5 @@
-/*eslint-env node*/
-/*eslint import/no-nodejs-modules:0 */
+/* eslint-env node */
+/* eslint import/no-nodejs-modules:0 */
 const fs = require('fs');
 const path = require('path');
 
@@ -58,7 +58,6 @@ const HAS_WEBPACK_DEV_SERVER_CONFIG = SENTRY_BACKEND_PORT && SENTRY_WEBPACK_PROX
  * User/tooling configurable environment variables
  */
 const NO_DEV_SERVER = !!env.NO_DEV_SERVER; // Do not run webpack dev server
-const TS_FORK_WITH_ESLINT = !!env.TS_FORK_WITH_ESLINT; // Do not run eslint with fork-ts plugin
 const SHOULD_FORK_TS = DEV_MODE && !env.NO_TS_FORK; // Do not run fork-ts plugin (or if not dev env)
 const SHOULD_HOT_MODULE_RELOAD = DEV_MODE && !!env.SENTRY_UI_HOT_RELOAD;
 
@@ -361,8 +360,9 @@ let appConfig = {
     ...(SHOULD_FORK_TS
       ? [
           new ForkTsCheckerWebpackPlugin({
-            eslint: TS_FORK_WITH_ESLINT,
-            tsconfig: path.resolve(__dirname, './config/tsconfig.build.json'),
+            typescript: {
+              configFile: path.resolve(__dirname, './config/tsconfig.build.json'),
+            },
           }),
         ]
       : []),
