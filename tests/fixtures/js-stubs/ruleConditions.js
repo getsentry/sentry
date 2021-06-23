@@ -22,11 +22,11 @@ export const MOCK_RESP_VERBOSE = [
   },
   {
     id: 'sentry.rules.conditions.regression_event.RegressionEventCondition',
-    label: 'The issue changes state from resolved to unresolved',
+    label: 'An issue changes state from resolved to unresolved',
   },
   {
     id: 'sentry.rules.conditions.reappeared_event.ReappearedEventCondition',
-    label: 'The issue changes state from ignored to unresolved',
+    label: 'An issue changes state from ignored to unresolved',
   },
   {
     formFields: {
@@ -53,7 +53,7 @@ export const MOCK_RESP_VERBOSE = [
       },
     },
     id: 'sentry.rules.conditions.tagged_event.TaggedEventCondition',
-    label: "An event's tags match {key} {match} {value}",
+    label: 'An event’s tag matches…',
   },
   {
     formFields: {
@@ -67,7 +67,7 @@ export const MOCK_RESP_VERBOSE = [
       },
     },
     id: EVENT_FREQUENCY_CONDITION,
-    label: 'The issue is seen more than {value} times in {interval}',
+    label: 'An issue has more errors than…',
   },
   {
     formFields: {
@@ -81,7 +81,7 @@ export const MOCK_RESP_VERBOSE = [
       },
     },
     id: UNIQUE_USER_FREQUENCY_CONDITION,
-    label: 'The issue is seen by more than {value} users in {interval}',
+    label: 'An issue impacts more users than…',
   },
   {
     formFields: {
@@ -125,7 +125,7 @@ export const MOCK_RESP_VERBOSE = [
       },
     },
     id: 'sentry.rules.conditions.event_attribute.EventAttributeCondition',
-    label: "An event's {attribute} value {match} {value}",
+    label: 'An event’s attribute matches…',
   },
   {
     formFields: {
@@ -150,7 +150,7 @@ export const MOCK_RESP_VERBOSE = [
       },
     },
     id: 'sentry.rules.conditions.level.LevelCondition',
-    label: "An event's level is {match} {level}",
+    label: 'An event’s level matches…',
   },
 ];
 

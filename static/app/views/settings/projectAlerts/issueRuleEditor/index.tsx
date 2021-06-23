@@ -683,9 +683,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                               nodes={this.state.configs?.conditions ?? null}
                               items={conditions ?? []}
                               placeholder={
-                                hasFeature
-                                  ? t('Add optional trigger...')
-                                  : t('Add optional condition...')
+                                hasFeature ? t('Add trigger') : t('Add condition')
                               }
                               onPropertyChange={this.handleChangeConditionProperty}
                               onAddRow={this.handleAddCondition}
@@ -805,7 +803,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                           nodes={this.state.configs?.actions ?? null}
                           selectType="grouped"
                           items={actions ?? []}
-                          placeholder={t('Add action...')}
+                          placeholder={t('Add action')}
                           onPropertyChange={this.handleChangeActionProperty}
                           onAddRow={this.handleAddAction}
                           onResetRow={this.handleResetAction}

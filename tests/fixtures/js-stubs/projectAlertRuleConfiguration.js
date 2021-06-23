@@ -14,12 +14,12 @@ export function ProjectAlertRuleConfiguration(params = {}) {
       {
         enabled: true,
         id: 'sentry.rules.conditions.regression_event.RegressionEventCondition',
-        label: 'The issue changes state from resolved to unresolved',
+        label: 'An issue changes state from resolved to unresolved',
       },
       {
         enabled: true,
         id: 'sentry.rules.conditions.reappeared_event.ReappearedEventCondition',
-        label: 'The issue changes state from ignored to unresolved',
+        label: 'An issue changes state from ignored to unresolved',
       },
       {
         formFields: {

@@ -104,7 +104,7 @@ class BaseEventFrequencyCondition(EventCondition):
 
 
 class EventFrequencyCondition(BaseEventFrequencyCondition):
-    label = "The issue is seen more than {value} times in {interval}"
+    label = "An issue has more errors than…"
 
     def query_hook(self, event, start, end, environment_id):
         return self.tsdb.get_sums(
@@ -118,7 +118,7 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
 
 
 class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
-    label = "The issue is seen by more than {value} users in {interval}"
+    label = "An issue impacts more users than…"
 
     def query_hook(self, event, start, end, environment_id):
         return self.tsdb.get_distinct_counts_totals(
@@ -155,7 +155,7 @@ class EventFrequencyPercentForm(EventFrequencyForm):
 
 
 class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
-    label = "The issue has more errors than {value} percent of sessions in {interval}"
+    label = "An issue affects more than {x}% of sessions..."
 
     def __init__(self, *args, **kwargs):
         self.intervals = percent_intervals
