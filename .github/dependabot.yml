@@ -85,6 +85,4 @@ updates:
       - dependency-name: "size-limit"
       - dependency-name: "sprintf-js"
       - dependency-name: "terser-webpack-plugin"
-      - dependency-name: "tslib"
-      - dependency-name: "typescript"
       - dependency-name: "u2f-api"
