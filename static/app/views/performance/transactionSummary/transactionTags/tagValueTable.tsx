@@ -21,7 +21,7 @@ import {
   TableDataRow,
 } from 'app/utils/performance/segmentExplorer/segmentExplorerQuery';
 import {decodeScalar} from 'app/utils/queryString';
-import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {tokenizeSearch} from 'app/utils/tokenizeSearch';
 import CellAction, {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
 import {TableColumn} from 'app/views/eventsV2/table/types';
 
@@ -170,7 +170,7 @@ export class TagValueTable extends Component<Props, State> {
 
     conditions.addTagValues(tagKey, [tagValue]);
 
-    const query = stringifyQueryObject(conditions);
+    const query = conditions.formatString();
     browserHistory.push({
       pathname: location.pathname,
       query: {
@@ -199,7 +199,7 @@ export class TagValueTable extends Component<Props, State> {
         query: {
           ...location.query,
           [TAGS_CURSOR_NAME]: undefined,
-          query: stringifyQueryObject(searchConditions),
+          query: searchConditions.formatString(),
         },
       });
     };

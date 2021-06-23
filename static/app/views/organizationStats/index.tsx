@@ -10,11 +10,9 @@ import {DateTimeObject} from 'app/components/charts/utils';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import ErrorBoundary from 'app/components/errorBoundary';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import TimeRangeSelector, {
-  ChangeData,
-} from 'app/components/organizations/timeRangeSelector';
+import {ChangeData} from 'app/components/organizations/timeRangeSelector';
+import PageTimeRangeSelector from 'app/components/organizations/timeRangeSelector/pageTimeRangeSelector';
 import PageHeading from 'app/components/pageHeading';
-import {Panel} from 'app/components/panels';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'app/constants';
 import {t} from 'app/locale';
@@ -50,15 +48,7 @@ type Props = {
   organization: Organization;
 } & RouteComponentProps<{orgId: string}, {}>;
 
-type State = {
-  isCalendarOpen: boolean;
-};
-
-export class OrganizationStats extends Component<Props, State> {
-  state: State = {
-    isCalendarOpen: false,
-  };
-
+export class OrganizationStats extends Component<Props> {
   get dataCategory(): DataCategory {
     const dataCategory = this.props.location?.query?.dataCategory;
 
@@ -228,27 +218,20 @@ export class OrganizationStats extends Component<Props, State> {
 
   renderPageControl = () => {
     const {organization} = this.props;
-    const {isCalendarOpen} = this.state;
 
     const {start, end, period, utc} = this.dataDatetime;
 
     return (
       <Fragment>
-        <DropdownDate isCalendarOpen={isCalendarOpen}>
-          <TimeRangeSelector
-            organization={organization}
-            relative={period ?? ''}
-            start={start ?? null}
-            end={end ?? null}
-            utc={utc ?? null}
-            label={<DropdownLabel>{t('Date Range:')}</DropdownLabel>}
-            onChange={() => {}}
-            onUpdate={this.handleUpdateDatetime}
-            onToggleSelector={isOpen => this.setState({isCalendarOpen: isOpen})}
-            relativeOptions={omit(DEFAULT_RELATIVE_PERIODS, ['1h'])}
-            defaultPeriod={DEFAULT_STATS_PERIOD}
-          />
-        </DropdownDate>
+        <StyledPageTimeRangeSelector
+          organization={organization}
+          relative={period ?? ''}
+          start={start ?? null}
+          end={end ?? null}
+          utc={utc ?? null}
+          onUpdate={this.handleUpdateDatetime}
+          relativeOptions={omit(DEFAULT_RELATIVE_PERIODS, ['1h'])}
+        />
 
         <DropdownDataCategory
           label={
@@ -362,42 +345,8 @@ const DropdownDataCategory = styled(DropdownControl)`
   }
 `;
 
-const DropdownDate = styled(Panel)<{isCalendarOpen: boolean}>`
+const StyledPageTimeRangeSelector = styled(PageTimeRangeSelector)`
   grid-column: auto / span 1;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 42px;
-
-  background: ${p => p.theme.background};
-  border: 1px solid ${p => p.theme.border};
-  border-radius: ${p =>
-    p.isCalendarOpen
-      ? `${p.theme.borderRadius} ${p.theme.borderRadius} 0 0`
-      : p.theme.borderRadius};
-  padding: 0;
-  margin: 0;
-  font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.textColor};
-  z-index: ${p => p.theme.zIndex.globalSelectionHeader};
-
-  /* TimeRageRoot in TimeRangeSelector */
-  > div {
-    width: 100%;
-    align-self: stretch;
-  }
-
-  /* StyledItemHeader used to show selected value of TimeRangeSelector */
-  > div > div:first-child {
-    padding: 0 ${space(2)};
-  }
-
-  /* Menu that dropdowns from TimeRangeSelector */
-  > div > div:last-child {
-    /* Remove awkward 1px width difference on dropdown due to border */
-    box-sizing: content-box;
-    font-size: 1em;
-  }
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     grid-column: auto / span 2;

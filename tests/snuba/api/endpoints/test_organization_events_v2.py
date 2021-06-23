@@ -16,6 +16,8 @@ from sentry.utils.compat import mock, zip
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import QueryExecutionError, QueryIllegalTypeOfArgument, RateLimitExceeded
 
+MAX_QUERYABLE_TRANSACTION_THRESHOLDS = 1
+
 
 class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
     def setUp(self):
@@ -958,6 +960,70 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert len(response.data["data"]) == 1
         data = response.data["data"]
         assert data[0]["count_miserable_user_300"] == 2
+
+    @mock.patch(
+        "sentry.search.events.fields.MAX_QUERYABLE_TRANSACTION_THRESHOLDS",
+        MAX_QUERYABLE_TRANSACTION_THRESHOLDS,
+    )
+    def test_too_many_transaction_thresholds(self):
+        project_transaction_thresholds = []
+        project_ids = []
+        for i in range(MAX_QUERYABLE_TRANSACTION_THRESHOLDS + 1):
+            project = self.create_project(name=f"bulk_txn_{i}")
+            project_ids.append(project.id)
+            project_transaction_thresholds.append(
+                ProjectTransactionThreshold(
+                    organization=self.organization,
+                    project=project,
+                    threshold=400,
+                    metric=TransactionMetric.LCP.value,
+                )
+            )
+
+        ProjectTransactionThreshold.objects.bulk_create(project_transaction_thresholds)
+
+        events = [
+            ("one", 400),
+            ("one", 400),
+            ("two", 3000),
+            ("two", 3000),
+            ("three", 300),
+            ("three", 3000),
+        ]
+        for idx, event in enumerate(events):
+            data = load_data(
+                "transaction",
+                timestamp=before_now(minutes=(1 + idx)),
+                start_timestamp=before_now(minutes=(1 + idx), milliseconds=event[1]),
+            )
+            data["event_id"] = f"{idx}" * 32
+            data["transaction"] = f"/count_miserable/horribilis/{event[0]}"
+            data["user"] = {"email": f"{idx}@example.com"}
+            self.store_event(data, project_id=project_ids[0])
+
+        query = {
+            "field": [
+                "transaction",
+                "count_miserable(user)",
+            ],
+            "query": "event.type:transaction",
+            project: project_ids,
+        }
+
+        response = self.do_request(
+            query,
+            features={
+                "organizations:discover-basic": True,
+                "organizations:project-transaction-threshold": True,
+                "organizations:global-views": True,
+            },
+        )
+
+        assert response.status_code == 400
+        assert (
+            response.data["detail"]
+            == "Exceeded 1 configured transaction thresholds limit, try with fewer Projects."
+        )
 
     def test_count_miserable_new_alias_field(self):
         project = self.create_project()
@@ -2433,6 +2499,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 "avg(transaction.duration)",
                 "stddev(transaction.duration)",
                 "var(transaction.duration)",
+                "cov(transaction.duration, transaction.duration)",
+                "corr(transaction.duration, transaction.duration)",
                 "sum(transaction.duration)",
             ],
             "query": "event.type:transaction",
@@ -2449,6 +2517,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["avg_transaction_duration"] == 5000
         assert data[0]["stddev_transaction_duration"] == 0.0
         assert data[0]["var_transaction_duration"] == 0.0
+        assert data[0]["cov_transaction_duration_transaction_duration"] == 0.0
+        assert data[0]["corr_transaction_duration_transaction_duration"] == 0.0
         assert data[0]["sum_transaction_duration"] == 10000
 
     def test_null_user_misery_returns_zero(self):
@@ -2592,6 +2662,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 "sum(transaction.duration)",
                 "stddev(transaction.duration)",
                 "var(transaction.duration)",
+                "cov(transaction.duration, transaction.duration)",
+                "corr(transaction.duration, transaction.duration)",
             ],
             "query": " ".join(
                 [
@@ -2602,6 +2674,9 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                     "sum(transaction.duration):>1000",
                     "stddev(transaction.duration):>=0.0",
                     "var(transaction.duration):>=0.0",
+                    "cov(transaction.duration, transaction.duration):>=0.0",
+                    # correlation is nan because variance is 0
+                    # "corr(transaction.duration, transaction.duration):>=0.0",
                 ]
             ),
         }
@@ -2612,9 +2687,11 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["min_transaction_duration"] == 5000
         assert data[0]["max_transaction_duration"] == 5000
         assert data[0]["avg_transaction_duration"] == 5000
+        assert data[0]["sum_transaction_duration"] == 10000
         assert data[0]["stddev_transaction_duration"] == 0.0
         assert data[0]["var_transaction_duration"] == 0.0
-        assert data[0]["sum_transaction_duration"] == 10000
+        assert data[0]["cov_transaction_duration_transaction_duration"] == 0.0
+        assert data[0]["corr_transaction_duration_transaction_duration"] == 0.0
 
         query = {
             "field": ["event.type", "apdex(400)"],
@@ -4027,7 +4104,7 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
 
     def test_equation_operation_limit(self):
         query = {
-            "field": ["spans.http", f"equation|spans.http{' * 2' * 2}"],
+            "field": ["spans.http", f"equation|spans.http{' * 2' * 11}"],
             "project": [self.project.id],
             "query": "event.type:transaction",
         }
@@ -4057,3 +4134,66 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         )
 
         assert response.status_code == 400
+
+    def test_count_if(self):
+        for i in range(5):
+            data = load_data(
+                "transaction",
+                timestamp=before_now(minutes=(1 + i)),
+                start_timestamp=before_now(minutes=(1 + i), milliseconds=100 if i < 3 else 200),
+            )
+            data["tags"] = {"sub_customer.is-Enterprise-42": "yes" if i == 0 else "no"}
+            self.store_event(data, project_id=self.project.id)
+
+        query = {
+            "field": [
+                "count_if(transaction.duration, less, 150)",
+                "count_if(transaction.duration, greater, 150)",
+                "count_if(sub_customer.is-Enterprise-42, equals, yes)",
+                "count_if(sub_customer.is-Enterprise-42, notEquals, yes)",
+            ],
+            "project": [self.project.id],
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200
+        assert len(response.data["data"]) == 1
+
+        assert response.data["data"][0]["count_if_transaction_duration_less_150"] == 3
+        assert response.data["data"][0]["count_if_transaction_duration_greater_150"] == 2
+
+        assert response.data["data"][0]["count_if_sub_customer_is_Enterprise_42_equals_yes"] == 1
+        assert response.data["data"][0]["count_if_sub_customer_is_Enterprise_42_notEquals_yes"] == 4
+
+    def test_count_if_filter(self):
+        for i in range(5):
+            data = load_data(
+                "transaction",
+                timestamp=before_now(minutes=(1 + i)),
+                start_timestamp=before_now(minutes=(1 + i), milliseconds=100 if i < 3 else 200),
+            )
+            data["tags"] = {"sub_customer.is-Enterprise-42": "yes" if i == 0 else "no"}
+            self.store_event(data, project_id=self.project.id)
+
+        query = {
+            "field": [
+                "count_if(transaction.duration, less, 150)",
+            ],
+            "query": "count_if(transaction.duration, less, 150):>2",
+            "project": [self.project.id],
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200
+        assert len(response.data["data"]) == 1
+
+        assert response.data["data"][0]["count_if_transaction_duration_less_150"] == 3
+
+        query = {
+            "field": [
+                "count_if(transaction.duration, less, 150)",
+            ],
+            "query": "count_if(transaction.duration, less, 150):<2",
+            "project": [self.project.id],
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200
+        assert len(response.data["data"]) == 0

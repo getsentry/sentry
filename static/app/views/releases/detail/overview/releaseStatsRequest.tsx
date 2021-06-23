@@ -16,7 +16,7 @@ import {Series} from 'app/types/echarts';
 import {defined} from 'app/utils';
 import {WebVital} from 'app/utils/discover/fields';
 import {getExactDuration} from 'app/utils/formatters';
-import {QueryResults, stringifyQueryObject} from 'app/utils/tokenizeSearch';
+import {QueryResults} from 'app/utils/tokenizeSearch';
 
 import {displayCrashFreePercent, roundDuration} from '../../utils';
 
@@ -108,7 +108,7 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
     const {version, organization, location, selection, defaultStatsPeriod} = this.props;
 
     return {
-      query: stringifyQueryObject(new QueryResults([`release:"${version}"`])),
+      query: new QueryResults([`release:"${version}"`]).formatString(),
       interval: getInterval(selection.datetime, {
         highFidelity: organization.features.includes('minute-resolution-sessions'),
       }),
@@ -202,7 +202,7 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
           ...this.baseQueryParams,
           field: 'sum(session)',
           groupBy: 'session.status',
-          query: stringifyQueryObject(new QueryResults([`!release:"${version}"`])),
+          query: new QueryResults([`!release:"${version}"`]).formatString(),
         },
       }),
     ]);
@@ -251,7 +251,7 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
           ...this.baseQueryParams,
           field: 'count_unique(user)',
           groupBy: 'session.status',
-          query: stringifyQueryObject(new QueryResults([`!release:"${version}"`])),
+          query: new QueryResults([`!release:"${version}"`]).formatString(),
         },
       }),
     ]);
@@ -300,7 +300,7 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
           ...this.baseQueryParams,
           field: ['sum(session)', 'count_unique(user)'],
           groupBy: 'session.status',
-          query: stringifyQueryObject(new QueryResults([`!release:"${version}"`])),
+          query: new QueryResults([`!release:"${version}"`]).formatString(),
         },
       }),
     ]);
@@ -370,7 +370,7 @@ class ReleaseStatsRequest extends React.Component<Props, State> {
         query: {
           ...this.baseQueryParams,
           field: 'p50(session.duration)',
-          query: stringifyQueryObject(new QueryResults([`!release:"${version}"`])),
+          query: new QueryResults([`!release:"${version}"`]).formatString(),
         },
       }),
     ]);

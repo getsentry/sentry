@@ -10,7 +10,7 @@ type AnchorProps = React.HTMLProps<HTMLAnchorElement>;
 type ToLocationFunction = (location: Location) => LocationDescriptor;
 
 type Props = WithRouterProps & {
-  //URL
+  // URL
   to: ToLocationFunction | LocationDescriptor;
   // Styles applied to the component's root
   className?: string;

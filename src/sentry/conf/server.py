@@ -274,7 +274,7 @@ USE_TZ = True
 # so that responses aren't modified after Content-Length is set, or have the
 # response modifying middleware reset the Content-Length header.
 # This is because CommonMiddleware Sets the Content-Length header for non-streaming responses.
-MIDDLEWARE_CLASSES = (
+MIDDLEWARE = (
     "sentry.middleware.health.HealthCheck",
     "sentry.middleware.security.SecurityHeadersMiddleware",
     "sentry.middleware.env.SentryEnvMiddleware",
@@ -1030,8 +1030,6 @@ SENTRY_FEATURES = {
     "projects:race-free-group-creation": True,
     # Enable functionality for rate-limiting events on projects.
     "projects:rate-limits": True,
-    # Enable functionality for sampling of events on projects.
-    "projects:sample-events": False,
     # Enable functionality to trigger service hooks upon event ingestion.
     "projects:servicehooks": False,
     # Use Kafka (instead of Celery) for ingestion pipeline.

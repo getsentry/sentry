@@ -13,7 +13,7 @@ import {
   TraceError,
 } from 'app/utils/performance/quickTrace/types';
 import {getTraceTimeRangeFromEvent} from 'app/utils/performance/quickTrace/utils';
-import {QueryResults, stringifyQueryObject} from 'app/utils/tokenizeSearch';
+import {QueryResults} from 'app/utils/tokenizeSearch';
 import {getTraceDetailsUrl} from 'app/views/performance/traceDetails/utils';
 import {getTransactionDetailsUrl} from 'app/views/performance/utils';
 
@@ -119,7 +119,7 @@ export function generateMultiTransactionsTarget(
     name: `${groupType} Transactions of Event ID ${currentEvent.id}`,
     fields: ['transaction', 'project', 'trace.span', 'transaction.duration', 'timestamp'],
     orderby: '-timestamp',
-    query: stringifyQueryObject(queryResults),
+    query: queryResults.formatString(),
     projects: [...new Set(events.map(child => child.project_id))],
     version: 2,
     start,

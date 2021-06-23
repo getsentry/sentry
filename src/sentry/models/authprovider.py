@@ -119,8 +119,7 @@ class AuthProvider(Model):
                 "member:write",
                 "member:admin",
                 "team:write",
-                "org:write",
-                "org:admin",
+                "team:admin",
             ],
         }
         # create the internal integration and link it to the join table

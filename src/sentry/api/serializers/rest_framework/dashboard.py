@@ -75,6 +75,7 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
                 "start": datetime.now() - timedelta(days=1),
                 "end": datetime.now(),
                 "project_id": [p.id for p in self.context.get("projects")],
+                "organization_id": self.context.get("organization").id,
             }
 
             snuba_filter = get_filter(conditions, params=params)

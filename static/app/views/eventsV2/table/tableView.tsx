@@ -32,7 +32,7 @@ import {
 } from 'app/utils/discover/fields';
 import {DisplayModes, TOP_N} from 'app/utils/discover/types';
 import {eventDetailsRouteWithEventView, generateEventSlug} from 'app/utils/discover/urls';
-import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {tokenizeSearch} from 'app/utils/tokenizeSearch';
 import withProjects from 'app/utils/withProjects';
 import {getTraceDetailsUrl} from 'app/views/performance/traceDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
@@ -418,7 +418,7 @@ class TableView extends React.Component<TableViewProps> {
           updateQuery(query, action, column, value);
         }
       }
-      nextView.query = stringifyQueryObject(query);
+      nextView.query = query.formatString();
 
       browserHistory.push(nextView.getResultsViewUrlTarget(organization.slug));
     };
