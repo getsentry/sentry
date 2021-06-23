@@ -66,9 +66,8 @@ commit_message_base_messages = [
 
 base_paths_by_file_type = {"js": ["components/", "views/"], "py": ["flask/", "routes/"]}
 
-crash_free_rate_by_release = [0.9997, 0.97, 0.89]
-# higher crash rate if we are doing a quick org
-crash_free_rate_by_release_quick = [0.999, 0.95, 0.8]
+crash_free_rate_by_release = [0.999, 0.99, 0.95]
+
 
 org_users = [
     ("scefali", "Stephen Cefali"),
@@ -91,38 +90,36 @@ def get_event_from_file(file_name):
 
 
 def distribution_v1(hour: int) -> int:
-    if hour > 9 and hour < 12:
-        return 8
-    if hour > 6 and hour < 15:
+    if hour > 2 and hour < 5:
         return 3
-    if hour > 4 and hour < 20:
-        return 2
-    return 1
+    if hour > 8 and hour < 11:
+        return 4
+    if hour > 20:
+        return 18
+    return 2
 
 
 def distribution_v2(hour: int) -> int:
-    if hour > 18 and hour < 20:
+    if hour == 18:
         return 14
     if hour > 9 and hour < 14:
-        return 7
+        return 8
     if hour > 3 and hour < 22:
-        return 4
-    return 2
+        return 5
+    return 1
 
 
 def distribution_v3(hour: int) -> int:
     if hour > 21:
-        return 11
+        return 13
     if hour > 6 and hour < 15:
-        return 6
-    if hour > 3:
-        return 2
-    return 2
+        return 8
+    return 3
 
 
 def distribution_v4(hour: int) -> int:
     if hour > 13 and hour < 20:
-        return 11
+        return 14
     if hour > 5 and hour < 12:
         return 7
     if hour > 3 and hour < 22:
@@ -132,10 +129,14 @@ def distribution_v4(hour: int) -> int:
 
 def distribution_v5(hour: int) -> int:
     if hour == 3:
-        return 10
+        return 16
     if hour < 5:
+        return 9
+    if hour < 15:
+        return 5
+    if hour == 20:
         return 7
-    return 2
+    return 3
 
 
 distribution_fns = [
@@ -525,33 +526,6 @@ class DataPopulation:
             # if snuba fails, just back off and continue
             self.log_info("safe_send_event.snuba_error")
             time.sleep(config["ERROR_BACKOFF_TIME"])
-
-    @catch_and_log_errors
-    def send_session(self, sid, user_id, dsn, time, release, **kwargs):
-        """
-        Creates an envelope payload for a session and posts it to Relay
-        """
-        formatted_time = time.isoformat()
-        envelope_headers = "{}"
-        item_headers = json.dumps({"type": "session"})
-        data = {
-            "sid": sid,
-            "did": str(user_id),
-            "started": formatted_time,
-            "duration": random.randrange(2, 60),
-            "attrs": {
-                "release": release,
-                "environment": "prod",
-            },
-        }
-        data.update(**kwargs)
-        core = json.dumps(data)
-
-        body = f"{envelope_headers}\n{item_headers}\n{core}"
-        endpoint = dsn.get_endpoint()
-        url = f"{endpoint}/api/{dsn.project_id}/envelope/?sentry_key={dsn.public_key}&sentry_version=7"
-        resp = requests.post(url=url, data=body)
-        resp.raise_for_status()
 
     def generate_releases(self, projects):
         config = self.get_config()
@@ -1091,24 +1065,24 @@ class DataPopulation:
             # sid = uuid4().hex
             release = get_release_from_time(project.organization_id, timestamp)
             version = release.version
-            # determine rate at which sessions should crash or exit with success
-            rate_by_release_num = (
-                crash_free_rate_by_release_quick if self.quick else crash_free_rate_by_release
-            )
+
             # get the release num from the last part of the version
             release_num = int(version.split(".")[-1])
-            threshold = rate_by_release_num[release_num]
+            crash_rates = random.choices(crash_free_rate_by_release, weights=[7, 1, 2], k=3)
+            threshold = crash_rates[release_num]
 
             formatted_time = timestamp.isoformat()
             envelope_headers = "{}"
             item_headers = json.dumps({"type": "sessions"})
 
-            exited = random.uniform(0.8, 1.2) * num * threshold
-            errored = random.uniform(0.8, 1.2) * num * (1 - threshold)
+            exited = round(num * threshold * random.uniform(0.98, 1.02))
+            crashed = round(num * (1 - threshold))
+
+            agg = {"started": formatted_time, "exited": exited, "crashed": crashed}
 
             data = {
-                "aggregates": [{"started": formatted_time, "exited": exited, "errored": errored}],
-                "attrs": {"release": release_num, "environment": "prod"},
+                "aggregates": [agg],
+                "attrs": {"release": version, "environment": "prod"},
             }
 
             core = json.dumps(data)
@@ -1130,10 +1104,8 @@ class DataPopulation:
             with sentry_sdk.start_span(
                 op="handle_react_python_scenario", description="populate_sessions"
             ):
-                # self.populate_sessions(react_project, "sessions/react_unhandled_exception.json")
-                # self.populate_sessions(python_project, "sessions/python_unhandled_exception.json")
-                self.populate_sessions(react_project, 4)
-                self.populate_sessions(python_project, 5)
+                self.populate_sessions(react_project, 1)
+                self.populate_sessions(python_project, 1)
         with sentry_sdk.start_span(
             op="handle_react_python_scenario", description="populate_connected_events"
         ):
@@ -1144,14 +1116,12 @@ class DataPopulation:
             op="handle_react_python_scenario", description="populate_errors"
         ):
             self.populate_generic_error(
-                react_project, "errors/react/get_card_info.json", 3, starting_release=1
+                react_project, "errors/react/get_card_info.json", 2, starting_release=1
             )
             self.populate_generic_error(
-                python_project, "errors/python/cert_error.json", 5, starting_release=1
+                react_project, "errors/react/func_undefined.json", 3, starting_release=2
             )
-            self.populate_generic_error(
-                react_project, "errors/react/func_undefined.json", 2, starting_release=2
-            )
+            self.populate_generic_error(python_project, "errors/python/cert_error.json", 5)
             self.populate_generic_error(
                 python_project, "errors/python/concat_str_none.json", 4, starting_release=2
             )
@@ -1160,20 +1130,25 @@ class DataPopulation:
     def handle_mobile_scenario(
         self, ios_project: Project, android_project: Project, react_native_project: Project
     ):
+        if not self.get_config_var("DISABLE_SESSIONS"):
+            with sentry_sdk.start_span(
+                op="handle_react_python_scenario", description="populate_sessions"
+            ):
+                self.populate_sessions(ios_project, 4)
+                self.populate_sessions(android_project, 3)
+                self.populate_sessions(react_native_project, 5)
         with sentry_sdk.start_span(op="handle_mobile_scenario", description="populate_errors"):
+            self.populate_generic_error(ios_project, "errors/ios/exc_bad_access.json", 3)
             self.populate_generic_error(
-                ios_project, "errors/ios/exc_bad_access.json", 3, starting_release=1
-            )
-            self.populate_generic_error(
-                ios_project, "errors/ios/handled.json", 4, starting_release=2
+                ios_project, "errors/ios/handled.json", 5, starting_release=1
             )
             self.populate_generic_transaction(
-                ios_project, "transactions/ios/ios_transaction.json", 2
+                ios_project, "transactions/ios/ios_transaction.json", 4
             )
             self.populate_generic_error(
-                android_project, "errors/android/out_of_bounds.json", 5, starting_release=1
+                android_project, "errors/android/out_of_bounds.json", 4, starting_release=1
             )
             self.populate_generic_error(
-                android_project, "errors/android/app_not_responding.json", 2, starting_release=2
+                android_project, "errors/android/app_not_responding.json", 3
             )
         self.assign_issues()
