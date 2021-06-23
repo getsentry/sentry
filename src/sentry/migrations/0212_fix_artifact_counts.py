@@ -3,8 +3,10 @@
 from django.db import migrations
 from django.db.models import Q
 
-from sentry.models.releasefile import ARTIFACT_INDEX_FILENAME
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
+
+#: Copied from releasefile.py
+ARTIFACT_INDEX_FILENAME = "artifact-index.json"
 
 
 def uncount_internal_releasefiles(apps, schema_editor):
