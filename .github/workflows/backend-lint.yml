@@ -89,7 +89,7 @@ jobs:
           filters: |
             all:
               - added|modified: '**/*.py'
-              - added|modified: 'requirements-*.txt'
+              - added|modified: 'requirements-base.txt'
 
 
       - name: Run pre-commit on changed files
