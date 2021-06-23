@@ -86,7 +86,7 @@ class ListContainer extends React.Component<Props, State> {
         relativeTime={relativeTime}
         displayRelativeTime={displayRelativeTime}
         isLastItem={isLastItem}
-        height={height ? Number(height) : undefined}
+        height={height ? String(height) : undefined}
       />
     );
   }

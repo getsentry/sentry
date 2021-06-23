@@ -21,7 +21,7 @@ type Props = {
   isLastItem: boolean;
   relativeTime: string;
   displayRelativeTime: boolean;
-  height?: number;
+  height?: string;
 };
 
 const ListBody = memo(

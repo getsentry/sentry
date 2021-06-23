@@ -32,7 +32,7 @@ const IconWrapper = styled('div', {
 const GridCell = styled('div')<{
   hasError?: boolean;
   isLastItem?: boolean;
-  height?: number;
+  height?: string;
 }>`
   height: ${p => (p.height ? `${p.height}px` : '100%')};
   position: relative;
