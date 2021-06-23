@@ -44,6 +44,36 @@ export type SpanType = RawSpanType | OrphanSpanType;
 // and as well as pseudo-spans (e.g. gap spans)
 export type ProcessedSpanType = SpanType | GapSpanType;
 
+type CommonEnhancedProcessedSpanType = {
+  numOfSpanChildren: number;
+  treeDepth: number;
+  isLastSibling: boolean;
+  continuingTreeDepths: Array<TreeDepthType>;
+};
+
+// ProcessedSpanType with additional information
+export type EnhancedProcessedSpanType =
+  | ({
+      type: 'root_span';
+      span: SpanType;
+    } & CommonEnhancedProcessedSpanType)
+  | ({
+      type: 'span';
+      span: SpanType;
+    } & CommonEnhancedProcessedSpanType)
+  | ({
+      type: 'gap';
+      span: GapSpanType;
+    } & CommonEnhancedProcessedSpanType)
+  | {
+      type: 'filtered_out';
+      span: SpanType;
+    }
+  | {
+      type: 'out_of_view';
+      span: SpanType;
+    };
+
 export type SpanEntry = {
   type: 'spans';
   data: Array<RawSpanType>;
