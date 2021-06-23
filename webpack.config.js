@@ -140,6 +140,7 @@ const localeCatalog = JSON.parse(fs.readFileSync(localeCatalogPath, 'utf8'));
 // [0] https://docs.djangoproject.com/en/2.1/topics/i18n/#term-locale-name
 const localeToLanguage = locale => locale.toLowerCase().replace('_', '-');
 const supportedLocales = localeCatalog.supported_locales;
+const supportedLanguages = supportedLocales.map(localeToLanguage);
 
 // A mapping of chunk groups used for locale code splitting
 const localeChunkGroups = {};
@@ -181,6 +182,27 @@ supportedLocales
       enforce: true,
     };
   });
+
+/**
+ * Restrict translation files that are pulled in through app/translations.jsx
+ * and through moment/locale/* to only those which we create bundles for via
+ * locale/catalogs.json.
+ *
+ * Without this, webpack will still output all of the unused locale files despite
+ * the application never loading any of them.
+ */
+const localeRestrictionPlugins = [
+  new webpack.ContextReplacementPlugin(
+    /sentry-locale$/,
+    path.join(__dirname, 'src', 'sentry', 'locale', path.sep),
+    true,
+    new RegExp(`(${supportedLocales.join('|')})/.*\\.po$`)
+  ),
+  new webpack.ContextReplacementPlugin(
+    /moment\/locale/,
+    new RegExp(`(${supportedLanguages.join('|')})\\.js$`)
+  ),
+];
 
 const babelOptions = {...babelConfig, cacheDirectory: true};
 const babelLoaderConfig = {
@@ -334,6 +356,8 @@ let appConfig = {
           }),
         ]
       : []),
+
+    ...localeRestrictionPlugins,
   ],
   resolve: {
     alias: {
