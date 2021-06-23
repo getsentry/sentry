@@ -14,6 +14,7 @@ import json  # NOQA
 import os
 import subprocess
 import sys
+import requirements
 from subprocess import Popen, check_output
 
 os.environ["PYFLAKES_NODOCTEST"] = "1"
@@ -294,6 +295,15 @@ def run_formatter(cmd, file_list, prompt_on_changes=True):
         has_errors = status != 0
     return has_errors
 
+def check_requirements():
+    """
+    We cannot have non-specifier requirements if we want to publish to PyPI
+    due to security concerns. This check ensures we don't have/add any URL/VCS
+    dependencies in the base requirements file.
+    """
+    with open("requirements-base.txt") as reqs_file:
+        return any(not req.specifier for req in requirements.parse(reqs_file))
+
 
 def run(
     file_list=None,
@@ -319,6 +329,9 @@ def run(
         # bail early if a deps failed
         if any(results):
             return 1
+
+        if not file_list or "requirements-base.txt" in file_list:
+            results.append(check_requirements())
 
         if format:
             if py:
