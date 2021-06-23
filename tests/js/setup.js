@@ -59,7 +59,6 @@ ConfigStore.loadInitialData({
  */
 jest.mock('lodash/debounce', () => jest.fn(fn => fn));
 jest.mock('app/utils/recreateRoute');
-jest.mock('app/translations');
 jest.mock('app/api');
 jest.mock('app/utils/domId');
 jest.mock('app/utils/withOrganization');

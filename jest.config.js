@@ -41,6 +41,7 @@ module.exports = {
   snapshotSerializers: ['enzyme-to-json/serializer'],
   moduleNameMapper: {
     '^sentry-test/(.*)': '<rootDir>/tests/js/sentry-test/$1',
+    '^sentry-locale/(.*)': '<rootDir>/src/sentry/locale/$1',
     '\\.(css|less|png|jpg|mp4)$': '<rootDir>/tests/js/sentry-test/importStyleMock.js',
     '\\.(svg)$': '<rootDir>/tests/js/sentry-test/svgMock.js',
     'integration-docs-platforms':
