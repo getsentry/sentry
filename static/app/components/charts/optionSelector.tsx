@@ -68,11 +68,7 @@ class OptionSelector extends Component<Props, State> {
             {({isOpen, getMenuProps, getActorProps}) => (
               <Fragment>
                 <StyledDropdownButton {...getActorProps()} size="zero" isOpen={isOpen}>
-                  <Truncate
-                    value={String(selectedOption.label)}
-                    maxLength={60}
-                    expandable={false}
-                  />
+                  <TruncatedLabel>{String(selectedOption.label)}</TruncatedLabel>
                 </StyledDropdownButton>
                 <StyledDropdownBubble
                   {...getMenuProps()}
@@ -111,6 +107,13 @@ class OptionSelector extends Component<Props, State> {
     );
   }
 }
+
+const TruncatedLabel = styled('span')`
+  max-width: 400px;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+`;
 
 const StyledTruncate = styled(Truncate)<{
   isActive: boolean;
