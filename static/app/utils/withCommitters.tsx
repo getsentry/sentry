@@ -35,9 +35,6 @@ function withCommitters<P extends DependentProps>(
     InjectedProps
   > {
     static displayName = `withCommitters(${getDisplayName(WrappedComponent)})`;
-    /*
-    mixins: [Reflux.listenTo(CommitterStore, 'onStoreUpdate') as any],
-     */
 
     constructor(props: P, context: any) {
       super(props, context);

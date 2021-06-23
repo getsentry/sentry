@@ -1,6 +1,4 @@
 import * as React from 'react';
-import createReactClass from 'create-react-class';
-import Reflux from 'reflux';
 
 import {getProjectRelease, getReleaseDeploys} from 'app/actionCreators/release';
 import {Client} from 'app/api';
@@ -24,30 +22,34 @@ type InjectedProps = {
   deploysError?: Error;
 };
 
-const withRelease = <P extends DependentProps>(
-  WrappedComponent: React.ComponentType<P>
-) =>
-  createReactClass<
+function withRelease<P extends DependentProps>(WrappedComponent: React.ComponentType<P>) {
+  class WithRelease extends React.Component<
     Omit<P, keyof InjectedProps> & Partial<InjectedProps> & DependentProps,
     InjectedProps
-  >({
-    displayName: `withRelease(${getDisplayName(WrappedComponent)})`,
-    mixins: [Reflux.listenTo(ReleaseStore, 'onStoreUpdate') as any],
+  > {
+    static displayName = `withRelease(${getDisplayName(WrappedComponent)})`;
 
-    getInitialState() {
-      const {projectSlug, releaseVersion} = this.props as P & DependentProps;
+    constructor(props, context) {
+      super(props, context);
+
+      const {projectSlug, releaseVersion} = this.props;
       const releaseData = ReleaseStore.get(projectSlug, releaseVersion);
-      return {...releaseData};
-    },
+      this.state = {...releaseData};
+    }
 
     componentDidMount() {
       this.fetchRelease();
       this.fetchDeploys();
-    },
+    }
+
+    componentWillUnmount() {
+      this.unsubscribe();
+    }
+
+    unsubscribe = ReleaseStore.listen(() => this.onStoreUpdate(), undefined);
 
     fetchRelease() {
-      const {api, organization, projectSlug, releaseVersion} = this.props as P &
-        DependentProps;
+      const {api, organization, projectSlug, releaseVersion} = this.props;
       const releaseData = ReleaseStore.get(projectSlug, releaseVersion);
       const orgSlug = organization.slug;
 
@@ -57,11 +59,10 @@ const withRelease = <P extends DependentProps>(
       ) {
         getProjectRelease(api, {orgSlug, projectSlug, releaseVersion});
       }
-    },
+    }
 
     fetchDeploys() {
-      const {api, organization, projectSlug, releaseVersion} = this.props as P &
-        DependentProps;
+      const {api, organization, projectSlug, releaseVersion} = this.props;
       const releaseData = ReleaseStore.get(projectSlug, releaseVersion);
       const orgSlug = organization.slug;
 
@@ -71,14 +72,14 @@ const withRelease = <P extends DependentProps>(
       ) {
         getReleaseDeploys(api, {orgSlug, projectSlug, releaseVersion});
       }
-    },
+    }
 
     onStoreUpdate() {
-      const {projectSlug, releaseVersion} = this.props as P & DependentProps;
+      const {projectSlug, releaseVersion} = this.props;
       const releaseData = ReleaseStore.get(projectSlug, releaseVersion);
 
       this.setState({...releaseData});
-    },
+    }
 
     render() {
       return (
@@ -87,7 +88,9 @@ const withRelease = <P extends DependentProps>(
           {...(this.state as InjectedProps)}
         />
       );
-    },
-  });
+    }
+  }
+  return WithRelease;
+}
 
 export default withRelease;
