@@ -1129,6 +1129,17 @@ function routes() {
                   isEventRoute: true,
                 }}
               />
+              <Route
+                path="grouping/"
+                componentPromise={() =>
+                  import('app/views/organizationGroupDetails/grouping')
+                }
+                component={errorHandler(LazyLoad)}
+                props={{
+                  currentTab: TAB.GROUPING,
+                  isEventRoute: true,
+                }}
+              />
             </Route>
           </Route>
 
