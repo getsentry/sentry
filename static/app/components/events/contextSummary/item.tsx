@@ -20,6 +20,9 @@ const Item = ({children, icon, className}: Props) => (
 export default Item;
 
 const Details = styled('div')`
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   max-width: 100%;
   min-height: 48px;
 `;
