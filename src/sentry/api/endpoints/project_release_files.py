@@ -1,9 +1,10 @@
 import logging
 import re
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 from django.db import IntegrityError, transaction
 from django.db.models import Q
+from django.utils.functional import cached_property
 from rest_framework.response import Response
 
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
@@ -161,29 +162,30 @@ class ArtifactSource:
 
     def __init__(self, dist: Optional[Distribution], files: dict, query: List[str]):
         self._dist = dist
-        self._files = files.items()
+        self._files = files
         self._query = query
-        self._ready = False
+
+    @cached_property
+    def sorted_and_filtered_files(self) -> List[Tuple[str, dict]]:
+        query = self._query
+        files = [
+            # Mimic "or" operation applied for real querysets:
+            (url, info)
+            for url, info in self._files.items()
+            if not query or any(search_string.lower() in url.lower() for search_string in query)
+        ]
+        files.sort(key=lambda item: item[0])
+
+        return files
 
     def __len__(self):
-        return len(self._files)
+        return len(self.sorted_and_filtered_files)
 
     def __getitem__(self, range):
-        self._ensure_ready()
-
-        return [pseudo_releasefile(url, info, self._dist) for url, info in self._files[range]]
-
-    def _ensure_ready(self):
-        if not self._ready:
-            query = self._query
-            self._files = [
-                # Mimic "or" operation applied for real querysets:
-                (url, info)
-                for url, info in self._files
-                if not query or any(search_string.lower() in url.lower() for search_string in query)
-            ]
-            self._files.sort(key=lambda item: item[0])
-            self._ready = True
+        return [
+            pseudo_releasefile(url, info, self._dist)
+            for url, info in self.sorted_and_filtered_files[range]
+        ]
 
 
 def pseudo_releasefile(url, info, dist):
