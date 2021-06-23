@@ -97,7 +97,7 @@ const ContextSummaryUser = ({data}: Props) => {
   const icon = userTitle ? (
     <UserAvatar
       user={user as AvatarUser}
-      size={48}
+      size={30}
       className="context-item-icon"
       gravatar={false}
     />

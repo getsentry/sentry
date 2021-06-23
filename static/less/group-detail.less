@@ -161,28 +161,25 @@
     .context-item-icon {
       position: absolute;
       left: 0;
-      top: 0;
-      width: 48px;
-      height: 48px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 30px;
+      height: 30px;
       background-repeat: no-repeat;
       background-position: center;
       background-image: url(~sentry-logos/logo-unknown.svg);
-      background-size: 48px 48px;
+      background-size: 30px 30px;
     }
 
     &:first-child {
       border: 0;
     }
 
-    h3,
-    p {
-      margin: 0 0 4px;
-    }
-
     h3 {
       .truncate;
       font-size: 16px;
       line-height: 1.2;
+      margin-bottom: 0;
     }
 
     p {
@@ -280,13 +277,11 @@
     &.watchos {
       .context-item-icon {
         background-image: url(~sentry-logos/logo-apple.svg);
-        top: -2px;
       }
     }
 
     &.android .context-item-icon {
       background-image: url(~sentry-logos/logo-android.svg);
-      top: -1px;
     }
 
     &.windows .context-item-icon {
