@@ -14,52 +14,55 @@ export enum EventsDisplayFilterName {
 }
 
 export type EventsDisplayFilter = {
-  sort: {kind: string; field: string};
-  value: EventsDisplayFilterName;
+  sort?: {kind: string; field: string};
   label: string;
   query?: string[][];
 };
 
 export function getEventsFilterOptions(
   spanOperationBreakdownFilter: SpanOperationBreakdownFilter,
-  p95: number
-): EventsDisplayFilter[] {
+  p95?: number
+): {
+  [name in EventsDisplayFilterName]: EventsDisplayFilter;
+} {
   const spanOperationBreakdownFilterTextFragment =
     spanOperationBreakdownFilter !== SpanOperationBreakdownFilter.None
       ? `${spanOperationBreakdownFilter} Operations`
       : 'Transactions';
-  return [
-    {
+  return {
+    [EventsDisplayFilterName.NONE]: {
+      label: t('All %s', spanOperationBreakdownFilterTextFragment),
+    },
+    [EventsDisplayFilterName.FASTEST]: {
       sort: {
         kind: 'asc',
         field: filterToField(spanOperationBreakdownFilter) || 'transaction.duration',
       },
-      value: EventsDisplayFilterName.FASTEST,
       label: t('Fastest %s', spanOperationBreakdownFilterTextFragment),
     },
-    {
-      query: [['transaction.duration', `<=${p95.toFixed(0)}`]],
+
+    [EventsDisplayFilterName.SLOW]: {
+      query: p95 ? [['transaction.duration', `<=${p95.toFixed(0)}`]] : [],
       sort: {
         kind: 'desc',
         field: filterToField(spanOperationBreakdownFilter) || 'transaction.duration',
       },
-      value: EventsDisplayFilterName.SLOW,
       label: t('Slow %s (p95)', spanOperationBreakdownFilterTextFragment),
     },
-    {
+
+    [EventsDisplayFilterName.OUTLIER]: {
       sort: {
         kind: 'desc',
         field: filterToField(spanOperationBreakdownFilter) || 'transaction.duration',
       },
-      value: EventsDisplayFilterName.OUTLIER,
       label: t('Outlier %s (p100)', spanOperationBreakdownFilterTextFragment),
     },
-    {
+
+    [EventsDisplayFilterName.RECENT]: {
       sort: {kind: 'desc', field: 'timestamp'},
-      value: EventsDisplayFilterName.RECENT,
       label: t('Recent Transactions'),
     },
-  ];
+  };
 }
 
 export function eventsRouteWithQuery({
@@ -103,8 +106,19 @@ export function decodeEventsDisplayFilterFromLocation(location: Location) {
   );
 }
 
-export function filterEventsDisplayToLocationQuery(option: EventsDisplayFilterName) {
-  return {
-    showTransactions: option as string,
+export function filterEventsDisplayToLocationQuery(
+  option: EventsDisplayFilterName,
+  spanOperationBreakdownFilter: SpanOperationBreakdownFilter
+) {
+  const eventsFilterOptions = getEventsFilterOptions(spanOperationBreakdownFilter);
+  const kind = eventsFilterOptions[option].sort?.kind;
+  const field = eventsFilterOptions[option].sort?.field;
+
+  const query: {showTransactions: string; sort?: string} = {
+    showTransactions: option,
   };
+  if (kind && field) {
+    query.sort = `${kind === 'desc' ? '-' : ''}${field}`;
+  }
+  return query;
 }

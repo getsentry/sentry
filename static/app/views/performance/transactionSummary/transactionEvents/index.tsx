@@ -36,6 +36,7 @@ import {
   decodeEventsDisplayFilterFromLocation,
   EventsDisplayFilterName,
   filterEventsDisplayToLocationQuery,
+  getEventsFilterOptions,
 } from './utils';
 
 type Props = {
@@ -73,8 +74,14 @@ class TransactionEvents extends Component<Props, State> {
     };
   }
 
+  componentDidMount() {
+    const {eventsDisplayFilter} = this.state;
+    this.filterEvents(eventsDisplayFilter);
+  }
+
   onChangeSpanOperationBreakdownFilter = (newFilter: SpanOperationBreakdownFilter) => {
     const {location, organization} = this.props;
+    const {spanOperationBreakdownFilter, eventsDisplayFilter, eventView} = this.state;
 
     trackAnalyticsEvent({
       eventName: 'Performance Views: Filter Dropdown',
@@ -83,9 +90,25 @@ class TransactionEvents extends Component<Props, State> {
       action: newFilter as string,
     });
 
+    // Check to see if the current table sort matches the EventsDisplayFilter.
+    // If it does, we can resort using the new SpanOperationBreakdownFilter
+    const eventsFilterOptionSort = getEventsFilterOptions(spanOperationBreakdownFilter)[
+      eventsDisplayFilter
+    ].sort;
+    const currentSort = eventView?.sorts?.[0];
+    let sortQuery = {};
+
+    if (
+      eventsFilterOptionSort?.kind === currentSort?.kind &&
+      eventsFilterOptionSort?.field === currentSort?.field
+    ) {
+      sortQuery = filterEventsDisplayToLocationQuery(eventsDisplayFilter, newFilter);
+    }
+
     const nextQuery: Location['query'] = {
       ...removeHistogramQueryStrings(location, [ZOOM_START, ZOOM_END]),
       ...filterToLocationQuery(newFilter),
+      ...sortQuery,
     };
 
     if (newFilter === SpanOperationBreakdownFilter.None) {
@@ -98,7 +121,7 @@ class TransactionEvents extends Component<Props, State> {
   };
 
   onChangeEventsDisplayFilter = (newFilter: EventsDisplayFilterName) => {
-    const {location, organization} = this.props;
+    const {organization} = this.props;
 
     trackAnalyticsEvent({
       eventName: 'Performance Views: Filter Dropdown',
@@ -106,15 +129,21 @@ class TransactionEvents extends Component<Props, State> {
       organization_id: parseInt(organization.id, 10),
       action: newFilter as string,
     });
+    this.filterEvents(newFilter);
+  };
 
+  filterEvents = (newFilter: EventsDisplayFilterName) => {
+    const {location} = this.props;
+    const {spanOperationBreakdownFilter} = this.state;
     const nextQuery: Location['query'] = {
       ...removeHistogramQueryStrings(location, [ZOOM_START, ZOOM_END]),
-      ...filterEventsDisplayToLocationQuery(newFilter),
+      ...filterEventsDisplayToLocationQuery(newFilter, spanOperationBreakdownFilter),
     };
 
     if (newFilter === EventsDisplayFilterName.NONE) {
       delete nextQuery.showTransaction;
     }
+
     browserHistory.push({
       pathname: location.pathname,
       query: nextQuery,

@@ -207,6 +207,9 @@ const Search = (props: Props) => {
   };
 
   const query = decodeScalar(location.query.query, '');
+
+  const eventsFilterOptions = getEventsFilterOptions(spanOperationBreakdownFilter, 1000);
+
   return (
     <SearchWrapper>
       <Filter
@@ -223,23 +226,24 @@ const Search = (props: Props) => {
       />
       <LatencyDropdown>
         {/* TODO */}
-        <DropdownControl buttonProps={{prefix: t('Display')}} label={eventsDisplayFilter}>
+        <DropdownControl
+          buttonProps={{prefix: t('Display')}}
+          label={eventsFilterOptions[eventsDisplayFilter].label}
+        >
           {/* TODO */}
-          {getEventsFilterOptions(spanOperationBreakdownFilter, 1000).map(
-            ({value, label}) => {
-              return (
-                <DropdownItem
-                  key={value}
-                  onSelect={onChangeEventsDisplayFilter}
-                  eventKey={value}
-                  data-test-id={value}
-                  isActive={eventsDisplayFilter === value}
-                >
-                  {label}
-                </DropdownItem>
-              );
-            }
-          )}
+          {Object.entries(eventsFilterOptions).map(([name, {label}]) => {
+            return (
+              <DropdownItem
+                key={name}
+                onSelect={onChangeEventsDisplayFilter}
+                eventKey={name}
+                data-test-id={name}
+                isActive={eventsDisplayFilter === name}
+              >
+                {label}
+              </DropdownItem>
+            );
+          })}
         </DropdownControl>
       </LatencyDropdown>
     </SearchWrapper>
