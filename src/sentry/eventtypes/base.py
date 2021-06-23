@@ -9,12 +9,12 @@ from sentry.utils.strings import strip, truncatechars
 class BaseEvent:
     id = None
 
-    def get_metadata(self, data, for_group=False):
+    def get_metadata(self, data):
         metadata = {}
         title = data.get("title")
         if title is not None:
             metadata["title"] = title
-        for key, value in self.extract_metadata(data, for_group=for_group).items():
+        for key, value in self.extract_metadata(data).items():
             # If we already have a custom title, do not override with the
             # computed title.
             if key not in metadata:
