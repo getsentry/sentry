@@ -13,9 +13,9 @@
     };
    */
 
-  var strings = /* {{ strings }} */ '';
-  var template = /* {{ template }} */ '';
-  var endpoint = /* {{ endpoint }} */ '';
+  var strings = /*{{ strings }}*/ '';
+  var template = /*{{ template }}*/ '';
+  var endpoint = /*{{ endpoint }}*/ '';
 
   var setChild = function (target, child) {
     target.innerHTML = '';
