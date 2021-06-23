@@ -28,8 +28,6 @@ updates:
 
       # We ignore everything that hasn't yet been upgrade, this way we will
       # only get the _freshest_ of new packages to consider upgrading
-      - dependency-name: "@dnd-kit/core"
-      - dependency-name: "@dnd-kit/sortable"
       - dependency-name: "@sentry-internal/global-search"
       - dependency-name: "@sentry/release-parser"
       - dependency-name: "@sentry/rrweb"
