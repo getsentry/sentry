@@ -14,6 +14,7 @@ class GitHubApiError(Exception):
 
 class GitHubClient:
     def __init__(self, access_token):
+        # TODO: destructor
         self.http = http.build_session()
         self.access_token = access_token
 
