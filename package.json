@@ -24,7 +24,7 @@
     "@sentry-internal/global-search": "^0.0.43",
     "@sentry/integrations": "6.7.2",
     "@sentry/react": "6.7.2",
-    "@sentry/release-parser": "1.1.0",
+    "@sentry/release-parser": "^1.1.3",
     "@sentry/rrweb": "^0.1.1",
     "@sentry/tracing": "6.7.2",
     "@sentry/utils": "6.7.2",
