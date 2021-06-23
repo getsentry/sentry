@@ -1,4 +1,4 @@
-from typing import Any, Sequence
+from typing import Any, Callable, Optional, Sequence
 
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -6,8 +6,8 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.models import Organization
 
-# TODO(mgaeta): It's not currently possible to make a Callable with kwargs.
-EndpointFunc = Any
+# TODO(mgaeta): It's not currently possible to type a Callable's args with kwargs.
+EndpointFunc = Callable[..., Response]
 
 
 def any_organization_has_feature(
