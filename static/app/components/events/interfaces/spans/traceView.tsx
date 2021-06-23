@@ -37,7 +37,7 @@ class TraceView extends PureComponent<Props> {
             trace={waterfallModel.parsedTrace}
             event={waterfallModel.event}
             virtualScrollBarContainerRef={this.virtualScrollBarContainerRef}
-            operationNameFilters={this.props.waterfallModel.operationNameFilters}
+            operationNameFilters={waterfallModel.operationNameFilters}
           />
         );
       }}
