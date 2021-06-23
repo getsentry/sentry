@@ -28,7 +28,6 @@ updates:
 
       # We ignore everything that hasn't yet been upgrade, this way we will
       # only get the _freshest_ of new packages to consider upgrading
-      - dependency-name: "@sentry-internal/global-search"
       - dependency-name: "@sentry/release-parser"
       - dependency-name: "@sentry/rrweb"
       - dependency-name: "@size-limit/preset-small-lib"

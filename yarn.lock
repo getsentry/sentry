@@ -1803,10 +1803,10 @@
     prop-types "^15.6.1"
     react-lifecycles-compat "^3.0.4"
 
-"@sentry-internal/global-search@^0.0.40":
-  version "0.0.40"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/global-search/-/global-search-0.0.40.tgz#a90bb7a361f06d102e260de396cf345f32504ec5"
-  integrity sha512-o83rotkPXbRnXQeEgmUSkLFaprpXfC9VS1q96sP5ItaSKag16merxwS2dKwo8Qbh1hWA1XQLvtWFCmbHDhmuEA==
+"@sentry-internal/global-search@^0.0.43":
+  version "0.0.43"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/global-search/-/global-search-0.0.43.tgz#d390a8f78ea302e588e98e23cc5daf20f88254af"
+  integrity sha512-C6qXxSslugJ9c1M2hr+MhVAVQ/5feNKziIgZNUi0kdv4to5pS9zHV78x7HKVIIIybOxt+8L3N9e1aAgShLsZ6w==
   dependencies:
     "@types/dompurify" "^2.0.4"
     "@types/react" ">=16"
