@@ -36,13 +36,8 @@ class ContextData extends React.Component<Props, State> {
   };
 
   renderValue(value: Value) {
-    const {
-      preserveQuotes,
-      meta,
-      withAnnotatedText,
-      jsonConsts,
-      maxDefaultDepth,
-    } = this.props;
+    const {preserveQuotes, meta, withAnnotatedText, jsonConsts, maxDefaultDepth} =
+      this.props;
     const maxDepth = maxDefaultDepth ?? 2;
 
     function getValueWithAnnotatedText(v: Value, meta?: Meta) {
