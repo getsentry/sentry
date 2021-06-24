@@ -1,3 +1,5 @@
+import unittest
+
 import pytest
 from django.utils import timezone
 from freezegun import freeze_time
@@ -16,6 +18,7 @@ from sentry.models import (
     GroupResolution,
     GroupStatus,
     Integration,
+    InvalidSearchQuery,
     OrganizationIntegration,
     Release,
     ReleaseCommit,
@@ -24,7 +27,9 @@ from sentry.models import (
     ReleaseProject,
     ReleaseProjectEnvironment,
     Repository,
+    SemverFilter,
     add_group_to_inbox,
+    convert_semver_to_filter,
 )
 from sentry.testutils import SetRefsTestCase, TestCase
 from sentry.utils.compat.mock import patch
@@ -796,3 +801,96 @@ class SemverReleaseParseTestCase(TestCase):
         assert release.build_code is None
         assert release.build_number is None
         assert release.package is None
+
+
+class ReleaseFilterBySemverTest(TestCase):
+    def test_invalid_query(self):
+        with pytest.raises(InvalidSearchQuery, match="Invalid format for semver query"):
+            Release.objects.filter_by_semver(self.organization.id, "gt", "1.2.hi")
+
+    def run_test(self, operator, version, expected_releases, organization_id=None):
+        organization_id = organization_id if organization_id else self.organization.id
+        assert set(Release.objects.filter_by_semver(organization_id, operator, version)) == set(
+            expected_releases
+        )
+
+    def test(self):
+        release = self.create_release(version="test@1.2.3")
+        release_2 = self.create_release(version="test@1.2.4")
+        self.run_test("gt", "1.2.3", [release_2])
+        self.run_test("gte", "1.2.4", [release_2])
+        self.run_test("lt", "1.2.4", [release])
+        self.run_test("lte", "1.2.3", [release])
+
+    def test_prerelease(self):
+        # Prerelease has weird sorting rules, where an empty string is higher priority
+        # than a non-empty string. Make sure this sorting works
+        release = self.create_release(version="test@1.2.3-alpha")
+        release_1 = self.create_release(version="test@1.2.3-beta")
+        release_2 = self.create_release(version="test@1.2.3")
+        release_3 = self.create_release(version="test@1.2.4-alpha")
+        release_4 = self.create_release(version="test@1.2.4")
+        self.run_test("gte", "1.2.3", [release_2, release_3, release_4])
+        self.run_test(
+            "gte",
+            "1.2.3-beta",
+            [release_1, release_2, release_3, release_4],
+        )
+        self.run_test("lt", "1.2.3", [release_1, release])
+
+    def test_granularity(self):
+        self.create_release(version="test@1.0.0.0")
+        release_2 = self.create_release(version="test@1.2.0.0")
+        release_3 = self.create_release(version="test@1.2.3.0")
+        release_4 = self.create_release(version="test@1.2.3.4")
+        release_5 = self.create_release(version="test@2.0.0.0")
+        self.run_test(
+            "gt",
+            "1",
+            [release_2, release_3, release_4, release_5],
+        )
+        self.run_test("gt", "1.2", [release_3, release_4, release_5])
+        self.run_test("gt", "1.2.3", [release_4, release_5])
+        self.run_test("gt", "1.2.3.4", [release_5])
+        self.run_test("gt", "2", [])
+
+    def test_wildcard(self):
+        release_1 = self.create_release(version="test@1.0.0.0")
+        release_2 = self.create_release(version="test@1.2.0.0")
+        release_3 = self.create_release(version="test@1.2.3.0")
+        release_4 = self.create_release(version="test@1.2.3.4")
+        release_5 = self.create_release(version="test@2.0.0.0")
+
+        self.run_test(
+            "exact",
+            "1.X",
+            [release_1, release_2, release_3, release_4],
+        )
+        self.run_test("exact", "1.2.*", [release_2, release_3, release_4])
+        self.run_test("exact", "1.2.3.*", [release_3, release_4])
+        self.run_test("exact", "1.2.3.4", [release_4])
+        self.run_test("exact", "2.*", [release_5])
+
+
+class ConvertSemverToFilterTest(unittest.TestCase):
+    def run_test(self, version: str, operator: str, expected: SemverFilter):
+        semver_filter = convert_semver_to_filter(version, operator)
+        assert semver_filter == expected
+
+    def test_invalid(self):
+        assert convert_semver_to_filter("1.hello", "gt") is None
+        assert convert_semver_to_filter("hello", "gt") is None
+
+    def test_normal(self):
+        self.run_test("1", "gt", SemverFilter("gt", [1, 0, 0, 0, 1, ""]))
+        self.run_test("1.2", "gt", SemverFilter("gt", [1, 2, 0, 0, 1, ""]))
+        self.run_test("1.2.3", "gt", SemverFilter("gt", [1, 2, 3, 0, 1, ""]))
+        self.run_test("1.2.3.4", "gt", SemverFilter("gt", [1, 2, 3, 4, 1, ""]))
+        self.run_test("1.2.3-hi", "gt", SemverFilter("gt", [1, 2, 3, 0, 0, "hi"]))
+        self.run_test("1.2.3-hi", "lt", SemverFilter("lt", [1, 2, 3, 0, 0, "hi"]))
+
+    def test_wildcard(self):
+        self.run_test("1.*", "exact", SemverFilter("exact", [1]))
+        self.run_test("1.2.*", "exact", SemverFilter("exact", [1, 2]))
+        self.run_test("1.2.3.*", "exact", SemverFilter("exact", [1, 2, 3]))
+        self.run_test("1.X", "exact", SemverFilter("exact", [1]))

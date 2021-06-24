@@ -68,7 +68,7 @@ class ReleaseOverview extends AsyncView<Props> {
     );
   }
 
-  handleYAxisChange = (yAxis: YAxis) => {
+  handleYAxisChange = (yAxis: YAxis, project: ReleaseProject) => {
     const {location, router, organization} = this.props;
     const {eventType, vitalType, ...query} = location.query;
 
@@ -79,6 +79,7 @@ class ReleaseOverview extends AsyncView<Props> {
       display: yAxis,
       eventType,
       vitalType,
+      platform: project.platform,
     });
 
     router.push({
@@ -87,8 +88,17 @@ class ReleaseOverview extends AsyncView<Props> {
     });
   };
 
-  handleEventTypeChange = (eventType: EventType) => {
-    const {location, router} = this.props;
+  handleEventTypeChange = (eventType: EventType, project: ReleaseProject) => {
+    const {location, router, organization} = this.props;
+
+    trackAnalyticsEvent({
+      eventKey: `release_detail.change_chart`,
+      eventName: `Release Detail: Change Chart`,
+      organization_id: parseInt(organization.id, 10),
+      display: YAxis.EVENTS,
+      eventType,
+      platform: project.platform,
+    });
 
     router.push({
       ...location,
@@ -96,8 +106,17 @@ class ReleaseOverview extends AsyncView<Props> {
     });
   };
 
-  handleVitalTypeChange = (vitalType: WebVital) => {
-    const {location, router} = this.props;
+  handleVitalTypeChange = (vitalType: WebVital, project: ReleaseProject) => {
+    const {location, router, organization} = this.props;
+
+    trackAnalyticsEvent({
+      eventKey: `release_detail.change_chart`,
+      eventName: `Release Detail: Change Chart`,
+      organization_id: parseInt(organization.id, 10),
+      display: YAxis.COUNT_VITAL,
+      vitalType,
+      platform: project.platform,
+    });
 
     router.push({
       ...location,
@@ -310,11 +329,11 @@ class ReleaseOverview extends AsyncView<Props> {
                     releaseMeta={releaseMeta}
                     selection={selection}
                     yAxis={yAxis}
-                    onYAxisChange={this.handleYAxisChange}
+                    onYAxisChange={display => this.handleYAxisChange(display, project)}
                     eventType={eventType}
-                    onEventTypeChange={this.handleEventTypeChange}
+                    onEventTypeChange={type => this.handleEventTypeChange(type, project)}
                     vitalType={vitalType}
-                    onVitalTypeChange={this.handleVitalTypeChange}
+                    onVitalTypeChange={type => this.handleVitalTypeChange(type, project)}
                     router={router}
                     organization={organization}
                     hasHealthData={hasHealthData}
@@ -479,9 +498,10 @@ function getDropdownOptions(): DropdownOption[] {
   ];
 }
 
-function getTransactionsListSort(
-  location: Location
-): {selectedSort: DropdownOption; sortOptions: DropdownOption[]} {
+function getTransactionsListSort(location: Location): {
+  selectedSort: DropdownOption;
+  sortOptions: DropdownOption[];
+} {
   const sortOptions = getDropdownOptions();
   const urlParam = decodeScalar(
     location.query.showTransactions,

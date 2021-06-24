@@ -17,7 +17,7 @@ import {Sort} from 'app/utils/discover/fields';
 import BaselineQuery from 'app/utils/performance/baseline/baselineQuery';
 import {TrendsEventsDiscoverQuery} from 'app/utils/performance/trends/trendsDiscoverQuery';
 import {decodeScalar} from 'app/utils/queryString';
-import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {tokenizeSearch} from 'app/utils/tokenizeSearch';
 import {Actions} from 'app/views/eventsV2/table/cellAction';
 import {TableColumn} from 'app/views/eventsV2/table/types';
 import {decodeColumnOrder} from 'app/views/eventsV2/utils';
@@ -140,7 +140,7 @@ class TransactionsList extends React.Component<Props> {
     if (selected.query) {
       const query = tokenizeSearch(sortedEventView.query);
       selected.query.forEach(item => query.setTagValues(item[0], [item[1]]));
-      sortedEventView.query = stringifyQueryObject(query);
+      sortedEventView.query = query.formatString();
     }
 
     return sortedEventView;
@@ -299,14 +299,8 @@ class TransactionsList extends React.Component<Props> {
   }
 
   renderTrendsTable(): React.ReactNode {
-    const {
-      trendView,
-      location,
-      selected,
-      organization,
-      cursorName,
-      generateLink,
-    } = this.props;
+    const {trendView, location, selected, organization, cursorName, generateLink} =
+      this.props;
 
     const sortedEventView: TrendView = trendView!.clone();
     sortedEventView.sorts = [selected.sort];
@@ -314,7 +308,7 @@ class TransactionsList extends React.Component<Props> {
     if (selected.query) {
       const query = tokenizeSearch(sortedEventView.query);
       selected.query.forEach(item => query.setTagValues(item[0], [item[1]]));
-      sortedEventView.query = stringifyQueryObject(query);
+      sortedEventView.query = query.formatString();
     }
     const cursor = decodeScalar(location.query?.[cursorName]);
 

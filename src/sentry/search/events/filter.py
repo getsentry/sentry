@@ -1,10 +1,8 @@
 from datetime import datetime
 from typing import Callable, List, Mapping, Optional, Sequence, Tuple, Union
 
-from django.db.models import BigIntegerField, F, Func, Q, Value
 from parsimonious.exceptions import ParseError
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
-from sentry_relay.processing import parse_release as relay_parse_release
 from snuba_sdk.conditions import Condition, Op, Or
 from snuba_sdk.function import Function
 
@@ -36,7 +34,6 @@ from sentry.search.events.constants import (
     PROJECT_NAME_ALIAS,
     RELEASE_ALIAS,
     SEMVER_ALIAS,
-    SEMVER_FAKE_PACKAGE,
     SEMVER_MAX_SEARCH_RELEASES,
     TEAM_KEY_TRANSACTION_ALIAS,
     USER_DISPLAY_ALIAS,
@@ -356,85 +353,45 @@ def parse_semver_search(
         raise ValueError("organization_id is a required param")
 
     organization_id: int = params["organization_id"]
-    version: str = search_filter.value.value
+    # We explicitly use `raw_value` here to avoid converting wildcards to shell values
+    version: str = search_filter.value.raw_value
     operator: str = search_filter.operator
 
-    # Our semver parser expects a package at the start of the version, so just add a
-    # dummy one here if not already provided.
-    version = version if "@" in version else f"{SEMVER_FAKE_PACKAGE}@{version}"
-    parsed = relay_parse_release(version)
-    parsed_version = parsed.get("version_parsed")
-    if parsed_version:
-        # The version matches semver format, so we can use it for comparison
-        release_filter = Q(organization_id=organization_id)
-        if parsed["package"] and parsed["package"] != SEMVER_FAKE_PACKAGE:
-            release_filter &= Q(package=parsed["package"])
-        # Convert `pre` to always be a string
-        prerelease = parsed_version["pre"] if parsed_version["pre"] else ""
-        filter_func = Func(
-            parsed_version["major"],
-            parsed_version["minor"],
-            parsed_version["patch"],
-            parsed_version["revision"],
-            0 if prerelease else 1,
-            Value(prerelease),
-            function="ROW",
+    # Note that we sort this such that if we end up fetching more than
+    # MAX_SEMVER_SEARCH_RELEASES, we will return the releases that are closest to
+    # the passed filter.
+    order_by = Release.SEMVER_COLS
+    if operator.startswith("<"):
+        order_by = list(map(_flip_field_sort, order_by))
+    qs = (
+        Release.objects.filter_by_semver(organization_id, OPERATOR_TO_DJANGO[operator], version)
+        .values_list("version", flat=True)
+        .order_by(*order_by)[:SEMVER_MAX_SEARCH_RELEASES]
+    )
+    versions = list(qs)
+    final_operator = "IN"
+    if len(versions) == SEMVER_MAX_SEARCH_RELEASES:
+        # We want to limit how many versions we pass through to Snuba. If we've hit
+        # the limit, make an extra query and see whether the inverse has fewer ids.
+        # If so, we can do a NOT IN query with these ids instead. Otherwise, we just
+        # do our best.
+        operator = OPERATOR_NEGATION_MAP[operator]
+        # Note that the `order_by` here is important for index usage. Postgres seems
+        # to seq scan with this query if the `order_by` isn't included, so we
+        # include it even though we don't really care about order for this query
+        qs_flipped = (
+            Release.objects.filter_by_semver(organization_id, OPERATOR_TO_DJANGO[operator], version)
+            .order_by(*map(_flip_field_sort, order_by))
+            .values_list("version", flat=True)[:SEMVER_MAX_SEARCH_RELEASES]
         )
 
-        # Note that we sort this such that if we end up fetching more than
-        # MAX_SEMVER_SEARCH_RELEASES, we will return the releases that are closest to
-        # the passed filter.
-        order_by = Release.SEMVER_SORT_COLS
-        if operator.startswith("<"):
-            order_by = list(map(_flip_field_sort, order_by))
-        qs = (
-            Release.objects.filter(release_filter)
-            .annotate_prerelease_column()
-            .annotate(
-                semver=Func(
-                    F("major"),
-                    F("minor"),
-                    F("patch"),
-                    F("revision"),
-                    F("prerelease_case"),
-                    F("prerelease"),
-                    function="ROW",
-                    # XXX: The output_field doesn't matter here, but Django complains
-                    # that it needs to be set since we have a mix of types in the `Func`
-                    output_field=BigIntegerField(),
-                ),
-            )
-            .values_list("version", flat=True)
-        )
-        qs_initial = qs.filter(**{f"semver__{OPERATOR_TO_DJANGO[operator]}": filter_func}).order_by(
-            *order_by
-        )[:SEMVER_MAX_SEARCH_RELEASES]
-        versions = list(qs_initial)
-        final_operator = "IN"
-        if len(versions) == SEMVER_MAX_SEARCH_RELEASES:
-            # We want to limit how many versions we pass through to Snuba. If we've hit
-            # the limit, make an extra query and see whether the inverse has fewer ids.
-            # If so, we can do a NOT IN query with these ids instead. Otherwise, we just
-            # do our best.
-            django_operator = OPERATOR_TO_DJANGO[OPERATOR_NEGATION_MAP[operator]]
-            # Note that the `order_by` here is important for index usage. Postgres seems
-            # to seq scan with this query if the `order_by` isn't included, so we
-            # include it even though we don't really care about order for this query
-            qs_flipped = qs.filter(**{f"semver__{django_operator}": filter_func}).order_by(
-                *map(_flip_field_sort, order_by)
-            )[:SEMVER_MAX_SEARCH_RELEASES]
-            exclude_versions = list(qs_flipped)
-            if exclude_versions and len(exclude_versions) < len(versions):
-                # Do a negative search instead
-                final_operator = "NOT IN"
-                versions = exclude_versions
+        exclude_versions = list(qs_flipped)
+        if exclude_versions and len(exclude_versions) < len(versions):
+            # Do a negative search instead
+            final_operator = "NOT IN"
+            versions = exclude_versions
 
-        return ["release", final_operator, versions]
-
-    else:
-        # TODO: We want to parse partial strings like 1.*, etc. For now, we'll just
-        # handle the basic case and fail otherwise
-        raise InvalidSearchQuery(f"Invalid format for semver query {version}")
+    return ["release", final_operator, versions]
 
 
 key_conversion_map: Mapping[

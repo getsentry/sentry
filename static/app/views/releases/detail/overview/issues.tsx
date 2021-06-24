@@ -142,7 +142,7 @@ class Issues extends Component<Props, State> {
         ...queryParams,
         limit: undefined,
         cursor: undefined,
-        query: stringifyQueryObject(query),
+        query: query.formatString(),
       },
     };
   }
@@ -164,7 +164,7 @@ class Issues extends Component<Props, State> {
           path: `/organizations/${organization.slug}/issues/`,
           queryParams: {
             ...queryParams,
-            query: stringifyQueryObject(new QueryResults([`release:${version}`])),
+            query: new QueryResults([`release:${version}`]).formatString(),
           },
         };
       case IssuesType.RESOLVED:
@@ -182,9 +182,10 @@ class Issues extends Component<Props, State> {
           path: `/organizations/${organization.slug}/issues/`,
           queryParams: {
             ...queryParams,
-            query: stringifyQueryObject(
-              new QueryResults([`release:${version}`, 'error.handled:0'])
-            ),
+            query: new QueryResults([
+              `release:${version}`,
+              'error.handled:0',
+            ]).formatString(),
           },
         };
       case IssuesType.NEW:
@@ -193,7 +194,7 @@ class Issues extends Component<Props, State> {
           path: `/organizations/${organization.slug}/issues/`,
           queryParams: {
             ...queryParams,
-            query: stringifyQueryObject(new QueryResults([`first-release:${version}`])),
+            query: new QueryResults([`first-release:${version}`]).formatString(),
           },
         };
     }

@@ -68,8 +68,8 @@ export default class AwsLambdaFunctionSelect extends Component<Props, State> {
 
   @computed
   get toggleAllState() {
-    //check if any of the lambda functions have a falsy value
-    //no falsy values means everything is enabled
+    // check if any of the lambda functions have a falsy value
+    // no falsy values means everything is enabled
     return Object.values(this.model.getData()).every(val => val);
   }
 
@@ -222,7 +222,7 @@ const StyledSwitch = styled(Switch)`
   margin: auto;
 `;
 
-//padding is based on fom control width
+// padding is based on fom control width
 const StyledPanelHeader = styled(PanelHeader)`
   padding-right: 36px;
 `;

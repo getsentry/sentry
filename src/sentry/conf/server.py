@@ -70,8 +70,6 @@ DEBUG = IS_DEV
 
 ADMIN_ENABLED = DEBUG
 
-MAINTENANCE = False
-
 ADMINS = ()
 
 # Hosts that are considered in the same network (including VPNs).
@@ -276,16 +274,13 @@ USE_TZ = True
 # so that responses aren't modified after Content-Length is set, or have the
 # response modifying middleware reset the Content-Length header.
 # This is because CommonMiddleware Sets the Content-Length header for non-streaming responses.
-MIDDLEWARE_CLASSES = (
-    "sentry.middleware.proxy.DecompressBodyMiddleware",
+MIDDLEWARE = (
+    "sentry.middleware.health.HealthCheck",
     "sentry.middleware.security.SecurityHeadersMiddleware",
-    "sentry.middleware.maintenance.ServicesUnavailableMiddleware",
     "sentry.middleware.env.SentryEnvMiddleware",
     "sentry.middleware.proxy.SetRemoteAddrFromForwardedFor",
-    "sentry.middleware.debug.NoIfModifiedSinceMiddleware",
     "sentry.middleware.stats.RequestTimingMiddleware",
     "sentry.middleware.stats.ResponseCodeMiddleware",
-    "sentry.middleware.health.HealthCheck",  # Must exist before CommonMiddleware
     "django.middleware.common.CommonMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -557,6 +552,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.integrations",
     "sentry.tasks.members",
     "sentry.tasks.merge",
+    "sentry.tasks.releasemonitor",
     "sentry.tasks.options",
     "sentry.tasks.ping",
     "sentry.tasks.post_process",
@@ -602,6 +598,10 @@ CELERY_QUEUES = [
     Queue("files.delete", routing_key="files.delete"),
     Queue(
         "group_owners.process_suspect_commits", routing_key="group_owners.process_suspect_commits"
+    ),
+    Queue(
+        "releasemonitor",
+        routing_key="releasemonitor",
     ),
     Queue("incidents", routing_key="incidents"),
     Queue("incident_snapshots", routing_key="incident_snapshots"),
@@ -730,6 +730,11 @@ CELERYBEAT_SCHEDULE = {
         "task": "sentry.incidents.tasks.process_pending_incident_snapshots",
         "schedule": timedelta(hours=1),
         "options": {"expires": 3600, "queue": "incidents"},
+    },
+    "monitor-release-adoption": {
+        "task": "sentry.tasks.monitor_release_adoption",
+        "schedule": crontab(minute=0),
+        "options": {"expires": 3600, "queue": "releasemonitor"},
     },
     "fetch-release-registry-data": {
         "task": "sentry.tasks.release_registry.fetch_release_registry_data",
@@ -893,7 +898,10 @@ SENTRY_FEATURES = {
     "organizations:incidents": False,
     # Enable the new Metrics page
     "organizations:metrics": False,
-    # Automatically extract metrics during ingestion
+    # Automatically extract metrics during ingestion.
+    #
+    # XXX(ja): DO NOT ENABLE UNTIL THIS NOTICE IS GONE. Relay experiences
+    # gradual slowdown when this is enabled for too many projects.
     "organizations:metrics-extraction": False,
     # Enable metric aggregate in metric alert rule builder
     "organizations:metric-alert-builder-aggregate": False,
@@ -1030,8 +1038,6 @@ SENTRY_FEATURES = {
     "projects:race-free-group-creation": True,
     # Enable functionality for rate-limiting events on projects.
     "projects:rate-limits": True,
-    # Enable functionality for sampling of events on projects.
-    "projects:sample-events": False,
     # Enable functionality to trigger service hooks upon event ingestion.
     "projects:servicehooks": False,
     # Use Kafka (instead of Celery) for ingestion pipeline.

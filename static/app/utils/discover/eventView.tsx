@@ -23,7 +23,7 @@ import {
 import {decodeColumnOrder} from 'app/views/eventsV2/utils';
 
 import {statsPeriodToDays} from '../dates';
-import {QueryResults, stringifyQueryObject, tokenizeSearch} from '../tokenizeSearch';
+import {QueryResults, tokenizeSearch} from '../tokenizeSearch';
 
 import {getSortField} from './fieldRenderers';
 import {
@@ -1056,8 +1056,7 @@ class EventView {
         : this.sorts.length > 1
         ? encodeSorts(this.sorts)
         : encodeSort(this.sorts[0]);
-    const fields = this.getFields().filter(field => !isEquation(field));
-    const equations = this.getEquations();
+    const fields = this.getFields();
     const team = this.team.map(proj => String(proj));
     const project = this.project.map(proj => String(proj));
     const environment = this.environment as string[];
@@ -1071,7 +1070,6 @@ class EventView {
         project,
         environment,
         field: [...new Set(fields)],
-        equation: [...new Set(equations)],
         sort,
         per_page: DEFAULT_PER_PAGE,
         query: this.getQueryWithAdditionalConditions(),
@@ -1255,9 +1253,29 @@ class EventView {
     Object.entries(this.additionalConditions.tagValues).forEach(([tag, tagValues]) => {
       conditions.addTagValues(tag, tagValues);
     });
-    return stringifyQueryObject(conditions);
+    return conditions.formatString();
   }
 }
+
+const isFieldsSimilar = (
+  currentValue: Array<string>,
+  otherValue: Array<string>
+): boolean => {
+  // For equation's their order matters because we alias them based on index
+  const currentEquations = currentValue.filter(isEquation);
+  const otherEquations = otherValue.filter(isEquation);
+
+  // Field orders don't matter, so using a set for comparison
+  const currentFields = new Set(currentValue.filter(value => !isEquation(value)));
+  const otherFields = new Set(otherValue.filter(value => !isEquation(value)));
+
+  if (!isEqual(currentEquations, otherEquations)) {
+    return false;
+  } else if (!isEqual(currentFields, otherFields)) {
+    return false;
+  }
+  return true;
+};
 
 export const isAPIPayloadSimilar = (
   current: EventQuery & LocationQuery,
@@ -1272,18 +1290,21 @@ export const isAPIPayloadSimilar = (
 
   for (const key of currentKeys) {
     const currentValue = current[key];
-    // Exclude equation from becoming a set for comparison cause its order matters
-    const currentTarget =
-      Array.isArray(currentValue) && key !== 'equation'
+    const otherValue = other[key];
+    if (key === 'field') {
+      if (!isFieldsSimilar(currentValue, otherValue)) {
+        return false;
+      }
+    } else {
+      const currentTarget = Array.isArray(currentValue)
         ? new Set(currentValue)
         : currentValue;
 
-    const otherValue = other[key];
-    const otherTarget =
-      Array.isArray(otherValue) && key !== 'equation' ? new Set(otherValue) : otherValue;
+      const otherTarget = Array.isArray(otherValue) ? new Set(otherValue) : otherValue;
 
-    if (!isEqual(currentTarget, otherTarget)) {
-      return false;
+      if (!isEqual(currentTarget, otherTarget)) {
+        return false;
+      }
     }
   }
 

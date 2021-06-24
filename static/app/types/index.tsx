@@ -105,8 +105,8 @@ declare global {
      */
     adblockSuspected?: boolean;
 
-    //typing currently used for demo add on
-    //TODO: improve typing
+    // typing currently used for demo add on
+    // TODO: improve typing
     SentryApp?: {
       HookStore: any;
       ConfigStore: any;
@@ -1189,10 +1189,11 @@ export type RepositoryProjectPathConfig = BaseRepositoryProjectPathConfig & {
   provider: BaseIntegrationProvider | null;
 };
 
-export type RepositoryProjectPathConfigWithIntegration = BaseRepositoryProjectPathConfig & {
-  integrationId: string;
-  provider: BaseIntegrationProvider;
-};
+export type RepositoryProjectPathConfigWithIntegration =
+  BaseRepositoryProjectPathConfig & {
+    integrationId: string;
+    provider: BaseIntegrationProvider;
+  };
 
 export type PullRequest = {
   id: string;
@@ -1289,11 +1290,11 @@ export type SentryApp = {
   schema: {
     elements?: SentryAppSchemaElement[];
   };
-  //possible null params
+  // possible null params
   webhookUrl: string | null;
   redirectUrl: string | null;
   overview: string | null;
-  //optional params below
+  // optional params below
   datePublished?: string;
   clientId?: string;
   clientSecret?: string;
@@ -1395,7 +1396,7 @@ export type Permissions = {
   Team: PermissionValue;
 };
 
-//See src/sentry/api/serializers/models/apitoken.py for the differences based on application
+// See src/sentry/api/serializers/models/apitoken.py for the differences based on application
 type BaseApiToken = {
   id: string;
   scopes: Scope[];
@@ -1404,7 +1405,7 @@ type BaseApiToken = {
   state: string;
 };
 
-//We include the token for API tokens used for internal apps
+// We include the token for API tokens used for internal apps
 export type InternalAppApiToken = BaseApiToken & {
   application: null;
   token: string;
@@ -2007,7 +2008,7 @@ export type Identity = {
   providerLabel: string;
 };
 
-//taken from https://stackoverflow.com/questions/46634876/how-can-i-change-a-readonly-property-in-typescript
+// taken from https://stackoverflow.com/questions/46634876/how-can-i-change-a-readonly-property-in-typescript
 export type Writable<T> = {-readonly [K in keyof T]: T[K]};
 
 export type InternetProtocol = {
@@ -2070,6 +2071,8 @@ export type SeriesApi = {
 };
 
 export type SessionApiResponse = SeriesApi & {
+  start: DateString;
+  end: DateString;
   query: string;
   intervals: string[];
   groups: {

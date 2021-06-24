@@ -25,7 +25,7 @@ import {
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
-import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {tokenizeSearch} from 'app/utils/tokenizeSearch';
 import withProjects from 'app/utils/withProjects';
 import {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
 import {TableColumn} from 'app/views/eventsV2/table/types';
@@ -133,7 +133,7 @@ class SummaryContent extends React.Component<Props, State> {
         query: {
           ...location.query,
           cursor: undefined,
-          query: stringifyQueryObject(searchConditions),
+          query: searchConditions.formatString(),
         },
       });
     };

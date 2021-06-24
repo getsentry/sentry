@@ -79,7 +79,7 @@ export default function DemoHeader() {
   );
 }
 
-//Note many of the colors don't come from the theme as they come from the marketing site
+// Note many of the colors don't come from the theme as they come from the marketing site
 const Wrapper = styled('div')<{collapsed: boolean}>`
   padding-right: ${space(3)};
   background-color: ${p => p.theme.white};
@@ -117,7 +117,7 @@ const BaseButton = styled(Button)`
   text-transform: uppercase;
 `;
 
-//Note many of the colors don't come from the theme as they come from the marketing site
+// Note many of the colors don't come from the theme as they come from the marketing site
 const GetStarted = styled(BaseButton)`
   border-color: transparent;
   box-shadow: 0 2px 0 rgb(54 45 89 / 10%);

@@ -17,6 +17,7 @@ import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import {defined} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
+import EventView, {EventData, MetaType} from 'app/utils/discover/eventView';
 import {
   AGGREGATIONS,
   getAggregateAlias,
@@ -37,7 +38,6 @@ import {
 } from 'app/views/performance/transactionSummary/filter';
 
 import ArrayValue from './arrayValue';
-import {EventData, MetaType} from './eventView';
 import KeyTransactionField from './keyTransactionField';
 import {
   BarContainer,
@@ -58,6 +58,7 @@ import TeamKeyTransactionField from './teamKeyTransactionField';
 type RenderFunctionBaggage = {
   organization: Organization;
   location: Location;
+  eventView?: EventView;
 };
 
 type FieldFormatterRenderFunction = (field: string, data: EventData) => React.ReactNode;
@@ -433,8 +434,12 @@ const SPECIAL_FIELDS: SpecialFields = {
   },
 };
 
+type SpecialFunctionFieldRenderer = (
+  fieldName: string
+) => (data: EventData, baggage: RenderFunctionBaggage) => React.ReactNode;
+
 type SpecialFunctions = {
-  user_misery: SpecialFieldRenderFunc;
+  user_misery: SpecialFunctionFieldRenderer;
 };
 
 /**
@@ -442,38 +447,41 @@ type SpecialFunctions = {
  * or they require custom UI formatting that can't be handled by the datatype formatters.
  */
 const SPECIAL_FUNCTIONS: SpecialFunctions = {
-  user_misery: data => {
-    let userMiseryField: string = '';
-    let countMiserableUserField: string = '';
-    let projectThresholdConfig: string = '';
-    for (const field in data) {
-      if (field.startsWith('user_misery')) {
-        userMiseryField = field;
-      } else if (
-        field.startsWith('count_miserable_user') ||
-        field.startsWith('count_miserable_new_user')
-      ) {
-        countMiserableUserField = field;
-      } else if (field === 'project_threshold_config') {
-        projectThresholdConfig = field;
-      }
-    }
+  user_misery: fieldName => data => {
+    const userMiseryField = fieldName;
 
-    if (!userMiseryField) {
+    if (!(userMiseryField in data)) {
       return <NumberContainer>{emptyValue}</NumberContainer>;
     }
 
-    const uniqueUsers = data.count_unique_user;
     const userMisery = data[userMiseryField];
-
-    let miseryLimit = parseInt(userMiseryField.split('_').pop() || '', 10);
-    if (isNaN(miseryLimit)) {
-      miseryLimit = projectThresholdConfig ? data[projectThresholdConfig][1] : undefined;
+    if (userMisery === null || isNaN(userMisery)) {
+      return <NumberContainer>{emptyValue}</NumberContainer>;
     }
+
+    const projectThresholdConfig = 'project_threshold_config';
+    let countMiserableUserField: string = '';
+
+    let miseryLimit: number | undefined = parseInt(
+      userMiseryField.split('_').pop() || '',
+      10
+    );
+    if (isNaN(miseryLimit)) {
+      countMiserableUserField = 'count_miserable_user';
+      if (projectThresholdConfig in data) {
+        miseryLimit = data[projectThresholdConfig][1];
+      } else {
+        miseryLimit = undefined;
+      }
+    } else {
+      countMiserableUserField = `count_miserable_user_${miseryLimit}`;
+    }
+
+    const uniqueUsers = data.count_unique_user;
 
     let miserableUsers: number | undefined;
 
-    if (countMiserableUserField) {
+    if (countMiserableUserField in data) {
       const countMiserableMiseryLimit = parseInt(
         countMiserableUserField.split('_').pop() || '',
         10
@@ -542,7 +550,7 @@ const isDurationValue = (data: EventData, field: string): boolean => {
 
 const spanOperationRelativeBreakdownRenderer = (
   data: EventData,
-  {location, organization}: RenderFunctionBaggage
+  {location, organization, eventView}: RenderFunctionBaggage
 ): React.ReactNode => {
   const sumOfSpanTime = SPAN_OP_BREAKDOWN_FIELDS.reduce(
     (prev, curr) => (isDurationValue(data, curr) ? prev + data[curr] : prev),
@@ -559,10 +567,19 @@ const spanOperationRelativeBreakdownRenderer = (
   }
 
   let otherPercentage = 1;
-
+  let orderedSpanOpsBreakdownFields;
+  const sortingOnField = eventView?.sorts?.[0].field;
+  if (sortingOnField && SPAN_OP_BREAKDOWN_FIELDS.includes(sortingOnField)) {
+    orderedSpanOpsBreakdownFields = [
+      sortingOnField,
+      ...SPAN_OP_BREAKDOWN_FIELDS.filter(op => op !== sortingOnField),
+    ];
+  } else {
+    orderedSpanOpsBreakdownFields = SPAN_OP_BREAKDOWN_FIELDS;
+  }
   return (
     <RelativeOpsBreakdown>
-      {SPAN_OP_BREAKDOWN_FIELDS.map(field => {
+      {orderedSpanOpsBreakdownFields.map(field => {
         if (!isDurationValue(data, field)) {
           return null;
         }
@@ -669,7 +686,7 @@ export function getFieldRenderer(
 
   for (const alias in SPECIAL_FUNCTIONS) {
     if (fieldName.startsWith(alias)) {
-      return SPECIAL_FUNCTIONS[alias];
+      return SPECIAL_FUNCTIONS[alias](fieldName);
     }
   }
 

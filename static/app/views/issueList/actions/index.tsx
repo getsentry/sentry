@@ -25,15 +25,12 @@ type Props = {
   selection: GlobalSelection;
   groupIds: string[];
   onDelete: () => void;
-  onRealtimeChange: (realtime: boolean) => void;
   onSelectStatsPeriod: (period: string) => void;
-  realtimeActive: boolean;
   statsPeriod: string;
   query: string;
   queryCount: number;
   displayCount: React.ReactElement;
   displayReprocessingActions: boolean;
-  hasInbox?: boolean;
   onMarkReviewed?: (itemIds: string[]) => void;
 };
 
@@ -214,10 +211,6 @@ class IssueListActions extends React.Component<Props, State> {
     SelectedGroupStore.toggleSelectAll();
   }
 
-  handleRealtimeChange = () => {
-    this.props.onRealtimeChange(!this.props.realtimeActive);
-  };
-
   shouldConfirm = (action: ConfirmAction) => {
     const selectedItems = SelectedGroupStore.getSelectedIds();
 
@@ -241,9 +234,7 @@ class IssueListActions extends React.Component<Props, State> {
     const {
       allResultsVisible,
       queryCount,
-      hasInbox,
       query,
-      realtimeActive,
       statsPeriod,
       selection,
       organization,
@@ -276,8 +267,6 @@ class IssueListActions extends React.Component<Props, State> {
               orgSlug={organization.slug}
               queryCount={queryCount}
               query={query}
-              realtimeActive={realtimeActive}
-              hasInbox={hasInbox}
               issues={issues}
               allInQuerySelected={allInQuerySelected}
               anySelected={anySelected}
@@ -285,7 +274,6 @@ class IssueListActions extends React.Component<Props, State> {
               selectedProjectSlug={selectedProjectSlug}
               onShouldConfirm={this.shouldConfirm}
               onDelete={this.handleDelete}
-              onRealtimeChange={this.handleRealtimeChange}
               onMerge={this.handleMerge}
               onUpdate={this.handleUpdate}
             />
@@ -295,7 +283,6 @@ class IssueListActions extends React.Component<Props, State> {
             anySelected={anySelected}
             selection={selection}
             statsPeriod={statsPeriod}
-            hasInbox={hasInbox}
             isReprocessingQuery={displayReprocessingActions}
           />
         </StyledFlex>
