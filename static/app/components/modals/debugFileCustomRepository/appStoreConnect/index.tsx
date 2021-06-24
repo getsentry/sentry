@@ -45,7 +45,7 @@ type ItunesRevalidationSessionContext = SessionContext & {
   itunes_session: string;
 };
 
-type IntialData = {
+type InitialData = {
   appId: string;
   appName: string;
   appconnectIssuer: string;
@@ -68,10 +68,10 @@ type Props = Pick<ModalRenderProps, 'Header' | 'Body' | 'Footer'> & {
   api: Client;
   orgSlug: Organization['slug'];
   projectSlug: Project['slug'];
-  onSubmit: (data: IntialData) => void;
+  onSubmit: (data: InitialData) => void;
   location: Location;
   appStoreConnectContext?: AppStoreConnectContextProps;
-  initialData?: IntialData;
+  initialData?: InitialData;
 };
 
 const steps = [
@@ -263,7 +263,7 @@ function AppStoreConnect({
           sessionContext: newSessionContext ?? sessionContext,
         },
       });
-      onSubmit(response as IntialData);
+      onSubmit(response as InitialData);
     } catch (error) {
       setIsLoading(false);
       addErrorMessage(errorMessage);

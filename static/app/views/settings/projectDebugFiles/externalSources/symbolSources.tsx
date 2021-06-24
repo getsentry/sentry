@@ -5,7 +5,7 @@ import {Location} from 'history';
 import omit from 'lodash/omit';
 
 import {addErrorMessage, addSuccessMessage} from 'app/actionCreators/indicator';
-import {closeModal, openDebugFileSourceModal} from 'app/actionCreators/modal';
+import {openDebugFileSourceModal} from 'app/actionCreators/modal';
 import ProjectActions from 'app/actions/projectActions';
 import {Client} from 'app/api';
 import Feature from 'app/components/acl/feature';
@@ -23,6 +23,7 @@ import {IconRefresh, IconWarning} from 'app/icons';
 import {t, tct, tn} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
+import {defined} from 'app/utils';
 import Field from 'app/views/settings/components/forms/field';
 import RichListField from 'app/views/settings/components/forms/richListField';
 import TextBlock from 'app/views/settings/components/text/textBlock';
@@ -210,20 +211,21 @@ function SymbolSources({
       sourceConfig,
       sourceType: item.type,
       appStoreConnectContext,
-      onSave: updatedData => handleUpdateSymbolSource(updatedData as Item, itemIndex),
-      onClose: handleCloseImageDetailsModal,
+      onSave: updatedItem =>
+        handleSaveModal({updatedItem: updatedItem as Item, index: itemIndex}),
+      onClose: handleCloseModal,
     });
   }
 
-  function getRequestMessages(symbolSourcesQuantity: number) {
-    if (symbolSourcesQuantity > symbolSources.length) {
+  function getRequestMessages(updatedSymbolSourcesQuantity: number) {
+    if (updatedSymbolSourcesQuantity > symbolSources.length) {
       return {
         successMessage: t('Successfully added custom repository'),
         errorMessage: t('An error occurred while adding a new custom repository'),
       };
     }
 
-    if (symbolSourcesQuantity < symbolSources.length) {
+    if (updatedSymbolSourcesQuantity < symbolSources.length) {
       return {
         successMessage: t('Successfully removed custom repository'),
         errorMessage: t('An error occurred while removing the custom repository'),
@@ -236,50 +238,53 @@ function SymbolSources({
     };
   }
 
-  async function handleChange(updatedSymbolSources: Item[], updatedItem?: Item) {
-    const symbolSourcesWithoutErrors = updatedSymbolSources.map(updatedSymbolSource =>
-      omit(updatedSymbolSource, ['error', 'warning'])
+  function handleSaveModal({
+    updatedItems,
+    updatedItem,
+    index,
+  }: {
+    updatedItems?: Item[];
+    updatedItem?: Item;
+    index?: number;
+  }) {
+    let items = updatedItems ?? [];
+
+    if (updatedItem && defined(index)) {
+      items = [...symbolSources] as Item[];
+      items.splice(index, 1, updatedItem);
+    }
+
+    const symbolSourcesWithoutErrors = items.map(item =>
+      omit(item, ['error', 'warning'])
     );
 
-    const {successMessage, errorMessage} = getRequestMessages(
-      updatedSymbolSources.length
-    );
+    const {successMessage, errorMessage} = getRequestMessages(items.length);
 
     const expandedSymbolSourceKeys = symbolSourcesWithoutErrors.map(expandKeys);
 
-    try {
-      const updatedProjectDetails: Project = await api.requestPromise(
-        `/projects/${organization.slug}/${projectSlug}/`,
-        {
-          method: 'PUT',
-          data: {
-            symbolSources: JSON.stringify(expandedSymbolSourceKeys),
-          },
-        }
-      );
-
-      ProjectActions.updateSuccess(updatedProjectDetails);
-      addSuccessMessage(successMessage);
-      closeModal();
-      if (updatedItem && updatedItem.type === 'appStoreConnect') {
-        // TODO(Priscila): check the reason why the closeModal doesn't call the function
-        // handleCloseImageDetailsModal when revalidating
-        handleCloseImageDetailsModal();
-        reloadPage();
+    const promise: Promise<any> = api.requestPromise(
+      `/projects/${organization.slug}/${projectSlug}/`,
+      {
+        method: 'PUT',
+        data: {
+          symbolSources: JSON.stringify(expandedSymbolSourceKeys),
+        },
       }
-    } catch {
-      closeModal();
+    );
+
+    promise.catch(() => {
       addErrorMessage(errorMessage);
-    }
+    });
+
+    promise.then(result => {
+      ProjectActions.updateSuccess(result);
+      addSuccessMessage(successMessage);
+    });
+
+    return promise;
   }
 
-  function handleUpdateSymbolSource(updatedItem: Item, index: number) {
-    const items = [...symbolSources] as Item[];
-    items.splice(index, 1, updatedItem);
-    handleChange(items, updatedItem);
-  }
-
-  function handleOpenDebugFileSourceModalToEdit(repositoryId: string) {
+  function handleEditModal(repositoryId: string) {
     router.push({
       ...location,
       query: {
@@ -289,13 +294,7 @@ function SymbolSources({
     });
   }
 
-  function reloadPage() {
-    if (appStoreConnectContext && appStoreConnectContext.updateAlertMessage) {
-      window.location.reload();
-    }
-  }
-
-  function handleCloseImageDetailsModal() {
+  function handleCloseModal() {
     router.push({
       ...location,
       query: {
@@ -361,23 +360,24 @@ function SymbolSources({
           addButtonText={t('Add Repository')}
           name="symbolSources"
           value={value}
-          onChange={handleChange}
+          onChange={(updatedItems: Item[]) => {
+            handleSaveModal({updatedItems});
+          }}
           renderItem={item => (
             <TextOverflow>{item.name ?? t('<Unnamed Repository>')}</TextOverflow>
           )}
           disabled={!organization.features.includes('custom-symbol-sources')}
           formatMessageValue={false}
-          onAddItem={(item, addItem) =>
+          onEditItem={item => handleEditModal(item.id)}
+          onAddItem={(item, addItem) => {
             openDebugFileSourceModal({
               sourceType: item.value,
-              onSave: addItem,
-            })
-          }
-          onEditItem={item => handleOpenDebugFileSourceModalToEdit(item.id)}
+              onSave: updatedData => Promise.resolve(addItem(updatedData as Item)),
+            });
+          }}
           removeConfirm={{
             onConfirm: item => {
               if (item.type === 'appStoreConnect') {
-                handleCloseImageDetailsModal();
                 window.location.reload();
               }
             },
