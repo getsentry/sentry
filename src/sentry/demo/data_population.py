@@ -66,7 +66,7 @@ commit_message_base_messages = [
 
 base_paths_by_file_type = {"js": ["components/", "views/"], "py": ["flask/", "routes/"]}
 
-crash_free_rate_by_release = [0.999, 0.99, 0.95]
+crash_free_rate_by_release = [0.999, 0.99, 0.92]
 
 
 org_users = [
