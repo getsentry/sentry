@@ -344,7 +344,7 @@ class GitHubRepositoryProvider(GitHubMixin, providers.RepositoryProvider):
                 return {
                     "name": data["name"],
                     "external_id": data["external_id"],
-                    "url": "https://github.com/{data['name']}",
+                    "url": f"https://github.com/{data['name']}",
                     "config": {
                         "name": data["name"],
                         "webhook_id": resp["id"],
