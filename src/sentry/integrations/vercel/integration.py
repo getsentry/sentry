@@ -1,4 +1,5 @@
 import logging
+from typing import Mapping, Sequence
 from urllib.parse import urlencode
 
 from django.utils.translation import ugettext_lazy as _
@@ -133,7 +134,7 @@ class VercelIntegration(IntegrationInstallation):
         )
         return None
 
-    def get_slug(self):
+    def get_slug(self) -> str:
         client = self.get_client()
         if self.metadata["installation_type"] == "team":
             team = client.get_team()
@@ -142,7 +143,7 @@ class VercelIntegration(IntegrationInstallation):
             user = client.get_user()
             return user["username"]
 
-    def _get_vercel_projects(self):
+    def _get_vercel_projects(self) -> Sequence[Mapping[str, str]]:
         """If the API returns a 403, just silently return an empty list."""
         client = self.get_client()
         try:
@@ -156,7 +157,7 @@ class VercelIntegration(IntegrationInstallation):
             for p in projects
         ]
 
-    def _get_sentry_projects(self):
+    def _get_sentry_projects(self) -> Sequence[Mapping[str, str]]:
         proj_fields = ["id", "platform", "name", "slug"]
 
         return map(
