@@ -190,21 +190,23 @@ const TagsSideBar = (props: {
                 checked={tagSelected === tag}
                 onChange={() => changeTag(tag)}
               />
-              {tag}
+              <SidebarTagValue className="truncate">{tag}</SidebarTagValue>
             </RadioLabel>
           ))}
 
           <SidebarSpacer />
         </React.Fragment>
       ) : null}
-      <StyledSectionHeading>
-        {t('Other Tags')}
-        <QuestionTooltip
-          position="top"
-          title={t('Other common tags for this transaction')}
-          size="sm"
-        />
-      </StyledSectionHeading>
+      {otherTags.length ? (
+        <StyledSectionHeading>
+          {t('Other Tags')}
+          <QuestionTooltip
+            position="top"
+            title={t('Other common tags for this transaction')}
+            size="sm"
+          />
+        </StyledSectionHeading>
+      ) : null}
       {otherTags.map(tag => (
         <RadioLabel key={tag}>
           <Radio
@@ -212,7 +214,7 @@ const TagsSideBar = (props: {
             checked={tagSelected === tag}
             onChange={() => changeTag(tag)}
           />
-          {tag}
+          <SidebarTagValue className="truncate">{tag}</SidebarTagValue>
         </RadioLabel>
       ))}
     </StyledSide>
@@ -225,9 +227,13 @@ const RadioLabel = styled('label')`
   font-weight: normal;
   display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: max-content;
+  grid-auto-columns: max-content 1fr;
   align-items: center;
   grid-gap: ${space(1)};
+`;
+
+const SidebarTagValue = styled('span')`
+  width: 100%;
 `;
 
 const StyledSectionHeading = styled(SectionHeading)`
