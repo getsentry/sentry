@@ -71,7 +71,7 @@ class SlackLinkTeamView(BaseView):
 
     def render_error_page(self, request, body_text):
         return render_to_response(
-            "sentry/slack-link-team-error.html",
+            "sentry/integrations/slack-link-team-error.html",
             request=request,
             context={"body_text": body_text},
         )
@@ -91,7 +91,7 @@ class SlackLinkTeamView(BaseView):
                 logger.error("slack.link-notify.response-error", extra={"error": message})
         else:
             return render_to_response(
-                "sentry/slack-post-linked-team.html",
+                "sentry/integrations/slack-post-linked-team.html",
                 request=request,
                 context={
                     "heading_text": text["heading"],
@@ -121,7 +121,7 @@ class SlackLinkTeamView(BaseView):
 
         if request.method == "GET":
             return self.respond(
-                "sentry/slack-link-team.html",
+                "sentry/integrations/slack-link-team.html",
                 {
                     "form": form,
                     "teams": teams,
