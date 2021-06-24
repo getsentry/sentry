@@ -1015,6 +1015,7 @@ SENTRY_FEATURES = {
     "organizations:release-comparison": False,
     # Enable the project level transaction thresholds
     "organizations:project-transaction-threshold": False,
+    "organizations:project-transaction-threshold-override": False,
     # Enable percent displays in issue stream
     "organizations:issue-percent-display": False,
     # Adds additional filters and a new section to issue alert rules.
