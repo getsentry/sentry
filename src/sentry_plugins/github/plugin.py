@@ -183,17 +183,13 @@ class GitHubPlugin(GitHubMixin, IssuePlugin2):
             repo = self.get_option("repo", group.project)
             try:
                 issue = client.get_issue(repo=repo, issue_id=form_data["issue_id"])
-            except Exception as e:
-                self.raise_error(e)
-
-            comment = form_data.get("comment")
-            if comment:
-                try:
+                comment = form_data.get("comment")
+                if comment:
                     client.create_comment(
                         repo=repo, issue_id=issue["number"], data={"body": comment}
                     )
-                except Exception as e:
-                    self.raise_error(e)
+            except Exception as e:
+                self.raise_error(e)
 
         return {"title": issue["title"]}
 
