@@ -306,7 +306,7 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
         )
         with http.build_session() as session:
             resp = session.get(
-                f"https://{installation_data['url']}/api/v3/user/installations/{installation_id}",
+                f"https://{installation_data['url']}/api/v3/app/installations/{installation_id}",
                 headers=headers,
                 verify=installation_data["verify_ssl"],
             )
