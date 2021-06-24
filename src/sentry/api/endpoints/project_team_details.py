@@ -4,7 +4,13 @@ from rest_framework.response import Response
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import ProjectWithTeamSerializer
-from sentry.models import Team
+from sentry.models import NotificationSetting, Team
+from sentry.notifications.types import (
+    NotificationScopeType,
+    NotificationSettingOptionValues,
+    NotificationSettingTypes,
+)
+from sentry.types.integrations import ExternalProviders
 
 
 class ProjectTeamsPermission(ProjectPermission):
@@ -39,6 +45,20 @@ class ProjectTeamDetailsEndpoint(ProjectEndpoint):
                 {"detail": ["You do not have permission to perform this action."]}, status=403
             )
         project.add_team(team)
+        # if the team has Slack notifications enabled, update
+        team_settings = NotificationSetting.objects.filter(
+            provider=ExternalProviders.SLACK.value,
+            scope_type=NotificationScopeType.TEAM.value,
+            target=team.actor.id,
+        ).exists()
+        if team_settings:
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.SLACK,
+                NotificationSettingTypes.ISSUE_ALERTS,
+                NotificationSettingOptionValues.ALWAYS,
+                team=team,
+                project=project,
+            )
         return Response(serialize(project, request.user, ProjectWithTeamSerializer()), status=201)
 
     def delete(self, request, project, team_slug):
@@ -60,5 +80,17 @@ class ProjectTeamDetailsEndpoint(ProjectEndpoint):
                 {"detail": ["You do not have permission to perform this action."]}, status=403
             )
         project.remove_team(team)
-
+        team_settings = NotificationSetting.objects.filter(
+            provider=ExternalProviders.SLACK.value,
+            scope_type=NotificationScopeType.TEAM.value,
+            target=team.actor.id,
+            scope_identifier=project.id,
+        ).exists()
+        if team_settings:
+            NotificationSetting.objects.remove_settings(
+                ExternalProviders.SLACK,
+                NotificationSettingTypes.ISSUE_ALERTS,
+                team=team,
+                project=project,
+            )
         return Response(serialize(project, request.user, ProjectWithTeamSerializer()), status=200)

@@ -1,5 +1,11 @@
-from sentry.models import ProjectTeam, Rule
+from sentry.models import ExternalActor, Integration, NotificationSetting, ProjectTeam, Rule
+from sentry.notifications.types import (
+    NotificationScopeType,
+    NotificationSettingOptionValues,
+    NotificationSettingTypes,
+)
 from sentry.testutils import APITestCase
+from sentry.types.integrations import ExternalProviders
 
 
 class ProjectTeamDetailsTest(APITestCase):
@@ -27,6 +33,62 @@ class ProjectTeamDetailsPostTest(ProjectTeamDetailsTest):
         self.get_valid_response(
             project.organization.slug, project.slug, "not-a-team", status_code=404
         )
+
+    def test_notification_setting_updated(self):
+        """
+        Test that if a team already has notification settings enabled and adds another project to the team that a notification setting is created for the new project
+        """
+        # have some existing settings
+        team = self.create_team()
+        project = self.create_project(teams=[team])
+        integration = Integration.objects.create(
+            provider="slack",
+            name="Slack",
+            external_id="slack:1",
+            metadata={
+                "access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
+                "installation_type": "born_as_bot",
+            },
+        )
+        integration.add_organization(self.organization, self.user)
+        ExternalActor.objects.create(
+            actor=team.actor,
+            organization=self.organization,
+            integration=integration,
+            provider=ExternalProviders.SLACK.value,
+            external_name="goma",
+            external_id="CXXXXXXX2",
+        )
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.SLACK,
+            NotificationSettingTypes.ISSUE_ALERTS,
+            NotificationSettingOptionValues.ALWAYS,
+            project=project,
+            team=team,
+        )
+        # create another project that will be added to the team and should get settings added
+        project2 = self.create_project()
+        self.get_valid_response(
+            project2.organization.slug, project2.slug, team.slug, status_code=201
+        )
+        team_settings = NotificationSetting.objects.filter(
+            scope_type=NotificationScopeType.TEAM.value, target=team.actor.id
+        )
+        assert len(team_settings) == 2
+
+    def test_notification_setting_not_updated(self):
+        """
+        Ensure that if the team does not have any notification settings, we do not try to add one when a new project is added
+        """
+        project = self.create_project()
+        team = self.create_team()
+
+        self.get_valid_response(project.organization.slug, project.slug, team.slug, status_code=201)
+
+        team_settings = NotificationSetting.objects.filter(
+            scope_type=NotificationScopeType.TEAM.value, target=team.actor.id
+        ).exists()
+        assert not team_settings
 
 
 class ProjectTeamDetailsDeleteTest(ProjectTeamDetailsTest):
@@ -80,3 +142,41 @@ class ProjectTeamDetailsDeleteTest(ProjectTeamDetailsTest):
         self.get_valid_response(
             project.organization.slug, project.slug, "not-a-team", status_code=404
         )
+
+    def test_notification_setting_removed(self):
+        """
+        Test that if a team already has notification settings enabled and removes a project from the team that that notification setting is removed
+        """
+        # have an existing setting
+        team = self.create_team()
+        project = self.create_project(teams=[team])
+        integration = Integration.objects.create(
+            provider="slack",
+            name="Slack",
+            external_id="slack:1",
+            metadata={
+                "access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx",
+                "installation_type": "born_as_bot",
+            },
+        )
+        integration.add_organization(self.organization, self.user)
+        ExternalActor.objects.create(
+            actor=team.actor,
+            organization=self.organization,
+            integration=integration,
+            provider=ExternalProviders.SLACK.value,
+            external_name="goma",
+            external_id="CXXXXXXX2",
+        )
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.SLACK,
+            NotificationSettingTypes.ISSUE_ALERTS,
+            NotificationSettingOptionValues.ALWAYS,
+            project=project,
+            team=team,
+        )
+        self.get_valid_response(project.organization.slug, project.slug, team.slug)
+        team_settings = NotificationSetting.objects.filter(
+            scope_type=NotificationScopeType.TEAM.value, target=team.actor.id
+        ).exists()
+        assert not team_settings

@@ -255,6 +255,9 @@ def get_scope(
     Figure out the scope from parameters and return it as a tuple.
     TODO(mgaeta): Make sure the user/team is in the project/organization.
     """
+    if team and project:
+        return NotificationScopeType.TEAM, project.id
+
     if project:
         return NotificationScopeType.PROJECT, project.id
 
