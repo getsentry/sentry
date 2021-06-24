@@ -225,6 +225,7 @@ class OrganizationEndpoint(Endpoint):
         requested_projects = project_ids.copy()
         if project_ids:
             qs = qs.filter(id__in=project_ids)
+
         with sentry_sdk.start_span(op="fetch_organization_projects") as span:
             projects = list(qs)
             span.set_data("Project Count", len(projects))
@@ -245,10 +246,12 @@ class OrganizationEndpoint(Endpoint):
                     span.set_tag("mode", "has_project_membership")
                     func = request.access.has_project_membership
                 projects = [p for p in qs if func(p)]
+
         project_ids = {p.id for p in projects}
 
         if requested_projects and project_ids != requested_projects:
             raise PermissionDenied
+
         return projects
 
     def get_environments(self, request, organization):
