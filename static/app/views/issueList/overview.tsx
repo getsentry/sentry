@@ -878,7 +878,7 @@ class IssueListOverview extends React.Component<Props, State> {
     const {issuesLoading, error, groupIds} = this.state;
 
     if (issuesLoading) {
-      return this.renderLoading();
+      return <LoadingIndicator hideMessage />;
     }
 
     if (error) {
