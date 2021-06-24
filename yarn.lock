@@ -1892,10 +1892,10 @@
     hoist-non-react-statics "^3.3.2"
     tslib "^1.9.3"
 
-"@sentry/release-parser@^0.6.0":
-  version "0.6.0"
-  resolved "https://registry.yarnpkg.com/@sentry/release-parser/-/release-parser-0.6.0.tgz#d7f67fc32d130396a5d77d14b7d43c4a8aee57b4"
-  integrity sha512-NZoxPDP/KrbIa6QDYJPt2cJE/OepdJo0xB96KDbNKdx3+aipq/Ffo0b4M7ZCyXA/U1WvzRjjCJqJxYS36mUF5A==
+"@sentry/release-parser@1.1.0":
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/@sentry/release-parser/-/release-parser-1.1.0.tgz#68e8d2b51a6643c43c61537e1cc5594e299a7512"
+  integrity sha512-ZOSmjgRqOJ5y1VVUCxiqMndJEjFslGfBj5Uo+7OeFXoY0JXIXkl36+8VEuM9TdcTEsmjs+2jQG9+mZu76U9MWQ==
 
 "@sentry/rrweb@^0.1.1":
   version "0.1.1"
