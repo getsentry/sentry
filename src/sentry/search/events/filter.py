@@ -39,11 +39,17 @@ from sentry.search.events.constants import (
     USER_DISPLAY_ALIAS,
 )
 from sentry.search.events.fields import FIELD_ALIASES, FUNCTIONS, resolve_field
-from sentry.search.events.types import WhereType
+from sentry.search.events.types import ParamsType, WhereType
 from sentry.search.utils import parse_release
 from sentry.utils.compat import filter
 from sentry.utils.dates import to_timestamp
-from sentry.utils.snuba import FUNCTION_TO_OPERATOR, OPERATOR_TO_FUNCTION, SNUBA_AND, SNUBA_OR
+from sentry.utils.snuba import (
+    FUNCTION_TO_OPERATOR,
+    OPERATOR_TO_FUNCTION,
+    SNUBA_AND,
+    SNUBA_OR,
+    Dataset,
+)
 from sentry.utils.validators import INVALID_EVENT_DETAILS
 
 
@@ -847,6 +853,18 @@ def format_search_filter(term, params):
 class QueryFilter(QueryBase):
     """Filter logic for a snql query"""
 
+    def __init__(self, dataset: Dataset, params: ParamsType):
+        super().__init__(dataset, params)
+
+        self.search_filter_converter: Mapping[
+            str, Callable[[SearchFilter], Optional[WhereType]]
+        ] = {
+            "environment": self._environment_filter_converter,
+            PROJECT_ALIAS: self._project_slug_filter_converter,
+            PROJECT_NAME_ALIAS: self._project_slug_filter_converter,
+            ISSUE_ALIAS: self._issue_filter_converter,
+        }
+
     def resolve_where(self, query: Optional[str]) -> List[WhereType]:
         if query is None:
             return []
@@ -900,17 +918,71 @@ class QueryFilter(QueryBase):
             term = SearchFilter(
                 SearchKey("environment"), "=", SearchValue(self.params["environment"])
             )
-            condition = self._environment_filter_converter(term, "environment")
+            condition = self._environment_filter_converter(term)
             if condition:
                 conditions.append(condition)
 
         return conditions
 
-    def _environment_filter_converter(
+    def format_search_filter(self, term: SearchFilter) -> Optional[WhereType]:
+        """For now this function seems a bit redundant inside QueryFilter but
+        most of the logic from the existing format_search_filter hasn't been
+        converted over yet
+        """
+        name = term.key.name
+
+        converted_filter = self.convert_search_filter_to_condition(
+            SearchFilter(
+                # We want to use group_id elsewhere so shouldn't be removed from the dataset
+                # but if a user has a tag with the same name we want to make sure that works
+                SearchKey("tags[group_id]" if name == "group_id" else name),
+                term.operator,
+                term.value,
+            )
+        )
+        return converted_filter if converted_filter else None
+
+    def convert_search_filter_to_condition(
         self,
         search_filter: SearchFilter,
-        _: str,
-    ) -> WhereType:
+    ) -> Optional[WhereType]:
+        name = search_filter.key.name
+
+        if name in NO_CONVERSION_FIELDS:
+            return None
+
+        converter = self.search_filter_converter.get(name, self.default_filter_converter)
+        return converter(search_filter)
+
+    def default_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        name = search_filter.key.name
+        value = search_filter.value.value
+
+        if name not in self.field_allowlist:
+            raise NotImplementedError(f"{name} not implemented in snql filter parsing yet")
+
+        lhs = self.column(name)
+
+        # Handle checks for existence
+        if search_filter.operator in ("=", "!=") and search_filter.value.value == "":
+            if search_filter.key.is_tag:
+                return Condition(lhs, Op(search_filter.operator), value)
+            else:
+                # If not a tag, we can just check that the column is null.
+                return Condition(Function("ifNull", [lhs]), Op(search_filter.operator), 1)
+
+        if search_filter.value.is_wildcard():
+            condition = Condition(
+                Function("match", [lhs, f"'(?i){value}'"]),
+                Op(search_filter.operator),
+                1,
+            )
+        else:
+            condition = Condition(lhs, Op(search_filter.operator), value)
+
+        return condition
+
+    def _environment_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         # conditions added to env_conditions can be OR'ed
         env_conditions = []
         value = search_filter.value.value
@@ -934,11 +1006,7 @@ class QueryFilter(QueryBase):
         else:
             return env_conditions[0]
 
-    def _project_slug_filter_converter(
-        self,
-        search_filter: SearchFilter,
-        _: str,
-    ) -> Optional[WhereType]:
+    def _project_slug_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         """Convert project slugs to ids and create a filter based on those.
         This is cause we only store project ids in clickhouse.
         """
@@ -974,86 +1042,30 @@ class QueryFilter(QueryBase):
                     self.projects_to_filter.update(project_ids)
                 return converted_filter
 
-    def format_search_filter(self, term: SearchFilter) -> Optional[WhereType]:
-        """For now this function seems a bit redundant inside QueryFilter but
-        most of the logic from the existing format_search_filter hasn't been
-        converted over yet
-        """
-        name = term.key.name
-        value = term.value.value
+        return None
 
-        if name == ISSUE_ALIAS:
-            operator = term.operator
-            value = to_list(value)
-            # `unknown` is a special value for when there is no issue associated with the event
-            group_short_ids = [v for v in value if v and v != "unknown"]
-            filter_values = ["" for v in value if not v or v == "unknown"]
+    def _issue_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        operator = search_filter.operator
+        value = to_list(search_filter.value.value)
+        # `unknown` is a special value for when there is no issue associated with the event
+        group_short_ids = [v for v in value if v and v != "unknown"]
+        filter_values = ["" for v in value if not v or v == "unknown"]
 
-            if group_short_ids and self.params and "organization_id" in self.params:
-                try:
-                    groups = Group.objects.by_qualified_short_id_bulk(
-                        self.params["organization_id"],
-                        group_short_ids,
-                    )
-                except Exception:
-                    raise InvalidSearchQuery(
-                        f"Invalid value '{group_short_ids}' for 'issue:' filter"
-                    )
-                else:
-                    filter_values.extend(sorted(g.id for g in groups))
+        if group_short_ids and self.params and "organization_id" in self.params:
+            try:
+                groups = Group.objects.by_qualified_short_id_bulk(
+                    self.params["organization_id"],
+                    group_short_ids,
+                )
+            except Exception:
+                raise InvalidSearchQuery(f"Invalid value '{group_short_ids}' for 'issue:' filter")
+            else:
+                filter_values.extend(sorted(g.id for g in groups))
 
-            term = SearchFilter(
+        return self.convert_search_filter_to_condition(
+            SearchFilter(
                 SearchKey("issue.id"),
                 operator,
-                SearchValue(filter_values if term.is_in_filter else filter_values[0]),
+                SearchValue(filter_values if search_filter.is_in_filter else filter_values[0]),
             )
-            converted_filter = self.convert_search_filter_to_condition(term)
-            return converted_filter if converted_filter else None
-        else:
-            converted_filter = self.convert_search_filter_to_condition(term)
-            return converted_filter if converted_filter else None
-
-    def convert_search_filter_to_condition(
-        self,
-        search_filter: SearchFilter,
-    ) -> Optional[WhereType]:
-        key_conversion_map: Mapping[str, Callable[[SearchFilter, str], Optional[WhereType]]] = {
-            "environment": self._environment_filter_converter,
-            PROJECT_ALIAS: self._project_slug_filter_converter,
-            PROJECT_NAME_ALIAS: self._project_slug_filter_converter,
-        }
-        name = search_filter.key.name
-        value = search_filter.value.value
-
-        # We want to use group_id elsewhere so shouldn't be removed from the dataset
-        # but if a user has a tag with the same name we want to make sure that works
-        if name == "group_id":
-            name = f"tags[{name}]"
-
-        if name in NO_CONVERSION_FIELDS:
-            return None
-        elif name in key_conversion_map:
-            return key_conversion_map[name](search_filter, name)
-        elif name in self.field_allowlist:
-            lhs = self.column(name)
-
-            # Handle checks for existence
-            if search_filter.operator in ("=", "!=") and search_filter.value.value == "":
-                if search_filter.key.is_tag:
-                    return Condition(lhs, Op(search_filter.operator), value)
-                else:
-                    # If not a tag, we can just check that the column is null.
-                    return Condition(Function("ifNull", [lhs]), Op(search_filter.operator), 1)
-
-            if search_filter.value.is_wildcard():
-                condition = Condition(
-                    Function("match", [lhs, f"'(?i){value}'"]),
-                    Op(search_filter.operator),
-                    1,
-                )
-            else:
-                condition = Condition(lhs, Op(search_filter.operator), value)
-
-            return condition
-        else:
-            raise NotImplementedError(f"{name} not implemented in snql filter parsing yet")
+        )

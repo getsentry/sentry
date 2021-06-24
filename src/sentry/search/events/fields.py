@@ -2,7 +2,7 @@ import re
 from collections import defaultdict, namedtuple
 from copy import deepcopy
 from datetime import datetime
-from typing import List, Mapping, Optional, Union
+from typing import Callable, List, Mapping, Optional, Union
 
 import sentry_sdk
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
@@ -37,9 +37,11 @@ from sentry.search.events.constants import (
     USER_DISPLAY_ALIAS,
     VALID_FIELD_PATTERN,
 )
+from sentry.search.events.types import ParamsType, SelectType
 from sentry.utils.compat import zip
 from sentry.utils.numbers import format_grouped_length
 from sentry.utils.snuba import (
+    Dataset,
     get_json_type,
     is_duration_measurement,
     is_measurement,
@@ -348,28 +350,6 @@ FIELD_ALIASES = {
             result_type="boolean",
         ),
     ]
-}
-
-
-class FieldAlias:
-    def __init__(self, expression_fn, return_type=None) -> None:
-        self.expression_fn = expression_fn
-        self.return_type = return_type
-
-    def get_column(self, params) -> SnqlFunction:
-        return self.expression_fn(params)
-
-
-SNQL_FIELD_ALIASES = {
-    # TODO: Remove the `toUInt64` once Column supports aliases
-    ISSUE_ALIAS: FieldAlias(
-        # NOTE: `ISSUE_ALIAS` simply maps to the id, meaning that post processing is required to
-        # insert the true issue short id into the response.
-        lambda _: SnqlFunction("toUInt64", [SnqlColumn("group_id")], "issue.id")
-    ),
-    ISSUE_ID_ALIAS: FieldAlias(
-        lambda _: SnqlFunction("toUInt64", [SnqlColumn("group_id")], "issue.id")
-    ),
 }
 
 
@@ -1955,43 +1935,34 @@ for alias, name in FUNCTION_ALIASES.items():
 FUNCTION_ALIAS_PATTERN = re.compile(r"^({}).*".format("|".join(list(FUNCTIONS.keys()))))
 
 
-class QueryFields(QueryBase):
-    """Field logic for a snql query"""
+class QueryFieldAliases(QueryBase):
+    def __init__(self, dataset: Dataset, params: ParamsType):
+        super().__init__(dataset, params)
 
-    def resolve_select(
-        self, selected_columns: Optional[List[str]]
-    ) -> List[Union[SnqlColumn, SnqlFunction]]:
-        if selected_columns is None:
-            return []
+        self.field_alias_converter: Mapping[str, Callable[[str], SelectType]] = {
+            # NOTE: `ISSUE_ALIAS` simply maps to the id, meaning that post processing
+            # is required to insert the true issue short id into the response.
+            ISSUE_ALIAS: self._resolve_issue_id,
+            ISSUE_ID_ALIAS: self._resolve_issue_id,
+            PROJECT_ALIAS: self._resolve_project_slug,
+            PROJECT_NAME_ALIAS: self._resolve_project_slug,
+        }
 
-        project_key = None
-        # If project is requested, we need to map ids to their names since snuba only has ids
-        if "project" in selected_columns:
-            selected_columns.remove("project")
-            project_key = "project"
-        # since project.name is more specific, if both are included use project.name instead of project
-        if PROJECT_NAME_ALIAS in selected_columns:
-            selected_columns.remove(PROJECT_NAME_ALIAS)
-            project_key = PROJECT_NAME_ALIAS
+    def is_field_alias(self, alias: str) -> bool:
+        return alias in self.field_alias_converter or alias in FIELD_ALIASES
 
-        columns = []
+    def resolve_field_aliases(self, alias: str) -> SelectType:
+        converter = self.field_alias_converter.get(alias)
+        if not converter:
+            raise NotImplementedError(f"{alias} not implemented in snql field parsing yet")
+        return converter(alias)
 
-        for field in selected_columns:
-            if field.strip() == "":
-                continue
-            resolved_field = self.resolve_field(field)
-            if (
-                isinstance(resolved_field, SnqlColumn) or isinstance(resolved_field, SnqlFunction)
-            ) and resolved_field not in self.columns:
-                columns.append(resolved_field)
+    def _resolve_issue_id(self, _: str) -> SelectType:
+        column = self.column("issue.id")
+        # TODO: Remove the `toUInt64` once Column supports aliases
+        return SnqlFunction("toUInt64", [column], "issue.id")
 
-        if project_key:
-            columns.append(self.project_slug_transform(project_key))
-
-        return columns
-
-    def project_slug_transform(self, project_key: str) -> SnqlFunction:
-        """When project is a selected column we need to create a transform to turn them back into slugs"""
+    def _resolve_project_slug(self, alias: str) -> SelectType:
         project_ids = {
             project_id
             for project_id in self.params.get("project_id", [])
@@ -2012,18 +1983,35 @@ class QueryFields(QueryBase):
                 [project["slug"] for project in projects],
                 "",
             ],
-            project_key,
+            alias,
         )
+
+
+class QueryFields(QueryFieldAliases, QueryBase):
+    """Field logic for a snql query"""
+
+    def resolve_select(self, selected_columns: Optional[List[str]]) -> List[SelectType]:
+        if selected_columns is None:
+            return []
+
+        columns = []
+
+        for field in selected_columns:
+            if field.strip() == "":
+                continue
+            resolved_field = self.resolve_field(field)
+            if resolved_field not in self.columns:
+                columns.append(resolved_field)
+
+        return columns
 
     def resolve_field(self, field: str) -> Union[SnqlColumn, SnqlFunction]:
         match = is_function(field)
         if match:
             raise NotImplementedError(f"{field} not implemented in snql field parsing yet")
 
-        if field in FIELD_ALIASES or field in SNQL_FIELD_ALIASES:
-            if field in SNQL_FIELD_ALIASES:
-                return SNQL_FIELD_ALIASES[field].get_column(self.params)
-            raise NotImplementedError(f"{field} not implemented in snql field parsing yet")
+        if self.is_field_alias(field):
+            return self.resolve_field_aliases(field)
 
         tag_match = TAG_KEY_RE.search(field)
         field = tag_match.group("tag") if tag_match else field
@@ -2036,10 +2024,21 @@ class QueryFields(QueryBase):
         else:
             raise InvalidSearchQuery(f"Invalid characters in field {field}")
 
-    @property
-    def orderby(self) -> List[OrderBy]:
-        validated = []
-        for orderby in self.orderby_columns:
+    def resolve_orderby(self, orderby: Optional[Union[List[str], str]]) -> List[OrderBy]:
+        validated: List[OrderBy] = []
+
+        if orderby is None:
+            return validated
+
+        if isinstance(orderby, str):
+            if not orderby:
+                return validated
+
+            orderby = [orderby]
+
+        orderby_columns: List[str] = orderby if orderby else []
+
+        for orderby in orderby_columns:
             bare_orderby = orderby.lstrip("-")
             resolved_orderby = self.resolve_field(bare_orderby)
             direction = Direction.DESC if orderby.startswith("-") else Direction.ASC
@@ -2059,7 +2058,7 @@ class QueryFields(QueryBase):
 
             # TODO: orderby field aliases
 
-        if len(validated) == len(self.orderby_columns):
+        if len(validated) == len(orderby_columns):
             return validated
 
         # TODO: This is no longer true, can order by fields that aren't selected, keeping

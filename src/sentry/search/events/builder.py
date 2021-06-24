@@ -1,4 +1,4 @@
-from typing import Any, List, Optional
+from typing import List, Optional
 
 from snuba_sdk.entity import Entity
 from snuba_sdk.expressions import Limit
@@ -22,7 +22,7 @@ class QueryBuilder(QueryFields, QueryFilter):
         orderby: Optional[List[str]] = None,
         limit: int = 50,
     ):
-        super().__init__(dataset, params, orderby)
+        super().__init__(dataset, params)
 
         self.limit = Limit(limit)
 
@@ -32,6 +32,7 @@ class QueryBuilder(QueryFields, QueryFilter):
         self.where.extend(self.resolve_params())
 
         self.columns = self.resolve_select(selected_columns)
+        self.orderby = self.resolve_orderby(orderby)
 
     @property
     def select(self) -> Optional[List[SelectType]]:
@@ -54,24 +55,3 @@ class QueryBuilder(QueryFields, QueryFilter):
             orderby=self.orderby,
             limit=self.limit,
         )
-
-    def process_results(self, results: Any) -> Any:
-        results["meta"] = self._process_results_meta(results["meta"])
-        results["data"] = self._process_results_data(results["data"])
-        return results
-
-    def _process_results_meta(self, meta: Any) -> Any:
-        for col in meta:
-            col["name"] = self.translated_columns.get(col["name"], col["name"])
-        return meta
-
-    def _process_results_data(self, data: Any) -> Any:
-        data = [self._transform_results_row(row) for row in data]
-        return data
-
-    def _transform_results_row(self, row: Any) -> Any:
-        transformed = {}
-        for key, value in row.items():
-            col = self.translated_columns.get(key, key)
-            transformed[col] = value
-        return transformed
