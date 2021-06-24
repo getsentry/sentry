@@ -2,6 +2,8 @@ from django.db import IntegrityError
 from django.http import Http404
 from django.urls import reverse
 from django.views.decorators.cache import never_cache
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.models import Identity
 from sentry.shared_integrations.exceptions import ApiError
@@ -15,7 +17,9 @@ from ..client import SlackClient
 from ..utils import get_identity, logger
 
 
-def build_unlinking_url(integration_id, organization_id, slack_id, channel_id, response_url):
+def build_unlinking_url(
+    integration_id: str, organization_id: str, slack_id: str, channel_id: str, response_url: str
+) -> str:
     signed_params = sign(
         integration_id=integration_id,
         organization_id=organization_id,
@@ -29,10 +33,10 @@ def build_unlinking_url(integration_id, organization_id, slack_id, channel_id, r
     )
 
 
-class SlackUnlinkIdentityView(BaseView):
+class SlackUnlinkIdentityView(BaseView):  # type: ignore
     @transaction_start("SlackUnlinkIdentityView")
     @never_cache
-    def handle(self, request, signed_params):
+    def handle(self, request: Request, signed_params: str) -> Response:
         params = unsign(signed_params)
 
         organization, integration, idp = get_identity(

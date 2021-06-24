@@ -2,8 +2,10 @@ from django.db import IntegrityError
 from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.cache import never_cache
+from rest_framework.request import Request
+from rest_framework.response import Response
 
-from sentry.models import Identity, IdentityStatus
+from sentry.models import Identity, IdentityStatus, Integration, Organization
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign, unsign
@@ -15,7 +17,13 @@ from ..client import SlackClient
 from ..utils import get_identity, logger
 
 
-def build_linking_url(integration, organization, slack_id, channel_id, response_url):
+def build_linking_url(
+    integration: Integration,
+    organization: Organization,
+    slack_id: str,
+    channel_id: str,
+    response_url: str,
+) -> str:
     signed_params = sign(
         integration_id=integration.id,
         organization_id=organization.id,
@@ -29,10 +37,10 @@ def build_linking_url(integration, organization, slack_id, channel_id, response_
     )
 
 
-class SlackLinkIdentityView(BaseView):
+class SlackLinkIdentityView(BaseView):  # type: ignore
     @transaction_start("SlackLinkIdentityView")
     @never_cache
-    def handle(self, request, signed_params):
+    def handle(self, request: Request, signed_params: str) -> Response:
         params = unsign(signed_params)
 
         organization, integration, idp = get_identity(
