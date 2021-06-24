@@ -33,6 +33,7 @@ class OrganizationStatsEndpointV2(OrganizationEventsEndpointBase):
 
         if project_ids:
             params["project_id"] = project_ids
+
         return QueryDefinition(request.GET, params)
 
     def _get_projects_for_orgstats_query(self, request, organization):
