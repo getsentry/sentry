@@ -321,6 +321,7 @@ class SummaryContent extends React.Component<Props, State> {
                     return !isRelativeSpanOperationBreakdownField(field);
                   });
                 }
+                sortedEventView.query = query;
                 return sortedEventView;
               }}
               showTransactions={decodeScalar(
