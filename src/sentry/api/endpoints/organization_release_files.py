@@ -27,7 +27,7 @@ class OrganizationReleaseFilesEndpoint(OrganizationReleasesBaseEndpoint, Release
         if not self.has_release_permission(request, organization, release):
             raise ResourceDoesNotExist
 
-        return self.get_releasefiles(request, release)
+        return self.get_releasefiles(request, release, organization.id)
 
     def post(self, request, organization, version):
         """

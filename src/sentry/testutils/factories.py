@@ -11,6 +11,7 @@ from uuid import uuid4
 import petname
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
+from django.core.files.base import ContentFile
 from django.db import transaction
 from django.utils import timezone
 from django.utils.encoding import force_text
@@ -73,6 +74,7 @@ from sentry.models import (
     UserReport,
 )
 from sentry.models.integrationfeature import Feature, IntegrationFeature
+from sentry.models.releasefile import update_artifact_index
 from sentry.signals import project_created
 from sentry.snuba.models import QueryDatasets
 from sentry.types.integrations import ExternalProviders
@@ -436,6 +438,14 @@ class Factories:
                         zipfile.write(fullpath, relpath)
 
         return bundle.getvalue()
+
+    @classmethod
+    def create_release_archive(cls, org, release: str, project=None, dist=None):
+        bundle = cls.create_artifact_bundle(org, release, project)
+        file_ = File.objects.create(name="release-artifacts.zip")
+        file_.putfile(ContentFile(bundle))
+        release = Release.objects.get(organization__slug=org, version=release)
+        return update_artifact_index(release, dist, file_)
 
     @staticmethod
     def create_code_mapping(project, repo=None, **kwargs):

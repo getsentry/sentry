@@ -235,18 +235,23 @@ class _ArtifactIndexData:
             self._data.setdefault("files", {}).update(files)
             self.changed = True
 
-    def delete(self, filename: str):
-        self._data.get("files", {}).pop(filename, None)
-        self.changed = True
+    def delete(self, filename: str) -> bool:
+        result = self._data.get("files", {}).pop(filename, None)
+        deleted = result is not None
+        if deleted:
+            self.changed = True
+
+        return deleted
 
 
 class _ArtifactIndexGuard:
     """Ensures atomic write operations to the artifact index"""
 
-    def __init__(self, release: Release, dist: Optional[Distribution]):
+    def __init__(self, release: Release, dist: Optional[Distribution], **filter_args):
         self._release = release
         self._dist = dist
         self._ident = ReleaseFile.get_ident(ARTIFACT_INDEX_FILENAME, dist and dist.name)
+        self._filter_args = filter_args  # Extra constraints on artifact index release file
 
     def readable_data(self) -> Optional[dict]:
         """Simple read, no synchronization necessary"""
@@ -321,7 +326,7 @@ class _ArtifactIndexGuard:
 
     def _releasefile_qs(self):
         """QuerySet for selecting artifact index"""
-        return ReleaseFile.objects.filter(**self._key_fields())
+        return ReleaseFile.objects.filter(**self._key_fields(), **self._filter_args)
 
     def _key_fields(self):
         """Columns needed to identify the artifact index in the db"""
@@ -334,9 +339,11 @@ class _ArtifactIndexGuard:
         )
 
 
-def read_artifact_index(release: Release, dist: Optional[Distribution]) -> Optional[dict]:
+def read_artifact_index(
+    release: Release, dist: Optional[Distribution], **filter_args
+) -> Optional[dict]:
     """Get index data"""
-    guard = _ArtifactIndexGuard(release, dist)
+    guard = _ArtifactIndexGuard(release, dist, **filter_args)
     return guard.readable_data()
 
 
@@ -384,12 +391,16 @@ def update_artifact_index(release: Release, dist: Optional[Distribution], archiv
     return releasefile
 
 
-def delete_from_artifact_index(release: Release, dist: Optional[Distribution], url: str):
+def delete_from_artifact_index(release: Release, dist: Optional[Distribution], url: str) -> bool:
     """Delete the file with the given url from the manifest.
 
     Does *not* delete the file from the zip archive.
+
+    :returns: True if deleted
     """
     guard = _ArtifactIndexGuard(release, dist)
     with guard.writable_data(create=False) as index_data:
         if index_data is not None:
-            index_data.delete(url)
+            return index_data.delete(url)
+
+    return False
