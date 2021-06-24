@@ -34,6 +34,7 @@ from sentry.search.events.constants import (
     PROJECT_NAME_ALIAS,
     RELEASE_ALIAS,
     SEMVER_ALIAS,
+    SEMVER_EMPTY_RELEASE,
     SEMVER_MAX_SEARCH_RELEASES,
     TEAM_KEY_TRANSACTION_ALIAS,
     USER_DISPLAY_ALIAS,
@@ -390,6 +391,10 @@ def parse_semver_search(
             # Do a negative search instead
             final_operator = "NOT IN"
             versions = exclude_versions
+
+    if not versions:
+        # XXX: Just return a filter that will return no results if we have no versions
+        versions = [SEMVER_EMPTY_RELEASE]
 
     return ["release", final_operator, versions]
 
