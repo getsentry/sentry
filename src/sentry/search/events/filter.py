@@ -433,7 +433,7 @@ def parse_semver(version, operator) -> Optional[SemverFilter]:
             ],
         )
         if parsed["package"] and parsed["package"] != SEMVER_FAKE_PACKAGE:
-            semver_filter.package = parsed.package
+            semver_filter.package = parsed["package"]
         return semver_filter
     else:
         # Try to parse as a wildcard match
@@ -449,7 +449,8 @@ def parse_semver(version, operator) -> Optional[SemverFilter]:
             except ValueError:
                 raise InvalidSearchQuery(f"Invalid format for semver query {version}")
 
-        return SemverFilter("exact", version_parts)
+        package = package if package and package != SEMVER_FAKE_PACKAGE else None
+        return SemverFilter("exact", version_parts, package)
 
 
 key_conversion_map: Mapping[

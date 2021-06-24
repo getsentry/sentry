@@ -1555,6 +1555,14 @@ class SemverFilterConverterTest(TestCase):
         self.run_test("=", "1.2.3.4", "IN", [release_4.version])
         self.run_test("=", "2.*", "IN", [release_5.version])
 
+    def test_multi_packagae(self):
+        release_1 = self.create_release(version="test@1.0.0.0")
+        release_2 = self.create_release(version="test@1.2.0.0")
+        release_3 = self.create_release(version="test_2@1.2.3.0")
+        self.run_test("=", "test@1.*", "IN", [release_1.version, release_2.version])
+        self.run_test(">=", "test@1.0", "IN", [release_1.version, release_2.version])
+        self.run_test(">", "test_2@1.0", "IN", [release_3.version])
+
 
 class ParseSemverTest(unittest.TestCase):
     def run_test(self, version: str, operator: str, expected: SemverFilter):
@@ -1574,9 +1582,11 @@ class ParseSemverTest(unittest.TestCase):
         self.run_test("1.2.3.4", ">", SemverFilter("gt", [1, 2, 3, 4, 1, ""]))
         self.run_test("1.2.3-hi", ">", SemverFilter("gt", [1, 2, 3, 0, 0, "hi"]))
         self.run_test("1.2.3-hi", "<", SemverFilter("lt", [1, 2, 3, 0, 0, "hi"]))
+        self.run_test("sentry@1.2.3-hi", "<", SemverFilter("lt", [1, 2, 3, 0, 0, "hi"], "sentry"))
 
     def test_wildcard(self):
         self.run_test("1.*", "=", SemverFilter("exact", [1]))
         self.run_test("1.2.*", "=", SemverFilter("exact", [1, 2]))
         self.run_test("1.2.3.*", "=", SemverFilter("exact", [1, 2, 3]))
+        self.run_test("sentry@1.2.3.*", "=", SemverFilter("exact", [1, 2, 3], "sentry"))
         self.run_test("1.X", "=", SemverFilter("exact", [1]))
