@@ -179,7 +179,7 @@ class VercelIntegration(IntegrationInstallation):
                     "items": self._get_vercel_projects(),
                     "placeholder": _("Vercel project..."),
                 },
-                "sentry_projects": self._get_sentry_projects(),
+                "sentryProjects": self._get_sentry_projects(),
                 "nextButton": {
                     "allowedDomain": "https://vercel.com",
                     "description": _(
