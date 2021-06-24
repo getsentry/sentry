@@ -7,9 +7,9 @@ from requests import Response
 from rest_framework import status
 
 from sentry import options
-from sentry.integrations.slack.command_endpoint import LINK_USER_MESSAGE
-from sentry.integrations.slack.link_team import build_linking_url
+from sentry.integrations.slack.endpoints.command import LINK_USER_MESSAGE
 from sentry.integrations.slack.util.auth import set_signing_secret
+from sentry.integrations.slack.views.link_team import build_linking_url
 from sentry.models import ExternalActor, Identity, IdentityProvider, IdentityStatus, Integration
 from sentry.testutils import APITestCase, TestCase
 from sentry.types.integrations import ExternalProviders

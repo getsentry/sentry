@@ -20,8 +20,8 @@ from sentry.web.decorators import transaction_start
 from sentry.web.frontend.base import BaseView
 from sentry.web.helpers import render_to_response
 
-from .client import SlackClient
-from .utils import logger
+from ..client import SlackClient
+from ..utils import logger
 
 
 def build_linking_url(integration, slack_id, channel_id, channel_name, response_url):

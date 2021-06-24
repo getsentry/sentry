@@ -11,8 +11,8 @@ from sentry.web.decorators import transaction_start
 from sentry.web.frontend.base import BaseView
 from sentry.web.helpers import render_to_response
 
-from .client import SlackClient
-from .utils import get_identity, logger
+from ..client import SlackClient
+from ..utils import get_identity, logger
 
 
 def build_unlinking_url(integration_id, organization_id, slack_id, channel_id, response_url):
