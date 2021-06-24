@@ -4,6 +4,7 @@ from .action_endpoint import SlackActionEndpoint
 from .command_endpoint import SlackCommandsEndpoint
 from .event_endpoint import SlackEventEndpoint
 from .link_identity import SlackLinkIdentityView
+from .link_team import SlackLinkTeamView
 from .unlink_identity import SlackUnlinkIdentityView
 
 urlpatterns = [
@@ -19,5 +20,10 @@ urlpatterns = [
         r"^unlink-identity/(?P<signed_params>[^\/]+)/$",
         SlackUnlinkIdentityView.as_view(),
         name="sentry-integration-slack-unlink-identity",
+    ),
+    url(
+        r"^link-team/(?P<signed_params>[^\/]+)/$",
+        SlackLinkTeamView.as_view(),
+        name="sentry-integration-slack-link-team",
     ),
 ]
