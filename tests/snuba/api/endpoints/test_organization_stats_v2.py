@@ -34,9 +34,8 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         self.project3 = self.create_project(organization=self.org2)
 
         self.user2 = self.create_user(is_superuser=False)
-        self.user3 = self.create_user(is_superuser=False)
         self.create_member(user=self.user2, organization=self.organization, role="member", teams=[])
-        self.create_member(user=self.user3, organization=self.org3, role="member", teams=[])
+        self.create_member(user=self.user2, organization=self.org3, role="member", teams=[])
         self.project4 = self.create_project(
             name="users2sproj",
             teams=[self.create_team(organization=self.org, members=[self.user2])],
@@ -119,7 +118,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
                 "field": ["sum(quantity)"],
                 "category": ["error", "transaction"],
             },
-            user=self.user3,
+            user=self.user2,
             org=self.org3,
         )
 
