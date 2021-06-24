@@ -20,6 +20,6 @@ class OrganizationRelayUsage(OrganizationEndpoint):
             return Response([], status=200)
 
         keys = [val.get("public_key") for val in trusted_relays]
-        relay_history = list(RelayUsage.objects.filter(public_key__in=keys))
+        relay_history = list(RelayUsage.objects.filter(public_key__in=keys).order_by("-last_seen"))
 
         return Response(serialize(relay_history, request.user))
