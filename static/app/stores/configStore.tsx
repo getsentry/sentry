@@ -1,8 +1,6 @@
 import moment from 'moment-timezone';
-import * as qs from 'query-string';
 import Reflux from 'reflux';
 
-import {setLocale} from 'app/locale';
 import {Config} from 'app/types';
 
 type ConfigStoreInterface = {
@@ -61,37 +59,11 @@ const configStoreConfig: Reflux.StoreDefinition & ConfigStoreInterface = {
       theme: shouldUseDarkMode ? 'dark' : 'light',
     };
 
-    // Language code is passed from django
-    let languageCode = config.languageCode;
-
     // TODO(dcramer): abstract this out of ConfigStore
     if (config.user) {
       config.user.permissions = new Set(config.user.permissions);
       moment.tz.setDefault(config.user.options.timezone);
-
-      let queryString: qs.ParsedQuery = {};
-
-      // Parse query string for `lang`
-      try {
-        queryString = qs.parse(window.location.search) || {};
-      } catch (err) {
-        // ignore if this fails to parse
-        // this can happen if we have an invalid query string
-        // e.g. unencoded "%"
-      }
-
-      let queryStringLang = queryString.lang;
-
-      if (Array.isArray(queryStringLang)) {
-        queryStringLang = queryStringLang[0];
-      }
-
-      languageCode = queryStringLang || config.user.options.language || languageCode;
     }
-
-    // Priority:
-    // "?lang=en" --> user configuration options --> django request.LANGUAGE_CODE --> "en"
-    setLocale(languageCode || 'en');
 
     this.trigger(config);
   },
