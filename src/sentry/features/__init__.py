@@ -56,7 +56,7 @@ default_manager.add("organizations:alert-details-redesign", OrganizationFeature,
 default_manager.add("organizations:alert-filters", OrganizationFeature)
 default_manager.add("organizations:alert-history-filters", OrganizationFeature, True)
 default_manager.add("organizations:api-keys", OrganizationFeature)
-default_manager.add("organizations:app-store-connect", OrganizationFeature)
+default_manager.add("organizations:app-store-connect", OrganizationFeature, True)
 default_manager.add("organizations:boolean-search", OrganizationFeature)
 default_manager.add("organizations:chart-unfurls", OrganizationFeature, True)
 default_manager.add("organizations:custom-event-title", OrganizationFeature)
