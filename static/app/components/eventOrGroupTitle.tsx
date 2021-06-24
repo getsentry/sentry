@@ -28,13 +28,8 @@ class EventOrGroupTitle extends React.Component<Props> {
     guideAnchorName: 'issue_title',
   };
   render() {
-    const {
-      hasGuideAnchor,
-      data,
-      organization,
-      withStackTracePreview,
-      guideAnchorName,
-    } = this.props;
+    const {hasGuideAnchor, data, organization, withStackTracePreview, guideAnchorName} =
+      this.props;
     const {title, subtitle} = getTitle(data as Event, organization);
     const {id, eventID, groupID, projectID} = data as Event;
 

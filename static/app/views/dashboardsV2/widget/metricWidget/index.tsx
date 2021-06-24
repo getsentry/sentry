@@ -185,14 +185,8 @@ class MetricWidget extends AsyncView<Props, State> {
       goBackLocation,
       dashboardTitle,
     } = this.props;
-    const {
-      title,
-      metricTags,
-      searchQuery,
-      metricMetas,
-      queries,
-      displayType,
-    } = this.state;
+    const {title, metricTags, searchQuery, metricMetas, queries, displayType} =
+      this.state;
     const orgSlug = organization.slug;
 
     if (loadingProjects) {
@@ -239,11 +233,9 @@ class MetricWidget extends AsyncView<Props, State> {
               <VisualizationWrapper>
                 <StyledSelectField
                   name="displayType"
-                  choices={[
-                    DisplayType.LINE,
-                    DisplayType.BAR,
-                    DisplayType.AREA,
-                  ].map(value => [value, displayTypes[value]])}
+                  choices={[DisplayType.LINE, DisplayType.BAR, DisplayType.AREA].map(
+                    value => [value, displayTypes[value]]
+                  )}
                   value={displayType}
                   onChange={value => {
                     this.handleFieldChange('displayType', value);

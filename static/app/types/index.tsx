@@ -1189,10 +1189,11 @@ export type RepositoryProjectPathConfig = BaseRepositoryProjectPathConfig & {
   provider: BaseIntegrationProvider | null;
 };
 
-export type RepositoryProjectPathConfigWithIntegration = BaseRepositoryProjectPathConfig & {
-  integrationId: string;
-  provider: BaseIntegrationProvider;
-};
+export type RepositoryProjectPathConfigWithIntegration =
+  BaseRepositoryProjectPathConfig & {
+    integrationId: string;
+    provider: BaseIntegrationProvider;
+  };
 
 export type PullRequest = {
   id: string;

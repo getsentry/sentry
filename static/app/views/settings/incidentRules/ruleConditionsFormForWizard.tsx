@@ -82,13 +82,8 @@ class RuleConditionsFormForWizard extends React.PureComponent<Props, State> {
   }
 
   render() {
-    const {
-      organization,
-      disabled,
-      onFilterSearch,
-      allowChangeEventTypes,
-      alertType,
-    } = this.props;
+    const {organization, disabled, onFilterSearch, allowChangeEventTypes, alertType} =
+      this.props;
     const {environments} = this.state;
 
     const environmentOptions: SelectValue<string | null>[] =

@@ -136,7 +136,7 @@ class ReleaseArchiveTestCase(TestCase):
         assert read_artifact_index(self.release, None) is None
 
         # Delete does nothing
-        delete_from_artifact_index(self.release, None, "foo")
+        assert delete_from_artifact_index(self.release, None, "foo") is False
 
         archive1 = self.create_archive(
             fields={},
@@ -225,7 +225,7 @@ class ReleaseArchiveTestCase(TestCase):
         assert read_artifact_index(self.release, None) == expected
 
         # Deletion works:
-        delete_from_artifact_index(self.release, None, "fake://foo")
+        assert delete_from_artifact_index(self.release, None, "fake://foo") is True
         expected["files"].pop("fake://foo")
         assert read_artifact_index(self.release, None) == expected
 
