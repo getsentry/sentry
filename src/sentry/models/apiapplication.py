@@ -32,7 +32,7 @@ class ApiApplicationStatus:
 
 
 class ApiApplication(Model):
-    __core__ = True
+    __include_in_export__ = True
 
     client_id = models.CharField(max_length=64, unique=True, default=generate_token)
     client_secret = EncryptedTextField(default=generate_token)

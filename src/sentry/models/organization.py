@@ -106,7 +106,7 @@ class Organization(Model):
     An organization represents a group of individuals which maintain ownership of projects.
     """
 
-    __core__ = True
+    __include_in_export__ = True
     name = models.CharField(max_length=64)
     slug = models.SlugField(unique=True)
     status = BoundedPositiveIntegerField(
