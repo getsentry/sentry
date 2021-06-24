@@ -155,7 +155,7 @@ class EventFrequencyPercentForm(EventFrequencyForm):
 
 
 class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
-    label = "The issue has more errors than {value} percent of sessions in {interval}"
+    label = "The issue affects more than {value} percent of sessions in {interval}"
 
     def __init__(self, *args, **kwargs):
         self.intervals = percent_intervals
