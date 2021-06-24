@@ -33,7 +33,6 @@ class OrganizationStatsEndpointV2(OrganizationEventsEndpointBase):
 
         if project_ids:
             params["project_id"] = project_ids
-
         return QueryDefinition(request.GET, params)
 
     def _get_projects_for_orgstats_query(self, request, organization):
@@ -42,9 +41,12 @@ class OrganizationStatsEndpointV2(OrganizationEventsEndpointBase):
         # org wide query and don't pass project_id in to QueryDefinition
         req_proj_ids = self.get_requested_project_ids(request)
         if self._is_org_total_query(request, req_proj_ids):
+            print("first branch")
             return None
         else:
+            print("second branch")
             projects = self.get_projects(request, organization, project_ids=req_proj_ids)
+            print(projects)
             if not projects:
                 raise NoProjects("No projects available")
             return [p.id for p in projects]
