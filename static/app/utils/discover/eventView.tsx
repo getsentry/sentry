@@ -1107,6 +1107,33 @@ class EventView {
     };
   }
 
+  getPerformanceTransactionEventsViewUrlTarget(
+    slug: string,
+    showTransactions?: string,
+    breakdown?: string
+  ): {pathname: string; query: Query} {
+    const output = {
+      sort: encodeSorts(this.sorts),
+      project: this.project,
+      query: this.query,
+      transaction: this.name,
+      showTransactions,
+      breakdown,
+    };
+
+    for (const field of EXTERNAL_QUERY_STRING_KEYS) {
+      if (this[field] && this[field].length) {
+        output[field] = this[field];
+      }
+    }
+
+    const query = cloneDeep(output as any);
+    return {
+      pathname: `/organizations/${slug}/performance/summary/events/`,
+      query,
+    };
+  }
+
   sortForField(field: Field, tableMeta: MetaType | undefined): Sort | undefined {
     if (!tableMeta) {
       return undefined;

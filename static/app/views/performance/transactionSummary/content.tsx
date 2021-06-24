@@ -39,6 +39,7 @@ import {isSummaryViewFrontendPageLoad} from '../utils';
 
 import TransactionSummaryCharts from './charts';
 import Filter, {
+  decodeFilterFromLocation,
   filterToField,
   filterToSearchConditions,
   SpanOperationBreakdownFilter,
@@ -300,7 +301,7 @@ class SummaryContent extends React.Component<Props, State> {
               location={location}
               organization={organization}
               eventView={transactionsListEventView}
-              generateDiscoverEventView={() => {
+              generatePerformanceTransactionEventsView={() => {
                 const {selected} = getTransactionsListSort(location, {
                   p95: totalValues?.p95 ?? 0,
                   spanOperationBreakdownFilter,
@@ -322,6 +323,11 @@ class SummaryContent extends React.Component<Props, State> {
                 }
                 return sortedEventView;
               }}
+              showTransactions={decodeScalar(
+                location.query.showTransactions,
+                TransactionFilterOptions.SLOW
+              )}
+              breakdown={decodeFilterFromLocation(location)}
               titles={transactionsListTitles}
               handleDropdownChange={this.handleTransactionsListSortChange}
               generateLink={{

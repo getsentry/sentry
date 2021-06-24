@@ -117,6 +117,9 @@ type Props = {
    * for generating the Discover query.
    */
   generateDiscoverEventView?: () => EventView;
+  generatePerformanceTransactionEventsView?: () => EventView;
+  showTransactions?: string;
+  breakdown?: string;
 };
 
 class TransactionsList extends React.Component<Props> {
@@ -154,6 +157,14 @@ class TransactionsList extends React.Component<Props> {
     return this.getEventView();
   }
 
+  generatePerformanceTransactionEventsView(): EventView {
+    const {generatePerformanceTransactionEventsView} = this.props;
+    if (typeof generatePerformanceTransactionEventsView === 'function') {
+      return generatePerformanceTransactionEventsView();
+    }
+    return this.getEventView();
+  }
+
   renderHeader(): React.ReactNode {
     const {
       organization,
@@ -161,6 +172,8 @@ class TransactionsList extends React.Component<Props> {
       options,
       handleDropdownChange,
       handleOpenInDiscoverClick,
+      showTransactions,
+      breakdown,
     } = this.props;
 
     return (
@@ -193,16 +206,18 @@ class TransactionsList extends React.Component<Props> {
           </DropdownControl>
         </div>
         {!this.isTrend() && (
-          <GuideAnchor target="release_transactions_open_in_discover">
+          <GuideAnchor target="release_transactions_open_in_transaction_events">
             <DiscoverButton
               onClick={handleOpenInDiscoverClick}
-              to={this.generateDiscoverEventView().getResultsViewUrlTarget(
-                organization.slug
+              to={this.generatePerformanceTransactionEventsView().getPerformanceTransactionEventsViewUrlTarget(
+                organization.slug,
+                showTransactions,
+                breakdown
               )}
               size="small"
-              data-test-id="discover-open"
+              data-test-id="transaction-events-open"
             >
-              {t('Open in Discover')}
+              {t('Open All Events')}
             </DiscoverButton>
           </GuideAnchor>
         )}
