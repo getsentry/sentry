@@ -120,7 +120,7 @@ type GetReleaseParams = {
   allowEmptyPeriod: boolean;
 };
 
-// these option are here only temporarily while we still support older and newer release details page
+// these options are here only temporarily while we still support older and newer release details page
 export function getReleaseParams({
   location,
   releaseBounds,

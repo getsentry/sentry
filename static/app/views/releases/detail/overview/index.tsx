@@ -429,7 +429,7 @@ class ReleaseOverview extends AsyncView<Props> {
                 <Feature features={['release-comparison']}>
                   {({hasFeature}) =>
                     hasFeature ? (
-                      <React.Fragment>
+                      <Fragment>
                         <StyledPageTimeRangeSelector
                           organization={organization}
                           relative={period ?? ''}
@@ -450,7 +450,7 @@ class ReleaseOverview extends AsyncView<Props> {
                           defaultPeriod={RELEASE_PERIOD_KEY}
                         />
                         {/* TODO(release-comparison): new chart */}
-                      </React.Fragment>
+                      </Fragment>
                     ) : (
                       (hasDiscover || hasPerformance || hasHealthData) && (
                         <ReleaseChart
