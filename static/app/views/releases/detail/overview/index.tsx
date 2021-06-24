@@ -1,4 +1,4 @@
-import React, {Fragment} from 'react';
+import {Fragment} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptor, Query} from 'history';
