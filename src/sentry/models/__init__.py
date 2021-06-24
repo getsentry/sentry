@@ -6,6 +6,7 @@ from .apigrant import *  # NOQA
 from .apikey import *  # NOQA
 from .apiscopes import *  # NOQA
 from .apitoken import *  # NOQA
+from .appconnectbuilds import *  # NOQA
 from .assistant import *  # NOQA
 from .auditlogentry import *  # NOQA
 from .authenticator import *  # NOQA
