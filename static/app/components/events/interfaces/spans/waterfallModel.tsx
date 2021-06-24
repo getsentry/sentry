@@ -15,7 +15,7 @@ import {
   RawSpanType,
   SpanFuseOptions,
 } from './types';
-import {generateRootSpan, getSpanID, parseTrace} from './utils';
+import {boundsGenerator, generateRootSpan, getSpanID, parseTrace} from './utils';
 
 class WaterfallModel {
   // readonly state
@@ -28,15 +28,20 @@ class WaterfallModel {
   operationNameFilters: ActiveOperationFilter = noFilter;
   filterSpans: FilterSpans | undefined = undefined;
   searchQuery: string | undefined = undefined;
+  hiddenSpanGroups: Set<string>;
 
   constructor(event: Readonly<EventTransaction>) {
     this.event = event;
 
     this.parsedTrace = parseTrace(event);
     const rootSpan = generateRootSpan(this.parsedTrace);
-    this.rootSpan = new SpanTreeModel(rootSpan, this.parsedTrace.childSpans);
+    this.rootSpan = new SpanTreeModel(rootSpan, this.parsedTrace.childSpans, true);
 
     this.indexSearch(this.parsedTrace, rootSpan);
+
+    // Set of span IDs whose sub-trees should be hidden. This is used for the
+    // span tree toggling product feature.
+    this.hiddenSpanGroups = new Set();
 
     makeObservable(this, {
       rootSpan: observable,
@@ -51,6 +56,10 @@ class WaterfallModel {
       filterSpans: observable,
       searchQuery: observable,
       querySpanSearch: action,
+
+      // span group toggling
+      hiddenSpanGroups: observable,
+      toggleSpanGroup: action,
     });
   }
 
@@ -178,6 +187,56 @@ class WaterfallModel {
       spanIDs,
     };
   }
+
+  toggleSpanGroup = (spanID: string) => {
+    if (this.hiddenSpanGroups.has(spanID)) {
+      this.hiddenSpanGroups.delete(spanID);
+      return;
+    }
+
+    this.hiddenSpanGroups.add(spanID);
+  };
+
+  generateBounds = ({
+    viewStart,
+    viewEnd,
+  }: {
+    viewStart: number; // in [0, 1]
+    viewEnd: number; // in [0, 1]
+  }) => {
+    return boundsGenerator({
+      traceStartTimestamp: this.parsedTrace.traceStartTimestamp,
+      traceEndTimestamp: this.parsedTrace.traceEndTimestamp,
+      viewStart,
+      viewEnd,
+    });
+  };
+
+  getWaterfall = ({
+    viewStart,
+    viewEnd,
+  }: {
+    viewStart: number; // in [0, 1]
+    viewEnd: number; // in [0, 1]
+  }) => {
+    const generateBounds = this.generateBounds({
+      viewStart,
+      viewEnd,
+    });
+
+    return this.rootSpan.getSpansList({
+      operationNameFilters: this.operationNameFilters,
+      generateBounds,
+      treeDepth: 0,
+      isLastSibling: true,
+      continuingTreeDepths: [],
+      hiddenSpanGroups: this.hiddenSpanGroups,
+      spanGroups: new Set(),
+      filterSpans: this.filterSpans,
+      previousSiblingEndTimestamp: undefined,
+      event: this.event,
+    });
+  };
 }
 
 export default WaterfallModel;

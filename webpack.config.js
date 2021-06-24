@@ -13,7 +13,6 @@ const FixStyleOnlyEntriesPlugin = require('webpack-remove-empty-scripts');
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 
 const IntegrationDocsFetchPlugin = require('./build-utils/integration-docs-fetch-plugin');
-const OptionalLocaleChunkPlugin = require('./build-utils/optional-locale-chunk-plugin');
 const SentryInstrumentation = require('./build-utils/sentry-instrumentation');
 const LastBuiltPlugin = require('./build-utils/last-built-plugin');
 const babelConfig = require('./babel.config');
@@ -137,20 +136,18 @@ const localeCatalog = JSON.parse(fs.readFileSync(localeCatalogPath, 'utf8'));
 //
 // * po files are kept in a directory represented by the locale name [0]
 // * moment.js locales are stored as language code files
-// * Sentry will request the user configured language from locale/{language}.js
 //
 // [0] https://docs.djangoproject.com/en/2.1/topics/i18n/#term-locale-name
 const localeToLanguage = locale => locale.toLowerCase().replace('_', '-');
-
 const supportedLocales = localeCatalog.supported_locales;
 const supportedLanguages = supportedLocales.map(localeToLanguage);
 
 // A mapping of chunk groups used for locale code splitting
 const localeChunkGroups = {};
 
-// No need to split the english locale out as it will be completely empty and
-// is not included in the django layout.html.
 supportedLocales
+  // No need to split the english locale out as it will be completely empty and
+  // is not included in the django layout.html.
   .filter(l => l !== 'en')
   .forEach(locale => {
     const language = localeToLanguage(locale);
@@ -173,50 +170,18 @@ supportedLocales
           : chunkGraph.getModuleChunks(module).some(c => c.name && pattern.test(c.name))
       );
 
+    // We are defining a chunk that combines the django language files with
+    // moment's locales as if you want one, you will want the other.
+    //
+    // In the application code you will still need to import via their module
+    // paths and not the chunk name
     localeChunkGroups[group] = {
-      chunks: 'initial',
+      chunks: 'async',
       name: group,
       test: groupTest,
       enforce: true,
     };
   });
-
-/**
- * Restrict translation files that are pulled in through app/translations.jsx
- * and through moment/locale/* to only those which we create bundles for via
- * locale/catalogs.json.
- */
-const localeRestrictionPlugins = [
-  new webpack.ContextReplacementPlugin(
-    /sentry-locale$/,
-    path.join(__dirname, 'src', 'sentry', 'locale', path.sep),
-    true,
-    new RegExp(`(${supportedLocales.join('|')})/.*\\.po$`)
-  ),
-  new webpack.ContextReplacementPlugin(
-    /moment\/locale/,
-    new RegExp(`(${supportedLanguages.join('|')})\\.js$`)
-  ),
-];
-
-/**
- * Explicit codesplitting cache groups
- */
-const cacheGroups = {
-  defaultVendors: {
-    name: 'vendor',
-    // This `platformicons` check is required otherwise it will get put into this chunk instead
-    // of `sentry.css` bundle
-    // TODO(platformicons): Simplify this if we move platformicons into repo
-    test: module =>
-      !/platformicons/.test(module.resource) &&
-      /[\\/]node_modules[\\/]/.test(module.resource),
-    priority: -10,
-    enforce: true,
-    chunks: 'initial',
-  },
-  ...localeChunkGroups,
-};
 
 const babelOptions = {...babelConfig, cacheDirectory: true};
 const babelLoaderConfig = {
@@ -312,6 +277,13 @@ let appConfig = {
 
     new WebpackManifestPlugin({}),
 
+    // Do not bundle moment's locale files as we will lazy load them using
+    // dynamic imports in the application code
+    new webpack.IgnorePlugin({
+      contextRegExp: /moment$/,
+      resourceRegExp: /^\.\/locale$/,
+    }),
+
     /**
      * jQuery must be provided in the global scope specifically and only for
      * bootstrap, as it will not import jQuery itself.
@@ -345,12 +317,6 @@ let appConfig = {
     }),
 
     /**
-     * See above for locale chunks. These plugins help with that
-     * functionality.
-     */
-    new OptionalLocaleChunkPlugin(),
-
-    /**
      * This removes empty js files for style only entries (e.g. sentry.less)
      */
     new FixStyleOnlyEntriesPlugin({verbose: false}),
@@ -370,8 +336,26 @@ let appConfig = {
         ]
       : []),
 
-    ...localeRestrictionPlugins,
+    /**
+     * Restrict translation files that are pulled in through app/translations.jsx
+     * and through moment/locale/* to only those which we create bundles for via
+     * locale/catalogs.json.
+     *
+     * Without this, webpack will still output all of the unused locale files despite
+     * the application never loading any of them.
+     */
+    new webpack.ContextReplacementPlugin(
+      /sentry-locale$/,
+      path.join(__dirname, 'src', 'sentry', 'locale', path.sep),
+      true,
+      new RegExp(`(${supportedLocales.join('|')})/.*\\.po$`)
+    ),
+    new webpack.ContextReplacementPlugin(
+      /moment\/locale/,
+      new RegExp(`(${supportedLanguages.join('|')})\\.js$`)
+    ),
   ],
+
   resolve: {
     alias: {
       app: path.join(staticPrefix, 'app'),
@@ -420,9 +404,11 @@ let appConfig = {
       // Which means the app will not load because we'd need these additional chunks to be loaded in our
       // django template.
       chunks: 'async',
-      maxInitialRequests: 5,
-      maxAsyncRequests: 7,
-      cacheGroups,
+      maxInitialRequests: 10, // (default: 30)
+      maxAsyncRequests: 10, // (default: 30)
+      cacheGroups: {
+        ...localeChunkGroups,
+      },
     },
 
     // This only runs in production mode
