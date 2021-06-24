@@ -281,13 +281,8 @@ class Chart extends Component<ChartProps, ChartState> {
   }
 
   render() {
-    const {
-      zoomRenderProps,
-      timeSeries,
-      previousTimeSeries,
-      releaseSeries,
-      displayMode,
-    } = this.props;
+    const {zoomRenderProps, timeSeries, previousTimeSeries, releaseSeries, displayMode} =
+      this.props;
 
     const ChartComponent =
       displayMode === DisplayModes.STABILITY ? LineChart : StackedAreaChart;

@@ -85,7 +85,7 @@ export class QueryResults {
       if (tokenState === TokenType.QUERY && token.length) {
         this.addQuery(token);
       } else if (tokenState === TokenType.TAG) {
-        this.addStringTag(token);
+        this.addStringTag(token, false);
       }
 
       if (trailingParen !== '') {
@@ -121,26 +121,29 @@ export class QueryResults {
     return formattedTokens.join(' ').trim();
   }
 
-  addStringTag(value: string) {
+  addStringTag(value: string, shouldEscape = true) {
     const [key, tag] = formatTag(value);
-    this.addTagValues(key, [tag]);
+    this.addTagValues(key, [tag], shouldEscape);
     return this;
   }
 
-  addTagValues(tag: string, tagValues: string[]) {
+  addTagValues(tag: string, tagValues: string[], shouldEscape = true) {
     for (const t of tagValues) {
+      // Tag values that we insert through the UI can contain special characters
+      // that need to escaped. User entered filters should not be escaped.
+      const escaped = shouldEscape ? escapeTagValue(t) : t;
       this.tagValues[tag] = Array.isArray(this.tagValues[tag])
-        ? [...this.tagValues[tag], t]
-        : [t];
-      const token: Token = {type: TokenType.TAG, key: tag, value: t};
+        ? [...this.tagValues[tag], escaped]
+        : [escaped];
+      const token: Token = {type: TokenType.TAG, key: tag, value: escaped};
       this.tokens.push(token);
     }
     return this;
   }
 
-  setTagValues(tag: string, tagValues: string[]) {
+  setTagValues(tag: string, tagValues: string[], shouldEscape = true) {
     this.removeTag(tag);
-    this.addTagValues(tag, tagValues);
+    this.addTagValues(tag, tagValues, shouldEscape);
     return this;
   }
 
@@ -296,13 +299,6 @@ export function tokenizeSearch(query: string) {
 }
 
 /**
- * Convert a QueryResults object back to a query string
- */
-export function stringifyQueryObject(results: QueryResults) {
-  return results.formatString();
-}
-
-/**
  * Splits search strings into tokens for parsing by tokenizeSearch.
  *
  * Should stay in sync with src.sentry.search.utils:split_query_into_tokens
@@ -398,4 +394,15 @@ function removeSurroundingQuotes(text: string) {
  */
 function formatQuery(query: string) {
   return query.replace(/^["\(]+|["\)]+$/g, '');
+}
+
+/**
+ * Some characters have special meaning in a tag value. So when they
+ * are directly added as a tag value, we have to escape them to mean
+ * the literal.
+ */
+function escapeTagValue(value: string) {
+  // astericks (*) is used for wildcard searches
+  // back slaches (\) is used to escape other characters
+  return value.replace(/([\*\\])/g, '\\$1');
 }

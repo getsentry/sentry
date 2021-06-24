@@ -5,7 +5,7 @@ import {t} from 'app/locale';
 import {LightWeightOrganization, NewQuery, SelectValue} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import {decodeScalar} from 'app/utils/queryString';
-import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {tokenizeSearch} from 'app/utils/tokenizeSearch';
 
 import {getCurrentLandingDisplay, LandingDisplayField} from './landing/utils';
 import {
@@ -360,10 +360,11 @@ function generateGenericPerformanceEventView(
   // If there is a bare text search, we want to treat it as a search
   // on the transaction name.
   if (conditions.query.length > 0) {
-    conditions.setTagValues('transaction', [`*${conditions.query.join(' ')}*`]);
+    // the query here is a user entered condition, no need to escape it
+    conditions.setTagValues('transaction', [`*${conditions.query.join(' ')}*`], false);
     conditions.query = [];
   }
-  savedQuery.query = stringifyQueryObject(conditions);
+  savedQuery.query = conditions.formatString();
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
   eventView.additionalConditions.addTagValues('event.type', ['transaction']);
@@ -429,10 +430,11 @@ function generateBackendPerformanceEventView(
   // If there is a bare text search, we want to treat it as a search
   // on the transaction name.
   if (conditions.query.length > 0) {
-    conditions.setTagValues('transaction', [`*${conditions.query.join(' ')}*`]);
+    // the query here is a user entered condition, no need to escape it
+    conditions.setTagValues('transaction', [`*${conditions.query.join(' ')}*`], false);
     conditions.query = [];
   }
-  savedQuery.query = stringifyQueryObject(conditions);
+  savedQuery.query = conditions.formatString();
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
   eventView.additionalConditions.addTagValues('event.type', ['transaction']);
@@ -496,10 +498,11 @@ function generateFrontendPageloadPerformanceEventView(
   // If there is a bare text search, we want to treat it as a search
   // on the transaction name.
   if (conditions.query.length > 0) {
-    conditions.setTagValues('transaction', [`*${conditions.query.join(' ')}*`]);
+    // the query here is a user entered condition, no need to escape it
+    conditions.setTagValues('transaction', [`*${conditions.query.join(' ')}*`], false);
     conditions.query = [];
   }
-  savedQuery.query = stringifyQueryObject(conditions);
+  savedQuery.query = conditions.formatString();
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
   eventView.additionalConditions
@@ -565,10 +568,11 @@ function generateFrontendOtherPerformanceEventView(
   // If there is a bare text search, we want to treat it as a search
   // on the transaction name.
   if (conditions.query.length > 0) {
-    conditions.setTagValues('transaction', [`*${conditions.query.join(' ')}*`]);
+    // the query here is a user entered condition, no need to escape it
+    conditions.setTagValues('transaction', [`*${conditions.query.join(' ')}*`], false);
     conditions.query = [];
   }
-  savedQuery.query = stringifyQueryObject(conditions);
+  savedQuery.query = conditions.formatString();
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
   eventView.additionalConditions
@@ -643,10 +647,11 @@ export function generatePerformanceVitalDetailView(
   // If there is a bare text search, we want to treat it as a search
   // on the transaction name.
   if (conditions.query.length > 0) {
-    conditions.setTagValues('transaction', [`*${conditions.query.join(' ')}*`]);
+    // the query here is a user entered condition, no need to escape it
+    conditions.setTagValues('transaction', [`*${conditions.query.join(' ')}*`], false);
     conditions.query = [];
   }
-  savedQuery.query = stringifyQueryObject(conditions);
+  savedQuery.query = conditions.formatString();
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
   eventView.additionalConditions

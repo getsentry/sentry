@@ -353,13 +353,14 @@ def parse_semver_search(
         raise ValueError("organization_id is a required param")
 
     organization_id: int = params["organization_id"]
-    version: str = search_filter.value.value
+    # We explicitly use `raw_value` here to avoid converting wildcards to shell values
+    version: str = search_filter.value.raw_value
     operator: str = search_filter.operator
 
     # Note that we sort this such that if we end up fetching more than
     # MAX_SEMVER_SEARCH_RELEASES, we will return the releases that are closest to
     # the passed filter.
-    order_by = Release.SEMVER_SORT_COLS
+    order_by = Release.SEMVER_COLS
     if operator.startswith("<"):
         order_by = list(map(_flip_field_sort, order_by))
     qs = (
