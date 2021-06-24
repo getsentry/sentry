@@ -269,6 +269,9 @@ class OrganizationReleaseListTest(APITestCase):
         )
         assert [r["version"] for r in response.data] == [release_1.version, release_2.version]
 
+        response = self.get_valid_response(self.organization.slug, query=f"{SEMVER_ALIAS}:2.2.1")
+        assert [r["version"] for r in response.data] == []
+
     def test_project_permissions(self):
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()

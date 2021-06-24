@@ -8,7 +8,7 @@ from django.utils import timezone
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
-from sentry.search.events.constants import SEMVER_ALIAS
+from sentry.search.events.constants import SEMVER_ALIAS, SEMVER_EMPTY_RELEASE
 from sentry.search.events.fields import Function, FunctionArg, InvalidSearchQuery, with_default
 from sentry.search.events.filter import get_filter, parse_semver_search
 from sentry.testutils.cases import TestCase
@@ -1459,6 +1459,9 @@ class ParseSemverSearchTest(TestCase):
             expected_releases,
         ]
 
+    def test_empty(self):
+        self.run_test(">", "1.2.3", "IN", [SEMVER_EMPTY_RELEASE])
+
     def test(self):
         release = self.create_release(version="test@1.2.3")
         release_2 = self.create_release(version="test@1.2.4")
@@ -1531,7 +1534,7 @@ class ParseSemverSearchTest(TestCase):
         self.run_test(">", "1.2", "IN", [release_3.version, release_4.version, release_5.version])
         self.run_test(">", "1.2.3", "IN", [release_4.version, release_5.version])
         self.run_test(">", "1.2.3.4", "IN", [release_5.version])
-        self.run_test(">", "2", "IN", [])
+        self.run_test(">", "2", "IN", [SEMVER_EMPTY_RELEASE])
 
     def test_wildcard(self):
         release_1 = self.create_release(version="test@1.0.0.0")
