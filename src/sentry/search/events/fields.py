@@ -1949,7 +1949,11 @@ class QueryFieldAliases(QueryBase):
         }
 
     def is_field_alias(self, alias: str) -> bool:
-        return alias in self.field_alias_converter or alias in FIELD_ALIASES
+        return (
+            alias in self.field_alias_converter
+            # TODO: Delete this check once all existing field aliases have been migratied
+            or alias in FIELD_ALIASES
+        )
 
     def resolve_field_aliases(self, alias: str) -> SelectType:
         converter = self.field_alias_converter.get(alias)
