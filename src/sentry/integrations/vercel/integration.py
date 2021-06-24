@@ -143,18 +143,17 @@ class VercelIntegration(IntegrationInstallation):
             return user["username"]
 
     def _get_vercel_projects(self):
-        """If the API returns a 403, just silently replace the slug."""
+        """If the API returns a 403, just silently return an empty list."""
+        client = self.get_client()
         try:
+            projects = client.get_projects()
             slug = self.get_slug()
         except ApiError:
-            slug = ""
+            return []
 
-        base_url = "https://vercel.com/%s" % slug
-
-        client = self.get_client()
         return [
-            {"value": p["id"], "label": p["name"], "url": "{}/{}".format(base_url, p["name"])}
-            for p in client.get_projects()
+            {"value": p["id"], "label": p["name"], "url": f"https://vercel.com/{slug}/{p['name']}"}
+            for p in projects
         ]
 
     def _get_sentry_projects(self):
