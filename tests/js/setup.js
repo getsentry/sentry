@@ -59,7 +59,6 @@ ConfigStore.loadInitialData({
  */
 jest.mock('lodash/debounce', () => jest.fn(fn => fn));
 jest.mock('app/utils/recreateRoute');
-jest.mock('app/translations');
 jest.mock('app/api');
 jest.mock('app/utils/domId');
 jest.mock('app/utils/withOrganization');
@@ -218,3 +217,11 @@ window.TestStubs = {
   AllAuthenticators: () => Object.values(fixtures.Authenticators()).map(x => x()),
   ...fixtures,
 };
+
+// We now need to re-define `window.location`, otherwise we can't spyOn certain methods
+// as `window.location` is read-only
+Object.defineProperty(window, 'location', {
+  value: {...window.location, assign: jest.fn(), reload: jest.fn()},
+  configurable: true,
+  writable: true,
+});

@@ -2,7 +2,7 @@ import re
 from collections import defaultdict, namedtuple
 from copy import deepcopy
 from datetime import datetime
-from typing import List, Union
+from typing import List, Mapping, Union
 
 import sentry_sdk
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
@@ -19,6 +19,7 @@ from sentry.models.transaction_threshold import TRANSACTION_METRICS
 from sentry.search.events.base import QueryBase
 from sentry.search.events.constants import (
     ALIAS_PATTERN,
+    ARRAY_FIELDS,
     DEFAULT_PROJECT_THRESHOLD,
     DEFAULT_PROJECT_THRESHOLD_METRIC,
     ERROR_UNHANDLED_ALIAS,
@@ -271,6 +272,29 @@ def team_key_transaction_expression(organization_id, team_ids, project_ids):
     ]
 
 
+def normalize_count_if_value(args: Mapping[str, str]) -> Union[float, str]:
+    """Ensures that the type of the third parameter is compatible with the first
+    and cast the value if needed
+    eg. duration = numeric_value, and not duration = string_value
+    """
+    column = args["column"]
+    condition = args["condition"]
+    value = args["value"]
+    if column == "transaction.duration" or is_measurement(column) or is_span_op_breakdown(column):
+        try:
+            value = float(value.strip("'"))
+        except Exception:
+            raise InvalidSearchQuery(f"{value} is not a valid value to compare with {column}")
+
+    # TODO: not supporting field aliases or arrays yet
+    elif column in FIELD_ALIASES or column in ARRAY_FIELDS:
+        raise InvalidSearchQuery(f"{column} is not supported by count_if")
+    # At this point only string or tag columns are left
+    elif condition not in ["equals", "notEquals"]:
+        raise InvalidSearchQuery(f"{condition} is not compatible with {column}")
+    return value
+
+
 # When updating this list, also check if the following need to be updated:
 # - convert_search_filter_to_snuba_query (otherwise aliased field will be treated as tag)
 # - static/app/utils/discover/fields.tsx FIELDS (for discover column list and search box autocomplete)
@@ -433,16 +457,6 @@ def resolve_field_list(
         if "project.id" not in fields:
             fields.append("project.id")
 
-    for field in fields[:]:
-        if isinstance(field, str) and field in {
-            "apdex()",
-            "count_miserable(user)",
-            "user_misery()",
-        }:
-            if PROJECT_THRESHOLD_CONFIG_ALIAS not in fields:
-                fields.append(PROJECT_THRESHOLD_CONFIG_ALIAS)
-                break
-
     for field in fields:
         if isinstance(field, str) and field.strip() == "":
             continue
@@ -472,6 +486,26 @@ def resolve_field_list(
 
                         if function.details.instance.redundant_grouping:
                             aggregate_fields[format_column_as_key(function.aggregate[1])].add(field)
+
+    check_aggregations = (
+        snuba_filter.having and len(aggregations) > 0 and snuba_filter.condition_aggregates
+    )
+    snuba_filter_condition_aggregates = (
+        set(snuba_filter.condition_aggregates) if check_aggregations else set()
+    )
+    for field in set(fields[:]).union(snuba_filter_condition_aggregates):
+        if isinstance(field, str) and field in {
+            "apdex()",
+            "count_miserable(user)",
+            "user_misery()",
+        }:
+            if PROJECT_THRESHOLD_CONFIG_ALIAS not in fields:
+                fields.append(PROJECT_THRESHOLD_CONFIG_ALIAS)
+                function = resolve_field(
+                    PROJECT_THRESHOLD_CONFIG_ALIAS, snuba_filter.params, functions_acl
+                )
+                columns.append(function.column)
+                break
 
     rollup = snuba_filter.rollup
     if not rollup and auto_fields:
@@ -764,7 +798,7 @@ def get_function_alias(field):
 
 
 def get_function_alias_with_columns(function_name, columns):
-    columns = re.sub(r"[^\w]", "_", "_".join(columns))
+    columns = re.sub(r"[^\w]", "_", "_".join(str(col) for col in columns))
     return f"{function_name}_{columns}".rstrip("_")
 
 
@@ -951,11 +985,13 @@ class Column(FunctionArg):
     def __init__(self, name, allowed_columns=None):
         super().__init__(name)
         # make sure to map the allowed columns to their snuba names
-        self.allowed_columns = [SEARCH_MAP.get(col) for col in allowed_columns]
+        self.allowed_columns = (
+            {SEARCH_MAP.get(col) for col in allowed_columns} if allowed_columns else set()
+        )
 
     def normalize(self, value, params):
         snuba_column = SEARCH_MAP.get(value)
-        if self.allowed_columns is not None:
+        if len(self.allowed_columns) > 0:
             if value in self.allowed_columns or snuba_column in self.allowed_columns:
                 return snuba_column
             else:
@@ -966,9 +1002,6 @@ class Column(FunctionArg):
 
 
 class ColumnNoLookup(Column):
-    def __init__(self, name, allowed_columns=None):
-        super().__init__(name, allowed_columns=allowed_columns)
-
     def normalize(self, value, params):
         super().normalize(value, params)
         return value
@@ -1652,6 +1685,20 @@ FUNCTIONS = {
             redundant_grouping=True,
         ),
         Function(
+            "cov",
+            required_args=[NumericColumnNoLookup("column1"), NumericColumnNoLookup("column2")],
+            aggregate=["covarSamp", [ArgValue("column1"), ArgValue("column2")], None],
+            default_result_type="number",
+            redundant_grouping=True,
+        ),
+        Function(
+            "corr",
+            required_args=[NumericColumnNoLookup("column1"), NumericColumnNoLookup("column2")],
+            aggregate=["corr", [ArgValue("column1"), ArgValue("column2")], None],
+            default_result_type="number",
+            redundant_grouping=True,
+        ),
+        Function(
             "sum",
             required_args=[NumericColumnNoLookup("column")],
             aggregate=["sum", ArgValue("column"), None],
@@ -1803,13 +1850,20 @@ FUNCTIONS = {
             ],
             default_result_type="number",
         ),
-        # Currently only used by trace meta so we can count event types which is why this only accepts strings
+        # The calculated arg will cast the string value according to the value in the column
         Function(
             "count_if",
             required_args=[
-                ColumnNoLookup("column", allowed_columns=["event.type", "http.status_code"]),
+                # This is a FunctionArg cause the column can be a tag as well
+                FunctionArg("column"),
                 ConditionArg("condition"),
                 StringArg("value"),
+            ],
+            calculated_args=[
+                {
+                    "name": "typed_value",
+                    "fn": normalize_count_if_value,
+                }
             ],
             aggregate=[
                 "countIf",
@@ -1818,7 +1872,7 @@ FUNCTIONS = {
                         ArgValue("condition"),
                         [
                             ArgValue("column"),
-                            ArgValue("value"),
+                            ArgValue("typed_value"),
                         ],
                     ]
                 ],

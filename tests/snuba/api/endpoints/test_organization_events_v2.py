@@ -2499,6 +2499,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 "avg(transaction.duration)",
                 "stddev(transaction.duration)",
                 "var(transaction.duration)",
+                "cov(transaction.duration, transaction.duration)",
+                "corr(transaction.duration, transaction.duration)",
                 "sum(transaction.duration)",
             ],
             "query": "event.type:transaction",
@@ -2515,6 +2517,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["avg_transaction_duration"] == 5000
         assert data[0]["stddev_transaction_duration"] == 0.0
         assert data[0]["var_transaction_duration"] == 0.0
+        assert data[0]["cov_transaction_duration_transaction_duration"] == 0.0
+        assert data[0]["corr_transaction_duration_transaction_duration"] == 0.0
         assert data[0]["sum_transaction_duration"] == 10000
 
     def test_null_user_misery_returns_zero(self):
@@ -2658,6 +2662,8 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                 "sum(transaction.duration)",
                 "stddev(transaction.duration)",
                 "var(transaction.duration)",
+                "cov(transaction.duration, transaction.duration)",
+                "corr(transaction.duration, transaction.duration)",
             ],
             "query": " ".join(
                 [
@@ -2668,6 +2674,9 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
                     "sum(transaction.duration):>1000",
                     "stddev(transaction.duration):>=0.0",
                     "var(transaction.duration):>=0.0",
+                    "cov(transaction.duration, transaction.duration):>=0.0",
+                    # correlation is nan because variance is 0
+                    # "corr(transaction.duration, transaction.duration):>=0.0",
                 ]
             ),
         }
@@ -2678,9 +2687,11 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         assert data[0]["min_transaction_duration"] == 5000
         assert data[0]["max_transaction_duration"] == 5000
         assert data[0]["avg_transaction_duration"] == 5000
+        assert data[0]["sum_transaction_duration"] == 10000
         assert data[0]["stddev_transaction_duration"] == 0.0
         assert data[0]["var_transaction_duration"] == 0.0
-        assert data[0]["sum_transaction_duration"] == 10000
+        assert data[0]["cov_transaction_duration_transaction_duration"] == 0.0
+        assert data[0]["corr_transaction_duration_transaction_duration"] == 0.0
 
         query = {
             "field": ["event.type", "apdex(400)"],
@@ -4123,3 +4134,66 @@ class OrganizationEventsV2EndpointTest(APITestCase, SnubaTestCase):
         )
 
         assert response.status_code == 400
+
+    def test_count_if(self):
+        for i in range(5):
+            data = load_data(
+                "transaction",
+                timestamp=before_now(minutes=(1 + i)),
+                start_timestamp=before_now(minutes=(1 + i), milliseconds=100 if i < 3 else 200),
+            )
+            data["tags"] = {"sub_customer.is-Enterprise-42": "yes" if i == 0 else "no"}
+            self.store_event(data, project_id=self.project.id)
+
+        query = {
+            "field": [
+                "count_if(transaction.duration, less, 150)",
+                "count_if(transaction.duration, greater, 150)",
+                "count_if(sub_customer.is-Enterprise-42, equals, yes)",
+                "count_if(sub_customer.is-Enterprise-42, notEquals, yes)",
+            ],
+            "project": [self.project.id],
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200
+        assert len(response.data["data"]) == 1
+
+        assert response.data["data"][0]["count_if_transaction_duration_less_150"] == 3
+        assert response.data["data"][0]["count_if_transaction_duration_greater_150"] == 2
+
+        assert response.data["data"][0]["count_if_sub_customer_is_Enterprise_42_equals_yes"] == 1
+        assert response.data["data"][0]["count_if_sub_customer_is_Enterprise_42_notEquals_yes"] == 4
+
+    def test_count_if_filter(self):
+        for i in range(5):
+            data = load_data(
+                "transaction",
+                timestamp=before_now(minutes=(1 + i)),
+                start_timestamp=before_now(minutes=(1 + i), milliseconds=100 if i < 3 else 200),
+            )
+            data["tags"] = {"sub_customer.is-Enterprise-42": "yes" if i == 0 else "no"}
+            self.store_event(data, project_id=self.project.id)
+
+        query = {
+            "field": [
+                "count_if(transaction.duration, less, 150)",
+            ],
+            "query": "count_if(transaction.duration, less, 150):>2",
+            "project": [self.project.id],
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200
+        assert len(response.data["data"]) == 1
+
+        assert response.data["data"][0]["count_if_transaction_duration_less_150"] == 3
+
+        query = {
+            "field": [
+                "count_if(transaction.duration, less, 150)",
+            ],
+            "query": "count_if(transaction.duration, less, 150):<2",
+            "project": [self.project.id],
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200
+        assert len(response.data["data"]) == 0

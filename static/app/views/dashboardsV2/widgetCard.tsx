@@ -152,15 +152,8 @@ class WidgetCard extends React.Component<Props> {
   }
 
   render() {
-    const {
-      widget,
-      api,
-      organization,
-      selection,
-      renderErrorMessage,
-      location,
-      router,
-    } = this.props;
+    const {widget, api, organization, selection, renderErrorMessage, location, router} =
+      this.props;
     return (
       <ErrorBoundary
         customComponent={<ErrorCard>{t('Error loading widget data')}</ErrorCard>}

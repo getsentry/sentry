@@ -21,7 +21,7 @@ type Props = {
   project: Project;
   group: Group;
   event: Event;
-  committers: Array<Committer>;
+  committers?: Committer[];
 };
 
 type State = {
@@ -101,7 +101,8 @@ class SuggestedOwners extends React.Component<Props, State> {
    * }
    */
   getOwnerList() {
-    const owners = this.props.committers.map(commiter => ({
+    const committers = this.props.committers ?? [];
+    const owners = committers.map(commiter => ({
       actor: {...commiter.author, type: 'user' as Actor['type']},
       commits: commiter.commits,
     })) as OwnerList;
@@ -113,9 +114,7 @@ class SuggestedOwners extends React.Component<Props, State> {
       };
 
       const existingIdx = owners.findIndex(o =>
-        this.props.committers.length === 0
-          ? o.actor === owner
-          : o.actor.email === owner.email
+        committers.length === 0 ? o.actor === owner : o.actor.email === owner.email
       );
       if (existingIdx > -1) {
         owners[existingIdx] = {...normalizedOwner, ...owners[existingIdx]};

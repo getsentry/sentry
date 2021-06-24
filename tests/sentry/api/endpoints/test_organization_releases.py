@@ -27,6 +27,7 @@ from sentry.models import (
     Repository,
 )
 from sentry.plugins.providers.dummy.repository import DummyRepositoryProvider
+from sentry.search.events.constants import SEMVER_ALIAS
 from sentry.testutils import APITestCase, ReleaseCommitPatchTest, SetRefsTestCase, TestCase
 from sentry.utils.compat.mock import patch
 
@@ -246,6 +247,27 @@ class OrganizationReleaseListTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]["version"] == release.version
+
+    def test_semver_filter(self):
+        self.login_as(user=self.user)
+
+        release_1 = self.create_release(version="test@1.2.4")
+        release_2 = self.create_release(version="test@1.2.3")
+        self.create_release(version="some.release")
+
+        response = self.get_valid_response(self.organization.slug, query=f"{SEMVER_ALIAS}:>1.2.3")
+        assert [r["version"] for r in response.data] == [release_1.version]
+
+        response = self.get_valid_response(self.organization.slug, query=f"{SEMVER_ALIAS}:>=1.2.3")
+        assert [r["version"] for r in response.data] == [release_2.version, release_1.version]
+
+        response = self.get_valid_response(self.organization.slug, query=f"{SEMVER_ALIAS}:1.2.*")
+        assert [r["version"] for r in response.data] == [release_2.version, release_1.version]
+
+        response = self.get_valid_response(
+            self.organization.slug, query=f"{SEMVER_ALIAS}:>=1.2.3", sort="semver"
+        )
+        assert [r["version"] for r in response.data] == [release_1.version, release_2.version]
 
     def test_project_permissions(self):
         user = self.create_user(is_staff=False, is_superuser=False)

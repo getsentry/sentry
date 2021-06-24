@@ -6,7 +6,7 @@ from contextlib import contextmanager
 from hashlib import sha1
 from io import BytesIO
 from tempfile import TemporaryDirectory
-from typing import IO, ContextManager, Optional, Tuple
+from typing import IO, Optional, Tuple
 from urllib.parse import urlsplit, urlunsplit
 
 from django.core.files.base import File as FileObj
@@ -62,6 +62,12 @@ class ReleaseFile(Model):
     ident = models.CharField(max_length=40)
     name = models.TextField()
     dist = FlexibleForeignKey("sentry.Distribution", null=True)
+
+    #: For classic file uploads, this field is 1.
+    #: For release archives, this field is 0.
+    #: For artifact indexes, this field is the number of artifacts contained
+    #: in the index.
+    artifact_count = BoundedPositiveIntegerField(null=True, default=1)
 
     __repr__ = sane_repr("release", "ident")
 
@@ -217,6 +223,10 @@ class _ArtifactIndexData:
         """Meant to be read-only"""
         return self._data
 
+    @property
+    def num_files(self):
+        return len(self._data.get("files", {}))
+
     def get(self, filename: str):
         return self._data.get("files", {}).get(filename, None)
 
@@ -225,18 +235,23 @@ class _ArtifactIndexData:
             self._data.setdefault("files", {}).update(files)
             self.changed = True
 
-    def delete(self, filename: str):
-        self._data.get("files", {}).pop(filename, None)
-        self.changed = True
+    def delete(self, filename: str) -> bool:
+        result = self._data.get("files", {}).pop(filename, None)
+        deleted = result is not None
+        if deleted:
+            self.changed = True
+
+        return deleted
 
 
 class _ArtifactIndexGuard:
     """Ensures atomic write operations to the artifact index"""
 
-    def __init__(self, release: Release, dist: Optional[Distribution]):
+    def __init__(self, release: Release, dist: Optional[Distribution], **filter_args):
         self._release = release
         self._dist = dist
         self._ident = ReleaseFile.get_ident(ARTIFACT_INDEX_FILENAME, dist and dist.name)
+        self._filter_args = filter_args  # Extra constraints on artifact index release file
 
     def readable_data(self) -> Optional[dict]:
         """Simple read, no synchronization necessary"""
@@ -249,12 +264,12 @@ class _ArtifactIndexGuard:
                 return json.load(fp)
 
     @contextmanager
-    def writable_data(self, create: bool) -> ContextManager[_ArtifactIndexData]:
+    def writable_data(self, create: bool, initial_artifact_count=None):
         """Context manager for editable artifact index"""
         with transaction.atomic():
             created = False
             if create:
-                releasefile, created = self._get_or_create_releasefile()
+                releasefile, created = self._get_or_create_releasefile(initial_artifact_count)
             else:
                 # Lock the row for editing:
                 # NOTE: Do not select_related('file') here, because we do not
@@ -289,28 +304,29 @@ class _ArtifactIndexGuard:
 
                 target_file.putfile(BytesIO(json.dumps(index_data.data).encode()))
 
+                artifact_count = index_data.num_files
                 if not created:
                     # Update and clean existing
                     old_file = releasefile.file
-                    releasefile.update(file=target_file)
+                    releasefile.update(file=target_file, artifact_count=artifact_count)
                     old_file.delete()
 
-    def _get_or_create_releasefile(self):
+    def _get_or_create_releasefile(self, initial_artifact_count):
         """Make sure that the release file exists"""
-
         return ReleaseFile.objects.select_for_update().get_or_create(
             **self._key_fields(),
             defaults={
+                "artifact_count": initial_artifact_count,
                 "file": lambda: File.objects.create(
                     name=ARTIFACT_INDEX_FILENAME,
                     type=ARTIFACT_INDEX_TYPE,
-                )
+                ),
             },
         )
 
     def _releasefile_qs(self):
         """QuerySet for selecting artifact index"""
-        return ReleaseFile.objects.filter(**self._key_fields())
+        return ReleaseFile.objects.filter(**self._key_fields(), **self._filter_args)
 
     def _key_fields(self):
         """Columns needed to identify the artifact index in the db"""
@@ -323,9 +339,11 @@ class _ArtifactIndexGuard:
         )
 
 
-def read_artifact_index(release: Release, dist: Optional[Distribution]) -> Optional[dict]:
+def read_artifact_index(
+    release: Release, dist: Optional[Distribution], **filter_args
+) -> Optional[dict]:
     """Get index data"""
-    guard = _ArtifactIndexGuard(release, dist)
+    guard = _ArtifactIndexGuard(release, dist, **filter_args)
     return guard.readable_data()
 
 
@@ -345,6 +363,7 @@ def update_artifact_index(release: Release, dist: Optional[Distribution], archiv
         organization_id=release.organization_id,
         dist=dist,
         file=archive_file,
+        artifact_count=0,  # Artifacts will be counted with artifact index
     )
 
     files_out = {}
@@ -366,18 +385,22 @@ def update_artifact_index(release: Release, dist: Optional[Distribution], archiv
             files_out[url] = info
 
     guard = _ArtifactIndexGuard(release, dist)
-    with guard.writable_data(create=True) as index_data:
+    with guard.writable_data(create=True, initial_artifact_count=len(files_out)) as index_data:
         index_data.update_files(files_out)
 
     return releasefile
 
 
-def delete_from_artifact_index(release: Release, dist: Optional[Distribution], url: str):
+def delete_from_artifact_index(release: Release, dist: Optional[Distribution], url: str) -> bool:
     """Delete the file with the given url from the manifest.
 
     Does *not* delete the file from the zip archive.
+
+    :returns: True if deleted
     """
     guard = _ArtifactIndexGuard(release, dist)
     with guard.writable_data(create=False) as index_data:
         if index_data is not None:
-            index_data.delete(url)
+            return index_data.delete(url)
+
+    return False
