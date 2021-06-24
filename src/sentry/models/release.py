@@ -147,22 +147,20 @@ class ReleaseQuerySet(models.QuerySet):
         if semver_filter.package:
             release_filter &= Q(package=semver_filter.package)
 
-        filter_func = Func(
-            *[
-                Value(part) if isinstance(part, str) else part
-                for part in semver_filter.version_parts
-            ],
-            function="ROW",
-        )
-        cols = self.model.SEMVER_COLS[: len(semver_filter.version_parts)]
-        return (
-            self.filter(release_filter)
-            .annotate_prerelease_column()
-            .annotate(
-                semver=Func(*[F(col) for col in cols], function="ROW", output_field=ArrayField())
+        qs = self.filter(release_filter).annotate_prerelease_column()
+        if semver_filter.version_parts:
+            filter_func = Func(
+                *[
+                    Value(part) if isinstance(part, str) else part
+                    for part in semver_filter.version_parts
+                ],
+                function="ROW",
             )
-            .filter(**{f"semver__{semver_filter.operator}": filter_func})
-        )
+            cols = self.model.SEMVER_COLS[: len(semver_filter.version_parts)]
+            qs = qs.annotate(
+                semver=Func(*[F(col) for col in cols], function="ROW", output_field=ArrayField())
+            ).filter(**{f"semver__{semver_filter.operator}": filter_func})
+        return qs
 
 
 class ReleaseModelManager(models.Manager):
