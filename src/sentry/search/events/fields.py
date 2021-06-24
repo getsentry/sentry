@@ -144,7 +144,7 @@ def project_threshold_config_expression(organization_id, project_ids):
     if organization_id is None or project_ids is None:
         raise InvalidSearchQuery("Missing necessary data for project threshold config")
 
-    threshold_configs = (
+    project_threshold_configs = (
         ProjectTransactionThreshold.objects.filter(
             organization_id=organization_id,
             project_id__in=project_ids,
@@ -162,26 +162,23 @@ def project_threshold_config_expression(organization_id, project_ids):
         .values("transaction", "project_id", "threshold", "metric")
     )
 
-    project_thresholds_configured = threshold_configs.count()
-    sentry_sdk.set_tag("project_threshold.count", project_thresholds_configured)
+    num_project_thresholds = project_threshold_configs.count()
+    sentry_sdk.set_tag("project_threshold.count", num_project_thresholds)
     sentry_sdk.set_tag(
         "project_threshold.count.grouped",
-        format_grouped_length(project_thresholds_configured, [10, 100, 250, 500]),
+        format_grouped_length(num_project_thresholds, [10, 100, 250, 500]),
     )
 
-    transaction_thresholds_configured = transaction_threshold_configs.count()
-    sentry_sdk.set_tag("txn_threshold.count", transaction_thresholds_configured)
+    num_transaction_thresholds = transaction_threshold_configs.count()
+    sentry_sdk.set_tag("txn_threshold.count", num_transaction_thresholds)
     sentry_sdk.set_tag(
         "txn_threshold.count.grouped",
-        format_grouped_length(transaction_thresholds_configured, [10, 100, 250, 500]),
+        format_grouped_length(num_transaction_thresholds, [10, 100, 250, 500]),
     )
 
-    if project_thresholds_configured + transaction_thresholds_configured == 0:
+    if num_project_thresholds + num_transaction_thresholds == 0:
         return ["tuple", [f"'{DEFAULT_PROJECT_THRESHOLD_METRIC}'", DEFAULT_PROJECT_THRESHOLD]]
-    elif (
-        project_thresholds_configured + transaction_thresholds_configured
-        > MAX_QUERYABLE_TRANSACTION_THRESHOLDS
-    ):
+    elif num_project_thresholds + num_transaction_thresholds > MAX_QUERYABLE_TRANSACTION_THRESHOLDS:
         raise InvalidSearchQuery(
             f"Exceeded {MAX_QUERYABLE_TRANSACTION_THRESHOLDS} configured transaction thresholds limit, try with fewer Projects."
         )
@@ -200,7 +197,7 @@ def project_threshold_config_expression(organization_id, project_ids):
                                     "array",
                                     [
                                         ["toUInt64", [config["project_id"]]]
-                                        for config in threshold_configs
+                                        for config in project_threshold_configs
                                     ],
                                 ],
                                 "project_id",
@@ -223,7 +220,7 @@ def project_threshold_config_expression(organization_id, project_ids):
                                         config["threshold"],
                                     ],
                                 ]
-                                for config in threshold_configs
+                                for config in project_threshold_configs
                             ],
                         ],
                         [
@@ -233,7 +230,7 @@ def project_threshold_config_expression(organization_id, project_ids):
                                     "array",
                                     [
                                         ["toUInt64", [config["project_id"]]]
-                                        for config in threshold_configs
+                                        for config in project_threshold_configs
                                     ],
                                 ],
                                 "project_id",
@@ -243,7 +240,7 @@ def project_threshold_config_expression(organization_id, project_ids):
                 ],
             ],
         ]
-        if threshold_configs
+        if project_threshold_configs
         else ["tuple", [f"'{DEFAULT_PROJECT_THRESHOLD_METRIC}'", DEFAULT_PROJECT_THRESHOLD]]
     )
 
