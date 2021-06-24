@@ -66,7 +66,7 @@ commit_message_base_messages = [
 
 base_paths_by_file_type = {"js": ["components/", "views/"], "py": ["flask/", "routes/"]}
 
-crash_free_rate_by_release = [0.999, 0.99, 0.92]
+crash_free_rate_by_release = [1, 0.99, 0.92]
 
 
 org_users = [
@@ -89,62 +89,32 @@ def get_event_from_file(file_name):
         return clean_event(json.load(f))
 
 
-def distribution_v1(hour: int) -> int:
-    if hour > 2 and hour < 5:
-        return 3
-    if hour > 8 and hour < 11:
-        return 4
-    if hour > 20:
-        return 18
-    return 2
+def distribution_v1() -> list:
+    return [2, 7, 2, 5, 2, 3, 2, 4, 8, 3, 5, 7, 8, 11, 8, 6, 9, 15, 2, 4, 5, 4, 3, 7]
 
 
-def distribution_v2(hour: int) -> int:
-    if hour == 18:
-        return 14
-    if hour > 9 and hour < 14:
-        return 8
-    if hour > 3 and hour < 22:
-        return 5
-    return 1
+def distribution_v2() -> list:
+    return [8, 3, 6, 8, 15, 17, 16, 18, 14, 13, 8, 7, 6, 7, 5, 3, 6, 3, 3, 9, 3, 2, 7, 4]
 
 
-def distribution_v3(hour: int) -> int:
-    if hour > 21:
-        return 13
-    if hour > 6 and hour < 15:
-        return 8
-    return 3
+def distribution_v3() -> list:
+    return [4, 5, 4, 6, 9, 11, 8, 7, 9, 8, 8, 7, 9, 10, 13, 16, 17, 21, 27, 19, 15, 9, 7, 12]
 
 
-def distribution_v4(hour: int) -> int:
-    if hour > 13 and hour < 20:
-        return 14
-    if hour > 5 and hour < 12:
-        return 7
-    if hour > 3 and hour < 22:
-        return 4
-    return 2
+def distribution_v4() -> list:
+    return [5, 5, 3, 6, 7, 9, 15, 17, 19, 18, 13, 7, 9, 10, 8, 7, 5, 7, 6, 15, 18, 21, 20, 17]
 
 
-def distribution_v5(hour: int) -> int:
-    if hour == 3:
-        return 16
-    if hour < 5:
-        return 9
-    if hour < 15:
-        return 5
-    if hour == 20:
-        return 7
-    return 3
+def distribution_v5() -> list:
+    return [15, 16, 14, 14, 13, 9, 8, 7, 6, 4, 5, 8, 11, 13, 9, 8, 8, 7, 9, 10, 11, 12, 11, 13]
 
 
 distribution_fns = [
-    distribution_v1,
-    distribution_v2,
-    distribution_v3,
-    distribution_v4,
-    distribution_v5,
+    distribution_v1(),
+    distribution_v2(),
+    distribution_v3(),
+    distribution_v4(),
+    distribution_v5(),
 ]
 
 
@@ -728,7 +698,7 @@ class DataPopulation:
                 if end_time > timezone.now():
                     return
 
-                base = distribution_fn(hour)
+                base = distribution_fn[hour] / 2
                 # determine the number of events we want in this hour
                 num_events = int((BASE_OFFSET + SCALE_FACTOR * base) * random.uniform(0.6, 1.0))
                 timestamps = []
@@ -1058,30 +1028,28 @@ class DataPopulation:
 
         dsn = ProjectKey.objects.get(project=project)
 
-        num = 500
-
         for (timestamp, day) in self.iter_timestamps(distribution_fn_num):
             # transaction_user = self.generate_user()
-            # sid = uuid4().hex
             release = get_release_from_time(project.organization_id, timestamp)
             version = release.version
 
             # get the release num from the last part of the version
             release_num = int(version.split(".")[-1])
+
+            num = 5000
+
             crash_rates = random.choices(crash_free_rate_by_release, weights=[7, 1, 2], k=3)
             threshold = crash_rates[release_num]
 
             formatted_time = timestamp.isoformat()
             envelope_headers = "{}"
             item_headers = json.dumps({"type": "sessions"})
-
-            exited = round(num * threshold * random.uniform(0.98, 1.02))
-            crashed = round(num * (1 - threshold))
-
-            agg = {"started": formatted_time, "exited": exited, "crashed": crashed}
+            scale = random.uniform(0.9, 1.1)
+            exited = round(num * threshold * scale)
+            crashed = abs(num - exited)
 
             data = {
-                "aggregates": [agg],
+                "aggregates": [{"started": formatted_time, "exited": exited, "crashed": crashed}],
                 "attrs": {"release": version, "environment": "prod"},
             }
 
@@ -1116,11 +1084,9 @@ class DataPopulation:
             op="handle_react_python_scenario", description="populate_errors"
         ):
             self.populate_generic_error(
-                react_project, "errors/react/get_card_info.json", 2, starting_release=1
+                react_project, "errors/react/get_card_info.json", 2, starting_release=2
             )
-            self.populate_generic_error(
-                react_project, "errors/react/func_undefined.json", 3, starting_release=2
-            )
+            self.populate_generic_error(react_project, "errors/react/func_undefined.json", 3)
             self.populate_generic_error(python_project, "errors/python/cert_error.json", 5)
             self.populate_generic_error(
                 python_project, "errors/python/concat_str_none.json", 4, starting_release=2
@@ -1146,16 +1112,13 @@ class DataPopulation:
                 ios_project, "transactions/ios/ios_transaction.json", 4
             )
             self.populate_generic_error(
-                android_project, "errors/android/out_of_bounds.json", 4, starting_release=1
+                android_project, "errors/android/out_of_bounds.json", 2, starting_release=1
             )
             self.populate_generic_error(
                 android_project, "errors/android/app_not_responding.json", 3
             )
             self.populate_generic_error(
-                react_native_project,
-                "errors/react_native/out_of_memory.json",
-                4,
-                starting_release=0,
+                react_native_project, "errors/react_native/out_of_memory.json", 5
             )
             self.populate_generic_error(
                 react_native_project,
