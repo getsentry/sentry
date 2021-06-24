@@ -3,6 +3,7 @@ import logging
 from django.conf import settings
 from django.db import models
 from django.db.models import Q
+from django.db.models.signals import pre_save
 from django.utils import timezone
 
 from sentry.db.models import (
@@ -51,6 +52,19 @@ class IdentityProvider(Model):
         from sentry.identity import get
 
         return get(self.type)
+
+
+def handle_identity_provider_pre_save(instance, **kwargs):
+    instance.provider = instance.type
+    instance.provider_id = instance.external_id
+
+
+pre_save.connect(
+    handle_identity_provider_pre_save,
+    sender="sentry.IdentityProvider",
+    dispatch_uid="handle_identity_provider_pre_save",
+    weak=False,
+)
 
 
 class Identity(Model):
