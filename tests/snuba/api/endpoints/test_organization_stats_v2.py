@@ -42,11 +42,6 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
             teams=[self.create_team(organization=self.org, members=[self.user2])],
         )
 
-        self.project5 = self.create_project(
-            name="usadsadasdasders2sproj",
-            teams=[self.create_team(organization=self.org3, members=[self.user3])],
-        )
-
         self.store_outcomes(
             {
                 "org_id": self.org.id,
@@ -118,7 +113,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
     def test_no_projects_available(self):
         response = self.do_request(
             {
-                "project": [self.project.id],
+                "groupBy": ["project"],
                 "statsPeriod": "1d",
                 "interval": "1d",
                 "field": ["sum(quantity)"],
@@ -128,7 +123,7 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
             org=self.org3,
         )
 
-        # assert response.status_code == 400, response.content
+        assert response.status_code == 400, response.content
         assert result_sorted(response.data) == {
             "detail": "No projects available",
         }

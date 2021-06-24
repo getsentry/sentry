@@ -41,12 +41,9 @@ class OrganizationStatsEndpointV2(OrganizationEventsEndpointBase):
         # org wide query and don't pass project_id in to QueryDefinition
         req_proj_ids = self.get_requested_project_ids(request)
         if self._is_org_total_query(request, req_proj_ids):
-            print("first branch")
             return None
         else:
-            print("second branch")
             projects = self.get_projects(request, organization, project_ids=req_proj_ids)
-            print(projects)
             if not projects:
                 raise NoProjects("No projects available")
             return [p.id for p in projects]
