@@ -243,6 +243,10 @@ class ReleasesList extends AsyncView<Props, State> {
       sort = SortOption.SESSIONS_24_HOURS;
     else if (sort === SortOption.SESSIONS_24_HOURS && display === DisplayOption.USERS)
       sort = SortOption.USERS_24_HOURS;
+    else if (sort === SortOption.CRASH_FREE_USERS && display === DisplayOption.SESSIONS)
+      sort = SortOption.CRASH_FREE_SESSIONS;
+    else if (sort === SortOption.CRASH_FREE_SESSIONS && display === DisplayOption.USERS)
+      sort = SortOption.CRASH_FREE_USERS;
 
     router.push({
       ...location,
