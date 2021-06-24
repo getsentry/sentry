@@ -41,7 +41,7 @@ class FetchUser(AuthView):
                 email = [
                     e["email"]
                     for e in emails
-                    if ((not REQUIRE_VERIFIED_EMAIL) | e["verified"]) and e["primary"]
+                    if ((not REQUIRE_VERIFIED_EMAIL) or e["verified"]) and e["primary"]
                 ]
                 if len(email) == 0:
                     if REQUIRE_VERIFIED_EMAIL:
