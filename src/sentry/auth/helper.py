@@ -22,6 +22,7 @@ from sentry.models import (
     AuditLogEntryEvent,
     AuthIdentity,
     AuthProvider,
+    IdentityProvider,
     Organization,
     OrganizationMember,
     OrganizationMemberTeam,
@@ -789,9 +790,19 @@ class AuthHelper:
         # since only SSO or require 2FA can be enabled
         self.disable_2fa_required()
 
-        self.auth_provider = AuthProvider.objects.create(
-            organization=self.organization, provider=self.provider.key, config=config
-        )
+        with transaction.atomic():
+            self.auth_provider = AuthProvider.objects.create(
+                organization=self.organization, provider=self.provider.key, config=config
+            )
+
+            IdentityProvider.objects.create(
+                organization=self.organization,
+                provider=self.provider.key,
+                config=config,
+                is_sso=True,
+                sso_default_role=50,
+                sso_flags=0,
+            )
 
         handle_attach_identity(
             self.auth_provider, self.request, self.organization, self.provider, identity, om

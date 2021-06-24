@@ -1,6 +1,7 @@
 import logging
 
-from django.db import models
+from django.db import models, transaction
+from django.db.models.signals import post_save
 from django.utils import timezone
 
 from bitfield import BitField
@@ -56,6 +57,14 @@ class AuthProvider(Model):
 
     def __str__(self):
         return self.provider
+
+    @transaction.atomic()
+    def save(self, *args, **kwargs):
+        """
+        For migration to IdentityProvider.
+        Wrap in a transaction so the pre_save will dual-write to IdentityProvider
+        """
+        super().save(*args, **kwargs)
 
     def get_provider(self):
         from sentry.auth import manager
@@ -145,3 +154,30 @@ class AuthProvider(Model):
 
     def get_audit_log_data(self):
         return {"provider": self.provider, "config": self.config}
+
+
+def handle_auth_provider_post_save(instance, **kwargs):
+    from sentry.models import IdentityProvider
+
+    IdentityProvider.objects.create(
+        organization=instance.organization,
+        type=instance.provider,
+        provider=instance.provider,
+        external_id=None,
+        provider_id=None,
+        config=instance.config,
+        is_sso=True,
+        sso_default_team=None,
+        sso_default_role=instance.default_role,
+        sso_default_global_access=instance.default_global_access,
+        sso_flags=instance.flags,
+        authprovider=instance,
+    )
+
+
+post_save.connect(
+    handle_auth_provider_post_save,
+    sender="sentry.AuthProvider",
+    dispatch_uid="handle_auth_provider_pre_save",
+    weak=False,
+)
