@@ -1,11 +1,13 @@
 import itertools
 import logging
 import re
+from dataclasses import dataclass
 from time import time
+from typing import List, Mapping, Optional, Sequence, Union
 
 import sentry_sdk
 from django.db import IntegrityError, models, transaction
-from django.db.models import Case, F, Func, Q, Value, When
+from django.db.models import Case, F, Func, Q, Sum, Value, When
 from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
@@ -102,9 +104,58 @@ class ReleaseStatus:
             raise ValueError(repr(value))
 
 
-class ReleaseQuerySet(models.QuerySet):
-    SEMVER_FAKE_PACKAGE = "__sentry_fake__"
+@dataclass
+class SemverFilter:
+    operator: str
+    version_parts: Sequence[Union[int, str]]
+    package: Optional[str] = None
 
+
+SEMVER_FAKE_PACKAGE = "__sentry_fake__"
+SEMVER_WILDCARDS = frozenset(["X", "*"])
+
+
+def convert_semver_to_filter(version, operator) -> Optional[SemverFilter]:
+    # TODO: This doesn't really belong in this module. Will move this elsewhere when
+    # refactoring `filter_by_semver` to accept a `SemverFilter`
+    version = version if "@" in version else f"{SEMVER_FAKE_PACKAGE}@{version}"
+    parsed = parse_release(version)
+    parsed_version = parsed.get("version_parsed")
+    if parsed_version:
+        # Convert `pre` to always be a string
+        prerelease = parsed_version["pre"] if parsed_version["pre"] else ""
+        semver_filter = SemverFilter(
+            operator,
+            [
+                parsed_version["major"],
+                parsed_version["minor"],
+                parsed_version["patch"],
+                parsed_version["revision"],
+                0 if prerelease else 1,
+                prerelease,
+            ],
+        )
+        if parsed["package"] and parsed["package"] != SEMVER_FAKE_PACKAGE:
+            semver_filter.package = parsed.package
+        return semver_filter
+    else:
+        # Try to parse as a wildcard match
+        package, version = version.split("@", 1)
+        version_parts = []
+        for part in version.split(".", 3):
+            if part in SEMVER_WILDCARDS:
+                break
+            try:
+                # We assume all ints for a wildcard match - not handling prerelease as
+                # part of these
+                version_parts.append(int(part))
+            except ValueError:
+                return
+
+        return SemverFilter("exact", version_parts)
+
+
+class ReleaseQuerySet(models.QuerySet):
     def annotate_prerelease_column(self):
         """
         Adds a `prerelease_case` column to the queryset which is used to properly sort
@@ -135,51 +186,36 @@ class ReleaseQuerySet(models.QuerySet):
          - sentry@1.2.3.4-alpha
          - 1.2.3.4
          - 1.2.3.4-alpha
+         - 1.*
         """
-        # TODO: Probably move the parsing logic into a separate function once we start
-        # to handle wildcards
-        # Our semver parser expects a package at the start of the version, so just add a
-        # dummy one here if not already provided.
-        version = version if "@" in version else f"{self.SEMVER_FAKE_PACKAGE}@{version}"
-        parsed = parse_release(version)
-        parsed_version = parsed.get("version_parsed")
-        if parsed_version:
+        # TODO: Will refactor this further so that we pass a `SemverFilter` instead of
+        # the version string
+        semver_filter = convert_semver_to_filter(version, operator)
+        if semver_filter:
             # The version matches semver format, so we can use it for comparison
             release_filter = Q(organization_id=organization_id)
-            if parsed["package"] and parsed["package"] != self.SEMVER_FAKE_PACKAGE:
-                release_filter &= Q(package=parsed["package"])
-            # Convert `pre` to always be a string
-            prerelease = parsed_version["pre"] if parsed_version["pre"] else ""
+            if semver_filter.package:
+                release_filter &= Q(package=semver_filter.package)
+
             filter_func = Func(
-                parsed_version["major"],
-                parsed_version["minor"],
-                parsed_version["patch"],
-                parsed_version["revision"],
-                0 if prerelease else 1,
-                Value(prerelease),
+                *[
+                    Value(part) if isinstance(part, str) else part
+                    for part in semver_filter.version_parts
+                ],
                 function="ROW",
             )
-
+            cols = self.model.SEMVER_COLS[: len(semver_filter.version_parts)]
             return (
-                Release.objects.filter(release_filter)
+                self.filter(release_filter)
                 .annotate_prerelease_column()
                 .annotate(
                     semver=Func(
-                        F("major"),
-                        F("minor"),
-                        F("patch"),
-                        F("revision"),
-                        F("prerelease_case"),
-                        F("prerelease"),
-                        function="ROW",
-                        output_field=ArrayField(),
-                    ),
+                        *[F(col) for col in cols], function="ROW", output_field=ArrayField()
+                    )
                 )
-                .filter(**{f"semver__{operator}": filter_func})
+                .filter(**{f"semver__{semver_filter.operator}": filter_func})
             )
         else:
-            # TODO: We want to parse partial strings like 1.*, etc. For now, we'll just
-            # handle the basic case and fail otherwise
             raise InvalidSearchQuery(f"Invalid format for semver query {version}")
 
 
@@ -362,7 +398,7 @@ class Release(Model):
 
     __repr__ = sane_repr("organization_id", "version")
 
-    SEMVER_SORT_COLS = ["major", "minor", "patch", "revision", "prerelease_case", "prerelease"]
+    SEMVER_COLS = ["major", "minor", "patch", "revision", "prerelease_case", "prerelease"]
 
     def __eq__(self, other):
         """Make sure that specialized releases are only comparable to the same
@@ -928,3 +964,24 @@ class Release(Model):
             releasefile.file.delete()
             releasefile.delete()
         self.delete()
+
+    def count_artifacts(self):
+        """Sum the artifact_counts of all release files.
+
+        An artifact count of NULL is interpreted as 1.
+        """
+        counts = get_artifact_counts([self.id])
+        return counts.get(self.id, 0)
+
+
+def get_artifact_counts(release_ids: List[int]) -> Mapping[int, int]:
+    """Get artifact count grouped by IDs"""
+    from sentry.models.releasefile import ReleaseFile
+
+    qs = (
+        ReleaseFile.objects.filter(release_id__in=release_ids)
+        .annotate(count=Sum(Func(F("artifact_count"), 1, function="COALESCE")))
+        .values_list("release_id", "count")
+    )
+    qs.query.group_by = ["release_id"]
+    return dict(qs)

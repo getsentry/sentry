@@ -133,15 +133,8 @@ class RuleListRow extends React.Component<Props, State> {
   }
 
   render() {
-    const {
-      rule,
-      projectsLoaded,
-      projects,
-      organization,
-      orgId,
-      onDelete,
-      userTeams,
-    } = this.props;
+    const {rule, projectsLoaded, projects, organization, orgId, onDelete, userTeams} =
+      this.props;
     const slug = rule.projects[0];
     const editLink = `/organizations/${orgId}/alerts/${
       isIssueAlert(rule) ? 'rules' : 'metric-rules'

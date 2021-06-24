@@ -552,6 +552,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.integrations",
     "sentry.tasks.members",
     "sentry.tasks.merge",
+    "sentry.tasks.releasemonitor",
     "sentry.tasks.options",
     "sentry.tasks.ping",
     "sentry.tasks.post_process",
@@ -597,6 +598,10 @@ CELERY_QUEUES = [
     Queue("files.delete", routing_key="files.delete"),
     Queue(
         "group_owners.process_suspect_commits", routing_key="group_owners.process_suspect_commits"
+    ),
+    Queue(
+        "releasemonitor",
+        routing_key="releasemonitor",
     ),
     Queue("incidents", routing_key="incidents"),
     Queue("incident_snapshots", routing_key="incident_snapshots"),
@@ -725,6 +730,11 @@ CELERYBEAT_SCHEDULE = {
         "task": "sentry.incidents.tasks.process_pending_incident_snapshots",
         "schedule": timedelta(hours=1),
         "options": {"expires": 3600, "queue": "incidents"},
+    },
+    "monitor-release-adoption": {
+        "task": "sentry.tasks.monitor_release_adoption",
+        "schedule": crontab(minute=0),
+        "options": {"expires": 3600, "queue": "releasemonitor"},
     },
     "fetch-release-registry-data": {
         "task": "sentry.tasks.release_registry.fetch_release_registry_data",
@@ -1422,9 +1432,8 @@ SENTRY_ROLES = (
         "id": "admin",
         "name": "Admin",
         "desc": "Admin privileges on any teams of which they're a member. They can create new teams and projects, "
-        "as well as remove teams and projects which they already hold membership on (or all teams, "
-        "if open membership is on). Additionally, they can manage memberships of teams that they are members "
-        "of.",
+        "as well as remove teams and projects on which they already hold membership (or all teams, if open membership is enabled). "
+        "Additionally, they can manage memberships of teams that they are members of. They cannot invite members to the organization.",
         "scopes": {
             "event:read",
             "event:write",

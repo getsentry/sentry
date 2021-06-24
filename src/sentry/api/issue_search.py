@@ -1,4 +1,3 @@
-from dataclasses import asdict
 from functools import partial
 from typing import List, Union
 
@@ -27,28 +26,28 @@ for status_key, status_value in STATUS_QUERY_CHOICES.items():
     is_filter_translation[status_key] = ("status", status_value)
 
 
-issue_search_config = SearchConfig(**asdict(default_config))
-issue_search_config.allow_boolean = False
-issue_search_config.is_filter_translation = is_filter_translation
-issue_search_config.numeric_keys |= {"times_seen"}
-issue_search_config.date_keys |= {"active_at", "date"}
-issue_search_config.key_mappings = {
-    "assigned_to": ["assigned"],
-    "bookmarked_by": ["bookmarks"],
-    "subscribed_by": ["subscribed"],
-    "assigned_or_suggested": ["assigned_or_suggested"],
-    "first_release": ["first-release", "firstRelease"],
-    "first_seen": ["age", "firstSeen"],
-    "last_seen": ["lastSeen"],
-    "active_at": ["activeSince"],
-    # TODO: Special case this in the backends, since they currently rely
-    # on date_from and date_to explicitly
-    "date": ["event.timestamp"],
-    "times_seen": ["timesSeen"],
-    "sentry:dist": ["dist"],
-}
-
-
+issue_search_config = SearchConfig.create_from(
+    default_config,
+    allow_boolean=False,
+    is_filter_translation=is_filter_translation,
+    numeric_keys=default_config.numeric_keys | {"times_seen"},
+    date_keys=default_config.date_keys | {"active_at", "date"},
+    key_mappings={
+        "assigned_to": ["assigned"],
+        "bookmarked_by": ["bookmarks"],
+        "subscribed_by": ["subscribed"],
+        "assigned_or_suggested": ["assigned_or_suggested"],
+        "first_release": ["first-release", "firstRelease"],
+        "first_seen": ["age", "firstSeen"],
+        "last_seen": ["lastSeen"],
+        "active_at": ["activeSince"],
+        # TODO: Special case this in the backends, since they currently rely
+        # on date_from and date_to explicitly
+        "date": ["event.timestamp"],
+        "times_seen": ["timesSeen"],
+        "sentry:dist": ["dist"],
+    },
+)
 parse_search_query = partial(base_parse_query, config=issue_search_config)
 
 

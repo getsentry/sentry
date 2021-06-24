@@ -11,6 +11,7 @@ from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ConflictError, InvalidRepository
 from sentry.api.paginator import MergingOffsetPaginator, OffsetPaginator
+from sentry.api.release_search import RELEASE_FREE_TEXT_KEY, parse_search_query
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import (
     ListField,
@@ -26,6 +27,7 @@ from sentry.models import (
     ReleaseProject,
     ReleaseStatus,
 )
+from sentry.search.events.constants import OPERATOR_TO_DJANGO, SEMVER_ALIAS
 from sentry.signals import release_created
 from sentry.snuba.sessions import (
     STATS_PERIODS,
@@ -200,13 +202,23 @@ class OrganizationReleasesEndpoint(
         queryset = add_environment_to_queryset(queryset, filter_params)
 
         if query:
-            query_q = Q(version__icontains=query)
+            search_filters = parse_search_query(query)
+            # TODO: Handle semver here as well
+            for search_filter in search_filters:
+                if search_filter.key.name == RELEASE_FREE_TEXT_KEY:
+                    query_q = Q(version__icontains=query)
+                    suffix_match = _release_suffix.match(query)
+                    if suffix_match is not None:
+                        query_q |= Q(version__icontains="%s+%s" % suffix_match.groups())
 
-            suffix_match = _release_suffix.match(query)
-            if suffix_match is not None:
-                query_q |= Q(version__icontains="%s+%s" % suffix_match.groups())
+                    queryset = queryset.filter(query_q)
 
-            queryset = queryset.filter(query_q)
+                if search_filter.key.name == SEMVER_ALIAS:
+                    queryset = queryset.filter_by_semver(
+                        organization.id,
+                        OPERATOR_TO_DJANGO[search_filter.operator],
+                        search_filter.value.raw_value,
+                    )
 
         select_extra = {}
 
@@ -224,7 +236,7 @@ class OrganizationReleasesEndpoint(
             queryset = queryset.filter(build_number__isnull=False).order_by("-build_number")
             paginator_kwargs["order_by"] = "-build_number"
         elif sort == "semver":
-            order_by = [f"-{col}" for col in Release.SEMVER_SORT_COLS]
+            order_by = [f"-{col}" for col in Release.SEMVER_COLS]
             queryset = queryset.annotate_prerelease_column().filter_to_semver().order_by(*order_by)
             paginator_kwargs["order_by"] = order_by
         elif sort in self.SESSION_SORTS:

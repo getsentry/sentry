@@ -86,13 +86,8 @@ class ResultsHeader extends React.Component<Props, State> {
   }
 
   render() {
-    const {
-      organization,
-      location,
-      errorCode,
-      eventView,
-      onIncompatibleAlertQuery,
-    } = this.props;
+    const {organization, location, errorCode, eventView, onIncompatibleAlertQuery} =
+      this.props;
     const {savedQuery, loading} = this.state;
 
     return (

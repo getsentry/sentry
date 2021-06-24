@@ -2,6 +2,7 @@ from datetime import timedelta
 
 from django.urls import reverse
 
+from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.samples import load_data
@@ -92,25 +93,59 @@ class OrganizationEventsVitalsEndpointTest(APITestCase, SnubaTestCase):
         }
 
     def test_simple_with_refining_user_misery_filter(self):
-        self.query.update({"query": "user_misery():>0.050"})
+        project1 = self.create_project(organization=self.organization)
+        project2 = self.create_project(organization=self.organization)
+        ProjectTransactionThreshold.objects.create(
+            project=project1,
+            organization=project1.organization,
+            threshold=100,
+            metric=TransactionMetric.LCP.value,
+        )
+
+        ProjectTransactionThreshold.objects.create(
+            project=project2,
+            organization=project2.organization,
+            threshold=1000,
+            metric=TransactionMetric.LCP.value,
+        )
 
         data = self.transaction_data.copy()
-        for lcp in [2000, 3000, 5000]:
-            self.store_event(
-                data,
-                {"lcp": lcp},
-                project_id=self.project.id,
-            )
+
+        for project in [project1, project2]:
+            for lcp in [2000, 3000, 5000]:
+                self.store_event(
+                    data,
+                    {"lcp": lcp},
+                    project_id=project.id,
+                )
 
         self.query.update({"vital": ["measurements.lcp"]})
-        response = self.do_request()
+        response = self.do_request(
+            features={"organizations:global-views": True, "organizations:discover-basic": True}
+        )
+
         assert response.status_code == 200, response.content
         assert response.data["measurements.lcp"] == {
-            "good": 1,
+            "good": 0,
             "meh": 1,
             "poor": 1,
-            "total": 3,
-            "p75": 4000,
+            "total": 2,
+            "p75": 4500,
+        }
+
+        self.query.update({"query": "user_misery():<0.04"})
+        response = self.do_request(
+            features={"organizations:global-views": True, "organizations:discover-basic": True}
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data["measurements.lcp"] == {
+            "good": 0,
+            "meh": 1,
+            "poor": 1,
+            "total": 2,
+            "p75": 4500,
         }
 
     def test_grouping(self):
