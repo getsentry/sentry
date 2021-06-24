@@ -1,20 +1,19 @@
 from django.db import IntegrityError
-from django.urls import reverse
 from django.utils import timezone
-from django.views.decorators.cache import never_cache
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.models import Identity, IdentityStatus, Integration, Organization
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.utils.http import absolute_uri
-from sentry.utils.signing import sign, unsign
+from sentry.utils.signing import unsign
 from sentry.web.decorators import transaction_start
 from sentry.web.frontend.base import BaseView
 from sentry.web.helpers import render_to_response
 
 from ..client import SlackClient
 from ..utils import get_identity, logger
+from . import build_linking_url as base_build_linking_url
+from . import never_cache
 
 
 def build_linking_url(
@@ -24,16 +23,13 @@ def build_linking_url(
     channel_id: str,
     response_url: str,
 ) -> str:
-    signed_params = sign(
+    return base_build_linking_url(
+        "sentry-integration-slack-link-identity",
         integration_id=integration.id,
         organization_id=organization.id,
         slack_id=slack_id,
         channel_id=channel_id,
         response_url=response_url,
-    )
-
-    return absolute_uri(
-        reverse("sentry-integration-slack-link-identity", kwargs={"signed_params": signed_params})
     )
 
 
