@@ -404,5 +404,5 @@ function formatQuery(query: string) {
 function escapeTagValue(value: string) {
   // astericks (*) is used for wildcard searches
   // back slaches (\) is used to escape other characters
-  return value.replace(/([\*\\])/g, '\\$1');
+  return value ? value.replace(/([\*\\])/g, '\\$1') : value;
 }
