@@ -9,7 +9,7 @@ import Pagination from 'app/components/pagination';
 import PaginationCaption from 'app/components/pagination/paginationCaption';
 import {PanelTable} from 'app/components/panels';
 import {DEFAULT_DEBOUNCE_DURATION} from 'app/constants';
-import {t, tct} from 'app/locale';
+import {t, tct, tn} from 'app/locale';
 import space from 'app/styles/space';
 import {Group, Organization} from 'app/types';
 import {Event} from 'app/types/event';
@@ -183,17 +183,15 @@ function Grouping({api, groupId, location, organization}: Props) {
             pageLinks={pagination}
             caption={
               <PaginationCaption
-                caption={
-                  hasMore
-                    ? tct('Showing [current] of [total] results', {
-                        current: paginationCurrentQuantity,
-                        total: `${paginationCurrentQuantity}+`,
-                      })
-                    : tct('Showing [current] of [total] result', {
-                        current: paginationCurrentQuantity,
-                        total: paginationCurrentQuantity,
-                      })
-                }
+                caption={tct('Showing [current] of [total] [result]', {
+                  result: hasMore
+                    ? t('results')
+                    : tn('result', 'results', paginationCurrentQuantity),
+                  current: paginationCurrentQuantity,
+                  total: hasMore
+                    ? `${paginationCurrentQuantity}+`
+                    : paginationCurrentQuantity,
+                })}
               />
             }
           />
