@@ -1,40 +1,24 @@
 __all__ = ["Feature", "OrganizationFeature", "ProjectFeature", "ProjectPluginFeature"]
 
-from abc import ABC
-from typing import TYPE_CHECKING, Any
 
-if TYPE_CHECKING:
-    from sentry.models import Organization, Project
-
-
-class Feature(ABC):
-    def __init__(self, name: str, *args: Any, **kwargs: Any) -> None:
-        """
-        `FeatureManager.get()` and `FeatureCheckBatch.get_feature_objects()`
-        expect to be able to pass a `Feature` arbitrary `args` and `kwargs`.
-        """
+class Feature:
+    def __init__(self, name):
         self.name = name
-
-    def get_organization(self) -> "Organization":
-        raise NotImplementedError
 
 
 class OrganizationFeature(Feature):
-    def __init__(self, name: str, organization: "Organization") -> None:
-        super().__init__(name)
+    def __init__(self, name, organization):
+        Feature.__init__(self, name)
         self.organization = organization
 
-    def get_organization(self) -> "Organization":
-        return self.organization
 
-
-class ProjectFeature(OrganizationFeature):
-    def __init__(self, name: str, project: "Project") -> None:
-        super().__init__(name, organization=project.organization)
+class ProjectFeature(Feature):
+    def __init__(self, name, project):
+        Feature.__init__(self, name)
         self.project = project
 
 
 class ProjectPluginFeature(ProjectFeature):
-    def __init__(self, name: str, project: "Project", plugin: Any) -> None:
-        super().__init__(name, project=project)
+    def __init__(self, name, project, plugin):
+        ProjectFeature.__init__(self, name, project)
         self.plugin = plugin
