@@ -81,7 +81,7 @@ class SlackLinkIdentityView(BaseView):
                 logger.error("slack.link-notify.response-error", extra={"error": message})
 
         return render_to_response(
-            "sentry/slack-linked.html",
+            "sentry/integrations/slack-linked.html",
             request=request,
             context={"channel_id": params["channel_id"], "team_id": integration.external_id},
         )

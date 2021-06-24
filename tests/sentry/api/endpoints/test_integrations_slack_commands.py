@@ -131,12 +131,12 @@ class SlackCommandsLinkTeamTest(SlackCommandsTest):
 
         resp = self.client.get(linking_url)
         assert resp.status_code == 200
-        self.assertTemplateUsed(resp, "sentry/slack-link-team.html")
+        self.assertTemplateUsed(resp, "sentry/integrations/slack-link-team.html")
 
         data = urlencode({"team": self.team.id})
         resp = self.client.post(linking_url, data, content_type="application/x-www-form-urlencoded")
         assert resp.status_code == 200
-        self.assertTemplateUsed(resp, "sentry/slack-post-linked-team.html")
+        self.assertTemplateUsed(resp, "sentry/integrations/slack-post-linked-team.html")
 
         assert len(self.external_actor) == 1
         assert self.external_actor[0].actor_id == self.team.actor_id
@@ -197,12 +197,12 @@ class SlackCommandsLinkTeamTest(SlackCommandsTest):
         resp = self.client.get(linking_url)
 
         assert resp.status_code == 200
-        self.assertTemplateUsed(resp, "sentry/slack-link-team.html")
+        self.assertTemplateUsed(resp, "sentry/integrations/slack-link-team.html")
 
         data = urlencode({"team": self.team.id})
         resp = self.client.post(linking_url, data, content_type="application/x-www-form-urlencoded")
         assert resp.status_code == 200
-        self.assertTemplateUsed(resp, "sentry/slack-post-linked-team.html")
+        self.assertTemplateUsed(resp, "sentry/integrations/slack-post-linked-team.html")
 
         assert len(self.external_actor) == 0
 
@@ -239,12 +239,12 @@ class SlackCommandsLinkTeamTest(SlackCommandsTest):
         resp = self.client.get(linking_url)
 
         assert resp.status_code == 200
-        self.assertTemplateUsed(resp, "sentry/slack-link-team.html")
+        self.assertTemplateUsed(resp, "sentry/integrations/slack-link-team.html")
 
         data = urlencode({"team": self.team.id})
         resp = self.client.post(linking_url, data, content_type="application/x-www-form-urlencoded")
         assert resp.status_code == 200
-        self.assertTemplateUsed(resp, "sentry/slack-post-linked-team.html")
+        self.assertTemplateUsed(resp, "sentry/integrations/slack-post-linked-team.html")
 
         assert len(self.external_actor) == 0
 
@@ -276,12 +276,12 @@ class SlackCommandsLinkTeamTest(SlackCommandsTest):
         resp = self.client.get(linking_url)
 
         assert resp.status_code == 200
-        self.assertTemplateUsed(resp, "sentry/slack-link-team.html")
+        self.assertTemplateUsed(resp, "sentry/integrations/slack-link-team.html")
 
         data = urlencode({"team": self.team.id})
         resp = self.client.post(linking_url, data, content_type="application/x-www-form-urlencoded")
         assert resp.status_code == 200
-        self.assertTemplateUsed(resp, "sentry/slack-post-linked-team.html")
+        self.assertTemplateUsed(resp, "sentry/integrations/slack-post-linked-team.html")
         assert len(responses.calls) >= 1
         data = json.loads(str(responses.calls[0].request.body.decode("utf-8")))
         assert (
@@ -301,9 +301,9 @@ class SlackCommandsLinkTeamTest(SlackCommandsTest):
 
         resp = self.client.get(linking_url)
         assert resp.status_code == 200
-        self.assertTemplateUsed(resp, "sentry/slack-link-team.html")
+        self.assertTemplateUsed(resp, "sentry/integrations/slack-link-team.html")
 
         data = urlencode({"team": ["some", "garbage"]})
         resp = self.client.post(linking_url, data, content_type="application/x-www-form-urlencoded")
         assert resp.status_code == 200
-        self.assertTemplateUsed(resp, "sentry/slack-link-team-error.html")
+        self.assertTemplateUsed(resp, "sentry/integrations/slack-link-team-error.html")
