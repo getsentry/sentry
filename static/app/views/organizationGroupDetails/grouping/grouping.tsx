@@ -4,16 +4,16 @@ import {Location} from 'history';
 import debounce from 'lodash/debounce';
 
 import {Client} from 'app/api';
-import List from 'app/components/list';
-import ListItem from 'app/components/list/listItem';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import Pagination from 'app/components/pagination';
-import {Panel, PanelBody} from 'app/components/panels';
+import PaginationCaption from 'app/components/pagination/paginationCaption';
+import {PanelTable} from 'app/components/panels';
 import {DEFAULT_DEBOUNCE_DURATION} from 'app/constants';
-import {t, tct} from 'app/locale';
+import {t, tct, tn} from 'app/locale';
 import space from 'app/styles/space';
-import {Group, Organization, Project} from 'app/types';
+import {Group, Organization} from 'app/types';
 import {Event} from 'app/types/event';
+import {defined} from 'app/utils';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
 import withApi from 'app/utils/withApi';
 import RangeSlider from 'app/views/settings/components/forms/controls/rangeSlider';
@@ -25,7 +25,6 @@ type Error = React.ComponentProps<typeof ErrorMessage>['error'];
 
 type Props = {
   organization: Organization;
-  project: Project;
   groupId: Group['id'];
   location: Location;
   api: Client;
@@ -42,11 +41,10 @@ type GroupingLevel = {
   isCurrent: boolean;
 };
 
-function Grouping({api, groupId, location, project, organization}: Props) {
+function Grouping({api, groupId, location, organization}: Props) {
   const [isLoading, setIsLoading] = useState(false);
-  const [isGroupingLevelDetailsLoading, setIsGroupingLevelDetailsLoading] = useState(
-    false
-  );
+  const [isGroupingLevelDetailsLoading, setIsGroupingLevelDetailsLoading] =
+    useState(false);
   const [error, setError] = useState<undefined | Error>(undefined);
   const [groupingLevels, setGroupingLevels] = useState<GroupingLevel[]>([]);
   const [activeGroupingLevel, setActiveGroupingLevel] = useState<number | undefined>(
@@ -89,7 +87,7 @@ function Grouping({api, groupId, location, project, organization}: Props) {
   }
 
   async function fetchGroupingLevelDetails() {
-    if (!groupingLevels.length) {
+    if (!groupingLevels.length || !defined(activeGroupingLevel)) {
       return;
     }
 
@@ -120,11 +118,16 @@ function Grouping({api, groupId, location, project, organization}: Props) {
   }
 
   function setSecondGrouping() {
-    const secondGrouping = groupingLevels[1];
-    if (!secondGrouping) {
+    if (!groupingLevels.length) {
       return;
     }
-    setActiveGroupingLevel(Number(secondGrouping.id));
+
+    if (groupingLevels.length > 1) {
+      setActiveGroupingLevel(Number(groupingLevels[1].id));
+      return;
+    }
+
+    setActiveGroupingLevel(Number(groupingLevels[0].id));
   }
 
   if (isLoading) {
@@ -141,65 +144,59 @@ function Grouping({api, groupId, location, project, organization}: Props) {
 
   const links = parseLinkHeader(pagination);
   const hasMore = links.previous?.results || links.next?.results;
+  const paginationCurrentQuantity = activeGroupingLevelDetails.length;
 
   return (
     <Wrapper>
       <Description>
         {t(
-          'This issue is built up of multiple events that sentry thinks come from the same root-cause. Use this page to drill down into more fine-grained groups.'
+          'This issue is an aggregate of multiple events that sentry determined originate from the same root-cause. Use this page to explore more detailed groupings that exist within this issue.'
         )}
       </Description>
-      <div>
-        <StyledList symbol="colored-numeric">
-          <StyledListItem>
-            {t('Select level')}
-            <SliderWrapper>
-              {t('Fewer issues')}
-              <StyledRangeSlider
-                name="grouping-level"
-                allowedValues={groupingLevels.map(groupingLevel =>
-                  Number(groupingLevel.id)
-                )}
-                value={activeGroupingLevel ?? 0}
-                onChange={handleSetActiveGroupingLevel}
-                showLabel={false}
+      <Content>
+        <SliderWrapper>
+          {t('Fewer issues')}
+          <StyledRangeSlider
+            name="grouping-level"
+            allowedValues={groupingLevels.map(groupingLevel => Number(groupingLevel.id))}
+            value={activeGroupingLevel ?? 0}
+            onChange={handleSetActiveGroupingLevel}
+            showLabel={false}
+          />
+          {t('More issues')}
+        </SliderWrapper>
+        <div>
+          <StyledPanelTable
+            isReloading={isGroupingLevelDetailsLoading}
+            headers={['', t('Events')]}
+          >
+            {activeGroupingLevelDetails.map(({hash, latestEvent, eventCount}) => (
+              <NewIssue
+                key={hash}
+                sampleEvent={latestEvent}
+                eventCount={eventCount}
+                organization={organization}
               />
-              {t('More issues')}
-            </SliderWrapper>
-          </StyledListItem>
-          <StyledListItem isReloading={isGroupingLevelDetailsLoading}>
-            <div>
-              {t('What happens to this issue')}
-              <WhatHappensDescription>
-                {activeGroupingLevelDetails.length > 1
-                  ? tct(
-                      `This issue will be deleted and [quantity] new issues will be created.`,
-                      {
-                        quantity: hasMore
-                          ? `${activeGroupingLevelDetails.length}+`
-                          : activeGroupingLevelDetails.length,
-                      }
-                    )
-                  : t('This issue will be deleted and a new issue will be created.')}
-              </WhatHappensDescription>
-            </div>
-            <NewIssues>
-              <PanelBody>
-                {activeGroupingLevelDetails.map(({hash, latestEvent, eventCount}) => (
-                  <NewIssue
-                    key={hash}
-                    sampleEvent={latestEvent}
-                    eventCount={eventCount}
-                    project={project}
-                    organization={organization}
-                  />
-                ))}
-              </PanelBody>
-            </NewIssues>
-          </StyledListItem>
-        </StyledList>
-        <Pagination pageLinks={pagination} />
-      </div>
+            ))}
+          </StyledPanelTable>
+          <StyledPagination
+            pageLinks={pagination}
+            caption={
+              <PaginationCaption
+                caption={tct('Showing [current] of [total] [result]', {
+                  result: hasMore
+                    ? t('results')
+                    : tn('result', 'results', paginationCurrentQuantity),
+                  current: paginationCurrentQuantity,
+                  total: hasMore
+                    ? `${paginationCurrentQuantity}+`
+                    : paginationCurrentQuantity,
+                })}
+              />
+            }
+          />
+        </div>
+      </Content>
     </Wrapper>
   );
 }
@@ -210,35 +207,49 @@ const Wrapper = styled('div')`
   flex: 1;
   display: grid;
   align-content: flex-start;
-  background: ${p => p.theme.background};
-  grid-gap: ${space(2)};
   margin: -${space(3)} -${space(4)};
   padding: ${space(3)} ${space(4)};
 `;
 
 const Description = styled('p')`
-  margin-bottom: ${space(0.5)};
+  && {
+    margin-bottom: ${space(2)};
+  }
 `;
 
-const NewIssues = styled(Panel)``;
-
-const WhatHappensDescription = styled('div')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeLarge};
-`;
-
-const StyledListItem = styled(ListItem)<{isReloading?: boolean}>`
+const Content = styled('div')`
   display: grid;
-  grid-gap: ${space(1.5)};
+  grid-gap: ${space(3)};
+`;
 
+const StyledPanelTable = styled(PanelTable)<{isReloading: boolean}>`
+  grid-template-columns: 1fr minmax(60px, auto);
   ${p =>
     p.isReloading &&
     `
-      ${NewIssues}, ${WhatHappensDescription} {
-        opacity: 0.5;
-        pointer-events: none;
-      }
+      opacity: 0.5;
+      pointer-events: none;
     `}
+
+  > * {
+    padding: ${space(1.5)} ${space(2)};
+    :nth-child(-n + 2) {
+      padding: ${space(2)};
+    }
+    :nth-child(2n) {
+      display: flex;
+      text-align: right;
+      justify-content: flex-end;
+    }
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints[3]}) {
+    grid-template-columns: 1fr minmax(80px, auto);
+  }
+`;
+
+const StyledPagination = styled(Pagination)`
+  margin-top: 0;
 `;
 
 const SliderWrapper = styled('div')`
@@ -249,7 +260,7 @@ const SliderWrapper = styled('div')`
   align-items: flex-start;
   position: relative;
   font-size: ${p => p.theme.fontSizeMedium};
-  color: ${p => p.theme.gray400};
+  color: ${p => p.theme.subText};
   padding-bottom: ${space(2)};
 
   @media (min-width: 700px) {
@@ -276,10 +287,4 @@ const StyledRangeSlider = styled(RangeSlider)`
     left: auto;
     right: auto;
   }
-`;
-
-const StyledList = styled(List)`
-  display: grid;
-  grid-gap: ${space(2)};
-  font-size: ${p => p.theme.fontSizeExtraLarge};
 `;

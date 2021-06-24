@@ -1,5 +1,17 @@
 from collections import defaultdict
-from typing import Any, Dict, Iterable, List, Mapping, MutableMapping, Optional, Set, Tuple, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Iterable,
+    List,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Set,
+    Tuple,
+    Union,
+)
 
 from sentry.notifications.types import (
     NOTIFICATION_SCOPE_TYPE,
@@ -12,6 +24,18 @@ from sentry.notifications.types import (
     NotificationSettingTypes,
 )
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
+
+if TYPE_CHECKING:
+    from sentry.models import (
+        Group,
+        GroupSubscription,
+        NotificationSetting,
+        Organization,
+        Project,
+        Team,
+        User,
+    )
+
 
 # This mapping represents how to interpret the absence of a DB row for a given
 # provider. For example, a user with no NotificationSettings should be opted
@@ -32,10 +56,10 @@ NOTIFICATION_SETTING_DEFAULTS = {
 
 def _get_setting_mapping_from_mapping(
     notification_settings_by_user: Mapping[
-        Any,
+        "User",
         Mapping[NotificationScopeType, Mapping[ExternalProviders, NotificationSettingOptionValues]],
     ],
-    user: Any,
+    user: "User",
     type: NotificationSettingTypes,
 ) -> Mapping[ExternalProviders, NotificationSettingOptionValues]:
     # XXX(CEO): may not respect granularity of a setting for Slack a setting for email
@@ -57,10 +81,10 @@ def _get_setting_mapping_from_mapping(
 
 def where_should_user_be_notified(
     notification_settings_by_user: Mapping[
-        Any,
+        "User",
         Mapping[NotificationScopeType, Mapping[ExternalProviders, NotificationSettingOptionValues]],
     ],
-    user: Any,
+    user: "User",
 ) -> List[ExternalProviders]:
     """
     Given a mapping of default and specific notification settings by user,
@@ -79,8 +103,8 @@ def where_should_user_be_notified(
 
 
 def should_be_participating(
-    subscriptions_by_user_id: Mapping[int, Any],
-    user: Any,
+    subscriptions_by_user_id: Mapping[int, "GroupSubscription"],
+    user: "User",
     value: NotificationSettingOptionValues,
 ) -> bool:
     subscription = subscriptions_by_user_id.get(user.id)
@@ -90,10 +114,10 @@ def should_be_participating(
 
 
 def where_should_be_participating(
-    user: Any,
-    subscriptions_by_user_id: Mapping[int, Any],
+    user: "User",
+    subscriptions_by_user_id: Mapping[int, "GroupSubscription"],
     notification_settings_by_user: Mapping[
-        Any,
+        "User",
         Mapping[NotificationScopeType, Mapping[ExternalProviders, NotificationSettingOptionValues]],
     ],
 ) -> List[ExternalProviders]:
@@ -146,10 +170,11 @@ def get_values_by_provider_by_type(
 
 
 def transform_to_notification_settings_by_user(
-    notification_settings: Iterable[Any],
-    users: Iterable[Any],
+    notification_settings: Iterable["NotificationSetting"],
+    users: Iterable["User"],
 ) -> Mapping[
-    Any, Mapping[NotificationScopeType, Mapping[ExternalProviders, NotificationSettingOptionValues]]
+    "User",
+    Mapping[NotificationScopeType, Mapping[ExternalProviders, NotificationSettingOptionValues]],
 ]:
     """
     Given a unorganized list of notification settings, create a mapping of
@@ -157,7 +182,8 @@ def transform_to_notification_settings_by_user(
     """
     actor_mapping = {user.actor_id: user for user in users}
     notification_settings_by_user: Dict[
-        Any, Dict[NotificationScopeType, Dict[ExternalProviders, NotificationSettingOptionValues]]
+        "User",
+        Dict[NotificationScopeType, Dict[ExternalProviders, NotificationSettingOptionValues]],
     ] = defaultdict(lambda: defaultdict(dict))
     for notification_setting in notification_settings:
         user = actor_mapping.get(notification_setting.target_id)
@@ -169,7 +195,7 @@ def transform_to_notification_settings_by_user(
 
 
 def transform_to_notification_settings_by_parent_id(
-    notification_settings: Iterable[Any],
+    notification_settings: Iterable["NotificationSetting"],
     user_default: Optional[NotificationSettingOptionValues] = None,
 ) -> Tuple[
     Mapping[ExternalProviders, Mapping[int, NotificationSettingOptionValues]],
@@ -220,26 +246,31 @@ def get_scope_type(type: NotificationSettingTypes) -> NotificationScopeType:
 
 
 def get_scope(
-    user_id: int, project: Optional[Any] = None, organization: Optional[Any] = None
+    user: Optional["User"] = None,
+    team: Optional["Team"] = None,
+    project: Optional["Project"] = None,
+    organization: Optional["Organization"] = None,
 ) -> Tuple[NotificationScopeType, int]:
     """
     Figure out the scope from parameters and return it as a tuple.
-    TODO(mgaeta): Make sure user_id is in the project or organization.
+    TODO(mgaeta): Make sure the user/team is in the project/organization.
     """
-
     if project:
         return NotificationScopeType.PROJECT, project.id
 
     if organization:
         return NotificationScopeType.ORGANIZATION, organization.id
 
-    if user_id:
-        return NotificationScopeType.USER, user_id
+    if user:
+        return NotificationScopeType.USER, user.id
 
-    raise Exception("scope must be either user, organization, or project")
+    if team:
+        return NotificationScopeType.TEAM, team.id
+
+    raise Exception("scope must be either user, team, organization, or project")
 
 
-def get_target_id(user: Optional[Any] = None, team: Optional[Any] = None) -> int:
+def get_target_id(user: Optional["User"] = None, team: Optional["Team"] = None) -> int:
     """:returns the actor ID from a User or Team."""
     if user:
         return int(user.actor_id)
@@ -265,10 +296,10 @@ def get_subscription_from_attributes(
 
 
 def get_groups_for_query(
-    groups_by_project: Mapping[Any, Set[Any]],
+    groups_by_project: Mapping["Project", Set["Group"]],
     notification_settings_by_key: Mapping[int, NotificationSettingOptionValues],
     global_default_workflow_option: NotificationSettingOptionValues,
-) -> Set[Any]:
+) -> Set["Group"]:
     """
     If there is a subscription record associated with the group, we can just use
     that to know if a user is subscribed or not, as long as notifications aren't
@@ -283,7 +314,7 @@ def get_groups_for_query(
     return output
 
 
-def collect_groups_by_project(groups: Iterable[Any]) -> Mapping[Any, Set[Any]]:
+def collect_groups_by_project(groups: Iterable["Group"]) -> Mapping["Project", Set["Group"]]:
     """
     Collect all of the projects to look up, and keep a set of groups that are
     part of that project. (Note that the common -- but not only -- case here is
@@ -296,11 +327,11 @@ def collect_groups_by_project(groups: Iterable[Any]) -> Mapping[Any, Set[Any]]:
 
 
 def get_user_subscriptions_for_groups(
-    groups_by_project: Mapping[Any, Set[Any]],
+    groups_by_project: Mapping["Project", Set["Group"]],
     notification_settings_by_key: Mapping[int, NotificationSettingOptionValues],
-    subscriptions_by_group_id: Mapping[int, Any],
+    subscriptions_by_group_id: Mapping[int, "GroupSubscription"],
     global_default_workflow_option: NotificationSettingOptionValues,
-) -> Mapping[int, Tuple[bool, bool, Optional[Any]]]:
+) -> Mapping[int, Tuple[bool, bool, Optional["GroupSubscription"]]]:
     """
     Takes collected data and returns a mapping of group IDs to a two-tuple of
     (subscribed: bool, subscription: Optional[GroupSubscription]).
@@ -351,7 +382,7 @@ def get_fallback_settings(
     types_to_serialize: Iterable[NotificationSettingTypes],
     project_ids: Iterable[int],
     organization_ids: Iterable[int],
-    user: Optional[Any] = None,
+    user: Optional["User"] = None,
 ) -> MutableMapping[str, MutableMapping[str, MutableMapping[int, MutableMapping[str, str]]]]:
     """
     The API is responsible for calculating the implied setting values when a

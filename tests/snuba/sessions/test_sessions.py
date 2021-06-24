@@ -244,6 +244,43 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
                 (self.project.id, self.session_release),
             ]
 
+    def test_get_project_releases_by_stability_for_releases_with_users_data(self):
+        """
+        Test that ensures if releases contain no users data, then those releases should not be
+        returned on `users` and `crash_free_users` sorts
+        """
+        self.store_session(
+            {
+                "session_id": "bd1521fc-d27c-11eb-b8bc-0242ac130003",
+                "status": "ok",
+                "seq": 0,
+                "release": "release-with-no-users",
+                "environment": "prod",
+                "retention_days": 90,
+                "org_id": self.project.organization_id,
+                "project_id": self.project.id,
+                "duration": None,
+                "errors": 0,
+                "started": self.session_started,
+                "received": self.received,
+            }
+        )
+        data = get_project_releases_by_stability(
+            [self.project.id], offset=0, limit=100, scope="users", stats_period="24h"
+        )
+        assert data == [
+            (self.project.id, self.session_release),
+            (self.project.id, self.session_crashed_release),
+        ]
+
+        data = get_project_releases_by_stability(
+            [self.project.id], offset=0, limit=100, scope="crash_free_users", stats_period="24h"
+        )
+        assert data == [
+            (self.project.id, self.session_crashed_release),
+            (self.project.id, self.session_release),
+        ]
+
     def test_get_release_adoption(self):
         data = get_release_adoption(
             [
@@ -469,11 +506,15 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
             }
         )
 
-        expected_formatted_lower_bound = format_timestamp(
-            datetime.utcfromtimestamp(self.session_started - 3600 * 2).replace(minute=0)
+        expected_formatted_lower_bound = (
+            datetime.utcfromtimestamp(self.session_started - 3600 * 2)
+            .replace(minute=0)
+            .isoformat()[:19]
+            + "Z"
         )
-        expected_formatted_upper_bound = format_timestamp(
-            datetime.utcfromtimestamp(self.session_started).replace(minute=0)
+
+        expected_formatted_upper_bound = (
+            datetime.utcfromtimestamp(self.session_started).replace(minute=0).isoformat()[:19] + "Z"
         )
 
         # Test for self.session_release

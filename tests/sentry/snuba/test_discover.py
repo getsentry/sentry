@@ -3005,10 +3005,41 @@ class TimeseriesQueryTest(TimeseriesBase):
             rollup=3600,
         )
         assert len(result.data["data"]) == 3
-        keys = []
+        keys = set()
         for row in result.data["data"]:
-            keys.extend(list(row.keys()))
-        assert "count" in keys
+            keys.update(list(row.keys()))
+        assert "count_unique_user" in keys
+        assert "time" in keys
+
+    def test_equation_function(self):
+        result = discover.timeseries_query(
+            selected_columns=["equation|count() / 100"],
+            query="",
+            params={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=2),
+                "project_id": [self.project.id],
+            },
+            rollup=3600,
+        )
+        assert len(result.data["data"]) == 3
+        assert [0.02] == [val["equation[0]"] for val in result.data["data"] if "equation[0]" in val]
+
+        result = discover.timeseries_query(
+            selected_columns=["equation|count_unique(user) / 100"],
+            query="",
+            params={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=2),
+                "project_id": [self.project.id],
+            },
+            rollup=3600,
+        )
+        assert len(result.data["data"]) == 3
+        keys = set()
+        for row in result.data["data"]:
+            keys.update(list(row.keys()))
+        assert "equation[0]" in keys
         assert "time" in keys
 
     def test_zerofilling(self):
@@ -3612,3 +3643,67 @@ class ArithmeticTest(SnubaTestCase, TestCase):
         result = results["data"][0]
         assert result["equation[0]"] == result["p50_transaction_duration"] + 2
         assert result["equation[1]"] == result["p50_transaction_duration"] / result["count"]
+
+    def test_multiple_operators(self):
+        results = discover.query(
+            selected_columns=[
+                "p50(transaction.duration)",
+                "p100(transaction.duration)",
+                "count()",
+            ],
+            equations=[
+                "p50(transaction.duration) / p100(transaction.duration) * 100",
+                "100 + count() * 5 - 3 / 5",
+                "count() + count() / count() * count() - count()",
+            ],
+            query=self.query,
+            params=self.params,
+        )
+        assert len(results["data"]) == 1
+        result = results["data"][0]
+        assert (
+            result["equation[0]"]
+            == result["p50_transaction_duration"] / result["p100_transaction_duration"] * 100
+        )
+        assert result["equation[1]"] == 100 + result["count"] * 5 - 3 / 5
+        assert (
+            result["equation[2]"]
+            == result["count"]
+            + result["count"] / result["count"] * result["count"]
+            - result["count"]
+        )
+
+    def test_nan_equation_results(self):
+        for i in range(1, 3):
+            event_data = load_data("transaction")
+            # Half of duration so we don't get weird rounding differences when comparing the results
+            event_data["breakdowns"]["span_ops"]["ops.http"]["value"] = 0
+            event_data["start_timestamp"] = iso_format(self.day_ago + timedelta(minutes=30))
+            event_data["timestamp"] = iso_format(self.day_ago + timedelta(minutes=30, seconds=3))
+            self.store_event(data=event_data, project_id=self.project.id)
+        query_params = {
+            "selected_columns": [
+                "spans.http",
+                "transaction.duration",
+            ],
+            "equations": [
+                "transaction.duration / spans.http",  # inf
+                "spans.http / spans.http",  # nan
+            ],
+            "orderby": ["equation[0]"],
+            "query": self.query,
+            "params": self.params,
+        }
+        results = discover.query(**query_params)
+        assert len(results["data"]) == 3
+        assert [result["equation[0]"] for result in results["data"]] == [2, None, None]
+
+        query_params["orderby"] = ["equation[1]"]
+        results = discover.query(**query_params)
+        assert len(results["data"]) == 3
+        assert [result["equation[1]"] for result in results["data"]] == [1, 0, 0]
+
+        query_params["orderby"] = ["-equation[0]"]
+        results = discover.query(**query_params)
+        assert len(results["data"]) == 3
+        assert [result["equation[0]"] for result in results["data"]] == [None, None, 2]

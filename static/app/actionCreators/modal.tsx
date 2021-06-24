@@ -191,12 +191,12 @@ export type SentryAppDetailsModalOptions = {
   isInstalled: boolean;
   onInstall: () => Promise<void>;
   organization: Organization;
-  onCloseModal?: () => void; //used for analytics
+  onCloseModal?: () => void; // used for analytics
 };
 
 type DebugFileSourceModalOptions = {
   sourceType: DebugFileSource;
-  onSave: (data: Record<string, any>) => void;
+  onSave: (data: Record<string, any>) => Promise<void>;
   appStoreConnectContext?: AppStoreConnectContextProps;
   onClose?: () => void;
   sourceConfig?: Record<string, any>;

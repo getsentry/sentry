@@ -13,9 +13,7 @@ import {Group, GroupTombstone, Level, Organization} from 'app/types';
 import {Event} from 'app/types/event';
 import {getLocation, getMessage} from 'app/utils/events';
 import withOrganization from 'app/utils/withOrganization';
-import UnhandledTag, {
-  TagAndMessageWrapper,
-} from 'app/views/organizationGroupDetails/unhandledTag';
+import {TagAndMessageWrapper} from 'app/views/organizationGroupDetails/unhandledTag';
 
 type DefaultProps = {
   includeLink: boolean;
@@ -101,7 +99,7 @@ class EventOrGroupHeader extends Component<Props> {
             query: {
               query: this.props.query,
               ...(location.query.sort !== undefined ? {sort: location.query.sort} : {}), // This adds sort to the query if one was selected from the issues list page
-              ...(location.query.project !== undefined ? {} : {_allp: 1}), //This appends _allp to the URL parameters if they have no project selected ("all" projects included in results). This is so that when we enter the issue details page and lock them to a project, we can properly take them back to the issue list page with no project selected (and not the locked project selected)
+              ...(location.query.project !== undefined ? {} : {_allp: 1}), // This appends _allp to the URL parameters if they have no project selected ("all" projects included in results). This is so that when we enter the issue details page and lock them to a project, we can properly take them back to the issue list page with no project selected (and not the locked project selected)
             },
           }}
           onClick={onClick}
@@ -115,19 +113,16 @@ class EventOrGroupHeader extends Component<Props> {
   }
 
   render() {
-    const {className, size, data, organization} = this.props;
+    const {className, size, data} = this.props;
     const location = getLocation(data);
     const message = getMessage(data);
-    const {isUnhandled} = data as Group;
-    const showUnhandled = isUnhandled && !organization.features.includes('inbox');
 
     return (
       <div className={className} data-test-id="event-issue-header">
         <Title size={size}>{this.getTitle()}</Title>
         {location && <Location size={size}>{location}</Location>}
-        {(message || showUnhandled) && (
+        {message && (
           <StyledTagAndMessageWrapper size={size}>
-            {showUnhandled && <UnhandledTag />}
             {message && <Message>{message}</Message>}
           </StyledTagAndMessageWrapper>
         )}

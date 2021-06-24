@@ -60,19 +60,7 @@ type ApiFingerprint = {
   childLabel?: string;
 };
 
-export type Fingerprint = {
-  id: string;
-  latestEvent: Event;
-  eventCount: number;
-  state?: string;
-  lastSeen?: string;
-  parentId?: string;
-  label?: string;
-  parentLabel?: string;
-  children: Array<ChildFingerprint>;
-};
-
-export type ChildFingerprint = {
+type ChildFingerprint = {
   childId: string;
   childLabel?: string;
   eventCount?: number;
@@ -80,11 +68,21 @@ export type ChildFingerprint = {
   latestEvent?: Event;
 };
 
+export type Fingerprint = {
+  id: string;
+  latestEvent: Event;
+  eventCount: number;
+  children: Array<ChildFingerprint>;
+  state?: string;
+  lastSeen?: string;
+  parentId?: string;
+  label?: string;
+  parentLabel?: string;
+};
+
 type ResponseProcessors = {
   merged: (item: ApiFingerprint[]) => Fingerprint[];
-  similar: (
-    data: [Group, ScoreMap]
-  ) => {
+  similar: (data: [Group, ScoreMap]) => {
     issue: Group;
     score: ScoreMap;
     scoresByInterface: Record<string, Array<[string, number | null]>>;
@@ -130,12 +128,6 @@ type GroupingStoreInterface = Reflux.StoreDefinition & {
   onToggleMerge: (id: string) => void;
   onToggleUnmerge: (props: [string, string] | string) => void;
   onUnmerge: (props: {
-    groupId: Group['id'];
-    loadingMessage?: string;
-    successMessage?: string;
-    errorMessage?: string;
-  }) => void;
-  onSplit: (props: {
     groupId: Group['id'];
     loadingMessage?: string;
     successMessage?: string;
@@ -476,46 +468,6 @@ const storeConfig: Reflux.StoreDefinition & Internals & GroupingStoreInterface =
           addSuccessMessage(successMessage);
 
           // Busy rows after successful Unmerge
-          this.setStateForId(this.unmergeState, ids, {
-            checked: false,
-            busy: true,
-          });
-          this.unmergeList.clear();
-        },
-        error: () => {
-          addErrorMessage(errorMessage);
-          this.setStateForId(this.unmergeState, ids, {
-            checked: true,
-            busy: false,
-          });
-        },
-        complete: () => {
-          this.unmergeDisabled = false;
-          resolve(this.triggerUnmergeState());
-        },
-      });
-    });
-  },
-
-  onSplit({groupId, loadingMessage, successMessage, errorMessage}) {
-    const ids = Array.from(this.unmergeList.keys()) as Array<string>;
-
-    return new Promise(resolve => {
-      this.unmergeDisabled = true;
-      this.setStateForId(this.unmergeState, ids, {
-        checked: false,
-        busy: true,
-      });
-      this.triggerUnmergeState();
-      addLoadingMessage(loadingMessage);
-      this.api.request(`/issues/${groupId}/hashes/split/`, {
-        method: 'PUT',
-        query: {
-          id: ids,
-        },
-        success: () => {
-          addSuccessMessage(successMessage);
-
           this.setStateForId(this.unmergeState, ids, {
             checked: false,
             busy: true,

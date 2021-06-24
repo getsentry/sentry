@@ -16,7 +16,7 @@ const getPlaceholderForType = (type: ActionType) => {
     case ActionType.SLACK:
       return '@username or #channel';
     case ActionType.MSTEAMS:
-      //no prefixes for msteams
+      // no prefixes for msteams
       return 'username or channel';
     case ActionType.PAGERDUTY:
       return 'service';
@@ -36,15 +36,8 @@ type Props = {
 };
 
 export default function ActionTargetSelector(props: Props) {
-  const {
-    action,
-    availableAction,
-    disabled,
-    loading,
-    onChange,
-    organization,
-    project,
-  } = props;
+  const {action, availableAction, disabled, loading, onChange, organization, project} =
+    props;
 
   const handleChangeTargetIdentifier = (value: SelectValue<string>) => {
     onChange(value.value);

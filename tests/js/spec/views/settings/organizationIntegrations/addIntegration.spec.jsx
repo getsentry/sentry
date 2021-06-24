@@ -1,4 +1,4 @@
-/*global global*/
+/* global global */
 import {mountWithTheme} from 'sentry-test/enzyme';
 
 import AddIntegration from 'app/views/organizationIntegrations/addIntegration';

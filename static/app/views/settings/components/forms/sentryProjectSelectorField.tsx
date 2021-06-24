@@ -12,18 +12,18 @@ const defaultProps = {
   placeholder: t('Choose Sentry project'),
 };
 
-//projects can be passed as a direct prop as well
+// projects can be passed as a direct prop as well
 type Props = {projects?: Project[]} & InputField['props'];
 
 type RenderProps = {
-  projects: Project[]; //can't use AvatarProject since we need the ID
+  projects: Project[]; // can't use AvatarProject since we need the ID
 } & Omit<Partial<Readonly<typeof defaultProps>>, 'placeholder'> &
   Props;
 
 class RenderField extends React.Component<RenderProps> {
   static defaultProps = defaultProps;
 
-  //need to map the option object to the value
+  // need to map the option object to the value
   handleChange = (
     onBlur: Props['onBlur'],
     onChange: Props['onChange'],
@@ -42,7 +42,7 @@ class RenderField extends React.Component<RenderProps> {
 
     const customOptionProject = projectProps => {
       const project = projects.find(proj => proj.id === projectProps.value);
-      //shouldn't happen but need to account for it
+      // shouldn't happen but need to account for it
       if (!project) {
         return <components.Option {...projectProps} />;
       }
@@ -61,7 +61,7 @@ class RenderField extends React.Component<RenderProps> {
     const customValueContainer = containerProps => {
       const selectedValue = containerProps.getValue()[0];
       const project = projects.find(proj => proj.id === selectedValue?.value);
-      //shouldn't happen but need to account for it
+      // shouldn't happen but need to account for it
       if (!project) {
         return <components.ValueContainer {...containerProps} />;
       }

@@ -17,6 +17,7 @@ import {t} from 'app/locale';
 import {Organization} from 'app/types';
 import {defined} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
+import EventView, {EventData, MetaType} from 'app/utils/discover/eventView';
 import {
   AGGREGATIONS,
   getAggregateAlias,
@@ -37,7 +38,6 @@ import {
 } from 'app/views/performance/transactionSummary/filter';
 
 import ArrayValue from './arrayValue';
-import {EventData, MetaType} from './eventView';
 import KeyTransactionField from './keyTransactionField';
 import {
   BarContainer,
@@ -58,6 +58,7 @@ import TeamKeyTransactionField from './teamKeyTransactionField';
 type RenderFunctionBaggage = {
   organization: Organization;
   location: Location;
+  eventView?: EventView;
 };
 
 type FieldFormatterRenderFunction = (field: string, data: EventData) => React.ReactNode;
@@ -453,6 +454,11 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
       return <NumberContainer>{emptyValue}</NumberContainer>;
     }
 
+    const userMisery = data[userMiseryField];
+    if (userMisery === null || isNaN(userMisery)) {
+      return <NumberContainer>{emptyValue}</NumberContainer>;
+    }
+
     const projectThresholdConfig = 'project_threshold_config';
     let countMiserableUserField: string = '';
 
@@ -472,7 +478,6 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
     }
 
     const uniqueUsers = data.count_unique_user;
-    const userMisery = data[userMiseryField];
 
     let miserableUsers: number | undefined;
 
@@ -545,7 +550,7 @@ const isDurationValue = (data: EventData, field: string): boolean => {
 
 const spanOperationRelativeBreakdownRenderer = (
   data: EventData,
-  {location, organization}: RenderFunctionBaggage
+  {location, organization, eventView}: RenderFunctionBaggage
 ): React.ReactNode => {
   const sumOfSpanTime = SPAN_OP_BREAKDOWN_FIELDS.reduce(
     (prev, curr) => (isDurationValue(data, curr) ? prev + data[curr] : prev),
@@ -562,10 +567,19 @@ const spanOperationRelativeBreakdownRenderer = (
   }
 
   let otherPercentage = 1;
-
+  let orderedSpanOpsBreakdownFields;
+  const sortingOnField = eventView?.sorts?.[0].field;
+  if (sortingOnField && SPAN_OP_BREAKDOWN_FIELDS.includes(sortingOnField)) {
+    orderedSpanOpsBreakdownFields = [
+      sortingOnField,
+      ...SPAN_OP_BREAKDOWN_FIELDS.filter(op => op !== sortingOnField),
+    ];
+  } else {
+    orderedSpanOpsBreakdownFields = SPAN_OP_BREAKDOWN_FIELDS;
+  }
   return (
     <RelativeOpsBreakdown>
-      {SPAN_OP_BREAKDOWN_FIELDS.map(field => {
+      {orderedSpanOpsBreakdownFields.map(field => {
         if (!isDurationValue(data, field)) {
           return null;
         }

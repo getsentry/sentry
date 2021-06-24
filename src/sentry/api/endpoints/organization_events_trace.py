@@ -181,7 +181,7 @@ class TraceEvent:
                     result["measurements"] = self.nodestore_event.data.get("measurements")
                 result["_meta"] = {}
                 result["tags"], result["_meta"]["tags"] = get_tags_with_meta(self.nodestore_event)
-        # Only add children that have nodestore events, which may be missing if we're pruning for quick trace
+        # Only add children that have nodestore events, which may be missing if we're pruning for trace navigator
         result["children"] = [
             child.full_dict(detailed) for child in self.children if child.nodestore_event
         ]
@@ -605,7 +605,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                     current_event = to_check.popleft()
                     previous_event = parent_events[current_event["id"]]
 
-                # We've found the event for the quick trace so we can remove everything in the deque
+                # We've found the event for the trace navigator so we can remove everything in the deque
                 # As they're unrelated ancestors now
                 if event_id and current_event["id"] == event_id:
                     # Remove any remaining events so we don't think they're orphans

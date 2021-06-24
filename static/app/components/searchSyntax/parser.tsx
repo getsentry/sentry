@@ -221,16 +221,52 @@ export const filterTypeConfig = {
 
 type FilterTypeConfig = typeof filterTypeConfig;
 
+/**
+ * Object representing an invalid filter state
+ */
+type InvalidFilter = {
+  /**
+   * The message indicating why the filter is invalid
+   */
+  reason: string;
+  /**
+   * In the case where a filter is invalid, we may be expecting a different
+   * type for this filter based on the key. This can be useful to hint to the
+   * user what values they should be providing.
+   *
+   * This may be multiple filter types.
+   */
+  expectedType?: FilterType[];
+};
+
 type FilterMap = {
   [F in keyof FilterTypeConfig]: {
     type: Token.Filter;
+    /**
+     * The filter type being represented
+     */
     filter: F;
-    config: FilterTypeConfig[F];
+    /**
+     * The key of the filter
+     */
     key: KVConverter<FilterTypeConfig[F]['validKeys'][number]>;
+    /**
+     * The value of the filter
+     */
     value: KVConverter<FilterTypeConfig[F]['validValues'][number]>;
+    /**
+     * The operator applied to the filter
+     */
     operator: FilterTypeConfig[F]['validOps'][number];
+    /**
+     * Indicates if the filter has been negated
+     */
     negated: FilterTypeConfig[F]['canNegate'] extends true ? boolean : false;
-    invalidReason: string | null;
+    /**
+     * When a filter is marked as 'invalid' a reason is given. If the filter is
+     * not invalid this will always be null
+     */
+    invalid: InvalidFilter | null;
   };
 };
 
@@ -315,7 +351,7 @@ class TokenConverter {
     });
 
   tokenFilter = <T extends FilterType>(
-    type: T,
+    filter: T,
     key: FilterMap[T]['key'],
     value: FilterMap[T]['value'],
     operator: FilterMap[T]['operator'] | undefined,
@@ -323,13 +359,12 @@ class TokenConverter {
   ) =>
     this.makeToken({
       type: Token.Filter,
-      filter: type,
-      config: filterTypeConfig[type],
-      negated,
+      filter,
       key,
-      operator: operator ?? TermOperator.Default,
       value,
-      invalidReason: this.checkInvalidFilter(type, key, value),
+      negated,
+      operator: operator ?? TermOperator.Default,
+      invalid: this.checkInvalidFilter(filter, key, value),
     } as FilterResult);
 
   tokenFreeText = (value: string, quoted: boolean) =>
@@ -523,56 +558,83 @@ class TokenConverter {
   predicateTextOperator = (key: TextFilter['key']) =>
     this.config.textOperatorKeys.has(getKeyName(key));
 
+  /**
+   * Checks a filter against some non-grammar validation rules
+   */
   checkInvalidFilter = <T extends FilterType>(
-    type: T,
+    filter: T,
     key: FilterMap[T]['key'],
     value: FilterMap[T]['value']
-  ) =>
-    type !== FilterType.Text
-      ? null
-      : this.checkInvalidTextFilter(
-          key as TextFilter['key'],
-          value as TextFilter['value']
-        );
+  ) => {
+    // Only text filters may currently be invalid, since the text filter is the
+    // "fall through" filter that will match when other filter predicates fail.
+    if (filter !== FilterType.Text) {
+      return null;
+    }
+
+    return this.checkInvalidTextFilter(
+      key as TextFilter['key'],
+      value as TextFilter['value']
+    );
+  };
 
   /**
-   * Validates that a text filter is not using a non-text key.
+   * Validates text filters which may have failed predication
    */
   checkInvalidTextFilter = (key: TextFilter['key'], value: TextFilter['value']) => {
-    // Explicit tag keys are always treated as text filters
+    // Explicit tag keys will always be treated as text filters
     if (key.type === Token.KeyExplicitTag) {
-      return null;
+      return this.checkInvalidTextValue(value);
     }
 
     const keyName = getKeyName(key);
 
     if (this.keyValidation.isDuration(keyName)) {
-      return t('Invalid duration. Expected number followed by duration unit suffix.');
+      return {
+        reason: t('Invalid duration. Expected number followed by duration unit suffix.'),
+        expectedType: [FilterType.Duration],
+      };
     }
 
     if (this.keyValidation.isDate(keyName)) {
-      return t(
-        'Invalid date format. Expected +/-duration (e.g. +1h) or ISO 8601-like (e.g. {now}).',
-        new Date().toISOString()
-      );
+      return {
+        reason: t(
+          'Invalid date format. Expected +/-duration (e.g. +1h) or ISO 8601-like (e.g. {now}).',
+          new Date().toISOString()
+        ),
+        expectedType: [FilterType.Date, FilterType.SpecificDate, FilterType.RelativeDate],
+      };
     }
 
     if (this.keyValidation.isBoolean(keyName)) {
-      return t('Invalid boolean. Expected true, 1, false, or 0.');
+      return {
+        reason: t('Invalid boolean. Expected true, 1, false, or 0.'),
+        expectedType: [FilterType.Boolean],
+      };
     }
 
     if (this.keyValidation.isNumeric(keyName)) {
-      return t(
-        'Invalid number. Expected number then optional k, m, or b suffix (e.g. 500k).'
-      );
+      return {
+        reason: t(
+          'Invalid number. Expected number then optional k, m, or b suffix (e.g. 500k).'
+        ),
+        expectedType: [FilterType.Numeric, FilterType.NumericIn],
+      };
     }
 
-    if (!value.quoted && /(?<!\\)"/.test(value.value)) {
-      return t('Quotes must enclose text or be escaped.');
+    return this.checkInvalidTextValue(value);
+  };
+
+  /**
+   * Validates the value of a text filter
+   */
+  checkInvalidTextValue = (value: TextFilter['value']) => {
+    if (!value.quoted && /(^|[^\\])"/.test(value.value)) {
+      return {reason: t('Quotes must enclose text or be escaped.')};
     }
 
     if (!value.quoted && value.value === '') {
-      return t('Filter must have a value');
+      return {reason: t('Filter must have a value.')};
     }
 
     return null;
