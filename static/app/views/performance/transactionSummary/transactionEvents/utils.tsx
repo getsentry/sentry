@@ -14,26 +14,31 @@ export enum EventsDisplayFilterName {
 }
 
 export type EventsDisplayFilter = {
-  sort?: {kind: string; field: string};
+  name: EventsDisplayFilterName;
+  sort?: {kind: 'desc' | 'asc'; field: string};
   label: string;
   query?: string[][];
+};
+
+export type EventsFilterOptions = {
+  [name in EventsDisplayFilterName]: EventsDisplayFilter;
 };
 
 export function getEventsFilterOptions(
   spanOperationBreakdownFilter: SpanOperationBreakdownFilter,
   p95?: number
-): {
-  [name in EventsDisplayFilterName]: EventsDisplayFilter;
-} {
+): EventsFilterOptions {
   const spanOperationBreakdownFilterTextFragment =
     spanOperationBreakdownFilter !== SpanOperationBreakdownFilter.None
       ? `${spanOperationBreakdownFilter} Operations`
       : 'Transactions';
   return {
     [EventsDisplayFilterName.NONE]: {
+      name: EventsDisplayFilterName.NONE,
       label: t('All %s', spanOperationBreakdownFilterTextFragment),
     },
     [EventsDisplayFilterName.FASTEST]: {
+      name: EventsDisplayFilterName.FASTEST,
       sort: {
         kind: 'asc',
         field: filterToField(spanOperationBreakdownFilter) || 'transaction.duration',
@@ -42,6 +47,7 @@ export function getEventsFilterOptions(
     },
 
     [EventsDisplayFilterName.SLOW]: {
+      name: EventsDisplayFilterName.SLOW,
       query: p95 ? [['transaction.duration', `<=${p95.toFixed(0)}`]] : [],
       sort: {
         kind: 'desc',
@@ -51,6 +57,7 @@ export function getEventsFilterOptions(
     },
 
     [EventsDisplayFilterName.OUTLIER]: {
+      name: EventsDisplayFilterName.OUTLIER,
       sort: {
         kind: 'desc',
         field: filterToField(spanOperationBreakdownFilter) || 'transaction.duration',
@@ -59,6 +66,7 @@ export function getEventsFilterOptions(
     },
 
     [EventsDisplayFilterName.RECENT]: {
+      name: EventsDisplayFilterName.RECENT,
       sort: {kind: 'desc', field: 'timestamp'},
       label: t('Recent Transactions'),
     },

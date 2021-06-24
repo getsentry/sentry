@@ -299,7 +299,6 @@ class EventsTable extends React.Component<Props, State> {
         }
         return col;
       });
-
     return (
       <div>
         <DiscoverQuery

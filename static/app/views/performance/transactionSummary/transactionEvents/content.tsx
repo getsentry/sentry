@@ -11,6 +11,7 @@ import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import SearchBar from 'app/components/events/searchBar';
 import GlobalSdkUpdateAlert from 'app/components/globalSdkUpdateAlert';
 import * as Layout from 'app/components/layouts/thirds';
+import LoadingIndicator from 'app/components/loadingIndicator';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {IconFlag} from 'app/icons';
 import {t} from 'app/locale';
@@ -37,8 +38,10 @@ type Props = {
   projects: Project[];
   spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
   onChangeSpanOperationBreakdownFilter: (newFilter: SpanOperationBreakdownFilter) => void;
-  eventsDisplayFilter: EventsDisplayFilterName;
-  onChangeEventsDisplayFilter: (eventsDisplayFilter: EventsDisplayFilterName) => void;
+  eventsDisplayFilterName: EventsDisplayFilterName;
+  onChangeEventsDisplayFilter: (eventsDisplayFilterName: EventsDisplayFilterName) => void;
+  totalValues: Record<string, number> | null;
+  isLoading: boolean;
 };
 
 type State = {
@@ -105,36 +108,15 @@ class EventsPageContent extends React.Component<Props, State> {
   };
 
   render() {
-    let {eventView} = this.props;
     const {
+      eventView,
       location,
       organization,
       projects,
       transactionName,
-      spanOperationBreakdownFilter,
-      eventsDisplayFilter,
-      onChangeEventsDisplayFilter,
+      isLoading,
     } = this.props;
     const {incompatibleAlertNotice} = this.state;
-    const transactionsListTitles = [
-      t('event id'),
-      t('user'),
-      t('operation duration'),
-      t('total duration'),
-      t('trace id'),
-      t('timestamp'),
-    ];
-
-    const spanOperationBreakdownConditions = filterToSearchConditions(
-      spanOperationBreakdownFilter,
-      location
-    );
-
-    if (spanOperationBreakdownConditions) {
-      eventView = eventView.clone();
-      eventView.query = `${eventView.query} ${spanOperationBreakdownConditions}`.trim();
-      transactionsListTitles.splice(2, 1, t(`${spanOperationBreakdownFilter} duration`));
-    }
 
     return (
       <Fragment>
@@ -158,24 +140,71 @@ class EventsPageContent extends React.Component<Props, State> {
             <Layout.Main fullWidth>{incompatibleAlertNotice}</Layout.Main>
           )}
           <Layout.Main fullWidth>
-            <Search
-              {...this.props}
-              onChangeEventsDisplayFilter={onChangeEventsDisplayFilter}
-              eventsDisplayFilter={eventsDisplayFilter}
-            />
-            <StyledTable>
-              <EventsTable
-                eventView={eventView}
-                organization={organization}
-                location={location}
-                setError={this.setError}
-                columnTitles={transactionsListTitles}
-                transactionName={transactionName}
-              />
-            </StyledTable>
+            {isLoading ? (
+              <LoadingIndicator />
+            ) : (
+              <Body {...this.props} setError={this.setError} />
+            )}
           </Layout.Main>
         </Layout.Body>
       </Fragment>
+    );
+  }
+}
+
+class Body extends React.Component<
+  Props & {setError: (error: string | undefined) => void},
+  State
+> {
+  render() {
+    let {eventView} = this.props;
+    const {
+      location,
+      organization,
+      transactionName,
+      spanOperationBreakdownFilter,
+      eventsDisplayFilterName,
+      onChangeEventsDisplayFilter,
+      setError,
+    } = this.props;
+    const transactionsListTitles = [
+      t('event id'),
+      t('user'),
+      t('operation duration'),
+      t('total duration'),
+      t('trace id'),
+      t('timestamp'),
+    ];
+
+    const spanOperationBreakdownConditions = filterToSearchConditions(
+      spanOperationBreakdownFilter,
+      location
+    );
+
+    if (spanOperationBreakdownConditions) {
+      eventView = eventView.clone();
+      eventView.query = `${eventView.query} ${spanOperationBreakdownConditions}`.trim();
+      transactionsListTitles.splice(2, 1, t(`${spanOperationBreakdownFilter} duration`));
+    }
+
+    return (
+      <React.Fragment>
+        <Search
+          {...this.props}
+          onChangeEventsDisplayFilter={onChangeEventsDisplayFilter}
+          eventsDisplayFilterName={eventsDisplayFilterName}
+        />
+        <StyledTable>
+          <EventsTable
+            eventView={eventView}
+            organization={organization}
+            location={location}
+            setError={setError}
+            columnTitles={transactionsListTitles}
+            transactionName={transactionName}
+          />
+        </StyledTable>
+      </React.Fragment>
     );
   }
 }
@@ -187,8 +216,9 @@ const Search = (props: Props) => {
     organization,
     spanOperationBreakdownFilter,
     onChangeSpanOperationBreakdownFilter,
-    eventsDisplayFilter,
+    eventsDisplayFilterName,
     onChangeEventsDisplayFilter,
+    totalValues,
   } = props;
 
   const handleSearch = (query: string) => {
@@ -208,7 +238,10 @@ const Search = (props: Props) => {
 
   const query = decodeScalar(location.query.query, '');
 
-  const eventsFilterOptions = getEventsFilterOptions(spanOperationBreakdownFilter, 1000);
+  const eventsFilterOptions = getEventsFilterOptions(
+    spanOperationBreakdownFilter,
+    totalValues?.p95 ?? 0
+  );
 
   return (
     <SearchWrapper>
@@ -225,22 +258,20 @@ const Search = (props: Props) => {
         onSearch={handleSearch}
       />
       <LatencyDropdown>
-        {/* TODO */}
         <DropdownControl
           buttonProps={{prefix: t('Display')}}
-          label={eventsFilterOptions[eventsDisplayFilter].label}
+          label={eventsFilterOptions[eventsDisplayFilterName].label}
         >
-          {/* TODO */}
-          {Object.entries(eventsFilterOptions).map(([name, {label}]) => {
+          {Object.entries(eventsFilterOptions).map(([name, filter]) => {
             return (
               <DropdownItem
                 key={name}
                 onSelect={onChangeEventsDisplayFilter}
                 eventKey={name}
                 data-test-id={name}
-                isActive={eventsDisplayFilter === name}
+                isActive={eventsDisplayFilterName === name}
               >
-                {label}
+                {filter.label}
               </DropdownItem>
             );
           })}

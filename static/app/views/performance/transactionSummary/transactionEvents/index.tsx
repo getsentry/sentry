@@ -10,9 +10,11 @@ import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {t} from 'app/locale';
 import {GlobalSelection, Organization, Project} from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
+import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
 import {
   isAggregateField,
+  QueryFieldValue,
   SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'app/utils/discover/fields';
@@ -48,17 +50,20 @@ type Props = {
 
 type State = {
   spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
-  eventsDisplayFilter: EventsDisplayFilterName;
-  eventView: EventView | undefined;
+  eventsDisplayFilterName: EventsDisplayFilterName;
+  eventView: EventView;
 };
 
+// Used to cast the totals request to numbers
+// as React.ReactText
+type TotalValues = Record<string, number>;
 class TransactionEvents extends Component<Props, State> {
   state: State = {
     spanOperationBreakdownFilter: decodeFilterFromLocation(this.props.location),
-    eventsDisplayFilter: decodeEventsDisplayFilterFromLocation(this.props.location),
+    eventsDisplayFilterName: decodeEventsDisplayFilterFromLocation(this.props.location),
     eventView: generateEventsEventView(
       this.props.location,
-      getTransactionName(this.props.location)
+      getTransactionName(this.props.location) || ''
     ),
   };
 
@@ -66,22 +71,17 @@ class TransactionEvents extends Component<Props, State> {
     return {
       ...prevState,
       spanOperationBreakdownFilter: decodeFilterFromLocation(nextProps.location),
-      eventsDisplayFilter: decodeEventsDisplayFilterFromLocation(nextProps.location),
+      eventsDisplayFilterName: decodeEventsDisplayFilterFromLocation(nextProps.location),
       eventView: generateEventsEventView(
         nextProps.location,
-        getTransactionName(nextProps.location)
+        getTransactionName(nextProps.location) || ''
       ),
     };
   }
 
-  componentDidMount() {
-    const {eventsDisplayFilter} = this.state;
-    this.filterEvents(eventsDisplayFilter);
-  }
-
   onChangeSpanOperationBreakdownFilter = (newFilter: SpanOperationBreakdownFilter) => {
     const {location, organization} = this.props;
-    const {spanOperationBreakdownFilter, eventsDisplayFilter, eventView} = this.state;
+    const {spanOperationBreakdownFilter, eventsDisplayFilterName, eventView} = this.state;
 
     trackAnalyticsEvent({
       eventName: 'Performance Views: Filter Dropdown',
@@ -91,9 +91,9 @@ class TransactionEvents extends Component<Props, State> {
     });
 
     // Check to see if the current table sort matches the EventsDisplayFilter.
-    // If it does, we can resort using the new SpanOperationBreakdownFilter
+    // If it does, we can re-sort using the new SpanOperationBreakdownFilter
     const eventsFilterOptionSort = getEventsFilterOptions(spanOperationBreakdownFilter)[
-      eventsDisplayFilter
+      eventsDisplayFilterName
     ].sort;
     const currentSort = eventView?.sorts?.[0];
     let sortQuery = {};
@@ -102,7 +102,7 @@ class TransactionEvents extends Component<Props, State> {
       eventsFilterOptionSort?.kind === currentSort?.kind &&
       eventsFilterOptionSort?.field === currentSort?.field
     ) {
-      sortQuery = filterEventsDisplayToLocationQuery(eventsDisplayFilter, newFilter);
+      sortQuery = filterEventsDisplayToLocationQuery(eventsDisplayFilterName, newFilter);
     }
 
     const nextQuery: Location['query'] = {
@@ -120,27 +120,27 @@ class TransactionEvents extends Component<Props, State> {
     });
   };
 
-  onChangeEventsDisplayFilter = (newFilter: EventsDisplayFilterName) => {
+  onChangeEventsDisplayFilter = (newFilterName: EventsDisplayFilterName) => {
     const {organization} = this.props;
 
     trackAnalyticsEvent({
       eventName: 'Performance Views: Filter Dropdown',
       eventKey: 'performance_views.filter_dropdown.selection',
       organization_id: parseInt(organization.id, 10),
-      action: newFilter as string,
+      action: newFilterName as string,
     });
-    this.filterEvents(newFilter);
+    this.filterDropdownSortEvents(newFilterName);
   };
 
-  filterEvents = (newFilter: EventsDisplayFilterName) => {
+  filterDropdownSortEvents = (newFilterName: EventsDisplayFilterName) => {
     const {location} = this.props;
     const {spanOperationBreakdownFilter} = this.state;
     const nextQuery: Location['query'] = {
       ...removeHistogramQueryStrings(location, [ZOOM_START, ZOOM_END]),
-      ...filterEventsDisplayToLocationQuery(newFilter, spanOperationBreakdownFilter),
+      ...filterEventsDisplayToLocationQuery(newFilterName, spanOperationBreakdownFilter),
     };
 
-    if (newFilter === EventsDisplayFilterName.NONE) {
+    if (newFilterName === EventsDisplayFilterName.NONE) {
       delete nextQuery.showTransaction;
     }
 
@@ -148,6 +148,20 @@ class TransactionEvents extends Component<Props, State> {
       pathname: location.pathname,
       query: nextQuery,
     });
+  };
+
+  getFilteredEventView = (p95?: number) => {
+    const {eventsDisplayFilterName, spanOperationBreakdownFilter, eventView} = this.state;
+    const filter = getEventsFilterOptions(spanOperationBreakdownFilter, p95)[
+      eventsDisplayFilterName
+    ];
+    const filteredEventView = eventView.clone();
+    if (filteredEventView && filter?.query) {
+      const query = tokenizeSearch(filteredEventView.query);
+      filter.query.forEach(item => query.setTagValues(item[0], [item[1]]));
+      filteredEventView.query = query.formatString();
+    }
+    return filteredEventView;
   };
 
   getDocumentTitle(): string {
@@ -160,6 +174,15 @@ class TransactionEvents extends Component<Props, State> {
     }
 
     return [t('Summary'), t('Events')].join(' \u2014 ');
+  }
+
+  getTotalsEventView(eventView: EventView): EventView {
+    const totalsColumns: QueryFieldValue = {
+      kind: 'function',
+      function: ['p95', '', undefined],
+    };
+
+    return eventView.withColumns([totalsColumns]);
   }
 
   renderNoAccess = () => {
@@ -180,6 +203,7 @@ class TransactionEvents extends Component<Props, State> {
       });
       return null;
     }
+    const totalsView = this.getTotalsEventView(eventView);
 
     const shouldForceProject = eventView.project.length === 1;
     const forceProject = shouldForceProject
@@ -189,6 +213,7 @@ class TransactionEvents extends Component<Props, State> {
       .map(projectId => projects.find(p => parseInt(p.id, 10) === projectId))
       .filter((p: Project | undefined): p is Project => p !== undefined)
       .map(p => p.slug);
+
     return (
       <SentryDocumentTitle
         title={this.getDocumentTitle()}
@@ -209,19 +234,35 @@ class TransactionEvents extends Component<Props, State> {
             showProjectSettingsLink
           >
             <LightWeightNoProjectMessage organization={organization}>
-              <EventsPageContent
+              <DiscoverQuery
+                eventView={totalsView}
+                orgSlug={organization.slug}
                 location={location}
-                eventView={eventView}
-                transactionName={transactionName}
-                organization={organization}
-                projects={projects}
-                spanOperationBreakdownFilter={this.state.spanOperationBreakdownFilter}
-                onChangeSpanOperationBreakdownFilter={
-                  this.onChangeSpanOperationBreakdownFilter
-                }
-                eventsDisplayFilter={this.state.eventsDisplayFilter}
-                onChangeEventsDisplayFilter={this.onChangeEventsDisplayFilter}
-              />
+                referrer="api.performance.transaction-events"
+              >
+                {({isLoading, tableData}) => {
+                  const totals: TotalValues | null = tableData?.data?.[0] ?? null;
+                  return (
+                    <EventsPageContent
+                      location={location}
+                      eventView={this.getFilteredEventView(totals?.p95)}
+                      transactionName={transactionName}
+                      organization={organization}
+                      projects={projects}
+                      spanOperationBreakdownFilter={
+                        this.state.spanOperationBreakdownFilter
+                      }
+                      onChangeSpanOperationBreakdownFilter={
+                        this.onChangeSpanOperationBreakdownFilter
+                      }
+                      eventsDisplayFilterName={this.state.eventsDisplayFilterName}
+                      onChangeEventsDisplayFilter={this.onChangeEventsDisplayFilter}
+                      totalValues={totals}
+                      isLoading={isLoading}
+                    />
+                  );
+                }}
+              </DiscoverQuery>
             </LightWeightNoProjectMessage>
           </GlobalSelectionHeader>
         </Feature>
@@ -230,13 +271,7 @@ class TransactionEvents extends Component<Props, State> {
   }
 }
 
-function generateEventsEventView(
-  location: Location,
-  transactionName: string | undefined
-): EventView | undefined {
-  if (transactionName === undefined) {
-    return undefined;
-  }
+function generateEventsEventView(location: Location, transactionName: string): EventView {
   // Use the user supplied query but overwrite any transaction or event type
   // conditions they applied.
   const query = decodeScalar(location.query.query, '');
