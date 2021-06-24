@@ -294,12 +294,7 @@ class ReleaseOverview extends AsyncView<Props> {
   get pageDateTime(): DateTimeObject {
     const query = this.props.location.query;
 
-    const {
-      start,
-      end,
-      statsPeriod,
-      utc: utcString,
-    } = getParams(query, {
+    const {start, end, statsPeriod, utc: utcString} = getParams(query, {
       allowEmptyPeriod: true,
       allowAbsoluteDatetime: true,
       allowAbsolutePageDatetime: true,
@@ -635,7 +630,9 @@ function getDropdownOptions(): DropdownOption[] {
   ];
 }
 
-function getTransactionsListSort(location: Location): {
+function getTransactionsListSort(
+  location: Location
+): {
   selectedSort: DropdownOption;
   sortOptions: DropdownOption[];
 } {
