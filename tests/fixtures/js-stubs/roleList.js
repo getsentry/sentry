@@ -15,8 +15,7 @@ export function RoleList(params = [], fullAccess = false) {
       name: 'Member',
       allowed: true,
       id: 'member',
-      desc:
-        'Members can view and act on events, as well as view most other data within the organization.',
+      desc: 'Members can view and act on events, as well as view most other data within the organization.',
     },
     {
       scopes: [
@@ -38,8 +37,7 @@ export function RoleList(params = [], fullAccess = false) {
       name: 'Admin',
       allowed: fullAccess,
       id: 'admin',
-      desc:
-        "Admin privileges on any teams of which they're a member. They can create new teams and projects, as well as remove teams and projects which they already hold membership on (or all teams, if open membership is on).",
+      desc: "Admin privileges on any teams of which they're a member. They can create new teams and projects, as well as remove teams and projects on which they already hold membership (or all teams, if open membership is enabled). Additionally, they can manage memberships of teams that they are members of. They cannot invite members to the organization.",
     },
     {
       scopes: [
@@ -64,8 +62,7 @@ export function RoleList(params = [], fullAccess = false) {
       name: 'Manager',
       allowed: fullAccess,
       id: 'manager',
-      desc:
-        'Gains admin access on all teams as well as the ability to add and remove members.',
+      desc: 'Gains admin access on all teams as well as the ability to add and remove members.',
     },
     {
       scopes: [
@@ -91,8 +88,7 @@ export function RoleList(params = [], fullAccess = false) {
       name: 'Owner',
       allowed: fullAccess,
       id: 'owner',
-      desc:
-        'Gains full permission across the organization. Can manage members as well as perform catastrophic operations such as removing the organization.',
+      desc: 'Gains full permission across the organization. Can manage members as well as perform catastrophic operations such as removing the organization.',
     },
     ...params,
   ];
