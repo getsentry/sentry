@@ -14,11 +14,11 @@ class RedisSessionStore:
     the session cookie.
 
     The attributes to be backed by Redis must be declared in a subclass using
-    the `redis_proerty` function. For example:
+    the `redis_property` function. For example:
 
     >>> class HotDogSessionStore(RedisSessionStore):
-    >>>     bun = redis_proerty("bun")
-    >>>     condiment = redis_proerty("condiment")
+    >>>     bun = redis_property("bun")
+    >>>     condiment = redis_property("condiment")
 
     NOTE: Assigning attributes immediately saves their value back into the
           redis key assigned for this store. Be aware of the multiple
