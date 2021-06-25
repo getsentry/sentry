@@ -14,6 +14,7 @@ from typing import Any, Dict, List
 import dateutil
 import jsonschema
 import requests
+from django.db import transaction
 
 from sentry.lang.native.symbolicator import APP_STORE_CONNECT_SCHEMA
 from sentry.models import Project
@@ -160,7 +161,7 @@ class AppStoreConnectConfig:
         :raises KeyError: if the config is not found.
         :raises InvalidConfigError if the stored config is somehow invalid.
         """
-        raw = project.get_option(SYMBOL_SOURCES_PROP_NAME)
+        raw = project.get_option(SYMBOL_SOURCES_PROP_NAME, default="[]")
         all_sources = json.loads(raw)
         for source in all_sources:
             if source.get("type") == SYMBOL_SOURCE_TYPE_NAME and source.get("id") == config_id:
@@ -187,6 +188,35 @@ class AppStoreConnectConfig:
         except jsonschema.exceptions.ValidationError as e:
             raise InvalidConfigError from e
         return data
+
+    def update_project_symbol_source(self, project: Project) -> json.JSONData:
+        """Updates this configuration in the Project's symbol sources.
+
+        If a symbol source of type ``appStoreConnect`` already exists the ID must match and it
+        will be updated.  If not ``appStoreConnect`` source exists yet it is added.
+
+        :returns: The new value of the sources.  Use this in a call to
+           `ProjectEndpoint.create_audit_entry()` to create an audit log.
+
+        :raises ValueError: if an ``appStoreConnect`` source already exists but the ID does not
+           match.
+        """
+        with transaction.atomic():
+            all_sources_raw = project.get_option(SYMBOL_SOURCES_PROP_NAME, default="[]")
+            all_sources = json.loads(all_sources_raw)
+            for i, source in enumerate(all_sources):
+                if source.get("type") == SYMBOL_SOURCE_TYPE_NAME:
+                    if source.get("id") != self.id:
+                        raise ValueError(
+                            "Existing appStoreConnect symbolSource config does not match id"
+                        )
+                    all_sources[i] = self.to_json()
+                    break
+            else:
+                # No existing appStoreConnect symbol source, simply append it.
+                all_sources.append(self.to_json())
+            project.update_option(SYMBOL_SOURCES_PROP_NAME, json.dumps(all_sources))
+        return all_sources
 
 
 @enum.unique

@@ -66,25 +66,13 @@ from sentry.api.exceptions import (
     ItunesTwoFactorAuthenticationRequired,
 )
 from sentry.lang.native import appconnect
-from sentry.models import Project
+from sentry.models import AuditLogEntryEvent, Project
 from sentry.tasks.app_store_connect import dsym_download
 from sentry.utils.appleconnect import appstore_connect, itunes_connect
 from sentry.utils.appleconnect.itunes_connect import ITunesHeaders
 from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
-
-
-# The property name of the project option which contains the encryption key.
-#
-# This key is what is used to encrypt the secrets before storing them in the project
-# options.  Specifically the ``sessionContext``, ``itunesPassword`` and
-# ``appconnectPrivateKey`` are currently encrypted using this key.
-CREDENTIALS_KEY_NAME = "sentry:appleconnect_key"
-
-
-# The key in the project options under which all symbol sources are stored.
-SYMBOL_SOURCES_PROP_NAME = "sentry:symbol_sources"
 
 
 # The name of the feature flag which enables the App Store Connect symbol source.
@@ -252,12 +240,19 @@ class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
         config["itunesPersonId"] = session_context.get("itunes_person_id")
 
         validated_config = appconnect.AppStoreConnectConfig.from_json(config)
+        new_sources = validated_config.update_project_symbol_source(project)
+        self.create_audit_entry(
+            request=request,
+            organization=project.organization,
+            target_object=project.id,
+            event=AuditLogEntryEvent.PROJECT_EDIT,
+            data={appconnect.SYMBOL_SOURCES_PROP_NAME: new_sources},
+        )
 
         dsym_download.apply_async(
             kwargs={
                 "project_id": project.id,
                 "config_id": validated_config.id,
-                "config": validated_config.to_json(),
             }
         )
 
@@ -338,12 +333,19 @@ class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
         new_data = symbol_source_config.to_json()
         new_data.update(data)
         symbol_source_config = appconnect.AppStoreConnectConfig.from_json(new_data)
+        new_sources = symbol_source_config.update_project_symbol_source(project)
+        self.create_audit_entry(
+            request=request,
+            organization=project.organization,
+            target_object=project.id,
+            event=AuditLogEntryEvent.PROJECT_EDIT,
+            data={appconnect.SYMBOL_SOURCES_PROP_NAME: new_sources},
+        )
 
         dsym_download.apply_async(
             kwargs={
                 "project_id": project.id,
                 "config_id": symbol_source_config.id,
-                "config": symbol_source_config.to_json(),
             }
         )
 

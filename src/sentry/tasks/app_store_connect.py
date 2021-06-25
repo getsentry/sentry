@@ -6,7 +6,6 @@ debug files.  These tasks enable this functionality.
 
 import logging
 import tempfile
-from typing import Any, Dict, Optional
 
 from sentry.lang.native import appconnect
 from sentry.models import AppConnectBuild, Project, debugfile
@@ -21,29 +20,15 @@ logger = logging.getLogger(__name__)
 # around this.
 # Since all these args must be pickled we keep them to built-in types as well.
 @instrumented_task(name="sentry.tasks.app_store_connect.dsym_download", queue="appstoreconnect")  # type: ignore
-def dsym_download(project_id: int, config_id: str, config: Optional[Dict[str, Any]]) -> None:
-    if config is not None:
-        typed_config: Optional[
-            appconnect.AppStoreConnectConfig
-        ] = appconnect.AppStoreConnectConfig.from_json(config)
-    else:
-        typed_config = None
-    inner_dsym_download(project_id=project_id, config_id=config_id, config=typed_config)
+def dsym_download(project_id: int, config_id: str) -> None:
+    inner_dsym_download(project_id=project_id, config_id=config_id)
 
 
 def inner_dsym_download(
     project_id: int,
     config_id: str,
-    config: Optional[appconnect.AppStoreConnectConfig] = None,
 ) -> None:
-    """Downloads the dSYMs from App Store Connect and stores them in the Project's debug files.
-
-    :param config: is optional to work around an oddity in the API with the UI: we need to
-       spawn the task when the credentials are saved.  However currently the API relies on
-       the UI to save the project details itself, thus the new config will not yet be stored
-       when this is called.  It would be better to update the API sometime so that the UI is
-       no longer responsible for storing the symbol source config.
-    """
+    """Downloads the dSYMs from App Store Connect and stores them in the Project's debug files."""
     # TODO(flub): we should only run one task ever for a project.  Is
     # sentry.cache.default_cache the right thing to put a "mutex" into?  See how
     # sentry.tasks.assemble uses this.
@@ -51,8 +36,7 @@ def inner_dsym_download(
         scope.set_tag("project", project_id)
 
     project = Project.objects.get(pk=project_id)
-    if config is None:
-        config = appconnect.AppStoreConnectConfig.from_project_config(project, config_id)
+    config = appconnect.AppStoreConnectConfig.from_project_config(project, config_id)
     client = appconnect.AppConnectClient.from_config(config)
     itunes_client = client.itunes_client()
 
