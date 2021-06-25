@@ -29,6 +29,9 @@ class SentryMigrationExecutor(MigrationExecutor):
         - RunSQL, RunPython need to provide hints['tables']
         """
 
+        if migration.app_label not in {"sentry", "getsentry"}:
+            return
+
         def _check_operations(operations):
             failed_ops = []
             for operation in operations:
