@@ -1,0 +1,58 @@
+name: 🐞 Bug Report
+description: Tell us about something that's not working the way we (probably) intend.
+body:
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Environment
+      description: Where are you using our software?
+      options:
+        - SaaS (https://sentry.io/)
+        - single-tenant (if you know, you know)
+        - self-hosted (`onpremise` deployment)
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: If self-hosted, what version are you running?
+    validations:
+      required: false
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to Reproduce
+      description: How can we see what you're seeing? Specific is terrific.
+      value: |-
+        1. foo
+        2. bar
+        3. baz
+    validations:
+      required: true
+  - type: input
+    id: expected
+    attributes:
+      label: Expected Result
+    validations:
+      required: true
+  - type: input 
+    id: actual
+    attributes:
+      label: Actual Result
+    validations:
+      required: true
+  - type: textarea
+    id: more-info
+    attributes:
+      label: More Info 
+      description: Logs? Screenshots? Yes, please.
+    validations:
+      required: false
+  - type: markdown
+    attributes:
+      value: |-
+        ## Thanks 🙏
+        Check our [triage docs](https://open.sentry.io/triage/) for what to expect next.
+    validations:
+      required: false
