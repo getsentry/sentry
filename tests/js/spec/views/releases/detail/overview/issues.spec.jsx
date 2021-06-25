@@ -4,7 +4,6 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import Issues from 'app/views/releases/detail/overview/issues';
 
 describe('Release Issues', function () {
-  const organization = TestStubs.Organization();
   let newIssuesEndpoint,
     resolvedIssuesEndpoint,
     unhandledIssuesEndpoint,

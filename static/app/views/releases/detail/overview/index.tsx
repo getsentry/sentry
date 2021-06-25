@@ -486,7 +486,7 @@ class ReleaseOverview extends AsyncView<Props> {
                 </Feature>
 
                 <Issues
-                  organization={organization}
+                  orgId={organization.slug}
                   selection={selection}
                   version={version}
                   location={location}

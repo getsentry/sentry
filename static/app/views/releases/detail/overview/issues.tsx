@@ -2,7 +2,6 @@ import {Component, Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
-import pick from 'lodash/pick';
 import * as qs from 'query-string';
 
 import {Client} from 'app/api';
@@ -375,7 +374,7 @@ class Issues extends Component<Props, State> {
               {t('Open in Issues')}
             </Button>
 
-            {hasReleaseComparison ? null : (
+            {!hasReleaseComparison && (
               <GuideAnchor target="release_issues_open_in_discover">
                 <DiscoverButton
                   to={this.getDiscoverUrl()}
