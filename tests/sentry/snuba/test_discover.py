@@ -3058,6 +3058,20 @@ class TimeseriesQueryTest(TimeseriesBase):
         event_data["start_timestamp"] = iso_format(self.day_ago + timedelta(minutes=30))
         event_data["timestamp"] = iso_format(self.day_ago + timedelta(minutes=30, seconds=3))
         self.store_event(data=event_data, project_id=self.project.id)
+        ProjectTransactionThreshold.objects.create(
+            project=self.project,
+            organization=self.project.organization,
+            threshold=100,
+            metric=TransactionMetric.DURATION.value,
+        )
+
+        project2 = self.create_project()
+        ProjectTransactionThreshold.objects.create(
+            project=project2,
+            organization=project2.organization,
+            threshold=100,
+            metric=TransactionMetric.DURATION.value,
+        )
 
         result = discover.timeseries_query(
             selected_columns=["equation|count_miserable(user) - 100"],
@@ -3065,7 +3079,7 @@ class TimeseriesQueryTest(TimeseriesBase):
             params={
                 "start": self.day_ago,
                 "end": self.day_ago + timedelta(hours=2),
-                "project_id": [self.project.id],
+                "project_id": [self.project.id, project2.id],
                 "organization_id": self.organization.id,
             },
             rollup=3600,
