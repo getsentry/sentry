@@ -97,6 +97,7 @@ type Props = {
   defaultStatsPeriod?: string;
   releasesReloading?: boolean;
   healthStatsPeriod?: HealthStatsPeriodOption;
+  disable?: boolean;
 };
 type State = {
   loading: boolean;
@@ -160,7 +161,11 @@ class ReleaseHealthRequest extends React.Component<Props, State> {
   }
 
   fetchData = async () => {
-    const {api, healthStatsPeriod} = this.props;
+    const {api, healthStatsPeriod, disable} = this.props;
+
+    if (disable) {
+      return;
+    }
 
     api.clear();
     this.setState({

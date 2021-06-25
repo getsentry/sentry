@@ -10,21 +10,18 @@ import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {t, tn} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
-import {CrashFreeTimeBreakdown, GlobalSelection, Organization} from 'app/types';
+import {CrashFreeTimeBreakdown, Organization} from 'app/types';
 import {defined} from 'app/utils';
 
 import {displayCrashFreePercent} from '../../utils';
 
-import {getInterval} from './chart/utils';
 import {SectionHeading, Wrapper} from './styles';
 
 type Props = AsyncComponent['props'] & {
   location: Location;
-  selection: GlobalSelection;
   organization: Organization;
   version: string;
   projectSlug: string;
-  defaultStatsPeriod: string;
 };
 
 type State = AsyncComponent['state'] & {
@@ -35,8 +32,7 @@ class TotalCrashFreeUsers extends AsyncComponent<Props, State> {
   shouldReload = true;
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {location, defaultStatsPeriod, organization, projectSlug, version, selection} =
-      this.props;
+    const {location, organization, projectSlug, version} = this.props;
 
     return [
       [
@@ -44,10 +40,9 @@ class TotalCrashFreeUsers extends AsyncComponent<Props, State> {
         `/projects/${organization.slug}/${projectSlug}/releases/${version}/stats/`,
         {
           query: {
-            ...getParams(pick(location.query, [...Object.values(URL_PARAM)]), {
-              defaultStatsPeriod,
-            }),
-            interval: getInterval(selection.datetime),
+            ...getParams(
+              pick(location.query, [URL_PARAM.PROJECT, URL_PARAM.ENVIRONMENT])
+            ),
             type: 'sessions',
           },
         },

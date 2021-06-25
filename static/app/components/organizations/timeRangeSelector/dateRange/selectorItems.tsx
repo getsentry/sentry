@@ -9,7 +9,7 @@ type Props = {
   handleAbsoluteClick: (value: string, e?: React.MouseEvent) => void;
   isAbsoluteSelected: boolean;
   relativeSelected: string;
-  relativePeriods?: Record<string, string>; // Override DEFAULT_RELATIVE_PERIODS
+  relativePeriods?: Record<string, React.ReactNode>; // Override DEFAULT_RELATIVE_PERIODS
   shouldShowRelative?: boolean;
   shouldShowAbsolute?: boolean;
 };

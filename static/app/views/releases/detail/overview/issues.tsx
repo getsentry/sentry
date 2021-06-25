@@ -1,7 +1,6 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
-import pick from 'lodash/pick';
 
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Button from 'app/components/button';
@@ -10,16 +9,15 @@ import DiscoverButton from 'app/components/discoverButton';
 import DropdownButton from 'app/components/dropdownButton';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import GroupList from 'app/components/issues/groupList';
-import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import Pagination from 'app/components/pagination';
 import {DEFAULT_RELATIVE_PERIODS} from 'app/constants';
-import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import {GlobalSelection} from 'app/types';
+import {GlobalSelection, Organization} from 'app/types';
 import {QueryResults} from 'app/utils/tokenizeSearch';
 import {IssueSortOptions} from 'app/views/issueList/utils';
 
+import {getReleaseParams, ReleaseBounds} from '../../utils';
 import EmptyState from '../emptyState';
 
 import {getReleaseEventView} from './chart/utils';
@@ -38,11 +36,12 @@ type IssuesQueryParams = {
 };
 
 type Props = {
-  orgId: string;
+  organization: Organization;
   version: string;
   selection: GlobalSelection;
   location: Location;
   defaultStatsPeriod: string;
+  releaseBounds: ReleaseBounds;
 };
 
 type State = {
@@ -57,14 +56,14 @@ class Issues extends Component<Props, State> {
   };
 
   getDiscoverUrl() {
-    const {version, orgId, selection} = this.props;
+    const {version, organization, selection} = this.props;
     const discoverView = getReleaseEventView(selection, version);
 
-    return discoverView.getResultsViewUrlTarget(orgId);
+    return discoverView.getResultsViewUrlTarget(organization.slug);
   }
 
   getIssuesUrl() {
-    const {version, orgId} = this.props;
+    const {version, organization} = this.props;
     const {issuesType} = this.state;
     const {queryParams} = this.getIssuesEndpoint();
     const query = new QueryResults([]);
@@ -84,7 +83,7 @@ class Issues extends Component<Props, State> {
     }
 
     return {
-      pathname: `/organizations/${orgId}/issues/`,
+      pathname: `/organizations/${organization.slug}/issues/`,
       query: {
         ...queryParams,
         limit: undefined,
@@ -95,11 +94,16 @@ class Issues extends Component<Props, State> {
   }
 
   getIssuesEndpoint(): {path: string; queryParams: IssuesQueryParams} {
-    const {version, orgId, location, defaultStatsPeriod} = this.props;
+    const {version, organization, location, defaultStatsPeriod, releaseBounds} =
+      this.props;
     const {issuesType} = this.state;
+
     const queryParams = {
-      ...getParams(pick(location.query, [...Object.values(URL_PARAM), 'cursor']), {
+      ...getReleaseParams({
+        location,
+        releaseBounds,
         defaultStatsPeriod,
+        allowEmptyPeriod: organization.features.includes('release-comparison'),
       }),
       limit: 10,
       sort: IssueSortOptions.FREQ,
@@ -108,7 +112,7 @@ class Issues extends Component<Props, State> {
     switch (issuesType) {
       case IssuesType.ALL:
         return {
-          path: `/organizations/${orgId}/issues/`,
+          path: `/organizations/${organization.slug}/issues/`,
           queryParams: {
             ...queryParams,
             query: new QueryResults([`release:${version}`]).formatString(),
@@ -116,12 +120,12 @@ class Issues extends Component<Props, State> {
         };
       case IssuesType.RESOLVED:
         return {
-          path: `/organizations/${orgId}/releases/${version}/resolved/`,
+          path: `/organizations/${organization.slug}/releases/${version}/resolved/`,
           queryParams: {...queryParams, query: ''},
         };
       case IssuesType.UNHANDLED:
         return {
-          path: `/organizations/${orgId}/issues/`,
+          path: `/organizations/${organization.slug}/issues/`,
           queryParams: {
             ...queryParams,
             query: new QueryResults([
@@ -133,7 +137,7 @@ class Issues extends Component<Props, State> {
       case IssuesType.NEW:
       default:
         return {
-          path: `/organizations/${orgId}/issues/`,
+          path: `/organizations/${organization.slug}/issues/`,
           queryParams: {
             ...queryParams,
             query: new QueryResults([`first-release:${version}`]).formatString(),
@@ -182,7 +186,7 @@ class Issues extends Component<Props, State> {
 
   render() {
     const {issuesType, pageLinks, onCursor} = this.state;
-    const {orgId} = this.props;
+    const {organization} = this.props;
     const {path, queryParams} = this.getIssuesEndpoint();
     const issuesTypes = [
       {value: IssuesType.NEW, label: t('New Issues')},
@@ -238,7 +242,7 @@ class Issues extends Component<Props, State> {
         </ControlsWrapper>
         <div data-test-id="release-wrapper">
           <GroupList
-            orgId={orgId}
+            orgId={organization.slug}
             endpointPath={path}
             queryParams={queryParams}
             query=""
