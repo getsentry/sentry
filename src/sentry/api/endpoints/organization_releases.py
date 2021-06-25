@@ -27,7 +27,8 @@ from sentry.models import (
     ReleaseProject,
     ReleaseStatus,
 )
-from sentry.search.events.constants import OPERATOR_TO_DJANGO, SEMVER_ALIAS
+from sentry.search.events.constants import SEMVER_ALIAS
+from sentry.search.events.filter import parse_semver
 from sentry.signals import release_created
 from sentry.snuba.sessions import (
     STATS_PERIODS,
@@ -216,8 +217,7 @@ class OrganizationReleasesEndpoint(
                 if search_filter.key.name == SEMVER_ALIAS:
                     queryset = queryset.filter_by_semver(
                         organization.id,
-                        OPERATOR_TO_DJANGO[search_filter.operator],
-                        search_filter.value.raw_value,
+                        parse_semver(search_filter.value.raw_value, search_filter.operator),
                     )
 
         select_extra = {}
@@ -236,7 +236,7 @@ class OrganizationReleasesEndpoint(
             queryset = queryset.filter(build_number__isnull=False).order_by("-build_number")
             paginator_kwargs["order_by"] = "-build_number"
         elif sort == "semver":
-            order_by = [f"-{col}" for col in Release.SEMVER_SORT_COLS]
+            order_by = [f"-{col}" for col in Release.SEMVER_COLS]
             queryset = queryset.annotate_prerelease_column().filter_to_semver().order_by(*order_by)
             paginator_kwargs["order_by"] = order_by
         elif sort in self.SESSION_SORTS:

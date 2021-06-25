@@ -10,21 +10,18 @@ type Props = {
   breadcrumb: Breadcrumb;
   event: Event;
   orgId: string | null;
-  onToggle: () => void;
 };
 
-const Data = ({breadcrumb, event, orgId, searchTerm, onToggle}: Props) => {
+const Data = ({breadcrumb, event, orgId, searchTerm}: Props) => {
   if (breadcrumb.type === BreadcrumbType.HTTP) {
-    return <Http breadcrumb={breadcrumb} searchTerm={searchTerm} onToggle={onToggle} />;
+    return <Http breadcrumb={breadcrumb} searchTerm={searchTerm} />;
   }
 
   if (
     breadcrumb.type === BreadcrumbType.WARNING ||
     breadcrumb.type === BreadcrumbType.ERROR
   ) {
-    return (
-      <Exception breadcrumb={breadcrumb} searchTerm={searchTerm} onToggle={onToggle} />
-    );
+    return <Exception breadcrumb={breadcrumb} searchTerm={searchTerm} />;
   }
 
   return (
@@ -33,7 +30,6 @@ const Data = ({breadcrumb, event, orgId, searchTerm, onToggle}: Props) => {
       orgId={orgId}
       breadcrumb={breadcrumb}
       searchTerm={searchTerm}
-      onToggle={onToggle}
     />
   );
 };

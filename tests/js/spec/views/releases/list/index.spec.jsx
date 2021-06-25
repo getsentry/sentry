@@ -133,6 +133,15 @@ describe('ReleasesList', function () {
       'There are no releases with active user data (users in the last 24 hours).'
     );
 
+    location = {query: {sort: SortOption.SESSIONS_24_HOURS, statsPeriod: '7d'}};
+    wrapper = mountWithTheme(
+      <ReleasesList {...props} location={location} />,
+      routerContext
+    );
+    expect(wrapper.find('EmptyMessage').text()).toEqual(
+      'There are no releases with active session data (sessions in the last 24 hours).'
+    );
+
     location = {query: {sort: SortOption.BUILD}};
     wrapper = mountWithTheme(
       <ReleasesList {...props} location={location} />,
@@ -176,7 +185,7 @@ describe('ReleasesList', function () {
     const sortByOptions = sortDropdown.find('DropdownItem span');
 
     const dateCreatedOption = sortByOptions.at(0);
-    expect(sortByOptions).toHaveLength(5);
+    expect(sortByOptions).toHaveLength(4);
     expect(dateCreatedOption.text()).toEqual('Date Created');
 
     const healthStatsControls = wrapper.find('CountColumn span').first();

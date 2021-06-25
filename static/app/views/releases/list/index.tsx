@@ -143,6 +143,8 @@ class ReleasesList extends AsyncView<Props, State> {
         return SortOption.SESSIONS;
       case SortOption.USERS_24_HOURS:
         return SortOption.USERS_24_HOURS;
+      case SortOption.SESSIONS_24_HOURS:
+        return SortOption.SESSIONS_24_HOURS;
       case SortOption.BUILD:
         return SortOption.BUILD;
       case SortOption.SEMVER:
@@ -236,9 +238,19 @@ class ReleasesList extends AsyncView<Props, State> {
   handleDisplay = (display: string) => {
     const {location, router} = this.props;
 
+    let sort = location.query.sort;
+    if (sort === SortOption.USERS_24_HOURS && display === DisplayOption.SESSIONS)
+      sort = SortOption.SESSIONS_24_HOURS;
+    else if (sort === SortOption.SESSIONS_24_HOURS && display === DisplayOption.USERS)
+      sort = SortOption.USERS_24_HOURS;
+    else if (sort === SortOption.CRASH_FREE_USERS && display === DisplayOption.SESSIONS)
+      sort = SortOption.CRASH_FREE_SESSIONS;
+    else if (sort === SortOption.CRASH_FREE_SESSIONS && display === DisplayOption.USERS)
+      sort = SortOption.CRASH_FREE_USERS;
+
     router.push({
       ...location,
-      query: {...location.query, cursor: undefined, display},
+      query: {...location.query, cursor: undefined, display, sort},
     });
   };
 
@@ -297,6 +309,16 @@ class ReleasesList extends AsyncView<Props, State> {
       );
     }
 
+    if (activeSort === SortOption.SESSIONS_24_HOURS) {
+      return (
+        <EmptyStateWarning small>
+          {t(
+            'There are no releases with active session data (sessions in the last 24 hours).'
+          )}
+        </EmptyStateWarning>
+      );
+    }
+
     if (activeSort === SortOption.BUILD || activeSort === SortOption.SEMVER) {
       return (
         <EmptyStateWarning small>
@@ -338,17 +360,8 @@ class ReleasesList extends AsyncView<Props, State> {
     const {hasSessions, releases} = this.state;
 
     const selectedProject = this.getSelectedProject();
-    const isMobileProject =
-      selectedProject &&
-      selectedProject.platform &&
-      ([...mobile, ...desktop] as string[]).includes(selectedProject.platform as string);
 
-    if (
-      !selectedProject ||
-      hasSessions !== false ||
-      !releases?.length ||
-      !isMobileProject
-    ) {
+    if (!selectedProject || hasSessions !== false || !releases?.length) {
       return null;
     }
 
@@ -490,6 +503,7 @@ class ReleasesList extends AsyncView<Props, State> {
               />
               <ReleaseListSortOptions
                 selected={activeSort}
+                selectedDisplay={activeDisplay}
                 onSelect={this.handleSortBy}
                 organization={organization}
               />

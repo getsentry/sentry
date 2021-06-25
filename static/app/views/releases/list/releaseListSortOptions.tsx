@@ -4,21 +4,33 @@ import {t} from 'app/locale';
 import {Organization} from 'app/types';
 
 import ReleaseListDropdown from './releaseListDropdown';
-import {SortOption} from './utils';
+import {DisplayOption, SortOption} from './utils';
 
 type Props = {
   selected: SortOption;
+  selectedDisplay: DisplayOption;
   onSelect: (key: string) => void;
   organization: Organization;
 };
 
-function ReleaseListSortOptions({selected, onSelect, organization}: Props) {
+function ReleaseListSortOptions({
+  selected,
+  selectedDisplay,
+  onSelect,
+  organization,
+}: Props) {
   const sortOptions = {
     [SortOption.DATE]: t('Date Created'),
     [SortOption.SESSIONS]: t('Total Sessions'),
-    [SortOption.USERS_24_HOURS]: t('Active Users'),
-    [SortOption.CRASH_FREE_USERS]: t('Crash Free Users'),
-    [SortOption.CRASH_FREE_SESSIONS]: t('Crash Free Sessions'),
+    ...(selectedDisplay === DisplayOption.USERS
+      ? {
+          [SortOption.USERS_24_HOURS]: t('Active Users'),
+          [SortOption.CRASH_FREE_USERS]: t('Crash Free Users'),
+        }
+      : {
+          [SortOption.SESSIONS_24_HOURS]: t('Active Sessions'),
+          [SortOption.CRASH_FREE_SESSIONS]: t('Crash Free Sessions'),
+        }),
   } as Record<SortOption, string>;
 
   if (organization.features.includes('semver')) {

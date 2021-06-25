@@ -878,7 +878,7 @@ class IssueListOverview extends React.Component<Props, State> {
     const {issuesLoading, error, groupIds} = this.state;
 
     if (issuesLoading) {
-      return this.renderLoading();
+      return <LoadingIndicator hideMessage />;
     }
 
     if (error) {
@@ -997,15 +997,8 @@ class IssueListOverview extends React.Component<Props, State> {
       itemsRemoved,
       hasSessions,
     } = this.state;
-    const {
-      organization,
-      savedSearch,
-      savedSearches,
-      tags,
-      selection,
-      location,
-      router,
-    } = this.props;
+    const {organization, savedSearch, savedSearches, tags, selection, location, router} =
+      this.props;
     const links = parseLinkHeader(pageLinks);
     const query = this.getQuery();
     const queryPageInt = parseInt(location.query.page, 10);
@@ -1036,6 +1029,14 @@ class IssueListOverview extends React.Component<Props, State> {
         />
       ),
     });
+
+    // TODO(workflow): When organization:semver flag is removed add 'sentry.semver' to tagStore
+    if (organization.features.includes('semver') && !tags['sentry.semver']) {
+      tags['sentry.semver'] = {
+        key: 'sentry.semver',
+        name: 'sentry.semver',
+      };
+    }
 
     const projectIds = selection?.projects?.map(p => p.toString());
     const orgSlug = organization.slug;

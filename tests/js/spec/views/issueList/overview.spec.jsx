@@ -937,8 +937,7 @@ describe('IssueList', function () {
         url: '/organizations/org-slug/issues/',
         body: [group],
         headers: {
-          Link:
-            '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575000:0:0>; rel="previous"; results="true"; cursor="1443575000:0:1", <http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443574000:0:0>; rel="next"; results="true"; cursor="1443574000:0:0"',
+          Link: '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575000:0:0>; rel="previous"; results="true"; cursor="1443575000:0:1", <http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443574000:0:0>; rel="next"; results="true"; cursor="1443574000:0:0"',
         },
       });
 
@@ -1294,8 +1293,7 @@ describe('IssueList', function () {
       expect(fetchDataMock).toHaveBeenLastCalledWith(
         '/organizations/org-slug/issues/',
         expect.objectContaining({
-          data:
-            'collapse=stats&expand=owners&expand=inbox&limit=25&project=99&query=is%3Aunresolved&shortIdLookup=1&statsPeriod=14d',
+          data: 'collapse=stats&expand=owners&expand=inbox&limit=25&project=99&query=is%3Aunresolved&shortIdLookup=1&statsPeriod=14d',
         })
       );
     });
