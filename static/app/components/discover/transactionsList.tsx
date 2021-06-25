@@ -21,6 +21,7 @@ import {tokenizeSearch} from 'app/utils/tokenizeSearch';
 import {Actions} from 'app/views/eventsV2/table/cellAction';
 import {TableColumn} from 'app/views/eventsV2/table/types';
 import {decodeColumnOrder} from 'app/views/eventsV2/utils';
+import {mapShowTransactionToPercentile} from 'app/views/performance/transactionSummary/transactionEvents/utils';
 import {TrendChangeType, TrendView} from 'app/views/performance/trends/types';
 
 import TransactionsTable from './transactionsTable';
@@ -107,7 +108,7 @@ type Props = {
   /**
    * The callback for when Open in Discover is clicked.
    */
-  handleOpenInDiscoverClick?: (e: React.MouseEvent<Element>) => void;
+  handleOpenAllEventsClick?: (e: React.MouseEvent<Element>) => void;
   /**
    * Show a loading indicator instead of the table, used for transaction summary p95.
    */
@@ -171,7 +172,7 @@ class TransactionsList extends React.Component<Props> {
       selected,
       options,
       handleDropdownChange,
-      handleOpenInDiscoverClick,
+      handleOpenAllEventsClick,
       showTransactions,
       breakdown,
     } = this.props;
@@ -208,10 +209,10 @@ class TransactionsList extends React.Component<Props> {
         {!this.isTrend() && (
           <GuideAnchor target="release_transactions_open_in_transaction_events">
             <DiscoverButton
-              onClick={handleOpenInDiscoverClick}
+              onClick={handleOpenAllEventsClick}
               to={this.generatePerformanceTransactionEventsView().getPerformanceTransactionEventsViewUrlTarget(
                 organization.slug,
-                showTransactions,
+                mapShowTransactionToPercentile(showTransactions),
                 breakdown
               )}
               size="small"

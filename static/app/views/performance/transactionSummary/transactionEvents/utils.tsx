@@ -4,6 +4,7 @@ import {t} from 'app/locale';
 import {decodeScalar} from 'app/utils/queryString';
 
 import {filterToField, SpanOperationBreakdownFilter} from '../filter';
+import {TransactionFilterOptions} from '../utils';
 
 export enum EventsDisplayFilterName {
   p50 = 'p50',
@@ -147,4 +148,15 @@ export function filterEventsDisplayToLocationQuery(
     query.sort = `${kind === 'desc' ? '-' : ''}${field}`;
   }
   return query;
+}
+
+export function mapShowTransactionToPercentile(showTransaction) {
+  switch (showTransaction) {
+    case TransactionFilterOptions.OUTLIER:
+      return EventsDisplayFilterName.p100;
+    case TransactionFilterOptions.SLOW:
+      return EventsDisplayFilterName.p95;
+    default:
+      return undefined;
+  }
 }
