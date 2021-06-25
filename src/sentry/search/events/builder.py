@@ -29,7 +29,7 @@ class QueryBuilder(QueryFields, QueryFilter):
         self.where = self.resolve_where(query)
 
         # params depends on get_filter since there may be projects in the query
-        self.where.extend(self.resolve_params())
+        self.where += self.resolve_params()
 
         self.columns = self.resolve_select(selected_columns)
         self.orderby = self.resolve_orderby(orderby)
