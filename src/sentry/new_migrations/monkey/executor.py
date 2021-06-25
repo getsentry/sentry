@@ -2,7 +2,7 @@ import logging
 import os
 
 from django.db.migrations.executor import MigrationExecutor
-from django.db.migrations.operations import RunPython, RunSQL, SeparateDatabaseAndState
+from django.db.migrations.operations import SeparateDatabaseAndState
 from django.db.migrations.operations.fields import FieldOperation
 from django.db.migrations.operations.models import ModelOperation
 
@@ -37,14 +37,15 @@ class SentryMigrationExecutor(MigrationExecutor):
             for operation in operations:
                 if isinstance(operation, (FieldOperation, ModelOperation)):
                     continue
-                elif isinstance(operation, (RunSQL, RunPython)):
+                elif isinstance(operation, SeparateDatabaseAndState):
+                    failed_ops.extend(_check_operations(operation.database_operations))
+                    continue
+                else:
+                    # Check all the other operation types (RunSQL, RunPython, unknown)
                     if operation.hints.get("tables"):
                         continue
                     else:
                         failed_ops.append(operation)
-                elif isinstance(operation, SeparateDatabaseAndState):
-                    failed_ops.extend(_check_operations(operation.database_operations))
-                    continue
             return failed_ops
 
         failed_ops = _check_operations(migration.operations)
