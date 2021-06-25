@@ -303,7 +303,7 @@ const StyledProjectCard = styled('div')`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   box-shadow: ${p => p.theme.dropShadowLight};
-  min-height: 326px;
+  min-height: 330px;
 `;
 
 const FooterWrapper = styled('div')`
@@ -343,6 +343,7 @@ const ScoreCardWrapper = styled('div')`
   }
   ${Trend} {
     margin-left: 0;
+    margin-top: ${space(0.5)};
   }
 `;
 
