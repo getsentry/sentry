@@ -9,10 +9,21 @@ from sentry.utils.strings import (
     soft_hyphenate,
     tokens_from_name,
     truncatechars,
+    unescape_string,
 )
 
 ZWSP = "\u200b"  # zero width space
 SHY = "\u00ad"  # soft hyphen
+
+
+def test_unescape_string():
+    assert (
+        unescape_string("C:/WINDOWS/system32/DriverStore\\**")
+        == "C:/WINDOWS/system32/DriverStore\\**"
+    )
+    assert unescape_string("\x80") == "\x80"
+    assert unescape_string("\\x80") == "\x80"
+    assert unescape_string("\\\x80") == "\\x80"
 
 
 def test_codec_lookup():
