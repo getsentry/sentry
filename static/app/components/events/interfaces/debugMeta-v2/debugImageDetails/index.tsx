@@ -317,6 +317,7 @@ class DebugImageDetails extends AsyncComponent<Props, State> {
         </Header>
         <Body>
           <Content>
+            <GeneralInfo image={image} />
             {hasReprocessWarning && (
               <AlertLink
                 priority="warning"
@@ -329,7 +330,6 @@ class DebugImageDetails extends AsyncComponent<Props, State> {
                 )}
               </AlertLink>
             )}
-            <GeneralInfo image={image} />
             <Candidates
               imageStatus={status}
               candidates={candidates}
