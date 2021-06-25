@@ -8,7 +8,7 @@ import * as qs from 'query-string';
 import {Client} from 'app/api';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Button, {ButtonLabel} from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
+import ButtonBar, {ButtonGrid} from 'app/components/buttonBar';
 import DiscoverButton from 'app/components/discoverButton';
 import DropdownButton from 'app/components/dropdownButton';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
@@ -21,7 +21,7 @@ import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {GlobalSelection, Organization} from 'app/types';
-import {QueryResults, stringifyQueryObject} from 'app/utils/tokenizeSearch';
+import {QueryResults} from 'app/utils/tokenizeSearch';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
 import {IssueSortOptions} from 'app/views/issueList/utils';
@@ -37,6 +37,13 @@ enum IssuesType {
   ALL = 'all',
 }
 
+enum IssuesQuery {
+  NEW = 'first-release',
+  UNHANDLED = 'error.handled:0',
+  RESOLVED = 'is:resolved',
+  ALL = 'release',
+}
+
 type IssuesQueryParams = {
   limit: number;
   sort: string;
@@ -45,6 +52,7 @@ type IssuesQueryParams = {
 
 type Props = {
   api: Client;
+  orgId: string;
   organization: Organization;
   version: string;
   selection: GlobalSelection;
@@ -69,16 +77,19 @@ class Issues extends Component<Props, State> {
 
   getInitialState() {
     const {location} = this.props;
-    const query = location.query ? location.query.query : null;
+    const query = location.query ? location.query.issuesType : null;
     const issuesTypeState = !query
       ? IssuesType.NEW
-      : query.includes('first-release')
+      : query.includes(IssuesType.NEW)
       ? IssuesType.NEW
-      : query.includes('error.handled:0')
+      : query.includes(IssuesType.UNHANDLED)
       ? IssuesType.UNHANDLED
-      : query.includes('is:resolved')
+      : query.includes(IssuesType.RESOLVED)
       ? IssuesType.RESOLVED
+      : query.includes(IssuesType.ALL)
+      ? IssuesType.ALL
       : IssuesType.ALL;
+
     return {
       issuesType: issuesTypeState,
       count: {
@@ -92,16 +103,6 @@ class Issues extends Component<Props, State> {
 
   componentDidMount() {
     this.fetchIssuesCount();
-  }
-
-  shouldComponentUpdate(nextProps: Props) {
-    if (this.props.location.query) {
-      if (this.props.location.query.query !== nextProps.location.query.query) {
-        return true;
-      }
-    }
-
-    return true;
   }
 
   getDiscoverUrl() {
@@ -126,12 +127,7 @@ class Issues extends Component<Props, State> {
         query.setTagValues('error.handled', ['0']);
         break;
       case IssuesType.RESOLVED:
-        query.setTagValues('release', [version]);
-        query.setTagValues('is', ['resolved']);
-        break;
       case IssuesType.ALL:
-        query.setTagValues('release', [version]);
-        break;
       default:
         query.setTagValues('release', [version]);
     }
@@ -164,18 +160,13 @@ class Issues extends Component<Props, State> {
           path: `/organizations/${organization.slug}/issues/`,
           queryParams: {
             ...queryParams,
-            query: new QueryResults([`release:${version}`]).formatString(),
+            query: new QueryResults([`${IssuesQuery.ALL}:${version}`]).formatString(),
           },
         };
       case IssuesType.RESOLVED:
         return {
-          path: `/organizations/${organization.slug}/issues/`,
-          queryParams: {
-            ...queryParams,
-            query: stringifyQueryObject(
-              new QueryResults([`release:${version}`, 'is:resolved'])
-            ),
-          },
+          path: `/organizations/${organization.slug}/releases/${version}/resolved/`,
+          queryParams: {...queryParams, query: ''},
         };
       case IssuesType.UNHANDLED:
         return {
@@ -183,8 +174,8 @@ class Issues extends Component<Props, State> {
           queryParams: {
             ...queryParams,
             query: new QueryResults([
-              `release:${version}`,
-              'error.handled:0',
+              `${IssuesQuery.ALL}:${version}`,
+              IssuesQuery.UNHANDLED,
             ]).formatString(),
           },
         };
@@ -194,24 +185,26 @@ class Issues extends Component<Props, State> {
           path: `/organizations/${organization.slug}/issues/`,
           queryParams: {
             ...queryParams,
-            query: new QueryResults([`first-release:${version}`]).formatString(),
+            query: new QueryResults([`${IssuesQuery.NEW}:${version}`]).formatString(),
           },
         };
     }
   }
 
   async fetchIssuesCount() {
-    const {api, version} = this.props;
-    const endpoint = this.getIssueCountEndpoint();
+    const {api, organization, version} = this.props;
+    const issueCountEndpoint = this.getIssueCountEndpoint();
+    const resolvedEndpoint = `/organizations/${organization.slug}/releases/${version}/resolved/`;
 
     try {
-      const response = await api.requestPromise(endpoint);
+      const response = await api.requestPromise(issueCountEndpoint);
+      const resolvedResponse = await api.requestPromise(resolvedEndpoint);
       this.setState({
         count: {
-          release: response[`release:${version}`],
-          firstRelease: response[`first-release:${version}`],
-          resolved: response['is:resolved'],
-          unhandled: response['error.handled:0'],
+          release: response[`${IssuesQuery.ALL}:${version}`],
+          firstRelease: response[`${IssuesQuery.NEW}:${version}`],
+          resolved: resolvedResponse.length,
+          unhandled: response[`${IssuesQuery.UNHANDLED}`],
         },
       });
     } catch {
@@ -221,39 +214,39 @@ class Issues extends Component<Props, State> {
 
   getIssueCountEndpoint() {
     const {organization, version} = this.props;
-    const path = `/organizations/${organization.slug}/issues-count/`;
+    const issuesCountPath = `/organizations/${organization.slug}/issues-count/`;
+
     const params = [
-      `first-release:${version}`,
-      `release:${version}`,
-      'is:resolved',
-      'error.handled:0',
+      `${IssuesQuery.NEW}:${version}`,
+      `${IssuesQuery.ALL}:${version}`,
+      IssuesQuery.UNHANDLED,
     ];
     const queryParams = params.map(param => param);
     const queryParameters = {
       query: queryParams,
     };
 
-    return `${path}?${qs.stringify(queryParameters)}`;
+    return `${issuesCountPath}?${qs.stringify(queryParameters)}`;
   }
 
   handleIssuesTypeSelection = (issuesType: IssuesType) => {
-    const {location, version} = this.props;
+    const {location} = this.props;
     const issuesTypeQuery =
       issuesType === IssuesType.ALL
-        ? `release:${version}`
+        ? IssuesType.ALL
         : issuesType === IssuesType.NEW
-        ? `first-release:${version}`
+        ? IssuesType.NEW
         : issuesType === IssuesType.RESOLVED
-        ? 'is:resolved'
+        ? IssuesType.RESOLVED
         : issuesType === IssuesType.UNHANDLED
-        ? 'error.handled:0'
-        : `release:${version}`;
+        ? IssuesType.UNHANDLED
+        : '';
 
     const to = {
       ...location,
       query: {
         ...location.query,
-        query: issuesTypeQuery,
+        issuesType: issuesTypeQuery,
       },
     };
 
@@ -318,12 +311,7 @@ class Issues extends Component<Props, State> {
                 onClick={() => this.handleIssuesTypeSelection(IssuesType.NEW)}
               >
                 {t('New Issues')}
-                <StyledQueryCount
-                  count={count.firstRelease}
-                  max={99}
-                  hideParens
-                  hideIfEmpty
-                />
+                <QueryCount count={count.firstRelease} max={99} hideParens hideIfEmpty />
               </Button>
               <Button
                 barId={IssuesType.RESOLVED}
@@ -331,12 +319,7 @@ class Issues extends Component<Props, State> {
                 onClick={() => this.handleIssuesTypeSelection(IssuesType.RESOLVED)}
               >
                 {t('Resolved Issues')}
-                <StyledQueryCount
-                  count={count.resolved}
-                  max={99}
-                  hideParens
-                  hideIfEmpty
-                />
+                <QueryCount count={count.resolved} max={99} hideParens hideIfEmpty />
               </Button>
               <Button
                 barId={IssuesType.UNHANDLED}
@@ -344,12 +327,7 @@ class Issues extends Component<Props, State> {
                 onClick={() => this.handleIssuesTypeSelection(IssuesType.UNHANDLED)}
               >
                 {t('Unhandled Issues')}
-                <StyledQueryCount
-                  count={count.unhandled}
-                  max={99}
-                  hideParens
-                  hideIfEmpty
-                />
+                <QueryCount count={count.unhandled} max={99} hideParens hideIfEmpty />
               </Button>
               <Button
                 barId={IssuesType.ALL}
@@ -357,7 +335,7 @@ class Issues extends Component<Props, State> {
                 onClick={() => this.handleIssuesTypeSelection(IssuesType.ALL)}
               >
                 {t('All Issues')}
-                <StyledQueryCount count={count.release} max={99} hideParens hideIfEmpty />
+                <QueryCount count={count.release} max={99} hideParens hideIfEmpty />
               </Button>
             </StyledButtonBar>
           ) : (
@@ -433,6 +411,9 @@ const ControlsWrapper = styled('div')`
   margin-bottom: ${space(1)};
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     display: block;
+    ${ButtonGrid} {
+      overflow: auto;
+    }
   }
 `;
 
@@ -442,11 +423,10 @@ const OpenInButtonBar = styled(ButtonBar)`
   }
 `;
 
-const StyledQueryCount = styled(QueryCount)``;
-
 const StyledButtonBar = styled(ButtonBar)`
   grid-template-columns: repeat(4, 1fr);
   ${ButtonLabel} {
+    white-space: nowrap;
     grid-gap: ${space(0.5)};
     span:last-child {
       color: ${p => p.theme.gray400};

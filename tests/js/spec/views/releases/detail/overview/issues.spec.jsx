@@ -11,6 +11,7 @@ describe('Release Issues', function () {
     allIssuesEndpoint;
 
   const props = {
+    orgId: 'org',
     organization,
     version: '1.0.0',
     selection: {projects: [], environments: [], datetime: {period: '14d'}},
@@ -26,7 +27,10 @@ describe('Release Issues', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${props.organization.slug}/issues-count/?query=first-release%3A1.0.0&query=release%3A1.0.0&query=is%3Aresolved&query=error.handled%3A0`,
+      url: `/organizations/${props.organization.slug}/issues-count/?query=first-release%3A1.0.0&query=release%3A1.0.0&query=error.handled%3A0`,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${props.organization.slug}/releases/1.0.0/resolved/`,
     });
 
     newIssuesEndpoint = MockApiClient.addMockResponse({
@@ -34,7 +38,7 @@ describe('Release Issues', function () {
       body: [],
     });
     resolvedIssuesEndpoint = MockApiClient.addMockResponse({
-      url: `/organizations/${props.organization.slug}/issues/?limit=10&query=release%3A1.0.0%20is%3Aresolved&sort=freq&statsPeriod=14d`,
+      url: `/organizations/${props.organization.slug}/releases/1.0.0/resolved/?limit=10&query=&sort=freq&statsPeriod=14d`,
       body: [],
     });
     unhandledIssuesEndpoint = MockApiClient.addMockResponse({
@@ -160,7 +164,7 @@ describe('Release Issues', function () {
       pathname: `/organizations/${props.organization.slug}/issues/`,
       query: {
         sort: 'freq',
-        query: 'release:1.0.0 is:resolved',
+        query: 'release:1.0.0',
         cursor: undefined,
         limit: undefined,
         statsPeriod: '14d',
