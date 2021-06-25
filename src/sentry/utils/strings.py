@@ -2,6 +2,7 @@ import base64
 import codecs
 import re
 import string
+import warnings
 import zlib
 
 from django.utils.encoding import force_text, smart_text
@@ -41,9 +42,12 @@ codecs.register_error("unicode-escape-recovery", unicode_escape_recovery_handler
 
 def unescape_string(value):
     """Unescapes a backslash escaped string."""
-    return value.encode("ascii", "backslashreplace").decode(
-        "unicode-escape", "unicode-escape-recovery"
-    )
+    with warnings.catch_warnings():
+        # https://bugs.python.org/issue27364
+        warnings.simplefilter("ignore")
+        return value.encode("ascii", "backslashreplace").decode(
+            "unicode-escape", "unicode-escape-recovery"
+        )
 
 
 def strip_lone_surrogates(string):
