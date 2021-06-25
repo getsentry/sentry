@@ -256,7 +256,10 @@ def get_scope(
     TODO(mgaeta): Make sure the user/team is in the project/organization.
     """
     if team and project:
-        return NotificationScopeType.TEAM, project.id
+        return NotificationScopeType.PROJECT, project.id
+
+    if team:
+        return NotificationScopeType.TEAM, team.id
 
     if project:
         return NotificationScopeType.PROJECT, project.id
@@ -266,9 +269,6 @@ def get_scope(
 
     if user:
         return NotificationScopeType.USER, user.id
-
-    if team:
-        return NotificationScopeType.TEAM, team.id
 
     raise Exception("scope must be either user, team, organization, or project")
 

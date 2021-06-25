@@ -48,7 +48,7 @@ class ProjectTeamDetailsEndpoint(ProjectEndpoint):
         # if the team has Slack notifications enabled, update
         team_settings = NotificationSetting.objects.filter(
             provider=ExternalProviders.SLACK.value,
-            scope_type=NotificationScopeType.TEAM.value,
+            scope_type=NotificationScopeType.PROJECT.value,
             target=team.actor.id,
         ).exists()
         if team_settings:
@@ -82,7 +82,7 @@ class ProjectTeamDetailsEndpoint(ProjectEndpoint):
         project.remove_team(team)
         team_settings = NotificationSetting.objects.filter(
             provider=ExternalProviders.SLACK.value,
-            scope_type=NotificationScopeType.TEAM.value,
+            scope_type=NotificationScopeType.PROJECT.value,
             target=team.actor.id,
             scope_identifier=project.id,
         ).exists()

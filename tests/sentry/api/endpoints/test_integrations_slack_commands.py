@@ -159,19 +159,19 @@ class SlackCommandsLinkTeamTest(SlackCommandsTest):
         )
 
         team_settings = NotificationSetting.objects.filter(
-            scope_type=NotificationScopeType.TEAM.value, target=self.team.actor.id
+            scope_type=NotificationScopeType.PROJECT.value, target=self.team.actor.id
         )
         assert len(team_settings) == 2
 
         project_settings = NotificationSetting.objects.get(
-            scope_type=NotificationScopeType.TEAM.value,
+            scope_type=NotificationScopeType.PROJECT.value,
             scope_identifier=project.id,
             target=self.team.actor.id,
         )
         assert project_settings
 
         project2_settings = NotificationSetting.objects.get(
-            scope_type=NotificationScopeType.TEAM.value,
+            scope_type=NotificationScopeType.PROJECT.value,
             scope_identifier=project2.id,
             target=self.team.actor.id,
         )

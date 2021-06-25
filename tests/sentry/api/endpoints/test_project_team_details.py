@@ -72,7 +72,7 @@ class ProjectTeamDetailsPostTest(ProjectTeamDetailsTest):
             project2.organization.slug, project2.slug, team.slug, status_code=201
         )
         team_settings = NotificationSetting.objects.filter(
-            scope_type=NotificationScopeType.TEAM.value, target=team.actor.id
+            scope_type=NotificationScopeType.PROJECT.value, target=team.actor.id
         )
         assert len(team_settings) == 2
 
@@ -177,6 +177,6 @@ class ProjectTeamDetailsDeleteTest(ProjectTeamDetailsTest):
         )
         self.get_valid_response(project.organization.slug, project.slug, team.slug)
         team_settings = NotificationSetting.objects.filter(
-            scope_type=NotificationScopeType.TEAM.value, target=team.actor.id
+            scope_type=NotificationScopeType.PROJECT.value, target=team.actor.id
         ).exists()
         assert not team_settings
