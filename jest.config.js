@@ -54,7 +54,10 @@ module.exports = {
     '<rootDir>/tests/js/setup.js',
     'jest-canvas-mock',
   ],
-  setupFilesAfterEnv: ['<rootDir>/tests/js/setupFramework.ts'],
+  setupFilesAfterEnv: [
+    '<rootDir>/tests/js/setupFramework.ts',
+    '@testing-library/jest-dom/extend-expect',
+  ],
   testMatch: testMatch || ['<rootDir>/tests/js/**/*(*.)@(spec|test).(js|ts)?(x)'],
   testPathIgnorePatterns: ['<rootDir>/tests/sentry/lang/javascript/'],
 

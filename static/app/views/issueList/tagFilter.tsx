@@ -62,9 +62,11 @@ class IssueListTagFilter extends React.Component<Props, State> {
   handleLoadOptions = () => {
     const {tag, tagValueLoader} = this.props;
     const {textValue} = this.state;
+
     if (tag.isInput || tag.predefined) {
       return;
     }
+
     if (!this.api) {
       return;
     }
@@ -151,6 +153,8 @@ class IssueListTagFilter extends React.Component<Props, State> {
 
   render() {
     const {tag} = this.props;
+    const {options, isLoading} = this.state;
+
     return (
       <StreamTagFilter>
         <StyledHeader>{tag.key}</StyledHeader>
@@ -167,15 +171,15 @@ class IssueListTagFilter extends React.Component<Props, State> {
         {!tag.isInput && (
           <SelectControl
             clearable
+            aria-label={tag.key}
             placeholder="--"
+            loadingMessage={() => t('Loading\u2026')}
             value={this.state.value}
             onChange={this.handleChangeSelect}
-            isLoading={this.state.isLoading}
+            isLoading={isLoading}
             onInputChange={this.handleChangeSelectInput}
             onFocus={this.handleOpenMenu}
-            noResultsText={
-              this.state.isLoading ? t('Loading\u2026') : t('No results found')
-            }
+            noResultsText={isLoading ? t('Loading\u2026') : t('No results found')}
             options={
               tag.predefined
                 ? tag.values &&
@@ -183,7 +187,7 @@ class IssueListTagFilter extends React.Component<Props, State> {
                     value,
                     label: value,
                   }))
-                : this.state.options
+                : options
             }
           />
         )}
