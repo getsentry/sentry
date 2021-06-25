@@ -1,6 +1,6 @@
 import responses
 
-from sentry.integrations.slack.views.link_identity import build_linking_url
+from sentry.integrations.slack.views.link_identity import build_team_linking_url
 from sentry.models import (
     Identity,
     IdentityProvider,
@@ -42,7 +42,7 @@ class SlackIntegrationLinkIdentityTest(TestCase):
             "response_url": "http://example.slack.com/response_url",
         }
 
-        linking_url = build_linking_url(
+        linking_url = build_team_linking_url(
             self.integration,
             self.org,
             "new-slack-id",
@@ -91,7 +91,7 @@ class SlackIntegrationLinkIdentityTest(TestCase):
             "response_url": "http://example.slack.com/response_url",
         }
 
-        linking_url = build_linking_url(
+        linking_url = build_team_linking_url(
             self.integration,
             self.org,
             "slack-id2",

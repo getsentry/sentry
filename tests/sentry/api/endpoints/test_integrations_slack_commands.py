@@ -9,15 +9,8 @@ from rest_framework import status
 from sentry import options
 from sentry.integrations.slack.endpoints.command import LINK_FROM_CHANNEL_MESSAGE, LINK_USER_MESSAGE
 from sentry.integrations.slack.util.auth import set_signing_secret
-from sentry.integrations.slack.views.link_team import build_linking_url
-from sentry.models import (
-    ExternalActor,
-    Identity,
-    IdentityProvider,
-    IdentityStatus,
-    Integration,
-    NotificationSetting,
-)
+from sentry.integrations.slack.views.link_team import build_team_linking_url
+from sentry.models import ExternalActor, Identity, IdentityProvider, IdentityStatus, Integration, NotificationSetting
 from sentry.notifications.types import NotificationScopeType
 from sentry.testutils import APITestCase, TestCase
 from sentry.types.integrations import ExternalProviders
@@ -129,7 +122,7 @@ class SlackCommandsLinkTeamTest(SlackCommandsTest):
     def test_link_team_command(self):
         """Test that we successfully link a team to a Slack channel"""
         assert "Link your Sentry team to this Slack channel!" in self.data["text"]
-        linking_url = build_linking_url(
+        linking_url = build_team_linking_url(
             self.integration,
             "UXXXXXXX1",
             "CXXXXXXX9",
@@ -212,7 +205,7 @@ class SlackCommandsLinkTeamTest(SlackCommandsTest):
             scopes=[],
         )
         assert "Link your Sentry team to this Slack channel!" in self.data["text"]
-        linking_url = build_linking_url(
+        linking_url = build_team_linking_url(
             self.integration,
             "UXXXXXXX2",
             "CXXXXXXX9",
@@ -254,7 +247,7 @@ class SlackCommandsLinkTeamTest(SlackCommandsTest):
             scopes=[],
         )
         assert "Link your Sentry team to this Slack channel!" in self.data["text"]
-        linking_url = build_linking_url(
+        linking_url = build_team_linking_url(
             self.integration,
             "UXXXXXXX2",
             "CXXXXXXX9",
@@ -291,7 +284,7 @@ class SlackCommandsLinkTeamTest(SlackCommandsTest):
             external_id="CXXXXXXX9",
         )
         assert "Link your Sentry team to this Slack channel!" in self.data["text"]
-        linking_url = build_linking_url(
+        linking_url = build_team_linking_url(
             self.integration,
             "UXXXXXXX1",
             "CXXXXXXX9",
@@ -317,7 +310,7 @@ class SlackCommandsLinkTeamTest(SlackCommandsTest):
     def test_error_page(self):
         """Test that we successfully render an error page when bad form data is sent."""
         assert "Link your Sentry team to this Slack channel!" in self.data["text"]
-        linking_url = build_linking_url(
+        linking_url = build_team_linking_url(
             self.integration,
             "UXXXXXXX1",
             "CXXXXXXX9",

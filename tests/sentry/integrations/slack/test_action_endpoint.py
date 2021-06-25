@@ -7,7 +7,7 @@ from sentry.integrations.slack.endpoints.action import (
     LINK_IDENTITY_MESSAGE,
     UNLINK_IDENTITY_MESSAGE,
 )
-from sentry.integrations.slack.views.link_identity import build_linking_url
+from sentry.integrations.slack.views.link_identity import build_team_linking_url
 from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
 from sentry.models import (
     AuthIdentity,
@@ -111,7 +111,7 @@ class StatusActionTest(BaseEventTest):
 
         resp = self.post_webhook(slack_user={"id": "invalid-id", "domain": "example"})
 
-        associate_url = build_linking_url(
+        associate_url = build_team_linking_url(
             self.integration, self.org, "invalid-id", "C065W1189", self.response_url
         )
 
