@@ -8,6 +8,7 @@ from sentry import options
 from sentry.discover.arithmetic import is_equation, resolve_equation_list, strip_equation
 from sentry.models import Group
 from sentry.search.events.builder import QueryBuilder
+from sentry.search.events.constants import PROJECT_THRESHOLD_CONFIG_ALIAS
 from sentry.search.events.fields import (
     FIELD_ALIASES,
     InvalidSearchQuery,
@@ -458,7 +459,10 @@ def timeseries_query(selected_columns, query, params, rollup, referrer=None):
                 # Check that the column is a list with 3 items, and the alias in the third item is an equation
                 if isinstance(column, list)
                 and len(column) == 3
-                and column[-1].startswith("equation[")
+                and (
+                    column[-1].startswith("equation[")
+                    or column[-1] == PROJECT_THRESHOLD_CONFIG_ALIAS
+                )
             ],
             aggregations=snuba_filter.aggregations,
             conditions=snuba_filter.conditions,

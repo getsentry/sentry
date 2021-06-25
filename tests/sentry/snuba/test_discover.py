@@ -3011,6 +3011,56 @@ class TimeseriesQueryTest(TimeseriesBase):
         assert "count_unique_user" in keys
         assert "time" in keys
 
+    def test_count_miserable(self):
+        event_data = load_data("transaction")
+        # Half of duration so we don't get weird rounding differences when comparing the results
+        event_data["breakdowns"]["span_ops"]["ops.http"]["value"] = 300
+        event_data["start_timestamp"] = iso_format(self.day_ago + timedelta(minutes=30))
+        event_data["timestamp"] = iso_format(self.day_ago + timedelta(minutes=30, seconds=3))
+        self.store_event(data=event_data, project_id=self.project.id)
+
+        result = discover.timeseries_query(
+            selected_columns=["count_miserable(user)"],
+            query="",
+            params={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=2),
+                "project_id": [self.project.id],
+                "organization_id": self.organization.id,
+            },
+            rollup=3600,
+        )
+        assert len(result.data["data"]) == 3
+        assert [1] == [
+            val["count_miserable_user"]
+            for val in result.data["data"]
+            if "count_miserable_user" in val
+        ]
+
+    def test_count_miserable_with_arithmetic(self):
+        event_data = load_data("transaction")
+        # Half of duration so we don't get weird rounding differences when comparing the results
+        event_data["breakdowns"]["span_ops"]["ops.http"]["value"] = 300
+        event_data["start_timestamp"] = iso_format(self.day_ago + timedelta(minutes=30))
+        event_data["timestamp"] = iso_format(self.day_ago + timedelta(minutes=30, seconds=3))
+        self.store_event(data=event_data, project_id=self.project.id)
+
+        result = discover.timeseries_query(
+            selected_columns=["equation|count_miserable(user) - 100"],
+            query="",
+            params={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=2),
+                "project_id": [self.project.id],
+                "organization_id": self.organization.id,
+            },
+            rollup=3600,
+        )
+        assert len(result.data["data"]) == 3
+        assert [1 - 100] == [
+            val["equation[0]"] for val in result.data["data"] if "equation[0]" in val
+        ]
+
     def test_equation_function(self):
         result = discover.timeseries_query(
             selected_columns=["equation|count() / 100"],
