@@ -273,7 +273,6 @@ class ITunesClient:
         # itunes_connect.set_provider(self._session, itunes_org)
 
     def download_dsyms(self, build: BuildInfo, path: pathlib.Path) -> None:
-        # TODO(flub): is there a better type for the path?
         url = itunes_connect.get_dsym_url(
             self._session, build.app_id, build.version, build.build_number, build.platform
         )
