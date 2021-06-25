@@ -36,6 +36,7 @@ class Migration(migrations.Migration):
                     CREATE INDEX CONCURRENTLY IF NOT EXISTS "sentry_groupedmessage_project_id_status_last_s_6b8195a7_idx" ON "sentry_groupedmessage" ("project_id", "status", "last_seen", "id");
                     """,
                     reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS sentry_groupedmessage_project_id_status_last_s_6b8195a7_idx",
+                    hints={"tables": ["sentry_groupedmessage"]},
                 ),
             ],
             state_operations=[
