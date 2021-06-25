@@ -8,6 +8,7 @@ import dataclasses
 import enum
 import io
 import logging
+import pathlib
 from datetime import datetime
 from typing import Any, Dict, List
 
@@ -271,7 +272,7 @@ class ITunesClient:
         itunes_connect.load_session_cookie(self._session, itunes_cookie)
         # itunes_connect.set_provider(self._session, itunes_org)
 
-    def download_dsyms(self, build: BuildInfo, path: str) -> None:
+    def download_dsyms(self, build: BuildInfo, path: pathlib.Path) -> None:
         # TODO(flub): is there a better type for the path?
         url = itunes_connect.get_dsym_url(
             self._session, build.app_id, build.version, build.build_number, build.platform

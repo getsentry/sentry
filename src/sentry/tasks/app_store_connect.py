@@ -5,6 +5,7 @@ debug files.  These tasks enable this functionality.
 """
 
 import logging
+import pathlib
 import tempfile
 
 from sentry.lang.native import appconnect
@@ -63,7 +64,7 @@ def inner_dsym_download(
 
         if not build_state.fetched:
             with tempfile.NamedTemporaryFile() as dsyms_zip:
-                itunes_client.download_dsyms(build, dsyms_zip.name)
+                itunes_client.download_dsyms(build, pathlib.Path(dsyms_zip.name))
                 create_difs_from_dsyms_zip(dsyms_zip.name, project)
             build_state.fetched = True
             build_state.save()
