@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 class ExternalActor(DefaultFieldsModel):
-    __core__ = False
+    __include_in_export__ = False
 
     actor = FlexibleForeignKey("sentry.Actor", db_index=True, on_delete=models.CASCADE)
     organization = FlexibleForeignKey("sentry.Organization")

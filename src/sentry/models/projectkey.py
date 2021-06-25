@@ -44,7 +44,7 @@ class ProjectKeyManager(BaseManager):
 
 
 class ProjectKey(Model):
-    __core__ = True
+    __include_in_export__ = True
 
     project = FlexibleForeignKey("sentry.Project", related_name="key_set")
     label = models.CharField(max_length=64, blank=True, null=True)

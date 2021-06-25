@@ -9,7 +9,7 @@ class Dashboard(Model):
     A dashboard.
     """
 
-    __core__ = True
+    __include_in_export__ = True
 
     title = models.CharField(max_length=255)
     created_by = FlexibleForeignKey("sentry.User")
@@ -50,7 +50,7 @@ class DashboardTombstone(Model):
     has been replaced or deleted for an organization.
     """
 
-    __core__ = True
+    __include_in_export__ = True
 
     slug = models.CharField(max_length=255)
     organization = FlexibleForeignKey("sentry.Organization")

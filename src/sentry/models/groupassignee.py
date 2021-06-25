@@ -204,7 +204,7 @@ class GroupAssignee(Model):
     aggregated event (Group).
     """
 
-    __core__ = False
+    __include_in_export__ = False
 
     objects = GroupAssigneeManager()
 
