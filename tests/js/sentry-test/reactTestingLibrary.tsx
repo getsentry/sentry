@@ -10,7 +10,7 @@ type ContextRenderOptions = RenderOptions & {context: any};
 const makeAllTheProviders =
   (context: any) =>
   ({children}: {children?: React.ReactNode}) => {
-    const ContextProvider = createProvider(context);
+    const ContextProvider = context ? createProvider(context) : React.Fragment;
     return (
       <ContextProvider>
         <CacheProvider value={cache}>
