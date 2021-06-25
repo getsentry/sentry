@@ -12,7 +12,7 @@ describe('Release Issues', function () {
 
   const props = {
     orgId: 'org',
-    organization,
+    organization: TestStubs.Organization(),
     version: '1.0.0',
     selection: {projects: [], environments: [], datetime: {period: '14d'}},
     location: {href: ''},

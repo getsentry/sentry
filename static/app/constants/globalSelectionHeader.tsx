@@ -10,6 +10,8 @@ export const URL_PARAM = {
 export const PAGE_URL_PARAM = {
   PAGE_START: 'pageStart',
   PAGE_END: 'pageEnd',
+  PAGE_UTC: 'pageUtc',
+  PAGE_PERIOD: 'pageStatsPeriod',
 };
 
 export const DATE_TIME = {

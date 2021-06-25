@@ -1,7 +1,7 @@
 import Alert from 'app/components/alert';
 import EventDataSection from 'app/components/events/eventDataSection';
 import {IconUpgrade} from 'app/icons';
-import {tct} from 'app/locale';
+import {t, tct} from 'app/locale';
 import {Event} from 'app/types/event';
 import getSdkUpdateSuggestion from 'app/utils/getSdkUpdateSuggestion';
 
@@ -24,7 +24,9 @@ const SdkUpdates = ({event}: Props) => {
 
       return (
         <Alert key={index} type="info" icon={<IconUpgrade />}>
-          {tct('We recommend you [suggestion]', {suggestion})}
+          {tct('We recommend you [suggestion] ', {suggestion})}
+          {sdkUpdate.type === 'updateSdk' &&
+            t('(All sentry packages should be updated and their versions should match)')}
         </Alert>
       );
     })

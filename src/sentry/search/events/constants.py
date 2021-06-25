@@ -86,3 +86,6 @@ OPERATOR_NEGATION_MAP = {
 OPERATOR_TO_DJANGO = {">=": "gte", "<=": "lte", ">": "gt", "<": "lt", "=": "exact"}
 
 SEMVER_MAX_SEARCH_RELEASES = 1000
+SEMVER_EMPTY_RELEASE = "____SENTRY_EMPTY_RELEASE____"
+SEMVER_FAKE_PACKAGE = "__sentry_fake__"
+SEMVER_WILDCARDS = frozenset(["X", "*"])

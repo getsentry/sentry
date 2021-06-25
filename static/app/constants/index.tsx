@@ -62,7 +62,7 @@ export const MEMBER_ROLES = [
     id: 'admin',
     name: 'Admin',
     allowed: true,
-    desc: "Admin privileges on any teams of which they're a member. They can create new teams and projects, as well as remove teams and projects which they already hold membership on (or all teams, if open membership is on).",
+    desc: "Admin privileges on any teams of which they're a member. They can create new teams and projects, as well as remove teams and projects on which they already hold membership (or all teams, if open membership is enabled). Additionally, they can manage memberships of teams that they are members of. They cannot invite members to the organization.",
   },
   {
     id: 'manager',
