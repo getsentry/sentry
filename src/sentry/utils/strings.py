@@ -44,6 +44,7 @@ def unescape_string(value):
     """Unescapes a backslash escaped string."""
     with warnings.catch_warnings():
         # https://bugs.python.org/issue27364
+        # https://bugs.python.org/issue32912
         warnings.simplefilter("ignore")
         return value.encode("ascii", "backslashreplace").decode(
             "unicode-escape", "unicode-escape-recovery"
