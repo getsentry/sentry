@@ -193,8 +193,6 @@ class SpanTreeModel {
       ? continuingTreeDepths
       : [...continuingTreeDepths, treeDepthEntry];
 
-    const lastIndex = this.children.length - 1;
-
     const parentSpanID = getSpanID(this.span);
     const childSpanGroup = new Set(spanGroups);
     childSpanGroup.add(parentSpanID);
@@ -202,6 +200,8 @@ class SpanTreeModel {
     const descendantsSource = this.showEmbeddedChildren
       ? [...this.embeddedChildren, ...this.children]
       : this.children;
+
+    const lastIndex = descendantsSource.length - 1;
 
     const {descendants} = descendantsSource.reduce(
       (
