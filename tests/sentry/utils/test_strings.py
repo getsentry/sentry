@@ -17,13 +17,38 @@ SHY = "\u00ad"  # soft hyphen
 
 
 def test_unescape_string():
+    value = r"\x80"
+    # Python will see \x80 is a valid escape sequence and escape the \.
+    assert r"\x80" == "\\x80"
+    # We want to unescape that.
+    assert unescape_string(value) == "\x80"
+    assert r"\x80" != "\x80"
+
+    # So, the resulting str has the same number of backslashes as the raw string.
+    assert unescape_string(r"\\x80") == "\\x80"
+    assert unescape_string(r"\\\x80") == "\\\x80"
+    assert unescape_string(r"\\\\x80") == "\\\\x80"
+
+    value = r"C:/WINDOWS/system32/DriverStore\**"
+    assert value == "C:/WINDOWS/system32/DriverStore\\**"
+    # This string should remain unchanged after unescape_string,
+    # because there are no recognized escape sequences to unescape.
+    # From 3.6 to 3.8 a DeprecationWarning which we suppress will
+    # be emitted during .decode("unicode-escape", "unicode-escape-recovery"),
+    # because \* isn't a recognized escape sequence.
+    # We just want this to be a reminder if the warning is upgraded to a
+    # behavior change in 3.9+.
     assert (
-        unescape_string("C:/WINDOWS/system32/DriverStore\\**")
+        # As for this test case, "value" is specified as raw
+        # because we need to explicitly tell python we really mean it
+        # as a literal; for raw strings python will escape all backslashes it sees,
+        # regardless if it's part of a recognized escape sequence or not.
+        # Otherwise we get the same DeprecationWarning as Python sees the
+        # \* and warns us it's not a recognized escape sequence.
+        #
+        unescape_string(value)
         == "C:/WINDOWS/system32/DriverStore\\**"
     )
-    assert unescape_string("\x80") == "\x80"
-    assert unescape_string("\\x80") == "\x80"
-    assert unescape_string("\\\x80") == "\\x80"
 
 
 def test_codec_lookup():
