@@ -11,7 +11,7 @@ import GroupDetails from 'app/views/organizationGroupDetails';
 
 jest.unmock('app/utils/recreateRoute');
 
-describe('groupDetails', () => {
+describe('groupDetails', function () {
   const group = TestStubs.Group();
   const event = TestStubs.Event();
 
