@@ -7,8 +7,9 @@ import sentry_sdk
 from sentry import options
 from sentry.discover.arithmetic import is_equation, resolve_equation_list, strip_equation
 from sentry.models import Group
+from sentry.models.transaction_threshold import ProjectTransactionThreshold
 from sentry.search.events.builder import QueryBuilder
-from sentry.search.events.constants import PROJECT_THRESHOLD_CONFIG_ALIAS
+from sentry.search.events.constants import CONFIGURABLE_AGGREGATES, DEFAULT_PROJECT_THRESHOLD
 from sentry.search.events.fields import (
     FIELD_ALIASES,
     InvalidSearchQuery,
@@ -20,7 +21,7 @@ from sentry.search.events.fields import (
 from sentry.search.events.filter import get_filter
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
 from sentry.utils.compat import filter
-from sentry.utils.math import nice_int
+from sentry.utils.math import mean, nice_int
 from sentry.utils.snuba import (
     SNUBA_AND,
     SNUBA_OR,
@@ -396,6 +397,7 @@ def get_timeseries_snuba_filter(selected_columns, query, params):
 
     columns = []
     equations = []
+
     for column in selected_columns:
         if is_equation(column):
             equations.append(strip_equation(column))
@@ -409,6 +411,35 @@ def get_timeseries_snuba_filter(selected_columns, query, params):
     else:
         resolved_equations = []
         updated_columns = columns
+
+    # For the new apdex, we need to add project threshold config as a selected
+    # column which means the group by for the time series won't work.
+    # As a temporary solution, we will calculate the mean of all the project
+    # level thresholds in the request and use the legacy apdex, user_misery
+    # or count_miserable calculation.
+    # TODO(snql): Alias the project_threshold_config column so it doesn't
+    # have to be in the SELECT statement and group by to be able to use new apdex,
+    # user_misery and count_miserable.
+    threshold = None
+    for agg in CONFIGURABLE_AGGREGATES:
+        if agg not in updated_columns:
+            continue
+
+        if threshold is None:
+            project_ids = params.get("project_id")
+            threshold_configs = list(
+                ProjectTransactionThreshold.objects.filter(
+                    organization_id=params["organization_id"],
+                    project_id__in=project_ids,
+                ).values_list("threshold", flat=True)
+            )
+
+            projects_without_threshold = len(project_ids) - len(threshold_configs)
+            threshold_configs.extend([DEFAULT_PROJECT_THRESHOLD] * projects_without_threshold)
+            threshold = int(mean(threshold_configs))
+
+        updated_columns.remove(agg)
+        updated_columns.append(CONFIGURABLE_AGGREGATES[agg].format(threshold=threshold))
 
     snuba_filter.update_with(
         resolve_field_list(
@@ -459,10 +490,7 @@ def timeseries_query(selected_columns, query, params, rollup, referrer=None):
                 # Check that the column is a list with 3 items, and the alias in the third item is an equation
                 if isinstance(column, list)
                 and len(column) == 3
-                and (
-                    column[-1].startswith("equation[")
-                    or column[-1] == PROJECT_THRESHOLD_CONFIG_ALIAS
-                )
+                and column[-1].startswith("equation[")
             ],
             aggregations=snuba_filter.aggregations,
             conditions=snuba_filter.conditions,
