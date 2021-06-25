@@ -40,7 +40,7 @@ type Props = {
   onChangeSpanOperationBreakdownFilter: (newFilter: SpanOperationBreakdownFilter) => void;
   eventsDisplayFilterName: EventsDisplayFilterName;
   onChangeEventsDisplayFilter: (eventsDisplayFilterName: EventsDisplayFilterName) => void;
-  totalValues: Record<string, number> | null;
+  percentileValues?: Record<EventsDisplayFilterName, number>;
   isLoading: boolean;
 };
 
@@ -218,7 +218,7 @@ const Search = (props: Props) => {
     onChangeSpanOperationBreakdownFilter,
     eventsDisplayFilterName,
     onChangeEventsDisplayFilter,
-    totalValues,
+    percentileValues,
   } = props;
 
   const handleSearch = (query: string) => {
@@ -240,7 +240,7 @@ const Search = (props: Props) => {
 
   const eventsFilterOptions = getEventsFilterOptions(
     spanOperationBreakdownFilter,
-    totalValues?.p95 ?? 0
+    percentileValues
   );
 
   return (

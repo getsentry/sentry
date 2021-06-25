@@ -6,11 +6,12 @@ import {decodeScalar} from 'app/utils/queryString';
 import {filterToField, SpanOperationBreakdownFilter} from '../filter';
 
 export enum EventsDisplayFilterName {
-  NONE = 'none',
-  FASTEST = 'fastest',
-  SLOW = 'slow',
-  OUTLIER = 'outlier',
-  RECENT = 'recent',
+  p50 = 'p50',
+  p75 = 'p75',
+  p95 = 'p95',
+  p99 = 'p99',
+  p100 = 'p100',
+  avg_transaction_duration = 'avg_transaction_duration',
 }
 
 export type EventsDisplayFilter = {
@@ -24,51 +25,68 @@ export type EventsFilterOptions = {
   [name in EventsDisplayFilterName]: EventsDisplayFilter;
 };
 
+export type EventsFilterPercentileValues = {
+  [name in Exclude<EventsDisplayFilterName, EventsDisplayFilterName.p100>]: number;
+};
+
 export function getEventsFilterOptions(
   spanOperationBreakdownFilter: SpanOperationBreakdownFilter,
-  p95?: number
+  percentileValues?: EventsFilterPercentileValues
 ): EventsFilterOptions {
-  const spanOperationBreakdownFilterTextFragment =
-    spanOperationBreakdownFilter !== SpanOperationBreakdownFilter.None
-      ? `${spanOperationBreakdownFilter} Operations`
-      : 'Transactions';
+  const {p99, p95, p75, p50, avg_transaction_duration} = percentileValues
+    ? percentileValues
+    : {p99: 0, p95: 0, p75: 0, p50: 0, avg_transaction_duration: 0};
   return {
-    [EventsDisplayFilterName.NONE]: {
-      name: EventsDisplayFilterName.NONE,
-      label: t('All %s', spanOperationBreakdownFilterTextFragment),
-    },
-    [EventsDisplayFilterName.FASTEST]: {
-      name: EventsDisplayFilterName.FASTEST,
-      sort: {
-        kind: 'asc',
-        field: filterToField(spanOperationBreakdownFilter) || 'transaction.duration',
-      },
-      label: t('Fastest %s', spanOperationBreakdownFilterTextFragment),
-    },
-
-    [EventsDisplayFilterName.SLOW]: {
-      name: EventsDisplayFilterName.SLOW,
-      query: p95 ? [['transaction.duration', `<=${p95.toFixed(0)}`]] : [],
+    [EventsDisplayFilterName.p50]: {
+      name: EventsDisplayFilterName.p50,
+      query: p50 ? [['transaction.duration', `<=${p50.toFixed(0)}`]] : undefined,
       sort: {
         kind: 'desc',
         field: filterToField(spanOperationBreakdownFilter) || 'transaction.duration',
       },
-      label: t('Slow %s (p95)', spanOperationBreakdownFilterTextFragment),
+      label: t('p50'),
     },
-
-    [EventsDisplayFilterName.OUTLIER]: {
-      name: EventsDisplayFilterName.OUTLIER,
+    [EventsDisplayFilterName.p75]: {
+      name: EventsDisplayFilterName.p75,
+      query: p75 ? [['transaction.duration', `<=${p75.toFixed(0)}`]] : undefined,
       sort: {
         kind: 'desc',
         field: filterToField(spanOperationBreakdownFilter) || 'transaction.duration',
       },
-      label: t('Outlier %s (p100)', spanOperationBreakdownFilterTextFragment),
+      label: t('p75'),
     },
-
-    [EventsDisplayFilterName.RECENT]: {
-      name: EventsDisplayFilterName.RECENT,
-      sort: {kind: 'desc', field: 'timestamp'},
-      label: t('Recent Transactions'),
+    [EventsDisplayFilterName.p95]: {
+      name: EventsDisplayFilterName.p95,
+      query: p95 ? [['transaction.duration', `<=${p95.toFixed(0)}`]] : undefined,
+      sort: {
+        kind: 'desc',
+        field: filterToField(spanOperationBreakdownFilter) || 'transaction.duration',
+      },
+      label: t('p95'),
+    },
+    [EventsDisplayFilterName.p99]: {
+      name: EventsDisplayFilterName.p99,
+      query: p99 ? [['transaction.duration', `<=${p99.toFixed(0)}`]] : undefined,
+      sort: {
+        kind: 'desc',
+        field: filterToField(spanOperationBreakdownFilter) || 'transaction.duration',
+      },
+      label: t('p99'),
+    },
+    [EventsDisplayFilterName.p100]: {
+      name: EventsDisplayFilterName.p100,
+      label: t('p100'),
+    },
+    [EventsDisplayFilterName.avg_transaction_duration]: {
+      name: EventsDisplayFilterName.avg_transaction_duration,
+      query: avg_transaction_duration
+        ? [['transaction.duration', `<=${avg_transaction_duration.toFixed(0)}`]]
+        : undefined,
+      sort: {
+        kind: 'desc',
+        field: filterToField(spanOperationBreakdownFilter) || 'transaction.duration',
+      },
+      label: t('average'),
     },
   };
 }
@@ -106,11 +124,11 @@ function stringToFilter(option: string) {
     return option as EventsDisplayFilterName;
   }
 
-  return EventsDisplayFilterName.NONE;
+  return EventsDisplayFilterName.p100;
 }
 export function decodeEventsDisplayFilterFromLocation(location: Location) {
   return stringToFilter(
-    decodeScalar(location.query.showTransactions, EventsDisplayFilterName.NONE)
+    decodeScalar(location.query.showTransactions, EventsDisplayFilterName.p100)
   );
 }
 

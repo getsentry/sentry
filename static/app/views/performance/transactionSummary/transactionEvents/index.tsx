@@ -37,6 +37,7 @@ import EventsPageContent from './content';
 import {
   decodeEventsDisplayFilterFromLocation,
   EventsDisplayFilterName,
+  EventsFilterPercentileValues,
   filterEventsDisplayToLocationQuery,
   getEventsFilterOptions,
 } from './utils';
@@ -54,9 +55,7 @@ type State = {
   eventView: EventView;
 };
 
-// Used to cast the totals request to numbers
-// as React.ReactText
-type TotalValues = Record<string, number>;
+type PercentileValues = Record<EventsDisplayFilterName, number>;
 class TransactionEvents extends Component<Props, State> {
   state: State = {
     spanOperationBreakdownFilter: decodeFilterFromLocation(this.props.location),
@@ -140,7 +139,7 @@ class TransactionEvents extends Component<Props, State> {
       ...filterEventsDisplayToLocationQuery(newFilterName, spanOperationBreakdownFilter),
     };
 
-    if (newFilterName === EventsDisplayFilterName.NONE) {
+    if (newFilterName === EventsDisplayFilterName.p100) {
       delete nextQuery.showTransaction;
     }
 
@@ -150,9 +149,9 @@ class TransactionEvents extends Component<Props, State> {
     });
   };
 
-  getFilteredEventView = (p95?: number) => {
+  getFilteredEventView = (percentiles: EventsFilterPercentileValues) => {
     const {eventsDisplayFilterName, spanOperationBreakdownFilter, eventView} = this.state;
-    const filter = getEventsFilterOptions(spanOperationBreakdownFilter, p95)[
+    const filter = getEventsFilterOptions(spanOperationBreakdownFilter, percentiles)[
       eventsDisplayFilterName
     ];
     const filteredEventView = eventView.clone();
@@ -177,12 +176,34 @@ class TransactionEvents extends Component<Props, State> {
   }
 
   getTotalsEventView(eventView: EventView): EventView {
-    const totalsColumns: QueryFieldValue = {
-      kind: 'function',
-      function: ['p95', '', undefined],
-    };
+    const totalsColumns: QueryFieldValue[] = [
+      {
+        kind: 'function',
+        function: ['p100', '', undefined],
+      },
+      {
+        kind: 'function',
+        function: ['p99', '', undefined],
+      },
+      {
+        kind: 'function',
+        function: ['p95', '', undefined],
+      },
+      {
+        kind: 'function',
+        function: ['p75', '', undefined],
+      },
+      {
+        kind: 'function',
+        function: ['p50', '', undefined],
+      },
+      {
+        kind: 'function',
+        function: ['avg', 'transaction.duration', undefined],
+      },
+    ];
 
-    return eventView.withColumns([totalsColumns]);
+    return eventView.withColumns([...totalsColumns]);
   }
 
   renderNoAccess = () => {
@@ -241,11 +262,11 @@ class TransactionEvents extends Component<Props, State> {
                 referrer="api.performance.transaction-events"
               >
                 {({isLoading, tableData}) => {
-                  const totals: TotalValues | null = tableData?.data?.[0] ?? null;
+                  const percentiles: PercentileValues = tableData?.data?.[0];
                   return (
                     <EventsPageContent
                       location={location}
-                      eventView={this.getFilteredEventView(totals?.p95)}
+                      eventView={this.getFilteredEventView(percentiles)}
                       transactionName={transactionName}
                       organization={organization}
                       projects={projects}
@@ -257,7 +278,7 @@ class TransactionEvents extends Component<Props, State> {
                       }
                       eventsDisplayFilterName={this.state.eventsDisplayFilterName}
                       onChangeEventsDisplayFilter={this.onChangeEventsDisplayFilter}
-                      totalValues={totals}
+                      percentileValues={percentiles}
                       isLoading={isLoading}
                     />
                   );
