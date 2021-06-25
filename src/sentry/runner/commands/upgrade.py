@@ -1,11 +1,44 @@
 import click
 from django.conf import settings
+from django.db import connections
 
 from sentry.runner.decorators import configuration
 
 
+def _check_history():
+    connection = connections["default"]
+    cursor = connection.cursor()
+    try:
+        # If the database has 0 tables we are good to go.
+        cursor.execute(
+            """
+            SELECT COUNT(*) AS total FROM information_schema.tables
+            WHERE table_catalog = %s AND table_schema = 'public'
+            """,
+            [settings.DATABASES["default"]["NAME"]],
+        )
+        if cursor.fetchone()[0] == 0:
+            return
+    except Exception:
+        raise click.ClickException("Could not determine migration state. Aborting")
+
+    try:
+        # If we haven't run all the migration up to the latest squash abort.
+        # As we squash more history this should be updated.
+        cursor.execute("SELECT 1 FROM django_migrations WHERE name = '0200_release_indices'")
+        if not cursor.fetchone()[0]:
+            raise RuntimeError
+    except Exception:
+        raise click.ClickException(
+            "You need to run migrations before upgrading to this version of sentry. "
+            "See https://develop.sentry.dev/self-hosted/#upgrading for more information"
+        )
+
+
 def _upgrade(interactive, traceback, verbosity, repair, with_nodestore):
     from django.core.management import call_command as dj_call_command
+
+    _check_history()
 
     for db_conn in settings.DATABASES.keys():
         # Always run migrations for the default connection.
