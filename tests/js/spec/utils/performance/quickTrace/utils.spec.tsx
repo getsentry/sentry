@@ -176,7 +176,7 @@ describe('Quick Trace Utils', function () {
       const current = generateEventSelector({generation: 0, offset: 0}, 'transaction');
       expect(() =>
         parseQuickTrace({type: 'empty', trace: []}, current, organization)
-      ).toThrow('Current event not in quick trace');
+      ).toThrow('Current event not in trace navigator');
     });
 
     describe('partial trace', function () {
@@ -185,7 +185,7 @@ describe('Quick Trace Utils', function () {
         const current = generateEventSelector({generation: 1, offset: 0}, 'transaction');
         expect(() =>
           parseQuickTrace({type: 'partial', trace: relevantPath}, current, organization)
-        ).toThrow('Current event not in quick trace');
+        ).toThrow('Current event not in trace navigator');
       });
 
       it('parses only the current event', function () {

@@ -252,14 +252,12 @@ class Actions extends React.Component<Props, State> {
             disabled={disabled}
           />
         </GuideAnchor>
-        {orgFeatures.has('inbox') && (
-          <Tooltip
-            disabled={!!group.inbox || disabled}
-            title={t('Issue has been reviewed')}
-          >
-            <ReviewAction onUpdate={this.onUpdate} disabled={!group.inbox || disabled} />
-          </Tooltip>
-        )}
+        <Tooltip
+          disabled={!!group.inbox || disabled}
+          title={t('Issue has been reviewed')}
+        >
+          <ReviewAction onUpdate={this.onUpdate} disabled={!group.inbox || disabled} />
+        </Tooltip>
         <DeleteAction
           disabled={disabled}
           organization={organization}

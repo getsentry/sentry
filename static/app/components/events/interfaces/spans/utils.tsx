@@ -100,13 +100,11 @@ export const boundsGenerator = (bounds: {
 }) => {
   const {viewStart, viewEnd} = bounds;
 
-  const {
-    startTimestamp: traceStartTimestamp,
-    endTimestamp: traceEndTimestamp,
-  } = normalizeTimestamps({
-    startTimestamp: bounds.traceStartTimestamp,
-    endTimestamp: bounds.traceEndTimestamp,
-  });
+  const {startTimestamp: traceStartTimestamp, endTimestamp: traceEndTimestamp} =
+    normalizeTimestamps({
+      startTimestamp: bounds.traceStartTimestamp,
+      endTimestamp: bounds.traceEndTimestamp,
+    });
 
   // viewStart and viewEnd are percentage values (%) of the view window relative to the left
   // side of the trace view minimap
@@ -199,10 +197,10 @@ export function generateRootSpan(trace: ParsedTraceType): RawSpanType {
 }
 
 // start and end are assumed to be unix timestamps with fractional seconds
-export function getTraceDateTimeRange(input: {
-  start: number;
-  end: number;
-}): {start: string; end: string} {
+export function getTraceDateTimeRange(input: {start: number; end: number}): {
+  start: string;
+  end: string;
+} {
   const start = moment
     .unix(input.start)
     .subtract(12, 'hours')

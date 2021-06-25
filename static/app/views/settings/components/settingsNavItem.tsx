@@ -24,16 +24,20 @@ const SettingsNavItem = ({badge, label, index, id, ...props}: Props) => {
     defaultComponent: ({children}) => <React.Fragment>{children}</React.Fragment>,
   });
 
-  const renderedBadge =
-    badge === 'new' ? (
-      <FeatureBadge type="new" />
-    ) : badge === 'warning' ? (
+  let renderedBadge;
+  if (badge === 'new') {
+    renderedBadge = <FeatureBadge type="new" />;
+  } else if (badge === 'beta') {
+    renderedBadge = <FeatureBadge type="beta" />;
+  } else if (badge === 'warning') {
+    renderedBadge = (
       <Tooltip title={t('This settings needs review')} position="right">
         <StyledBadge text={badge} type="warning" />
       </Tooltip>
-    ) : (
-      <StyledBadge text={badge} />
     );
+  } else {
+    renderedBadge = <StyledBadge text={badge} />;
+  }
 
   return (
     <StyledNavItem onlyActiveOnIndex={index} activeClassName="active" {...props}>

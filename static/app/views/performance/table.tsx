@@ -17,7 +17,7 @@ import DiscoverQuery, {TableData, TableDataRow} from 'app/utils/discover/discove
 import EventView, {EventData, isFieldSortable} from 'app/utils/discover/eventView';
 import {getFieldRenderer} from 'app/utils/discover/fieldRenderers';
 import {fieldAlignment, getAggregateAlias} from 'app/utils/discover/fields';
-import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {tokenizeSearch} from 'app/utils/tokenizeSearch';
 import CellAction, {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
 import {TableColumn} from 'app/views/eventsV2/table/types';
 
@@ -101,7 +101,7 @@ class Table extends React.Component<Props, State> {
         query: {
           ...location.query,
           cursor: undefined,
-          query: stringifyQueryObject(searchConditions),
+          query: searchConditions.formatString(),
         },
       });
     };
@@ -226,7 +226,7 @@ class Table extends React.Component<Props, State> {
     column: TableColumn<keyof TableDataRow>,
     title: React.ReactNode
   ): React.ReactNode {
-    const {eventView, location} = this.props;
+    const {eventView, location, organization} = this.props;
 
     const align = fieldAlignment(column.name, column.type, tableMeta);
     const field = {field: column.name, width: column.width};
@@ -262,7 +262,11 @@ class Table extends React.Component<Props, State> {
     );
     if (field.field.startsWith('user_misery')) {
       return (
-        <GuideAnchor target="user_misery" position="top">
+        <GuideAnchor
+          target="project_transaction_threshold"
+          position="top"
+          disabled={!organization.features.includes('project-transaction-threshold')}
+        >
           {sortLink}
         </GuideAnchor>
       );

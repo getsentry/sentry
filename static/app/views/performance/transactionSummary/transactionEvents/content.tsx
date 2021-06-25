@@ -2,31 +2,29 @@ import * as React from 'react';
 import {Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location, Query} from 'history';
+import {Location} from 'history';
 import omit from 'lodash/omit';
 
+import Alert from 'app/components/alert';
 import {CreateAlertFromViewButton} from 'app/components/createAlertButton';
-import TransactionsTable from 'app/components/discover/transactionsTable';
 import SearchBar from 'app/components/events/searchBar';
 import GlobalSdkUpdateAlert from 'app/components/globalSdkUpdateAlert';
 import * as Layout from 'app/components/layouts/thirds';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import Pagination from 'app/components/pagination';
+import {IconFlag} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
-import DiscoverQuery from 'app/utils/discover/discoverQuery';
 import EventView from 'app/utils/discover/eventView';
 import {decodeScalar} from 'app/utils/queryString';
-import {stringifyQueryObject, tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {tokenizeSearch} from 'app/utils/tokenizeSearch';
 import {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
 import {TableColumn} from 'app/views/eventsV2/table/types';
 
 import {getCurrentLandingDisplay, LandingDisplayField} from '../../landing/utils';
 import TransactionHeader, {Tab} from '../header';
-import {generateTraceLink, generateTransactionLink} from '../utils';
 
-const DEFAULT_TRANSACTION_LIMIT = 50;
+import EventsTable from './eventsTable';
 
 type Props = {
   location: Location;
@@ -34,29 +32,17 @@ type Props = {
   transactionName: string;
   organization: Organization;
   projects: Project[];
-  cursorName: string;
-  limit: number;
 };
 
 type State = {
   incompatibleAlertNotice: React.ReactNode;
+  error: string | undefined;
 };
 
 class EventsPageContent extends React.Component<Props, State> {
-  static defaultProps = {
-    cursorName: 'transactionCursor',
-    limit: DEFAULT_TRANSACTION_LIMIT,
-  };
   state: State = {
     incompatibleAlertNotice: null,
-  };
-
-  handleCursor = (cursor: string, pathname: string, query: Query) => {
-    const {cursorName} = this.props;
-    browserHistory.push({
-      pathname,
-      query: {...query, [cursorName]: cursor},
-    });
+    error: undefined,
   };
 
   handleCellAction = (column: TableColumn<React.ReactText>) => {
@@ -78,7 +64,7 @@ class EventsPageContent extends React.Component<Props, State> {
         query: {
           ...location.query,
           cursor: undefined,
-          query: stringifyQueryObject(searchConditions),
+          query: searchConditions.formatString(),
         },
       });
     };
@@ -93,20 +79,27 @@ class EventsPageContent extends React.Component<Props, State> {
     this.setState({incompatibleAlertNotice});
   };
 
+  renderError() {
+    const {error} = this.state;
+
+    if (!error) {
+      return null;
+    }
+
+    return (
+      <StyledAlert type="error" icon={<IconFlag size="md" />}>
+        {error}
+      </StyledAlert>
+    );
+  }
+
+  setError = (error: string | undefined) => {
+    this.setState({error});
+  };
+
   render() {
-    const {
-      eventView,
-      location,
-      organization,
-      projects,
-      transactionName,
-      limit,
-      cursorName,
-    } = this.props;
+    const {eventView, location, organization, projects, transactionName} = this.props;
     const {incompatibleAlertNotice} = this.state;
-
-    const transactionsListEventView = eventView.clone();
-
     const transactionsListTitles = [
       t('event id'),
       t('user'),
@@ -115,12 +108,11 @@ class EventsPageContent extends React.Component<Props, State> {
       t('trace id'),
       t('timestamp'),
     ];
-    const cursor = decodeScalar(location.query?.[cursorName]);
 
     return (
       <Fragment>
         <TransactionHeader
-          eventView={transactionsListEventView}
+          eventView={eventView}
           location={location}
           organization={organization}
           projects={projects}
@@ -134,50 +126,21 @@ class EventsPageContent extends React.Component<Props, State> {
         />
         <Layout.Body>
           <StyledSdkUpdatesAlert />
+          {this.renderError()}
           {incompatibleAlertNotice && (
             <Layout.Main fullWidth>{incompatibleAlertNotice}</Layout.Main>
           )}
           <Layout.Main fullWidth>
             <Search {...this.props} />
             <StyledTable>
-              <DiscoverQuery
+              <EventsTable
+                eventView={eventView}
+                organization={organization}
                 location={location}
-                eventView={transactionsListEventView}
-                orgSlug={organization.slug}
-                limit={limit}
-                cursor={cursor}
-                referrer="api.discover.transactions-list"
-              >
-                {({isLoading, pageLinks, tableData}) => {
-                  return (
-                    <React.Fragment>
-                      <TransactionsTable
-                        eventView={eventView}
-                        organization={organization}
-                        location={location}
-                        isLoading={isLoading}
-                        tableData={tableData}
-                        columnOrder={eventView.getColumns()}
-                        titles={transactionsListTitles}
-                        handleCellAction={this.handleCellAction}
-                        generateLink={{
-                          id: generateTransactionLink(transactionName),
-                          trace: generateTraceLink(
-                            eventView.normalizeDateSelection(location)
-                          ),
-                        }}
-                        baselineTransactionName={null}
-                        baselineData={null}
-                      />
-                      <Pagination
-                        pageLinks={pageLinks}
-                        onCursor={this.handleCursor}
-                        size="small"
-                      />
-                    </React.Fragment>
-                  );
-                }}
-              </DiscoverQuery>
+                setError={this.setError}
+                columnTitles={transactionsListTitles}
+                transactionName={transactionName}
+              />
             </StyledTable>
           </Layout.Main>
         </Layout.Body>
@@ -216,9 +179,15 @@ const Search = (props: Props) => {
   );
 };
 
+const StyledAlert = styled(Alert)`
+  grid-column: 1/3;
+  margin: 0;
+`;
+
 const StyledSearchBar = styled(SearchBar)`
   flex-grow: 1;
 `;
+
 const StyledTable = styled('div')`
   flex-grow: 1;
   padding-top: ${space(2)};

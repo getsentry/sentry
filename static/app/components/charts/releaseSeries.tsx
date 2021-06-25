@@ -135,16 +135,8 @@ class ReleaseSeries extends React.Component<Props, State> {
   );
 
   async fetchData() {
-    const {
-      api,
-      organization,
-      projects,
-      environments,
-      period,
-      start,
-      end,
-      memoized,
-    } = this.props;
+    const {api, organization, projects, environments, period, start, end, memoized} =
+      this.props;
     const conditions: ReleaseConditions = {
       start,
       end,

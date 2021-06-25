@@ -100,7 +100,6 @@ class PushEventWebhook(Webhook):
     def _handle(self, event, organization, is_apps):
         authors = {}
 
-        client = GitHubClient()
         gh_username_cache = {}
 
         try:
@@ -151,7 +150,8 @@ class PushEventWebhook(Webhook):
                             gh_username_cache[gh_username] = author_email
                         else:
                             try:
-                                gh_user = client.request_no_auth("GET", "/users/%s" % gh_username)
+                                with GitHubClient() as client:
+                                    gh_user = client.request_no_auth("GET", f"/users/{gh_username}")
                             except ApiError as exc:
                                 logger.exception(str(exc))
                             else:
@@ -432,7 +432,7 @@ class GithubWebhookEndpoint(GithubWebhookBase):
         try:
             organization = Organization.objects.get_from_cache(id=organization_id)
         except Organization.DoesNotExist:
-            logger.error(
+            logger.info(
                 "github.webhook.invalid-organization", extra={"organization_id": organization_id}
             )
             return HttpResponse(status=400)

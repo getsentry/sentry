@@ -4,7 +4,7 @@ from django.contrib import messages
 from django.contrib.auth.models import AnonymousUser
 from django.test import Client, RequestFactory
 
-from sentry.auth.helper import OK_LINK_IDENTITY, AuthIdentityHandler, RedisBackedState
+from sentry.auth.helper import OK_LINK_IDENTITY, AuthHelper, AuthIdentityHandler, RedisBackedState
 from sentry.auth.provider import Provider
 from sentry.models import (
     AuditLogEntry,
@@ -16,13 +16,23 @@ from sentry.models import (
     OrganizationMemberTeam,
 )
 from sentry.testutils import TestCase
+from sentry.utils import json
 from sentry.utils.compat import mock
+from sentry.utils.redis import clusters
+
+
+def _set_up_request():
+    request = RequestFactory().post("/auth/sso/")
+    request.user = AnonymousUser()
+    request.session = Client().session
+    return request
 
 
 class AuthIdentityHandlerTest(TestCase):
     def setUp(self):
         self.provider = "dummy"
-        self.request = RequestFactory().post("/auth/sso/")
+        self.provider_obj = Provider(self.provider)
+        self.request = _set_up_request()
         self.request.user = AnonymousUser()
         self.request.session = Client().session
 
@@ -274,3 +284,47 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
         assert "login_form" not in context
 
     # TODO: More test cases for various values of request.POST.get("op")
+
+
+class AuthHelperTest(TestCase):
+    def setUp(self):
+        self.organization = self.create_organization()
+        self.provider = "dummy"
+        self.auth_provider = AuthProvider.objects.create(
+            organization=self.organization, provider=self.provider
+        )
+
+        self.auth_key = "test_auth_key"
+        self.request = _set_up_request()
+        self.request.session["auth_key"] = self.auth_key
+
+    def _test_pipeline(self, flow):
+        initial_state = {
+            "org_id": self.organization.id,
+            "flow": flow,
+            "auth_provider": self.auth_provider.id,
+            "provider_key": None,
+        }
+        local_client = clusters.get("default").get_local_client_for_key(self.auth_key)
+        local_client.set(self.auth_key, json.dumps(initial_state))
+
+        helper = AuthHelper.get_for_request(self.request)
+        helper.init_pipeline()
+        assert helper.pipeline_is_valid()
+
+        first_step = helper.current_step()
+        assert first_step.status_code == 200
+
+        next_step = helper.next_step()
+        assert next_step.status_code == 302
+        return next_step
+
+    @mock.patch("sentry.auth.helper.messages")
+    def test_login(self, mock_messages):
+        final_step = self._test_pipeline(AuthHelper.FLOW_LOGIN)
+        assert final_step.url == f"/auth/login/{self.organization.slug}/"
+
+    @mock.patch("sentry.auth.helper.messages")
+    def test_setup_provider(self, mock_messages):
+        final_step = self._test_pipeline(AuthHelper.FLOW_SETUP_PROVIDER)
+        assert final_step.url == f"/settings/{self.organization.slug}/auth/"

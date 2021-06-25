@@ -356,11 +356,8 @@ class EventsRequest extends React.PureComponent<EventsRequestProps, EventsReques
     }
 
     const {data, totals} = response;
-    const {
-      includeTransformedData,
-      includeTimeAggregation,
-      timeAggregationSeriesName,
-    } = this.props;
+    const {includeTransformedData, includeTimeAggregation, timeAggregationSeriesName} =
+      this.props;
     const {current, previous} = this.getData(data);
     const transformedData = includeTransformedData
       ? this.transformTimeseriesData(current, this.props.currentSeriesName)

@@ -194,9 +194,7 @@ class UsageStatsOrganization extends AsyncComponent<Props, State> {
     };
   }
 
-  mapSeriesToChart(
-    orgStats?: UsageSeries
-  ): {
+  mapSeriesToChart(orgStats?: UsageSeries): {
     chartStats: ChartStats;
     cardStats: {
       total?: string;

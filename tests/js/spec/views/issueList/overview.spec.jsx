@@ -37,6 +37,7 @@ describe('IssueList', function () {
   let fetchTagsRequest;
   let fetchMembersRequest;
   const api = new MockApiClient();
+  const parseLinkHeaderSpy = jest.spyOn(parseLinkHeader, 'default');
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
@@ -56,9 +57,9 @@ describe('IssueList', function () {
 
     savedSearch = TestStubs.Search({
       id: '789',
-      query: 'is:unresolved',
+      query: 'is:unresolved TypeError',
       sort: 'date',
-      name: 'Unresolved Issues',
+      name: 'Unresolved TypeErrors',
       projectId: project.id,
     });
 
@@ -87,6 +88,11 @@ describe('IssueList', function () {
       url: '/organizations/org-slug/recent-searches/',
       method: 'POST',
       body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues-count/',
+      method: 'GET',
+      body: [{}],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/processingissues/',
@@ -170,7 +176,7 @@ describe('IssueList', function () {
 
     /* helpers */
     const getSavedSearchTitle = w =>
-      w.find('SavedSearchSelector DropdownMenu ButtonTitle').text();
+      w.find('SavedSearchTab DropdownMenu a').text().trim();
 
     const getSearchBarValue = w =>
       w.find('SmartSearchBarContainer textarea').prop('value').trim();
@@ -241,8 +247,8 @@ describe('IssueList', function () {
 
       expect(getSearchBarValue(wrapper)).toBe('is:unresolved');
 
-      // Organization saved search selector should have default saved search selected
-      expect(getSavedSearchTitle(wrapper)).toBe('Unresolved Issues');
+      // Saved search not active since is:unresolved is a tab
+      expect(getSavedSearchTitle(wrapper)).toBe('Saved Searches');
 
       // This is mocked
       expect(StreamGroup).toHaveBeenCalled();
@@ -478,8 +484,8 @@ describe('IssueList', function () {
       await tick();
       wrapper.update();
 
-      wrapper.find('SavedSearchSelector DropdownButton').simulate('click');
-      wrapper.find('SavedSearchSelector MenuItem a').first().simulate('click');
+      wrapper.find('SavedSearchTab DropdownMenu a').simulate('click');
+      wrapper.find('SavedSearchMenuItem a').last().simulate('click');
 
       expect(browserHistory.push).toHaveBeenLastCalledWith(
         expect.objectContaining({
@@ -611,9 +617,7 @@ describe('IssueList', function () {
         },
       });
 
-      expect(wrapper.find('SavedSearchSelector ButtonTitle').text()).toBe(
-        'Custom Search'
-      );
+      expect(getSavedSearchTitle(wrapper)).toBe('Custom Search');
 
       wrapper.find('Button[aria-label="Pin this search"] button').simulate('click');
 
@@ -640,9 +644,7 @@ describe('IssueList', function () {
       await tick();
       wrapper.update();
 
-      expect(wrapper.find('SavedSearchSelector ButtonTitle').text()).toBe(
-        'My Pinned Search'
-      );
+      expect(getSavedSearchTitle(wrapper)).toBe('My Pinned Search');
 
       wrapper.find('Button[aria-label="Unpin this search"] button').simulate('click');
 
@@ -692,8 +694,8 @@ describe('IssueList', function () {
         },
       });
 
-      wrapper.find('SavedSearchSelector DropdownButton').simulate('click');
-      wrapper.find('SavedSearchSelector MenuItem a').first().simulate('click');
+      wrapper.find('SavedSearchTab DropdownMenu a').simulate('click');
+      wrapper.find('SavedSearchMenuItem a').first().simulate('click');
 
       await tick();
 
@@ -716,9 +718,7 @@ describe('IssueList', function () {
         },
       });
 
-      expect(wrapper.find('SavedSearchSelector ButtonTitle').text()).toBe(
-        'Unresolved Issues'
-      );
+      expect(getSavedSearchTitle(wrapper)).toBe('Unresolved TypeErrors');
 
       wrapper.find('Button[aria-label="Pin this search"] button').simulate('click');
 
@@ -743,13 +743,11 @@ describe('IssueList', function () {
       await tick();
       wrapper.update();
 
-      expect(wrapper.find('SavedSearchSelector ButtonTitle').text()).toBe(
-        'Unresolved Issues'
-      );
+      expect(getSavedSearchTitle(wrapper)).toBe('Unresolved TypeErrors');
 
       // Select other saved search
-      wrapper.find('SavedSearchSelector DropdownButton').simulate('click');
-      wrapper.find('SavedSearchSelector MenuItem a').at(1).simulate('click');
+      wrapper.find('SavedSearchTab DropdownMenu a').simulate('click');
+      wrapper.find('SavedSearchMenuItem a').last().simulate('click');
 
       expect(browserHistory.push).toHaveBeenLastCalledWith(
         expect.objectContaining({
@@ -770,9 +768,7 @@ describe('IssueList', function () {
         },
       });
 
-      expect(wrapper.find('SavedSearchSelector ButtonTitle').text()).toBe(
-        'Assigned to Me'
-      );
+      expect(getSavedSearchTitle(wrapper)).toBe('Assigned to Me');
 
       createPin = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/pinned-searches/',
@@ -806,9 +802,7 @@ describe('IssueList', function () {
       await tick();
       wrapper.update();
 
-      expect(wrapper.find('SavedSearchSelector ButtonTitle').text()).toBe(
-        'Assigned to Me'
-      );
+      expect(getSavedSearchTitle(wrapper)).toBe('Assigned to Me');
     });
 
     it('pinning and unpinning searches should keep project selected', async function () {
@@ -943,8 +937,7 @@ describe('IssueList', function () {
         url: '/organizations/org-slug/issues/',
         body: [group],
         headers: {
-          Link:
-            '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575000:0:0>; rel="previous"; results="true"; cursor="1443575000:0:1", <http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443574000:0:0>; rel="next"; results="true"; cursor="1443574000:0:0"',
+          Link: '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575000:0:0>; rel="previous"; results="true"; cursor="1443575000:0:1", <http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443574000:0:0>; rel="next"; results="true"; cursor="1443574000:0:0"',
         },
       });
 
@@ -1207,7 +1200,7 @@ describe('IssueList', function () {
     it('uses saved search data', function () {
       const value = wrapper.instance().getEndpointParams();
 
-      expect(value.query).toEqual(savedSearch.query);
+      expect(value.query).toEqual('is:unresolved');
       expect(value.project).toEqual([parseInt(savedSearch.projectId, 10)]);
     });
   });
@@ -1300,8 +1293,7 @@ describe('IssueList', function () {
       expect(fetchDataMock).toHaveBeenLastCalledWith(
         '/organizations/org-slug/issues/',
         expect.objectContaining({
-          data:
-            'collapse=stats&expand=owners&limit=25&project=99&query=is%3Aunresolved&shortIdLookup=1&statsPeriod=14d',
+          data: 'collapse=stats&expand=owners&expand=inbox&limit=25&project=99&query=is%3Aunresolved&shortIdLookup=1&statsPeriod=14d',
         })
       );
     });
@@ -1673,146 +1665,133 @@ describe('IssueList', function () {
     });
   });
 
-  describe('with inbox feature', function () {
-    const parseLinkHeaderSpy = jest.spyOn(parseLinkHeader, 'default');
-    it('renders inbox layout', function () {
-      organization.features = ['inbox'];
-      organization.experiments = {InboxExperiment: 1};
-      wrapper = mountWithTheme(<IssueListOverview {...props} />);
-      expect(wrapper.find('IssueListHeader').exists()).toBeTruthy();
+  it('displays a count that represents the current page', function () {
+    parseLinkHeaderSpy.mockReturnValue({
+      next: {
+        results: true,
+      },
+      previous: {
+        results: false,
+      },
+    });
+    props = {
+      ...props,
+      location: {
+        query: {
+          cursor: 'some cursor',
+          page: 0,
+        },
+      },
+    };
+    wrapper = mountWithTheme(<IssueListOverview {...props} />);
+    wrapper.setState({
+      groupIds: range(0, 25).map(String),
+      queryCount: 500,
+      queryMaxCount: 1000,
     });
 
-    it('displays a count that represents the current page', function () {
-      organization.features = ['inbox'];
-      parseLinkHeaderSpy.mockReturnValue({
-        next: {
-          results: true,
-        },
-        previous: {
-          results: false,
-        },
-      });
-      props = {
-        ...props,
-        location: {
-          query: {
-            cursor: 'some cursor',
-            page: 0,
-          },
-        },
-      };
-      wrapper = mountWithTheme(<IssueListOverview {...props} />);
-      wrapper.setState({
-        groupIds: range(0, 25).map(String),
-        queryCount: 500,
-        queryMaxCount: 1000,
-      });
+    const paginationWrapper = wrapper.find('PaginationWrapper');
+    expect(paginationWrapper.text()).toBe('Showing 25 of 500 issues');
 
-      const paginationWrapper = wrapper.find('PaginationWrapper');
-      expect(paginationWrapper.text()).toBe('Showing 25 of 500 issues');
+    parseLinkHeaderSpy.mockReturnValue({
+      next: {
+        results: true,
+      },
+      previous: {
+        results: true,
+      },
+    });
+    wrapper.setProps({
+      location: {
+        query: {
+          cursor: 'some cursor',
+          page: 1,
+        },
+      },
+    });
+    expect(paginationWrapper.text()).toBe('Showing 50 of 500 issues');
+    expect(wrapper.find('IssueListHeader').exists()).toBeTruthy();
+  });
 
-      parseLinkHeaderSpy.mockReturnValue({
-        next: {
-          results: true,
+  it('displays a count that makes sense based on the current page', function () {
+    parseLinkHeaderSpy.mockReturnValue({
+      next: {
+        // Is at last page according to the cursor
+        results: false,
+      },
+      previous: {
+        results: true,
+      },
+    });
+    props = {
+      ...props,
+      location: {
+        query: {
+          cursor: 'some cursor',
+          page: 3,
         },
-        previous: {
-          results: true,
-        },
-      });
-      wrapper.setProps({
-        location: {
-          query: {
-            cursor: 'some cursor',
-            page: 1,
-          },
-        },
-      });
-      expect(paginationWrapper.text()).toBe('Showing 50 of 500 issues');
-      expect(wrapper.find('IssueListHeader').exists()).toBeTruthy();
+      },
+    };
+    wrapper = mountWithTheme(<IssueListOverview {...props} />);
+    wrapper.setState({
+      groupIds: range(0, 25).map(String),
+      queryCount: 500,
+      queryMaxCount: 1000,
     });
 
-    it('displays a count that makes sense based on the current page', function () {
-      organization.features = ['inbox'];
-      parseLinkHeaderSpy.mockReturnValue({
-        next: {
-          // Is at last page according to the cursor
-          results: false,
-        },
-        previous: {
-          results: true,
-        },
-      });
-      props = {
-        ...props,
-        location: {
-          query: {
-            cursor: 'some cursor',
-            page: 3,
-          },
-        },
-      };
-      wrapper = mountWithTheme(<IssueListOverview {...props} />);
-      wrapper.setState({
-        groupIds: range(0, 25).map(String),
-        queryCount: 500,
-        queryMaxCount: 1000,
-      });
+    const paginationWrapper = wrapper.find('PaginationWrapper');
+    expect(paginationWrapper.text()).toBe('Showing 500 of 500 issues');
 
-      const paginationWrapper = wrapper.find('PaginationWrapper');
-      expect(paginationWrapper.text()).toBe('Showing 500 of 500 issues');
+    parseLinkHeaderSpy.mockReturnValue({
+      next: {
+        results: true,
+      },
+      previous: {
+        // Is at first page according to cursor
+        results: false,
+      },
+    });
+    wrapper.setProps({
+      location: {
+        query: {
+          cursor: 'some cursor',
+          page: 2,
+        },
+      },
+    });
+    expect(paginationWrapper.text()).toBe('Showing 25 of 500 issues');
+    expect(wrapper.find('IssueListHeader').exists()).toBeTruthy();
+  });
 
-      parseLinkHeaderSpy.mockReturnValue({
-        next: {
-          results: true,
+  it('displays a count based on items removed', function () {
+    parseLinkHeaderSpy.mockReturnValue({
+      next: {
+        results: true,
+      },
+      previous: {
+        results: true,
+      },
+    });
+    props = {
+      ...props,
+      location: {
+        query: {
+          cursor: 'some cursor',
+          page: 1,
         },
-        previous: {
-          // Is at first page according to cursor
-          results: false,
-        },
-      });
-      wrapper.setProps({
-        location: {
-          query: {
-            cursor: 'some cursor',
-            page: 2,
-          },
-        },
-      });
-      expect(paginationWrapper.text()).toBe('Showing 25 of 500 issues');
-      expect(wrapper.find('IssueListHeader').exists()).toBeTruthy();
+      },
+    };
+    wrapper = mountWithTheme(<IssueListOverview {...props} />);
+    wrapper.setState({
+      groupIds: range(0, 25).map(String),
+      queryCount: 75,
+      itemsRemoved: 1,
+      queryMaxCount: 1000,
     });
 
-    it('displays a count based on items removed', function () {
-      organization.features = ['inbox'];
-      parseLinkHeaderSpy.mockReturnValue({
-        next: {
-          results: true,
-        },
-        previous: {
-          results: true,
-        },
-      });
-      props = {
-        ...props,
-        location: {
-          query: {
-            cursor: 'some cursor',
-            page: 1,
-          },
-        },
-      };
-      wrapper = mountWithTheme(<IssueListOverview {...props} />);
-      wrapper.setState({
-        groupIds: range(0, 25).map(String),
-        queryCount: 75,
-        itemsRemoved: 1,
-        queryMaxCount: 1000,
-      });
-
-      const paginationWrapper = wrapper.find('PaginationWrapper');
-      // 2nd page subtracts the one removed
-      expect(paginationWrapper.text()).toBe('Showing 49 of 74 issues');
-    });
+    const paginationWrapper = wrapper.find('PaginationWrapper');
+    // 2nd page subtracts the one removed
+    expect(paginationWrapper.text()).toBe('Showing 49 of 74 issues');
   });
 
   describe('with relative change feature', function () {

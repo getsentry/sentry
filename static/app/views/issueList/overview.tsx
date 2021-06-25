@@ -1,6 +1,5 @@
 import * as React from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
 import {Location} from 'history';
@@ -20,7 +19,6 @@ import {
 import {fetchTagValues, loadOrganizationTags} from 'app/actionCreators/tags';
 import GroupActions from 'app/actions/groupActions';
 import {Client} from 'app/api';
-import Feature from 'app/components/acl/feature';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import LoadingError from 'app/components/loadingError';
 import LoadingIndicator from 'app/components/loadingIndicator';
@@ -566,14 +564,7 @@ class IssueListOverview extends React.Component<Props, State> {
       requestParams.statsPeriod = DEFAULT_STATS_PERIOD;
     }
 
-    const orgFeatures = new Set(this.props.organization.features);
-    const expandParams: string[] = ['owners'];
-    if (orgFeatures.has('inbox')) {
-      expandParams.push('inbox');
-    }
-    if (expandParams.length) {
-      requestParams.expand = expandParams;
-    }
+    requestParams.expand = ['owners', 'inbox'];
     requestParams.collapse = 'stats';
 
     if (this._lastRequest) {
@@ -623,9 +614,7 @@ class IssueListOverview extends React.Component<Props, State> {
           typeof maxHits !== 'undefined' && maxHits ? parseInt(maxHits, 10) || 0 : 0;
         const pageLinks = jqXHR.getResponseHeader('Link');
 
-        if (this.props.organization.features.includes('inbox')) {
-          this.fetchCounts(queryCount, fetchAllCounts);
-        }
+        this.fetchCounts(queryCount, fetchAllCounts);
 
         this.setState({
           error: null,
@@ -843,7 +832,7 @@ class IssueListOverview extends React.Component<Props, State> {
     const topIssue = ids[0];
     const {memberList} = this.state;
     const query = this.getQuery();
-    const showInboxTime = this.getSort() === 'inbox';
+    const showInboxTime = this.getSort() === IssueSortOptions.INBOX;
 
     return ids.map((id, index) => {
       const hasGuideAnchor = id === topIssue;
@@ -889,7 +878,7 @@ class IssueListOverview extends React.Component<Props, State> {
     const {issuesLoading, error, groupIds} = this.state;
 
     if (issuesLoading) {
-      return this.renderLoading();
+      return <LoadingIndicator hideMessage />;
     }
 
     if (error) {
@@ -918,12 +907,21 @@ class IssueListOverview extends React.Component<Props, State> {
   }
 
   fetchSavedSearches = () => {
-    const {organization} = this.props;
+    const {organization, api} = this.props;
 
-    fetchSavedSearches(this.props.api, organization.slug);
+    fetchSavedSearches(api, organization.slug);
   };
 
   onSavedSearchSelect = (savedSearch: SavedSearch) => {
+    trackAnalyticsEvent({
+      eventKey: 'organization_saved_search.selected',
+      eventName: 'Organization Saved Search: Selected saved search',
+      organization_id: this.props.organization.id,
+      query: savedSearch.query,
+      search_type: 'issues',
+      id: savedSearch.id ? parseInt(savedSearch.id, 10) : -1,
+    });
+
     this.setState({issuesLoading: true}, () => this.transitionTo(undefined, savedSearch));
   };
 
@@ -999,15 +997,8 @@ class IssueListOverview extends React.Component<Props, State> {
       itemsRemoved,
       hasSessions,
     } = this.state;
-    const {
-      organization,
-      savedSearch,
-      savedSearches,
-      tags,
-      selection,
-      location,
-      router,
-    } = this.props;
+    const {organization, savedSearch, savedSearches, tags, selection, location, router} =
+      this.props;
     const links = parseLinkHeader(pageLinks);
     const query = this.getQuery();
     const queryPageInt = parseInt(location.query.page, 10);
@@ -1039,12 +1030,12 @@ class IssueListOverview extends React.Component<Props, State> {
       ),
     });
 
-    // TODO(workflow): When organization:inbox flag is removed add 'inbox' to tagStore
-    if (
-      organization.features.includes('inbox') &&
-      !tags?.is?.values?.includes('for_review')
-    ) {
-      tags?.is?.values?.push('for_review');
+    // TODO(workflow): When organization:semver flag is removed add 'sentry.semver' to tagStore
+    if (organization.features.includes('semver') && !tags['sentry.semver']) {
+      tags['sentry.semver'] = {
+        key: 'sentry.semver',
+        name: 'sentry.semver',
+      };
     }
 
     const projectIds = selection?.projects?.map(p => p.toString());
@@ -1057,115 +1048,96 @@ class IssueListOverview extends React.Component<Props, State> {
     );
 
     return (
-      <Feature organization={organization} features={['organizations:inbox']}>
-        {({hasFeature}) => (
-          <React.Fragment>
-            {hasFeature && (
-              <IssueListHeader
+      <React.Fragment>
+        <IssueListHeader
+          organization={organization}
+          query={query}
+          sort={this.getSort()}
+          queryCount={queryCount}
+          queryCounts={queryCounts}
+          realtimeActive={realtimeActive}
+          onRealtimeChange={this.onRealtimeChange}
+          projectIds={projectIds}
+          orgSlug={orgSlug}
+          router={router}
+          savedSearchList={savedSearches}
+          onSavedSearchSelect={this.onSavedSearchSelect}
+          onSavedSearchDelete={this.onSavedSearchDelete}
+          displayReprocessingTab={showReprocessingTab}
+        />
+
+        <StyledPageContent>
+          <StreamContent showSidebar={isSidebarVisible}>
+            <IssueListFilters
+              organization={organization}
+              query={query}
+              savedSearch={savedSearch}
+              sort={this.getSort()}
+              display={this.getDisplay()}
+              onDisplayChange={this.onDisplayChange}
+              onSortChange={this.onSortChange}
+              onSearch={this.onSearch}
+              onSidebarToggle={this.onSidebarToggle}
+              isSearchDisabled={isSidebarVisible}
+              tagValueLoader={this.tagValueLoader}
+              tags={tags}
+              hasSessions={hasSessions}
+              selectedProjects={selection.projects}
+            />
+
+            <Panel>
+              <IssueListActions
                 organization={organization}
+                selection={selection}
                 query={query}
-                sort={this.getSort()}
-                queryCount={queryCount}
-                queryCounts={queryCounts}
-                realtimeActive={realtimeActive}
-                onRealtimeChange={this.onRealtimeChange}
-                projectIds={projectIds}
-                orgSlug={orgSlug}
-                router={router}
-                savedSearchList={savedSearches}
-                onSavedSearchSelect={this.onSavedSearchSelect}
-                onSavedSearchDelete={this.onSavedSearchDelete}
-                displayReprocessingTab={showReprocessingTab}
+                queryCount={modifiedQueryCount}
+                displayCount={displayCount}
+                onSelectStatsPeriod={this.onSelectStatsPeriod}
+                onMarkReviewed={this.onMarkReviewed}
+                onDelete={this.onDelete}
+                statsPeriod={this.getGroupStatsPeriod()}
+                groupIds={groupIds}
+                allResultsVisible={this.allResultsVisible()}
+                displayReprocessingActions={displayReprocessingActions}
+              />
+              <PanelBody>
+                <ProcessingIssueList
+                  organization={organization}
+                  projectIds={projectIds}
+                  showProject
+                />
+                {this.renderStreamBody()}
+              </PanelBody>
+            </Panel>
+            <PaginationWrapper>
+              {groupIds?.length > 0 && (
+                <div>
+                  {/* total includes its own space */}
+                  {tct('Showing [displayCount] issues', {
+                    displayCount,
+                  })}
+                </div>
+              )}
+              <StyledPagination pageLinks={pageLinks} onCursor={this.onCursorChange} />
+            </PaginationWrapper>
+          </StreamContent>
+
+          <SidebarContainer showSidebar={isSidebarVisible}>
+            {/* Avoid rendering sidebar until first accessed */}
+            {renderSidebar && (
+              <IssueListSidebar
+                loading={tagsLoading}
+                tags={tags}
+                query={query}
+                onQueryChange={this.onIssueListSidebarSearch}
+                tagValueLoader={this.tagValueLoader}
               />
             )}
-            <StyledPageContent isInbox={hasFeature}>
-              <StreamContent showSidebar={isSidebarVisible}>
-                <IssueListFilters
-                  organization={organization}
-                  query={query}
-                  savedSearch={savedSearch}
-                  sort={this.getSort()}
-                  display={this.getDisplay()}
-                  queryCount={queryCount}
-                  queryMaxCount={queryMaxCount}
-                  onDisplayChange={this.onDisplayChange}
-                  onSortChange={this.onSortChange}
-                  onSearch={this.onSearch}
-                  onSavedSearchSelect={this.onSavedSearchSelect}
-                  onSavedSearchDelete={this.onSavedSearchDelete}
-                  onSidebarToggle={this.onSidebarToggle}
-                  isSearchDisabled={isSidebarVisible}
-                  savedSearchList={savedSearches}
-                  tagValueLoader={this.tagValueLoader}
-                  tags={tags}
-                  isInbox={hasFeature}
-                  hasSessions={hasSessions}
-                  selectedProjects={selection.projects}
-                />
+          </SidebarContainer>
+        </StyledPageContent>
 
-                <Panel>
-                  <IssueListActions
-                    organization={organization}
-                    selection={selection}
-                    query={query}
-                    queryCount={modifiedQueryCount}
-                    displayCount={displayCount}
-                    onSelectStatsPeriod={this.onSelectStatsPeriod}
-                    onRealtimeChange={this.onRealtimeChange}
-                    onMarkReviewed={this.onMarkReviewed}
-                    onDelete={this.onDelete}
-                    realtimeActive={realtimeActive}
-                    statsPeriod={this.getGroupStatsPeriod()}
-                    groupIds={groupIds}
-                    allResultsVisible={this.allResultsVisible()}
-                    hasInbox={hasFeature}
-                    displayReprocessingActions={displayReprocessingActions}
-                  />
-                  <PanelBody>
-                    <ProcessingIssueList
-                      organization={organization}
-                      projectIds={projectIds}
-                      showProject
-                    />
-                    {this.renderStreamBody()}
-                  </PanelBody>
-                </Panel>
-                <PaginationWrapper>
-                  {hasFeature && groupIds?.length > 0 && (
-                    <div>
-                      {/* total includes its own space */}
-                      {tct('Showing [displayCount] issues', {
-                        displayCount,
-                      })}
-                    </div>
-                  )}
-                  <StyledPagination
-                    pageLinks={pageLinks}
-                    onCursor={this.onCursorChange}
-                  />
-                </PaginationWrapper>
-              </StreamContent>
-
-              <SidebarContainer showSidebar={isSidebarVisible}>
-                {/* Avoid rendering sidebar until first accessed */}
-                {renderSidebar && (
-                  <IssueListSidebar
-                    loading={tagsLoading}
-                    tags={tags}
-                    query={query}
-                    onQueryChange={this.onIssueListSidebarSearch}
-                    tagValueLoader={this.tagValueLoader}
-                  />
-                )}
-              </SidebarContainer>
-            </StyledPageContent>
-
-            {hasFeature && query === Query.FOR_REVIEW && (
-              <GuideAnchor target="is_inbox_tab" />
-            )}
-          </React.Fragment>
-        )}
-      </Feature>
+        {query === Query.FOR_REVIEW && <GuideAnchor target="is_inbox_tab" />}
+      </React.Fragment>
     );
   }
 }
@@ -1179,14 +1151,10 @@ export default withApi(
 export {IssueListOverview};
 
 // TODO(workflow): Replace PageContent with thirds body
-const StyledPageContent = styled(PageContent)<{isInbox?: boolean}>`
+const StyledPageContent = styled(PageContent)`
   display: flex;
   flex-direction: row;
-  ${p =>
-    p.isInbox &&
-    css`
-      background-color: ${p.theme.background};
-    `}
+  background-color: ${p => p.theme.background};
 
   @media (max-width: ${p => p.theme.breakpoints[0]}) {
     /* Matches thirds layout */

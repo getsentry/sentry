@@ -14,7 +14,7 @@ def default_uuid():
 
 # connects a sentry app installation to an organization and a provider
 class SentryAppInstallationForProvider(DefaultFieldsModel):
-    __core__ = False
+    __include_in_export__ = False
 
     sentry_app_installation = FlexibleForeignKey("sentry.SentryAppInstallation")
     organization = FlexibleForeignKey("sentry.Organization")
@@ -42,7 +42,7 @@ class SentryAppInstallationForProvider(DefaultFieldsModel):
 
 
 class SentryAppInstallationToken(Model):
-    __core__ = False
+    __include_in_export__ = False
 
     api_token = FlexibleForeignKey("sentry.ApiToken")
     sentry_app_installation = FlexibleForeignKey("sentry.SentryAppInstallation")
@@ -78,7 +78,7 @@ class SentryAppInstallationToken(Model):
 
 
 class SentryAppInstallation(ParanoidModel):
-    __core__ = True
+    __include_in_export__ = True
 
     sentry_app = FlexibleForeignKey("sentry.SentryApp", related_name="installations")
 

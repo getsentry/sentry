@@ -1186,4 +1186,16 @@ class DataPopulation:
             self.populate_generic_error(
                 android_project, "errors/android/app_not_responding.json", 2, starting_release=2
             )
+            self.populate_generic_error(
+                react_native_project,
+                "errors/react_native/out_of_memory.json",
+                4,
+                starting_release=0,
+            )
+            self.populate_generic_error(
+                react_native_project,
+                "errors/react_native/promise_rejection.json",
+                3,
+                starting_release=1,
+            )
         self.assign_issues()

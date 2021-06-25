@@ -1,9 +1,4 @@
-import {
-  QueryResults,
-  stringifyQueryObject,
-  tokenizeSearch,
-  TokenType,
-} from 'app/utils/tokenizeSearch';
+import {QueryResults, tokenizeSearch, TokenType} from 'app/utils/tokenizeSearch';
 
 describe('utils/tokenizeSearch', function () {
   describe('tokenizeSearch()', function () {
@@ -223,8 +218,13 @@ describe('utils/tokenizeSearch', function () {
       results.addTagValues('d', ['d']);
       expect(results.formatString()).toEqual('a:a b:b c:c1 c:c2 d:d');
 
+      results.addTagValues('e', ['e1*e2\\e3']);
+      expect(results.formatString()).toEqual('a:a b:b c:c1 c:c2 d:d e:"e1\\*e2\\\\e3"');
+
       results.addStringTag('d:d2');
-      expect(results.formatString()).toEqual('a:a b:b c:c1 c:c2 d:d d:d2');
+      expect(results.formatString()).toEqual(
+        'a:a b:b c:c1 c:c2 d:d e:"e1\\*e2\\\\e3" d:d2'
+      );
     });
 
     it('add text searches to query object', function () {
@@ -379,7 +379,7 @@ describe('utils/tokenizeSearch', function () {
     });
   });
 
-  describe('stringifyQueryObject()', function () {
+  describe('QueryResults.formatString', function () {
     const cases = [
       {
         name: 'should convert a basic object to a query string',
@@ -485,7 +485,7 @@ describe('utils/tokenizeSearch', function () {
     ];
 
     for (const {name, string, object} of cases) {
-      it(name, () => expect(stringifyQueryObject(object)).toEqual(string));
+      it(name, () => expect(object.formatString()).toEqual(string));
     }
   });
 });
