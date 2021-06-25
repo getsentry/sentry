@@ -123,13 +123,13 @@ class Superuser:
 
         if not cookie_token:
             if data:
-                logger.warn(
+                logger.warning(
                     "superuser.missing-cookie-token",
                     extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
                 )
             return False
         elif not data:
-            logger.warn(
+            logger.warning(
                 "superuser.missing-session-data",
                 extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
             )
@@ -137,21 +137,21 @@ class Superuser:
 
         session_token = data.get("tok")
         if not session_token:
-            logger.warn(
+            logger.warning(
                 "superuser.missing-session-token",
                 extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
             )
             return
 
         if not constant_time_compare(cookie_token, session_token):
-            logger.warn(
+            logger.warning(
                 "superuser.invalid-token",
                 extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
             )
             return
 
         if data["uid"] != str(request.user.id):
-            logger.warn(
+            logger.warning(
                 "superuser.invalid-uid",
                 extra={
                     "ip_address": request.META["REMOTE_ADDR"],
@@ -167,7 +167,7 @@ class Superuser:
         try:
             data["idl"] = datetime.utcfromtimestamp(float(data["idl"])).replace(tzinfo=timezone.utc)
         except (TypeError, ValueError):
-            logger.warn(
+            logger.warning(
                 "superuser.invalid-idle-expiration",
                 extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
                 exc_info=True,
@@ -184,7 +184,7 @@ class Superuser:
         try:
             data["exp"] = datetime.utcfromtimestamp(float(data["exp"])).replace(tzinfo=timezone.utc)
         except (TypeError, ValueError):
-            logger.warn(
+            logger.warning(
                 "superuser.invalid-expiration",
                 extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
                 exc_info=True,
@@ -220,7 +220,7 @@ class Superuser:
 
             if not self.is_active:
                 if self._inactive_reason:
-                    logger.warn(
+                    logger.warning(
                         f"superuser.{self._inactive_reason}",
                         extra={
                             "ip_address": request.META["REMOTE_ADDR"],
@@ -228,7 +228,7 @@ class Superuser:
                         },
                     )
                 else:
-                    logger.warn(
+                    logger.warning(
                         "superuser.inactive-unknown-reason",
                         extra={
                             "ip_address": request.META["REMOTE_ADDR"],

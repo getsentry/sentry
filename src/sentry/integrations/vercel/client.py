@@ -61,7 +61,7 @@ class VercelClient(ApiClient):
             params = params.copy()
             params["until"] = resp["pagination"]["next"]
         # log the warning if this happens so we can look into solutions
-        logger.warn("Did not finish pagination", extra={"team_id": self.team_id, "url": url})
+        logger.warning("Did not finish pagination", extra={"team_id": self.team_id, "url": url})
         return results
 
     def get_projects(self):

@@ -233,7 +233,7 @@ def validate_ui_element_schema(instance):
     except SchemaValidationError as e:
         raise e
     except Exception as e:
-        logger.warn(
+        logger.warning(
             "Unexpected error validating schema: %s",
             e,
             exc_info=True,

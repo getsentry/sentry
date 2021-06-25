@@ -47,7 +47,7 @@ def wait_for_topics(admin_client: AdminClient, topics: List[str], timeout: int =
                 KafkaError.LEADER_NOT_AVAILABLE,
             }:
                 last_error = topic_metadata.error
-                logger.warn("Topic '%s' or its partitions are not ready, retrying...", topic)
+                logger.warning("Topic '%s' or its partitions are not ready, retrying...", topic)
                 time.sleep(0.1)
                 continue
             else:

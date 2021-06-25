@@ -29,7 +29,7 @@ class PubSubAnalytics(Analytics):
         try:
             self.publisher = pubsub_v1.PublisherClient(settings)
         except GoogleAuthError:
-            logger.warn("Unable to initialize PubSubAnalytics, no auth found")
+            logger.warning("Unable to initialize PubSubAnalytics, no auth found")
             self.publisher = None
         else:
             self.topic = self.publisher.topic_path(project, topic)
