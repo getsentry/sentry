@@ -204,7 +204,7 @@ class Issues extends Component<Props, State> {
           release: response[`${IssuesQuery.ALL}:${version}`],
           firstRelease: response[`${IssuesQuery.NEW}:${version}`],
           resolved: resolvedResponse.length,
-          unhandled: response[`${IssuesQuery.UNHANDLED}`],
+          unhandled: response[`${IssuesQuery.UNHANDLED} ${IssuesQuery.ALL}:${version}`],
         },
       });
     } catch {
@@ -219,7 +219,7 @@ class Issues extends Component<Props, State> {
     const params = [
       `${IssuesQuery.NEW}:${version}`,
       `${IssuesQuery.ALL}:${version}`,
-      IssuesQuery.UNHANDLED,
+      `${IssuesQuery.UNHANDLED} ${IssuesQuery.ALL}:${version}`,
     ];
     const queryParams = params.map(param => param);
     const queryParameters = {
