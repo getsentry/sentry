@@ -23,7 +23,7 @@ logger = logging.getLogger("tasks.groupowner")
     max_retries=5,
 )
 def process_suspect_commits(event_id, event_platform, event_frames, group_id, project_id, **kwargs):
-    metrics.incr("sentry.tasks.process_suspect_commits.start")
+    metrics.incr("sentry.tasks.process_suspect_commits.start", tags={"project": project_id})
     project = Project.objects.get_from_cache(id=project_id)
     owners = GroupOwner.objects.filter(
         group_id=group_id,
@@ -43,7 +43,9 @@ def process_suspect_commits(event_id, event_platform, event_frames, group_id, pr
             )
             return
 
-    with metrics.timer("sentry.tasks.process_suspect_commits.process_loop"):
+    with metrics.timer(
+        "sentry.tasks.process_suspect_commits.process_loop", tags={"project": project_id}
+    ):
         try:
             with metrics.timer(
                 "sentry.tasks.process_suspect_commits.get_serialized_event_file_committers"
