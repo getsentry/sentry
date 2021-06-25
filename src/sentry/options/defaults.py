@@ -338,7 +338,7 @@ register("store.load-shed-process-event-projects", type=Any, default=[])
 register("store.load-shed-symbolicate-event-projects", type=Any, default=[])
 
 # Store release files bundled as zip files
-register("processing.save-release-archives", default=False)
+register("processing.save-release-archives", default=False)  # unused
 
 # Minimum number of files in an archive. Small archives are extracted and its contents
 # are stored as separate release files.
