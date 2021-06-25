@@ -66,9 +66,6 @@ commit_message_base_messages = [
 
 base_paths_by_file_type = {"js": ["components/", "views/"], "py": ["flask/", "routes/"]}
 
-crash_free_rate_by_release = [1, 0.99, 0.92]
-
-
 org_users = [
     ("scefali", "Stephen Cefali"),
     ("aj", "AJ Jindal"),
@@ -90,23 +87,43 @@ def get_event_from_file(file_name):
 
 
 def distribution_v1() -> list:
-    return [2, 7, 2, 5, 2, 3, 2, 4, 8, 3, 5, 7, 8, 11, 8, 6, 9, 15, 2, 4, 5, 4, 3, 7]
+    return [1, 3, 1, 2, 1, 1, 1, 2, 4, 1, 2, 3, 4, 5, 4, 3, 4, 7, 1, 2, 2, 2, 1, 3]
 
 
 def distribution_v2() -> list:
-    return [8, 3, 6, 8, 15, 17, 16, 18, 14, 13, 8, 7, 6, 7, 5, 3, 6, 3, 3, 9, 3, 2, 7, 4]
+    return [4, 1, 3, 4, 7, 8, 8, 9, 7, 6, 4, 3, 3, 3, 2, 1, 3, 1, 1, 4, 1, 1, 3, 2]
 
 
 def distribution_v3() -> list:
-    return [4, 5, 4, 6, 9, 11, 8, 7, 9, 8, 8, 7, 9, 10, 13, 16, 17, 21, 27, 19, 15, 9, 7, 12]
+    return [2, 2, 2, 3, 4, 5, 4, 3, 4, 4, 4, 3, 4, 5, 6, 8, 8, 10, 13, 9, 7, 4, 3, 6]
 
 
 def distribution_v4() -> list:
-    return [5, 5, 3, 6, 7, 9, 15, 17, 19, 18, 13, 7, 9, 10, 8, 7, 5, 7, 6, 15, 18, 21, 20, 17]
+    return [2, 2, 1, 3, 3, 4, 7, 8, 9, 9, 6, 3, 4, 5, 4, 3, 2, 3, 3, 7, 9, 10, 10, 8]
 
 
 def distribution_v5() -> list:
-    return [15, 16, 14, 14, 13, 9, 8, 7, 6, 4, 5, 8, 11, 13, 9, 8, 8, 7, 9, 10, 11, 12, 11, 13]
+    return [7, 8, 7, 7, 6, 4, 4, 3, 3, 2, 2, 4, 5, 6, 4, 4, 4, 3, 4, 5, 5, 6, 5, 6]
+
+
+def distribution_v6() -> list:
+    return [9, 10, 9, 10, 10, 9, 8, 6, 7, 6, 6, 7, 9, 11, 10, 12, 12, 13, 17, 14, 12, 10, 8, 12]
+
+
+def distribution_v7() -> list:
+    return [3, 5, 2, 5, 4, 5, 8, 10, 13, 10, 8, 6, 8, 10, 8, 6, 6, 10, 4, 9, 11, 12, 11, 11]
+
+
+def distribution_v8() -> list:
+    return [6, 3, 5, 7, 11, 13, 12, 12, 11, 10, 8, 6, 7, 8, 8, 9, 11, 11, 14, 13, 8, 5, 6, 8]
+
+
+def distribution_v9() -> list:
+    return [11, 9, 10, 11, 13, 12, 12, 12, 10, 8, 6, 7, 8, 9, 6, 5, 7, 4, 5, 9, 6, 7, 8, 8]
+
+
+def distribution_v10() -> list:
+    return [4, 4, 3, 6, 7, 9, 11, 11, 13, 13, 10, 6, 8, 10, 10, 11, 10, 13, 16, 16, 16, 14, 13, 14]
 
 
 distribution_fns = [
@@ -115,6 +132,11 @@ distribution_fns = [
     distribution_v3(),
     distribution_v4(),
     distribution_v5(),
+    distribution_v6(),
+    distribution_v7(),
+    distribution_v8(),
+    distribution_v9(),
+    distribution_v10(),
 ]
 
 
@@ -570,6 +592,7 @@ class DataPopulation:
                 ReleaseCommit.objects.get_or_create(
                     organization_id=org.id, release=release, commit=commit, order=commit_index
                 )
+                release.update(commit_count=release.commit_count + 1)
 
             release_time += timedelta(hours=hourly_release_cadence)
 
@@ -698,7 +721,7 @@ class DataPopulation:
                 if end_time > timezone.now():
                     return
 
-                base = distribution_fn[hour] / 2
+                base = distribution_fn[hour]
                 # determine the number of events we want in this hour
                 num_events = int((BASE_OFFSET + SCALE_FACTOR * base) * random.uniform(0.6, 1.0))
                 timestamps = []
@@ -1023,33 +1046,60 @@ class DataPopulation:
         self.log_info("populate_generic_error.finished")
 
     @catch_and_log_errors
-    def populate_sessions(self, project, distribution_fn_num: int):
+    def populate_sessions(self, project, distribution_fn_num: int, mobile: bool):
         self.log_info("populate_sessions.start")
 
         dsn = ProjectKey.objects.get(project=project)
 
+        # keep track of versions for mobile
+        seen_versions = []
+        num_versions = 0
+
         for (timestamp, day) in self.iter_timestamps(distribution_fn_num):
-            # transaction_user = self.generate_user()
             release = get_release_from_time(project.organization_id, timestamp)
             version = release.version
 
-            # get the release num from the last part of the version
-            release_num = int(version.split(".")[-1])
-
-            num = 5000
-
-            crash_rates = random.choices(crash_free_rate_by_release, weights=[7, 1, 2], k=3)
-            threshold = crash_rates[release_num]
+            # add new version if necessary
+            if version not in seen_versions:
+                seen_versions.append(version)
+                num_versions += 1
 
             formatted_time = timestamp.isoformat()
             envelope_headers = "{}"
             item_headers = json.dumps({"type": "sessions"})
-            scale = random.uniform(0.9, 1.1)
-            exited = round(num * threshold * scale)
-            crashed = abs(num - exited)
+
+            agg = []
+
+            if self.quick:
+                num_users = int(random.uniform(200, 400))
+            else:
+                num_users = int(random.uniform(1000, 2000))
+
+            # create session data for each user
+            for _ in range(num_users):
+                exited = random.choices([1, 2, 3, 4], k=1, weights=[10, 5, 3, 1])[0]
+                rand = random.random()
+                if rand <= 0.0045:
+                    crashed = int(random.uniform(1, 8))
+                else:
+                    crashed = 0
+                current = {
+                    "started": formatted_time,
+                    "did": uuid4().hex[:8],
+                    "exited": exited,
+                    "crashed": crashed,
+                }
+                agg.append(current)
+
+            # if mobile, choose one of previously seen versions
+            if mobile and num_versions > 1:
+                if num_versions == 2:
+                    version = random.choice(seen_versions)
+                elif num_versions == 3:
+                    version = random.choices(seen_versions, k=1, weights=[1, 1, 3])[0]
 
             data = {
-                "aggregates": [{"started": formatted_time, "exited": exited, "crashed": crashed}],
+                "aggregates": agg,
                 "attrs": {"release": version, "environment": "prod"},
             }
 
@@ -1072,8 +1122,8 @@ class DataPopulation:
             with sentry_sdk.start_span(
                 op="handle_react_python_scenario", description="populate_sessions"
             ):
-                self.populate_sessions(react_project, 1)
-                self.populate_sessions(python_project, 1)
+                self.populate_sessions(react_project, 7, False)
+                self.populate_sessions(python_project, 10, False)
         with sentry_sdk.start_span(
             op="handle_react_python_scenario", description="populate_connected_events"
         ):
@@ -1100,9 +1150,9 @@ class DataPopulation:
             with sentry_sdk.start_span(
                 op="handle_react_python_scenario", description="populate_sessions"
             ):
-                self.populate_sessions(ios_project, 4)
-                self.populate_sessions(android_project, 3)
-                self.populate_sessions(react_native_project, 5)
+                self.populate_sessions(ios_project, 6, True)
+                self.populate_sessions(android_project, 8, True)
+                self.populate_sessions(react_native_project, 9, True)
         with sentry_sdk.start_span(op="handle_mobile_scenario", description="populate_errors"):
             self.populate_generic_error(ios_project, "errors/ios/exc_bad_access.json", 3)
             self.populate_generic_error(
