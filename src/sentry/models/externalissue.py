@@ -5,7 +5,7 @@ from sentry.db.models import BoundedPositiveIntegerField, JSONField, Model, sane
 
 
 class ExternalIssue(Model):
-    __core__ = False
+    __include_in_export__ = False
 
     organization_id = BoundedPositiveIntegerField()
     integration_id = BoundedPositiveIntegerField()

@@ -12,7 +12,7 @@ class GroupEmailThread(Model):
     for email threading.
     """
 
-    __core__ = False
+    __include_in_export__ = False
 
     email = models.EmailField(max_length=75)
     project = FlexibleForeignKey("sentry.Project", related_name="groupemail_set")

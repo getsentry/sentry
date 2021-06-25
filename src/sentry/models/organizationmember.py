@@ -47,7 +47,7 @@ class OrganizationMemberTeam(BaseModel):
     Identifies relationships between organization members and the teams they are on.
     """
 
-    __core__ = True
+    __include_in_export__ = True
 
     id = BoundedAutoField(primary_key=True)
     team = FlexibleForeignKey("sentry.Team")
@@ -81,7 +81,7 @@ class OrganizationMember(Model):
     be set to ownership.
     """
 
-    __core__ = True
+    __include_in_export__ = True
 
     organization = FlexibleForeignKey("sentry.Organization", related_name="member_set")
 

@@ -69,7 +69,7 @@ class Feature:
 
 
 class IntegrationFeature(Model):
-    __core__ = False
+    __include_in_export__ = False
 
     sentry_app = FlexibleForeignKey("sentry.SentryApp")
     user_description = models.TextField(null=True)

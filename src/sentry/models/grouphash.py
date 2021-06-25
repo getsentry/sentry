@@ -5,7 +5,7 @@ from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Mo
 
 
 class GroupHash(Model):
-    __core__ = False
+    __include_in_export__ = False
 
     class State:
         UNLOCKED = None

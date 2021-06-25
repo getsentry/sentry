@@ -26,7 +26,7 @@ SERVICE_HOOK_EVENTS = [
 
 
 class ServiceHookProject(Model):
-    __core__ = False
+    __include_in_export__ = False
 
     service_hook = FlexibleForeignKey("sentry.ServiceHook")
     project_id = BoundedPositiveIntegerField(db_index=True)
@@ -42,7 +42,7 @@ def generate_secret():
 
 
 class ServiceHook(Model):
-    __core__ = True
+    __include_in_export__ = True
 
     guid = models.CharField(max_length=32, unique=True, null=True)
     # hooks may be bound to an api application, or simply registered by a user

@@ -19,7 +19,7 @@ class CommitFileChangeManager(BaseManager):
 
 
 class CommitFileChange(Model):
-    __core__ = False
+    __include_in_export__ = False
 
     organization_id = BoundedPositiveIntegerField(db_index=True)
     commit = FlexibleForeignKey("sentry.Commit")

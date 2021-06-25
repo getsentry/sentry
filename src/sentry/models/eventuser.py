@@ -21,7 +21,7 @@ KEYWORD_MAP = BidirectionalMapping(
 
 
 class EventUser(Model):
-    __core__ = False
+    __include_in_export__ = False
 
     project_id = BoundedPositiveIntegerField(db_index=True)
     hash = models.CharField(max_length=32)

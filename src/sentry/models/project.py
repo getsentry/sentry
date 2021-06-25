@@ -37,7 +37,7 @@ ProjectStatus = ObjectStatus
 
 
 class ProjectTeam(Model):
-    __core__ = True
+    __include_in_export__ = True
 
     project = FlexibleForeignKey("sentry.Project")
     team = FlexibleForeignKey("sentry.Team")
@@ -99,7 +99,7 @@ class Project(Model, PendingDeletionMixin):
     are the top level entry point for all data.
     """
 
-    __core__ = True
+    __include_in_export__ = True
 
     slug = models.SlugField(null=True)
     name = models.CharField(max_length=200)

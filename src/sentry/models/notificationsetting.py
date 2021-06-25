@@ -27,7 +27,7 @@ class NotificationSetting(Model):
     and the value is ("value").
     """
 
-    __core__ = False
+    __include_in_export__ = False
 
     @property
     def scope_str(self) -> str:

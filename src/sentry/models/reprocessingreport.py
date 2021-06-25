@@ -5,7 +5,7 @@ from sentry.db.models import BaseManager, FlexibleForeignKey, Model, sane_repr
 
 
 class ReprocessingReport(Model):
-    __core__ = False
+    __include_in_export__ = False
 
     project = FlexibleForeignKey("sentry.Project")
     event_id = models.CharField(max_length=32, null=True)

@@ -5,7 +5,7 @@ from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Mo
 
 
 class Distribution(Model):
-    __core__ = False
+    __include_in_export__ = False
 
     organization_id = BoundedPositiveIntegerField(db_index=True)
     release = FlexibleForeignKey("sentry.Release")

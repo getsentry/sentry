@@ -15,7 +15,7 @@ def schedule_jobs(jobs):
 
 
 class ScheduledJob(Model):
-    __core__ = False
+    __include_in_export__ = False
 
     name = models.CharField(max_length=128)
     payload = JSONField()

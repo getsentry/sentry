@@ -21,7 +21,7 @@ def get_crashreport_key(group_id):
 
 
 class EventAttachment(Model):
-    __core__ = False
+    __include_in_export__ = False
 
     project_id = BoundedBigIntegerField()
     group_id = BoundedBigIntegerField(null=True, db_index=True)

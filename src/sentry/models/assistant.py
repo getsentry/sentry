@@ -7,7 +7,7 @@ from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, Mo
 class AssistantActivity(Model):
     """Records user interactions with the assistant guides."""
 
-    __core__ = False
+    __include_in_export__ = False
 
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=False)
     guide_id = BoundedPositiveIntegerField()

@@ -5,7 +5,7 @@ from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 
 
 class GroupRuleStatus(Model):
-    __core__ = False
+    __include_in_export__ = False
 
     ACTIVE = 0
     INACTIVE = 1

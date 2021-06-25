@@ -9,7 +9,7 @@ from sentry.utils.cache import cache
 
 
 class ReleaseEnvironment(Model):
-    __core__ = False
+    __include_in_export__ = False
 
     organization = FlexibleForeignKey("sentry.Organization", db_index=True, db_constraint=False)
     # DEPRECATED

@@ -4,7 +4,7 @@ from sentry.db.models import EncryptedJsonField, FlexibleForeignKey, Model, UUID
 
 
 class SentryAppComponent(Model):
-    __core__ = True
+    __include_in_export__ = True
 
     uuid = UUIDField(unique=True, auto_add=True)
     sentry_app = FlexibleForeignKey("sentry.SentryApp", related_name="components")

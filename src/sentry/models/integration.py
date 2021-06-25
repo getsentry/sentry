@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 class PagerDutyService(DefaultFieldsModel):
-    __core__ = False
+    __include_in_export__ = False
 
     organization_integration = FlexibleForeignKey("sentry.OrganizationIntegration")
     integration_key = models.CharField(max_length=255)
@@ -30,7 +30,7 @@ class PagerDutyService(DefaultFieldsModel):
 
 
 class IntegrationExternalProject(DefaultFieldsModel):
-    __core__ = False
+    __include_in_export__ = False
 
     organization_integration_id = BoundedPositiveIntegerField(db_index=True)
     date_added = models.DateTimeField(default=timezone.now)
@@ -46,7 +46,7 @@ class IntegrationExternalProject(DefaultFieldsModel):
 
 
 class RepositoryProjectPathConfig(DefaultFieldsModel):
-    __core__ = False
+    __include_in_export__ = False
 
     repository = FlexibleForeignKey("sentry.Repository")
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)
@@ -62,7 +62,7 @@ class RepositoryProjectPathConfig(DefaultFieldsModel):
 
 
 class OrganizationIntegration(DefaultFieldsModel):
-    __core__ = False
+    __include_in_export__ = False
 
     organization = FlexibleForeignKey("sentry.Organization")
     integration = FlexibleForeignKey("sentry.Integration")
@@ -82,7 +82,7 @@ class OrganizationIntegration(DefaultFieldsModel):
 # TODO(epurkhiser): This is deprecated and will be removed soon. Do not use
 # Project Integrations.
 class ProjectIntegration(Model):
-    __core__ = False
+    __include_in_export__ = False
 
     project = FlexibleForeignKey("sentry.Project")
     integration = FlexibleForeignKey("sentry.Integration")
@@ -95,7 +95,7 @@ class ProjectIntegration(Model):
 
 
 class Integration(DefaultFieldsModel):
-    __core__ = False
+    __include_in_export__ = False
 
     organizations = models.ManyToManyField(
         "sentry.Organization", related_name="integrations", through=OrganizationIntegration

@@ -16,7 +16,7 @@ class AvatarBase(Model):
     avatar preferences/files.
     """
 
-    __core__ = False
+    __include_in_export__ = False
 
     ALLOWED_SIZES = (20, 32, 36, 48, 52, 64, 80, 96, 120)
 

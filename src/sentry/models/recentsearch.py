@@ -14,7 +14,7 @@ class RecentSearch(Model):
     Searches run by users recently.
     """
 
-    __core__ = True
+    __include_in_export__ = True
 
     organization = FlexibleForeignKey("sentry.Organization")
     user = FlexibleForeignKey("sentry.User", db_index=False)

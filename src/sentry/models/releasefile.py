@@ -52,7 +52,7 @@ class ReleaseFile(Model):
     The ident of the file should be sha1(name) or
     sha1(name '\x00\x00' dist.name) and must be unique per release.
     """
-    __core__ = False
+    __include_in_export__ = False
 
     organization = FlexibleForeignKey("sentry.Organization")
     # DEPRECATED

@@ -111,7 +111,7 @@ class AuthenticatorManager(BaseManager):
 
 
 class Authenticator(BaseModel):
-    __core__ = True
+    __include_in_export__ = True
 
     id = BoundedAutoField(primary_key=True)
     user = FlexibleForeignKey("sentry.User", db_index=True)

@@ -11,7 +11,7 @@ class GroupBookmark(Model):
     aggregated event (Group).
     """
 
-    __core__ = False
+    __include_in_export__ = False
 
     project = FlexibleForeignKey("sentry.Project", related_name="bookmark_set")
     group = FlexibleForeignKey("sentry.Group", related_name="bookmark_set")

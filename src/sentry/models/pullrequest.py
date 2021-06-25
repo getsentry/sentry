@@ -7,7 +7,7 @@ from sentry.utils.groupreference import find_referenced_groups
 
 
 class PullRequest(Model):
-    __core__ = False
+    __include_in_export__ = False
 
     organization_id = BoundedPositiveIntegerField(db_index=True)
     repository_id = BoundedPositiveIntegerField()
@@ -52,7 +52,7 @@ class PullRequest(Model):
 
 
 class PullRequestCommit(Model):
-    __core__ = False
+    __include_in_export__ = False
     pull_request = FlexibleForeignKey("sentry.PullRequest")
     commit = FlexibleForeignKey("sentry.Commit")
 
