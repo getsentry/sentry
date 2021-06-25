@@ -303,11 +303,10 @@ class VercelGenericWebhookEndpoint(Endpoint):
                     logger.info("No commit found", extra=logging_params)
                     return self.respond({"detail": "No commit found"}, status=404)
 
-                session = http.build_session()
-                url = absolute_uri("/api/0/organizations/%s/releases/" % organization.slug)
+                url = absolute_uri(f"/api/0/organizations/{organization.slug}/releases/")
                 headers = {
                     "Accept": "application/json",
-                    "Authorization": "Bearer %s" % token,
+                    "Authorization": f"Bearer {token}",
                     "User-Agent": f"sentry_vercel/{VERSION}",
                 }
                 json_error = None
@@ -315,39 +314,42 @@ class VercelGenericWebhookEndpoint(Endpoint):
                 # create the basic release payload without refs
                 no_ref_payload = release_payload.copy()
                 del no_ref_payload["refs"]
-                try:
-                    resp = session.post(url, json=no_ref_payload, headers=headers)
-                    json_error = safe_json_parse(resp)
-                    resp.raise_for_status()
-                except RequestException as e:
-                    # errors here should be uncommon but we should be aware of them
-                    logger.error(
-                        f"Error creating release: {e} - {json_error}",
-                        extra=logging_params,
-                        exc_info=True,
-                    )
-                    # 400 probably isn't the right status code but oh well
-                    return self.respond({"detail": "Error creating release: %s" % e}, status=400)
 
-                # set the refs
-                try:
-                    resp = session.post(
-                        url,
-                        json=release_payload,
-                        headers=headers,
-                    )
-                    json_error = safe_json_parse(resp)
-                    resp.raise_for_status()
-                except RequestException as e:
-                    # errors will probably be common if the user doesn't have repos set up
-                    logger.info(
-                        f"Error setting refs: {e} - {json_error}",
-                        extra=logging_params,
-                        exc_info=True,
-                    )
-                    # 400 probably isn't the right status code but oh well
-                    return self.respond({"detail": "Error setting refs: %s" % e}, status=400)
+                with http.build_session() as session:
+                    try:
+                        resp = session.post(url, json=no_ref_payload, headers=headers)
+                        json_error = safe_json_parse(resp)
+                        resp.raise_for_status()
+                    except RequestException as e:
+                        # errors here should be uncommon but we should be aware of them
+                        logger.error(
+                            f"Error creating release: {e} - {json_error}",
+                            extra=logging_params,
+                            exc_info=True,
+                        )
+                        # 400 probably isn't the right status code but oh well
+                        return self.respond({"detail": f"Error creating release: {e}"}, status=400)
+
+                    # set the refs
+                    try:
+                        resp = session.post(
+                            url,
+                            json=release_payload,
+                            headers=headers,
+                        )
+                        json_error = safe_json_parse(resp)
+                        resp.raise_for_status()
+                    except RequestException as e:
+                        # errors will probably be common if the user doesn't have repos set up
+                        logger.info(
+                            f"Error setting refs: {e} - {json_error}",
+                            extra=logging_params,
+                            exc_info=True,
+                        )
+                        # 400 probably isn't the right status code but oh well
+                        return self.respond({"detail": f"Error setting refs: {e}"}, status=400)
 
                 # we are going to quit after the first project match as there shouldn't be multiple matches
                 return self.respond(status=201)
+
         return self.respond(status=204)

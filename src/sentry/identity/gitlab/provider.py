@@ -32,12 +32,12 @@ def get_oauth_data(payload):
 
 
 def get_user_info(access_token, installation_data):
-    session = http.build_session()
-    resp = session.get(
-        "{}/api/v4/user".format(installation_data["url"]),
-        headers={"Accept": "application/json", "Authorization": "Bearer %s" % access_token},
-        verify=installation_data["verify_ssl"],
-    )
+    with http.build_session() as session:
+        resp = session.get(
+            f"{installation_data['url']}/api/v4/user",
+            headers={"Accept": "application/json", "Authorization": f"Bearer {access_token}"},
+            verify=installation_data["verify_ssl"],
+        )
     try:
         resp.raise_for_status()
     except Exception as e:
@@ -48,7 +48,7 @@ def get_user_info(access_token, installation_data):
                 "verify_ssl": installation_data["verify_ssl"],
                 "client_id": installation_data["client_id"],
                 "error_status": getattr(resp, "status_code"),  # error might not be an HTTP error
-                "error_message": str(e),
+                "error_message": f"{e}",
             },
         )
         raise e

@@ -37,7 +37,7 @@ class Processor:
         self.func = func
 
     def load_mapping(self):
-        key = "javascript.errormapping:%s" % self.vendor
+        key = f"javascript.errormapping:{self.vendor}"
         mapping = cache.get(key)
         cached_rv = None
         if mapping is not None:
@@ -46,12 +46,14 @@ class Processor:
                 return cached_rv
 
         try:
-            http_session = http.build_session()
-            response = http_session.get(
-                self.mapping_url, allow_redirects=True, timeout=settings.SENTRY_SOURCE_FETCH_TIMEOUT
-            )
-            # Make sure we only get a 2xx to prevent caching bad data
-            response.raise_for_status()
+            with http.build_session() as session:
+                response = session.get(
+                    self.mapping_url,
+                    allow_redirects=True,
+                    timeout=settings.SENTRY_SOURCE_FETCH_TIMEOUT,
+                )
+                # Make sure we only get a 2xx to prevent caching bad data
+                response.raise_for_status()
             data = response.json()
             cache.set(key, json.dumps([time.time(), data]), HARD_TIMEOUT)
         except Exception:

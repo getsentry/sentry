@@ -144,5 +144,5 @@ class SegmentPlugin(CorePluginMixin, DataForwardingPlugin):
         if not write_key:
             return
 
-        session = http.build_session()
-        session.post(self.endpoint, json=payload, auth=(write_key, ""))
+        with http.build_session() as session:
+            session.post(self.endpoint, json=payload, auth=(write_key, ""))
