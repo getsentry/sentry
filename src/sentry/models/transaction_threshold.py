@@ -17,7 +17,7 @@ TRANSACTION_METRICS = {
 
 
 class ProjectTransactionThresholdOverride(DefaultFieldsModel):
-    __core__ = False
+    __include_in_export__ = False
 
     # max_length here is based on the maximum for transactions in relay
     transaction = models.CharField(max_length=200)
@@ -36,7 +36,7 @@ class ProjectTransactionThresholdOverride(DefaultFieldsModel):
 
 
 class ProjectTransactionThreshold(DefaultFieldsModel):
-    __core__ = False
+    __include_in_export__ = False
 
     project = FlexibleForeignKey("sentry.Project", unique=True, db_constraint=False)
     organization = FlexibleForeignKey("sentry.Organization")

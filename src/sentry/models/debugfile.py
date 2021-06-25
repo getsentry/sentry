@@ -101,7 +101,7 @@ class ProjectDebugFileManager(BaseManager):
 
 
 class ProjectDebugFile(Model):
-    __core__ = False
+    __include_in_export__ = False
 
     file = FlexibleForeignKey("sentry.File")
     checksum = models.CharField(max_length=40, null=True, db_index=True)

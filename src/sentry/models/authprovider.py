@@ -23,7 +23,7 @@ SCIM_INTERNAL_INTEGRATION_OVERVIEW = (
 
 
 class AuthProvider(Model):
-    __core__ = True
+    __include_in_export__ = True
 
     organization = FlexibleForeignKey("sentry.Organization", unique=True)
     provider = models.CharField(max_length=128)

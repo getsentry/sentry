@@ -89,7 +89,7 @@ class SentryAppManager(ParanoidManager):
 
 
 class SentryApp(ParanoidModel, HasApiScopes):
-    __core__ = True
+    __include_in_export__ = True
 
     application = models.OneToOneField(
         "sentry.ApiApplication", null=True, on_delete=models.SET_NULL, related_name="sentry_app"

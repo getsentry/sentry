@@ -36,7 +36,7 @@ DemoOrgStatus._labels = {
 
 
 class DemoOrganization(DefaultFieldsModel):
-    __core__ = False
+    __include_in_export__ = False
 
     organization = FlexibleForeignKey("sentry.Organization", unique=True)
     status = BoundedPositiveIntegerField(
@@ -61,7 +61,7 @@ class DemoOrganization(DefaultFieldsModel):
 
 
 class DemoUser(DefaultFieldsModel):
-    __core__ = False
+    __include_in_export__ = False
 
     user = FlexibleForeignKey("sentry.User", unique=True)
     date_assigned = models.DateTimeField(null=True)

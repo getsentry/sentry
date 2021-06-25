@@ -52,7 +52,7 @@ class ReleaseCommitError(Exception):
 
 
 class ReleaseProject(Model):
-    __core__ = False
+    __include_in_export__ = False
 
     project = FlexibleForeignKey("sentry.Project")
     release = FlexibleForeignKey("sentry.Release")
@@ -259,7 +259,7 @@ class Release(Model):
     A commit is generally a git commit. See also releasecommit.py
     """
 
-    __core__ = False
+    __include_in_export__ = False
 
     organization = FlexibleForeignKey("sentry.Organization")
     projects = models.ManyToManyField(
