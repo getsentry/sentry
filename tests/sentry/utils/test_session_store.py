@@ -2,21 +2,24 @@ from unittest import TestCase
 
 from django.http import HttpRequest
 
-from sentry.utils.session_store import RedisSessionStore
+from sentry.utils.session_store import RedisSessionStore, redis_property
 
 
 class RedisSessionStoreTestCase(TestCase):
+    class TestRedisSessionStore(RedisSessionStore):
+        some_value = redis_property("some_value")
+
     def test_store_values(self):
         request = HttpRequest()
         request.session = {}
 
-        store = RedisSessionStore(request, "test-store")
+        store = self.TestRedisSessionStore(request, "test-store")
         store.regenerate()
 
         assert "store:test-store" in request.session
 
         store.some_value = "test_value"
-        store2 = RedisSessionStore(request, "test-store")
+        store2 = self.TestRedisSessionStore(request, "test-store")
 
         assert store2.is_valid()
         assert store2.some_value == "test_value"
@@ -30,10 +33,10 @@ class RedisSessionStoreTestCase(TestCase):
         request = HttpRequest()
         request.session = {}
 
-        store = RedisSessionStore(request, "test-store")
+        store = self.TestRedisSessionStore(request, "test-store")
         store.regenerate({"some_value": {"deep_object": "value"}})
 
-        store2 = RedisSessionStore(request, "test-store")
+        store2 = self.TestRedisSessionStore(request, "test-store")
 
         assert store2.some_value["deep_object"] == "value"
 
@@ -43,7 +46,7 @@ class RedisSessionStoreTestCase(TestCase):
         request = HttpRequest()
         request.session = {}
 
-        store = RedisSessionStore(request, "test-store")
+        store = self.TestRedisSessionStore(request, "test-store")
 
         assert not store.is_valid()
         assert store.get_state() is None
