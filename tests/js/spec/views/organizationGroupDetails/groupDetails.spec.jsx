@@ -1,8 +1,7 @@
 import {browserHistory} from 'react-router';
-import {cleanup, waitFor} from '@testing-library/react';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {cleanup, mountWithTheme, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import GlobalSelectionStore from 'app/stores/globalSelectionStore';
 import GroupStore from 'app/stores/groupStore';
@@ -11,7 +10,7 @@ import GroupDetails from 'app/views/organizationGroupDetails';
 
 jest.unmock('app/utils/recreateRoute');
 
-describe('groupDetails', function () {
+describe('groupDetails', () => {
   const group = TestStubs.Group();
   const event = TestStubs.Event();
 
@@ -73,7 +72,7 @@ describe('groupDetails', function () {
     );
   };
 
-  beforeEach(function () {
+  beforeEach(() => {
     ProjectsStore.loadInitialData(organization.projects);
     MockApiClient.addMockResponse({
       url: `/issues/${group.id}/`,
@@ -106,7 +105,7 @@ describe('groupDetails', function () {
       body: {firstRelease: group.firstRelease, lastRelease: group.lastRelease},
     });
   });
-  afterEach(function () {
+  afterEach(() => {
     cleanup();
     ProjectsStore.reset();
     GroupStore.reset();
@@ -114,7 +113,7 @@ describe('groupDetails', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders', function () {
+  it('renders', () => {
     ProjectsStore.reset();
     const {findByText, queryByText} = createWrapper();
 
@@ -125,7 +124,7 @@ describe('groupDetails', function () {
     expect(findByText(group.title)).toBeTruthy();
   });
 
-  it('renders error when issue is not found', function () {
+  it('renders error when issue is not found', () => {
     MockApiClient.addMockResponse({
       url: `/issues/${group.id}/`,
       statusCode: 404,
@@ -141,7 +140,7 @@ describe('groupDetails', function () {
     expect(findByText('The issue you were looking for was not found.')).toBeTruthy();
   });
 
-  it('renders MissingProjectMembership when trying to access issue in project the user does not belong to', function () {
+  it('renders MissingProjectMembership when trying to access issue in project the user does not belong to', () => {
     MockApiClient.addMockResponse({
       url: `/issues/${group.id}/`,
       statusCode: 403,
@@ -158,7 +157,7 @@ describe('groupDetails', function () {
     ).toBeTruthy();
   });
 
-  it('fetches issue details for a given environment', function () {
+  it('fetches issue details for a given environment', () => {
     const props = initializeOrg({
       project: TestStubs.Project(),
       router: {
@@ -185,7 +184,7 @@ describe('groupDetails', function () {
   /**
    * This is legacy code that I'm not even sure still happens
    */
-  it('redirects to new issue if params id !== id returned from API request', async function () {
+  it('redirects to new issue if params id !== id returned from API request', async () => {
     MockApiClient.addMockResponse({
       url: `/issues/${group.id}/`,
       body: {...group, id: 'new-id'},
@@ -200,7 +199,7 @@ describe('groupDetails', function () {
     });
   });
 
-  it('renders issue event error', function () {
+  it('renders issue event error', () => {
     MockApiClient.addMockResponse({
       url: `/issues/${group.id}/events/latest/`,
       statusCode: 404,
@@ -209,7 +208,7 @@ describe('groupDetails', function () {
     expect(findByText('eventError')).toBeTruthy();
   });
 
-  it('renders for review reason', async function () {
+  it('renders for review reason', () => {
     MockApiClient.addMockResponse({
       url: `/issues/${group.id}/`,
       body: {

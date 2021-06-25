@@ -1,4 +1,4 @@
-import {mountWithTheme} from 'sentry-test/reactTestingLibrary';
+import {cleanup, mountWithTheme} from 'sentry-test/reactTestingLibrary';
 
 import LoadingContainer from 'app/components/loading/loadingContainer';
 
@@ -10,16 +10,17 @@ function renderComponent(props) {
   );
 }
 
-describe('LoadingContainer', function () {
+describe('LoadingContainer', () => {
+  afterEach(cleanup);
+
   it('handles normal state', () => {
-    const {getByText, getByTestId, unmount} = renderComponent();
+    const {getByText, getByTestId} = renderComponent();
     expect(getByText('hello!')).toBeTruthy();
     expect(() => getByTestId('loading-indicator')).toThrow();
-    unmount();
   });
 
   it('handles loading state', () => {
-    const {getByTestId, getByText, rerender, queryByText, unmount} = renderComponent({
+    const {getByTestId, getByText, rerender, queryByText} = renderComponent({
       isLoading: true,
     });
     expect(getByText('hello!')).toBeTruthy();
@@ -27,11 +28,10 @@ describe('LoadingContainer', function () {
     rerender(<LoadingContainer isLoading />);
     expect(queryByText('hello!')).toBeNull();
     expect(getByTestId('loading-indicator')).toBeTruthy();
-    unmount();
   });
 
   it('handles reloading state', () => {
-    const {getByTestId, getByText, rerender, queryByText, unmount} = renderComponent({
+    const {getByTestId, getByText, rerender, queryByText} = renderComponent({
       isReloading: true,
     });
     expect(getByText('hello!')).toBeTruthy();
@@ -39,6 +39,5 @@ describe('LoadingContainer', function () {
     rerender(<LoadingContainer isReloading />);
     expect(queryByText('hello!')).toBeNull();
     expect(getByTestId('loading-indicator')).toBeTruthy();
-    unmount();
   });
 });
