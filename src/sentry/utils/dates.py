@@ -6,6 +6,7 @@ import pytz
 from dateutil.parser import parse
 from django.db import connections
 from django.http.request import HttpRequest
+from django.utils.timezone import is_aware, make_aware
 
 from sentry import quotas
 from sentry.constants import MAX_ROLLUP_POINTS
@@ -13,6 +14,15 @@ from sentry.constants import MAX_ROLLUP_POINTS
 DATE_TRUNC_GROUPERS = {"date": "day", "hour": "hour", "minute": "minute"}
 
 epoch = datetime(1970, 1, 1, tzinfo=pytz.utc)
+
+
+def ensure_aware(value: datetime) -> datetime:
+    """
+    Ensures the datetime is an aware datetime.
+    """
+    if is_aware(value):
+        return value
+    return make_aware(value)
 
 
 def to_timestamp(value: datetime) -> float:
