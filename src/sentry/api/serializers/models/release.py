@@ -3,7 +3,7 @@ from collections import defaultdict
 from django.core.cache import cache
 from django.db.models import Sum
 
-from sentry import tagstore
+from sentry import features, tagstore
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.db.models.query import in_iexact
 from sentry.models import (
@@ -260,16 +260,27 @@ class ReleaseSerializer(Serializer):
                 release__in=item_list, new_groups__isnull=False
             ).values_list("project_id", "release_id", "new_groups"):
                 group_counts_by_release.setdefault(release_id, {})[project_id] = new_groups
+
         return first_seen, last_seen, group_counts_by_release
 
-    def __get_release_data_with_environments(self, project, item_list, environments):
-        release_project_envs = ReleaseProjectEnvironment.objects.filter(
-            release__in=item_list, environment__name__in=environments
-        ).select_related("release")
-        if project is not None:
-            release_project_envs = release_project_envs.filter(project=project)
+    def _get_release_adoption_stages(self, release_project_envs):
+        adoption_stages = defaultdict(dict)
+
+        for release_project_env in release_project_envs:
+            if (
+                release_project_env.project.slug
+                not in adoption_stages[release_project_env.release.version]
+            ):
+                adoption_stages[release_project_env.release.version][
+                    release_project_env.project.slug
+                ] = release_project_env.adoption_string
+
+        return adoption_stages
+
+    def __get_release_data_with_environments(self, release_project_envs):
         first_seen = {}
         last_seen = {}
+
         for release_project_env in release_project_envs:
             if (
                 release_project_env.release.version not in first_seen
@@ -311,16 +322,44 @@ class ReleaseSerializer(Serializer):
         if with_health_data and no_snuba:
             raise TypeError("health data requires snuba")
 
+        self.has_adoption_stage = features.has(
+            "organizations:release-adoption-stage", item_list[0].organization_id
+        )
+        if self.has_adoption_stage:
+            release_project_envs = (
+                ReleaseProjectEnvironment.objects.filter(release__in=item_list)
+                .select_related("release")
+                .order_by("-first_seen")
+            )
+            if environments is not None:
+                release_project_envs = release_project_envs.filter(
+                    environment__name__in=environments
+                )
+            if project is not None:
+                release_project_envs = release_project_envs.filter(project=project)
+
+            adoption_stages = self._get_release_adoption_stages(release_project_envs)
+
         if environments is None:
             first_seen, last_seen, issue_counts_by_release = self.__get_release_data_no_environment(
                 project, item_list
             )
         else:
+            if not self.has_adoption_stage:
+                release_project_envs = (
+                    ReleaseProjectEnvironment.objects.filter(
+                        release__in=item_list, environment__name__in=environments
+                    )
+                    .select_related("release")
+                    .order_by("-first_seen")
+                )
+                if project is not None:
+                    release_project_envs = release_project_envs.filter(project=project)
             (
                 first_seen,
                 last_seen,
                 issue_counts_by_release,
-            ) = self.__get_release_data_with_environments(project, item_list, environments)
+            ) = self.__get_release_data_with_environments(release_project_envs)
 
         owners = {d["id"]: d for d in serialize({i.owner for i in item_list if i.owner_id}, user)}
 
@@ -402,6 +441,12 @@ class ReleaseSerializer(Serializer):
                 "first_seen": first_seen.get(item.version),
                 "last_seen": last_seen.get(item.version),
             }
+            if self.has_adoption_stage:
+                p.update(
+                    {
+                        "adoption_stages": adoption_stages.get(item.version),
+                    }
+                )
 
             p.update(release_metadata_attrs[item])
             p.update(deploy_metadata_attrs[item])
@@ -488,4 +533,10 @@ class ReleaseSerializer(Serializer):
                 kwargs.get("current_project_meta", {})
             ),
         }
+        if self.has_adoption_stage:
+            d.update(
+                {
+                    "adoptionStages": attrs.get("adoption_stages"),
+                }
+            )
         return d
