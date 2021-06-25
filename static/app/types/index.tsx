@@ -1449,6 +1449,7 @@ export type ReleaseWithHealth = BaseRelease &
 type ReleaseData = {
   commitCount: number;
   data: {};
+  adoptionStages?: {};
   lastDeploy?: Deploy;
   deployCount: number;
   lastEvent: string;

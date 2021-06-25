@@ -29,8 +29,10 @@ import {DisplayOption} from '../utils';
 import Header from './header';
 import ProjectLink from './projectLink';
 
+
 type Props = {
   projects: Array<ReleaseProject>;
+  adoptionStages: {} | undefined;
   releaseVersion: Release['version'];
   organization: Organization;
   activeDisplay: DisplayOption;
@@ -42,6 +44,7 @@ type Props = {
 
 const Content = ({
   projects,
+  adoptionStages,
   releaseVersion,
   location,
   organization,
@@ -50,6 +53,12 @@ const Content = ({
   isTopRelease,
   getHealthData,
 }: Props) => {
+
+  var adoption_map = {
+    "not_adopted": "Not Adopted",
+    "adopted": "Adopted",
+    "replaced": "Replaced"
+  }
   return (
     <Fragment>
       <Header>
@@ -64,6 +73,11 @@ const Content = ({
               {t('Adoption')}
             </GuideAnchor>
           </AdoptionColumn>
+          {adoptionStages && (
+            <Column>
+              {t('Status')} 
+            </Column>
+          )}
           <CrashFreeRateColumn>{t('Crash Free Rate')}</CrashFreeRateColumn>
           <CountColumn>
             <span>{t('Count')}</span>
@@ -149,6 +163,12 @@ const Content = ({
                       <NotAvailable />
                     )}
                   </AdoptionColumn>
+                  
+                  {adoptionStages && (
+                  <Column>
+                    {adoptionStages[project.slug] ? adoption_map[(adoptionStages[project.slug])] : "---"}
+                  </Column>
+                  )}
 
                   <CrashFreeRateColumn>
                     {showPlaceholders ? (
