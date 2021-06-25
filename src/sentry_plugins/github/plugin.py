@@ -539,7 +539,7 @@ class GitHubAppsRepositoryProvider(GitHubRepositoryProvider):
         auth = UserSocialAuth.objects.filter(user=actor, provider="github_apps").first()
 
         if not auth:
-            self.logger.warn("get_installations.no-linked-auth")
+            self.logger.warning("get_installations.no-linked-auth")
             return []
 
         client = GitHubClient(auth=auth)
