@@ -4,6 +4,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.integrations.pipeline import IntegrationPipeline
+from sentry.utils.signing import sign
 from sentry.web.decorators import transaction_start
 from sentry.web.frontend.base import BaseView
 
@@ -40,9 +41,12 @@ class PipelineAdvancerView(BaseView):
             and request.GET.get("setup_action") == "install"
             and pipeline is None
         ):
-            installation_id = request.GET.get("installation_id")
+            signed_params = sign(
+                installation_id=request.GET.get("installation_id"),
+                provider_id=provider_id,
+            )
             return self.redirect(
-                reverse("integration-installation", args=[provider_id, installation_id])
+                reverse("integration-installation", kwargs={"signed_params": signed_params})
             )
 
         if pipeline is None or not pipeline.is_valid():
