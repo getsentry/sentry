@@ -87,12 +87,8 @@ function getDeviceKnownDataDetails(
             : undefined,
       };
     case DeviceKnownDataType.STORAGE:
-      const {
-        storage_size,
-        free_storage,
-        external_storage_size,
-        external_free_storage,
-      } = data;
+      const {storage_size, free_storage, external_storage_size, external_free_storage} =
+        data;
       return {
         subject: t('Capacity'),
         value:

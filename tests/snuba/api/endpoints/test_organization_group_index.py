@@ -1196,6 +1196,10 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert [int(r["id"]) for r in response.json()] == [release_1_g_1, release_1_g_2]
 
+        response = self.get_response(sort_by="date", limit=10, query=f"{SEMVER_ALIAS}:<1.0")
+        assert response.status_code == 200, response.content
+        assert [int(r["id"]) for r in response.json()] == []
+
     def test_aggregate_stats_regression_test(self):
         self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
@@ -1611,7 +1615,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
                 group = Group.objects.get(id=group.id)
                 assert group.status == GroupStatus.RESOLVED
 
-                assert response.data == {"status": "resolved", "statusDetails": {}}
+                assert response.data == {"status": "resolved", "statusDetails": {}, "inbox": None}
                 mock_sync_status_outbound.assert_called_once_with(
                     external_issue, True, group.project_id
                 )
@@ -1736,7 +1740,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             response = self.get_valid_response(
                 qs_params={"id": [group1.id, group2.id], "group4": group4.id}, status="resolved"
             )
-        assert response.data == {"status": "resolved", "statusDetails": {}}
+        assert response.data == {"status": "resolved", "statusDetails": {}, "inbox": None}
 
         new_group1 = Group.objects.get(id=group1.id)
         assert new_group1.resolved_at is not None

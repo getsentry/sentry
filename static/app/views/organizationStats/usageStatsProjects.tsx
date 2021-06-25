@@ -301,9 +301,7 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
     handleChangeState({query, cursor: undefined});
   };
 
-  mapSeriesToTable(
-    projectStats?: UsageSeries
-  ): {
+  mapSeriesToTable(projectStats?: UsageSeries): {
     tableStats: TableStat[];
     error?: Error;
   } {

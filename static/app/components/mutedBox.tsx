@@ -13,13 +13,8 @@ type Props = {
 
 class MutedBox extends PureComponent<Props> {
   renderReason = () => {
-    const {
-      ignoreUntil,
-      ignoreCount,
-      ignoreWindow,
-      ignoreUserCount,
-      ignoreUserWindow,
-    } = this.props.statusDetails;
+    const {ignoreUntil, ignoreCount, ignoreWindow, ignoreUserCount, ignoreUserWindow} =
+      this.props.statusDetails;
 
     if (ignoreUntil) {
       return t(

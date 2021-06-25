@@ -3,6 +3,7 @@ from django.utils import timezone
 from freezegun import freeze_time
 
 from sentry.api.exceptions import InvalidRepository
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models import (
     Commit,
     CommitAuthor,
@@ -16,7 +17,6 @@ from sentry.models import (
     GroupResolution,
     GroupStatus,
     Integration,
-    InvalidSearchQuery,
     OrganizationIntegration,
     Release,
     ReleaseCommit,
@@ -27,6 +27,7 @@ from sentry.models import (
     Repository,
     add_group_to_inbox,
 )
+from sentry.search.events.filter import parse_semver
 from sentry.testutils import SetRefsTestCase, TestCase
 from sentry.utils.compat.mock import patch
 from sentry.utils.strings import truncatechars
@@ -802,21 +803,21 @@ class SemverReleaseParseTestCase(TestCase):
 class ReleaseFilterBySemverTest(TestCase):
     def test_invalid_query(self):
         with pytest.raises(InvalidSearchQuery, match="Invalid format for semver query"):
-            Release.objects.filter_by_semver(self.organization.id, "gt", "1.2.*")
+            Release.objects.filter_by_semver(self.organization.id, parse_semver("1.2.hi", ">"))
 
     def run_test(self, operator, version, expected_releases, organization_id=None):
         organization_id = organization_id if organization_id else self.organization.id
-        assert set(Release.objects.filter_by_semver(organization_id, operator, version)) == set(
-            expected_releases
-        )
+        assert set(
+            Release.objects.filter_by_semver(organization_id, parse_semver(version, operator))
+        ) == set(expected_releases)
 
     def test(self):
         release = self.create_release(version="test@1.2.3")
         release_2 = self.create_release(version="test@1.2.4")
-        self.run_test("gt", "1.2.3", [release_2])
-        self.run_test("gte", "1.2.4", [release_2])
-        self.run_test("lt", "1.2.4", [release])
-        self.run_test("lte", "1.2.3", [release])
+        self.run_test(">", "1.2.3", [release_2])
+        self.run_test(">=", "1.2.4", [release_2])
+        self.run_test("<", "1.2.4", [release])
+        self.run_test("<=", "1.2.3", [release])
 
     def test_prerelease(self):
         # Prerelease has weird sorting rules, where an empty string is higher priority
@@ -826,13 +827,13 @@ class ReleaseFilterBySemverTest(TestCase):
         release_2 = self.create_release(version="test@1.2.3")
         release_3 = self.create_release(version="test@1.2.4-alpha")
         release_4 = self.create_release(version="test@1.2.4")
-        self.run_test("gte", "1.2.3", [release_2, release_3, release_4])
+        self.run_test(">=", "1.2.3", [release_2, release_3, release_4])
         self.run_test(
-            "gte",
+            ">=",
             "1.2.3-beta",
             [release_1, release_2, release_3, release_4],
         )
-        self.run_test("lt", "1.2.3", [release_1, release])
+        self.run_test("<", "1.2.3", [release_1, release])
 
     def test_granularity(self):
         self.create_release(version="test@1.0.0.0")
@@ -841,11 +842,28 @@ class ReleaseFilterBySemverTest(TestCase):
         release_4 = self.create_release(version="test@1.2.3.4")
         release_5 = self.create_release(version="test@2.0.0.0")
         self.run_test(
-            "gt",
+            ">",
             "1",
             [release_2, release_3, release_4, release_5],
         )
-        self.run_test("gt", "1.2", [release_3, release_4, release_5])
-        self.run_test("gt", "1.2.3", [release_4, release_5])
-        self.run_test("gt", "1.2.3.4", [release_5])
-        self.run_test("gt", "2", [])
+        self.run_test(">", "1.2", [release_3, release_4, release_5])
+        self.run_test(">", "1.2.3", [release_4, release_5])
+        self.run_test(">", "1.2.3.4", [release_5])
+        self.run_test(">", "2", [])
+
+    def test_wildcard(self):
+        release_1 = self.create_release(version="test@1.0.0.0")
+        release_2 = self.create_release(version="test@1.2.0.0")
+        release_3 = self.create_release(version="test@1.2.3.0")
+        release_4 = self.create_release(version="test@1.2.3.4")
+        release_5 = self.create_release(version="test@2.0.0.0")
+
+        self.run_test(
+            "=",
+            "1.X",
+            [release_1, release_2, release_3, release_4],
+        )
+        self.run_test("=", "1.2.*", [release_2, release_3, release_4])
+        self.run_test("=", "1.2.3.*", [release_3, release_4])
+        self.run_test("=", "1.2.3.4", [release_4])
+        self.run_test("=", "2.*", [release_5])
