@@ -753,22 +753,15 @@ class SnubaTagStorage(TagStorage):
         if key == SEMVER_ALIAS:
             # If doing a search on semver, we want to hit postgres to query the releases
             version = query
-            if not version:
-                version = "*"
-            elif version[-1] not in SEMVER_WILDCARDS | {"@"}:
-                suffix = ""
-                if version[-1] != ".":
-                    suffix += "."
-                suffix += "*"
-                version += suffix
             organization_id = Project.objects.filter(id=projects[0]).values_list(
                 "organization_id", flat=True
             )[0]
-            if version[:-2] and "@" not in version and re.search(r"[^\d.]", version[:-2]):
+
+            if version and "@" not in version and re.search(r"[^\d.\*]", version):
                 # Handle searching just on package
                 packages = (
                     Release.objects.filter(
-                        organization_id=organization_id, package__startswith=version[:-2]
+                        organization_id=organization_id, package__startswith=version
                     )
                     .values_list("package")
                     .distinct()
@@ -777,6 +770,13 @@ class SnubaTagStorage(TagStorage):
                     organization_id=organization_id, package__in=packages
                 ).annotate_prerelease_column()
             else:
+                if not version:
+                    version = "*"
+                elif version[-1] not in SEMVER_WILDCARDS | {"@"}:
+                    if version[-1] != ".":
+                        version += "."
+                    version += "*"
+
                 versions = Release.objects.filter_by_semver(
                     organization_id, parse_semver(version, "=")
                 )
