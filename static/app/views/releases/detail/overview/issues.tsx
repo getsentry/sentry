@@ -62,14 +62,14 @@ type Props = {
 
 type State = {
   issuesType: IssuesType;
-  pageLinks?: string;
-  onCursor?: () => void;
   count: {
     firstRelease: number;
     release: number;
     resolved: number;
     unhandled: number;
   };
+  pageLinks?: string;
+  onCursor?: () => void;
 };
 
 class Issues extends Component<Props, State> {
@@ -370,8 +370,8 @@ class Issues extends Component<Props, State> {
               {t('Open in Issues')}
             </Button>
 
-            <GuideAnchor target="release_issues_open_in_discover">
-              {hasReleaseComparison ? null : (
+            {hasReleaseComparison ? null : (
+              <GuideAnchor target="release_issues_open_in_discover">
                 <DiscoverButton
                   to={this.getDiscoverUrl()}
                   size="small"
@@ -379,9 +379,9 @@ class Issues extends Component<Props, State> {
                 >
                   {t('Open in Discover')}
                 </DiscoverButton>
-              )}
-            </GuideAnchor>
-            {hasReleaseComparison ? null : (
+              </GuideAnchor>
+            )}
+            {!hasReleaseComparison && (
               <StyledPagination pageLinks={pageLinks} onCursor={onCursor} />
             )}
           </OpenInButtonBar>
