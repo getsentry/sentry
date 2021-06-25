@@ -48,9 +48,9 @@ class SentryMigrationExecutor(MigrationExecutor):
         if failed_ops:
             ops_msg = "\n".join(str(op) for op in failed_ops)
             raise MissingDatabaseRoutingInfo(
-                f"Migration `{migration.name}` contains operation(s) that miss "
-                "`hints={'tables':..}` argument for correctly selecting "
-                "database connection/alias. "
+                f"Migration `{migration.app_label} {migration.name}` contains "
+                "operation(s) that miss `hints={'tables':..}` argument for "
+                "correctly selecting database connection/alias. "
                 f"\nOperations:\n{ops_msg}"
             )
 
