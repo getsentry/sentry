@@ -66,6 +66,8 @@ commit_message_base_messages = [
 
 base_paths_by_file_type = {"js": ["components/", "views/"], "py": ["flask/", "routes/"]}
 
+rate_by_release_num = [1.0, 0.99, 0.9]
+
 org_users = [
     ("scefali", "Stephen Cefali"),
     ("aj", "AJ Jindal"),
@@ -86,57 +88,127 @@ def get_event_from_file(file_name):
         return clean_event(json.load(f))
 
 
-def distribution_v1() -> list:
-    return [1, 3, 1, 2, 1, 1, 1, 2, 4, 1, 2, 3, 4, 5, 4, 3, 4, 7, 1, 2, 2, 2, 1, 3]
+def distribution_v1(hour: int) -> int:
+    if hour > 9 and hour < 12:
+        return 9
+    if hour > 6 and hour < 15:
+        return 4
+    if hour > 4 and hour < 20:
+        return 3
+    return 2
 
 
-def distribution_v2() -> list:
-    return [4, 1, 3, 4, 7, 8, 8, 9, 7, 6, 4, 3, 3, 3, 2, 1, 3, 1, 1, 4, 1, 1, 3, 2]
+def distribution_v2(hour: int) -> int:
+    if hour > 18 and hour < 20:
+        return 16
+    if hour > 9 and hour < 14:
+        return 8
+    if hour > 3 and hour < 22:
+        return 5
+    return 4
 
 
-def distribution_v3() -> list:
-    return [2, 2, 2, 3, 4, 5, 4, 3, 4, 4, 4, 3, 4, 5, 6, 8, 8, 10, 13, 9, 7, 4, 3, 6]
+def distribution_v3(hour: int) -> int:
+    if hour > 21:
+        return 14
+    if hour > 6 and hour < 15:
+        return 9
+    if hour > 3:
+        return 5
+    return 3
 
 
-def distribution_v4() -> list:
-    return [2, 2, 1, 3, 3, 4, 7, 8, 9, 9, 6, 3, 4, 5, 4, 3, 2, 3, 3, 7, 9, 10, 10, 8]
+def distribution_v4(hour: int) -> int:
+    if hour > 13 and hour < 20:
+        return 13
+    if hour > 5 and hour < 12:
+        return 8
+    if hour > 3 and hour < 22:
+        return 5
+    return 3
 
 
-def distribution_v5() -> list:
-    return [7, 8, 7, 7, 6, 4, 4, 3, 3, 2, 2, 4, 5, 6, 4, 4, 4, 3, 4, 5, 5, 6, 5, 6]
+def distribution_v5(hour: int) -> int:
+    if hour == 3:
+        return 12
+    if hour < 5:
+        return 9
+    if hour > 18 and hour < 21:
+        return 14
+    return 3
 
 
-def distribution_v6() -> list:
-    return [9, 10, 9, 10, 10, 9, 8, 6, 7, 6, 6, 7, 9, 11, 10, 12, 12, 13, 17, 14, 12, 10, 8, 12]
+def distribution_v6(hour: int) -> int:
+    if hour == 20:
+        return 17
+    if hour > 17 and hour < 21:
+        return 13
+    if hour > 6 and hour < 11:
+        return 8
+    if hour == 3:
+        return 20
+    return 9
 
 
-def distribution_v7() -> list:
-    return [3, 5, 2, 5, 4, 5, 8, 10, 13, 10, 8, 6, 8, 10, 8, 6, 6, 10, 4, 9, 11, 12, 11, 11]
+def distribution_v7(hour: int) -> int:
+    if hour == 3:
+        return 9
+    if hour < 8:
+        return 6
+    if hour > 9 and hour < 12:
+        return 11
+    if hour > 18:
+        return 12
+    return 7
 
 
-def distribution_v8() -> list:
-    return [6, 3, 5, 7, 11, 13, 12, 12, 11, 10, 8, 6, 7, 8, 8, 9, 11, 11, 14, 13, 8, 5, 6, 8]
+def distribution_v8(hour: int) -> int:
+    if hour > 6 and hour < 10:
+        return 12
+    if hour < 3:
+        return 9
+    if hour > 16 and hour < 19:
+        return 14
+    if hour == 23:
+        return 17
+    return 7
 
 
-def distribution_v9() -> list:
-    return [11, 9, 10, 11, 13, 12, 12, 12, 10, 8, 6, 7, 8, 9, 6, 5, 7, 4, 5, 9, 6, 7, 8, 8]
+def distribution_v9(hour: int) -> int:
+    if hour < 4:
+        return 16
+    if hour > 4 and hour < 7:
+        return 12
+    if hour == 16:
+        return 17
+    if hour == 19:
+        return 16
+    return 9
 
 
-def distribution_v10() -> list:
-    return [4, 4, 3, 6, 7, 9, 11, 11, 13, 13, 10, 6, 8, 10, 10, 11, 10, 13, 16, 16, 16, 14, 13, 14]
+def distribution_v10(hour: int) -> int:
+    if hour > 12 and hour < 17:
+        return 12
+    if hour > 7 and hour < 10:
+        return 14
+    if hour == 3:
+        return 19
+    if hour == 21:
+        return 17
+    return 7
 
 
 distribution_fns = [
-    distribution_v1(),
-    distribution_v2(),
-    distribution_v3(),
-    distribution_v4(),
-    distribution_v5(),
-    distribution_v6(),
-    distribution_v7(),
-    distribution_v8(),
-    distribution_v9(),
-    distribution_v10(),
+    distribution_v1,
+    distribution_v2,
+    distribution_v3,
+    distribution_v4,
+    distribution_v5,
+    distribution_v6,
+    distribution_v7,
+    distribution_v8,
+    distribution_v9,
+    distribution_v10,
 ]
 
 
@@ -721,7 +793,7 @@ class DataPopulation:
                 if end_time > timezone.now():
                     return
 
-                base = distribution_fn[hour]
+                base = distribution_fn(hour)
                 # determine the number of events we want in this hour
                 num_events = int((BASE_OFFSET + SCALE_FACTOR * base) * random.uniform(0.6, 1.0))
                 timestamps = []
@@ -1045,17 +1117,22 @@ class DataPopulation:
 
         self.log_info("populate_generic_error.finished")
 
-    @catch_and_log_errors
-    def populate_sessions(self, project, distribution_fn_num: int, mobile: bool):
+    def populate_sessions(self, project, distribution_fn_num: int, mobile: bool, error_file=None):
         self.log_info("populate_sessions.start")
 
         dsn = ProjectKey.objects.get(project=project)
 
+        if error_file:
+            error = get_event_from_file(error_file)
+
         # keep track of versions for mobile
         seen_versions = []
         num_versions = 0
+        weights = []
 
         for (timestamp, day) in self.iter_timestamps(distribution_fn_num):
+            transaction_user = self.generate_user()
+            sid = uuid4().hex
             release = get_release_from_time(project.organization_id, timestamp)
             version = release.version
 
@@ -1063,54 +1140,122 @@ class DataPopulation:
             if version not in seen_versions:
                 seen_versions.append(version)
                 num_versions += 1
-
-            formatted_time = timestamp.isoformat()
-            envelope_headers = "{}"
-            item_headers = json.dumps({"type": "sessions"})
-
-            agg = []
-
-            if self.quick:
-                num_users = int(random.uniform(200, 400))
-            else:
-                num_users = int(random.uniform(1000, 2000))
-
-            # create session data for each user
-            for _ in range(num_users):
-                exited = random.choices([1, 2, 3, 4], k=1, weights=[10, 5, 3, 1])[0]
-                rand = random.random()
-                if rand <= 0.0045:
-                    crashed = int(random.uniform(1, 8))
+                if weights:
+                    weights.append(weights[-1] * random.uniform(2, 2.5))
                 else:
-                    crashed = 0
-                current = {
-                    "started": formatted_time,
-                    "did": uuid4().hex[:8],
-                    "exited": exited,
-                    "crashed": crashed,
-                }
-                agg.append(current)
+                    weights = [1]
 
-            # if mobile, choose one of previously seen versions
-            if mobile and num_versions > 1:
-                if num_versions == 2:
-                    version = random.choice(seen_versions)
-                elif num_versions == 3:
-                    version = random.choices(seen_versions, k=1, weights=[1, 1, 3])[0]
+            self.send_aggr_session(
+                dsn, timestamp, mobile, version, num_versions, seen_versions, weights
+            )
 
-            data = {
-                "aggregates": agg,
-                "attrs": {"release": version, "environment": "prod"},
+            # send sessions for duration info
+            session_data = {
+                "init": True,
             }
+            self.send_session(sid, transaction_user["id"], dsn, timestamp, version, **session_data)
+            release_num = int(version.split(".")[-1])
+            threshold = rate_by_release_num[release_num]
+            outcome = random.random()
+            if outcome > threshold:
+                if error_file:
+                    local_event = copy.deepcopy(error)
+                    local_event.update(
+                        project=project,
+                        platform=project.platform,
+                        timestamp=timestamp,
+                        user=transaction_user,
+                        release=version,
+                    )
+                    update_context(local_event)
+                    self.fix_error_event(local_event)
+                    self.safe_send_event(local_event)
 
-            core = json.dumps(data)
-            body = f"{envelope_headers}\n{item_headers}\n{core}"
-            endpoint = dsn.get_endpoint()
-            url = f"{endpoint}/api/{dsn.project_id}/envelope/?sentry_key={dsn.public_key}&sentry_version=7"
-            resp = requests.post(url=url, data=body)
-            resp.raise_for_status()
+                data = {
+                    "status": "crashed",
+                }
+            else:
+                data = {
+                    "status": "exited",
+                }
+
+            self.send_session(sid, transaction_user["id"], dsn, timestamp, version, **data)
 
         self.log_info("populate_sessions.end")
+
+    @catch_and_log_errors
+    def send_session(self, sid, user_id, dsn, time, release, **kwargs):
+        """
+        reates an envelope payload for a session and posts it to Relay
+        """
+        formatted_time = time.isoformat()
+        envelope_headers = "{}"
+        item_headers = json.dumps({"type": "session"})
+        data = {
+            "sid": sid,
+            "did": str(user_id),
+            "started": formatted_time,
+            "duration": random.randrange(2, 60),
+            "attrs": {
+                "release": release,
+                "environment": "prod",
+            },
+        }
+        data.update(**kwargs)
+        core = json.dumps(data)
+
+        body = f"{envelope_headers}\n{item_headers}\n{core}"
+        endpoint = dsn.get_endpoint()
+        url = f"{endpoint}/api/{dsn.project_id}/envelope/?sentry_key={dsn.public_key}&sentry_version=7"
+        resp = requests.post(url=url, data=body)
+        resp.raise_for_status()
+
+    @catch_and_log_errors
+    def send_aggr_session(self, dsn, time, mobile, version, num_versions, seen_versions, weights):
+        formatted_time = time.isoformat()
+        envelope_headers = "{}"
+        item_headers = json.dumps({"type": "sessions"})
+
+        agg = []
+        threshold = 0.004
+
+        if self.quick:
+            num_users = int(random.uniform(100, 200))
+        else:
+            num_users = int(random.uniform(1000, 2000))
+
+        # create session data for each user
+        for _ in range(num_users):
+            exited = random.choices([1, 2, 3, 4], k=1, weights=[10, 5, 3, 1])[0]
+            outcome = random.random()
+
+            if outcome <= threshold:
+                crashed = int(random.uniform(1, 11))
+            else:
+                crashed = 0
+            current = {
+                "started": formatted_time,
+                "did": uuid4().hex[:8],
+                "exited": exited,
+                "crashed": crashed,
+            }
+            agg.append(current)
+
+        # if mobile, choose one of previously seen versions
+        if mobile and num_versions > 1:
+            version = random.choices(seen_versions, k=1, weights=weights)[0]
+
+        data = {
+            "aggregates": agg,
+            "attrs": {"release": version, "environment": "prod"},
+        }
+
+        core = json.dumps(data)
+        body = f"{envelope_headers}\n{item_headers}\n{core}"
+        endpoint = dsn.get_endpoint()
+        url = f"{endpoint}/api/{dsn.project_id}/envelope/?sentry_key={dsn.public_key}&sentry_version=7"
+        resp = requests.post(url=url, data=body)
+        resp.raise_for_status()
 
     def handle_react_python_scenario(self, react_project: Project, python_project: Project):
         with sentry_sdk.start_span(
@@ -1122,8 +1267,13 @@ class DataPopulation:
             with sentry_sdk.start_span(
                 op="handle_react_python_scenario", description="populate_sessions"
             ):
-                self.populate_sessions(react_project, 7, False)
-                self.populate_sessions(python_project, 10, False)
+                self.populate_sessions(
+                    react_project, 7, False, "sessions/react_unhandled_exception.json"
+                )
+                self.populate_sessions(
+                    python_project, 10, False, "sessions/python_unhandled_exception.json"
+                )
+
         with sentry_sdk.start_span(
             op="handle_react_python_scenario", description="populate_connected_events"
         ):
@@ -1153,6 +1303,7 @@ class DataPopulation:
                 self.populate_sessions(ios_project, 6, True)
                 self.populate_sessions(android_project, 8, True)
                 self.populate_sessions(react_native_project, 9, True)
+
         with sentry_sdk.start_span(op="handle_mobile_scenario", description="populate_errors"):
             self.populate_generic_error(ios_project, "errors/ios/exc_bad_access.json", 3)
             self.populate_generic_error(
