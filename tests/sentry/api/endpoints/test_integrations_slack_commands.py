@@ -7,12 +7,24 @@ from requests import Response
 from rest_framework import status
 
 from sentry import options
-from sentry.integrations.slack.endpoints.command import LINK_FROM_CHANNEL_MESSAGE, LINK_USER_MESSAGE
+from sentry.integrations.slack.endpoints.action import (
+    LINK_IDENTITY_MESSAGE,
+    UNLINK_IDENTITY_MESSAGE,
+)
+from sentry.integrations.slack.endpoints.command import LINK_FROM_CHANNEL_MESSAGE, LINK_USER_MESSAGE, NOT_LINKED_MESSAGE
 from sentry.integrations.slack.message_builder import SlackBody
 from sentry.integrations.slack.message_builder.disconnected import DISCONNECTED_MESSAGE
 from sentry.integrations.slack.util.auth import set_signing_secret
-from sentry.integrations.slack.views.link_team import build_team_linking_url
-from sentry.models import ExternalActor, Identity, IdentityProvider, IdentityStatus, Integration, NotificationSetting
+from sentry.integrations.slack.views.link_identity import build_linking_url, SUCCESS_LINKED_MESSAGE
+from sentry.integrations.slack.views.link_team import ALREADY_LINKED_MESSAGE, build_team_linking_url
+from sentry.models import (
+    ExternalActor,
+    Identity,
+    IdentityProvider,
+    IdentityStatus,
+    Integration,
+    NotificationSetting,
+)
 from sentry.notifications.types import NotificationScopeType
 from sentry.testutils import APITestCase, TestCase
 from sentry.types.integrations import ExternalProviders
@@ -50,6 +62,25 @@ class SlackCommandsTest(APITestCase, TestCase):
             }
         )
         return json.loads(str(response.content.decode("utf-8")))
+
+    def find_identity(self) -> Optional[Identity]:
+        identities = Identity.objects.filter(
+            idp=self.idp,
+            user=self.user,
+            status=IdentityStatus.VALID,
+        )
+        if not identities:
+            return None
+        return identities[0]
+
+    def link_user(self) -> None:
+        Identity.objects.create(
+            external_id="UXXXXXXX1",
+            idp=self.idp,
+            user=self.user,
+            status=IdentityStatus.VALID,
+            scopes=[],
+        )
 
     def get_slack_response(
         self, payload: Mapping[str, str], status_code: Optional[str] = None
@@ -115,9 +146,54 @@ class SlackCommandsHelpTest(SlackCommandsTest):
         assert_is_help_text(data)
 
 
-class SlackCommandsLinkTeamTest(SlackCommandsTest):
-    method = "post"
+class SlackCommandsLinkUserTest(SlackCommandsTest):
+    @responses.activate
+    def test_link_user_identity(self):
+        """Do the auth flow and assert that the identity was created."""
+        # Assert that the identity does not exist.
+        assert not self.find_identity()
 
+        linking_url = build_linking_url(
+            self.integration,
+            self.organization,
+            "UXXXXXXX1",
+            "CXXXXXXX9",
+            "http://example.slack.com/response_url",
+        )
+
+        response = self.client.get(linking_url)
+        assert response.status_code == 200
+        self.assertTemplateUsed(response, "sentry/auth-link-identity.html")
+
+        response = self.client.post(linking_url)
+        assert response.status_code == 200
+        self.assertTemplateUsed(response, "sentry/integrations/slack-linked.html")
+
+        # Assert that the identity was created.
+        assert self.find_identity()
+
+        assert len(responses.calls) >= 1
+        data = json.loads(str(responses.calls[0].request.body.decode("utf-8")))
+        assert SUCCESS_LINKED_MESSAGE in data["text"]
+
+    def test_link_command(self):
+        data = self.send_slack_message("link")
+        assert LINK_IDENTITY_MESSAGE in get_response_text(data)
+
+    def test_unlink_command(self):
+        data = self.send_slack_message("unlink")
+        assert UNLINK_IDENTITY_MESSAGE in get_response_text(data)
+
+    def test_link_command_already_linked(self):
+        data = self.send_slack_message("link")
+        assert ALREADY_LINKED_MESSAGE in get_response_text(data)
+
+    def test_unlink_command_already_unlinked(self):
+        data = self.send_slack_message("unlink")
+        assert NOT_LINKED_MESSAGE in get_response_text(data)
+
+
+class SlackCommandsLinkTeamTest(SlackCommandsTest):
     def setUp(self):
         super().setUp()
         self.idp = IdentityProvider.objects.create(type="slack", external_id="slack:1", config={})
