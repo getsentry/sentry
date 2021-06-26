@@ -2,10 +2,12 @@ import logging
 from typing import Mapping, Sequence, Tuple
 
 from django.http import Http404, HttpResponse
+from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
+from sentry.integrations.slack.message_builder.disconnected import SlackDisconnectedMessageBuilder
 from sentry.integrations.slack.message_builder.help import SlackHelpMessageBuilder
 from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.requests.command import SlackCommandRequest
@@ -48,6 +50,8 @@ class SlackCommandsEndpoint(Endpoint):  # type: ignore
             slack_request = SlackCommandRequest(request)
             slack_request.validate()
         except SlackRequestError as e:
+            if e.status == status.HTTP_403_FORBIDDEN:
+                return self.respond(SlackDisconnectedMessageBuilder().build())
             return self.respond(status=e.status)
 
         payload = slack_request.data
