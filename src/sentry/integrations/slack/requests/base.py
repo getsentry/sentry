@@ -57,12 +57,33 @@ class SlackRequest:
         raise NotImplementedError
 
     @property
+    def channel_id(self) -> Optional[Any]:
+        """
+        Provide a normalized interface to ``channel_id``, which Action and Event
+        requests provide in different places.
+        """
+        return self.data.get("channel_id") or self.data.get("channel", {}).get("id")
+
+    @property
+    def response_url(self) -> Optional[Any]:
+        """Provide an interface to ``response_url`` for convenience."""
+        return self.data.get("response_url")
+
+    @property
     def team_id(self) -> Any:
         """
         Provide a normalized interface to ``team_id``, which Action and Event
         requests provide in different places.
         """
         return self.data.get("team_id") or self.data.get("team", {}).get("id")
+
+    @property
+    def user_id(self) -> Optional[Any]:
+        """
+        Provide a normalized interface to ``user_id``, which Action and Event
+        requests provide in different places.
+        """
+        return self.data.get("user_id") or self.data.get("user", {}).get("id")
 
     @property
     def data(self) -> Mapping[str, Any]:

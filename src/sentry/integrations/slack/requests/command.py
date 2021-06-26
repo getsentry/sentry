@@ -15,6 +15,10 @@ class SlackCommandRequest(SlackRequest):
     value pairs are all automatically wrapped in arrays.
     """
 
+    @property
+    def channel_name(self) -> str:
+        return self.data.get("channel_name", "")
+
     def _validate_data(self) -> None:
         try:
             qs_data = parse_qs(self.request.body.decode("utf-8"), strict_parsing=True)
