@@ -1,23 +1,29 @@
 import logging
 from typing import Mapping, Sequence, Tuple
 
-from django.http import Http404, HttpResponse
+from django.http import HttpResponse
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
+from sentry.integrations.slack.endpoints.action import LINK_IDENTITY_MESSAGE
 from sentry.integrations.slack.message_builder.disconnected import SlackDisconnectedMessageBuilder
 from sentry.integrations.slack.message_builder.help import SlackHelpMessageBuilder
 from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.requests.command import SlackCommandRequest
-from sentry.integrations.slack.views.link_team import build_linking_url
-from sentry.models import Identity, IdentityProvider
+from sentry.integrations.slack.views.link_identity import build_linking_url
+from sentry.integrations.slack.views.link_team import build_team_linking_url
+from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
 
 logger = logging.getLogger("sentry.integrations.slack")
 LINK_TEAM_MESSAGE = "Link your Sentry team to this Slack channel! <{associate_url}|Link your team now> to receive notifications of issues in Sentry in Slack."
 LINK_USER_MESSAGE = "You must first link your identity to Sentry by typing /sentry link. Be aware that you must be an admin or higher in your Sentry organization to link your team."
 LINK_FROM_CHANNEL_MESSAGE = "You must type this command in a channel, not a DM."
+UNLINK_USER_MESSAGE = "<{associate_url}|Click here to unlink your identity.>"
+NOT_LINKED_MESSAGE = "You do not have a linked identity to unlink."
+ALREADY_LINKED_MESSAGE = "You are already linked as `{username}`."
+DIRECT_MESSAGE_CHANNEL_NAME = "directmessage"
 
 
 def get_command_and_args(payload: Mapping[str, str]) -> Tuple[str, Sequence[str]]:
@@ -41,6 +47,60 @@ class SlackCommandsEndpoint(Endpoint):  # type: ignore
             }
         )
 
+    def link_user(self, slack_request: SlackCommandRequest) -> Response:
+        if slack_request.has_identity:
+            return self.send_ephemeral_notification(
+                ALREADY_LINKED_MESSAGE.format(username=slack_request.identity_str)
+            )
+
+        integration = slack_request.integration
+        organization = integration.organizations.all()[0]
+        associate_url = build_linking_url(
+            integration=integration,
+            organization=organization,
+            slack_id=slack_request.user_id,
+            channel_id=slack_request.channel_id,
+            response_url=slack_request.response_url,
+        )
+        return self.send_ephemeral_notification(
+            LINK_IDENTITY_MESSAGE.format(associate_url=associate_url)
+        )
+
+    def unlink_user(self, slack_request: SlackCommandRequest) -> Response:
+        if not slack_request.has_identity:
+            return self.send_ephemeral_notification(NOT_LINKED_MESSAGE)
+
+        integration = slack_request.integration
+        organization = integration.organizations.all()[0]
+        associate_url = build_unlinking_url(
+            integration_id=integration.id,
+            organization_id=organization.id,
+            slack_id=slack_request.user_id,
+            channel_id=slack_request.channel_id,
+            response_url=slack_request.response_url,
+        )
+        return self.send_ephemeral_notification(
+            UNLINK_USER_MESSAGE.format(associate_url=associate_url)
+        )
+
+    def link_team(self, slack_request: SlackCommandRequest) -> Response:
+        if slack_request.channel_name == DIRECT_MESSAGE_CHANNEL_NAME:
+            return self.send_ephemeral_notification(LINK_FROM_CHANNEL_MESSAGE)
+
+        if not slack_request.has_identity:
+            return self.send_ephemeral_notification(LINK_USER_MESSAGE)
+
+        associate_url = build_team_linking_url(
+            integration=slack_request.integration,
+            slack_id=slack_request.user_id,
+            channel_id=slack_request.channel_id,
+            channel_name=slack_request.channel_name,
+            response_url=slack_request.response_url,
+        )
+        return self.send_ephemeral_notification(
+            LINK_TEAM_MESSAGE.format(associate_url=associate_url)
+        )
+
     def post(self, request: Request) -> HttpResponse:
         """
         All Slack commands are handled by this endpoint. This block just
@@ -54,39 +114,19 @@ class SlackCommandsEndpoint(Endpoint):  # type: ignore
                 return self.respond(SlackDisconnectedMessageBuilder().build())
             return self.respond(status=e.status)
 
-        payload = slack_request.data
-        command, args = get_command_and_args(payload)
-        # TODO(mgaeta): Add more commands.
+        command, args = get_command_and_args(slack_request.data)
         if command in ["help", ""]:
             return self.respond(SlackHelpMessageBuilder().build())
-        if command == "link":
-            if args and args[0] == "team":
-                channel_name = payload.get("channel_name", "")
-                if channel_name == "directmessage":
-                    return self.send_ephemeral_notification(LINK_FROM_CHANNEL_MESSAGE)
-                integration = slack_request.integration
-                user_id = payload.get("user_id")
-                try:
-                    idp = IdentityProvider.objects.get(
-                        type="slack", external_id=slack_request.team_id
-                    )
-                except IdentityProvider.DoesNotExist:
-                    logger.error(
-                        "slack.action.invalid-team-id", extra={"slack_team": slack_request.team_id}
-                    )
-                    raise Http404
 
-                if not Identity.objects.filter(idp=idp, external_id=user_id).exists():
-                    return self.send_ephemeral_notification(LINK_USER_MESSAGE)
-                channel_id = payload.get("channel_id", "")
-                user_id = payload.get("user_id", "")
-                response_url = payload.get("response_url")
-                associate_url = build_linking_url(
-                    integration, user_id, channel_id, channel_name, response_url
-                )
-                return self.send_ephemeral_notification(
-                    LINK_TEAM_MESSAGE.format(associate_url=associate_url)
-                )
+        if command == "link":
+            if not args:
+                return self.link_user(slack_request)
+
+            if args[0] == "team":
+                return self.link_team(slack_request)
+
+        if command == "unlink":
+            return self.unlink_user(slack_request)
 
         # If we cannot interpret the command, print help text.
         return self.respond(SlackHelpMessageBuilder(command).build())

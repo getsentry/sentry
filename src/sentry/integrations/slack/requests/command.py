@@ -22,11 +22,15 @@ class SlackCommandRequest(SlackRequest):
 
     def __init__(self, request: Request) -> None:
         super().__init__(request)
-        self.has_identity: Optional[bool] = None
+        self.identity_str: Optional[str] = None
 
     @property
     def channel_name(self) -> str:
         return self.data.get("channel_name", "")
+
+    @property
+    def has_identity(self) -> bool:
+        return self.identity_str is not None
 
     def _validate_data(self) -> None:
         try:
@@ -44,9 +48,9 @@ class SlackCommandRequest(SlackRequest):
         super()._validate_integration()
         try:
             idp = IdentityProvider.objects.get(type="slack", external_id=self.team_id)
-
         except IdentityProvider.DoesNotExist:
             logger.error("slack.action.invalid-team-id", extra={"slack_team": self.team_id})
             raise SlackRequestError(status=status.HTTP_403_FORBIDDEN)
 
-        self.has_identity = Identity.objects.filter(idp=idp, external_id=self.user_id).exists()
+        identities = Identity.objects.filter(idp=idp, external_id=self.user_id)
+        self.identity_str = identities[0].user.email if identities else None
