@@ -1,4 +1,4 @@
-from typing import Mapping, Optional
+from typing import Any, Mapping, Optional
 from urllib.parse import urlencode
 
 import responses
@@ -8,6 +8,8 @@ from rest_framework import status
 
 from sentry import options
 from sentry.integrations.slack.endpoints.command import LINK_FROM_CHANNEL_MESSAGE, LINK_USER_MESSAGE
+from sentry.integrations.slack.message_builder import SlackBody
+from sentry.integrations.slack.message_builder.disconnected import DISCONNECTED_MESSAGE
 from sentry.integrations.slack.util.auth import set_signing_secret
 from sentry.integrations.slack.views.link_team import build_team_linking_url
 from sentry.models import ExternalActor, Identity, IdentityProvider, IdentityStatus, Integration, NotificationSetting
@@ -17,15 +19,37 @@ from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 
 
-def assert_is_help_text(response: Response, expected_command: Optional[str] = None) -> None:
-    data = json.loads(str(response.content.decode("utf-8")))
-    assert "Available Commands" in data["text"]
+def get_response_text(data: SlackBody) -> str:
+    return (
+        # If it's an attachment.
+        data.get("text")
+        or
+        # If it's blocks.
+        "\n".join(block["text"]["text"] for block in data["blocks"] if block["type"] == "section")
+    )
+
+
+def assert_is_help_text(data: SlackBody, expected_command: Optional[str] = None) -> None:
+    text = get_response_text(data)
+    assert "Available Commands" in text
     if expected_command:
-        assert expected_command in data["text"]
+        assert expected_command in text
 
 
 class SlackCommandsTest(APITestCase, TestCase):
     endpoint = "sentry-integration-slack-commands"
+    method = "post"
+
+    def send_slack_message(self, command: str, **kwargs: Any) -> Mapping[str, str]:
+        response = self.get_slack_response(
+            {
+                "text": command,
+                "team_id": self.external_id,
+                "user_id": "UXXXXXXX1",
+                **kwargs,
+            }
+        )
+        return json.loads(str(response.content.decode("utf-8")))
 
     def get_slack_response(
         self, payload: Mapping[str, str], status_code: Optional[str] = None
@@ -57,31 +81,38 @@ class SlackCommandsTest(APITestCase, TestCase):
 
 
 class SlackCommandsGetTest(SlackCommandsTest):
+    method = "get"
+
     def test_method_get_not_allowed(self):
         self.get_error_response(status_code=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 
-class SlackCommandsHelpTest(SlackCommandsTest):
-    method = "post"
-
+class SlackCommandsPostTest(SlackCommandsTest):
     def test_invalid_signature(self):
-        # The `get_error_response` method doesn't use a signature.
+        # The `get_error_response` method doesn't add a signature to the request.
         self.get_error_response(status_code=status.HTTP_400_BAD_REQUEST)
 
     def test_missing_team(self):
-        self.get_slack_response({"text": ""}, status_code=status.HTTP_403_FORBIDDEN)
+        self.get_slack_response({"text": ""}, status_code=status.HTTP_400_BAD_REQUEST)
 
+    def test_idp_does_not_exist(self):
+        """Test that get_identity fails if we cannot find a matching idp."""
+        data = self.send_slack_message("", team_id="slack:2")
+        assert DISCONNECTED_MESSAGE in get_response_text(data)
+
+
+class SlackCommandsHelpTest(SlackCommandsTest):
     def test_missing_command(self):
-        response = self.get_slack_response({"text": "", "team_id": self.external_id})
-        assert_is_help_text(response)
+        data = self.send_slack_message("")
+        assert_is_help_text(data)
 
     def test_invalid_command(self):
-        response = self.get_slack_response({"text": "invalid command", "team_id": self.external_id})
-        assert_is_help_text(response, "invalid")
+        data = self.send_slack_message("invalid command")
+        assert_is_help_text(data, "invalid")
 
     def test_help_command(self):
-        response = self.get_slack_response({"text": "help", "team_id": self.external_id})
-        assert_is_help_text(response)
+        data = self.send_slack_message("help")
+        assert_is_help_text(data)
 
 
 class SlackCommandsLinkTeamTest(SlackCommandsTest):
@@ -98,10 +129,7 @@ class SlackCommandsLinkTeamTest(SlackCommandsTest):
             status=IdentityStatus.VALID,
             scopes=[],
         )
-        response = self.get_slack_response(
-            {"text": "link team", "team_id": self.external_id, "user_id": "UXXXXXXX1"}
-        )
-        self.data = json.loads(str(response.content.decode("utf-8")))
+        self.data = self.send_slack_message("link team")
         responses.add(
             method=responses.POST,
             url="https://slack.com/api/chat.postMessage",
@@ -181,10 +209,7 @@ class SlackCommandsLinkTeamTest(SlackCommandsTest):
             teams=[self.team], user=user2, role="member", organization=self.organization
         )
         self.login_as(user2)
-        response = self.get_slack_response(
-            {"text": "link team", "team_id": self.external_id, "user_id": "UXXXXXXX2"}
-        )
-        data = json.loads(str(response.content.decode("utf-8")))
+        data = self.send_slack_message("link team", user_id="UXXXXXXX2")
         assert LINK_USER_MESSAGE in data["text"]
 
     @responses.activate
