@@ -1,5 +1,6 @@
 from typing import Any, Mapping, MutableMapping, Optional
 
+from rest_framework import status as status_
 from rest_framework.request import Request
 
 from sentry import options
@@ -111,7 +112,7 @@ class SlackRequest:
         try:
             self._data = self.request.data
         except (ValueError, TypeError):
-            raise SlackRequestError(status=400)
+            raise SlackRequestError(status=status_.HTTP_400_BAD_REQUEST)
 
     def _authorize(self) -> None:
         # XXX(meredith): Signing secrets are the preferred way
@@ -128,7 +129,7 @@ class SlackRequest:
 
         # unfortunately, we can't know which auth was supposed to succeed
         self._error("slack.action.auth")
-        raise SlackRequestError(status=401)
+        raise SlackRequestError(status=status_.HTTP_401_UNAUTHORIZED)
 
     def _check_signing_secret(self, signing_secret: str) -> bool:
         signature = self.request.META.get("HTTP_X_SLACK_SIGNATURE")
@@ -146,7 +147,7 @@ class SlackRequest:
             self.integration = Integration.objects.get(provider="slack", external_id=self.team_id)
         except Integration.DoesNotExist:
             self._error("slack.action.invalid-team-id")
-            raise SlackRequestError(status=403)
+            raise SlackRequestError(status=status_.HTTP_403_FORBIDDEN)
 
     def _log_request(self) -> None:
         self._info("slack.request")

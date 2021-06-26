@@ -1,6 +1,7 @@
 import logging
 from urllib.parse import parse_qs
 
+from rest_framework import status
 from sentry.integrations.slack.requests.base import SlackRequest, SlackRequestError
 
 logger = logging.getLogger("sentry.integrations.slack")
@@ -23,7 +24,7 @@ class SlackCommandRequest(SlackRequest):
         try:
             qs_data = parse_qs(self.request.body.decode("utf-8"), strict_parsing=True)
         except ValueError:
-            raise SlackRequestError(status=400)
+            raise SlackRequestError(status=status.HTTP_400_BAD_REQUEST)
 
         # Flatten the values.
         self._data = {key: value_array[0] for key, value_array in qs_data.items()}
