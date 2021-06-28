@@ -78,11 +78,12 @@ class ReleaseProjectEnvironment(Model):
         return instance
 
     @property
-    def adoption_string(self):
+    def adoption_stages(self):
         if self.adopted is not None and self.unadopted is None:
-            return "adopted"
+            stage = "adopted"
+        elif self.adopted is not None and self.unadopted is not None:
+            stage = "replaced"
+        else:
+            stage = "not_adopted"
 
-        if self.adopted is not None and self.unadopted is not None:
-            return "replaced"
-
-        return "not_adopted"
+        return {"stage": stage, "adopted": self.adopted, "unadopted": self.unadopted}
