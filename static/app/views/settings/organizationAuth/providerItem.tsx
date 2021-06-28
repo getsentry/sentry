@@ -83,7 +83,7 @@ const ProviderItem = ({provider, active, onConfigure}: Props) => {
     if (p === 'SAML2') {
       return 'with your preferred SAML2 compliant provider like Ping Identity, Google SAML, Keycloak, or VMware Identity Manager';
     } else if (p === 'Google') {
-      return 'Google(Auth)';
+      return 'Google(OAuth)';
     } else {
       return p;
     }
