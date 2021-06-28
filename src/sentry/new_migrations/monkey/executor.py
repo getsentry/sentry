@@ -17,7 +17,8 @@ class MissingDatabaseRoutingInfo(Exception):
 
 
 class SentryMigrationExecutor(MigrationExecutor):
-    def _check_db_routing(self, migration):
+    @staticmethod
+    def _check_db_routing(migration):
         """
         Make sure that operations in a given migration provide enough information
         for database router to select correct database connection/alias.
