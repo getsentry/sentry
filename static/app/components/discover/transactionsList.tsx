@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {Location, LocationDescriptor, Query} from 'history';
 
 import GuideAnchor from 'app/components/assistant/guideAnchor';
+import Button from 'app/components/button';
 import DiscoverButton from 'app/components/discoverButton';
 import DropdownButton from 'app/components/dropdownButton';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
@@ -108,6 +109,10 @@ type Props = {
   /**
    * The callback for when Open in Discover is clicked.
    */
+  handleOpenInDiscoverClick?: (e: React.MouseEvent<Element>) => void;
+  /**
+   * The callback for when Open All Events is clicked.
+   */
   handleOpenAllEventsClick?: (e: React.MouseEvent<Element>) => void;
   /**
    * Show a loading indicator instead of the table, used for transaction summary p95.
@@ -173,6 +178,7 @@ class TransactionsList extends React.Component<Props> {
       options,
       handleDropdownChange,
       handleOpenAllEventsClick,
+      handleOpenInDiscoverClick,
       showTransactions,
       breakdown,
     } = this.props;
@@ -206,22 +212,36 @@ class TransactionsList extends React.Component<Props> {
             ))}
           </DropdownControl>
         </div>
-        {!this.isTrend() && (
-          <GuideAnchor target="release_transactions_open_in_transaction_events">
-            <DiscoverButton
-              onClick={handleOpenAllEventsClick}
-              to={this.generatePerformanceTransactionEventsView().getPerformanceTransactionEventsViewUrlTarget(
-                organization.slug,
-                mapShowTransactionToPercentile(showTransactions),
-                breakdown
-              )}
-              size="small"
-              data-test-id="transaction-events-open"
-            >
-              {t('Open All Events')}
-            </DiscoverButton>
-          </GuideAnchor>
-        )}
+        {!this.isTrend() &&
+          (handleOpenAllEventsClick ? (
+            <GuideAnchor target="release_transactions_open_in_transaction_events">
+              <Button
+                onClick={handleOpenAllEventsClick}
+                to={this.generatePerformanceTransactionEventsView().getPerformanceTransactionEventsViewUrlTarget(
+                  organization.slug,
+                  mapShowTransactionToPercentile(showTransactions),
+                  breakdown
+                )}
+                size="small"
+                data-test-id="transaction-events-open"
+              >
+                {t('Open All Events')}
+              </Button>
+            </GuideAnchor>
+          ) : (
+            <GuideAnchor target="release_transactions_open_in_discover">
+              <DiscoverButton
+                onClick={handleOpenInDiscoverClick}
+                to={this.generateDiscoverEventView().getResultsViewUrlTarget(
+                  organization.slug
+                )}
+                size="small"
+                data-test-id="discover-open"
+              >
+                {t('Open in Discover')}
+              </DiscoverButton>
+            </GuideAnchor>
+          ))}
       </React.Fragment>
     );
   }

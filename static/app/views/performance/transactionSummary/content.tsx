@@ -158,6 +158,15 @@ class SummaryContent extends React.Component<Props, State> {
     });
   };
 
+  handleDiscoverViewClick = () => {
+    const {organization} = this.props;
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.summary.view_in_discover',
+      eventName: 'Performance Views: View in Discover from Transaction Summary',
+      organization_id: parseInt(organization.id, 10),
+    });
+  };
+
   handleViewDetailsClick = (_e: React.MouseEvent<Element>) => {
     const {organization} = this.props;
     trackAnalyticsEvent({
@@ -180,6 +189,10 @@ class SummaryContent extends React.Component<Props, State> {
       onChangeFilter,
       spanOperationBreakdownFilter,
     } = this.props;
+    const hasPerformanceEventsPage = organization.features.includes(
+      'performance-events-page'
+    );
+
     const {incompatibleAlertNotice} = this.state;
     const query = decodeScalar(location.query.query, '');
     const totalCount = totalValues === null ? null : totalValues.count;
@@ -338,7 +351,9 @@ class SummaryContent extends React.Component<Props, State> {
               baseline={transactionName}
               handleBaselineClick={this.handleViewDetailsClick}
               handleCellAction={this.handleCellAction}
-              handleOpenAllEventsClick={this.handleAllEventsViewClick}
+              {...(hasPerformanceEventsPage
+                ? {handleOpenAllEventsClick: this.handleAllEventsViewClick}
+                : {handleOpenInDiscoverClick: this.handleDiscoverViewClick})}
               {...getTransactionsListSort(location, {
                 p95: totalValues?.p95 ?? 0,
                 spanOperationBreakdownFilter,
