@@ -53,7 +53,7 @@ type Props = {
 type State = {
   spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
   eventsDisplayFilterName: EventsDisplayFilterName;
-  eventView: EventView;
+  eventView?: EventView;
 };
 
 type PercentileValues = Record<EventsDisplayFilterName, number>;
@@ -63,7 +63,7 @@ class TransactionEvents extends Component<Props, State> {
     eventsDisplayFilterName: decodeEventsDisplayFilterFromLocation(this.props.location),
     eventView: generateEventsEventView(
       this.props.location,
-      getTransactionName(this.props.location) || ''
+      getTransactionName(this.props.location)
     ),
   };
 
@@ -74,7 +74,7 @@ class TransactionEvents extends Component<Props, State> {
       eventsDisplayFilterName: decodeEventsDisplayFilterFromLocation(nextProps.location),
       eventView: generateEventsEventView(
         nextProps.location,
-        getTransactionName(nextProps.location) || ''
+        getTransactionName(nextProps.location)
       ),
     };
   }
@@ -155,7 +155,7 @@ class TransactionEvents extends Component<Props, State> {
     const filter = getEventsFilterOptions(spanOperationBreakdownFilter, percentiles)[
       eventsDisplayFilterName
     ];
-    const filteredEventView = eventView.clone();
+    const filteredEventView = eventView?.clone();
     if (filteredEventView && filter?.query) {
       const query = tokenizeSearch(filteredEventView.query);
       filter.query.forEach(item => query.setTagValues(item[0], [item[1]]));
@@ -268,7 +268,7 @@ class TransactionEvents extends Component<Props, State> {
                   return (
                     <EventsPageContent
                       location={location}
-                      eventView={this.getFilteredEventView(percentiles)}
+                      eventView={this.getFilteredEventView(percentiles) as EventView}
                       transactionName={transactionName}
                       organization={organization}
                       projects={projects}
@@ -303,9 +303,13 @@ function getWebVital(location: Location): WebVital | undefined {
   return undefined;
 }
 
-function generateEventsEventView(location: Location, transactionName: string): EventView {
-  // Use the user supplied query but overwrite any transaction or event type
-  // conditions they applied.
+function generateEventsEventView(
+  location: Location,
+  transactionName?: string
+): EventView | undefined {
+  if (transactionName === undefined) {
+    return undefined;
+  }
   const query = decodeScalar(location.query.query, '');
   const conditions = tokenizeSearch(query);
   conditions
