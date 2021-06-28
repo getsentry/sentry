@@ -1903,10 +1903,10 @@
     hoist-non-react-statics "^3.3.2"
     tslib "^1.9.3"
 
-"@sentry/release-parser@^0.6.0":
-  version "0.6.0"
-  resolved "https://registry.yarnpkg.com/@sentry/release-parser/-/release-parser-0.6.0.tgz#d7f67fc32d130396a5d77d14b7d43c4a8aee57b4"
-  integrity sha512-NZoxPDP/KrbIa6QDYJPt2cJE/OepdJo0xB96KDbNKdx3+aipq/Ffo0b4M7ZCyXA/U1WvzRjjCJqJxYS36mUF5A==
+"@sentry/release-parser@^1.1.4":
+  version "1.1.4"
+  resolved "https://registry.yarnpkg.com/@sentry/release-parser/-/release-parser-1.1.4.tgz#f7612af1c01caf4163290582077cd6e936f33b7f"
+  integrity sha512-zJ9kpSGSvu4txyzAkRlSkYKcVnKeqLG/VF1yXyM6ZH9uTyFiHJBAQi20Z5LgEJIOmpZtE1bRRjHB8XeaDViKYA==
 
 "@sentry/rrweb@^0.1.1":
   version "0.1.1"
@@ -12070,10 +12070,10 @@ prettier-linter-helpers@^1.0.0:
   dependencies:
     fast-diff "^1.1.2"
 
-prettier@2.3.1:
-  version "2.3.1"
-  resolved "https://registry.yarnpkg.com/prettier/-/prettier-2.3.1.tgz#76903c3f8c4449bc9ac597acefa24dc5ad4cbea6"
-  integrity sha512-p+vNbgpLjif/+D+DwAZAbndtRrR0md0MwfmOVN9N+2RgyACMT+7tfaRnT+WDPkqnuVwleyuBIG2XBxKDme3hPA==
+prettier@2.3.2:
+  version "2.3.2"
+  resolved "https://registry.yarnpkg.com/prettier/-/prettier-2.3.2.tgz#ef280a05ec253712e486233db5c6f23441e7342d"
+  integrity sha512-lnJzDfJ66zkMy58OL5/NY5zp70S7Nz6KqcKkXYzn2tMVrNxvbqaBpg7H3qHaLxCJ5lNMsGuM8+ohS7cZrthdLQ==
 
 prettier@~2.2.1:
   version "2.2.1"
