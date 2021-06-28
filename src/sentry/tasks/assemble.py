@@ -137,7 +137,7 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
                 # created, someone else has created it and will bump the
                 # revision instead.
                 bump_reprocessing_revision(project)
-    except BaseException:
+    except Exception:
         set_assemble_status(
             AssembleTask.DIF,
             project_id,
@@ -208,7 +208,7 @@ def get_artifact_basename(url):
 def _store_single_files(archive: ReleaseArchive, meta: dict, count_as_artifacts: bool):
     try:
         temp_dir = archive.extract()
-    except BaseException:
+    except Exception:
         raise AssembleArtifactsError("failed to extract bundle")
 
     with temp_dir:
@@ -263,7 +263,7 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
 
         try:
             archive = ReleaseArchive(temp_file)
-        except BaseException:
+        except Exception:
             raise AssembleArtifactsError("failed to open release manifest")
 
         with archive:
@@ -296,21 +296,16 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
             }
 
             saved_as_archive = False
-            if options.get("processing.save-release-archives"):
-                min_size = options.get("processing.release-archive-min-files")
-                if num_files >= min_size:
-                    try:
-                        update_artifact_index(release, dist, bundle)
-                        saved_as_archive = True
-                    except BaseException as exc:
-                        logger.error("Unable to update artifact index", exc_info=exc)
+            min_size = options.get("processing.release-archive-min-files")
+            if num_files >= min_size:
+                try:
+                    update_artifact_index(release, dist, bundle)
+                    saved_as_archive = True
+                except Exception as exc:
+                    logger.error("Unable to update artifact index", exc_info=exc)
 
-            # NOTE(jjbayer): Single files are still stored to enable
-            # rolling back from release archives. Once release archives run
-            # smoothely, this call can be removed / only called when feature
-            # flag is off.
-            count_as_artifacts = not saved_as_archive
-            _store_single_files(archive, meta, count_as_artifacts)
+            if not saved_as_archive:
+                _store_single_files(archive, meta, True)
 
             # Count files extracted, to compare them to release files endpoint
             metrics.incr("tasks.assemble.extracted_files", amount=num_files)
@@ -319,7 +314,7 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
         set_assemble_status(
             AssembleTask.ARTIFACTS, org_id, checksum, ChunkFileState.ERROR, detail=str(e)
         )
-    except BaseException:
+    except Exception:
         logger.error("failed to assemble release bundle", exc_info=True)
         set_assemble_status(
             AssembleTask.ARTIFACTS,
