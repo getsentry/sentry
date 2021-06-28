@@ -110,14 +110,8 @@ class EventsPageContent extends React.Component<Props, State> {
   };
 
   render() {
-    const {
-      eventView,
-      location,
-      organization,
-      projects,
-      transactionName,
-      isLoading,
-    } = this.props;
+    const {eventView, location, organization, projects, transactionName, isLoading} =
+      this.props;
     const {incompatibleAlertNotice} = this.state;
 
     return (
