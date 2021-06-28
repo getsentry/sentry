@@ -12,7 +12,7 @@ class ProjectBookmark(Model):
     aggregated event (Group).
     """
 
-    __core__ = True
+    __include_in_export__ = True
 
     project = FlexibleForeignKey(Project, blank=True, null=True, db_constraint=False)
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL)

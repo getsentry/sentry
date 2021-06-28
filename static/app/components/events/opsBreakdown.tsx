@@ -191,16 +191,16 @@ class OpsBreakdown extends Component<Props> {
       }
     );
 
-    const breakdown = sortedOpsBreakdown.slice(0, topN).map(
-      ([operationName, duration]: [OperationName, Duration]): OpStats => {
+    const breakdown = sortedOpsBreakdown
+      .slice(0, topN)
+      .map(([operationName, duration]: [OperationName, Duration]): OpStats => {
         return {
           name: operationName,
           // percentage to be recalculated after the ops breakdown group is decided
           percentage: 0,
           totalInterval: duration,
         };
-      }
-    );
+      });
 
     const other = sortedOpsBreakdown.slice(topN).reduce(
       (accOther: OpStats, [_operationName, duration]: [OperationName, Duration]) => {

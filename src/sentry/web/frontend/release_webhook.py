@@ -65,7 +65,7 @@ class ReleaseWebhookView(View):
         try:
             project = Project.objects.get_from_cache(id=project_id)
         except Project.DoesNotExist:
-            logger.warn(
+            logger.warning(
                 "release-webhook.invalid-project",
                 extra={"project_id": project_id, "plugin_id": plugin_id},
             )
@@ -78,14 +78,14 @@ class ReleaseWebhookView(View):
         token = ProjectOption.objects.get_value(project, "sentry:release-token")
 
         if token is None:
-            logger.warn(
+            logger.warning(
                 "release-webhook.missing-token",
                 extra={"project_id": project_id, "plugin_id": plugin_id},
             )
             return HttpResponse(status=403)
 
         if not self.verify(plugin_id, project_id, token, signature):
-            logger.warn(
+            logger.warning(
                 "release-webhook.invalid-signature",
                 extra={"project_id": project_id, "plugin_id": plugin_id},
             )
@@ -96,7 +96,7 @@ class ReleaseWebhookView(View):
 
         plugin = plugins.get(plugin_id)
         if not plugin.is_enabled(project):
-            logger.warn(
+            logger.warning(
                 "release-webhook.plugin-disabled",
                 extra={"project_id": project_id, "plugin_id": plugin_id},
             )

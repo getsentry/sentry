@@ -30,12 +30,8 @@ class MergedToolbar extends React.Component<Props, State> {
   state: State = this.getInitialState();
 
   getInitialState() {
-    const {
-      unmergeList,
-      unmergeLastCollapsed,
-      unmergeDisabled,
-      enableFingerprintCompare,
-    } = GroupingStore;
+    const {unmergeList, unmergeLastCollapsed, unmergeDisabled, enableFingerprintCompare} =
+      GroupingStore;
 
     return {
       enableFingerprintCompare,
@@ -93,12 +89,8 @@ class MergedToolbar extends React.Component<Props, State> {
   render() {
     const {onUnmerge, onToggleCollapse} = this.props;
 
-    const {
-      unmergeList,
-      unmergeLastCollapsed,
-      unmergeDisabled,
-      enableFingerprintCompare,
-    } = this.state;
+    const {unmergeList, unmergeLastCollapsed, unmergeDisabled, enableFingerprintCompare} =
+      this.state;
     const unmergeCount = (unmergeList && unmergeList.size) || 0;
 
     return (

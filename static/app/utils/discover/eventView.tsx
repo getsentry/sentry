@@ -22,6 +22,7 @@ import {
   generateFieldAsString,
   getAggregateAlias,
   getEquation,
+  isAggregateEquation,
   isAggregateField,
   isEquation,
   isLegalYAxisType,
@@ -654,7 +655,9 @@ class EventView {
   }
 
   getAggregateFields(): Field[] {
-    return this.fields.filter(field => isAggregateField(field.field));
+    return this.fields.filter(
+      field => isAggregateField(field.field) || isAggregateEquation(field.field)
+    );
   }
 
   hasAggregateField() {
@@ -1188,9 +1191,13 @@ class EventView {
         // Only include aggregates that make sense to be graphable (eg. not string or date)
         .filter(
           (field: Field) =>
-            isLegalYAxisType(aggregateOutputType(field.field)) && !isEquation(field.field)
+            isLegalYAxisType(aggregateOutputType(field.field)) ||
+            isAggregateEquation(field.field)
         )
-        .map((field: Field) => ({label: field.field, value: field.field}))
+        .map((field: Field) => ({
+          label: isEquation(field.field) ? getEquation(field.field) : field.field,
+          value: field.field,
+        }))
         .concat(CHART_AXIS_OPTIONS),
       'value'
     );

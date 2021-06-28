@@ -218,8 +218,13 @@ describe('utils/tokenizeSearch', function () {
       results.addTagValues('d', ['d']);
       expect(results.formatString()).toEqual('a:a b:b c:c1 c:c2 d:d');
 
+      results.addTagValues('e', ['e1*e2\\e3']);
+      expect(results.formatString()).toEqual('a:a b:b c:c1 c:c2 d:d e:"e1\\*e2\\\\e3"');
+
       results.addStringTag('d:d2');
-      expect(results.formatString()).toEqual('a:a b:b c:c1 c:c2 d:d d:d2');
+      expect(results.formatString()).toEqual(
+        'a:a b:b c:c1 c:c2 d:d e:"e1\\*e2\\\\e3" d:d2'
+      );
     });
 
     it('add text searches to query object', function () {

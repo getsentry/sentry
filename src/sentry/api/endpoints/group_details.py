@@ -5,7 +5,7 @@ from datetime import timedelta
 from django.utils import timezone
 from rest_framework.response import Response
 
-from sentry import features, tagstore, tsdb
+from sentry import tagstore, tsdb
 from sentry.api import client
 from sentry.api.base import EnvironmentMixin
 from sentry.api.bases import GroupEndpoint
@@ -134,7 +134,6 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             environment_ids = [e.id for e in environments]
             expand = request.GET.getlist("expand", [])
             collapse = request.GET.getlist("collapse", [])
-            has_inbox = features.has("organizations:inbox", organization, actor=request.user)
 
             # WARNING: the rest of this endpoint relies on this serializer
             # populating the cache SO don't move this :)
@@ -190,7 +189,7 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 )
             )
 
-            if "inbox" in expand and has_inbox:
+            if "inbox" in expand:
                 inbox_map = get_inbox_details([group])
                 inbox_reason = inbox_map.get(group.id)
                 data.update({"inbox": inbox_reason})
@@ -263,11 +262,8 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             discard = request.data.get("discard")
             project = group.project
             search_fn = functools.partial(prep_search, self, request, project)
-            has_inbox = features.has(
-                "organizations:inbox", project.organization, actor=request.user
-            )
             response = update_groups(
-                request, [group.id], [project], project.organization_id, search_fn, has_inbox
+                request, [group.id], [project], project.organization_id, search_fn
             )
             # if action was discard, there isn't a group to serialize anymore
             # if response isn't 200, return the response update_groups gave us (i.e. helpful error)
