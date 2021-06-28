@@ -1145,7 +1145,7 @@ class DataPopulation:
                 else:
                     weights = [1]
 
-            if not self.get_config_var("DISABLE_SESSIONS"):
+            if not self.get_config_var("DISABLE_AGGREGATE_SESSIONS"):
                 self.send_aggr_session(
                     dsn, timestamp, mobile, version, num_versions, seen_versions, weights
                 )
