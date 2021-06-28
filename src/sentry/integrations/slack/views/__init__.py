@@ -8,10 +8,12 @@ from sentry.web.decorators import EndpointFunc
 
 
 def never_cache(view_func: EndpointFunc) -> EndpointFunc:
-    """TODO(mgaeta): Remove this HACK once Django has a typed version."""
-    return django_never_cache(view_func)  # type: ignore
+    """TODO(mgaeta): Remove cast once Django has a typed version."""
+    result: EndpointFunc = django_never_cache(view_func)
+    return result
 
 
 def build_linking_url(endpoint: str, **kwargs: Any) -> str:
-    """TODO(mgaeta): Remove this HACK once sentry/utils/http.py is typed."""
-    return absolute_uri(reverse(endpoint, kwargs={"signed_params": sign(**kwargs)}))  # type: ignore
+    """TODO(mgaeta): Remove cast once sentry/utils/http.py is typed."""
+    url: str = absolute_uri(reverse(endpoint, kwargs={"signed_params": sign(**kwargs)}))
+    return url
