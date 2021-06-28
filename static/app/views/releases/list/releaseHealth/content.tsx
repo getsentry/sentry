@@ -38,7 +38,7 @@ type Props = {
   showPlaceholders: boolean;
   isTopRelease: boolean;
   getHealthData: ReleaseHealthRequestRenderProps['getHealthData'];
-  adoptionStages?: {};
+  adoptionStages?: Record<string, {stage: string; unadopted:string; adopted: string}>;
 };
 
 const Content = ({
