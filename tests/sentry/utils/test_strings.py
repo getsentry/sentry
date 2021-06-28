@@ -39,8 +39,8 @@ def test_unescape_string():
     # Now for a real world example.
     # If we specify this value as a string literal, we'll get a DeprecationWarning
     # because \* is not a recognized escape sequence.
-    # This raw string literal reflects what's read off disk from our grouping
-    # enhancement config text files.
+    # This raw string literal reflects what was read off disk from our grouping
+    # enhancement config text files, before they were corrected to be \\**.
     value = r"C:/WINDOWS/system32/DriverStore\**"
     assert value == "C:/WINDOWS/system32/DriverStore\\**"
 
