@@ -46,7 +46,7 @@ class PipelineAdvancerView(BaseView):
                 provider_id=provider_id,
             )
             return self.redirect(
-                reverse("integration-installation", kwargs={"signed_params": signed_params})
+                reverse("github-integration-installation", kwargs={"signed_params": signed_params})
             )
 
         if pipeline is None or not pipeline.is_valid():
