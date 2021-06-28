@@ -7,7 +7,7 @@ from sentry.db.models import Model
 
 
 class RelayUsage(Model):
-    __core__ = True
+    __include_in_export__ = True
 
     relay_id = models.CharField(max_length=64)
     version = models.CharField(max_length=32, default="0.0.1")
@@ -22,7 +22,7 @@ class RelayUsage(Model):
 
 
 class Relay(Model):
-    __core__ = True
+    __include_in_export__ = True
 
     relay_id = models.CharField(max_length=64, unique=True)
     public_key = models.CharField(max_length=200)

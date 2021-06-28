@@ -88,7 +88,7 @@ class ProcessingIssueManager(BaseManager):
 
 
 class ProcessingIssue(Model):
-    __core__ = False
+    __include_in_export__ = False
 
     project = FlexibleForeignKey("sentry.Project", db_index=True)
     checksum = models.CharField(max_length=40, db_index=True)
@@ -115,7 +115,7 @@ class ProcessingIssue(Model):
 
 
 class EventProcessingIssue(Model):
-    __core__ = False
+    __include_in_export__ = False
 
     raw_event = FlexibleForeignKey("sentry.RawEvent")
     processing_issue = FlexibleForeignKey("sentry.ProcessingIssue")

@@ -201,6 +201,10 @@ def _upsert_release_file(
     return success
 
 
+def get_artifact_basename(url):
+    return url.rsplit("/", 1)[-1]
+
+
 def _store_single_files(archive: ReleaseArchive, meta: dict, count_as_artifacts: bool):
     try:
         temp_dir = archive.extract()
@@ -211,7 +215,7 @@ def _store_single_files(archive: ReleaseArchive, meta: dict, count_as_artifacts:
         artifacts = archive.manifest.get("files", {})
         for rel_path, artifact in artifacts.items():
             artifact_url = artifact.get("url", rel_path)
-            artifact_basename = artifact_url.rsplit("/", 1)[-1]
+            artifact_basename = get_artifact_basename(artifact_url)
 
             file = File.objects.create(
                 name=artifact_basename, type="release.file", headers=artifact.get("headers", {})
@@ -292,21 +296,16 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
             }
 
             saved_as_archive = False
-            if options.get("processing.save-release-archives"):
-                min_size = options.get("processing.release-archive-min-files")
-                if num_files >= min_size:
-                    try:
-                        update_artifact_index(release, dist, bundle)
-                        saved_as_archive = True
-                    except BaseException as exc:
-                        logger.error("Unable to update artifact index", exc_info=exc)
+            min_size = options.get("processing.release-archive-min-files")
+            if num_files >= min_size:
+                try:
+                    update_artifact_index(release, dist, bundle)
+                    saved_as_archive = True
+                except Exception as exc:
+                    logger.error("Unable to update artifact index", exc_info=exc)
 
-            # NOTE(jjbayer): Single files are still stored to enable
-            # rolling back from release archives. Once release archives run
-            # smoothely, this call can be removed / only called when feature
-            # flag is off.
-            count_as_artifacts = not saved_as_archive
-            _store_single_files(archive, meta, count_as_artifacts)
+            if not saved_as_archive:
+                _store_single_files(archive, meta, True)
 
             # Count files extracted, to compare them to release files endpoint
             metrics.incr("tasks.assemble.extracted_files", amount=num_files)

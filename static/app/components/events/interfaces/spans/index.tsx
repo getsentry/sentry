@@ -189,10 +189,8 @@ class SpansInterface extends PureComponent<Props, State> {
                   {() => {
                     return (
                       <TraceView
-                        event={event}
                         waterfallModel={waterfallModel}
                         organization={organization}
-                        parsedTrace={parsedTrace}
                       />
                     );
                   }}
