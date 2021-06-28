@@ -47,6 +47,36 @@ describe('Performance > TransactionSummary', function () {
       url: '/organizations/org-slug/sdk-updates/',
       body: [],
     });
+    MockApiClient.addMockResponse(
+      {
+        url: '/organizations/org-slug/eventsv2/',
+        body: {
+          data: [
+            {
+              p100: 9502,
+              p99: 9285.7,
+              p95: 7273.6,
+              p75: 3639.5,
+              p50: 755.5,
+              avg_transaction_duration: 2122.1,
+            },
+          ],
+          meta: {
+            p100: 'duration',
+            p99: 'duration',
+            p95: 'duration',
+            p75: 'duration',
+            p50: 'duration',
+            avg_transaction_duration: 'duration',
+          },
+        },
+      },
+      {
+        predicate: (url, options) => {
+          return url.includes('eventsv2') && options.query?.field.includes('p95()');
+        },
+      }
+    );
     // Transaction list response
     MockApiClient.addMockResponse(
       {
