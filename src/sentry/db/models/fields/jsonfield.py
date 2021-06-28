@@ -67,7 +67,7 @@ class JSONField(models.TextField):
             raise ValidationError(self.error_messages["null"])
         try:
             self.get_prep_value(value)
-        except BaseException:
+        except Exception:
             raise ValidationError(self.error_messages["invalid"] % value)
 
     def get_default(self):

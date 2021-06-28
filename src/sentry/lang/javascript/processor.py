@@ -1,33 +1,27 @@
-import time
-from io import BytesIO
-from typing import IO, Optional, Tuple
-
-from django.utils.encoding import force_bytes, force_text
-
-from sentry.models.releasefile import ARTIFACT_INDEX_FILENAME, ReleaseArchive, read_artifact_index
-from sentry.utils import json
-
-__all__ = ["JavaScriptStacktraceProcessor"]
-
 import base64
 import errno
 import logging
 import re
 import sys
+import time
 import zlib
+from io import BytesIO
 from os.path import splitext
+from typing import IO, Optional, Tuple
 from urllib.parse import urlsplit
 
 import sentry_sdk
 from django.conf import settings
+from django.utils.encoding import force_bytes, force_text
 from requests.utils import get_encoding_from_headers
 from symbolic import SourceMapView
 
 from sentry import http
 from sentry.interfaces.stacktrace import Stacktrace
 from sentry.models import EventError, Organization, ReleaseFile
+from sentry.models.releasefile import ARTIFACT_INDEX_FILENAME, ReleaseArchive, read_artifact_index
 from sentry.stacktraces.processing import StacktraceProcessor
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 
 # separate from either the source cache or the source maps cache, this is for
 # holding the results of attempting to fetch both kinds of files, either from the
@@ -41,6 +35,9 @@ from sentry.utils.safe import get_path
 from sentry.utils.urls import non_standard_url_join
 
 from .cache import SourceCache, SourceMapCache
+
+__all__ = ["JavaScriptStacktraceProcessor"]
+
 
 # number of surrounding lines (on each side) to fetch
 LINES_OF_CONTEXT = 5
@@ -414,7 +411,7 @@ def get_artifact_index(release, dist):
 def get_index_entry(release, dist, url) -> Optional[dict]:
     try:
         index = get_artifact_index(release, dist)
-    except BaseException as exc:
+    except Exception as exc:
         logger.error("sourcemaps.index_read_failed", exc_info=exc)
         return None
 
@@ -511,7 +508,7 @@ def fetch_release_artifact(url, release, dist):
     if archive_file is not None:
         try:
             archive = ReleaseArchive(archive_file)
-        except BaseException as exc:
+        except Exception as exc:
             logger.error("Failed to initialize archive for release %s", release.id, exc_info=exc)
             # TODO(jjbayer): cache error and return here
         else:
@@ -529,7 +526,7 @@ def fetch_release_artifact(url, release, dist):
                         "sourcemaps.release_artifact_from_archive", time.monotonic() - start
                     )
                     return None
-                except BaseException as exc:
+                except Exception as exc:
                     logger.error("Failed to read %s from release %s", url, release.id, exc_info=exc)
                     # TODO(jjbayer): cache error and return here
                 else:
