@@ -26,11 +26,13 @@ const IssueListDisplayOptions = ({
     if (key === IssueDisplayOptions.SESSIONS) {
       if (hasMultipleProjectsSelected) {
         tooltipText = t(
-          'Select a project to view events as a % of sessions. This helps you get a better picture of how these errors affect your users.'
+          'This option is not available when multiple projects are selected.'
         );
         disabled = true;
       } else if (!hasSessions) {
-        tooltipText = t('The selected project does not have session data');
+        tooltipText = t(
+          'This option is not available because there is no session data in the selected time period.'
+        );
         disabled = true;
       }
     }
@@ -45,7 +47,6 @@ const IssueListDisplayOptions = ({
         <StyledTooltip
           containerDisplayMode="block"
           position="top"
-          delay={500}
           title={tooltipText}
           disabled={!tooltipText}
         >
