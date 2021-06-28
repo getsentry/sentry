@@ -295,10 +295,16 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
                 "dist": dist,
             }
 
+            saved_as_archive = False
             min_size = options.get("processing.release-archive-min-files")
             if num_files >= min_size:
-                update_artifact_index(release, dist, bundle)
-            else:
+                try:
+                    update_artifact_index(release, dist, bundle)
+                    saved_as_archive = True
+                except Exception as exc:
+                    logger.error("Unable to update artifact index", exc_info=exc)
+
+            if not saved_as_archive:
                 _store_single_files(archive, meta, True)
 
             # Count files extracted, to compare them to release files endpoint
