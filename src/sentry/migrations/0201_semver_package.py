@@ -44,6 +44,7 @@ class Migration(migrations.Migration):
                     CREATE INDEX CONCURRENTLY IF NOT EXISTS "sentry_release_organization_id_major_mi_38715957_idx"
                     ON "sentry_release" ("organization_id", "major" DESC, "minor" DESC, "patch" DESC, "revision" DESC);
                     """,
+                    hints={"tables": ["sentry_release"]},
                 ),
                 migrations.RunSQL(
                     """
@@ -61,6 +62,7 @@ class Migration(migrations.Migration):
                     prerelease DESC);
                     """,
                     reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS sentry_release_semver_idx",
+                    hints={"tables": ["sentry_release"]},
                 ),
                 migrations.RunSQL(
                     """
@@ -79,6 +81,7 @@ class Migration(migrations.Migration):
                     prerelease DESC);
                     """,
                     reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS sentry_release_semver_by_package_idx",
+                    hints={"tables": ["sentry_release"]},
                 ),
             ],
             state_operations=[

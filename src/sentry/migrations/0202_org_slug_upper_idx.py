@@ -35,5 +35,6 @@ class Migration(migrations.Migration):
             ON "sentry_organization" (UPPER(("slug"::text)));
             """,
             reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS sentry_organization_slug_upper_idx",
+            hints={"tables": ["sentry_organization"]},
         ),
     ]

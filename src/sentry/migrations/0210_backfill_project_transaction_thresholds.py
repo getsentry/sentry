@@ -70,5 +70,9 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunPython(migrate_project_transaction_thresholds, migrations.RunPython.noop),
+        migrations.RunPython(
+            migrate_project_transaction_thresholds,
+            migrations.RunPython.noop,
+            hints={"tables": ["sentry_projecttransactionthreshold"]},
+        ),
     ]
