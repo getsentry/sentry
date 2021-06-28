@@ -12,7 +12,7 @@ CHARACTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
 
 class LostPasswordHash(Model):
-    __core__ = False
+    __include_in_export__ = False
 
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL, unique=True)
     hash = models.CharField(max_length=32)

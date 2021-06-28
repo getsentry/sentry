@@ -495,7 +495,7 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
         assert users[str(commit_author2.id)]["email"] == user2.email
         patched_serialize_base.call_count = 2
 
-    def test_adoption_stage(self):
+    def test_adoption_stages(self):
         user = self.create_user()
         project = self.create_project()
         release = Release.objects.create(
@@ -512,7 +512,12 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
 
         with self.feature("organizations:release-adoption-stage"):
             result = serialize(release, user)
-            assert result["adoptionStages"] == {project.slug: "not_adopted"}
+            assert "adoptionStages" not in result
+
+            result = serialize(release, user, with_adoption_stages=True)
+            assert result["adoptionStages"][project.slug]["stage"] == "not_adopted"
+            assert result["adoptionStages"][project.slug]["unadopted"] is None
+            assert result["adoptionStages"][project.slug]["adopted"] is None
 
             env2 = Environment.objects.create(
                 organization_id=project.organization_id, name="production"
@@ -525,8 +530,10 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
                 adopted=datetime.utcnow(),
             )
 
-            result = serialize(release, user)
-            assert result["adoptionStages"] == {project.slug: "adopted"}
+            result = serialize(release, user, with_adoption_stages=True)
+            assert result["adoptionStages"][project.slug]["stage"] == "adopted"
+            assert result["adoptionStages"][project.slug]["unadopted"] is None
+            assert result["adoptionStages"][project.slug]["adopted"] is not None
 
             project2 = self.create_project()
             ReleaseProjectEnvironment.objects.create(
@@ -535,11 +542,9 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
                 environment_id=env2.id,
                 new_issues_count=1,
             )
-            result = serialize(release, user)
-            assert result["adoptionStages"] == {
-                project.slug: "adopted",
-                project2.slug: "not_adopted",
-            }
+            result = serialize(release, user, with_adoption_stages=True)
+            assert result["adoptionStages"][project.slug]["stage"] == "adopted"
+            assert result["adoptionStages"][project2.slug]["stage"] == "not_adopted"
 
             ReleaseProjectEnvironment.objects.create(
                 project_id=project2.id,
@@ -548,11 +553,14 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
                 new_issues_count=1,
                 adopted=datetime.utcnow(),
             )
-            result = serialize(release, user)
-            assert result["adoptionStages"] == {project.slug: "adopted", project2.slug: "adopted"}
+            result = serialize(release, user, with_adoption_stages=True)
+            assert result["adoptionStages"][project.slug]["stage"] == "adopted"
+            assert result["adoptionStages"][project2.slug]["stage"] == "adopted"
+
             rpe.update(unadopted=datetime.utcnow())
-            result = serialize(release, user)
-            assert result["adoptionStages"] == {project.slug: "replaced", project2.slug: "adopted"}
+            result = serialize(release, user, with_adoption_stages=True)
+            assert result["adoptionStages"][project.slug]["stage"] == "replaced"
+            assert result["adoptionStages"][project2.slug]["stage"] == "adopted"
 
 
 class ReleaseRefsSerializerTest(TestCase):

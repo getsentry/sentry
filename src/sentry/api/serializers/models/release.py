@@ -3,7 +3,7 @@ from collections import defaultdict
 from django.core.cache import cache
 from django.db.models import Sum
 
-from sentry import features, tagstore
+from sentry import tagstore
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.db.models.query import in_iexact
 from sentry.models import (
@@ -267,13 +267,9 @@ class ReleaseSerializer(Serializer):
         adoption_stages = defaultdict(dict)
 
         for release_project_env in release_project_envs:
-            if (
-                release_project_env.project.slug
-                not in adoption_stages[release_project_env.release.version]
-            ):
-                adoption_stages[release_project_env.release.version][
-                    release_project_env.project.slug
-                ] = release_project_env.adoption_string
+            adoption_stages[release_project_env.release.version].setdefault(
+                release_project_env.project.slug, release_project_env.adoption_stages
+            )
 
         return adoption_stages
 
@@ -314,6 +310,7 @@ class ReleaseSerializer(Serializer):
             else:
                 environments = None
 
+        self.with_adoption_stages = kwargs.get("with_adoption_stages", False)
         with_health_data = kwargs.get("with_health_data", False)
         health_stat = kwargs.get("health_stat", None)
         health_stats_period = kwargs.get("health_stats_period")
@@ -322,13 +319,10 @@ class ReleaseSerializer(Serializer):
         if with_health_data and no_snuba:
             raise TypeError("health data requires snuba")
 
-        self.has_adoption_stage = features.has(
-            "organizations:release-adoption-stage", item_list[0].organization_id
-        )
-        if self.has_adoption_stage:
+        if self.with_adoption_stages:
             release_project_envs = (
                 ReleaseProjectEnvironment.objects.filter(release__in=item_list)
-                .select_related("release")
+                .select_related("release", "project")
                 .order_by("-first_seen")
             )
             if environments is not None:
@@ -345,7 +339,7 @@ class ReleaseSerializer(Serializer):
                 project, item_list
             )
         else:
-            if not self.has_adoption_stage:
+            if not self.with_adoption_stages:
                 release_project_envs = (
                     ReleaseProjectEnvironment.objects.filter(
                         release__in=item_list, environment__name__in=environments
@@ -441,7 +435,7 @@ class ReleaseSerializer(Serializer):
                 "first_seen": first_seen.get(item.version),
                 "last_seen": last_seen.get(item.version),
             }
-            if self.has_adoption_stage:
+            if self.with_adoption_stages:
                 p.update(
                     {
                         "adoption_stages": adoption_stages.get(item.version),
@@ -533,7 +527,7 @@ class ReleaseSerializer(Serializer):
                 kwargs.get("current_project_meta", {})
             ),
         }
-        if self.has_adoption_stage:
+        if self.with_adoption_stages:
             d.update(
                 {
                     "adoptionStages": attrs.get("adoption_stages"),

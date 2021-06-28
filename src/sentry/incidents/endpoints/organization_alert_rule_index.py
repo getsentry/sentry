@@ -2,6 +2,7 @@ from datetime import datetime
 
 from django.db.models import DateTimeField, IntegerField, OuterRef, Q, Subquery, Value
 from django.db.models.functions import Coalesce
+from django.utils.timezone import make_aware
 from rest_framework import status
 from rest_framework.response import Response
 
@@ -110,7 +111,7 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
             )
 
         if "date_triggered" in sort_key:
-            far_past_date = Value(datetime.min, output_field=DateTimeField())
+            far_past_date = Value(make_aware(datetime.min), output_field=DateTimeField())
             alert_rules = alert_rules.annotate(
                 date_triggered=Coalesce(
                     Subquery(

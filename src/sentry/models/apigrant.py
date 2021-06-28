@@ -25,7 +25,7 @@ class ApiGrant(Model):
     of the OAuth 2 spec.
     """
 
-    __core__ = False
+    __include_in_export__ = False
 
     user = FlexibleForeignKey("sentry.User")
     application = FlexibleForeignKey("sentry.ApiApplication")
