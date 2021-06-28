@@ -877,14 +877,14 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
       case 'loading_embedded_transactions': {
         return (
           <MessageRow>
-            <span>{t('Loading transaction')}</span>
+            <span>{t('Loading embedded transaction')}</span>
           </MessageRow>
         );
       }
       case 'error_fetching_embedded_transactions': {
         return (
           <MessageRow>
-            <span>{t('Error loading transaction')}</span>
+            <span>{t('Error loading embedded transaction')}</span>
           </MessageRow>
         );
       }
