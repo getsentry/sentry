@@ -80,8 +80,11 @@ class RedisSessionStore:
             return
 
         self._client.delete(self.redis_key)
-        del self.request.session[self.session_key]
-        self.request.session.modified = True
+
+        session = self.request.session
+        del session[self.session_key]
+        if hasattr(session, "modified"):
+            session.modified = True
 
     def is_valid(self):
         return self.redis_key and self._client.get(self.redis_key)

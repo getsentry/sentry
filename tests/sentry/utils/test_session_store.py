@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from django.http import HttpRequest
+from django.test import Client, RequestFactory
 
 from sentry.utils.session_store import RedisSessionStore, redis_property
 
@@ -9,50 +9,41 @@ class RedisSessionStoreTestCase(TestCase):
     class TestRedisSessionStore(RedisSessionStore):
         some_value = redis_property("some_value")
 
+    def setUp(self) -> None:
+        self.request = RequestFactory().get("")
+        self.request.session = Client().session
+
+        self.store = self.TestRedisSessionStore(self.request, "test-store")
+
     def test_store_values(self):
-        request = HttpRequest()
-        request.session = {}
+        self.store.regenerate()
 
-        store = self.TestRedisSessionStore(request, "test-store")
-        store.regenerate()
+        assert "store:test-store" in self.request.session
 
-        assert "store:test-store" in request.session
-
-        store.some_value = "test_value"
-        store2 = self.TestRedisSessionStore(request, "test-store")
+        self.store.some_value = "test_value"
+        store2 = self.TestRedisSessionStore(self.request, "test-store")
 
         assert store2.is_valid()
         assert store2.some_value == "test_value"
 
         with self.assertRaises(AttributeError):
-            store.missing_key
+            self.store.missing_key
 
-        store.clear()
+        self.store.clear()
+        assert self.request.session.modified
 
     def test_store_complex_object(self):
-        request = HttpRequest()
-        request.session = {}
+        self.store.regenerate({"some_value": {"deep_object": "value"}})
 
-        store = self.TestRedisSessionStore(request, "test-store")
-        store.regenerate({"some_value": {"deep_object": "value"}})
-
-        store2 = self.TestRedisSessionStore(request, "test-store")
+        store2 = self.TestRedisSessionStore(self.request, "test-store")
 
         assert store2.some_value["deep_object"] == "value"
 
-        store.clear()
+        self.store.clear()
 
     def test_uninitialized_store(self):
-        request = HttpRequest()
-        request.session = {}
+        assert not self.store.is_valid()
+        assert self.store.get_state() is None
+        assert self.store.some_value is None
 
-        store = self.TestRedisSessionStore(request, "test-store")
-
-        assert not store.is_valid()
-        assert store.get_state() is None
-        assert store.some_key is None
-
-        store.setting_but_no_state = "anything"
-        assert store.setting_but_no_state is None
-
-        store.clear()
+        self.store.clear()
