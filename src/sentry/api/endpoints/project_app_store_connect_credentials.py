@@ -50,11 +50,9 @@ To create and manage these credentials, several API endpoints exist:
    initiated by steps 2-4.  See :class:`AppStoreConnectCredentialsValidateEndpoint`.
 """
 import datetime
-from typing import Optional
+import logging
 from uuid import uuid4
 
-import dateutil.parser
-import jsonschema
 import requests
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -67,23 +65,14 @@ from sentry.api.exceptions import (
     ItunesAuthenticationError,
     ItunesTwoFactorAuthenticationRequired,
 )
-from sentry.lang.native.symbolicator import APP_STORE_CONNECT_SCHEMA
-from sentry.models import Project
-from sentry.utils import json
+from sentry.lang.native import appconnect
+from sentry.models import AuditLogEntryEvent, Project
+from sentry.tasks.app_store_connect import dsym_download
 from sentry.utils.appleconnect import appstore_connect, itunes_connect
 from sentry.utils.appleconnect.itunes_connect import ITunesHeaders
 from sentry.utils.safe import get_path
 
-# The property name of the project option which contains the encryption key.
-#
-# This key is what is used to encrypt the secrets before storing them in the project
-# options.  Specifically the ``sessionContext``, ``itunesPassword`` and
-# ``appconnectPrivateKey`` are currently encrypted using this key.
-CREDENTIALS_KEY_NAME = "sentry:appleconnect_key"
-
-
-# The key in the project options under which all symbol sources are stored.
-SYMBOL_SOURCES_PROP_NAME = "sentry:symbol_sources"
+logger = logging.getLogger(__name__)
 
 
 # The name of the feature flag which enables the App Store Connect symbol source.
@@ -91,27 +80,6 @@ APP_STORE_CONNECT_FEATURE_NAME = "organizations:app-store-connect"
 
 # iTunes session token validity is 10-14 days so we like refreshing after 1 week.
 ITUNES_TOKEN_VALIDITY = datetime.timedelta(weeks=1)
-
-
-def get_app_store_config(
-    project: Project, credentials_id: Optional[str]
-) -> Optional[json.JSONData]:
-    """Returns the appStoreConnect symbol source config for a project."""
-    sources_config = project.get_option(SYMBOL_SOURCES_PROP_NAME)
-
-    if credentials_id is None:
-        return None
-    try:
-        sources = json.loads(sources_config)
-        for source in sources:
-            if (
-                source.get("type") == "appStoreConnect"
-                and source.get("id") == credentials_id.lower()
-            ):
-                return source
-        return None
-    except Exception as e:
-        raise ValueError("bad sources") from e
 
 
 class AppStoreConnectCredentialsSerializer(serializers.Serializer):  # type: ignore
@@ -271,11 +239,22 @@ class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
         config["itunesSession"] = session_context.get("itunes_session")
         config["itunesPersonId"] = session_context.get("itunes_person_id")
 
-        # We need to have a serialised datetime, but django-rest-framework de-serialised it
-        # into the class.  So, serialize it back.
-        clone = config.copy()
-        clone["itunesCreated"] = config["itunesCreated"].isoformat()
-        jsonschema.validate(clone, APP_STORE_CONNECT_SCHEMA)
+        validated_config = appconnect.AppStoreConnectConfig.from_json(config)
+        new_sources = validated_config.update_project_symbol_source(project)
+        self.create_audit_entry(
+            request=request,
+            organization=project.organization,
+            target_object=project.id,
+            event=AuditLogEntryEvent.PROJECT_EDIT,
+            data={appconnect.SYMBOL_SOURCES_PROP_NAME: new_sources},
+        )
+
+        dsym_download.apply_async(
+            kwargs={
+                "project_id": project.id,
+                "config_id": validated_config.id,
+            }
+        )
 
         return Response(config, status=200)
 
@@ -335,8 +314,11 @@ class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
             return Response(serializer.errors, status=400)
 
         # get the existing credentials
-        symbol_source_config = get_app_store_config(project, credentials_id)
-        if symbol_source_config is None:
+        try:
+            symbol_source_config = appconnect.AppStoreConnectConfig.from_project_config(
+                project, credentials_id
+            )
+        except KeyError:
             return Response(status=404)
 
         # get the new credentials
@@ -348,18 +330,26 @@ class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
             data["itunesSession"] = session_context.get("itunes_session")
             data["itunesPersonId"] = session_context.get("itunes_person_id")
 
-        symbol_source_config.update(data)
+        new_data = symbol_source_config.to_json()
+        new_data.update(data)
+        symbol_source_config = appconnect.AppStoreConnectConfig.from_json(new_data)
+        new_sources = symbol_source_config.update_project_symbol_source(project)
+        self.create_audit_entry(
+            request=request,
+            organization=project.organization,
+            target_object=project.id,
+            event=AuditLogEntryEvent.PROJECT_EDIT,
+            data={appconnect.SYMBOL_SOURCES_PROP_NAME: new_sources},
+        )
 
-        # We need to have a serialised datetime, but django-rest-framework de-serialised it
-        # into the class.  So, serialize it back.
-        if isinstance(symbol_source_config["itunesCreated"], datetime.datetime):
-            clone = symbol_source_config.copy()
-            clone["itunesCreated"] = symbol_source_config["itunesCreated"].isoformat()
-        else:
-            clone = data
-        jsonschema.validate(clone, APP_STORE_CONNECT_SCHEMA)
+        dsym_download.apply_async(
+            kwargs={
+                "project_id": project.id,
+                "config_id": symbol_source_config.id,
+            }
+        )
 
-        return Response(symbol_source_config, status=200)
+        return Response(symbol_source_config.to_json(), status=200)
 
 
 class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: ignore
@@ -390,28 +380,25 @@ class AppStoreConnectCredentialsValidateEndpoint(ProjectEndpoint):  # type: igno
         ):
             return Response(status=404)
 
-        symbol_source_cfg = get_app_store_config(project, credentials_id)
-        if symbol_source_cfg is None:
+        try:
+            symbol_source_cfg = appconnect.AppStoreConnectConfig.from_project_config(
+                project, credentials_id
+            )
+        except KeyError:
             return Response(status=404)
 
-        if symbol_source_cfg.get("itunesCreated") is not None:
-            expiration_date: Optional[datetime.datetime] = (
-                dateutil.parser.isoparse(symbol_source_cfg.get("itunesCreated"))
-                + ITUNES_TOKEN_VALIDITY
-            )
-        else:
-            expiration_date = None
+        expiration_date = symbol_source_cfg.itunesCreated + ITUNES_TOKEN_VALIDITY
 
         credentials = appstore_connect.AppConnectCredentials(
-            key_id=symbol_source_cfg.get("appconnectKey"),
-            key=symbol_source_cfg.get("appconnectPrivateKey"),
-            issuer_id=symbol_source_cfg.get("appconnectIssuer"),
+            key_id=symbol_source_cfg.appconnectKey,
+            key=symbol_source_cfg.appconnectPrivateKey,
+            issuer_id=symbol_source_cfg.appconnectIssuer,
         )
 
         session = requests.Session()
         apps = appstore_connect.get_apps(session, credentials)
 
-        itunes_connect.load_session_cookie(session, symbol_source_cfg.get("itunesSession"))
+        itunes_connect.load_session_cookie(session, symbol_source_cfg.itunesSession)
         itunes_session_info = itunes_connect.get_session_info(session)
 
         return Response(
@@ -486,12 +473,15 @@ class AppStoreConnectStartAuthEndpoint(ProjectEndpoint):  # type: ignore
         credentials_id = serializer.validated_data.get("id")
 
         if credentials_id is not None:
-            symbol_source_config = get_app_store_config(project, credentials_id)
-            if symbol_source_config is None:
+            try:
+                symbol_source_config = appconnect.AppStoreConnectConfig.from_project_config(
+                    project, credentials_id
+                )
+            except KeyError:
                 return Response("No credentials found.", status=400)
 
-            user_name = symbol_source_config.get("itunesUser")
-            password = symbol_source_config.get("itunesPassword")
+            user_name = symbol_source_config.itunesUser
+            password = symbol_source_config.itunesPassword
 
         if user_name is None:
             return Response("No user name provided.", status=400)

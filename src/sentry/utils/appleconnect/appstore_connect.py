@@ -41,15 +41,17 @@ def _get_authorization_header(
     return f"Bearer {token}"
 
 
-def _get_appstore_info(
+def _get_appstore_json(
     session: Session, credentials: AppConnectCredentials, url: str
-) -> Optional[Mapping[str, Any]]:
-    """
-    Get info from an appstore url
+) -> Mapping[str, Any]:
+    """Returns response data from an appstore URL.
 
-    It builds the request, and extracts the data
+    It builds and makes the request and extracts the data from the response.
 
-    :return: a dictionary with the requested data or None if the call fails
+    :returns: a dictionary with the requested data or None if the call fails.
+
+    :raises ValueError: if the request failed or the response body could not be parsed as
+       JSON.
     """
     headers = {"Authorization": _get_authorization_header(credentials)}
 
@@ -73,19 +75,18 @@ def _get_appstore_info(
 
 
 def _get_next_page(response_json: Mapping[str, Any]) -> Optional[str]:
-    """
-    Gets the next page url from a app store connect paged response
-    """
+    """Gets the URL for the next page from an App Store Connect paged response."""
     return safe.get_path(response_json, "links", "next")  # type: ignore
 
 
 def _get_appstore_info_paged_data(
     session: Session, credentials: AppConnectCredentials, url: str
 ) -> Generator[Any, None, None]:
-    """
-    Iterate through all the pages from a paged response and concatenate the `data` part of the response
+    """Iterates through all the pages from a paged response.
 
-    App store connect share the general format:
+    The `data` part of the responses are concatenated.
+
+    App Store Connect responses shares the general format:
 
     data:
       - list of elements
@@ -101,9 +102,7 @@ def _get_appstore_info_paged_data(
     """
     next_url: Optional[str] = url
     while next_url is not None:
-        response = _get_appstore_info(session, credentials, url)
-        if response is None:
-            return
+        response = _get_appstore_json(session, credentials, next_url)
         data = response["data"]
         yield from data
         next_url = _get_next_page(response)

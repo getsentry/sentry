@@ -15,7 +15,7 @@ from sentry.types.activity import CHOICES, ActivityType
 
 
 class Activity(Model):
-    __core__ = False
+    __include_in_export__ = False
 
     # TODO(mgaeta): Replace all usages with ActivityTypes.
     ASSIGNED = ActivityType.ASSIGNED.value

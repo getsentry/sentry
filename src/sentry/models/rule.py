@@ -23,7 +23,7 @@ class RuleStatus:
 
 
 class Rule(Model):
-    __core__ = True
+    __include_in_export__ = True
 
     DEFAULT_CONDITION_MATCH = "all"  # any, all
     DEFAULT_FILTER_MATCH = "all"  # match to apply on filters
@@ -96,7 +96,7 @@ class RuleActivityType(Enum):
 
 
 class RuleActivity(Model):
-    __core__ = True
+    __include_in_export__ = True
 
     rule = FlexibleForeignKey("sentry.Rule")
     user = FlexibleForeignKey("sentry.User", null=True, on_delete=models.SET_NULL)

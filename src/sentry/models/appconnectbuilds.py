@@ -19,7 +19,7 @@ class AppConnectBuild(Model):
     bundle_short_version, bundle_version).
     """
 
-    __core__ = False
+    __include_in_export__ = False
 
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)
 

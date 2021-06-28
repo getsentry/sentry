@@ -439,15 +439,16 @@ def parse_semver(version, operator) -> Optional[SemverFilter]:
         # Try to parse as a wildcard match
         package, version = version.split("@", 1)
         version_parts = []
-        for part in version.split(".", 3):
-            if part in SEMVER_WILDCARDS:
-                break
-            try:
-                # We assume all ints for a wildcard match - not handling prerelease as
-                # part of these
-                version_parts.append(int(part))
-            except ValueError:
-                raise InvalidSearchQuery(f"Invalid format for semver query {version}")
+        if version:
+            for part in version.split(".", 3):
+                if part in SEMVER_WILDCARDS:
+                    break
+                try:
+                    # We assume all ints for a wildcard match - not handling prerelease as
+                    # part of these
+                    version_parts.append(int(part))
+                except ValueError:
+                    raise InvalidSearchQuery(f"Invalid format for semver query {version}")
 
         package = package if package and package != SEMVER_FAKE_PACKAGE else None
         return SemverFilter("exact", version_parts, package)
