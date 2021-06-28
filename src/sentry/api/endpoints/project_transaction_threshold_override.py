@@ -138,7 +138,7 @@ class ProjectTransactionThresholdOverrideEndpoint(OrganizationEventsV2EndpointBa
             return self.respond(status=status.HTTP_404_NOT_FOUND)
 
         project = self.get_project(request, organization)
-        transaction = request.GET.get("transaction")
+        transaction = request.data.get("transaction")
         if not transaction:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
