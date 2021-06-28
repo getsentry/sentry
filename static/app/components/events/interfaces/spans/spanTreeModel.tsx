@@ -7,6 +7,7 @@ import {EventTransaction} from 'app/types/event';
 import {ActiveOperationFilter} from './filter';
 import {
   EnhancedProcessedSpanType,
+  FetchEmbeddedChildrenState,
   FilterSpans,
   OrphanTreeDepth,
   RawSpanType,
@@ -34,7 +35,7 @@ class SpanTreeModel {
   isRoot: boolean;
 
   // readable/writable state
-  loadingEmbeddedChildren: boolean = false;
+  fetchEmbeddedChildrenState: FetchEmbeddedChildrenState = 'idle';
   showEmbeddedChildren: boolean = false;
   embeddedChildren: Array<SpanTreeModel> = [];
 
@@ -66,7 +67,7 @@ class SpanTreeModel {
       operationNameCounts: computed.struct,
       showEmbeddedChildren: observable,
       embeddedChildren: observable,
-      loadingEmbeddedChildren: observable,
+      fetchEmbeddedChildrenState: observable,
       toggleEmbeddedChildren: action,
       fetchEmbeddedTransactions: action,
     });
@@ -153,6 +154,7 @@ class SpanTreeModel {
       treeDepth,
       isLastSibling: false,
       continuingTreeDepths,
+      fetchEmbeddedChildrenState: 'idle',
       showEmbeddedChildren: false,
       toggleEmbeddedChildren: undefined,
     };
@@ -232,9 +234,7 @@ class SpanTreeModel {
         return acc;
       },
       {
-        descendants: this.loadingEmbeddedChildren
-          ? [{type: 'loading_embedded_transactions'}]
-          : [],
+        descendants: [],
         previousSiblingEndTimestamp: undefined,
       }
     );
@@ -278,6 +278,7 @@ class SpanTreeModel {
       treeDepth,
       isLastSibling,
       continuingTreeDepths,
+      fetchEmbeddedChildrenState: this.fetchEmbeddedChildrenState,
       showEmbeddedChildren: this.showEmbeddedChildren,
       toggleEmbeddedChildren: this.toggleEmbeddedChildren,
     };
@@ -297,6 +298,7 @@ class SpanTreeModel {
 
   toggleEmbeddedChildren = (props: {orgSlug: string; eventSlug: string}) => {
     this.showEmbeddedChildren = !this.showEmbeddedChildren;
+    this.fetchEmbeddedChildrenState = 'idle';
 
     if (this.showEmbeddedChildren && this.embeddedChildren.length === 0) {
       return this.fetchEmbeddedTransactions(props);
@@ -306,9 +308,9 @@ class SpanTreeModel {
   };
 
   fetchEmbeddedTransactions({orgSlug, eventSlug}: {orgSlug: string; eventSlug: string}) {
-    const url = `/organizations/${orgSlug}/events/${eventSlug}/`;
+    const url = `/organizations/${orgSlug}/eventsxxx/${eventSlug}/`;
 
-    this.loadingEmbeddedChildren = true;
+    this.fetchEmbeddedChildrenState = 'loading_embedded_transactions';
 
     return this.api
       .requestPromise(url, {
@@ -333,8 +335,14 @@ class SpanTreeModel {
           this.embeddedChildren = [parsedRootSpan];
         })
       )
+      .catch(
+        action('fetchEmbeddedTransactionsError', () => {
+          this.embeddedChildren = [];
+          this.fetchEmbeddedChildrenState = 'error_fetching_embedded_transactions';
+        })
+      )
       .finally(() => {
-        this.loadingEmbeddedChildren = false;
+        this.fetchEmbeddedChildrenState = 'idle';
       });
   }
 }

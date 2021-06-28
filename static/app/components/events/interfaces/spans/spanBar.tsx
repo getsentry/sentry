@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 
 import Count from 'app/components/count';
 import {ROW_HEIGHT} from 'app/components/performance/waterfall/constants';
+import {MessageRow} from 'app/components/performance/waterfall/messageRow';
 import {Row, RowCell, RowCellContainer} from 'app/components/performance/waterfall/row';
 import {DurationPill, RowRectangle} from 'app/components/performance/waterfall/rowBar';
 import {
@@ -55,7 +56,12 @@ import * as CursorGuideHandler from './cursorGuideHandler';
 import * as DividerHandlerManager from './dividerHandlerManager';
 import * as ScrollbarManager from './scrollbarManager';
 import SpanDetail from './spanDetail';
-import {ParsedTraceType, ProcessedSpanType, TreeDepthType} from './types';
+import {
+  FetchEmbeddedChildrenState,
+  ParsedTraceType,
+  ProcessedSpanType,
+  TreeDepthType,
+} from './types';
 import {
   durationlessBrowserOps,
   getMeasurementBounds,
@@ -109,6 +115,7 @@ type SpanBarProps = {
   toggleEmbeddedChildren:
     | ((props: {orgSlug: string; eventSlug: string}) => void)
     | undefined;
+  fetchEmbeddedChildrenState: FetchEmbeddedChildrenState;
 };
 
 type SpanBarState = {
@@ -863,6 +870,29 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     );
   }
 
+  renderEmbeddedChildrenState() {
+    const {fetchEmbeddedChildrenState} = this.props;
+
+    switch (fetchEmbeddedChildrenState) {
+      case 'loading_embedded_transactions': {
+        return (
+          <MessageRow>
+            <span>{t('Loading transaction')}</span>
+          </MessageRow>
+        );
+      }
+      case 'error_fetching_embedded_transactions': {
+        return (
+          <MessageRow>
+            <span>{t('Error loading transaction')}</span>
+          </MessageRow>
+        );
+      }
+      default:
+        return null;
+    }
+  }
+
   render() {
     const {isCurrentSpanFilteredOut} = this.props;
     const bounds = this.getBounds();
@@ -871,40 +901,43 @@ class SpanBar extends React.Component<SpanBarProps, SpanBarState> {
     const isSpanVisible = isSpanVisibleInView && !isCurrentSpanFilteredOut;
 
     return (
-      <Row
-        ref={this.spanRowDOMRef}
-        visible={isSpanVisible}
-        showBorder={this.state.showDetail}
-        data-test-id="span-row"
-      >
-        <QuickTraceContext.Consumer>
-          {quickTrace => {
-            const errors = this.getRelatedErrors(quickTrace);
-            const transactions = this.getChildTransactions(quickTrace);
-            return (
-              <React.Fragment>
-                <ScrollbarManager.Consumer>
-                  {scrollbarManagerChildrenProps => (
-                    <DividerHandlerManager.Consumer>
-                      {(
-                        dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
-                      ) =>
-                        this.renderHeader({
-                          dividerHandlerChildrenProps,
-                          scrollbarManagerChildrenProps,
-                          errors,
-                          transactions,
-                        })
-                      }
-                    </DividerHandlerManager.Consumer>
-                  )}
-                </ScrollbarManager.Consumer>
-                {this.renderDetail({isVisible: isSpanVisible, transactions, errors})}
-              </React.Fragment>
-            );
-          }}
-        </QuickTraceContext.Consumer>
-      </Row>
+      <React.Fragment>
+        <Row
+          ref={this.spanRowDOMRef}
+          visible={isSpanVisible}
+          showBorder={this.state.showDetail}
+          data-test-id="span-row"
+        >
+          <QuickTraceContext.Consumer>
+            {quickTrace => {
+              const errors = this.getRelatedErrors(quickTrace);
+              const transactions = this.getChildTransactions(quickTrace);
+              return (
+                <React.Fragment>
+                  <ScrollbarManager.Consumer>
+                    {scrollbarManagerChildrenProps => (
+                      <DividerHandlerManager.Consumer>
+                        {(
+                          dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps
+                        ) =>
+                          this.renderHeader({
+                            dividerHandlerChildrenProps,
+                            scrollbarManagerChildrenProps,
+                            errors,
+                            transactions,
+                          })
+                        }
+                      </DividerHandlerManager.Consumer>
+                    )}
+                  </ScrollbarManager.Consumer>
+                  {this.renderDetail({isVisible: isSpanVisible, transactions, errors})}
+                </React.Fragment>
+              );
+            }}
+          </QuickTraceContext.Consumer>
+        </Row>
+        {this.renderEmbeddedChildrenState()}
+      </React.Fragment>
     );
   }
 }

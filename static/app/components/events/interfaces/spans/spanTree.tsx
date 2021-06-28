@@ -180,15 +180,6 @@ class SpanTree extends React.Component<PropType> {
           acc.spanTree.push(infoMessage);
         }
 
-        if (payload.type === 'loading_embedded_transactions') {
-          acc.spanTree.push(
-            <MessageRow key={`loading-transaction-${index}`}>
-              <span>{t('Loading transaction')}</span>
-            </MessageRow>
-          );
-          return acc;
-        }
-
         const {span} = payload;
 
         const key = getSpanID(span, `span-${index}`);
@@ -224,6 +215,7 @@ class SpanTree extends React.Component<PropType> {
             isCurrentSpanFilteredOut={false}
             showEmbeddedChildren={payload.showEmbeddedChildren}
             toggleEmbeddedChildren={payload.toggleEmbeddedChildren}
+            fetchEmbeddedChildrenState={payload.fetchEmbeddedChildrenState}
           />
         );
 
