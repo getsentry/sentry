@@ -176,6 +176,31 @@ class SummaryContent extends React.Component<Props, State> {
     });
   };
 
+  generateEventView(
+    transactionsListEventView: EventView,
+    transactionsListTitles: string[]
+  ) {
+    const {location, totalValues, spanOperationBreakdownFilter} = this.props;
+    const {selected} = getTransactionsListSort(location, {
+      p95: totalValues?.p95 ?? 0,
+      spanOperationBreakdownFilter,
+    });
+    const sortedEventView = transactionsListEventView.withSorts([selected.sort]);
+
+    if (spanOperationBreakdownFilter === SpanOperationBreakdownFilter.None) {
+      const fields = [
+        // Remove the extra field columns
+        ...sortedEventView.fields.slice(0, transactionsListTitles.length),
+      ];
+
+      // omit "Operation Duration" column
+      sortedEventView.fields = fields.filter(({field}) => {
+        return !isRelativeSpanOperationBreakdownField(field);
+      });
+    }
+    return sortedEventView;
+  }
+
   render() {
     let {eventView} = this.props;
     const {
@@ -314,28 +339,16 @@ class SummaryContent extends React.Component<Props, State> {
               location={location}
               organization={organization}
               eventView={transactionsListEventView}
+              generateDiscoverEventView={() =>
+                this.generateEventView(transactionsListEventView, transactionsListTitles)
+              }
               generatePerformanceTransactionEventsView={() => {
-                const {selected} = getTransactionsListSort(location, {
-                  p95: totalValues?.p95 ?? 0,
-                  spanOperationBreakdownFilter,
-                });
-                const sortedEventView = transactionsListEventView.withSorts([
-                  selected.sort,
-                ]);
-
-                if (spanOperationBreakdownFilter === SpanOperationBreakdownFilter.None) {
-                  const fields = [
-                    // Remove the extra field columns
-                    ...sortedEventView.fields.slice(0, transactionsListTitles.length),
-                  ];
-
-                  // omit "Operation Duration" column
-                  sortedEventView.fields = fields.filter(({field}) => {
-                    return !isRelativeSpanOperationBreakdownField(field);
-                  });
-                }
-                sortedEventView.query = query;
-                return sortedEventView;
+                const performanceTransactionEventsView = this.generateEventView(
+                  transactionsListEventView,
+                  transactionsListTitles
+                );
+                performanceTransactionEventsView.query = query;
+                return performanceTransactionEventsView;
               }}
               showTransactions={decodeScalar(
                 location.query.showTransactions,
