@@ -94,6 +94,7 @@ class IssueListFilters extends React.Component<Props> {
               title={t(
                 'This shows the event count as a percent of sessions in the same time period.'
               )}
+              disabled={display !== IssueDisplayOptions.SESSIONS}
             >
               <IssueListDisplayOptions
                 onDisplayChange={onDisplayChange}
