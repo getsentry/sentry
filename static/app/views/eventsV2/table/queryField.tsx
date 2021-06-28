@@ -421,7 +421,6 @@ class QueryField extends React.Component<Props> {
       if (descriptor.kind === 'dropdown') {
         return (
           <SelectControl
-            key="dropdown-select"
             name="dropdown"
             placeholder={t('Select value')}
             options={descriptor.options}
