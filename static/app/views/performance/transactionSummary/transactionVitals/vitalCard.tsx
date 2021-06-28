@@ -5,6 +5,7 @@ import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import throttle from 'lodash/throttle';
 
+import Button from 'app/components/button';
 import BarChart from 'app/components/charts/barChart';
 import BarChartZoom from 'app/components/charts/barChartZoom';
 import MarkLine from 'app/components/charts/components/markLine';
@@ -122,6 +123,18 @@ class VitalCard extends Component<Props, State> {
     });
   };
 
+  trackOpenAllEventsClicked = () => {
+    const {organization} = this.props;
+    const {vitalDetails: vital} = this.props;
+
+    trackAnalyticsEvent({
+      eventKey: 'performance_views.vitals.open_all_events',
+      eventName: 'Performance Views: Open vitals in all events',
+      organization_id: organization.id,
+      vital: vital.slug,
+    });
+  };
+
   get summary() {
     const {summaryData} = this.props;
     return summaryData?.p75 ?? null;
@@ -149,6 +162,9 @@ class VitalCard extends Component<Props, State> {
   renderSummary() {
     const {vitalDetails: vital, eventView, organization, min, max} = this.props;
     const {slug, name, description} = vital;
+    const hasPerformanceEventsPage = organization.features.includes(
+      'performance-events-page'
+    );
 
     const column = `measurements.${slug}`;
 
@@ -191,13 +207,25 @@ class VitalCard extends Component<Props, State> {
         </StatNumber>
         <Description>{description}</Description>
         <div>
-          <DiscoverButton
-            size="small"
-            to={newEventView.getResultsViewUrlTarget(organization.slug)}
-            onClick={this.trackOpenInDiscoverClicked}
-          >
-            {t('Open in Discover')}
-          </DiscoverButton>
+          {hasPerformanceEventsPage ? (
+            <Button
+              size="small"
+              to={newEventView.getPerformanceTransactionEventsViewUrlTarget(
+                organization.slug
+              )}
+              onClick={this.trackOpenAllEventsClicked}
+            >
+              {t('Open All Events')}
+            </Button>
+          ) : (
+            <DiscoverButton
+              size="small"
+              to={newEventView.getResultsViewUrlTarget(organization.slug)}
+              onClick={this.trackOpenInDiscoverClicked}
+            >
+              {t('Open in Discover')}
+            </DiscoverButton>
+          )}
         </div>
       </CardSummary>
     );
