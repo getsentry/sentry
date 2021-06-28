@@ -345,7 +345,7 @@ register("processing.save-release-archives", default=False)  # unused
 register("processing.release-archive-min-files", default=10)
 
 # Try to read release artifacts from zip archives
-register("processing.use-release-archives-sample-rate", default=0.0)
+register("processing.use-release-archives-sample-rate", default=0.0)  # unused
 
 # All Relay options (statically authenticated Relays can be registered here)
 register("relay.static_auth", default={}, flags=FLAG_NOSTORE)
