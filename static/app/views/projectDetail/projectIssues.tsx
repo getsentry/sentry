@@ -30,7 +30,7 @@ type Props = {
   query?: string;
 };
 
-function ProjectIssues({organization, location, projectId, query = '', api}: Props) {
+function ProjectIssues({organization, location, projectId, query, api}: Props) {
   const [pageLinks, setPageLinks] = useState<string | undefined>();
   const [onCursor, setOnCursor] = useState<(() => void) | undefined>();
 
@@ -62,7 +62,7 @@ function ProjectIssues({organization, location, projectId, query = '', api}: Pro
         name: t('Frequent Unhandled Issues'),
         field: ['issue', 'title', 'count()', 'count_unique(user)', 'project'],
         sort: ['-count'],
-        query: 'event.type:error error.unhandled:true ' + query,
+        query: ['event.type:error error.unhandled:true', query].join(' ').trim(),
         display: 'top5',
         ...getParams(pick(location.query, [...Object.values(URL_PARAM)])),
       },
@@ -70,7 +70,7 @@ function ProjectIssues({organization, location, projectId, query = '', api}: Pro
   }
 
   const endpointPath = `/organizations/${organization.slug}/issues/`;
-  const issueQuery = 'is:unresolved error.unhandled:true ' + query;
+  const issueQuery = ['is:unresolved error.unhandled:true ', query].join(' ').trim();
   const queryParams = {
     limit: 5,
     ...getParams(pick(location.query, [...Object.values(URL_PARAM), 'cursor'])),
