@@ -1,18 +1,6 @@
-import time
-from io import BytesIO
-from typing import IO, Optional, Tuple
-
-from django.utils.encoding import force_bytes, force_text
-
-from sentry.models.releasefile import ARTIFACT_INDEX_FILENAME, ReleaseArchive, read_artifact_index
-from sentry.utils import json
-
-__all__ = ["JavaScriptStacktraceProcessor"]
-
 import base64
 import errno
 import logging
-import random
 import re
 import sys
 import time
