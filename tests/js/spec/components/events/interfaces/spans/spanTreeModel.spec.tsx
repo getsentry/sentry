@@ -123,6 +123,15 @@ describe('SpanTreeModel', () => {
     },
   });
 
+  // @ts-expect-error
+  MockApiClient.addMockResponse({
+    url: '/organizations/sentry/events/project:broken/',
+    body: {
+      ...event,
+    },
+    statusCode: 500,
+  });
+
   it('makes children', () => {
     const parsedTrace = parseTrace(event);
     const rootSpan = generateRootSpan(parsedTrace);
@@ -182,7 +191,7 @@ describe('SpanTreeModel', () => {
     });
   });
 
-  it('toggleEmbeddedChildren', async () => {
+  it('toggleEmbeddedChildren - happy path', async () => {
     const parsedTrace = parseTrace(event);
     const rootSpan = generateRootSpan(parsedTrace);
 
@@ -400,5 +409,26 @@ describe('SpanTreeModel', () => {
     fullWaterfallExpected[0].showEmbeddedChildren = true;
 
     expect(spans).toEqual(fullWaterfallExpected);
+  });
+
+  it('toggleEmbeddedChildren - error state', async () => {
+    const parsedTrace = parseTrace(event);
+    const rootSpan = generateRootSpan(parsedTrace);
+
+    const spanTreeModel = new SpanTreeModel(rootSpan, parsedTrace.childSpans, api);
+
+    const promise = spanTreeModel.toggleEmbeddedChildren({
+      orgSlug: 'sentry',
+      eventSlug: 'project:broken',
+    });
+    expect(spanTreeModel.fetchEmbeddedChildrenState).toBe(
+      'loading_embedded_transactions'
+    );
+
+    await promise;
+
+    expect(spanTreeModel.fetchEmbeddedChildrenState).toBe(
+      'error_fetching_embedded_transactions'
+    );
   });
 });
