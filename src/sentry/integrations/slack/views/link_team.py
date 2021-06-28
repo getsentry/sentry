@@ -155,10 +155,7 @@ class SlackLinkTeamView(BaseView):
         allowed_roles = ["admin", "manager", "owner"]
         if not (
             org_member.role in allowed_roles
-            and (
-                organization.flags.allow_joinleave
-                or team in [team for team in org_member.teams.all()]
-            )
+            and (organization.flags.allow_joinleave or team in org_member.teams.all())
         ):
             return self.send_slack_message(
                 request,
