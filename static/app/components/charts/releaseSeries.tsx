@@ -110,7 +110,8 @@ class ReleaseSeries extends React.Component<Props, State> {
       !isEqual(prevProps.environments, this.props.environments) ||
       !isEqual(prevProps.start, this.props.start) ||
       !isEqual(prevProps.end, this.props.end) ||
-      !isEqual(prevProps.period, this.props.period)
+      !isEqual(prevProps.period, this.props.period) ||
+      !isEqual(prevProps.queryExtra, this.props.queryExtra)
     ) {
       this.fetchData();
     } else if (!isEqual(prevProps.emphasizeReleases, this.props.emphasizeReleases)) {

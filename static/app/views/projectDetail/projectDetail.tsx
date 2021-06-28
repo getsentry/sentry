@@ -310,6 +310,7 @@ class ProjectDetail extends AsyncView<Props, State> {
                   selection={selection}
                   hasSessions={hasSessions}
                   hasTransactions={hasTransactions}
+                  query={query}
                 />
                 {isProjectStabilized && (
                   <Fragment>
