@@ -31,7 +31,6 @@ import ProjectLink from './projectLink';
 
 type Props = {
   projects: Array<ReleaseProject>;
-  adoptionStages: {} | undefined;
   releaseVersion: Release['version'];
   organization: Organization;
   activeDisplay: DisplayOption;
@@ -39,6 +38,7 @@ type Props = {
   showPlaceholders: boolean;
   isTopRelease: boolean;
   getHealthData: ReleaseHealthRequestRenderProps['getHealthData'];
+  adoptionStages?: {};
 };
 
 const Content = ({
@@ -57,10 +57,11 @@ const Content = ({
     adopted: 'Adopted',
     replaced: 'Replaced',
   };
+  const hasAdoptionStages = adoptionStages !== undefined;
   return (
     <Fragment>
       <Header>
-        <Layout>
+        <Layout hasAdoptionStages={hasAdoptionStages}>
           <Column>{t('Project Name')}</Column>
           <AdoptionColumn>
             <GuideAnchor
@@ -160,9 +161,11 @@ const Content = ({
 
                   {adoptionStages && (
                     <Column>
-                      {adoptionStages[project.slug]
-                        ? adoption_map[adoptionStages[project.slug]]
-                        : '---'}
+                      {adoptionStages[project.slug] ? (
+                        adoption_map[adoptionStages[project.slug].stage]
+                      ) : (
+                        <NotAvailable />
+                      )}
                     </Column>
                   )}
 
@@ -290,23 +293,52 @@ const ProjectRow = styled(PanelItem)`
   }
 `;
 
-const Layout = styled('div')`
+const Layout = styled('div')<{hasAdoptionStages?: boolean}>`
   display: grid;
-  grid-template-columns: 1fr 1.4fr 0.6fr 0.7fr;
+  ${p =>
+    p.hasAdoptionStages
+      ? `
+      grid-template-columns: 1fr 1.4fr 0.5fr 0.6fr 0.7fr;
+    `
+      : `
+      grid-template-columns: 1fr 1.4fr 0.6fr 0.7fr;
+    `}
+
   grid-column-gap: ${space(1)};
   align-items: center;
   width: 100%;
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
-    grid-template-columns: 1fr 1fr 1fr 0.5fr 0.5fr 0.5fr;
+    ${p =>
+      p.hasAdoptionStages
+        ? `
+      grid-template-columns: 1fr 1fr 0.5fr 1fr 0.5fr 0.5fr 0.5fr;
+    `
+        : `
+      grid-template-columns: 1fr 1fr 1fr 0.5fr 0.5fr 0.5fr;
+    `}
   }
 
   @media (min-width: ${p => p.theme.breakpoints[1]}) {
-    grid-template-columns: 1fr 0.8fr 1fr 0.5fr 0.5fr 0.6fr;
+    ${p =>
+      p.hasAdoptionStages
+        ? `
+      grid-template-columns: 1fr 0.8fr 0.5fr 1fr 0.5fr 0.5fr 0.6fr;
+    `
+        : `
+      grid-template-columns: 1fr 0.8fr 1fr 0.5fr 0.5fr 0.6fr;
+    `}
   }
 
   @media (min-width: ${p => p.theme.breakpoints[3]}) {
-    grid-template-columns: 1fr 0.8fr 1fr 1fr 0.5fr 0.5fr 0.5fr;
+    ${p =>
+      p.hasAdoptionStages
+        ? `
+      grid-template-columns: 1fr 0.8fr 0.5fr 1fr 1fr 0.5fr 0.5fr 0.5fr;
+    `
+        : `
+      grid-template-columns: 1fr 0.8fr 1fr 1fr 0.5fr 0.5fr 0.5fr;
+    `}
   }
 `;
 
