@@ -10,9 +10,6 @@ export type RenderSearch = React.ComponentProps<
 
 export const SearchWrapper = styled('div')`
   display: flex;
-  * {
-    width: 100%;
-  }
   grid-template-columns: 1fr max-content;
   grid-gap: ${space(1.5)};
   margin-top: ${space(4)};
