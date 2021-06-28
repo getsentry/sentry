@@ -267,11 +267,9 @@ class OrganizationReleasesEndpoint(
         queryset = queryset.extra(select=select_extra)
         queryset = add_date_filter_to_queryset(queryset, filter_params)
 
-        if with_adoption_stages:
-            has_adoption_stages = features.has("organizations:release-adoption-stage", organization)
-            with_adoption_stages = has_adoption_stages
-        else:
-            with_adoption_stages = False
+        with_adoption_stages = with_adoption_stages and features.has(
+            "organizations:release-adoption-stage", organization
+        )
 
         return self.paginate(
             request=request,
