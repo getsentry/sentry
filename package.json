@@ -27,7 +27,7 @@
     "@sentry/release-parser": "^1.1.4",
     "@sentry/rrweb": "^0.1.1",
     "@sentry/tracing": "6.7.2",
-    "@sentry/utils": "6.7.2",
+    "@sentry/utils": "6.8.0",
     "@testing-library/jest-dom": "^5.14.1",
     "@testing-library/react": "^12.0.0",
     "@types/color": "^3.0.0",
