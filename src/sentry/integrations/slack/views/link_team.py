@@ -28,6 +28,8 @@ from . import build_linking_url as base_build_linking_url
 from . import never_cache
 
 ALLOWED_METHODS = ["GET", "POST"]
+ALLOWED_ROLES = ["admin", "manager", "owner"]
+
 INSUFFICIENT_ROLE_TITLE = "Insufficient role"
 INSUFFICIENT_ROLE_MESSAGE = "You must be an admin or higher to link teams."
 ALREADY_LINKED_TITLE = "Already linked"
@@ -158,9 +160,9 @@ class SlackLinkTeamView(BaseView):  # type: ignore
 
         identity = self.get_identity(request, integration, params["slack_id"])
         org_member = OrganizationMember.objects.get(user=identity.user, organization=organization)
-        allowed_roles = ["admin", "manager", "owner"]
+
         if not (
-            org_member.role in allowed_roles
+            org_member.role in ALLOWED_ROLES
             and (organization.flags.allow_joinleave or team in org_member.teams.all())
         ):
             return send_slack_message(
