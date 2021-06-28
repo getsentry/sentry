@@ -57,7 +57,7 @@ const Content = ({
     adopted: 'Adopted',
     replaced: 'Replaced',
   };
-  const hasAdoptionStages = adoptionStages !== undefined;
+  const hasAdoptionStages:boolean = adoptionStages !== undefined;
   return (
     <Fragment>
       <Header>
@@ -136,7 +136,7 @@ const Content = ({
 
             return (
               <ProjectRow key={`${releaseVersion}-${slug}-health`}>
-                <Layout>
+                <Layout hasAdoptionStages={hasAdoptionStages}>
                   <Column>
                     <ProjectBadge project={project} avatarSize={16} />
                   </Column>
