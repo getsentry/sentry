@@ -334,7 +334,9 @@ class EventView {
     this.interval = props.interval;
     this.createdBy = props.createdBy;
     this.expired = props.expired;
-    this.additionalConditions = props.additionalConditions ?? new QueryResults([]);
+    this.additionalConditions = props.additionalConditions
+      ? props.additionalConditions.copy()
+      : new QueryResults([]);
   }
 
   static fromLocation(location: Location): EventView {

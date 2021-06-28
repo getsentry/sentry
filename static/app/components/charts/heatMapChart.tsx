@@ -3,7 +3,7 @@ import './components/visualMap';
 import * as React from 'react';
 import {EChartOption} from 'echarts';
 
-import {Series} from 'app/types/echarts';
+import {ReactEchartsRef, Series} from 'app/types/echarts';
 
 import HeatMapSeries from './series/heatMapSeries';
 import BaseChart from './baseChart';
@@ -21,25 +21,23 @@ type Props = Omit<ChartProps, 'series'> & {
   visualMaps: EChartOption.VisualMap[];
 };
 
-export default class HeatMapChart extends React.Component<Props> {
-  render() {
-    const {series, seriesOptions, visualMaps, ...props} = this.props;
-
-    return (
-      <BaseChart
-        options={{
-          visualMap: visualMaps,
-        }}
-        {...props}
-        series={series.map(({seriesName, data, dataArray, ...options}) =>
-          HeatMapSeries({
-            ...seriesOptions,
-            ...options,
-            name: seriesName,
-            data: dataArray || data.map(({value, name}) => [name, value]),
-          })
-        )}
-      />
-    );
-  }
-}
+export default React.forwardRef<ReactEchartsRef, Props>((props, ref) => {
+  const {series, seriesOptions, visualMaps, ...otherProps} = props;
+  return (
+    <BaseChart
+      ref={ref}
+      options={{
+        visualMap: visualMaps,
+      }}
+      {...otherProps}
+      series={series.map(({seriesName, data, dataArray, ...options}) =>
+        HeatMapSeries({
+          ...seriesOptions,
+          ...options,
+          name: seriesName,
+          data: dataArray || data.map(({value, name}) => [name, value]),
+        })
+      )}
+    />
+  );
+});

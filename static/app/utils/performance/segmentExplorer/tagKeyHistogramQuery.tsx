@@ -34,6 +34,7 @@ type ChildrenProps = Omit<GenericChildrenProps<TableData>, 'tableData'> & {
 type QueryProps = DiscoverQueryProps & {
   aggregateColumn: string;
   tagKey: string;
+  tagKeyLimit: number;
   sort?: string | string[];
   children: (props: ChildrenProps) => React.ReactNode;
 };
@@ -41,6 +42,7 @@ type QueryProps = DiscoverQueryProps & {
 type FacetQuery = LocationQuery &
   EventQuery & {
     tagKey?: string;
+    tagKeyLimit?: number;
     sort?: string | string[];
     aggregateColumn?: string;
   };
@@ -53,6 +55,7 @@ export function getRequestFunction(_props: QueryProps) {
     apiPayload.aggregateColumn = aggregateColumn;
     apiPayload.sort = _props.sort ? _props.sort : '-sumdelta';
     apiPayload.tagKey = _props.tagKey;
+    apiPayload.tagKeyLimit = _props.tagKeyLimit;
     return apiPayload;
   }
   return getTagExplorerRequestPayload;

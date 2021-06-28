@@ -141,6 +141,9 @@ function generateTagsEventView(
   }
   const query = decodeScalar(location.query.query, '');
   const conditions = tokenizeSearch(query);
+  conditions
+    .setTagValues('event.type', ['transaction'])
+    .setTagValues('transaction', [transactionName]);
   return EventView.fromNewQueryWithLocation(
     {
       id: undefined,
