@@ -87,8 +87,8 @@ def __model_class_prepared(sender, **kwargs):
     if not issubclass(sender, BaseModel):
         return
 
-    if not hasattr(sender, "__core__"):
-        raise ValueError(f"{sender!r} model has not defined __core__")
+    if not hasattr(sender, "__core__") and not hasattr(sender, "__include_in_export__"):
+        raise ValueError(f"{sender!r} model has not defined __core__ or __include_in_export__")
 
 
 signals.pre_save.connect(__model_pre_save)

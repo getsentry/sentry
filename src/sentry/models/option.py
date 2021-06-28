@@ -14,7 +14,7 @@ class Option(Model):
     their key. e.g. key='myplugin:optname'
     """
 
-    __core__ = True
+    __include_in_export__ = True
 
     key = models.CharField(max_length=64, unique=True)
     value = EncryptedPickledObjectField()

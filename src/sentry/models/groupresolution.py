@@ -10,7 +10,7 @@ class GroupResolution(Model):
     Describes when a group was marked as resolved.
     """
 
-    __core__ = False
+    __include_in_export__ = False
 
     class Type:
         in_release = 0

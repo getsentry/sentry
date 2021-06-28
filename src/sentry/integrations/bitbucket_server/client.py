@@ -224,7 +224,7 @@ class BitbucketServer(ApiClient):
             else:
                 start = data["nextPageStart"]
 
-        logger.warn(
+        logger.warning(
             "load.paginated_uri.max_pages",
             extra={
                 "bitbucket_uri": uri,

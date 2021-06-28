@@ -99,7 +99,7 @@ class AuditLogEntryEvent:
 
 
 class AuditLogEntry(Model):
-    __core__ = False
+    __include_in_export__ = False
 
     organization = FlexibleForeignKey("sentry.Organization")
     actor_label = models.CharField(max_length=MAX_ACTOR_LABEL_LENGTH, null=True, blank=True)

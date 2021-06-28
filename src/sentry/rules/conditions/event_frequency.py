@@ -132,11 +132,11 @@ class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
 
 
 percent_intervals = {
-    "1m": ("one minute", timedelta(minutes=1)),
-    "5m": ("five minutes", timedelta(minutes=5)),
-    "10m": ("ten minutes", timedelta(minutes=10)),
+    "1m": ("1 minute", timedelta(minutes=1)),
+    "5m": ("5 minutes", timedelta(minutes=5)),
+    "10m": ("10 minutes", timedelta(minutes=10)),
     "30m": ("30 minutes", timedelta(minutes=30)),
-    "1h": ("one hour", timedelta(minutes=60)),
+    "1h": ("1 hour", timedelta(minutes=60)),
 }
 
 
@@ -155,7 +155,7 @@ class EventFrequencyPercentForm(EventFrequencyForm):
 
 
 class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
-    label = "The issue has more errors than {value} percent of sessions in {interval}"
+    label = "The issue affects more than {value} percent of sessions in {interval}"
 
     def __init__(self, *args, **kwargs):
         self.intervals = percent_intervals

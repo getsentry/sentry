@@ -255,12 +255,13 @@ class ReleaseAdoptionChart extends AsyncComponent<Props, State> {
                         period: '1',
                       };
                       const intervalStart = moment(timestamp).format('MMM D LT');
-                      const intervalEnd = (series[0].dataIndex === numDataPoints - 1
-                        ? moment(sessions.end)
-                        : moment(timestamp).add(
-                            parseInt(periodObj.period, 10),
-                            periodObj.periodLength as StatsPeriodType
-                          )
+                      const intervalEnd = (
+                        series[0].dataIndex === numDataPoints - 1
+                          ? moment(sessions.end)
+                          : moment(timestamp).add(
+                              parseInt(periodObj.period, 10),
+                              periodObj.periodLength as StatsPeriodType
+                            )
                       ).format('MMM D LT');
 
                       return [

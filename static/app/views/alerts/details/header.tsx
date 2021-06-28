@@ -68,13 +68,8 @@ export default class DetailsHeader extends React.Component<Props> {
   }
 
   render() {
-    const {
-      hasIncidentDetailsError,
-      incident,
-      params,
-      stats,
-      onSubscriptionChange,
-    } = this.props;
+    const {hasIncidentDetailsError, incident, params, stats, onSubscriptionChange} =
+      this.props;
     const isIncidentReady = !!incident && !hasIncidentDetailsError;
     // ex - Wed, May 27, 2020 11:09 AM
     const dateFormat = use24Hours() ? 'ddd, MMM D, YYYY HH:mm' : 'llll';

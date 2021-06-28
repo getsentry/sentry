@@ -23,7 +23,7 @@ class ApiKeyStatus:
 
 
 class ApiKey(Model):
-    __core__ = True
+    __include_in_export__ = True
 
     organization = FlexibleForeignKey("sentry.Organization", related_name="key_set")
     label = models.CharField(max_length=64, blank=True, default="Default")

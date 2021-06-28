@@ -27,16 +27,15 @@ export type TeamKeyTransactionManagerChildrenProps = {
   handleToggleKeyTransaction: (selection: TeamSelection) => void;
 };
 
-const TeamKeyTransactionsManagerContext = createContext<TeamKeyTransactionManagerChildrenProps>(
-  {
+const TeamKeyTransactionsManagerContext =
+  createContext<TeamKeyTransactionManagerChildrenProps>({
     teams: [],
     isLoading: false,
     error: null,
     counts: null,
     getKeyedTeams: () => null,
     handleToggleKeyTransaction: () => {},
-  }
-);
+  });
 
 type Props = {
   api: Client;

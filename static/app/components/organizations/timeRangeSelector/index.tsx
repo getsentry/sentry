@@ -108,7 +108,7 @@ type Props = ReactRouter.WithRouterProps & {
   /**
    * Override defaults from DEFAULT_RELATIVE_PERIODS
    */
-  relativeOptions?: Record<string, string>;
+  relativeOptions?: Record<string, React.ReactNode>;
 
   /**
    * Default initial value for using UTC
@@ -371,7 +371,10 @@ class TimeRangeSelector extends React.PureComponent<Props, State> {
       isAbsoluteSelected && start && end ? (
         <DateSummary start={start} end={end} />
       ) : (
-        getRelativeSummary(relative || defaultPeriod || DEFAULT_STATS_PERIOD)
+        getRelativeSummary(
+          relative || defaultPeriod || DEFAULT_STATS_PERIOD,
+          relativeOptions
+        )
       );
 
     const relativeSelected = isAbsoluteSelected

@@ -53,8 +53,7 @@ describe('Performance > TransactionSummary', function () {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url:
-        '/organizations/org-slug/issues/?limit=5&project=1&query=is%3Aunresolved%20transaction%3A%2Fperformance&sort=new&statsPeriod=14d',
+      url: '/organizations/org-slug/issues/?limit=5&project=1&query=is%3Aunresolved%20transaction%3A%2Fperformance&sort=new&statsPeriod=14d',
       body: [],
     });
     MockApiClient.addMockResponse({
@@ -409,8 +408,7 @@ describe('Performance > TransactionSummary', function () {
 
   it('forwards conditions to related issues', async function () {
     const issueGet = MockApiClient.addMockResponse({
-      url:
-        '/organizations/org-slug/issues/?limit=5&project=1&query=tag%3Avalue%20is%3Aunresolved%20transaction%3A%2Fperformance&sort=new&statsPeriod=14d',
+      url: '/organizations/org-slug/issues/?limit=5&project=1&query=tag%3Avalue%20is%3Aunresolved%20transaction%3A%2Fperformance&sort=new&statsPeriod=14d',
       body: [],
     });
 
@@ -431,8 +429,7 @@ describe('Performance > TransactionSummary', function () {
   it('does not forward event type to related issues', async function () {
     const issueGet = MockApiClient.addMockResponse(
       {
-        url:
-          '/organizations/org-slug/issues/?limit=5&project=1&query=tag%3Avalue%20is%3Aunresolved%20transaction%3A%2Fperformance&sort=new&statsPeriod=14d',
+        url: '/organizations/org-slug/issues/?limit=5&project=1&query=tag%3Avalue%20is%3Aunresolved%20transaction%3A%2Fperformance&sort=new&statsPeriod=14d',
         body: [],
       },
       {

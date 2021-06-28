@@ -8,9 +8,10 @@ from django.utils import timezone
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
-from sentry.search.events.constants import SEMVER_ALIAS
+from sentry.models.release import SemverFilter
+from sentry.search.events.constants import SEMVER_ALIAS, SEMVER_EMPTY_RELEASE
 from sentry.search.events.fields import Function, FunctionArg, InvalidSearchQuery, with_default
-from sentry.search.events.filter import get_filter, parse_semver_search
+from sentry.search.events.filter import _semver_filter_converter, get_filter, parse_semver
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.snuba import OPERATOR_TO_FUNCTION
@@ -1432,20 +1433,20 @@ class FunctionTest(unittest.TestCase):
         assert fn.is_accessible(["fn"]) is True
 
 
-class ParseSemverSearchTest(TestCase):
+class SemverFilterConverterTest(TestCase):
     def test_invalid_params(self):
         key = "semver"
         filter = SearchFilter(SearchKey(key), ">", SearchValue("1.2.3"))
         with pytest.raises(ValueError, match="organization_id is a required param"):
-            parse_semver_search(filter, key, None)
+            _semver_filter_converter(filter, key, None)
         with pytest.raises(ValueError, match="organization_id is a required param"):
-            parse_semver_search(filter, key, {"something": 1})
+            _semver_filter_converter(filter, key, {"something": 1})
 
     def test_invalid_query(self):
         key = "semver"
-        filter = SearchFilter(SearchKey(key), ">", SearchValue("1.2.*"))
+        filter = SearchFilter(SearchKey(key), ">", SearchValue("1.2.hi"))
         with pytest.raises(InvalidSearchQuery, match="Invalid format for semver query"):
-            parse_semver_search(filter, key, {"organization_id": self.organization.id})
+            _semver_filter_converter(filter, key, {"organization_id": self.organization.id})
 
     def run_test(
         self, operator, version, expected_operator, expected_releases, organization_id=None
@@ -1453,11 +1454,14 @@ class ParseSemverSearchTest(TestCase):
         organization_id = organization_id if organization_id else self.organization.id
         key = "semver"
         filter = SearchFilter(SearchKey(key), operator, SearchValue(version))
-        assert parse_semver_search(filter, key, {"organization_id": organization_id}) == [
+        assert _semver_filter_converter(filter, key, {"organization_id": organization_id}) == [
             "release",
             expected_operator,
             expected_releases,
         ]
+
+    def test_empty(self):
+        self.run_test(">", "1.2.3", "IN", [SEMVER_EMPTY_RELEASE])
 
     def test(self):
         release = self.create_release(version="test@1.2.3")
@@ -1466,6 +1470,7 @@ class ParseSemverSearchTest(TestCase):
         self.run_test(">=", "1.2.4", "IN", [release_2.version])
         self.run_test("<", "1.2.4", "IN", [release.version])
         self.run_test("<=", "1.2.3", "IN", [release.version])
+        self.run_test("=", "1.2.4", "IN", [release_2.version])
 
     def test_invert_query(self):
         # Tests that flipping the query works and uses a NOT IN. Test all operators to
@@ -1530,4 +1535,58 @@ class ParseSemverSearchTest(TestCase):
         self.run_test(">", "1.2", "IN", [release_3.version, release_4.version, release_5.version])
         self.run_test(">", "1.2.3", "IN", [release_4.version, release_5.version])
         self.run_test(">", "1.2.3.4", "IN", [release_5.version])
-        self.run_test(">", "2", "IN", [])
+        self.run_test(">", "2", "IN", [SEMVER_EMPTY_RELEASE])
+
+    def test_wildcard(self):
+        release_1 = self.create_release(version="test@1.0.0.0")
+        release_2 = self.create_release(version="test@1.2.0.0")
+        release_3 = self.create_release(version="test@1.2.3.0")
+        release_4 = self.create_release(version="test@1.2.3.4")
+        release_5 = self.create_release(version="test@2.0.0.0")
+
+        self.run_test(
+            "=",
+            "1.X",
+            "IN",
+            [release_1.version, release_2.version, release_3.version, release_4.version],
+        )
+        self.run_test("=", "1.2.*", "IN", [release_2.version, release_3.version, release_4.version])
+        self.run_test("=", "1.2.3.*", "IN", [release_3.version, release_4.version])
+        self.run_test("=", "1.2.3.4", "IN", [release_4.version])
+        self.run_test("=", "2.*", "IN", [release_5.version])
+
+    def test_multi_packagae(self):
+        release_1 = self.create_release(version="test@1.0.0.0")
+        release_2 = self.create_release(version="test@1.2.0.0")
+        release_3 = self.create_release(version="test_2@1.2.3.0")
+        self.run_test("=", "test@1.*", "IN", [release_1.version, release_2.version])
+        self.run_test(">=", "test@1.0", "IN", [release_1.version, release_2.version])
+        self.run_test(">", "test_2@1.0", "IN", [release_3.version])
+
+
+class ParseSemverTest(unittest.TestCase):
+    def run_test(self, version: str, operator: str, expected: SemverFilter):
+        semver_filter = parse_semver(version, operator)
+        assert semver_filter == expected
+
+    def test_invalid(self):
+        with pytest.raises(InvalidSearchQuery, match="Invalid format for semver query"):
+            parse_semver("1.hello", ">") is None
+        with pytest.raises(InvalidSearchQuery, match="Invalid format for semver query"):
+            parse_semver("hello", ">") is None
+
+    def test_normal(self):
+        self.run_test("1", ">", SemverFilter("gt", [1, 0, 0, 0, 1, ""]))
+        self.run_test("1.2", ">", SemverFilter("gt", [1, 2, 0, 0, 1, ""]))
+        self.run_test("1.2.3", ">", SemverFilter("gt", [1, 2, 3, 0, 1, ""]))
+        self.run_test("1.2.3.4", ">", SemverFilter("gt", [1, 2, 3, 4, 1, ""]))
+        self.run_test("1.2.3-hi", ">", SemverFilter("gt", [1, 2, 3, 0, 0, "hi"]))
+        self.run_test("1.2.3-hi", "<", SemverFilter("lt", [1, 2, 3, 0, 0, "hi"]))
+        self.run_test("sentry@1.2.3-hi", "<", SemverFilter("lt", [1, 2, 3, 0, 0, "hi"], "sentry"))
+
+    def test_wildcard(self):
+        self.run_test("1.*", "=", SemverFilter("exact", [1]))
+        self.run_test("1.2.*", "=", SemverFilter("exact", [1, 2]))
+        self.run_test("1.2.3.*", "=", SemverFilter("exact", [1, 2, 3]))
+        self.run_test("sentry@1.2.3.*", "=", SemverFilter("exact", [1, 2, 3], "sentry"))
+        self.run_test("1.X", "=", SemverFilter("exact", [1]))
