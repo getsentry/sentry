@@ -52,7 +52,7 @@ class AuthIdentityHandlerTest(TestCase):
             "data": {"foo": "bar"},
         }
 
-        self.state = RedisBackedState(self.request)
+        self.state = RedisBackedState(self.request, "pipeline")
 
     def set_up_user(self):
         """Set up a persistent user and associate it to the request.
