@@ -267,7 +267,7 @@ def get_send_to_team(
         return {}
 
     team_notification_settings = NotificationSetting.objects.get_for_recipient_by_parent(
-        NotificationSettingTypes.ISSUE_ALERTS, parent=team, recipient=team
+        NotificationSettingTypes.ISSUE_ALERTS, parent=project, recipient=team
     )
     if team_notification_settings:
         team_mapping = {

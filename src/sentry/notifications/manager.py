@@ -252,7 +252,7 @@ class NotificationsManager(BaseManager):  # type: ignore
     def get_for_recipient_by_parent(
         self,
         type: NotificationSettingTypes,
-        parent: Union["Organization", "Project", "Team"],
+        parent: Union["Organization", "Project"],
         recipient: Union["User", "Team"],
     ) -> QuerySet:
         """
@@ -260,15 +260,18 @@ class NotificationsManager(BaseManager):  # type: ignore
         This will include each recipient's project/organization-independent settings.
         """
         scope_type = get_scope_type(type)
+        scope_identifier = parent.id
         # XXX(ceo): kind of a hack but we only set the team scope type here
         if (
             recipient.__class__.__name__.lower()
             == NOTIFICATION_SCOPE_TYPE[NotificationScopeType.TEAM]
         ):
             scope_type = NotificationScopeType.TEAM
+            scope_identifier = recipient.id
+
         return self.filter(
             scope_type=scope_type.value,
-            scope_identifier=parent.id,
+            scope_identifier=scope_identifier,
             type=type.value,
             target=recipient.actor_id,
         )
