@@ -11,7 +11,7 @@ from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
 from sentry.web.decorators import transaction_start
 
-from .utils import logger, parse_link
+from ..utils import logger, parse_link
 
 
 # XXX(dcramer): a lot of this is copied from sentry-plugins right now, and will

@@ -11,8 +11,8 @@ from sentry.web.decorators import transaction_start
 from sentry.web.frontend.base import BaseView
 from sentry.web.helpers import render_to_response
 
-from .client import SlackClient
-from .utils import get_identity, logger
+from ..client import SlackClient
+from ..utils import get_identity, logger
 
 
 def build_linking_url(integration, organization, slack_id, channel_id, response_url):
@@ -81,7 +81,7 @@ class SlackLinkIdentityView(BaseView):
                 logger.error("slack.link-notify.response-error", extra={"error": message})
 
         return render_to_response(
-            "sentry/slack-linked.html",
+            "sentry/integrations/slack-linked.html",
             request=request,
             context={"channel_id": params["channel_id"], "team_id": integration.external_id},
         )

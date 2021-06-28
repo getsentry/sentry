@@ -2,17 +2,17 @@ from sentry import analytics
 from sentry.api import client
 from sentry.api.base import Endpoint
 from sentry.integrations.slack.client import SlackClient
-from sentry.integrations.slack.link_identity import build_linking_url
 from sentry.integrations.slack.message_builder.issues import build_group_attachment
 from sentry.integrations.slack.requests.action import SlackActionRequest
 from sentry.integrations.slack.requests.base import SlackRequestError
-from sentry.integrations.slack.unlink_identity import build_unlinking_url
+from sentry.integrations.slack.views.link_identity import build_linking_url
+from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
 from sentry.models import ApiKey, Group, Identity, IdentityProvider, Project
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
 from sentry.web.decorators import transaction_start
 
-from .utils import logger
+from ..utils import logger
 
 LINK_IDENTITY_MESSAGE = "Looks like you haven't linked your Sentry account with your Slack identity yet! <{associate_url}|Link your identity now> to perform actions in Sentry through Slack."
 

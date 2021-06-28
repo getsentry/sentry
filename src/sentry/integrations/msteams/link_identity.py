@@ -64,5 +64,7 @@ class MsTeamsLinkIdentityView(BaseView):
         client.send_card(user_conversation_id, card)
 
         return render_to_response(
-            "sentry/msteams-linked.html", request=request, context={"team_id": params["team_id"]}
+            "sentry/integrations/msteams-linked.html",
+            request=request,
+            context={"team_id": params["team_id"]},
         )

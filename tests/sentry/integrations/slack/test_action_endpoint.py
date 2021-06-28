@@ -3,9 +3,12 @@ from urllib.parse import parse_qs
 import responses
 
 from sentry.api import client
-from sentry.integrations.slack.action_endpoint import LINK_IDENTITY_MESSAGE, UNLINK_IDENTITY_MESSAGE
-from sentry.integrations.slack.link_identity import build_linking_url
-from sentry.integrations.slack.unlink_identity import build_unlinking_url
+from sentry.integrations.slack.endpoints.action import (
+    LINK_IDENTITY_MESSAGE,
+    UNLINK_IDENTITY_MESSAGE,
+)
+from sentry.integrations.slack.views.link_identity import build_linking_url
+from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
 from sentry.models import (
     AuthIdentity,
     AuthProvider,

@@ -1,6 +1,6 @@
 import responses
 
-from sentry.integrations.slack.unlink_identity import build_unlinking_url
+from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
 from sentry.models import (
     Identity,
     IdentityProvider,
