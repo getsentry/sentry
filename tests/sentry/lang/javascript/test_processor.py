@@ -522,25 +522,24 @@ class FetchFileTest(TestCase):
         file_.putfile(compressed)
         update_artifact_index(release, None, file_)
 
-        with self.options({"processing.use-release-archives-sample-rate": 1.0}):
-            # Attempt to fetch nonexisting
-            with pytest.raises(http.BadSource):
-                fetch_file("does-not-exist.js", release=release)
+        # Attempt to fetch nonexisting
+        with pytest.raises(http.BadSource):
+            fetch_file("does-not-exist.js", release=release)
 
-            # Attempt to fetch nonexsting again (to check if cache works)
-            with pytest.raises(http.BadSource):
-                result = fetch_file("does-not-exist.js", release=release)
+        # Attempt to fetch nonexsting again (to check if cache works)
+        with pytest.raises(http.BadSource):
+            result = fetch_file("does-not-exist.js", release=release)
 
-            result = fetch_file("/example.js", release=release)
-            assert result.url == "/example.js"
-            assert result.body == b"foo"
-            assert isinstance(result.body, bytes)
-            assert result.headers == {"content-type": "application/json"}
-            assert result.encoding == "utf-8"
+        result = fetch_file("/example.js", release=release)
+        assert result.url == "/example.js"
+        assert result.body == b"foo"
+        assert isinstance(result.body, bytes)
+        assert result.headers == {"content-type": "application/json"}
+        assert result.encoding == "utf-8"
 
-            # Make sure cache loading works:
-            result2 = fetch_file("/example.js", release=release)
-            assert result2 == result
+        # Make sure cache loading works:
+        result2 = fetch_file("/example.js", release=release)
+        assert result2 == result
 
     @patch("sentry.lang.javascript.processor.cache.set", side_effect=cache.set)
     @patch("sentry.lang.javascript.processor.cache.get", side_effect=cache.get)
