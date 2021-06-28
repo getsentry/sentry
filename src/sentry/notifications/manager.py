@@ -14,6 +14,7 @@ from sentry.notifications.helpers import (
     where_should_user_be_notified,
 )
 from sentry.notifications.types import (
+    NOTIFICATION_SCOPE_TYPE,
     NotificationScopeType,
     NotificationSettingOptionValues,
     NotificationSettingTypes,
@@ -251,14 +252,20 @@ class NotificationsManager(BaseManager):  # type: ignore
     def get_for_recipient_by_parent(
         self,
         type: NotificationSettingTypes,
-        parent: Union["Organization", "Project"],
-        recipient: "User",
+        parent: Union["Organization", "Project", "Team"],
+        recipient: Union["User", "Team"],
     ) -> QuerySet:
         """
         Find all of a project/organization's notification settings for a recipient.
         This will include each recipient's project/organization-independent settings.
         """
         scope_type = get_scope_type(type)
+        # XXX(ceo): kind of a hack but we only set the team scope type here
+        if (
+            recipient.__class__.__name__.lower()
+            == NOTIFICATION_SCOPE_TYPE[NotificationScopeType.TEAM]
+        ):
+            scope_type = NotificationScopeType.TEAM
         return self.filter(
             scope_type=scope_type.value,
             scope_identifier=parent.id,

@@ -128,8 +128,8 @@ class SlackCommandsLinkTeamTest(SlackCommandsTest):
     @responses.activate
     def test_link_team_command(self):
         """Test that we successfully link a team to a Slack channel"""
-        project = self.create_project(name="mw", organization=self.organization, teams=[self.team])
-        project2 = self.create_project(name="hb", organization=self.organization, teams=[self.team])
+        self.create_project(name="mw", organization=self.organization, teams=[self.team])
+        self.create_project(name="hb", organization=self.organization, teams=[self.team])
         assert "Link your Sentry team to this Slack channel!" in self.data["text"]
         linking_url = build_linking_url(
             self.integration,
@@ -159,23 +159,9 @@ class SlackCommandsLinkTeamTest(SlackCommandsTest):
         )
 
         team_settings = NotificationSetting.objects.filter(
-            scope_type=NotificationScopeType.PROJECT.value, target=self.team.actor.id
+            scope_type=NotificationScopeType.TEAM.value, target=self.team.actor.id
         )
-        assert len(team_settings) == 2
-
-        project_settings = NotificationSetting.objects.get(
-            scope_type=NotificationScopeType.PROJECT.value,
-            scope_identifier=project.id,
-            target=self.team.actor.id,
-        )
-        assert project_settings
-
-        project2_settings = NotificationSetting.objects.get(
-            scope_type=NotificationScopeType.PROJECT.value,
-            scope_identifier=project2.id,
-            target=self.team.actor.id,
-        )
-        assert project2_settings
+        assert len(team_settings) == 1
 
     def test_link_team_idp_does_not_exist(self):
         """Test that get_identity fails if we cannot find a matching idp"""

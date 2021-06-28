@@ -194,16 +194,12 @@ class SlackLinkTeamView(BaseView):
         )
 
         if created:
-            team_projects = team.get_projects()
-            for project in team_projects:
-                # turn on notifications for all of a team's projects
-                NotificationSetting.objects.update_settings(
-                    ExternalProviders.SLACK,
-                    NotificationSettingTypes.ISSUE_ALERTS,
-                    NotificationSettingOptionValues.ALWAYS,
-                    team=team,
-                    project=project,
-                )
+            NotificationSetting.objects.update_settings(
+                ExternalProviders.SLACK,
+                NotificationSettingTypes.ISSUE_ALERTS,
+                NotificationSettingOptionValues.ALWAYS,
+                team=team,
+            )
             return self.send_slack_message(
                 request,
                 client,
