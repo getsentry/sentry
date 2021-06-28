@@ -3,7 +3,6 @@ from typing import Any, Sequence
 from django import forms
 from django.http import HttpResponse
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry.models import (
     ExternalActor,
@@ -106,25 +105,6 @@ class SelectTeamForm(forms.Form):  # type: ignore
 
 
 class SlackLinkTeamView(BaseView):  # type: ignore
-    def get_identity(self, request: Request, integration: Integration, slack_id: str) -> Response:
-        try:
-            idp = IdentityProvider.objects.get(type="slack", external_id=integration.external_id)
-        except IdentityProvider.DoesNotExist:
-            logger.error(
-                "slack.action.invalid-team-id", extra={"slack_id": integration.external_id}
-            )
-            return self.render_error_page(request, body_text="HTTP 403: Invalid team ID")
-
-        try:
-            identity = Identity.objects.select_related("user").get(idp=idp, external_id=slack_id)
-        except Identity.DoesNotExist:
-            logger.error(
-                "slack.action.missing-identity", extra={"slack_id": integration.external_id}
-            )
-            return self.render_error_page(
-                request, body_text="HTTP 403: User identity does not exist"
-            )
-        return identity
     @transaction_start("SlackLinkTeamView")
     @never_cache
     def handle(self, request: Request, signed_params: str) -> HttpResponse:
@@ -138,10 +118,6 @@ class SlackLinkTeamView(BaseView):  # type: ignore
         channel_name = params["channel_name"]
         channel_id = params["channel_id"]
         form = SelectTeamForm(teams, request.POST or None)
-        if request.method == "POST":
-            if not form.is_valid():
-                return self.render_error_page(request, body_text="HTTP 400: Bad request")
-            team_id = form.cleaned_data["team"]
 
         if request.method == "GET":
             return self.respond(
@@ -154,11 +130,33 @@ class SlackLinkTeamView(BaseView):  # type: ignore
                 },
             )
 
-        team = Team.objects.get(id=team_id, organization=organization)
-        if not team:
-            return self.render_error_page(request, body_text="HTTP 404: Team does not exist")
+        if not form.is_valid():
+            return render_error_page(request, body_text="HTTP 400: Bad request")
 
-        identity = self.get_identity(request, integration, params["slack_id"])
+        team_id = form.cleaned_data["team"]
+        try:
+            team = Team.objects.get(id=team_id, organization=organization)
+        except Team.DoesNotExist:
+            return render_error_page(request, body_text="HTTP 404: Team does not exist")
+
+        try:
+            idp = IdentityProvider.objects.get(type="slack", external_id=integration.external_id)
+        except IdentityProvider.DoesNotExist:
+            logger.error(
+                "slack.action.invalid-team-id", extra={"slack_id": integration.external_id}
+            )
+            return render_error_page(request, body_text="HTTP 403: Invalid team ID")
+
+        try:
+            identity = Identity.objects.select_related("user").get(
+                idp=idp, external_id=params["slack_id"]
+            )
+        except Identity.DoesNotExist:
+            logger.error(
+                "slack.action.missing-identity", extra={"slack_id": integration.external_id}
+            )
+            return render_error_page(request, body_text="HTTP 403: User identity does not exist")
+
         org_member = OrganizationMember.objects.get(user=identity.user, organization=organization)
 
         if not (
@@ -173,12 +171,18 @@ class SlackLinkTeamView(BaseView):  # type: ignore
                 request,
             )
 
-        if ExternalActor.objects.filter(
+        external_team, created = ExternalActor.objects.get_or_create(
             actor_id=team.actor_id,
             organization=organization,
             integration=integration,
             provider=ExternalProviders.SLACK.value,
-        ).exists():
+            defaults=dict(
+                external_name=channel_name,
+                external_id=channel_id,
+            ),
+        )
+
+        if not created:
             return send_slack_message(
                 integration,
                 channel_id,
@@ -187,26 +191,17 @@ class SlackLinkTeamView(BaseView):  # type: ignore
                 request,
             )
 
-        external_team, created = ExternalActor.objects.get_or_create(
-            actor_id=team.actor_id,
-            organization=organization,
-            integration=integration,
-            provider=ExternalProviders.SLACK.value,
-            external_name=channel_name,
-            external_id=channel_id,
+        # Turn on notifications for all of a team's projects.
+        NotificationSetting.objects.update_settings(
+            ExternalProviders.SLACK,
+            NotificationSettingTypes.ISSUE_ALERTS,
+            NotificationSettingOptionValues.ALWAYS,
+            team=team,
         )
-
-        if created:
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.SLACK,
-                NotificationSettingTypes.ISSUE_ALERTS,
-                NotificationSettingOptionValues.ALWAYS,
-                team=team,
-            )
-            return send_slack_message(
-                integration,
-                channel_id,
-                SUCCESS_LINKED_TITLE,
-                SUCCESS_LINKED_MESSAGE.format(slug=team.slug, channel_name=channel_name),
-                request,
-            )
+        return send_slack_message(
+            integration,
+            channel_id,
+            SUCCESS_LINKED_TITLE,
+            SUCCESS_LINKED_MESSAGE.format(slug=team.slug, channel_name=channel_name),
+            request,
+        )
