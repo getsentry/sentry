@@ -69,7 +69,9 @@ const IssueListDisplayOptions = ({
           disabled={display !== IssueDisplayOptions.SESSIONS || isOpen}
         >
           <StyledDropdownButton
-            {...getActorProps({prefix: t('Display')})}
+            {...getActorProps({prefix: t('Display')} as React.ComponentProps<
+              typeof DropdownButton
+            >)}
             isOpen={isOpen}
           >
             {getDisplayLabel(display)}
