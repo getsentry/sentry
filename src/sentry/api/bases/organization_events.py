@@ -16,15 +16,12 @@ from sentry.discover.arithmetic import ArithmeticError, is_equation, strip_equat
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Organization, Team
 from sentry.models.group import Group
-from sentry.models.transaction_threshold import ProjectTransactionThreshold
-from sentry.search.events.constants import DEFAULT_PROJECT_THRESHOLD
 from sentry.search.events.fields import get_function_alias
 from sentry.search.events.filter import get_filter
 from sentry.snuba import discover
 from sentry.utils import snuba
 from sentry.utils.dates import get_rollup_from_request
 from sentry.utils.http import absolute_uri
-from sentry.utils.math import mean
 from sentry.utils.snuba import MAX_FIELDS
 
 
@@ -312,41 +309,6 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                     "tpm()": "tpm(%d)" % rollup,
                     "tps()": "tps(%d)" % rollup,
                 }
-                # For the new apdex, we need to add project threshold config as a selected
-                # column which means the group by for the time series won't work.
-                # As a temporary solution, we will calculate the mean of all the project
-                # level thresholds in the request and use the legacy apdex, user_misery
-                # or count_miserable calculation.
-                # TODO(snql): Alias the project_threshold_config column so it doesn't
-                # have to be in the SELECT statement and group by to be able to use new apdex,
-                # user_misery and count_miserable.
-                configurable_aggregates = {
-                    "apdex()": "apdex({threshold})",
-                    "user_misery()": "user_misery({threshold})",
-                    "count_miserable(user)": "count_miserable(user,{threshold})",
-                }
-                threshold = None
-                for agg in configurable_aggregates:
-                    if agg not in columns:
-                        continue
-
-                    if threshold is None:
-                        project_ids = params.get("project_id")
-                        threshold_configs = list(
-                            ProjectTransactionThreshold.objects.filter(
-                                organization_id=organization.id,
-                                project_id__in=project_ids,
-                            ).values_list("threshold", flat=True)
-                        )
-
-                        projects_without_threshold = len(project_ids) - len(threshold_configs)
-                        threshold_configs.extend(
-                            [DEFAULT_PROJECT_THRESHOLD] * projects_without_threshold
-                        )
-                        threshold = int(mean(threshold_configs))
-
-                    new_field_name = configurable_aggregates[agg].format(threshold=threshold)
-                    column_map[agg] = new_field_name
 
                 query_columns = [column_map.get(column, column) for column in columns]
             with sentry_sdk.start_span(op="discover.endpoint", description="base.stats_query"):
