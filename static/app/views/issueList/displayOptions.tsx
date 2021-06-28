@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import DropdownButton from 'app/components/dropdownButton';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
@@ -58,8 +59,23 @@ const IssueListDisplayOptions = ({
 
   return (
     <StyledDropdownControl
-      buttonProps={{prefix: t('Display')}}
-      label={getDisplayLabel(display)}
+      button={({isOpen, getActorProps}) => (
+        <Tooltip
+          containerDisplayMode="inline-flex"
+          position="top"
+          title={t(
+            'This shows the event count as a percent of sessions in the same time period.'
+          )}
+          disabled={display !== IssueDisplayOptions.SESSIONS || isOpen}
+        >
+          <StyledDropdownButton
+            {...getActorProps({prefix: t('Display')})}
+            isOpen={isOpen}
+          >
+            {getDisplayLabel(display)}
+          </StyledDropdownButton>
+        </Tooltip>
+      )}
     >
       <React.Fragment>
         {getMenuItem(IssueDisplayOptions.EVENTS)}
@@ -71,6 +87,11 @@ const IssueListDisplayOptions = ({
 
 const StyledDropdownControl = styled(DropdownControl)`
   margin-right: ${space(1)};
+`;
+
+const StyledDropdownButton = styled(DropdownButton)`
+  z-index: ${p => p.theme.zIndex.dropdownAutocomplete.actor};
+  white-space: nowrap;
 `;
 
 const StyledTooltip = styled(Tooltip)`

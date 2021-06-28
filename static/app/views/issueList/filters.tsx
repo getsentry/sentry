@@ -4,8 +4,6 @@ import styled from '@emotion/styled';
 
 import Feature from 'app/components/acl/feature';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
-import Tooltip from 'app/components/tooltip';
-import {t} from 'app/locale';
 import {PageHeader} from 'app/styles/organization';
 import space from 'app/styles/space';
 import {Organization, SavedSearch} from 'app/types';
@@ -88,21 +86,12 @@ class IssueListFilters extends React.Component<Props> {
           </SearchSelectorContainer>
 
           <Feature features={['issue-percent-display']} organization={organization}>
-            <Tooltip
-              containerDisplayMode="inline-flex"
-              position="top"
-              title={t(
-                'This shows the event count as a percent of sessions in the same time period.'
-              )}
-              disabled={display !== IssueDisplayOptions.SESSIONS}
-            >
-              <IssueListDisplayOptions
-                onDisplayChange={onDisplayChange}
-                display={display}
-                hasSessions={hasSessions}
-                hasMultipleProjectsSelected={selectedProjects.length !== 1}
-              />
-            </Tooltip>
+            <IssueListDisplayOptions
+              onDisplayChange={onDisplayChange}
+              display={display}
+              hasSessions={hasSessions}
+              hasMultipleProjectsSelected={selectedProjects.length !== 1}
+            />
           </Feature>
           <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
         </SearchContainer>
