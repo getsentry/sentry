@@ -308,7 +308,7 @@ class SpanTreeModel {
   };
 
   fetchEmbeddedTransactions({orgSlug, eventSlug}: {orgSlug: string; eventSlug: string}) {
-    const url = `/organizations/${orgSlug}/eventsxxx/${eventSlug}/`;
+    const url = `/organizations/${orgSlug}/events/${eventSlug}/`;
 
     this.fetchEmbeddedChildrenState = 'loading_embedded_transactions';
 
@@ -333,6 +333,7 @@ class SpanTreeModel {
           );
 
           this.embeddedChildren = [parsedRootSpan];
+          this.fetchEmbeddedChildrenState = 'idle';
         })
       )
       .catch(
