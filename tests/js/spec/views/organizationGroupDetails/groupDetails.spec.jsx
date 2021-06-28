@@ -53,7 +53,7 @@ describe('groupDetails', () => {
         Group Details Mock
         <div>title: {groupProp.title}</div>
         <div>environment: {environments.join(' ')}</div>
-        <div>{eventError && 'eventError'}</div>
+        {eventError && <div>eventError</div>}
       </div>
     );
   }
