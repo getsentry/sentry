@@ -4619,12 +4619,15 @@ class Migration(migrations.Migration):
             unique_together={("user", "application")},
         ),
         migrations.RunSQL(
+            hints={"tables": ["sentry_projectcounter"]},
             sql="\n        create or replace function sentry_increment_project_counter(\n                project bigint, delta int) returns int as $$\n            declare\n            new_val int;\n            begin\n            loop\n                update sentry_projectcounter set value = value + delta\n                where project_id = project\n                returning value into new_val;\n                if found then\n                return new_val;\n                end if;\n                begin\n                insert into sentry_projectcounter(project_id, value)\n                    values (project, delta)\n                    returning value into new_val;\n                return new_val;\n                exception when unique_violation then\n                end;\n            end loop;\n            end\n            $$ language plpgsql;\n        ",
         ),
         migrations.RunSQL(
+            hints={"tables": ["sentry_savedsearch"]},
             sql="\n        CREATE UNIQUE INDEX sentry_savedsearch_is_global_6793a2f9e1b59b95\n        ON sentry_savedsearch USING btree (is_global, name)\n        WHERE is_global\n        ",
         ),
         migrations.RunSQL(
+            hints={"tables": ["sentry_savedsearch"]},
             sql="\n        CREATE UNIQUE INDEX sentry_savedsearch_organization_id_313a24e907cdef99\n        ON sentry_savedsearch USING btree (organization_id, name, type)\n        WHERE (owner_id IS NULL);\n        ",
         ),
         migrations.CreateModel(
@@ -5645,6 +5648,7 @@ class Migration(migrations.Migration):
         migrations.SeparateDatabaseAndState(
             database_operations=[
                 migrations.RunSQL(
+                    hints={"tables": ["sentry_eventattachment"]},
                     sql='\n                    CREATE INDEX CONCURRENTLY "sentry_eventattachment_project_id_date_added_fi_f3b0597f_idx" ON "sentry_eventattachment" ("project_id", "date_added", "file_id");\n                    ',
                     reverse_sql='\n                        DROP INDEX CONCURRENTLY "sentry_eventattachment_project_id_date_added_fi_f3b0597f_idx";\n                        ',
                 ),
@@ -5662,14 +5666,17 @@ class Migration(migrations.Migration):
         migrations.SeparateDatabaseAndState(
             database_operations=[
                 migrations.RunSQL(
+                    hints={"tables": ["sentry_alertrule"]},
                     sql="\n                    ALTER TABLE sentry_alertrule DROP CONSTRAINT IF EXISTS sentry_alertrule_organization_id_name_12c48b37_uniq;\n                    ",
                     reverse_sql="DO $$\n                    BEGIN\n                        BEGIN\n                            ALTER TABLE sentry_alertrule ADD CONSTRAINT sentry_alertrule_organization_id_name_12c48b37_uniq UNIQUE (organization_id, name);\n                        EXCEPTION\n                            WHEN duplicate_table THEN\n                        END;\n                    END $$;\n                    ",
                 ),
                 migrations.RunSQL(
+                    hints={"tables": ["sentry_alertrule"]},
                     sql="\n                    DROP INDEX CONCURRENTLY IF EXISTS sentry_alertrule_organization_id_name_12c48b37_uniq;\n                    ",
                     reverse_sql="\n                    CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS sentry_alertrule_organization_id_name_12c48b37_uniq\n                    ON sentry_alertrule USING btree (organization_id, name);\n                    ",
                 ),
                 migrations.RunSQL(
+                    hints={"tables": ["sentry_alertrule"]},
                     sql="\n                    CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS sentry_alertrule_status_active\n                    ON sentry_alertrule USING btree (organization_id, name, status)\n                    WHERE status = 0;\n                    ",
                     reverse_sql="\n                    DROP INDEX CONCURRENTLY IF EXISTS sentry_alertrule_status_active;\n                    ",
                 ),
@@ -5695,6 +5702,7 @@ class Migration(migrations.Migration):
         migrations.SeparateDatabaseAndState(
             database_operations=[
                 migrations.RunSQL(
+                    hints={"tables": ["sentry_alertrule"]},
                     sql="\n                    ALTER TABLE sentry_alertrule DROP CONSTRAINT IF EXISTS sentry_alertrule_organization_id_382634eccd5f9371_uniq;\n                    ",
                     reverse_sql="DO $$\n                    BEGIN\n                        BEGIN\n                            ALTER TABLE sentry_alertrule ADD CONSTRAINT sentry_alertrule_organization_id_382634eccd5f9371_uniq UNIQUE (organization_id, name);\n                        EXCEPTION\n                            WHEN duplicate_table THEN\n                        END;\n                    END $$;\n                    ",
                 ),
@@ -5945,6 +5953,7 @@ class Migration(migrations.Migration):
             unique_together={("provider", "organization")},
         ),
         migrations.RunSQL(
+            hints={"tables": ["sentry_timeseriessnapshot"]},
             sql="ALTER TABLE sentry_timeseriessnapshot ALTER COLUMN values SET DATA TYPE float[] USING values::float[]",
         ),
         migrations.AddField(
@@ -6252,10 +6261,12 @@ class Migration(migrations.Migration):
         migrations.SeparateDatabaseAndState(
             database_operations=[
                 migrations.RunSQL(
+                    hints={"tables": ["sentry_projectdsymfile"]},
                     sql='\n                    ALTER TABLE "sentry_projectdsymfile" ADD COLUMN "checksum" varchar(40) NULL;\n                    ',
                     reverse_sql='\n                        ALTER TABLE "sentry_projectdsymfile" DROP COLUMN "checksum";\n                        ',
                 ),
                 migrations.RunSQL(
+                    hints={"tables": ["sentry_projectdsymfile"]},
                     sql='\n                    CREATE INDEX CONCURRENTLY "sentry_projectdsymfile_checksum_8fb028a8_idx" ON "sentry_projectdsymfile" ("checksum");\n                    ',
                     reverse_sql='\n                        DROP INDEX CONCURRENTLY "sentry_projectdsymfile_checksum_8fb028a8_idx";\n                        ',
                 ),
@@ -6354,6 +6365,7 @@ class Migration(migrations.Migration):
         migrations.SeparateDatabaseAndState(
             database_operations=[
                 migrations.RunSQL(
+                    hints={"tables": ["sentry_release"]},
                     sql='\n                    ALTER TABLE "sentry_release" ADD COLUMN "status" integer NULL;\n                    ',
                     reverse_sql='\n                    ALTER TABLE "sentry_release" DROP COLUMN "status";\n                    ',
                 ),
@@ -6362,14 +6374,17 @@ class Migration(migrations.Migration):
         migrations.SeparateDatabaseAndState(
             database_operations=[
                 migrations.RunSQL(
+                    hints={"tables": ["sentry_groupinbox"]},
                     sql='\n                    ALTER TABLE "sentry_groupinbox" ADD COLUMN "organization_id" bigint NULL;\n                    ALTER TABLE "sentry_groupinbox" ADD COLUMN "project_id" bigint NULL;\n                    ',
                     reverse_sql='\n                        ALTER TABLE "sentry_groupinbox" DROP COLUMN "organization_id";\n                        ALTER TABLE "sentry_groupinbox" DROP COLUMN "project_id";\n                        ',
                 ),
                 migrations.RunSQL(
+                    hints={"tables": ["sentry_groupinbox"]},
                     sql='\n                    CREATE INDEX CONCURRENTLY "sentry_groupinbox_organization_id_7b67769a" ON "sentry_groupinbox" ("organization_id");\n                    ',
                     reverse_sql='\n                        DROP INDEX CONCURRENTLY "sentry_groupinbox_organization_id_7b67769a";\n                        ',
                 ),
                 migrations.RunSQL(
+                    hints={"tables": ["sentry_groupinbox"]},
                     sql='\n                    CREATE INDEX CONCURRENTLY "sentry_groupinbox_project_id_ef8f034d" ON "sentry_groupinbox" ("project_id");\n                    ',
                     reverse_sql='\n                        DROP INDEX CONCURRENTLY "sentry_groupinbox_project_id_ef8f034d";\n                        ',
                 ),
@@ -6564,6 +6579,7 @@ class Migration(migrations.Migration):
         migrations.SeparateDatabaseAndState(
             database_operations=[
                 migrations.RunSQL(
+                    hints={"tables": ["sentry_dashboard"]},
                     sql='\n                        ALTER TABLE "sentry_dashboard" DROP COLUMN "status";\n                        ',
                     reverse_sql='\n                        ALTER TABLE "sentry_dashboard" ADD COLUMN "status" int NOT NULL;\n                        ',
                 ),
@@ -6595,6 +6611,7 @@ class Migration(migrations.Migration):
             ],
         ),
         migrations.RunSQL(
+            hints={"tables": ["sentry_dashboardwidgetquery"]},
             sql="ALTER TABLE sentry_dashboardwidgetquery DROP COLUMN interval",
         ),
         migrations.AddField(
@@ -6661,6 +6678,7 @@ class Migration(migrations.Migration):
         migrations.SeparateDatabaseAndState(
             database_operations=[
                 migrations.RunSQL(
+                    hints={"tables": ["sentry_groupinbox"]},
                     sql="\n                    CREATE INDEX CONCURRENTLY IF NOT EXISTS sentry_groupinbox_date_added_f113c11b\n                    ON sentry_groupinbox (date_added);\n                    ",
                     reverse_sql="\n                    DROP INDEX CONCURRENTLY IF EXISTS sentry_groupinbox_date_added_f113c11b;\n                    ",
                 ),
@@ -7008,22 +7026,27 @@ class Migration(migrations.Migration):
         migrations.SeparateDatabaseAndState(
             database_operations=[
                 migrations.RunSQL(
+                    hints={"tables": ["sentry_team"]},
                     sql='\n                    ALTER TABLE sentry_team ADD COLUMN "actor_id" bigint NULL;\n                    ALTER TABLE auth_user ADD COLUMN "actor_id" bigint NULL;\n                    ',
                     reverse_sql='\n                    ALTER TABLE sentry_team DROP COLUMN "actor_id";\n                    ALTER TABLE auth_user DROP COLUMN "actor_id";\n                    ',
                 ),
                 migrations.RunSQL(
+                    hints={"tables": ["sentry_team"]},
                     sql="\n                    CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS sentry_team_actor_idx ON sentry_team (actor_id);\n                    ",
                     reverse_sql="\n                    DROP INDEX CONCURRENTLY IF EXISTS sentry_team_actor_idx;\n                    ",
                 ),
                 migrations.RunSQL(
+                    hints={"tables": ["sentry_team"]},
                     sql='\n                    ALTER TABLE sentry_team ADD CONSTRAINT "sentry_team_actor_idx_fk_sentry_actor_id" FOREIGN KEY ("actor_id") REFERENCES "sentry_actor" ("id") DEFERRABLE INITIALLY DEFERRED;\n                    ',
                     reverse_sql="\n                    ALTER TABLE sentry_team DROP CONSTRAINT IF EXISTS sentry_team_actor_idx_fk_sentry_actor_id;\n                    ",
                 ),
                 migrations.RunSQL(
+                    hints={"tables": ["auth_user"]},
                     sql="\n                    CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS auth_user_actor_idx ON auth_user (actor_id);\n                    ",
                     reverse_sql="\n                    DROP INDEX CONCURRENTLY IF EXISTS auth_user_actor_idx;\n                    ",
                 ),
                 migrations.RunSQL(
+                    hints={"tables": ["auth_user"]},
                     sql='\n                    ALTER TABLE auth_user ADD CONSTRAINT "auth_user_actor_idx_fk_sentry_actor_id" FOREIGN KEY ("actor_id") REFERENCES "sentry_actor" ("id") DEFERRABLE INITIALLY DEFERRED;\n                    ',
                     reverse_sql="\n                    ALTER TABLE sentry_team DROP CONSTRAINT IF EXISTS auth_user_actor_idx_fk_sentry_actor_id;\n                    ",
                 ),
@@ -7113,6 +7136,7 @@ class Migration(migrations.Migration):
             ),
         ),
         migrations.RunPython(
+            hints={"tables": ["sentry_savedsearch"]},
             code=add_my_issues_search,
             reverse_code=django.db.migrations.operations.special.RunPython.noop,
         ),
@@ -7149,6 +7173,7 @@ class Migration(migrations.Migration):
         migrations.SeparateDatabaseAndState(
             database_operations=[
                 migrations.RunSQL(
+                    hints={"tables": ["sentry_notificationsetting"]},
                     sql='\n                        ALTER TABLE "sentry_notificationsetting" DROP COLUMN "target_identifier";\n                        ALTER TABLE "sentry_notificationsetting" DROP COLUMN "target_type";\n                        ',
                     reverse_sql='\n                        ALTER TABLE "sentry_notificationsetting" ADD COLUMN "target_identifier" bigint NULL;\n                        ALTER TABLE "sentry_notificationsetting" ADD COLUMN "target_type" int NULL;\n\n                        ',
                 ),
@@ -7226,10 +7251,12 @@ class Migration(migrations.Migration):
         migrations.SeparateDatabaseAndState(
             database_operations=[
                 migrations.RunSQL(
+                    hints={"tables": ["sentry_externalactor"]},
                     sql='\n                    ALTER TABLE "sentry_externalactor" ALTER COLUMN "integration_id" SET DEFAULT 1;\n                    UPDATE "sentry_externalactor" SET "integration_id" = 1 where "integration_id" is NULL;\n                    ',
                     reverse_sql='\n                    ALTER TABLE "sentry_externalactor" ALTER COLUMN "integration_id" DROP DEFAULT;\n                    ',
                 ),
                 migrations.RunSQL(
+                    hints={"tables": ["sentry_externalactor"]},
                     sql='\n                    ALTER TABLE "sentry_externalactor" ALTER COLUMN "integration_id" SET NOT NULL;\n                    ALTER TABLE "sentry_externalactor" ALTER COLUMN "integration_id" DROP DEFAULT;\n                    ',
                     reverse_sql='\n                    ALTER TABLE "sentry_externalactor" ALTER COLUMN "integration_id" DROP NOT NULL;\n                    ',
                 ),
@@ -7279,10 +7306,12 @@ class Migration(migrations.Migration):
         migrations.SeparateDatabaseAndState(
             database_operations=[
                 migrations.RunSQL(
+                    hints={"tables": ["sentry_grouprelease"]},
                     sql="\n                    CREATE INDEX CONCURRENTLY IF NOT EXISTS sentry_grouprelease_group_id_first_seen_53fc35ds\n                    ON sentry_grouprelease USING btree (group_id, first_seen);\n                    ",
                     reverse_sql="\n                    DROP INDEX CONCURRENTLY IF EXISTS sentry_grouprelease_group_id_first_seen_53fc35ds;\n                    ",
                 ),
                 migrations.RunSQL(
+                    hints={"tables": ["sentry_grouprelease"]},
                     sql="\n                    CREATE INDEX CONCURRENTLY IF NOT EXISTS sentry_grouprelease_group_id_last_seen_g8v2sk7c\n                    ON sentry_grouprelease USING btree (group_id, last_seen DESC);\n                    ",
                     reverse_sql="\n                    DROP INDEX CONCURRENTLY IF EXISTS sentry_grouprelease_group_id_last_seen_g8v2sk7c;\n                    ",
                 ),
@@ -7487,14 +7516,17 @@ class Migration(migrations.Migration):
         migrations.SeparateDatabaseAndState(
             database_operations=[
                 migrations.RunSQL(
+                    hints={"tables": ["sentry_release"]},
                     sql='\n                    CREATE INDEX CONCURRENTLY IF NOT EXISTS "sentry_release_organization_id_major_mi_38715957_idx"\n                    ON "sentry_release" ("organization_id", "major" DESC, "minor" DESC, "patch" DESC, "revision" DESC);\n                    ',
                     reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS sentry_release_organization_id_major_mi_38715957_idx",
                 ),
                 migrations.RunSQL(
+                    hints={"tables": ["sentry_release"]},
                     sql='\n                    CREATE INDEX CONCURRENTLY IF NOT EXISTS "sentry_release_organization_id_build_code_f93815e5_idx" ON "sentry_release" ("organization_id", "build_code");\n                    ',
                     reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS sentry_release_organization_id_build_code_f93815e5_idx",
                 ),
                 migrations.RunSQL(
+                    hints={"tables": ["sentry_release"]},
                     sql='\n                    CREATE INDEX CONCURRENTLY IF NOT EXISTS "sentry_release_organization_id_build_number_e1646551_idx" ON "sentry_release" ("organization_id", "build_number");\n                    ',
                     reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS sentry_release_organization_id_build_number_e1646551_idx",
                 ),
@@ -7513,10 +7545,12 @@ class Migration(migrations.Migration):
         migrations.SeparateDatabaseAndState(
             database_operations=[
                 migrations.RunSQL(
+                    hints={"tables": ["sentry_release"]},
                     sql='\n                    CREATE INDEX CONCURRENTLY IF NOT EXISTS "sentry_release_organization_id_status_3c637259_idx" ON "sentry_release" ("organization_id", "status");\n                    ',
                     reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS sentry_release_organization_id_status_3c637259_idx",
                 ),
                 migrations.RunSQL(
+                    hints={"tables": ["sentry_release"]},
                     sql='\n                    CREATE INDEX CONCURRENTLY IF NOT EXISTS "sentry_release_organization_id_date_added_8ebd273a_idx" ON "sentry_release" ("organization_id", "date_added");\n                    ',
                     reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS sentry_release_organization_id_date_added_8ebd273a_idx",
                 ),

@@ -1,6 +1,6 @@
 import responses
 
-from sentry.integrations.slack.link_identity import build_linking_url
+from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.models import (
     Identity,
     IdentityProvider,

@@ -101,7 +101,7 @@ class ProjectDebugFileManager(BaseManager):
 
 
 class ProjectDebugFile(Model):
-    __core__ = False
+    __include_in_export__ = False
 
     file = FlexibleForeignKey("sentry.File")
     checksum = models.CharField(max_length=40, null=True, db_index=True)
@@ -368,10 +368,17 @@ def determine_dif_kind(path):
             return DifKind.Object
 
 
-def detect_dif_from_path(path, name=None, debug_id=None):
-    """This detects which kind of dif(Debug Information File) the path
-    provided is. It returns an array since an Archive can contain more than
-    one Object.
+def detect_dif_from_path(path, name=None, debug_id=None, accept_unknown=False):
+    """Detects which kind of Debug Information File (DIF) the file at `path` is.
+
+    :param accept_unknown: If this is ``False`` an exception will be logged with the error
+       when a file which is not a known DIF is found.  This is useful for when ingesting ZIP
+       files directly from Apple App Store Connect which you know will also contain files
+       which are not DIFs.
+
+    :returns: an array since an Archive can contain more than one Object.
+
+    :raises BadDif: If the file is not a valid DIF.
     """
     # proguard files (proguard/UUID.txt) or
     # (proguard/mapping-UUID.txt).
@@ -395,9 +402,10 @@ def detect_dif_from_path(path, name=None, debug_id=None):
         try:
             BcSymbolMap.open(path)
         except SymbolicError as e:
-            logger.warning("bcsymbolmap.bad-file", exc_info=True)
+            logger.debug("File failed to load as BCSymbolmap: %s", path)
             raise BadDif("Invalid BCSymbolMap: %s" % e)
         else:
+            logger.debug("File loaded as BCSymbolMap: %s", path)
             return [
                 DifMeta(
                     file_format="bcsymbolmap", arch="any", debug_id=debug_id, name=name, path=path
@@ -407,9 +415,10 @@ def detect_dif_from_path(path, name=None, debug_id=None):
         try:
             UuidMapping.from_plist(debug_id, path)
         except SymbolicError as e:
-            logger.warning("uuidmap.bad-file", exc_info=True)
+            logger.debug("File failed to load as UUIDMap: %s", path)
             raise BadDif("Invalid UuidMap: %s" % e)
         else:
+            logger.debug(f"File loaded as UUIDMap: {path}")
             return [
                 DifMeta(file_format="uuidmap", arch="any", debug_id=debug_id, name=name, path=path)
             ]
@@ -420,12 +429,17 @@ def detect_dif_from_path(path, name=None, debug_id=None):
         except ObjectErrorUnsupportedObject as e:
             raise BadDif("Unsupported debug information file: %s" % e)
         except SymbolicError as e:
-            logger.warning("dsymfile.bad-fat-object", exc_info=True)
+            if accept_unknown:
+                level = logging.DEBUG
+            else:
+                level = logging.WARNING
+            logger.log(level, "dsymfile.bad-fat-object", exc_info=True)
             raise BadDif("Invalid debug information file: %s" % e)
         else:
             objs = []
             for obj in archive.iter_objects():
                 objs.append(DifMeta.from_object(obj, path, name=name, debug_id=debug_id))
+            logger.debug("File is Archive with {len(objs)} objects: %s", path)
             return objs
 
 
@@ -442,7 +456,7 @@ def create_debug_file_from_dif(to_create, project):
     return rv
 
 
-def create_files_from_dif_zip(fileobj, project):
+def create_files_from_dif_zip(fileobj, project, accept_unknown=False):
     """Creates all missing debug files from the given zip file.  This
     returns a list of all files created.
     """
@@ -455,7 +469,7 @@ def create_files_from_dif_zip(fileobj, project):
             for fn in filenames:
                 fn = os.path.join(dirpath, fn)
                 try:
-                    difs = detect_dif_from_path(fn)
+                    difs = detect_dif_from_path(fn, accept_unknown=accept_unknown)
                 except BadDif:
                     difs = None
 

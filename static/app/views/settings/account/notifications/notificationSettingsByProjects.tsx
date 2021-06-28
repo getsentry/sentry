@@ -1,4 +1,5 @@
 import React from 'react';
+import styled from '@emotion/styled';
 
 import AsyncComponent from 'app/components/asyncComponent';
 import Pagination from 'app/components/pagination';
@@ -79,7 +80,7 @@ class NotificationSettingsByProjects extends AsyncComponent<Props, State> {
 
     // eslint-disable-next-line react/prop-types
     const renderSearch: RenderSearch = ({defaultSearchBar}) => (
-      <SearchWrapper>{defaultSearchBar}</SearchWrapper>
+      <StyledSearchWrapper>{defaultSearchBar}</StyledSearchWrapper>
     );
     return (
       <React.Fragment>
@@ -119,3 +120,9 @@ class NotificationSettingsByProjects extends AsyncComponent<Props, State> {
 }
 
 export default NotificationSettingsByProjects;
+
+const StyledSearchWrapper = styled(SearchWrapper)`
+  * {
+    width: 100%;
+  }
+`;
