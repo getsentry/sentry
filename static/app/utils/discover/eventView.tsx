@@ -14,18 +14,6 @@ import {DEFAULT_PER_PAGE} from 'app/constants';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {t} from 'app/locale';
 import {GlobalSelection, NewQuery, SavedQuery, SelectValue, User} from 'app/types';
-import {decodeList, decodeScalar} from 'app/utils/queryString';
-import {
-  FieldValueKind,
-  TableColumn,
-  TableColumnSort,
-} from 'app/views/eventsV2/table/types';
-import {decodeColumnOrder} from 'app/views/eventsV2/utils';
-
-import {statsPeriodToDays} from '../dates';
-import {QueryResults, tokenizeSearch} from '../tokenizeSearch';
-
-import {getSortField} from './fieldRenderers';
 import {
   aggregateOutputType,
   Column,
@@ -38,7 +26,21 @@ import {
   isEquation,
   isLegalYAxisType,
   Sort,
-} from './fields';
+  WebVital,
+} from 'app/utils/discover/fields';
+import {decodeList, decodeScalar} from 'app/utils/queryString';
+import {
+  FieldValueKind,
+  TableColumn,
+  TableColumnSort,
+} from 'app/views/eventsV2/table/types';
+import {decodeColumnOrder} from 'app/views/eventsV2/utils';
+import {EventsDisplayFilterName} from 'app/views/performance/transactionSummary/transactionEvents/utils';
+
+import {statsPeriodToDays} from '../dates';
+import {QueryResults, tokenizeSearch} from '../tokenizeSearch';
+
+import {getSortField} from './fieldRenderers';
 import {
   CHART_AXIS_OPTIONS,
   DISPLAY_MODE_FALLBACK_OPTIONS,
@@ -1109,8 +1111,9 @@ class EventView {
 
   getPerformanceTransactionEventsViewUrlTarget(
     slug: string,
-    showTransactions?: string,
-    breakdown?: string
+    showTransactions?: EventsDisplayFilterName,
+    breakdown?: string,
+    webVital?: WebVital
   ): {pathname: string; query: Query} {
     const output = {
       sort: encodeSorts(this.sorts),
@@ -1119,6 +1122,7 @@ class EventView {
       transaction: this.name,
       showTransactions,
       breakdown,
+      webVital,
     };
 
     for (const field of EXTERNAL_QUERY_STRING_KEYS) {

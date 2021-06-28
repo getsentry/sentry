@@ -17,6 +17,7 @@ import {
   QueryFieldValue,
   SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
+  WebVital,
 } from 'app/utils/discover/fields';
 import {removeHistogramQueryStrings} from 'app/utils/performance/histogram';
 import {decodeScalar} from 'app/utils/queryString';
@@ -175,8 +176,8 @@ class TransactionEvents extends Component<Props, State> {
     return [t('Summary'), t('Events')].join(' \u2014 ');
   }
 
-  getTotalsEventView(eventView: EventView): EventView {
-    const totalsColumns: QueryFieldValue[] = [
+  getPercentilesEventView(eventView: EventView): EventView {
+    const percentileColumns: QueryFieldValue[] = [
       {
         kind: 'function',
         function: ['p100', '', undefined],
@@ -203,7 +204,7 @@ class TransactionEvents extends Component<Props, State> {
       },
     ];
 
-    return eventView.withColumns([...totalsColumns]);
+    return eventView.withColumns([...percentileColumns]);
   }
 
   renderNoAccess = () => {
@@ -214,6 +215,7 @@ class TransactionEvents extends Component<Props, State> {
     const {organization, projects, location} = this.props;
     const {eventView} = this.state;
     const transactionName = getTransactionName(location);
+    const webVital = getWebVital(location);
     if (!eventView || transactionName === undefined) {
       // If there is no transaction name, redirect to the Performance landing page
       browserHistory.replace({
@@ -224,7 +226,7 @@ class TransactionEvents extends Component<Props, State> {
       });
       return null;
     }
-    const totalsView = this.getTotalsEventView(eventView);
+    const percentilesView = this.getPercentilesEventView(eventView);
 
     const shouldForceProject = eventView.project.length === 1;
     const forceProject = shouldForceProject
@@ -256,7 +258,7 @@ class TransactionEvents extends Component<Props, State> {
           >
             <LightWeightNoProjectMessage organization={organization}>
               <DiscoverQuery
-                eventView={totalsView}
+                eventView={percentilesView}
                 orgSlug={organization.slug}
                 location={location}
                 referrer="api.performance.transaction-events"
@@ -280,6 +282,7 @@ class TransactionEvents extends Component<Props, State> {
                       onChangeEventsDisplayFilter={this.onChangeEventsDisplayFilter}
                       percentileValues={percentiles}
                       isLoading={isLoading}
+                      webVital={webVital}
                     />
                   );
                 }}
@@ -290,6 +293,14 @@ class TransactionEvents extends Component<Props, State> {
       </SentryDocumentTitle>
     );
   }
+}
+
+function getWebVital(location: Location): WebVital | undefined {
+  const webVital = decodeScalar(location.query.webVital, '') as WebVital;
+  if (Object.values(WebVital).includes(webVital)) {
+    return webVital;
+  }
+  return undefined;
 }
 
 function generateEventsEventView(location: Location, transactionName: string): EventView {
@@ -319,6 +330,10 @@ function generateEventsEventView(location: Location, transactionName: string): E
     fields.splice(2, 1, `spans.${breakdown}`);
   } else {
     fields.push(...SPAN_OP_BREAKDOWN_FIELDS, 'spans.total.time');
+  }
+  const webVital = getWebVital(location);
+  if (webVital) {
+    fields.splice(3, 0, webVital);
   }
 
   return EventView.fromNewQueryWithLocation(

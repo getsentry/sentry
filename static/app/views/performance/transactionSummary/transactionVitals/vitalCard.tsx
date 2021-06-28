@@ -24,8 +24,10 @@ import {HistogramData} from 'app/utils/performance/histogram/types';
 import {computeBuckets, formatHistogramData} from 'app/utils/performance/histogram/utils';
 import {Vital} from 'app/utils/performance/vitals/types';
 import {VitalData} from 'app/utils/performance/vitals/vitalsCardsDiscoverQuery';
+import {decodeScalar} from 'app/utils/queryString';
 import {Theme} from 'app/utils/theme';
 import {tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {EventsDisplayFilterName} from 'app/views/performance/transactionSummary/transactionEvents/utils';
 
 import {VitalBar} from '../../landing/vitalsCards';
 import {
@@ -160,7 +162,7 @@ class VitalCard extends Component<Props, State> {
   }
 
   renderSummary() {
-    const {vitalDetails: vital, eventView, organization, min, max} = this.props;
+    const {vitalDetails: vital, eventView, organization, min, max, location} = this.props;
     const {slug, name, description} = vital;
     const hasPerformanceEventsPage = organization.features.includes(
       'performance-events-page'
@@ -210,9 +212,17 @@ class VitalCard extends Component<Props, State> {
           {hasPerformanceEventsPage ? (
             <Button
               size="small"
-              to={newEventView.getPerformanceTransactionEventsViewUrlTarget(
-                organization.slug
-              )}
+              to={newEventView
+                .withColumns([{kind: 'field', field: column}])
+                .withSorts([{kind: 'desc', field: column}])
+                .getPerformanceTransactionEventsViewUrlTarget(
+                  organization.slug,
+                  decodeScalar(location.query.dataFilter) === 'all'
+                    ? EventsDisplayFilterName.p100
+                    : EventsDisplayFilterName.p75,
+                  undefined,
+                  column as WebVital
+                )}
               onClick={this.trackOpenAllEventsClicked}
             >
               {t('Open All Events')}

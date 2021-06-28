@@ -18,6 +18,7 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
+import {WebVital} from 'app/utils/discover/fields';
 import {decodeScalar} from 'app/utils/queryString';
 import {tokenizeSearch} from 'app/utils/tokenizeSearch';
 import {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
@@ -42,6 +43,7 @@ type Props = {
   onChangeEventsDisplayFilter: (eventsDisplayFilterName: EventsDisplayFilterName) => void;
   percentileValues?: Record<EventsDisplayFilterName, number>;
   isLoading: boolean;
+  webVital?: WebVital;
 };
 
 type State = {
@@ -166,6 +168,7 @@ class Body extends React.Component<
       eventsDisplayFilterName,
       onChangeEventsDisplayFilter,
       setError,
+      webVital,
     } = this.props;
     const transactionsListTitles = [
       t('event id'),
@@ -175,6 +178,10 @@ class Body extends React.Component<
       t('trace id'),
       t('timestamp'),
     ];
+
+    if (webVital) {
+      transactionsListTitles.splice(3, 0, t(webVital));
+    }
 
     const spanOperationBreakdownConditions = filterToSearchConditions(
       spanOperationBreakdownFilter,

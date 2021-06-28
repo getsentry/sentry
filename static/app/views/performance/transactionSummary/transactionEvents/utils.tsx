@@ -150,7 +150,9 @@ export function filterEventsDisplayToLocationQuery(
   return query;
 }
 
-export function mapShowTransactionToPercentile(showTransaction) {
+export function mapShowTransactionToPercentile(
+  showTransaction
+): EventsDisplayFilterName | undefined {
   switch (showTransaction) {
     case TransactionFilterOptions.OUTLIER:
       return EventsDisplayFilterName.p100;
