@@ -71,7 +71,12 @@ def monitor_release_adoption(**kwargs):
         #             extra={"offset": offset},
         #         )
         # NOTE: Hardcoded data for sentry org and sentry project for early release, in the same format snuba should return
-        aggregated_projects = {1: [1]}  # sentry org id: sentry project id
+        aggregated_projects = {
+            1: [1],
+            315582: [5245995],
+            307710: [5227327],
+            34825: [1769835],
+        }  # org id: [project ids]
 
     with metrics.timer("sentry.tasks.monitor_release_adoption.process_projects_with_sessions"):
         for org_id in aggregated_projects:
