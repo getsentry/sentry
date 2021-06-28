@@ -137,7 +137,7 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
                 # created, someone else has created it and will bump the
                 # revision instead.
                 bump_reprocessing_revision(project)
-    except BaseException:
+    except Exception:
         set_assemble_status(
             AssembleTask.DIF,
             project_id,
@@ -208,7 +208,7 @@ def get_artifact_basename(url):
 def _store_single_files(archive: ReleaseArchive, meta: dict, count_as_artifacts: bool):
     try:
         temp_dir = archive.extract()
-    except BaseException:
+    except Exception:
         raise AssembleArtifactsError("failed to extract bundle")
 
     with temp_dir:
@@ -263,7 +263,7 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
 
         try:
             archive = ReleaseArchive(temp_file)
-        except BaseException:
+        except Exception:
             raise AssembleArtifactsError("failed to open release manifest")
 
         with archive:
@@ -302,7 +302,7 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
                     try:
                         update_artifact_index(release, dist, bundle)
                         saved_as_archive = True
-                    except BaseException as exc:
+                    except Exception as exc:
                         logger.error("Unable to update artifact index", exc_info=exc)
 
             # NOTE(jjbayer): Single files are still stored to enable
@@ -319,7 +319,7 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
         set_assemble_status(
             AssembleTask.ARTIFACTS, org_id, checksum, ChunkFileState.ERROR, detail=str(e)
         )
-    except BaseException:
+    except Exception:
         logger.error("failed to assemble release bundle", exc_info=True)
         set_assemble_status(
             AssembleTask.ARTIFACTS,

@@ -110,7 +110,7 @@ def get_app_store_config(
             ):
                 return source
         return None
-    except BaseException as e:
+    except Exception as e:
         raise ValueError("bad sources") from e
 
 
