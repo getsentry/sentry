@@ -30,8 +30,8 @@ def _check_history():
             raise RuntimeError
     except Exception:
         raise click.ClickException(
-            "You need to run migrations before upgrading to this version of sentry. "
-            "See https://develop.sentry.dev/self-hosted/#upgrading for more information"
+            "It looks like you've skipped a hard stop in our upgrade process. "
+            "Please follow the upgrade process here: https://develop.sentry.dev/self-hosted/#hard-stops"
         )
 
 
