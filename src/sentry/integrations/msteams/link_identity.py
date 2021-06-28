@@ -36,45 +36,45 @@ class MsTeamsLinkIdentityView(BaseView):
     def handle(self, request, signed_params):
         try:
             params = unsign(signed_params)
-
-            organization, integration, idp = get_identity(
-                request.user, params["organization_id"], params["integration_id"]
-            )
-
-            if request.method != "POST":
-                return render_to_response(
-                    "sentry/auth-link-identity.html",
-                    request=request,
-                    context={"organization": organization, "provider": integration.get_provider()},
-                )
-
-            defaults = {"status": IdentityStatus.VALID, "date_verified": timezone.now()}
-            try:
-                identity, created = Identity.objects.get_or_create(
-                    idp=idp,
-                    user=request.user,
-                    external_id=params["teams_user_id"],
-                    defaults=defaults,
-                )
-                if not created:
-                    identity.update(**defaults)
-            except IntegrityError:
-                Identity.reattach(idp, params["teams_user_id"], request.user, defaults)
-
-            card = build_linked_card()
-            client = MsTeamsClient(integration)
-            user_conversation_id = client.get_user_conversation_id(
-                params["teams_user_id"], params["tenant_id"]
-            )
-            client.send_card(user_conversation_id, card)
-
-            return render_to_response(
-                "sentry/integrations/msteams-linked.html",
-                request=request,
-                context={"team_id": params["team_id"]},
-            )
         except (SignatureExpired, BadSignature):
             return render_to_response(
                 "sentry/integrations/msteams-expired-link.html",
                 request=request,
             )
+
+        organization, integration, idp = get_identity(
+            request.user, params["organization_id"], params["integration_id"]
+        )
+
+        if request.method != "POST":
+            return render_to_response(
+                "sentry/auth-link-identity.html",
+                request=request,
+                context={"organization": organization, "provider": integration.get_provider()},
+            )
+
+        defaults = {"status": IdentityStatus.VALID, "date_verified": timezone.now()}
+        try:
+            identity, created = Identity.objects.get_or_create(
+                idp=idp,
+                user=request.user,
+                external_id=params["teams_user_id"],
+                defaults=defaults,
+            )
+            if not created:
+                identity.update(**defaults)
+        except IntegrityError:
+            Identity.reattach(idp, params["teams_user_id"], request.user, defaults)
+
+        card = build_linked_card()
+        client = MsTeamsClient(integration)
+        user_conversation_id = client.get_user_conversation_id(
+            params["teams_user_id"], params["tenant_id"]
+        )
+        client.send_card(user_conversation_id, card)
+
+        return render_to_response(
+            "sentry/integrations/msteams-linked.html",
+            request=request,
+            context={"team_id": params["team_id"]},
+        )
