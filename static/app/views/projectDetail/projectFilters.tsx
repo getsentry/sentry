@@ -31,10 +31,11 @@ function ProjectFilters({query, tagValueLoader, onSearch}: Props) {
     <SmartSearchBar
       query={query}
       placeholder={t('Search by release version')}
+      maxSearchItems={5}
+      hasRecentSearches={false}
       supportedTags={supportedTags}
       onSearch={onSearch}
       onGetTagValues={getTagValues}
-      onGetRecentSearches={async () => []}
     />
   );
 }
