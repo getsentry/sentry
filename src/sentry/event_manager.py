@@ -399,7 +399,7 @@ class EventManager:
             "last_seen": job["event"].datetime,
             "first_seen": job["event"].datetime,
             "active_at": job["event"].datetime,
-            "metadata": dict(job["event_metadata"]),
+            "metadata": dict(job["data"]["metadata"]),
             "received_timestamp": job["received_timestamp"],
         }
 
@@ -706,7 +706,7 @@ def _materialize_metadata_many(jobs):
         data = job["data"]
         event_type = get_event_type(data)
         event_metadata = event_type.get_metadata(data)
-        job["event_metadata"] = dict(event_metadata)
+        dict(event_metadata)
         data.update(materialize_metadata(data, event_type, event_metadata))
 
         # In save_aggregate we store current_tree_label for the group metadata,
