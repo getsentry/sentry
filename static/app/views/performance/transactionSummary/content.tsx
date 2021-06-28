@@ -339,17 +339,26 @@ class SummaryContent extends React.Component<Props, State> {
               location={location}
               organization={organization}
               eventView={transactionsListEventView}
-              generateDiscoverEventView={() =>
-                this.generateEventView(transactionsListEventView, transactionsListTitles)
-              }
-              generatePerformanceTransactionEventsView={() => {
-                const performanceTransactionEventsView = this.generateEventView(
-                  transactionsListEventView,
-                  transactionsListTitles
-                );
-                performanceTransactionEventsView.query = query;
-                return performanceTransactionEventsView;
-              }}
+              {...(hasPerformanceEventsPage
+                ? {
+                    generatePerformanceTransactionEventsView: () => {
+                      const performanceTransactionEventsView = this.generateEventView(
+                        transactionsListEventView,
+                        transactionsListTitles
+                      );
+                      performanceTransactionEventsView.query = query;
+                      return performanceTransactionEventsView;
+                    },
+                    handleOpenAllEventsClick: this.handleAllEventsViewClick,
+                  }
+                : {
+                    generateDiscoverEventView: () =>
+                      this.generateEventView(
+                        transactionsListEventView,
+                        transactionsListTitles
+                      ),
+                    handleOpenInDiscoverClick: this.handleDiscoverViewClick,
+                  })}
               showTransactions={decodeScalar(
                 location.query.showTransactions,
                 TransactionFilterOptions.SLOW
@@ -364,9 +373,6 @@ class SummaryContent extends React.Component<Props, State> {
               baseline={transactionName}
               handleBaselineClick={this.handleViewDetailsClick}
               handleCellAction={this.handleCellAction}
-              {...(hasPerformanceEventsPage
-                ? {handleOpenAllEventsClick: this.handleAllEventsViewClick}
-                : {handleOpenInDiscoverClick: this.handleDiscoverViewClick})}
               {...getTransactionsListSort(location, {
                 p95: totalValues?.p95 ?? 0,
                 spanOperationBreakdownFilter,
