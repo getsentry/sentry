@@ -1,7 +1,7 @@
 import {browserHistory} from 'react-router';
 
-import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
+import {cleanup, mountWithTheme, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import GlobalSelectionStore from 'app/stores/globalSelectionStore';
 import GroupStore from 'app/stores/groupStore';
@@ -10,8 +10,7 @@ import GroupDetails from 'app/views/organizationGroupDetails';
 
 jest.unmock('app/utils/recreateRoute');
 
-describe('groupDetails', function () {
-  let wrapper;
+describe('groupDetails', () => {
   const group = TestStubs.Group();
   const event = TestStubs.Event();
 
@@ -47,10 +46,20 @@ describe('groupDetails', function () {
       routes,
     },
   });
-  let MockComponent;
+
+  function MockComponent({group: groupProp, environments, eventError}) {
+    return (
+      <div>
+        Group Details Mock
+        <div>title: {groupProp.title}</div>
+        <div>environment: {environments.join(' ')}</div>
+        {eventError && <div>eventError</div>}
+      </div>
+    );
+  }
 
   const createWrapper = (props = {organization, router, routerContext}) => {
-    wrapper = mountWithTheme(
+    return mountWithTheme(
       <GroupDetails
         organization={props.organization}
         params={props.router.params}
@@ -59,16 +68,13 @@ describe('groupDetails', function () {
       >
         <MockComponent />
       </GroupDetails>,
-      props.routerContext
+      {context: routerContext}
     );
-    return wrapper;
   };
 
-  let issueDetailsMock;
-  beforeEach(function () {
+  beforeEach(() => {
     ProjectsStore.loadInitialData(organization.projects);
-    MockComponent = jest.fn(() => null);
-    issueDetailsMock = MockApiClient.addMockResponse({
+    MockApiClient.addMockResponse({
       url: `/issues/${group.id}/`,
       body: {...group},
     });
@@ -99,98 +105,59 @@ describe('groupDetails', function () {
       body: {firstRelease: group.firstRelease, lastRelease: group.lastRelease},
     });
   });
-  afterEach(async function () {
-    if (wrapper) {
-      wrapper.unmount();
-    }
+  afterEach(() => {
+    cleanup();
     ProjectsStore.reset();
     GroupStore.reset();
     GlobalSelectionStore.reset();
     MockApiClient.clearMockResponses();
-    await tick();
-    await tick();
-    await tick();
   });
 
-  it('renders', async function () {
+  it('renders', () => {
     ProjectsStore.reset();
-    await tick();
+    const {findByText, queryByText} = createWrapper();
 
-    wrapper = createWrapper();
-
-    await tick();
-    wrapper.update();
-
-    expect(MockComponent).not.toHaveBeenCalled();
+    expect(queryByText(group.title)).toBeNull();
 
     ProjectsStore.loadInitialData(organization.projects);
-    await tick();
-    await tick();
 
-    expect(MockComponent).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        environments: [],
-        group,
-        project: expect.objectContaining({
-          id: project.id,
-          slug: project.slug,
-        }),
-        event,
-      }),
-      {}
-    );
-
-    expect(issueDetailsMock).toHaveBeenCalledTimes(1);
+    expect(findByText(group.title)).toBeTruthy();
   });
 
-  it('renders error when issue is not found', async function () {
-    issueDetailsMock = MockApiClient.addMockResponse({
+  it('renders error when issue is not found', () => {
+    MockApiClient.addMockResponse({
       url: `/issues/${group.id}/`,
       statusCode: 404,
     });
-    issueDetailsMock = MockApiClient.addMockResponse({
+    MockApiClient.addMockResponse({
       url: `/issues/${group.id}/events/latest/`,
       statusCode: 404,
     });
 
-    wrapper = createWrapper();
+    const {findByText, queryByTestId} = createWrapper();
 
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('LoadingIndicator')).toHaveLength(0);
-    expect(issueDetailsMock).toHaveBeenCalledTimes(1);
-    expect(MockComponent).not.toHaveBeenCalled();
-    expect(wrapper.find('[data-test-id="loading-error-message"]').text()).toEqual(
-      'The issue you were looking for was not found.'
-    );
+    expect(queryByTestId('loading-indicator')).toBeNull();
+    expect(findByText('The issue you were looking for was not found.')).toBeTruthy();
   });
 
-  it('renders MissingProjectMembership when trying to access issue in project the user does not belong to', async function () {
-    issueDetailsMock = MockApiClient.addMockResponse({
+  it('renders MissingProjectMembership when trying to access issue in project the user does not belong to', () => {
+    MockApiClient.addMockResponse({
       url: `/issues/${group.id}/`,
       statusCode: 403,
     });
-    issueDetailsMock = MockApiClient.addMockResponse({
+    MockApiClient.addMockResponse({
       url: `/issues/${group.id}/events/latest/`,
       statusCode: 403,
     });
-    wrapper = createWrapper();
+    const {queryByTestId, findByText} = createWrapper();
 
-    await tick();
-    wrapper.update();
-
-    expect(wrapper.find('LoadingIndicator')).toHaveLength(0);
-    expect(issueDetailsMock).toHaveBeenCalledTimes(1);
-    expect(MockComponent).not.toHaveBeenCalled();
-    expect(wrapper.find('MissingProjectMembership').prop('projectSlug')).toEqual(
-      'project-slug'
-    );
-
-    wrapper.find('a').simulate('click');
+    expect(queryByTestId('loading-indicator')).toBeNull();
+    expect(
+      findByText("You'll need to join a team with access before you can view this data.")
+    ).toBeTruthy();
   });
 
-  it('fetches issue details for a given environment', async function () {
+  it('fetches issue details for a given environment', () => {
     const props = initializeOrg({
       project: TestStubs.Project(),
       router: {
@@ -205,80 +172,44 @@ describe('groupDetails', function () {
       },
     });
 
-    wrapper = createWrapper(props);
+    const {queryByTestId, findByText} = createWrapper(props);
 
     ProjectsStore.loadInitialData(props.organization.projects);
 
-    await tick();
-    // Reflux and stuff
-    await tick();
-    wrapper.update();
+    expect(queryByTestId('loading-indicator')).toBeNull();
 
-    expect(wrapper.find('LoadingIndicator')).toHaveLength(0);
-
-    expect(issueDetailsMock).toHaveBeenCalledTimes(1);
-    expect(issueDetailsMock).toHaveBeenLastCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        query: {
-          environment: ['staging'],
-          expand: 'inbox',
-          collapse: 'release',
-        },
-      })
-    );
-    expect(MockComponent).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        environments: ['staging'],
-        group,
-        project: expect.objectContaining({
-          id: project.id,
-          slug: project.slug,
-        }),
-        event,
-      }),
-      {}
-    );
+    expect(findByText('environment: staging')).toBeTruthy();
   });
 
   /**
    * This is legacy code that I'm not even sure still happens
    */
-  it('redirects to new issue if params id !== id returned from API request', async function () {
-    issueDetailsMock = MockApiClient.addMockResponse({
+  it('redirects to new issue if params id !== id returned from API request', async () => {
+    MockApiClient.addMockResponse({
       url: `/issues/${group.id}/`,
       body: {...group, id: 'new-id'},
     });
-    wrapper = createWrapper();
-
-    await tick();
-    expect(MockComponent).not.toHaveBeenCalled();
-    expect(browserHistory.push).toHaveBeenCalledTimes(1);
-    expect(browserHistory.push).toHaveBeenCalledWith(
-      '/organizations/org-slug/issues/new-id/?foo=bar#hash'
-    );
+    const {queryByText} = createWrapper();
+    expect(queryByText('Group Details Mock')).toBeNull();
+    await waitFor(() => {
+      expect(browserHistory.push).toHaveBeenCalledTimes(1);
+      expect(browserHistory.push).toHaveBeenCalledWith(
+        '/organizations/org-slug/issues/new-id/?foo=bar#hash'
+      );
+    });
   });
 
-  it('renders issue event error', async function () {
-    issueDetailsMock = MockApiClient.addMockResponse({
+  it('renders issue event error', () => {
+    MockApiClient.addMockResponse({
       url: `/issues/${group.id}/events/latest/`,
       statusCode: 404,
     });
-    wrapper = createWrapper();
-
-    await tick();
-    expect(MockComponent).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        group,
-        event: undefined,
-        eventError: true,
-      }),
-      {}
-    );
+    const {findByText} = createWrapper();
+    expect(findByText('eventError')).toBeTruthy();
   });
 
-  it('renders for review reason', async function () {
-    issueDetailsMock = MockApiClient.addMockResponse({
+  it('renders for review reason', () => {
+    MockApiClient.addMockResponse({
       url: `/issues/${group.id}/`,
       body: {
         ...group,
@@ -290,12 +221,10 @@ describe('groupDetails', function () {
       },
     });
     ProjectsStore.reset();
-    wrapper = createWrapper();
+    const {findByText} = createWrapper();
 
     ProjectsStore.loadInitialData(organization.projects);
-    await tick();
-    wrapper.update();
 
-    expect(wrapper.find('InboxReason').text()).toBe('New Issue');
+    expect(findByText('New Issue')).toBeTruthy();
   });
 });

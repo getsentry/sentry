@@ -61,7 +61,7 @@ function LoadingIndicator(props: Props) {
   }
 
   return (
-    <div className={cx} style={style}>
+    <div className={cx} style={style} data-test-id="loading-indicator">
       {!hideSpinner && (
         <div className={loadingCx} style={loadingStyle}>
           {triangle && renderLogoSpinner()}
