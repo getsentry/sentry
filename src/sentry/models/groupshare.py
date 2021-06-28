@@ -16,7 +16,7 @@ class GroupShare(Model):
     A Group that was shared publicly.
     """
 
-    __core__ = False
+    __include_in_export__ = False
 
     project = FlexibleForeignKey("sentry.Project")
     group = FlexibleForeignKey("sentry.Group", unique=True)

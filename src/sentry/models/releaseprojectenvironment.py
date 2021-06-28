@@ -9,7 +9,7 @@ from sentry.utils.cache import cache
 
 
 class ReleaseProjectEnvironment(Model):
-    __core__ = False
+    __include_in_export__ = False
 
     release = FlexibleForeignKey("sentry.Release")
     project = FlexibleForeignKey("sentry.Project")

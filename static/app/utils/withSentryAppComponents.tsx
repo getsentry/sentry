@@ -1,35 +1,41 @@
 import * as React from 'react';
-import createReactClass from 'create-react-class';
-import Reflux from 'reflux';
 
 import SentryAppComponentsStore from 'app/stores/sentryAppComponentsStore';
+import {SentryAppComponent} from 'app/types';
 import getDisplayName from 'app/utils/getDisplayName';
 
-// TODO(ts): Update when component type is defined
-type Component = {};
-
 type InjectedAppComponentsProps = {
-  components: Component[];
+  components: SentryAppComponent[];
 };
 
 type State = {
-  components: Component[];
+  components: SentryAppComponent[];
 };
 
 type Options = {
   componentType?: 'stacktrace-link';
 };
 
-const withSentryAppComponents = <P extends InjectedAppComponentsProps>(
+function withSentryAppComponents<P extends InjectedAppComponentsProps>(
   WrappedComponent: React.ComponentType<P>,
   {componentType}: Options = {}
-) =>
-  createReactClass<
+) {
+  class WithSentryAppComponents extends React.Component<
     Omit<P, keyof InjectedAppComponentsProps> & Partial<InjectedAppComponentsProps>,
     State
-  >({
-    displayName: `withSentryAppComponents(${getDisplayName(WrappedComponent)})`,
-    mixins: [Reflux.connect(SentryAppComponentsStore, 'components') as any],
+  > {
+    static displayName = `withSentryAppComponents(${getDisplayName(WrappedComponent)})`;
+
+    state = {components: SentryAppComponentsStore.getAll()};
+
+    componentWillUnmount() {
+      this.unsubscribe();
+    }
+
+    unsubscribe = SentryAppComponentsStore.listen(
+      () => this.setState({components: SentryAppComponentsStore.getAll()}),
+      undefined
+    );
 
     render() {
       const {components, ...props} = this.props as P;
@@ -42,7 +48,9 @@ const withSentryAppComponents = <P extends InjectedAppComponentsProps>(
           } as P)}
         />
       );
-    },
-  });
+    }
+  }
+  return WithSentryAppComponents;
+}
 
 export default withSentryAppComponents;
