@@ -69,9 +69,7 @@ class ProjectTransactionThresholdOverrideTest(APITestCase):
                 format="json",
             )
 
-        assert response.status_code == 200, response.content
-        assert response.data["threshold"] == "300"
-        assert response.data["metric"] == "duration"
+        assert response.status_code == 404
 
     def test_get_returns_error_without_feature_enabled(self):
         ProjectTransactionThresholdOverride.objects.create(

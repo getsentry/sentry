@@ -6,7 +6,6 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.bases import ProjectTransactionThresholdOverridePermission
 from sentry.api.bases.organization_events import OrganizationEventsV2EndpointBase
-from sentry.api.endpoints.project_transaction_threshold import DEFAULT_THRESHOLD
 from sentry.api.serializers import serialize
 from sentry.models.transaction_threshold import (
     TRANSACTION_METRICS,
@@ -83,14 +82,7 @@ class ProjectTransactionThresholdOverrideEndpoint(OrganizationEventsV2EndpointBa
                 organization_id=organization.id,
             )
         except ProjectTransactionThresholdOverride.DoesNotExist:
-            return Response(
-                data={
-                    "transaction": request.GET.get("transaction"),
-                    "projectId": str(project.id),
-                    **DEFAULT_THRESHOLD,
-                },
-                status=status.HTTP_200_OK,
-            )
+            return Response(status=status.HTTP_404_NOT_FOUND)
 
         return Response(
             serialize(
@@ -146,10 +138,13 @@ class ProjectTransactionThresholdOverrideEndpoint(OrganizationEventsV2EndpointBa
             return self.respond(status=status.HTTP_404_NOT_FOUND)
 
         project = self.get_project(request, organization)
-        data = request.data
+        transaction = request.GET.get("transaction")
+        if not transaction:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
         try:
             transaction_threshold = ProjectTransactionThresholdOverride.objects.get(
-                transaction=data["transaction"],
+                transaction=transaction,
                 project_id=project.id,
                 organization_id=organization.id,
             )
