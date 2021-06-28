@@ -2555,6 +2555,46 @@ describe('EventView.getResultsViewShortUrlTarget()', function () {
   });
 });
 
+describe('EventView.getPerformanceTransactionEventsViewUrlTarget()', function () {
+  const state = {
+    id: '1234',
+    name: 'best query',
+    fields: [{field: 'count()'}, {field: 'project.id'}],
+    sorts: generateSorts(['count']),
+    query: 'event.type:error',
+    project: [42],
+    start: '2019-10-01T00:00:00',
+    end: '2019-10-02T00:00:00',
+    statsPeriod: '14d',
+    environment: ['staging'],
+    display: 'previous',
+  };
+  const organization = TestStubs.Organization();
+  const showTransactions = 'p99';
+  const breakdown = 'http';
+  const webVital = 'measurements.lcp';
+
+  it('generates a URL', function () {
+    const view = new EventView(state);
+    const result = view.getPerformanceTransactionEventsViewUrlTarget(
+      organization.slug,
+      showTransactions,
+      breakdown,
+      webVital
+    );
+    expect(result.pathname).toEqual(
+      '/organizations/org-slug/performance/summary/events/'
+    );
+    expect(result.query.query).toEqual(state.query);
+    expect(result.query.project).toEqual(state.project);
+    expect(result.query.sort).toEqual(['-count']);
+    expect(result.query.transaction).toEqual(state.name);
+    expect(result.query.showTransactions).toEqual(showTransactions);
+    expect(result.query.breakdown).toEqual(breakdown);
+    expect(result.query.webVital).toEqual(webVital);
+  });
+});
+
 describe('EventView.getGlobalSelection()', function () {
   it('return default global selection', function () {
     const eventView = new EventView({});
