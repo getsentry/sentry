@@ -38,6 +38,7 @@ class Migration(migrations.Migration):
                     reverse_sql="""
                     DROP INDEX CONCURRENTLY IF EXISTS sentry_rule_project_id_status_owner_id_82f20db5_idx;
                     """,
+                    hints={"tables": ["sentry_rule"]},
                 ),
             ],
             state_operations=[
