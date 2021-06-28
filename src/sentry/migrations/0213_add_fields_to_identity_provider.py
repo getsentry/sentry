@@ -36,21 +36,6 @@ class Migration(migrations.Migration):
     operations = [
         migrations.AddField(
             model_name="identityprovider",
-            name="authprovider",
-            field=models.OneToOneField(
-                blank=True,
-                null=True,
-                on_delete=django.db.models.deletion.SET_NULL,
-                to="sentry.AuthProvider",
-            ),
-        ),
-        migrations.AddField(
-            model_name="identityprovider",
-            name="is_sso",
-            field=models.BooleanField(default=False),
-        ),
-        migrations.AddField(
-            model_name="identityprovider",
             name="organization",
             field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
                 blank=True,
@@ -68,6 +53,11 @@ class Migration(migrations.Migration):
             model_name="identityprovider",
             name="provider_id",
             field=models.CharField(max_length=64, null=True),
+        ),
+        migrations.AddField(
+            model_name="identityprovider",
+            name="is_sso",
+            field=models.BooleanField(default=False),
         ),
         migrations.AddField(
             model_name="identityprovider",
@@ -98,6 +88,16 @@ class Migration(migrations.Migration):
                     ("scim_enabled", "Enable SCIM for member and team provisioning and syncing"),
                 ),
                 default=0,
+            ),
+        ),
+        migrations.AddField(
+            model_name="identityprovider",
+            name="authprovider",
+            field=models.OneToOneField(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                to="sentry.AuthProvider",
             ),
         ),
     ]
