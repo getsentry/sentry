@@ -188,8 +188,7 @@ describe('SpanTreeModel', () => {
 
     const spanTreeModel = new SpanTreeModel(rootSpan, parsedTrace.childSpans, api);
 
-    expect(spanTreeModel.showEmbeddedChildren).toBe(false);
-    expect(spanTreeModel.loadingEmbeddedChildren).toBe(false);
+    expect(spanTreeModel.fetchEmbeddedChildrenState).toBe('idle');
 
     const fullWaterfall: EnhancedProcessedSpanType[] = [
       {
@@ -211,6 +210,7 @@ describe('SpanTreeModel', () => {
         continuingTreeDepths: [],
         showEmbeddedChildren: false,
         toggleEmbeddedChildren: expect.any(Function),
+        fetchEmbeddedChildrenState: 'idle',
       },
       {
         type: 'span',
@@ -238,6 +238,7 @@ describe('SpanTreeModel', () => {
         continuingTreeDepths: [],
         showEmbeddedChildren: false,
         toggleEmbeddedChildren: expect.any(Function),
+        fetchEmbeddedChildrenState: 'idle',
       },
       {
         type: 'span',
@@ -265,6 +266,7 @@ describe('SpanTreeModel', () => {
         continuingTreeDepths: [],
         showEmbeddedChildren: false,
         toggleEmbeddedChildren: expect.any(Function),
+        fetchEmbeddedChildrenState: 'idle',
       },
       {
         type: 'span',
@@ -288,6 +290,7 @@ describe('SpanTreeModel', () => {
         continuingTreeDepths: [],
         showEmbeddedChildren: false,
         toggleEmbeddedChildren: expect.any(Function),
+        fetchEmbeddedChildrenState: 'idle',
       },
     ];
 
@@ -319,13 +322,13 @@ describe('SpanTreeModel', () => {
       orgSlug: 'sentry',
       eventSlug: 'project:19c403a10af34db2b7d93ad669bb51ed',
     });
-
-    expect(spanTreeModel.showEmbeddedChildren).toBe(true);
-    expect(spanTreeModel.loadingEmbeddedChildren).toBe(true);
+    expect(spanTreeModel.fetchEmbeddedChildrenState).toBe(
+      'loading_embedded_transactions'
+    );
 
     await promise;
 
-    expect(spanTreeModel.loadingEmbeddedChildren).toBe(false);
+    expect(spanTreeModel.fetchEmbeddedChildrenState).toBe('idle');
 
     spans = spanTreeModel.getSpansList({
       operationNameFilters: {
@@ -367,6 +370,7 @@ describe('SpanTreeModel', () => {
         continuingTreeDepths: [],
         showEmbeddedChildren: false,
         toggleEmbeddedChildren: expect.any(Function),
+        fetchEmbeddedChildrenState: 'idle',
       },
       {
         type: 'span',
@@ -387,6 +391,7 @@ describe('SpanTreeModel', () => {
         continuingTreeDepths: [1],
         showEmbeddedChildren: false,
         toggleEmbeddedChildren: expect.any(Function),
+        fetchEmbeddedChildrenState: 'idle',
       }
     );
 

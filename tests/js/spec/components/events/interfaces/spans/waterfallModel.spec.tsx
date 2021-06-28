@@ -114,6 +114,7 @@ describe('WaterfallModel', () => {
       continuingTreeDepths: [],
       showEmbeddedChildren: false,
       toggleEmbeddedChildren: expect.any(Function),
+      fetchEmbeddedChildrenState: 'idle',
     },
     {
       type: 'span',
@@ -135,6 +136,7 @@ describe('WaterfallModel', () => {
       continuingTreeDepths: [],
       showEmbeddedChildren: false,
       toggleEmbeddedChildren: expect.any(Function),
+      fetchEmbeddedChildrenState: 'idle',
     },
     {
       type: 'gap',
@@ -151,6 +153,7 @@ describe('WaterfallModel', () => {
       continuingTreeDepths: [],
       showEmbeddedChildren: false,
       toggleEmbeddedChildren: undefined,
+      fetchEmbeddedChildrenState: 'idle',
     },
     {
       type: 'span',
@@ -172,6 +175,7 @@ describe('WaterfallModel', () => {
       continuingTreeDepths: [],
       showEmbeddedChildren: false,
       toggleEmbeddedChildren: expect.any(Function),
+      fetchEmbeddedChildrenState: 'idle',
     },
     {
       type: 'span',
@@ -195,6 +199,7 @@ describe('WaterfallModel', () => {
       continuingTreeDepths: [1],
       showEmbeddedChildren: false,
       toggleEmbeddedChildren: expect.any(Function),
+      fetchEmbeddedChildrenState: 'idle',
     },
     {
       type: 'gap',
@@ -211,6 +216,7 @@ describe('WaterfallModel', () => {
       continuingTreeDepths: [],
       showEmbeddedChildren: false,
       toggleEmbeddedChildren: undefined,
+      fetchEmbeddedChildrenState: 'idle',
     },
     {
       type: 'span',
@@ -234,6 +240,7 @@ describe('WaterfallModel', () => {
       continuingTreeDepths: [],
       showEmbeddedChildren: false,
       toggleEmbeddedChildren: expect.any(Function),
+      fetchEmbeddedChildrenState: 'idle',
     },
   ];
 
