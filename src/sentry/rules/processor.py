@@ -51,7 +51,7 @@ class RuleProcessor:
     def condition_matches(self, condition, state, rule):
         condition_cls = rules.get(condition["id"])
         if condition_cls is None:
-            self.logger.warn("Unregistered condition %r", condition["id"])
+            self.logger.warning("Unregistered condition %r", condition["id"])
             return
 
         condition_inst = condition_cls(self.project, data=condition, rule=rule)
@@ -60,7 +60,7 @@ class RuleProcessor:
     def get_rule_type(self, condition):
         rule_cls = rules.get(condition["id"])
         if rule_cls is None:
-            self.logger.warn("Unregistered condition or filter %r", condition["id"])
+            self.logger.warning("Unregistered condition or filter %r", condition["id"])
             return
 
         return rule_cls.rule_type
@@ -168,7 +168,7 @@ class RuleProcessor:
         for action in rule.data.get("actions", ()):
             action_cls = rules.get(action["id"])
             if action_cls is None:
-                self.logger.warn("Unregistered action %r", action["id"])
+                self.logger.warning("Unregistered action %r", action["id"])
                 continue
 
             action_inst = action_cls(self.project, data=action, rule=rule)
@@ -176,7 +176,7 @@ class RuleProcessor:
                 action_inst.after, event=self.event, state=state, _with_transaction=False
             )
             if results is None:
-                self.logger.warn("Action %s did not return any futures", action["id"])
+                self.logger.warning("Action %s did not return any futures", action["id"])
                 continue
 
             for future in results:

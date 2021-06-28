@@ -48,7 +48,7 @@ export default class AvatarList extends Component<Props> {
       <AvatarListWrapper className={className}>
         {!!numCollapsedUsers && (
           <Tooltip title={`${numCollapsedUsers} other ${typeMembers}`}>
-            <CollapsedUsers size={avatarSize}>
+            <CollapsedUsers size={avatarSize} data-test-id="avatarList-collapsedusers">
               {numCollapsedUsers < 99 && <Plus>+</Plus>}
               {numCollapsedUsers}
             </CollapsedUsers>

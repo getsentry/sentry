@@ -314,7 +314,7 @@ def parse_sources(config):
 
     try:
         sources = json.loads(config)
-    except BaseException as e:
+    except Exception as e:
         raise InvalidSourcesError(str(e))
 
     try:

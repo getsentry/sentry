@@ -46,6 +46,12 @@ ARRAY_FIELDS = {
     "stack.stack_level",
 }
 
+CONFIGURABLE_AGGREGATES = {
+    "apdex()": "apdex({threshold}) as apdex",
+    "user_misery()": "user_misery({threshold}) as user_misery",
+    "count_miserable(user)": "count_miserable(user,{threshold}) as count_miserable_user",
+}
+
 # Create the known set of fields from the issue properties
 # and the transactions and events dataset mapping definitions.
 SEARCH_MAP = {
@@ -73,6 +79,8 @@ SNQL_FIELD_ALLOWLIST = {
     "project.id",
     "release",
     "user.email",
+    "issue",
+    "issue.id",
 }
 
 OPERATOR_NEGATION_MAP = {
@@ -87,3 +95,5 @@ OPERATOR_TO_DJANGO = {">=": "gte", "<=": "lte", ">": "gt", "<": "lt", "=": "exac
 
 SEMVER_MAX_SEARCH_RELEASES = 1000
 SEMVER_EMPTY_RELEASE = "____SENTRY_EMPTY_RELEASE____"
+SEMVER_FAKE_PACKAGE = "__sentry_fake__"
+SEMVER_WILDCARDS = frozenset(["X", "*"])

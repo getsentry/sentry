@@ -9,7 +9,7 @@ from sentry.utils.hashlib import md5_text
 
 
 class GroupRelease(Model):
-    __core__ = False
+    __include_in_export__ = False
 
     # TODO: Should be BoundedBigIntegerField
     project_id = BoundedPositiveIntegerField(db_index=True)

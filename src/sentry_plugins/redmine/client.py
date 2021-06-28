@@ -10,8 +10,8 @@ class RedmineClient:
     def request(self, method, path, data=None):
         headers = {"X-Redmine-API-Key": self.key, "Content-Type": "application/json"}
         url = f"{self.host}{path}"
-        session = http.build_session()
-        req = getattr(session, method.lower())(url, json=data, headers=headers)
+        with http.build_session() as session:
+            req = getattr(session, method.lower())(url, json=data, headers=headers)
         return json.loads(req.text)
 
     def get_projects(self):

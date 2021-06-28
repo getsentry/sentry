@@ -292,7 +292,6 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
         pass
 
     def get_installation_info(self, installation_data, access_token, installation_id):
-        session = http.build_session()
         headers = {
             # TODO(jess): remove this whenever it's out of preview
             "Accept": "application/vnd.github.machine-man-preview+json",
@@ -305,26 +304,25 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
                 )
             )
         )
-        resp = session.get(
-            "https://{}/api/v3/app/installations/{}".format(
-                installation_data["url"], installation_id
-            ),
-            headers=headers,
-            verify=installation_data["verify_ssl"],
-        )
-        resp.raise_for_status()
-        installation_resp = resp.json()
+        with http.build_session() as session:
+            resp = session.get(
+                f"https://{installation_data['url']}/api/v3/app/installations/{installation_id}",
+                headers=headers,
+                verify=installation_data["verify_ssl"],
+            )
+            resp.raise_for_status()
+            installation_resp = resp.json()
 
-        resp = session.get(
-            "https://{}/api/v3/user/installations".format(installation_data["url"]),
-            headers={
-                "Accept": "application/vnd.github.machine-man-preview+json",
-                "Authorization": f"token {access_token}",
-            },
-            verify=installation_data["verify_ssl"],
-        )
-        resp.raise_for_status()
-        user_installations_resp = resp.json()
+            resp = session.get(
+                f"https://{installation_data['url']}/api/v3/user/installations",
+                headers={
+                    "Accept": "application/vnd.github.machine-man-preview+json",
+                    "Authorization": f"token {access_token}",
+                },
+                verify=installation_data["verify_ssl"],
+            )
+            resp.raise_for_status()
+            user_installations_resp = resp.json()
 
         # verify that user actually has access to the installation
         for installation in user_installations_resp["installations"]:
