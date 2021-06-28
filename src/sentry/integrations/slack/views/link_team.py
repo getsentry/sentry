@@ -1,6 +1,7 @@
-from typing import Any, Mapping, Sequence
+from typing import Any, Sequence
 
 from django import forms
+from django.http import HttpResponse
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -26,6 +27,15 @@ from ..utils import logger
 from . import build_linking_url as base_build_linking_url
 from . import never_cache
 
+INSUFFICIENT_ROLE_TITLE = "Insufficient role"
+INSUFFICIENT_ROLE_MESSAGE = "You must be an admin or higher to link teams."
+ALREADY_LINKED_TITLE = "Already linked"
+ALREADY_LINKED_MESSAGE = "The {slug} team has already been linked to a Slack channel."
+SUCCESS_LINKED_TITLE = "Team linked"
+SUCCESS_LINKED_MESSAGE = (
+    "The {slug} team will now receive issue alert notifications in the {channel_name} channel."
+)
+
 
 def build_linking_url(
     integration: Integration, slack_id: str, channel_id: str, channel_name: str, response_url: str
@@ -38,6 +48,40 @@ def build_linking_url(
         channel_name=channel_name,
         response_url=response_url,
     )
+
+
+def send_slack_message(
+    integration: Integration,
+    channel_id: str,
+    heading: str,
+    text: str,
+    request: Request,
+) -> HttpResponse:
+    client = SlackClient()
+    token = integration.metadata.get("user_access_token") or integration.metadata["access_token"]
+    payload = {
+        "token": token,
+        "channel": channel_id,
+        "text": text,
+    }
+    headers = {"Authorization": f"Bearer {token}"}
+    try:
+        client.post("/chat.postMessage", headers=headers, data=payload, json=True)
+    except ApiError as e:
+        message = str(e)
+        if message != "Expired url":
+            logger.error("slack.link-notify.response-error", extra={"error": message})
+    else:
+        return render_to_response(
+            "sentry/integrations/slack-post-linked-team.html",
+            request=request,
+            context={
+                "heading_text": heading,
+                "body_text": text,
+                "channel_id": channel_id,
+                "team_id": integration.external_id,
+            },
+        )
 
 
 class SelectTeamForm(forms.Form):  # type: ignore
@@ -78,42 +122,9 @@ class SlackLinkTeamView(BaseView):  # type: ignore
             context={"body_text": body_text},
         )
 
-    def send_slack_message(
-        self,
-        request: Request,
-        client: SlackClient,
-        token: str,
-        text: Mapping[str, str],
-        channel_id: str,
-        integration: Integration,
-    ) -> Response:
-        payload = {
-            "token": token,
-            "channel": channel_id,
-            "text": text["body"],
-        }
-        headers = {"Authorization": "Bearer %s" % token}
-        try:
-            client.post("/chat.postMessage", headers=headers, data=payload, json=True)
-        except ApiError as e:
-            message = str(e)
-            if message != "Expired url":
-                logger.error("slack.link-notify.response-error", extra={"error": message})
-        else:
-            return render_to_response(
-                "sentry/integrations/slack-post-linked-team.html",
-                request=request,
-                context={
-                    "heading_text": text["heading"],
-                    "body_text": text["body"],
-                    "channel_id": channel_id,
-                    "team_id": integration.external_id,
-                },
-            )
-
     @transaction_start("SlackLinkTeamView")
     @never_cache
-    def handle(self, request: Request, signed_params: str) -> Response:
+    def handle(self, request: Request, signed_params: str) -> HttpResponse:
         params = unsign(signed_params)
         integration = Integration.objects.get(id=params["integration_id"])
         organization = integration.organizations.all()[0]
@@ -144,36 +155,19 @@ class SlackLinkTeamView(BaseView):  # type: ignore
         if not team:
             return self.render_error_page(request, body_text="HTTP 404: Team does not exist")
 
-        INSUFFICIENT_ROLE_MESSAGE = {
-            "heading": "Insufficient role",
-            "body": "You must be an admin or higher to link teams.",
-        }
-        ALREADY_LINKED_MESSAGE = {
-            "heading": "Already linked",
-            "body": f"The {team.slug} team has already been linked to a Slack channel.",
-        }
-        SUCCESS_LINKED_MESSAGE = {
-            "heading": "Team linked",
-            "body": f"The {team.slug} team will now receive issue alert notifications in the {channel_name} channel.",
-        }
         identity = self.get_identity(request, integration, params["slack_id"])
         org_member = OrganizationMember.objects.get(user=identity.user, organization=organization)
-        client = SlackClient()
-        token = (
-            integration.metadata.get("user_access_token") or integration.metadata["access_token"]
-        )
         allowed_roles = ["admin", "manager", "owner"]
         if not (
             org_member.role in allowed_roles
             and (organization.flags.allow_joinleave or team in org_member.teams.all())
         ):
-            return self.send_slack_message(
-                request,
-                client,
-                token,
-                INSUFFICIENT_ROLE_MESSAGE,
-                channel_id,
+            return send_slack_message(
                 integration,
+                channel_id,
+                INSUFFICIENT_ROLE_TITLE,
+                INSUFFICIENT_ROLE_MESSAGE,
+                request,
             )
 
         if ExternalActor.objects.filter(
@@ -182,13 +176,12 @@ class SlackLinkTeamView(BaseView):  # type: ignore
             integration=integration,
             provider=ExternalProviders.SLACK.value,
         ).exists():
-            return self.send_slack_message(
-                request,
-                client,
-                token,
-                ALREADY_LINKED_MESSAGE,
-                channel_id,
+            return send_slack_message(
                 integration,
+                channel_id,
+                ALREADY_LINKED_TITLE,
+                ALREADY_LINKED_MESSAGE.format(slug=team.slug),
+                request,
             )
 
         external_team, created = ExternalActor.objects.get_or_create(
@@ -207,11 +200,10 @@ class SlackLinkTeamView(BaseView):  # type: ignore
                 NotificationSettingOptionValues.ALWAYS,
                 team=team,
             )
-            return self.send_slack_message(
-                request,
-                client,
-                token,
-                SUCCESS_LINKED_MESSAGE,
-                channel_id,
+            return send_slack_message(
                 integration,
+                channel_id,
+                SUCCESS_LINKED_TITLE,
+                SUCCESS_LINKED_MESSAGE.format(slug=team.slug, channel_name=channel_name),
+                request,
             )
