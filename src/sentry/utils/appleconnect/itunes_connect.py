@@ -282,7 +282,7 @@ def set_provider(session: Session, content_provider_id: int) -> None:
     user_details_response = session.get(user_details_url)
     if user_details_response.status_code != HTTPStatus.OK:
         raise ValueError(
-            f"Failed to get user details: {user_details_response}: {user_details_response.json()}"
+            f"Failed to get user details: {user_details_response}: {user_details_response.text}"
         )
     user_id = safe.get_path(user_details_response.json(), "data", "sessionToken", "dsId")
 
