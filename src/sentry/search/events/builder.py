@@ -22,16 +22,17 @@ class QueryBuilder(QueryFields, QueryFilter):
         orderby: Optional[List[str]] = None,
         limit: int = 50,
     ):
-        super().__init__(dataset, params, orderby)
+        super().__init__(dataset, params)
 
         self.limit = Limit(limit)
 
-        if query is not None:
-            self.resolve_where(query)
+        self.where = self.resolve_where(query)
+
         # params depends on get_filter since there may be projects in the query
-        self.resolve_params()
-        if selected_columns is not None:
-            self.resolve_select(selected_columns)
+        self.where += self.resolve_params()
+
+        self.columns = self.resolve_select(selected_columns)
+        self.orderby = self.resolve_orderby(orderby)
 
     @property
     def select(self) -> Optional[List[SelectType]]:

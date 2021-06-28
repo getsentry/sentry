@@ -1,8 +1,9 @@
-from typing import List, Optional, Set, Union
+from typing import List, Mapping, Set
 
 from django.utils.functional import cached_property
 from snuba_sdk.column import Column
 from snuba_sdk.function import CurriedFunction
+from snuba_sdk.orderby import OrderBy
 
 from sentry.models import Project
 from sentry.search.events.constants import SNQL_FIELD_ALLOWLIST
@@ -13,28 +14,22 @@ from sentry.utils.snuba import Dataset, resolve_column
 class QueryBase:
     field_allowlist = SNQL_FIELD_ALLOWLIST
 
-    def __init__(
-        self,
-        dataset: Dataset,
-        params: ParamsType,
-        orderby: Optional[Union[List[str], str]] = None,
-    ):
-        # Function is a subclass of CurriedFunction
-        self.aggregates: List[CurriedFunction] = []
-        self.columns: List[SelectType] = []
-        self.where: List[WhereType] = []
-
+    def __init__(self, dataset: Dataset, params: ParamsType):
         self.params = params
         self.dataset = dataset
-        if isinstance(orderby, str) and orderby != "":
-            orderby = [orderby]
-        self.orderby_columns: List[str] = orderby if orderby else []
+
+        # Function is a subclass of CurriedFunction
+        self.where: List[WhereType] = []
+        self.aggregates: List[CurriedFunction] = []
+        self.columns: List[SelectType] = []
+        self.orderby: List[OrderBy] = []
+
         self.projects_to_filter: Set[int] = set()
 
         self.resolve_column_name = resolve_column(self.dataset)
 
     @cached_property
-    def project_slugs(self):
+    def project_slugs(self) -> Mapping[str, int]:
         project_ids = self.params.get("project_id", [])
 
         if len(project_ids) > 0:
