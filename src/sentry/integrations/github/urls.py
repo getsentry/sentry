@@ -13,8 +13,8 @@ urlpatterns = [
         name="sentry-extensions-github-search",
     ),
     url(
-        r"^extensions/external-install/$",
+        r"^configure/$",
         GithubExtensionConfigurationView.as_view(),
-        name="integration-installation",
+        name="github-integration-installation",
     ),
 ]
