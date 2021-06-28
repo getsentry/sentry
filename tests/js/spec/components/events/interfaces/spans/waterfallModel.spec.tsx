@@ -375,13 +375,11 @@ describe('WaterfallModel', () => {
 
     const expected = [...fullWaterfall];
 
-    assert(fullWaterfall[1].type !== 'loading_embedded_transactions');
     expected[1] = {
       type: 'out_of_view',
       span: fullWaterfall[1].span,
     } as EnhancedProcessedSpanType;
 
-    assert(fullWaterfall[4].type !== 'loading_embedded_transactions');
     expected[4] = {
       type: 'out_of_view',
       span: fullWaterfall[4].span,
@@ -396,8 +394,6 @@ describe('WaterfallModel', () => {
       viewEnd: 0.65,
     });
 
-    assert(fullWaterfall[0].type !== 'loading_embedded_transactions');
-    assert(fullWaterfall[6].type !== 'loading_embedded_transactions');
     expect(spans).toEqual([
       {
         type: 'filtered_out',
