@@ -60,4 +60,5 @@ class ProjectTeamDetailsEndpoint(ProjectEndpoint):
                 {"detail": ["You do not have permission to perform this action."]}, status=403
             )
         project.remove_team(team)
+
         return Response(serialize(project, request.user, ProjectWithTeamSerializer()), status=200)

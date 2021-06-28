@@ -128,8 +128,6 @@ class SlackCommandsLinkTeamTest(SlackCommandsTest):
     @responses.activate
     def test_link_team_command(self):
         """Test that we successfully link a team to a Slack channel"""
-        self.create_project(name="mw", organization=self.organization, teams=[self.team])
-        self.create_project(name="hb", organization=self.organization, teams=[self.team])
         assert "Link your Sentry team to this Slack channel!" in self.data["text"]
         linking_url = build_linking_url(
             self.integration,
