@@ -200,22 +200,22 @@ class TableView extends React.Component<TableViewProps> {
     }
     const currentSort = eventView.sortForField(field, tableMeta);
     const canSort = isFieldSortable(field, tableMeta);
+    const title = isEquationAlias(column.name)
+      ? eventView.getEquations()[getEquationAliasIndex(column.name)]
+      : column.name;
+    const shouldTruncate = title.length > 60;
 
     const sortLink = (
       <SortLink
         align={align}
-        title={column.name}
+        title={title.substring(0, 60) + (shouldTruncate ? '...' : '')}
         direction={currentSort ? currentSort.kind : undefined}
         canSort={canSort}
         generateSortLink={generateSortLink}
       />
     );
-    if (isEquationAlias(column.name)) {
-      return (
-        <Tooltip title={eventView.getEquations()[getEquationAliasIndex(column.name)]}>
-          {sortLink}
-        </Tooltip>
-      );
+    if (shouldTruncate) {
+      return <Tooltip title={title}>{sortLink}</Tooltip>;
     }
     return sortLink;
   };
