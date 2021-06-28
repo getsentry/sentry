@@ -167,7 +167,7 @@
     "jest-fetch-mock": "^3.0.3",
     "jest-junit": "^9.0.0",
     "mockdate": "3.0.5",
-    "prettier": "2.3.1",
+    "prettier": "2.3.2",
     "react-refresh": "^0.8.3",
     "react-test-renderer": "17.0.2",
     "size-limit": "^4.5.6",
