@@ -57,7 +57,7 @@ const Content = ({
     adopted: 'Adopted',
     replaced: 'Replaced',
   };
-  const hasAdoptionStages:boolean = adoptionStages !== undefined;
+  const hasAdoptionStages: boolean = adoptionStages !== undefined;
   return (
     <Fragment>
       <Header>
