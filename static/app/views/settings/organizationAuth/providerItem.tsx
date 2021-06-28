@@ -105,9 +105,17 @@ const ProviderItem = ({provider, active, onConfigure}: Props) => {
             />
             <div>
               <ProviderName>{provider.name}</ProviderName>
-              <ProviderDescription>
-                {t('Enable your organization to sign in with %s.', provider.name)}
-              </ProviderDescription>
+              {provider.name === 'SAML2' ? (
+                <ProviderDescription>
+                  {t(
+                    'Enable your organization to sign in with your preferred SAML2 compliant provider like Ping Identity, Google SAML, Keycloak, or VMware Identity Manager.'
+                  )}
+                </ProviderDescription>
+              ) : (
+                <ProviderDescription>
+                  {t('Enable your organization to sign in with %s.', provider.name)}
+                </ProviderDescription>
+              )}
             </div>
           </ProviderInfo>
 
