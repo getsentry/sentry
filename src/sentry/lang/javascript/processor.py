@@ -1,3 +1,14 @@
+import time
+from io import BytesIO
+from typing import IO, Optional, Tuple
+
+from django.utils.encoding import force_bytes, force_text
+
+from sentry.models.releasefile import ARTIFACT_INDEX_FILENAME, ReleaseArchive, read_artifact_index
+from sentry.utils import json
+
+__all__ = ["JavaScriptStacktraceProcessor"]
+
 import base64
 import errno
 import logging
@@ -17,7 +28,7 @@ from django.utils.encoding import force_bytes, force_text
 from requests.utils import get_encoding_from_headers
 from symbolic import SourceMapView
 
-from sentry import http, options
+from sentry import http
 from sentry.interfaces.stacktrace import Stacktrace
 from sentry.models import EventError, Organization, ReleaseFile
 from sentry.models.releasefile import ARTIFACT_INDEX_FILENAME, ReleaseArchive, read_artifact_index
@@ -569,12 +580,7 @@ def fetch_file(url, project=None, release=None, dist=None, allow_scraping=True):
 
     # if we've got a release to look on, try that first (incl associated cache)
     if release:
-        sample_rate = options.get("processing.use-release-archives-sample-rate")
-        if sample_rate and random.random() < sample_rate:
-            # Read from archive
-            result = fetch_release_artifact(url, release, dist)
-        else:
-            result = fetch_release_file(url, release, dist)
+        result = fetch_release_artifact(url, release, dist)
     else:
         result = None
 
