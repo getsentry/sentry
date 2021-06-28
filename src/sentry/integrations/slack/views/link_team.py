@@ -27,6 +27,7 @@ from ..utils import logger
 from . import build_linking_url as base_build_linking_url
 from . import never_cache
 
+ALLOWED_METHODS = ["GET", "POST"]
 INSUFFICIENT_ROLE_TITLE = "Insufficient role"
 INSUFFICIENT_ROLE_MESSAGE = "You must be an admin or higher to link teams."
 ALREADY_LINKED_TITLE = "Already linked"
@@ -47,6 +48,14 @@ def build_linking_url(
         channel_id=channel_id,
         channel_name=channel_name,
         response_url=response_url,
+    )
+
+
+def render_error_page(request: Request, body_text: str) -> HttpResponse:
+    return render_to_response(
+        "sentry/integrations/slack-link-team-error.html",
+        request=request,
+        context={"body_text": body_text},
     )
 
 
@@ -114,17 +123,12 @@ class SlackLinkTeamView(BaseView):  # type: ignore
                 request, body_text="HTTP 403: User identity does not exist"
             )
         return identity
-
-    def render_error_page(self, request: Request, body_text: str) -> Response:
-        return render_to_response(
-            "sentry/integrations/slack-link-team-error.html",
-            request=request,
-            context={"body_text": body_text},
-        )
-
     @transaction_start("SlackLinkTeamView")
     @never_cache
     def handle(self, request: Request, signed_params: str) -> HttpResponse:
+        if request.method not in ALLOWED_METHODS:
+            return render_error_page(request, body_text="HTTP 405: Method not allowed")
+
         params = unsign(signed_params)
         integration = Integration.objects.get(id=params["integration_id"])
         organization = integration.organizations.all()[0]
@@ -132,9 +136,6 @@ class SlackLinkTeamView(BaseView):  # type: ignore
         channel_name = params["channel_name"]
         channel_id = params["channel_id"]
         form = SelectTeamForm(teams, request.POST or None)
-        if request.method not in ["POST", "GET"]:
-            return self.render_error_page(request, body_text="HTTP 405: Method not allowed")
-
         if request.method == "POST":
             if not form.is_valid():
                 return self.render_error_page(request, body_text="HTTP 400: Bad request")
