@@ -340,10 +340,7 @@ class SpanTreeModel {
           this.embeddedChildren = [];
           this.fetchEmbeddedChildrenState = 'error_fetching_embedded_transactions';
         })
-      )
-      .finally(() => {
-        this.fetchEmbeddedChildrenState = 'idle';
-      });
+      );
   }
 }
 
