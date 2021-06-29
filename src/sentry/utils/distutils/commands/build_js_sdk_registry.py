@@ -10,6 +10,8 @@ from urllib.request import urlopen
 
 import sentry
 
+from .base import BaseBuildCommand
+
 JS_SDK_REGISTRY_URL = (
     "https://release-registry.services.sentry.io/sdks/sentry.javascript.browser/versions"
 )
@@ -34,9 +36,6 @@ def sync_registry():
     dump_registry("_registry", data)
 
 
-from .base import BaseBuildCommand
-
-
 class BuildJsSdkRegistryCommand(BaseBuildCommand):
     description = "build js sdk registry"
 
@@ -44,5 +43,5 @@ class BuildJsSdkRegistryCommand(BaseBuildCommand):
         log.info("downloading js sdk information from the release registry")
         try:
             sync_registry()
-        except BaseException:
+        except Exception:
             log.error("error occurred while trying to fetch js sdk information from the registry")

@@ -5,17 +5,17 @@ import ActionLink from 'app/components/actions/actionLink';
 import MenuItem from 'app/components/menuItem';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 
-function MenuItemActionLinkBase({
+function MenuItemActionLink({
   className,
   ...props
 }: React.ComponentProps<typeof ActionLink>) {
   return (
-    <MenuItem noAnchor disabled={props.disabled} className={className}>
-      <StyledActionLink {...props} />
+    <MenuItem noAnchor withBorder disabled={props.disabled} className={className}>
+      <InnerActionLink {...props} />
     </MenuItem>
   );
 }
-const StyledActionLink = styled(ActionLink)`
+const InnerActionLink = styled(ActionLink)`
   color: ${p => p.theme.textColor};
   ${overflowEllipsis}
   &:hover {
@@ -28,14 +28,6 @@ const StyledActionLink = styled(ActionLink)`
       background: ${p => p.theme.white};
       color: #7a8188;
     }
-  }
-`;
-
-const MenuItemActionLink = styled(MenuItemActionLinkBase)`
-  border-bottom: 1px solid ${p => p.theme.innerBorder};
-
-  &:last-child {
-    border-bottom: none;
   }
 `;
 
