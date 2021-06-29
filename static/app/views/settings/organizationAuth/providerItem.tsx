@@ -85,7 +85,7 @@ const ProviderItem = ({provider, active, onConfigure}: Props) => {
     }
 
     if (providerName === 'Google') {
-      return 'Google(OAuth)';
+      return 'Google (OAuth)';
     }
 
     return providerName;
