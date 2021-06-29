@@ -262,7 +262,6 @@ class NotificationsManager(BaseManager):  # type: ignore
             return self.none()
 
         parent_specific_scope_type = get_scope_type(type_)
-
         return self.filter(
             Q(
                 scope_type=parent_specific_scope_type.value,
@@ -273,7 +272,7 @@ class NotificationsManager(BaseManager):  # type: ignore
                 scope_identifier__in=user_ids,
             )
             | Q(
-                scope_type=NotificationScopeType.USER.value,
+                scope_type=NotificationScopeType.TEAM.value,
                 scope_identifier__in=team_ids,
             ),
             type=type_.value,
