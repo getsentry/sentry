@@ -30,7 +30,7 @@ def default_validation_hash():
 
 
 class UserEmail(Model):
-    __core__ = True
+    __include_in_export__ = True
 
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL, related_name="emails")
     email = models.EmailField(_("email address"), max_length=75)

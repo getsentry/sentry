@@ -9,7 +9,7 @@ from sentry.db.models import BoundedBigIntegerField, FlexibleForeignKey, Model, 
 
 
 class Counter(Model):
-    __core__ = True
+    __include_in_export__ = True
 
     project = FlexibleForeignKey("sentry.Project", unique=True)
     value = BoundedBigIntegerField()

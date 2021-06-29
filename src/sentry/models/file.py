@@ -105,7 +105,7 @@ def get_storage(config=None):
 
 
 class FileBlob(Model):
-    __core__ = False
+    __include_in_export__ = False
 
     path = models.TextField(null=True)
     size = BoundedPositiveIntegerField(null=True)
@@ -309,7 +309,7 @@ class FileBlob(Model):
 
 
 class File(Model):
-    __core__ = False
+    __include_in_export__ = False
 
     name = models.TextField()
     type = models.CharField(max_length=64)
@@ -464,7 +464,7 @@ class File(Model):
 
 
 class FileBlobIndex(Model):
-    __core__ = False
+    __include_in_export__ = False
 
     file = FlexibleForeignKey("sentry.File")
     blob = FlexibleForeignKey("sentry.FileBlob", on_delete=models.PROTECT)
@@ -638,7 +638,7 @@ class ChunkedFileBlobIndexWrapper:
 
 
 class FileBlobOwner(Model):
-    __core__ = False
+    __include_in_export__ = False
 
     blob = FlexibleForeignKey("sentry.FileBlob")
     organization_id = BoundedBigIntegerField(db_index=True)

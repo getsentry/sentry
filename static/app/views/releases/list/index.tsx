@@ -243,6 +243,10 @@ class ReleasesList extends AsyncView<Props, State> {
       sort = SortOption.SESSIONS_24_HOURS;
     else if (sort === SortOption.SESSIONS_24_HOURS && display === DisplayOption.USERS)
       sort = SortOption.USERS_24_HOURS;
+    else if (sort === SortOption.CRASH_FREE_USERS && display === DisplayOption.SESSIONS)
+      sort = SortOption.CRASH_FREE_SESSIONS;
+    else if (sort === SortOption.CRASH_FREE_SESSIONS && display === DisplayOption.USERS)
+      sort = SortOption.CRASH_FREE_USERS;
 
     router.push({
       ...location,
@@ -356,17 +360,8 @@ class ReleasesList extends AsyncView<Props, State> {
     const {hasSessions, releases} = this.state;
 
     const selectedProject = this.getSelectedProject();
-    const isMobileProject =
-      selectedProject &&
-      selectedProject.platform &&
-      ([...mobile, ...desktop] as string[]).includes(selectedProject.platform as string);
 
-    if (
-      !selectedProject ||
-      hasSessions !== false ||
-      !releases?.length ||
-      !isMobileProject
-    ) {
+    if (!selectedProject || hasSessions !== false || !releases?.length) {
       return null;
     }
 

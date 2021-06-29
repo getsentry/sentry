@@ -6,55 +6,38 @@ import {MessageRow} from 'app/components/performance/waterfall/messageRow';
 import {pickBarColour} from 'app/components/performance/waterfall/utils';
 import {t, tct} from 'app/locale';
 import {Organization} from 'app/types';
-import {EventTransaction} from 'app/types/event';
 
 import {DragManagerChildrenProps} from './dragManager';
-import {ActiveOperationFilter} from './filter';
 import {ScrollbarManagerChildrenProps, withScrollbarManager} from './scrollbarManager';
-import SpanGroup from './spanGroup';
-import {
-  FilterSpans,
-  GapSpanType,
-  OrphanTreeDepth,
-  ParsedTraceType,
-  ProcessedSpanType,
-  RawSpanType,
-  SpanChildrenLookupType,
-  TreeDepthType,
-} from './types';
-import {
-  boundsGenerator,
-  generateRootSpan,
-  getSpanID,
-  getSpanOperation,
-  getSpanTraceID,
-  isEventFromBrowserJavaScriptSDK,
-  isGapSpan,
-  isOrphanSpan,
-  SpanBoundsType,
-  SpanGeneratedBoundsType,
-} from './utils';
-
-type RenderedSpanTree = {
-  spanTree: JSX.Element | null;
-  nextSpanNumber: number;
-  numOfSpansOutOfViewAbove: number;
-  numOfFilteredSpansAbove: number;
-};
+import SpanBar from './spanBar';
+import {EnhancedProcessedSpanType, FilterSpans, ParsedTraceType} from './types';
+import {getSpanID, getSpanOperation} from './utils';
+import WaterfallModel from './waterfallModel';
 
 type PropType = ScrollbarManagerChildrenProps & {
   organization: Organization;
-  trace: ParsedTraceType;
   dragProps: DragManagerChildrenProps;
-  filterSpans: FilterSpans | undefined;
-  event: EventTransaction;
-  operationNameFilters: ActiveOperationFilter;
   traceViewRef: React.RefObject<HTMLDivElement>;
+  filterSpans: FilterSpans | undefined;
+  waterfallModel: WaterfallModel;
+  spans: EnhancedProcessedSpanType[];
 };
 
 class SpanTree extends React.Component<PropType> {
   shouldComponentUpdate(nextProps: PropType) {
-    if (nextProps.dragProps.isDragging || nextProps.dragProps.isWindowSelectionDragging) {
+    if (
+      this.props.dragProps.isDragging !== nextProps.dragProps.isDragging ||
+      this.props.dragProps.isWindowSelectionDragging !==
+        nextProps.dragProps.isWindowSelectionDragging
+    ) {
+      return true;
+    }
+
+    if (
+      nextProps.dragProps.isDragging ||
+      nextProps.dragProps.isWindowSelectionDragging ||
+      isEqual(this.props.spans, nextProps.spans)
+    ) {
       return false;
     }
 
@@ -62,8 +45,12 @@ class SpanTree extends React.Component<PropType> {
   }
 
   componentDidUpdate(prevProps: PropType) {
-    if (!isEqual(prevProps.filterSpans, this.props.filterSpans)) {
-      // Update horizontal scroll states after a search has been performed
+    if (
+      !isEqual(prevProps.filterSpans, this.props.filterSpans) ||
+      !isEqual(prevProps.spans, this.props.spans)
+    ) {
+      // Update horizontal scroll states after a search has been performed or if
+      // if the spans has changed
       this.props.updateScrollState();
     }
   }
@@ -126,9 +113,10 @@ class SpanTree extends React.Component<PropType> {
   }
 
   generateLimitExceededMessage() {
-    const {trace} = this.props;
+    const {waterfallModel} = this.props;
+    const {parsedTrace} = waterfallModel;
 
-    if (hasAllSpans(trace)) {
+    if (hasAllSpans(parsedTrace)) {
       return null;
     }
 
@@ -141,252 +129,99 @@ class SpanTree extends React.Component<PropType> {
     );
   }
 
-  isSpanFilteredOut(span: Readonly<RawSpanType>): boolean {
-    const {filterSpans, operationNameFilters} = this.props;
+  toggleSpanTree = (spanID: string) => () => {
+    this.props.waterfallModel.toggleSpanGroup(spanID);
+    // Update horizontal scroll states after this subtree was either hidden or
+    // revealed.
+    this.props.updateScrollState();
+  };
 
-    if (operationNameFilters.type === 'active_filter') {
-      const operationName = getSpanOperation(span);
-
-      if (
-        typeof operationName === 'string' &&
-        !operationNameFilters.operationNames.has(operationName)
-      ) {
-        return true;
-      }
-    }
-
-    if (!filterSpans) {
-      return false;
-    }
-
-    return !filterSpans.spanIDs.has(getSpanID(span));
-  }
-
-  renderSpan = ({
-    spanNumber,
-    isRoot,
-    isLast,
-    treeDepth,
-    continuingTreeDepths,
-    numOfSpansOutOfViewAbove,
-    numOfFilteredSpansAbove,
-    childSpans,
-    span,
-    generateBounds,
-    previousSiblingEndTimestamp,
-  }: {
-    spanNumber: number;
-    treeDepth: number;
-    continuingTreeDepths: Array<TreeDepthType>;
-    isLast: boolean;
-    isRoot?: boolean;
-    numOfSpansOutOfViewAbove: number;
-    numOfFilteredSpansAbove: number;
-    span: Readonly<ProcessedSpanType>;
-    childSpans: SpanChildrenLookupType;
-    generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
-    previousSiblingEndTimestamp: undefined | number;
-  }): RenderedSpanTree => {
-    const {event, organization} = this.props;
-
-    const spanBarColour: string = pickBarColour(getSpanOperation(span));
-    const spanChildren: Array<RawSpanType> = childSpans?.[getSpanID(span)] ?? [];
-
-    // Mark descendents as being rendered. This is to address potential recursion issues due to malformed data.
-    // For example if a span has a span_id that's identical to its parent_span_id.
-    childSpans = {
-      ...childSpans,
-    };
-    delete childSpans[getSpanID(span)];
-
-    const bounds = generateBounds({
-      startTimestamp: span.start_timestamp,
-      endTimestamp: span.timestamp,
+  render() {
+    const {waterfallModel, spans, organization, dragProps} = this.props;
+    const generateBounds = waterfallModel.generateBounds({
+      viewStart: dragProps.viewWindowStart,
+      viewEnd: dragProps.viewWindowEnd,
     });
 
-    const isCurrentSpanHidden = !bounds.isSpanVisibleInView;
-    const isCurrentSpanFilteredOut = isGapSpan(span)
-      ? false
-      : this.isSpanFilteredOut(span);
-
-    const isSpanDisplayed = !isCurrentSpanHidden && !isCurrentSpanFilteredOut;
-
-    // hide gap spans (i.e. "missing instrumentation" spans) for browser js transactions,
-    // since they're not useful to indicate
-    const shouldIncludeGap = !isEventFromBrowserJavaScriptSDK(event);
-
-    const isValidGap =
-      typeof previousSiblingEndTimestamp === 'number' &&
-      previousSiblingEndTimestamp < span.start_timestamp &&
-      // gap is at least 100 ms
-      span.start_timestamp - previousSiblingEndTimestamp >= 0.1 &&
-      shouldIncludeGap;
-
-    const spanGroupNumber = isValidGap && isSpanDisplayed ? spanNumber + 1 : spanNumber;
-
     type AccType = {
-      renderedSpanChildren: Array<JSX.Element>;
-      nextSpanNumber: number;
       numOfSpansOutOfViewAbove: number;
       numOfFilteredSpansAbove: number;
-      previousSiblingEndTimestamp: undefined | number;
+      spanTree: React.ReactNode[];
     };
 
-    const treeDepthEntry = isOrphanSpan(span)
-      ? ({type: 'orphan', depth: treeDepth} as OrphanTreeDepth)
-      : treeDepth;
+    const {spanTree, numOfSpansOutOfViewAbove, numOfFilteredSpansAbove} = spans.reduce(
+      (acc: AccType, payload: EnhancedProcessedSpanType, index) => {
+        const {span, type} = payload;
 
-    const treeArr = isLast
-      ? continuingTreeDepths
-      : [...continuingTreeDepths, treeDepthEntry];
+        switch (payload.type) {
+          case 'filtered_out': {
+            acc.numOfFilteredSpansAbove += 1;
+            return acc;
+          }
+          case 'out_of_view': {
+            acc.numOfSpansOutOfViewAbove += 1;
+            return acc;
+          }
+          default: {
+            break;
+          }
+        }
 
-    const reduced: AccType = spanChildren.reduce(
-      (acc: AccType, spanChild, index) => {
-        const key = `${getSpanTraceID(span)}${getSpanID(spanChild)}`;
+        const previousSpanNotDisplayed =
+          acc.numOfFilteredSpansAbove > 0 || acc.numOfSpansOutOfViewAbove > 0;
 
-        const results = this.renderSpan({
-          spanNumber: acc.nextSpanNumber,
-          isLast: index + 1 === spanChildren.length,
-          continuingTreeDepths: treeArr,
-          treeDepth: treeDepth + 1,
-          numOfSpansOutOfViewAbove: acc.numOfSpansOutOfViewAbove,
-          numOfFilteredSpansAbove: acc.numOfFilteredSpansAbove,
-          span: spanChild,
-          childSpans,
-          generateBounds,
-          previousSiblingEndTimestamp: acc.previousSiblingEndTimestamp,
-        });
+        if (previousSpanNotDisplayed) {
+          const infoMessage = this.generateInfoMessage({
+            isCurrentSpanHidden: false,
+            numOfSpansOutOfViewAbove: acc.numOfSpansOutOfViewAbove,
+            isCurrentSpanFilteredOut: false,
+            numOfFilteredSpansAbove: acc.numOfFilteredSpansAbove,
+          });
+          acc.spanTree.push(infoMessage);
+        }
 
-        acc.renderedSpanChildren.push(
-          <React.Fragment key={key}>{results.spanTree}</React.Fragment>
+        const key = getSpanID(span, `span-${index}`);
+
+        const isLast = payload.isLastSibling;
+        const isRoot = type === 'root_span';
+        const spanBarColour: string = pickBarColour(getSpanOperation(span));
+        const spanNumber = index + 1;
+        const numOfSpanChildren = payload.numOfSpanChildren;
+        const treeDepth = payload.treeDepth;
+        const continuingTreeDepths = payload.continuingTreeDepths;
+
+        acc.numOfFilteredSpansAbove = 0;
+        acc.numOfSpansOutOfViewAbove = 0;
+        acc.spanTree.push(
+          <SpanBar
+            key={key}
+            organization={organization}
+            event={waterfallModel.event}
+            spanBarColour={spanBarColour}
+            spanBarHatch={type === 'gap'}
+            span={span}
+            showSpanTree={!waterfallModel.hiddenSpanGroups.has(getSpanID(span))}
+            numOfSpanChildren={numOfSpanChildren}
+            trace={waterfallModel.parsedTrace}
+            generateBounds={generateBounds}
+            toggleSpanTree={this.toggleSpanTree(getSpanID(span))}
+            treeDepth={treeDepth}
+            continuingTreeDepths={continuingTreeDepths}
+            spanNumber={spanNumber}
+            isLast={isLast}
+            isRoot={isRoot}
+            isCurrentSpanFilteredOut={false}
+          />
         );
-
-        acc.numOfSpansOutOfViewAbove = results.numOfSpansOutOfViewAbove;
-        acc.numOfFilteredSpansAbove = results.numOfFilteredSpansAbove;
-
-        acc.nextSpanNumber = results.nextSpanNumber;
-
-        acc.previousSiblingEndTimestamp = spanChild.timestamp;
 
         return acc;
       },
       {
-        renderedSpanChildren: [],
-        nextSpanNumber: spanGroupNumber + 1,
-        numOfSpansOutOfViewAbove: isCurrentSpanHidden ? numOfSpansOutOfViewAbove + 1 : 0,
-        numOfFilteredSpansAbove: isCurrentSpanFilteredOut
-          ? numOfFilteredSpansAbove + 1
-          : isCurrentSpanHidden
-          ? numOfFilteredSpansAbove
-          : 0,
-        previousSiblingEndTimestamp: undefined,
+        numOfSpansOutOfViewAbove: 0,
+        numOfFilteredSpansAbove: 0,
+        spanTree: [],
       }
     );
-
-    const infoMessage = this.generateInfoMessage({
-      isCurrentSpanHidden,
-      numOfSpansOutOfViewAbove,
-      isCurrentSpanFilteredOut,
-      numOfFilteredSpansAbove,
-    });
-
-    const spanGap: Readonly<GapSpanType> = {
-      type: 'gap',
-      start_timestamp: previousSiblingEndTimestamp || span.start_timestamp,
-      timestamp: span.start_timestamp, // this is essentially end_timestamp
-      description: t('Missing instrumentation'),
-      isOrphan: isOrphanSpan(span),
-    };
-
-    const spanGapComponent =
-      isValidGap && isSpanDisplayed ? (
-        <SpanGroup
-          organization={organization}
-          event={event}
-          spanNumber={spanNumber}
-          isLast={false}
-          continuingTreeDepths={continuingTreeDepths}
-          isRoot={isRoot}
-          span={spanGap}
-          trace={this.props.trace}
-          generateBounds={generateBounds}
-          treeDepth={treeDepth}
-          numOfSpanChildren={0}
-          renderedSpanChildren={[]}
-          isCurrentSpanFilteredOut={isCurrentSpanFilteredOut}
-          spanBarHatch
-        />
-      ) : null;
-
-    return {
-      numOfSpansOutOfViewAbove: reduced.numOfSpansOutOfViewAbove,
-      numOfFilteredSpansAbove: reduced.numOfFilteredSpansAbove,
-      nextSpanNumber: reduced.nextSpanNumber,
-      spanTree: (
-        <React.Fragment>
-          {infoMessage}
-          {spanGapComponent}
-          <SpanGroup
-            organization={organization}
-            event={event}
-            spanNumber={spanGroupNumber}
-            isLast={isLast}
-            continuingTreeDepths={continuingTreeDepths}
-            isRoot={isRoot}
-            span={span}
-            trace={this.props.trace}
-            generateBounds={generateBounds}
-            treeDepth={treeDepth}
-            numOfSpanChildren={spanChildren.length}
-            renderedSpanChildren={reduced.renderedSpanChildren}
-            spanBarColour={spanBarColour}
-            isCurrentSpanFilteredOut={isCurrentSpanFilteredOut}
-            spanBarHatch={false}
-          />
-        </React.Fragment>
-      ),
-    };
-  };
-
-  generateBounds() {
-    const {dragProps, trace} = this.props;
-
-    return boundsGenerator({
-      traceStartTimestamp: trace.traceStartTimestamp,
-      traceEndTimestamp: trace.traceEndTimestamp,
-      viewStart: dragProps.viewWindowStart,
-      viewEnd: dragProps.viewWindowEnd,
-    });
-  }
-
-  renderRootSpan = (): RenderedSpanTree => {
-    const {trace} = this.props;
-
-    const rootSpan: RawSpanType = generateRootSpan(trace);
-
-    const generateBounds = this.generateBounds();
-
-    return this.renderSpan({
-      isRoot: true,
-      isLast: true,
-      spanNumber: 1,
-      treeDepth: 0,
-      continuingTreeDepths: [],
-      numOfSpansOutOfViewAbove: 0,
-      numOfFilteredSpansAbove: 0,
-      span: rootSpan,
-      childSpans: trace.childSpans,
-      generateBounds,
-      previousSiblingEndTimestamp: undefined,
-    });
-  };
-
-  render() {
-    const {
-      spanTree,
-      numOfSpansOutOfViewAbove,
-      numOfFilteredSpansAbove,
-    } = this.renderRootSpan();
 
     const infoMessage = this.generateInfoMessage({
       isCurrentSpanHidden: false,
@@ -395,13 +230,11 @@ class SpanTree extends React.Component<PropType> {
       numOfFilteredSpansAbove,
     });
 
-    const limitExceededMessage = this.generateLimitExceededMessage();
-
     return (
       <TraceViewContainer ref={this.props.traceViewRef}>
         {spanTree}
         {infoMessage}
-        {limitExceededMessage}
+        {this.generateLimitExceededMessage()}
       </TraceViewContainer>
     );
   }

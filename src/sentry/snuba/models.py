@@ -26,7 +26,7 @@ class QueryDatasets(Enum):
 
 
 class SnubaQuery(Model):
-    __core__ = True
+    __include_in_export__ = True
 
     environment = FlexibleForeignKey("sentry.Environment", null=True, db_constraint=False)
     dataset = models.TextField()
@@ -46,7 +46,7 @@ class SnubaQuery(Model):
 
 
 class SnubaQueryEventType(Model):
-    __core__ = True
+    __include_in_export__ = True
 
     class EventType(Enum):
         ERROR = 0
@@ -67,7 +67,7 @@ class SnubaQueryEventType(Model):
 
 
 class QuerySubscription(DefaultFieldsModel):
-    __core__ = True
+    __include_in_export__ = True
 
     class Status(Enum):
         ACTIVE = 0

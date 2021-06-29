@@ -59,12 +59,8 @@ describe('withCommitters HoC', function () {
     const Component = () => null;
     const Container = withCommitters(Component);
 
-    // XXX(leedongwei): We cannot spy on `fetchCommitters` as Jest can't
-    // replace the method in the prototype due to createReactClass.
-    // As such, I'm using `componentDidMount` as a proxy.
     jest.spyOn(api, 'requestPromise');
-    jest.spyOn(Container.prototype, 'componentDidMount');
-    // jest.spyOn(Container.prototype, 'fetchCommitters');
+    jest.spyOn(Container.prototype, 'fetchCommitters');
 
     // Mount and run component
     mountWithTheme(
@@ -102,8 +98,7 @@ describe('withCommitters HoC', function () {
     await tick();
 
     expect(api.requestPromise).toHaveBeenCalledTimes(1);
-    expect(Container.prototype.componentDidMount).toHaveBeenCalledTimes(3);
-    // expect(Container.prototype.fetchCommitters).toHaveBeenCalledTimes(3);
+    expect(Container.prototype.fetchCommitters).toHaveBeenCalledTimes(3);
   });
 
   /**
@@ -119,7 +114,7 @@ describe('withCommitters HoC', function () {
     const Container = withCommitters(Component);
 
     jest.spyOn(api, 'requestPromise');
-    jest.spyOn(Container.prototype, 'componentDidMount');
+    jest.spyOn(Container.prototype, 'fetchCommitters');
 
     // Mount and run duplicates
     mountWithTheme(
@@ -154,6 +149,6 @@ describe('withCommitters HoC', function () {
     await tick();
 
     expect(api.requestPromise).toHaveBeenCalledTimes(1);
-    expect(Container.prototype.componentDidMount).toHaveBeenCalledTimes(3);
+    expect(Container.prototype.fetchCommitters).toHaveBeenCalledTimes(3);
   });
 });

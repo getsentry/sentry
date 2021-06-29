@@ -80,13 +80,8 @@ class SessionsRequest extends React.Component<Props, State> {
   private unmounting: boolean = false;
 
   fetchData = async () => {
-    const {
-      api,
-      selection,
-      onTotalValuesChange,
-      displayMode,
-      disablePrevious,
-    } = this.props;
+    const {api, selection, onTotalValuesChange, displayMode, disablePrevious} =
+      this.props;
     const shouldFetchWithPrevious =
       !disablePrevious && shouldFetchPreviousPeriod(selection.datetime);
 
@@ -296,13 +291,8 @@ class SessionsRequest extends React.Component<Props, State> {
 
   render() {
     const {children} = this.props;
-    const {
-      timeseriesData,
-      reloading,
-      errored,
-      totalSessions,
-      previousTimeseriesData,
-    } = this.state;
+    const {timeseriesData, reloading, errored, totalSessions, previousTimeseriesData} =
+      this.state;
     const loading = timeseriesData === null;
 
     return children({

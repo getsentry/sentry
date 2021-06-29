@@ -23,10 +23,14 @@ function ReleaseListSortOptions({
     [SortOption.DATE]: t('Date Created'),
     [SortOption.SESSIONS]: t('Total Sessions'),
     ...(selectedDisplay === DisplayOption.USERS
-      ? {[SortOption.USERS_24_HOURS]: t('Active Users')}
-      : {[SortOption.SESSIONS_24_HOURS]: t('Active Sessions')}),
-    [SortOption.CRASH_FREE_USERS]: t('Crash Free Users'),
-    [SortOption.CRASH_FREE_SESSIONS]: t('Crash Free Sessions'),
+      ? {
+          [SortOption.USERS_24_HOURS]: t('Active Users'),
+          [SortOption.CRASH_FREE_USERS]: t('Crash Free Users'),
+        }
+      : {
+          [SortOption.SESSIONS_24_HOURS]: t('Active Sessions'),
+          [SortOption.CRASH_FREE_SESSIONS]: t('Crash Free Sessions'),
+        }),
   } as Record<SortOption, string>;
 
   if (organization.features.includes('semver')) {

@@ -8,7 +8,7 @@ from sentry.utils.geo import geo_by_addr
 
 
 class UserIP(Model):
-    __core__ = True
+    __include_in_export__ = True
 
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL)
     ip_address = models.GenericIPAddressField()
