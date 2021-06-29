@@ -27,7 +27,7 @@ class ExportedData(Model):
     Stores references to asynchronous data export jobs
     """
 
-    __core__ = False
+    __include_in_export__ = False
 
     organization = FlexibleForeignKey("sentry.Organization")
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL)
@@ -129,7 +129,7 @@ class ExportedData(Model):
 
 
 class ExportedDataBlob(Model):
-    __core__ = False
+    __include_in_export__ = False
 
     data_export = FlexibleForeignKey("sentry.ExportedData")
     blob = FlexibleForeignKey("sentry.FileBlob", db_constraint=False)

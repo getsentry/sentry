@@ -24,7 +24,6 @@ from sentry.db.models import (
     Model,
     sane_repr,
 )
-from sentry.exceptions import InvalidSearchQuery
 from sentry.models import CommitFileChange, GroupInboxRemoveAction, remove_group_from_inbox
 from sentry.signals import issue_resolved
 from sentry.utils import metrics
@@ -53,7 +52,7 @@ class ReleaseCommitError(Exception):
 
 
 class ReleaseProject(Model):
-    __core__ = False
+    __include_in_export__ = False
 
     project = FlexibleForeignKey("sentry.Project")
     release = FlexibleForeignKey("sentry.Release")
@@ -111,50 +110,6 @@ class SemverFilter:
     package: Optional[str] = None
 
 
-SEMVER_FAKE_PACKAGE = "__sentry_fake__"
-SEMVER_WILDCARDS = frozenset(["X", "*"])
-
-
-def convert_semver_to_filter(version, operator) -> Optional[SemverFilter]:
-    # TODO: This doesn't really belong in this module. Will move this elsewhere when
-    # refactoring `filter_by_semver` to accept a `SemverFilter`
-    version = version if "@" in version else f"{SEMVER_FAKE_PACKAGE}@{version}"
-    parsed = parse_release(version)
-    parsed_version = parsed.get("version_parsed")
-    if parsed_version:
-        # Convert `pre` to always be a string
-        prerelease = parsed_version["pre"] if parsed_version["pre"] else ""
-        semver_filter = SemverFilter(
-            operator,
-            [
-                parsed_version["major"],
-                parsed_version["minor"],
-                parsed_version["patch"],
-                parsed_version["revision"],
-                0 if prerelease else 1,
-                prerelease,
-            ],
-        )
-        if parsed["package"] and parsed["package"] != SEMVER_FAKE_PACKAGE:
-            semver_filter.package = parsed.package
-        return semver_filter
-    else:
-        # Try to parse as a wildcard match
-        package, version = version.split("@", 1)
-        version_parts = []
-        for part in version.split(".", 3):
-            if part in SEMVER_WILDCARDS:
-                break
-            try:
-                # We assume all ints for a wildcard match - not handling prerelease as
-                # part of these
-                version_parts.append(int(part))
-            except ValueError:
-                return
-
-        return SemverFilter("exact", version_parts)
-
-
 class ReleaseQuerySet(models.QuerySet):
     def annotate_prerelease_column(self):
         """
@@ -175,28 +130,25 @@ class ReleaseQuerySet(models.QuerySet):
         return self.filter(major__isnull=False)
 
     def filter_by_semver(
-        self, organization_id: int, operator: str, version: str
+        self, organization_id: int, semver_filter: SemverFilter
     ) -> models.QuerySet:
         """
-        Filter releases down based on semver syntax. version should be in format
-        `<package_name>@<version>` or `<version>`, where package_name is a string and
-        version is a version string matching semver format (https://semver.org/). We've
-        slightly extended this format to allow up to 4 integers. EG
-         - sentry@1.2.3.4
-         - sentry@1.2.3.4-alpha
-         - 1.2.3.4
-         - 1.2.3.4-alpha
-         - 1.*
-        """
-        # TODO: Will refactor this further so that we pass a `SemverFilter` instead of
-        # the version string
-        semver_filter = convert_semver_to_filter(version, operator)
-        if semver_filter:
-            # The version matches semver format, so we can use it for comparison
-            release_filter = Q(organization_id=organization_id)
-            if semver_filter.package:
-                release_filter &= Q(package=semver_filter.package)
+        Filters released based on a based `SemverFilter` instance.
+        `SemverFilter.version_parts` can contain up to 6 components, which should map
+        to the columns defined in `Release.SEMVER_COLS`. If fewer components are
+        included, then we will exclude later columns from the filter.
+        `SemverFilter.package` is optional, and if included we will filter the `package`
+        column using the provided value.
+        `SemverFilter.operator` should be a Django field filter.
 
+        Typically we build a `SemverFilter` via `sentry.search.events.filter.parse_semver`
+        """
+        release_filter = Q(organization_id=organization_id)
+        if semver_filter.package:
+            release_filter &= Q(package=semver_filter.package)
+
+        qs = self.filter(release_filter).annotate_prerelease_column()
+        if semver_filter.version_parts:
             filter_func = Func(
                 *[
                     Value(part) if isinstance(part, str) else part
@@ -205,18 +157,10 @@ class ReleaseQuerySet(models.QuerySet):
                 function="ROW",
             )
             cols = self.model.SEMVER_COLS[: len(semver_filter.version_parts)]
-            return (
-                self.filter(release_filter)
-                .annotate_prerelease_column()
-                .annotate(
-                    semver=Func(
-                        *[F(col) for col in cols], function="ROW", output_field=ArrayField()
-                    )
-                )
-                .filter(**{f"semver__{semver_filter.operator}": filter_func})
-            )
-        else:
-            raise InvalidSearchQuery(f"Invalid format for semver query {version}")
+            qs = qs.annotate(
+                semver=Func(*[F(col) for col in cols], function="ROW", output_field=ArrayField())
+            ).filter(**{f"semver__{semver_filter.operator}": filter_func})
+        return qs
 
 
 class ReleaseModelManager(models.Manager):
@@ -230,9 +174,9 @@ class ReleaseModelManager(models.Manager):
         return self.get_queryset().filter_to_semver()
 
     def filter_by_semver(
-        self, organization_id: int, operator: str, version: str
+        self, organization_id: int, semver_filter: SemverFilter
     ) -> models.QuerySet:
-        return self.get_queryset().filter_by_semver(organization_id, operator, version)
+        return self.get_queryset().filter_by_semver(organization_id, semver_filter)
 
     @staticmethod
     def _convert_build_code_to_build_number(build_code):
@@ -315,7 +259,7 @@ class Release(Model):
     A commit is generally a git commit. See also releasecommit.py
     """
 
-    __core__ = False
+    __include_in_export__ = False
 
     organization = FlexibleForeignKey("sentry.Organization")
     projects = models.ManyToManyField(

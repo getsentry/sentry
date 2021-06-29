@@ -454,9 +454,9 @@ export type AvatarUser = {
   name: string;
   username: string;
   email: string;
+  ip_address: string;
   avatarUrl?: string;
   avatar?: Avatar;
-  ip_address: string;
   // Compatibility shim with EventUser serializer
   ipAddress?: string;
   options?: {
@@ -1750,7 +1750,7 @@ export type Tag = {
   maxSuggestedValues?: number;
 };
 
-export type TagCollection = {[key: string]: Tag};
+export type TagCollection = Record<string, Tag>;
 
 export type TagValue = {
   count: number;
@@ -2082,6 +2082,11 @@ export type SessionApiResponse = SeriesApi & {
     series: Record<string, number[]>;
   }[];
 };
+
+export enum SessionField {
+  SESSIONS = 'sum(session)',
+  USERS = 'count_unique(user)',
+}
 
 export enum HealthStatsPeriodOption {
   AUTO = 'auto',

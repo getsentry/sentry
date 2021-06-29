@@ -21,7 +21,7 @@ def generate_token():
 
 @python_2_unicode_compatible
 class ApiToken(Model, HasApiScopes):
-    __core__ = True
+    __include_in_export__ = True
 
     # users can generate tokens without being application-bound
     application = FlexibleForeignKey("sentry.ApiApplication", null=True)

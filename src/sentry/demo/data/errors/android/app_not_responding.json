@@ -12,6 +12,7 @@
     ["device.family", "Android"],
     ["level", "error"],
     ["mechanism", "ANR"],
+    ["handled", "no"],
     ["os", "Android 10"],
     ["os.name", "Android"],
     ["os.rooted", "no"],
@@ -392,7 +393,10 @@
           ]
         },
         "thread_id": 2,
-        "mechanism": {"type": "ANR"}
+        "mechanism": {
+          "type": "ANR",
+          "handled": false
+        }
       }
     ]
   },

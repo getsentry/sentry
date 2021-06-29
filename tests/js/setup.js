@@ -1,3 +1,4 @@
+import {configure} from '@testing-library/react';
 import Adapter from '@wojtekmaj/enzyme-adapter-react-17';
 import Enzyme from 'enzyme'; // eslint-disable-line no-restricted-imports
 import MockDate from 'mockdate';
@@ -22,6 +23,13 @@ import 'core-js/features/object/from-entries';
 if (!SVGElement.prototype.getTotalLength) {
   SVGElement.prototype.getTotalLength = () => 1;
 }
+
+/**
+ * React Testing Library configuration to override the default test id attribute
+ *
+ * See: https://testing-library.com/docs/queries/bytestid/#overriding-data-testid
+ */
+configure({testIdAttribute: 'data-test-id'});
 
 /**
  * Enzyme configuration
@@ -59,7 +67,6 @@ ConfigStore.loadInitialData({
  */
 jest.mock('lodash/debounce', () => jest.fn(fn => fn));
 jest.mock('app/utils/recreateRoute');
-jest.mock('app/translations');
 jest.mock('app/api');
 jest.mock('app/utils/domId');
 jest.mock('app/utils/withOrganization');

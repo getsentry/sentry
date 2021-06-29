@@ -64,7 +64,7 @@ class UserManager(BaseManager, DjangoUserManager):
 
 
 class User(BaseModel, AbstractBaseUser):
-    __core__ = True
+    __include_in_export__ = True
 
     id = BoundedAutoField(primary_key=True)
     username = models.CharField(_("username"), max_length=128, unique=True)

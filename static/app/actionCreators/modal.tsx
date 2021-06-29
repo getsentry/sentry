@@ -196,7 +196,7 @@ export type SentryAppDetailsModalOptions = {
 
 type DebugFileSourceModalOptions = {
   sourceType: DebugFileSource;
-  onSave: (data: Record<string, any>) => void;
+  onSave: (data: Record<string, any>) => Promise<void>;
   appStoreConnectContext?: AppStoreConnectContextProps;
   onClose?: () => void;
   sourceConfig?: Record<string, any>;
