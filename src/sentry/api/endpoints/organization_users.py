@@ -5,7 +5,7 @@ from sentry.api.base import EnvironmentMixin
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models import OrganizationMemberWithProjectsSerializer
-from sentry.models import OrganizationMember
+from sentry.models import OrganizationMember, OrganizationMemberTeam, ProjectTeam
 
 
 class OrganizationUsersEndpoint(OrganizationEndpoint, EnvironmentMixin):
@@ -28,14 +28,17 @@ class OrganizationUsersEndpoint(OrganizationEndpoint, EnvironmentMixin):
                 OrganizationMember.objects.filter(
                     user__is_active=True,
                     organization=organization,
-                    teams__projectteam__project__in=projects,
+                    id__in=OrganizationMemberTeam.objects.filter(
+                        team_id__in=ProjectTeam.objects.filter(project_id__in=projects)
+                        .values_list("team_id", flat=True)
+                        .distinct(),
+                    ).values_list("organizationmember_id", flat=True),
                 )
                 .select_related("user")
                 .prefetch_related(
                     "teams", "teams__projectteam_set", "teams__projectteam_set__project"
                 )
                 .order_by("user__email")
-                .distinct()
             )
             organization_members = list(qs)
 
