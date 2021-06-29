@@ -5,7 +5,6 @@ import DropdownButton from 'app/components/dropdownButton';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
-import space from 'app/styles/space';
 import {getDisplayLabel, IssueDisplayOptions} from 'app/views/issueList/utils';
 
 type Props = {
@@ -58,7 +57,7 @@ const IssueListDisplayOptions = ({
   };
 
   return (
-    <StyledDropdownControl
+    <DropdownControl
       button={({isOpen, getActorProps}) => (
         <Tooltip
           containerDisplayMode="inline-flex"
@@ -83,13 +82,9 @@ const IssueListDisplayOptions = ({
         {getMenuItem(IssueDisplayOptions.EVENTS)}
         {getMenuItem(IssueDisplayOptions.SESSIONS)}
       </React.Fragment>
-    </StyledDropdownControl>
+    </DropdownControl>
   );
 };
-
-const StyledDropdownControl = styled(DropdownControl)`
-  margin-right: ${space(1)};
-`;
 
 const StyledDropdownButton = styled(DropdownButton)`
   z-index: ${p => p.theme.zIndex.dropdownAutocomplete.actor};
