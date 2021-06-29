@@ -63,9 +63,11 @@ function withPlugins<P extends WithPluginProps>(
 
       this.fetchPlugins();
     }
+
     componentWillUnmount() {
       this.unsubscribe();
     }
+
     unsubscribe = PluginsStore.listen(({plugins, loading}: State) => {
       // State is destructured as store updates contain additional keys
       // that are not exposed by this HoC
