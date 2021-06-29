@@ -33,10 +33,10 @@ class Migration(migrations.Migration):
             database_operations=[
                 migrations.RunSQL(
                     """
-                    CREATE INDEX CONCURRENTLY "sentry_activity_project_id_type_datetime_d5f9452f_idx" ON "sentry_activity" ("project_id", "type", "datetime");
+                    CREATE INDEX CONCURRENTLY "sentry_activity_project_id_datetime_c00585e4_idx" ON "sentry_activity" ("project_id", "datetime");
                     """,
                     reverse_sql="""
-                DROP INDEX CONCURRENTLY IF EXISTS sentry_activity_project_id_type_datetime_d5f9452f_idx;
+                DROP INDEX CONCURRENTLY IF EXISTS sentry_activity_project_id_datetime_c00585e4_idx;
                 """,
                     hints={"tables": ["sentry_activity"]},
                 ),
