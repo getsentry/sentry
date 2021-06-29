@@ -400,7 +400,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
                 disabled={!canAdd}
                 icon={<IconAdd isCircled size="xs" />}
               >
-                {t('Add an Equation')}&nbsp;
+                {t('Add an Equation')}
                 <StyledFeatureBadge type="beta" />
               </Button>
             </Feature>
@@ -413,6 +413,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
 
 const StyledFeatureBadge = styled(FeatureBadge)`
   margin: -${space(0.5)} auto;
+  margin-left: ${space(1)};
 `;
 
 const RowContainer = styled('div')`
