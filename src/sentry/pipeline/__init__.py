@@ -207,20 +207,22 @@ class Pipeline:
         return self.provider_manager.get(provider_key)
 
     def __init__(self, request, provider_key, organization=None, provider_model=None, config=None):
-        if config is None:
-            config = {}
-
         self.request = request
         self.organization = organization
         self.state = self.session_store_cls(
             request, self.pipeline_name, ttl=INTEGRATION_EXPIRATION_TTL
         )
         self.provider_model = provider_model
-        self.provider = self.get_provider(provider_key)
 
-        self.config = config
+        self.provider = self.get_provider(provider_key)
         self.provider.set_pipeline(self)
-        self.provider.set_config(config)
+        if config is None:
+            self.config = {}
+            if self.provider.config is None:
+                self.provider.set_config(self.config)
+        else:
+            self.config = config
+            self.provider.set_config(self.config)
 
         self.pipeline_views = self.get_pipeline_views()
 
@@ -327,7 +329,7 @@ class Pipeline:
         raise NotImplementedError
 
     def bind_state(self, key, value):
-        data = self.state.data
+        data = self.state.data or {}
         data[key] = value
 
         self.state.data = data
