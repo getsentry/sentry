@@ -40,8 +40,8 @@ function withPlugins<P extends WithPluginProps>(
       const {organization, project} = this.props;
 
       // Only fetch plugins when a org slug or project slug has changed
-      const prevOrg = prevProps.organization || (prevContext && prevContext.organization);
-      const prevProject = prevProps.project || (prevContext && prevContext.project);
+      const prevOrg = prevProps.organization || prevContext?.organization;
+      const prevProject = prevProps.project || prevContext?.project;
 
       // If previous org/project is undefined then it means:
       // the HoC has mounted, `fetchPlugins` has been called (via cDM), and
