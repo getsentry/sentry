@@ -94,13 +94,10 @@ type Props = {
 function SavedSearchMenu({savedSearchList, ...props}: Props) {
   const savedSearches = savedSearchList.filter(search => !search.isGlobal);
   let globalSearches = savedSearchList.filter(search => search.isGlobal);
-
-  if (props.organization.features?.includes('inbox')) {
-    // Hide "Unresolved Issues" since they have a unresolved tab
-    globalSearches = globalSearches.filter(
-      search => !search.isPinned && search.query !== 'is:unresolved'
-    );
-  }
+  // Hide "Unresolved Issues" since they have a unresolved tab
+  globalSearches = globalSearches.filter(
+    search => !search.isPinned && search.query !== 'is:unresolved'
+  );
 
   return (
     <Fragment>

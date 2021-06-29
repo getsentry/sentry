@@ -114,7 +114,7 @@ const TagsHeatMap = (
     grid: {
       left: space(3),
       right: space(3),
-      top: space(3),
+      top: '25px', // Need to bump top spacing past space(3) so the chart title doesn't overlap.
       bottom: space(4),
     },
   };

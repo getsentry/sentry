@@ -76,6 +76,7 @@ class ReleaseHealth extends Component<Props> {
           organization={organization}
           activeDisplay={activeDisplay}
           releaseVersion={release.version}
+          adoptionStages={release.adoptionStages}
           projects={projectsToShow}
           location={location}
           showPlaceholders={showPlaceholders}

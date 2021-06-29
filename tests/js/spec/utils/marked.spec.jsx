@@ -1,4 +1,4 @@
-/*eslint no-script-url:0*/
+/* eslint no-script-url:0 */
 
 import marked from 'app/utils/marked';
 

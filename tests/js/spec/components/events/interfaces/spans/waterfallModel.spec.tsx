@@ -1,4 +1,5 @@
 import {ActiveFilter, noFilter} from 'app/components/events/interfaces/spans/filter';
+import {EnhancedProcessedSpanType} from 'app/components/events/interfaces/spans/types';
 import WaterfallModel from 'app/components/events/interfaces/spans/waterfallModel';
 import {EntryType, EventTransaction} from 'app/types/event';
 
@@ -41,8 +42,8 @@ describe('WaterfallModel', () => {
             },
           },
           {
-            timestamp: 1622079937.20331,
-            start_timestamp: 1622079936.907515,
+            timestamp: 1622079938.20331,
+            start_timestamp: 1622079937.907515,
             description: 'GET /api/0/internal/health/',
             op: 'http',
             span_id: 'a453cc713e5baf9c',
@@ -72,11 +73,175 @@ describe('WaterfallModel', () => {
               'Transfer Size': 275,
             },
           },
+          {
+            timestamp: 1622079938.32451,
+            start_timestamp: 1622079938.31431,
+            description: '/_static/dist/sentry/sentry.541f5b.min.css',
+            op: 'css',
+            span_id: 'b5795cf4ba68bbb4',
+            parent_span_id: 'a934857184bdf5a6',
+            trace_id: '8cbbc19c0f54447ab702f00263262726',
+            data: {
+              'Decoded Body Size': 159248,
+              'Encoded Body Size': 159248,
+              'Transfer Size': 275,
+            },
+          },
         ],
         type: EntryType.SPANS,
       },
     ],
   } as EventTransaction;
+
+  const fullWaterfall: EnhancedProcessedSpanType[] = [
+    {
+      type: 'root_span',
+      span: {
+        trace_id: '8cbbc19c0f54447ab702f00263262726',
+        span_id: 'a934857184bdf5a6',
+        start_timestamp: 1622079935.86141,
+        timestamp: 1622079940.032905,
+        description: undefined,
+        parent_span_id: undefined,
+        op: 'pageload',
+        data: {},
+        status: 'unknown',
+      },
+      numOfSpanChildren: 3,
+      treeDepth: 0,
+      isLastSibling: true,
+      continuingTreeDepths: [],
+      showEmbeddedChildren: false,
+      toggleEmbeddedChildren: expect.any(Function),
+      fetchEmbeddedChildrenState: 'idle',
+    },
+    {
+      type: 'span',
+      span: {
+        timestamp: 1622079937.227645,
+        start_timestamp: 1622079936.90689,
+        description: 'GET /api/0/organizations/?member=1',
+        op: 'http',
+        span_id: 'b23703998ae619e7',
+        parent_span_id: 'a934857184bdf5a6',
+        trace_id: '8cbbc19c0f54447ab702f00263262726',
+        status: 'ok',
+        tags: {'http.status_code': '200'},
+        data: {method: 'GET', type: 'fetch', url: '/api/0/organizations/?member=1'},
+      },
+      numOfSpanChildren: 0,
+      treeDepth: 1,
+      isLastSibling: false,
+      continuingTreeDepths: [],
+      showEmbeddedChildren: false,
+      toggleEmbeddedChildren: expect.any(Function),
+      fetchEmbeddedChildrenState: 'idle',
+    },
+    {
+      type: 'gap',
+      span: {
+        type: 'gap',
+        start_timestamp: 1622079937.227645,
+        timestamp: 1622079937.907515,
+        description: 'Missing instrumentation',
+        isOrphan: false,
+      },
+      numOfSpanChildren: 0,
+      treeDepth: 1,
+      isLastSibling: false,
+      continuingTreeDepths: [],
+      showEmbeddedChildren: false,
+      toggleEmbeddedChildren: undefined,
+      fetchEmbeddedChildrenState: 'idle',
+    },
+    {
+      type: 'span',
+      span: {
+        timestamp: 1622079938.20331,
+        start_timestamp: 1622079937.907515,
+        description: 'GET /api/0/internal/health/',
+        op: 'http',
+        span_id: 'a453cc713e5baf9c',
+        parent_span_id: 'a934857184bdf5a6',
+        trace_id: '8cbbc19c0f54447ab702f00263262726',
+        status: 'ok',
+        tags: {'http.status_code': '200'},
+        data: {method: 'GET', type: 'fetch', url: '/api/0/internal/health/'},
+      },
+      numOfSpanChildren: 1,
+      treeDepth: 1,
+      isLastSibling: false,
+      continuingTreeDepths: [],
+      showEmbeddedChildren: false,
+      toggleEmbeddedChildren: expect.any(Function),
+      fetchEmbeddedChildrenState: 'idle',
+    },
+    {
+      type: 'span',
+      span: {
+        timestamp: 1622079936.05839,
+        start_timestamp: 1622079936.048125,
+        description: '/_static/dist/sentry/sentry.541f5b.css',
+        op: 'resource.link',
+        span_id: 'a23f26b939d1a735',
+        parent_span_id: 'a453cc713e5baf9c',
+        trace_id: '8cbbc19c0f54447ab702f00263262726',
+        data: {
+          'Decoded Body Size': 159248,
+          'Encoded Body Size': 159248,
+          'Transfer Size': 275,
+        },
+      },
+      numOfSpanChildren: 0,
+      treeDepth: 2,
+      isLastSibling: true,
+      continuingTreeDepths: [1],
+      showEmbeddedChildren: false,
+      toggleEmbeddedChildren: expect.any(Function),
+      fetchEmbeddedChildrenState: 'idle',
+    },
+    {
+      type: 'gap',
+      span: {
+        type: 'gap',
+        start_timestamp: 1622079938.20331,
+        timestamp: 1622079938.31431,
+        description: 'Missing instrumentation',
+        isOrphan: false,
+      },
+      numOfSpanChildren: 0,
+      treeDepth: 1,
+      isLastSibling: false,
+      continuingTreeDepths: [],
+      showEmbeddedChildren: false,
+      toggleEmbeddedChildren: undefined,
+      fetchEmbeddedChildrenState: 'idle',
+    },
+    {
+      type: 'span',
+      span: {
+        timestamp: 1622079938.32451,
+        start_timestamp: 1622079938.31431,
+        description: '/_static/dist/sentry/sentry.541f5b.min.css',
+        op: 'css',
+        span_id: 'b5795cf4ba68bbb4',
+        parent_span_id: 'a934857184bdf5a6',
+        trace_id: '8cbbc19c0f54447ab702f00263262726',
+        data: {
+          'Decoded Body Size': 159248,
+          'Encoded Body Size': 159248,
+          'Transfer Size': 275,
+        },
+      },
+      numOfSpanChildren: 0,
+      treeDepth: 1,
+      isLastSibling: true,
+      continuingTreeDepths: [],
+      showEmbeddedChildren: false,
+      toggleEmbeddedChildren: expect.any(Function),
+      fetchEmbeddedChildrenState: 'idle',
+    },
+  ];
 
   it('isEvent', () => {
     const waterfallModel = new WaterfallModel(event);
@@ -130,6 +295,7 @@ describe('WaterfallModel', () => {
 
     expect(operationNameFilters.type).toBe('active_filter');
     expect(Array.from(operationNameFilters.operationNames)).toEqual([
+      'css',
       'http',
       'pageload',
       'resource.link',
@@ -141,6 +307,7 @@ describe('WaterfallModel', () => {
 
     expect(operationNameFilters.type).toBe('active_filter');
     expect(Array.from(operationNameFilters.operationNames)).toEqual([
+      'css',
       'pageload',
       'resource.link',
     ]);
@@ -151,6 +318,7 @@ describe('WaterfallModel', () => {
 
     expect(operationNameFilters.type).toBe('active_filter');
     expect(Array.from(operationNameFilters.operationNames)).toEqual([
+      'css',
       'http',
       'pageload',
       'resource.link',
@@ -181,5 +349,136 @@ describe('WaterfallModel', () => {
       ['a453cc713e5baf9c', 'b23703998ae619e7'].sort()
     );
     expect(waterfallModel.searchQuery).toBe('GET /api/0/organizations/?member=1');
+  });
+
+  it('getWaterfall()', async () => {
+    const waterfallModel = new WaterfallModel(event);
+
+    // Fuzzy search needs to be loaded asynchronously
+    // @ts-expect-error
+    await tick();
+
+    // show all spans in the waterfall
+    let spans = waterfallModel.getWaterfall({
+      viewStart: 0,
+      viewEnd: 1,
+    });
+
+    expect(spans).toEqual(fullWaterfall);
+
+    // perform a window selection
+    spans = waterfallModel.getWaterfall({
+      viewStart: 0.4,
+      viewEnd: 0.65,
+    });
+
+    const expected = [...fullWaterfall];
+
+    expected[1] = {
+      type: 'out_of_view',
+      span: fullWaterfall[1].span,
+    } as EnhancedProcessedSpanType;
+
+    expected[4] = {
+      type: 'out_of_view',
+      span: fullWaterfall[4].span,
+    } as EnhancedProcessedSpanType;
+
+    expect(spans).toEqual(expected);
+
+    // toggle http filter with a window selection
+    waterfallModel.toggleOperationNameFilter('http');
+    spans = waterfallModel.getWaterfall({
+      viewStart: 0.4,
+      viewEnd: 0.65,
+    });
+
+    expect(spans).toEqual([
+      {
+        type: 'filtered_out',
+        span: fullWaterfall[0].span,
+      },
+      {
+        type: 'out_of_view',
+        span: fullWaterfall[1].span,
+      },
+      fullWaterfall[2],
+      fullWaterfall[3],
+      {
+        type: 'filtered_out',
+        span: fullWaterfall[4].span,
+      },
+      {
+        type: 'filtered_out',
+        span: fullWaterfall[6].span,
+      },
+    ]);
+
+    // toggle ops filters with a window selection and search query
+    // NOTE: http was toggled on in the previous case
+    waterfallModel.toggleOperationNameFilter('pageload');
+    waterfallModel.querySpanSearch('a453cc713e5baf9c');
+    expect(waterfallModel.searchQuery).toBe('a453cc713e5baf9c');
+    spans = waterfallModel.getWaterfall({
+      viewStart: 0.2,
+      viewEnd: 0.65,
+    });
+
+    expect(spans).toEqual([
+      {
+        type: 'filtered_out',
+        span: fullWaterfall[0].span,
+      },
+      {
+        type: 'filtered_out',
+        span: fullWaterfall[1].span,
+      },
+      fullWaterfall[2],
+      fullWaterfall[3],
+      {
+        type: 'filtered_out',
+        span: fullWaterfall[4].span,
+      },
+      {
+        type: 'filtered_out',
+        span: fullWaterfall[6].span,
+      },
+    ]);
+  });
+
+  it('toggleSpanGroup()', () => {
+    const waterfallModel = new WaterfallModel(event);
+
+    let spans = waterfallModel.getWaterfall({
+      viewStart: 0,
+      viewEnd: 1,
+    });
+
+    expect(spans).toEqual(fullWaterfall);
+
+    // toggle a span group to hide their sub-tree
+    waterfallModel.toggleSpanGroup('a453cc713e5baf9c');
+
+    spans = waterfallModel.getWaterfall({
+      viewStart: 0,
+      viewEnd: 1,
+    });
+
+    expect(spans).toEqual(
+      fullWaterfall.filter((_span, index) => {
+        // 5th span should be hidden
+        return index !== 4;
+      })
+    );
+
+    // toggle a span group to reveal their sub-tree
+    waterfallModel.toggleSpanGroup('a453cc713e5baf9c');
+
+    spans = waterfallModel.getWaterfall({
+      viewStart: 0,
+      viewEnd: 1,
+    });
+
+    expect(spans).toEqual(fullWaterfall);
   });
 });

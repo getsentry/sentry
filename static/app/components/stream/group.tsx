@@ -380,9 +380,6 @@ class StreamGroup extends React.Component<Props, State> {
       withChart && data && data.filtered && statsPeriod && useFilteredStats
     );
 
-    const hasInbox = organization.features.includes('inbox');
-    const unresolved = data.status === 'unresolved' ? true : false;
-
     const showSessions = display === IssueDisplayOptions.SESSIONS;
     // calculate a percentage count based on session data if the user has selected sessions display
     const primaryPercent =
@@ -400,8 +397,7 @@ class StreamGroup extends React.Component<Props, State> {
         data-test-id="group"
         onClick={displayReprocessingLayout ? undefined : this.toggleSelect}
         reviewed={reviewed}
-        hasInbox={hasInbox}
-        unresolved={unresolved}
+        unresolved={data.status === 'unresolved'}
         actionTaken={actionTaken}
         useTintRow={useTintRow ?? true}
       >
@@ -422,7 +418,6 @@ class StreamGroup extends React.Component<Props, State> {
           />
           <EventOrGroupExtraDetails
             hasGuideAnchor={hasGuideAnchor}
-            organization={organization}
             data={data}
             showInboxTime={showInboxTime}
           />
@@ -608,16 +603,13 @@ export default withGlobalSelection(withOrganization(StreamGroup));
 // Position for wrapper is relative for overlay actions
 const Wrapper = styled(PanelItem)<{
   reviewed: boolean;
-  hasInbox: boolean;
   unresolved: boolean;
   actionTaken: boolean;
   useTintRow: boolean;
 }>`
   position: relative;
-  padding: ${p => (p.hasInbox ? `${space(1.5)} 0` : `${space(1)} 0`)};
+  padding: ${space(1.5)} 0;
   line-height: 1.1;
-
-  ${p => (p.hasInbox ? p.theme.textColor : p.theme.subText)};
 
   ${p =>
     p.useTintRow &&

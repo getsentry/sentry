@@ -9,10 +9,9 @@ import Pagination from 'app/components/pagination';
 import PaginationCaption from 'app/components/pagination/paginationCaption';
 import {PanelTable} from 'app/components/panels';
 import {DEFAULT_DEBOUNCE_DURATION} from 'app/constants';
-import {t, tct} from 'app/locale';
+import {t, tct, tn} from 'app/locale';
 import space from 'app/styles/space';
-import {Group, Organization} from 'app/types';
-import {Event} from 'app/types/event';
+import {BaseGroup, Group, Organization} from 'app/types';
 import {defined} from 'app/utils';
 import parseLinkHeader from 'app/utils/parseLinkHeader';
 import withApi from 'app/utils/withApi';
@@ -30,10 +29,10 @@ type Props = {
   api: Client;
 };
 
-type GroupingLevelDetails = {
+type GroupingLevelDetails = Partial<Pick<BaseGroup, 'title' | 'metadata'>> & {
   eventCount: number;
   hash: string;
-  latestEvent: Event;
+  latestEvent: BaseGroup['latestEvent'];
 };
 
 type GroupingLevel = {
@@ -43,9 +42,8 @@ type GroupingLevel = {
 
 function Grouping({api, groupId, location, organization}: Props) {
   const [isLoading, setIsLoading] = useState(false);
-  const [isGroupingLevelDetailsLoading, setIsGroupingLevelDetailsLoading] = useState(
-    false
-  );
+  const [isGroupingLevelDetailsLoading, setIsGroupingLevelDetailsLoading] =
+    useState(false);
   const [error, setError] = useState<undefined | Error>(undefined);
   const [groupingLevels, setGroupingLevels] = useState<GroupingLevel[]>([]);
   const [activeGroupingLevel, setActiveGroupingLevel] = useState<number | undefined>(
@@ -171,30 +169,37 @@ function Grouping({api, groupId, location, organization}: Props) {
             isReloading={isGroupingLevelDetailsLoading}
             headers={['', t('Events')]}
           >
-            {activeGroupingLevelDetails.map(({hash, latestEvent, eventCount}) => (
-              <NewIssue
-                key={hash}
-                sampleEvent={latestEvent}
-                eventCount={eventCount}
-                organization={organization}
-              />
-            ))}
+            {activeGroupingLevelDetails.map(
+              ({hash, title, metadata, latestEvent, eventCount}) => {
+                // XXX(markus): Ugly hack to make NewIssue show the right things.
+                return (
+                  <NewIssue
+                    key={hash}
+                    sampleEvent={{
+                      ...latestEvent,
+                      metadata: metadata || latestEvent.metadata,
+                      title: title || latestEvent.title,
+                    }}
+                    eventCount={eventCount}
+                    organization={organization}
+                  />
+                );
+              }
+            )}
           </StyledPanelTable>
           <StyledPagination
             pageLinks={pagination}
             caption={
               <PaginationCaption
-                caption={
-                  hasMore
-                    ? tct('Showing [current] of [total] results', {
-                        current: paginationCurrentQuantity,
-                        total: `${paginationCurrentQuantity}+`,
-                      })
-                    : tct('Showing [current] of [total] result', {
-                        current: paginationCurrentQuantity,
-                        total: paginationCurrentQuantity,
-                      })
-                }
+                caption={tct('Showing [current] of [total] [result]', {
+                  result: hasMore
+                    ? t('results')
+                    : tn('result', 'results', paginationCurrentQuantity),
+                  current: paginationCurrentQuantity,
+                  total: hasMore
+                    ? `${paginationCurrentQuantity}+`
+                    : paginationCurrentQuantity,
+                })}
               />
             }
           />

@@ -299,7 +299,7 @@ class Group(Model):
     Aggregated message which summarizes a set of Events.
     """
 
-    __core__ = False
+    __include_in_export__ = False
 
     project = FlexibleForeignKey("sentry.Project")
     logger = models.CharField(

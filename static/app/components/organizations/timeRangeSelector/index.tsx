@@ -78,6 +78,15 @@ const defaultProps = {
    * Show relative date selectors
    */
   showRelative: true,
+  /**
+   * When the default period is selected, it is visually dimmed and
+   * makes the selector unclearable.
+   */
+  defaultPeriod: DEFAULT_STATS_PERIOD,
+  /**
+   * Callback when value changes
+   */
+  onChange: (() => {}) as (data: ChangeData) => void,
 };
 
 type Props = ReactRouter.WithRouterProps & {
@@ -92,12 +101,6 @@ type Props = ReactRouter.WithRouterProps & {
   end: DateString;
 
   /**
-   * When the default period is selected, it is visually dimmed and
-   * makes the selector unclearable.
-   */
-  defaultPeriod: string;
-
-  /**
    * Relative date value
    */
   relative: string;
@@ -105,7 +108,7 @@ type Props = ReactRouter.WithRouterProps & {
   /**
    * Override defaults from DEFAULT_RELATIVE_PERIODS
    */
-  relativeOptions?: Record<string, string>;
+  relativeOptions?: Record<string, React.ReactNode>;
 
   /**
    * Default initial value for using UTC
@@ -116,11 +119,6 @@ type Props = ReactRouter.WithRouterProps & {
    * Replace the default calendar icon for label
    */
   label?: React.ReactNode;
-
-  /**
-   * Callback when value changes
-   */
-  onChange: (data: ChangeData) => void;
 
   /**
    * Callback when "Update" button is clicked
@@ -233,7 +231,7 @@ class TimeRangeSelector extends React.PureComponent<Props, State> {
   };
 
   handleAbsoluteClick = () => {
-    const {relative, onChange} = this.props;
+    const {relative, onChange, defaultPeriod} = this.props;
 
     // Set default range to equivalent of last relative period,
     // or use default stats period
@@ -241,7 +239,7 @@ class TimeRangeSelector extends React.PureComponent<Props, State> {
       relative: null,
       start: getPeriodAgo(
         'hours',
-        parsePeriodToHours(relative || DEFAULT_STATS_PERIOD)
+        parsePeriodToHours(relative || defaultPeriod || DEFAULT_STATS_PERIOD)
       ).toDate(),
       end: new Date(),
     };
@@ -272,10 +270,10 @@ class TimeRangeSelector extends React.PureComponent<Props, State> {
   };
 
   handleClear = () => {
-    const {onChange} = this.props;
+    const {onChange, defaultPeriod} = this.props;
 
     const newDateTime: ChangeData = {
-      relative: DEFAULT_STATS_PERIOD,
+      relative: defaultPeriod || DEFAULT_STATS_PERIOD,
       start: undefined,
       end: undefined,
       utc: null,
@@ -373,10 +371,15 @@ class TimeRangeSelector extends React.PureComponent<Props, State> {
       isAbsoluteSelected && start && end ? (
         <DateSummary start={start} end={end} />
       ) : (
-        getRelativeSummary(relative || defaultPeriod)
+        getRelativeSummary(
+          relative || defaultPeriod || DEFAULT_STATS_PERIOD,
+          relativeOptions
+        )
       );
 
-    const relativeSelected = isAbsoluteSelected ? '' : relative || defaultPeriod;
+    const relativeSelected = isAbsoluteSelected
+      ? ''
+      : relative || defaultPeriod || DEFAULT_STATS_PERIOD;
 
     return (
       <DropdownMenu

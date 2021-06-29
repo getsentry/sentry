@@ -75,6 +75,17 @@ class Operation:
         return repr([self.operator, self.lhs, self.rhs])
 
 
+def flatten(remaining):
+    """Take all the remaining terms and reduce them to a single tree"""
+    term = remaining.pop(0)
+    while remaining:
+        next_term = remaining.pop(0)
+        if next_term.lhs is None:
+            next_term.lhs = term
+        term = next_term
+    return term
+
+
 arithmetic_grammar = Grammar(
     r"""
 term                 = maybe_factor remaining_adds
@@ -88,13 +99,15 @@ mul_div              = mul_div_operator primary
 
 add_sub_operator     = spaces (plus / minus) spaces
 mul_div_operator     = spaces (multiply / divide) spaces
-primary              = spaces (numeric_value / function_value / field_value) spaces
+primary              = spaces (parens / numeric_value / function_value / field_value) spaces
+
+parens               = open_paren term closed_paren
 
 # Operator names should match what's in clickhouse
 plus                 = "+"
 minus                = "-"
 multiply             = "*"
-divide               = "/"
+divide               = ~r"[/÷]"
 
 # Minor differences in parsing means that these cannot be shared with
 # api/event_search. Arithmetic can support something like duration-duration as
@@ -139,6 +152,7 @@ class ArithmeticVisitor(NodeVisitor):
     }
     function_allowlist = {
         "count",
+        "count_if",
         "count_unique",
         "failure_count",
         "min",
@@ -166,16 +180,6 @@ class ArithmeticVisitor(NodeVisitor):
         self.fields: set[str] = set()
         self.functions: set[str] = set()
 
-    def flatten(self, remaining):
-        """Take all the remaining terms and reduce them to a single tree"""
-        term = remaining.pop(0)
-        while remaining:
-            next_term = remaining.pop(0)
-            if next_term.lhs is None:
-                next_term.lhs = term
-            term = next_term
-        return term
-
     def visit_term(self, _, children):
         maybe_factor, remaining_adds = children
         maybe_factor = maybe_factor[0]
@@ -183,7 +187,7 @@ class ArithmeticVisitor(NodeVisitor):
         if isinstance(remaining_adds, list):
             # Update the operation with lhs and continue
             remaining_adds[0].lhs = maybe_factor
-            return self.flatten(remaining_adds)
+            return flatten(remaining_adds)
         else:
             # if remaining is a node lhs contains a factor so just return that
             return maybe_factor
@@ -191,7 +195,7 @@ class ArithmeticVisitor(NodeVisitor):
     def visit_factor(self, _, children):
         primary, remaining_muls = children
         remaining_muls[0].lhs = primary
-        return self.flatten(remaining_muls)
+        return flatten(remaining_muls)
 
     def visited_operator(self):
         """We visited an operator, increment the count and error if we exceed max"""
@@ -223,6 +227,12 @@ class ArithmeticVisitor(NodeVisitor):
         # Return the 0th element since this is a (numeric/function/field)
         self.terms += 1
         return self.strip_spaces(children)[0]
+
+    def visit_parens(self, _, children):
+        # Strip brackets
+        _, term, _ = children
+
+        return term
 
     @staticmethod
     def parse_operator(operator):

@@ -27,6 +27,7 @@ from sentry.models import (
     Repository,
 )
 from sentry.plugins.providers.dummy.repository import DummyRepositoryProvider
+from sentry.search.events.constants import SEMVER_ALIAS
 from sentry.testutils import APITestCase, ReleaseCommitPatchTest, SetRefsTestCase, TestCase
 from sentry.utils.compat.mock import patch
 
@@ -246,6 +247,30 @@ class OrganizationReleaseListTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
         assert response.data[0]["version"] == release.version
+
+    def test_semver_filter(self):
+        self.login_as(user=self.user)
+
+        release_1 = self.create_release(version="test@1.2.4")
+        release_2 = self.create_release(version="test@1.2.3")
+        self.create_release(version="some.release")
+
+        response = self.get_valid_response(self.organization.slug, query=f"{SEMVER_ALIAS}:>1.2.3")
+        assert [r["version"] for r in response.data] == [release_1.version]
+
+        response = self.get_valid_response(self.organization.slug, query=f"{SEMVER_ALIAS}:>=1.2.3")
+        assert [r["version"] for r in response.data] == [release_2.version, release_1.version]
+
+        response = self.get_valid_response(self.organization.slug, query=f"{SEMVER_ALIAS}:1.2.*")
+        assert [r["version"] for r in response.data] == [release_2.version, release_1.version]
+
+        response = self.get_valid_response(
+            self.organization.slug, query=f"{SEMVER_ALIAS}:>=1.2.3", sort="semver"
+        )
+        assert [r["version"] for r in response.data] == [release_1.version, release_2.version]
+
+        response = self.get_valid_response(self.organization.slug, query=f"{SEMVER_ALIAS}:2.2.1")
+        assert [r["version"] for r in response.data] == []
 
     def test_project_permissions(self):
         user = self.create_user(is_staff=False, is_superuser=False)
@@ -474,6 +499,39 @@ class OrganizationReleaseStatsTest(APITestCase):
         assert response.data[0]["version"] == release8.version
         assert response.data[1]["version"] == release7.version
         assert response.data[2]["version"] == release6.version
+
+    def test_with_adoption_stages(self):
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.organization
+        org.save()
+        team1 = self.create_team(organization=org)
+        project1 = self.create_project(teams=[team1], organization=org)
+        self.create_member(teams=[team1], user=user, organization=org)
+        self.login_as(user=user)
+        release1 = Release.objects.create(
+            organization_id=org.id, version="1", date_added=datetime(2013, 8, 13, 3, 8, 24, 880386)
+        )
+        release1.add_project(project1)
+        url = reverse("sentry-api-0-organization-releases", kwargs={"organization_slug": org.slug})
+        response = self.client.get(f"{url}?adoptionStages=1", format="json")
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        # Not returned because we don't have the feature.
+        assert "adoptionStages" not in response.data[0]
+
+        with self.feature("organizations:release-adoption-stage"):
+            response = self.client.get(url, format="json")
+
+            assert response.status_code == 200, response.content
+            assert len(response.data) == 1
+            # Not returned because we don't have `adoptionStages=1`.
+            assert "adoptionStages" not in response.data[0]
+            response = self.client.get(f"{url}?adoptionStages=1", format="json")
+
+            assert response.status_code == 200, response.content
+            assert len(response.data) == 1
+            assert "adoptionStages" in response.data[0]
 
 
 class OrganizationReleaseCreateTest(APITestCase):

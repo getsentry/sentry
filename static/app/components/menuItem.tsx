@@ -13,6 +13,14 @@ type MenuItemProps = {
    */
   header?: boolean;
   /**
+   * Renders a bottom border (excludes the last item)
+   */
+  withBorder?: boolean;
+  /**
+   * Renders an icon next to the item
+   */
+  icon?: React.ReactNode;
+  /**
    * Should this item act as a divider
    */
   divider?: boolean;
@@ -80,17 +88,19 @@ class MenuItem extends React.Component<Props> {
   };
 
   renderAnchor = (): React.ReactNode => {
-    const {to, href, title, disabled, isActive, children} = this.props;
+    const {to, href, title, withBorder, disabled, isActive, children} = this.props;
+
+    const linkProps = {
+      onClick: this.handleClick,
+      tabIndex: -1,
+      isActive,
+      disabled,
+      withBorder,
+    };
+
     if (to) {
       return (
-        <MenuLink
-          to={to}
-          title={title}
-          onClick={this.handleClick}
-          tabIndex={-1}
-          isActive={isActive}
-          disabled={disabled}
-        >
+        <MenuLink to={to} {...linkProps} title={title}>
           {children}
         </MenuLink>
       );
@@ -98,42 +108,22 @@ class MenuItem extends React.Component<Props> {
 
     if (href) {
       return (
-        <MenuAnchor
-          href={href}
-          onClick={this.handleClick}
-          tabIndex={-1}
-          isActive={isActive}
-          disabled={disabled}
-        >
+        <MenuAnchor {...linkProps} href={href}>
           {children}
         </MenuAnchor>
       );
     }
 
     return (
-      <MenuTarget
-        role="button"
-        title={title}
-        onClick={this.handleClick}
-        tabIndex={-1}
-        isActive={isActive}
-        disabled={disabled}
-      >
+      <MenuTarget role="button" {...linkProps} title={title}>
         {this.props.children}
       </MenuTarget>
     );
   };
 
   render() {
-    const {
-      header,
-      divider,
-      isActive,
-      noAnchor,
-      className,
-      children,
-      ...props
-    } = this.props;
+    const {header, icon, divider, isActive, noAnchor, className, children, ...props} =
+      this.props;
 
     let renderChildren: React.ReactNode | null = null;
     if (noAnchor) {
@@ -154,6 +144,7 @@ class MenuItem extends React.Component<Props> {
         header={header}
         {...omit(props, ['href', 'title', 'onSelect', 'eventKey', 'to', 'as'])}
       >
+        {icon}
         {renderChildren}
       </MenuListItem>
     );
@@ -162,6 +153,7 @@ class MenuItem extends React.Component<Props> {
 
 type MenuListItemProps = {
   header?: boolean;
+  withBorder?: boolean;
   noAnchor?: boolean;
   isActive?: boolean;
   disabled?: boolean;
@@ -219,10 +211,10 @@ function getChildStyles(props: MenuListItemProps & {theme: Theme}) {
   `;
 }
 
-const MenuAnchor = styled('a', {
-  shouldForwardProp: p =>
-    typeof p === 'string' && ['isActive', 'disabled'].includes(p) === false,
-})<MenuListItemProps>`
+const shouldForwardProp = (p: PropertyKey) =>
+  typeof p === 'string' && ['isActive', 'disabled', 'withBorder'].includes(p) === false;
+
+const MenuAnchor = styled('a', {shouldForwardProp})<MenuListItemProps>`
   ${getListItemStyles}
 `;
 
@@ -230,17 +222,26 @@ const MenuListItem = styled('li')<MenuListItemProps>`
   display: block;
 
   ${p =>
+    p.withBorder &&
+    `
+    border-bottom: 1px solid ${p.theme.innerBorder};
+
+    &:last-child {
+      border-bottom: none;
+    }
+  `};
+  ${p =>
     p.divider &&
     `
-height: 1px;
-margin: ${space(0.5)} 0;
-overflow: hidden;
-background-color: ${p.theme.innerBorder};
-    `}
+    height: 1px;
+    margin: ${space(0.5)} 0;
+    overflow: hidden;
+    background-color: ${p.theme.innerBorder};
+  `}
   ${p =>
     p.header &&
     `
-    padding: ${space(0.25)} ${space(1)};
+    padding: ${space(0.25)} ${space(0.5)};
     font-size: ${p.theme.fontSizeSmall};
     line-height: 1.4;
     color: ${p.theme.gray300};
@@ -251,13 +252,14 @@ background-color: ${p.theme.innerBorder};
 
 const MenuTarget = styled('span')<MenuListItemProps>`
   ${getListItemStyles}
-  display: flex;
+  display: grid;
+  align-items: center;
+  grid-auto-columns: max-content;
+  grid-gap: ${space(1)};
+  grid-auto-flow: column;
 `;
 
-const MenuLink = styled(Link, {
-  shouldForwardProp: p =>
-    typeof p === 'string' && ['isActive', 'disabled'].includes(p) === false,
-})<MenuListItemProps>`
+const MenuLink = styled(Link, {shouldForwardProp})<MenuListItemProps>`
   ${getListItemStyles}
 `;
 

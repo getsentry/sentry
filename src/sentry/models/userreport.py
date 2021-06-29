@@ -5,7 +5,7 @@ from sentry.db.models import BoundedBigIntegerField, Model, sane_repr
 
 
 class UserReport(Model):
-    __core__ = False
+    __include_in_export__ = False
 
     project_id = BoundedBigIntegerField(db_index=True)
     group_id = BoundedBigIntegerField(null=True, db_index=True)

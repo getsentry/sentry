@@ -7,7 +7,9 @@ import sentry_sdk
 from sentry import options
 from sentry.discover.arithmetic import is_equation, resolve_equation_list, strip_equation
 from sentry.models import Group
+from sentry.models.transaction_threshold import ProjectTransactionThreshold
 from sentry.search.events.builder import QueryBuilder
+from sentry.search.events.constants import CONFIGURABLE_AGGREGATES, DEFAULT_PROJECT_THRESHOLD
 from sentry.search.events.fields import (
     FIELD_ALIASES,
     InvalidSearchQuery,
@@ -19,7 +21,7 @@ from sentry.search.events.fields import (
 from sentry.search.events.filter import get_filter
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
 from sentry.utils.compat import filter
-from sentry.utils.math import nice_int
+from sentry.utils.math import mean, nice_int
 from sentry.utils.snuba import (
     SNUBA_AND,
     SNUBA_OR,
@@ -151,8 +153,13 @@ def transform_data(result, translated_columns, snuba_filter):
     def get_row(row):
         transformed = {}
         for key, value in row.items():
-            if isinstance(value, float) and math.isnan(value):
-                value = 0
+            if isinstance(value, float):
+                # 0 for nan, and none for inf were chosen arbitrarily, nan and inf are invalid json
+                # so needed to pick something valid to use instead
+                if math.isnan(value):
+                    value = 0
+                elif math.isinf(value):
+                    value = None
             transformed[translated_columns.get(key, key)] = value
 
         return transformed
@@ -191,11 +198,10 @@ def wip_snql_query(
     Replacement API for query using snql, this function is still a work in
     progress and is not ready for use in production
     """
-    snql_query = QueryBuilder(
-        Dataset.Discover, params, query, selected_columns, orderby, limit
-    ).get_snql_query()
-    result = raw_snql_query(snql_query, referrer)
-    return result
+    builder = QueryBuilder(Dataset.Discover, params, query, selected_columns, orderby, limit)
+    snql_query = builder.get_snql_query()
+    results = raw_snql_query(snql_query, referrer)
+    return results
 
 
 def query(
@@ -390,6 +396,7 @@ def get_timeseries_snuba_filter(selected_columns, query, params):
 
     columns = []
     equations = []
+
     for column in selected_columns:
         if is_equation(column):
             equations.append(strip_equation(column))
@@ -403,6 +410,35 @@ def get_timeseries_snuba_filter(selected_columns, query, params):
     else:
         resolved_equations = []
         updated_columns = columns
+
+    # For the new apdex, we need to add project threshold config as a selected
+    # column which means the group by for the time series won't work.
+    # As a temporary solution, we will calculate the mean of all the project
+    # level thresholds in the request and use the legacy apdex, user_misery
+    # or count_miserable calculation.
+    # TODO(snql): Alias the project_threshold_config column so it doesn't
+    # have to be in the SELECT statement and group by to be able to use new apdex,
+    # user_misery and count_miserable.
+    threshold = None
+    for agg in CONFIGURABLE_AGGREGATES:
+        if agg not in updated_columns:
+            continue
+
+        if threshold is None:
+            project_ids = params.get("project_id")
+            threshold_configs = list(
+                ProjectTransactionThreshold.objects.filter(
+                    organization_id=params["organization_id"],
+                    project_id__in=project_ids,
+                ).values_list("threshold", flat=True)
+            )
+
+            projects_without_threshold = len(project_ids) - len(threshold_configs)
+            threshold_configs.extend([DEFAULT_PROJECT_THRESHOLD] * projects_without_threshold)
+            threshold = int(mean(threshold_configs))
+
+        updated_columns.remove(agg)
+        updated_columns.append(CONFIGURABLE_AGGREGATES[agg].format(threshold=threshold))
 
     snuba_filter.update_with(
         resolve_field_list(

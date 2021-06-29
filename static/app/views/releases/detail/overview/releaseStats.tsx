@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
@@ -136,192 +137,200 @@ function ReleaseStats({
         </SectionContent>
       </div>
 
-      <CrashFreeSection>
-        <SectionHeading>
-          {t('Crash Free Rate')}
-          <QuestionTooltip
-            position="top"
-            title={getSessionTermDescription(SessionTerm.CRASH_FREE, project.platform)}
-            size="sm"
-          />
-        </SectionHeading>
-        {isHealthLoading ? (
-          <Placeholder height="58px" />
-        ) : (
-          <SectionContent>
-            {defined(crashFreeSessions) || defined(crashFreeUsers) ? (
-              <CrashFreeWrapper>
-                {defined(crashFreeSessions) && (
-                  <div>
-                    <CrashFree
-                      percent={crashFreeSessions}
-                      iconSize="md"
-                      displayOption={DisplayOption.SESSIONS}
-                    />
-                  </div>
+      {!organization.features.includes('release-comparison') && (
+        <Fragment>
+          <CrashFreeSection>
+            <SectionHeading>
+              {t('Crash Free Rate')}
+              <QuestionTooltip
+                position="top"
+                title={getSessionTermDescription(
+                  SessionTerm.CRASH_FREE,
+                  project.platform
                 )}
-
-                {defined(crashFreeUsers) && (
-                  <div>
-                    <CrashFree
-                      percent={crashFreeUsers}
-                      iconSize="md"
-                      displayOption={DisplayOption.USERS}
-                    />
-                  </div>
-                )}
-              </CrashFreeWrapper>
+                size="sm"
+              />
+            </SectionHeading>
+            {isHealthLoading ? (
+              <Placeholder height="58px" />
             ) : (
-              <NotAvailable tooltip={NOT_AVAILABLE_MESSAGES.releaseHealth} />
-            )}
-          </SectionContent>
-        )}
-      </CrashFreeSection>
+              <SectionContent>
+                {defined(crashFreeSessions) || defined(crashFreeUsers) ? (
+                  <CrashFreeWrapper>
+                    {defined(crashFreeSessions) && (
+                      <div>
+                        <CrashFree
+                          percent={crashFreeSessions}
+                          iconSize="md"
+                          displayOption={DisplayOption.SESSIONS}
+                        />
+                      </div>
+                    )}
 
-      <AdoptionSection>
-        <SectionHeading>
-          {t('Adoption')}
-          <QuestionTooltip
-            position="top"
-            title={getSessionTermDescription(SessionTerm.ADOPTION, project.platform)}
-            size="sm"
-          />
-        </SectionHeading>
-        {isHealthLoading ? (
-          <Placeholder height="88px" />
-        ) : (
-          <SectionContent>
-            {get24hSessionCountByProject || get24hUserCountByProject ? (
-              <AdoptionWrapper>
-                {defined(get24hSessionCountByProject) &&
-                  get24hSessionCountByProject > 0 && (
-                    <ReleaseAdoption
-                      releaseCount={get24hSessionCountByRelease ?? 0}
-                      projectCount={get24hSessionCountByProject ?? 0}
-                      adoption={sessionAdoption ?? 0}
-                      displayOption={DisplayOption.SESSIONS}
-                      withLabels
-                    />
-                  )}
-
-                {defined(get24hUserCountByProject) && get24hUserCountByProject > 0 && (
-                  <ReleaseAdoption
-                    releaseCount={get24hUserCountByRelease ?? 0}
-                    projectCount={get24hUserCountByProject ?? 0}
-                    adoption={userAdoption ?? 0}
-                    displayOption={DisplayOption.USERS}
-                    withLabels
-                  />
+                    {defined(crashFreeUsers) && (
+                      <div>
+                        <CrashFree
+                          percent={crashFreeUsers}
+                          iconSize="md"
+                          displayOption={DisplayOption.USERS}
+                        />
+                      </div>
+                    )}
+                  </CrashFreeWrapper>
+                ) : (
+                  <NotAvailable tooltip={NOT_AVAILABLE_MESSAGES.releaseHealth} />
                 )}
-              </AdoptionWrapper>
-            ) : (
-              <NotAvailable tooltip={NOT_AVAILABLE_MESSAGES.releaseHealth} />
+              </SectionContent>
             )}
-          </SectionContent>
-        )}
-      </AdoptionSection>
+          </CrashFreeSection>
 
-      <LinkedStatsSection>
-        <div>
-          <SectionHeading>{t('New Issues')}</SectionHeading>
-          <SectionContent>
-            <Tooltip title={t('Open in Issues')}>
-              <GlobalSelectionLink
-                to={getReleaseNewIssuesUrl(organization.slug, project.id, version)}
-              >
-                <Count value={project.newGroups} />
-              </GlobalSelectionLink>
-            </Tooltip>
-          </SectionContent>
-        </div>
+          <AdoptionSection>
+            <SectionHeading>
+              {t('Adoption')}
+              <QuestionTooltip
+                position="top"
+                title={getSessionTermDescription(SessionTerm.ADOPTION, project.platform)}
+                size="sm"
+              />
+            </SectionHeading>
+            {isHealthLoading ? (
+              <Placeholder height="88px" />
+            ) : (
+              <SectionContent>
+                {get24hSessionCountByProject || get24hUserCountByProject ? (
+                  <AdoptionWrapper>
+                    {defined(get24hSessionCountByProject) &&
+                      get24hSessionCountByProject > 0 && (
+                        <ReleaseAdoption
+                          releaseCount={get24hSessionCountByRelease ?? 0}
+                          projectCount={get24hSessionCountByProject ?? 0}
+                          adoption={sessionAdoption ?? 0}
+                          displayOption={DisplayOption.SESSIONS}
+                          withLabels
+                        />
+                      )}
 
-        <div>
-          <SectionHeading>
-            {sessionTerm.crashes}
-            <QuestionTooltip
-              position="top"
-              title={getSessionTermDescription(SessionTerm.CRASHES, project.platform)}
-              size="sm"
-            />
-          </SectionHeading>
-          {isHealthLoading ? (
-            <Placeholder height="24px" />
-          ) : (
-            <SectionContent>
-              {hasHealthData ? (
+                    {defined(get24hUserCountByProject) &&
+                      get24hUserCountByProject > 0 && (
+                        <ReleaseAdoption
+                          releaseCount={get24hUserCountByRelease ?? 0}
+                          projectCount={get24hUserCountByProject ?? 0}
+                          adoption={userAdoption ?? 0}
+                          displayOption={DisplayOption.USERS}
+                          withLabels
+                        />
+                      )}
+                  </AdoptionWrapper>
+                ) : (
+                  <NotAvailable tooltip={NOT_AVAILABLE_MESSAGES.releaseHealth} />
+                )}
+              </SectionContent>
+            )}
+          </AdoptionSection>
+
+          <LinkedStatsSection>
+            <div>
+              <SectionHeading>{t('New Issues')}</SectionHeading>
+              <SectionContent>
                 <Tooltip title={t('Open in Issues')}>
                   <GlobalSelectionLink
-                    to={getReleaseUnhandledIssuesUrl(
-                      organization.slug,
-                      project.id,
-                      version
-                    )}
+                    to={getReleaseNewIssuesUrl(organization.slug, project.id, version)}
                   >
-                    <Count value={crashCount ?? 0} />
+                    <Count value={project.newGroups} />
                   </GlobalSelectionLink>
                 </Tooltip>
-              ) : (
-                <NotAvailable tooltip={NOT_AVAILABLE_MESSAGES.releaseHealth} />
-              )}
-            </SectionContent>
-          )}
-        </div>
+              </SectionContent>
+            </div>
 
-        <div>
-          <SectionHeading>
-            {t('Apdex')}
-            <QuestionTooltip
-              position="top"
-              title={getTermHelp(organization, apdexPerformanceTerm)}
-              size="sm"
-            />
-          </SectionHeading>
-          <SectionContent>
-            <Feature features={['performance-view']}>
-              {hasFeature =>
-                hasFeature ? (
-                  <DiscoverQuery
-                    eventView={getReleaseEventView(
-                      selection,
-                      release?.version,
-                      organization
-                    )}
-                    location={location}
-                    orgSlug={organization.slug}
-                  >
-                    {({isLoading, error, tableData}) => {
-                      if (isLoading) {
-                        return <Placeholder height="24px" />;
-                      }
-                      if (error || !tableData || tableData.data.length === 0) {
-                        return <NotAvailable />;
-                      }
-                      return (
-                        <GlobalSelectionLink
-                          to={{
-                            pathname: `/organizations/${organization.slug}/performance/`,
-                            query: {
-                              query: `release:${release?.version}`,
-                            },
-                          }}
-                        >
-                          <Tooltip title={t('Open in Performance')}>
-                            <Count
-                              value={tableData.data[0][getAggregateAlias(apdexField)]}
-                            />
-                          </Tooltip>
-                        </GlobalSelectionLink>
-                      );
-                    }}
-                  </DiscoverQuery>
-                ) : (
-                  <NotAvailable tooltip={NOT_AVAILABLE_MESSAGES.performance} />
-                )
-              }
-            </Feature>
-          </SectionContent>
-        </div>
-      </LinkedStatsSection>
+            <div>
+              <SectionHeading>
+                {sessionTerm.crashes}
+                <QuestionTooltip
+                  position="top"
+                  title={getSessionTermDescription(SessionTerm.CRASHES, project.platform)}
+                  size="sm"
+                />
+              </SectionHeading>
+              {isHealthLoading ? (
+                <Placeholder height="24px" />
+              ) : (
+                <SectionContent>
+                  {hasHealthData ? (
+                    <Tooltip title={t('Open in Issues')}>
+                      <GlobalSelectionLink
+                        to={getReleaseUnhandledIssuesUrl(
+                          organization.slug,
+                          project.id,
+                          version
+                        )}
+                      >
+                        <Count value={crashCount ?? 0} />
+                      </GlobalSelectionLink>
+                    </Tooltip>
+                  ) : (
+                    <NotAvailable tooltip={NOT_AVAILABLE_MESSAGES.releaseHealth} />
+                  )}
+                </SectionContent>
+              )}
+            </div>
+
+            <div>
+              <SectionHeading>
+                {t('Apdex')}
+                <QuestionTooltip
+                  position="top"
+                  title={getTermHelp(organization, apdexPerformanceTerm)}
+                  size="sm"
+                />
+              </SectionHeading>
+              <SectionContent>
+                <Feature features={['performance-view']}>
+                  {hasFeature =>
+                    hasFeature ? (
+                      <DiscoverQuery
+                        eventView={getReleaseEventView(
+                          selection,
+                          release?.version,
+                          organization
+                        )}
+                        location={location}
+                        orgSlug={organization.slug}
+                      >
+                        {({isLoading, error, tableData}) => {
+                          if (isLoading) {
+                            return <Placeholder height="24px" />;
+                          }
+                          if (error || !tableData || tableData.data.length === 0) {
+                            return <NotAvailable />;
+                          }
+                          return (
+                            <GlobalSelectionLink
+                              to={{
+                                pathname: `/organizations/${organization.slug}/performance/`,
+                                query: {
+                                  query: `release:${release?.version}`,
+                                },
+                              }}
+                            >
+                              <Tooltip title={t('Open in Performance')}>
+                                <Count
+                                  value={tableData.data[0][getAggregateAlias(apdexField)]}
+                                />
+                              </Tooltip>
+                            </GlobalSelectionLink>
+                          );
+                        }}
+                      </DiscoverQuery>
+                    ) : (
+                      <NotAvailable tooltip={NOT_AVAILABLE_MESSAGES.performance} />
+                    )
+                  }
+                </Feature>
+              </SectionContent>
+            </div>
+          </LinkedStatsSection>
+        </Fragment>
+      )}
     </Container>
   );
 }

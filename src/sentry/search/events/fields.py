@@ -2,7 +2,7 @@ import re
 from collections import defaultdict, namedtuple
 from copy import deepcopy
 from datetime import datetime
-from typing import List, Union
+from typing import List, Mapping, Optional, Union
 
 import sentry_sdk
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
@@ -19,6 +19,7 @@ from sentry.models.transaction_threshold import TRANSACTION_METRICS
 from sentry.search.events.base import QueryBase
 from sentry.search.events.constants import (
     ALIAS_PATTERN,
+    ARRAY_FIELDS,
     DEFAULT_PROJECT_THRESHOLD,
     DEFAULT_PROJECT_THRESHOLD_METRIC,
     ERROR_UNHANDLED_ALIAS,
@@ -34,6 +35,7 @@ from sentry.search.events.constants import (
     USER_DISPLAY_ALIAS,
     VALID_FIELD_PATTERN,
 )
+from sentry.search.events.types import SelectType
 from sentry.utils.compat import zip
 from sentry.utils.numbers import format_grouped_length
 from sentry.utils.snuba import (
@@ -271,6 +273,29 @@ def team_key_transaction_expression(organization_id, team_ids, project_ids):
     ]
 
 
+def normalize_count_if_value(args: Mapping[str, str]) -> Union[float, str]:
+    """Ensures that the type of the third parameter is compatible with the first
+    and cast the value if needed
+    eg. duration = numeric_value, and not duration = string_value
+    """
+    column = args["column"]
+    condition = args["condition"]
+    value = args["value"]
+    if column == "transaction.duration" or is_measurement(column) or is_span_op_breakdown(column):
+        try:
+            value = float(value.strip("'"))
+        except Exception:
+            raise InvalidSearchQuery(f"{value} is not a valid value to compare with {column}")
+
+    # TODO: not supporting field aliases or arrays yet
+    elif column in FIELD_ALIASES or column in ARRAY_FIELDS:
+        raise InvalidSearchQuery(f"{column} is not supported by count_if")
+    # At this point only string or tag columns are left
+    elif condition not in ["equals", "notEquals"]:
+        raise InvalidSearchQuery(f"{condition} is not compatible with {column}")
+    return value
+
+
 # When updating this list, also check if the following need to be updated:
 # - convert_search_filter_to_snuba_query (otherwise aliased field will be treated as tag)
 # - static/app/utils/discover/fields.tsx FIELDS (for discover column list and search box autocomplete)
@@ -339,10 +364,12 @@ def format_column_arguments(column_args, arguments):
 
 def parse_arguments(function, columns):
     """
-    The to_other function takes a quoted string for one of its arguments
-    that may contain commas, so it requires special handling.
+    Some functions take a quoted string for their arguments that may contain commas,
+    which requires special handling.
+    This function attempts to be identical with the similarly named parse_arguments
+    found in static/app/utils/discover/fields.tsx
     """
-    if function != "to_other":
+    if (function != "to_other" and function != "count_if") or len(columns) == 0:
         return [c.strip() for c in columns.split(",") if len(c.strip()) > 0]
 
     args = []
@@ -449,8 +476,7 @@ def resolve_field_list(
                     aggregate_fields[format_column_as_key(function.aggregate[1])].add(field)
 
     # Only auto aggregate when there's one other so the group by is not unexpectedly changed
-    auto_aggregate = auto_aggregations and snuba_filter.having and len(aggregations) > 0
-    if auto_aggregate:
+    if auto_aggregations and snuba_filter.having and len(aggregations) > 0:
         for agg in snuba_filter.condition_aggregates:
             if agg not in snuba_filter.aliases:
                 function = resolve_field(agg, snuba_filter.params, functions_acl)
@@ -464,8 +490,11 @@ def resolve_field_list(
                         if function.details.instance.redundant_grouping:
                             aggregate_fields[format_column_as_key(function.aggregate[1])].add(field)
 
+    check_aggregations = (
+        snuba_filter.having and len(aggregations) > 0 and snuba_filter.condition_aggregates
+    )
     snuba_filter_condition_aggregates = (
-        set(snuba_filter.condition_aggregates or []) if auto_aggregate else set()
+        set(snuba_filter.condition_aggregates) if check_aggregations else set()
     )
     for field in set(fields[:]).union(snuba_filter_condition_aggregates):
         if isinstance(field, str) and field in {
@@ -772,7 +801,7 @@ def get_function_alias(field):
 
 
 def get_function_alias_with_columns(function_name, columns):
-    columns = re.sub(r"[^\w]", "_", "_".join(columns))
+    columns = re.sub(r"[^\w]", "_", "_".join(str(col) for col in columns))
     return f"{function_name}_{columns}".rstrip("_")
 
 
@@ -959,11 +988,13 @@ class Column(FunctionArg):
     def __init__(self, name, allowed_columns=None):
         super().__init__(name)
         # make sure to map the allowed columns to their snuba names
-        self.allowed_columns = [SEARCH_MAP.get(col) for col in allowed_columns]
+        self.allowed_columns = (
+            {SEARCH_MAP.get(col) for col in allowed_columns} if allowed_columns else set()
+        )
 
     def normalize(self, value, params):
         snuba_column = SEARCH_MAP.get(value)
-        if self.allowed_columns is not None:
+        if len(self.allowed_columns) > 0:
             if value in self.allowed_columns or snuba_column in self.allowed_columns:
                 return snuba_column
             else:
@@ -974,9 +1005,6 @@ class Column(FunctionArg):
 
 
 class ColumnNoLookup(Column):
-    def __init__(self, name, allowed_columns=None):
-        super().__init__(name, allowed_columns=allowed_columns)
-
     def normalize(self, value, params):
         super().normalize(value, params)
         return value
@@ -1825,13 +1853,20 @@ FUNCTIONS = {
             ],
             default_result_type="number",
         ),
-        # Currently only used by trace meta so we can count event types which is why this only accepts strings
+        # The calculated arg will cast the string value according to the value in the column
         Function(
             "count_if",
             required_args=[
-                ColumnNoLookup("column", allowed_columns=["event.type", "http.status_code"]),
+                # This is a FunctionArg cause the column can be a tag as well
+                FunctionArg("column"),
                 ConditionArg("condition"),
                 StringArg("value"),
+            ],
+            calculated_args=[
+                {
+                    "name": "typed_value",
+                    "fn": normalize_count_if_value,
+                }
             ],
             aggregate=[
                 "countIf",
@@ -1840,7 +1875,7 @@ FUNCTIONS = {
                         ArgValue("condition"),
                         [
                             ArgValue("column"),
-                            ArgValue("value"),
+                            ArgValue("typed_value"),
                         ],
                     ]
                 ],
@@ -1902,59 +1937,28 @@ FUNCTION_ALIAS_PATTERN = re.compile(r"^({}).*".format("|".join(list(FUNCTIONS.ke
 class QueryFields(QueryBase):
     """Field logic for a snql query"""
 
-    def resolve_select(self, selected_columns: List[str]) -> None:
-        project_key = None
-        # If project is requested, we need to map ids to their names since snuba only has ids
-        if "project" in selected_columns:
-            selected_columns.remove("project")
-            project_key = "project"
-        # since project.name is more specific, if both are included use project.name instead of project
-        if PROJECT_NAME_ALIAS in selected_columns:
-            selected_columns.remove(PROJECT_NAME_ALIAS)
-            project_key = PROJECT_NAME_ALIAS
+    def resolve_select(self, selected_columns: Optional[List[str]]) -> List[SelectType]:
+        if selected_columns is None:
+            return []
+
+        columns = []
 
         for field in selected_columns:
             if field.strip() == "":
                 continue
             resolved_field = self.resolve_field(field)
-            if isinstance(resolved_field, SnqlColumn) and resolved_field not in self.columns:
-                self.columns.append(resolved_field)
+            if resolved_field not in self.columns:
+                columns.append(resolved_field)
 
-        if project_key:
-            self.columns.append(self.project_slug_transform(project_key))
+        return columns
 
-    def project_slug_transform(self, project_key: str) -> SnqlFunction:
-        """When project is a selected column we need to create a transform to turn them back into slugs"""
-        project_ids = {
-            project_id
-            for project_id in self.params.get("project_id", [])
-            if isinstance(project_id, int)
-        }
-
-        # Try to reduce the size of the transform by using any existing conditions on projects
-        if len(self.projects_to_filter) > 0:
-            project_ids &= self.projects_to_filter
-
-        projects = Project.objects.filter(id__in=project_ids).values("slug", "id")
-
-        return SnqlFunction(
-            "transform",
-            [
-                self.column("project.id"),
-                [project["id"] for project in projects],
-                [project["slug"] for project in projects],
-                "",
-            ],
-            project_key,
-        )
-
-    def resolve_field(self, field: str) -> Union[SnqlColumn, SnqlFunction]:
+    def resolve_field(self, field: str) -> SelectType:
         match = is_function(field)
         if match:
             raise NotImplementedError(f"{field} not implemented in snql field parsing yet")
 
-        if field in FIELD_ALIASES:
-            raise NotImplementedError(f"{field} not implemented in snql field parsing yet")
+        if self.is_field_alias(field):
+            return self.resolve_field_alias(field)
 
         tag_match = TAG_KEY_RE.search(field)
         field = tag_match.group("tag") if tag_match else field
@@ -1967,12 +1971,23 @@ class QueryFields(QueryBase):
         else:
             raise InvalidSearchQuery(f"Invalid characters in field {field}")
 
-    @property
-    def orderby(self) -> List[OrderBy]:
-        validated = []
-        for orderby in self.orderby_columns:
+    def resolve_orderby(self, orderby: Optional[Union[List[str], str]]) -> List[OrderBy]:
+        validated: List[OrderBy] = []
+
+        if orderby is None:
+            return validated
+
+        if isinstance(orderby, str):
+            if not orderby:
+                return validated
+
+            orderby = [orderby]
+
+        orderby_columns: List[str] = orderby if orderby else []
+
+        for orderby in orderby_columns:
             bare_orderby = orderby.lstrip("-")
-            resolved_orderby = self.column(bare_orderby)
+            resolved_orderby = self.resolve_field(bare_orderby)
             direction = Direction.DESC if orderby.startswith("-") else Direction.ASC
 
             for selected_column in self.columns:
@@ -1990,7 +2005,7 @@ class QueryFields(QueryBase):
 
             # TODO: orderby field aliases
 
-        if len(validated) == len(self.orderby_columns):
+        if len(validated) == len(orderby_columns):
             return validated
 
         # TODO: This is no longer true, can order by fields that aren't selected, keeping
