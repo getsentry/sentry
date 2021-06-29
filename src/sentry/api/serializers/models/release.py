@@ -297,6 +297,19 @@ class ReleaseSerializer(Serializer):
 
         return first_seen, last_seen, group_counts_by_release
 
+    def _get_release_project_envs(self, item_list, environments, project):
+        release_project_envs = (
+            ReleaseProjectEnvironment.objects.filter(release__in=item_list)
+            .select_related("release", "project")
+            .order_by("-first_seen")
+        )
+        if environments is not None:
+            release_project_envs = release_project_envs.filter(environment__name__in=environments)
+        if project is not None:
+            release_project_envs = release_project_envs.filter(project=project)
+
+        return release_project_envs
+
     def get_attrs(self, item_list, user, **kwargs):
         project = kwargs.get("project")
 
@@ -320,35 +333,19 @@ class ReleaseSerializer(Serializer):
             raise TypeError("health data requires snuba")
 
         if self.with_adoption_stages:
-            release_project_envs = (
-                ReleaseProjectEnvironment.objects.filter(release__in=item_list)
-                .select_related("release", "project")
-                .order_by("-first_seen")
-            )
-            if environments is not None:
-                release_project_envs = release_project_envs.filter(
-                    environment__name__in=environments
-                )
-            if project is not None:
-                release_project_envs = release_project_envs.filter(project=project)
-
+            release_project_envs = self._get_release_project_envs(item_list, environments, project)
             adoption_stages = self._get_release_adoption_stages(release_project_envs)
-
+        else:
+            release_project_envs = None
         if environments is None:
             first_seen, last_seen, issue_counts_by_release = self.__get_release_data_no_environment(
                 project, item_list
             )
         else:
-            if not self.with_adoption_stages:
-                release_project_envs = (
-                    ReleaseProjectEnvironment.objects.filter(
-                        release__in=item_list, environment__name__in=environments
-                    )
-                    .select_related("release")
-                    .order_by("-first_seen")
+            if release_project_envs is None:
+                release_project_envs = self._get_release_project_envs(
+                    item_list, environments, project
                 )
-                if project is not None:
-                    release_project_envs = release_project_envs.filter(project=project)
             (
                 first_seen,
                 last_seen,
