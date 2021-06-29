@@ -12,6 +12,7 @@ from sentry.api.endpoints.grouping_levels import LevelsOverview, check_feature, 
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import EventSerializer, serialize
 from sentry.eventstore.models import Event
+from sentry.eventtypes.error import format_title_from_tree_label
 from sentry.models import Group
 from sentry.utils import snuba
 from sentry.utils.safe import get_path
@@ -66,11 +67,13 @@ class GroupingLevelNewIssuesEndpoint(GroupEndpoint):
 
         check_feature(group.project.organization, request)
 
+        parsed_id = int(id)
+
         def data_fn(offset=None, limit=None):
-            return _query_snuba(group, id, offset=offset, limit=limit)
+            return _query_snuba(group, parsed_id, offset=offset, limit=limit)
 
         def on_results(results):
-            return _process_snuba_results(results, group, request.user)
+            return _process_snuba_results(results, group, parsed_id, request.user)
 
         return self.paginate(
             request=request,
@@ -106,9 +109,7 @@ def _get_hash_for_parent_level(group: Group, id: int, levels_overview: LevelsOve
     return return_hash
 
 
-def _query_snuba(group: Group, unparsed_id: str, offset=None, limit=None):
-    id = int(unparsed_id)
-
+def _query_snuba(group: Group, id: int, offset=None, limit=None):
     query = (
         Query("events", Entity("events"))
         .set_select(
@@ -179,7 +180,7 @@ def _query_snuba(group: Group, unparsed_id: str, offset=None, limit=None):
     ]
 
 
-def _process_snuba_results(query_res, group: Group, user):
+def _process_snuba_results(query_res, group: Group, id: int, user):
     event_ids = {
         row["latest_event_id"]: Event.generate_node_id(group.project_id, row["latest_event_id"])
         for row in query_res
@@ -200,6 +201,14 @@ def _process_snuba_results(query_res, group: Group, user):
         if event_data is not None:
             event = Event(group.project_id, event_id, group_id=group.id, data=event_data)
             response_item["latestEvent"] = serialize(event, user, EventSerializer())
+
+            tree_label = get_path(event_data, "hierarchical_tree_labels", id)
+
+            # Rough approximation of what happens with Group title
+            response_item["title"] = (
+                tree_label and format_title_from_tree_label(tree_label) or event.title
+            )
+            response_item["metadata"] = {"current_tree_label": tree_label}
 
         response.append(response_item)
 

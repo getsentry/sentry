@@ -1,7 +1,7 @@
 import pytest
 
 from sentry import eventstore
-from sentry.event_manager import EventManager, materialize_metadata
+from sentry.event_manager import EventManager, get_event_type, materialize_metadata
 
 
 @pytest.fixture
@@ -15,7 +15,9 @@ def make_expectct_snapshot(insta_snapshot):
         )
         mgr.normalize()
         data = mgr.get_data()
-        data.update(materialize_metadata(data))
+        event_type = get_event_type(data)
+        event_metadata = event_type.get_metadata(data)
+        data.update(materialize_metadata(data, event_type, event_metadata))
         evt = eventstore.create_event(data=data)
 
         interface = evt.interfaces.get("expectct")

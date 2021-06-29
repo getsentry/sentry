@@ -1,6 +1,8 @@
+from typing import Any, Mapping, Sequence
+
 from django import forms
-from django.urls import reverse
-from django.views.decorators.cache import never_cache
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.models import (
     ExternalActor,
@@ -14,18 +16,22 @@ from sentry.models import (
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.types.integrations import ExternalProviders
-from sentry.utils.http import absolute_uri
-from sentry.utils.signing import sign, unsign
+from sentry.utils.signing import unsign
 from sentry.web.decorators import transaction_start
 from sentry.web.frontend.base import BaseView
 from sentry.web.helpers import render_to_response
 
 from ..client import SlackClient
 from ..utils import logger
+from . import build_linking_url as base_build_linking_url
+from . import never_cache
 
 
-def build_linking_url(integration, slack_id, channel_id, channel_name, response_url):
-    signed_params = sign(
+def build_linking_url(
+    integration: Integration, slack_id: str, channel_id: str, channel_name: str, response_url: str
+) -> str:
+    return base_build_linking_url(
+        "sentry-integration-slack-link-team",
         integration_id=integration.id,
         slack_id=slack_id,
         channel_id=channel_id,
@@ -33,23 +39,19 @@ def build_linking_url(integration, slack_id, channel_id, channel_name, response_
         response_url=response_url,
     )
 
-    return absolute_uri(
-        reverse("sentry-integration-slack-link-team", kwargs={"signed_params": signed_params})
-    )
 
-
-class SelectTeamForm(forms.Form):
+class SelectTeamForm(forms.Form):  # type: ignore
     team = forms.ChoiceField(label="Team")
 
-    def __init__(self, teams, *args, **kwargs):
+    def __init__(self, teams: Sequence[Team], *args: Any, **kwargs: Any):
         super().__init__(*args, **kwargs)
 
         self.fields["team"].choices = [(team.id, team.slug) for team in teams]
         self.fields["team"].widget.choices = self.fields["team"].choices
 
 
-class SlackLinkTeamView(BaseView):
-    def get_identity(self, request, integration, slack_id):
+class SlackLinkTeamView(BaseView):  # type: ignore
+    def get_identity(self, request: Request, integration: Integration, slack_id: str) -> Response:
         try:
             idp = IdentityProvider.objects.get(type="slack", external_id=integration.external_id)
         except IdentityProvider.DoesNotExist:
@@ -69,14 +71,22 @@ class SlackLinkTeamView(BaseView):
             )
         return identity
 
-    def render_error_page(self, request, body_text):
+    def render_error_page(self, request: Request, body_text: str) -> Response:
         return render_to_response(
             "sentry/integrations/slack-link-team-error.html",
             request=request,
             context={"body_text": body_text},
         )
 
-    def send_slack_message(self, request, client, token, text, channel_id, integration):
+    def send_slack_message(
+        self,
+        request: Request,
+        client: SlackClient,
+        token: str,
+        text: Mapping[str, str],
+        channel_id: str,
+        integration: Integration,
+    ) -> Response:
         payload = {
             "token": token,
             "channel": channel_id,
@@ -103,7 +113,7 @@ class SlackLinkTeamView(BaseView):
 
     @transaction_start("SlackLinkTeamView")
     @never_cache
-    def handle(self, request, signed_params):
+    def handle(self, request: Request, signed_params: str) -> Response:
         params = unsign(signed_params)
         integration = Integration.objects.get(id=params["integration_id"])
         organization = integration.organizations.all()[0]
@@ -132,7 +142,7 @@ class SlackLinkTeamView(BaseView):
 
         team = Team.objects.get(id=team_id, organization=organization)
         if not team:
-            return self.render_error_page(body_text="HTTP 404: Team does not exist")
+            return self.render_error_page(request, body_text="HTTP 404: Team does not exist")
 
         INSUFFICIENT_ROLE_MESSAGE = {
             "heading": "Insufficient role",

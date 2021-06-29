@@ -45,13 +45,14 @@ const Wrapper = styled('div')`
 
 const ContextDataWrapper = styled('div')`
   padding: ${space(1)};
-  background: #f7f8f9;
+  background: ${p => p.theme.backgroundSecondary};
   border-radius: ${p => p.theme.borderRadius};
   max-height: 100%;
   height: 100%;
   overflow: hidden;
 
   pre {
+    background: ${p => p.theme.backgroundSecondary};
     margin: 0;
     padding: 0;
     overflow: hidden;
