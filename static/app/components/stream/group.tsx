@@ -380,8 +380,6 @@ class StreamGroup extends React.Component<Props, State> {
       withChart && data && data.filtered && statsPeriod && useFilteredStats
     );
 
-    const unresolved = data.status === 'unresolved' ? true : false;
-
     const showSessions = display === IssueDisplayOptions.SESSIONS;
     // calculate a percentage count based on session data if the user has selected sessions display
     const primaryPercent =
@@ -399,7 +397,7 @@ class StreamGroup extends React.Component<Props, State> {
         data-test-id="group"
         onClick={displayReprocessingLayout ? undefined : this.toggleSelect}
         reviewed={reviewed}
-        unresolved={unresolved}
+        unresolved={data.status === 'unresolved'}
         actionTaken={actionTaken}
         useTintRow={useTintRow ?? true}
       >

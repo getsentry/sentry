@@ -90,7 +90,7 @@ class GroupMeta(Model):
     provided by plugins.
     """
 
-    __core__ = False
+    __include_in_export__ = False
 
     group = FlexibleForeignKey("sentry.Group")
     key = models.CharField(max_length=64)

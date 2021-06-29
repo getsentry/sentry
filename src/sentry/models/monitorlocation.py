@@ -5,7 +5,7 @@ from sentry.db.models import BaseManager, Model, UUIDField, sane_repr
 
 
 class MonitorLocation(Model):
-    __core__ = True
+    __include_in_export__ = True
 
     guid = UUIDField(unique=True, auto_add=True)
     name = models.CharField(max_length=128)

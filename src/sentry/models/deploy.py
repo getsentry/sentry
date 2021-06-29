@@ -13,7 +13,7 @@ from sentry.utils.retries import TimedRetryPolicy
 
 
 class Deploy(Model):
-    __core__ = False
+    __include_in_export__ = False
 
     organization_id = BoundedPositiveIntegerField(db_index=True)
     release = FlexibleForeignKey("sentry.Release")

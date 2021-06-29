@@ -17,7 +17,7 @@ def default_date_schedule():
 
 
 class ScheduledDeletion(Model):
-    __core__ = False
+    __include_in_export__ = False
 
     guid = models.CharField(max_length=32, unique=True, default=default_guid)
     app_label = models.CharField(max_length=64)
