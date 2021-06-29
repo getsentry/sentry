@@ -10024,7 +10024,7 @@ msgstr "Организация, которую вы ищете, не найде�
 
 #: static/sentry/app/views/organizationContext.jsx:276
 msgid "Loading data for your organization."
-msgstr "Загрузка данны вашей организации."
+msgstr "Загрузка данных вашей организации."
 
 #: static/sentry/app/views/organizationCreate.jsx:30
 msgid "Create a New Organization"
