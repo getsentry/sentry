@@ -1,3 +1,4 @@
+import logging
 import os
 import warnings
 
@@ -79,6 +80,22 @@ def discover_configs():
     )
 
 
+_warning_logger = logging.getLogger("sentry.warnings")
+
+
+# This is set to warnings.showwarning to intercept all warnings and report them to Sentry.
+# The python SDK doesn't have a warnings integration at the time of writing,
+# and capture_message is very limited, so we just log an error here since LOGGING setting
+# is already configured to send error logs to the SDK's EventHandler.
+def _showwarning(message, category, filename, lineno, file=None, line=None):
+    _warning_logger.error(
+        warnings.formatwarning(message, category, filename, lineno),
+        # Warnings aren't exceptions, but we specify exc_info=True
+        # regardless because we want a proper stacktrace in the event.
+        exc_info=True,
+    )
+
+
 def configure(ctx, py, yaml, skip_service_validation=False):
     """
     Given the two different config files, set up the environment.
@@ -88,6 +105,8 @@ def configure(ctx, py, yaml, skip_service_validation=False):
     global __installed
     if __installed:
         return
+
+    warnings.showwarning = _showwarning
 
     # Make sure that our warnings are always displayed.
     warnings.filterwarnings("default", "", Warning, r"^sentry")
