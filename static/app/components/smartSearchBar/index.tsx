@@ -1,21 +1,14 @@
 import * as React from 'react';
 import TextareaAutosize from 'react-autosize-textarea';
-import {browserHistory, withRouter, WithRouterProps} from 'react-router';
+import {withRouter, WithRouterProps} from 'react-router';
 import isPropValid from '@emotion/is-prop-valid';
-import {ClassNames, withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
-import {
-  fetchRecentSearches,
-  pinSearch,
-  saveRecentSearch,
-  unpinSearch,
-} from 'app/actionCreators/savedSearches';
+import {fetchRecentSearches, saveRecentSearch} from 'app/actionCreators/savedSearches';
 import {Client} from 'app/api';
-import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import DropdownLink from 'app/components/dropdownLink';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
@@ -25,125 +18,77 @@ import {
   MAX_AUTOCOMPLETE_RELEASES,
   NEGATION_OPERATOR,
 } from 'app/constants';
-import {IconClose, IconEllipsis, IconPin, IconSearch, IconSliders} from 'app/icons';
+import {IconClose, IconEllipsis, IconSearch} from 'app/icons';
 import {t} from 'app/locale';
 import MemberListStore from 'app/stores/memberListStore';
 import space from 'app/styles/space';
-import {
-  LightWeightOrganization,
-  SavedSearch,
-  SavedSearchType,
-  Tag,
-  User,
-} from 'app/types';
+import {LightWeightOrganization, SavedSearchType, Tag, User} from 'app/types';
 import {defined} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {callIfFunction} from 'app/utils/callIfFunction';
-import commonTheme, {Theme} from 'app/utils/theme';
 import withApi from 'app/utils/withApi';
 import withOrganization from 'app/utils/withOrganization';
-import CreateSavedSearchButton from 'app/views/issueList/createSavedSearchButton';
 
+import {ActionButton} from './actions';
 import SearchDropdown from './searchDropdown';
 import {ItemType, SearchGroup, SearchItem} from './types';
 import {
   addSpace,
   createSearchGroups,
   filterSearchGroupsByIndex,
+  getLastTermIndex,
+  getQueryTerms,
   removeSpace,
 } from './utils';
 
 const DROPDOWN_BLUR_DURATION = 200;
 
-const getMediaQuery = (size: string, type: React.CSSProperties['display']) => `
-  display: ${type};
+/**
+ * The max width in pixels of the search bar at which the buttons will
+ * have overflowed into the dropdown.
+ */
+const ACTION_OVERFLOW_WIDTH = 400;
 
-  @media (min-width: ${size}) {
-    display: ${type === 'none' ? 'block' : 'none'};
-  }
-`;
+/**
+ * Actions are moved to the overflow dropdown after each pixel step is reached.
+ */
+const ACTION_OVERFLOW_STEPS = 75;
 
-const getInputButtonStyles = (p: {
-  isActive?: boolean;
-  collapseIntoEllipsisMenu?: number;
-}) => `
-  color: ${p.isActive ? commonTheme.blue300 : commonTheme.gray300};
-  width: 18px;
+/**
+ * Is the SearchItem a default item
+ */
+const isDefaultDropdownItem = (item: SearchItem) => item?.type === 'default';
 
-  &,
-  &:hover,
-  &:focus {
-    background: transparent;
-  }
-
-  &:hover {
-    color: ${commonTheme.gray400};
-  }
-
-  ${
-    p.collapseIntoEllipsisMenu &&
-    getMediaQuery(commonTheme.breakpoints[p.collapseIntoEllipsisMenu], 'none')
-  };
-`;
-
-type DropdownElementStylesProps = {
-  theme: Theme;
-  showBelowMediaQuery: number;
-  last?: boolean;
+type ActionProps = {
+  api: Client;
+  /**
+   * Render the actions as a menu item
+   */
+  menuItemVariant?: boolean;
+  /**
+   * The current query
+   */
+  query: string;
+  /**
+   * The organization
+   */
+  organization: LightWeightOrganization;
+  /**
+   * The saved search type passed to the search bar
+   */
+  savedSearchType?: SavedSearchType;
 };
 
-const getDropdownElementStyles = (p: DropdownElementStylesProps) => `
-  padding: 0 ${space(1)} ${p.last ? null : space(0.5)};
-  margin-bottom: ${p.last ? null : space(0.5)};
-  display: none;
-  color: ${p.theme.textColor};
-  align-items: center;
-  min-width: 190px;
-  height: 38px;
-  padding-left: ${space(1.5)};
-  padding-right: ${space(1.5)};
-
-  &,
-  &:hover,
-  &:focus {
-    border-bottom: ${p.last ? null : `1px solid ${p.theme.border}`};
-    border-radius: 0;
-  }
-
-  &:hover {
-    color: ${p.theme.blue300};
-  }
-  & > svg {
-    margin-right: ${space(1)};
-  }
-
-  ${
-    p.showBelowMediaQuery &&
-    getMediaQuery(commonTheme.breakpoints[p.showBelowMediaQuery], 'flex')
-  }
-`;
-
-const ThemedCreateSavedSearchButton = withTheme(
-  (props: {theme: Theme; query; sort; organization}) => (
-    <ClassNames>
-      {({css}) => (
-        <CreateSavedSearchButton
-          buttonClassName={css`
-            ${getDropdownElementStyles({
-              theme: props.theme,
-              showBelowMediaQuery: 2,
-              last: false,
-            })}
-          `}
-          tooltipClassName={css`
-            ${getMediaQuery(commonTheme.breakpoints[2], 'none')}
-          `}
-          {...props}
-        />
-      )}
-    </ClassNames>
-  )
-);
+type ActionBarItem = {
+  /**
+   * Name of the action
+   */
+  key: string;
+  /**
+   * The action component to render
+   */
+  Action: React.ComponentType<ActionProps>;
+};
 
 type Props = WithRouterProps & {
   api: Client;
@@ -153,13 +98,17 @@ type Props = WithRouterProps & {
 
   defaultQuery?: string;
   query?: string | null;
-  sort?: string;
+  /**
+   * Additional components to render as actions on the right of the search bar
+   */
+  actionBarItems?: ActionBarItem[];
   /**
    * Prepare query value before filtering dropdown items
    */
   prepareQuery?: (query: string) => string;
   /**
-   * Search items to display when there's no tag key. Is a tuple of search items and recent search items
+   * Search items to display when there's no tag key. Is a tuple of search
+   * items and recent search items
    */
   defaultSearchItems?: [SearchItem[], SearchItem[]];
   /**
@@ -188,14 +137,6 @@ type Props = WithRouterProps & {
    */
   hasRecentSearches?: boolean;
   /**
-   * Has search builder UI
-   */
-  hasSearchBuilder?: boolean;
-  /**
-   * Can create a saved search
-   */
-  canCreateSavedSearch?: boolean;
-  /**
    * Wrap the input with a form. Useful if search bar is used within a parent
    * form
    */
@@ -205,14 +146,6 @@ type Props = WithRouterProps & {
    * the current org
    */
   savedSearchType?: SavedSearchType;
-  /**
-   * Has pinned search feature
-   */
-  hasPinnedSearch?: boolean;
-  /**
-   * The pinned search object
-   */
-  pinnedSearch?: SavedSearch;
   /**
    * Get a list of tag values for the passed tag
    */
@@ -242,13 +175,9 @@ type Props = WithRouterProps & {
    */
   onSavedRecentSearch?: (query: string) => void;
   /**
-   * Called when the sidebar is toggled
-   */
-  onSidebarToggle?: React.EventHandler<React.MouseEvent>;
-  /**
    * If true, excludes the environment tag from the autocompletion list. This
-   * is because we don't want to treat environment as a tag in some places
-   * such as the stream view where it is a top level concept
+   * is because we don't want to treat environment as a tag in some places such
+   * as the stream view where it is a top level concept
    */
   excludeEnvironment?: boolean;
   /**
@@ -288,30 +217,16 @@ type State = {
    * Index of the focused search item
    */
   activeSearchItem: number;
-  tags: {[key: string]: string};
+  tags: Record<string, string>;
   dropdownVisible: boolean;
   loading: boolean;
+  /**
+   * The number of actions that are not in the overflow menu.
+   */
+  numActionsVisible: number;
 };
 
 class SmartSearchBar extends React.Component<Props, State> {
-  /**
-   * Given a query, and the current cursor position, return the string-delimiting
-   * index of the search term designated by the cursor.
-   */
-  static getLastTermIndex = (query: string, cursor: number) => {
-    // TODO: work with quoted-terms
-    const cursorOffset = query.slice(cursor).search(/\s|$/);
-    return cursor + (cursorOffset === -1 ? 0 : cursorOffset);
-  };
-
-  /**
-   * Returns an array of query terms, including incomplete terms
-   *
-   * e.g. ["is:unassigned", "browser:\"Chrome 33.0\"", "assigned"]
-   */
-  static getQueryTerms = (query: string, cursor: number) =>
-    query.slice(0, cursor).match(/\S+:"[^"]*"?|\S+/g);
-
   static defaultProps = {
     defaultQuery: '',
     query: null,
@@ -320,7 +235,6 @@ class SmartSearchBar extends React.Component<Props, State> {
     placeholder: t('Search for events, users, tags, and more'),
     supportedTags: {},
     defaultSearchItems: [[], []],
-    hasPinnedSearch: false,
     useFormWrapper: true,
     savedSearchType: SavedSearchType.ISSUE,
   };
@@ -337,7 +251,21 @@ class SmartSearchBar extends React.Component<Props, State> {
     tags: {},
     dropdownVisible: false,
     loading: false,
+    numActionsVisible: this.props.actionBarItems?.length ?? 0,
   };
+
+  componentDidMount() {
+    if (!window.ResizeObserver) {
+      return;
+    }
+
+    if (this.containerRef.current === null) {
+      return;
+    }
+
+    this.inputResizeObserver = new ResizeObserver(this.updateActionsVisible);
+    this.inputResizeObserver.observe(this.containerRef.current);
+  }
 
   componentDidUpdate(prevProps: Props) {
     const {query} = this.props;
@@ -350,9 +278,10 @@ class SmartSearchBar extends React.Component<Props, State> {
   }
 
   componentWillUnmount() {
+    this.inputResizeObserver?.disconnect();
+
     if (this.blurTimeout) {
       clearTimeout(this.blurTimeout);
-      this.blurTimeout = undefined;
     }
   }
 
@@ -360,35 +289,54 @@ class SmartSearchBar extends React.Component<Props, State> {
    * Tracks the dropdown blur
    */
   blurTimeout?: number;
+
   /**
    * Ref to the search element itself
    */
   searchInput = React.createRef<HTMLTextAreaElement>();
 
-  blur = () => {
+  /**
+   * Ref to the search container
+   */
+  containerRef = React.createRef<HTMLDivElement>();
+
+  /**
+   * Used to determine when actions should be moved to the action overflow menu
+   */
+  inputResizeObserver: ResizeObserver | null = null;
+
+  /**
+   * Updates the numActionsVisible count as the search bar is resized
+   */
+  updateActionsVisible = (entries: ResizeObserverEntry[]) => {
+    if (entries.length === 0) {
+      return;
+    }
+
+    const entry = entries[0];
+    const {width} = entry.contentRect;
+    const actionCount = this.props.actionBarItems?.length ?? 0;
+
+    const numActionsVisible = Math.min(
+      actionCount,
+      Math.floor(Math.max(0, width - ACTION_OVERFLOW_WIDTH) / ACTION_OVERFLOW_STEPS)
+    );
+
+    if (this.state.numActionsVisible === numActionsVisible) {
+      return;
+    }
+
+    this.setState({numActionsVisible});
+  };
+
+  blur() {
     if (!this.searchInput.current) {
       return;
     }
     this.searchInput.current.blur();
-  };
+  }
 
-  onSubmit = (evt: React.FormEvent) => {
-    const {organization, savedSearchType} = this.props;
-    evt.preventDefault();
-
-    trackAnalyticsEvent({
-      eventKey: 'search.searched',
-      eventName: 'Search: Performed search',
-      organization_id: organization.id,
-      query: removeSpace(this.state.query),
-      search_type: savedSearchType === 0 ? 'issues' : 'events',
-      search_source: 'main_search',
-    });
-
-    this.doSearch();
-  };
-
-  doSearch = async () => {
+  async doSearch() {
     const {onSearch, onSavedRecentSearch, api, organization, savedSearchType} =
       this.props;
     this.blur();
@@ -411,6 +359,22 @@ class SmartSearchBar extends React.Component<Props, State> {
       // Silently capture errors if it fails to save
       Sentry.captureException(err);
     }
+  }
+
+  onSubmit = (evt: React.FormEvent) => {
+    const {organization, savedSearchType} = this.props;
+    evt.preventDefault();
+
+    trackAnalyticsEvent({
+      eventKey: 'search.searched',
+      eventName: 'Search: Performed search',
+      organization_id: organization.id,
+      query: removeSpace(this.state.query),
+      search_type: savedSearchType === 0 ? 'issues' : 'events',
+      search_source: 'main_search',
+    });
+
+    this.doSearch();
   };
 
   clearSearch = () =>
@@ -522,7 +486,7 @@ class SmartSearchBar extends React.Component<Props, State> {
         childrenIndex !== undefined &&
         searchGroups[groupIndex].children[childrenIndex];
 
-      if (item && !this.isDefaultDropdownItem(item)) {
+      if (item && !isDefaultDropdownItem(item)) {
         this.onAutoComplete(item.value, item);
       }
       return;
@@ -563,17 +527,17 @@ class SmartSearchBar extends React.Component<Props, State> {
     });
   };
 
-  getCursorPosition = () => {
+  getCursorPosition() {
     if (!this.searchInput.current) {
       return -1;
     }
     return this.searchInput.current.selectionStart ?? -1;
-  };
+  }
 
   /**
    * Returns array of possible key values that substring match `query`
    */
-  getTagKeys = (query: string): SearchItem[] => {
+  getTagKeys(query: string): SearchItem[] {
     const {prepareQuery} = this.props;
 
     const supportedTags = this.props.supportedTags ?? {};
@@ -594,7 +558,7 @@ class SmartSearchBar extends React.Component<Props, State> {
     }
 
     return tagKeys.map(value => ({value, desc: value}));
-  };
+  }
 
   /**
    * Returns array of tag values that substring match `query`; invokes `callback`
@@ -787,8 +751,8 @@ class SmartSearchBar extends React.Component<Props, State> {
 
     this.setState({previousQuery: query});
 
-    const lastTermIndex = SmartSearchBar.getLastTermIndex(query, cursor);
-    const terms = SmartSearchBar.getQueryTerms(query, lastTermIndex);
+    const lastTermIndex = getLastTermIndex(query, cursor);
+    const terms = getQueryTerms(query, lastTermIndex);
 
     if (
       !terms || // no terms
@@ -904,8 +868,6 @@ class SmartSearchBar extends React.Component<Props, State> {
     return;
   };
 
-  isDefaultDropdownItem = (item: SearchItem) => item && item.type === 'default';
-
   /**
    * Updates autocomplete dropdown items and autocomplete index state
    *
@@ -914,12 +876,12 @@ class SmartSearchBar extends React.Component<Props, State> {
    * @param tagName The current tag name in scope
    * @param type Defines the type/state of the dropdown menu items
    */
-  updateAutoCompleteState = (
+  updateAutoCompleteState(
     searchItems: SearchItem[],
     recentSearchItems: SearchItem[],
     tagName: string,
     type: ItemType
-  ) => {
+  ) {
     const {hasRecentSearches, maxSearchItems, maxQueryLength} = this.props;
     const query = this.state.query;
 
@@ -936,71 +898,7 @@ class SmartSearchBar extends React.Component<Props, State> {
         queryCharsLeft
       )
     );
-  };
-
-  onTogglePinnedSearch = async (evt: React.MouseEvent) => {
-    const {
-      api,
-      location,
-      organization,
-      savedSearchType,
-      hasPinnedSearch,
-      pinnedSearch,
-      sort,
-    } = this.props;
-
-    evt.preventDefault();
-    evt.stopPropagation();
-
-    if (savedSearchType === undefined || !hasPinnedSearch) {
-      return;
-    }
-
-    // eslint-disable-next-line no-unused-vars
-    const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
-
-    trackAnalyticsEvent({
-      eventKey: 'search.pin',
-      eventName: 'Search: Pin',
-      organization_id: organization.id,
-      action: !!pinnedSearch ? 'unpin' : 'pin',
-      search_type: savedSearchType === 0 ? 'issues' : 'events',
-      query: pinnedSearch?.query ?? this.state.query,
-    });
-
-    if (!!pinnedSearch) {
-      unpinSearch(api, organization.slug, savedSearchType, pinnedSearch).then(() => {
-        browserHistory.push({
-          ...location,
-          pathname: `/organizations/${organization.slug}/issues/`,
-          query: {
-            ...currentQuery,
-            query: pinnedSearch.query,
-            sort: pinnedSearch.sort,
-          },
-        });
-      });
-      return;
-    }
-
-    const resp = await pinSearch(
-      api,
-      organization.slug,
-      savedSearchType,
-      removeSpace(this.state.query),
-      sort
-    );
-
-    if (!resp || !resp.id) {
-      return;
-    }
-
-    browserHistory.push({
-      ...location,
-      pathname: `/organizations/${organization.slug}/issues/searches/${resp.id}/`,
-      query: currentQuery,
-    });
-  };
+  }
 
   onAutoComplete = (replaceText: string, item: SearchItem) => {
     if (item.type === 'recent-search') {
@@ -1024,8 +922,8 @@ class SmartSearchBar extends React.Component<Props, State> {
     const cursor = this.getCursorPosition();
     const query = this.state.query;
 
-    const lastTermIndex = SmartSearchBar.getLastTermIndex(query, cursor);
-    const terms = SmartSearchBar.getQueryTerms(query, lastTermIndex);
+    const lastTermIndex = getLastTermIndex(query, cursor);
+    const terms = getQueryTerms(query, lastTermIndex);
     let newQuery: string;
 
     // If not postfixed with : (tag value), add trailing space
@@ -1080,25 +978,21 @@ class SmartSearchBar extends React.Component<Props, State> {
 
   render() {
     const {
+      api,
       className,
+      savedSearchType,
       dropdownClassName,
+      actionBarItems,
       organization,
-      hasPinnedSearch,
-      hasSearchBuilder,
-      canCreateSavedSearch,
-      pinnedSearch,
       placeholder,
       disabled,
       useFormWrapper,
-      onSidebarToggle,
       inlineLabel,
-      sort,
       maxQueryLength,
     } = this.props;
 
-    const pinTooltip = !!pinnedSearch ? t('Unpin this search') : t('Pin this search');
-    const pinIcon = <IconPin isSolid={!!pinnedSearch} size="xs" />;
-    const hasQuery = !!this.state.query;
+    const {query, searchGroups, searchTerm, dropdownVisible, numActionsVisible, loading} =
+      this.state;
 
     const hasSyntaxHighlight = organization.features.includes('search-syntax-highlight');
 
@@ -1110,7 +1004,7 @@ class SmartSearchBar extends React.Component<Props, State> {
         name="query"
         ref={this.searchInput}
         autoComplete="off"
-        value={this.state.query}
+        value={query}
         onFocus={this.onQueryFocus}
         onBlur={this.onQueryBlur}
         onKeyUp={this.onKeyUp}
@@ -1124,151 +1018,69 @@ class SmartSearchBar extends React.Component<Props, State> {
       />
     );
 
+    // Segment actions into visible and overflowed groups
+    const actionItems = actionBarItems ?? [];
+    const actionProps = {
+      api,
+      organization,
+      query,
+      savedSearchType,
+    };
+
+    const visibleActions = actionItems
+      .slice(0, numActionsVisible)
+      .map(({key, Action}) => <Action key={key} {...actionProps} />);
+
+    const overflowedActions = actionItems
+      .slice(numActionsVisible)
+      .map(({key, Action}) => <Action key={key} {...actionProps} menuItemVariant />);
+
     return (
-      <Container className={className} isOpen={this.state.dropdownVisible}>
+      <Container ref={this.containerRef} className={className} isOpen={dropdownVisible}>
         <SearchLabel htmlFor="smart-search-input" aria-label={t('Search events')}>
           <IconSearch />
           {inlineLabel}
         </SearchLabel>
 
         <InputWrapper>
-          {hasSyntaxHighlight && <Highlight>{renderQuery(this.state.query)}</Highlight>}
+          {hasSyntaxHighlight && <Highlight>{renderQuery(query)}</Highlight>}
           {useFormWrapper ? <form onSubmit={this.onSubmit}>{input}</form> : input}
         </InputWrapper>
-        <ActionsBar gap={0.5}>
-          {this.state.query !== '' && (
-            <InputButton
-              type="button"
-              title={t('Clear search')}
-              borderless
-              aria-label="Clear search"
-              size="zero"
-              tooltipProps={{
-                containerDisplayMode: 'inline-flex',
-              }}
-              onClick={this.clearSearch}
-            >
-              <IconClose size="xs" />
-            </InputButton>
-          )}
-          {hasPinnedSearch && (
-            <ClassNames>
-              {({css}) => (
-                <InputButton
-                  type="button"
-                  title={pinTooltip}
-                  borderless
-                  disabled={!hasQuery}
-                  aria-label={pinTooltip}
-                  size="zero"
-                  tooltipProps={{
-                    containerDisplayMode: 'inline-flex',
-                    className: css`
-                      ${getMediaQuery(commonTheme.breakpoints[1], 'none')}
-                    `,
-                  }}
-                  onClick={this.onTogglePinnedSearch}
-                  collapseIntoEllipsisMenu={1}
-                  isActive={!!pinnedSearch}
-                  icon={pinIcon}
-                />
-              )}
-            </ClassNames>
-          )}
-          {canCreateSavedSearch && (
-            <ClassNames>
-              {({css}) => (
-                <CreateSavedSearchButton
-                  query={this.state.query}
-                  sort={sort}
-                  organization={organization}
-                  withTooltip
-                  iconOnly
-                  buttonClassName={css`
-                    ${getInputButtonStyles({
-                      collapseIntoEllipsisMenu: 2,
-                    })}
-                  `}
-                  tooltipClassName={css`
-                    ${getMediaQuery(commonTheme.breakpoints[2], 'none')}
-                  `}
-                />
-              )}
-            </ClassNames>
-          )}
-          {hasSearchBuilder && (
-            <ClassNames>
-              {({css}) => (
-                <InputButton
-                  title={t('Toggle search builder')}
-                  borderless
-                  size="zero"
-                  tooltipProps={{
-                    containerDisplayMode: 'inline-flex',
-                    className: css`
-                      ${getMediaQuery(commonTheme.breakpoints[2], 'none')}
-                    `,
-                  }}
-                  collapseIntoEllipsisMenu={2}
-                  aria-label={t('Toggle search builder')}
-                  onClick={onSidebarToggle}
-                  icon={<IconSliders size="xs" />}
-                />
-              )}
-            </ClassNames>
-          )}
 
-          {(hasPinnedSearch || canCreateSavedSearch || hasSearchBuilder) && (
-            <StyledDropdownLink
+        <ActionsBar gap={0.5}>
+          {query !== '' && (
+            <ActionButton
+              onClick={this.clearSearch}
+              icon={<IconClose size="xs" />}
+              title={t('Clear search')}
+              aria-label={t('Clear search')}
+            />
+          )}
+          {visibleActions}
+          {overflowedActions.length > 0 && (
+            <DropdownLink
               anchorRight
               caret={false}
               title={
-                <InputButton
-                  size="zero"
-                  borderless
-                  tooltipProps={{
-                    containerDisplayMode: 'flex',
-                  }}
-                  type="button"
+                <ActionButton
                   aria-label={t('Show more')}
                   icon={<VerticalEllipsisIcon size="xs" />}
                 />
               }
             >
-              {hasPinnedSearch && (
-                <DropdownElement
-                  showBelowMediaQuery={1}
-                  data-test-id="pin-icon"
-                  onClick={this.onTogglePinnedSearch}
-                >
-                  {pinIcon}
-                  {!!pinnedSearch ? t('Unpin Search') : t('Pin Search')}
-                </DropdownElement>
-              )}
-              {canCreateSavedSearch && (
-                <ThemedCreateSavedSearchButton
-                  query={this.state.query}
-                  organization={organization}
-                  sort={sort}
-                />
-              )}
-              {hasSearchBuilder && (
-                <DropdownElement showBelowMediaQuery={2} last onClick={onSidebarToggle}>
-                  <IconSliders size="xs" />
-                  {t('Toggle sidebar')}
-                </DropdownElement>
-              )}
-            </StyledDropdownLink>
+              {overflowedActions}
+            </DropdownLink>
           )}
         </ActionsBar>
-        {(this.state.loading || this.state.searchGroups.length > 0) && (
+
+        {(loading || searchGroups.length > 0) && (
           <SearchDropdown
-            css={{display: this.state.dropdownVisible ? 'block' : 'none'}}
+            css={{display: dropdownVisible ? 'block' : 'none'}}
             className={dropdownClassName}
-            items={this.state.searchGroups}
+            items={searchGroups}
             onClick={this.onAutoComplete}
-            loading={this.state.loading}
-            searchSubstring={this.state.searchTerm}
+            loading={loading}
+            searchSubstring={searchTerm}
           />
         )}
       </Container>
@@ -1324,6 +1136,13 @@ const Container = styled('div')<{isOpen: boolean}>`
   }
 `;
 
+const SearchLabel = styled('label')`
+  display: flex;
+  padding: ${space(0.5)} 0;
+  margin: 0;
+  color: ${p => p.theme.gray300};
+`;
+
 const InputWrapper = styled('div')`
   position: relative;
 `;
@@ -1372,34 +1191,11 @@ const SearchInput = styled(TextareaAutosize, {
   }
 `;
 
-const InputButton = styled(Button)`
-  ${getInputButtonStyles}
-`;
-
-const StyledDropdownLink = styled(DropdownLink)`
-  display: none;
-
-  @media (max-width: ${commonTheme.breakpoints[2]}) {
-    display: flex;
-  }
-`;
-
-const DropdownElement = styled('a')<Omit<DropdownElementStylesProps, 'theme'>>`
-  ${getDropdownElementStyles}
+const ActionsBar = styled(ButtonBar)`
+  height: ${space(2)};
+  margin: ${space(0.5)} 0;
 `;
 
 const VerticalEllipsisIcon = styled(IconEllipsis)`
   transform: rotate(90deg);
-`;
-
-const SearchLabel = styled('label')`
-  display: flex;
-  padding: ${space(0.5)} 0;
-  margin: 0;
-  color: ${p => p.theme.gray300};
-`;
-
-const ActionsBar = styled(ButtonBar)`
-  height: ${space(2)};
-  margin: ${space(0.5)} 0;
 `;
