@@ -157,7 +157,6 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
             omt.delete()
 
     def _rename_team_operation(self, request, new_name, team):
-        ##
         serializer = TeamSerializer(
             team,
             data={
@@ -229,6 +228,6 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         return super().delete(request, team)
 
     def put(self, request, organization, team):
-        # override parents put since we dont have puts
+        # override parent's put since we dont have puts
         # in SCIM Team routes
         return self.http_method_not_allowed(request)
