@@ -1950,7 +1950,7 @@ class QueryFields(QueryBase):
 
         return columns
 
-    def resolve_field(self, field: str) -> Union[SnqlColumn, SnqlFunction]:
+    def resolve_field(self, field: str) -> SelectType:
         match = is_function(field)
         if match:
             raise NotImplementedError(f"{field} not implemented in snql field parsing yet")
