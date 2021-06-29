@@ -43,16 +43,16 @@ type State = {
 };
 
 class TransactionThresholdModal extends React.Component<Props, State> {
-  componentDidMount() {
-    this.fetchData();
-  }
-
   state: State = {
     value: undefined,
     metric: undefined,
     error: null,
     isLoading: true,
   };
+
+  componentDidMount() {
+    this.fetchData();
+  }
 
   getProject() {
     const {projects, eventView} = this.props;
