@@ -66,8 +66,8 @@ commit_message_base_messages = [
 
 base_paths_by_file_type = {"js": ["components/", "views/"], "py": ["flask/", "routes/"]}
 
-rate_by_release_num = [0.995, 0.998, 0.95]
-
+rate_by_release_num = [0.9, 0.95, 0.85]
+agg_rate_by_release_num = [0.995, 0.998, 0.95]
 
 org_users = [
     ("scefali", "Stephen Cefali"),
@@ -1208,7 +1208,7 @@ class DataPopulation:
             release_num = int(version.split(".")[-1])
             threshold = rate_by_release_num[release_num]
             outcome = random.random()
-            if outcome > threshold:
+            if outcome <= threshold:
                 if error_file:
                     local_event = copy.deepcopy(error)
                     local_event.update(
@@ -1269,7 +1269,7 @@ class DataPopulation:
 
         agg = []
         release_num = int(version.split(".")[-1])
-        threshold = rate_by_release_num[release_num]
+        threshold = agg_rate_by_release_num[release_num]
 
         if self.quick:
             num_users = int(random.uniform(100, 200))
