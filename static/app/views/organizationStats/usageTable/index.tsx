@@ -3,16 +3,20 @@ import styled from '@emotion/styled';
 
 import ErrorPanel from 'app/components/charts/errorPanel';
 import IdBadge from 'app/components/idBadge';
+import ExternalLink from 'app/components/links/externalLink';
 import Link from 'app/components/links/link';
 import {SettingsIconLink} from 'app/components/organizations/headerItem';
 import {Panel} from 'app/components/panels';
 import PanelTable from 'app/components/panels/panelTable';
 import {IconSettings, IconWarning} from 'app/icons';
+import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {DataCategory, Project} from 'app/types';
 import theme from 'app/utils/theme';
 
 import {formatUsageWithUnits} from '../utils';
+
+const DOCS_URL = 'https://docs.sentry.io/product/accounts/membership/#restricting-access';
 
 type Props = {
   isLoading?: boolean;
@@ -45,6 +49,26 @@ class UsageTable extends React.Component<Props> {
       useUnitScaling: dataCategory === DataCategory.ATTACHMENTS,
     };
   }
+
+  getErrorMessage = errorMessage => {
+    if (errorMessage.projectStats.responseJSON.detail === 'No projects available') {
+      return (
+        <ErrorMessages>
+          <Title>
+            {t(
+              "You don't have access to any projects, or your organization has no projects."
+            )}
+          </Title>
+          <Description>
+            {tct('Learn more about [link:Project Access]', {
+              link: <ExternalLink href={DOCS_URL} />,
+            })}
+          </Description>
+        </ErrorMessages>
+      );
+    }
+    return null;
+  };
 
   renderTableRow(stat: TableStat & {project: Project}) {
     const {dataCategory} = this.props;
@@ -87,11 +111,8 @@ class UsageTable extends React.Component<Props> {
       return (
         <Panel>
           <ErrorPanel height="256px">
-            <IconWarning color="gray300" size="lg" />
-            <ErrorMessages>
-              {errors &&
-                Object.keys(errors).map(k => <span key={k}>{errors[k]?.message}</span>)}
-            </ErrorMessages>
+            <IconWarning color="gray300" size="48" />
+            {this.getErrorMessage(errors)}
           </ErrorPanel>
         </Panel>
       );
@@ -142,4 +163,16 @@ const ErrorMessages = styled('div')`
 
   margin-top: ${space(1)};
   font-size: ${p => p.theme.fontSizeSmall};
+`;
+
+const Title = styled('strong')`
+  font-size: ${p => p.theme.fontSizeExtraLarge};
+  margin-bottom: ${space(1)};
+`;
+
+const Description = styled('span')`
+  font-size: ${p => p.theme.fontSizeLarge};
+  display: block;
+  margin: 0;
+  text-align: center;
 `;
