@@ -1,5 +1,4 @@
 import * as React from 'react';
-import styled from '@emotion/styled';
 
 import {fetchRecentSearches} from 'app/actionCreators/savedSearches';
 import {Client} from 'app/api';
@@ -127,7 +126,7 @@ class IssueListSearchBar extends React.Component<Props, State> {
     const pinnedSearch = savedSearch?.isPinned ? savedSearch : undefined;
 
     return (
-      <SmartSearchBarNoLeftCorners
+      <SmartSearchBar
         hasRecentSearches
         maxSearchItems={5}
         savedSearchType={SavedSearchType.ISSUE}
@@ -144,9 +143,5 @@ class IssueListSearchBar extends React.Component<Props, State> {
     );
   }
 }
-
-const SmartSearchBarNoLeftCorners = styled(SmartSearchBar)`
-  flex-grow: 1;
-`;
 
 export default withApi(withOrganization(IssueListSearchBar));
