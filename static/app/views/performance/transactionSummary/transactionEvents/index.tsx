@@ -84,8 +84,8 @@ class TransactionEvents extends Component<Props, State> {
     const {spanOperationBreakdownFilter, eventsDisplayFilterName, eventView} = this.state;
 
     trackAnalyticsEvent({
-      eventName: 'Performance Views: Filter Dropdown',
-      eventKey: 'performance_views.filter_dropdown.selection',
+      eventName: 'Performance Views: Transaction Events Ops Breakdown Filter Dropdown',
+      eventKey: 'performance_views.transactionEvents.ops_filter_dropdown.selection',
       organization_id: parseInt(organization.id, 10),
       action: newFilter as string,
     });
