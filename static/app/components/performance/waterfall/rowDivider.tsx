@@ -72,9 +72,22 @@ export function ErrorBadge() {
   );
 }
 
-export function EmbeddedTransactionBadge({expanded}: {expanded: boolean}) {
+export function EmbeddedTransactionBadge({
+  expanded,
+  onClick,
+}: {
+  expanded: boolean;
+  onClick: () => void;
+}) {
   return (
-    <BadgeBorder borderColor="gray500">
+    <BadgeBorder
+      borderColor="gray500"
+      onClick={event => {
+        event.stopPropagation();
+        event.preventDefault();
+        onClick();
+      }}
+    >
       {expanded ? (
         <IconCollapse color="gray500" size="xs" />
       ) : (

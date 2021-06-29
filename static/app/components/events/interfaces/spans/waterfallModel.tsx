@@ -2,6 +2,7 @@ import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 import {action, computed, makeObservable, observable} from 'mobx';
 
+import {Client} from 'app/api';
 import {EventTransaction} from 'app/types/event';
 import {createFuzzySearch} from 'app/utils/createFuzzySearch';
 
@@ -18,6 +19,8 @@ import {
 import {boundsGenerator, generateRootSpan, getSpanID, parseTrace} from './utils';
 
 class WaterfallModel {
+  api: Client = new Client();
+
   // readonly state
   event: Readonly<EventTransaction>;
   rootSpan: SpanTreeModel;
@@ -35,7 +38,12 @@ class WaterfallModel {
 
     this.parsedTrace = parseTrace(event);
     const rootSpan = generateRootSpan(this.parsedTrace);
-    this.rootSpan = new SpanTreeModel(rootSpan, this.parsedTrace.childSpans, true);
+    this.rootSpan = new SpanTreeModel(
+      rootSpan,
+      this.parsedTrace.childSpans,
+      this.api,
+      true
+    );
 
     this.indexSearch(this.parsedTrace, rootSpan);
 

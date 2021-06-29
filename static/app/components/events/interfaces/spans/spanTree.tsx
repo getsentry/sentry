@@ -151,7 +151,7 @@ class SpanTree extends React.Component<PropType> {
 
     const {spanTree, numOfSpansOutOfViewAbove, numOfFilteredSpansAbove} = spans.reduce(
       (acc: AccType, payload: EnhancedProcessedSpanType, index) => {
-        const {span, type} = payload;
+        const {type} = payload;
 
         switch (payload.type) {
           case 'filtered_out': {
@@ -179,6 +179,8 @@ class SpanTree extends React.Component<PropType> {
           });
           acc.spanTree.push(infoMessage);
         }
+
+        const {span} = payload;
 
         const key = getSpanID(span, `span-${index}`);
 
@@ -211,6 +213,9 @@ class SpanTree extends React.Component<PropType> {
             isLast={isLast}
             isRoot={isRoot}
             isCurrentSpanFilteredOut={false}
+            showEmbeddedChildren={payload.showEmbeddedChildren}
+            toggleEmbeddedChildren={payload.toggleEmbeddedChildren}
+            fetchEmbeddedChildrenState={payload.fetchEmbeddedChildrenState}
           />
         );
 
