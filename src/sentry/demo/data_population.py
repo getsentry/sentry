@@ -67,6 +67,7 @@ commit_message_base_messages = [
 base_paths_by_file_type = {"js": ["components/", "views/"], "py": ["flask/", "routes/"]}
 
 rate_by_release_num = [1.0, 0.99, 0.9]
+threshold_by_release_num = [0.004, 0.0015, 0.01]
 
 org_users = [
     ("scefali", "Stephen Cefali"),
@@ -476,10 +477,7 @@ def update_context(event, trace=None):
     # add our trace info
     base_trace = context.get("trace", {})
     if not trace:
-        trace = {
-            "trace_id": uuid4().hex,
-            "span_id": uuid4().hex[:16],
-        }
+        trace = {"trace_id": uuid4().hex[:16], "span_id": uuid4().hex[:16]}
     base_trace.update(**trace)
     context["trace"] = base_trace
 
@@ -615,6 +613,8 @@ class DataPopulation:
                     "components/Form.js",
                     "flask/app.py",
                     "purchase.py",
+                    "checkout.swift",
+                    "shop.java",
                 ],
                 ["js", "py"],
             )
@@ -678,7 +678,7 @@ class DataPopulation:
         alert_rule = create_alert_rule(
             org,
             [project],
-            "High Error Rate",
+            f"High Error Rate - {project.name} ",
             "level:error",
             "count()",
             10,
@@ -1053,6 +1053,60 @@ class DataPopulation:
 
         self.log_info("populate_connected_event_scenario_2.finished")
 
+    def populate_connected_event_scenario_3(self, ios_project: Project):
+
+        ios_error = get_event_from_file("scen3/handled.json")
+        ios_transaction = get_event_from_file("scen3/ios_transaction.json")
+
+        self.log_info("populate_connected_event_scenario_3.start")
+
+        for (timestamp, day) in self.iter_timestamps(4):
+            transaction_user = self.generate_user()
+            trace_id = uuid4().hex
+            release = get_release_from_time(ios_project.organization_id, timestamp)
+            release_sha = release.version
+
+            old_span_id = ios_transaction["contexts"]["trace"]["span_id"]
+            root_span_id = uuid4().hex[:16]
+            duration = self.gen_frontend_duration(day)
+
+            trace = {
+                "trace_id": trace_id,
+                "span_id": root_span_id,
+            }
+
+            # React transaction
+            local_event = copy.deepcopy(ios_transaction)
+            local_event.update(
+                project=ios_project,
+                platform=ios_project.platform,
+                event_id=uuid4().hex,
+                user=transaction_user,
+                release=release_sha,
+                timestamp=timestamp,
+                # start_timestamp decreases based on day so that there's a trend
+                start_timestamp=timestamp - timedelta(seconds=duration),
+                measurements=gen_measurements(duration),
+            )
+            update_context(local_event, trace)
+            self.fix_transaction_event(local_event, old_span_id)
+            self.safe_send_event(local_event)
+
+            # React error
+            local_event = copy.deepcopy(ios_error)
+            local_event.update(
+                project=ios_project,
+                platform=ios_project.platform,
+                timestamp=timestamp,
+                user=transaction_user,
+                release=release_sha,
+            )
+            update_context(local_event, trace)
+            self.fix_error_event(local_event)
+            self.safe_send_event(local_event)
+
+        self.log_info("populate_connected_event_scenario_1.finished")
+
     def populate_generic_error(self, project: Project, file_path, dist_number, starting_release=0):
         """
         This function populates a single error
@@ -1218,7 +1272,8 @@ class DataPopulation:
         item_headers = json.dumps({"type": "sessions"})
 
         agg = []
-        threshold = 0.004
+        release_num = int(version.split(".")[-1])
+        threshold = threshold_by_release_num[release_num]
 
         if self.quick:
             num_users = int(random.uniform(100, 200))
@@ -1290,13 +1345,15 @@ class DataPopulation:
             self.populate_generic_error(react_project, "errors/react/func_undefined.json", 3)
             self.populate_generic_error(python_project, "errors/python/cert_error.json", 5)
             self.populate_generic_error(
-                python_project, "errors/python/concat_str_none.json", 4, starting_release=2
+                python_project, "errors/python/concat_str_none.json", 4, starting_release=1
             )
         self.assign_issues()
 
     def handle_mobile_scenario(
         self, ios_project: Project, android_project: Project, react_native_project: Project
     ):
+        with sentry_sdk.start_span(op="handle_mobile_scenario", description="pre_event_setup"):
+            self.generate_alerts(android_project)
         if not self.get_config_var("DISABLE_SESSIONS"):
             with sentry_sdk.start_span(
                 op="handle_react_python_scenario", description="populate_sessions"
@@ -1304,17 +1361,13 @@ class DataPopulation:
                 self.populate_sessions(ios_project, 6, True)
                 self.populate_sessions(android_project, 8, True)
                 self.populate_sessions(react_native_project, 9, True)
-
+        with sentry_sdk.start_span(op="handle_mobile_scenario", description="populate_connected"):
+            self.populate_connected_event_scenario_3(ios_project)
         with sentry_sdk.start_span(op="handle_mobile_scenario", description="populate_errors"):
             self.populate_generic_error(ios_project, "errors/ios/exc_bad_access.json", 3)
+
             self.populate_generic_error(
-                ios_project, "errors/ios/handled.json", 5, starting_release=1
-            )
-            self.populate_generic_transaction(
-                ios_project, "transactions/ios/ios_transaction.json", 4
-            )
-            self.populate_generic_error(
-                android_project, "errors/android/out_of_bounds.json", 2, starting_release=1
+                android_project, "errors/android/out_of_bounds.json", 2, starting_release=2
             )
             self.populate_generic_error(
                 android_project, "errors/android/app_not_responding.json", 3
@@ -1326,6 +1379,6 @@ class DataPopulation:
                 react_native_project,
                 "errors/react_native/promise_rejection.json",
                 3,
-                starting_release=1,
+                starting_release=2,
             )
         self.assign_issues()
