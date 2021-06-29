@@ -2,7 +2,7 @@ import re
 from collections import defaultdict, namedtuple
 from copy import deepcopy
 from datetime import datetime
-from typing import Callable, List, Mapping, Optional, Union
+from typing import List, Mapping, Optional, Union
 
 import sentry_sdk
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
@@ -24,8 +24,6 @@ from sentry.search.events.constants import (
     DEFAULT_PROJECT_THRESHOLD_METRIC,
     ERROR_UNHANDLED_ALIAS,
     FUNCTION_PATTERN,
-    ISSUE_ALIAS,
-    ISSUE_ID_ALIAS,
     KEY_TRANSACTION_ALIAS,
     PROJECT_ALIAS,
     PROJECT_NAME_ALIAS,
@@ -37,11 +35,10 @@ from sentry.search.events.constants import (
     USER_DISPLAY_ALIAS,
     VALID_FIELD_PATTERN,
 )
-from sentry.search.events.types import ParamsType, SelectType
+from sentry.search.events.types import SelectType
 from sentry.utils.compat import zip
 from sentry.utils.numbers import format_grouped_length
 from sentry.utils.snuba import (
-    Dataset,
     get_json_type,
     is_duration_measurement,
     is_measurement,
@@ -1937,63 +1934,7 @@ for alias, name in FUNCTION_ALIASES.items():
 FUNCTION_ALIAS_PATTERN = re.compile(r"^({}).*".format("|".join(list(FUNCTIONS.keys()))))
 
 
-class QueryFieldAliases(QueryBase):
-    def __init__(self, dataset: Dataset, params: ParamsType):
-        super().__init__(dataset, params)
-
-        self.field_alias_converter: Mapping[str, Callable[[str], SelectType]] = {
-            # NOTE: `ISSUE_ALIAS` simply maps to the id, meaning that post processing
-            # is required to insert the true issue short id into the response.
-            ISSUE_ALIAS: self._resolve_issue_id,
-            ISSUE_ID_ALIAS: self._resolve_issue_id,
-            PROJECT_ALIAS: self._resolve_project_slug,
-            PROJECT_NAME_ALIAS: self._resolve_project_slug,
-        }
-
-    def is_field_alias(self, alias: str) -> bool:
-        return (
-            alias in self.field_alias_converter
-            # TODO: Delete this check once all existing field aliases have been migratied
-            or alias in FIELD_ALIASES
-        )
-
-    def resolve_field_aliases(self, alias: str) -> SelectType:
-        converter = self.field_alias_converter.get(alias)
-        if not converter:
-            raise NotImplementedError(f"{alias} not implemented in snql field parsing yet")
-        return converter(alias)
-
-    def _resolve_issue_id(self, _: str) -> SelectType:
-        column = self.column("issue.id")
-        # TODO: Remove the `toUInt64` once Column supports aliases
-        return SnqlFunction("toUInt64", [column], "issue.id")
-
-    def _resolve_project_slug(self, alias: str) -> SelectType:
-        project_ids = {
-            project_id
-            for project_id in self.params.get("project_id", [])
-            if isinstance(project_id, int)
-        }
-
-        # Try to reduce the size of the transform by using any existing conditions on projects
-        if len(self.projects_to_filter) > 0:
-            project_ids &= self.projects_to_filter
-
-        projects = Project.objects.filter(id__in=project_ids).values("slug", "id")
-
-        return SnqlFunction(
-            "transform",
-            [
-                self.column("project.id"),
-                [project["id"] for project in projects],
-                [project["slug"] for project in projects],
-                "",
-            ],
-            alias,
-        )
-
-
-class QueryFields(QueryFieldAliases, QueryBase):
+class QueryFields(QueryBase):
     """Field logic for a snql query"""
 
     def resolve_select(self, selected_columns: Optional[List[str]]) -> List[SelectType]:
@@ -2011,13 +1952,13 @@ class QueryFields(QueryFieldAliases, QueryBase):
 
         return columns
 
-    def resolve_field(self, field: str) -> Union[SnqlColumn, SnqlFunction]:
+    def resolve_field(self, field: str) -> SelectType:
         match = is_function(field)
         if match:
             raise NotImplementedError(f"{field} not implemented in snql field parsing yet")
 
         if self.is_field_alias(field):
-            return self.resolve_field_aliases(field)
+            return self.resolve_field_alias(field)
 
         tag_match = TAG_KEY_RE.search(field)
         field = tag_match.group("tag") if tag_match else field

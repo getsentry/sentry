@@ -4,9 +4,6 @@ import IssueListTagFilter from 'app/views/issueList/tagFilter';
 
 describe('IssueListTagFilter', function () {
   // @ts-expect-error
-  const routerContext = TestStubs.routerContext();
-
-  // @ts-expect-error
   MockApiClient.clearMockResponses();
 
   const selectMock = jest.fn();
@@ -48,8 +45,7 @@ describe('IssueListTagFilter', function () {
         value=""
         onSelect={selectMock}
         tagValueLoader={tagValueLoader}
-      />,
-      routerContext
+      />
     );
 
     // changes dropdown input value

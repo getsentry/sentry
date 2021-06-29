@@ -5,7 +5,7 @@ from django.db.models import F, Q
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
-from sentry import analytics
+from sentry import analytics, features
 from sentry.api.base import EnvironmentMixin, ReleaseAnalyticsMixin
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
@@ -160,6 +160,7 @@ class OrganizationReleasesEndpoint(
         """
         query = request.GET.get("query")
         with_health = request.GET.get("health") == "1"
+        with_adoption_stages = request.GET.get("adoptionStages") == "1"
         status_filter = request.GET.get("status", "open")
         flatten = request.GET.get("flatten") == "1"
         sort = request.GET.get("sort") or "date"
@@ -266,6 +267,10 @@ class OrganizationReleasesEndpoint(
         queryset = queryset.extra(select=select_extra)
         queryset = add_date_filter_to_queryset(queryset, filter_params)
 
+        with_adoption_stages = with_adoption_stages and features.has(
+            "organizations:release-adoption-stage", organization, actor=request.user
+        )
+
         return self.paginate(
             request=request,
             queryset=queryset,
@@ -274,6 +279,7 @@ class OrganizationReleasesEndpoint(
                 x,
                 request.user,
                 with_health_data=with_health,
+                with_adoption_stages=with_adoption_stages,
                 health_stat=health_stat,
                 health_stats_period=health_stats_period,
                 summary_stats_period=summary_stats_period,
