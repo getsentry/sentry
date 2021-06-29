@@ -149,6 +149,10 @@ class ProjectDebugFile(Model):
             return ".src.zip"
         if self.file_format == "wasm":
             return ".wasm"
+        if self.file_format == "bcsymbolmap":
+            return ".bcsymbolmap"
+        if self.file_format == "uuidmap":
+            return ".plist"
 
         return ""
 
