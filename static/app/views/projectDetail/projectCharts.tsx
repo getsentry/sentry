@@ -32,6 +32,7 @@ import {defined} from 'app/utils';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import {decodeScalar} from 'app/utils/queryString';
 import {Theme} from 'app/utils/theme';
+import {QueryResults} from 'app/utils/tokenizeSearch';
 import withApi from 'app/utils/withApi';
 import {
   getSessionTermDescription,
@@ -292,7 +293,10 @@ class ProjectCharts extends Component<Props, State> {
                 <ProjectBaseEventsChart
                   title={t('Apdex')}
                   help={getTermHelp(organization, apdexPerformanceTerm)}
-                  query={['event.type:transaction', query].join(' ').trim()}
+                  query={new QueryResults([
+                    'event.type:transaction',
+                    query ?? '',
+                  ]).formatString()}
                   yAxis={apdexYAxis}
                   field={[apdexYAxis]}
                   api={api}
@@ -306,7 +310,10 @@ class ProjectCharts extends Component<Props, State> {
                 <ProjectBaseEventsChart
                   title={t('Failure Rate')}
                   help={getTermHelp(organization, PERFORMANCE_TERM.FAILURE_RATE)}
-                  query={['event.type:transaction', query].join(' ').trim()}
+                  query={new QueryResults([
+                    'event.type:transaction',
+                    query ?? '',
+                  ]).formatString()}
                   yAxis="failure_rate()"
                   field={[`failure_rate()`]}
                   api={api}
@@ -320,7 +327,10 @@ class ProjectCharts extends Component<Props, State> {
                 <ProjectBaseEventsChart
                   title={t('Transactions Per Minute')}
                   help={getTermHelp(organization, PERFORMANCE_TERM.TPM)}
-                  query={['event.type:transaction', query].join(' ').trim()}
+                  query={new QueryResults([
+                    'event.type:transaction',
+                    query ?? '',
+                  ]).formatString()}
                   yAxis="tpm()"
                   field={[`tpm()`]}
                   api={api}
@@ -335,7 +345,10 @@ class ProjectCharts extends Component<Props, State> {
                 (hasDiscover ? (
                   <ProjectBaseEventsChart
                     title={t('Number of Errors')}
-                    query={['!event.type:transaction', query].join(' ').trim()}
+                    query={new QueryResults([
+                      '!event.type:transaction',
+                      query ?? '',
+                    ]).formatString()}
                     yAxis="count()"
                     field={[`count()`]}
                     api={api}
@@ -358,7 +371,10 @@ class ProjectCharts extends Component<Props, State> {
               {displayMode === DisplayModes.TRANSACTIONS && (
                 <ProjectBaseEventsChart
                   title={t('Number of Transactions')}
-                  query={['event.type:transaction', query].join(' ').trim()}
+                  query={new QueryResults([
+                    'event.type:transaction',
+                    query ?? '',
+                  ]).formatString()}
                   yAxis="count()"
                   field={[`count()`]}
                   api={api}

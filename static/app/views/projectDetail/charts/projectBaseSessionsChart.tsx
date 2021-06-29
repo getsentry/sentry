@@ -87,7 +87,7 @@ function ProjectBaseSessionsChart({
                     end={end}
                     projects={projects}
                     environments={environments}
-                    queryExtra={{query}}
+                    query={query}
                   >
                     {({releaseSeries}) => {
                       if (errored) {
