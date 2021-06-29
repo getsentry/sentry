@@ -72,8 +72,7 @@ describe('Transaction Summary Content', function () {
   });
   // @ts-expect-error
   MockApiClient.addMockResponse({
-    url:
-      '/organizations/org-slug/issues/?limit=5&query=is%3Aunresolved%20transaction%3Aexample-transaction&sort=new&statsPeriod=14d',
+    url: '/organizations/org-slug/issues/?limit=5&query=is%3Aunresolved%20transaction%3Aexample-transaction&sort=new&statsPeriod=14d',
     body: [],
   });
   // @ts-expect-error
