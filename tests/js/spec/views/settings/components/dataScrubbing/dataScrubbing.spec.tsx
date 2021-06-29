@@ -76,7 +76,7 @@ describe('Data Scrubbing', () => {
       const readDocsLink = panelAlert.find('a');
       expect(readDocsLink.text()).toEqual('full documentation on data scrubbing');
       expect(readDocsLink.prop('href')).toEqual(
-        'https://docs.sentry.io/product/data-management-settings/advanced-datascrubbing/'
+        'https://docs.sentry.io/product/data-management-settings/scrubbing/advanced-datascrubbing/'
       );
 
       // PanelBody
@@ -135,7 +135,7 @@ describe('Data Scrubbing', () => {
       const readDocsLink = panelAlert.find('a');
       expect(readDocsLink.text()).toEqual('full documentation on data scrubbing');
       expect(readDocsLink.prop('href')).toEqual(
-        'https://docs.sentry.io/product/data-management-settings/advanced-datascrubbing/'
+        'https://docs.sentry.io/product/data-management-settings/scrubbing/advanced-datascrubbing/'
       );
 
       // PanelBody
