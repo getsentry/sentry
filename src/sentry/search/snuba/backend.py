@@ -65,13 +65,15 @@ def assigned_to_filter(actors, projects, field_filter="id"):
             **{
                 f"{field_filter}__in": GroupAssignee.objects.filter(
                     project_id__in=[p.id for p in projects],
-                    team_id__in=Team.objects.filter(
-                        id__in=OrganizationMemberTeam.objects.filter(
-                            organizationmember__in=OrganizationMember.objects.filter(
-                                user__in=users, organization_id=projects[0].organization_id
-                            ),
-                            is_active=True,
-                        ).values("team")
+                    team_id__in=list(
+                        Team.objects.filter(
+                            id__in=OrganizationMemberTeam.objects.filter(
+                                organizationmember__in=OrganizationMember.objects.filter(
+                                    user__in=users, organization_id=projects[0].organization_id
+                                ),
+                                is_active=True,
+                            ).values_list("team_id", flat=True)
+                        )
                     ),
                 ).values_list("group_id", flat=True)
             }
@@ -202,18 +204,20 @@ def assigned_or_suggested_filter(owners, projects, field_filter="id"):
 
     if User in types_to_owners:
         users = types_to_owners[User]
-        teams = Team.objects.filter(
-            id__in=OrganizationMemberTeam.objects.filter(
-                organizationmember__in=OrganizationMember.objects.filter(
-                    user__in=users, organization_id=organization_id
-                ),
-                is_active=True,
-            ).values("team")
+        team_ids = list(
+            Team.objects.filter(
+                id__in=OrganizationMemberTeam.objects.filter(
+                    organizationmember__in=OrganizationMember.objects.filter(
+                        user__in=users, organization_id=organization_id
+                    ),
+                    is_active=True,
+                ).values("team")
+            ).values_list("id", flat=True)
         )
         owned_by_me = Q(
             **{
                 f"{field_filter}__in": GroupOwner.objects.filter(
-                    Q(user__in=users) | Q(team__in=teams),
+                    Q(user__in=users) | Q(team_id__in=team_ids),
                     group__assignee_set__isnull=True,
                     project_id__in=[p.id for p in projects],
                     organization_id=organization_id,
