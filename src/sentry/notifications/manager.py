@@ -290,7 +290,7 @@ class NotificationsManager(BaseManager):  # type: ignore
         We check both the project level settings and global default settings.
         """
         notification_settings = self.get_for_recipient_by_parent(
-            NotificationSettingTypes.ISSUE_ALERTS, parent=project, users=users
+            NotificationSettingTypes.ISSUE_ALERTS, parent=project, recipients=users
         )
         notification_settings_by_user = transform_to_notification_settings_by_user(
             notification_settings, users
