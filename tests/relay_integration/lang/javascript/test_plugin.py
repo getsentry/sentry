@@ -1187,8 +1187,7 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
             },
         }
 
-        with self.options({"processing.use-release-archives-sample-rate": 1.1}):
-            event = self.post_and_retrieve_event(data)
+        event = self.post_and_retrieve_event(data)
 
         assert "errors" not in event.data
 

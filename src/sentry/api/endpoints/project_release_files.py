@@ -69,7 +69,7 @@ class ReleaseFilesMixin:
             try:
                 # Only Read from artifact index if it has a positive artifact count
                 artifact_index = read_artifact_index(release, dist, artifact_count__gt=0)
-            except BaseException as exc:
+            except Exception as exc:
                 logger.error("Failed to read artifact index", exc_info=exc)
                 artifact_index = None
 

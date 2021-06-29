@@ -62,6 +62,11 @@ dryrun_check = ReferrerCheck(
         "search_sample",
         "testing.test",
         "discover",
+        "outcomes.",
+        "sessions.",
+        "incidents.",
+        "tsdb-modelid:",
+        "api.",
     ],
     by_entity={},
 )
@@ -76,7 +81,7 @@ snql_check = ReferrerCheck(
         "tsdb-modelid:100",
     },
     allowlist=set(),
-    prefixes=["outcomes.", "sessions.", "incidents.", "tsdb-modelid:", "api."],
+    prefixes=[],
     by_entity={},
     is_dryrun=False,
 )
