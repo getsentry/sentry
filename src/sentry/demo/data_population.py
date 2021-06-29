@@ -66,8 +66,8 @@ commit_message_base_messages = [
 
 base_paths_by_file_type = {"js": ["components/", "views/"], "py": ["flask/", "routes/"]}
 
-rate_by_release_num = [1.0, 0.99, 0.9]
-threshold_by_release_num = [0.004, 0.0015, 0.01]
+rate_by_release_num = [0.995, 0.998, 0.95]
+
 
 org_users = [
     ("scefali", "Stephen Cefali"),
@@ -1068,14 +1068,13 @@ class DataPopulation:
 
             old_span_id = ios_transaction["contexts"]["trace"]["span_id"]
             root_span_id = uuid4().hex[:16]
-            duration = self.gen_frontend_duration(day)
 
             trace = {
                 "trace_id": trace_id,
                 "span_id": root_span_id,
             }
 
-            # React transaction
+            # iOS transaction
             local_event = copy.deepcopy(ios_transaction)
             local_event.update(
                 project=ios_project,
@@ -1084,15 +1083,12 @@ class DataPopulation:
                 user=transaction_user,
                 release=release_sha,
                 timestamp=timestamp,
-                # start_timestamp decreases based on day so that there's a trend
-                start_timestamp=timestamp - timedelta(seconds=duration),
-                measurements=gen_measurements(duration),
             )
             update_context(local_event, trace)
             self.fix_transaction_event(local_event, old_span_id)
             self.safe_send_event(local_event)
 
-            # React error
+            # iOS Error
             local_event = copy.deepcopy(ios_error)
             local_event.update(
                 project=ios_project,
@@ -1273,7 +1269,7 @@ class DataPopulation:
 
         agg = []
         release_num = int(version.split(".")[-1])
-        threshold = threshold_by_release_num[release_num]
+        threshold = rate_by_release_num[release_num]
 
         if self.quick:
             num_users = int(random.uniform(100, 200))
