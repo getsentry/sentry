@@ -102,16 +102,17 @@ def get_group_with_redirect(id_or_qualified_short_id, queryset=None, organizatio
 
         if short_id:
             params = {
-                "id": GroupRedirect.objects.filter(
+                "id__in": GroupRedirect.objects.filter(
                     organization_id=organization.id,
                     previous_short_id=short_id.short_id,
                     previous_project_slug=short_id.project_slug,
-                ).values_list("group_id", flat=True)
+                ).values_list("group_id", flat=True)[:1]
             }
         else:
-            params["id"] = GroupRedirect.objects.filter(previous_group_id=params["id"]).values_list(
-                "group_id", flat=True
-            )
+            params["id__in"] = GroupRedirect.objects.filter(
+                previous_group_id=params["id"]
+            ).values_list("group_id", flat=True)[:1]
+
         try:
             return queryset.get(**params), True
         except Group.DoesNotExist:
@@ -384,7 +385,7 @@ class Group(Model):
         event_id: Optional[int] = None,
         organization_slug: Optional[str] = None,
     ) -> str:
-        # Built manually in preference to django.core.urlresolvers.reverse,
+        # Built manually in preference to django.urls.reverse,
         # because reverse has a measured performance impact.
         event_path = f"events/{event_id}/" if event_id else ""
         url = "organizations/{org}/issues/{id}/{event_path}{params}".format(
@@ -456,7 +457,9 @@ class Group(Model):
 
         from sentry.models import GroupShare
 
-        return cls.objects.get(id=GroupShare.objects.filter(uuid=share_id).values_list("group_id"))
+        return cls.objects.get(
+            id__in=GroupShare.objects.filter(uuid=share_id).values_list("group_id")[:1]
+        )
 
     def get_score(self):
         return type(self).calculate_score(self.times_seen, self.last_seen)
