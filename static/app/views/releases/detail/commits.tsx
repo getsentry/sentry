@@ -51,10 +51,12 @@ class Commits extends AsyncView<Props, State> {
     };
   }
 
-  componentDidUpdate(prevProps: Props) {
+  componentDidUpdate(prevProps: Props, prevContext: Record<string, any>) {
     if (prevProps.activeReleaseRepo?.name !== this.props.activeReleaseRepo?.name) {
       this.remountComponent();
+      return;
     }
+    super.componentDidUpdate(prevProps, prevContext);
   }
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
