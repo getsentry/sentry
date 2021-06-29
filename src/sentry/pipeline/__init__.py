@@ -218,7 +218,7 @@ class Pipeline:
         self.provider.set_pipeline(self)
         if config is None:
             self.config = {}
-            if self.provider.config is None:
+            if not hasattr(self.provider, "config") or self.provider.config is None:
                 self.provider.set_config(self.config)
         else:
             self.config = config
