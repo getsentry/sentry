@@ -32,7 +32,7 @@ class SlackIntegrationLinkIdentityTest(TestCase):
         self.idp = IdentityProvider.objects.create(type="slack", external_id="TXXXXXXX1", config={})
 
     @responses.activate
-    @patch("sentry.integrations.slack.link_identity.unsign")
+    @patch("sentry.integrations.slack.views.link_identity.unsign")
     def test_basic_flow(self, unsign):
         unsign.return_value = {
             "integration_id": self.integration.id,
@@ -74,7 +74,7 @@ class SlackIntegrationLinkIdentityTest(TestCase):
         assert len(responses.calls) == 1
 
     @responses.activate
-    @patch("sentry.integrations.slack.link_identity.unsign")
+    @patch("sentry.integrations.slack.views.link_identity.unsign")
     def test_overwrites_existing_identities(self, unsign):
         Identity.objects.create(
             user=self.user1, idp=self.idp, external_id="slack-id1", status=IdentityStatus.VALID

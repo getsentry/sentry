@@ -104,8 +104,9 @@ class BaseEventTest(APITestCase):
 
 
 class StatusActionTest(BaseEventTest):
-    @patch("sentry.integrations.slack.link_identity.sign")
+    @patch("sentry.integrations.slack.views.sign")
     def test_ask_linking(self, sign):
+        """Patching out `sign` to prevent flakiness from timestamp mismatch."""
         sign.return_value = "signed_parameters"
 
         resp = self.post_webhook(slack_user={"id": "invalid-id", "domain": "example"})
