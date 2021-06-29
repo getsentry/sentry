@@ -21,11 +21,10 @@ import {
 } from 'app/utils/integrationUtil';
 import {singleLineRenderer} from 'app/utils/marked';
 import AsyncView from 'app/views/asyncView';
-import AddIntegration from 'app/views/organizationIntegrations/addIntegration';
 import Field from 'app/views/settings/components/forms/field';
 
 // installationId present for Github flow
-type Props = RouteComponentProps<{integrationSlug: string; installationId?: string}, {}>;
+type Props = RouteComponentProps<{integrationSlug: string}, {}>;
 
 type State = AsyncView['state'] & {
   selectedOrgSlug?: string;
@@ -147,7 +146,6 @@ export default class IntegrationOrganizationLink extends AsyncView<Props, State>
   };
 
   renderAddButton() {
-    const {installationId} = this.props.params;
     const {organization, provider} = this.state;
     // should never happen but we need this check for TS
     if (!provider || !organization) {
@@ -177,29 +175,15 @@ export default class IntegrationOrganizationLink extends AsyncView<Props, State>
         features={featuresComponents}
       >
         {({disabled}) => (
-          <AddIntegration
-            provider={provider}
-            onInstall={this.onInstallWithInstallationId}
-            organization={organization}
-          >
-            {addIntegrationWithInstallationId => (
-              <ButtonWrapper>
-                <Button
-                  priority="primary"
-                  disabled={!this.hasAccess() || disabled}
-                  onClick={() =>
-                    installationId
-                      ? addIntegrationWithInstallationId({
-                          installation_id: installationId,
-                        })
-                      : this.finishInstallation()
-                  }
-                >
-                  {t('Install %s', provider.name)}
-                </Button>
-              </ButtonWrapper>
-            )}
-          </AddIntegration>
+          <ButtonWrapper>
+            <Button
+              priority="primary"
+              disabled={!this.hasAccess() || disabled}
+              onClick={() => this.finishInstallation()}
+            >
+              {t('Install %s', provider.name)}
+            </Button>
+          </ButtonWrapper>
         )}
       </IntegrationDirectoryFeatures>
     );

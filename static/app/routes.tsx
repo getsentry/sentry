@@ -754,11 +754,6 @@ function routes() {
           componentPromise={() => import('app/views/acceptProjectTransfer')}
           component={errorHandler(LazyLoad)}
         />
-        <Route
-          path="/extensions/external-install/:integrationSlug/:installationId"
-          componentPromise={() => import('app/views/integrationOrganizationLink')}
-          component={errorHandler(LazyLoad)}
-        />
 
         <Route
           path="/extensions/:integrationSlug/link/"
