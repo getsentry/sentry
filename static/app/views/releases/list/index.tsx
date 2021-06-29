@@ -530,7 +530,7 @@ class ReleasesList extends AsyncView<Props, State> {
               {hasSemver ? (
                 <SmartSearchBar
                   query={this.getQuery()}
-                  placeholder={t('Search')}
+                  placeholder={t('Search by release version')}
                   maxSearchItems={5}
                   hasRecentSearches={false}
                   supportedTags={supportedTags}
