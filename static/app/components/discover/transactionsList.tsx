@@ -335,8 +335,14 @@ class TransactionsList extends React.Component<Props> {
   }
 
   renderTrendsTable(): React.ReactNode {
-    const {trendView, location, selected, organization, cursorName, generateLink} =
-      this.props;
+    const {
+      trendView,
+      location,
+      selected,
+      organization,
+      cursorName,
+      generateLink,
+    } = this.props;
 
     const sortedEventView: TrendView = trendView!.clone();
     sortedEventView.sorts = [selected.sort];
