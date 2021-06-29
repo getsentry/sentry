@@ -1,10 +1,9 @@
 import {mountWithTheme} from 'sentry-test/enzyme';
+import {selectByLabel} from 'sentry-test/select-new';
 
 import ProjectsStore from 'app/stores/projectsStore';
-import TeamStore from 'app/stores/teamStore';
 import EventView from 'app/utils/discover/eventView';
 import TransactionThresholdModal from 'app/views/performance/transactionSummary/transactionThresholdModal';
-import {selectByLabel} from 'sentry-test/select-new';
 
 const stubEl = props => <div>{props.children}</div>;
 
@@ -53,7 +52,7 @@ describe('TransactionThresholdModal', function () {
     environment: [],
   });
 
-  const onApply = jest.fn()
+  const onApply = jest.fn();
   let getProjectThresholdMock, postTransactionThresholdMock;
 
   beforeEach(function () {
@@ -90,14 +89,14 @@ describe('TransactionThresholdModal', function () {
     wrapper.update();
 
     expect(getTransactionThresholdMock).toHaveBeenCalledTimes(1);
-    expect(getProjectThresholdMock).not.toHaveBeenCalled()
+    expect(getProjectThresholdMock).not.toHaveBeenCalled();
   });
 
   it('fetches project transaction threshold', async function () {
     const getTransactionThresholdMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/project-transaction-threshold-override/',
       method: 'GET',
-      status: '404'
+      status: '404',
     });
     const wrapper = mountModal(eventView, organization, onApply);
     await tick();
@@ -105,11 +104,11 @@ describe('TransactionThresholdModal', function () {
 
     expect(getTransactionThresholdMock).toHaveBeenCalledTimes(1);
     expect(getTransactionThresholdMock).toHaveBeenCalledTimes(1);
-    wrapper.unmount()
+    wrapper.unmount();
   });
 
   it('can update threshold', async function () {
-    const getTransactionThresholdMock = MockApiClient.addMockResponse({
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/project-transaction-threshold-override/',
       method: 'GET',
       body: {
@@ -128,14 +127,14 @@ describe('TransactionThresholdModal', function () {
     expect(postTransactionThresholdMock).toHaveBeenCalledWith(
       '/organizations/org-slug/project-transaction-threshold-override/',
       expect.objectContaining({
-        data: {metric: "lcp", threshold: "1000", transaction: "transaction/threshold"}
+        data: {metric: 'lcp', threshold: '1000', transaction: 'transaction/threshold'},
       })
-    )
-    wrapper.unmount()
+    );
+    wrapper.unmount();
   });
 
   it('can update metric', async function () {
-    const getTransactionThresholdMock = MockApiClient.addMockResponse({
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/project-transaction-threshold-override/',
       method: 'GET',
       body: {
@@ -147,17 +146,27 @@ describe('TransactionThresholdModal', function () {
     await tick();
     wrapper.update();
 
-    selectByLabel(wrapper, 'Transaction Duration', {name: 'responseMetric', at: 0, control: true});
-    expect(wrapper.find('input[name="responseMetric"]').props().value).toEqual('duration');
+    selectByLabel(wrapper, 'Transaction Duration', {
+      name: 'responseMetric',
+      at: 0,
+      control: true,
+    });
+    expect(wrapper.find('input[name="responseMetric"]').props().value).toEqual(
+      'duration'
+    );
 
     await clickSubmit(wrapper);
     expect(postTransactionThresholdMock).toHaveBeenCalledWith(
       '/organizations/org-slug/project-transaction-threshold-override/',
       expect.objectContaining({
-        data: {metric: "duration", threshold: "800", transaction: "transaction/threshold"}
+        data: {
+          metric: 'duration',
+          threshold: '800',
+          transaction: 'transaction/threshold',
+        },
       })
-    )
-    wrapper.unmount()
+    );
+    wrapper.unmount();
   });
 
   it('can clear metrics', async function () {
@@ -183,11 +192,10 @@ describe('TransactionThresholdModal', function () {
 
     await clickReset(wrapper);
     wrapper.update();
-    expect(deleteTransactionThresholdMock).toHaveBeenCalledTimes(1)
+    expect(deleteTransactionThresholdMock).toHaveBeenCalledTimes(1);
     // GET request is made once when the component mounts and another
     // time after DELETE.
-    expect(getTransactionThresholdMock).toHaveBeenCalledTimes(2)
-    wrapper.unmount()
+    expect(getTransactionThresholdMock).toHaveBeenCalledTimes(2);
+    wrapper.unmount();
   });
-
 });
