@@ -3,6 +3,7 @@ import errno
 import hashlib
 import logging
 import os
+import os.path
 import re
 import shutil
 import tempfile
@@ -398,7 +399,12 @@ def detect_dif_from_path(path, name=None, debug_id=None, accept_unknown=False):
         ]
 
     dif_kind = determine_dif_kind(path)
-    if dif_kind == DifKind.BcSymbolMap and debug_id is not None:
+    if dif_kind == DifKind.BcSymbolMap:
+        if debug_id is None:
+            # In theory we could also parse debug_id from the filename here.  However we
+            # would need to validate that it is a valid debug_id ourselves as symbolic does
+            # not expose this yet.
+            raise BadDif("Missing debug_id for BCSymbolMap")
         try:
             BcSymbolMap.open(path)
         except SymbolicError as e:
@@ -411,14 +417,19 @@ def detect_dif_from_path(path, name=None, debug_id=None, accept_unknown=False):
                     file_format="bcsymbolmap", arch="any", debug_id=debug_id, name=name, path=path
                 )
             ]
-    elif dif_kind == DifKind.UuidMap and debug_id is not None:
+    elif dif_kind == DifKind.UuidMap:
+        if debug_id is None:
+            # Assume the basename is the debug_id, if it wasn't symbolic will fail.  This is
+            # required for when we get called for files extracted from a zipfile.
+            basename = os.path.basename(path)
+            debug_id = os.path.splitext(basename)[0]
         try:
             UuidMapping.from_plist(debug_id, path)
         except SymbolicError as e:
             logger.debug("File failed to load as UUIDMap: %s", path)
             raise BadDif("Invalid UuidMap: %s" % e)
         else:
-            logger.debug(f"File loaded as UUIDMap: {path}")
+            logger.debug("File loaded as UUIDMap: %s", path)
             return [
                 DifMeta(file_format="uuidmap", arch="any", debug_id=debug_id, name=name, path=path)
             ]
@@ -439,7 +450,7 @@ def detect_dif_from_path(path, name=None, debug_id=None, accept_unknown=False):
             objs = []
             for obj in archive.iter_objects():
                 objs.append(DifMeta.from_object(obj, path, name=name, debug_id=debug_id))
-            logger.debug("File is Archive with {len(objs)} objects: %s", path)
+            logger.debug("File is Archive with %s objects: %s", len(objs), path)
             return objs
 
 
