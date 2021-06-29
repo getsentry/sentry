@@ -47,6 +47,7 @@ class Rule(Model):
     class Meta:
         db_table = "sentry_rule"
         app_label = "sentry"
+        index_together = (("project", "status", "owner"),)
 
     __repr__ = sane_repr("project_id", "label")
 
