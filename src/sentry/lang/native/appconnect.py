@@ -384,7 +384,7 @@ class AppConnectClient:
                     )
                     builds.append(build)
 
-        def _try_int(x):
+        def _try_int(x: str) -> int:
             try:
                 return int(x)
             except ValueError:
