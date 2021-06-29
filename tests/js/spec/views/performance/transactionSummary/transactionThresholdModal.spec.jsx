@@ -37,7 +37,7 @@ function mountModal(eventView, organization, onApply) {
   );
 }
 
-describe('TeamKeyTransactionButton', function () {
+describe('TransactionThresholdModal', function () {
   const organization = TestStubs.Organization({features: ['performance-view']});
   const project = TestStubs.Project();
   const eventView = new EventView({
