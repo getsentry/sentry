@@ -8,7 +8,6 @@ body:
       description: Where are you using our software?
       options:
         - SaaS (https://sentry.io/)
-        - single-tenant (if you know, you know)
         - self-hosted (`onpremise` deployment)
     validations:
       required: true
@@ -16,6 +15,7 @@ body:
     id: version
     attributes:
       label: Version
+      placeholder: 21.7.0 ← should look like this (check the footer)
       description: If self-hosted, what version are you running?
     validations:
       required: false
@@ -30,25 +30,19 @@ body:
         3. baz
     validations:
       required: true
-  - type: input
+  - type: textarea
     id: expected
     attributes:
       label: Expected Result
     validations:
       required: true
-  - type: input 
+  - type: textarea
     id: actual
     attributes:
       label: Actual Result
-    validations:
-      required: true
-  - type: textarea
-    id: more-info
-    attributes:
-      label: More Info 
       description: Logs? Screenshots? Yes, please.
     validations:
-      required: false
+      required: true
   - type: markdown
     attributes:
       value: |-
