@@ -6,17 +6,36 @@ import {ItemType, SearchGroup, SearchItem} from './types';
 export function addSpace(query = '') {
   if (query.length !== 0 && query[query.length - 1] !== ' ') {
     return query + ' ';
-  } else {
-    return query;
   }
+
+  return query;
 }
 
 export function removeSpace(query = '') {
   if (query[query.length - 1] === ' ') {
     return query.slice(0, query.length - 1);
-  } else {
-    return query;
   }
+
+  return query;
+}
+
+/**
+ * Given a query, and the current cursor position, return the string-delimiting
+ * index of the search term designated by the cursor.
+ */
+export function getLastTermIndex(query: string, cursor: number) {
+  // TODO: work with quoted-terms
+  const cursorOffset = query.slice(cursor).search(/\s|$/);
+  return cursor + (cursorOffset === -1 ? 0 : cursorOffset);
+}
+
+/**
+ * Returns an array of query terms, including incomplete terms
+ *
+ * e.g. ["is:unassigned", "browser:\"Chrome 33.0\"", "assigned"]
+ */
+export function getQueryTerms(query: string, cursor: number) {
+  return query.slice(0, cursor).match(/\S+:"[^"]*"?|\S+/g);
 }
 
 function getTitleForType(type: ItemType) {
