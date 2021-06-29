@@ -227,7 +227,6 @@ class EventsTable extends React.Component<Props, State> {
         query: {...location.query, sort: queryStringObject.sort},
       };
     }
-
     const currentSort = eventView.sortForField(field, tableMeta);
     // Event id and Trace id are technically sortable but we don't want to sort them here since sorting by a uuid value doesn't make sense
     const canSort =
