@@ -94,7 +94,7 @@ primary              = spaces (numeric_value / function_value / field_value) spa
 plus                 = "+"
 minus                = "-"
 multiply             = "*"
-divide               = "/"
+divide               = ~r"[/÷]"
 
 # Minor differences in parsing means that these cannot be shared with
 # api/event_search. Arithmetic can support something like duration-duration as
