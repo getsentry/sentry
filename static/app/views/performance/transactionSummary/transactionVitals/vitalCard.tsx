@@ -20,11 +20,10 @@ import EventView from 'app/utils/discover/eventView';
 import {getAggregateAlias, WebVital} from 'app/utils/discover/fields';
 import {formatAbbreviatedNumber, formatFloat, getDuration} from 'app/utils/formatters';
 import getDynamicText from 'app/utils/getDynamicText';
-import {HistogramData} from 'app/utils/performance/histogram/types';
+import {DataFilter, HistogramData} from 'app/utils/performance/histogram/types';
 import {computeBuckets, formatHistogramData} from 'app/utils/performance/histogram/utils';
 import {Vital} from 'app/utils/performance/vitals/types';
 import {VitalData} from 'app/utils/performance/vitals/vitalsCardsDiscoverQuery';
-import {decodeScalar} from 'app/utils/queryString';
 import {Theme} from 'app/utils/theme';
 import {tokenizeSearch} from 'app/utils/tokenizeSearch';
 import {EventsDisplayFilterName} from 'app/views/performance/transactionSummary/transactionEvents/utils';
@@ -57,6 +56,7 @@ type Props = {
   min?: number;
   max?: number;
   precision?: number;
+  dataFilter?: DataFilter;
 };
 
 type State = {
@@ -162,7 +162,14 @@ class VitalCard extends Component<Props, State> {
   }
 
   renderSummary() {
-    const {vitalDetails: vital, eventView, organization, min, max, location} = this.props;
+    const {
+      vitalDetails: vital,
+      eventView,
+      organization,
+      min,
+      max,
+      dataFilter,
+    } = this.props;
     const {slug, name, description} = vital;
     const hasPerformanceEventsPage = organization.features.includes(
       'performance-events-page'
@@ -217,7 +224,7 @@ class VitalCard extends Component<Props, State> {
                 .withSorts([{kind: 'desc', field: column}])
                 .getPerformanceTransactionEventsViewUrlTarget(
                   organization.slug,
-                  decodeScalar(location.query.dataFilter) === 'all'
+                  dataFilter === 'all'
                     ? EventsDisplayFilterName.p100
                     : EventsDisplayFilterName.p75,
                   undefined,
