@@ -35,7 +35,7 @@ class SlackRequest:
 
     def __init__(self, request: Request) -> None:
         self.request = request
-        self.integration: Optional[Any] = None
+        self.integration: Optional[Integration] = None
         self._data: MutableMapping[str, Any] = {}
         self._log_request()
 
