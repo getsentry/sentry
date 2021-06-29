@@ -67,6 +67,7 @@ describe('ReleasesList', function () {
   });
 
   afterEach(function () {
+    wrapper.unmount();
     ProjectsStore.reset();
     MockApiClient.clearMockResponses();
   });
@@ -377,5 +378,46 @@ describe('ReleasesList', function () {
     expect(healthSection.find('HiddenProjectsMessage').exists()).toBeFalsy();
 
     expect(healthSection.find('ProjectRow').length).toBe(1);
+  });
+
+  it('autocompletes semver search tag', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/sentry.semver/values/',
+      body: [
+        {
+          count: null,
+          firstSeen: null,
+          key: 'sentry.semver',
+          lastSeen: null,
+          name: 'sentry@0.5.3',
+          value: 'sentry@0.5.3',
+        },
+      ],
+    });
+
+    const semverOrg = {...organization, features: ['semver']};
+    wrapper.setProps({...props, organization: semverOrg});
+    wrapper.find('SmartSearchBar textarea').simulate('click');
+    wrapper
+      .find('SmartSearchBar textarea')
+      .simulate('change', {target: {value: 'sentry.semv'}});
+
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('[data-test-id="search-autocomplete-item"]').at(0).text()).toBe(
+      'sentry.semver:'
+    );
+
+    wrapper
+      .find('SmartSearchBar textarea')
+      .simulate('change', {target: {value: 'sentry.semver:'}});
+
+    await tick();
+    wrapper.update();
+
+    expect(wrapper.find('[data-test-id="search-autocomplete-item"]').at(0).text()).toBe(
+      'sentry@0.5.3'
+    );
   });
 });
