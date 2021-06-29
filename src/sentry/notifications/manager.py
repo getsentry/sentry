@@ -1,5 +1,15 @@
 from collections import defaultdict
-from typing import TYPE_CHECKING, Dict, Iterable, List, Mapping, Optional, Sequence, Union
+from typing import (
+    TYPE_CHECKING,
+    Dict,
+    Iterable,
+    List,
+    Mapping,
+    MutableSet,
+    Optional,
+    Sequence,
+    Union,
+)
 
 from django.db import transaction
 from django.db.models import Q, QuerySet
@@ -14,7 +24,6 @@ from sentry.notifications.helpers import (
     where_should_user_be_notified,
 )
 from sentry.notifications.types import (
-    NOTIFICATION_SCOPE_TYPE,
     NotificationScopeType,
     NotificationSettingOptionValues,
     NotificationSettingTypes,
@@ -225,55 +234,50 @@ class NotificationsManager(BaseManager):  # type: ignore
             target=user.actor,
         )
 
-    def get_for_users_by_parent(
+    def get_for_recipient_by_parent(
         self,
-        type: NotificationSettingTypes,
+        type_: NotificationSettingTypes,
         parent: Union["Organization", "Project"],
-        users: Sequence["User"],
+        recipients: Sequence[Union["Team", "User"]],
     ) -> QuerySet:
+        from sentry.models import Team, User
+
         """
-        Find all of a project/organization's notification settings for a list of users.
-        This will include each user's project/organization-independent settings.
+        Find all of a project/organization's notification settings for a list of
+        users or teams. Note that this WILL work with a mixed list. This will
+        include each user or team's project/organization-independent settings.
         """
-        scope_type = get_scope_type(type)
+        user_ids: MutableSet[int] = set()
+        team_ids: MutableSet[int] = set()
+        actor_ids: MutableSet[int] = set()
+        for recipient in recipients:
+            if type(recipient) == Team:
+                team_ids.add(recipient.id)
+            if type(recipient) == User:
+                user_ids.add(recipient.id)
+            actor_ids.add(recipient.actor.id)
+
+        # If the list would be empty, don't bother querying.
+        if not actor_ids:
+            return self.none()
+
+        parent_specific_scope_type = get_scope_type(type_)
+
         return self.filter(
             Q(
-                scope_type=scope_type.value,
+                scope_type=parent_specific_scope_type.value,
                 scope_identifier=parent.id,
             )
             | Q(
                 scope_type=NotificationScopeType.USER.value,
-                scope_identifier__in=[user.id for user in users],
+                scope_identifier__in=user_ids,
+            )
+            | Q(
+                scope_type=NotificationScopeType.USER.value,
+                scope_identifier__in=team_ids,
             ),
-            type=type.value,
-            target__in=[user.actor.id for user in users],
-        )
-
-    def get_for_recipient_by_parent(
-        self,
-        type: NotificationSettingTypes,
-        parent: Union["Organization", "Project"],
-        recipient: Union["User", "Team"],
-    ) -> QuerySet:
-        """
-        Find all of a project/organization's notification settings for a recipient.
-        This will include each recipient's project/organization-independent settings.
-        """
-        scope_type = get_scope_type(type)
-        scope_identifier = parent.id
-        # XXX(ceo): kind of a hack but we only set the team scope type here
-        if (
-            recipient.__class__.__name__.lower()
-            == NOTIFICATION_SCOPE_TYPE[NotificationScopeType.TEAM]
-        ):
-            scope_type = NotificationScopeType.TEAM
-            scope_identifier = recipient.id
-
-        return self.filter(
-            scope_type=scope_type.value,
-            scope_identifier=scope_identifier,
-            type=type.value,
-            target=recipient.actor_id,
+            type=type_.value,
+            target__in=actor_ids,
         )
 
     def filter_to_subscribed_users(
@@ -285,7 +289,7 @@ class NotificationsManager(BaseManager):  # type: ignore
         Filters a list of users down to the users by provider who are subscribed to alerts.
         We check both the project level settings and global default settings.
         """
-        notification_settings = self.get_for_users_by_parent(
+        notification_settings = self.get_for_recipient_by_parent(
             NotificationSettingTypes.ISSUE_ALERTS, parent=project, users=users
         )
         notification_settings_by_user = transform_to_notification_settings_by_user(

@@ -101,9 +101,9 @@ def get_participants_for_release(
 
     # Get all the involved users' settings for deploy-emails (including
     # users' organization-independent settings.)
-    notification_settings = NotificationSetting.objects.get_for_users_by_parent(
+    notification_settings = NotificationSetting.objects.get_for_recipient_by_parent(
         NotificationSettingTypes.DEPLOY,
-        users=users,
+        recipients=users,
         parent=organization,
     )
     notification_settings_by_user = transform_to_notification_settings_by_user(
@@ -225,10 +225,10 @@ def disabled_users_from_project(project: Project) -> Mapping[ExternalProviders, 
     """Get a set of users that have disabled Issue Alert notifications for a given project."""
     user_ids = project.member_set.values_list("user", flat=True)
     users = User.objects.filter(id__in=user_ids)
-    notification_settings = NotificationSetting.objects.get_for_users_by_parent(
+    notification_settings = NotificationSetting.objects.get_for_recipient_by_parent(
         type=NotificationSettingTypes.ISSUE_ALERTS,
         parent=project,
-        users=users,
+        recipients=users,
     )
     notification_settings_by_user = transform_to_notification_settings_by_user(
         notification_settings, users
@@ -267,7 +267,7 @@ def get_send_to_team(
         return {}
 
     team_notification_settings = NotificationSetting.objects.get_for_recipient_by_parent(
-        NotificationSettingTypes.ISSUE_ALERTS, parent=project, recipient=team
+        NotificationSettingTypes.ISSUE_ALERTS, parent=project, recipients=[team]
     )
     if team_notification_settings:
         team_mapping = {
@@ -311,8 +311,8 @@ def get_send_to_member(
         )
     except User.DoesNotExist:
         return {}
-    notification_settings = NotificationSetting.objects.get_for_users_by_parent(
-        NotificationSettingTypes.ISSUE_ALERTS, parent=project, users=[user]
+    notification_settings = NotificationSetting.objects.get_for_recipient_by_parent(
+        NotificationSettingTypes.ISSUE_ALERTS, parent=project, recipients=[user]
     )
     if notification_settings:
         return {
