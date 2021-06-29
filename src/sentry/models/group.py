@@ -495,7 +495,7 @@ class Group(Model):
             release_version = cache.get(cache_key)
             if release_version is None:
                 release_version = Release.objects.get(
-                    id=GroupRelease.objects.filter(group_id=group_id, project_id=project_id)
+                    id__in=GroupRelease.objects.filter(group_id=group_id, project_id=project_id)
                     .order_by(orderby)
                     .values("release_id")[:1]
                 ).version
