@@ -254,7 +254,8 @@ class ReleasesDetailContainer extends AsyncComponent<
     this.removeGlobalDateTimeFromUrl();
   }
 
-  componentDidUpdate() {
+  componentDidUpdate(prevProps, prevContext: Record<string, any>) {
+    super.componentDidUpdate(prevProps, prevContext);
     this.removeGlobalDateTimeFromUrl();
   }
 
