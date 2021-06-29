@@ -603,7 +603,6 @@ const Container = styled('div')<{gridColumns: number; tripleLayout: boolean}>`
     p.tripleLayout
       ? `grid-template-columns: 1fr 2fr;`
       : `grid-template-columns: repeat(${p.gridColumns}, 1fr);`}
-  grid-template-columns: repeat(${p => p.gridColumns}, 1fr);
   grid-column-gap: ${space(1)};
   align-items: center;
 
