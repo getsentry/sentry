@@ -132,15 +132,10 @@ export default class ArithmeticInput extends PureComponent<Props, State> {
     const {partialTerm} = this.state;
     const newOptionGroups = makeOptions(options, partialTerm);
 
-    for (const group of newOptionGroups) {
-      if (selection >= group.options.length) {
-        selection -= group.options.length;
-        continue;
-      }
-
-      group.options[selection].active = true;
-      break;
-    }
+    // This is modifying the `active` value of the references so make sure to
+    // return `newOptionGroups` at the end.
+    const flattenedOptions = newOptionGroups.map(group => group.options).flat();
+    flattenedOptions[selection].active = true;
 
     return newOptionGroups;
   }
