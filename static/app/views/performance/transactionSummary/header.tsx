@@ -23,6 +23,9 @@ import {vitalsRouteWithQuery} from './transactionVitals/utils';
 import KeyTransactionButton from './keyTransactionButton';
 import TeamKeyTransactionButton from './teamKeyTransactionButton';
 import {transactionSummaryRouteWithQuery} from './utils';
+import TransactionThresholdModal from './transactionThresholdModal';
+import { openModal } from 'app/actionCreators/modal';
+import {modalCss} from './transactionThresholdModal'
 
 export enum Tab {
   TransactionSummary,
@@ -129,6 +132,53 @@ class TransactionHeader extends React.Component<Props> {
     );
   }
 
+
+  handleUpdateThreshold() {
+    window.location.reload()
+  }
+
+  openModal() {
+    const {organization, transactionName, eventView} = this.props;
+    openModal(
+      modalProps => (
+        <TransactionThresholdModal
+          {...modalProps}
+          organization={organization}
+          transactionName={transactionName}
+          eventView={eventView}
+          onApply={this.handleUpdateThreshold}
+        />
+      ),
+      {modalCss, backdrop: 'static'}
+    );
+  }
+
+  renderSettingsButton() {
+    const {organization} = this.props;
+
+
+    return (
+      <Feature organization={organization} features={['project-transaction-threshold-override']}>
+        {({hasFeature}) =>
+          hasFeature ? (
+            <Button
+              onClick={() => this.openModal()}
+              data-test-id="set-transaction-threshold"
+              icon={<IconSettings />}
+            />
+          ) : (
+            <Button
+              href={`/settings/${organization.slug}/performance/`}
+              icon={<IconSettings />}
+              aria-label="Settings"
+            />
+          )
+        }
+      </Feature>
+    );
+
+  }
+
   render() {
     const {
       organization,
@@ -183,11 +233,7 @@ class TransactionHeader extends React.Component<Props> {
               {({hasFeature}) => hasFeature && this.renderCreateAlertButton()}
             </Feature>
             {this.renderKeyTransactionButton()}
-            <Button
-              href={`/settings/${organization.slug}/performance/`}
-              icon={<IconSettings />}
-              aria-label="Settings"
-            />
+            {this.renderSettingsButton()}
           </ButtonBar>
         </Layout.HeaderActions>
         <React.Fragment>
