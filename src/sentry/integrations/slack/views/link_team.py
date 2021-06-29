@@ -142,7 +142,7 @@ class SlackLinkTeamView(BaseView):  # type: ignore
 
         team = Team.objects.get(id=team_id, organization=organization)
         if not team:
-            return self.render_error_page(body_text="HTTP 404: Team does not exist")
+            return self.render_error_page(request, body_text="HTTP 404: Team does not exist")
 
         INSUFFICIENT_ROLE_MESSAGE = {
             "heading": "Insufficient role",
