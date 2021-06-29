@@ -3,12 +3,16 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {t} from 'app/locale';
 import ProjectsStore from 'app/stores/projectsStore';
+import {WebVital} from 'app/utils/discover/fields';
 import TransactionEvents from 'app/views/performance/transactionSummary/transactionEvents';
 
 type Data = {
   features?: string[];
+  query?: {
+    webVital?: WebVital;
+  };
 };
-function initializeData({features: additionalFeatures = []}: Data = {}) {
+function initializeData({features: additionalFeatures = [], query = {}}: Data = {}) {
   const features = ['discover-basic', 'performance-view', ...additionalFeatures];
   // @ts-expect-error
   const organization = TestStubs.Organization({
@@ -25,6 +29,7 @@ function initializeData({features: additionalFeatures = []}: Data = {}) {
           transaction: '/performance',
           project: 1,
           transactionCursor: '1:0:0',
+          ...query,
         },
       },
     },
@@ -114,6 +119,7 @@ describe('Performance > TransactionSummary', function () {
               'project.id': 1,
               timestamp: '2020-05-21T15:31:18+00:00',
               trace: '1234',
+              'measurements.lcp': 200,
             },
             {
               id: 'moredeadbeef',
@@ -122,6 +128,7 @@ describe('Performance > TransactionSummary', function () {
               'project.id': 1,
               timestamp: '2020-05-22T15:31:18+00:00',
               trace: '4321',
+              'measurements.lcp': 300,
             },
           ],
         },
@@ -165,6 +172,7 @@ describe('Performance > TransactionSummary', function () {
     expect(wrapper.find('SearchBar')).toHaveLength(1);
     expect(wrapper.find('GridEditable')).toHaveLength(1);
     expect(wrapper.find('Pagination')).toHaveLength(1);
+    expect(wrapper.find('EventsPageContent')).toHaveLength(1);
   });
 
   it('renders alert when not feature flagged', async function () {
@@ -187,6 +195,7 @@ describe('Performance > TransactionSummary', function () {
     expect(wrapper.find('SearchBar')).toHaveLength(0);
     expect(wrapper.find('TransactionsTable')).toHaveLength(0);
     expect(wrapper.find('Pagination')).toHaveLength(0);
+    expect(wrapper.find('EventsPageContent')).toHaveLength(0);
   });
 
   it('renders relative span breakdown header when no filter selected', async function () {
@@ -246,5 +255,48 @@ describe('Performance > TransactionSummary', function () {
     expect(valueAt(4)).toEqual('1234');
     expect(keyAt(5)).toEqual('timestamp');
     expect(valueAt(5, 'time')).toEqual('May 21, 2020 3:31:18 PM UTC');
+  });
+
+  it('renders additional Web Vital column', async function () {
+    const initialData = initializeData({
+      features: ['performance-events-page'],
+      query: {webVital: WebVital.LCP},
+    });
+    const wrapper = mountWithTheme(
+      <TransactionEvents
+        organization={initialData.organization}
+        location={initialData.router.location}
+        projects={[]}
+        router={initialData.router}
+      />,
+      initialData.routerContext
+    );
+    // @ts-expect-error
+    await tick();
+    wrapper.update();
+
+    function keyAt(index) {
+      return wrapper.find('CellAction').at(index).props().column.key;
+    }
+
+    function valueAt(index, element = 'div') {
+      return wrapper.find('CellAction').at(index).find(element).last().children().html();
+    }
+
+    expect(wrapper.find('CellAction')).toHaveLength(14);
+    expect(keyAt(0)).toEqual('id');
+    expect(valueAt(0)).toEqual('deadbeef');
+    expect(keyAt(1)).toEqual('user.display');
+    expect(valueAt(1, 'span')).toEqual('uhoh@example.com');
+    expect(keyAt(2)).toEqual('span_ops_breakdown.relative');
+    expect(valueAt(2, 'span')).toEqual('n/a');
+    expect(keyAt(3)).toEqual('measurements.lcp');
+    expect(valueAt(3)).toEqual('200');
+    expect(keyAt(4)).toEqual('transaction.duration');
+    expect(valueAt(4, 'span')).toEqual('400.00ms');
+    expect(keyAt(5)).toEqual('trace');
+    expect(valueAt(5)).toEqual('1234');
+    expect(keyAt(6)).toEqual('timestamp');
+    expect(valueAt(6, 'time')).toEqual('May 21, 2020 3:31:18 PM UTC');
   });
 });
