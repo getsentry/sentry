@@ -177,7 +177,7 @@ module:java.lang.reflect.* category=indirection
 module:java.lang.Class function:getMethod category=indirection
 module:androidx.work.impl.utils.ForceStopRunnable category=indirection
 
-family:native function:"*::\\{dtor\\}" category=dtor
+family:native function:"*::\{dtor\}" category=dtor
 family:native function:"destructor'" category=dtor
 
 family:native function:exit category=shutdown
@@ -201,11 +201,11 @@ family:native function:RaiseComPlusException category=throw
 family:native function:_CFThrowFormattedException category=throw
 family:native function:objc_exception_throw category=throw
 
-family:native package:"C:/WINDOWS/system32/DriverStore\\**" category=driver
+family:native package:"C:/WINDOWS/system32/DriverStore/**" category=driver
 family:native package:"/System/Library/Extensions/AppleIntel*GraphicsGLDriver.bundle/**" category=driver
 family:native function:*CUDA* category=driver
 family:native package:**/nvcuda.dll category=driver
-family:native package:"C:\\Program Files\\NVIDIA Corporation\\**" category=driver
+family:native package:"C:/Program Files/NVIDIA Corporation/**" category=driver
 family:native package:/System/Library/Extensions/GeForceGLDriver.bundle/** category=driver
 family:native package:/System/Library/Extensions/AMDRadeon*/** category=driver
 family:native package:/System/Library/PrivateFrameworks/GPUSupport.framework/** category=driver
@@ -217,7 +217,7 @@ family:native function:RtlFreeUnicodeString category=free
 family:native function:std::_Deallocate category=free
 family:native category:system function:free category=free
 
-family:native package:C:\\Windows\\SYSTEM32\\OPENGL32.dll category=gl
+family:native package:C:/Windows/SYSTEM32/OPENGL32.dll category=gl
 family:native package:/System/Library/Frameworks/OpenGL.framework/** category=gl
 family:native package:OpenGLES category=gl
 family:native package:GLEngine category=gl
