@@ -37,7 +37,13 @@ class PipelineProvider:
         the provider instance. This is useful for example when nesting
         pipelines and the provider needs to be configured differently.
         """
-        self.config = config
+        try:
+            if self.config is None:
+                self.config = {}
+        except AttributeError:
+            self.config = {}
+
+        self.config.update(config)
 
     def set_pipeline(self, pipeline):
         """
@@ -213,16 +219,11 @@ class Pipeline:
             request, self.pipeline_name, ttl=INTEGRATION_EXPIRATION_TTL
         )
         self.provider_model = provider_model
-
         self.provider = self.get_provider(provider_key)
+
+        self.config = config or {}
         self.provider.set_pipeline(self)
-        if config is None:
-            self.config = {}
-            if not hasattr(self.provider, "config") or self.provider.config is None:
-                self.provider.set_config(self.config)
-        else:
-            self.config = config
-            self.provider.set_config(self.config)
+        self.provider.set_config(self.config)
 
         self.pipeline_views = self.get_pipeline_views()
 
