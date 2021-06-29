@@ -235,6 +235,70 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                         expected.reverse()
                     assert [item["issue.id"] for item in data] == expected, query_fn
 
+    def test_timestamp_rounding_fields(self):
+        for query_fn in [discover.query, discover.wip_snql_query]:
+            result = query_fn(
+                selected_columns=["timestamp.to_hour", "timestamp.to_day"],
+                query="",
+                params={
+                    "organization_id": self.organization.id,
+                    "project_id": [self.project.id],
+                    "start": self.two_min_ago,
+                    "end": self.now,
+                },
+            )
+            data = result["data"]
+            assert len(data) == 1, query_fn
+
+            hour = self.event_time.replace(minute=0, second=0, microsecond=0)
+            day = hour.replace(hour=0)
+            assert [item["timestamp.to_hour"] for item in data] == [
+                f"{iso_format(hour)}+00:00"
+            ], query_fn
+            assert [item["timestamp.to_day"] for item in data] == [
+                f"{iso_format(day)}+00:00"
+            ], query_fn
+
+    def test_timestamp_rounding_filters(self):
+        one_day_ago = before_now(days=1)
+        two_day_ago = before_now(days=2)
+        three_day_ago = before_now(days=3)
+
+        self.store_event(
+            data={
+                "message": "oh no",
+                "release": "first-release",
+                "environment": "prod",
+                "platform": "python",
+                "user": {"id": "99", "email": "bruce@example.com", "username": "brucew"},
+                "timestamp": iso_format(two_day_ago),
+            },
+            project_id=self.project.id,
+        )
+
+        for query_fn in [discover.query, discover.wip_snql_query]:
+            result = query_fn(
+                selected_columns=["timestamp.to_hour", "timestamp.to_day"],
+                query=f"timestamp.to_hour:<{iso_format(one_day_ago)} timestamp.to_day:<{iso_format(one_day_ago)}",
+                params={
+                    "organization_id": self.organization.id,
+                    "project_id": [self.project.id],
+                    "start": three_day_ago,
+                    "end": self.now,
+                },
+            )
+            data = result["data"]
+            assert len(data) == 1, query_fn
+
+            hour = two_day_ago.replace(minute=0, second=0, microsecond=0)
+            day = hour.replace(hour=0)
+            assert [item["timestamp.to_hour"] for item in data] == [
+                f"{iso_format(hour)}+00:00"
+            ], query_fn
+            assert [item["timestamp.to_day"] for item in data] == [
+                f"{iso_format(day)}+00:00"
+            ], query_fn
+
     def test_field_aliasing_in_selected_columns(self):
         result = discover.query(
             selected_columns=["project.id", "user", "release", "timestamp.to_hour"],

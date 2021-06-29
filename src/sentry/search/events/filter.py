@@ -1011,17 +1011,17 @@ class QueryFilter(QueryBase):
         if name in NO_CONVERSION_FIELDS:
             return None
 
-        converter = self.search_filter_converter.get(name, self.default_filter_converter)
+        converter = self.search_filter_converter.get(name, self._default_filter_converter)
         return converter(search_filter)
 
-    def default_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+    def _default_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         name = search_filter.key.name
         value = search_filter.value.value
 
         if name not in self.field_allowlist:
             raise NotImplementedError(f"{name} not implemented in snql filter parsing yet")
 
-        lhs = self.column(name)
+        lhs = self.resolve_field_alias(name) if self.is_field_alias(name) else self.column(name)
 
         # Handle checks for existence
         if search_filter.operator in ("=", "!=") and search_filter.value.value == "":
