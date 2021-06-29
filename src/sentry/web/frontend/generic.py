@@ -8,6 +8,13 @@ from django.http import Http404, HttpResponseNotFound
 from django.views import static
 
 FOREVER_CACHE = "max-age=315360000"
+
+# See https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control#requiring_revalidation
+# This means that clients *CAN* cache the resource, but they must revalidate before using it
+# This means we will have a small HTTP request overhead to verify that the local resource is not outdated
+NO_CACHE = "no-cache"
+
+# no-store means that the response should not be stored in *ANY* cache
 NEVER_CACHE = "max-age=0, no-cache, no-store, must-revalidate"
 
 
@@ -33,19 +40,21 @@ def resolve(path):
     return os.path.split(absolute_path)
 
 
-def static_media_with_manifest(request, **kwargs):
+def unversioned_static_media(request, **kwargs):
     """
-    Serve static files that are generated with webpack.
+    Serve static files that should not have any versioned paths/filenames.
+    These assets will have cache headers to say that it can be cached by a
+    client, but it *must* be validated against the origin server before the
+    cached asset can be used.
+    """
 
-    Only these assets should have a long TTL as its filename has a hash based on file contents
-    """
     path = kwargs.get("path", "")
 
     kwargs["path"] = f"dist/{path}"
     response = static_media(request, **kwargs)
 
     if not settings.DEBUG:
-        response["Cache-Control"] = FOREVER_CACHE
+        response["Cache-Control"] = NO_CACHE
 
     return response
 
