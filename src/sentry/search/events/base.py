@@ -50,8 +50,8 @@ class QueryBase:
             PROJECT_NAME_ALIAS: self._resolve_project_slug_alias,
             TIMESTAMP_TO_HOUR_ALIAS: self._resolve_timestamp_to_hour_alias,
             TIMESTAMP_TO_DAY_ALIAS: self._resolve_timestamp_to_day_alias,
+            USER_DISPLAY_ALIAS: self._resolve_user_display_alias,
             # TODO: implement these
-            USER_DISPLAY_ALIAS: self._resolve_unimplemented_alias,
             ERROR_UNHANDLED_ALIAS: self._resolve_unimplemented_alias,
             KEY_TRANSACTION_ALIAS: self._resolve_unimplemented_alias,
             TEAM_KEY_TRANSACTION_ALIAS: self._resolve_unimplemented_alias,
@@ -84,7 +84,7 @@ class QueryBase:
     def _resolve_issue_id_alias(self, _: str) -> SelectType:
         column = self.column("issue.id")
         # TODO: Remove the `toUInt64` once Column supports aliases
-        return Function("toUInt64", [column], "issue.id")
+        return Function("toUInt64", [column], ISSUE_ID_ALIAS)
 
     def _resolve_project_slug_alias(self, alias: str) -> SelectType:
         project_ids = {
@@ -115,6 +115,10 @@ class QueryBase:
 
     def _resolve_timestamp_to_day_alias(self, _: str) -> SelectType:
         return Function("toStartOfDay", [self.column("timestamp")], TIMESTAMP_TO_DAY_ALIAS)
+
+    def _resolve_user_display_alias(self, _: str) -> SelectType:
+        columns = ["user.email", "user.username", "user.ip"]
+        return Function("coalesce", [self.column(column) for column in columns], USER_DISPLAY_ALIAS)
 
     def _resolve_unimplemented_alias(self, alias: str) -> SelectType:
         """Used in the interim as a stub for ones that have not be implemented in SnQL yet.

@@ -299,6 +299,81 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 f"{iso_format(day)}+00:00"
             ], query_fn
 
+    def test_user_display(self):
+        # `user.display` should give `username`
+        self.store_event(
+            data={
+                "message": "oh no",
+                "release": "first-release",
+                "environment": "prod",
+                "platform": "python",
+                "user": {"username": "brucew", "ip": "127.0.0.1"},
+                "timestamp": iso_format(self.event_time),
+            },
+            project_id=self.project.id,
+        )
+
+        # `user.display` should give `ip`
+        self.store_event(
+            data={
+                "message": "oh no",
+                "release": "first-release",
+                "environment": "prod",
+                "platform": "python",
+                "user": {"ip_address": "127.0.0.1"},
+                "timestamp": iso_format(self.event_time),
+            },
+            project_id=self.project.id,
+        )
+
+        for query_fn in [discover.query, discover.wip_snql_query]:
+            result = query_fn(
+                selected_columns=["user.display"],
+                query="",
+                params={
+                    "organization_id": self.organization.id,
+                    "project_id": [self.project.id],
+                    "start": self.two_min_ago,
+                    "end": self.now,
+                },
+            )
+            data = result["data"]
+            assert len(data) == 3, query_fn
+            assert {item["user.display"] for item in data} == {
+                "bruce@example.com",
+                "brucew",
+                "127.0.0.1",
+            }
+
+    def test_user_display_filter(self):
+        # `user.display` should give `username`
+        self.store_event(
+            data={
+                "message": "oh no",
+                "release": "first-release",
+                "environment": "prod",
+                "platform": "python",
+                "user": {"username": "brucew", "ip": "127.0.0.1"},
+                "timestamp": iso_format(self.event_time),
+            },
+            project_id=self.project.id,
+        )
+
+        for query_fn in [discover.query, discover.wip_snql_query]:
+            result = query_fn(
+                selected_columns=["user.display"],
+                query="has:user.display user.display:bruce@example.com",
+                params={
+                    "organization_id": self.organization.id,
+                    "project_id": [self.project.id],
+                    "start": self.two_min_ago,
+                    "end": self.now,
+                },
+            )
+            data = result["data"]
+            assert len(data) == 1, query_fn
+            assert [item["user.display"] for item in data] == ["bruce@example.com"]
+
     def test_field_aliasing_in_selected_columns(self):
         result = discover.query(
             selected_columns=["project.id", "user", "release", "timestamp.to_hour"],
