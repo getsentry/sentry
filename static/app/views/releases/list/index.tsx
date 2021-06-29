@@ -80,6 +80,7 @@ class ReleasesList extends AsyncView<Props, State> {
       summaryStatsPeriod: statsPeriod,
       per_page: 20,
       flatten: activeSort === SortOption.DATE ? 0 : 1,
+      adoptionStages: 1,
       status:
         activeStatus === StatusOption.ARCHIVED
           ? ReleaseStatus.Archived

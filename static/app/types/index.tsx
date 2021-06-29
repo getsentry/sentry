@@ -1468,6 +1468,7 @@ type ReleaseData = {
     firstReleaseVersion: string | null;
     lastReleaseVersion: string | null;
   };
+  adoptionStages?: {};
 };
 
 type BaseRelease = {
