@@ -2083,6 +2083,11 @@ export type SessionApiResponse = SeriesApi & {
   }[];
 };
 
+export enum SessionField {
+  SESSIONS = 'sum(session)',
+  USERS = 'count_unique(user)',
+}
+
 export enum HealthStatsPeriodOption {
   AUTO = 'auto',
   TWENTY_FOUR_HOURS = '24h',
