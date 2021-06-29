@@ -2,6 +2,7 @@ import * as React from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
+import {openModal} from 'app/actionCreators/modal';
 import Feature from 'app/components/acl/feature';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
@@ -22,10 +23,8 @@ import {tagsRouteWithQuery} from './transactionTags/utils';
 import {vitalsRouteWithQuery} from './transactionVitals/utils';
 import KeyTransactionButton from './keyTransactionButton';
 import TeamKeyTransactionButton from './teamKeyTransactionButton';
+import TransactionThresholdModal, {modalCss} from './transactionThresholdModal';
 import {transactionSummaryRouteWithQuery} from './utils';
-import TransactionThresholdModal from './transactionThresholdModal';
-import { openModal } from 'app/actionCreators/modal';
-import {modalCss} from './transactionThresholdModal'
 
 export enum Tab {
   TransactionSummary,
@@ -132,9 +131,8 @@ class TransactionHeader extends React.Component<Props> {
     );
   }
 
-
   handleUpdateThreshold() {
-    window.location.reload()
+    window.location.reload();
   }
 
   openModal() {
@@ -156,9 +154,11 @@ class TransactionHeader extends React.Component<Props> {
   renderSettingsButton() {
     const {organization} = this.props;
 
-
     return (
-      <Feature organization={organization} features={['project-transaction-threshold-override']}>
+      <Feature
+        organization={organization}
+        features={['project-transaction-threshold-override']}
+      >
         {({hasFeature}) =>
           hasFeature ? (
             <Button
@@ -176,7 +176,6 @@ class TransactionHeader extends React.Component<Props> {
         }
       </Feature>
     );
-
   }
 
   render() {
