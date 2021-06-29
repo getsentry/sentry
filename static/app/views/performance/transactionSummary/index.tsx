@@ -57,6 +57,7 @@ type Props = {
 type State = {
   spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
   eventView: EventView | undefined;
+  transactionThresholdFetchID?: symbol | undefined;
 };
 
 // Used to cast the totals request to numbers
@@ -216,9 +217,13 @@ class TransactionSummary extends Component<Props, State> {
     ]);
   }
 
+  handleChangeThreshold(fetchId: symbol | undefined) {
+    this.setState({transactionThresholdFetchID: fetchId});
+  }
+
   render() {
     const {organization, projects, location} = this.props;
-    const {eventView} = this.state;
+    const {eventView, transactionThresholdFetchID} = this.state;
     const transactionName = getTransactionName(location);
     if (!eventView || transactionName === undefined) {
       // If there is no transaction name, redirect to the Performance landing page
@@ -264,6 +269,7 @@ class TransactionSummary extends Component<Props, State> {
                 orgSlug={organization.slug}
                 location={location}
                 referrer="api.performance.transaction-summary"
+                miseryKey={transactionThresholdFetchID}
               >
                 {({isLoading, error, tableData}) => {
                   const totals: TotalValues | null = tableData?.data?.[0] ?? null;
@@ -280,6 +286,7 @@ class TransactionSummary extends Component<Props, State> {
                       spanOperationBreakdownFilter={
                         this.state.spanOperationBreakdownFilter
                       }
+                      onChangeThreshold={fetchId => this.handleChangeThreshold(fetchId)}
                     />
                   );
                 }}

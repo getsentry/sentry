@@ -1,5 +1,6 @@
 import * as React from 'react';
 
+import {defined} from 'app/utils';
 import {MetaType} from 'app/utils/discover/eventView';
 import withApi from 'app/utils/withApi';
 
@@ -21,8 +22,18 @@ export type TableData = {
   meta?: MetaType;
 };
 
+function shouldRefetchData(prevProps: DiscoverQueryProps, nextProps: DiscoverQueryProps) {
+  return defined(nextProps.miseryKey) && prevProps.miseryKey !== nextProps.miseryKey;
+}
+
 function DiscoverQuery(props: DiscoverQueryProps) {
-  return <GenericDiscoverQuery<TableData, {}> route="eventsv2" {...props} />;
+  return (
+    <GenericDiscoverQuery<TableData, {}>
+      route="eventsv2"
+      shouldRefetchData={shouldRefetchData}
+      {...props}
+    />
+  );
 }
 
 export default withApi(DiscoverQuery);

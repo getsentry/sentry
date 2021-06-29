@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 import set from 'lodash/set';
 
+import {addErrorMessage} from 'app/actionCreators/indicator';
 import {ModalRenderProps} from 'app/actionCreators/modal';
 import {Client} from 'app/api';
 import Button from 'app/components/button';
@@ -30,12 +31,13 @@ type Props = {
   api: Client;
   organization: Organization;
   transactionName: string;
-  onApply: () => void;
+  onApply: (transactionThresholdFetchID: symbol | undefined) => void;
   projects: Project[];
   eventView: EventView;
 } & ModalRenderProps;
 
 type State = {
+  transactionThresholdFetchID: symbol | undefined;
   value: number | undefined;
   metric: string | undefined;
   error: string | null;
@@ -44,6 +46,7 @@ type State = {
 
 class TransactionThresholdModal extends React.Component<Props, State> {
   state: State = {
+    transactionThresholdFetchID: undefined,
     value: undefined,
     metric: undefined,
     error: null,
@@ -70,8 +73,9 @@ class TransactionThresholdModal extends React.Component<Props, State> {
       return;
     }
     const transactionThresholdUrl = `/organizations/${organization.slug}/project-transaction-threshold-override/`;
+    const transactionThresholdFetchID = Symbol(`transactionThresholdFetchID`);
 
-    this.setState({isLoading: true});
+    this.setState({isLoading: true, transactionThresholdFetchID});
 
     api
       .requestPromise(transactionThresholdUrl, {
@@ -83,7 +87,12 @@ class TransactionThresholdModal extends React.Component<Props, State> {
         },
       })
       .then(([data]) => {
+        if (this.state.transactionThresholdFetchID !== transactionThresholdFetchID) {
+          // invariant: a different request was initiated after this request
+          return;
+        }
         this.setState({
+          transactionThresholdFetchID: undefined,
           isLoading: false,
           error: null,
           value: data.threshold,
@@ -102,6 +111,7 @@ class TransactionThresholdModal extends React.Component<Props, State> {
           })
           .then(([data]) => {
             this.setState({
+              transactionThresholdFetchID: undefined,
               isLoading: false,
               error: null,
               value: data.threshold,
@@ -110,6 +120,7 @@ class TransactionThresholdModal extends React.Component<Props, State> {
           })
           .catch(err => {
             this.setState({
+              transactionThresholdFetchID: undefined,
               isLoading: false,
               error: err,
             });
@@ -131,8 +142,10 @@ class TransactionThresholdModal extends React.Component<Props, State> {
       return;
     }
 
-    this.setState({isLoading: true});
     const transactionThresholdUrl = `/organizations/${organization.slug}/project-transaction-threshold-override/`;
+    const transactionThresholdFetchID = Symbol(`transactionThresholdFetchID`);
+    this.setState({isLoading: true, transactionThresholdFetchID});
+
     api
       .requestPromise(transactionThresholdUrl, {
         method: 'POST',
@@ -149,9 +162,16 @@ class TransactionThresholdModal extends React.Component<Props, State> {
       .then(() => {
         this.setState({isLoading: false});
         closeModal();
+        this.props.onApply(this.state.transactionThresholdFetchID);
       })
       .catch(err => {
-        this.setState({error: err});
+        this.setState({
+          error: err,
+          isLoading: false,
+          transactionThresholdFetchID: undefined,
+        });
+        const errorMessage = err.responseJSON?.threshold ?? null;
+        addErrorMessage(errorMessage);
       });
   };
 
@@ -167,7 +187,7 @@ class TransactionThresholdModal extends React.Component<Props, State> {
   handleReset = async (event: React.FormEvent) => {
     event.preventDefault();
 
-    const {api, organization, transactionName} = this.props;
+    const {api, closeModal, organization, transactionName} = this.props;
 
     const project = this.getProject();
     if (!defined(project)) {
@@ -176,6 +196,9 @@ class TransactionThresholdModal extends React.Component<Props, State> {
 
     this.setState({isLoading: true});
     const transactionThresholdUrl = `/organizations/${organization.slug}/project-transaction-threshold-override/`;
+    const transactionThresholdFetchID = Symbol(`transactionThresholdFetchID`);
+    this.setState({isLoading: true, transactionThresholdFetchID});
+
     api
       .requestPromise(transactionThresholdUrl, {
         method: 'DELETE',
@@ -188,10 +211,15 @@ class TransactionThresholdModal extends React.Component<Props, State> {
         },
       })
       .then(() => {
-        this.fetchData();
+        closeModal();
+        this.props.onApply(this.state.transactionThresholdFetchID);
       })
       .catch(err => {
-        this.setState({error: err, isLoading: false});
+        this.setState({
+          error: err,
+          isLoading: false,
+          transactionThresholdFetchID: undefined,
+        });
       });
   };
 

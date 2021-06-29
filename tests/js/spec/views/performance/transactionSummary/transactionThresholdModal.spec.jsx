@@ -170,7 +170,7 @@ describe('TransactionThresholdModal', function () {
   });
 
   it('can clear metrics', async function () {
-    const getTransactionThresholdMock = MockApiClient.addMockResponse({
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/project-transaction-threshold-override/',
       method: 'GET',
       body: {
@@ -193,9 +193,6 @@ describe('TransactionThresholdModal', function () {
     await clickReset(wrapper);
     wrapper.update();
     expect(deleteTransactionThresholdMock).toHaveBeenCalledTimes(1);
-    // GET request is made once when the component mounts and another
-    // time after DELETE.
-    expect(getTransactionThresholdMock).toHaveBeenCalledTimes(2);
     wrapper.unmount();
   });
 });

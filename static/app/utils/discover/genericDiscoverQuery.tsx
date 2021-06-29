@@ -47,6 +47,7 @@ export type DiscoverQueryProps = {
    * on the OrganizationEventsV2Endpoint view.
    */
   referrer?: string;
+  miseryKey?: symbol | undefined;
 };
 
 type RequestProps<P> = DiscoverQueryProps & P;

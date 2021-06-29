@@ -66,6 +66,7 @@ type Props = {
   totalValues: Record<string, number> | null;
   projects: Project[];
   onChangeFilter: (newFilter: SpanOperationBreakdownFilter) => void;
+  onChangeThreshold: (transactionThresholdFetchID: symbol | undefined) => void;
   spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
 };
 
@@ -267,6 +268,9 @@ class SummaryContent extends React.Component<Props, State> {
           currentTab={Tab.TransactionSummary}
           hasWebVitals={hasWebVitals}
           handleIncompatibleQuery={this.handleIncompatibleQuery}
+          onChangeThreshold={transactionThresholdFetchID =>
+            this.props.onChangeThreshold(transactionThresholdFetchID)
+          }
         />
         <Layout.Body>
           <StyledSdkUpdatesAlert />

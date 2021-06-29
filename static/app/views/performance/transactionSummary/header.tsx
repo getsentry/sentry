@@ -41,6 +41,7 @@ type Props = {
   transactionName: string;
   currentTab: Tab;
   hasWebVitals: boolean;
+  onChangeThreshold?: (transactionThresholdFetchID: symbol | undefined) => void;
   handleIncompatibleQuery: React.ComponentProps<
     typeof CreateAlertFromViewButton
   >['onIncompatibleQuery'];
@@ -131,8 +132,10 @@ class TransactionHeader extends React.Component<Props> {
     );
   }
 
-  handleUpdateThreshold() {
-    window.location.reload();
+  handleUpdateThreshold(transactionThresholdFetchID: symbol | undefined) {
+    if (this.props.onChangeThreshold) {
+      this.props.onChangeThreshold(transactionThresholdFetchID);
+    }
   }
 
   openModal() {
@@ -144,7 +147,9 @@ class TransactionHeader extends React.Component<Props> {
           organization={organization}
           transactionName={transactionName}
           eventView={eventView}
-          onApply={this.handleUpdateThreshold}
+          onApply={transactionThresholdFetchID =>
+            this.handleUpdateThreshold(transactionThresholdFetchID)
+          }
         />
       ),
       {modalCss, backdrop: 'static'}
