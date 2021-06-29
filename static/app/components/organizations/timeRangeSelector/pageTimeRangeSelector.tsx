@@ -42,7 +42,6 @@ const DropdownDate = styled(Panel)<{isCalendarOpen: boolean}>`
   margin: 0;
   font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.textColor};
-  z-index: ${p => p.theme.zIndex.globalSelectionHeader};
 
   /* TimeRangeRoot in TimeRangeSelector */
   > div {
