@@ -37,7 +37,7 @@ const getLabel = (func: LambdaFunction) => func.FunctionName;
 export default class AwsLambdaFunctionSelect extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    makeObservable(this);
+    makeObservable(this, {allStatesToggled: computed});
   }
 
   state: State = {
@@ -66,8 +66,7 @@ export default class AwsLambdaFunctionSelect extends Component<Props, State> {
     return reduce(data, (acc: number, val: boolean) => (val ? acc + 1 : acc), 0);
   }
 
-  @computed
-  get toggleAllState() {
+  get allStatesToggled() {
     // check if any of the lambda functions have a falsy value
     // no falsy values means everything is enabled
     return Object.values(this.model.getData()).every(val => val);
@@ -79,7 +78,7 @@ export default class AwsLambdaFunctionSelect extends Component<Props, State> {
   };
 
   handleToggle = () => {
-    const newState = !this.toggleAllState;
+    const newState = !this.allStatesToggled;
     this.lambdaFunctions.forEach(lambda => {
       this.model.setValue(lambda.FunctionName, newState, {quiet: true});
     });
@@ -115,7 +114,6 @@ export default class AwsLambdaFunctionSelect extends Component<Props, State> {
 
   renderCore = () => {
     const {initialStepNumber} = this.props;
-    const model = this.model;
 
     const FormHeader = (
       <StyledPanelHeader>
@@ -124,14 +122,14 @@ export default class AwsLambdaFunctionSelect extends Component<Props, State> {
           <Observer>
             {() => (
               <Tooltip
-                title={this.toggleAllState ? t('Disable All') : t('Enable All')}
+                title={this.allStatesToggled ? t('Disable All') : t('Enable All')}
                 position="left"
               >
                 <StyledSwitch
                   size="lg"
                   name="toggleAll"
                   toggle={this.handleToggle}
-                  isActive={this.toggleAllState}
+                  isActive={this.allStatesToggled}
                 />
               </Tooltip>
             )}
@@ -141,16 +139,15 @@ export default class AwsLambdaFunctionSelect extends Component<Props, State> {
     );
 
     const formFields: JsonFormObject = {
-      fields: this.lambdaFunctions.map(func => {
-        return {
-          name: func.FunctionName,
-          type: 'boolean',
-          required: false,
-          label: getLabel(func),
-          alignRight: true,
-        };
-      }),
+      fields: this.lambdaFunctions.map(func => ({
+        name: func.FunctionName,
+        type: 'boolean',
+        required: false,
+        label: getLabel(func),
+        alignRight: true,
+      })),
     };
+
     return (
       <List symbol="colored-numeric" initialCounterValue={initialStepNumber}>
         <ListItem>
@@ -159,7 +156,7 @@ export default class AwsLambdaFunctionSelect extends Component<Props, State> {
           <StyledForm
             initialData={this.initialData}
             skipPreventDefault
-            model={model}
+            model={this.model}
             apiEndpoint="/extensions/aws_lambda/setup/"
             hideFooter
           >
@@ -170,7 +167,8 @@ export default class AwsLambdaFunctionSelect extends Component<Props, State> {
       </List>
     );
   };
-  render = () => {
+
+  render() {
     return (
       <Fragment>
         <HeaderWithHelp docsUrl="https://docs.sentry.io/product/integrations/aws-lambda/" />
@@ -188,7 +186,7 @@ export default class AwsLambdaFunctionSelect extends Component<Props, State> {
         </Observer>
       </Fragment>
     );
-  };
+  }
 }
 
 const Wrapper = styled('div')`
