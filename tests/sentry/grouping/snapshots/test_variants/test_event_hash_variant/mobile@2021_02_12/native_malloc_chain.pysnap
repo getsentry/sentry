@@ -1,11 +1,11 @@
 ---
-created: '2021-05-17T08:41:28.209882Z'
+created: '2021-06-23T18:06:11.235317Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
   hash: "bfa38798962f4c0a56cb787726d4a3be"
-  tree_label: "malloc_zone_malloc | application_frame [malloc]"
+  tree_label: "malloc_zone_malloc | application_frame"
   component:
     app-depth-1*
       exception*

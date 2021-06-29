@@ -158,7 +158,7 @@ class EventManagerTest(TestCase):
             event2 = manager.save(project.id)
 
         # make sure that events did get into same group because of fallback grouping, not because of hashes which come from primary grouping only
-        assert not set(event.get_hashes()[0]) & set(event2.get_hashes()[0])
+        assert not set(event.get_hashes().hashes) & set(event2.get_hashes().hashes)
         assert event.group_id == event2.group_id
 
         group = Group.objects.get(id=event.group_id)

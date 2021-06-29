@@ -1,11 +1,11 @@
 ---
-created: '2021-05-05T18:04:40.413019Z'
+created: '2021-06-23T18:06:11.910392Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
   hash: "a66d08de7cceeb31e6eb389b94ea6690"
-  tree_label: "std::terminate | stripped_application_code [throw]"
+  tree_label: "std::terminate | stripped_application_code"
   component:
     app-depth-1*
       exception*
@@ -25,7 +25,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-2:
   hash: "f43890f57d10433d20cc751da38b314b"
-  tree_label: "... | std::__1::allocator_traits<T>::destroy<T> | stripped_application_code [malloc]"
+  tree_label: "std::terminate | stripped_application_code | std::__1::allocator_traits<T>::destroy<T> | stripped_application_code"
   component:
     app-depth-2*
       exception*

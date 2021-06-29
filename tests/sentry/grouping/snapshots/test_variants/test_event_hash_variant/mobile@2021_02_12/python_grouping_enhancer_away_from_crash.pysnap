@@ -1,5 +1,5 @@
 ---
-created: '2021-05-05T18:04:39.289608Z'
+created: '2021-06-23T18:06:11.977109Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -26,7 +26,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-2:
   hash: "a5af2577d4caca8f983657c5d1919e14"
-  tree_label: "post | ... | __getitem__"
+  tree_label: "post | handle | __getitem__"
   component:
     app-depth-2*
       exception*

@@ -1,11 +1,10 @@
 from sentry.grouping.component import GroupingComponent
-from sentry.utils.safe import get_path
 
 MAX_LAYERS = 5
 
 
 def get_stacktrace_hierarchy(main_variant, components, frames, inverted_hierarchy):
-    main_variant.update(tree_label="<entire stacktrace>")
+    main_variant.update(tree_label=["<entire stacktrace>"])
 
     frames_iter = list(zip(frames, components))
     if not inverted_hierarchy:
@@ -24,8 +23,6 @@ def get_stacktrace_hierarchy(main_variant, components, frames, inverted_hierarch
         key = f"app-depth-{depth}"
         assert key not in all_variants
 
-        tree_categories = set()
-
         for frame, component in frames_iter:
             if component.contributes and component.is_sentinel_frame:
                 break
@@ -34,7 +31,6 @@ def get_stacktrace_hierarchy(main_variant, components, frames, inverted_hierarch
 
         layer = list(prev_variant.values)
         layer.append(component)
-        tree_categories.add(get_path(frame, "data", "category") or None)
         prev_component = component
 
         if prev_component.is_prefix_frame:
@@ -43,7 +39,6 @@ def get_stacktrace_hierarchy(main_variant, components, frames, inverted_hierarch
                     continue
 
                 layer.append(component)
-                tree_categories.add(get_path(frame, "data", "category") or None)
                 prev_component = component
 
                 if not component.is_prefix_frame:
@@ -51,10 +46,7 @@ def get_stacktrace_hierarchy(main_variant, components, frames, inverted_hierarch
             else:
                 break
 
-        tree_label = _compute_tree_label(prev_variant, layer)
-        tree_categories.discard(None)
-        if tree_categories:
-            tree_label = f"{tree_label} [{'/'.join(sorted(tree_categories))}]"
+        tree_label = _compute_tree_label(layer)
 
         all_variants[key] = prev_variant = GroupingComponent(
             id="stacktrace", values=layer, tree_label=tree_label
@@ -70,19 +62,14 @@ def get_stacktrace_hierarchy(main_variant, components, frames, inverted_hierarch
     return all_variants
 
 
-def _compute_tree_label(prev_variant, components):
+def _compute_tree_label(components):
     tree_label = []
-    prev_i = 0
 
     for frame in components:
-        if prev_i < len(prev_variant.values) and frame is prev_variant.values[prev_i]:
-            if not tree_label or tree_label[-1] != "...":
-                tree_label.append("...")
-            prev_i += 1
-        elif frame.tree_label:
+        if frame.tree_label:
             tree_label.append(frame.tree_label)
 
-    return " | ".join(tree_label)
+    return tree_label
 
 
 def _build_fallback_tree(main_variant, components, frames, inverted_hierarchy):
@@ -123,7 +110,7 @@ def _build_fallback_tree(main_variant, components, frames, inverted_hierarchy):
         if len(prev_variant.values) == len(frames):
             break
 
-        tree_label = _compute_tree_label(prev_variant, frames)
+        tree_label = _compute_tree_label(frames)
 
         all_variants[key] = prev_variant = GroupingComponent(
             id="stacktrace",

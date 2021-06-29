@@ -1,5 +1,5 @@
 ---
-created: '2021-05-05T18:04:40.020418Z'
+created: '2021-06-23T18:06:11.600098Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -22,7 +22,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-2:
   hash: "f3257035573aef17e8643504abed74e6"
-  tree_label: "std::panicking::try::do_call | ..."
+  tree_label: "std::panicking::try::do_call | log_demo::main"
   component:
     app-depth-2*
       exception*
@@ -44,7 +44,7 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-3:
   hash: "dd291e7b08c871b74afbf4434db70dd3"
-  tree_label: "std::rt::lang_start_internal | ..."
+  tree_label: "std::rt::lang_start_internal | std::panicking::try::do_call | log_demo::main"
   component:
     app-depth-3*
       exception*
@@ -71,7 +71,7 @@ app-depth-3:
 --------------------------------------------------------------------------
 app-depth-4:
   hash: "0817e4e604fbe88c4534eff166df1db9"
-  tree_label: "_main | ..."
+  tree_label: "_main | std::rt::lang_start_internal | std::panicking::try::do_call | log_demo::main"
   component:
     app-depth-4*
       exception*
