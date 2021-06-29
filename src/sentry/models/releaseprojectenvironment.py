@@ -76,3 +76,14 @@ class ReleaseProjectEnvironment(Model):
             metrics_tags["bumped"] = "false"
 
         return instance
+
+    @property
+    def adoption_stages(self):
+        if self.adopted is not None and self.unadopted is None:
+            stage = "adopted"
+        elif self.adopted is not None and self.unadopted is not None:
+            stage = "replaced"
+        else:
+            stage = "not_adopted"
+
+        return {"stage": stage, "adopted": self.adopted, "unadopted": self.unadopted}
