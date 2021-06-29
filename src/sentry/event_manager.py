@@ -399,8 +399,6 @@ class EventManager:
             "last_seen": job["event"].datetime,
             "first_seen": job["event"].datetime,
             "active_at": job["event"].datetime,
-            "metadata": dict(job["data"]["metadata"]),
-            "received_timestamp": job["received_timestamp"],
         }
 
         if job["release"]:
@@ -420,7 +418,8 @@ class EventManager:
                     event=job["event"],
                     hashes=hashes,
                     release=job["release"],
-                    **kwargs,
+                    metadata=dict(job["data"]["metadata"]),
+                    received_timestamp=job["received_timestamp"] ** kwargs,
                 )
         except HashDiscarded:
             discard_event(job, attachments)
@@ -706,7 +705,6 @@ def _materialize_metadata_many(jobs):
         data = job["data"]
         event_type = get_event_type(data)
         event_metadata = event_type.get_metadata(data)
-        dict(event_metadata)
         data.update(materialize_metadata(data, event_type, event_metadata))
 
         # In save_aggregate we store current_tree_label for the group metadata,
