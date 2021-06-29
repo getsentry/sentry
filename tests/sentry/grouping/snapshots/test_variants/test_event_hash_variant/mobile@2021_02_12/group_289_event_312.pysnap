@@ -1,11 +1,11 @@
 ---
-created: '2021-05-05T18:04:39.560386Z'
+created: '2021-06-23T18:06:11.013886Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
   hash: "345122a1d95a95b106bdda3c8d0b19c8"
-  tree_label: "abort | gldCreateDevice | glDeleteTextures_Exec [driver/gl/throw]"
+  tree_label: "abort | gldCreateDevice | glDeleteTextures_Exec"
   component:
     app-depth-1*
       exception*

@@ -1,5 +1,5 @@
 ---
-created: '2021-05-05T18:04:40.139532Z'
+created: '2021-06-23T18:06:09.572992Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -20,7 +20,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-2:
   hash: "9b78cced1eefcd0c655a0a3d8ce2cdd2"
-  tree_label: "Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated | ..."
+  tree_label: "Scaleform::GFx::IME::GImeNamesManagerVista::OnActivated | Scaleform::GFx::AS3::IMEManager::DispatchEvent"
   component:
     app-depth-2*
       exception*
