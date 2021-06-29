@@ -428,13 +428,15 @@ class ReleasesList extends AsyncView<Props, State> {
           const isMobileProject =
             selectedProject &&
             selectedProject.platform &&
-            ([
-              ...mobile,
-              ...desktop,
-              'java-android',
-              'cocoa-objc',
-              'cocoa-swift',
-            ] as string[]).includes(selectedProject.platform as string);
+            (
+              [
+                ...mobile,
+                ...desktop,
+                'java-android',
+                'cocoa-objc',
+                'cocoa-swift',
+              ] as string[]
+            ).includes(selectedProject.platform as string);
 
           return (
             <Fragment>
