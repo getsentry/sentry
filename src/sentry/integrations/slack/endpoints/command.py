@@ -15,6 +15,7 @@ from sentry.models import Identity, IdentityProvider
 logger = logging.getLogger("sentry.integrations.slack")
 LINK_TEAM_MESSAGE = "Link your Sentry team to this Slack channel! <{associate_url}|Link your team now> to receive notifications of issues in Sentry in Slack."
 LINK_USER_MESSAGE = "You must first link your identity to Sentry by typing /sentry link. Be aware that you must be an admin or higher in your Sentry organization to link your team."
+LINK_FROM_CHANNEL_MESSAGE = "You must type this command in a channel, not a DM."
 
 
 def get_command_and_args(payload: Mapping[str, str]) -> Tuple[str, Sequence[str]]:
@@ -56,6 +57,9 @@ class SlackCommandsEndpoint(Endpoint):  # type: ignore
             return self.respond(SlackHelpMessageBuilder().build())
         if command == "link":
             if args and args[0] == "team":
+                channel_name = payload.get("channel_name", "")
+                if channel_name == "directmessage":
+                    return self.send_ephemeral_notification(LINK_FROM_CHANNEL_MESSAGE)
                 integration = slack_request.integration
                 user_id = payload.get("user_id")
                 try:
@@ -71,7 +75,6 @@ class SlackCommandsEndpoint(Endpoint):  # type: ignore
                 if not Identity.objects.filter(idp=idp, external_id=user_id).exists():
                     return self.send_ephemeral_notification(LINK_USER_MESSAGE)
                 channel_id = payload.get("channel_id", "")
-                channel_name = payload.get("channel_name", "")
                 user_id = payload.get("user_id", "")
                 response_url = payload.get("response_url")
                 associate_url = build_linking_url(
