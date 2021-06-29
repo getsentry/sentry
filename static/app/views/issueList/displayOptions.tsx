@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 
+import DropdownButton from 'app/components/dropdownButton';
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import Tooltip from 'app/components/tooltip';
 import {t} from 'app/locale';
@@ -26,11 +27,13 @@ const IssueListDisplayOptions = ({
     if (key === IssueDisplayOptions.SESSIONS) {
       if (hasMultipleProjectsSelected) {
         tooltipText = t(
-          'Select a project to view events as a % of sessions. This helps you get a better picture of how these errors affect your users.'
+          'This option is not available when multiple projects are selected.'
         );
         disabled = true;
       } else if (!hasSessions) {
-        tooltipText = t('The selected project does not have session data');
+        tooltipText = t(
+          'This option is not available because there is no session data in the selected time period.'
+        );
         disabled = true;
       }
     }
@@ -45,7 +48,6 @@ const IssueListDisplayOptions = ({
         <StyledTooltip
           containerDisplayMode="block"
           position="top"
-          delay={500}
           title={tooltipText}
           disabled={!tooltipText}
         >
@@ -57,8 +59,25 @@ const IssueListDisplayOptions = ({
 
   return (
     <StyledDropdownControl
-      buttonProps={{prefix: t('Display')}}
-      label={getDisplayLabel(display)}
+      button={({isOpen, getActorProps}) => (
+        <Tooltip
+          containerDisplayMode="inline-flex"
+          position="top"
+          title={t(
+            'This shows the event count as a percent of sessions in the same time period.'
+          )}
+          disabled={display !== IssueDisplayOptions.SESSIONS || isOpen}
+        >
+          <StyledDropdownButton
+            {...getActorProps({prefix: t('Display')} as React.ComponentProps<
+              typeof DropdownButton
+            >)}
+            isOpen={isOpen}
+          >
+            {getDisplayLabel(display)}
+          </StyledDropdownButton>
+        </Tooltip>
+      )}
     >
       <React.Fragment>
         {getMenuItem(IssueDisplayOptions.EVENTS)}
@@ -70,6 +89,11 @@ const IssueListDisplayOptions = ({
 
 const StyledDropdownControl = styled(DropdownControl)`
   margin-right: ${space(1)};
+`;
+
+const StyledDropdownButton = styled(DropdownButton)`
+  z-index: ${p => p.theme.zIndex.dropdownAutocomplete.actor};
+  white-space: nowrap;
 `;
 
 const StyledTooltip = styled(Tooltip)`
