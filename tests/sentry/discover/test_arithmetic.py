@@ -110,6 +110,44 @@ def test_four_terms():
     assert result.rhs.rhs == 4.0
 
 
+def test_brackets_with_two_inner_terms():
+    result, _, _ = parse_arithmetic("(1 + 2) / (3 - 4)")
+    assert result.operator == "divide"
+    assert isinstance(result.lhs, Operation)
+    assert result.lhs.operator == "plus"
+    assert result.lhs.lhs == 1.0
+    assert result.lhs.rhs == 2.0
+    assert isinstance(result.rhs, Operation)
+    assert result.rhs.operator == "minus"
+    assert result.rhs.lhs == 3.0
+    assert result.rhs.rhs == 4.0
+
+
+def test_brackets_with_three_inner_terms():
+    result, _, _ = parse_arithmetic("(1 + 2 + 3) / 4")
+    assert result.operator == "divide"
+    assert isinstance(result.lhs, Operation)
+    assert result.lhs.operator == "plus"
+    assert isinstance(result.lhs.lhs, Operation)
+    assert result.lhs.lhs.lhs == 1.0
+    assert result.lhs.lhs.rhs == 2.0
+    assert result.lhs.rhs == 3.0
+    assert result.rhs == 4.0
+
+
+def test_brackets_with_four_inner_terms():
+    result, _, _ = parse_arithmetic("(1 + 2 / 3 * 4)")
+    assert result.operator == "plus"
+    assert result.lhs == 1.0
+    assert isinstance(result.rhs, Operation)
+    assert result.rhs.operator == "multiply"
+    assert isinstance(result.rhs.lhs, Operation)
+    assert result.rhs.lhs.operator == "divide"
+    assert result.rhs.lhs.lhs == 2.0
+    assert result.rhs.lhs.rhs == 3.0
+    assert result.rhs.rhs == 4.0
+
+
 @pytest.mark.parametrize(
     "a,op1,b,op2,c,op3,d",
     [
@@ -161,16 +199,24 @@ def test_max_operators():
     ],
 )
 def test_field_values(a, op, b):
-    equation = f"{a}{op}{b}"
-    result, fields, functions = parse_arithmetic(equation)
-    assert result.operator == op_map[op.strip()], equation
-    assert result.lhs == a, equation
-    assert result.rhs == b, equation
-    assert len(functions) == 0
-    if isinstance(a, str):
-        assert a in fields, equation
-    if isinstance(b, str):
-        assert b in fields, equation
+    for with_brackets in [False, True]:
+        equation = f"{a}{op}{b}"
+        if with_brackets:
+            equation = f"({equation}) + 5"
+        result, fields, functions = parse_arithmetic(equation)
+        if with_brackets:
+            assert result.operator == "plus"
+            assert isinstance(result.lhs, Operation)
+            assert result.rhs == 5.0
+            result = result.lhs
+        assert result.operator == op_map[op.strip()], equation
+        assert result.lhs == a, equation
+        assert result.rhs == b, equation
+        assert len(functions) == 0
+        if isinstance(a, str):
+            assert a in fields, equation
+        if isinstance(b, str):
+            assert b in fields, equation
 
 
 @pytest.mark.parametrize(
@@ -184,18 +230,26 @@ def test_field_values(a, op, b):
     ],
 )
 def test_function_values(a, op, b):
-    equation = f"{a}{op}{b}"
-    result, fields, functions = parse_arithmetic(equation)
-    assert result.operator == op_map[op.strip()], equation
-    lhs = a if isinstance(a, int) else get_function_alias(a)
-    rhs = b if isinstance(b, int) else get_function_alias(b)
-    assert result.lhs == lhs, equation
-    assert result.rhs == rhs, equation
-    assert len(fields) == 0
-    if isinstance(a, str):
-        assert a in functions, equation
-    if isinstance(b, str):
-        assert b in functions, equation
+    for with_brackets in [False, True]:
+        equation = f"{a}{op}{b}"
+        if with_brackets:
+            equation = f"({equation}) + 5"
+        result, fields, functions = parse_arithmetic(equation)
+        if with_brackets:
+            assert result.operator == "plus"
+            assert isinstance(result.lhs, Operation)
+            assert result.rhs == 5.0
+            result = result.lhs
+        assert result.operator == op_map[op.strip()], equation
+        lhs = a if isinstance(a, int) else get_function_alias(a)
+        rhs = b if isinstance(b, int) else get_function_alias(b)
+        assert result.lhs == lhs, equation
+        assert result.rhs == rhs, equation
+        assert len(fields) == 0
+        if isinstance(a, str):
+            assert a in functions, equation
+        if isinstance(b, str):
+            assert b in functions, equation
 
 
 @pytest.mark.parametrize(
