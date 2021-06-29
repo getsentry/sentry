@@ -233,12 +233,10 @@ type Props = WithRouterProps & {
    * Called when the search is blurred
    */
   onBlur?: (value: string) => void;
-
   /**
    * Called on key down
    */
   onKeyDown?: (evt: React.KeyboardEvent<HTMLTextAreaElement>) => void;
-
   /**
    * Called when a recent search is saved
    */
@@ -269,7 +267,6 @@ type State = {
    * The current search query in the input
    */
   query: string;
-  sort?: string;
   /**
    * The query in the input since we last updated our autocomplete list.
    */
@@ -342,12 +339,13 @@ class SmartSearchBar extends React.Component<Props, State> {
     loading: false,
   };
 
-  UNSAFE_componentWillReceiveProps(nextProps) {
-    // query was updated by another source (e.g. sidebar filters)
-    if (nextProps.query !== this.props.query) {
-      this.setState({
-        query: addSpace(nextProps.query),
-      });
+  componentDidUpdate(prevProps: Props) {
+    const {query} = this.props;
+    const {query: lastQuery} = prevProps;
+
+    if (query !== lastQuery && defined(query)) {
+      // eslint-disable-next-line react/no-did-update-set-state
+      this.setState({query: addSpace(query)});
     }
   }
 
