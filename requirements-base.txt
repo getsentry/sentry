@@ -9,6 +9,7 @@ croniter==0.3.37
 dataclasses==0.8; python_version <= '3.6'
 datadog==0.29.3
 django-crispy-forms==1.7.2
+django-manifest-loader==1.0.0
 django-picklefield==1.0.0
 Django==1.11.29
 djangorestframework==3.11.2
