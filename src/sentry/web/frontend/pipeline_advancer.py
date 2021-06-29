@@ -36,25 +36,17 @@ class PipelineAdvancerView(BaseView):
             if pipeline:
                 break
 
-        # print("=" * 100)
-        # print("In pipeline advancer")
-        # print(f"provider_id: {provider_id}")
-        # print(f"setup_action: {request.GET.get('setup_action')}")
-        # print(f"pipeline: {pipeline}")
-
         if (
             provider_id in FORWARD_INSTALL_FOR
             and request.GET.get("setup_action") == "install"
             and pipeline is None
         ):
-            # print("Github breakout happening")
             signed_params = sign(
                 installation_id=request.GET.get("installation_id"),
                 provider_id=provider_id,
             )
-            # print(f"This is the signed_params: {signed_params}")
             return self.redirect(
-                reverse("github-integration-installation", kwargs={"signed_params": signed_params})
+                f"{reverse('github-integration-installation')}/?signed_params={signed_params}"
             )
 
         if pipeline is None or not pipeline.is_valid():

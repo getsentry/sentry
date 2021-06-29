@@ -552,3 +552,6 @@ ALERTS_MEMBER_WRITE_DEFAULT = True
 
 # Defined at https://github.com/getsentry/relay/blob/master/relay-common/src/constants.rs
 DataCategory = sentry_relay.DataCategory
+
+# 24 hours to finish integration installation
+INSTALL_EXPIRATION_TIME = 60 * 60 * 24
