@@ -364,10 +364,12 @@ def format_column_arguments(column_args, arguments):
 
 def parse_arguments(function, columns):
     """
-    The to_other function takes a quoted string for one of its arguments
-    that may contain commas, so it requires special handling.
+    Some functions take a quoted string for their arguments that may contain commas,
+    which requires special handling.
+    This function attempts to be identical with the similarly named parse_arguments
+    found in static/app/utils/discover/fields.tsx
     """
-    if function != "to_other":
+    if (function != "to_other" and function != "count_if") or len(columns) == 0:
         return [c.strip() for c in columns.split(",") if len(c.strip()) > 0]
 
     args = []

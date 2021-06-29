@@ -48,6 +48,12 @@ ARRAY_FIELDS = {
     "stack.stack_level",
 }
 
+CONFIGURABLE_AGGREGATES = {
+    "apdex()": "apdex({threshold}) as apdex",
+    "user_misery()": "user_misery({threshold}) as user_misery",
+    "count_miserable(user)": "count_miserable(user,{threshold}) as count_miserable_user",
+}
+
 # Create the known set of fields from the issue properties
 # and the transactions and events dataset mapping definitions.
 SEARCH_MAP = {

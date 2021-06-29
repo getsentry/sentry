@@ -1,11 +1,11 @@
 ---
-created: '2021-05-05T18:04:41.414705Z'
+created: '2021-06-23T18:06:10.071705Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
   hash: "54990400a84ec9035d4608470ba05b48"
-  tree_label: "abort | amdradeonx5000gldriver | glTexSubImage2D [driver/gl/throw]"
+  tree_label: "abort | amdradeonx5000gldriver | glTexSubImage2D"
   component:
     app-depth-1*
       exception*

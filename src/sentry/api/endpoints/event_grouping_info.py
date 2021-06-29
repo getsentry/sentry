@@ -26,7 +26,7 @@ class EventGroupingInfoEndpoint(ProjectEndpoint):
         # We always fetch the stored hashes here.  The reason for this is
         # that we want to show in the UI if the forced grouping algorithm
         # produced hashes that would normally also appear in the event.
-        flat_hashes, hierarchical_hashes = event.get_hashes()
+        hashes = event.get_hashes()
 
         try:
             variants = event.get_grouping_variants(
@@ -42,8 +42,8 @@ class EventGroupingInfoEndpoint(ProjectEndpoint):
             # generation caused the hash to mismatch.
             d["hashMismatch"] = (
                 d["hash"] is not None
-                and d["hash"] not in flat_hashes
-                and d["hash"] not in hierarchical_hashes
+                and d["hash"] not in hashes.hashes
+                and d["hash"] not in hashes.hierarchical_hashes
             )
             d["key"] = key
             rv[key] = d
