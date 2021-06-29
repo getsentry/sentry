@@ -280,9 +280,6 @@ def configure_sdk():
             DjangoAtomicIntegration(),
             DjangoIntegration(),
             CeleryIntegration(),
-            # The logging integration is disabled because we have more specific
-            # configuration in the LOGGING setting that sends stuff over to the
-            # sentry_sdk.integrations.logging.EventHandler.
             LoggingIntegration(event_level=None),
             RustInfoIntegration(),
             RedisIntegration(),
