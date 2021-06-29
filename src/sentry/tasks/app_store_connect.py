@@ -64,7 +64,12 @@ def inner_dsym_download(
 
         if not build_state.fetched:
             with tempfile.NamedTemporaryFile() as dsyms_zip:
-                itunes_client.download_dsyms(build, pathlib.Path(dsyms_zip.name))
+                try:
+                    itunes_client.download_dsyms(build, pathlib.Path(dsyms_zip.name))
+                except appconnect.NoDsymsError:
+                    # This build does not have dsyms
+                    logger.debug("No dSYMs for build %s", build)
+                    continue
                 create_difs_from_dsyms_zip(dsyms_zip.name, project)
             build_state.fetched = True
             build_state.save()

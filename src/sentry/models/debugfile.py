@@ -422,7 +422,11 @@ def detect_dif_from_path(path, name=None, debug_id=None, accept_unknown=False):
             # Assume the basename is the debug_id, if it wasn't symbolic will fail.  This is
             # required for when we get called for files extracted from a zipfile.
             basename = os.path.basename(path)
-            debug_id = os.path.splitext(basename)[0]
+            try:
+                debug_id = normalize_debug_id(os.path.splitext(basename)[0])
+            except SymbolicError as e:
+                logger.debug("File does not look like a debug ID: %s", path)
+                raise BadDif("Invalid UuidMap: %s" % e)
         try:
             UuidMapping.from_plist(debug_id, path)
         except SymbolicError as e:
