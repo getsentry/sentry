@@ -13,7 +13,7 @@ urlpatterns = [
         name="sentry-extensions-github-search",
     ),
     url(
-        r"^configure/$",
+        r"^configure/(?P<signed_params>[^\/]+)/$",
         GithubExtensionConfigurationView.as_view(),
         name="github-integration-installation",
     ),
