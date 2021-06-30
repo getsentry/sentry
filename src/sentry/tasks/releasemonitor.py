@@ -2,7 +2,7 @@ import logging
 import time
 from datetime import datetime, timedelta
 
-from django.db.models import Q, Subquery
+from django.db.models import Q
 from django.utils import timezone
 from sentry_sdk import capture_exception
 
@@ -143,11 +143,9 @@ def process_projects_with_sessions(org_id, project_ids):
                         if row["sessions"] / total_sessions >= REQUIRED_ADOPTION_PERCENT:
                             rpe = ReleaseProjectEnvironment.objects.get(
                                 project_id=row["project_id"],
-                                release_id=Subquery(
-                                    Release.objects.filter(
-                                        organization=org_id, version=row["release"]
-                                    ).values("id")[:1],
-                                ),
+                                release_id__in=Release.objects.filter(
+                                    organization=org_id, version=row["release"]
+                                ).values("id")[:1],
                                 environment__name=row["environment"],
                                 environment__organization_id=org_id,
                             )

@@ -383,4 +383,15 @@ class AppConnectClient:
                         build_number=build["version"],
                     )
                     builds.append(build)
+
+        def _try_int(x: str) -> int:
+            try:
+                return int(x)
+            except ValueError:
+                return 0
+
+        # We sort the builds by their "build_number" (version), so that we fetch
+        # newer builds first.
+        builds.sort(key=lambda x: _try_int(x.build_number), reverse=True)
+
         return builds

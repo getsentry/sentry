@@ -684,6 +684,38 @@ class ReleaseDetailsTest(APITestCase):
         assert response.data["currentProjectMeta"]["firstReleaseVersion"] is None
         assert response.data["currentProjectMeta"]["lastReleaseVersion"] is None
 
+    def test_with_adoption_stages(self):
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.organization
+        org.save()
+        team1 = self.create_team(organization=org)
+        project1 = self.create_project(teams=[team1], organization=org)
+        self.create_member(teams=[team1], user=user, organization=org)
+        self.login_as(user=user)
+        release1 = Release.objects.create(
+            organization_id=org.id, version="1", date_added=datetime(2013, 8, 13, 3, 8, 24, 880386)
+        )
+        release1.add_project(project1)
+        url = reverse(
+            "sentry-api-0-organization-release-details",
+            kwargs={"organization_slug": self.organization.slug, "version": release1.version},
+        )
+        response = self.client.get(f"{url}?adoptionStages=1", format="json")
+        assert response.status_code == 200, response.content
+        # Not returned because we don't have the feature.
+        assert "adoptionStages" not in response.data
+
+        with self.feature("organizations:release-adoption-stage"):
+            response = self.client.get(url, format="json")
+
+            assert response.status_code == 200, response.content
+            # Not returned because we don't have `adoptionStages=1`.
+            assert "adoptionStages" not in response.data
+            response = self.client.get(f"{url}?adoptionStages=1", format="json")
+
+            assert response.status_code == 200, response.content
+            assert "adoptionStages" in response.data
+
 
 class UpdateReleaseDetailsTest(APITestCase):
     @patch("sentry.tasks.commits.fetch_commits")

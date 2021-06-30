@@ -66,17 +66,12 @@ commit_message_base_messages = [
 
 base_paths_by_file_type = {"js": ["components/", "views/"], "py": ["flask/", "routes/"]}
 
-crash_free_rate_by_release = [1.0, 0.99, 0.9]
-# higher crash rate if we are doing a quick org
-crash_free_rate_by_release_quick = [1.0, 0.95, 0.75]
+rate_by_release_num = [1.0, 0.99, 0.9]
 
 org_users = [
     ("scefali", "Stephen Cefali"),
     ("aj", "AJ Jindal"),
-    (
-        "zac.propersi",
-        "Zac Propersi",
-    ),
+    ("zac.propersi", "Zac Propersi"),
     ("roggenkemper", "Richard Roggenkemper"),
 ]
 
@@ -95,50 +90,112 @@ def get_event_from_file(file_name):
 
 def distribution_v1(hour: int) -> int:
     if hour > 9 and hour < 12:
-        return 8
+        return 9
     if hour > 6 and hour < 15:
-        return 3
+        return 4
     if hour > 4 and hour < 20:
-        return 2
-    return 1
+        return 3
+    return 2
 
 
 def distribution_v2(hour: int) -> int:
     if hour > 18 and hour < 20:
-        return 14
+        return 16
     if hour > 9 and hour < 14:
-        return 7
+        return 8
     if hour > 3 and hour < 22:
-        return 4
-    return 2
+        return 5
+    return 4
 
 
 def distribution_v3(hour: int) -> int:
     if hour > 21:
-        return 11
+        return 14
     if hour > 6 and hour < 15:
-        return 6
+        return 9
     if hour > 3:
-        return 2
-    return 2
+        return 5
+    return 3
 
 
 def distribution_v4(hour: int) -> int:
     if hour > 13 and hour < 20:
-        return 11
+        return 13
     if hour > 5 and hour < 12:
-        return 7
+        return 8
     if hour > 3 and hour < 22:
-        return 4
-    return 2
+        return 5
+    return 3
 
 
 def distribution_v5(hour: int) -> int:
     if hour == 3:
-        return 10
+        return 12
     if hour < 5:
-        return 7
-    return 2
+        return 9
+    if hour > 18 and hour < 21:
+        return 14
+    return 3
+
+
+def distribution_v6(hour: int) -> int:
+    if hour == 20:
+        return 17
+    if hour > 17 and hour < 21:
+        return 13
+    if hour > 6 and hour < 11:
+        return 8
+    if hour == 3:
+        return 20
+    return 9
+
+
+def distribution_v7(hour: int) -> int:
+    if hour == 3:
+        return 9
+    if hour < 8:
+        return 6
+    if hour > 9 and hour < 12:
+        return 11
+    if hour > 18:
+        return 12
+    return 7
+
+
+def distribution_v8(hour: int) -> int:
+    if hour > 6 and hour < 10:
+        return 12
+    if hour < 3:
+        return 9
+    if hour > 16 and hour < 19:
+        return 14
+    if hour == 23:
+        return 17
+    return 7
+
+
+def distribution_v9(hour: int) -> int:
+    if hour < 4:
+        return 16
+    if hour > 4 and hour < 7:
+        return 12
+    if hour == 16:
+        return 17
+    if hour == 19:
+        return 16
+    return 9
+
+
+def distribution_v10(hour: int) -> int:
+    if hour > 12 and hour < 17:
+        return 12
+    if hour > 7 and hour < 10:
+        return 14
+    if hour == 3:
+        return 19
+    if hour == 21:
+        return 17
+    return 7
 
 
 distribution_fns = [
@@ -147,6 +204,11 @@ distribution_fns = [
     distribution_v3,
     distribution_v4,
     distribution_v5,
+    distribution_v6,
+    distribution_v7,
+    distribution_v8,
+    distribution_v9,
+    distribution_v10,
 ]
 
 
@@ -529,33 +591,6 @@ class DataPopulation:
             self.log_info("safe_send_event.snuba_error")
             time.sleep(config["ERROR_BACKOFF_TIME"])
 
-    @catch_and_log_errors
-    def send_session(self, sid, user_id, dsn, time, release, **kwargs):
-        """
-        Creates an envelope payload for a session and posts it to Relay
-        """
-        formatted_time = time.isoformat()
-        envelope_headers = "{}"
-        item_headers = json.dumps({"type": "session"})
-        data = {
-            "sid": sid,
-            "did": str(user_id),
-            "started": formatted_time,
-            "duration": random.randrange(2, 60),
-            "attrs": {
-                "release": release,
-                "environment": "prod",
-            },
-        }
-        data.update(**kwargs)
-        core = json.dumps(data)
-
-        body = f"{envelope_headers}\n{item_headers}\n{core}"
-        endpoint = dsn.get_endpoint()
-        url = f"{endpoint}/api/{dsn.project_id}/envelope/?sentry_key={dsn.public_key}&sentry_version=7"
-        resp = requests.post(url=url, data=body)
-        resp.raise_for_status()
-
     def generate_releases(self, projects):
         config = self.get_config()
         NUM_RELEASES = config["NUM_RELEASES"]
@@ -629,6 +664,7 @@ class DataPopulation:
                 ReleaseCommit.objects.get_or_create(
                     organization_id=org.id, release=release, commit=commit, order=commit_index
                 )
+                release.update(commit_count=release.commit_count + 1)
 
             release_time += timedelta(hours=hourly_release_cadence)
 
@@ -1081,45 +1117,60 @@ class DataPopulation:
 
         self.log_info("populate_generic_error.finished")
 
-    def populate_sessions(self, project, error_file):
+    def populate_sessions(self, project, distribution_fn_num: int, mobile: bool, error_file=None):
         self.log_info("populate_sessions.start")
+
         dsn = ProjectKey.objects.get(project=project)
 
-        react_error = get_event_from_file(error_file)
+        if error_file:
+            error = get_event_from_file(error_file)
 
-        for (timestamp, day) in self.iter_timestamps(4):
+        # keep track of versions for mobile
+        seen_versions = []
+        num_versions = 0
+        weights = []
+
+        for (timestamp, day) in self.iter_timestamps(distribution_fn_num):
             transaction_user = self.generate_user()
             sid = uuid4().hex
             release = get_release_from_time(project.organization_id, timestamp)
             version = release.version
 
-            # initialize the session
+            # add new version if necessary
+            if version not in seen_versions:
+                seen_versions.append(version)
+                num_versions += 1
+                if weights:
+                    weights.append(weights[-1] * random.uniform(2, 2.5))
+                else:
+                    weights = [1]
+
+            if not self.get_config_var("DISABLE_AGGREGATE_SESSIONS"):
+                self.send_aggr_session(
+                    dsn, timestamp, mobile, version, num_versions, seen_versions, weights
+                )
+
+            # send sessions for duration info
             session_data = {
                 "init": True,
             }
             self.send_session(sid, transaction_user["id"], dsn, timestamp, version, **session_data)
-
-            # determine if this session should crash or exit with success
-            rate_by_release_num = (
-                crash_free_rate_by_release_quick if self.quick else crash_free_rate_by_release
-            )
-            # get the release num from the last part of the version
             release_num = int(version.split(".")[-1])
             threshold = rate_by_release_num[release_num]
             outcome = random.random()
             if outcome > threshold:
-                # if crash, make an error for it
-                local_event = copy.deepcopy(react_error)
-                local_event.update(
-                    project=project,
-                    platform=project.platform,
-                    timestamp=timestamp,
-                    user=transaction_user,
-                    release=version,
-                )
-                update_context(local_event)
-                self.fix_error_event(local_event)
-                self.safe_send_event(local_event)
+                if error_file:
+                    local_event = copy.deepcopy(error)
+                    local_event.update(
+                        project=project,
+                        platform=project.platform,
+                        timestamp=timestamp,
+                        user=transaction_user,
+                        release=version,
+                    )
+                    update_context(local_event)
+                    self.fix_error_event(local_event)
+                    self.safe_send_event(local_event)
 
                 data = {
                     "status": "crashed",
@@ -1130,7 +1181,82 @@ class DataPopulation:
                 }
 
             self.send_session(sid, transaction_user["id"], dsn, timestamp, version, **data)
+
         self.log_info("populate_sessions.end")
+
+    @catch_and_log_errors
+    def send_session(self, sid, user_id, dsn, time, release, **kwargs):
+        """
+        reates an envelope payload for a session and posts it to Relay
+        """
+        formatted_time = time.isoformat()
+        envelope_headers = "{}"
+        item_headers = json.dumps({"type": "session"})
+        data = {
+            "sid": sid,
+            "did": str(user_id),
+            "started": formatted_time,
+            "duration": random.randrange(2, 60),
+            "attrs": {
+                "release": release,
+                "environment": "prod",
+            },
+        }
+        data.update(**kwargs)
+        core = json.dumps(data)
+
+        body = f"{envelope_headers}\n{item_headers}\n{core}"
+        endpoint = dsn.get_endpoint()
+        url = f"{endpoint}/api/{dsn.project_id}/envelope/?sentry_key={dsn.public_key}&sentry_version=7"
+        resp = requests.post(url=url, data=body)
+        resp.raise_for_status()
+
+    @catch_and_log_errors
+    def send_aggr_session(self, dsn, time, mobile, version, num_versions, seen_versions, weights):
+        formatted_time = time.isoformat()
+        envelope_headers = "{}"
+        item_headers = json.dumps({"type": "sessions"})
+
+        agg = []
+        threshold = 0.004
+
+        if self.quick:
+            num_users = int(random.uniform(100, 200))
+        else:
+            num_users = int(random.uniform(1000, 2000))
+
+        # create session data for each user
+        for _ in range(num_users):
+            exited = random.choices([1, 2, 3, 4], k=1, weights=[10, 5, 3, 1])[0]
+            outcome = random.random()
+
+            if outcome <= threshold:
+                crashed = int(random.uniform(1, 11))
+            else:
+                crashed = 0
+            current = {
+                "started": formatted_time,
+                "did": uuid4().hex[:8],
+                "exited": exited,
+                "crashed": crashed,
+            }
+            agg.append(current)
+
+        # if mobile, choose one of previously seen versions
+        if mobile and num_versions > 1:
+            version = random.choices(seen_versions, k=1, weights=weights)[0]
+
+        data = {
+            "aggregates": agg,
+            "attrs": {"release": version, "environment": "prod"},
+        }
+
+        core = json.dumps(data)
+        body = f"{envelope_headers}\n{item_headers}\n{core}"
+        endpoint = dsn.get_endpoint()
+        url = f"{endpoint}/api/{dsn.project_id}/envelope/?sentry_key={dsn.public_key}&sentry_version=7"
+        resp = requests.post(url=url, data=body)
+        resp.raise_for_status()
 
     def handle_react_python_scenario(self, react_project: Project, python_project: Project):
         with sentry_sdk.start_span(
@@ -1142,8 +1268,13 @@ class DataPopulation:
             with sentry_sdk.start_span(
                 op="handle_react_python_scenario", description="populate_sessions"
             ):
-                self.populate_sessions(react_project, "sessions/react_unhandled_exception.json")
-                self.populate_sessions(python_project, "sessions/python_unhandled_exception.json")
+                self.populate_sessions(
+                    react_project, 7, False, "sessions/react_unhandled_exception.json"
+                )
+                self.populate_sessions(
+                    python_project, 10, False, "sessions/python_unhandled_exception.json"
+                )
+
         with sentry_sdk.start_span(
             op="handle_react_python_scenario", description="populate_connected_events"
         ):
@@ -1154,14 +1285,10 @@ class DataPopulation:
             op="handle_react_python_scenario", description="populate_errors"
         ):
             self.populate_generic_error(
-                react_project, "errors/react/get_card_info.json", 3, starting_release=1
+                react_project, "errors/react/get_card_info.json", 2, starting_release=2
             )
-            self.populate_generic_error(
-                python_project, "errors/python/cert_error.json", 5, starting_release=1
-            )
-            self.populate_generic_error(
-                react_project, "errors/react/func_undefined.json", 2, starting_release=2
-            )
+            self.populate_generic_error(react_project, "errors/react/func_undefined.json", 3)
+            self.populate_generic_error(python_project, "errors/python/cert_error.json", 5)
             self.populate_generic_error(
                 python_project, "errors/python/concat_str_none.json", 4, starting_release=2
             )
@@ -1170,27 +1297,30 @@ class DataPopulation:
     def handle_mobile_scenario(
         self, ios_project: Project, android_project: Project, react_native_project: Project
     ):
+        if not self.get_config_var("DISABLE_SESSIONS"):
+            with sentry_sdk.start_span(
+                op="handle_react_python_scenario", description="populate_sessions"
+            ):
+                self.populate_sessions(ios_project, 6, True)
+                self.populate_sessions(android_project, 8, True)
+                self.populate_sessions(react_native_project, 9, True)
+
         with sentry_sdk.start_span(op="handle_mobile_scenario", description="populate_errors"):
+            self.populate_generic_error(ios_project, "errors/ios/exc_bad_access.json", 3)
             self.populate_generic_error(
-                ios_project, "errors/ios/exc_bad_access.json", 3, starting_release=1
-            )
-            self.populate_generic_error(
-                ios_project, "errors/ios/handled.json", 4, starting_release=2
+                ios_project, "errors/ios/handled.json", 5, starting_release=1
             )
             self.populate_generic_transaction(
-                ios_project, "transactions/ios/ios_transaction.json", 2
+                ios_project, "transactions/ios/ios_transaction.json", 4
             )
             self.populate_generic_error(
-                android_project, "errors/android/out_of_bounds.json", 5, starting_release=1
+                android_project, "errors/android/out_of_bounds.json", 2, starting_release=1
             )
             self.populate_generic_error(
-                android_project, "errors/android/app_not_responding.json", 2, starting_release=2
+                android_project, "errors/android/app_not_responding.json", 3
             )
             self.populate_generic_error(
-                react_native_project,
-                "errors/react_native/out_of_memory.json",
-                4,
-                starting_release=0,
+                react_native_project, "errors/react_native/out_of_memory.json", 5
             )
             self.populate_generic_error(
                 react_native_project,

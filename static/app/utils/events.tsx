@@ -61,7 +61,9 @@ export function getTitle(
 
   if (type === 'error') {
     result.subtitle = culprit;
-    if (metadata.type) {
+    if (metadata.current_tree_label) {
+      result.title = metadata.current_tree_label.join(' | ');
+    } else if (metadata.type) {
       result.title = metadata.type;
     } else {
       result.title = metadata.function || '<unknown>';

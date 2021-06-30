@@ -3,12 +3,13 @@ from typing import Mapping, Sequence, Tuple
 
 from django.http import Http404, HttpResponse
 from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
-from sentry.integrations.slack.link_team import build_linking_url
 from sentry.integrations.slack.message_builder.help import SlackHelpMessageBuilder
 from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.requests.command import SlackCommandRequest
+from sentry.integrations.slack.views.link_team import build_linking_url
 from sentry.models import Identity, IdentityProvider
 
 logger = logging.getLogger("sentry.integrations.slack")
@@ -24,11 +25,11 @@ def get_command_and_args(payload: Mapping[str, str]) -> Tuple[str, Sequence[str]
     return text[0], text[1:]
 
 
-class SlackCommandsEndpoint(Endpoint):
+class SlackCommandsEndpoint(Endpoint):  # type: ignore
     authentication_classes = ()
     permission_classes = ()
 
-    def send_ephemeral_notification(self, message):
+    def send_ephemeral_notification(self, message: str) -> Response:
         return self.respond(
             {
                 "response_type": "ephemeral",

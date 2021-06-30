@@ -1,18 +1,24 @@
+from typing import Any, Dict, Mapping
+
+from rest_framework.request import Request
+from rest_framework.response import Response
+
 from sentry import analytics
-from sentry.api import client
+from sentry.api import ApiClient, client
 from sentry.api.base import Endpoint
 from sentry.integrations.slack.client import SlackClient
-from sentry.integrations.slack.link_identity import build_linking_url
 from sentry.integrations.slack.message_builder.issues import build_group_attachment
 from sentry.integrations.slack.requests.action import SlackActionRequest
 from sentry.integrations.slack.requests.base import SlackRequestError
-from sentry.integrations.slack.unlink_identity import build_unlinking_url
-from sentry.models import ApiKey, Group, Identity, IdentityProvider, Project
+from sentry.integrations.slack.views.link_identity import build_linking_url
+from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
+from sentry.models import ApiKey, Group, Identity, IdentityProvider, Integration, Project
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
 from sentry.web.decorators import transaction_start
 
-from .utils import logger
+from ..message_builder import SlackBody
+from ..utils import logger
 
 LINK_IDENTITY_MESSAGE = "Looks like you haven't linked your Sentry account with your Slack identity yet! <{associate_url}|Link your identity now> to perform actions in Sentry through Slack."
 
@@ -34,11 +40,17 @@ RESOLVE_SELECTOR = {
 }
 
 
-class SlackActionEndpoint(Endpoint):
+class SlackActionEndpoint(Endpoint):  # type: ignore
     authentication_classes = ()
     permission_classes = ()
 
-    def api_error(self, error, action_type, logging_data, error_text):
+    def api_error(
+        self,
+        error: ApiClient.ApiError,
+        action_type: str,
+        logging_data: Dict[str, str],
+        error_text: str,
+    ) -> Response:
         logging_data = logging_data.copy()
         logging_data["response"] = str(error.body)
         logging_data["action_type"] = action_type
@@ -49,7 +61,9 @@ class SlackActionEndpoint(Endpoint):
             {"response_type": "ephemeral", "replace_original": False, "text": error_text}
         )
 
-    def on_assign(self, request, identity, group, action):
+    def on_assign(
+        self, request: Request, identity: Identity, group: Group, action: Mapping[str, Any]
+    ) -> None:
         assignee = action["selected_options"][0]["value"]
 
         if assignee == "none":
@@ -58,7 +72,15 @@ class SlackActionEndpoint(Endpoint):
         self.update_group(group, identity, {"assignedTo": assignee})
         analytics.record("integrations.slack.assign", actor_id=identity.user_id)
 
-    def on_status(self, request, identity, group, action, data, integration):
+    def on_status(
+        self,
+        request: Request,
+        identity: Identity,
+        group: Group,
+        action: Mapping[str, Any],
+        data: Mapping[str, Any],
+        integration: Integration,
+    ) -> None:
         status = action["value"]
 
         status_data = status.split(":", 1)
@@ -80,7 +102,7 @@ class SlackActionEndpoint(Endpoint):
             actor_id=identity.user_id,
         )
 
-    def update_group(self, group, identity, data):
+    def update_group(self, group: Group, identity: Identity, data: Mapping[str, str]) -> Response:
         event_write_key = ApiKey(
             organization=group.project.organization, scope_list=["event:write"]
         )
@@ -93,7 +115,9 @@ class SlackActionEndpoint(Endpoint):
             auth=event_write_key,
         )
 
-    def open_resolve_dialog(self, data, group, integration):
+    def open_resolve_dialog(
+        self, data: Mapping[str, Any], group: Group, integration: Integration
+    ) -> None:
         # XXX(epurkhiser): In order to update the original message we have to
         # keep track of the response_url in the callback_id. Definitely hacky,
         # but seems like there's no other solutions [1]:
@@ -126,7 +150,7 @@ class SlackActionEndpoint(Endpoint):
         except ApiError as e:
             logger.error("slack.action.response-error", extra={"error": str(e)})
 
-    def construct_reply(self, attachment, is_message=False):
+    def construct_reply(self, attachment: SlackBody, is_message: bool = False) -> SlackBody:
         # XXX(epurkhiser): Slack is inconsistent about it's expected responses
         # for interactive action requests.
         #
@@ -142,14 +166,14 @@ class SlackActionEndpoint(Endpoint):
 
         return attachment
 
-    def is_message(self, data):
+    def is_message(self, data: Mapping[str, Any]) -> bool:
         # XXX(epurkhsier): Used in coordination with construct_reply. Bot
         # posted messages will not have the type at all.
         return data.get("original_message", {}).get("type") == "message"
 
     @transaction_start("SlackActionEndpoint")
-    def post(self, request):
-        logging_data = {}
+    def post(self, request: Request) -> Response:
+        logging_data: Dict[str, str] = {}
 
         try:
             slack_request = SlackActionRequest(request)

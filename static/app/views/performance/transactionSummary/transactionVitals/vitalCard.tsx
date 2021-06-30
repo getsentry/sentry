@@ -180,8 +180,11 @@ class VitalCard extends Component<Props, State> {
     const newEventView = eventView
       .withColumns([
         {kind: 'field', field: 'transaction'},
-        {kind: 'function', function: ['percentile', column, PERCENTILE.toString()]},
-        {kind: 'function', function: ['count', '', '']},
+        {
+          kind: 'function',
+          function: ['percentile', column, PERCENTILE.toString(), undefined],
+        },
+        {kind: 'function', function: ['count', '', '', undefined]},
       ])
       .withSorts([
         {

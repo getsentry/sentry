@@ -1,11 +1,13 @@
-import {computed, makeObservable} from 'mobx';
+import {action, computed, makeObservable, observable} from 'mobx';
 
+import {Client} from 'app/api';
 import {t} from 'app/locale';
 import {EventTransaction} from 'app/types/event';
 
 import {ActiveOperationFilter} from './filter';
 import {
   EnhancedProcessedSpanType,
+  FetchEmbeddedChildrenState,
   FilterSpans,
   OrphanTreeDepth,
   RawSpanType,
@@ -14,25 +16,36 @@ import {
   TreeDepthType,
 } from './types';
 import {
+  generateRootSpan,
   getSpanID,
   getSpanOperation,
   isEventFromBrowserJavaScriptSDK,
   isOrphanSpan,
+  parseTrace,
   SpanBoundsType,
   SpanGeneratedBoundsType,
 } from './utils';
 
 class SpanTreeModel {
+  api: Client;
+
   // readonly state
   span: Readonly<SpanType>;
   children: Array<SpanTreeModel> = [];
   isRoot: boolean;
 
+  // readable/writable state
+  fetchEmbeddedChildrenState: FetchEmbeddedChildrenState = 'idle';
+  showEmbeddedChildren: boolean = false;
+  embeddedChildren: Array<SpanTreeModel> = [];
+
   constructor(
     parentSpan: SpanType,
     childSpans: SpanChildrenLookupType,
+    api: Client,
     isRoot: boolean = false
   ) {
+    this.api = api;
     this.span = parentSpan;
     this.isRoot = isRoot;
 
@@ -47,11 +60,16 @@ class SpanTreeModel {
     delete childSpans[spanID];
 
     this.children = spanChildren.map(span => {
-      return new SpanTreeModel(span, childSpans);
+      return new SpanTreeModel(span, childSpans, api);
     });
 
     makeObservable(this, {
       operationNameCounts: computed.struct,
+      showEmbeddedChildren: observable,
+      embeddedChildren: observable,
+      fetchEmbeddedChildrenState: observable,
+      toggleEmbeddedChildren: action,
+      fetchEmbeddedTransactions: action,
     });
   }
 
@@ -136,6 +154,9 @@ class SpanTreeModel {
       treeDepth,
       isLastSibling: false,
       continuingTreeDepths,
+      fetchEmbeddedChildrenState: 'idle',
+      showEmbeddedChildren: false,
+      toggleEmbeddedChildren: undefined,
     };
     return gapSpan;
   }
@@ -174,13 +195,17 @@ class SpanTreeModel {
       ? continuingTreeDepths
       : [...continuingTreeDepths, treeDepthEntry];
 
-    const lastIndex = this.children.length - 1;
-
     const parentSpanID = getSpanID(this.span);
     const childSpanGroup = new Set(spanGroups);
     childSpanGroup.add(parentSpanID);
 
-    const {descendants} = this.children.reduce(
+    const descendantsSource = this.showEmbeddedChildren
+      ? [...this.embeddedChildren, ...this.children]
+      : this.children;
+
+    const lastIndex = descendantsSource.length - 1;
+
+    const {descendants} = descendantsSource.reduce(
       (
         acc: {
           descendants: EnhancedProcessedSpanType[];
@@ -208,7 +233,10 @@ class SpanTreeModel {
 
         return acc;
       },
-      {descendants: [], previousSiblingEndTimestamp: undefined}
+      {
+        descendants: [],
+        previousSiblingEndTimestamp: undefined,
+      }
     );
 
     for (const hiddenSpanGroup of hiddenSpanGroups) {
@@ -246,10 +274,13 @@ class SpanTreeModel {
     const wrappedSpan: EnhancedProcessedSpanType = {
       type: this.isRoot ? 'root_span' : 'span',
       span: this.span,
-      numOfSpanChildren: this.children.length,
+      numOfSpanChildren: descendantsSource.length,
       treeDepth,
       isLastSibling,
       continuingTreeDepths,
+      fetchEmbeddedChildrenState: this.fetchEmbeddedChildrenState,
+      showEmbeddedChildren: this.showEmbeddedChildren,
+      toggleEmbeddedChildren: this.toggleEmbeddedChildren,
     };
     const gapSpan = this.generateSpanGap(
       event,
@@ -264,6 +295,54 @@ class SpanTreeModel {
 
     return [wrappedSpan, ...descendants];
   };
+
+  toggleEmbeddedChildren = (props: {orgSlug: string; eventSlug: string}) => {
+    this.showEmbeddedChildren = !this.showEmbeddedChildren;
+    this.fetchEmbeddedChildrenState = 'idle';
+
+    if (this.showEmbeddedChildren && this.embeddedChildren.length === 0) {
+      return this.fetchEmbeddedTransactions(props);
+    }
+
+    return Promise.resolve(undefined);
+  };
+
+  fetchEmbeddedTransactions({orgSlug, eventSlug}: {orgSlug: string; eventSlug: string}) {
+    const url = `/organizations/${orgSlug}/events/${eventSlug}/`;
+
+    this.fetchEmbeddedChildrenState = 'loading_embedded_transactions';
+
+    return this.api
+      .requestPromise(url, {
+        method: 'GET',
+        query: {},
+      })
+      .then(
+        action('fetchEmbeddedTransactionsSuccess', (event: EventTransaction) => {
+          if (!event) {
+            return;
+          }
+
+          const parsedTrace = parseTrace(event);
+          const rootSpan = generateRootSpan(parsedTrace);
+          const parsedRootSpan = new SpanTreeModel(
+            rootSpan,
+            parsedTrace.childSpans,
+            this.api,
+            false
+          );
+
+          this.embeddedChildren = [parsedRootSpan];
+          this.fetchEmbeddedChildrenState = 'idle';
+        })
+      )
+      .catch(
+        action('fetchEmbeddedTransactionsError', () => {
+          this.embeddedChildren = [];
+          this.fetchEmbeddedChildrenState = 'error_fetching_embedded_transactions';
+        })
+      );
+  }
 }
 
 export default SpanTreeModel;

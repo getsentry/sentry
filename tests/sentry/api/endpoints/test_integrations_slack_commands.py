@@ -7,10 +7,18 @@ from requests import Response
 from rest_framework import status
 
 from sentry import options
-from sentry.integrations.slack.command_endpoint import LINK_USER_MESSAGE
-from sentry.integrations.slack.link_team import build_linking_url
+from sentry.integrations.slack.endpoints.command import LINK_USER_MESSAGE
 from sentry.integrations.slack.util.auth import set_signing_secret
-from sentry.models import ExternalActor, Identity, IdentityProvider, IdentityStatus, Integration
+from sentry.integrations.slack.views.link_team import build_linking_url
+from sentry.models import (
+    ExternalActor,
+    Identity,
+    IdentityProvider,
+    IdentityStatus,
+    Integration,
+    NotificationSetting,
+)
+from sentry.notifications.types import NotificationScopeType
 from sentry.testutils import APITestCase, TestCase
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
@@ -131,12 +139,12 @@ class SlackCommandsLinkTeamTest(SlackCommandsTest):
 
         resp = self.client.get(linking_url)
         assert resp.status_code == 200
-        self.assertTemplateUsed(resp, "sentry/slack-link-team.html")
+        self.assertTemplateUsed(resp, "sentry/integrations/slack-link-team.html")
 
         data = urlencode({"team": self.team.id})
         resp = self.client.post(linking_url, data, content_type="application/x-www-form-urlencoded")
         assert resp.status_code == 200
-        self.assertTemplateUsed(resp, "sentry/slack-post-linked-team.html")
+        self.assertTemplateUsed(resp, "sentry/integrations/slack-post-linked-team.html")
 
         assert len(self.external_actor) == 1
         assert self.external_actor[0].actor_id == self.team.actor_id
@@ -147,6 +155,11 @@ class SlackCommandsLinkTeamTest(SlackCommandsTest):
             f"The {self.team.slug} team will now receive issue alert notifications in the {self.external_actor[0].external_name} channel."
             in data["text"]
         )
+
+        team_settings = NotificationSetting.objects.filter(
+            scope_type=NotificationScopeType.TEAM.value, target=self.team.actor.id
+        )
+        assert len(team_settings) == 1
 
     def test_link_team_idp_does_not_exist(self):
         """Test that get_identity fails if we cannot find a matching idp"""
@@ -197,12 +210,12 @@ class SlackCommandsLinkTeamTest(SlackCommandsTest):
         resp = self.client.get(linking_url)
 
         assert resp.status_code == 200
-        self.assertTemplateUsed(resp, "sentry/slack-link-team.html")
+        self.assertTemplateUsed(resp, "sentry/integrations/slack-link-team.html")
 
         data = urlencode({"team": self.team.id})
         resp = self.client.post(linking_url, data, content_type="application/x-www-form-urlencoded")
         assert resp.status_code == 200
-        self.assertTemplateUsed(resp, "sentry/slack-post-linked-team.html")
+        self.assertTemplateUsed(resp, "sentry/integrations/slack-post-linked-team.html")
 
         assert len(self.external_actor) == 0
 
@@ -239,12 +252,12 @@ class SlackCommandsLinkTeamTest(SlackCommandsTest):
         resp = self.client.get(linking_url)
 
         assert resp.status_code == 200
-        self.assertTemplateUsed(resp, "sentry/slack-link-team.html")
+        self.assertTemplateUsed(resp, "sentry/integrations/slack-link-team.html")
 
         data = urlencode({"team": self.team.id})
         resp = self.client.post(linking_url, data, content_type="application/x-www-form-urlencoded")
         assert resp.status_code == 200
-        self.assertTemplateUsed(resp, "sentry/slack-post-linked-team.html")
+        self.assertTemplateUsed(resp, "sentry/integrations/slack-post-linked-team.html")
 
         assert len(self.external_actor) == 0
 
@@ -276,12 +289,12 @@ class SlackCommandsLinkTeamTest(SlackCommandsTest):
         resp = self.client.get(linking_url)
 
         assert resp.status_code == 200
-        self.assertTemplateUsed(resp, "sentry/slack-link-team.html")
+        self.assertTemplateUsed(resp, "sentry/integrations/slack-link-team.html")
 
         data = urlencode({"team": self.team.id})
         resp = self.client.post(linking_url, data, content_type="application/x-www-form-urlencoded")
         assert resp.status_code == 200
-        self.assertTemplateUsed(resp, "sentry/slack-post-linked-team.html")
+        self.assertTemplateUsed(resp, "sentry/integrations/slack-post-linked-team.html")
         assert len(responses.calls) >= 1
         data = json.loads(str(responses.calls[0].request.body.decode("utf-8")))
         assert (
@@ -301,9 +314,9 @@ class SlackCommandsLinkTeamTest(SlackCommandsTest):
 
         resp = self.client.get(linking_url)
         assert resp.status_code == 200
-        self.assertTemplateUsed(resp, "sentry/slack-link-team.html")
+        self.assertTemplateUsed(resp, "sentry/integrations/slack-link-team.html")
 
         data = urlencode({"team": ["some", "garbage"]})
         resp = self.client.post(linking_url, data, content_type="application/x-www-form-urlencoded")
         assert resp.status_code == 200
-        self.assertTemplateUsed(resp, "sentry/slack-link-team-error.html")
+        self.assertTemplateUsed(resp, "sentry/integrations/slack-link-team-error.html")

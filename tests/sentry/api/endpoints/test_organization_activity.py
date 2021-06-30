@@ -22,5 +22,4 @@ class OrganizationActivityTest(APITestCase):
         )
 
         response = self.get_success_response(org.slug)
-        assert len(response.data) == 1
-        assert response.data[0]["id"] == str(activity.id)
+        assert [r["id"] for r in response.data] == [str(activity.id)]

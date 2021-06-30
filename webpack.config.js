@@ -332,6 +332,7 @@ let appConfig = {
                 compilerOptions: {incremental: true},
               },
             },
+            logger: {devServer: false},
           }),
         ]
       : []),
@@ -392,8 +393,8 @@ let appConfig = {
     path: distPath,
     publicPath: '',
     filename: '[name].[contenthash].js',
-    chunkFilename: '[name].[contenthash].js',
-    sourceMapFilename: '[name].js.map',
+    chunkFilename: 'chunks/[name].[contenthash].js',
+    sourceMapFilename: 'sourcemaps/[name].[contenthash].js.map',
   },
   optimization: {
     chunkIds: 'named',

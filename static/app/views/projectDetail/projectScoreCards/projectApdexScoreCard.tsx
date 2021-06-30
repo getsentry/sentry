@@ -23,6 +23,7 @@ type Props = AsyncComponent['props'] & {
   selection: GlobalSelection;
   isProjectStabilized: boolean;
   hasTransactions?: boolean;
+  query?: string;
 };
 
 type State = AsyncComponent['state'] & {
@@ -42,7 +43,8 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
   }
 
   getEndpoints() {
-    const {organization, selection, isProjectStabilized, hasTransactions} = this.props;
+    const {organization, selection, isProjectStabilized, hasTransactions, query} =
+      this.props;
 
     if (!this.hasFeature() || !isProjectStabilized || !hasTransactions) {
       return [];
@@ -58,7 +60,7 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
       environment: environments,
       project: projects.map(proj => String(proj)),
       field: [apdexField],
-      query: 'event.type:transaction count():>0',
+      query: ['event.type:transaction count():>0', query].join(' ').trim(),
     };
     const endpoints: ReturnType<AsyncComponent['getEndpoints']> = [
       [
@@ -90,12 +92,13 @@ class ProjectApdexScoreCard extends AsyncComponent<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    const {selection, isProjectStabilized, hasTransactions} = this.props;
+    const {selection, isProjectStabilized, hasTransactions, query} = this.props;
 
     if (
       prevProps.selection !== selection ||
       prevProps.hasTransactions !== hasTransactions ||
-      prevProps.isProjectStabilized !== isProjectStabilized
+      prevProps.isProjectStabilized !== isProjectStabilized ||
+      prevProps.query !== query
     ) {
       this.remountComponent();
     }
