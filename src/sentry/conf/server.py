@@ -1795,6 +1795,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.bitbucket_server.BitbucketServerIntegrationProvider",
     "sentry.integrations.slack.SlackIntegrationProvider",
     "sentry.integrations.github.GitHubIntegrationProvider",
+    "sentry.integrations.github.GitHubExtensionIntegrationProvider",
     "sentry.integrations.github_enterprise.GitHubEnterpriseIntegrationProvider",
     "sentry.integrations.gitlab.GitlabIntegrationProvider",
     "sentry.integrations.jira.JiraIntegrationProvider",
