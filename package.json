@@ -148,7 +148,7 @@
     "@storybook/builder-webpack5": "6.3.1",
     "@storybook/manager-webpack5": "6.3.1",
     "@storybook/react": "6.3.1",
-    "@storybook/theming": "6.3.1",
+    "@storybook/theming": "6.3.2",
     "@visual-snapshot/jest": "^3.0.0",
     "@wojtekmaj/enzyme-adapter-react-17": "0.6.1",
     "babel-eslint": "^10.1.0",
