@@ -386,7 +386,7 @@ let appConfig = {
     filename: '[name].[contenthash].js',
     chunkFilename: 'chunks/[name].[contenthash].js',
     sourceMapFilename: 'sourcemaps/[name].[contenthash].js.map',
-    assetModuleFilename: 'assets/[name].[contenthash].[ext]',
+    assetModuleFilename: 'assets/[name].[contenthash][ext]',
   },
   optimization: {
     chunkIds: 'named',
