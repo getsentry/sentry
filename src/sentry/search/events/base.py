@@ -84,7 +84,7 @@ class QueryBase:
     def _resolve_issue_id_alias(self, _: str) -> SelectType:
         column = self.column("issue.id")
         # TODO: Remove the `toUInt64` once Column supports aliases
-        return Function("toUInt64", [column], ISSUE_ID_ALIAS)
+        return Function("toUInt64", [column], "issue.id")
 
     def _resolve_project_slug_alias(self, alias: str) -> SelectType:
         project_ids = {
