@@ -235,7 +235,7 @@ describe('EventsV2 -> ColumnEditModal', function () {
       // Apply the changes so we can see the new columns.
       wrapper.find('Button[priority="primary"]').simulate('click');
       expect(onApply).toHaveBeenCalledWith([
-        {kind: 'function', function: ['apdex', '400', undefined]},
+        {kind: 'function', function: ['apdex', '400', undefined, undefined]},
       ]);
     });
 
@@ -280,7 +280,9 @@ describe('EventsV2 -> ColumnEditModal', function () {
       // Apply the changes so we can see the new columns.
       newWrapper.find('Button[priority="primary"]').simulate('click');
       expect(newApply).toHaveBeenCalledWith(
-        expect.objectContaining([{kind: 'function', function: ['apdex', '', undefined]}])
+        expect.objectContaining([
+          {kind: 'function', function: ['apdex', '', undefined, undefined]},
+        ])
       );
     });
 
@@ -292,7 +294,7 @@ describe('EventsV2 -> ColumnEditModal', function () {
       // Apply the changes so we can see the new columns.
       wrapper.find('Button[priority="primary"]').simulate('click');
       expect(onApply).toHaveBeenCalledWith([
-        {kind: 'function', function: ['apdex', '400', undefined]},
+        {kind: 'function', function: ['apdex', '400', undefined, undefined]},
       ]);
     });
 
@@ -304,7 +306,7 @@ describe('EventsV2 -> ColumnEditModal', function () {
       // Apply the changes so we can see the new columns.
       wrapper.find('Button[priority="primary"]').simulate('click');
       expect(onApply).toHaveBeenCalledWith([
-        {kind: 'function', function: ['failure_rate', '', undefined]},
+        {kind: 'function', function: ['failure_rate', '', undefined, undefined]},
       ]);
     });
   });
