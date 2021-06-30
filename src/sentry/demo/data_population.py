@@ -78,6 +78,37 @@ org_users = [
 
 logger = logging.getLogger(__name__)
 
+contexts_by_platform = {
+    "apple-ios": {
+        "device": [
+            ["iPad13,1", "iOS"],
+            ["iPad13,2", "iOS"],
+            ["iPhone13,1", "iOS"],
+            ["iPhone11", "iOS"],
+        ],
+        "os": ["14.5", "3.3", "14.6", "12"],
+    },
+    "android": {
+        "device": [
+            ["Pixel 4", "Pixel"],
+            ["Pixel 5", "Pixel"],
+            ["Pixel 3a", "Pixel"],
+            ["SM-A125U", "SM-A125U"],
+            ["SM-G973U", "SM-G973U"],
+        ],
+        "os": ["10", "9", "8"],
+    },
+    "react-native": {
+        "device": [
+            ["iPad13,1", "iOS"],
+            ["iPad13,2", "iOS"],
+            ["iPhone13,1", "iOS"],
+            ["iPhone11", "iOS"],
+        ],
+        "os": ["14.5", "13.3", "4.6", "12"],
+    },
+}
+
 
 def get_data_file_path(file_name):
     return os.path.join(os.path.dirname(__file__), "data", file_name)
@@ -270,6 +301,16 @@ def gen_base_context():
     """
     contexts = get_list_of_base_contexts()
     return random.choice(contexts)
+
+
+def gen_mobile_context(platform):
+    """
+    Generates context for mobile events
+    """
+    contexts = contexts_by_platform[platform]
+    device = random.choice(contexts["device"])
+    os = random.choice(contexts["os"])
+    return device, os
 
 
 def get_release_from_time(org_id, timestamp):
@@ -467,17 +508,23 @@ def fix_measurements(event_json):
         measurements.update(measurement_markers)
 
 
-def update_context(event, trace=None):
+def update_context(event, trace=None, mobile=False, platform=None):
     context = event["contexts"]
     # delete device since we aren't mocking it (yet)
-    if "device" in context:
+    if "device" in context and not mobile:
         del context["device"]
     # generate random browser and os
-    context.update(**gen_base_context())
+    if mobile:
+        device, os = gen_mobile_context(platform)
+        context["device"]["model"] = device[0]
+        context["device"]["family"] = device[1]
+        context["os"]["version"] = os
+    else:
+        context.update(**gen_base_context())
     # add our trace info
     base_trace = context.get("trace", {})
     if not trace:
-        trace = {"trace_id": uuid4().hex[:16], "span_id": uuid4().hex[:16]}
+        trace = {"trace_id": uuid4().hex, "span_id": uuid4().hex[:16]}
     base_trace.update(**trace)
     context["trace"] = base_trace
 
@@ -1068,6 +1115,7 @@ class DataPopulation:
 
             old_span_id = ios_transaction["contexts"]["trace"]["span_id"]
             root_span_id = uuid4().hex[:16]
+            duration = self.gen_frontend_duration(day)
 
             trace = {
                 "trace_id": trace_id,
@@ -1083,8 +1131,9 @@ class DataPopulation:
                 user=transaction_user,
                 release=release_sha,
                 timestamp=timestamp,
+                start_timestamp=timestamp - timedelta(duration),
             )
-            update_context(local_event, trace)
+            update_context(local_event, trace, mobile=True, platform=ios_project.platform)
             self.fix_transaction_event(local_event, old_span_id)
             self.safe_send_event(local_event)
 
@@ -1097,13 +1146,15 @@ class DataPopulation:
                 user=transaction_user,
                 release=release_sha,
             )
-            update_context(local_event, trace)
+            update_context(local_event, trace, mobile=True, platform=ios_project.platform)
             self.fix_error_event(local_event)
             self.safe_send_event(local_event)
 
-        self.log_info("populate_connected_event_scenario_1.finished")
+        self.log_info("populate_connected_event_scenario_3.finished")
 
-    def populate_generic_error(self, project: Project, file_path, dist_number, starting_release=0):
+    def populate_generic_error(
+        self, project: Project, file_path, dist_number, mobile=False, starting_release=0
+    ):
         """
         This function populates a single error
         Occurrance times and durations are randomized
@@ -1125,13 +1176,18 @@ class DataPopulation:
                 user=transaction_user,
                 release=release_sha,
             )
-            update_context(local_event)
+            update_context(local_event, mobile=mobile, platform=project.platform)
             self.fix_error_event(local_event)
             self.safe_send_event(local_event)
         self.log_info("populate_generic_error.finished")
 
     def populate_generic_transaction(
-        self, project: Project, file_path, dist_number, starting_release=0
+        self,
+        project: Project,
+        file_path,
+        dist_number,
+        mobile,
+        starting_release=0,
     ):
         """
         This function populates a single transaction
@@ -1160,7 +1216,7 @@ class DataPopulation:
                 start_timestamp=timestamp - timedelta(seconds=duration),
             )
 
-            update_context(local_event)
+            update_context(local_event, mobile=mobile, platform=project.platform)
 
             self.fix_transaction_event(local_event, old_span_id)
             self.safe_send_event(local_event)
@@ -1360,21 +1416,28 @@ class DataPopulation:
         with sentry_sdk.start_span(op="handle_mobile_scenario", description="populate_connected"):
             self.populate_connected_event_scenario_3(ios_project)
         with sentry_sdk.start_span(op="handle_mobile_scenario", description="populate_errors"):
-            self.populate_generic_error(ios_project, "errors/ios/exc_bad_access.json", 3)
+            self.populate_generic_error(
+                ios_project, "errors/ios/exc_bad_access.json", 3, mobile=True
+            )
 
             self.populate_generic_error(
-                android_project, "errors/android/out_of_bounds.json", 2, starting_release=2
+                android_project,
+                "errors/android/out_of_bounds.json",
+                2,
+                mobile=True,
+                starting_release=2,
             )
             self.populate_generic_error(
-                android_project, "errors/android/app_not_responding.json", 3
+                android_project, "errors/android/app_not_responding.json", 3, mobile=True
             )
             self.populate_generic_error(
-                react_native_project, "errors/react_native/out_of_memory.json", 5
+                react_native_project, "errors/react_native/out_of_memory.json", 5, mobile=True
             )
             self.populate_generic_error(
                 react_native_project,
                 "errors/react_native/promise_rejection.json",
                 3,
+                mobile=True,
                 starting_release=2,
             )
         self.assign_issues()
