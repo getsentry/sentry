@@ -69,5 +69,4 @@ updates:
       - dependency-name: "rrweb-player"
       - dependency-name: "size-limit"
       - dependency-name: "sprintf-js"
-      - dependency-name: "terser-webpack-plugin"
       - dependency-name: "u2f-api"
