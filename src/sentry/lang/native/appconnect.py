@@ -390,6 +390,8 @@ class AppConnectClient:
             except ValueError:
                 return 0
 
+        # We sort the builds by their "build_number" (version), so that we fetch
+        # newer builds first.
         builds.sort(key=lambda x: _try_int(x.build_number), reverse=True)
 
         return builds

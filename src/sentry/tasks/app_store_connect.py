@@ -67,7 +67,6 @@ def inner_dsym_download(
                 try:
                     itunes_client.download_dsyms(build, pathlib.Path(dsyms_zip.name))
                 except appconnect.NoDsymsError:
-                    # This build does not have dsyms
                     logger.debug("No dSYMs for build %s", build)
                     continue
                 create_difs_from_dsyms_zip(dsyms_zip.name, project)

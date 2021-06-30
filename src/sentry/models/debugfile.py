@@ -429,7 +429,7 @@ def detect_dif_from_path(path, name=None, debug_id=None, accept_unknown=False):
             try:
                 debug_id = normalize_debug_id(os.path.splitext(basename)[0])
             except SymbolicError as e:
-                logger.debug("File does not look like a debug ID: %s", path)
+                logger.debug("Filename does not look like a debug ID: %s", path)
                 raise BadDif("Invalid UuidMap: %s" % e)
         try:
             UuidMapping.from_plist(debug_id, path)
