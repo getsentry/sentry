@@ -109,9 +109,11 @@ def get_group_with_redirect(id_or_qualified_short_id, queryset=None, organizatio
                 ).values_list("group_id", flat=True)[:1]
             }
         else:
-            params["id__in"] = GroupRedirect.objects.filter(
-                previous_group_id=params["id"]
-            ).values_list("group_id", flat=True)[:1]
+            params = {
+                "id__in": GroupRedirect.objects.filter(
+                    previous_group_id=id_or_qualified_short_id,
+                ).values_list("group_id", flat=True)[:1]
+            }
 
         try:
             return queryset.get(**params), True
