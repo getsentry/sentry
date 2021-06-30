@@ -1574,6 +1574,7 @@ export type SentryAppComponent = {
   sentryApp: {
     uuid: string;
     slug:
+      | 'calixa'
       | 'clickup'
       | 'clubhouse'
       | 'komodor'
