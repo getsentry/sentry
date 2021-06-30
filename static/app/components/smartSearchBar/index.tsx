@@ -919,18 +919,10 @@ class SmartSearchBar extends React.Component<Props, State> {
       this.blurTimeout = undefined;
     }
 
-    const {organization} = this.props;
     const cursor = this.getCursorPosition();
-    let AST: ParseResult | null = null;
-    if (organization.features.includes('search-syntax-highlight')) {
-      try {
-        AST = parseSearch(this.state.query);
-      } catch (err) {
-        // eslint-disable-next-line no-console
-        console.log(err);
-      }
-    }
-    if (AST) {
+    const {organization} = this.props;
+    const AST = this.state.parsedQuery;
+    if (AST && organization.features.includes('search-syntax-highlight')) {
       const filterNode = this.getCursorToken(AST, cursor);
       if (filterNode && filterNode.type === Token.Filter) {
         // check if we are on the tag, value, or operator
@@ -1163,23 +1155,14 @@ class SmartSearchBar extends React.Component<Props, State> {
     const query = this.state.query;
 
     const {organization} = this.props;
-    let AST: ParseResult | null = null;
-    if (organization.features.includes('search-syntax-highlight')) {
-      try {
-        AST = parseSearch(this.state.query);
-      } catch (err) {
-        // eslint-disable-next-line no-console
-        console.log(err);
-      }
-    }
-    if (AST) {
+    const AST = this.state.parsedQuery;
+    if (AST && organization.features.includes('search-syntax-highlight')) {
       const filterNode = this.getCursorToken(AST, cursor);
       if (filterNode && filterNode.type === Token.Filter) {
         let clauseStart: null | number = null;
         let clauseEnd: null | number = null;
         let replaceToken = replaceText;
         if (item.type === 'tag-operator') {
-          // this is an operator
           const valueLocation = filterNode.value.location;
           clauseStart = filterNode.location.start.offset;
           clauseEnd = valueLocation.start.offset;
@@ -1191,12 +1174,13 @@ class SmartSearchBar extends React.Component<Props, State> {
         } else if (this.withinTokenLocation(filterNode.value, cursor)) {
           const location = filterNode.value.location;
           const keyLocation = filterNode.key.location;
+          // Include everything after the ':'
           clauseStart = keyLocation.end.offset + 1;
           clauseEnd = location.end.offset;
         } else if (this.withinTokenLocation(filterNode.key, cursor)) {
-          // If the token is a key, then trim off the end to avoid duplicate ':'
           const location = filterNode.key.location;
           clauseStart = location.start.offset;
+          // If the token is a key, then trim off the end to avoid duplicate ':'
           clauseEnd = location.end.offset + 1;
         }
         if (clauseStart !== null && clauseEnd !== null) {

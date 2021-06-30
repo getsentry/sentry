@@ -744,8 +744,8 @@ const defaultConfig: SearchConfig = {
   dateKeys: new Set([
     'start',
     'end',
-    'firstSeen',
-    'lastSeen',
+    'first_seen',
+    'last_seen',
     'time',
     'event.timestamp',
     'timestamp',
