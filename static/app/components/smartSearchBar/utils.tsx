@@ -1,3 +1,4 @@
+import {TermOperator} from 'app/components/searchSyntax/parser';
 import {IconClock, IconStar, IconTag, IconToggle, IconUser} from 'app/icons';
 import {t} from 'app/locale';
 
@@ -163,4 +164,44 @@ export function filterSearchGroupsByIndex(items: SearchGroup[], index: number) {
   });
 
   return foundSearchItem;
+}
+
+export function generateOperatorEntryMap(tag: string) {
+  return {
+    [TermOperator.Default]: {
+      type: 'tag-operator' as ItemType,
+      value: ':',
+      desc: t(`${tag}:[value] is equal to`),
+    },
+    [TermOperator.GreaterThanEqual]: {
+      type: 'tag-operator' as ItemType,
+      value: ':>=',
+      desc: t(`${tag}:>=[value] is greater than or equal to`),
+    },
+    [TermOperator.LessThanEqual]: {
+      type: 'tag-operator' as ItemType,
+      value: ':<=',
+      desc: t(`${tag}:<=[value] is less than or equal to`),
+    },
+    [TermOperator.GreaterThan]: {
+      type: 'tag-operator' as ItemType,
+      value: ':>',
+      desc: t(`${tag}:>[value] is greater than`),
+    },
+    [TermOperator.LessThan]: {
+      type: 'tag-operator' as ItemType,
+      value: ':<',
+      desc: t(`${tag}:<[value] is less than`),
+    },
+    [TermOperator.Equal]: {
+      type: 'tag-operator' as ItemType,
+      value: ':=',
+      desc: t(`${tag}:=[value] is equal to`),
+    },
+    [TermOperator.NotEqual]: {
+      type: 'tag-operator' as ItemType,
+      value: '!:',
+      desc: t(`!${tag}:[value] is not equal to`),
+    },
+  };
 }

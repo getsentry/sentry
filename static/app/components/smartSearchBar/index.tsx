@@ -46,6 +46,7 @@ import {
   addSpace,
   createSearchGroups,
   filterSearchGroupsByIndex,
+  generateOperatorEntryMap,
   getLastTermIndex,
   getQueryTerms,
   removeSpace,
@@ -829,50 +830,6 @@ class SmartSearchBar extends React.Component<Props, State> {
     };
   };
 
-  generateOpAutocompleteEntries(
-    validOps: readonly TermOperator[],
-    tag: string
-  ): SearchItem[] {
-    const operatorMap = {
-      [TermOperator.Default]: {
-        type: 'tag-operator' as ItemType,
-        value: ':',
-        desc: t(`${tag}:[value] is equal to`),
-      },
-      [TermOperator.GreaterThanEqual]: {
-        type: 'tag-operator' as ItemType,
-        value: ':>=',
-        desc: t(`${tag}:>=[value] is greater than or equal to`),
-      },
-      [TermOperator.LessThanEqual]: {
-        type: 'tag-operator' as ItemType,
-        value: ':<=',
-        desc: t(`${tag}:<=[value] is less than or equal to`),
-      },
-      [TermOperator.GreaterThan]: {
-        type: 'tag-operator' as ItemType,
-        value: ':>',
-        desc: t(`${tag}:>[value] is greater than`),
-      },
-      [TermOperator.LessThan]: {
-        type: 'tag-operator' as ItemType,
-        value: ':<',
-        desc: t(`${tag}:<[value] is less than`),
-      },
-      [TermOperator.Equal]: {
-        type: 'tag-operator' as ItemType,
-        value: ':=',
-        desc: t(`${tag}:=[value] is equal to`),
-      },
-      [TermOperator.NotEqual]: {
-        type: 'tag-operator' as ItemType,
-        value: '!:',
-        desc: t(`!${tag}:[value] is not equal to`),
-      },
-    };
-    return validOps.map(op => operatorMap[op]);
-  }
-
   getValidOps(filterToken: TokenResult<Token.Filter>): readonly TermOperator[] {
     const types = filterToken.invalid?.expectedType ?? [filterToken.filter];
     const filterType = interchangeableFilterOperators[types[0]]
@@ -886,7 +843,8 @@ class SmartSearchBar extends React.Component<Props, State> {
     validOps: readonly TermOperator[],
     tagName: string
   ): AutocompleteGroup {
-    const operatorItems = this.generateOpAutocompleteEntries(validOps, tagName);
+    const operatorMap = generateOperatorEntryMap(tagName);
+    const operatorItems = validOps.map(op => operatorMap[op]);
     return {
       searchItems: operatorItems,
       recentSearchItems: undefined,
@@ -930,26 +888,20 @@ class SmartSearchBar extends React.Component<Props, State> {
           const node = filterNode.value;
           const tagName = filterNode.key.text;
 
-          const supportedTags = this.props.supportedTags ?? {};
-          const tag = supportedTags[tagName];
-
           const valueGroup = await this.generateValueAutocompleteGroup(
             tagName,
             node.text
           );
           const autocompleteGroups = valueGroup ? [valueGroup] : [];
-
           // show operator group if at beginning of value
           if (cursor === node.location.start.offset) {
             const opGroup = this.generateOpAutocompleteGroup(
               this.getValidOps(filterNode),
-              tag.key
+              tagName
             );
             autocompleteGroups.unshift(opGroup);
           }
-
           this.updateAutoCompleteStateMultiHeader(autocompleteGroups);
-          return;
         } else if (this.withinTokenLocation(filterNode.key, cursor)) {
           const node = filterNode.key;
           const tagKeys = this.getTagKeys(node.text);
@@ -971,7 +923,6 @@ class SmartSearchBar extends React.Component<Props, State> {
             autocompleteGroups.unshift(opGroup);
           }
           this.updateAutoCompleteStateMultiHeader(autocompleteGroups);
-          return;
         } else {
           // show operator autocomplete group
           const node = filterNode.key;
@@ -980,8 +931,8 @@ class SmartSearchBar extends React.Component<Props, State> {
             node.text
           );
           this.updateAutoCompleteStateMultiHeader([opGroup]);
-          return;
         }
+        return;
       }
     }
 
@@ -1151,6 +1102,7 @@ class SmartSearchBar extends React.Component<Props, State> {
 
       return;
     }
+
     const cursor = this.getCursorPosition();
     const query = this.state.query;
 
@@ -1159,8 +1111,10 @@ class SmartSearchBar extends React.Component<Props, State> {
     if (AST && organization.features.includes('search-syntax-highlight')) {
       const filterNode = this.getCursorToken(AST, cursor);
       if (filterNode && filterNode.type === Token.Filter) {
+        // the start and end of what to replace
         let clauseStart: null | number = null;
         let clauseEnd: null | number = null;
+        // the new text that will exist between clauseStart and clauseEnd
         let replaceToken = replaceText;
         if (item.type === 'tag-operator') {
           const valueLocation = filterNode.value.location;
