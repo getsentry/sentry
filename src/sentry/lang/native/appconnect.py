@@ -342,12 +342,13 @@ class AppConnectClient:
             self._session, self._api_credentials, self._app_id
         )
         for build in all_results:
-            build = BuildInfo(
-                app_id=self._app_id,
-                platform=build["platform"],
-                version=build["version"],
-                build_number=build["build_number"],
+            builds.append(
+                BuildInfo(
+                    app_id=self._app_id,
+                    platform=build["platform"],
+                    version=build["version"],
+                    build_number=build["build_number"],
+                )
             )
-            builds.append(build)
 
         return builds

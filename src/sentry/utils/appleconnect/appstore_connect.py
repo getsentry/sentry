@@ -108,7 +108,7 @@ def _get_appstore_info_paged(
 
 def get_build_info(
     session: Session, credentials: AppConnectCredentials, app_id: str
-) -> Dict[str, List[Dict[str, Any]]]:
+) -> List[Dict[str, Any]]:
     """Returns the build infos for an application.
 
     The release build version information has the following structure:
@@ -120,6 +120,7 @@ def get_build_info(
 
     result = []
 
+    # https://developer.apple.com/documentation/appstoreconnectapi/list_builds
     url = (
         f"v1/builds?filter[app]={app_id}"
         # we can fetch a maximum of 200 builds at once, so do that
@@ -147,7 +148,7 @@ def get_build_info(
             if type is not None and id is not None:
                 included_relations[(type, id)] = included
 
-        def get_related(relation):
+        def get_related(relation: Any) -> Any:
             type = safe.get_path(relation, "data", "type")
             id = safe.get_path(relation, "data", "id")
             if type is None or id is None:
