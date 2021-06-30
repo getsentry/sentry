@@ -2,14 +2,12 @@ import {Component, Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import flatten from 'lodash/flatten';
-import omit from 'lodash/omit';
 
 import {promptsCheck, promptsUpdate} from 'app/actionCreators/prompts';
 import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
 import AsyncComponent from 'app/components/asyncComponent';
 import Button from 'app/components/button';
-import ButtonBar from 'app/components/buttonBar';
 import CreateAlertButton from 'app/components/createAlertButton';
 import * as Layout from 'app/components/layouts/thirds';
 import ExternalLink from 'app/components/links/externalLink';
@@ -36,8 +34,6 @@ import AlertHeader from './header';
 import Onboarding from './onboarding';
 import AlertListRow from './row';
 import {TableLayout} from './styles';
-
-const DEFAULT_QUERY_STATUS = 'open';
 
 const DOCS_URL =
   'https://docs.sentry.io/workflow/alerts-notifications/alerts/?_ga=2.21848383.580096147.1592364314-1444595810.1582160976';
@@ -92,16 +88,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
       return [];
     }
 
-    // No default status w/ alert-history-filters
-    const hasAlertHistoryFilters = this.props.organization.features.includes(
-      'alert-history-filters'
-    );
-
-    return ['open', 'closed'].includes(status as string)
-      ? [status as string]
-      : hasAlertHistoryFilters
-      ? []
-      : [DEFAULT_QUERY_STATUS];
+    return ['open', 'closed'].includes(status) ? [status] : [];
   }
 
   /**
@@ -337,16 +324,8 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
   }
 
   renderBody() {
-    const {params, organization, router, location} = this.props;
-    const {pathname, query} = location;
+    const {params, organization, router} = this.props;
     const {orgId} = params;
-
-    const openIncidentsQuery = omit({...query, status: 'open'}, 'cursor');
-    const closedIncidentsQuery = omit({...query, status: 'closed'}, 'cursor');
-    const status = this.getQueryStatus(location.query.status)[0] || DEFAULT_QUERY_STATUS;
-    const hasAlertHistoryFilters = organization.features.includes(
-      'alert-history-filters'
-    );
 
     return (
       <SentryDocumentTitle title={t('Alerts')} orgSlug={orgId}>
@@ -364,26 +343,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
                       {t('This page only shows metric alerts.')}
                     </StyledAlert>
                   </Feature>
-                  {hasAlertHistoryFilters ? (
-                    this.renderFilterBar()
-                  ) : (
-                    <StyledButtonBar merged active={status}>
-                      <Button
-                        to={{pathname, query: openIncidentsQuery}}
-                        barId="open"
-                        size="small"
-                      >
-                        {t('Unresolved')}
-                      </Button>
-                      <Button
-                        to={{pathname, query: closedIncidentsQuery}}
-                        barId="closed"
-                        size="small"
-                      >
-                        {t('Resolved')}
-                      </Button>
-                    </StyledButtonBar>
-                  )}
+                  {this.renderFilterBar()}
                 </Fragment>
               )}
               {this.renderList()}
@@ -441,11 +401,6 @@ class IncidentsListContainer extends Component<Props> {
     );
   }
 }
-
-const StyledButtonBar = styled(ButtonBar)`
-  width: 100px;
-  margin-bottom: ${space(1)};
-`;
 
 const StyledAlert = styled(Alert)`
   margin-bottom: ${space(1.5)};
