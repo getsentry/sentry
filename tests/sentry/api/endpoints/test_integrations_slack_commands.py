@@ -17,6 +17,10 @@ from sentry.integrations.slack.message_builder.disconnected import DISCONNECTED_
 from sentry.integrations.slack.util.auth import set_signing_secret
 from sentry.integrations.slack.views.link_identity import SUCCESS_LINKED_MESSAGE, build_linking_url
 from sentry.integrations.slack.views.link_team import build_team_linking_url
+from sentry.integrations.slack.views.unlink_identity import (
+    SUCCESS_UNLINKED_MESSAGE,
+    build_unlinking_url,
+)
 from sentry.models import (
     ExternalActor,
     Identity,
@@ -177,6 +181,34 @@ class SlackCommandsLinkUserTest(SlackCommandsTest):
         assert len(responses.calls) >= 1
         data = json.loads(str(responses.calls[0].request.body.decode("utf-8")))
         assert SUCCESS_LINKED_MESSAGE in data["text"]
+
+    @responses.activate
+    def test_unlink_user_identity(self):
+        self.link_user()
+        assert self.find_identity()
+
+        unlinking_url = build_unlinking_url(
+            self.integration.id,
+            self.organization.id,
+            "UXXXXXXX1",
+            "CXXXXXXX9",
+            "http://example.slack.com/response_url",
+        )
+
+        response = self.client.get(unlinking_url)
+        assert response.status_code == 200
+        self.assertTemplateUsed(response, "sentry/auth-unlink-identity.html")
+
+        response = self.client.post(unlinking_url)
+        assert response.status_code == 200
+        self.assertTemplateUsed(response, "sentry/integrations/slack-unlinked.html")
+
+        # Assert that the identity was deleted.
+        assert not self.find_identity()
+
+        assert len(responses.calls) >= 1
+        data = json.loads(str(responses.calls[0].request.body.decode("utf-8")))
+        assert SUCCESS_UNLINKED_MESSAGE in data["text"]
 
     def test_link_command(self):
         data = self.send_slack_message("link")
