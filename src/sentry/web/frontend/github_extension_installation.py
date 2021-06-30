@@ -6,7 +6,7 @@ from .integration_extension_configuration import IntegrationExtensionConfigurati
 
 class GithubExtensionConfigurationView(IntegrationExtensionConfigurationView):
     provider = "github"
-    external_provider_key = "github"
+    external_provider_key = "github-extension"
 
     def map_params_to_state(self, params):
         # decode the signed params and add them to whatever params we have

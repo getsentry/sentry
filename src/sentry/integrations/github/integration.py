@@ -249,14 +249,42 @@ class GitHubIntegrationProvider(IntegrationProvider):
 class GitHubInstallationRedirect(PipelineView):
     def get_app_url(self):
         name = options.get("github-app.name")
-        return "https://github.com/apps/%s" % slugify(name)
+        return f"https://github.com/apps/{slugify(name)}"
 
     def dispatch(self, request, pipeline):
-        if "reinstall_id" in request.GET:
-            pipeline.bind_state("reinstall_id", request.GET["reinstall_id"])
 
-        if "installation_id" in request.GET:
-            pipeline.bind_state("installation_id", request.GET["installation_id"])
+        # If the url is signed, then we've already retrieved the request details
+        if "signed_params" in request.GET:
+            request_kwargs = pipeline.state.data.get("github")
+        else:
+            request_kwargs = request.GET
+
+        if "reinstall_id" in request_kwargs:
+            pipeline.bind_state("reinstall_id", request_kwargs["reinstall_id"])
+
+        if "installation_id" in request_kwargs:
+            pipeline.bind_state("installation_id", request_kwargs["installation_id"])
             return pipeline.next_step()
+
+        return self.redirect(self.get_app_url())
+
+
+class GitHubExtensionIntegrationProvider(GitHubIntegrationProvider):
+
+    key = "github-extension"
+    integration_key = "github"
+
+    # Only valid for Github -> Sentry installations. Don't expose it on the integrations page
+    visible = False
+
+    def get_pipeline_views(self):
+        views = super().get_pipeline_views()
+        views.append(GitHubExtensionFinishedView())
+        return views
+
+
+class GitHubExtensionFinishedView(GitHubInstallationRedirect):
+    def dispatch(self, request, pipeline):
+        pipeline.finish_pipeline()
 
         return self.redirect(self.get_app_url())

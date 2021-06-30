@@ -51,3 +51,18 @@ class GitHubIdentityProvider(OAuth2Provider):
             "scopes": [],  # GitHub apps do not have user scopes
             "data": self.get_oauth_data(data),
         }
+
+
+class GitHubExtensionIdentityProvider(GitHubIdentityProvider):
+    """
+    Functions exactly the same as ``GitHubIdentityProvider``.
+
+    This class is necessary because of how Integration Pipelines look up
+    sibling/dependent classes using ``key``.
+
+    The IntegrationProvider for the Github Extension is slightly different from
+    the Github version, so it requires a new class. Hence, the Identity portion
+    also requires a new class; this one.
+    """
+
+    key = "github-extension"

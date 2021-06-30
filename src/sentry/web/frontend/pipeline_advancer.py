@@ -36,6 +36,7 @@ class PipelineAdvancerView(BaseView):
             if pipeline:
                 break
 
+        # For github -> sentry installs, we will sign the url before continuing.
         if (
             provider_id in FORWARD_INSTALL_FOR
             and request.GET.get("setup_action") == "install"
