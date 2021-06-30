@@ -12,7 +12,8 @@ import {Client} from 'app/api';
 import ButtonBar from 'app/components/buttonBar';
 import DropdownLink from 'app/components/dropdownLink';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
-import renderQuery from 'app/components/searchSyntax/renderer';
+import {ParseResult, parseSearch} from 'app/components/searchSyntax/parser';
+import HighlightQuery from 'app/components/searchSyntax/renderer';
 import {
   DEFAULT_DEBOUNCE_DURATION,
   MAX_AUTOCOMPLETE_RELEASES,
@@ -197,6 +198,11 @@ type State = {
    */
   query: string;
   /**
+   * The query parsed into an AST. If the query fails to parse this will be
+   * null.
+   */
+  parsedQuery: ParseResult | null;
+  /**
    * The query in the input since we last updated our autocomplete list.
    */
   previousQuery?: string;
@@ -240,10 +246,8 @@ class SmartSearchBar extends React.Component<Props, State> {
   };
 
   state: State = {
-    query:
-      this.props.query !== null
-        ? addSpace(this.props.query)
-        : this.props.defaultQuery ?? '',
+    query: this.initialQuery,
+    parsedQuery: parseSearch(this.initialQuery),
     searchTerm: '',
     searchGroups: [],
     flatSearchItems: [],
@@ -267,13 +271,18 @@ class SmartSearchBar extends React.Component<Props, State> {
     this.inputResizeObserver.observe(this.containerRef.current);
   }
 
-  componentDidUpdate(prevProps: Props) {
+  componentDidUpdate(prevProps: Props, prevState: State) {
     const {query} = this.props;
     const {query: lastQuery} = prevProps;
 
     if (query !== lastQuery && defined(query)) {
       // eslint-disable-next-line react/no-did-update-set-state
       this.setState({query: addSpace(query)});
+    }
+
+    if (this.state.query !== prevState.query) {
+      // eslint-disable-next-line react/no-did-update-set-state
+      this.setState({parsedQuery: parseSearch(this.state.query)});
     }
   }
 
@@ -283,6 +292,11 @@ class SmartSearchBar extends React.Component<Props, State> {
     if (this.blurTimeout) {
       clearTimeout(this.blurTimeout);
     }
+  }
+
+  get initialQuery() {
+    const {query, defaultQuery} = this.props;
+    return query !== null ? addSpace(query) : defaultQuery ?? '';
   }
 
   /**
@@ -991,8 +1005,15 @@ class SmartSearchBar extends React.Component<Props, State> {
       maxQueryLength,
     } = this.props;
 
-    const {query, searchGroups, searchTerm, dropdownVisible, numActionsVisible, loading} =
-      this.state;
+    const {
+      query,
+      parsedQuery,
+      searchGroups,
+      searchTerm,
+      dropdownVisible,
+      numActionsVisible,
+      loading,
+    } = this.state;
 
     const hasSyntaxHighlight = organization.features.includes('search-syntax-highlight');
 
@@ -1014,7 +1035,6 @@ class SmartSearchBar extends React.Component<Props, State> {
         disabled={disabled}
         maxLength={maxQueryLength}
         spellCheck={false}
-        hiddenText={hasSyntaxHighlight}
       />
     );
 
@@ -1035,6 +1055,8 @@ class SmartSearchBar extends React.Component<Props, State> {
       .slice(numActionsVisible)
       .map(({key, Action}) => <Action key={key} {...actionProps} menuItemVariant />);
 
+    const cursor = this.getCursorPosition();
+
     return (
       <Container ref={this.containerRef} className={className} isOpen={dropdownVisible}>
         <SearchLabel htmlFor="smart-search-input" aria-label={t('Search events')}>
@@ -1043,7 +1065,16 @@ class SmartSearchBar extends React.Component<Props, State> {
         </SearchLabel>
 
         <InputWrapper>
-          {hasSyntaxHighlight && <Highlight>{renderQuery(query)}</Highlight>}
+          <Highlight>
+            {hasSyntaxHighlight && parsedQuery !== null ? (
+              <HighlightQuery
+                parsedQuery={parsedQuery}
+                cursorPosition={cursor === -1 ? undefined : cursor}
+              />
+            ) : (
+              query
+            )}
+          </Highlight>
           {useFormWrapper ? <form onSubmit={this.onSubmit}>{input}</form> : input}
         </InputWrapper>
 
@@ -1162,7 +1193,7 @@ const Highlight = styled('div')`
 
 const SearchInput = styled(TextareaAutosize, {
   shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop),
-})<{hiddenText: boolean}>`
+})`
   position: relative;
   display: flex;
   resize: none;
@@ -1176,8 +1207,7 @@ const SearchInput = styled(TextareaAutosize, {
   font-size: ${p => p.theme.fontSizeSmall};
   font-family: ${p => p.theme.text.familyMono};
   caret-color: ${p => p.theme.subText};
-
-  ${p => p.hiddenText && 'color: transparent'};
+  color: transparent;
 
   &::selection {
     background: rgba(0, 0, 0, 0.2);

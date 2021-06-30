@@ -136,7 +136,12 @@ jest.mock('@sentry/react', () => {
     withScope: jest.spyOn(SentryReact, 'withScope'),
     Severity: SentryReact.Severity,
     withProfiler: SentryReact.withProfiler,
-    startTransaction: () => ({finish: jest.fn(), setTag: jest.fn()}),
+    startTransaction: () => ({
+      finish: jest.fn(),
+      setTag: jest.fn(),
+      setData: jest.fn(),
+      setStatus: jest.fn(),
+    }),
   };
 });
 

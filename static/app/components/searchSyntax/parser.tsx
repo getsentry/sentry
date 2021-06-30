@@ -1,3 +1,5 @@
+import * as Sentry from '@sentry/react';
+import {SpanStatus} from '@sentry/tracing';
 import moment from 'moment';
 import {LocationRange} from 'pegjs';
 
@@ -765,8 +767,23 @@ const options = {
 };
 
 /**
- * Parse a search query into a ParseResult
+ * Parse a search query into a ParseResult. Failing to parse the search query
+ * will result in null.
  */
-export function parseSearch(query: string): ParseResult {
-  return grammar.parse(query, options);
+export function parseSearch(query: string): ParseResult | null {
+  const transaction = Sentry.startTransaction({name: 'parseSearch'});
+  transaction.setData('query', query);
+
+  let parsed: ParseResult | null = null;
+
+  try {
+    parsed = grammar.parse(query, options);
+  } catch (e) {
+    transaction.setData('parseError', String(e));
+  }
+
+  transaction.setStatus(parsed === null ? SpanStatus.UnknownError : SpanStatus.Ok);
+  transaction.finish();
+
+  return parsed;
 }
