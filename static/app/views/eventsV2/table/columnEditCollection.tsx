@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import Feature from 'app/components/acl/feature';
 import Button from 'app/components/button';
 import {SectionHeading} from 'app/components/charts/styles';
+import FeatureBadge from 'app/components/featureBadge';
 import {IconAdd, IconDelete, IconGrabbable} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -400,6 +401,7 @@ class ColumnEditCollection extends React.Component<Props, State> {
                 icon={<IconAdd isCircled size="xs" />}
               >
                 {t('Add an Equation')}
+                <StyledFeatureBadge type="beta" />
               </Button>
             </Feature>
           </Actions>
@@ -408,6 +410,11 @@ class ColumnEditCollection extends React.Component<Props, State> {
     );
   }
 }
+
+const StyledFeatureBadge = styled(FeatureBadge)`
+  margin: -${space(0.5)} auto;
+  margin-left: ${space(1)};
+`;
 
 const RowContainer = styled('div')`
   display: grid;
