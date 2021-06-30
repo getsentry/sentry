@@ -146,7 +146,7 @@
     "@storybook/addon-storysource": "6.3.1",
     "@storybook/addons": "6.3.1",
     "@storybook/builder-webpack5": "6.3.1",
-    "@storybook/manager-webpack5": "6.3.1",
+    "@storybook/manager-webpack5": "6.3.2",
     "@storybook/react": "6.3.1",
     "@storybook/theming": "6.3.1",
     "@visual-snapshot/jest": "^3.0.0",
