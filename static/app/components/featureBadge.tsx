@@ -17,8 +17,7 @@ type BadgeProps = {
   noTooltip?: boolean;
 };
 
-type Props = Omit<React.HTMLAttributes<HTMLDivElement>, keyof BadgeProps | 'css'> &
-  BadgeProps;
+type Props = Omit<React.HTMLAttributes<HTMLDivElement>, keyof BadgeProps> & BadgeProps;
 
 const defaultTitles = {
   alpha: t('This feature is in alpha and may be unstable'),
