@@ -507,61 +507,63 @@ class ReleaseOverview extends AsyncView<Props> {
                       location={location}
                       defaultStatsPeriod={defaultStatsPeriod}
                       releaseBounds={releaseBounds}
-                  queryFilterDescription={t('In this release')}
-                  withChart
-                />
-                <Feature features={['performance-view']}>
-                  <TransactionsList
-                    location={location}
-                    organization={organization}
-                    eventView={releaseEventView}
-                    trendView={releaseTrendView}
-                    selected={selectedSort}
-                    options={sortOptions}
-                    handleDropdownChange={this.handleTransactionsListSortChange}
-                    titles={titles}
-                    generateLink={generateLink}
-                  />
-                </Feature>
-              </Main>
-              <Side>
-                <ReleaseStats
-                  organization={organization}
-                  release={release}
-                  project={project}
-                  location={location}
-                  selection={selection}
-                  hasHealthData={hasHealthData}
-                  getHealthData={getHealthData}
-                  isHealthLoading={isHealthLoading}
-                />
-                <ProjectReleaseDetails
-                  release={release}
-                  releaseMeta={releaseMeta}
-                  orgSlug={organization.slug}
-                  projectSlug={project.slug}
-                />
-                {commitCount > 0 && (
-                  <CommitAuthorBreakdown
-                    version={version}
-                    orgId={organization.slug}
-                    projectSlug={project.slug}
-                  />
-                )}
-                {releaseMeta.projects.length > 1 && (
-                  <OtherProjects
-                    projects={releaseMeta.projects.filter(p => p.slug !== project.slug)}
-                    location={location}
-                    version={version}
-                    organization={organization}
-                  />
-                )}
-                {hasHealthData && (
-                  <TotalCrashFreeUsers
-                    organization={organization}
-                    version={version}
-                    projectSlug={project.slug}
-                    location={location}
+                      queryFilterDescription={t('In this release')}
+                      withChart
+                    />
+                    <Feature features={['performance-view']}>
+                      <TransactionsList
+                        location={location}
+                        organization={organization}
+                        eventView={releaseEventView}
+                        trendView={releaseTrendView}
+                        selected={selectedSort}
+                        options={sortOptions}
+                        handleDropdownChange={this.handleTransactionsListSortChange}
+                        titles={titles}
+                        generateLink={generateLink}
+                      />
+                    </Feature>
+                  </Main>
+                  <Side>
+                    <ReleaseStats
+                      organization={organization}
+                      release={release}
+                      project={project}
+                      location={location}
+                      selection={selection}
+                      hasHealthData={hasHealthData}
+                      getHealthData={getHealthData}
+                      isHealthLoading={isHealthLoading}
+                    />
+                    <ProjectReleaseDetails
+                      release={release}
+                      releaseMeta={releaseMeta}
+                      orgSlug={organization.slug}
+                      projectSlug={project.slug}
+                    />
+                    {commitCount > 0 && (
+                      <CommitAuthorBreakdown
+                        version={version}
+                        orgId={organization.slug}
+                        projectSlug={project.slug}
+                      />
+                    )}
+                    {releaseMeta.projects.length > 1 && (
+                      <OtherProjects
+                        projects={releaseMeta.projects.filter(
+                          p => p.slug !== project.slug
+                        )}
+                        location={location}
+                        version={version}
+                        organization={organization}
+                      />
+                    )}
+                    {hasHealthData && (
+                      <TotalCrashFreeUsers
+                        organization={organization}
+                        version={version}
+                        projectSlug={project.slug}
+                        location={location}
                       />
                     )}
                     {deploys.length > 0 && (
