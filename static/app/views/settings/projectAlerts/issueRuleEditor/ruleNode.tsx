@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {openModal} from 'app/actionCreators/modal';
 import Alert from 'app/components/alert';
 import Button from 'app/components/button';
+import FeatureBadge from 'app/components/featureBadge';
 import SelectControl from 'app/components/forms/selectControl';
 import ExternalLink from 'app/components/links/externalLink';
 import {IconDelete, IconSettings} from 'app/icons';
@@ -18,6 +19,7 @@ import {
   IssueAlertRuleConditionTemplate,
   MailActionTargetType,
 } from 'app/types/alerts';
+import {EVENT_FREQUENCY_PERCENT_CONDITION} from 'app/views/projectInstall/issueAlertOptions';
 import Input from 'app/views/settings/components/forms/controls/input';
 
 import MemberTeamFields from './memberTeamFields';
@@ -246,6 +248,16 @@ class RuleNode extends React.Component<Props> {
 
   conditionallyRenderHelpfulBanner() {
     const {data, project, organization} = this.props;
+
+    if (data.id === EVENT_FREQUENCY_PERCENT_CONDITION) {
+      return (
+        <MarginlessAlert type="warning">
+          {t(
+            'This is an approximation and will trigger when the ratio of the issue’s frequency to the number of sessions exceeds the threshold.'
+          )}
+        </MarginlessAlert>
+      );
+    }
     /**
      * Would prefer to check if data is of `IssueAlertRuleAction` type, however we can't do typechecking at runtime as
      * user defined types are erased through transpilation.
@@ -322,10 +334,12 @@ class RuleNode extends React.Component<Props> {
   render() {
     const {data, disabled, index, node, organization} = this.props;
     const ticketRule = node?.hasOwnProperty('actionType');
+    const isBeta = node?.id === EVENT_FREQUENCY_PERCENT_CONDITION;
     return (
       <RuleRowContainer>
         <RuleRow>
           <Rule>
+            {isBeta && <StyledFeatureBadge type="beta" />}
             {data && <input type="hidden" name="id" value={data.id} />}
             {this.renderRow()}
             {ticketRule && node && (
@@ -413,5 +427,15 @@ const DeleteButton = styled(Button)`
 `;
 
 const MarginlessAlert = styled(Alert)`
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  border-width: 0;
+  border-top: 1px ${p => p.theme.innerBorder} solid;
   margin: 0;
+  padding: ${space(1)} ${space(1)};
+  font-size: ${p => p.theme.fontSizeSmall};
+`;
+
+const StyledFeatureBadge = styled(FeatureBadge)`
+  margin: 0 ${space(1)} 0 0;
 `;

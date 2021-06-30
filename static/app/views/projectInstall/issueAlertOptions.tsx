@@ -29,6 +29,8 @@ const UNIQUE_USER_FREQUENCY_CONDITION =
 const EVENT_FREQUENCY_CONDITION =
   'sentry.rules.conditions.event_frequency.EventFrequencyCondition';
 const NOTIFY_EVENT_ACTION = 'sentry.rules.actions.notify_event.NotifyEventAction';
+export const EVENT_FREQUENCY_PERCENT_CONDITION =
+  'sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition';
 
 const METRIC_CONDITION_MAP = {
   [MetricValues.ERRORS]: EVENT_FREQUENCY_CONDITION,
