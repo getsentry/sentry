@@ -441,6 +441,7 @@ class ReleaseOverview extends AsyncView<Props> {
                               end={end ?? null}
                               utc={utc ?? null}
                               onUpdate={this.handleDateChange}
+                              showAbsolute={false}
                               relativeOptions={{
                                 [RELEASE_PERIOD_KEY]: (
                                   <Fragment>
@@ -464,6 +465,7 @@ class ReleaseOverview extends AsyncView<Props> {
                             <ReleaseComparisonChart
                               releaseSessions={thisRelease}
                               allSessions={allReleases}
+                              platform={project.platform}
                             />
                           </Fragment>
                         ) : (

@@ -9,11 +9,14 @@ import {
   FilesByRepository,
   GlobalSelection,
   LightWeightOrganization,
+  ReleaseComparisonChartType,
   Repository,
 } from 'app/types';
 import {getUtcDateString} from 'app/utils/dates';
 import EventView from 'app/utils/discover/eventView';
 import {QueryResults} from 'app/utils/tokenizeSearch';
+
+import {commonTermsDescription, SessionTerm} from '../utils/sessionTerm';
 
 export type CommitsByRepository = {
   [key: string]: Commit[];
@@ -131,3 +134,21 @@ export function getReleaseEventView(
 
   return EventView.fromSavedQuery(discoverQuery);
 }
+
+export const releaseComparisonChartLabels = {
+  [ReleaseComparisonChartType.CRASH_FREE_SESSIONS]: t('Crash Free Sessions'),
+  [ReleaseComparisonChartType.CRASH_FREE_USERS]: t('Crash Free Users'),
+  [ReleaseComparisonChartType.SESSION_COUNT]: t('Session Count'),
+  [ReleaseComparisonChartType.USER_COUNT]: t('User Count'),
+};
+
+export const releaseComparisonChartHelp = {
+  [ReleaseComparisonChartType.CRASH_FREE_SESSIONS]:
+    commonTermsDescription[SessionTerm.CRASH_FREE_SESSIONS],
+  [ReleaseComparisonChartType.CRASH_FREE_USERS]:
+    commonTermsDescription[SessionTerm.CRASH_FREE_USERS],
+  [ReleaseComparisonChartType.SESSION_COUNT]: t(
+    'The number of sessions in a given period.'
+  ),
+  [ReleaseComparisonChartType.USER_COUNT]: t('The number of users in a given period.'),
+};
