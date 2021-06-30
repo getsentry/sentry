@@ -180,27 +180,27 @@ class TransactionEvents extends Component<Props, State> {
     const percentileColumns: QueryFieldValue[] = [
       {
         kind: 'function',
-        function: ['p100', '', undefined],
+        function: ['p100', '', undefined, undefined],
       },
       {
         kind: 'function',
-        function: ['p99', '', undefined],
+        function: ['p99', '', undefined, undefined],
       },
       {
         kind: 'function',
-        function: ['p95', '', undefined],
+        function: ['p95', '', undefined, undefined],
       },
       {
         kind: 'function',
-        function: ['p75', '', undefined],
+        function: ['p75', '', undefined, undefined],
       },
       {
         kind: 'function',
-        function: ['p50', '', undefined],
+        function: ['p50', '', undefined, undefined],
       },
       {
         kind: 'function',
-        function: ['avg', 'transaction.duration', undefined],
+        function: ['avg', 'transaction.duration', undefined, undefined],
       },
     ];
 
