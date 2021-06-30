@@ -12,6 +12,7 @@ import GridEditable, {
 import SortLink from 'app/components/gridEditable/sortLink';
 import Link from 'app/components/links/link';
 import Tooltip from 'app/components/tooltip';
+import Truncate from 'app/components/truncate';
 import {IconStack} from 'app/icons';
 import {t} from 'app/locale';
 import {Organization, Project} from 'app/types';
@@ -200,24 +201,26 @@ class TableView extends React.Component<TableViewProps> {
     }
     const currentSort = eventView.sortForField(field, tableMeta);
     const canSort = isFieldSortable(field, tableMeta);
+    const titleText = isEquationAlias(column.name)
+      ? eventView.getEquations()[getEquationAliasIndex(column.name)]
+      : column.name;
+    const titleElement = <Truncate value={titleText} maxLength={60} expandable={false} />;
+    const title =
+      titleText.length > 60 ? (
+        <Tooltip title={titleText}>{titleElement}</Tooltip>
+      ) : (
+        titleElement
+      );
 
-    const sortLink = (
+    return (
       <SortLink
         align={align}
-        title={column.name}
+        title={title}
         direction={currentSort ? currentSort.kind : undefined}
         canSort={canSort}
         generateSortLink={generateSortLink}
       />
     );
-    if (isEquationAlias(column.name)) {
-      return (
-        <Tooltip title={eventView.getEquations()[getEquationAliasIndex(column.name)]}>
-          {sortLink}
-        </Tooltip>
-      );
-    }
-    return sortLink;
   };
 
   _renderGridBodyCell = (
