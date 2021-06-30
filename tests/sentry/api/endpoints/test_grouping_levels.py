@@ -111,12 +111,16 @@ def test_downwards(default_project, store_stacktrace, reset_snuba, _render_all_p
         store_stacktrace(["bar3", "foo"]),
     ]
 
-    assert [e.title for e in events] == [
-        "bam | baz2 | bar2 | foo",
-        "baz | bar | foo",
-        "baz2 | bar2 | foo",
-        "bar3 | foo",
-    ]
+    assert (
+        [e.title for e in events]
+        == [e.data["title"] for e in events]
+        == [
+            "bam | baz2 | bar2 | foo",
+            "baz | bar | foo",
+            "baz2 | bar2 | foo",
+            "bar3 | foo",
+        ]
+    )
 
     assert len({e.group_id for e in events}) == 1
     group = events[0].group
