@@ -22,6 +22,7 @@ import {tokenizeSearch} from 'app/utils/tokenizeSearch';
 import {Actions} from 'app/views/eventsV2/table/cellAction';
 import {TableColumn} from 'app/views/eventsV2/table/types';
 import {decodeColumnOrder} from 'app/views/eventsV2/utils';
+import {SpanOperationBreakdownFilter} from 'app/views/performance/transactionSummary/filter';
 import {mapShowTransactionToPercentile} from 'app/views/performance/transactionSummary/transactionEvents/utils';
 import {TransactionFilterOptions} from 'app/views/performance/transactionSummary/utils';
 import {TrendChangeType, TrendView} from 'app/views/performance/trends/types';
@@ -126,7 +127,7 @@ type Props = {
   generateDiscoverEventView?: () => EventView;
   generatePerformanceTransactionEventsView?: () => EventView;
   showTransactions?: TransactionFilterOptions;
-  breakdown?: string;
+  breakdown?: SpanOperationBreakdownFilter;
 };
 
 class TransactionsList extends React.Component<Props> {
