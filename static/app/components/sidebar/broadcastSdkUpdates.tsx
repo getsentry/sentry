@@ -95,7 +95,7 @@ const UpdatesList = styled('div')`
   margin-top: ${space(3)};
   display: grid;
   grid-auto-flow: row;
-  grid-gap: ${space(2)};
+  grid-gap: ${space(3)};
 `;
 
 const Suggestions = styled('div')`
@@ -113,6 +113,7 @@ const SdkProjectBadge = styled(ProjectBadge)`
 const SdkName = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
   font-weight: bold;
+  margin-bottom: ${space(1)};
 `;
 
 const SdkOutdatedVersion = styled('span')`
