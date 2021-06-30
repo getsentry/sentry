@@ -11,16 +11,18 @@ EVENT_MESSAGE = (
 HEADER_MESSAGE = "Here are the commands you can use. Commands not working? Re-install the app!"
 DM_COMMAND_HEADER = "*Direct Message Commands:*"
 CHANNEL_COMMANDS_HEADER = "*Channel Commands:*"
-GENERAL_MESSAGE = "Just want to learn more about Sentry? Check out our documentation."
+CONTACT_HEADER = "*Contact:*"
+GENERAL_MESSAGE = "Just want to learn more about Sentry? Check out our <https://docs.sentry.io/product/alerts-notifications/alerts/|documentation>."
 
 DM_COMMANDS = {
-    "link": "Link your Slack account to Sentry",
-    "unlink": "Unlink your Slack account from Sentry",
-    "help": "View this list of commands",
+    "link": "Link your Slack identity to your Sentry account to receive notifications. You'll also be able to perform actions in Sentry through Slack.",
+    "unlink": "Unlink your Slack identity from your Sentry account.",
+    "help": "View this list of commands.",
 }
 CHANNEL_COMMANDS = {
-    "link team": "Type this into the channel in which you want your team to receive issue alert notifications"
+    "link team": "Get your Sentry team's issue alert notifications in the channel this command is typed in."
 }
+CONTACT_MESSAGE = "Let us know if you have feedback: ecosystem-feedback@sentry.io"
 
 
 def list_commands(commands: Mapping[str, str]) -> str:
@@ -64,7 +66,8 @@ class SlackEventMessageBuilder(BlockSlackMessageBuilder):
             self.get_markdown_block(DM_COMMANDS_MESSAGE),
             self.get_markdown_block(CHANNEL_COMMANDS_HEADER),
             self.get_markdown_block(CHANNEL_COMMANDS_MESSAGE),
+            self.get_markdown_block(CONTACT_HEADER),
+            self.get_markdown_block(CONTACT_MESSAGE),
             self.get_divider(),
             self.get_markdown_block(GENERAL_MESSAGE),
-            action_block,
         )
