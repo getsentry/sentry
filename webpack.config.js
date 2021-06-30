@@ -326,6 +326,7 @@ let appConfig = {
     ...(SHOULD_FORK_TS
       ? [
           new ForkTsCheckerWebpackPlugin({
+            logger: {devServer: false},
             typescript: {
               configFile: path.resolve(__dirname, './config/tsconfig.build.json'),
               configOverwrite: {
