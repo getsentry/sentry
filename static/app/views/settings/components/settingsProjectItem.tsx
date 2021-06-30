@@ -1,8 +1,7 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
-import Link from 'app/components/links/link';
-import ProjectLabel from 'app/components/projectLabel';
+import ProjectBadge from 'app/components/idBadge/projectBadge';
 import BookmarkStar from 'app/components/projects/bookmarkStar';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
@@ -36,9 +35,11 @@ class ProjectItem extends Component<Props, State> {
           isBookmarked={this.state.isBookmarked}
           onToggle={this.handleToggleBookmark}
         />
-        <Link to={`/settings/${organization.slug}/projects/${project.slug}/`}>
-          <ProjectLabel project={project} />
-        </Link>
+        <ProjectBadge
+          to={`/settings/${organization.slug}/projects/${project.slug}/`}
+          avatarSize={18}
+          project={project}
+        />
       </Wrapper>
     );
   }
