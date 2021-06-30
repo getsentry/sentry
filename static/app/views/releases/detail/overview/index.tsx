@@ -466,6 +466,7 @@ class ReleaseOverview extends AsyncView<Props> {
                               releaseSessions={thisRelease}
                               allSessions={allReleases}
                               platform={project.platform}
+                              location={location}
                             />
                           </Fragment>
                         ) : (

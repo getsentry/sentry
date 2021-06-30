@@ -1,5 +1,7 @@
-import {Fragment, useState} from 'react';
+import {Fragment} from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 import round from 'lodash/round';
 
 import {ChartContainer} from 'app/components/charts/styles';
@@ -14,6 +16,7 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {ReleaseComparisonChartType, SessionApiResponse, SessionField} from 'app/types';
 import {defined, percent} from 'app/utils';
+import {decodeScalar} from 'app/utils/queryString';
 import {getCount, getCrashFreeRate, getCrashFreeSeries} from 'app/utils/sessions';
 import {Color} from 'app/utils/theme';
 import {displayCrashFreePercent} from 'app/views/releases/utils';
@@ -39,12 +42,19 @@ type Props = {
   releaseSessions: SessionApiResponse | null;
   allSessions: SessionApiResponse | null;
   platform: PlatformKey;
+  location: Location;
 };
 
-function ReleaseComparisonChart({releaseSessions, allSessions, platform}: Props) {
-  const [activeChart, setActiveChart] = useState(
+function ReleaseComparisonChart({
+  releaseSessions,
+  allSessions,
+  platform,
+  location,
+}: Props) {
+  const activeChart = decodeScalar(
+    location.query.chart,
     ReleaseComparisonChartType.CRASH_FREE_SESSIONS
-  );
+  ) as ReleaseComparisonChartType;
 
   const releaseCrashFreeSessions = getCrashFreeRate(
     releaseSessions?.groups,
@@ -235,6 +245,16 @@ function ReleaseComparisonChart({releaseSessions, allSessions, platform}: Props)
     }
   }
 
+  function handleChartChange(chartType: ReleaseComparisonChartType) {
+    browserHistory.push({
+      ...location,
+      query: {
+        ...location.query,
+        chart: chartType,
+      },
+    });
+  }
+
   const {series, previousSeries} = getSeries(activeChart);
 
   return (
@@ -275,7 +295,7 @@ function ReleaseComparisonChart({releaseSessions, allSessions, platform}: Props)
                       id={type}
                       disabled={false}
                       checked={type === activeChart}
-                      onChange={() => setActiveChart(type)}
+                      onChange={() => handleChartChange(type)}
                     />
                     {releaseComparisonChartLabels[type]}
                   </ChartToggle>
