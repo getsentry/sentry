@@ -805,10 +805,13 @@ class ReleaseFilterBySemverTest(TestCase):
         with pytest.raises(InvalidSearchQuery, match="Invalid format for semver query"):
             Release.objects.filter_by_semver(self.organization.id, parse_semver("1.2.hi", ">"))
 
-    def run_test(self, operator, version, expected_releases, organization_id=None):
+    def run_test(self, operator, version, expected_releases, organization_id=None, projects=None):
         organization_id = organization_id if organization_id else self.organization.id
+        project_ids = [p.id for p in projects] if projects else None
         assert set(
-            Release.objects.filter_by_semver(organization_id, parse_semver(version, operator))
+            Release.objects.filter_by_semver(
+                organization_id, parse_semver(version, operator), project_ids=project_ids
+            )
         ) == set(expected_releases)
 
     def test(self):
@@ -867,3 +870,25 @@ class ReleaseFilterBySemverTest(TestCase):
         self.run_test("=", "1.2.3.*", [release_3, release_4])
         self.run_test("=", "1.2.3.4", [release_4])
         self.run_test("=", "2.*", [release_5])
+
+    def test_package(self):
+        release = self.create_release(version="test@1.2.3")
+        release_2 = self.create_release(version="test2@1.2.3")
+        self.run_test(">=", "test@1.2.3", [release])
+        self.run_test(">=", "test2@1.2.3", [release_2])
+
+    def test_project(self):
+        project_2 = self.create_project()
+        release = self.create_release(version="test@1.2.3")
+        release_2 = self.create_release(version="test@1.2.4")
+        release_3 = self.create_release(version="test@1.2.5", additional_projects=[project_2])
+        release_4 = self.create_release(version="test@1.2.6", project=project_2)
+        self.run_test(">=", "test@1.2.3", [release, release_2, release_3, release_4])
+        self.run_test(
+            ">=",
+            "test@1.2.3",
+            [release, release_2, release_3, release_4],
+            projects=[self.project, project_2],
+        )
+        self.run_test(">=", "test@1.2.3", [release, release_2, release_3], projects=[self.project])
+        self.run_test(">=", "test@1.2.3", [release_3, release_4], projects=[project_2])

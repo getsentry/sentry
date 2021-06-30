@@ -8,7 +8,13 @@ from pytz import UTC
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 
 from sentry.api.utils import default_start_end_dates
-from sentry.models import Project, Release, ReleaseProjectEnvironment
+from sentry.models import (
+    Project,
+    Release,
+    ReleaseEnvironment,
+    ReleaseProject,
+    ReleaseProjectEnvironment,
+)
 from sentry.search.events.constants import (
     PROJECT_ALIAS,
     SEMVER_ALIAS,
@@ -767,7 +773,11 @@ class SnubaTagStorage(TagStorage):
                     .distinct()
                 )
                 versions = Release.objects.filter(
-                    organization_id=organization_id, package__in=packages
+                    organization_id=organization_id,
+                    package__in=packages,
+                    id__in=ReleaseProject.objects.filter(project_id__in=projects).values_list(
+                        "release_id", flat=True
+                    ),
                 ).annotate_prerelease_column()
             else:
                 if not version:
@@ -778,10 +788,16 @@ class SnubaTagStorage(TagStorage):
                     version += "*"
 
                 versions = Release.objects.filter_by_semver(
-                    organization_id, parse_semver(version, "=")
+                    organization_id,
+                    parse_semver(version, "="),
+                    project_ids=projects,
                 )
             if environments:
-                versions = versions.filter(releaseenvironment__environment_id__in=environments)
+                versions = versions.filter(
+                    id__in=ReleaseEnvironment.objects.filter(
+                        environment_id__in=environments
+                    ).values_list("release_id", flat=True)
+                )
 
             versions = versions.order_by(*Release.SEMVER_COLS, "package").values_list(
                 "version", flat=True
