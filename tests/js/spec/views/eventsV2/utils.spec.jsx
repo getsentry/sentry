@@ -472,6 +472,34 @@ describe('getExpandedResults()', function () {
     expect(result.query).toEqual('some_tag:value');
   });
 
+  it('removes equations on aggregates', () => {
+    const view = new EventView({
+      ...state,
+      fields: [{field: 'count()'}, {field: 'equation|count() / 2'}],
+    });
+    const result = getExpandedResults(view, {});
+    expect(result.fields).toEqual([
+      {
+        field: 'id',
+        width: -1,
+      },
+    ]);
+  });
+
+  it('keeps equations without aggregates', () => {
+    const view = new EventView({
+      ...state,
+      fields: [{field: 'count()'}, {field: 'equation|transaction.duration / 2'}],
+    });
+    const result = getExpandedResults(view, {});
+    expect(result.fields).toEqual([
+      {
+        field: 'equation|transaction.duration / 2',
+        width: -1,
+      },
+    ]);
+  });
+
   it('applies array value conditions from event data', () => {
     const view = new EventView({
       ...state,
