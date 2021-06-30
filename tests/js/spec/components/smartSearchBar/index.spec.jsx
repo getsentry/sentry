@@ -2,36 +2,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 
 import {Client} from 'app/api';
 import {SmartSearchBar} from 'app/components/smartSearchBar';
-import {addSpace, removeSpace} from 'app/components/smartSearchBar/utils';
 import TagStore from 'app/stores/tagStore';
-
-describe('addSpace()', function () {
-  it('should add a space when there is no trailing space', function () {
-    expect(addSpace('one')).toEqual('one ');
-  });
-
-  it('should not add another space when there is already one', function () {
-    expect(addSpace('one ')).toEqual('one ');
-  });
-
-  it('should leave the empty string alone', function () {
-    expect(addSpace('')).toEqual('');
-  });
-});
-
-describe('removeSpace()', function () {
-  it('should remove a trailing space', function () {
-    expect(removeSpace('one ')).toEqual('one');
-  });
-
-  it('should not remove the last character if it is not a space', function () {
-    expect(removeSpace('one')).toEqual('one');
-  });
-
-  it('should leave the empty string alone', function () {
-    expect(removeSpace('')).toEqual('');
-  });
-});
 
 describe('SmartSearchBar', function () {
   let location, options, organization, supportedTags;
@@ -287,37 +258,6 @@ describe('SmartSearchBar', function () {
       searchBar.setProps({query: 'three'});
 
       expect(searchBar.state().query).toEqual('three ');
-    });
-  });
-
-  describe('getQueryTerms()', function () {
-    it('should extract query terms from a query string', function () {
-      let query = 'tagname: ';
-      expect(SmartSearchBar.getQueryTerms(query, query.length)).toEqual(['tagname:']);
-
-      query = 'tagname:derp browser:';
-      expect(SmartSearchBar.getQueryTerms(query, query.length)).toEqual([
-        'tagname:derp',
-        'browser:',
-      ]);
-
-      query = '   browser:"Chrome 33.0"    ';
-      expect(SmartSearchBar.getQueryTerms(query, query.length)).toEqual([
-        'browser:"Chrome 33.0"',
-      ]);
-    });
-  });
-
-  describe('getLastTermIndex()', function () {
-    it('should provide the index of the last query term, given cursor index', function () {
-      let query = 'tagname:';
-      expect(SmartSearchBar.getLastTermIndex(query, 0)).toEqual(8);
-
-      query = 'tagname:foo'; // 'f' (index 9)
-      expect(SmartSearchBar.getLastTermIndex(query, 9)).toEqual(11);
-
-      query = 'tagname:foo anothertag:bar'; // 'f' (index 9)
-      expect(SmartSearchBar.getLastTermIndex(query, 9)).toEqual(11);
     });
   });
 
@@ -774,89 +714,6 @@ describe('SmartSearchBar', function () {
       searchBar.getCursorPosition = jest.fn().mockReturnValueOnce(5);
       searchBar.onAutoComplete('ip:127.0.0.1', {});
       expect(searchBar.state.query).toEqual('user:"ip:127.0.0.1"');
-    });
-  });
-
-  describe('onTogglePinnedSearch()', function () {
-    let pinRequest, unpinRequest;
-    beforeEach(function () {
-      pinRequest = MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/pinned-searches/',
-        method: 'PUT',
-        body: [],
-      });
-      unpinRequest = MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/pinned-searches/',
-        method: 'DELETE',
-        body: [],
-      });
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/recent-searches/',
-        method: 'POST',
-        body: {},
-      });
-    });
-
-    it('does not pin when query is empty', async function () {
-      const wrapper = mountWithTheme(
-        <SmartSearchBar
-          api={new Client()}
-          organization={organization}
-          query=""
-          supportedTags={supportedTags}
-          savedSearchType={0}
-          location={location}
-          hasPinnedSearch
-        />,
-        options
-      );
-      wrapper.find('button[aria-label="Pin this search"]').simulate('click');
-      await wrapper.update();
-
-      expect(pinRequest).not.toHaveBeenCalled();
-    });
-
-    it('adds pins', async function () {
-      const wrapper = mountWithTheme(
-        <SmartSearchBar
-          api={new Client()}
-          organization={organization}
-          query="is:unresolved"
-          supportedTags={supportedTags}
-          savedSearchType={0}
-          location={location}
-          hasPinnedSearch
-        />,
-        options
-      );
-      wrapper.find('button[aria-label="Pin this search"]').simulate('click');
-      await wrapper.update();
-
-      expect(pinRequest).toHaveBeenCalled();
-      expect(unpinRequest).not.toHaveBeenCalled();
-    });
-
-    it('removes pins', async function () {
-      const pinnedSearch = TestStubs.Search({isPinned: true});
-      const wrapper = mountWithTheme(
-        <SmartSearchBar
-          api={new Client()}
-          organization={organization}
-          query="is:unresolved"
-          supportedTags={supportedTags}
-          savedSearchType={0}
-          location={location}
-          pinnedSearch={pinnedSearch}
-          hasPinnedSearch
-        />,
-        options
-      );
-
-      wrapper.find('button[aria-label="Unpin this search"]').simulate('click');
-      await wrapper.update();
-
-      expect(pinRequest).not.toHaveBeenCalled();
-      expect(unpinRequest).toHaveBeenCalled();
     });
   });
 });

@@ -165,7 +165,7 @@ class SlackLinkTeamView(BaseView):  # type: ignore
         allowed_roles = ["admin", "manager", "owner"]
         if not (
             org_member.role in allowed_roles
-            and (organization.flags.allow_joinleave or team in [org_member.teams])
+            and (organization.flags.allow_joinleave or team in org_member.teams.all())
         ):
             return self.send_slack_message(
                 request,
@@ -201,7 +201,6 @@ class SlackLinkTeamView(BaseView):  # type: ignore
         )
 
         if created:
-            # turn on notifications for all of a team's projects
             NotificationSetting.objects.update_settings(
                 ExternalProviders.SLACK,
                 NotificationSettingTypes.ISSUE_ALERTS,
