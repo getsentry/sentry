@@ -225,14 +225,13 @@ class VitalCard extends Component<Props, State> {
               to={newEventView
                 .withColumns([{kind: 'field', field: column}])
                 .withSorts([{kind: 'desc', field: column}])
-                .getPerformanceTransactionEventsViewUrlTarget(
-                  organization.slug,
-                  dataFilter === 'all'
-                    ? EventsDisplayFilterName.p100
-                    : EventsDisplayFilterName.p75,
-                  undefined,
-                  column as WebVital
-                )}
+                .getPerformanceTransactionEventsViewUrlTarget(organization.slug, {
+                  showTransactions:
+                    dataFilter === 'all'
+                      ? EventsDisplayFilterName.p100
+                      : EventsDisplayFilterName.p75,
+                  webVital: column as WebVital,
+                })}
               onClick={this.trackOpenAllEventsClicked}
             >
               {t('Open All Events')}

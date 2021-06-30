@@ -1114,10 +1114,13 @@ class EventView {
 
   getPerformanceTransactionEventsViewUrlTarget(
     slug: string,
-    showTransactions?: EventsDisplayFilterName,
-    breakdown?: string,
-    webVital?: WebVital
+    options: {
+      showTransactions?: EventsDisplayFilterName;
+      breakdown?: string;
+      webVital?: WebVital;
+    }
   ): {pathname: string; query: Query} {
+    const {showTransactions, breakdown, webVital} = options;
     const output = {
       sort: encodeSorts(this.sorts),
       project: this.project,

@@ -166,10 +166,7 @@ class TransactionsList extends React.Component<Props> {
 
   generatePerformanceTransactionEventsView(): EventView {
     const {generatePerformanceTransactionEventsView} = this.props;
-    if (typeof generatePerformanceTransactionEventsView === 'function') {
-      return generatePerformanceTransactionEventsView();
-    }
-    return this.getEventView();
+    return generatePerformanceTransactionEventsView?.() ?? this.getEventView();
   }
 
   renderHeader(): React.ReactNode {
@@ -220,8 +217,10 @@ class TransactionsList extends React.Component<Props> {
                 onClick={handleOpenAllEventsClick}
                 to={this.generatePerformanceTransactionEventsView().getPerformanceTransactionEventsViewUrlTarget(
                   organization.slug,
-                  mapShowTransactionToPercentile(showTransactions),
-                  breakdown
+                  {
+                    showTransactions: mapShowTransactionToPercentile(showTransactions),
+                    breakdown,
+                  }
                 )}
                 size="small"
                 data-test-id="transaction-events-open"
