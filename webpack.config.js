@@ -290,7 +290,7 @@ let appConfig = {
     new MiniCssExtractPlugin({
       // We want the sentry css file to be unversioned for frontend-only deploys
       // We will cache using `Cache-Control` headers
-      filename: '[name].css',
+      filename: 'entrypoints/[name].css',
     }),
 
     /**
@@ -382,7 +382,7 @@ let appConfig = {
   output: {
     path: distPath,
     publicPath: '',
-    filename: '[name].js',
+    filename: 'entrypoints/[name].js',
     chunkFilename: 'chunks/[name].[contenthash].js',
     sourceMapFilename: 'sourcemaps/[name].[contenthash].js.map',
     assetModuleFilename: 'assets/[name].[contenthash][ext]',
