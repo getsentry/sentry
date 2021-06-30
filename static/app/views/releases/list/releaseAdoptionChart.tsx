@@ -91,6 +91,8 @@ class ReleaseAdoptionChart extends AsyncComponent<Props, State> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {organization, location, activeDisplay} = this.props;
 
+    const hasSemverFeature = organization.features.includes('semver');
+
     return [
       [
         'sessions',
@@ -101,7 +103,11 @@ class ReleaseAdoptionChart extends AsyncComponent<Props, State> {
             ...getParams(pick(location.query, Object.values(URL_PARAM))),
             groupBy: ['release'],
             field: [sessionDisplayToField(activeDisplay)],
-            query: location.query.query ? `release:${location.query.query}` : undefined,
+            query: location.query.query
+              ? hasSemverFeature
+                ? location.query.query
+                : `release:${location.query.query}`
+              : undefined,
           },
         },
       ],
@@ -255,12 +261,13 @@ class ReleaseAdoptionChart extends AsyncComponent<Props, State> {
                         period: '1',
                       };
                       const intervalStart = moment(timestamp).format('MMM D LT');
-                      const intervalEnd = (series[0].dataIndex === numDataPoints - 1
-                        ? moment(sessions.end)
-                        : moment(timestamp).add(
-                            parseInt(periodObj.period, 10),
-                            periodObj.periodLength as StatsPeriodType
-                          )
+                      const intervalEnd = (
+                        series[0].dataIndex === numDataPoints - 1
+                          ? moment(sessions.end)
+                          : moment(timestamp).add(
+                              parseInt(periodObj.period, 10),
+                              periodObj.periodLength as StatsPeriodType
+                            )
                       ).format('MMM D LT');
 
                       return [

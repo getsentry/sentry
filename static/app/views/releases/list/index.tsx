@@ -4,6 +4,7 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
+import {fetchTagValues} from 'app/actionCreators/tags';
 import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
@@ -15,6 +16,7 @@ import {getRelativeSummary} from 'app/components/organizations/timeRangeSelector
 import PageHeading from 'app/components/pageHeading';
 import Pagination from 'app/components/pagination';
 import SearchBar from 'app/components/searchBar';
+import SmartSearchBar from 'app/components/smartSearchBar';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {desktop, mobile, releaseHealth} from 'app/data/platformCategories';
@@ -29,6 +31,7 @@ import {
   Release,
   ReleaseStatus,
   SessionApiResponse,
+  Tag,
 } from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import Projects from 'app/utils/projects';
@@ -47,6 +50,17 @@ import ReleaseListSortOptions from './releaseListSortOptions';
 import ReleaseListStatusOptions from './releaseListStatusOptions';
 import ReleasePromo from './releasePromo';
 import {DisplayOption, SortOption, StatusOption} from './utils';
+
+const supportedTags = {
+  'sentry.semver': {
+    key: 'sentry.semver',
+    name: 'sentry.semver',
+  },
+  release: {
+    key: 'release',
+    name: 'release',
+  },
+};
 
 type RouteParams = {
   orgId: string;
@@ -80,6 +94,7 @@ class ReleasesList extends AsyncView<Props, State> {
       summaryStatsPeriod: statsPeriod,
       per_page: 20,
       flatten: activeSort === SortOption.DATE ? 0 : 1,
+      adoptionStages: 1,
       status:
         activeStatus === StatusOption.ARCHIVED
           ? ReleaseStatus.Archived
@@ -143,6 +158,8 @@ class ReleasesList extends AsyncView<Props, State> {
         return SortOption.SESSIONS;
       case SortOption.USERS_24_HOURS:
         return SortOption.USERS_24_HOURS;
+      case SortOption.SESSIONS_24_HOURS:
+        return SortOption.SESSIONS_24_HOURS;
       case SortOption.BUILD:
         return SortOption.BUILD;
       case SortOption.SEMVER:
@@ -236,9 +253,19 @@ class ReleasesList extends AsyncView<Props, State> {
   handleDisplay = (display: string) => {
     const {location, router} = this.props;
 
+    let sort = location.query.sort;
+    if (sort === SortOption.USERS_24_HOURS && display === DisplayOption.SESSIONS)
+      sort = SortOption.SESSIONS_24_HOURS;
+    else if (sort === SortOption.SESSIONS_24_HOURS && display === DisplayOption.USERS)
+      sort = SortOption.USERS_24_HOURS;
+    else if (sort === SortOption.CRASH_FREE_USERS && display === DisplayOption.SESSIONS)
+      sort = SortOption.CRASH_FREE_SESSIONS;
+    else if (sort === SortOption.CRASH_FREE_SESSIONS && display === DisplayOption.USERS)
+      sort = SortOption.CRASH_FREE_USERS;
+
     router.push({
       ...location,
-      query: {...location.query, cursor: undefined, display},
+      query: {...location.query, cursor: undefined, display, sort},
     });
   };
 
@@ -262,6 +289,25 @@ class ReleasesList extends AsyncView<Props, State> {
         project_id: selection.projects[0],
       });
     }
+  };
+
+  tagValueLoader = (key: string, search: string) => {
+    const {location, organization} = this.props;
+    const {project: projectId} = location.query;
+
+    return fetchTagValues(
+      this.api,
+      organization.slug,
+      key,
+      search,
+      [projectId],
+      location.query
+    );
+  };
+
+  getTagValues = async (tag: Tag, currentQuery: string): Promise<string[]> => {
+    const values = await this.tagValueLoader(tag.key, currentQuery);
+    return values.map(({value}) => value);
   };
 
   shouldShowLoadingIndicator() {
@@ -293,6 +339,16 @@ class ReleasesList extends AsyncView<Props, State> {
       return (
         <EmptyStateWarning small>
           {t('There are no releases with active user data (users in the last 24 hours).')}
+        </EmptyStateWarning>
+      );
+    }
+
+    if (activeSort === SortOption.SESSIONS_24_HOURS) {
+      return (
+        <EmptyStateWarning small>
+          {t(
+            'There are no releases with active session data (sessions in the last 24 hours).'
+          )}
         </EmptyStateWarning>
       );
     }
@@ -338,17 +394,8 @@ class ReleasesList extends AsyncView<Props, State> {
     const {hasSessions, releases} = this.state;
 
     const selectedProject = this.getSelectedProject();
-    const isMobileProject =
-      selectedProject &&
-      selectedProject.platform &&
-      ([...mobile, ...desktop] as string[]).includes(selectedProject.platform as string);
 
-    if (
-      !selectedProject ||
-      hasSessions !== false ||
-      !releases?.length ||
-      !isMobileProject
-    ) {
+    if (!selectedProject || hasSessions !== false || !releases?.length) {
       return null;
     }
 
@@ -415,9 +462,15 @@ class ReleasesList extends AsyncView<Props, State> {
           const isMobileProject =
             selectedProject &&
             selectedProject.platform &&
-            ([...mobile, ...desktop] as string[]).includes(
-              selectedProject.platform as string
-            );
+            (
+              [
+                ...mobile,
+                ...desktop,
+                'java-android',
+                'cocoa-objc',
+                'cocoa-swift',
+              ] as string[]
+            ).includes(selectedProject.platform as string);
 
           return (
             <Fragment>
@@ -463,6 +516,8 @@ class ReleasesList extends AsyncView<Props, State> {
     const activeStatus = this.getStatus();
     const activeDisplay = this.getDisplay();
 
+    const hasSemver = organization.features.includes('semver');
+
     return (
       <GlobalSelectionHeader
         showAbsolute={false}
@@ -479,17 +534,30 @@ class ReleasesList extends AsyncView<Props, State> {
             {this.renderHealthCta()}
 
             <SortAndFilterWrapper>
-              <SearchBar
-                placeholder={t('Search')}
-                onSearch={this.handleSearch}
-                query={this.getQuery()}
-              />
+              {hasSemver ? (
+                <SmartSearchBar
+                  query={this.getQuery()}
+                  placeholder={t('Search by release version')}
+                  maxSearchItems={5}
+                  hasRecentSearches={false}
+                  supportedTags={supportedTags}
+                  onSearch={this.handleSearch}
+                  onGetTagValues={this.getTagValues}
+                />
+              ) : (
+                <SearchBar
+                  placeholder={t('Search')}
+                  onSearch={this.handleSearch}
+                  query={this.getQuery()}
+                />
+              )}
               <ReleaseListStatusOptions
                 selected={activeStatus}
                 onSelect={this.handleStatus}
               />
               <ReleaseListSortOptions
                 selected={activeSort}
+                selectedDisplay={activeDisplay}
                 onSelect={this.handleSortBy}
                 organization={organization}
               />

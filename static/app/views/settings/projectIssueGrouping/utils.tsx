@@ -42,9 +42,7 @@ export function getGroupingChanges(
   return {updateNotes, riskLevel, latestGroupingConfig};
 }
 
-export function getGroupingRisk(
-  riskLevel: number
-): {
+export function getGroupingRisk(riskLevel: number): {
   riskNote: React.ReactNode;
   alertType: React.ComponentProps<typeof Alert>['type'];
 } {

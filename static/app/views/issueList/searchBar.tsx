@@ -1,9 +1,13 @@
 import * as React from 'react';
-import styled from '@emotion/styled';
 
 import {fetchRecentSearches} from 'app/actionCreators/savedSearches';
 import {Client} from 'app/api';
 import SmartSearchBar from 'app/components/smartSearchBar';
+import {
+  makePinSearchAction,
+  makeSaveSearchAction,
+  makeSearchBuilderAction,
+} from 'app/components/smartSearchBar/actions';
 import {SearchItem} from 'app/components/smartSearchBar/types';
 import {t} from 'app/locale';
 import {Organization, SavedSearch, SavedSearchType, Tag} from 'app/types';
@@ -33,8 +37,7 @@ const SEARCH_ITEMS: SearchItem[] = [
   },
   {
     title: t('Assigned'),
-    desc:
-      'assigned, assigned_or_suggested:[me|[me, none]|user@example.com|#team-example]',
+    desc: 'assigned, assigned_or_suggested:[me|[me, none]|user@example.com|#team-example]',
     value: '',
     type: 'default',
   },
@@ -52,6 +55,8 @@ type Props = React.ComponentProps<typeof SmartSearchBar> & {
   tagValueLoader: TagValueLoader;
   projectIds?: string[];
   savedSearch?: SavedSearch;
+  onSidebarToggle: (e: React.MouseEvent) => void;
+  sort: string;
 };
 
 type State = {
@@ -116,29 +121,27 @@ class IssueListSearchBar extends React.Component<Props, State> {
   };
 
   render() {
-    const {tagValueLoader: _, savedSearch, onSidebarToggle, ...props} = this.props;
+    const {tagValueLoader: _, savedSearch, sort, onSidebarToggle, ...props} = this.props;
+
+    const pinnedSearch = savedSearch?.isPinned ? savedSearch : undefined;
 
     return (
-      <SmartSearchBarNoLeftCorners
-        hasPinnedSearch
+      <SmartSearchBar
         hasRecentSearches
-        hasSearchBuilder
-        canCreateSavedSearch
         maxSearchItems={5}
         savedSearchType={SavedSearchType.ISSUE}
         onGetTagValues={this.getTagValues}
         defaultSearchItems={this.state.defaultSearchItems}
         onSavedRecentSearch={this.handleSavedRecentSearch}
-        onSidebarToggle={onSidebarToggle}
-        pinnedSearch={savedSearch?.isPinned ? savedSearch : undefined}
+        actionBarItems={[
+          makePinSearchAction({sort, pinnedSearch}),
+          makeSaveSearchAction({sort}),
+          makeSearchBuilderAction({onSidebarToggle}),
+        ]}
         {...props}
       />
     );
   }
 }
-
-const SmartSearchBarNoLeftCorners = styled(SmartSearchBar)`
-  flex-grow: 1;
-`;
 
 export default withApi(withOrganization(IssueListSearchBar));

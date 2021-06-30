@@ -1,5 +1,8 @@
 from django.conf.urls import include, url
 
+from sentry.api.endpoints.project_transaction_threshold_override import (
+    ProjectTransactionThresholdOverrideEndpoint,
+)
 from sentry.data_export.endpoints.data_export import DataExportEndpoint
 from sentry.data_export.endpoints.data_export_details import DataExportDetailsEndpoint
 from sentry.discover.endpoints.discover_key_transactions import (
@@ -818,6 +821,11 @@ urlpatterns = [
                     OrganizationEventsRelatedIssuesEndpoint.as_view(),
                     name="sentry-api-0-organization-related-issues",
                 ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/project-transaction-threshold-override/$",
+                    ProjectTransactionThresholdOverrideEndpoint.as_view(),
+                    name="sentry-api-0-organization-project-transaction-threshold-override",
+                ),
                 # Dashboards
                 url(
                     r"^(?P<organization_slug>[^\/]+)/dashboards/$",
@@ -1226,7 +1234,7 @@ urlpatterns = [
                     name="sentry-api-0-organization-release-files",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/releases/(?P<version>[^/]+)/files/(?P<file_id>\d+)/$",
+                    r"^(?P<organization_slug>[^\/]+)/releases/(?P<version>[^/]+)/files/(?P<file_id>[^/]+)/$",
                     OrganizationReleaseFileDetailsEndpoint.as_view(),
                     name="sentry-api-0-organization-release-file-details",
                 ),
@@ -1710,7 +1718,7 @@ urlpatterns = [
                     name="sentry-api-0-project-release-files",
                 ),
                 url(
-                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/files/(?P<file_id>\d+)/$",
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/files/(?P<file_id>[^/]+)/$",
                     ProjectReleaseFileDetailsEndpoint.as_view(),
                     name="sentry-api-0-project-release-file-details",
                 ),

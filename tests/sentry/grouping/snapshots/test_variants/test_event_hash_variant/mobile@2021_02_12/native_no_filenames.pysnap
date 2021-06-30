@@ -1,5 +1,5 @@
 ---
-created: '2021-04-08T09:28:28.672278Z'
+created: '2021-06-23T18:06:11.063674Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -22,7 +22,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-2:
   hash: "8cd9c779e1522f718e9270004d2029ed"
-  tree_label: "log_demo::main | ... | sentry::integrations::log::Logger::log"
+  tree_label: "log_demo::main | log::__private_api_log | sentry::integrations::log::Logger::log"
   component:
     app-depth-2*
       exception*
@@ -47,7 +47,7 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-3:
   hash: "833d4f5b442ef5432a634e68338ee495"
-  tree_label: "std::panicking::try::do_call | ... | sentry::hub::Hub::with_active"
+  tree_label: "std::panicking::try::do_call | log_demo::main | log::__private_api_log | sentry::integrations::log::Logger::log | sentry::hub::Hub::with_active"
   component:
     app-depth-3*
       exception*
@@ -82,7 +82,7 @@ app-depth-3:
 --------------------------------------------------------------------------
 app-depth-4:
   hash: "05b386226c903021d3797c9800e3ef5d"
-  tree_label: "___rust_maybe_catch_panic | ... | sentry::hub::Hub::with"
+  tree_label: "___rust_maybe_catch_panic | std::panicking::try::do_call | log_demo::main | log::__private_api_log | sentry::integrations::log::Logger::log | sentry::hub::Hub::with_active | sentry::hub::Hub::with"
   component:
     app-depth-4*
       exception*
@@ -125,7 +125,7 @@ app-depth-4:
 --------------------------------------------------------------------------
 app-depth-5:
   hash: "5c76070b3447d5bdd0f418005d190395"
-  tree_label: "std::rt::lang_start | ... | sentry::hub::Hub::with_active::{{closure}}"
+  tree_label: "std::rt::lang_start | ___rust_maybe_catch_panic | std::panicking::try::do_call | log_demo::main | log::__private_api_log | sentry::integrations::log::Logger::log | sentry::hub::Hub::with_active | sentry::hub::Hub::with | sentry::hub::Hub::with_active::{{closure}}"
   component:
     app-depth-5*
       exception*

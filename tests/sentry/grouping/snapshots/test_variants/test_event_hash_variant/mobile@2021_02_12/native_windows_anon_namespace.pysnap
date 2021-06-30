@@ -1,5 +1,5 @@
 ---
-created: '2021-05-17T08:41:29.052198Z'
+created: '2021-06-23T18:06:12.310719Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -22,7 +22,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-2:
   hash: "8e1e6add5d343d84489b957df999f941"
-  tree_label: "`anonymous namespace'::start | ..."
+  tree_label: "`anonymous namespace'::start | `anonymous namespace'::crash"
   component:
     app-depth-2*
       exception*
@@ -44,7 +44,7 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-3:
   hash: "3df8bc242dfdc7460b42fa529422630f"
-  tree_label: "main | ..."
+  tree_label: "main | `anonymous namespace'::start | `anonymous namespace'::crash"
   component:
     app-depth-3*
       exception*

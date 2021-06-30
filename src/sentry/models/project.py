@@ -37,7 +37,7 @@ ProjectStatus = ObjectStatus
 
 
 class ProjectTeam(Model):
-    __core__ = True
+    __include_in_export__ = True
 
     project = FlexibleForeignKey("sentry.Project")
     team = FlexibleForeignKey("sentry.Team")
@@ -99,7 +99,7 @@ class Project(Model, PendingDeletionMixin):
     are the top level entry point for all data.
     """
 
-    __core__ = True
+    __include_in_export__ = True
 
     slug = models.SlugField(null=True)
     name = models.CharField(max_length=200)
@@ -200,17 +200,10 @@ class Project(Model, PendingDeletionMixin):
         return projectoptions.update_rev_for_option(self)
 
     @property
-    def callsign(self):
-        warnings.warn(
-            "Project.callsign is deprecated. Use Group.get_short_id() instead.", DeprecationWarning
-        )
-        return self.slug.upper()
-
-    @property
     def color(self):
         if self.forced_color is not None:
-            return "#%s" % self.forced_color
-        return get_hashed_color(self.callsign or self.slug)
+            return f"#{self.forced_color}"
+        return get_hashed_color(self.slug.upper())
 
     @property
     def member_set(self):

@@ -1196,6 +1196,10 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert [int(r["id"]) for r in response.json()] == [release_1_g_1, release_1_g_2]
 
+        response = self.get_response(sort_by="date", limit=10, query=f"{SEMVER_ALIAS}:<1.0")
+        assert response.status_code == 200, response.content
+        assert [int(r["id"]) for r in response.json()] == []
+
     def test_aggregate_stats_regression_test(self):
         self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},

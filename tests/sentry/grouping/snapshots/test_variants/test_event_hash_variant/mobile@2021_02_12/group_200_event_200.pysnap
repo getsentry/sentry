@@ -1,11 +1,11 @@
 ---
-created: '2021-05-17T08:41:28.000515Z'
+created: '2021-06-23T18:06:11.174758Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
   hash: "1028091c5d80feac9a1542ab321d1fe7"
-  tree_label: "RtlFreeHeap | RtlFreeHeap | destructor' [dtor/free]"
+  tree_label: "RtlFreeHeap | RtlFreeHeap | destructor'"
   component:
     app-depth-1*
       exception*

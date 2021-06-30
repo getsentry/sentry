@@ -1,5 +1,5 @@
-/*eslint-env node*/
-/*eslint import/no-nodejs-modules:0 */
+/* eslint-env node */
+/* eslint import/no-nodejs-modules:0 */
 const path = require('path');
 
 const toPath = p => path.join(process.cwd(), p);

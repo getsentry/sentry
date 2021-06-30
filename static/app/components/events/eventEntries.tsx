@@ -47,7 +47,8 @@ import findBestThread from './interfaces/threads/threadSelector/findBestThread';
 import getThreadException from './interfaces/threads/threadSelector/getThreadException';
 import EventEntry from './eventEntry';
 
-const MINIFIED_DATA_JAVA_EVENT_REGEX_MATCH = /^(([\w\$]\.[\w\$]{1,2})|([\w\$]{2}\.[\w\$]\.[\w\$]))(\.|$)/g;
+const MINIFIED_DATA_JAVA_EVENT_REGEX_MATCH =
+  /^(([\w\$]\.[\w\$]{1,2})|([\w\$]{2}\.[\w\$]\.[\w\$]))(\.|$)/g;
 
 const defaultProps = {
   isShare: false,
@@ -372,15 +373,17 @@ class EventEntries extends Component<Props, State> {
             includeBorder={!hasErrors}
           />
         )}
-        {hasContext && showTagSummary && <EventContextSummary event={event} />}
         {showTagSummary && (
-          <EventTags
-            event={event}
-            organization={organization as Organization}
-            projectId={project.slug}
-            location={location}
-            hasQueryFeature={hasQueryFeature}
-          />
+          <StyledEventDataSection title={t('Tags')} type="tags">
+            {hasContext && <EventContextSummary event={event} />}
+            <EventTags
+              event={event}
+              organization={organization as Organization}
+              projectId={project.slug}
+              location={location}
+              hasQueryFeature={hasQueryFeature}
+            />
+          </StyledEventDataSection>
         )}
         {this.renderEntries(event)}
         {hasContext && <EventContexts group={group} event={event} />}
@@ -452,6 +455,10 @@ const StyledEventUserFeedback = styled(EventUserFeedback)<StyledEventUserFeedbac
   border: 0;
   ${p => (p.includeBorder ? `border-top: 1px solid ${p.theme.innerBorder};` : '')}
   margin: 0;
+`;
+
+const StyledEventDataSection = styled(EventDataSection)`
+  margin-bottom: ${space(2)};
 `;
 
 // TODO(ts): any required due to our use of SharedViewOrganization

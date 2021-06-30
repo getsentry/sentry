@@ -91,16 +91,8 @@ class DurationPercentileChart extends AsyncComponent<Props, State> {
   };
 
   getEndpoints = (): ReturnType<AsyncComponent['getEndpoints']> => {
-    const {
-      organization,
-      query,
-      start,
-      end,
-      statsPeriod,
-      environment,
-      project,
-      location,
-    } = this.props;
+    const {organization, query, start, end, statsPeriod, environment, project, location} =
+      this.props;
 
     const eventView = EventView.fromSavedQuery({
       id: '',

@@ -5,7 +5,7 @@ from django.db.models import F, Q
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
-from sentry import analytics
+from sentry import analytics, features
 from sentry.api.base import EnvironmentMixin, ReleaseAnalyticsMixin
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
@@ -27,7 +27,8 @@ from sentry.models import (
     ReleaseProject,
     ReleaseStatus,
 )
-from sentry.search.events.constants import OPERATOR_TO_DJANGO, SEMVER_ALIAS
+from sentry.search.events.constants import SEMVER_ALIAS
+from sentry.search.events.filter import parse_semver
 from sentry.signals import release_created
 from sentry.snuba.sessions import (
     STATS_PERIODS,
@@ -159,6 +160,7 @@ class OrganizationReleasesEndpoint(
         """
         query = request.GET.get("query")
         with_health = request.GET.get("health") == "1"
+        with_adoption_stages = request.GET.get("adoptionStages") == "1"
         status_filter = request.GET.get("status", "open")
         flatten = request.GET.get("flatten") == "1"
         sort = request.GET.get("sort") or "date"
@@ -216,8 +218,7 @@ class OrganizationReleasesEndpoint(
                 if search_filter.key.name == SEMVER_ALIAS:
                     queryset = queryset.filter_by_semver(
                         organization.id,
-                        OPERATOR_TO_DJANGO[search_filter.operator],
-                        search_filter.value.raw_value,
+                        parse_semver(search_filter.value.raw_value, search_filter.operator),
                     )
 
         select_extra = {}
@@ -236,7 +237,7 @@ class OrganizationReleasesEndpoint(
             queryset = queryset.filter(build_number__isnull=False).order_by("-build_number")
             paginator_kwargs["order_by"] = "-build_number"
         elif sort == "semver":
-            order_by = [f"-{col}" for col in Release.SEMVER_SORT_COLS]
+            order_by = [f"-{col}" for col in Release.SEMVER_COLS]
             queryset = queryset.annotate_prerelease_column().filter_to_semver().order_by(*order_by)
             paginator_kwargs["order_by"] = order_by
         elif sort in self.SESSION_SORTS:
@@ -266,6 +267,10 @@ class OrganizationReleasesEndpoint(
         queryset = queryset.extra(select=select_extra)
         queryset = add_date_filter_to_queryset(queryset, filter_params)
 
+        with_adoption_stages = with_adoption_stages and features.has(
+            "organizations:release-adoption-stage", organization, actor=request.user
+        )
+
         return self.paginate(
             request=request,
             queryset=queryset,
@@ -274,6 +279,7 @@ class OrganizationReleasesEndpoint(
                 x,
                 request.user,
                 with_health_data=with_health,
+                with_adoption_stages=with_adoption_stages,
                 health_stat=health_stat,
                 health_stats_period=health_stats_period,
                 summary_stats_period=summary_stats_period,

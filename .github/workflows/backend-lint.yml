@@ -3,7 +3,6 @@ on:
   push:
     branches:
       - master
-      - releases/**
   pull_request:
 
 jobs:
@@ -89,6 +88,8 @@ jobs:
           filters: |
             all:
               - added|modified: '**/*.py'
+              - added|modified: 'requirements-base.txt'
+
 
       - name: Run pre-commit on changed files
         if: steps.changes.outputs.backend == 'true'
