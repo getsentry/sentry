@@ -129,6 +129,8 @@ def get_build_info(
         # TODO: the `iris` web API has related `buildBundles` objects,
         # which have very useful `includesSymbols` and `dSYMUrl` attributes,
         # but this is sadly not available in the official API. :-(
+        # Open this in your browser when you are singed into AppStoreConnect:
+        # https://appstoreconnect.apple.com/iris/v1/builds?filter[processingState]=VALID&include=appStoreVersion,preReleaseVersion,buildBundles&limit=1&filter[app]=XYZ
         "&include=appStoreVersion,preReleaseVersion"
         # sort newer releases first
         "&sort=-uploadedDate"
