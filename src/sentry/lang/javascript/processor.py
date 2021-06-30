@@ -400,7 +400,7 @@ def get_artifact_index(release, dist):
     elif result:
         index = json.loads(result)
     else:
-        index = read_artifact_index(release, dist)
+        index = read_artifact_index(release, dist, use_cache=True)
         cache_value = -1 if index is None else json.dumps(index)
         # Only cache for a short time to keep the manifest up-to-date
         cache.set(cache_key, cache_value, timeout=60)
