@@ -41,7 +41,9 @@ CONFLICTING_SLUG_ERROR = "A team with this slug already exists."
 
 class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
     permission_classes = (OrganizationSCIMTeamPermission,)
-    team_serializer = TeamSCIMSerializer
+
+    def team_serializer_for_post(self):
+        return TeamSCIMSerializer(expand=["members"])
 
     def should_add_creator_to_team(self, request):
         return False
@@ -53,9 +55,9 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
             raise ParseError(detail=SCIM_400_INVALID_FILTER)
 
         if "members" in request.GET.get("excludedAttributes", []):
-            exclude_members = True
+            expand = None
         else:
-            exclude_members = False
+            expand = ["members"]
         queryset = Team.objects.filter(
             organization=organization, status=TeamStatus.VISIBLE
         ).order_by("slug")
@@ -67,9 +69,7 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
             return list(queryset[offset : offset + limit])
 
         def on_results(results):
-            results = serialize(
-                results, None, TeamSCIMSerializer(), exclude_members=exclude_members
-            )
+            results = serialize(results, None, TeamSCIMSerializer(expand=expand))
             return self.list_api_format(request, queryset, results)
 
         return self.paginate(
@@ -110,7 +110,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         return team
 
     def get(self, request, organization, team):
-        context = serialize(team, serializer=TeamSCIMSerializer())
+        context = serialize(team, serializer=TeamSCIMSerializer(expand=["members"]))
         return Response(context)
 
     def _add_members_operation(self, request, operation, team):
@@ -221,7 +221,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
             sentry_sdk.capture_exception(e)
             return Response(SCIM_400_INTEGRITY_ERROR, status=400)
 
-        context = serialize(team, serializer=TeamSCIMSerializer(), exclude_members=True)
+        context = serialize(team, serializer=TeamSCIMSerializer())
         return Response(context)
 
     def delete(self, request, organization, team):

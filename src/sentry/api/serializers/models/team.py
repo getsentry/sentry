@@ -201,7 +201,10 @@ def get_scim_teams_members(
     team_list: Sequence[Team],
 ) -> MutableMapping[Team, MutableSequence[MutableMapping[str, Any]]]:
     members = RangeQuerySetWrapper(
-        OrganizationMember.objects.filter(teams__in=team_list).select_related("user"),
+        OrganizationMember.objects.filter(teams__in=team_list)
+        .select_related("user")
+        .prefetch_related("teams")
+        .distinct("id"),
         limit=10000,
     )
     member_map: MutableMapping[Team, MutableSequence[MutableMapping[str, Any]]] = defaultdict(list)
@@ -212,16 +215,22 @@ def get_scim_teams_members(
 
 
 class TeamSCIMSerializer(Serializer):  # type: ignore
+    def __init__(
+        self,
+        expand=None,
+    ):
+        self.expand = expand or []
+
     def get_attrs(
         self, item_list: Sequence[Team], user: Any, **kwargs: Any
     ) -> MutableMapping[Team, MutableMapping[str, Any]]:
         result: MutableMapping[Team, MutableMapping[str, Any]] = {}
         for team in item_list:
+            # return the members key with a None value if we aren't expanding
+            # because some SCIM specs say to set it to null
             result[team] = {"members": None}
 
-        # For a patch request, we don't need to return the full list of members
-        # so look at exclude_members arg
-        if not kwargs.get("exclude_members", None):
+        if "members" in self.expand:
             member_map = get_scim_teams_members(item_list)
             for team in item_list:
                 result[team]["members"] = member_map.get(team, [])
