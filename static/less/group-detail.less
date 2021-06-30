@@ -161,14 +161,12 @@
     .context-item-icon {
       position: absolute;
       left: 0;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 30px;
-      height: 30px;
+      width: 36px;
+      height: 36px;
       background-repeat: no-repeat;
-      background-position: center;
+      background-position: center 2px;
       background-image: url(~sentry-logos/logo-unknown.svg);
-      background-size: 30px 30px;
+      background-size: 30px 32px; // magic number here because some logos are slightly cut off when at 32 x 32
     }
 
     &:first-child {
@@ -277,6 +275,7 @@
     &.watchos {
       .context-item-icon {
         background-image: url(~sentry-logos/logo-apple.svg);
+        background-position: center 0;
       }
     }
 
@@ -1402,12 +1401,7 @@ ul.crumbs {
     flex-direction: column;
     margin-top: 0;
     padding: 0;
-
-    .context-item {
-      .context-item-icon {
-        top: 9px;
-      }
-    }
+    margin-bottom: 20px;
   }
 
   .context {

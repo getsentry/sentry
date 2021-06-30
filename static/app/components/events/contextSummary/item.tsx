@@ -29,7 +29,7 @@ const Details = styled('div')`
 
 const Wrapper = styled('div')`
   border-top: 1px solid ${p => p.theme.innerBorder};
-  padding: ${space(2)} 0 0 40px;
+  padding: 4px 0 4px 40px;
   display: flex;
   margin-right: ${space(3)};
   align-items: center;
@@ -37,6 +37,6 @@ const Wrapper = styled('div')`
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     border: 0;
-    padding: ${space(0.5)} 0px 0px 40px;
+    padding: 0px 0px 0px 42px;
   }
 `;
