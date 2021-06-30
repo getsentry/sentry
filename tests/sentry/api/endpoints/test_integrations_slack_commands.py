@@ -7,7 +7,7 @@ from requests import Response
 from rest_framework import status
 
 from sentry import options
-from sentry.integrations.slack.endpoints.command import LINK_USER_MESSAGE
+from sentry.integrations.slack.endpoints.command import LINK_FROM_CHANNEL_MESSAGE, LINK_USER_MESSAGE
 from sentry.integrations.slack.util.auth import set_signing_secret
 from sentry.integrations.slack.views.link_team import build_linking_url
 from sentry.models import (
@@ -160,6 +160,19 @@ class SlackCommandsLinkTeamTest(SlackCommandsTest):
             scope_type=NotificationScopeType.TEAM.value, target=self.team.actor.id
         )
         assert len(team_settings) == 1
+
+    def test_link_team_from_dm(self):
+        """Test that if a user types /sentry link team from a DM instead of a channel, we reply with an error message."""
+        response = self.get_slack_response(
+            {
+                "text": "link team",
+                "team_id": self.external_id,
+                "user_id": "UXXXXXXX2",
+                "channel_name": "directmessage",
+            }
+        )
+        data = json.loads(str(response.content.decode("utf-8")))
+        assert LINK_FROM_CHANNEL_MESSAGE in data["text"]
 
     def test_link_team_idp_does_not_exist(self):
         """Test that get_identity fails if we cannot find a matching idp"""
