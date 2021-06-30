@@ -151,23 +151,23 @@ class TransactionSummary extends Component<Props, State> {
     const totalsColumns: QueryFieldValue[] = [
       {
         kind: 'function',
-        function: ['p95', '', undefined],
+        function: ['p95', '', undefined, undefined],
       },
       {
         kind: 'function',
-        function: ['count', '', undefined],
+        function: ['count', '', undefined, undefined],
       },
       {
         kind: 'function',
-        function: ['count_unique', 'user', undefined],
+        function: ['count_unique', 'user', undefined, undefined],
       },
       {
         kind: 'function',
-        function: ['failure_rate', '', undefined],
+        function: ['failure_rate', '', undefined, undefined],
       },
       {
         kind: 'function',
-        function: ['tpm', '', undefined],
+        function: ['tpm', '', undefined, undefined],
       },
     ];
 
@@ -177,29 +177,29 @@ class TransactionSummary extends Component<Props, State> {
       ? [
           {
             kind: 'function',
-            function: ['count_miserable', 'user', undefined],
+            function: ['count_miserable', 'user', undefined, undefined],
           },
           {
             kind: 'function',
-            function: ['user_misery', '', undefined],
+            function: ['user_misery', '', undefined, undefined],
           },
           {
             kind: 'function',
-            function: ['apdex', '', undefined],
+            function: ['apdex', '', undefined, undefined],
           },
         ]
       : [
           {
             kind: 'function',
-            function: ['count_miserable', 'user', threshold],
+            function: ['count_miserable', 'user', threshold, undefined],
           },
           {
             kind: 'function',
-            function: ['user_misery', threshold, undefined],
+            function: ['user_misery', threshold, undefined, undefined],
           },
           {
             kind: 'function',
-            function: ['apdex', threshold, undefined],
+            function: ['apdex', threshold, undefined, undefined],
           },
         ];
 
@@ -210,7 +210,7 @@ class TransactionSummary extends Component<Props, State> {
         vital =>
           ({
             kind: 'function',
-            function: ['percentile', vital, VITAL_PERCENTILE.toString()],
+            function: ['percentile', vital, VITAL_PERCENTILE.toString(), undefined],
           } as Column)
       ),
     ]);

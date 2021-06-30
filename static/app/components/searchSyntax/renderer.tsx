@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 
 import space from 'app/styles/space';
 
-import {ParseResult, parseSearch, Token, TokenResult} from './parser';
+import {ParseResult, Token, TokenResult} from './parser';
 
 class ResultRenderer {
   renderFilter = (filter: TokenResult<Token.Filter>) => (
@@ -89,24 +89,26 @@ class ResultRenderer {
 
 const renderer = new ResultRenderer();
 
-export default function renderQuery(query: string) {
-  let result: React.ReactNode = query;
+type Props = {
+  /**
+   * The result from parsing the search query string
+   */
+  parsedQuery: ParseResult;
+  /**
+   * The current location of the cursror within the query. This is used to
+   * highligh active tokens and trigger error tooltips.
+   */
+  cursorPosition?: number;
+};
 
-  try {
-    const parseResult = parseSearch(query);
-    result = renderer.renderResult(parseResult);
-  } catch (err) {
-    // eslint-disable-next-line no-console
-    console.log(err);
-  }
+/**
+ * Renders the parsed query with syntax highlighting.
+ */
+export default function HighlightQuery({parsedQuery}: Props) {
+  const rendered = renderer.renderResult(parsedQuery);
 
-  return <SearchQuery>{result}</SearchQuery>;
+  return <Fragment>{rendered}</Fragment>;
 }
-
-const SearchQuery = styled('span')`
-  font-size: ${p => p.theme.fontSizeSmall};
-  font-family: ${p => p.theme.text.familyMono};
-`;
 
 const FilterToken = styled('span')`
   --token-bg: ${p => p.theme.searchTokenBackground};

@@ -142,8 +142,8 @@ class Errors extends Component<Props, State> {
           <StyledIconWarning />
           <span data-test-id="errors-banner-summary-info">
             {tn(
-              'There was %s error encountered while processing this event',
-              'There were %s errors encountered while processing this event',
+              'There was %s problem processing this event',
+              'There were %s problems processing this event',
               errors.length
             )}
           </span>
