@@ -10,9 +10,9 @@ import {Panel} from 'app/components/panels';
 import PanelTable from 'app/components/panels/panelTable';
 import {IconSettings, IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
-import space from 'app/styles/space';
 import {DataCategory, Project} from 'app/types';
 import theme from 'app/utils/theme';
+import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 import {formatUsageWithUnits} from '../utils';
 
@@ -53,21 +53,18 @@ class UsageTable extends React.Component<Props> {
   getErrorMessage = errorMessage => {
     if (errorMessage.projectStats.responseJSON.detail === 'No projects available') {
       return (
-        <ErrorMessages>
-          <Title>
-            {t(
-              "You don't have access to any projects, or your organization has no projects."
-            )}
-          </Title>
-          <Description>
-            {tct('Learn more about [link:Project Access]', {
-              link: <ExternalLink href={DOCS_URL} />,
-            })}
-          </Description>
-        </ErrorMessages>
+        <EmptyMessage
+          icon={<IconWarning color="gray300" size="48" />}
+          title={t(
+            "You don't have access to any projects, or your organization has no projects."
+          )}
+          description={tct('Learn more about [link:Project Access]', {
+            link: <ExternalLink href={DOCS_URL} />,
+          })}
+        />
       );
     }
-    return null;
+    return <IconWarning color="gray300" size="48" />;
   };
 
   renderTableRow(stat: TableStat & {project: Project}) {
@@ -110,10 +107,7 @@ class UsageTable extends React.Component<Props> {
     if (isError) {
       return (
         <Panel>
-          <ErrorPanel height="256px">
-            <IconWarning color="gray300" size="48" />
-            {this.getErrorMessage(errors)}
-          </ErrorPanel>
+          <ErrorPanel height="256px">{this.getErrorMessage(errors)}</ErrorPanel>
         </Panel>
       );
     }
@@ -155,24 +149,4 @@ const StyledIdBadge = styled(IdBadge)`
   overflow: hidden;
   white-space: nowrap;
   flex-shrink: 1;
-`;
-
-const ErrorMessages = styled('div')`
-  display: flex;
-  flex-direction: column;
-
-  margin-top: ${space(1)};
-  font-size: ${p => p.theme.fontSizeSmall};
-`;
-
-const Title = styled('strong')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-  margin-bottom: ${space(1)};
-`;
-
-const Description = styled('span')`
-  font-size: ${p => p.theme.fontSizeLarge};
-  display: block;
-  margin: 0;
-  text-align: center;
 `;
