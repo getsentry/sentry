@@ -7,16 +7,16 @@ from requests import Response
 from rest_framework import status
 
 from sentry import options
-from sentry.integrations.slack.endpoints.action import (
-    LINK_IDENTITY_MESSAGE,
-    UNLINK_IDENTITY_MESSAGE,
+from sentry.integrations.slack.endpoints.command import (
+    LINK_FROM_CHANNEL_MESSAGE,
+    LINK_USER_FIRST_MESSAGE,
+    NOT_LINKED_MESSAGE,
 )
-from sentry.integrations.slack.endpoints.command import LINK_FROM_CHANNEL_MESSAGE, LINK_USER_MESSAGE, NOT_LINKED_MESSAGE
 from sentry.integrations.slack.message_builder import SlackBody
 from sentry.integrations.slack.message_builder.disconnected import DISCONNECTED_MESSAGE
 from sentry.integrations.slack.util.auth import set_signing_secret
 from sentry.integrations.slack.views.link_identity import build_linking_url, SUCCESS_LINKED_MESSAGE
-from sentry.integrations.slack.views.link_team import ALREADY_LINKED_MESSAGE, build_team_linking_url
+from sentry.integrations.slack.views.link_team import build_team_linking_url
 from sentry.models import (
     ExternalActor,
     Identity,
@@ -43,7 +43,7 @@ def get_response_text(data: SlackBody) -> str:
 
 def assert_is_help_text(data: SlackBody, expected_command: Optional[str] = None) -> None:
     text = get_response_text(data)
-    assert "Available Commands" in text
+    assert "Here are the commands you can use" in text
     if expected_command:
         assert expected_command in text
 
@@ -109,6 +109,8 @@ class SlackCommandsTest(APITestCase, TestCase):
             },
         )
         self.integration.add_organization(self.organization, self.user)
+        self.idp = IdentityProvider.objects.create(type="slack", external_id="slack:1", config={})
+        self.login_as(self.user)
 
 
 class SlackCommandsGetTest(SlackCommandsTest):
@@ -178,15 +180,17 @@ class SlackCommandsLinkUserTest(SlackCommandsTest):
 
     def test_link_command(self):
         data = self.send_slack_message("link")
-        assert LINK_IDENTITY_MESSAGE in get_response_text(data)
+        assert "Link your Slack identity" in get_response_text(data)
 
     def test_unlink_command(self):
+        self.link_user()
         data = self.send_slack_message("unlink")
-        assert UNLINK_IDENTITY_MESSAGE in get_response_text(data)
+        assert "to unlink your identity" in get_response_text(data)
 
     def test_link_command_already_linked(self):
+        self.link_user()
         data = self.send_slack_message("link")
-        assert ALREADY_LINKED_MESSAGE in get_response_text(data)
+        assert "You are already linked as" in get_response_text(data)
 
     def test_unlink_command_already_unlinked(self):
         data = self.send_slack_message("unlink")
@@ -196,15 +200,7 @@ class SlackCommandsLinkUserTest(SlackCommandsTest):
 class SlackCommandsLinkTeamTest(SlackCommandsTest):
     def setUp(self):
         super().setUp()
-        self.idp = IdentityProvider.objects.create(type="slack", external_id="slack:1", config={})
-        self.login_as(self.user)
-        Identity.objects.create(
-            external_id="UXXXXXXX1",
-            idp=self.idp,
-            user=self.user,
-            status=IdentityStatus.VALID,
-            scopes=[],
-        )
+        self.link_user()
         self.data = self.send_slack_message("link team")
         responses.add(
             method=responses.POST,
@@ -271,13 +267,6 @@ class SlackCommandsLinkTeamTest(SlackCommandsTest):
         data = json.loads(str(response.content.decode("utf-8")))
         assert LINK_FROM_CHANNEL_MESSAGE in data["text"]
 
-    def test_link_team_idp_does_not_exist(self):
-        """Test that get_identity fails if we cannot find a matching idp"""
-        self.get_slack_response(
-            {"text": "link team", "team_id": "slack:2", "user_id": "UA1J9RTE1"},
-            status_code=403,
-        )
-
     def test_link_team_identity_does_not_exist(self):
         """Test that get_identity fails if the user has no Identity and we reply with the LINK_USER_MESSAGE"""
         user2 = self.create_user()
@@ -286,7 +275,7 @@ class SlackCommandsLinkTeamTest(SlackCommandsTest):
         )
         self.login_as(user2)
         data = self.send_slack_message("link team", user_id="UXXXXXXX2")
-        assert LINK_USER_MESSAGE in data["text"]
+        assert LINK_USER_FIRST_MESSAGE in data["text"]
 
     @responses.activate
     def test_link_team_insufficient_role(self):
