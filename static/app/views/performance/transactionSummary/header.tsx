@@ -183,13 +183,13 @@ class TransactionHeader extends React.Component<Props> {
               data-test-id="set-transaction-threshold"
               icon={<IconSettings />}
               disabled={loadingThreshold}
-              aria-label="Settings"
+              aria-label={t('Settings')}
             />
           ) : (
             <Button
               href={`/settings/${organization.slug}/performance/`}
               icon={<IconSettings />}
-              aria-label="Settings"
+              aria-label={t('Settings')}
             />
           )
         }
