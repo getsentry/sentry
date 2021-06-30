@@ -124,7 +124,7 @@ class ReleaseFileDetailsTest(APITestCase):
         assert response.status_code == 404, response.content
 
         # Valid base 64, but missing dist separator:
-        response = self._get(urlsafe_b64encode(b"foo666"))
+        response = self._get(urlsafe_b64encode(b"foo666").decode())
         assert response.status_code == 404, response.content
 
     def test_archived(self):
@@ -132,25 +132,25 @@ class ReleaseFileDetailsTest(APITestCase):
         self.create_release_archive()
 
         id = urlsafe_b64encode(b"_~/index.js")
-        response = self._get(id)
+        response = self._get(id.decode())
         assert response.status_code == 200
         assert response.data["id"] == id
 
         # Get a file with a nonexisting dist:
         id = urlsafe_b64encode(b"mydist_~/index.js")
-        response = self._get(id)
+        response = self._get(id.decode())
         assert response.status_code == 404
 
         # Get a file that does not exist in index:
         id = urlsafe_b64encode(b"_~/foobar.js")
-        response = self._get(id)
+        response = self._get(id.decode())
         assert response.status_code == 404
 
     def test_download_archived(self):
         self.login_as(user=self.user)
         self.create_release_archive()
 
-        id = urlsafe_b64encode(b"_~/index.js")
+        id = urlsafe_b64encode(b"_~/index.js").decode()
         response = self._get(id)
         checksum = response.data["sha1"]
 
@@ -166,7 +166,7 @@ class ReleaseFileDetailsTest(APITestCase):
         )
         self.create_release_archive(dist=dist)
         id = urlsafe_b64encode(b"foo_~/index.js")
-        response = self._get(id)
+        response = self._get(id.decode())
         assert response.status_code == 200
         assert response.data["id"] == id, urlsafe_b64decode(response.data["id"])
 
@@ -284,7 +284,7 @@ class ReleaseFileDeleteTest(APITestCase):
         )
 
         id = urlsafe_b64encode(b"_~/index.js")
-        response = self.client.delete(url(id))
+        response = self.client.delete(url(id.decode()))
         assert response.status_code == 204
         assert self.release.count_artifacts() == 1
 

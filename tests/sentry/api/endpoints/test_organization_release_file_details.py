@@ -99,7 +99,7 @@ class ReleaseFileDetailsTest(APITestCase):
         self.login_as(user=self.user)
         self.create_release_archive()
         id = urlsafe_b64encode(b"_~/index.js")
-        response = self._get(id)
+        response = self._get(id.decode())
         assert response.status_code == 200
         assert response.data["id"] == id
 
@@ -110,7 +110,7 @@ class ReleaseFileDetailsTest(APITestCase):
         )
         self.create_release_archive(dist=dist)
         id = urlsafe_b64encode(b"foo_~/index.js")
-        response = self._get(id)
+        response = self._get(id.decode())
         assert response.status_code == 200
         assert response.data["id"] == id
 
