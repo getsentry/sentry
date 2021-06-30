@@ -1,5 +1,5 @@
 import math
-from typing import Any, Dict, Mapping, Optional, List
+from typing import Any, Dict, List, Mapping, Optional
 
 import sentry_sdk
 from django.http import Http404
