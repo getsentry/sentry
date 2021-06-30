@@ -124,8 +124,8 @@ class TransactionEvents extends Component<Props, State> {
     const {organization} = this.props;
 
     trackAnalyticsEvent({
-      eventName: 'Performance Views: Filter Dropdown',
-      eventKey: 'performance_views.filter_dropdown.selection',
+      eventName: 'Performance Views: Transaction Events Display Filter Dropdown',
+      eventKey: 'performance_views.transactionEvents.display_filter_dropdown.selection',
       organization_id: parseInt(organization.id, 10),
       action: newFilterName as string,
     });
