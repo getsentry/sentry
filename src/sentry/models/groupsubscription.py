@@ -93,9 +93,9 @@ class GroupSubscriptionManager(BaseManager):
         users = User.objects.get_from_group(group)
         user_ids = [user.id for user in users]
         subscriptions = self.filter(group=group, user_id__in=user_ids)
-        notification_settings = NotificationSetting.objects.get_for_users_by_parent(
+        notification_settings = NotificationSetting.objects.get_for_recipient_by_parent(
             NotificationSettingTypes.WORKFLOW,
-            users=users,
+            recipients=users,
             parent=group.project,
         )
         subscriptions_by_user_id = {
