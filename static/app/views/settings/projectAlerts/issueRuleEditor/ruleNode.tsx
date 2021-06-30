@@ -248,6 +248,16 @@ class RuleNode extends React.Component<Props> {
 
   conditionallyRenderHelpfulBanner() {
     const {data, project, organization} = this.props;
+
+    if (data.id === EVENT_FREQUENCY_PERCENT_CONDITION) {
+      return (
+        <MarginlessAlert type="warning">
+          {t(
+            'This is an approximation and will trigger when the ratio of the issue’s frequency to the number of sessions exceeds the threshold.'
+          )}
+        </MarginlessAlert>
+      );
+    }
     /**
      * Would prefer to check if data is of `IssueAlertRuleAction` type, however we can't do typechecking at runtime as
      * user defined types are erased through transpilation.
@@ -417,7 +427,13 @@ const DeleteButton = styled(Button)`
 `;
 
 const MarginlessAlert = styled(Alert)`
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  border-width: 0;
+  border-top: 1px ${p => p.theme.innerBorder} solid;
   margin: 0;
+  padding: ${space(1)} ${space(1)};
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
 const StyledFeatureBadge = styled(FeatureBadge)`
