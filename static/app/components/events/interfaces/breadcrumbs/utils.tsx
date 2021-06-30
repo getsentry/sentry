@@ -164,3 +164,14 @@ export function transformCrumbs(breadcrumbs: Array<Breadcrumb>) {
     };
   });
 }
+
+export function moduleToCategory(module?: string | null) {
+  if (!module) {
+    return undefined;
+  }
+  const match = module.match(/^.*\/(.*?)(:\d+)/);
+  if (!match) {
+    return module.split(/./)[0];
+  }
+  return match[1];
+}

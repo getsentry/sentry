@@ -9,10 +9,10 @@ type Props = {
   searchTerm: string;
   breadcrumb: Breadcrumb;
   event: Event;
-  orgId: string | null;
+  orgSlug: string | null;
 };
 
-const Data = ({breadcrumb, event, orgId, searchTerm}: Props) => {
+const Data = ({breadcrumb, event, orgSlug, searchTerm}: Props) => {
   if (breadcrumb.type === BreadcrumbType.HTTP) {
     return <Http breadcrumb={breadcrumb} searchTerm={searchTerm} />;
   }
@@ -27,7 +27,7 @@ const Data = ({breadcrumb, event, orgId, searchTerm}: Props) => {
   return (
     <Default
       event={event}
-      orgId={orgId}
+      orgSlug={orgSlug}
       breadcrumb={breadcrumb}
       searchTerm={searchTerm}
     />

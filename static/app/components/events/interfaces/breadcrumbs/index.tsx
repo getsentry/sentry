@@ -1,14 +1,24 @@
-import * as React from 'react';
+import {useEffect, useRef, useState} from 'react';
+import {
+  AutoSizer,
+  CellMeasurer,
+  CellMeasurerCache,
+  List,
+  ListRowProps,
+  ScrollbarPresenceParams,
+} from 'react-virtualized';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import Button from 'app/components/button';
-import ErrorBoundary from 'app/components/errorBoundary';
 import EventDataSection from 'app/components/events/eventDataSection';
-import {IconWarning} from 'app/icons/iconWarning';
+import {PanelTable} from 'app/components/panels';
+import Tooltip from 'app/components/tooltip';
+import {IconSwitch} from 'app/icons';
 import {t} from 'app/locale';
+import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Organization} from 'app/types';
 import {
@@ -19,16 +29,15 @@ import {
 } from 'app/types/breadcrumbs';
 import {EntryType, Event} from 'app/types/event';
 import {defined} from 'app/utils';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 import SearchBarAction from '../searchBarAction';
 import SearchBarActionFilter from '../searchBarAction/searchBarActionFilter';
 
-import Icon from './icon';
-import Level from './level';
-import List from './list';
-import {aroundContentStyle} from './styles';
-import {transformCrumbs} from './utils';
+import Level from './crumb/level';
+import Type from './crumb/type';
+import Crumb from './crumb';
+import layout from './layout';
+import {moduleToCategory, transformCrumbs} from './utils';
 
 type FilterOptions = React.ComponentProps<typeof SearchBarActionFilter>['options'];
 type FilterTypes = {
@@ -48,134 +57,53 @@ type Props = {
   };
 };
 
-type State = {
-  searchTerm: string;
-  breadcrumbs: BreadcrumbsWithDetails;
-  filteredByFilter: BreadcrumbsWithDetails;
-  filteredBySearch: BreadcrumbsWithDetails;
-  filterOptions: FilterOptions;
-  displayRelativeTime: boolean;
-  relativeTime?: string;
-};
+const LIST_MAX_HEIGHT = 400;
 
-class Breadcrumbs extends React.Component<Props, State> {
-  state: State = {
-    searchTerm: '',
-    breadcrumbs: [],
-    filteredByFilter: [],
-    filteredBySearch: [],
-    filterOptions: {},
-    displayRelativeTime: false,
-  };
+const cache = new CellMeasurerCache({
+  fixedWidth: true,
+  minHeight: 42,
+});
 
-  componentDidMount() {
-    this.loadBreadcrumbs();
+function Breadcrumbs({type, event, data, organization}: Props) {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [breadcrumbs, setBreadcrumbs] = useState<BreadcrumbsWithDetails>([]);
+  const [filteredByFilter, setFilteredByFilter] = useState<BreadcrumbsWithDetails>([]);
+  const [filteredBySearch, setFilteredBySearch] = useState<BreadcrumbsWithDetails>([]);
+  const [filterOptions, setFilterOptions] = useState<FilterOptions>({});
+  const [displayRelativeTime, setDisplayRelativeTime] = useState(false);
+  const [scrollbarWidth, setScrollbarWidth] = useState(0);
+  const [relativeTime, setRelativeTime] = useState<string | undefined>(undefined);
+  const [panelTableHeight, setPanelTableHeight] = useState<number | undefined>(undefined);
+  const [scrollToIndex, setScrollToIndex] = useState<number | undefined>(
+    !!breadcrumbs.length ? breadcrumbs.length - 1 : undefined
+  );
+
+  const panelTableRef = useRef<HTMLDivElement>(null);
+  let listRef: List | null = null;
+
+  useEffect(() => {
+    loadBreadcrumbs();
+  }, []);
+
+  useEffect(() => {
+    getPanelBodyHeight();
+  }, [breadcrumbs]);
+
+  function getPanelBodyHeight() {
+    if (!breadcrumbs.length) {
+      return;
+    }
+
+    const panelTableRefOffsetHeight = panelTableRef?.current?.offsetHeight;
+
+    if (!panelTableRefOffsetHeight) {
+      return;
+    }
+
+    setPanelTableHeight(panelTableRefOffsetHeight);
   }
 
-  loadBreadcrumbs() {
-    const {data} = this.props;
-    let breadcrumbs = data.values;
-
-    // Add the (virtual) breadcrumb based on the error or message event if possible.
-    const virtualCrumb = this.getVirtualCrumb();
-    if (virtualCrumb) {
-      breadcrumbs = [...breadcrumbs, virtualCrumb];
-    }
-
-    const transformedCrumbs = transformCrumbs(breadcrumbs);
-    const filterOptions = this.getFilterOptions(transformedCrumbs);
-
-    this.setState({
-      relativeTime: transformedCrumbs[transformedCrumbs.length - 1]?.timestamp,
-      breadcrumbs: transformedCrumbs,
-      filteredByFilter: transformedCrumbs,
-      filteredBySearch: transformedCrumbs,
-      filterOptions,
-    });
-  }
-
-  getFilterOptions(breadcrumbs: ReturnType<typeof transformCrumbs>) {
-    const types = this.getFilterTypes(breadcrumbs);
-    const levels = this.getFilterLevels(types);
-
-    const options = {};
-
-    if (!!types.length) {
-      options[t('Types')] = types.map(type => omit(type, 'levels'));
-    }
-
-    if (!!levels.length) {
-      options[t('Levels')] = levels;
-    }
-
-    return options;
-  }
-
-  getFilterTypes(breadcrumbs: ReturnType<typeof transformCrumbs>) {
-    const filterTypes: FilterTypes[] = [];
-
-    for (const index in breadcrumbs) {
-      const breadcrumb = breadcrumbs[index];
-      const foundFilterType = filterTypes.findIndex(f => f.id === breadcrumb.type);
-
-      if (foundFilterType === -1) {
-        filterTypes.push({
-          id: breadcrumb.type,
-          symbol: <Icon {...omit(breadcrumb, 'description')} size="xs" />,
-          isChecked: false,
-          description: breadcrumb.description,
-          levels: breadcrumb?.level ? [breadcrumb.level] : [],
-        });
-        continue;
-      }
-
-      if (
-        breadcrumb?.level &&
-        !filterTypes[foundFilterType].levels.includes(breadcrumb.level)
-      ) {
-        filterTypes[foundFilterType].levels.push(breadcrumb.level);
-      }
-    }
-
-    return filterTypes;
-  }
-
-  getFilterLevels(types: FilterTypes[]) {
-    const filterLevels: FilterOptions[0] = [];
-
-    for (const indexType in types) {
-      for (const indexLevel in types[indexType].levels) {
-        const level = types[indexType].levels[indexLevel];
-
-        if (filterLevels.some(f => f.id === level)) {
-          continue;
-        }
-
-        filterLevels.push({
-          id: level,
-          symbol: <Level level={level} />,
-          isChecked: false,
-        });
-      }
-    }
-
-    return filterLevels;
-  }
-
-  moduleToCategory(module?: string | null) {
-    if (!module) {
-      return undefined;
-    }
-    const match = module.match(/^.*\/(.*?)(:\d+)/);
-    if (!match) {
-      return module.split(/./)[0];
-    }
-    return match[1];
-  }
-
-  getVirtualCrumb(): Breadcrumb | undefined {
-    const {event} = this.props;
-
+  function getVirtualCrumb() {
     const exception = event.entries.find(entry => entry.type === EntryType.EXCEPTION);
 
     if (!exception && !event.message) {
@@ -185,13 +113,13 @@ class Breadcrumbs extends React.Component<Props, State> {
     const timestamp = event.dateCreated;
 
     if (exception) {
-      const {type, value, module: mdl} = exception.data.values[0];
+      const {type: exceptionType, value, module: mdl} = exception.data.values[0];
       return {
         type: BreadcrumbType.ERROR,
         level: BreadcrumbLevelType.ERROR,
-        category: this.moduleToCategory(mdl) || 'exception',
+        category: moduleToCategory(mdl) || 'exception',
         data: {
-          type,
+          type: exceptionType,
           value,
         },
         timestamp,
@@ -209,19 +137,106 @@ class Breadcrumbs extends React.Component<Props, State> {
     };
   }
 
-  filterBySearch(searchTerm: string, breadcrumbs: BreadcrumbsWithDetails) {
-    if (!searchTerm.trim()) {
-      return breadcrumbs;
+  function getFilterTypes(crumbs: ReturnType<typeof transformCrumbs>) {
+    const filterTypes: FilterTypes[] = [];
+
+    for (const index in crumbs) {
+      const crumb = crumbs[index];
+      const foundFilterType = filterTypes.findIndex(f => f.id === crumb.type);
+
+      if (foundFilterType === -1) {
+        filterTypes.push({
+          id: crumb.type,
+          symbol: <Type {...omit(crumb, 'description')} size="xs" />,
+          isChecked: false,
+          description: crumb.description,
+          levels: crumb?.level ? [crumb.level] : [],
+        });
+        continue;
+      }
+
+      if (crumb?.level && !filterTypes[foundFilterType].levels.includes(crumb.level)) {
+        filterTypes[foundFilterType].levels.push(crumb.level);
+      }
+    }
+
+    return filterTypes;
+  }
+
+  function getFilterLevels(types: FilterTypes[]) {
+    const filterLevels: FilterOptions[0] = [];
+
+    for (const indexType in types) {
+      for (const indexLevel in types[indexType].levels) {
+        const level = types[indexType].levels[indexLevel];
+
+        if (filterLevels.some(f => f.id === level)) {
+          continue;
+        }
+
+        filterLevels.push({
+          id: level,
+          symbol: <Level level={level} x="blah" />,
+          isChecked: false,
+        });
+      }
+    }
+
+    return filterLevels;
+  }
+
+  function getFilterOptions(crumbs: ReturnType<typeof transformCrumbs>) {
+    const filterTypes = getFilterTypes(crumbs);
+    const filterLevels = getFilterLevels(filterTypes);
+
+    const options = {};
+
+    if (!!filterTypes.length) {
+      options[t('Types')] = filterTypes.map(filterType => omit(filterType, 'levels'));
+    }
+
+    if (!!filterLevels.length) {
+      options[t('Levels')] = filterLevels;
+    }
+
+    return options;
+  }
+
+  function loadBreadcrumbs() {
+    setScrollToIndex(undefined);
+    let crumbs = data.values;
+
+    // Add the (virtual) breadcrumb based on the error or message event if possible.
+    const virtualCrumb = getVirtualCrumb();
+    if (virtualCrumb) {
+      crumbs = [...crumbs, virtualCrumb] as Breadcrumb[];
+    }
+
+    const transformedCrumbs = transformCrumbs(crumbs);
+
+    setRelativeTime(transformedCrumbs[transformedCrumbs.length - 1]?.timestamp);
+    setBreadcrumbs(transformedCrumbs);
+    setFilteredByFilter(transformedCrumbs);
+    setFilteredBySearch(transformedCrumbs);
+    setFilterOptions(getFilterOptions(transformedCrumbs));
+    setScrollToIndex(
+      transformedCrumbs.length > 0 ? transformedCrumbs.length - 1 : undefined
+    );
+  }
+
+  function filterBySearch(newSearchTerm: string, crumbs: BreadcrumbsWithDetails) {
+    if (!newSearchTerm.trim()) {
+      return crumbs;
     }
 
     // Slightly hacky, but it works
     // the string is being `stringfy`d here in order to match exactly the same `stringfy`d string of the loop
-    const searchFor = JSON.stringify(searchTerm)
+    const searchFor = JSON.stringify(newSearchTerm)
       // it replaces double backslash generate by JSON.stringfy with single backslash
       .replace(/((^")|("$))/g, '')
       .toLocaleLowerCase();
 
-    return breadcrumbs.filter(obj =>
+    return crumbs.filter(obj =>
       Object.keys(
         pick(obj, ['type', 'category', 'message', 'level', 'timestamp', 'data'])
       ).some(key => {
@@ -240,20 +255,18 @@ class Breadcrumbs extends React.Component<Props, State> {
     );
   }
 
-  getFilteredCrumbsByFilter(filterOptions: FilterOptions) {
+  function getFilteredCrumbsByFilter(newfilterOptions: FilterOptions) {
     const checkedTypeOptions = new Set(
-      Object.values(filterOptions)[0]
-        .filter(filterOption => filterOption.isChecked)
+      Object.values(newfilterOptions)[0]
+        .filter(newfilterOption => newfilterOption.isChecked)
         .map(option => option.id)
     );
 
     const checkedLevelOptions = new Set(
-      Object.values(filterOptions)[1]
-        .filter(filterOption => filterOption.isChecked)
+      Object.values(newfilterOptions)[1]
+        .filter(newfilterOption => newfilterOption.isChecked)
         .map(option => option.id)
     );
-
-    const {breadcrumbs} = this.state;
 
     if (!![...checkedTypeOptions].length && !![...checkedLevelOptions].length) {
       return breadcrumbs.filter(
@@ -278,141 +291,219 @@ class Breadcrumbs extends React.Component<Props, State> {
     return breadcrumbs;
   }
 
-  handleSearch = (value: string) => {
-    this.setState(prevState => ({
-      searchTerm: value,
-      filteredBySearch: this.filterBySearch(value, prevState.filteredByFilter),
-    }));
-  };
+  function updateGrid() {
+    if (listRef) {
+      cache.clearAll();
+      listRef.forceUpdateGrid();
+      getScrollbarWidth();
+    }
+  }
 
-  handleFilter = (filterOptions: FilterOptions) => {
-    const filteredByFilter = this.getFilteredCrumbsByFilter(filterOptions);
+  function getScrollbarWidth() {
+    const panelTableWidth = panelTableRef?.current?.clientWidth ?? 0;
 
-    this.setState(prevState => ({
-      filterOptions,
-      filteredByFilter,
-      filteredBySearch: this.filterBySearch(prevState.searchTerm, filteredByFilter),
-    }));
-  };
+    const gridInnerWidth =
+      panelTableRef?.current?.querySelector(
+        '.ReactVirtualized__Grid__innerScrollContainer'
+      )?.clientWidth ?? 0;
 
-  handleSwitchTimeFormat = () => {
-    this.setState(prevState => ({
-      displayRelativeTime: !prevState.displayRelativeTime,
-    }));
-  };
+    const newScrollbarWidth = panelTableWidth - gridInnerWidth;
 
-  handleCleanSearch = () => {
-    this.setState({searchTerm: ''});
-  };
+    if (newScrollbarWidth !== scrollbarWidth) {
+      setScrollbarWidth(newScrollbarWidth);
+    }
+  }
 
-  handleResetFilter = () => {
-    this.setState(({breadcrumbs, filterOptions, searchTerm}) => ({
-      filteredByFilter: breadcrumbs,
-      filterOptions: Object.keys(filterOptions).reduce((accumulator, currentValue) => {
+  function handleSearch(value: string) {
+    setSearchTerm(value);
+    setFilteredBySearch(filterBySearch(value, filteredByFilter));
+  }
+
+  function handleFilter(newfilterOptions: FilterOptions) {
+    const newfilteredByFilter = getFilteredCrumbsByFilter(newfilterOptions);
+    setFilterOptions(newfilterOptions);
+    setFilteredByFilter(newfilteredByFilter);
+    setFilteredBySearch(filterBySearch(searchTerm, newfilteredByFilter));
+  }
+
+  function handleResetFilter() {
+    const newFilterOptions = Object.keys(filterOptions).reduce(
+      (accumulator, currentValue) => {
         accumulator[currentValue] = filterOptions[currentValue].map(filterOption => ({
           ...filterOption,
           isChecked: false,
         }));
         return accumulator;
-      }, {}),
-      filteredBySearch: this.filterBySearch(searchTerm, breadcrumbs),
-    }));
-  };
+      },
+      {}
+    );
 
-  handleResetSearchBar = () => {
-    this.setState(prevState => ({
-      searchTerm: '',
-      filteredBySearch: prevState.breadcrumbs,
-    }));
-  };
+    setFilteredByFilter(breadcrumbs);
+    setFilterOptions(newFilterOptions);
+    setFilteredBySearch(filterBySearch(searchTerm, breadcrumbs));
+  }
 
-  getEmptyMessage() {
-    const {searchTerm, filteredBySearch, filterOptions} = this.state;
+  function handleResetSearchBar() {
+    setSearchTerm('');
+    setFilteredBySearch(breadcrumbs);
+  }
+
+  function handleSwitchTimeFormat() {
+    setDisplayRelativeTime(!displayRelativeTime);
+  }
+
+  function getEmptyMessage() {
+    if (!!filteredBySearch.length) {
+      return {};
+    }
 
     if (searchTerm && !filteredBySearch.length) {
       const hasActiveFilter = Object.values(filterOptions)
         .flatMap(filterOption => filterOption)
         .find(filterOption => filterOption.isChecked);
 
-      return (
-        <StyledEmptyMessage
-          icon={<IconWarning size="xl" />}
-          action={
-            hasActiveFilter ? (
-              <Button onClick={this.handleResetFilter} priority="primary">
-                {t('Reset filter')}
-              </Button>
-            ) : (
-              <Button onClick={this.handleResetSearchBar} priority="primary">
-                {t('Clear search bar')}
-              </Button>
-            )
-          }
-        >
-          {t('Sorry, no breadcrumbs match your search query')}
-        </StyledEmptyMessage>
-      );
+      return {
+        emptyMessage: t('Sorry, no breadcrumbs match your search query'),
+        emptyAction: hasActiveFilter ? (
+          <Button onClick={handleResetFilter} priority="primary">
+            {t('Reset filter')}
+          </Button>
+        ) : (
+          <Button onClick={handleResetSearchBar} priority="primary">
+            {t('Clear search bar')}
+          </Button>
+        ),
+      };
     }
 
-    return (
-      <StyledEmptyMessage icon={<IconWarning size="xl" />}>
-        {t('There are no breadcrumbs to be displayed')}
-      </StyledEmptyMessage>
-    );
+    return {
+      emptyMessage: t('There are no breadcrumbs to be displayed'),
+    };
   }
 
-  render() {
-    const {type, event, organization} = this.props;
-    const {
-      filterOptions,
-      searchTerm,
-      filteredBySearch,
-      displayRelativeTime,
-      relativeTime,
-    } = this.state;
-
+  function renderRow({index, key, parent, style}: ListRowProps) {
+    const crumb = filteredBySearch[index];
+    const isLastItem = filteredBySearch[filteredBySearch.length - 1].id === crumb.id;
+    const {height} = style;
     return (
-      <StyledEventDataSection
-        type={type}
-        title={
-          <GuideAnchor target="breadcrumbs" position="right">
-            <h3>{t('Breadcrumbs')}</h3>
-          </GuideAnchor>
-        }
-        actions={
-          <SearchBarAction
-            placeholder={t('Search breadcrumbs')}
-            onChange={this.handleSearch}
-            query={searchTerm}
-            filter={
-              <SearchBarActionFilter
-                onChange={this.handleFilter}
-                options={filterOptions}
-              />
-            }
-          />
-        }
-        wrapTitle={false}
-        isCentered
+      <CellMeasurer
+        cache={cache}
+        columnIndex={0}
+        key={key}
+        parent={parent}
+        rowIndex={index}
       >
-        {!!filteredBySearch.length ? (
-          <ErrorBoundary>
-            <List
-              breadcrumbs={filteredBySearch}
-              event={event}
-              orgId={organization.slug}
-              onSwitchTimeFormat={this.handleSwitchTimeFormat}
-              displayRelativeTime={displayRelativeTime}
-              searchTerm={searchTerm}
-              relativeTime={relativeTime!} // relativeTime has to be always available, as the last item timestamp is the event created time
-            />
-          </ErrorBoundary>
-        ) : (
-          this.getEmptyMessage()
+        {({measure}) => (
+          <Crumb
+            style={style}
+            onLoad={measure}
+            data-test-id={isLastItem ? 'last-crumb' : ''}
+            crumb={crumb}
+            event={event}
+            orgSlug={organization.slug}
+            searchTerm={searchTerm}
+            isLastItem={false}
+            relativeTime={relativeTime}
+            displayRelativeTime={displayRelativeTime}
+            height={height ? String(height) : undefined}
+          />
         )}
-      </StyledEventDataSection>
+      </CellMeasurer>
     );
   }
+
+  function renderList() {
+    const crumbs = filteredBySearch;
+
+    if (!panelTableHeight) {
+      return crumbs.map((crumb, index) => (
+        <Crumb
+          key={index}
+          crumb={crumb}
+          event={event}
+          orgSlug={organization.slug}
+          searchTerm={searchTerm}
+          isLastItem={false}
+          relativeTime={relativeTime}
+          displayRelativeTime={displayRelativeTime}
+        />
+      ));
+    }
+
+    // onResize is required in case the user rotates the device.
+    return (
+      <AutoSizer disableHeight onResize={updateGrid}>
+        {({width}) => (
+          <StyledList
+            ref={(el: List | null) => {
+              listRef = el;
+            }}
+            deferredMeasurementCache={cache}
+            height={LIST_MAX_HEIGHT}
+            overscanRowCount={5}
+            rowCount={filteredBySearch.length}
+            rowHeight={cache.rowHeight}
+            rowRenderer={renderRow}
+            width={width}
+            onScrollbarPresenceChange={({size}: ScrollbarPresenceParams) =>
+              setScrollbarWidth(size)
+            }
+            // when the component mounts, it scrolls to the last item
+            scrollToIndex={scrollToIndex}
+            scrollToAlignment={scrollToIndex ? 'end' : undefined}
+          />
+        )}
+      </AutoSizer>
+    );
+  }
+
+  return (
+    <StyledEventDataSection
+      type={type}
+      title={
+        <GuideAnchor target="breadcrumbs" position="right">
+          <h3>{t('Breadcrumbs')}</h3>
+        </GuideAnchor>
+      }
+      actions={
+        <SearchBarAction
+          placeholder={t('Search breadcrumbs')}
+          onChange={handleSearch}
+          query={searchTerm}
+          filter={
+            <SearchBarActionFilter onChange={handleFilter} options={filterOptions} />
+          }
+        />
+      }
+      wrapTitle={false}
+      isCentered
+    >
+      <StyledPanelTable
+        isEmpty={!filteredBySearch.length}
+        scrollbarWidth={scrollbarWidth}
+        headers={[
+          t('Type'),
+          t('Category'),
+          t('Description'),
+          t('Level'),
+          <Time key="time" onClick={handleSwitchTimeFormat}>
+            <Tooltip
+              title={
+                displayRelativeTime ? t('Switch to absolute') : t('Switch to relative')
+              }
+            >
+              <StyledIconSwitch size="xs" />
+            </Tooltip>
+            {t('Time')}
+          </Time>,
+          '',
+        ]}
+        {...getEmptyMessage()}
+      >
+        <div ref={panelTableRef}>{renderList()}</div>
+      </StyledPanelTable>
+    </StyledEventDataSection>
+  );
 }
 
 export default Breadcrumbs;
@@ -421,6 +512,54 @@ const StyledEventDataSection = styled(EventDataSection)`
   margin-bottom: ${space(3)};
 `;
 
-const StyledEmptyMessage = styled(EmptyMessage)`
-  ${aroundContentStyle};
+const StyledPanelTable = styled(PanelTable)<{scrollbarWidth?: number}>`
+  overflow: hidden;
+  > * {
+    :nth-child(-n + 6) {
+      ${overflowEllipsis};
+      border-bottom: 1px solid ${p => p.theme.border};
+      margin-bottom: 1px;
+      :nth-child(6n) {
+        height: calc(100% - 1px);
+        ${p => !p.scrollbarWidth && `display: none`}
+      }
+    }
+
+    :nth-child(n + 7) {
+      grid-column: 1/-1;
+      ${p =>
+        !p.isEmpty &&
+        `
+          display: grid;
+          padding: 0;
+        `}
+    }
+  }
+
+  ${p => layout(p.theme, p.scrollbarWidth)}
+`;
+
+const Time = styled('div')`
+  display: grid;
+  grid-template-columns: max-content max-content;
+  justify-content: flex-end;
+  grid-gap: ${space(1)};
+  cursor: pointer;
+`;
+
+const StyledIconSwitch = styled(IconSwitch)`
+  transition: 0.15s color;
+  :hover {
+    color: ${p => p.theme.gray300};
+  }
+`;
+
+// XXX(ts): Emotion11 has some trouble with List's defaultProps
+// It gives the list have a dynamic height; otherwise, in the case of filtered
+// options, a list will be displayed with an empty space
+const StyledList = styled(List as any)<React.ComponentProps<typeof List>>`
+  height: auto !important;
+  max-height: ${p => p.height}px;
+  overflow-y: auto !important;
+  outline: none;
 `;
