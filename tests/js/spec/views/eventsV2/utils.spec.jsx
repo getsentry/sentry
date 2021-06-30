@@ -475,7 +475,11 @@ describe('getExpandedResults()', function () {
   it('removes equations on aggregates', () => {
     const view = new EventView({
       ...state,
-      fields: [{field: 'count()'}, {field: 'equation|count() / 2'}],
+      fields: [
+        {field: 'count()'},
+        {field: 'equation|count() / 2'},
+        {field: 'equation|(count() - count()) + 5'},
+      ],
     });
     const result = getExpandedResults(view, {});
     expect(result.fields).toEqual([
