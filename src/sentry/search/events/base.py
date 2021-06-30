@@ -82,9 +82,11 @@ class QueryBase:
         return converter(alias)
 
     def _resolve_issue_id_alias(self, _: str) -> SelectType:
-        column = self.column("issue.id")
-        # TODO: Remove the `toUInt64` once Column supports aliases
-        return Function("toUInt64", [column], "issue.id")
+        # The state of having no issues is represented differently on transactions vs
+        # other events. On the transactions table, it is represented by 0 whereas it is
+        # represented by NULL everywhere else. We use coalesce here so we can treat this
+        # consistently
+        return Function("coalesce", [self.column("issue.id"), 0], ISSUE_ID_ALIAS)
 
     def _resolve_project_slug_alias(self, alias: str) -> SelectType:
         project_ids = {

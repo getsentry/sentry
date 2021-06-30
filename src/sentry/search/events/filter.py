@@ -923,6 +923,7 @@ class QueryFilter(QueryBase):
             PROJECT_ALIAS: self._project_slug_filter_converter,
             PROJECT_NAME_ALIAS: self._project_slug_filter_converter,
             ISSUE_ALIAS: self._issue_filter_converter,
+            ISSUE_ID_ALIAS: self._issue_id_filter_converter,
         }
 
     def resolve_where(self, query: Optional[str]) -> List[WhereType]:
@@ -1129,3 +1130,25 @@ class QueryFilter(QueryBase):
                 SearchValue(filter_values if search_filter.is_in_filter else filter_values[0]),
             )
         )
+
+    def _issue_id_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
+        name = search_filter.key.name
+        value = search_filter.value.value
+
+        lhs = self.column(name)
+        rhs = value
+
+        # Handle "has" queries
+        if (
+            search_filter.value.raw_value == ""
+            or search_filter.is_in_filter
+            and [v for v in value if not v]
+        ):
+            if search_filter.is_in_filter:
+                rhs = [v if v else 0 for v in value]
+            else:
+                rhs = 0
+
+        # Skip isNull check on group_id value as we want to
+        # allow snuba's prewhere optimizer to find this condition.
+        return Condition(lhs, Op(search_filter.operator), rhs)

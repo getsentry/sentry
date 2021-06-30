@@ -195,6 +195,32 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 # is required to insert the `issue` column.
                 assert [item["issue.id"] for item in data] == [self.event.group_id], query_fn
 
+    def test_issue_filters(self):
+        tests = [
+            "has:issue",
+            "has:issue.id",
+            f"issue:[{self.event.group.qualified_short_id}]",
+            f"issue.id:[{self.event.group_id}]",
+        ]
+
+        for query_fn in [discover.query, discover.wip_snql_query]:
+            for query in tests:
+                result = query_fn(
+                    selected_columns=["issue", "issue.id"],
+                    query=query,
+                    params={
+                        "organization_id": self.organization.id,
+                        "project_id": [self.project.id],
+                        "start": self.two_min_ago,
+                        "end": self.now,
+                    },
+                )
+                data = result["data"]
+                assert len(data) == 1, query_fn
+                # The query will translate `issue` into `issue.id`. Additional post processing
+                # is required to insert the `issue` column.
+                assert [item["issue.id"] for item in data] == [self.event.group_id], query_fn
+
     def test_reverse_sorting_issue(self):
         other_event = self.store_event(
             data={
