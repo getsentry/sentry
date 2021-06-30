@@ -7,7 +7,6 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
-from sentry.integrations.slack.endpoints.action import LINK_IDENTITY_MESSAGE
 from sentry.integrations.slack.message_builder.disconnected import SlackDisconnectedMessageBuilder
 from sentry.integrations.slack.message_builder.help import SlackHelpMessageBuilder
 from sentry.integrations.slack.requests.base import SlackRequestError
@@ -17,8 +16,19 @@ from sentry.integrations.slack.views.link_team import build_team_linking_url
 from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
 
 logger = logging.getLogger("sentry.integrations.slack")
-LINK_TEAM_MESSAGE = "Link your Sentry team to this Slack channel! <{associate_url}|Link your team now> to receive notifications of issues in Sentry in Slack."
-LINK_USER_MESSAGE = "You must first link your identity to Sentry by typing /sentry link. Be aware that you must be an admin or higher in your Sentry organization to link your team."
+
+LINK_TEAM_MESSAGE = (
+    "Link your Sentry team to this Slack channel! <{associate_url}|Link your team now> to receive "
+    "notifications of issues in Sentry in Slack."
+)
+LINK_USER_MESSAGE = (
+    "<{associate_url}|Link your Slack identity> to your Sentry account to receive notifications. "
+    "You'll also be able to perform actions in Sentry through Slack. "
+)
+LINK_USER_FIRST_MESSAGE = (
+    "You must first link your identity to Sentry by typing /sentry link. Be aware that you "
+    "must be an admin or higher in your Sentry organization to link your team."
+)
 LINK_FROM_CHANNEL_MESSAGE = "You must type this command in a channel, not a DM."
 UNLINK_USER_MESSAGE = "<{associate_url}|Click here to unlink your identity.>"
 NOT_LINKED_MESSAGE = "You do not have a linked identity to unlink."
@@ -63,7 +73,7 @@ class SlackCommandsEndpoint(Endpoint):  # type: ignore
             response_url=slack_request.response_url,
         )
         return self.send_ephemeral_notification(
-            LINK_IDENTITY_MESSAGE.format(associate_url=associate_url)
+            LINK_USER_MESSAGE.format(associate_url=associate_url)
         )
 
     def unlink_user(self, slack_request: SlackCommandRequest) -> Response:
@@ -88,7 +98,7 @@ class SlackCommandsEndpoint(Endpoint):  # type: ignore
             return self.send_ephemeral_notification(LINK_FROM_CHANNEL_MESSAGE)
 
         if not slack_request.has_identity:
-            return self.send_ephemeral_notification(LINK_USER_MESSAGE)
+            return self.send_ephemeral_notification(LINK_USER_FIRST_MESSAGE)
 
         associate_url = build_team_linking_url(
             integration=slack_request.integration,
