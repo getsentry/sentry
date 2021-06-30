@@ -1,7 +1,7 @@
 from sentry.utils.safe import get_path, trim
 from sentry.utils.strings import truncatechars
 
-from .base import BaseEvent
+from .base import BaseEvent, format_title_from_tree_label
 
 
 def get_crash_location(data):
@@ -15,10 +15,6 @@ def get_crash_location(data):
 
         func = get_function_name_for_frame(frame, data.get("platform"))
         return frame.get("filename") or frame.get("abs_path"), func
-
-
-def format_title_from_tree_label(tree_label):
-    return " | ".join(tree_label)
 
 
 class ErrorEvent(BaseEvent):

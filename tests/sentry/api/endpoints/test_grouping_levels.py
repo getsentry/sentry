@@ -23,14 +23,14 @@ def store_stacktrace(default_project, factories):
 
     timestamp = time.time() - 3600
 
-    def inner(functions):
+    def inner(functions, interface="exception", type="error"):
         nonlocal timestamp
 
         timestamp += 1
 
         event = {
             "timestamp": timestamp,
-            "exception": {
+            interface: {
                 "values": [
                     {
                         "type": "ZeroDivisionError",
@@ -38,6 +38,7 @@ def store_stacktrace(default_project, factories):
                     }
                 ]
             },
+            "type": type,
         }
 
         return factories.store_event(data=event, project_id=default_project.id)
@@ -206,3 +207,10 @@ level 2*
 97df6b60ec530c65ab227585143a087a: bam | bar | foo (1)\
 """
     )
+
+
+@pytest.mark.django_db
+@pytest.mark.snuba
+def test_default_events(default_project, store_stacktrace, reset_snuba, _render_all_previews):
+    event = store_stacktrace(["bar", "foo"], interface="threads", type="default")
+    assert event.title == "bar | foo"
