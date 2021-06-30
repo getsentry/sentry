@@ -27,6 +27,7 @@
     "strictBindCallApply": false,
     "experimentalDecorators": true,
     // Skip type checking of all declaration files
+    "skipDefaultLibCheck": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
     "jsx": "preserve",
