@@ -11,6 +11,7 @@
     "lib": ["esnext", "dom"],
     "module": "esnext",
     "moduleResolution": "node",
+    "noEmit": true,
     "noEmitHelpers": true,
     "noFallthroughCasesInSwitch": true,
     "noImplicitAny": false,
