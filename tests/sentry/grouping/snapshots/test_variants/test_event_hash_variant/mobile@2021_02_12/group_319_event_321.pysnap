@@ -1,11 +1,11 @@
 ---
-created: '2021-05-05T18:04:40.092075Z'
+created: '2021-06-23T18:06:09.554796Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
   hash: "ec536565582e9952c456c552200e7885"
-  tree_label: "abort | gpusSubmitDataBuffers | CGLFlushDrawable [driver/gl/throw]"
+  tree_label: "abort | gpusSubmitDataBuffers | CGLFlushDrawable"
   component:
     app-depth-1*
       exception*

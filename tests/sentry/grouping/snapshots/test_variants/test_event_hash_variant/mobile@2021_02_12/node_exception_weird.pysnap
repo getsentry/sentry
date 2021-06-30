@@ -1,5 +1,5 @@
 ---
-created: '2021-04-08T09:28:29.147585Z'
+created: '2021-06-23T18:06:10.741095Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -24,7 +24,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-2:
   hash: "d5ccedb70f6a8e9203070b7239258834"
-  tree_label: "captureException | ..."
+  tree_label: "captureException | eventFromException"
   component:
     app-depth-2*
       exception*
@@ -52,7 +52,7 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-3:
   hash: "c35317b0e34b5148a5be409a656af7ff"
-  tree_label: "invokeClient | ..."
+  tree_label: "invokeClient | captureException | eventFromException"
   component:
     app-depth-3*
       exception*
@@ -89,7 +89,7 @@ app-depth-3:
 --------------------------------------------------------------------------
 app-depth-4:
   hash: "0824915a9819f48054d20b6003199d87"
-  tree_label: "captureException | ..."
+  tree_label: "captureException | invokeClient | captureException | eventFromException"
   component:
     app-depth-4*
       exception*
@@ -135,7 +135,7 @@ app-depth-4:
 --------------------------------------------------------------------------
 app-depth-5:
   hash: "20741a4530d240adb9910aefac03e4b1"
-  tree_label: "<anonymous> | ..."
+  tree_label: "<anonymous> | captureException | invokeClient | captureException | eventFromException"
   component:
     app-depth-5*
       exception*

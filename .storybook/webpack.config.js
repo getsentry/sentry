@@ -48,15 +48,7 @@ module.exports = ({config} = {config: emptyConfig}) => {
         },
         {
           test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg)($|\?)/,
-          use: [
-            {
-              loader: 'file-loader',
-              options: {
-                esModule: false,
-                name: '[name].[hash:6].[ext]',
-              },
-            },
-          ],
+          type: 'asset/resource',
         },
         {
           test: /\.po$/,

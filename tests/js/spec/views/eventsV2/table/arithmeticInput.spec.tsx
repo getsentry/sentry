@@ -9,6 +9,7 @@ describe('ArithmeticInput', function () {
   let handleQueryChange: (value: string) => void;
   let numericColumns: Column[];
   let columns: Column[];
+  const operators = ['+', '-', '*', '/'];
 
   beforeEach(function () {
     query = '';
@@ -66,9 +67,13 @@ describe('ArithmeticInput', function () {
     wrapper.find('input').simulate('focus');
 
     const options = wrapper.find('DropdownListItem');
-    expect(options).toHaveLength(numericColumns.length);
+    expect(options).toHaveLength(numericColumns.length + operators.length);
     options.forEach((option, i) => {
-      expect(option.text()).toEqual(generateFieldAsString(numericColumns[i]));
+      if (i < numericColumns.length) {
+        expect(option.text()).toEqual(generateFieldAsString(numericColumns[i]));
+      } else {
+        expect(option.text()).toEqual(operators[i - numericColumns.length]);
+      }
     });
   });
 
@@ -85,8 +90,18 @@ describe('ArithmeticInput', function () {
       );
     }
 
+    for (const operator of operators) {
+      input.simulate('keydown', {key: 'ArrowDown'});
+      expect(wrapper.find('DropdownListItem .active').text()).toEqual(operator);
+    }
+
     // wrap around to the first option again
     input.simulate('keydown', {key: 'ArrowDown'});
+
+    for (const operator of [...operators].reverse()) {
+      input.simulate('keydown', {key: 'ArrowUp'});
+      expect(wrapper.find('DropdownListItem .active').text()).toEqual(operator);
+    }
 
     for (const column of [...numericColumns].reverse()) {
       input.simulate('keydown', {key: 'ArrowUp'});
