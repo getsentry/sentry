@@ -35,6 +35,10 @@ type IssuesQueryParams = {
   query: string;
 };
 
+const defaultProps = {
+  withChart: false,
+};
+
 type Props = {
   organization: Organization;
   version: string;
@@ -43,8 +47,7 @@ type Props = {
   defaultStatsPeriod: string;
   queryFilterDescription?: string;
   releaseBounds: ReleaseBounds;
-  withChart?: boolean;
-};
+} & Partial<typeof defaultProps>;
 
 type State = {
   issuesType: IssuesType;
@@ -53,6 +56,8 @@ type State = {
 };
 
 class Issues extends Component<Props, State> {
+  static defaultProps = defaultProps;
+
   state: State = {
     issuesType: IssuesType.NEW,
   };
@@ -250,8 +255,8 @@ class Issues extends Component<Props, State> {
             queryParams={queryParams}
             query=""
             canSelectGroups={false}
-            queryFilterDescription={t('In this release')}
-            withChart
+            queryFilterDescription={queryFilterDescription}
+            withChart={withChart}
             renderEmptyMessage={this.renderEmptyMessage}
             withPagination={false}
             onFetchSuccess={this.handleFetchSuccess}
