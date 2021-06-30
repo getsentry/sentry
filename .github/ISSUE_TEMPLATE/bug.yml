@@ -24,7 +24,7 @@ body:
     attributes:
       label: Steps to Reproduce
       description: How can we see what you're seeing? Specific is terrific.
-      value: |-
+      placeholder: |-
         1. foo
         2. bar
         3. baz
