@@ -128,9 +128,20 @@ describe('TransactionThresholdModal', function () {
       method: 'DELETE',
     });
 
+    const getProjectThresholdMock = MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/transaction-threshold/configure/',
+      method: 'GET',
+      body: {
+        threshold: '200',
+        metric: 'duration',
+      },
+    });
+
     await clickReset(wrapper);
     wrapper.update();
     expect(deleteTransactionThresholdMock).toHaveBeenCalledTimes(1);
+    // Replace with project fallback
+    expect(getProjectThresholdMock).toHaveBeenCalledTimes(1);
     wrapper.unmount();
   });
 });

@@ -134,8 +134,27 @@ class TransactionThresholdModal extends React.Component<Props, State> {
         },
       })
       .then(() => {
-        closeModal();
-        this.props.onApply(this.state.threshold, this.state.metric);
+        const projectThresholdUrl = `/projects/${organization.slug}/${project.slug}/transaction-threshold/configure/`;
+        this.props.api
+          .requestPromise(projectThresholdUrl, {
+            method: 'GET',
+            includeAllArgs: true,
+            query: {
+              project: project.id,
+            },
+          })
+          .then(([data]) => {
+            this.setState({
+              threshold: data.threshold,
+              metric: data.metric,
+            });
+            closeModal();
+            this.props.onApply(this.state.threshold, this.state.metric);
+          })
+          .catch(err => {
+            const errorMessage = err.responseJSON?.threshold ?? null;
+            addErrorMessage(errorMessage);
+          });
       })
       .catch(err => {
         this.setState({
