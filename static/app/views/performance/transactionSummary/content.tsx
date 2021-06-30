@@ -295,6 +295,24 @@ class SummaryContent extends React.Component<Props, State> {
       transactionsListEventView.fields = fields;
     }
 
+    const openAllEventsProps = {
+      generatePerformanceTransactionEventsView: () => {
+        const performanceTransactionEventsView = this.generateEventView(
+          transactionsListEventView,
+          transactionsListTitles
+        );
+        performanceTransactionEventsView.query = query;
+        return performanceTransactionEventsView;
+      },
+      handleOpenAllEventsClick: this.handleAllEventsViewClick,
+    };
+
+    const openInDiscoverProps = {
+      generateDiscoverEventView: () =>
+        this.generateEventView(transactionsListEventView, transactionsListTitles),
+      handleOpenInDiscoverClick: this.handleDiscoverViewClick,
+    };
+
     return (
       <React.Fragment>
         <TransactionHeader
@@ -339,30 +357,13 @@ class SummaryContent extends React.Component<Props, State> {
               location={location}
               organization={organization}
               eventView={transactionsListEventView}
-              {...(hasPerformanceEventsPage
-                ? {
-                    generatePerformanceTransactionEventsView: () => {
-                      const performanceTransactionEventsView = this.generateEventView(
-                        transactionsListEventView,
-                        transactionsListTitles
-                      );
-                      performanceTransactionEventsView.query = query;
-                      return performanceTransactionEventsView;
-                    },
-                    handleOpenAllEventsClick: this.handleAllEventsViewClick,
-                  }
-                : {
-                    generateDiscoverEventView: () =>
-                      this.generateEventView(
-                        transactionsListEventView,
-                        transactionsListTitles
-                      ),
-                    handleOpenInDiscoverClick: this.handleDiscoverViewClick,
-                  })}
-              showTransactions={decodeScalar(
-                location.query.showTransactions,
-                TransactionFilterOptions.SLOW
-              )}
+              {...(hasPerformanceEventsPage ? openAllEventsProps : openInDiscoverProps)}
+              showTransactions={
+                decodeScalar(
+                  location.query.showTransactions,
+                  TransactionFilterOptions.SLOW
+                ) as TransactionFilterOptions
+              }
               breakdown={decodeFilterFromLocation(location)}
               titles={transactionsListTitles}
               handleDropdownChange={this.handleTransactionsListSortChange}

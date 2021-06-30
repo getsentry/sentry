@@ -23,6 +23,7 @@ import {Actions} from 'app/views/eventsV2/table/cellAction';
 import {TableColumn} from 'app/views/eventsV2/table/types';
 import {decodeColumnOrder} from 'app/views/eventsV2/utils';
 import {mapShowTransactionToPercentile} from 'app/views/performance/transactionSummary/transactionEvents/utils';
+import {TransactionFilterOptions} from 'app/views/performance/transactionSummary/utils';
 import {TrendChangeType, TrendView} from 'app/views/performance/trends/types';
 
 import TransactionsTable from './transactionsTable';
@@ -124,7 +125,7 @@ type Props = {
    */
   generateDiscoverEventView?: () => EventView;
   generatePerformanceTransactionEventsView?: () => EventView;
-  showTransactions?: string;
+  showTransactions?: TransactionFilterOptions;
   breakdown?: string;
 };
 
