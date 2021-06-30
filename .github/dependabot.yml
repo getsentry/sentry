@@ -50,7 +50,6 @@ updates:
       - dependency-name: "eslint"
       - dependency-name: "eslint-plugin-simple-import-sort"
       - dependency-name: "fuse.js"
-      - dependency-name: "gettext-parser"
       - dependency-name: "jest"
       - dependency-name: "jest-circus"
       - dependency-name: "jest-junit"
