@@ -70,9 +70,29 @@ type MenuItemProps = {
 
 type Props = MenuItemProps & Omit<React.HTMLProps<HTMLLIElement>, keyof MenuItemProps>;
 
-class MenuItem extends React.Component<Props> {
-  handleClick = (e: React.MouseEvent): void => {
-    const {onSelect, disabled, eventKey, allowDefaultEvent, stopPropagation} = this.props;
+const MenuItem = ({
+  header,
+  icon,
+  divider,
+  isActive,
+  noAnchor,
+  className,
+  children,
+  ...props
+}: Props) => {
+  const {
+    to,
+    href,
+    title,
+    withBorder,
+    disabled,
+    onSelect,
+    eventKey,
+    allowDefaultEvent,
+    stopPropagation,
+  } = props;
+
+  const handleClick = (e: React.MouseEvent): void => {
     if (disabled) {
       return;
     }
@@ -87,11 +107,9 @@ class MenuItem extends React.Component<Props> {
     }
   };
 
-  renderAnchor = (): React.ReactNode => {
-    const {to, href, title, withBorder, disabled, isActive, children} = this.props;
-
+  const renderAnchor = (): React.ReactNode => {
     const linkProps = {
-      onClick: this.handleClick,
+      onClick: handleClick,
       tabIndex: -1,
       isActive,
       disabled,
@@ -101,6 +119,7 @@ class MenuItem extends React.Component<Props> {
     if (to) {
       return (
         <MenuLink to={to} {...linkProps} title={title}>
+          {icon && <MenuIcon>{icon}</MenuIcon>}
           {children}
         </MenuLink>
       );
@@ -109,6 +128,7 @@ class MenuItem extends React.Component<Props> {
     if (href) {
       return (
         <MenuAnchor {...linkProps} href={href}>
+          {icon && <MenuIcon>{icon}</MenuIcon>}
           {children}
         </MenuAnchor>
       );
@@ -116,40 +136,35 @@ class MenuItem extends React.Component<Props> {
 
     return (
       <MenuTarget role="button" {...linkProps} title={title}>
-        {this.props.children}
+        {icon && <MenuIcon>{icon}</MenuIcon>}
+        {children}
       </MenuTarget>
     );
   };
 
-  render() {
-    const {header, icon, divider, isActive, noAnchor, className, children, ...props} =
-      this.props;
-
-    let renderChildren: React.ReactNode | null = null;
-    if (noAnchor) {
-      renderChildren = children;
-    } else if (header) {
-      renderChildren = children;
-    } else if (!divider) {
-      renderChildren = this.renderAnchor();
-    }
-
-    return (
-      <MenuListItem
-        className={className}
-        role="presentation"
-        isActive={isActive}
-        divider={divider}
-        noAnchor={noAnchor}
-        header={header}
-        {...omit(props, ['href', 'title', 'onSelect', 'eventKey', 'to', 'as'])}
-      >
-        {icon}
-        {renderChildren}
-      </MenuListItem>
-    );
+  let renderChildren: React.ReactNode | null = null;
+  if (noAnchor) {
+    renderChildren = children;
+  } else if (header) {
+    renderChildren = children;
+  } else if (!divider) {
+    renderChildren = renderAnchor();
   }
-}
+
+  return (
+    <MenuListItem
+      className={className}
+      role="presentation"
+      isActive={isActive}
+      divider={divider}
+      noAnchor={noAnchor}
+      header={header}
+      {...omit(props, ['href', 'title', 'onSelect', 'eventKey', 'to', 'as'])}
+    >
+      {renderChildren}
+    </MenuListItem>
+  );
+};
 
 type MenuListItemProps = {
   header?: boolean;
@@ -252,11 +267,14 @@ const MenuListItem = styled('li')<MenuListItemProps>`
 
 const MenuTarget = styled('span')<MenuListItemProps>`
   ${getListItemStyles}
-  display: grid;
+  display: flex;
   align-items: center;
-  grid-auto-columns: max-content;
-  grid-gap: ${space(1)};
-  grid-auto-flow: column;
+`;
+
+const MenuIcon = styled('div')`
+  display: flex;
+  align-items: center;
+  margin-right: ${space(1)};
 `;
 
 const MenuLink = styled(Link, {shouldForwardProp})<MenuListItemProps>`

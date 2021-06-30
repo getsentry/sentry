@@ -99,8 +99,12 @@ export function makePinSearchAction({pinnedSearch, sort}: PinSearchActionOpts) {
     const pinTooltip = !!pinnedSearch ? t('Unpin this search') : t('Pin this search');
 
     return menuItemVariant ? (
-      <MenuItem withBorder data-test-id="pin-icon" onClick={onTogglePinnedSearch}>
-        <IconPin isSolid={!!pinnedSearch} size="xs" />
+      <MenuItem
+        withBorder
+        data-test-id="pin-icon"
+        icon={<IconPin isSolid={!!pinnedSearch} size="xs" />}
+        onClick={onTogglePinnedSearch}
+      >
         {!!pinnedSearch ? t('Unpin Search') : t('Pin Search')}
       </MenuItem>
     ) : (
@@ -140,8 +144,7 @@ export function makeSaveSearchAction({sort}: SaveSearchActionOpts) {
     return (
       <Access organization={organization} access={['org:write']}>
         {menuItemVariant ? (
-          <MenuItem withBorder onClick={onClick}>
-            <IconAdd size="xs" />
+          <MenuItem withBorder icon={<IconAdd size="xs" />} onClick={onClick}>
             {t('Create Saved Search')}
           </MenuItem>
         ) : (
@@ -170,8 +173,7 @@ type SearchBuilderActionOpts = {
 export function makeSearchBuilderAction({onSidebarToggle}: SearchBuilderActionOpts) {
   const SearchBuilderAction = ({menuItemVariant}: ActionProps) =>
     menuItemVariant ? (
-      <MenuItem withBorder onClick={onSidebarToggle}>
-        <IconSliders size="xs" />
+      <MenuItem withBorder icon={<IconSliders size="xs" />} onClick={onSidebarToggle}>
         {t('Toggle sidebar')}
       </MenuItem>
     ) : (
