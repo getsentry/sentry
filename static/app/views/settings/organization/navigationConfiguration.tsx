@@ -21,14 +21,6 @@ const organizationNavigation: NavigationSection[] = [
         id: 'projects',
       },
       {
-        path: `${pathPrefix}/security-and-privacy/`,
-        title: t('Security & Privacy'),
-        description: t(
-          'Configuration related to dealing with sensitive data and other security settings. (Data Scrubbing, Data Privacy, Data Scrubbing)'
-        ),
-        id: 'security-and-privacy',
-      },
-      {
         path: `${pathPrefix}/teams/`,
         title: t('Teams'),
         description: t("Manage an organization's teams"),
@@ -47,6 +39,14 @@ const organizationNavigation: NavigationSection[] = [
         show: ({features}) => features!.has('performance-view'),
         description: t('Manage performance settings'),
         id: 'performance',
+      },
+      {
+        path: `${pathPrefix}/security-and-privacy/`,
+        title: t('Security & Privacy'),
+        description: t(
+          'Configuration related to dealing with sensitive data and other security settings. (Data Scrubbing, Data Privacy, Data Scrubbing)'
+        ),
+        id: 'security-and-privacy',
       },
       {
         path: `${pathPrefix}/auth/`,
