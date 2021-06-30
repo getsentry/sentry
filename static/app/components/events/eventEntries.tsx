@@ -373,9 +373,9 @@ class EventEntries extends Component<Props, State> {
             includeBorder={!hasErrors}
           />
         )}
-        <StyledEventDataSection title={t('Tags')} type="tags">
-          {hasContext && <EventContextSummary event={event} />}
-          {showTagSummary && (
+        {showTagSummary && (
+          <StyledEventDataSection title={t('Tags')} type="tags">
+            {hasContext && <EventContextSummary event={event} />}
             <EventTags
               event={event}
               organization={organization as Organization}
@@ -383,8 +383,8 @@ class EventEntries extends Component<Props, State> {
               location={location}
               hasQueryFeature={hasQueryFeature}
             />
-          )}
-        </StyledEventDataSection>
+          </StyledEventDataSection>
+        )}
         {this.renderEntries(event)}
         {hasContext && <EventContexts group={group} event={event} />}
         {event && !objectIsEmpty(event.context) && <EventExtraData event={event} />}
