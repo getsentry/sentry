@@ -26,7 +26,7 @@ type Props = {
 function StatusBreakdown({eventView, location, organization}: Props) {
   const breakdownView = eventView
     .withColumns([
-      {kind: 'function', function: ['count', '', '']},
+      {kind: 'function', function: ['count', '', '', undefined]},
       {kind: 'field', field: 'transaction.status'},
     ])
     .withSorts([{kind: 'desc', field: 'count'}]);
