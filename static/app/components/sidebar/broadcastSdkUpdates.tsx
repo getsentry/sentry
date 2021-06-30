@@ -1,9 +1,7 @@
 import styled from '@emotion/styled';
 import groupBy from 'lodash/groupBy';
 
-import Alert from 'app/components/alert';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
-import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Project, ProjectSdkUpdates, SDKUpdatesSuggestion} from 'app/types';
@@ -46,12 +44,9 @@ const BroadcastSdkUpdates = ({projects, sdkUpdates}: Props) => {
       hasSeen
       title={t('Update your SDKs')}
       message={t(
-        'Seems like your SDKs could use a refresh. We recommend updating these SDKs to make sure you’re getting all the data you need.'
+        'We recommend updating the following SDKs to make sure you’re getting all the data you need.'
       )}
     >
-      <StyledAlert type="warning" icon={<IconWarning />}>
-        {t('All sentry packages should be updated and their versions should match.')}
-      </StyledAlert>
       <UpdatesList>
         <Collapsible>
           {items.map(([projectId, updates]) => {
@@ -122,11 +117,6 @@ const SdkName = styled('div')`
 
 const SdkOutdatedVersion = styled('span')`
   color: ${p => p.theme.subText};
-`;
-
-const StyledAlert = styled(Alert)`
-  margin-top: ${space(2)};
-  margin-bottom: 0;
 `;
 
 export default withSdkUpdates(withProjects(BroadcastSdkUpdates));

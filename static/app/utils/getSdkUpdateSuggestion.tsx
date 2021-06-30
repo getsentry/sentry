@@ -20,13 +20,13 @@ function getSdkUpdateSuggestion({sdk, suggestion, shortStyle = false}: Props) {
           href: suggestion?.sdkUrl,
           content: sdk
             ? shortStyle
-              ? t('update to version %s', suggestion.newSdkVersion)
+              ? t('Update to version %s', suggestion.newSdkVersion)
               : t(
-                  'update your SDK from version %s to version %s',
+                  'Update your SDK from version %s to version %s',
                   sdk.version,
                   suggestion.newSdkVersion
                 )
-            : t('update your SDK version'),
+            : t('Update your SDK version'),
         };
       case 'changeSdk':
         return {
