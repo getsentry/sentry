@@ -48,6 +48,7 @@ import RelatedIssues from './relatedIssues';
 import SidebarCharts from './sidebarCharts';
 import StatusBreakdown from './statusBreakdown';
 import {TagExplorer} from './tagExplorer';
+import {TransactionThresholdMetric} from './transactionThresholdModal';
 import UserStats from './userStats';
 import {
   generateTraceLink,
@@ -66,8 +67,11 @@ type Props = {
   totalValues: Record<string, number> | null;
   projects: Project[];
   onChangeFilter: (newFilter: SpanOperationBreakdownFilter) => void;
-  onChangeThreshold: (transactionThresholdFetchID: symbol | undefined) => void;
+  onChangeThreshold?: (threshold: number, metric: TransactionThresholdMetric) => void;
   spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
+  transactionThreshold?: number;
+  transactionThresholdMetric?: TransactionThresholdMetric;
+  loadingThreshold?: boolean;
 };
 
 type State = {
@@ -179,6 +183,9 @@ class SummaryContent extends React.Component<Props, State> {
       totalValues,
       onChangeFilter,
       spanOperationBreakdownFilter,
+      transactionThreshold,
+      transactionThresholdMetric,
+      loadingThreshold,
     } = this.props;
     const {incompatibleAlertNotice} = this.state;
     const query = decodeScalar(location.query.query, '');
@@ -268,9 +275,14 @@ class SummaryContent extends React.Component<Props, State> {
           currentTab={Tab.TransactionSummary}
           hasWebVitals={hasWebVitals}
           handleIncompatibleQuery={this.handleIncompatibleQuery}
-          onChangeThreshold={transactionThresholdFetchID =>
-            this.props.onChangeThreshold(transactionThresholdFetchID)
-          }
+          onChangeThreshold={(threshold, metric) => {
+            if (this.props.onChangeThreshold) {
+              this.props.onChangeThreshold(threshold, metric);
+            }
+          }}
+          transactionThreshold={transactionThreshold}
+          transactionThresholdMetric={transactionThresholdMetric}
+          loadingThreshold={loadingThreshold}
         />
         <Layout.Body>
           <StyledSdkUpdatesAlert />

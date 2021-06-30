@@ -11,7 +11,6 @@ import {Client} from 'app/api';
 import Button from 'app/components/button';
 import ButtonBar from 'app/components/buttonBar';
 import SelectControl from 'app/components/forms/selectControl';
-import LoadingIndicator from 'app/components/loadingIndicator';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
@@ -22,6 +21,11 @@ import withProjects from 'app/utils/withProjects';
 import Input from 'app/views/settings/components/forms/controls/input';
 import Field from 'app/views/settings/components/forms/field';
 
+export enum TransactionThresholdMetric {
+  TRANSACTION_DURATION = 'duration',
+  LARGEST_CONTENTFUL_PAINT = 'lcp',
+}
+
 export const METRIC_CHOICES = [
   {label: t('Transaction Duration'), value: 'duration'},
   {label: t('Largest Contentful Paint'), value: 'lcp'},
@@ -31,31 +35,25 @@ type Props = {
   api: Client;
   organization: Organization;
   transactionName: string;
-  onApply: (transactionThresholdFetchID: symbol | undefined) => void;
+  onApply: (threshold, metric) => void;
   projects: Project[];
   eventView: EventView;
+  transactionThreshold: number | undefined;
+  transactionThresholdMetric: TransactionThresholdMetric | undefined;
 } & ModalRenderProps;
 
 type State = {
-  transactionThresholdFetchID: symbol | undefined;
-  value: number | undefined;
-  metric: string | undefined;
+  threshold: number | undefined;
+  metric: TransactionThresholdMetric | undefined;
   error: string | null;
-  isLoading: boolean;
 };
 
 class TransactionThresholdModal extends React.Component<Props, State> {
   state: State = {
-    transactionThresholdFetchID: undefined,
-    value: undefined,
-    metric: undefined,
+    threshold: this.props.transactionThreshold,
+    metric: this.props.transactionThresholdMetric,
     error: null,
-    isLoading: true,
   };
-
-  componentDidMount() {
-    this.fetchData();
-  }
 
   getProject() {
     const {projects, eventView} = this.props;
@@ -63,73 +61,6 @@ class TransactionThresholdModal extends React.Component<Props, State> {
     const project = projects.find(proj => proj.id === projectId);
 
     return project;
-  }
-
-  fetchData = () => {
-    const {api, organization, transactionName} = this.props;
-
-    const project = this.getProject();
-    if (!defined(project)) {
-      return;
-    }
-    const transactionThresholdUrl = `/organizations/${organization.slug}/project-transaction-threshold-override/`;
-    const transactionThresholdFetchID = Symbol(`transactionThresholdFetchID`);
-
-    this.setState({isLoading: true, transactionThresholdFetchID});
-
-    api
-      .requestPromise(transactionThresholdUrl, {
-        method: 'GET',
-        includeAllArgs: true,
-        query: {
-          project: project.id,
-          transaction: transactionName,
-        },
-      })
-      .then(([data]) => {
-        if (this.state.transactionThresholdFetchID !== transactionThresholdFetchID) {
-          // invariant: a different request was initiated after this request
-          return;
-        }
-        this.setState({
-          transactionThresholdFetchID: undefined,
-          isLoading: false,
-          error: null,
-          value: data.threshold,
-          metric: data.metric,
-        });
-      })
-      .catch(() => {
-        const projectThresholdUrl = `/projects/${organization.slug}/${project.slug}/transaction-threshold/configure/`;
-        this.props.api
-          .requestPromise(projectThresholdUrl, {
-            method: 'GET',
-            includeAllArgs: true,
-            query: {
-              project: project.id,
-            },
-          })
-          .then(([data]) => {
-            this.setState({
-              transactionThresholdFetchID: undefined,
-              isLoading: false,
-              error: null,
-              value: data.threshold,
-              metric: data.metric,
-            });
-          })
-          .catch(err => {
-            this.setState({
-              transactionThresholdFetchID: undefined,
-              isLoading: false,
-              error: err,
-            });
-          });
-      });
-  };
-
-  renderLoading() {
-    return <LoadingIndicator />;
   }
 
   handleApply = async (event: React.FormEvent) => {
@@ -143,8 +74,6 @@ class TransactionThresholdModal extends React.Component<Props, State> {
     }
 
     const transactionThresholdUrl = `/organizations/${organization.slug}/project-transaction-threshold-override/`;
-    const transactionThresholdFetchID = Symbol(`transactionThresholdFetchID`);
-    this.setState({isLoading: true, transactionThresholdFetchID});
 
     api
       .requestPromise(transactionThresholdUrl, {
@@ -155,20 +84,17 @@ class TransactionThresholdModal extends React.Component<Props, State> {
         },
         data: {
           transaction: transactionName,
-          threshold: this.state.value,
+          threshold: this.state.threshold,
           metric: this.state.metric,
         },
       })
       .then(() => {
-        this.setState({isLoading: false});
         closeModal();
-        this.props.onApply(this.state.transactionThresholdFetchID);
+        this.props.onApply(this.state.threshold, this.state.metric);
       })
       .catch(err => {
         this.setState({
           error: err,
-          isLoading: false,
-          transactionThresholdFetchID: undefined,
         });
         const errorMessage = err.responseJSON?.threshold ?? null;
         addErrorMessage(errorMessage);
@@ -194,10 +120,7 @@ class TransactionThresholdModal extends React.Component<Props, State> {
       return;
     }
 
-    this.setState({isLoading: true});
     const transactionThresholdUrl = `/organizations/${organization.slug}/project-transaction-threshold-override/`;
-    const transactionThresholdFetchID = Symbol(`transactionThresholdFetchID`);
-    this.setState({isLoading: true, transactionThresholdFetchID});
 
     api
       .requestPromise(transactionThresholdUrl, {
@@ -212,13 +135,11 @@ class TransactionThresholdModal extends React.Component<Props, State> {
       })
       .then(() => {
         closeModal();
-        this.props.onApply(this.state.transactionThresholdFetchID);
+        this.props.onApply(this.state.threshold, this.state.metric);
       })
       .catch(err => {
         this.setState({
           error: err,
-          isLoading: false,
-          transactionThresholdFetchID: undefined,
         });
       });
   };
@@ -267,9 +188,9 @@ class TransactionThresholdModal extends React.Component<Props, State> {
             required
             pattern="[0-9]*(\.[0-9]*)?"
             onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-              this.handleFieldChange('value')(event.target.value);
+              this.handleFieldChange('threshold')(event.target.value);
             }}
-            value={this.state.value}
+            value={this.state.threshold}
           />
         </Field>
       </React.Fragment>
@@ -299,7 +220,7 @@ class TransactionThresholdModal extends React.Component<Props, State> {
               }
             )}
           </Instruction>
-          {this.state.isLoading ? this.renderLoading() : this.renderModalFields()}
+          {this.renderModalFields()}
         </Body>
         <Footer>
           <ButtonBar gap={1}>

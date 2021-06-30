@@ -23,7 +23,10 @@ import {tagsRouteWithQuery} from './transactionTags/utils';
 import {vitalsRouteWithQuery} from './transactionVitals/utils';
 import KeyTransactionButton from './keyTransactionButton';
 import TeamKeyTransactionButton from './teamKeyTransactionButton';
-import TransactionThresholdModal, {modalCss} from './transactionThresholdModal';
+import TransactionThresholdModal, {
+  modalCss,
+  TransactionThresholdMetric,
+} from './transactionThresholdModal';
 import {transactionSummaryRouteWithQuery} from './utils';
 
 export enum Tab {
@@ -41,10 +44,13 @@ type Props = {
   transactionName: string;
   currentTab: Tab;
   hasWebVitals: boolean;
-  onChangeThreshold?: (transactionThresholdFetchID: symbol | undefined) => void;
+  onChangeThreshold?: (threshold: number, metric: TransactionThresholdMetric) => void;
   handleIncompatibleQuery: React.ComponentProps<
     typeof CreateAlertFromViewButton
   >['onIncompatibleQuery'];
+  transactionThreshold?: number;
+  transactionThresholdMetric?: TransactionThresholdMetric;
+  loadingThreshold?: boolean;
 };
 
 class TransactionHeader extends React.Component<Props> {
@@ -132,14 +138,20 @@ class TransactionHeader extends React.Component<Props> {
     );
   }
 
-  handleUpdateThreshold(transactionThresholdFetchID: symbol | undefined) {
+  handleUpdateThreshold(threshold: number, metric: TransactionThresholdMetric) {
     if (this.props.onChangeThreshold) {
-      this.props.onChangeThreshold(transactionThresholdFetchID);
+      this.props.onChangeThreshold(threshold, metric);
     }
   }
 
   openModal() {
-    const {organization, transactionName, eventView} = this.props;
+    const {
+      organization,
+      transactionName,
+      eventView,
+      transactionThreshold,
+      transactionThresholdMetric,
+    } = this.props;
     openModal(
       modalProps => (
         <TransactionThresholdModal
@@ -147,9 +159,9 @@ class TransactionHeader extends React.Component<Props> {
           organization={organization}
           transactionName={transactionName}
           eventView={eventView}
-          onApply={transactionThresholdFetchID =>
-            this.handleUpdateThreshold(transactionThresholdFetchID)
-          }
+          transactionThreshold={transactionThreshold}
+          transactionThresholdMetric={transactionThresholdMetric}
+          onApply={(threshold, metric) => this.handleUpdateThreshold(threshold, metric)}
         />
       ),
       {modalCss, backdrop: 'static'}
@@ -157,7 +169,7 @@ class TransactionHeader extends React.Component<Props> {
   }
 
   renderSettingsButton() {
-    const {organization} = this.props;
+    const {organization, loadingThreshold} = this.props;
 
     return (
       <Feature
@@ -170,6 +182,8 @@ class TransactionHeader extends React.Component<Props> {
               onClick={() => this.openModal()}
               data-test-id="set-transaction-threshold"
               icon={<IconSettings />}
+              disabled={loadingThreshold}
+              aria-label="Settings"
             />
           ) : (
             <Button
