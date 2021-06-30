@@ -36,6 +36,7 @@ import {
   TableColumnSort,
 } from 'app/views/eventsV2/table/types';
 import {decodeColumnOrder} from 'app/views/eventsV2/utils';
+import {SpanOperationBreakdownFilter} from 'app/views/performance/transactionSummary/filter';
 import {EventsDisplayFilterName} from 'app/views/performance/transactionSummary/transactionEvents/utils';
 
 import {statsPeriodToDays} from '../dates';
@@ -1116,7 +1117,7 @@ class EventView {
     slug: string,
     options: {
       showTransactions?: EventsDisplayFilterName;
-      breakdown?: string;
+      breakdown?: SpanOperationBreakdownFilter;
       webVital?: WebVital;
     }
   ): {pathname: string; query: Query} {

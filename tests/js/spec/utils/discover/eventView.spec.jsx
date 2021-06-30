@@ -2576,12 +2576,11 @@ describe('EventView.getPerformanceTransactionEventsViewUrlTarget()', function ()
 
   it('generates a URL', function () {
     const view = new EventView(state);
-    const result = view.getPerformanceTransactionEventsViewUrlTarget(
-      organization.slug,
+    const result = view.getPerformanceTransactionEventsViewUrlTarget(organization.slug, {
       showTransactions,
       breakdown,
-      webVital
-    );
+      webVital,
+    });
     expect(result.pathname).toEqual(
       '/organizations/org-slug/performance/summary/events/'
     );
