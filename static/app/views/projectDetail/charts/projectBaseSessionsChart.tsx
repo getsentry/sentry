@@ -39,6 +39,7 @@ type Props = {
   displayMode: DisplayModes.SESSIONS | DisplayModes.STABILITY;
   help?: string;
   disablePrevious?: boolean;
+  query?: string;
 };
 
 function ProjectBaseSessionsChart({
@@ -52,6 +53,7 @@ function ProjectBaseSessionsChart({
   displayMode,
   help,
   disablePrevious,
+  query,
 }: Props) {
   const {projects, environments, datetime} = selection;
   const {start, end, period, utc} = datetime;
@@ -69,6 +71,7 @@ function ProjectBaseSessionsChart({
                 onTotalValuesChange={onTotalValuesChange}
                 displayMode={displayMode}
                 disablePrevious={disablePrevious}
+                query={query}
               >
                 {({
                   errored,
@@ -84,6 +87,7 @@ function ProjectBaseSessionsChart({
                     end={end}
                     projects={projects}
                     environments={environments}
+                    query={query}
                   >
                     {({releaseSeries}) => {
                       if (errored) {
