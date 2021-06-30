@@ -6,6 +6,7 @@ from typing import (
     Mapping,
     MutableMapping,
     MutableSequence,
+    Optional,
     Sequence,
     Set,
 )
@@ -217,8 +218,8 @@ def get_scim_teams_members(
 class TeamSCIMSerializer(Serializer):  # type: ignore
     def __init__(
         self,
-        expand=None,
-    ):
+        expand: Optional[Sequence[str]] = None,
+    ) -> None:
         self.expand = expand or []
 
     def get_attrs(
