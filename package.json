@@ -144,7 +144,7 @@
     "@storybook/addon-actions": "6.3.1",
     "@storybook/addon-essentials": "6.3.1",
     "@storybook/addon-storysource": "6.3.1",
-    "@storybook/addons": "6.3.1",
+    "@storybook/addons": "6.3.2",
     "@storybook/builder-webpack5": "6.3.1",
     "@storybook/manager-webpack5": "6.3.1",
     "@storybook/react": "6.3.1",
