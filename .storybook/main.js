@@ -1,5 +1,5 @@
-/*eslint-env node*/
-/*eslint import/no-nodejs-modules:0 */
+/* eslint-env node */
+/* eslint import/no-nodejs-modules:0 */
 const path = require('path');
 
 const toPath = p => path.join(process.cwd(), p);
@@ -9,6 +9,9 @@ module.exports = {
   core: {
     builder: 'webpack5',
   },
+  // Switch from react-docgen-typescript to react-docgen for speed
+  // See https://github.com/storybookjs/storybook/issues/12585
+  typescript: {reactDocgen: 'react-docgen'},
   addons: [
     {
       name: '@storybook/addon-essentials',
