@@ -1006,8 +1006,6 @@ SENTRY_FEATURES = {
     "organizations:alert-history-filters": False,
     # Enable the new images loaded design and features
     "organizations:images-loaded-v2": True,
-    # Enable teams to have ownership of alert rules
-    "organizations:team-alerts-ownership": False,
     # Enable the adoption chart in the releases page
     "organizations:release-adoption-chart": False,
     # Enable the release adoption stage labels and sorting+filtering by them

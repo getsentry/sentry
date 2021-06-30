@@ -51,9 +51,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
       query.expand = ['latestIncident'];
     }
 
-    if (organization.features.includes('team-alerts-ownership')) {
-      query.team = getTeamParams(query.team);
-    }
+    query.team = getTeamParams(query.team);
 
     if (organization.features.includes('alert-details-redesign') && !query.sort) {
       query.sort = ['incident_status', 'date_triggered'];
@@ -180,7 +178,6 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
       field: query.sort || 'date_added',
     };
     const {cursor: _cursor, page: _page, ...currentQuery} = query;
-    const hasAlertOwnership = organization.features.includes('team-alerts-ownership');
     const hasAlertList = organization.features.includes('alert-details-redesign');
     const isAlertRuleSort =
       sort.field.includes('incident_status') || sort.field.includes('date_triggered');
@@ -192,7 +189,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
     return (
       <StyledLayoutBody>
         <Layout.Main fullWidth>
-          {hasAlertOwnership && this.renderFilterBar()}
+          {this.renderFilterBar()}
           <StyledPanelTable
             headers={[
               ...(hasAlertList
@@ -241,7 +238,7 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
                     </StyledSortLink>,
                   ]),
               t('Project'),
-              ...(hasAlertOwnership ? [t('Team')] : []),
+              t('Team'),
               ...(hasAlertList ? [] : [t('Created By')]),
               // eslint-disable-next-line react/jsx-key
               <StyledSortLink
@@ -261,7 +258,6 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
             isLoading={loading}
             isEmpty={ruleList?.length === 0}
             emptyMessage={this.tryRenderEmpty()}
-            showTeamCol={hasAlertOwnership}
             hasAlertList={hasAlertList}
           >
             <Projects orgId={orgId} slugs={Array.from(allProjectsFromIncidents)}>
@@ -282,7 +278,6 @@ class AlertRulesList extends AsyncComponent<Props, State & AsyncComponent['state
               }
             </Projects>
           </StyledPanelTable>
-
           <Pagination pageLinks={ruleListPageLinks} />
         </Layout.Main>
       </StyledLayoutBody>
@@ -362,10 +357,7 @@ const StyledSearchBar = styled(SearchBar)`
   margin-left: ${space(1.5)};
 `;
 
-const StyledPanelTable = styled(PanelTable)<{
-  showTeamCol: boolean;
-  hasAlertList: boolean;
-}>`
+const StyledPanelTable = styled(PanelTable)<{hasAlertList: boolean}>`
   overflow: auto;
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     overflow: initial;
@@ -376,8 +368,7 @@ const StyledPanelTable = styled(PanelTable)<{
     line-height: normal;
   }
   font-size: ${p => p.theme.fontSizeMedium};
-  grid-template-columns: auto 1.5fr 1fr 1fr ${p => (!p.hasAlertList ? '1fr' : '')} ${p =>
-      p.showTeamCol ? '1fr' : ''} auto;
+  grid-template-columns: auto 1.5fr 1fr 1fr ${p => (!p.hasAlertList ? '1fr' : '')} 1fr auto;
   margin-bottom: 0;
   white-space: nowrap;
   ${p =>

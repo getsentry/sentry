@@ -1,6 +1,5 @@
 import {PureComponent} from 'react';
 
-import Feature from 'app/components/acl/feature';
 import {Panel, PanelBody} from 'app/components/panels';
 import SelectMembers from 'app/components/selectMembers';
 import {t} from 'app/locale';
@@ -29,39 +28,38 @@ class RuleNameOwnerForm extends PureComponent<Props> {
             placeholder={t('Something really bad happened')}
             required
           />
-          <Feature features={['organizations:team-alerts-ownership']}>
-            <FormField
-              name="owner"
-              label={t('Team')}
-              help={t('The team that can edit this alert.')}
-              disabled={disabled}
-            >
-              {({model}) => {
-                const owner = model.getValue('owner');
-                const ownerId = owner && owner.split(':')[1];
-                const filteredTeamIds = new Set(userTeamIds);
-                // Add the current team that owns the alert
-                if (ownerId) {
-                  filteredTeamIds.add(ownerId);
-                }
-                return (
-                  <SelectMembers
-                    showTeam
-                    project={project}
-                    organization={organization}
-                    value={ownerId}
-                    onChange={({value}) => {
-                      const ownerValue = value && `team:${value}`;
-                      model.setValue('owner', ownerValue);
-                    }}
-                    filteredTeamIds={filteredTeamIds}
-                    includeUnassigned
-                    disabled={disabled}
-                  />
-                );
-              }}
-            </FormField>
-          </Feature>
+
+          <FormField
+            name="owner"
+            label={t('Team')}
+            help={t('The team that can edit this alert.')}
+            disabled={disabled}
+          >
+            {({model}) => {
+              const owner = model.getValue('owner');
+              const ownerId = owner && owner.split(':')[1];
+              const filteredTeamIds = new Set(userTeamIds);
+              // Add the current team that owns the alert
+              if (ownerId) {
+                filteredTeamIds.add(ownerId);
+              }
+              return (
+                <SelectMembers
+                  showTeam
+                  project={project}
+                  organization={organization}
+                  value={ownerId}
+                  onChange={({value}) => {
+                    const ownerValue = value && `team:${value}`;
+                    model.setValue('owner', ownerValue);
+                  }}
+                  filteredTeamIds={filteredTeamIds}
+                  includeUnassigned
+                  disabled={disabled}
+                />
+              );
+            }}
+          </FormField>
         </PanelBody>
       </Panel>
     );
