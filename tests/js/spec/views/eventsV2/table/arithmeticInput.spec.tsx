@@ -20,15 +20,18 @@ describe('ArithmeticInput', function () {
       {kind: 'field', field: 'transaction.duration'},
       {kind: 'field', field: 'measurements.lcp'},
       {kind: 'field', field: 'spans.http'},
-      {kind: 'function', function: ['p50', '', undefined]},
-      {kind: 'function', function: ['percentile', 'transaction.duration', '0.25']},
-      {kind: 'function', function: ['count', '', undefined]},
+      {kind: 'function', function: ['p50', '', undefined, undefined]},
+      {
+        kind: 'function',
+        function: ['percentile', 'transaction.duration', '0.25', undefined],
+      },
+      {kind: 'function', function: ['count', '', undefined, undefined]},
     ];
     columns = [
       ...numericColumns,
       // these columns will not be rendered in the dropdown
       {kind: 'field', field: 'transaction'},
-      {kind: 'function', function: ['failure_rate', '', undefined]},
+      {kind: 'function', function: ['failure_rate', '', undefined, undefined]},
       {kind: 'equation', field: 'transaction.duration+measurements.lcp'},
     ];
 

@@ -410,7 +410,7 @@ class TableView extends React.Component<TableViewProps> {
           // Drilldown into each distinct value and get a count() for each value.
           nextView = getExpandedResults(nextView, {}, dataRow).withNewColumn({
             kind: 'function',
-            function: ['count', '', undefined],
+            function: ['count', '', undefined, undefined],
           });
 
           browserHistory.push(nextView.getResultsViewUrlTarget(organization.slug));
