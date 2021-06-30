@@ -56,7 +56,6 @@ updates:
       - dependency-name: "jest-junit"
       - dependency-name: "jquery"
       - dependency-name: "less"
-      - dependency-name: "less-loader"
       - dependency-name: "marked"
       - dependency-name: "mini-css-extract-plugin"
       - dependency-name: "react-date-range"
