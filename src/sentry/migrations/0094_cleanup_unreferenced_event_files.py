@@ -64,6 +64,8 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.RunPython(
-            code=cleanup_event_attachment_files, reverse_code=migrations.RunPython.noop
+            code=cleanup_event_attachment_files,
+            reverse_code=migrations.RunPython.noop,
+            hints={"tables": ["sentry_eventattachment"]},
         )
     ]

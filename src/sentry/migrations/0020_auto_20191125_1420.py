@@ -39,4 +39,10 @@ class Migration(migrations.Migration):
         ("sentry", "0019_auto_20191114_2040"),
     ]
 
-    operations = [migrations.RunPython(forwards, migrations.RunPython.noop)]
+    operations = [
+        migrations.RunPython(
+            forwards,
+            migrations.RunPython.noop,
+            hints={"tables": ["sentry_eventattachment"]},
+        )
+    ]

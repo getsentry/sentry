@@ -1,30 +1,31 @@
-from django.db import migrations, models
-import bitfield.models
-import sentry.models.scheduledeletion
-import sentry.models.groupshare
-import sentry.db.models.fields.uuid
-import django.utils.timezone
-import sentry.db.models.fields.citext
-from django.conf import settings
-import sentry.models.sentryappinstallation
-import sentry.models.apigrant
-import sentry.db.models.fields.gzippeddict
-import sentry.models.apitoken
-import sentry.models.apiapplication
-import sentry.models.sentryapp
-import sentry.db.models.fields.node
-import sentry.db.mixin
-import sentry.db.models.fields.bounded
-import sentry.models.useremail
-import sentry.models.broadcast
-import sentry.db.models.fields.array
-import sentry.db.models.fields.jsonfield
-import sentry.models.servicehook
-import sentry.db.models.fields.foreignkey
 import django.db.models.deletion
-import sentry.models.user
-import sentry.models.event
+import django.utils.timezone
+from django.conf import settings
+from django.db import migrations, models
+
+import bitfield.models
+import sentry.db.mixin
+import sentry.db.models.fields.array
+import sentry.db.models.fields.bounded
+import sentry.db.models.fields.citext
 import sentry.db.models.fields.encrypted
+import sentry.db.models.fields.foreignkey
+import sentry.db.models.fields.gzippeddict
+import sentry.db.models.fields.jsonfield
+import sentry.db.models.fields.node
+import sentry.db.models.fields.uuid
+import sentry.models.apiapplication
+import sentry.models.apigrant
+import sentry.models.apitoken
+import sentry.models.broadcast
+import sentry.models.event
+import sentry.models.groupshare
+import sentry.models.scheduledeletion
+import sentry.models.sentryapp
+import sentry.models.sentryappinstallation
+import sentry.models.servicehook
+import sentry.models.user
+import sentry.models.useremail
 
 
 class Migration(migrations.Migration):
@@ -4853,20 +4854,23 @@ class Migration(migrations.Migration):
             end loop;
             end
             $$ language plpgsql;
-        """
+        """,
+            hints={"tables": ["sentry_projectcounter"]},
         ),
         migrations.RunSQL(
             """
         CREATE UNIQUE INDEX sentry_savedsearch_is_global_6793a2f9e1b59b95
         ON sentry_savedsearch USING btree (is_global, name)
         WHERE is_global
-        """
+        """,
+            hints={"tables": ["sentry_savedsearch"]},
         ),
         migrations.RunSQL(
             """
         CREATE UNIQUE INDEX sentry_savedsearch_organization_id_313a24e907cdef99
         ON sentry_savedsearch USING btree (organization_id, name, type)
         WHERE (owner_id IS NULL);
-        """
+        """,
+            hints={"tables": ["sentry_savedsearch"]},
         ),
     ]

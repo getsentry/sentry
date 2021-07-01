@@ -44,6 +44,8 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.RunPython(
-            backfill_snuba_query_event_type, reverse_code=migrations.RunPython.noop
+            backfill_snuba_query_event_type,
+            reverse_code=migrations.RunPython.noop,
+            hints={"tables": ["sentry_snubaqueryeventtype"]},
         ),
     ]

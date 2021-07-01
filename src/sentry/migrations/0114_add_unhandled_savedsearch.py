@@ -39,4 +39,8 @@ class Migration(migrations.Migration):
         ("sentry", "0113_add_repositoryprojectpathconfig"),
     ]
 
-    migrations.RunPython(code=add_unhandled_search, reverse_code=migrations.RunPython.noop)
+    migrations.RunPython(
+        code=add_unhandled_search,
+        reverse_code=migrations.RunPython.noop,
+        hints={"tables": ["sentry_savedsearch"]},
+    )

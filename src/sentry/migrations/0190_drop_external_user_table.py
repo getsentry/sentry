@@ -34,11 +34,13 @@ class Migration(migrations.Migration):
                 DROP TABLE "sentry_externaluser";
                 """,
             reverse_sql="CREATE TABLE sentry_externaluser (fake_col int)",  # We just create a fake table here so that the DROP will work if we roll back the migration.
+            hints={"tables": ["sentry_externaluser"]},
         ),
         migrations.RunSQL(
             """
                 DROP TABLE "sentry_externalteam";
                 """,
             reverse_sql="CREATE TABLE sentry_externalteam (fake_col int)",  # We just create a fake table here so that the DROP will work if we roll back the migration.
+            hints={"tables": ["sentry_externalteam"]},
         ),
     ]

@@ -48,6 +48,8 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.RunPython(
-            remove_tracked_superuser_views, reverse_code=migrations.RunPython.noop
+            remove_tracked_superuser_views,
+            reverse_code=migrations.RunPython.noop,
+            hints={"tables": ["sentry_incidentseen"]},
         ),
     ]

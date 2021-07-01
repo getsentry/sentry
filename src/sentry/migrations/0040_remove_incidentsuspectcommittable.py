@@ -31,6 +31,7 @@ class Migration(migrations.Migration):
                     DROP TABLE "sentry_incidentsuspectcommit";
                     """,
                     reverse_sql="",
+                    hints={"tables": ["sentry_incidentsuspectcommit"]},
                 )
             ],
             state_operations=[],

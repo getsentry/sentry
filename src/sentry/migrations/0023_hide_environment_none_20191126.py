@@ -33,4 +33,10 @@ class Migration(migrations.Migration):
         ("sentry", "0022_merge"),
     ]
 
-    operations = [migrations.RunPython(hide_environment_none, migrations.RunPython.noop)]
+    operations = [
+        migrations.RunPython(
+            hide_environment_none,
+            migrations.RunPython.noop,
+            hints={"tables": ["sentry_environmentproject"]},
+        )
+    ]

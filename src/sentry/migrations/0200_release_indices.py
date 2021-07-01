@@ -32,12 +32,14 @@ class Migration(migrations.Migration):
                     CREATE INDEX CONCURRENTLY IF NOT EXISTS "sentry_release_organization_id_status_3c637259_idx" ON "sentry_release" ("organization_id", "status");
                     """,
                     reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS sentry_release_organization_id_status_3c637259_idx",
+                    hints={"tables": ["sentry_release"]},
                 ),
                 migrations.RunSQL(
                     """
                     CREATE INDEX CONCURRENTLY IF NOT EXISTS "sentry_release_organization_id_date_added_8ebd273a_idx" ON "sentry_release" ("organization_id", "date_added");
                     """,
                     reverse_sql="DROP INDEX CONCURRENTLY IF EXISTS sentry_release_organization_id_date_added_8ebd273a_idx",
+                    hints={"tables": ["sentry_release"]},
                 ),
             ],
             state_operations=[

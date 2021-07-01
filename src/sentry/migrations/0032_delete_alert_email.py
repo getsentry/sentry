@@ -47,5 +47,9 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunPython(delete_alert_email_user_options, migrations.RunPython.noop),
+        migrations.RunPython(
+            delete_alert_email_user_options,
+            migrations.RunPython.noop,
+            hints={"tables": ["sentry_useroption"]},
+        ),
     ]
