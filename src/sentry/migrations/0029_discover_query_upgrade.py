@@ -59,7 +59,7 @@ def convert(
     saved_query,
     name_extra=" (migrated from legacy discover)",
 ):
-    """ Create a v2 query from a v1 query"""
+    """Create a v2 query from a v1 query"""
     if saved_query.version == 2:
         # nothing to do! Already v2 :)
         return saved_query
