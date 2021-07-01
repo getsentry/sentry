@@ -26,7 +26,10 @@ const SdkUpdates = ({event}: Props) => {
         <Alert key={index} type="info" icon={<IconUpgrade />}>
           {tct('We recommend you [suggestion] ', {suggestion})}
           {sdkUpdate.type === 'updateSdk' &&
-            t('(All sentry packages should be updated and their versions should match)')}
+            sdkUpdate.sdkName.startsWith('sentry.javascript') &&
+            t(
+              '(Make sure all sentry.javascript.* packages are updated and their versions match)'
+            )}
         </Alert>
       );
     })

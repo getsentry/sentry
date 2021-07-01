@@ -1,7 +1,9 @@
 import styled from '@emotion/styled';
 import groupBy from 'lodash/groupBy';
 
+import Alert from 'app/components/alert';
 import ProjectBadge from 'app/components/idBadge/projectBadge';
+import {IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Project, ProjectSdkUpdates, SDKUpdatesSuggestion} from 'app/types';
@@ -39,6 +41,10 @@ const BroadcastSdkUpdates = ({projects, sdkUpdates}: Props) => {
   // Group SDK updates by project
   const items = Object.entries(groupBy(sdkUpdates, 'projectId'));
 
+  const haveSdkUpdatesJavascriptPackage = sdkUpdates.find(sdkUpdate =>
+    sdkUpdate.sdkName.startsWith('sentry.javascript')
+  );
+
   return (
     <SidebarPanelItem
       hasSeen
@@ -47,6 +53,13 @@ const BroadcastSdkUpdates = ({projects, sdkUpdates}: Props) => {
         'We recommend updating the following SDKs to make sure you’re getting all the data you need.'
       )}
     >
+      {haveSdkUpdatesJavascriptPackage && (
+        <StyledAlert type="warning" icon={<IconWarning />}>
+          {t(
+            'Make sure all sentry.javascript.* packages are updated and their versions match'
+          )}
+        </StyledAlert>
+      )}
       <UpdatesList>
         <Collapsible>
           {items.map(([projectId, updates]) => {
@@ -118,6 +131,11 @@ const SdkName = styled('div')`
 
 const SdkOutdatedVersion = styled('span')`
   color: ${p => p.theme.subText};
+`;
+
+const StyledAlert = styled(Alert)`
+  margin-top: ${space(2)};
+  margin-bottom: 0;
 `;
 
 export default withSdkUpdates(withProjects(BroadcastSdkUpdates));
