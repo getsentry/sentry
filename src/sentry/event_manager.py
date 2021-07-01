@@ -707,15 +707,15 @@ def _materialize_metadata_many(jobs):
         event_type = get_event_type(data)
         event_metadata = event_type.get_metadata(data)
         job["event_metadata"] = dict(event_metadata)
-        data.update(materialize_metadata(data, event_type, event_metadata))
 
         # In save_aggregate we store current_tree_label for the group metadata,
         # and finest_tree_label for the event's own title.
 
         finest_tree_label = get_path(data, "hierarchical_tree_labels", -1)
         if finest_tree_label is not None:
-            job["data"]["metadata"]["finest_tree_label"] = finest_tree_label
+            event_metadata["finest_tree_label"] = finest_tree_label
 
+        data.update(materialize_metadata(data, event_type, event_metadata))
         job["culprit"] = data["culprit"]
 
 
