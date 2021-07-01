@@ -1,5 +1,8 @@
 from collections import defaultdict
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Mapping, Optional
+
+from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
 from sentry.integrations.slack.client import SlackClient
@@ -7,6 +10,7 @@ from sentry.integrations.slack.message_builder.event import SlackEventMessageBui
 from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.requests.event import SlackEventRequest
 from sentry.integrations.slack.unfurl import LinkType, UnfurlableUrl, link_handlers, match_link
+from sentry.models import Integration
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json
 from sentry.web.decorators import transaction_start
@@ -16,20 +20,22 @@ from ..utils import logger, parse_link
 
 # XXX(dcramer): a lot of this is copied from sentry-plugins right now, and will
 # need refactored
-class SlackEventEndpoint(Endpoint):
+class SlackEventEndpoint(Endpoint):  # type: ignore
     authentication_classes = ()
     permission_classes = ()
 
-    def _get_access_token(self, integration):
+    def _get_access_token(self, integration: Integration) -> str:
         # the classic bot tokens must use the user auth token for URL unfurling
         # we stored the user_access_token there
         # but for workspace apps and new slack bot tokens, we can just use access_token
         return integration.metadata.get("user_access_token") or integration.metadata["access_token"]
 
-    def on_url_verification(self, request, data):
+    def on_url_verification(self, request: Request, data: Mapping[str, str]) -> Response:
         return self.respond({"challenge": data["challenge"]})
 
-    def on_message(self, request, integration, token, data):
+    def on_message(
+        self, request: Request, integration: Integration, token: str, data: Mapping[str, Any]
+    ) -> Response:
         channel = data["channel"]
         # if it's a message posted by our bot, we don't want to respond since
         # that will cause an infinite loop of messages
@@ -46,7 +52,9 @@ class SlackEventEndpoint(Endpoint):
 
         return self.respond()
 
-    def on_link_shared(self, request, integration, token, data):
+    def on_link_shared(
+        self, request: Request, integration: Integration, token: str, data: Mapping[str, Any]
+    ) -> Optional[Response]:
         matches: Dict[LinkType, List[UnfurlableUrl]] = defaultdict(list)
         links_seen = set()
 
@@ -77,7 +85,7 @@ class SlackEventEndpoint(Endpoint):
             matches[link_type].append(UnfurlableUrl(url=item["url"], args=args))
 
         if not matches:
-            return
+            return None
 
         # Unfurl each link type
         results: Dict[str, Any] = {}
@@ -85,7 +93,7 @@ class SlackEventEndpoint(Endpoint):
             results.update(link_handlers[link_type].fn(request, integration, unfurl_data))
 
         if not results:
-            return
+            return None
 
         access_token = self._get_access_token(integration)
 
@@ -106,7 +114,7 @@ class SlackEventEndpoint(Endpoint):
 
     # TODO(dcramer): implement app_uninstalled and tokens_revoked
     @transaction_start("SlackEventEndpoint")
-    def post(self, request):
+    def post(self, request: Request) -> Response:
         try:
             slack_request = SlackEventRequest(request)
             slack_request.validate()

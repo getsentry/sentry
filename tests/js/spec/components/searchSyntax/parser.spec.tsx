@@ -56,16 +56,18 @@ describe('searchSyntax/parser', function () {
 
   const registerTestCase = (testCase: TestCase) =>
     it(`handles ${testCase.query}`, () => {
-      const resolveResult = () => parseSearch(testCase.query);
+      const result = parseSearch(testCase.query);
 
       // Handle errors
       if (testCase.raisesError) {
-        expect(resolveResult).toThrow();
+        expect(result).toBeNull();
         return;
       }
 
-      // Common case
-      const result = resolveResult();
+      if (result === null) {
+        throw new Error('Parsed result as null without raiseError true');
+      }
+
       expect(normalizeResult(result)).toEqual(testCase.result);
     });
 

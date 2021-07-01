@@ -22,6 +22,7 @@ type Props = AsyncComponent['props'] & {
   organization: Organization;
   selection: GlobalSelection;
   isProjectStabilized: boolean;
+  query?: string;
 };
 
 type State = AsyncComponent['state'] & {
@@ -43,7 +44,7 @@ class ProjectVelocityScoreCard extends AsyncComponent<Props, State> {
   }
 
   getEndpoints() {
-    const {organization, selection, isProjectStabilized} = this.props;
+    const {organization, selection, isProjectStabilized, query} = this.props;
 
     if (!isProjectStabilized) {
       return [];
@@ -54,6 +55,7 @@ class ProjectVelocityScoreCard extends AsyncComponent<Props, State> {
     const commonQuery = {
       environment: environments,
       project: projects[0],
+      query,
     };
     const endpoints: ReturnType<AsyncComponent['getEndpoints']> = [
       [

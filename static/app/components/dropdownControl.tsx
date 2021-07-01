@@ -5,6 +5,7 @@ import DropdownBubble from 'app/components/dropdownBubble';
 import DropdownButton from 'app/components/dropdownButton';
 import DropdownMenu, {GetActorPropsFn, GetMenuPropsFn} from 'app/components/dropdownMenu';
 import MenuItem from 'app/components/menuItem';
+import Tooltip from 'app/components/tooltip';
 
 type ButtonPriority = React.ComponentProps<typeof DropdownButton>['priority'];
 
@@ -53,6 +54,10 @@ type Props = DefaultProps & {
    */
   buttonProps?: React.ComponentProps<typeof DropdownButton>;
   /**
+   * Tooltip to show on button when dropdown isn't open
+   */
+  buttonTooltipTitle?: string | null;
+  /**
    * This makes the dropdown menu blend (e.g. corners are not rounded) with its
    * actor (opener) component
    */
@@ -75,10 +80,28 @@ class DropdownControl extends React.Component<Props> {
   };
 
   renderButton(isOpen: boolean, getActorProps: GetActorPropsFn) {
-    const {label, button, buttonProps, priority} = this.props;
+    const {label, button, buttonProps, buttonTooltipTitle, priority} = this.props;
 
     if (button) {
       return button({isOpen, getActorProps});
+    }
+
+    if (buttonTooltipTitle && !isOpen) {
+      return (
+        <Tooltip
+          containerDisplayMode="inline-flex"
+          position="top"
+          title={buttonTooltipTitle}
+        >
+          <StyledDropdownButton
+            priority={priority}
+            {...getActorProps(buttonProps)}
+            isOpen={isOpen}
+          >
+            {label}
+          </StyledDropdownButton>
+        </Tooltip>
+      );
     }
 
     return (

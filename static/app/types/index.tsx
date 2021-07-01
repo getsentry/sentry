@@ -383,6 +383,8 @@ export type EventMetadata = {
   origin?: string;
   function?: string;
   stripped_crash?: boolean;
+  current_tree_label?: string[];
+  finest_tree_label?: string[];
 };
 
 export type EventAttachment = {
@@ -1467,6 +1469,7 @@ type ReleaseData = {
     firstReleaseVersion: string | null;
     lastReleaseVersion: string | null;
   };
+  adoptionStages?: {};
 };
 
 type BaseRelease = {
@@ -1572,6 +1575,7 @@ export type SentryAppComponent = {
   sentryApp: {
     uuid: string;
     slug:
+      | 'calixa'
       | 'clickup'
       | 'clubhouse'
       | 'komodor'

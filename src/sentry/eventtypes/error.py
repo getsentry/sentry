@@ -1,7 +1,9 @@
+from typing import Optional
+
 from sentry.utils.safe import get_path, trim
 from sentry.utils.strings import truncatechars
 
-from .base import BaseEvent
+from .base import BaseEvent, compute_title_with_tree_label
 
 
 def get_crash_location(data):
@@ -44,12 +46,13 @@ class ErrorEvent(BaseEvent):
         return rv
 
     def compute_title(self, metadata):
-        ty = metadata.get("type")
-        if ty is None:
-            return metadata.get("function") or "<unknown>"
-        if not metadata.get("value"):
-            return ty
-        return "{}: {}".format(ty, truncatechars(metadata["value"].splitlines()[0], 100))
+        title: Optional[str] = metadata.get("type")
+        if title is not None:
+            value = metadata.get("value")
+            if value:
+                title += f": {truncatechars(value.splitlines()[0], 100)}"
+
+        return compute_title_with_tree_label(title, metadata)
 
     def get_location(self, metadata):
         return metadata.get("filename")

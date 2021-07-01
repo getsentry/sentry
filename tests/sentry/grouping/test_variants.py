@@ -1,5 +1,6 @@
 import pytest
 
+from sentry.eventtypes.base import format_title_from_tree_label
 from sentry.grouping.api import get_default_grouping_config_dict
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
@@ -34,7 +35,11 @@ def dump_variant(variant, lines=None, indent=0):
     for (key, value) in sorted(variant.__dict__.items()):
         if isinstance(value, GroupingComponent):
             if value.tree_label:
-                lines.append('{}tree_label: "{}"'.format("  " * indent, value.tree_label))
+                lines.append(
+                    '{}tree_label: "{}"'.format(
+                        "  " * indent, format_title_from_tree_label(value.tree_label)
+                    )
+                )
             lines.append("{}{}:".format("  " * indent, key))
             _dump_component(value, indent + 1)
         elif key == "config":
