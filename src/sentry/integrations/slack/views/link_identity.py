@@ -15,6 +15,10 @@ from ..utils import get_identity, logger
 from . import build_linking_url as base_build_linking_url
 from . import never_cache
 
+SUCCESS_LINKED_MESSAGE = (
+    "Your Slack identity has been linked to your Sentry account. You're good to go!"
+)
+
 
 def build_linking_url(
     integration: Integration,
@@ -68,7 +72,7 @@ class SlackLinkIdentityView(BaseView):  # type: ignore
         payload = {
             "replace_original": False,
             "response_type": "ephemeral",
-            "text": "Your Slack identity has been linked to your Sentry account. You're good to go!",
+            "text": SUCCESS_LINKED_MESSAGE,
         }
 
         client = SlackClient()

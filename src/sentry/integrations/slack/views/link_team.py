@@ -39,7 +39,7 @@ SUCCESS_LINKED_MESSAGE = (
 )
 
 
-def build_linking_url(
+def build_team_linking_url(
     integration: Integration, slack_id: str, channel_id: str, channel_name: str, response_url: str
 ) -> str:
     return base_build_linking_url(
