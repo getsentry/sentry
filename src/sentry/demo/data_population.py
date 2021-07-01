@@ -86,7 +86,7 @@ contexts_by_platform = {
             ["iPhone13,1", "iOS"],
             ["iPhone11", "iOS"],
         ],
-        "os": ["14.5", "3.3", "14.6", "12"],
+        "os": [["iOS", "14.5"], ["iOS", "13.3"], ["iOS", "14.6"], ["iOS", "12"]],
     },
     "android": {
         "device": [
@@ -96,18 +96,11 @@ contexts_by_platform = {
             ["SM-A125U", "SM-A125U"],
             ["SM-G973U", "SM-G973U"],
         ],
-        "os": ["10", "9", "8"],
-    },
-    "react-native": {
-        "device": [
-            ["iPad13,1", "iOS"],
-            ["iPad13,2", "iOS"],
-            ["iPhone13,1", "iOS"],
-            ["iPhone11", "iOS"],
-        ],
-        "os": ["14.5", "13.3", "4.6", "12"],
+        "os": [["Android", "10"], ["Android", "9"], ["Android", "8"]],
     },
 }
+
+mobile_platforms = ["apple-ios", "android", "react-native"]
 
 
 def get_data_file_path(file_name):
@@ -307,10 +300,16 @@ def gen_mobile_context(platform):
     """
     Generates context for mobile events
     """
+    if platform == "react-native":
+        platform = random.choice(["apple-ios", "android"])
     contexts = contexts_by_platform[platform]
     device = random.choice(contexts["device"])
     os = random.choice(contexts["os"])
-    return device, os
+    context = {
+        "device": {"model": device[0], "family": device[1], "type": "device"},
+        "os": {"name": os[0], "version": os[1], "type": "os"},
+    }
+    return context
 
 
 def get_release_from_time(org_id, timestamp):
@@ -508,19 +507,16 @@ def fix_measurements(event_json):
         measurements.update(measurement_markers)
 
 
-def update_context(event, trace=None, mobile=False, platform=None):
+def update_context(event, trace=None, platform=None):
+    mobile = platform in mobile_platforms
     context = event["contexts"]
     # delete device since we aren't mocking it (yet)
     if "device" in context and not mobile:
         del context["device"]
     # generate random browser and os
-    if mobile:
-        device, os = gen_mobile_context(platform)
-        context["device"]["model"] = device[0]
-        context["device"]["family"] = device[1]
-        context["os"]["version"] = os
-    else:
-        context.update(**gen_base_context())
+    base_context = gen_mobile_context(platform) if mobile else gen_base_context()
+    context.update(**base_context)
+
     # add our trace info
     base_trace = context.get("trace", {})
     if not trace:
@@ -1133,7 +1129,7 @@ class DataPopulation:
                 timestamp=timestamp,
                 start_timestamp=timestamp - timedelta(duration),
             )
-            update_context(local_event, trace, mobile=True, platform=ios_project.platform)
+            update_context(local_event, trace, platform=ios_project.platform)
             self.fix_transaction_event(local_event, old_span_id)
             self.safe_send_event(local_event)
 
@@ -1146,7 +1142,7 @@ class DataPopulation:
                 user=transaction_user,
                 release=release_sha,
             )
-            update_context(local_event, trace, mobile=True, platform=ios_project.platform)
+            update_context(local_event, trace, platform=ios_project.platform)
             self.fix_error_event(local_event)
             self.safe_send_event(local_event)
 
@@ -1176,7 +1172,7 @@ class DataPopulation:
                 user=transaction_user,
                 release=release_sha,
             )
-            update_context(local_event, mobile=mobile, platform=project.platform)
+            update_context(local_event, platform=project.platform)
             self.fix_error_event(local_event)
             self.safe_send_event(local_event)
         self.log_info("populate_generic_error.finished")
@@ -1216,7 +1212,7 @@ class DataPopulation:
                 start_timestamp=timestamp - timedelta(seconds=duration),
             )
 
-            update_context(local_event, mobile=mobile, platform=project.platform)
+            update_context(local_event, platform=project.platform)
 
             self.fix_transaction_event(local_event, old_span_id)
             self.safe_send_event(local_event)
