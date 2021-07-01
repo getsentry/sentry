@@ -1,7 +1,6 @@
 import * as React from 'react';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
-import omit from 'lodash/omit';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
@@ -11,11 +10,6 @@ import {Organization, SessionApiResponse} from 'app/types';
 import withApi from 'app/utils/withApi';
 
 import {getReleaseParams, ReleaseBounds} from '../../utils';
-
-function omitIgnoredProps(props: Props) {
-  // TODO(release-comparison): pick the right props
-  return omit(props, ['api', 'organization', 'children', 'location']);
-}
 
 export function reduceTimeSeriesGroups(
   acc: number[],
@@ -65,11 +59,12 @@ class ReleaseDetailsRequest extends React.Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    if (isEqual(omitIgnoredProps(prevProps), omitIgnoredProps(this.props))) {
-      return;
+    if (
+      prevProps.version !== this.props.version ||
+      !isEqual(prevProps.location, this.props.location)
+    ) {
+      this.fetchData();
     }
-
-    this.fetchData();
   }
 
   get path() {

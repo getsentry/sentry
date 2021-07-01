@@ -105,6 +105,7 @@ class SessionsChart extends React.Component<Props> {
           series={series}
           previousPeriod={previousSeries}
           isGroupedByDate
+          showTimeInTooltip
           seriesOptions={{
             showSymbol: false,
           }}
