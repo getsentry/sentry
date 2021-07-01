@@ -62,10 +62,10 @@ type Props = {
 type State = {
   issuesType: IssuesType;
   count: {
-    firstRelease: number;
-    release: number;
-    resolved: number;
+    new: number;
     unhandled: number;
+    resolved: number;
+    all: number;
   };
   pageLinks?: string;
   onCursor?: () => void;
@@ -92,8 +92,8 @@ class Issues extends Component<Props, State> {
     return {
       issuesType: issuesTypeState,
       count: {
-        firstRelease: 0,
-        release: 0,
+        new: 0,
+        all: 0,
         resolved: 0,
         unhandled: 0,
       },
@@ -224,15 +224,19 @@ class Issues extends Component<Props, State> {
     const resolvedEndpoint = `/organizations/${organization.slug}/releases/${version}/resolved/`;
 
     try {
-      const response = await api.requestPromise(issueCountEndpoint);
-      const resolvedResponse = await api.requestPromise(resolvedEndpoint);
-      this.setState({
-        count: {
-          release: response[`${IssuesQuery.ALL}:${version}`],
-          firstRelease: response[`${IssuesQuery.NEW}:${version}`],
-          resolved: resolvedResponse.length,
-          unhandled: response[`${IssuesQuery.UNHANDLED} ${IssuesQuery.ALL}:${version}`],
-        },
+      await Promise.all([
+        api.requestPromise(issueCountEndpoint),
+        api.requestPromise(resolvedEndpoint),
+      ]).then(([issueResponse, resolvedResponse]) => {
+        this.setState({
+          count: {
+            all: issueResponse[`${IssuesQuery.ALL}:${version}`],
+            new: issueResponse[`${IssuesQuery.NEW}:${version}`],
+            resolved: resolvedResponse.length,
+            unhandled:
+              issueResponse[`${IssuesQuery.UNHANDLED} ${IssuesQuery.ALL}:${version}`],
+          },
+        });
       });
     } catch {
       // do nothing
@@ -328,10 +332,18 @@ class Issues extends Component<Props, State> {
     const {path, queryParams} = this.getIssuesEndpoint();
     const hasReleaseComparison = organization.features.includes('release-comparison');
     const issuesTypes = [
-      {value: IssuesType.NEW, label: t('New Issues')},
-      {value: IssuesType.RESOLVED, label: t('Resolved Issues')},
-      {value: IssuesType.UNHANDLED, label: t('Unhandled Issues')},
-      {value: IssuesType.ALL, label: t('All Issues')},
+      {value: IssuesType.NEW, label: t('New Issues'), issueCount: count.new},
+      {
+        value: IssuesType.RESOLVED,
+        label: t('Resolved Issues'),
+        issueCount: count.resolved,
+      },
+      {
+        value: IssuesType.UNHANDLED,
+        label: t('Unhandled Issues'),
+        issueCount: count.unhandled,
+      },
+      {value: IssuesType.ALL, label: t('All Issues'), issueCount: count.all},
     ];
 
     return (
@@ -339,38 +351,17 @@ class Issues extends Component<Props, State> {
         <ControlsWrapper>
           {hasReleaseComparison ? (
             <StyledButtonBar active={issuesType} merged>
-              <Button
-                barId={IssuesType.NEW}
-                size="small"
-                onClick={() => this.handleIssuesTypeSelection(IssuesType.NEW)}
-              >
-                {t('New Issues')}
-                <QueryCount count={count.firstRelease} max={99} hideParens hideIfEmpty />
-              </Button>
-              <Button
-                barId={IssuesType.RESOLVED}
-                size="small"
-                onClick={() => this.handleIssuesTypeSelection(IssuesType.RESOLVED)}
-              >
-                {t('Resolved Issues')}
-                <QueryCount count={count.resolved} max={99} hideParens hideIfEmpty />
-              </Button>
-              <Button
-                barId={IssuesType.UNHANDLED}
-                size="small"
-                onClick={() => this.handleIssuesTypeSelection(IssuesType.UNHANDLED)}
-              >
-                {t('Unhandled Issues')}
-                <QueryCount count={count.unhandled} max={99} hideParens hideIfEmpty />
-              </Button>
-              <Button
-                barId={IssuesType.ALL}
-                size="small"
-                onClick={() => this.handleIssuesTypeSelection(IssuesType.ALL)}
-              >
-                {t('All Issues')}
-                <QueryCount count={count.release} max={99} hideParens hideIfEmpty />
-              </Button>
+              {issuesTypes.map(({value, label, issueCount}) => (
+                <Button
+                  key={value}
+                  barId={value}
+                  size="small"
+                  onClick={() => this.handleIssuesTypeSelection(value)}
+                >
+                  {label}
+                  <QueryCount count={issueCount} max={99} hideParens hideIfEmpty />
+                </Button>
+              ))}
             </StyledButtonBar>
           ) : (
             <DropdownControl
@@ -463,13 +454,13 @@ const StyledButtonBar = styled(ButtonBar)`
     white-space: nowrap;
     grid-gap: ${space(0.5)};
     span:last-child {
-      color: ${p => p.theme.gray400};
+      color: ${p => p.theme.issueCountNotActiveText};
     }
   }
   .active {
     ${ButtonLabel} {
       span:last-child {
-        color: ${p => p.theme.gray100};
+        color: ${p => p.theme.issueCountActiveText};
       }
     }
   }
