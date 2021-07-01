@@ -170,7 +170,7 @@
     "prettier": "2.3.2",
     "react-refresh": "^0.8.3",
     "react-test-renderer": "17.0.2",
-    "size-limit": "^4.5.6",
+    "size-limit": "5.0.1",
     "speed-measure-webpack-plugin": "^1.5.0",
     "stylelint": "13.13.1",
     "stylelint-config-prettier": "^8.0.2",
