@@ -78,7 +78,7 @@ org_users = [
 
 logger = logging.getLogger(__name__)
 
-contexts_by_platform = {
+contexts_by_mobile_platform = {
     "apple-ios": {
         "device": [
             ["iPad13,1", "iOS"],
@@ -302,7 +302,7 @@ def gen_mobile_context(platform):
     """
     if platform == "react-native":
         platform = random.choice(["apple-ios", "android"])
-    contexts = contexts_by_platform[platform]
+    contexts = contexts_by_mobile_platform[platform]
     device = random.choice(contexts["device"])
     os = random.choice(contexts["os"])
     context = {
