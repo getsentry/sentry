@@ -1,30 +1,30 @@
 ---
-created: '2021-06-23T18:06:11.174758Z'
+created: '2021-06-30T16:44:00.022517Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
-  hash: "1028091c5d80feac9a1542ab321d1fe7"
+  hash: "4d4c43d1d793f5a308704e28502a515f"
   tree_label: "RtlFreeHeap | RtlFreeHeap | destructor'"
   component:
     app-depth-1*
       exception*
         stacktrace*
-          frame* (marked as prefix frame by stack trace rule (category:free +sentinel +prefix))
-            function*
-              "RtlFreeHeap"
-            package (ignored because function takes precedence)
-              "ntdll.dll"
-          frame* (marked as prefix frame by stack trace rule (category:free +sentinel +prefix))
-            function*
-              "RtlFreeHeap"
-            package (ignored because function takes precedence)
-              "ntdll.dll"
           frame*
             function*
               "destructor'"
             package (ignored because function takes precedence)
               "winhttp.dll"
+          frame* (marked as prefix frame by stack trace rule (category:free +sentinel +prefix))
+            function*
+              "RtlFreeHeap"
+            package (ignored because function takes precedence)
+              "ntdll.dll"
+          frame* (marked as prefix frame by stack trace rule (category:free +sentinel +prefix))
+            function*
+              "RtlFreeHeap"
+            package (ignored because function takes precedence)
+              "ntdll.dll"
         type (ignored because exception is synthetic (detected via exception type))
           "EXCEPTION_ACCESS_VIOLATION_WRITE"
         value (ignored because stacktrace takes precedence)
@@ -32,7 +32,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "6b9106347534a0018fe5f3d9993b3bb5"
-  tree_label: "<entire stacktrace>"
+  tree_label: "RtlpOptimizeWaitOnAddressWaitList | RtlpWaitOnAddress | RtlpWaitOnCriticalSection | RtlpEnterCriticalSectionContended | RtlEnterCriticalSection | RtlpFreeHeap | RtlpFreeHeapInternal | RtlFreeHeap | RtlpFreeUserBlockToHeap | RtlpFreeUserBlock | memset | RtlFreeHeap | destructor' | HTTP_USER_REQUEST::~HTTP_USER_REQUEST | destructor' | HTTP_BASE_OBJECT::Dereference | HTTP_USER_REQUEST::OnSendRequest | WEBIO_REQUEST::OnIoComplete | HTTP_ASYNC_OVERLAPPED::OnWorkItem | HTTP_THREAD_POOL::_StaticWorkItemCallback | TppWorkpExecuteCallback | TppWorkerThread | BaseThreadInitThunk | RtlUserThreadStart"
   component:
     app-depth-max*
       exception*
@@ -164,7 +164,7 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "6b9106347534a0018fe5f3d9993b3bb5"
-  tree_label: "<entire stacktrace>"
+  tree_label: "RtlpOptimizeWaitOnAddressWaitList | RtlpWaitOnAddress | RtlpWaitOnCriticalSection | RtlpEnterCriticalSectionContended | RtlEnterCriticalSection | RtlpFreeHeap | RtlpFreeHeapInternal | RtlFreeHeap | RtlpFreeUserBlockToHeap | RtlpFreeUserBlock | memset | RtlFreeHeap | destructor' | HTTP_USER_REQUEST::~HTTP_USER_REQUEST | destructor' | HTTP_BASE_OBJECT::Dereference | HTTP_USER_REQUEST::OnSendRequest | WEBIO_REQUEST::OnIoComplete | HTTP_ASYNC_OVERLAPPED::OnWorkItem | HTTP_THREAD_POOL::_StaticWorkItemCallback | TppWorkpExecuteCallback | TppWorkerThread | BaseThreadInitThunk | RtlUserThreadStart"
   component:
     system*
       exception*

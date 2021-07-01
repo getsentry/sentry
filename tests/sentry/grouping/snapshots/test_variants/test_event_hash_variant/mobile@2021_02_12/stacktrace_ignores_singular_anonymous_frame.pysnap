@@ -1,5 +1,5 @@
 ---
-created: '2021-06-23T18:06:09.182599Z'
+created: '2021-06-30T16:43:58.879479Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -17,7 +17,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-2:
   hash: "c5da56c71b31f34c5880d734cbc8f5bb"
-  tree_label: "c | _createDocumentViewModel"
+  tree_label: "_createDocumentViewModel | c"
   component:
     app-depth-2*
       stacktrace*
@@ -34,7 +34,7 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "c5da56c71b31f34c5880d734cbc8f5bb"
-  tree_label: "<entire stacktrace>"
+  tree_label: "_createDocumentViewModel | c"
   component:
     app-depth-max*
       stacktrace*
@@ -54,7 +54,7 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "c5da56c71b31f34c5880d734cbc8f5bb"
-  tree_label: "<entire stacktrace>"
+  tree_label: "_createDocumentViewModel | c"
   component:
     system*
       stacktrace*

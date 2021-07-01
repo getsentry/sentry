@@ -1,23 +1,23 @@
 ---
-created: '2021-06-23T18:06:09.439847Z'
+created: '2021-06-30T16:43:59.762089Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
-  hash: "989aaa994181faf8b1df77c0d7e0d85f"
+  hash: "578743178fb72882e3c4d60b1c30d225"
   tree_label: "abort | stripped_application_code"
   component:
     app-depth-1*
       exception*
         stacktrace*
+          frame*
+            function*
+              "stripped_application_code"
           frame* (marked as prefix frame by stack trace rule (category:throw +sentinel +prefix ^-group))
             function*
               "abort"
             package (ignored because function takes precedence)
               "ucrtbase.dll"
-          frame*
-            function*
-              "stripped_application_code"
         type (ignored because exception is synthetic)
           "0x40000015 / 0x00000001"
         value (ignored because stacktrace takes precedence)
@@ -25,7 +25,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "8a62fbea1511325fb930366d547f0afa"
-  tree_label: "<entire stacktrace>"
+  tree_label: "crashpad::`anonymous namespace'::HandleAbortSignal | raise | abort | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | boost::function0<T>::operator() | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | std::_Tree<T>::_Emplace | std::_Tree<T>::insert<T> | stripped_application_code | boost::function0<T>::operator() | stripped_application_code | stripped_application_code | boost::function0<T>::operator() | stripped_application_code | stripped_application_code | stripped_application_code | RtlpTpWorkCallback | TppWorkerThread | BaseThreadInitThunk | RtlUserThreadStart"
   component:
     app-depth-max*
       exception*
@@ -163,7 +163,7 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "8a62fbea1511325fb930366d547f0afa"
-  tree_label: "<entire stacktrace>"
+  tree_label: "crashpad::`anonymous namespace'::HandleAbortSignal | raise | abort | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | boost::function0<T>::operator() | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | std::_Tree<T>::_Emplace | std::_Tree<T>::insert<T> | stripped_application_code | boost::function0<T>::operator() | stripped_application_code | stripped_application_code | boost::function0<T>::operator() | stripped_application_code | stripped_application_code | stripped_application_code | RtlpTpWorkCallback | TppWorkerThread | BaseThreadInitThunk | RtlUserThreadStart"
   component:
     system*
       exception*
