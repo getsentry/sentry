@@ -11,8 +11,8 @@ from sentry.api.endpoints.group_hashes_split import _get_group_filters
 from sentry.api.endpoints.grouping_levels import LevelsOverview, check_feature, get_levels_overview
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import EventSerializer, serialize
+from sentry.event_manager import get_event_type
 from sentry.eventstore.models import Event
-from sentry.eventtypes.error import format_title_from_tree_label
 from sentry.models import Group
 from sentry.utils import snuba
 from sentry.utils.safe import get_path
@@ -205,10 +205,12 @@ def _process_snuba_results(query_res, group: Group, id: int, user):
             tree_label = get_path(event_data, "hierarchical_tree_labels", id)
 
             # Rough approximation of what happens with Group title
-            response_item["title"] = (
-                tree_label and format_title_from_tree_label(tree_label) or event.title
-            )
-            response_item["metadata"] = {"current_tree_label": tree_label}
+            event_type = get_event_type(event.data)
+            metadata = dict(event.get_event_metadata())
+            metadata["current_tree_label"] = tree_label
+            title = event_type.get_title(metadata)
+            response_item["title"] = title or event.title
+            response_item["metadata"] = metadata
 
         response.append(response_item)
 
