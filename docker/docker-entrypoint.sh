@@ -2,6 +2,10 @@
 
 set -e
 
+if [ "$(ls -A /usr/local/share/ca-certificates/)" ]; then
+  update-ca-certificates
+fi
+
 # first check if we're passing flags, if so
 # prepend with sentry
 if [ "${1:0:1}" = '-' ]; then

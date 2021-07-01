@@ -110,6 +110,10 @@ RUN sentry help | sed '1,/Commands:/d' | awk '{print $1}' >  /sentry-commands.tx
 COPY ./docker/sentry.conf.py ./docker/config.yml $SENTRY_CONF/
 COPY ./docker/docker-entrypoint.sh /
 
+ENV DEFAULT_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
+ENV REQUESTS_CA_BUNDLE=$DEFAULT_CA_BUNDLE \
+    GRPC_DEFAULT_SSL_ROOTS_FILE_PATH_ENV_VAR=$DEFAULT_CA_BUNDLE
+
 EXPOSE 9000
 VOLUME /data
 
