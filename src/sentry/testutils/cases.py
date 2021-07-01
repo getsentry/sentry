@@ -108,36 +108,6 @@ class BaseTestCase(Fixtures, Exam):
 
     @classmethod
     @contextmanager
-    def static_asset_manifest(cls, manifest_data):
-        dist_path = "src/sentry/static/sentry/dist"
-        manifest_path = f"{dist_path}/manifest.json"
-
-        with open(manifest_path, "w") as manifest_fp:
-            json.dump(manifest_data, manifest_fp)
-
-        files = []
-        for file_path in manifest_data.values():
-            full_path = f"{dist_path}/{file_path}"
-            # make directories in case they don't exist
-            # (e.g. dist path should exist, but subdirs won't)
-            os.makedirs(os.path.dirname(full_path), exist_ok=True)
-            open(full_path, "a").close()
-            files.append(full_path)
-
-        try:
-            yield {"manifest": manifest_data, "files": files}
-        finally:
-            with open(manifest_path, "w") as manifest_fp:
-                # Instead of unlinking, preserve an empty manifest file so that other tests that
-                # may or may not load static assets, do not fail
-                manifest_fp.write("{}")
-
-            # Remove any files created from the test manifest
-            for filepath in files:
-                os.unlink(filepath)
-
-    @classmethod
-    @contextmanager
     def capture_on_commit_callbacks(cls, using=DEFAULT_DB_ALIAS, execute=False):
         """
         Context manager to capture transaction.on_commit() callbacks.

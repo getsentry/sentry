@@ -9,14 +9,13 @@ describe('IncidentsList', function () {
   let routerContext;
   let router;
   let organization;
-  let incidentsMock;
   let projectMock;
   let wrapper;
   let projects;
   const projects1 = ['a', 'b', 'c'];
   const projects2 = ['c', 'd'];
 
-  const createWrapper = async props => {
+  const createWrapper = async (props = {}) => {
     wrapper = mountWithTheme(
       <IncidentsList
         params={{orgId: organization.slug}}
@@ -41,7 +40,7 @@ describe('IncidentsList', function () {
     router = context.router;
     organization = context.organization;
 
-    incidentsMock = MockApiClient.addMockResponse({
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/incidents/',
       body: [
         TestStubs.Incident({
@@ -201,42 +200,30 @@ describe('IncidentsList', function () {
     expect(wrapper.text()).toContain('No incidents exist for the current query.');
   });
 
-  it('toggles open/closed', async function () {
+  it('filters by opened issues', async function () {
+    ProjectsStore.loadInitialData(projects);
     wrapper = await createWrapper();
 
-    expect(wrapper.find('StyledButtonBar').find('Button').at(0).prop('priority')).toBe(
-      'primary'
-    );
+    wrapper.find('[data-test-id="filter-button"]').at(1).simulate('click');
 
-    expect(wrapper.find('AlertListRow').at(0).find('Duration').exists()).toBeFalsy();
-
-    expect(wrapper.find('AlertListRow').at(0).find('TimeSince')).toHaveLength(1);
-
-    expect(incidentsMock).toHaveBeenCalledTimes(1);
-
-    expect(incidentsMock).toHaveBeenCalledWith(
-      '/organizations/org-slug/incidents/',
-      expect.objectContaining({query: {status: ['open']}})
+    const resolved = wrapper.find('Filter').find('ListItem').at(1);
+    expect(resolved.text()).toBe('Resolved');
+    expect(resolved.find('[data-test-id="checkbox-fancy"]').props()['aria-checked']).toBe(
+      false
     );
 
     wrapper.setProps({
       location: {query: {status: ['closed']}, search: '?status=closed`'},
     });
 
-    expect(wrapper.find('StyledButtonBar').find('Button').at(1).prop('priority')).toBe(
-      'primary'
-    );
-
-    expect(wrapper.find('AlertListRow').at(0).text()).toContain('Still Active');
-
-    expect(wrapper.find('AlertListRow').at(0).find('TimeSince')).toHaveLength(1);
-
-    expect(incidentsMock).toHaveBeenCalledTimes(2);
-
-    expect(incidentsMock).toHaveBeenCalledWith(
-      '/organizations/org-slug/incidents/',
-      expect.objectContaining({query: expect.objectContaining({status: ['closed']})})
-    );
+    expect(
+      wrapper
+        .find('Filter')
+        .find('ListItem')
+        .at(1)
+        .find('[data-test-id="checkbox-fancy"]')
+        .props()['aria-checked']
+    ).toBe(true);
   });
 
   it('disables the new alert button for those without alert:write', async function () {
@@ -251,6 +238,7 @@ describe('IncidentsList', function () {
     expect(addButton.props()['aria-disabled']).toBe(true);
 
     // Enabled with access
+    wrapper.unmount();
     wrapper = await createWrapper();
 
     const addLink = wrapper.find('button[aria-label="Create Alert Rule"]');
@@ -258,11 +246,7 @@ describe('IncidentsList', function () {
   });
 
   it('searches by name', async () => {
-    const org = {
-      ...organization,
-      features: ['incidents', 'alert-history-filters'],
-    };
-    wrapper = await createWrapper({organization: org});
+    wrapper = await createWrapper();
     expect(wrapper.find('StyledSearchBar').exists()).toBe(true);
 
     const testQuery = 'test name';
@@ -276,6 +260,7 @@ describe('IncidentsList', function () {
       expect.objectContaining({
         query: {
           title: testQuery,
+          team: ['myteams', 'unassigned'],
         },
       })
     );
@@ -283,7 +268,7 @@ describe('IncidentsList', function () {
 
   it('displays owner from alert rule', async () => {
     const team = TestStubs.Team();
-    incidentsMock = MockApiClient.addMockResponse({
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/incidents/',
       body: [
         TestStubs.Incident({

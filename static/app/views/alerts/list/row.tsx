@@ -92,7 +92,6 @@ class AlertListRow extends Component<Props> {
       : {
           pathname: `/organizations/${orgId}/alerts/${incident.identifier}/`,
         };
-    const hasAlertOwnership = organization.features.includes('team-alerts-ownership');
     const ownerId = incident.alertRule.owner?.split(':')[1];
     let teamName = '';
     if (ownerId) {
@@ -129,15 +128,14 @@ class AlertListRow extends Component<Props> {
         <div>#{incident.id}</div>
 
         <FlexCenter>
-          {hasAlertOwnership &&
-            (teamActor ? (
-              <Fragment>
-                <StyledActorAvatar actor={teamActor} size={24} hasTooltip={false} />{' '}
-                <TeamWrapper>{teamActor.name}</TeamWrapper>
-              </Fragment>
-            ) : (
-              '-'
-            ))}
+          {teamActor ? (
+            <Fragment>
+              <StyledActorAvatar actor={teamActor} size={24} hasTooltip={false} />{' '}
+              <TeamWrapper>{teamActor.name}</TeamWrapper>
+            </Fragment>
+          ) : (
+            '-'
+          )}
         </FlexCenter>
       </ErrorBoundary>
     );

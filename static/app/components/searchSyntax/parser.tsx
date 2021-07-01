@@ -1,5 +1,3 @@
-import * as Sentry from '@sentry/react';
-import {SpanStatus} from '@sentry/tracing';
 import moment from 'moment';
 import {LocationRange} from 'pegjs';
 
@@ -771,19 +769,11 @@ const options = {
  * will result in null.
  */
 export function parseSearch(query: string): ParseResult | null {
-  const transaction = Sentry.startTransaction({name: 'parseSearch'});
-  transaction.setData('query', query);
-
-  let parsed: ParseResult | null = null;
-
   try {
-    parsed = grammar.parse(query, options);
+    return grammar.parse(query, options);
   } catch (e) {
-    transaction.setData('parseError', String(e));
+    // TODO(epurkhiser): Should we capture these errors somewhere?
   }
 
-  transaction.setStatus(parsed === null ? SpanStatus.UnknownError : SpanStatus.Ok);
-  transaction.finish();
-
-  return parsed;
+  return null;
 }

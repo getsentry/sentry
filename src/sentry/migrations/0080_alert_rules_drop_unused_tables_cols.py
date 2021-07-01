@@ -72,5 +72,16 @@ class Migration(migrations.Migration):
                 ADD COLUMN "query" text;
 
         """,
+            hints={
+                "tables": [
+                    "sentry_incident",
+                    "sentry_alertrule",
+                    "sentry_querysubscription",
+                    "sentry_alertruleenvironment",
+                    "sentry_alertrulequerysubscription",
+                    "sentry_querysubscriptionenvironment",
+                    "sentry_incidentgroup",
+                ]
+            },
         )
     ]
