@@ -7,6 +7,7 @@ import jwt
 from requests import Session
 
 from sentry.utils import safe
+from sentry.utils.json import JSONData
 
 logger = logging.getLogger(__name__)
 
@@ -126,15 +127,14 @@ def get_build_info(
         # we can fetch a maximum of 200 builds at once, so do that
         "&limit=200"
         # include related AppStore/PreRelease versions with the response
-        # TODO: the `iris` web API has related `buildBundles` objects,
+        # NOTE: the `iris` web API has related `buildBundles` objects,
         # which have very useful `includesSymbols` and `dSYMUrl` attributes,
         # but this is sadly not available in the official API. :-(
-        # Open this in your browser when you are singed into AppStoreConnect:
+        # Open this in your browser when you are signed into AppStoreConnect:
         # https://appstoreconnect.apple.com/iris/v1/builds?filter[processingState]=VALID&include=appStoreVersion,preReleaseVersion,buildBundles&limit=1&filter[app]=XYZ
         "&include=appStoreVersion,preReleaseVersion"
         # sort newer releases first
         "&sort=-uploadedDate"
-        # TODO: figure out if we actually can/want to download invalid or expired builds
         # only include valid builds
         "&filter[processingState]=VALID"
         # and builds that have not expired yet
@@ -144,20 +144,20 @@ def get_build_info(
 
     for page in pages:
         included_relations = {}
-        for included in safe.get_path(page, "included"):
+        for included in safe.get_path(page, "included", default=[]):
             type = safe.get_path(included, "type")
             id = safe.get_path(included, "id")
             if type is not None and id is not None:
                 included_relations[(type, id)] = included
 
-        def get_related(relation: Any) -> Any:
+        def get_related(relation: JSONData) -> JSONData:
             type = safe.get_path(relation, "data", "type")
             id = safe.get_path(relation, "data", "id")
             if type is None or id is None:
                 return None
             return included_relations.get((type, id))
 
-        for build in safe.get_path(page, "data"):
+        for build in safe.get_path(page, "data", default=[]):
             related_appstore_version = get_related(
                 safe.get_path(build, "relationships", "appStoreVersion")
             )
@@ -166,6 +166,7 @@ def get_build_info(
             )
             related_version = related_appstore_version or related_prerelease_version
             if not related_version:
+                logger.error("Missing related version for AppStoreConnect `build`")
                 continue
             platform = safe.get_path(related_version, "attributes", "platform")
             version = safe.get_path(related_version, "attributes", "versionString")
@@ -174,6 +175,8 @@ def get_build_info(
                 result.append(
                     {"platform": platform, "version": version, "build_number": build_number}
                 )
+            else:
+                logger.error("Malformed AppStoreConnect `builds` data")
 
     return result
 
@@ -192,7 +195,7 @@ def get_apps(session: Session, credentials: AppConnectCredentials) -> Optional[L
     try:
         app_pages = _get_appstore_info_paged(session, credentials, url)
         for app_page in app_pages:
-            for app in app_page["data"]:
+            for app in safe.get_path(app_page, "data", default=[]):
                 app_info = AppInfo(
                     app_id=app.get("id"),
                     bundle_id=safe.get_path(app, "attributes", "bundleId"),
@@ -204,6 +207,8 @@ def get_apps(session: Session, credentials: AppConnectCredentials) -> Optional[L
                     and app_info.name is not None
                 ):
                     ret_val.append(app_info)
+                else:
+                    logger.error("Malformed AppStoreConnect `apps` data")
     except ValueError:
         return None
     return ret_val
