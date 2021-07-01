@@ -31,6 +31,7 @@ const defaultProps = {
   withPagination: true,
   useFilteredStats: true,
   useTintRow: true,
+  narrowGroups: false,
 };
 
 type Props = WithRouterProps & {
@@ -50,6 +51,7 @@ type Props = WithRouterProps & {
       pageDiff: number
     ) => void
   ) => void;
+  queryFilterDescription?: string;
 } & Partial<typeof defaultProps>;
 
 type State = {
@@ -202,6 +204,8 @@ class GroupList extends React.Component<Props, State> {
       useTintRow,
       customStatsPeriod,
       queryParams,
+      queryFilterDescription,
+      narrowGroups,
     } = this.props;
     const {loading, error, groups, memberList, pageLinks} = this.state;
 
@@ -236,7 +240,7 @@ class GroupList extends React.Component<Props, State> {
     return (
       <React.Fragment>
         <Panel>
-          <GroupListHeader withChart={!!withChart} />
+          <GroupListHeader withChart={!!withChart} narrowGroups={narrowGroups} />
           <PanelBody>
             {groups.map(({id, project}) => {
               const members = memberList?.hasOwnProperty(project.slug)
@@ -254,6 +258,8 @@ class GroupList extends React.Component<Props, State> {
                   useTintRow={useTintRow}
                   customStatsPeriod={customStatsPeriod}
                   statsPeriod={statsPeriod}
+                  queryFilterDescription={queryFilterDescription}
+                  narrowGroups={narrowGroups}
                 />
               );
             })}

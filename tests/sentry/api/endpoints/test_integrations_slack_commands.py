@@ -1,4 +1,4 @@
-from typing import Mapping, Optional
+from typing import Any, Mapping, Optional
 from urllib.parse import urlencode
 
 import responses
@@ -7,9 +7,20 @@ from requests import Response
 from rest_framework import status
 
 from sentry import options
-from sentry.integrations.slack.endpoints.command import LINK_FROM_CHANNEL_MESSAGE, LINK_USER_MESSAGE
+from sentry.integrations.slack.endpoints.command import (
+    LINK_FROM_CHANNEL_MESSAGE,
+    LINK_USER_FIRST_MESSAGE,
+    NOT_LINKED_MESSAGE,
+)
+from sentry.integrations.slack.message_builder import SlackBody
+from sentry.integrations.slack.message_builder.disconnected import DISCONNECTED_MESSAGE
 from sentry.integrations.slack.util.auth import set_signing_secret
-from sentry.integrations.slack.views.link_team import build_linking_url
+from sentry.integrations.slack.views.link_identity import SUCCESS_LINKED_MESSAGE, build_linking_url
+from sentry.integrations.slack.views.link_team import build_team_linking_url
+from sentry.integrations.slack.views.unlink_identity import (
+    SUCCESS_UNLINKED_MESSAGE,
+    build_unlinking_url,
+)
 from sentry.models import (
     ExternalActor,
     Identity,
@@ -24,15 +35,56 @@ from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 
 
-def assert_is_help_text(response: Response, expected_command: Optional[str] = None) -> None:
-    data = json.loads(str(response.content.decode("utf-8")))
-    assert "Available Commands" in data["text"]
+def get_response_text(data: SlackBody) -> str:
+    return (
+        # If it's an attachment.
+        data.get("text")
+        or
+        # If it's blocks.
+        "\n".join(block["text"]["text"] for block in data["blocks"] if block["type"] == "section")
+    )
+
+
+def assert_is_help_text(data: SlackBody, expected_command: Optional[str] = None) -> None:
+    text = get_response_text(data)
+    assert "Here are the commands you can use" in text
     if expected_command:
-        assert expected_command in data["text"]
+        assert expected_command in text
 
 
 class SlackCommandsTest(APITestCase, TestCase):
     endpoint = "sentry-integration-slack-commands"
+    method = "post"
+
+    def send_slack_message(self, command: str, **kwargs: Any) -> Mapping[str, str]:
+        response = self.get_slack_response(
+            {
+                "text": command,
+                "team_id": self.external_id,
+                "user_id": "UXXXXXXX1",
+                **kwargs,
+            }
+        )
+        return json.loads(str(response.content.decode("utf-8")))
+
+    def find_identity(self) -> Optional[Identity]:
+        identities = Identity.objects.filter(
+            idp=self.idp,
+            user=self.user,
+            status=IdentityStatus.VALID,
+        )
+        if not identities:
+            return None
+        return identities[0]
+
+    def link_user(self) -> None:
+        Identity.objects.create(
+            external_id="UXXXXXXX1",
+            idp=self.idp,
+            user=self.user,
+            status=IdentityStatus.VALID,
+            scopes=[],
+        )
 
     def get_slack_response(
         self, payload: Mapping[str, str], status_code: Optional[str] = None
@@ -61,54 +113,127 @@ class SlackCommandsTest(APITestCase, TestCase):
             },
         )
         self.integration.add_organization(self.organization, self.user)
+        self.idp = IdentityProvider.objects.create(type="slack", external_id="slack:1", config={})
+        self.login_as(self.user)
 
 
 class SlackCommandsGetTest(SlackCommandsTest):
+    method = "get"
+
     def test_method_get_not_allowed(self):
         self.get_error_response(status_code=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 
-class SlackCommandsHelpTest(SlackCommandsTest):
-    method = "post"
-
+class SlackCommandsPostTest(SlackCommandsTest):
     def test_invalid_signature(self):
-        # The `get_error_response` method doesn't use a signature.
+        # The `get_error_response` method doesn't add a signature to the request.
         self.get_error_response(status_code=status.HTTP_400_BAD_REQUEST)
 
     def test_missing_team(self):
-        self.get_slack_response({"text": ""}, status_code=status.HTTP_403_FORBIDDEN)
+        self.get_slack_response({"text": ""}, status_code=status.HTTP_400_BAD_REQUEST)
 
+    def test_idp_does_not_exist(self):
+        """Test that get_identity fails if we cannot find a matching idp."""
+        data = self.send_slack_message("", team_id="slack:2")
+        assert DISCONNECTED_MESSAGE in get_response_text(data)
+
+
+class SlackCommandsHelpTest(SlackCommandsTest):
     def test_missing_command(self):
-        response = self.get_slack_response({"text": "", "team_id": self.external_id})
-        assert_is_help_text(response)
+        data = self.send_slack_message("")
+        assert_is_help_text(data)
 
     def test_invalid_command(self):
-        response = self.get_slack_response({"text": "invalid command", "team_id": self.external_id})
-        assert_is_help_text(response, "invalid")
+        data = self.send_slack_message("invalid command")
+        assert_is_help_text(data, "invalid")
 
     def test_help_command(self):
-        response = self.get_slack_response({"text": "help", "team_id": self.external_id})
-        assert_is_help_text(response)
+        data = self.send_slack_message("help")
+        assert_is_help_text(data)
+
+
+class SlackCommandsLinkUserTest(SlackCommandsTest):
+    @responses.activate
+    def test_link_user_identity(self):
+        """Do the auth flow and assert that the identity was created."""
+        # Assert that the identity does not exist.
+        assert not self.find_identity()
+
+        linking_url = build_linking_url(
+            self.integration,
+            self.organization,
+            "UXXXXXXX1",
+            "CXXXXXXX9",
+            "http://example.slack.com/response_url",
+        )
+
+        response = self.client.get(linking_url)
+        assert response.status_code == 200
+        self.assertTemplateUsed(response, "sentry/auth-link-identity.html")
+
+        response = self.client.post(linking_url)
+        assert response.status_code == 200
+        self.assertTemplateUsed(response, "sentry/integrations/slack-linked.html")
+
+        # Assert that the identity was created.
+        assert self.find_identity()
+
+        assert len(responses.calls) >= 1
+        data = json.loads(str(responses.calls[0].request.body.decode("utf-8")))
+        assert SUCCESS_LINKED_MESSAGE in data["text"]
+
+    @responses.activate
+    def test_unlink_user_identity(self):
+        self.link_user()
+        assert self.find_identity()
+
+        unlinking_url = build_unlinking_url(
+            self.integration.id,
+            self.organization.id,
+            "UXXXXXXX1",
+            "CXXXXXXX9",
+            "http://example.slack.com/response_url",
+        )
+
+        response = self.client.get(unlinking_url)
+        assert response.status_code == 200
+        self.assertTemplateUsed(response, "sentry/auth-unlink-identity.html")
+
+        response = self.client.post(unlinking_url)
+        assert response.status_code == 200
+        self.assertTemplateUsed(response, "sentry/integrations/slack-unlinked.html")
+
+        # Assert that the identity was deleted.
+        assert not self.find_identity()
+
+        assert len(responses.calls) >= 1
+        data = json.loads(str(responses.calls[0].request.body.decode("utf-8")))
+        assert SUCCESS_UNLINKED_MESSAGE in data["text"]
+
+    def test_link_command(self):
+        data = self.send_slack_message("link")
+        assert "Link your Slack identity" in get_response_text(data)
+
+    def test_unlink_command(self):
+        self.link_user()
+        data = self.send_slack_message("unlink")
+        assert "to unlink your identity" in get_response_text(data)
+
+    def test_link_command_already_linked(self):
+        self.link_user()
+        data = self.send_slack_message("link")
+        assert "You are already linked as" in get_response_text(data)
+
+    def test_unlink_command_already_unlinked(self):
+        data = self.send_slack_message("unlink")
+        assert NOT_LINKED_MESSAGE in get_response_text(data)
 
 
 class SlackCommandsLinkTeamTest(SlackCommandsTest):
-    method = "post"
-
     def setUp(self):
         super().setUp()
-        self.idp = IdentityProvider.objects.create(type="slack", external_id="slack:1", config={})
-        self.login_as(self.user)
-        Identity.objects.create(
-            external_id="UXXXXXXX1",
-            idp=self.idp,
-            user=self.user,
-            status=IdentityStatus.VALID,
-            scopes=[],
-        )
-        response = self.get_slack_response(
-            {"text": "link team", "team_id": self.external_id, "user_id": "UXXXXXXX1"}
-        )
-        self.data = json.loads(str(response.content.decode("utf-8")))
+        self.link_user()
+        self.data = self.send_slack_message("link team")
         responses.add(
             method=responses.POST,
             url="https://slack.com/api/chat.postMessage",
@@ -129,7 +254,7 @@ class SlackCommandsLinkTeamTest(SlackCommandsTest):
     def test_link_team_command(self):
         """Test that we successfully link a team to a Slack channel"""
         assert "Link your Sentry team to this Slack channel!" in self.data["text"]
-        linking_url = build_linking_url(
+        linking_url = build_team_linking_url(
             self.integration,
             "UXXXXXXX1",
             "CXXXXXXX9",
@@ -174,13 +299,6 @@ class SlackCommandsLinkTeamTest(SlackCommandsTest):
         data = json.loads(str(response.content.decode("utf-8")))
         assert LINK_FROM_CHANNEL_MESSAGE in data["text"]
 
-    def test_link_team_idp_does_not_exist(self):
-        """Test that get_identity fails if we cannot find a matching idp"""
-        self.get_slack_response(
-            {"text": "link team", "team_id": "slack:2", "user_id": "UA1J9RTE1"},
-            status_code=403,
-        )
-
     def test_link_team_identity_does_not_exist(self):
         """Test that get_identity fails if the user has no Identity and we reply with the LINK_USER_MESSAGE"""
         user2 = self.create_user()
@@ -188,11 +306,8 @@ class SlackCommandsLinkTeamTest(SlackCommandsTest):
             teams=[self.team], user=user2, role="member", organization=self.organization
         )
         self.login_as(user2)
-        response = self.get_slack_response(
-            {"text": "link team", "team_id": self.external_id, "user_id": "UXXXXXXX2"}
-        )
-        data = json.loads(str(response.content.decode("utf-8")))
-        assert LINK_USER_MESSAGE in data["text"]
+        data = self.send_slack_message("link team", user_id="UXXXXXXX2")
+        assert LINK_USER_FIRST_MESSAGE in data["text"]
 
     @responses.activate
     def test_link_team_insufficient_role(self):
@@ -212,7 +327,7 @@ class SlackCommandsLinkTeamTest(SlackCommandsTest):
             scopes=[],
         )
         assert "Link your Sentry team to this Slack channel!" in self.data["text"]
-        linking_url = build_linking_url(
+        linking_url = build_team_linking_url(
             self.integration,
             "UXXXXXXX2",
             "CXXXXXXX9",
@@ -254,7 +369,7 @@ class SlackCommandsLinkTeamTest(SlackCommandsTest):
             scopes=[],
         )
         assert "Link your Sentry team to this Slack channel!" in self.data["text"]
-        linking_url = build_linking_url(
+        linking_url = build_team_linking_url(
             self.integration,
             "UXXXXXXX2",
             "CXXXXXXX9",
@@ -291,7 +406,7 @@ class SlackCommandsLinkTeamTest(SlackCommandsTest):
             external_id="CXXXXXXX9",
         )
         assert "Link your Sentry team to this Slack channel!" in self.data["text"]
-        linking_url = build_linking_url(
+        linking_url = build_team_linking_url(
             self.integration,
             "UXXXXXXX1",
             "CXXXXXXX9",
@@ -317,7 +432,7 @@ class SlackCommandsLinkTeamTest(SlackCommandsTest):
     def test_error_page(self):
         """Test that we successfully render an error page when bad form data is sent."""
         assert "Link your Sentry team to this Slack channel!" in self.data["text"]
-        linking_url = build_linking_url(
+        linking_url = build_team_linking_url(
             self.integration,
             "UXXXXXXX1",
             "CXXXXXXX9",

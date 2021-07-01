@@ -996,8 +996,6 @@ SENTRY_FEATURES = {
     "organizations:transaction-comparison": False,
     # Return unhandled information on the issue level
     "organizations:unhandled-issue-flag": True,
-    # Enable inbox support in the issue stream
-    "organizations:inbox": True,
     # Enable percent-based conditions on issue rules
     "organizations:issue-percent-filters": False,
     # Enable the new alert details ux design

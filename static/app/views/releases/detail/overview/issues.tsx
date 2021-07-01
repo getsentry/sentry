@@ -49,6 +49,10 @@ type IssuesQueryParams = {
   query: string;
 };
 
+const defaultProps = {
+  withChart: false,
+};
+
 type Props = {
   api: Client;
   organization: Organization;
@@ -57,7 +61,8 @@ type Props = {
   location: Location;
   defaultStatsPeriod: string;
   releaseBounds: ReleaseBounds;
-};
+  queryFilterDescription?: string;
+} & Partial<typeof defaultProps>;
 
 type State = {
   issuesType: IssuesType;
@@ -72,6 +77,7 @@ type State = {
 };
 
 class Issues extends Component<Props, State> {
+  static defaultProps = defaultProps;
   state: State = this.getInitialState();
 
   getInitialState() {
@@ -179,6 +185,7 @@ class Issues extends Component<Props, State> {
       }),
       limit: 10,
       sort: IssueSortOptions.FREQ,
+      groupStatsPeriod: 'auto',
     };
 
     switch (issuesType) {
@@ -328,7 +335,7 @@ class Issues extends Component<Props, State> {
 
   render() {
     const {issuesType, count, pageLinks, onCursor} = this.state;
-    const {organization} = this.props;
+    const {organization, queryFilterDescription, withChart} = this.props;
     const {path, queryParams} = this.getIssuesEndpoint();
     const hasReleaseComparison = organization.features.includes('release-comparison');
     const issuesTypes = [
@@ -418,7 +425,9 @@ class Issues extends Component<Props, State> {
             queryParams={queryParams}
             query=""
             canSelectGroups={false}
-            withChart={false}
+            queryFilterDescription={queryFilterDescription}
+            withChart={withChart}
+            narrowGroups
             renderEmptyMessage={this.renderEmptyMessage}
             withPagination={false}
             onFetchSuccess={this.handleFetchSuccess}

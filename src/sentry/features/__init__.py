@@ -77,7 +77,6 @@ default_manager.add("organizations:filters-and-sampling", OrganizationFeature, T
 default_manager.add("organizations:global-views", OrganizationFeature)
 default_manager.add("organizations:grouping-tree-ui", OrganizationFeature, True)
 default_manager.add("organizations:images-loaded-v2", OrganizationFeature)
-default_manager.add("organizations:inbox", OrganizationFeature, True)
 default_manager.add("organizations:issue-percent-filters", OrganizationFeature, True)
 default_manager.add("organizations:incidents", OrganizationFeature)
 default_manager.add("organizations:integrations-alert-rule", OrganizationFeature)
