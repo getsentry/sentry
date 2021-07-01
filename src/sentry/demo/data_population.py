@@ -511,7 +511,7 @@ def update_context(event, trace=None, platform=None):
     mobile = platform in mobile_platforms
     context = event["contexts"]
     # delete device since we aren't mocking it (yet)
-    if "device" in context and not mobile:
+    if "device" in context:
         del context["device"]
     # generate random browser and os
     base_context = gen_mobile_context(platform) if mobile else gen_base_context()
