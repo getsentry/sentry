@@ -36,6 +36,7 @@ export const POPULARITY_WEIGHT: {
 
   // Sentry-apps
   amixr: 9,
+  calixa: 9,
   clickup: 9,
   clubhouse: 9,
   komodor: 9,
