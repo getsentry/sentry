@@ -133,7 +133,7 @@ class AuthIdentityHandler:
     def user(self) -> Any:
         return self.request.user
 
-    class _NotLoggedIn(Exception):
+    class _NotCompletedSecurityChecks(Exception):
         pass
 
     def _login(self, user: Any) -> None:
@@ -144,7 +144,7 @@ class AuthIdentityHandler:
             organization_id=self.organization.id,
         )
         if not user_was_logged_in:
-            raise self._NotLoggedIn()
+            raise self._NotCompletedSecurityChecks()
 
     @staticmethod
     def _set_linked_flag(member: OrganizationMember) -> None:
@@ -185,7 +185,7 @@ class AuthIdentityHandler:
 
         try:
             self._login(user)
-        except self._NotLoggedIn:
+        except self._NotCompletedSecurityChecks:
             return HttpResponseRedirect(auth.get_login_redirect(self.request))
 
         state.clear()
@@ -445,7 +445,7 @@ class AuthIdentityHandler:
             if has_membership:
                 try:
                     self._login(acting_user)
-                except self._NotLoggedIn:
+                except self._NotCompletedSecurityChecks:
                     if acting_user.has_usable_password():
                         return self._post_login_redirect()
                     else:
@@ -477,7 +477,7 @@ class AuthIdentityHandler:
                 # go on.
                 try:
                     self._login(login_form.get_user())
-                except self._NotLoggedIn:
+                except self._NotCompletedSecurityChecks:
                     return self._post_login_redirect()
             else:
                 auth.log_auth_failure(self.request, self.request.POST.get("username"))
@@ -508,7 +508,7 @@ class AuthIdentityHandler:
         # XXX(dcramer): this is repeated from above
         try:
             self._login(user)
-        except self._NotLoggedIn:
+        except self._NotCompletedSecurityChecks:
             return self._post_login_redirect()
 
         state.clear()
