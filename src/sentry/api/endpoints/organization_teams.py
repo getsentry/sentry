@@ -56,7 +56,9 @@ class TeamSerializer(serializers.Serializer):
 class OrganizationTeamsEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationTeamsPermission,)
 
-    team_serializer = team_serializers.TeamSerializer
+    def team_serializer_for_post(self):
+        # allow child routes to supply own serializer, used in SCIM teams route
+        return team_serializers.TeamSerializer()
 
     def get(self, request, organization):
         """
@@ -187,7 +189,7 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
                 data=team.get_audit_log_data(),
             )
             return Response(
-                serialize(team, request.user, self.team_serializer()),
+                serialize(team, request.user, self.team_serializer_for_post()),
                 status=201,
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
