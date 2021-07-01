@@ -1,0 +1,19 @@
+{% extends "sentry/bases/modal.html" %}
+
+{% load i18n %}
+
+{% block title %}{% trans "Team Unlinked" %} | {{ block.super }}{% endblock %}
+{% block wrapperclass %}narrow auth{% endblock %}
+
+{% block main %}
+  <div class="align-center">
+    <p>
+      <b>#{{ channel_name }}</b> will no longer receive issue alert notifications for the <b>#{{ team.slug }}</b> team.
+    </p>
+    <p>
+      <a href="slack://channel?id={{ channel_id }}&team={{ team_id }}" class="btn btn-default btn-login-slack">
+        <span class="provider-logo slack"></span> Go back to Slack
+      </a>
+    </p>
+  </div>
+{% endblock %}
