@@ -26,7 +26,7 @@ describe('Release Issues', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${props.organization.slug}/issues-count/?query=first-release%3A1.0.0&query=release%3A1.0.0&query=error.handled%3A0%20release%3A1.0.0`,
+      url: `/organizations/${props.organization.slug}/issues-count/?query=first-release%3A1.0.0&query=release%3A1.0.0&query=error.handled%3A0%20release%3A1.0.0&statsPeriod=14d`,
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${props.organization.slug}/releases/1.0.0/resolved/`,
