@@ -66,6 +66,10 @@ class RedisBackedState(PipelineSessionStore):
 
     flow = redis_property("flow")
 
+    def mark_session(self):
+        super().mark_session()
+        self.request.session.modified = True
+
 
 def handle_existing_identity(
     auth_provider, provider, organization, request, state, auth_identity, identity

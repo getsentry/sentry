@@ -64,6 +64,10 @@ class RedisSessionStore:
     def redis_key(self):
         return self.request.session.get(self.session_key)
 
+    def mark_session(self):
+        # Subclasses may override to mark session as modified
+        pass
+
     def regenerate(self, initial_state=None):
         if initial_state is None:
             initial_state = {}
@@ -71,6 +75,7 @@ class RedisSessionStore:
         redis_key = f"{self.redis_namespace}:{self.prefix}:{uuid4().hex}"
 
         self.request.session[self.session_key] = redis_key
+        self.mark_session()
 
         value = dumps(initial_state)
         self._client.setex(redis_key, self.ttl, value)
@@ -83,8 +88,7 @@ class RedisSessionStore:
 
         session = self.request.session
         del session[self.session_key]
-        if hasattr(session, "modified"):
-            session.modified = True
+        self.mark_session()
 
     def is_valid(self):
         return self.redis_key and self._client.get(self.redis_key)
