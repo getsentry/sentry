@@ -45,8 +45,8 @@ type Props = {
   selection: GlobalSelection;
   location: Location;
   defaultStatsPeriod: string;
-  queryFilterDescription?: string;
   releaseBounds: ReleaseBounds;
+  queryFilterDescription?: string;
 } & Partial<typeof defaultProps>;
 
 type State = {
