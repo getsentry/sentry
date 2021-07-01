@@ -7,7 +7,7 @@ from django.test import Client, RequestFactory
 from sentry.auth.helper import (
     OK_LINK_IDENTITY,
     AuthHelper,
-    RedisBackedState,
+    AuthHelperSessionStore,
     handle_attach_identity,
     handle_existing_identity,
     handle_new_user,
@@ -52,7 +52,7 @@ class AuthIdentityHandlerTest(TestCase):
             "data": {"foo": "bar"},
         }
 
-        self.state = RedisBackedState(self.request, "pipeline")
+        self.state = AuthHelperSessionStore(self.request, "pipeline")
 
     def set_up_user(self):
         """Set up a persistent user and associate it to the request.

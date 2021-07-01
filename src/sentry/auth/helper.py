@@ -57,7 +57,7 @@ ERR_NOT_AUTHED = _("You must be authenticated to link accounts.")
 ERR_INVALID_IDENTITY = _("The provider did not return a valid user identity.")
 
 
-class RedisBackedState(PipelineSessionStore):
+class AuthHelperSessionStore(PipelineSessionStore):
     redis_namespace = "auth"
 
     @property
@@ -511,7 +511,7 @@ class AuthHelper(Pipeline):
     pipeline_name = "pipeline"
     provider_manager = manager
     provider_model_cls = AuthProvider
-    session_store_cls = RedisBackedState
+    session_store_cls = AuthHelperSessionStore
 
     @classmethod
     def get_for_request(cls, request):
