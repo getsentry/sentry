@@ -384,6 +384,7 @@ export type EventMetadata = {
   function?: string;
   stripped_crash?: boolean;
   current_tree_label?: string[];
+  finest_tree_label?: string[];
 };
 
 export type EventAttachment = {
