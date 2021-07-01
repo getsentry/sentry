@@ -177,6 +177,7 @@ function ReleaseComparisonChart({
           series: [
             {
               seriesName: t('This Release'),
+              connectNulls: true,
               data: getCrashFreeSeries(
                 releaseSessions?.groups,
                 releaseSessions?.intervals,
@@ -200,6 +201,7 @@ function ReleaseComparisonChart({
           series: [
             {
               seriesName: t('This Release'),
+              connectNulls: true,
               data: getCrashFreeSeries(
                 releaseSessions?.groups,
                 releaseSessions?.intervals,

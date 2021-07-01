@@ -13,11 +13,6 @@ import {defined} from 'app/utils';
 import {Theme} from 'app/utils/theme';
 import {displayCrashFreePercent} from 'app/views/releases/utils';
 
-import {
-  getSessionTermDescription,
-  SessionTerm,
-  sessionTerm,
-} from '../../../utils/sessionTerm';
 import {releaseComparisonChartHelp, releaseComparisonChartLabels} from '../../utils';
 
 type Props = {
@@ -82,27 +77,6 @@ class SessionsChart extends React.Component<Props> {
     }
   }
 
-  getLegendTooltipDescription(serieName: string) {
-    const {platform} = this.props;
-
-    switch (serieName) {
-      case sessionTerm.crashed:
-        return getSessionTermDescription(SessionTerm.CRASHED, platform);
-      case sessionTerm.abnormal:
-        return getSessionTermDescription(SessionTerm.ABNORMAL, platform);
-      case sessionTerm.errored:
-        return getSessionTermDescription(SessionTerm.ERRORED, platform);
-      case sessionTerm.healthy:
-        return getSessionTermDescription(SessionTerm.HEALTHY, platform);
-      case sessionTerm['crash-free-users']:
-        return getSessionTermDescription(SessionTerm.CRASH_FREE_USERS, platform);
-      case sessionTerm['crash-free-sessions']:
-        return getSessionTermDescription(SessionTerm.CRASH_FREE_SESSIONS, platform);
-      default:
-        return '';
-    }
-  }
-
   render() {
     const {series, previousSeries, chartType} = this.props;
 
@@ -111,19 +85,6 @@ class SessionsChart extends React.Component<Props> {
     const legend = {
       right: 10,
       top: 0,
-      tooltip: {
-        show: true,
-        // TODO(ts) tooltip.formatter has incorrect types in echarts 4
-        formatter: (params: any): string => {
-          const seriesNameDesc = this.getLegendTooltipDescription(params.name ?? '');
-
-          if (!seriesNameDesc) {
-            return '';
-          }
-
-          return ['<div class="tooltip-description">', seriesNameDesc, '</div>'].join('');
-        },
-      },
     };
 
     return (
