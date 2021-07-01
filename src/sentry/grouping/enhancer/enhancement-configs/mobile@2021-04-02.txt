@@ -177,7 +177,7 @@ module:java.lang.reflect.* category=indirection
 module:java.lang.Class function:getMethod category=indirection
 module:androidx.work.impl.utils.ForceStopRunnable category=indirection
 
-family:native function:"*::\{dtor\}" category=dtor
+family:native function:"*::\\{dtor\\}" category=dtor
 family:native function:"destructor'" category=dtor
 
 family:native function:exit category=shutdown
