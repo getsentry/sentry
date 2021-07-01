@@ -16,10 +16,11 @@ type Preferences = typeof PreferencesStore.prefs;
 export default function DemoHeader() {
   // if the user came from a SaaS org, we should send them back to upgrade when they leave the sandbox
   const saasOrgSlug = getCookie('saas_org_slug');
+  const email = localStorage.getItem('email');
   const getStartedText = saasOrgSlug ? t('Upgrade Now') : t('Sign Up for Free');
   const getStartedUrl = saasOrgSlug
     ? `https://sentry.io/settings/${saasOrgSlug}/billing/checkout/`
-    : 'https://sentry.io/signup/';
+    : `https://sentry.io/signup/?email=${email}`;
 
   const [collapsed, setCollapsed] = useState(PreferencesStore.prefs.collapsed);
 
