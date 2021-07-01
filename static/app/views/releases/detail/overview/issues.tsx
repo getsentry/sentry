@@ -257,6 +257,7 @@ class Issues extends Component<Props, State> {
             canSelectGroups={false}
             queryFilterDescription={queryFilterDescription}
             withChart={withChart}
+            narrowGroups
             renderEmptyMessage={this.renderEmptyMessage}
             withPagination={false}
             onFetchSuccess={this.handleFetchSuccess}

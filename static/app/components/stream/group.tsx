@@ -74,6 +74,7 @@ const defaultProps = {
   useFilteredStats: false,
   useTintRow: true,
   display: DEFAULT_DISPLAY,
+  narrowGroups: false,
 };
 
 type Props = {
@@ -361,6 +362,7 @@ class StreamGroup extends React.Component<Props, State> {
       customStatsPeriod,
       display,
       queryFilterDescription,
+      narrowGroups,
     } = this.props;
 
     const {period, start, end} = selection.datetime || {};
@@ -426,7 +428,9 @@ class StreamGroup extends React.Component<Props, State> {
         </GroupSummary>
         {hasGuideAnchor && <GuideAnchor target="issue_stream" />}
         {withChart && !displayReprocessingLayout && (
-          <ChartWrapper className="hidden-xs hidden-sm">
+          <ChartWrapper
+            className={`hidden-xs hidden-sm ${narrowGroups ? 'hidden-md' : ''}`}
+          >
             {!data.filtered?.stats && !data.stats ? (
               <Placeholder height="24px" />
             ) : (
