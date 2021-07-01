@@ -77,8 +77,4 @@ class DefaultEvent(BaseEvent):
         else:
             title = "<unlabeled event>"
 
-        return {"message_title": title}
-
-    def compute_title(self, metadata):
-        title: Optional[str] = metadata.get("message_title")
-        return compute_title_with_tree_label(title, metadata)
+        return {"title": title}

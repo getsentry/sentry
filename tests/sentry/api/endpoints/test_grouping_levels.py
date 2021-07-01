@@ -213,13 +213,12 @@ level 2*
 @pytest.mark.django_db
 @pytest.mark.snuba
 def test_default_events(default_project, store_stacktrace, reset_snuba, _render_all_previews):
-
+    # Would like to add tree labels to default event titles as well,
+    # But leave as is for now.
     event = store_stacktrace(["bar", "foo"], interface="threads", type="default")
-    # Could use tree label only instead of "unlabeled event", but let's not
-    # touch this right now
-    assert event.title == "<unlabeled event> | foo | bar"
+    assert event.title == "<unlabeled event>"
 
     event = store_stacktrace(
         ["bar", "foo"], interface="threads", type="default", extra_event_data={"message": "hello"}
     )
-    assert event.title == "hello | foo | bar"
+    assert event.title == "hello"
