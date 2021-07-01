@@ -6,6 +6,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.base import Endpoint
 from sentry.integrations.slack.message_builder.disconnected import SlackDisconnectedMessageBuilder
 from sentry.integrations.slack.message_builder.help import SlackHelpMessageBuilder
@@ -34,6 +35,7 @@ UNLINK_USER_MESSAGE = "<{associate_url}|Click here to unlink your identity.>"
 NOT_LINKED_MESSAGE = "You do not have a linked identity to unlink."
 ALREADY_LINKED_MESSAGE = "You are already linked as `{username}`."
 DIRECT_MESSAGE_CHANNEL_NAME = "directmessage"
+FEATURE_FLAG_MESSAGE = "This feature hasn't been released yet, hang tight."
 
 
 def get_command_and_args(payload: Mapping[str, str]) -> Tuple[str, Sequence[str]]:
@@ -94,6 +96,7 @@ class SlackCommandsEndpoint(Endpoint):  # type: ignore
         )
 
     def link_team(self, slack_request: SlackCommandRequest) -> Response:
+
         if slack_request.channel_name == DIRECT_MESSAGE_CHANNEL_NAME:
             return self.send_ephemeral_notification(LINK_FROM_CHANNEL_MESSAGE)
 
@@ -127,6 +130,13 @@ class SlackCommandsEndpoint(Endpoint):  # type: ignore
         command, args = get_command_and_args(slack_request.data)
         if command in ["help", ""]:
             return self.respond(SlackHelpMessageBuilder().build())
+
+        integration = slack_request.integration
+        organization = integration.organizations.all()[0]
+        if command in ["link", "unlink"] and not features.has(
+            "organizations:notification-platform", organization
+        ):
+            return self.send_ephemeral_notification(FEATURE_FLAG_MESSAGE)
 
         if command == "link":
             if not args:
