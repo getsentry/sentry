@@ -106,7 +106,7 @@ const Wrapper = styled('div')`
 `;
 
 const StyledContent = styled(Content)`
-  top: calc(100% + ${space(0.75)});
+  top: calc(100% + ${space(0.5)} - 1px);
   border-radius: ${p => p.theme.borderRadius};
   > * :last-child {
     margin-bottom: -1px;
