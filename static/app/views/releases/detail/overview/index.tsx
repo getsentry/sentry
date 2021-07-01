@@ -34,12 +34,7 @@ import {DisplayModes} from 'app/views/performance/transactionSummary/charts';
 import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
 import {TrendChangeType, TrendView} from 'app/views/performance/trends/types';
 
-import {
-  getReleaseBounds,
-  getReleaseParams,
-  isReleaseArchived,
-  ReleaseBounds,
-} from '../../utils';
+import {getReleaseParams, isReleaseArchived, ReleaseBounds} from '../../utils';
 import {ReleaseContext} from '..';
 
 import ReleaseChart from './chart/';
@@ -50,6 +45,8 @@ import Issues from './issues';
 import OtherProjects from './otherProjects';
 import ProjectReleaseDetails from './projectReleaseDetails';
 import ReleaseArchivedNotice from './releaseArchivedNotice';
+import ReleaseComparisonChart from './releaseComparisonChart';
+import ReleaseDetailsRequest from './releaseDetailsRequest';
 import ReleaseStats from './releaseStats';
 import TotalCrashFreeUsers from './totalCrashFreeUsers';
 
@@ -294,12 +291,7 @@ class ReleaseOverview extends AsyncView<Props> {
   get pageDateTime(): DateTimeObject {
     const query = this.props.location.query;
 
-    const {
-      start,
-      end,
-      statsPeriod,
-      utc: utcString,
-    } = getParams(query, {
+    const {start, end, statsPeriod, utc: utcString} = getParams(query, {
       allowEmptyPeriod: true,
       allowAbsoluteDatetime: true,
       allowAbsolutePageDatetime: true,
@@ -382,7 +374,6 @@ class ReleaseOverview extends AsyncView<Props> {
           releaseBounds,
         }) => {
           const {commitCount, version} = release;
-          const {releaseStart, releaseEnd} = getReleaseBounds(release);
           const hasDiscover = organization.features.includes('discover-basic');
           const hasPerformance = organization.features.includes('performance-view');
           const yAxis = this.getYAxis(hasHealthData, hasPerformance);
@@ -419,144 +410,167 @@ class ReleaseOverview extends AsyncView<Props> {
           };
 
           return (
-            <Body>
-              <Main>
-                {isReleaseArchived(release) && (
-                  <ReleaseArchivedNotice
-                    onRestore={() => this.handleRestore(project, refetchData)}
-                  />
-                )}
-                <Feature features={['release-comparison']}>
-                  {({hasFeature}) =>
-                    hasFeature ? (
-                      <Fragment>
-                        <StyledPageTimeRangeSelector
-                          organization={organization}
-                          relative={period ?? ''}
-                          start={start ?? null}
-                          end={end ?? null}
-                          utc={utc ?? null}
-                          onUpdate={this.handleDateChange}
-                          relativeOptions={{
-                            [RELEASE_PERIOD_KEY]: (
-                              <Fragment>
-                                {t('Entire Release Period')} (
-                                <DateTime date={releaseStart} timeAndDate /> -{' '}
-                                <DateTime date={releaseEnd} timeAndDate />)
-                              </Fragment>
-                            ),
-                            ...DEFAULT_RELATIVE_PERIODS,
-                          }}
-                          defaultPeriod={RELEASE_PERIOD_KEY}
-                        />
-                        {/* TODO(release-comparison): new chart */}
-                      </Fragment>
-                    ) : (
-                      (hasDiscover || hasPerformance || hasHealthData) && (
-                        <ReleaseChart
-                          releaseMeta={releaseMeta}
-                          selection={selection}
-                          yAxis={yAxis}
-                          onYAxisChange={display =>
-                            this.handleYAxisChange(display, project)
-                          }
-                          eventType={eventType}
-                          onEventTypeChange={type =>
-                            this.handleEventTypeChange(type, project)
-                          }
-                          vitalType={vitalType}
-                          onVitalTypeChange={type =>
-                            this.handleVitalTypeChange(type, project)
-                          }
-                          router={router}
-                          organization={organization}
-                          hasHealthData={hasHealthData}
-                          location={location}
-                          api={api}
-                          version={version}
-                          hasDiscover={hasDiscover}
-                          hasPerformance={hasPerformance}
-                          platform={project.platform}
-                          defaultStatsPeriod={defaultStatsPeriod}
-                          projectSlug={project.slug}
-                        />
-                      )
-                    )
-                  }
-                </Feature>
+            <ReleaseDetailsRequest
+              organization={organization}
+              location={location}
+              disable={!organization.features.includes('release-comparison')}
+              version={version}
+              releaseBounds={releaseBounds}
+            >
+              {({thisRelease, allReleases}) => (
+                <Body>
+                  <Main>
+                    {isReleaseArchived(release) && (
+                      <ReleaseArchivedNotice
+                        onRestore={() => this.handleRestore(project, refetchData)}
+                      />
+                    )}
+                    <Feature features={['release-comparison']}>
+                      {({hasFeature}) =>
+                        hasFeature ? (
+                          <Fragment>
+                            <StyledPageTimeRangeSelector
+                              organization={organization}
+                              relative={period ?? ''}
+                              start={start ?? null}
+                              end={end ?? null}
+                              utc={utc ?? null}
+                              onUpdate={this.handleDateChange}
+                              relativeOptions={{
+                                [RELEASE_PERIOD_KEY]: (
+                                  <Fragment>
+                                    {t('Entire Release Period')} (
+                                    <DateTime
+                                      date={releaseBounds.releaseStart}
+                                      timeAndDate
+                                    />{' '}
+                                    -{' '}
+                                    <DateTime
+                                      date={releaseBounds.releaseEnd}
+                                      timeAndDate
+                                    />
+                                    )
+                                  </Fragment>
+                                ),
+                                ...DEFAULT_RELATIVE_PERIODS,
+                              }}
+                              defaultPeriod={RELEASE_PERIOD_KEY}
+                            />
+                            <ReleaseComparisonChart
+                              releaseSessions={thisRelease}
+                              allSessions={allReleases}
+                            />
+                          </Fragment>
+                        ) : (
+                          (hasDiscover || hasPerformance || hasHealthData) && (
+                            <ReleaseChart
+                              releaseMeta={releaseMeta}
+                              selection={selection}
+                              yAxis={yAxis}
+                              onYAxisChange={display =>
+                                this.handleYAxisChange(display, project)
+                              }
+                              eventType={eventType}
+                              onEventTypeChange={type =>
+                                this.handleEventTypeChange(type, project)
+                              }
+                              vitalType={vitalType}
+                              onVitalTypeChange={type =>
+                                this.handleVitalTypeChange(type, project)
+                              }
+                              router={router}
+                              organization={organization}
+                              hasHealthData={hasHealthData}
+                              location={location}
+                              api={api}
+                              version={version}
+                              hasDiscover={hasDiscover}
+                              hasPerformance={hasPerformance}
+                              platform={project.platform}
+                              defaultStatsPeriod={defaultStatsPeriod}
+                              projectSlug={project.slug}
+                            />
+                          )
+                        )
+                      }
+                    </Feature>
 
-                <Issues
-                  orgId={organization.slug}
-                  selection={selection}
-                  version={version}
-                  location={location}
-                  defaultStatsPeriod={defaultStatsPeriod}
-                  releaseBounds={releaseBounds}
-                />
-                <Feature features={['performance-view']}>
-                  <TransactionsList
-                    location={location}
-                    organization={organization}
-                    eventView={releaseEventView}
-                    trendView={releaseTrendView}
-                    selected={selectedSort}
-                    options={sortOptions}
-                    handleDropdownChange={this.handleTransactionsListSortChange}
-                    titles={titles}
-                    generateLink={generateLink}
-                  />
-                </Feature>
-              </Main>
-              <Side>
-                <ReleaseStats
-                  organization={organization}
-                  release={release}
-                  project={project}
-                  location={location}
-                  selection={selection}
-                  hasHealthData={hasHealthData}
-                  getHealthData={getHealthData}
-                  isHealthLoading={isHealthLoading}
-                />
-                <ProjectReleaseDetails
-                  release={release}
-                  releaseMeta={releaseMeta}
-                  orgSlug={organization.slug}
-                  projectSlug={project.slug}
-                />
-                {commitCount > 0 && (
-                  <CommitAuthorBreakdown
-                    version={version}
-                    orgId={organization.slug}
-                    projectSlug={project.slug}
-                  />
-                )}
-                {releaseMeta.projects.length > 1 && (
-                  <OtherProjects
-                    projects={releaseMeta.projects.filter(p => p.slug !== project.slug)}
-                    location={location}
-                    version={version}
-                    organization={organization}
-                  />
-                )}
-                {hasHealthData && (
-                  <TotalCrashFreeUsers
-                    organization={organization}
-                    version={version}
-                    projectSlug={project.slug}
-                    location={location}
-                  />
-                )}
-                {deploys.length > 0 && (
-                  <Deploys
-                    version={version}
-                    orgSlug={organization.slug}
-                    deploys={deploys}
-                    projectId={project.id}
-                  />
-                )}
-              </Side>
-            </Body>
+                    <Issues
+                      organization={organization}
+                      selection={selection}
+                      version={version}
+                      location={location}
+                      defaultStatsPeriod={defaultStatsPeriod}
+                      releaseBounds={releaseBounds}
+                    />
+                    <Feature features={['performance-view']}>
+                      <TransactionsList
+                        location={location}
+                        organization={organization}
+                        eventView={releaseEventView}
+                        trendView={releaseTrendView}
+                        selected={selectedSort}
+                        options={sortOptions}
+                        handleDropdownChange={this.handleTransactionsListSortChange}
+                        titles={titles}
+                        generateLink={generateLink}
+                      />
+                    </Feature>
+                  </Main>
+                  <Side>
+                    <ReleaseStats
+                      organization={organization}
+                      release={release}
+                      project={project}
+                      location={location}
+                      selection={selection}
+                      hasHealthData={hasHealthData}
+                      getHealthData={getHealthData}
+                      isHealthLoading={isHealthLoading}
+                    />
+                    <ProjectReleaseDetails
+                      release={release}
+                      releaseMeta={releaseMeta}
+                      orgSlug={organization.slug}
+                      projectSlug={project.slug}
+                    />
+                    {commitCount > 0 && (
+                      <CommitAuthorBreakdown
+                        version={version}
+                        orgId={organization.slug}
+                        projectSlug={project.slug}
+                      />
+                    )}
+                    {releaseMeta.projects.length > 1 && (
+                      <OtherProjects
+                        projects={releaseMeta.projects.filter(
+                          p => p.slug !== project.slug
+                        )}
+                        location={location}
+                        version={version}
+                        organization={organization}
+                      />
+                    )}
+                    {hasHealthData && (
+                      <TotalCrashFreeUsers
+                        organization={organization}
+                        version={version}
+                        projectSlug={project.slug}
+                        location={location}
+                      />
+                    )}
+                    {deploys.length > 0 && (
+                      <Deploys
+                        version={version}
+                        orgSlug={organization.slug}
+                        deploys={deploys}
+                        projectId={project.id}
+                      />
+                    )}
+                  </Side>
+                </Body>
+              )}
+            </ReleaseDetailsRequest>
           );
         }}
       </ReleaseContext.Consumer>
@@ -635,7 +649,9 @@ function getDropdownOptions(): DropdownOption[] {
   ];
 }
 
-function getTransactionsListSort(location: Location): {
+function getTransactionsListSort(
+  location: Location
+): {
   selectedSort: DropdownOption;
   sortOptions: DropdownOption[];
 } {

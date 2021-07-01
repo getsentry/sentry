@@ -16,7 +16,7 @@ READ_CACHE_DURATION = 3600
 
 
 class ProjectOwnership(Model):
-    __core__ = True
+    __include_in_export__ = True
 
     project = FlexibleForeignKey("sentry.Project", unique=True)
     raw = models.TextField(null=True)

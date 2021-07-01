@@ -1,30 +1,30 @@
 ---
-created: '2021-05-05T18:04:40.092075Z'
+created: '2021-06-30T16:44:00.207087Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
-  hash: "ec536565582e9952c456c552200e7885"
-  tree_label: "abort | gpusSubmitDataBuffers | CGLFlushDrawable [driver/gl/throw]"
+  hash: "6aaea3702ff04eef387e90d3080f0659"
+  tree_label: "abort | gpusSubmitDataBuffers | CGLFlushDrawable"
   component:
     app-depth-1*
       exception*
         stacktrace*
-          frame* (marked as prefix frame by stack trace rule (category:throw +sentinel +prefix ^-group))
-            function*
-              "abort"
-            package (ignored because function takes precedence)
-              "libsystem_c.dylib"
-          frame* (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
-            function*
-              "gpusSubmitDataBuffers"
-            package (ignored because function takes precedence)
-              "libgpusupportmercury.dylib"
           frame* (marked as sentinel frame by stack trace rule (category:gl +sentinel))
             function*
               "CGLFlushDrawable"
             package (ignored because function takes precedence)
               "opengl"
+          frame* (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
+            function*
+              "gpusSubmitDataBuffers"
+            package (ignored because function takes precedence)
+              "libgpusupportmercury.dylib"
+          frame* (marked as prefix frame by stack trace rule (category:throw +sentinel +prefix ^-group))
+            function*
+              "abort"
+            package (ignored because function takes precedence)
+              "libsystem_c.dylib"
         type (ignored because exception is synthetic)
           "0x00000000 / 0x00000000"
         value (ignored because stacktrace takes precedence)
@@ -32,7 +32,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "7e64037e487c78ce0439f750a2ef503f"
-  tree_label: "<entire stacktrace>"
+  tree_label: "__pthread_kill | abort | gpusGenerateCrashLog.cold.1 | gpusGenerateCrashLog | gpusKillClientExt | gpusSubmitDataBuffers | IntelCommandBuffer::getNew | intelSubmitCommands | gldFlushObject | gliSetInteger | CGLDescribeRenderer | CGLTexImageIOSurface2D | stripped_application_code | stripped_application_code | -[_NSOpenGLViewBackingLayer display] | CA::Layer::display_if_needed | CA::Context::commit_transaction | CA::Transaction::commit | _NSTryRunModal | NSRunAlertPanel | stripped_application_code | stripped_application_code | stripped_application_code | _sigtramp | stripped_application_code | abort | gpusGenerateCrashLog.cold.1 | gpusGenerateCrashLog | gpusKillClientExt | gpusSubmitDataBuffers | IntelCommandBuffer::getNew | intelSubmitCommands | SwapFlush | gldPresentFramebufferData | glSwap_Exec | CGLFlushDrawable | -[NSOpenGLContext flushBuffer] | stripped_application_code | -[_NSOpenGLViewBackingLayer display] | -[NSView displayIfNeeded] | stripped_application_code | __NSThreadPerformPerform | __CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__ | __CFRunLoopDoSource0 | __CFRunLoopDoSources0 | __CFRunLoopRun | CFRunLoopRunSpecific | RunCurrentEventLoopInMode | ReceiveNextEventCommon | _BlockUntilNextEventMatchingListInModeWithFilter | _DPSNextEvent | -[NSApplication(NSEvent) _nextEventMatchingEventMask:untilDate:inMode:dequeue:] | -[NSApplication run] | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | start"
   component:
     app-depth-max*
       exception*
@@ -316,7 +316,7 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "7e64037e487c78ce0439f750a2ef503f"
-  tree_label: "<entire stacktrace>"
+  tree_label: "__pthread_kill | abort | gpusGenerateCrashLog.cold.1 | gpusGenerateCrashLog | gpusKillClientExt | gpusSubmitDataBuffers | IntelCommandBuffer::getNew | intelSubmitCommands | gldFlushObject | gliSetInteger | CGLDescribeRenderer | CGLTexImageIOSurface2D | stripped_application_code | stripped_application_code | -[_NSOpenGLViewBackingLayer display] | CA::Layer::display_if_needed | CA::Context::commit_transaction | CA::Transaction::commit | _NSTryRunModal | NSRunAlertPanel | stripped_application_code | stripped_application_code | stripped_application_code | _sigtramp | stripped_application_code | abort | gpusGenerateCrashLog.cold.1 | gpusGenerateCrashLog | gpusKillClientExt | gpusSubmitDataBuffers | IntelCommandBuffer::getNew | intelSubmitCommands | SwapFlush | gldPresentFramebufferData | glSwap_Exec | CGLFlushDrawable | -[NSOpenGLContext flushBuffer] | stripped_application_code | -[_NSOpenGLViewBackingLayer display] | -[NSView displayIfNeeded] | stripped_application_code | __NSThreadPerformPerform | __CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__ | __CFRunLoopDoSource0 | __CFRunLoopDoSources0 | __CFRunLoopRun | CFRunLoopRunSpecific | RunCurrentEventLoopInMode | ReceiveNextEventCommon | _BlockUntilNextEventMatchingListInModeWithFilter | _DPSNextEvent | -[NSApplication(NSEvent) _nextEventMatchingEventMask:untilDate:inMode:dequeue:] | -[NSApplication run] | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | start"
   component:
     system*
       exception*

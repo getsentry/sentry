@@ -48,7 +48,8 @@ def store_stacktrace(default_project, factories):
 @pytest.fixture
 def _render_all_previews(client):
     def inner(group: Group):
-        rv = []
+        rv = [f"group: {group.title}"]
+        assert "finest_tree_label" not in group.data["metadata"]
 
         response = client.get(f"/api/0/issues/{group.id}/grouping/levels/", format="json")
         assert response.status_code == 200
@@ -62,7 +63,10 @@ def _render_all_previews(client):
 
             assert response.status_code == 200
 
-            rv.extend(f"{preview['hash']} ({preview['eventCount']})" for preview in response.data)
+            rv.extend(
+                f"{preview['hash']}: {preview['title']} ({preview['eventCount']})"
+                for preview in response.data
+            )
 
         return "\n".join(rv)
 
@@ -107,27 +111,35 @@ def test_downwards(default_project, store_stacktrace, reset_snuba, _render_all_p
         store_stacktrace(["bar3", "foo"]),
     ]
 
+    assert [e.title for e in events] == [
+        "foo | bar2 | baz2 | bam",
+        "foo | bar | baz",
+        "foo | bar2 | baz2",
+        "foo | bar3",
+    ]
+
     assert len({e.group_id for e in events}) == 1
     group = events[0].group
 
     assert (
         _render_all_previews(group)
         == """\
+group: foo
 level 0*
-bab925683e73afdb4dc4047397a7b36b (4)
+bab925683e73afdb4dc4047397a7b36b: foo (4)
 level 1
-64686dcd59e0cf97f34113e9d360541a (1)
-c8ef2dd3dedeed29b4b74b9c579eea1a (2)
-aa1c4037371150958f9ea22adb110bbc (1)
+64686dcd59e0cf97f34113e9d360541a: foo | bar3 (1)
+c8ef2dd3dedeed29b4b74b9c579eea1a: foo | bar2 (2)
+aa1c4037371150958f9ea22adb110bbc: foo | bar (1)
 level 2
-64686dcd59e0cf97f34113e9d360541a (1)
-8c0bbfebc194c7aa3e77e95436fd61e5 (2)
-b8d08a573c62ca8c84de14c12c0e19fe (1)
+64686dcd59e0cf97f34113e9d360541a: foo | bar3 (1)
+8c0bbfebc194c7aa3e77e95436fd61e5: foo | bar2 | baz2 (2)
+b8d08a573c62ca8c84de14c12c0e19fe: foo | bar | baz (1)
 level 3
-64686dcd59e0cf97f34113e9d360541a (1)
-8c0bbfebc194c7aa3e77e95436fd61e5 (1)
-b8d08a573c62ca8c84de14c12c0e19fe (1)
-b0505d7461a2e36c4a8235bb6c310a3b (1)\
+64686dcd59e0cf97f34113e9d360541a: foo | bar3 (1)
+8c0bbfebc194c7aa3e77e95436fd61e5: foo | bar2 | baz2 (1)
+b8d08a573c62ca8c84de14c12c0e19fe: foo | bar | baz (1)
+b0505d7461a2e36c4a8235bb6c310a3b: foo | bar2 | baz2 | bam (1)\
 """
     )
 
@@ -160,34 +172,37 @@ def test_upwards(default_project, store_stacktrace, reset_snuba, _render_all_pre
     assert (
         _render_all_previews(events[0].group)
         == """\
+group: foo | bar2 | baz
 level 0
-bab925683e73afdb4dc4047397a7b36b (3)
+bab925683e73afdb4dc4047397a7b36b: foo (3)
 level 1
-c8ef2dd3dedeed29b4b74b9c579eea1a (1)
+c8ef2dd3dedeed29b4b74b9c579eea1a: foo | bar2 (1)
 level 2*
-7411b56aa6591edbdba71898d3a9f01c (1)\
+7411b56aa6591edbdba71898d3a9f01c: foo | bar2 | baz (1)\
 """
     )
     assert (
         _render_all_previews(events[1].group)
         == """\
+group: foo | bar | baz
 level 0
-bab925683e73afdb4dc4047397a7b36b (3)
+bab925683e73afdb4dc4047397a7b36b: foo (3)
 level 1
-aa1c4037371150958f9ea22adb110bbc (2)
+aa1c4037371150958f9ea22adb110bbc: foo | bar (2)
 level 2*
-b8d08a573c62ca8c84de14c12c0e19fe (1)\
+b8d08a573c62ca8c84de14c12c0e19fe: foo | bar | baz (1)\
 """
     )
 
     assert (
         _render_all_previews(events[2].group)
         == """\
+group: foo | bar | bam
 level 0
-bab925683e73afdb4dc4047397a7b36b (3)
+bab925683e73afdb4dc4047397a7b36b: foo (3)
 level 1
-aa1c4037371150958f9ea22adb110bbc (2)
+aa1c4037371150958f9ea22adb110bbc: foo | bar (2)
 level 2*
-97df6b60ec530c65ab227585143a087a (1)\
+97df6b60ec530c65ab227585143a087a: foo | bar | bam (1)\
 """
     )

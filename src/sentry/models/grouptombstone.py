@@ -15,7 +15,7 @@ TOMBSTONE_FIELDS_FROM_GROUP = ("project_id", "level", "message", "culprit", "dat
 
 
 class GroupTombstone(Model):
-    __core__ = False
+    __include_in_export__ = False
 
     previous_group_id = BoundedBigIntegerField(unique=True)
     project = FlexibleForeignKey("sentry.Project")

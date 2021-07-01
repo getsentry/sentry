@@ -7,7 +7,7 @@ from typing import List, Mapping, Optional, Sequence, Union
 
 import sentry_sdk
 from django.db import IntegrityError, models, transaction
-from django.db.models import Case, F, Func, Q, Sum, Value, When
+from django.db.models import Case, F, Func, Sum, Value, When
 from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import ugettext_lazy as _
@@ -52,7 +52,7 @@ class ReleaseCommitError(Exception):
 
 
 class ReleaseProject(Model):
-    __core__ = False
+    __include_in_export__ = False
 
     project = FlexibleForeignKey("sentry.Project")
     release = FlexibleForeignKey("sentry.Release")
@@ -130,7 +130,10 @@ class ReleaseQuerySet(models.QuerySet):
         return self.filter(major__isnull=False)
 
     def filter_by_semver(
-        self, organization_id: int, semver_filter: SemverFilter
+        self,
+        organization_id: int,
+        semver_filter: SemverFilter,
+        project_ids: Sequence[int] = None,
     ) -> models.QuerySet:
         """
         Filters released based on a based `SemverFilter` instance.
@@ -143,26 +146,29 @@ class ReleaseQuerySet(models.QuerySet):
 
         Typically we build a `SemverFilter` via `sentry.search.events.filter.parse_semver`
         """
-        release_filter = Q(organization_id=organization_id)
+        qs = self.filter(organization_id=organization_id).annotate_prerelease_column()
         if semver_filter.package:
-            release_filter &= Q(package=semver_filter.package)
-
-        filter_func = Func(
-            *[
-                Value(part) if isinstance(part, str) else part
-                for part in semver_filter.version_parts
-            ],
-            function="ROW",
-        )
-        cols = self.model.SEMVER_COLS[: len(semver_filter.version_parts)]
-        return (
-            self.filter(release_filter)
-            .annotate_prerelease_column()
-            .annotate(
-                semver=Func(*[F(col) for col in cols], function="ROW", output_field=ArrayField())
+            qs = qs.filter(package=semver_filter.package)
+        if project_ids:
+            qs = qs.filter(
+                id__in=ReleaseProject.objects.filter(project_id__in=project_ids).values_list(
+                    "release_id", flat=True
+                )
             )
-            .filter(**{f"semver__{semver_filter.operator}": filter_func})
-        )
+
+        if semver_filter.version_parts:
+            filter_func = Func(
+                *[
+                    Value(part) if isinstance(part, str) else part
+                    for part in semver_filter.version_parts
+                ],
+                function="ROW",
+            )
+            cols = self.model.SEMVER_COLS[: len(semver_filter.version_parts)]
+            qs = qs.annotate(
+                semver=Func(*[F(col) for col in cols], function="ROW", output_field=ArrayField())
+            ).filter(**{f"semver__{semver_filter.operator}": filter_func})
+        return qs
 
 
 class ReleaseModelManager(models.Manager):
@@ -176,9 +182,9 @@ class ReleaseModelManager(models.Manager):
         return self.get_queryset().filter_to_semver()
 
     def filter_by_semver(
-        self, organization_id: int, semver_filter: SemverFilter
+        self, organization_id: int, semver_filter: SemverFilter, project_ids: Sequence[int] = None
     ) -> models.QuerySet:
-        return self.get_queryset().filter_by_semver(organization_id, semver_filter)
+        return self.get_queryset().filter_by_semver(organization_id, semver_filter, project_ids)
 
     @staticmethod
     def _convert_build_code_to_build_number(build_code):
@@ -261,7 +267,7 @@ class Release(Model):
     A commit is generally a git commit. See also releasecommit.py
     """
 
-    __core__ = False
+    __include_in_export__ = False
 
     organization = FlexibleForeignKey("sentry.Organization")
     projects = models.ManyToManyField(

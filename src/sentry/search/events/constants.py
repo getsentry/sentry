@@ -14,6 +14,8 @@ ISSUE_ALIAS = "issue"
 ISSUE_ID_ALIAS = "issue.id"
 RELEASE_ALIAS = "release"
 SEMVER_ALIAS = "sentry.semver"
+TIMESTAMP_TO_HOUR_ALIAS = "timestamp.to_hour"
+TIMESTAMP_TO_DAY_ALIAS = "timestamp.to_day"
 
 TAG_KEY_RE = re.compile(r"^tags\[(?P<tag>.*)\]$")
 # Based on general/src/protocol/tags.rs in relay
@@ -46,6 +48,12 @@ ARRAY_FIELDS = {
     "stack.stack_level",
 }
 
+CONFIGURABLE_AGGREGATES = {
+    "apdex()": "apdex({threshold}) as apdex",
+    "user_misery()": "user_misery({threshold}) as user_misery",
+    "count_miserable(user)": "count_miserable(user,{threshold}) as count_miserable_user",
+}
+
 # Create the known set of fields from the issue properties
 # and the transactions and events dataset mapping definitions.
 SEARCH_MAP = {
@@ -73,6 +81,10 @@ SNQL_FIELD_ALLOWLIST = {
     "project.id",
     "release",
     "user.email",
+    ISSUE_ALIAS,
+    ISSUE_ID_ALIAS,
+    TIMESTAMP_TO_HOUR_ALIAS,
+    TIMESTAMP_TO_DAY_ALIAS,
 }
 
 OPERATOR_NEGATION_MAP = {
