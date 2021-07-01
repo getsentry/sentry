@@ -92,7 +92,6 @@ class AlertListRow extends Component<Props> {
       : {
           pathname: `/organizations/${orgId}/alerts/${incident.identifier}/`,
         };
-    const hasAlertOwnership = organization.features.includes('team-alerts-ownership');
     const ownerId = incident.alertRule.owner?.split(':')[1];
     const teamActor = ownerId
       ? {type: 'team' as Actor['type'], id: ownerId, name: ''}
@@ -131,8 +130,7 @@ class AlertListRow extends Component<Props> {
             />
 
             <FlexCenter>
-              {hasAlertOwnership &&
-                (teamActor ? <ActorAvatar actor={teamActor} size={24} /> : '-')}
+              {teamActor ? <ActorAvatar actor={teamActor} size={24} /> : '-'}
             </FlexCenter>
           </TableLayout>
         </IncidentPanelItem>

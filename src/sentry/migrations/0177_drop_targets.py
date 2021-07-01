@@ -41,6 +41,7 @@ class Migration(migrations.Migration):
                         ALTER TABLE "sentry_notificationsetting" ADD COLUMN "target_type" int NULL;
 
                         """,
+                    hints={"tables": ["sentry_notificationsetting"]},
                 )
             ],
             state_operations=[],

@@ -259,6 +259,7 @@ describe('IncidentsList', function () {
       expect.objectContaining({
         query: {
           title: testQuery,
+          team: ['myteams', 'unassigned'],
         },
       })
     );

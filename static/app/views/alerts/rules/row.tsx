@@ -150,7 +150,6 @@ class RuleListRow extends React.Component<Props, State> {
       : null;
 
     const canEdit = ownerId ? userTeams.has(ownerId) : true;
-    const hasAlertOwnership = organization.features.includes('team-alerts-ownership');
     const hasAlertList = organization.features.includes('alert-details-redesign');
     const alertLink = isIssueAlert(rule) ? (
       rule.name
@@ -212,11 +211,11 @@ class RuleListRow extends React.Component<Props, State> {
             />
           </ProjectBadgeContainer>
         </FlexCenter>
-        {hasAlertOwnership && (
-          <FlexCenter>
-            {teamActor ? <ActorAvatar actor={teamActor} size={24} /> : '-'}
-          </FlexCenter>
-        )}
+
+        <FlexCenter>
+          {teamActor ? <ActorAvatar actor={teamActor} size={24} /> : '-'}
+        </FlexCenter>
+
         {!hasAlertList && <CreatedBy>{rule?.createdBy?.name ?? '-'}</CreatedBy>}
         <FlexCenter>
           <DateTime
