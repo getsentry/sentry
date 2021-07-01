@@ -130,6 +130,8 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.RunPython(
-            migrate_to_issue_alert_targeting, reverse_code=migrations.RunPython.noop
+            migrate_to_issue_alert_targeting,
+            reverse_code=migrations.RunPython.noop,
+            hints={"tables": ["sentry_useroption", "sentry_rule", "sentry_project"]},
         )
     ]

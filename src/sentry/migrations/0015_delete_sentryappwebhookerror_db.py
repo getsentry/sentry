@@ -26,7 +26,8 @@ class Migration(migrations.Migration):
                 migrations.RunSQL(
                     """
                     DROP TABLE "sentry_sentryappwebhookerror";
-                    """
+                    """,
+                    hints={"tables": ["sentry_sentryappwebhookerror"]},
                 )
             ],
             state_operations=[],

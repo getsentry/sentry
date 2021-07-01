@@ -38,4 +38,10 @@ class Migration(migrations.Migration):
         ("sentry", "0186_add_externalactor"),
     ]
 
-    operations = [migrations.RunPython(backfill_me_or_none, reverse_code=migrations.RunPython.noop)]
+    operations = [
+        migrations.RunPython(
+            backfill_me_or_none,
+            reverse_code=migrations.RunPython.noop,
+            hints={"tables": ["sentry_savedsearch"]},
+        )
+    ]
