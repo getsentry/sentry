@@ -218,21 +218,32 @@ const InList = styled('span')`
   }
 `;
 
-const LogicGroup = styled('span')`
-  &:before,
-  &:after {
+const LogicGroup = styled(({children, ...props}) => (
+  <span {...props}>
+    <span>(</span>
+    {children}
+    <span>)</span>
+  </span>
+))`
+  > span:first-child,
+  > span:last-child {
     position: relative;
-    font-weight: bold;
-    color: ${p => p.theme.white};
-    padding: 3px 0;
-    background: ${p => p.theme.red200};
-    border-radius: 1px;
+    color: transparent;
+
+    &:before {
+      position: absolute;
+      top: -5px;
+      color: ${p => p.theme.orange400};
+      font-size: 16px;
+      font-weight: bold;
+    }
   }
-  &:before {
+
+  > span:first-child:before {
     left: -3px;
     content: '(';
   }
-  &:after {
+  > span:last-child:before {
     right: -3px;
     content: ')';
   }
