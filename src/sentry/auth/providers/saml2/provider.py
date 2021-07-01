@@ -211,7 +211,14 @@ class Attributes:
     LAST_NAME = "last_name"
 
 
-class SAML2Provider(Provider):
+class SCIMMixin:
+    def can_use_scim(self, organization, user):
+        if features.has("organizations:sso-scim", organization, actor=user):
+            return True
+        return False
+
+
+class SAML2Provider(SCIMMixin, Provider):
     """
     Base SAML2 Authentication provider. SAML style authentication plugins
     should implement this.
@@ -321,13 +328,6 @@ class SAML2Provider(Provider):
     def refresh_identity(self, auth_identity):
         # Nothing to refresh
         return
-
-
-class SCIMMixin:
-    def can_use_scim(self, organization, user):
-        if features.has("organizations:sso-scim", organization, actor=user):
-            return True
-        return False
 
 
 def build_saml_config(provider_config, org):
