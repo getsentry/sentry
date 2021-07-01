@@ -14,6 +14,7 @@ import {getReleaseParams, ReleaseBounds} from '../../utils';
 
 export type ReleaseHealthRequestRenderProps = {
   loading: boolean;
+  reloading: boolean;
   errored: boolean;
   thisRelease: SessionApiResponse | null;
   allReleases: SessionApiResponse | null;
@@ -30,7 +31,7 @@ type Props = {
 };
 
 type State = {
-  loading: boolean;
+  reloading: boolean;
   errored: boolean;
   thisRelease: SessionApiResponse | null;
   allReleases: SessionApiResponse | null;
@@ -38,7 +39,7 @@ type State = {
 
 class ReleaseDetailsRequest extends React.Component<Props, State> {
   state: State = {
-    loading: false,
+    reloading: false,
     errored: false,
     thisRelease: null,
     allReleases: null,
@@ -96,10 +97,10 @@ class ReleaseDetailsRequest extends React.Component<Props, State> {
     }
 
     api.clear();
-    this.setState({
-      loading: true,
+    this.setState(state => ({
+      reloading: state.thisRelease !== null && state.allReleases !== null,
       errored: false,
-    });
+    }));
 
     const promises = [this.fetchThisRelease(), this.fetchAllReleases()];
 
@@ -107,17 +108,15 @@ class ReleaseDetailsRequest extends React.Component<Props, State> {
       const [thisRelease, allReleases] = await Promise.all(promises);
 
       this.setState({
-        loading: false,
+        reloading: false,
         thisRelease,
         allReleases,
       });
     } catch (error) {
       addErrorMessage(error.responseJSON?.detail ?? t('Error loading health data'));
       this.setState({
-        loading: false,
+        reloading: false,
         errored: true,
-        thisRelease: null,
-        allReleases: null,
       });
     }
   };
@@ -146,11 +145,14 @@ class ReleaseDetailsRequest extends React.Component<Props, State> {
   }
 
   render() {
-    const {loading, errored, thisRelease, allReleases} = this.state;
+    const {reloading, errored, thisRelease, allReleases} = this.state;
     const {children} = this.props;
+
+    const loading = thisRelease === null && allReleases === null;
 
     return children({
       loading,
+      reloading,
       errored,
       thisRelease,
       allReleases,

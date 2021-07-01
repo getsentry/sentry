@@ -4,13 +4,17 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import round from 'lodash/round';
 
+import ErrorPanel from 'app/components/charts/errorPanel';
 import {ChartContainer} from 'app/components/charts/styles';
+import TransitionChart from 'app/components/charts/transitionChart';
+import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import Count from 'app/components/count';
 import NotAvailable from 'app/components/notAvailable';
 import {Panel, PanelTable} from 'app/components/panels';
+import Placeholder from 'app/components/placeholder';
 import Radio from 'app/components/radio';
 import {PlatformKey} from 'app/data/platformCategories';
-import {IconArrow} from 'app/icons';
+import {IconArrow, IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
@@ -43,6 +47,9 @@ type Props = {
   allSessions: SessionApiResponse | null;
   platform: PlatformKey;
   location: Location;
+  loading: boolean;
+  reloading: boolean;
+  errored: boolean;
 };
 
 function ReleaseComparisonChart({
@@ -50,6 +57,9 @@ function ReleaseComparisonChart({
   allSessions,
   platform,
   location,
+  loading,
+  reloading,
+  errored,
 }: Props) {
   const activeChart = decodeScalar(
     location.query.chart,
@@ -259,16 +269,30 @@ function ReleaseComparisonChart({
 
   const {series, previousSeries} = getSeries(activeChart);
 
+  if (errored) {
+    return (
+      <Panel>
+        <ErrorPanel>
+          <IconWarning color="gray300" size="lg" />
+        </ErrorPanel>
+      </Panel>
+    );
+  }
+
   return (
     <Fragment>
       <ChartPanel>
         <ChartContainer>
-          <SessionsChart
-            series={series ?? []}
-            previousSeries={previousSeries ?? []}
-            chartType={activeChart}
-            platform={platform}
-          />
+          <TransitionChart loading={loading} reloading={reloading}>
+            <TransparentLoadingMask visible={reloading} />
+
+            <SessionsChart
+              series={series ?? []}
+              previousSeries={previousSeries ?? []}
+              chartType={activeChart}
+              platform={platform}
+            />
+          </TransitionChart>
         </ChartContainer>
       </ChartPanel>
       <ChartTable
@@ -302,10 +326,16 @@ function ReleaseComparisonChart({
                     {releaseComparisonChartLabels[type]}
                   </ChartToggle>
                 </Cell>
-                <Cell align="right">{allReleases}</Cell>
-                <Cell align="right">{thisRelease}</Cell>
                 <Cell align="right">
-                  {defined(diff) ? (
+                  {loading ? <Placeholder height="20px" /> : allReleases}
+                </Cell>
+                <Cell align="right">
+                  {loading ? <Placeholder height="20px" /> : thisRelease}
+                </Cell>
+                <Cell align="right">
+                  {loading ? (
+                    <Placeholder height="20px" />
+                  ) : defined(diff) ? (
                     <Change color={defined(diffColor) ? diffColor : undefined}>
                       {defined(diffDirection) && (
                         <IconArrow direction={diffDirection} size="xs" />
