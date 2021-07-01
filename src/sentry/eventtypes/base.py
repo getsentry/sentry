@@ -1,9 +1,32 @@
+from typing import Optional
 from warnings import warn
 
 from sentry.utils.safe import get_path
 from sentry.utils.strings import strip, truncatechars
 
 # Note: Detecting eventtypes is implemented in the Relay Rust library.
+
+
+def format_title_from_tree_label(tree_label):
+    return " | ".join(tree_label)
+
+
+def compute_title_with_tree_label(title: Optional[str], metadata: dict):
+    tree_label = None
+    if metadata.get("current_tree_label"):
+        tree_label = format_title_from_tree_label(metadata["current_tree_label"])
+
+    elif metadata.get("finest_tree_label"):
+        tree_label = format_title_from_tree_label(metadata["finest_tree_label"])
+
+    if title is None:
+        # Probably a synthetic exception
+        return tree_label or metadata.get("function") or "<unknown>"
+
+    if tree_label is not None:
+        title += " | " + tree_label
+
+    return title
 
 
 class BaseEvent:
@@ -54,4 +77,8 @@ class DefaultEvent(BaseEvent):
         else:
             title = "<unlabeled event>"
 
-        return {"title": title}
+        return {"message_title": title}
+
+    def compute_title(self, metadata):
+        title: Optional[str] = metadata.get("message_title")
+        return compute_title_with_tree_label(title, metadata)
