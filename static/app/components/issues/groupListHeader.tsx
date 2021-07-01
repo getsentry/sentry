@@ -6,13 +6,16 @@ import space from 'app/styles/space';
 
 type Props = {
   withChart: boolean;
+  narrowGroups?: boolean;
 };
 
-const GroupListHeader = ({withChart = true}: Props) => (
+const GroupListHeader = ({withChart = true, narrowGroups = false}: Props) => (
   <PanelHeader disablePadding>
     <IssueWrapper>{t('Issue')}</IssueWrapper>
     {withChart && (
-      <ChartWrapper className="hidden-xs hidden-sm">{t('Graph')}</ChartWrapper>
+      <ChartWrapper className={`hidden-xs hidden-sm ${narrowGroups ? 'hidden-md' : ''}`}>
+        {t('Graph')}
+      </ChartWrapper>
     )}
     <EventUserWrapper>{t('events')}</EventUserWrapper>
     <EventUserWrapper>{t('users')}</EventUserWrapper>

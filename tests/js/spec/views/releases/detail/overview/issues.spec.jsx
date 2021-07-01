@@ -25,19 +25,19 @@ describe('Release Issues', function () {
     });
 
     newIssuesEndpoint = MockApiClient.addMockResponse({
-      url: `/organizations/${props.organization.slug}/issues/?limit=10&query=first-release%3A1.0.0&sort=freq&statsPeriod=14d`,
+      url: `/organizations/${props.organization.slug}/issues/?groupStatsPeriod=auto&limit=10&query=first-release%3A1.0.0&sort=freq&statsPeriod=14d`,
       body: [],
     });
     resolvedIssuesEndpoint = MockApiClient.addMockResponse({
-      url: `/organizations/${props.organization.slug}/releases/1.0.0/resolved/?limit=10&query=&sort=freq&statsPeriod=14d`,
+      url: `/organizations/${props.organization.slug}/releases/1.0.0/resolved/?groupStatsPeriod=auto&limit=10&query=&sort=freq&statsPeriod=14d`,
       body: [],
     });
     unhandledIssuesEndpoint = MockApiClient.addMockResponse({
-      url: `/organizations/${props.organization.slug}/issues/?limit=10&query=release%3A1.0.0%20error.handled%3A0&sort=freq&statsPeriod=14d`,
+      url: `/organizations/${props.organization.slug}/issues/?groupStatsPeriod=auto&limit=10&query=release%3A1.0.0%20error.handled%3A0&sort=freq&statsPeriod=14d`,
       body: [],
     });
     allIssuesEndpoint = MockApiClient.addMockResponse({
-      url: `/organizations/${props.organization.slug}/issues/?limit=10&query=release%3A1.0.0&sort=freq&statsPeriod=14d`,
+      url: `/organizations/${props.organization.slug}/issues/?groupStatsPeriod=auto&limit=10&query=release%3A1.0.0&sort=freq&statsPeriod=14d`,
       body: [],
     });
   });
@@ -147,6 +147,7 @@ describe('Release Issues', function () {
         cursor: undefined,
         limit: undefined,
         statsPeriod: '14d',
+        groupStatsPeriod: 'auto',
       },
     });
 
@@ -159,6 +160,7 @@ describe('Release Issues', function () {
         cursor: undefined,
         limit: undefined,
         statsPeriod: '14d',
+        groupStatsPeriod: 'auto',
       },
     });
 
@@ -171,6 +173,7 @@ describe('Release Issues', function () {
         cursor: undefined,
         limit: undefined,
         statsPeriod: '14d',
+        groupStatsPeriod: 'auto',
       },
     });
 
@@ -183,6 +186,7 @@ describe('Release Issues', function () {
         cursor: undefined,
         limit: undefined,
         statsPeriod: '14d',
+        groupStatsPeriod: 'auto',
       },
     });
   });
