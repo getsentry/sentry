@@ -1,7 +1,7 @@
 {% load i18n %}{% autoescape off %}#!/bin/bash
 set -eu
 SIGN=$'\033[2m>\033[0m'
-DOWNLOAD_VERSION=1.30.0
+DOWNLOAD_VERSION=1.66.0
 MIN_VERSION=1.30.0
 MIN_INT_VERSION=`echo $MIN_VERSION|awk -F. '{ printf("%04d%04d%04d\n", $1, $2, $3) }'`
 
