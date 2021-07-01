@@ -176,7 +176,7 @@ function Breadcrumbs({type, event, data, organization}: Props) {
 
         filterLevels.push({
           id: level,
-          symbol: <Level level={level} x="blah" />,
+          symbol: <Level level={level} />,
           isChecked: false,
         });
       }
