@@ -16,7 +16,7 @@ import ExternalLink from 'app/components/links/externalLink';
 import LoadingIndicator from 'app/components/loadingIndicator';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import Pagination from 'app/components/pagination';
-import {Panel, PanelBody, PanelHeader} from 'app/components/panels';
+import {PanelTable} from 'app/components/panels';
 import SearchBar from 'app/components/searchBar';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
 import {IconCheckmark, IconInfo} from 'app/icons';
@@ -35,7 +35,6 @@ import {Incident} from '../types';
 import AlertHeader from './header';
 import Onboarding from './onboarding';
 import AlertListRow from './row';
-import {TableLayout} from './styles';
 
 const DEFAULT_QUERY_STATUS = 'open';
 
@@ -289,49 +288,38 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
     return (
       <Fragment>
         {this.tryRenderOnboarding() ?? (
-          <Panel>
-            {!loading && (
-              <PanelHeader>
-                <TableLayout>
-                  <div>{t('Alert Rule')}</div>
-                  <div>{t('Triggered')}</div>
-                  <div>{t('Duration')}</div>
-                  <div>{t('Project')}</div>
-                  <div>{t('Alert ID')}</div>
-                  <div>
-                    <Feature
-                      features={['team-alerts-ownership']}
-                      organization={organization}
-                    >
-                      {t('Team')}
-                    </Feature>
-                  </div>
-                </TableLayout>
-              </PanelHeader>
-            )}
+          <PanelTable
+            isLoading={loading}
+            headers={[
+              t('Alert Rule'),
+              t('Triggered'),
+              t('Duration'),
+              t('Project'),
+              t('Alert ID'),
+              t('Team'),
+            ]}
+          >
             {showLoadingIndicator ? (
               <LoadingIndicator />
             ) : (
               this.tryRenderEmpty() ?? (
-                <PanelBody>
-                  <Projects orgId={orgId} slugs={Array.from(allProjectsFromIncidents)}>
-                    {({initiallyLoaded, projects}) =>
-                      incidentList.map(incident => (
-                        <AlertListRow
-                          key={incident.id}
-                          projectsLoaded={initiallyLoaded}
-                          projects={projects as Project[]}
-                          incident={incident}
-                          orgId={orgId}
-                          organization={organization}
-                        />
-                      ))
-                    }
-                  </Projects>
-                </PanelBody>
+                <Projects orgId={orgId} slugs={Array.from(allProjectsFromIncidents)}>
+                  {({initiallyLoaded, projects}) =>
+                    incidentList.map(incident => (
+                      <AlertListRow
+                        key={incident.id}
+                        projectsLoaded={initiallyLoaded}
+                        projects={projects as Project[]}
+                        incident={incident}
+                        orgId={orgId}
+                        organization={organization}
+                      />
+                    ))
+                  }
+                </Projects>
               )
             )}
-          </Panel>
+          </PanelTable>
         )}
         <Pagination pageLinks={incidentListPageLinks} />
       </Fragment>

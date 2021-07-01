@@ -97,7 +97,7 @@ describe('IncidentsList', function () {
     await tick();
     wrapper.update();
 
-    const items = wrapper.find('IncidentPanelItem');
+    const items = wrapper.find('AlertListRow');
 
     expect(items).toHaveLength(2);
     expect(items.at(0).text()).toContain('First incident');
@@ -208,9 +208,9 @@ describe('IncidentsList', function () {
       'primary'
     );
 
-    expect(wrapper.find('IncidentPanelItem').at(0).find('Duration').exists()).toBeFalsy();
+    expect(wrapper.find('AlertListRow').at(0).find('Duration').exists()).toBeFalsy();
 
-    expect(wrapper.find('IncidentPanelItem').at(0).find('TimeSince')).toHaveLength(1);
+    expect(wrapper.find('AlertListRow').at(0).find('TimeSince')).toHaveLength(1);
 
     expect(incidentsMock).toHaveBeenCalledTimes(1);
 
@@ -227,9 +227,9 @@ describe('IncidentsList', function () {
       'primary'
     );
 
-    expect(wrapper.find('IncidentPanelItem').at(0).text()).toContain('Still Active');
+    expect(wrapper.find('AlertListRow').at(0).text()).toContain('Still Active');
 
-    expect(wrapper.find('IncidentPanelItem').at(0).find('TimeSince')).toHaveLength(1);
+    expect(wrapper.find('AlertListRow').at(0).find('TimeSince')).toHaveLength(1);
 
     expect(incidentsMock).toHaveBeenCalledTimes(2);
 

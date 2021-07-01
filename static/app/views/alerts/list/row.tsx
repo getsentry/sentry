@@ -8,7 +8,6 @@ import Duration from 'app/components/duration';
 import ErrorBoundary from 'app/components/errorBoundary';
 import IdBadge from 'app/components/idBadge';
 import Link from 'app/components/links/link';
-import {PanelItem} from 'app/components/panels';
 import Tag from 'app/components/tag';
 import TimeSince from 'app/components/timeSince';
 import {t} from 'app/locale';
@@ -26,8 +25,6 @@ import {
 } from '../rules/details/constants';
 import {Incident, IncidentStatus} from '../types';
 import {getIncidentMetricPreset, isIssueAlert} from '../utils';
-
-import {TableLayout} from './styles';
 
 /**
  * Retrieve the start/end for showing the graph of the metric
@@ -107,45 +104,41 @@ class AlertListRow extends Component<Props> {
 
     return (
       <ErrorBoundary>
-        <IncidentPanelItem>
-          <TableLayout>
-            <Title>
-              <Link to={alertLink}>{incident.title}</Link>
-            </Title>
+        <Title>
+          <Link to={alertLink}>{incident.title}</Link>
+        </Title>
 
-            <div>
-              {getDynamicText({
-                value: <TimeSince date={incident.dateStarted} extraShort />,
-                fixed: '1w ago',
-              })}
-            </div>
-            <div>
-              {incident.status === IncidentStatus.CLOSED ? (
-                <Duration seconds={getDynamicText({value: duration, fixed: 1200})} />
-              ) : (
-                <Tag type="warning">{t('Still Active')}</Tag>
-              )}
-            </div>
+        <NoWrap>
+          {getDynamicText({
+            value: <TimeSince date={incident.dateStarted} extraShort />,
+            fixed: '1w ago',
+          })}
+        </NoWrap>
+        <NoWrap>
+          {incident.status === IncidentStatus.CLOSED ? (
+            <Duration seconds={getDynamicText({value: duration, fixed: 1200})} />
+          ) : (
+            <Tag type="warning">{t('Still Active')}</Tag>
+          )}
+        </NoWrap>
 
-            <ProjectBadge
-              avatarSize={18}
-              project={!projectsLoaded ? {slug} : this.getProject(slug, projects)}
-            />
-            <div>#{incident.id}</div>
+        <ProjectBadge
+          avatarSize={18}
+          project={!projectsLoaded ? {slug} : this.getProject(slug, projects)}
+        />
+        <div>#{incident.id}</div>
 
-            <FlexCenter>
-              {hasAlertOwnership &&
-                (teamActor ? (
-                  <Fragment>
-                    <StyledActorAvatar actor={teamActor} size={24} hasTooltip={false} />{' '}
-                    <TeamWrapper>{teamActor.name}</TeamWrapper>
-                  </Fragment>
-                ) : (
-                  '-'
-                ))}
-            </FlexCenter>
-          </TableLayout>
-        </IncidentPanelItem>
+        <FlexCenter>
+          {hasAlertOwnership &&
+            (teamActor ? (
+              <Fragment>
+                <StyledActorAvatar actor={teamActor} size={24} hasTooltip={false} />{' '}
+                <TeamWrapper>{teamActor.name}</TeamWrapper>
+              </Fragment>
+            ) : (
+              '-'
+            ))}
+        </FlexCenter>
       </ErrorBoundary>
     );
   }
@@ -153,14 +146,15 @@ class AlertListRow extends Component<Props> {
 
 const Title = styled('div')`
   ${overflowEllipsis}
+  min-width: 130px;
+`;
+
+const NoWrap = styled('div')`
+  white-space: nowrap;
 `;
 
 const ProjectBadge = styled(IdBadge)`
   flex-shrink: 0;
-`;
-
-const IncidentPanelItem = styled(PanelItem)`
-  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const FlexCenter = styled('div')`
