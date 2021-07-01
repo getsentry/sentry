@@ -7,7 +7,6 @@
   "message": "",
   "datetime": "2021-06-21T06:21:39.599000Z",
   "tags": [
-    ["app.device", "1b94d8374b00174250159b2d866c28a336f51e98"],
     ["device", "iPhone13,2"],
     ["device.family", "iOS"],
     ["environment", "production"],
@@ -25,7 +24,6 @@
   "_metrics": {"bytes.ingested.event": 1231, "bytes.stored.event": 2392},
   "contexts": {
     "app": {
-      "device_app_hash": "1b94d8374b00174250159b2d866c28a336f51e98",
       "build_type": "simulator",
       "app_identifier": "io.sentry.sample",
       "app_name": "sample",
