@@ -11,7 +11,7 @@ from sentry.models import (
     OrganizationIntegration,
     Repository,
 )
-from sentry.testutils import IntegrationTestCase
+from sentry.testutils import IntegrationTestCase, assert_dialog_success
 from sentry.utils.compat.mock import Mock, patch
 
 
@@ -97,7 +97,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
 
         assert resp.status_code == 200
 
-        self.assertDialogSuccess(resp)
+        assert_dialog_success(resp)
 
     @responses.activate
     @patch("sentry.integrations.gitlab.integration.sha1_text")

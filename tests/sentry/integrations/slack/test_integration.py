@@ -12,7 +12,7 @@ from sentry.models import (
     Integration,
     OrganizationIntegration,
 )
-from sentry.testutils import APITestCase, IntegrationTestCase, TestCase
+from sentry.testutils import APITestCase, IntegrationTestCase, TestCase, assert_dialog_success
 
 
 class SlackIntegrationTest(IntegrationTestCase):
@@ -95,7 +95,7 @@ class SlackIntegrationTest(IntegrationTestCase):
         assert req_params["client_secret"] == [expected_client_secret]
 
         assert resp.status_code == 200
-        self.assertDialogSuccess(resp)
+        assert_dialog_success(resp)
 
     @responses.activate
     def test_bot_flow(self):

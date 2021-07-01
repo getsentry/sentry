@@ -1,9 +1,7 @@
+from sentry.constants import INSTALL_EXPIRATION_TIME
 from sentry.utils.signing import unsign
 
 from .integration_extension_configuration import IntegrationExtensionConfigurationView
-
-# 24 hours to finish installation
-INSTALL_EXPIRATION_TIME = 60 * 60 * 24
 
 
 class MsTeamsExtensionConfigurationView(IntegrationExtensionConfigurationView):

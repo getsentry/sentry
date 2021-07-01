@@ -1,11 +1,9 @@
+from sentry.constants import INSTALL_EXPIRATION_TIME
 from sentry.utils import json
 from sentry.utils.signing import unsign
 from sentry.web.frontend.integration_extension_configuration import (
     IntegrationExtensionConfigurationView,
 )
-
-# 24 hours to finish installation
-INSTALL_EXPIRATION_TIME = 60 * 60 * 24
 
 
 class JiraExtensionConfigurationView(IntegrationExtensionConfigurationView):

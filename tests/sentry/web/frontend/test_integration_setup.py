@@ -1,6 +1,6 @@
 from sentry.integrations.example import ExampleIntegrationProvider, ExampleSetupView
 from sentry.models import Integration, OrganizationIntegration
-from sentry.testutils import IntegrationTestCase
+from sentry.testutils import IntegrationTestCase, assert_dialog_success
 
 
 class ExampleIntegrationTest(IntegrationTestCase):
@@ -13,7 +13,7 @@ class ExampleIntegrationTest(IntegrationTestCase):
 
         resp = self.client.post(self.setup_path, {"name": "test"})
         assert resp.status_code == 200
-        self.assertDialogSuccess(resp)
+        assert_dialog_success(resp)
 
         integration = Integration.objects.get(provider=self.provider.key)
         assert integration.external_id == "test"

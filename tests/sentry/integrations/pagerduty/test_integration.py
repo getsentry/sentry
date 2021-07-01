@@ -7,7 +7,7 @@ from sentry import options
 from sentry.integrations.pagerduty.integration import PagerDutyIntegrationProvider
 from sentry.models import Integration, OrganizationIntegration, PagerDutyService
 from sentry.shared_integrations.exceptions import IntegrationError
-from sentry.testutils import IntegrationTestCase
+from sentry.testutils import IntegrationTestCase, assert_dialog_success
 from sentry.utils import json
 
 
@@ -62,7 +62,7 @@ class PagerDutyIntegrationTest(IntegrationTestCase):
             "{}?{}".format(self.setup_path, urlencode({"config": json.dumps(config)}))
         )
 
-        self.assertDialogSuccess(resp)
+        assert_dialog_success(resp)
         return resp
 
     def assert_add_service_flow(self, integration):
@@ -91,7 +91,7 @@ class PagerDutyIntegrationTest(IntegrationTestCase):
             "{}?{}".format(self.setup_path, urlencode({"config": json.dumps(config)}))
         )
 
-        self.assertDialogSuccess(resp)
+        assert_dialog_success(resp)
         return resp
 
     @responses.activate

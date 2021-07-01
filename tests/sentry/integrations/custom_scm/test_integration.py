@@ -1,6 +1,6 @@
 from sentry.integrations.custom_scm import CustomSCMIntegrationProvider
 from sentry.models import Integration, OrganizationIntegration, Repository
-from sentry.testutils import IntegrationTestCase
+from sentry.testutils import IntegrationTestCase, assert_dialog_success
 
 
 class CustomSCMIntegrationTest(IntegrationTestCase):
@@ -18,7 +18,7 @@ class CustomSCMIntegrationTest(IntegrationTestCase):
         resp = self.client.post(self.init_path, data=self.config)
         assert resp.status_code == 200
 
-        self.assertDialogSuccess(resp)
+        assert_dialog_success(resp)
 
     def test_basic_flow(self):
         self.assert_setup_flow()

@@ -1,7 +1,8 @@
 from sentry.constants import INSTALL_EXPIRATION_TIME
 from sentry.utils.signing import unsign
-
-from .integration_extension_configuration import IntegrationExtensionConfigurationView
+from sentry.web.frontend.integration_extension_configuration import (
+    IntegrationExtensionConfigurationView,
+)
 
 
 class GithubExtensionConfigurationView(IntegrationExtensionConfigurationView):

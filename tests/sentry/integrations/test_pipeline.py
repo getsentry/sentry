@@ -9,7 +9,7 @@ from sentry.models import (
 )
 from sentry.plugins.base import plugins
 from sentry.plugins.bases.issue2 import IssuePlugin2
-from sentry.testutils import IntegrationTestCase
+from sentry.testutils import IntegrationTestCase, assert_dialog_success
 from sentry.utils.compat.mock import patch
 
 
@@ -48,7 +48,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
         self.pipeline.state.data = data
         resp = self.pipeline.finish_pipeline()
 
-        self.assertDialogSuccess(resp)
+        assert_dialog_success(resp)
 
         integration = Integration.objects.get(
             provider=self.provider.key, external_id=self.external_id
@@ -71,7 +71,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
         self.pipeline.state.data = data
         resp = self.pipeline.finish_pipeline()
 
-        self.assertDialogSuccess(resp)
+        assert_dialog_success(resp)
 
         # Creates the Integration using ``integration_key`` instead of ``key``
         assert Integration.objects.filter(
@@ -85,7 +85,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
         self.pipeline.state.data = {"expect_exists": True, "external_id": self.external_id}
         resp = self.pipeline.finish_pipeline()
 
-        self.assertDialogSuccess(resp)
+        assert_dialog_success(resp)
         integration = Integration.objects.get(
             provider=self.provider.key, external_id=self.external_id
         )
@@ -109,7 +109,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
         }
         resp = self.pipeline.finish_pipeline()
 
-        self.assertDialogSuccess(resp)
+        assert_dialog_success(resp)
         integration = Integration.objects.get(
             provider=self.provider.key, external_id=self.external_id
         )
@@ -140,7 +140,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
         self.pipeline.state.data = data
         resp = self.pipeline.finish_pipeline()
 
-        self.assertDialogSuccess(resp)
+        assert_dialog_success(resp)
 
         integration = Integration.objects.get(
             provider=self.provider.key, external_id=self.external_id
@@ -180,7 +180,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
         }
 
         resp = self.pipeline.finish_pipeline()
-        self.assertDialogSuccess(resp)
+        assert_dialog_success(resp)
 
         org_integration = OrganizationIntegration.objects.get(
             organization_id=self.organization.id, integration_id=integration.id
@@ -221,7 +221,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
             },
         }
         resp = self.pipeline.finish_pipeline()
-        self.assertDialogSuccess(resp)
+        assert_dialog_success(resp)
 
         org_integration = OrganizationIntegration.objects.get(
             organization_id=self.organization.id, integration_id=integration.id
@@ -262,7 +262,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
             },
         }
         resp = self.pipeline.finish_pipeline()
-        self.assertDialogSuccess(resp)
+        assert_dialog_success(resp)
 
         org_integrations = OrganizationIntegration.objects.filter(integration_id=integration.id)
         identity = Identity.objects.get(idp_id=identity_provider.id, external_id="new_external_id")
@@ -294,7 +294,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
             },
         }
         resp = self.pipeline.finish_pipeline()
-        self.assertDialogSuccess(resp)
+        assert_dialog_success(resp)
         assert OrganizationIntegration.objects.filter(
             integration_id=integration.id, organization=self.organization.id
         ).exists()

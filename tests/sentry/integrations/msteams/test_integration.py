@@ -4,7 +4,7 @@ import responses
 
 from sentry.integrations.msteams import MsTeamsIntegrationProvider
 from sentry.models import Integration, OrganizationIntegration
-from sentry.testutils import IntegrationTestCase
+from sentry.testutils import IntegrationTestCase, assert_dialog_success
 from sentry.utils.compat.mock import patch
 from sentry.utils.signing import sign
 
@@ -58,7 +58,7 @@ class MsTeamsIntegrationTest(IntegrationTestCase):
             )
 
             assert resp.status_code == 200
-            self.assertDialogSuccess(resp)
+            assert_dialog_success(resp)
 
             integration = Integration.objects.get(provider=self.provider.key)
 

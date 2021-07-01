@@ -1,6 +1,8 @@
 from django.conf.urls import url
 
-from sentry.web.frontend.github_extension_installation import GithubExtensionConfigurationView
+from sentry.integrations.github.github_extension_installation import (
+    GithubExtensionConfigurationView,
+)
 
 from .search import GitHubSearchEndpoint
 from .webhook import GitHubIntegrationsWebhookEndpoint

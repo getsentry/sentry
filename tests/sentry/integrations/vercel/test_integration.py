@@ -13,7 +13,7 @@ from sentry.models import (
     SentryAppInstallation,
     SentryAppInstallationForProvider,
 )
-from sentry.testutils import IntegrationTestCase
+from sentry.testutils import IntegrationTestCase, assert_dialog_success
 from sentry.utils import json
 
 
@@ -73,7 +73,7 @@ class VercelIntegrationTest(IntegrationTestCase):
         assert req_params["client_secret"] == ["vercel-client-secret"]
 
         assert resp.status_code == 200
-        self.assertDialogSuccess(resp)
+        assert_dialog_success(resp)
 
         integration = Integration.objects.get(provider=self.provider.key)
 

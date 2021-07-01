@@ -8,8 +8,8 @@ from sentry.integrations.github import API_ERRORS, GitHubIntegrationProvider
 from sentry.models import Integration, OrganizationIntegration, Project, Repository
 from sentry.plugins.base import plugins
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.testutils import IntegrationTestCase
-from sentry.utils.compat.mock import MagicMock
+from sentry.testutils import IntegrationTestCase, assert_dialog_success
+from sentry.utils.compat.mock import MagicMock, patch
 from tests.sentry.plugins.testutils import register_mock_plugins, unregister_mock_plugins
 
 
@@ -89,7 +89,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         auth_header = responses.calls[0].request.headers["Authorization"]
         assert auth_header == "Bearer jwt_token_1"
 
-        self.assertDialogSuccess(resp)
+        assert_dialog_success(resp)
         return resp
 
     @responses.activate
@@ -144,6 +144,26 @@ class GitHubIntegrationTest(IntegrationTestCase):
             integration=integration, organization=self.organization
         )
         assert oi.config == {}
+
+    @responses.activate
+    def test_extension_basic_flow(self):
+        self._stub_github()
+        resp = self.client.get(self.init_path)
+        assert resp.status_code == 302
+        redirect = urlparse(resp["Location"])
+        assert redirect.scheme == "https"
+        assert redirect.netloc == "github.com"
+        assert redirect.path == "/apps/sentry-test-app"
+
+        # Force setup to sign the URL and redirect to github installation
+        with patch("sentry.pipeline.Pipeline.get_for_request") as mock_pipeline:
+            mock_pipeline.return_value = None
+            self.client.get(
+                "{}?{}".format(
+                    self.setup_path,
+                    urlencode({"installation_id": self.installation_id, "setup_action": "install"}),
+                )
+            )
 
     @responses.activate
     def test_reinstall_flow(self):

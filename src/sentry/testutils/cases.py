@@ -752,9 +752,6 @@ class IntegrationTestCase(TestCase):
         self.pipeline.initialize()
         self.save_session()
 
-    def assertDialogSuccess(self, resp):
-        assert b"window.opener.postMessage(" in resp.content
-
 
 @pytest.mark.snuba
 @requires_snuba

@@ -37,3 +37,7 @@ def assert_status_code(response, minimum: int, maximum: Optional[int] = None):
     # Omit max to assert status_code == minimum.
     maximum = maximum or minimum + 1
     assert minimum <= response.status_code < maximum, (response.status_code, response.content)
+
+
+def assert_dialog_success(response):
+    assert b"window.opener.postMessage(" in response.content

@@ -21,7 +21,7 @@ FORWARD_INSTALL_FOR = ["github"]
 
 
 class PipelineAdvancerView(BaseView):
-    """Gets the current pipeline from the request and executes the current step."""
+    """Gets the current pipeline from the req   uest and executes the current step."""
 
     auth_required = False
 
@@ -47,7 +47,7 @@ class PipelineAdvancerView(BaseView):
                 provider_id=provider_id,
             )
             return self.redirect(
-                f"{reverse('github-integration-installation')}/?signed_params={signed_params}"
+                f"{reverse('github-integration-installation')}?signed_params={signed_params}"
             )
 
         if pipeline is None or not pipeline.is_valid():

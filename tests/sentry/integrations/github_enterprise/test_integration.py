@@ -10,7 +10,7 @@ from sentry.models import (
     Integration,
     OrganizationIntegration,
 )
-from sentry.testutils import IntegrationTestCase
+from sentry.testutils import IntegrationTestCase, assert_dialog_success
 from sentry.utils.compat.mock import patch
 
 
@@ -123,7 +123,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
         auth_header = responses.calls[2].request.headers["Authorization"]
         assert auth_header == "Bearer jwt_token_1"
 
-        self.assertDialogSuccess(resp)
+        assert_dialog_success(resp)
 
     @responses.activate
     def test_basic_flow(self):
