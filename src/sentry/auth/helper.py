@@ -118,6 +118,38 @@ class RedisBackedState:
         self._client.setex(self.auth_key, self.EXPIRATION_TTL, json.dumps(state))
 
 
+def handle_existing_identity(
+    auth_provider, provider, organization, request, state, auth_identity, identity
+):
+    # Deprecated. For backwards compatibility. Prefer AuthIdentityHandler interface.
+    # TODO(RyanSkonnord): Delete after calls from getsentry are cleaned up
+    return AuthIdentityHandler(
+        auth_provider, provider, organization, request
+    ).handle_existing_identity(state, auth_identity, identity)
+
+
+def handle_attach_identity(auth_provider, request, organization, provider, identity, member=None):
+    # Deprecated. For backwards compatibility. Prefer AuthIdentityHandler interface.
+    # TODO(RyanSkonnord): Delete after calls from getsentry are cleaned up
+    return AuthIdentityHandler(
+        auth_provider, provider, organization, request
+    ).handle_attach_identity(identity, member)
+
+
+def handle_unknown_identity(request, organization, auth_provider, provider, state, identity):
+    # Deprecated. For backwards compatibility. Prefer AuthIdentityHandler interface.
+    # TODO(RyanSkonnord): Delete after calls from getsentry are cleaned up
+    return AuthIdentityHandler(
+        auth_provider, provider, organization, request
+    ).handle_unknown_identity(state, identity)
+
+
+def handle_new_user(auth_provider, organization, request, identity):
+    # Deprecated. For backwards compatibility. Prefer AuthIdentityHandler interface.
+    # TODO(RyanSkonnord): Delete after calls from getsentry are cleaned up
+    return AuthIdentityHandler(auth_provider, None, organization, request).handle_new_user(identity)
+
+
 Identity = Mapping[str, Any]
 
 
