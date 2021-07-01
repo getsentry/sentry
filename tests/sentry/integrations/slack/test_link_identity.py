@@ -64,7 +64,7 @@ class SlackIntegrationLinkIdentityTest(TestCase):
         )
 
         # Link identity of user
-        resp = self.client.post(linking_url)
+        self.client.post(linking_url)
 
         identity = Identity.objects.filter(external_id="new-slack-id", user=self.user1)
 
