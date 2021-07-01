@@ -1,0 +1,33 @@
+name: Unroute new issue
+on:
+  issues:
+    types: ["opened"]
+jobs:
+  unroute-new-issue:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: "Unroute new issue"
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          issue_number=${{ github.event.issue.number }}
+          echo "Unrouting issue #${issue_number}."
+
+          # Trust users who belong to the getsentry org.
+          if gh api "https://api.github.com/orgs/getsentry/members/${{ github.actor }}" >/dev/null 2>&1; then
+            echo "Skipping unrouting, because ${{ github.actor }} is a member of the getsentry org."
+            exit 0
+          else
+            echo "${{ github.actor }} is not a (public?) member of the getsentry org. 🧐"
+          fi
+
+          # Helper
+          function gh-issue-label() {
+            gh api "/repos/:owner/:repo/issues/${1}/labels" \
+              -X POST \
+              --input <(echo "{\"labels\":[\"$2\"]}")
+          }
+
+          gh-issue-label "${issue_number}" "Status: Unrouted"

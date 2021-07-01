@@ -765,8 +765,15 @@ const options = {
 };
 
 /**
- * Parse a search query into a ParseResult
+ * Parse a search query into a ParseResult. Failing to parse the search query
+ * will result in null.
  */
-export function parseSearch(query: string): ParseResult {
-  return grammar.parse(query, options);
+export function parseSearch(query: string): ParseResult | null {
+  try {
+    return grammar.parse(query, options);
+  } catch (e) {
+    // TODO(epurkhiser): Should we capture these errors somewhere?
+  }
+
+  return null;
 }
