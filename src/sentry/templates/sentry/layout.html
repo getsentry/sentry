@@ -25,7 +25,7 @@
 
   <link rel="mask-icon" sizes="any" href="{% absolute_asset_url "sentry" "images/logos/logo-sentry.svg" %}" color="#FB4226">
 
-  <link href="{% unversioned_asset_url "sentry" "entrypoints/sentry.css" %}" rel="stylesheet"/>
+  <link href="{% manifest_asset_url "sentry" "sentry.css" %}" rel="stylesheet"/>
 
   {% block css %}{% endblock %}
 
@@ -53,11 +53,11 @@
   {% endscript %}
 
   {% block scripts %}
-  {% unversioned_asset_url "sentry" "entrypoints/runtime.js" as asset_url %}
+  {% manifest_asset_url "sentry" "runtime.js" as asset_url %}
   {% script src=asset_url %}{% endscript %}
 
   {% block scripts_main_entrypoint %}
-    {% unversioned_asset_url "sentry" "entrypoints/app.js" as asset_url %}
+    {% manifest_asset_url "sentry" "app.js" as asset_url %}
     {% script src=asset_url data-entry="true" %}{% endscript %}
   {% endblock %}
 
