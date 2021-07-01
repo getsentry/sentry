@@ -247,7 +247,16 @@ let appConfig = {
       {
         test: /\.less$/,
         include: [staticPrefix],
-        use: [MiniCssExtractPlugin.loader, 'css-loader', 'less-loader'],
+        use: [
+          {
+            loader: MiniCssExtractPlugin.loader,
+            options: {
+              publicPath: 'auto',
+            },
+          },
+          'css-loader',
+          'less-loader',
+        ],
       },
       {
         test: /\.(woff|woff2|ttf|eot|svg|png|gif|ico|jpg|mp4)($|\?)/,
