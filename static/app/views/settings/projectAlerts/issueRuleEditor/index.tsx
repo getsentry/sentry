@@ -133,7 +133,7 @@ class IssueRuleEditor extends AsyncView<Props, State> {
   }
 
   getDefaultState() {
-    const {organization, teams, project} = this.props;
+    const {teams, project} = this.props;
     const defaultState = {
       ...super.getDefaultState(),
       configs: null,
@@ -142,12 +142,12 @@ class IssueRuleEditor extends AsyncView<Props, State> {
       environments: [],
       uuid: null,
     };
-    if (organization.features.includes('team-alerts-ownership')) {
-      const projectTeamIds = new Set(project.teams.map(({id}) => id));
-      const userTeam =
-        teams.find(({isMember, id}) => !!isMember && projectTeamIds.has(id)) ?? null;
-      defaultState.rule.owner = userTeam && `team:${userTeam.id}`;
-    }
+
+    const projectTeamIds = new Set(project.teams.map(({id}) => id));
+    const userTeam =
+      teams.find(({isMember, id}) => !!isMember && projectTeamIds.has(id)) ?? null;
+    defaultState.rule.owner = userTeam && `team:${userTeam.id}`;
+
     return defaultState;
   }
 
@@ -580,24 +580,22 @@ class IssueRuleEditor extends AsyncView<Props, State> {
                     disabled={!hasAccess || !canEdit}
                   />
 
-                  <Feature features={['organizations:team-alerts-ownership']}>
-                    <StyledField
-                      label={t('Team')}
-                      help={t('The team that can edit this alert.')}
+                  <StyledField
+                    label={t('Team')}
+                    help={t('The team that can edit this alert.')}
+                    disabled={!hasAccess || !canEdit}
+                  >
+                    <SelectMembers
+                      showTeam
+                      project={project}
+                      organization={organization}
+                      value={this.getTeamId()}
+                      onChange={this.handleOwnerChange}
+                      filteredTeamIds={filteredTeamIds}
+                      includeUnassigned
                       disabled={!hasAccess || !canEdit}
-                    >
-                      <SelectMembers
-                        showTeam
-                        project={project}
-                        organization={organization}
-                        value={this.getTeamId()}
-                        onChange={this.handleOwnerChange}
-                        filteredTeamIds={filteredTeamIds}
-                        includeUnassigned
-                        disabled={!hasAccess || !canEdit}
-                      />
-                    </StyledField>
-                  </Feature>
+                    />
+                  </StyledField>
 
                   <StyledField
                     label={t('Alert name')}

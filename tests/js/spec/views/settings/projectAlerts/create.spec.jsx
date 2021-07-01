@@ -288,6 +288,7 @@ describe('ProjectAlertsCreate', function () {
             environment: 'production',
             frequency: '60',
             name: 'My Rule Name',
+            owner: null,
           },
         })
       );

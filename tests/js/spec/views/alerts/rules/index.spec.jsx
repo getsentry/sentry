@@ -131,6 +131,7 @@ describe('OrganizationRuleList', () => {
         query: {
           sort: 'name',
           asc: undefined,
+          team: ['myteams', 'unassigned'],
         },
       })
     );
@@ -169,11 +170,7 @@ describe('OrganizationRuleList', () => {
   });
 
   it('searches by name', async () => {
-    const ownershipOrg = {
-      ...organization,
-      features: ['team-alerts-ownership'],
-    };
-    await createWrapper({organization: ownershipOrg});
+    await createWrapper();
     expect(wrapper.find('StyledSearchBar').exists()).toBe(true);
 
     const testQuery = 'test name';
@@ -194,11 +191,7 @@ describe('OrganizationRuleList', () => {
   });
 
   it('uses empty team query parameter when removing all teams', async () => {
-    const ownershipOrg = {
-      ...organization,
-      features: ['team-alerts-ownership'],
-    };
-    await createWrapper({organization: ownershipOrg});
+    await createWrapper();
 
     wrapper.setProps({
       location: {query: {team: 'myteams'}, search: '?team=myteams`'},
@@ -247,6 +240,7 @@ describe('OrganizationRuleList', () => {
         query: {
           expand: ['latestIncident'],
           sort: ['incident_status', 'date_triggered'],
+          team: ['myteams', 'unassigned'],
         },
       })
     );

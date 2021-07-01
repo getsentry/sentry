@@ -83,6 +83,7 @@ describe('IncidentsList', function () {
   });
 
   afterEach(function () {
+    wrapper.unmount();
     ProjectsStore.reset();
     MockApiClient.clearMockResponses();
   });
@@ -214,7 +215,9 @@ describe('IncidentsList', function () {
 
     expect(incidentsMock).toHaveBeenCalledWith(
       '/organizations/org-slug/incidents/',
-      expect.objectContaining({query: {status: ['open']}})
+      expect.objectContaining({
+        query: {status: ['open'], team: ['myteams', 'unassigned']},
+      })
     );
 
     wrapper.setProps({
@@ -274,6 +277,7 @@ describe('IncidentsList', function () {
       expect.objectContaining({
         query: {
           title: testQuery,
+          team: ['myteams', 'unassigned'],
         },
       })
     );

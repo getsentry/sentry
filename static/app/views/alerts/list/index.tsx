@@ -72,9 +72,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
       query.status = status;
     }
 
-    if (organization.features.includes('team-alerts-ownership')) {
-      query.team = getTeamParams(query.team);
-    }
+    query.team = getTeamParams(query.team);
 
     if (organization.features.includes('alert-details-redesign')) {
       query.expand = ['original_alert_rule'];
@@ -296,14 +294,7 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
                   <div>{t('Alert')}</div>
                   <div>{t('Alert Rule')}</div>
                   <div>{t('Project')}</div>
-                  <div>
-                    <Feature
-                      features={['team-alerts-ownership']}
-                      organization={organization}
-                    >
-                      {t('Team')}
-                    </Feature>
-                  </div>
+                  <div>{t('Team')}</div>
                 </TableLayout>
               </PanelHeader>
             )}

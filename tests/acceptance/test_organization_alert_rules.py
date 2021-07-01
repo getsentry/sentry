@@ -62,7 +62,6 @@ class OrganizationAlertRulesListTest(AcceptanceTestCase, SnubaTestCase):
             [
                 "organizations:incidents",
                 "organizations:alert-details-redesign",
-                "organizations:team-alerts-ownership",
             ]
         ):
             self.browser.get(self.path)

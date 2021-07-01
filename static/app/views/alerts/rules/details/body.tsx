@@ -5,7 +5,6 @@ import {Location} from 'history';
 import moment from 'moment';
 
 import {Client} from 'app/api';
-import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
 import ActorAvatar from 'app/components/avatar/actorAvatar';
 import {SectionHeading} from 'app/components/charts/styles';
@@ -188,14 +187,12 @@ export default class DetailsBody extends React.Component<Props> {
         <SidebarGroup>
           <Heading>{t('Other Details')}</Heading>
           <KeyValueTable>
-            <Feature features={['organizations:team-alerts-ownership']}>
-              <KeyValueTableRow
-                keyName={t('Team')}
-                value={
-                  teamActor ? <ActorAvatar actor={teamActor} size={24} /> : 'Unassigned'
-                }
-              />
-            </Feature>
+            <KeyValueTableRow
+              keyName={t('Team')}
+              value={
+                teamActor ? <ActorAvatar actor={teamActor} size={24} /> : 'Unassigned'
+              }
+            />
 
             {rule.createdBy && (
               <KeyValueTableRow
