@@ -356,7 +356,10 @@ class Group(Model):
             ("project", "id"),
             ("project", "status", "last_seen", "id"),
         ]
-        unique_together = (("project", "short_id"),)
+        unique_together = (
+            ("project", "short_id"),
+            ("project", "id"),
+        )
 
     __repr__ = sane_repr("project_id")
 
