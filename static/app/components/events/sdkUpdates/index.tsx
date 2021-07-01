@@ -1,7 +1,10 @@
+import styled from '@emotion/styled';
+
 import Alert from 'app/components/alert';
 import EventDataSection from 'app/components/events/eventDataSection';
 import {IconUpgrade} from 'app/icons';
 import {t, tct} from 'app/locale';
+import space from 'app/styles/space';
 import {Event} from 'app/types/event';
 import getSdkUpdateSuggestion from 'app/utils/getSdkUpdateSuggestion';
 
@@ -22,14 +25,20 @@ const SdkUpdates = ({event}: Props) => {
         return null;
       }
 
+      const isSdkJavascript =
+        sdkUpdate.type === 'updateSdk' &&
+        sdkUpdate.sdkName.startsWith('sentry.javascript');
+
       return (
         <Alert key={index} type="info" icon={<IconUpgrade />}>
-          {tct('We recommend you [suggestion] ', {suggestion})}
-          {sdkUpdate.type === 'updateSdk' &&
-            sdkUpdate.sdkName.startsWith('sentry.javascript') &&
-            t(
-              '(Make sure all sentry.javascript.* packages are updated and their versions match)'
-            )}
+          {tct('We recommend you [suggestion]', {suggestion})}
+          {isSdkJavascript && (
+            <JavascriptInfo>
+              {t(
+                'Make sure all sentry.javascript.* packages are updated and their versions match'
+              )}
+            </JavascriptInfo>
+          )}
         </Alert>
       );
     })
@@ -47,3 +56,8 @@ const SdkUpdates = ({event}: Props) => {
 };
 
 export default SdkUpdates;
+
+const JavascriptInfo = styled('div')`
+  margin-top: ${space(1)};
+  text-decoration: underline;
+`;

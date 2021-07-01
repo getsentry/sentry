@@ -88,6 +88,7 @@ const BroadcastSdkUpdates = ({projects, sdkUpdates}: Props) => {
                               },
                               suggestion,
                               shortStyle: true,
+                              capitalized: true,
                             })}
                           </ListItem>
                         ))}
