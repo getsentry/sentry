@@ -1,5 +1,9 @@
-// import moment from 'moment';
-
+import {
+  DateTimeObject,
+  getDiffInMinutes,
+  ONE_WEEK,
+  TWO_WEEKS,
+} from 'app/components/charts/utils';
 import {SessionApiResponse, SessionField} from 'app/types';
 import {SeriesDataUnit} from 'app/types/echarts';
 import {defined, percent} from 'app/utils';
@@ -60,4 +64,33 @@ export function getCrashFreeSeries(
           : getCrashFreePercent(100 - crashedSessionsPercent),
     };
   });
+}
+
+type GetSessionsIntervalOptions = {
+  highFidelity?: boolean;
+};
+
+export function getSessionsInterval(
+  datetimeObj: DateTimeObject,
+  {highFidelity}: GetSessionsIntervalOptions = {}
+) {
+  const diffInMinutes = getDiffInMinutes(datetimeObj);
+
+  if (diffInMinutes > TWO_WEEKS) {
+    return '1d';
+  }
+  if (diffInMinutes > ONE_WEEK) {
+    return '6h';
+  }
+
+  // limit on backend for sub-hour session resolution is set to six hours
+  if (highFidelity && diffInMinutes < 360) {
+    if (diffInMinutes <= 30) {
+      return '1m';
+    }
+
+    return '5m';
+  }
+
+  return '1h';
 }

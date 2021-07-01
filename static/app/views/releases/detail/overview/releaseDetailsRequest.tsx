@@ -7,21 +7,10 @@ import {Client} from 'app/api';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {t} from 'app/locale';
 import {Organization, SessionApiResponse} from 'app/types';
+import {getSessionsInterval} from 'app/utils/sessions';
 import withApi from 'app/utils/withApi';
 
 import {getReleaseParams, ReleaseBounds} from '../../utils';
-
-export function reduceTimeSeriesGroups(
-  acc: number[],
-  group: SessionApiResponse['groups'][number],
-  field: 'count_unique(user)' | 'sum(session)'
-) {
-  group.series[field]?.forEach(
-    (value, index) => (acc[index] = (acc[index] ?? 0) + value)
-  );
-
-  return acc;
-}
 
 export type ReleaseHealthRequestRenderProps = {
   loading: boolean;
@@ -39,6 +28,7 @@ type Props = {
   releaseBounds: ReleaseBounds;
   disable?: boolean;
 };
+
 type State = {
   loading: boolean;
   errored: boolean;
@@ -74,18 +64,27 @@ class ReleaseDetailsRequest extends React.Component<Props, State> {
   }
 
   get baseQueryParams() {
-    const {location, releaseBounds} = this.props;
+    const {location, releaseBounds, organization} = this.props;
+
+    const releaseParams = getReleaseParams({
+      location,
+      releaseBounds,
+      defaultStatsPeriod: DEFAULT_STATS_PERIOD, // this will be removed once we get rid off legacy release details
+      allowEmptyPeriod: true,
+    });
 
     return {
       field: ['count_unique(user)', 'sum(session)'],
       groupBy: ['session.status'],
-      interval: '1h', // TODO(release-comparison): calculatete interval dynamically
-      ...getReleaseParams({
-        location,
-        releaseBounds,
-        defaultStatsPeriod: DEFAULT_STATS_PERIOD, // this will be removed once we get rid off legacy release details
-        allowEmptyPeriod: true,
-      }),
+      interval: getSessionsInterval(
+        {
+          start: releaseParams.start,
+          end: releaseParams.end,
+          period: releaseParams.statsPeriod ?? undefined,
+        },
+        {highFidelity: organization.features.includes('minute-resolution-sessions')}
+      ),
+      ...releaseParams,
     };
   }
 
