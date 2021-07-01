@@ -23,6 +23,9 @@ class PipelineProvider:
     views that the Pipeline will traverse through.
     """
 
+    def __init__(self):
+        self.config = {}
+
     def get_pipeline_views(self):
         """
         Returns a list of instantiated views which implement the PipelineView
@@ -31,18 +34,12 @@ class PipelineProvider:
         """
         raise NotImplementedError
 
-    def set_config(self, config):
+    def update_config(self, config):
         """
-        Use set_config to allow additional provider configuration be assigned to
+        Use update_config to allow additional provider configuration be assigned to
         the provider instance. This is useful for example when nesting
         pipelines and the provider needs to be configured differently.
         """
-        try:
-            if self.config is None:
-                self.config = {}
-        except AttributeError:
-            self.config = {}
-
         self.config.update(config)
 
     def set_pipeline(self, pipeline):
@@ -168,7 +165,7 @@ class Pipeline:
     A object that specifies additional pipeline and provider runtime
     configurations. An example of usage is for OAuth Identity providers, for
     overriding the scopes. The config object will be passed into the provider
-    using the ``set_config`` method.
+    using the ``update_config`` method.
     """
 
     pipeline_name = None
@@ -223,7 +220,7 @@ class Pipeline:
 
         self.config = config or {}
         self.provider.set_pipeline(self)
-        self.provider.set_config(self.config)
+        self.provider.update_config(self.config)
 
         self.pipeline_views = self.get_pipeline_views()
 
