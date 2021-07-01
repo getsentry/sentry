@@ -1,6 +1,7 @@
 import * as React from 'react';
 import styled from '@emotion/styled';
 
+import FeatureBadge from 'app/components/featureBadge';
 import SelectControl from 'app/components/forms/selectControl';
 import {t} from 'app/locale';
 import space from 'app/styles/space';
@@ -11,6 +12,7 @@ import {
   IssueAlertRuleCondition,
   IssueAlertRuleConditionTemplate,
 } from 'app/types/alerts';
+import {EVENT_FREQUENCY_PERCENT_CONDITION} from 'app/views/projectInstall/issueAlertOptions';
 
 import RuleNode from './ruleNode';
 
@@ -70,10 +72,18 @@ class RuleNodeList extends React.Component<Props> {
     const enabledNodes = nodes ? nodes.filter(({enabled}) => enabled) : [];
 
     const createSelectOptions = (actions: IssueAlertRuleActionTemplate[]) =>
-      actions.map(node => ({
-        value: node.id,
-        label: shouldUsePrompt && node.prompt?.length > 0 ? node.prompt : node.label,
-      }));
+      actions.map(node => {
+        const isBeta = node.id === EVENT_FREQUENCY_PERCENT_CONDITION;
+        return {
+          value: node.id,
+          label: (
+            <React.Fragment>
+              {isBeta && <StyledFeatureBadge type="beta" noTooltip />}
+              {shouldUsePrompt && node.prompt?.length > 0 ? node.prompt : node.label}
+            </React.Fragment>
+          ),
+        };
+      });
 
     let options: any = !selectType ? createSelectOptions(enabledNodes) : [];
 
@@ -150,4 +160,8 @@ const RuleNodes = styled('div')`
   @media (max-width: ${p => p.theme.breakpoints[1]}) {
     grid-auto-flow: row;
   }
+`;
+
+const StyledFeatureBadge = styled(FeatureBadge)`
+  margin: 0 ${space(1)} 0 0;
 `;

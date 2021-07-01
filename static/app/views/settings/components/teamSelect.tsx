@@ -8,6 +8,7 @@ import Confirm from 'app/components/confirm';
 import DropdownAutoComplete from 'app/components/dropdownAutoComplete';
 import {Item} from 'app/components/dropdownAutoComplete/types';
 import DropdownButton from 'app/components/dropdownButton';
+import TeamBadge from 'app/components/idBadge/teamBadge';
 import Link from 'app/components/links/link';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'app/components/panels';
 import {DEFAULT_DEBOUNCE_DURATION, TEAMS_PER_PAGE} from 'app/constants';
@@ -28,7 +29,7 @@ type Props = {
   /**
    * Teams that are already selected.
    */
-  selectedTeams: string[];
+  selectedTeams: Team[];
   /**
    * callback when teams are added
    */
@@ -52,13 +53,13 @@ type Props = {
 
 type State = {
   loading: boolean;
-  teams: null | Team[];
+  teamsSearch: null | Team[];
 };
 
 class TeamSelect extends React.Component<Props, State> {
   state: State = {
     loading: true,
-    teams: null,
+    teamsSearch: null,
   };
 
   componentDidMount() {
@@ -67,10 +68,13 @@ class TeamSelect extends React.Component<Props, State> {
 
   fetchTeams = debounce(async (query?: string) => {
     const {api, organization} = this.props;
-    const teams = await api.requestPromise(`/organizations/${organization.slug}/teams/`, {
-      query: {query, per_page: TEAMS_PER_PAGE},
-    });
-    this.setState({teams, loading: false});
+    const teamsSearch = await api.requestPromise(
+      `/organizations/${organization.slug}/teams/`,
+      {
+        query: {query, per_page: TEAMS_PER_PAGE},
+      }
+    );
+    this.setState({teamsSearch, loading: false});
   }, DEFAULT_DEBOUNCE_DURATION);
 
   handleQueryUpdate = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -79,7 +83,7 @@ class TeamSelect extends React.Component<Props, State> {
   };
 
   handleAddTeam = (option: Item) => {
-    const team = this.state.teams?.find(tm => tm.slug === option.value);
+    const team = this.state.teamsSearch?.find(tm => tm.slug === option.value);
     if (team) {
       this.props.onAddTeam(team);
     }
@@ -91,20 +95,22 @@ class TeamSelect extends React.Component<Props, State> {
 
   renderTeamAddDropDown() {
     const {disabled, selectedTeams, menuHeader} = this.props;
-    const {teams} = this.state;
+    const {teamsSearch} = this.state;
     const isDisabled = disabled;
 
     let options: Item[] = [];
-    if (teams === null || teams.length === 0) {
+    if (teamsSearch === null || teamsSearch.length === 0) {
       options = [];
     } else {
-      options = teams
-        .filter(team => !selectedTeams.includes(team.slug))
+      options = teamsSearch
+        .filter(
+          team => !selectedTeams.some(selectedTeam => selectedTeam.slug === team.slug)
+        )
         .map((team, index) => ({
           index,
           value: team.slug,
           searchKey: team.slug,
-          label: <TeamDropdownElement>#{team.slug}</TeamDropdownElement>,
+          label: <DropdownTeamBadge avatarSize={18} team={team} />,
         }));
     }
 
@@ -147,7 +153,7 @@ class TeamSelect extends React.Component<Props, State> {
 
     return selectedTeams.map(team => (
       <TeamRow
-        key={team}
+        key={team.slug}
         orgId={organization.slug}
         team={team}
         onRemove={this.handleRemove}
@@ -171,31 +177,39 @@ class TeamSelect extends React.Component<Props, State> {
   }
 }
 
-const TeamRow = props => {
-  const {orgId, team, onRemove, disabled, confirmMessage} = props;
-  return (
-    <TeamPanelItem>
-      <StyledLink to={`/settings/${orgId}/teams/${team}/`}>{`#${team}`}</StyledLink>
-      <Confirm
-        message={confirmMessage}
-        bypass={!confirmMessage}
-        onConfirm={() => onRemove(team)}
-        disabled={disabled}
-      >
-        <Button
-          size="xsmall"
-          icon={<IconSubtract isCircled size="xs" />}
-          disabled={disabled}
-        >
-          {t('Remove')}
-        </Button>
-      </Confirm>
-    </TeamPanelItem>
-  );
+type TeamRowProps = {
+  orgId: string;
+  team: Team;
+  onRemove: Props['onRemoveTeam'];
+  disabled: boolean;
+  confirmMessage: string | null;
 };
 
-const TeamDropdownElement = styled('div')`
-  padding: ${space(0.5)} 0px;
+const TeamRow = ({orgId, team, onRemove, disabled, confirmMessage}: TeamRowProps) => (
+  <TeamPanelItem>
+    <StyledLink to={`/settings/${orgId}/teams/${team.slug}/`}>
+      <TeamBadge team={team} />
+    </StyledLink>
+    <Confirm
+      message={confirmMessage}
+      bypass={!confirmMessage}
+      onConfirm={() => onRemove(team.slug)}
+      disabled={disabled}
+    >
+      <Button
+        size="xsmall"
+        icon={<IconSubtract isCircled size="xs" />}
+        disabled={disabled}
+      >
+        {t('Remove')}
+      </Button>
+    </Confirm>
+  </TeamPanelItem>
+);
+
+const DropdownTeamBadge = styled(TeamBadge)`
+  font-weight: normal;
+  font-size: ${p => p.theme.fontSizeMedium};
   text-transform: none;
 `;
 
