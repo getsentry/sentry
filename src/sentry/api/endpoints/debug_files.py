@@ -177,7 +177,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
 
         q &= file_format_q
 
-        queryset = ProjectDebugFile.objects.filter(q, project=project).select_related("file")
+        queryset = ProjectDebugFile.objects.filter(q, project_id=project.id).select_related("file")
 
         return self.paginate(
             request=request,
@@ -206,7 +206,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
         if request.GET.get("id") and (request.access.has_scope("project:write")):
             with transaction.atomic():
                 debug_file = (
-                    ProjectDebugFile.objects.filter(id=request.GET.get("id"), project=project)
+                    ProjectDebugFile.objects.filter(id=request.GET.get("id"), project_id=project.id)
                     .select_related("file")
                     .first()
                 )
