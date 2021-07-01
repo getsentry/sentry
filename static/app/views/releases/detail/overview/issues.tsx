@@ -2,6 +2,7 @@ import {Component, Fragment} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
+import isEqual from 'lodash/isEqual';
 import * as qs from 'query-string';
 
 import {Client} from 'app/api';
@@ -50,7 +51,6 @@ type IssuesQueryParams = {
 
 type Props = {
   api: Client;
-  orgId: string;
   organization: Organization;
   version: string;
   selection: GlobalSelection;
@@ -102,6 +102,29 @@ class Issues extends Component<Props, State> {
 
   componentDidMount() {
     this.fetchIssuesCount();
+  }
+
+  componentDidUpdate(prevProps: Props) {
+    if (
+      !isEqual(
+        getReleaseParams({
+          location: this.props.location,
+          releaseBounds: this.props.releaseBounds,
+          defaultStatsPeriod: this.props.defaultStatsPeriod,
+          allowEmptyPeriod:
+            this.props.organization.features.includes('release-comparison'),
+        }),
+        getReleaseParams({
+          location: prevProps.location,
+          releaseBounds: prevProps.releaseBounds,
+          defaultStatsPeriod: prevProps.defaultStatsPeriod,
+          allowEmptyPeriod:
+            prevProps.organization.features.includes('release-comparison'),
+        })
+      )
+    ) {
+      this.fetchIssuesCount();
+    }
   }
 
   getDiscoverUrl() {
@@ -217,7 +240,8 @@ class Issues extends Component<Props, State> {
   }
 
   getIssueCountEndpoint() {
-    const {organization, version} = this.props;
+    const {organization, version, location, releaseBounds, defaultStatsPeriod} =
+      this.props;
     const issuesCountPath = `/organizations/${organization.slug}/issues-count/`;
 
     const params = [
@@ -227,6 +251,12 @@ class Issues extends Component<Props, State> {
     ];
     const queryParams = params.map(param => param);
     const queryParameters = {
+      ...getReleaseParams({
+        location,
+        releaseBounds,
+        defaultStatsPeriod,
+        allowEmptyPeriod: organization.features.includes('release-comparison'),
+      }),
       query: queryParams,
     };
 
