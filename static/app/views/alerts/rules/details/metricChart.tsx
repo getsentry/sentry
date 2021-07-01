@@ -15,15 +15,21 @@ import MarkArea from 'app/components/charts/components/markArea';
 import MarkLine from 'app/components/charts/components/markLine';
 import EventsRequest from 'app/components/charts/eventsRequest';
 import LineChart, {LineChartSeries} from 'app/components/charts/lineChart';
-import {SectionHeading} from 'app/components/charts/styles';
+import {
+  ChartControls,
+  InlineContainer,
+  SectionHeading,
+  SectionValue,
+} from 'app/components/charts/styles';
+import Duration from 'app/components/duration';
 import {
   parseStatsPeriod,
   StatsPeriodType,
 } from 'app/components/organizations/globalSelectionHeader/getParams';
-import {Panel, PanelBody, PanelFooter} from 'app/components/panels';
+import {Panel, PanelBody} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
 import {IconCheckmark, IconFire, IconWarning} from 'app/icons';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import ConfigStore from 'app/stores/configStore';
 import space from 'app/styles/space';
 import {AvatarProject, DateString, Organization, Project} from 'app/types';
@@ -276,31 +282,52 @@ class MetricChart extends React.PureComponent<Props, State> {
     );
 
     return (
-      <ChartActions>
-        <ChartSummary>
-          <SummaryText>{t('SUMMARY')}</SummaryText>
-          <SummaryStats>
-            <StatItem>
-              <IconCheckmark color="green300" isCircled />
-              <StatCount>{resolvedPercent}%</StatCount>
-            </StatItem>
-            <StatItem>
-              <IconWarning color="yellow300" />
-              <StatCount>{warningPercent}%</StatCount>
-            </StatItem>
-            <StatItem>
-              <IconFire color="red300" />
-              <StatCount>{criticalPercent}%</StatCount>
-            </StatItem>
-          </SummaryStats>
-        </ChartSummary>
+      <ChartControls>
+        <InlineContainer>
+          <SectionHeading>{t('Summary')}</SectionHeading>
+          <SectionValue>
+            <SummaryStats>
+              <StatItem>
+                <IconCheckmark color="green300" isCircled />
+                <StatCount>{resolvedPercent}%</StatCount>
+              </StatItem>
+              <StatItem>
+                <IconWarning color="yellow300" />
+                <StatCount>{warningPercent}%</StatCount>
+              </StatItem>
+              <StatItem>
+                <IconFire color="red300" />
+                <StatCount>{criticalPercent}%</StatCount>
+              </StatItem>
+            </SummaryStats>
+          </SectionValue>
+        </InlineContainer>
         <Feature features={['discover-basic']}>
           <Button size="small" {...props}>
             {buttonText}
           </Button>
         </Feature>
-      </ChartActions>
+      </ChartControls>
     );
+  }
+
+  getTimeWindow() {
+    const {rule} = this.props;
+
+    if (!rule) {
+      return '';
+    }
+
+    const {timeWindow} = rule;
+
+    return tct('[window]', {
+      window: (
+        <TimeWindow>
+          Time interval:
+          <Duration seconds={timeWindow * 60} />
+        </TimeWindow>
+      ),
+    });
   }
 
   renderChart(
@@ -628,7 +655,7 @@ class MetricChart extends React.PureComponent<Props, State> {
                   <ChartTitle>
                     {AlertWizardAlertNames[getAlertTypeFromAggregateDataset(rule)]}
                   </ChartTitle>
-                  {filter}
+                  {filter} {this.getTimeWindow()}
                 </ChartHeader>
                 {this.renderChart(
                   timeseriesData,
@@ -662,38 +689,20 @@ const ChartTitle = styled('header')`
   flex-direction: row;
 `;
 
-const ChartActions = styled(PanelFooter)`
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  padding: ${space(1)} 20px;
-`;
-
-const ChartSummary = styled('div')`
-  display: flex;
-  margin-right: auto;
-`;
-
-const SummaryText = styled(SectionHeading)`
-  flex: 1;
-  display: flex;
-  align-items: center;
-  margin: 0;
-  font-weight: bold;
-  font-size: ${p => p.theme.fontSizeSmall};
-  line-height: 1;
-`;
-
 const SummaryStats = styled('div')`
   display: flex;
   align-items: center;
-  margin: 0 ${space(2)};
+  margin-right: ${space(2)};
 `;
 
 const StatItem = styled('div')`
   display: flex;
   align-items: center;
   margin: 0 ${space(2)} 0 0;
+`;
+
+const TimeWindow = styled('code')`
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
 /* Override padding to make chart appear centered */

@@ -53,8 +53,10 @@ const DropdownButton = ({
       hideBottomBorder={hideBottomBorder}
       ref={forwardedRef}
     >
-      {prefix && <LabelText>{prefix}</LabelText>}
-      {children}
+      <div>
+        {prefix && <LabelText>{prefix}</LabelText>}
+        {children}
+      </div>
       {showChevron && <StyledChevron size="10px" direction={isOpen ? 'up' : 'down'} />}
     </StyledButton>
   );

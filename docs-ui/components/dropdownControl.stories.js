@@ -1,5 +1,3 @@
-import React from 'react';
-
 import DropdownControl, {DropdownItem} from 'app/components/dropdownControl';
 import MenuItem from 'app/components/menuItem';
 
@@ -12,11 +10,13 @@ export const BasicLabelKnobs = ({
   alwaysRenderMenu,
   alignRight,
   blendWithActor,
+  fullWidth,
 }) => {
   return (
     <div className="clearfix">
       <DropdownControl
         label="Open Me"
+        fullWidth={fullWidth}
         menuWidth={menuWidth}
         alwaysRenderMenu={alwaysRenderMenu}
         alignRight={alignRight}
@@ -40,6 +40,7 @@ BasicLabelKnobs.args = {
   alwaysRenderMenu: true,
   alignRight: false,
   blendWithActor: false,
+  fullWidth: false,
 };
 BasicLabelKnobs.parameters = {
   docs: {

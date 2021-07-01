@@ -33,6 +33,7 @@ type Props = {
   onClick?: (e: React.MouseEvent) => void;
   forwardRef?: React.Ref<ButtonElement>;
   name?: string;
+  fullWidth?: boolean;
 
   // This is only used with `<ButtonBar>`
   barId?: string;
@@ -46,6 +47,7 @@ class BaseButton extends React.Component<ButtonProps, {}> {
   static defaultProps: ButtonProps = {
     disabled: false,
     align: 'center',
+    fullWidth: false,
   };
 
   // Intercept onClick and propagate
@@ -83,6 +85,7 @@ class BaseButton extends React.Component<ButtonProps, {}> {
       priority,
       disabled,
       tooltipProps,
+      fullWidth,
 
       // destructure from `buttonProps`
       // not necessary, but just in case someone re-orders props
@@ -115,6 +118,7 @@ class BaseButton extends React.Component<ButtonProps, {}> {
           size={size}
           priority={priority}
           borderless={borderless}
+          fullWidth={fullWidth}
         >
           {icon && (
             <Icon size={size} hasChildren={!!children}>
@@ -300,8 +304,11 @@ const getLabelPadding = ({
   }
 };
 
-const buttonLabelPropKeys = ['size', 'priority', 'borderless', 'align'];
-type ButtonLabelProps = Pick<ButtonProps, 'size' | 'priority' | 'borderless' | 'align'>;
+const buttonLabelPropKeys = ['size', 'priority', 'borderless', 'align', 'fullWidth'];
+type ButtonLabelProps = Pick<
+  ButtonProps,
+  'size' | 'priority' | 'borderless' | 'align' | 'fullWidth'
+>;
 
 const ButtonLabel = styled('span', {
   shouldForwardProp: prop =>
@@ -312,6 +319,10 @@ const ButtonLabel = styled('span', {
   align-items: center;
   justify-content: ${p => p.align};
   padding: ${getLabelPadding};
+
+  ${p =>
+    p.fullWidth &&
+    `width: 100%; justify-content: space-between !important; align-items: unset !important;`};
 `;
 
 type IconProps = {

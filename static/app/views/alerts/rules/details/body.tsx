@@ -17,7 +17,6 @@ import * as Layout from 'app/components/layouts/thirds';
 import {Panel, PanelBody} from 'app/components/panels';
 import Placeholder from 'app/components/placeholder';
 import TimeSince from 'app/components/timeSince';
-import Tooltip from 'app/components/tooltip';
 import {IconCheckmark, IconFire, IconInfo, IconWarning} from 'app/icons';
 import {t, tct} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
@@ -214,7 +213,17 @@ export default class DetailsBody extends React.Component<Props> {
   }
 
   renderMetricStatus() {
-    const {incidents} = this.props;
+    const {
+      rule,
+      incidents,
+      params: {orgId},
+    } = this.props;
+
+    if (!rule) {
+      return this.renderLoading();
+    }
+
+    const {projects: projectSlugs} = rule;
 
     // get current status
     const activeIncident = incidents?.find(({dateClosed}) => !dateClosed);
@@ -229,16 +238,34 @@ export default class DetailsBody extends React.Component<Props> {
       : null;
 
     return (
-      <StatusContainer>
-        <HeaderItem>
-          <Heading noMargin>{t('Current Status')}</Heading>
-          <Status>
-            <AlertBadge status={status} hideText />
-            {activeIncident ? t('Triggered') : t('Resolved')}
-            {activityDate ? <TimeSince date={activityDate} /> : '-'}
-          </Status>
-        </HeaderItem>
-      </StatusContainer>
+      <Projects orgId={orgId} slugs={projectSlugs}>
+        {({initiallyLoaded, projects}) => {
+          return initiallyLoaded ? (
+            <StatusContainer>
+              <HeaderItem>
+                <Heading noMargin>{t('Status')}</Heading>
+                <Status>
+                  <AlertBadge status={status} hideText />
+                  <ActiveIncidentWrapper>
+                    <div>{activeIncident ? t('Triggered') : t('Resolved')}</div>
+                    <ActiveIncidentTime>
+                      {activityDate ? <TimeSince date={activityDate} /> : '-'}
+                    </ActiveIncidentTime>
+                  </ActiveIncidentWrapper>
+                </Status>
+              </HeaderItem>
+              {projects && projects.length && (
+                <HeaderItem>
+                  <Heading noMargin>{t('Project')}</Heading>
+                  <IdBadge avatarSize={16} project={projects[0]} />
+                </HeaderItem>
+              )}
+            </StatusContainer>
+          ) : (
+            <Placeholder height="200px" />
+          );
+        }}
+      </Projects>
     );
   }
 
@@ -298,47 +325,21 @@ export default class DetailsBody extends React.Component<Props> {
                 )}
               <StyledLayoutBodyWrapper>
                 <Layout.Main>
-                  <HeaderContainer>
-                    <HeaderGrid>
-                      <HeaderItem>
-                        <Heading noMargin>{t('Display')}</Heading>
-                        <ChartControls>
-                          <DropdownControl label={timePeriod.display}>
-                            {TIME_OPTIONS.map(({label, value}) => (
-                              <DropdownItem
-                                key={value}
-                                eventKey={value}
-                                onSelect={this.props.handleTimePeriodChange}
-                              >
-                                {label}
-                              </DropdownItem>
-                            ))}
-                          </DropdownControl>
-                        </ChartControls>
-                      </HeaderItem>
-                      {projects && projects.length && (
-                        <HeaderItem>
-                          <Heading noMargin>{t('Project')}</Heading>
-
-                          <IdBadge avatarSize={16} project={projects[0]} />
-                        </HeaderItem>
-                      )}
-                      <HeaderItem>
-                        <Heading noMargin>
-                          {t('Time Interval')}
-                          <Tooltip
-                            title={t(
-                              'The time window over which the metric is evaluated.'
-                            )}
-                          >
-                            <IconInfo size="xs" color="gray200" />
-                          </Tooltip>
-                        </Heading>
-
-                        <RuleText>{this.getTimeWindow()}</RuleText>
-                      </HeaderItem>
-                    </HeaderGrid>
-                  </HeaderContainer>
+                  <DropdownControl
+                    fullWidth
+                    buttonProps={{prefix: 'Date Range'}}
+                    label={timePeriod.display}
+                  >
+                    {TIME_OPTIONS.map(({label, value}) => (
+                      <DropdownItem
+                        key={value}
+                        eventKey={value}
+                        onSelect={this.props.handleTimePeriodChange}
+                      >
+                        {label}
+                      </DropdownItem>
+                    ))}
+                  </DropdownControl>
 
                   <MetricChart
                     api={api}
@@ -424,20 +425,6 @@ const StatusWrapper = styled('div')`
   }
 `;
 
-const HeaderContainer = styled('div')`
-  height: 60px;
-  display: flex;
-  flex-direction: row;
-  align-content: flex-start;
-`;
-
-const HeaderGrid = styled('div')`
-  display: grid;
-  grid-template-columns: auto auto auto;
-  align-items: stretch;
-  grid-gap: 60px;
-`;
-
 const HeaderItem = styled('div')`
   flex: 1;
   display: flex;
@@ -475,9 +462,7 @@ const ActivityWrapper = styled('div')`
 
 const Status = styled('div')`
   position: relative;
-  display: grid;
-  grid-template-columns: auto auto auto;
-  grid-gap: ${space(0.5)};
+  display: flex;
   font-size: ${p => p.theme.fontSizeLarge};
 `;
 
@@ -495,12 +480,6 @@ const Heading = styled(SectionHeading)<{noMargin?: boolean}>`
   margin-bottom: ${space(0.5)};
   line-height: 1;
   gap: ${space(1)};
-`;
-
-const ChartControls = styled('div')`
-  display: flex;
-  flex-direction: row;
-  align-items: center;
 `;
 
 const ChartPanel = styled(Panel)`
@@ -530,4 +509,14 @@ const TriggerText = styled('div')`
 
 const CreatedBy = styled('div')`
   ${overflowEllipsis}
+`;
+
+const ActiveIncidentWrapper = styled('div')`
+  line-height: 1.3;
+  margin-left: ${space(1)};
+`;
+
+const ActiveIncidentTime = styled('div')`
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
