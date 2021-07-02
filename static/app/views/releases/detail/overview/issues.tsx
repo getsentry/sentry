@@ -237,11 +237,12 @@ class Issues extends Component<Props, State> {
       ]).then(([issueResponse, resolvedResponse]) => {
         this.setState({
           count: {
-            all: issueResponse[`${IssuesQuery.ALL}:${version}`],
-            new: issueResponse[`${IssuesQuery.NEW}:${version}`],
+            all: issueResponse[`${IssuesQuery.ALL}:${version}`] || 0,
+            new: issueResponse[`${IssuesQuery.NEW}:${version}`] || 0,
             resolved: resolvedResponse.length,
             unhandled:
-              issueResponse[`${IssuesQuery.UNHANDLED} ${IssuesQuery.ALL}:${version}`],
+              issueResponse[`${IssuesQuery.UNHANDLED} ${IssuesQuery.ALL}:${version}`] ||
+              0,
           },
         });
       });
@@ -366,7 +367,12 @@ class Issues extends Component<Props, State> {
                   onClick={() => this.handleIssuesTypeSelection(value)}
                 >
                   {label}
-                  <QueryCount count={issueCount} max={99} hideParens hideIfEmpty />
+                  <QueryCount
+                    count={issueCount}
+                    max={99}
+                    hideParens
+                    hideIfEmpty={false}
+                  />
                 </Button>
               ))}
             </StyledButtonBar>
@@ -463,13 +469,13 @@ const StyledButtonBar = styled(ButtonBar)`
     white-space: nowrap;
     grid-gap: ${space(0.5)};
     span:last-child {
-      color: ${p => p.theme.issueCountNotActiveText};
+      color: ${p => p.theme.buttonCount};
     }
   }
   .active {
     ${ButtonLabel} {
       span:last-child {
-        color: ${p => p.theme.issueCountActiveText};
+        color: ${p => p.theme.buttonCountActive};
       }
     }
   }

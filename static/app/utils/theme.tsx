@@ -237,14 +237,14 @@ const lightAliases = {
   searchTokenBorder: '#B5DAFF',
 
   /**
-   * Issue count when tab active
+   * Count on button when active
    */
-  issueCountActiveText: colors.gray100,
+  buttonCountActive: colors.gray100,
 
   /**
-   * Issue count when tab not active
+   * Count on button
    */
-  issueCountNotActiveText: colors.gray400,
+  buttonCount: colors.gray400,
 };
 
 const dataCategory = {
@@ -649,8 +649,8 @@ const darkAliases = {
   badgeText: colors.black,
   searchTokenBackground: '#1F1A3D',
   searchTokenBorder: '#554E80',
-  issueCountActiveText: colors.gray100,
-  issueCountNotActiveText: colors.gray400,
+  buttonCountActive: colors.gray100,
+  buttonCount: colors.gray400,
 };
 
 export const lightTheme = {
