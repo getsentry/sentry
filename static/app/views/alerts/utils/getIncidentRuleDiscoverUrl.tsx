@@ -36,7 +36,7 @@ export function getIncidentRuleDiscoverUrl(opts: {
     name: (rule && rule.name) || '',
     orderby: `-${getAggregateAlias(rule.aggregate)}`,
     yAxis: rule.aggregate,
-    query: eventTypeTagFilter ? eventTypeTagFilter : (rule?.query || eventType) ?? '',
+    query: (eventTypeTagFilter || rule?.query || eventType) ?? '',
     projects: projects
       .filter(({slug}) => rule.projects.includes(slug))
       .map(({id}) => Number(id)),
