@@ -67,10 +67,10 @@ type Props = {
 type State = {
   issuesType: IssuesType;
   count: {
-    new: number;
-    unhandled: number;
-    resolved: number;
-    all: number;
+    new: number | null;
+    unhandled: number | null;
+    resolved: number | null;
+    all: number | null;
   };
   pageLinks?: string;
   onCursor?: () => void;
