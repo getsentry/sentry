@@ -408,7 +408,7 @@ type EnableIntegrationSuggestion = {
   integrationUrl?: string | null;
 };
 
-type UpdateSdkSuggestion = {
+export type UpdateSdkSuggestion = {
   type: 'updateSdk';
   sdkName: string;
   newSdkVersion: string;
@@ -2089,6 +2089,13 @@ export type SessionApiResponse = SeriesApi & {
 export enum SessionField {
   SESSIONS = 'sum(session)',
   USERS = 'count_unique(user)',
+}
+
+export enum ReleaseComparisonChartType {
+  CRASH_FREE_USERS = 'crashFreeUsers',
+  CRASH_FREE_SESSIONS = 'crashFreeSessions',
+  SESSION_COUNT = 'sessionCount',
+  USER_COUNT = 'userCount',
 }
 
 export enum HealthStatsPeriodOption {
