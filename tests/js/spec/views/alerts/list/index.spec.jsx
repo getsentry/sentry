@@ -2,6 +2,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import ProjectsStore from 'app/stores/projectsStore';
+import TeamStore from 'app/stores/teamStore';
 import IncidentsList from 'app/views/alerts/list';
 
 describe('IncidentsList', function () {
@@ -95,7 +96,7 @@ describe('IncidentsList', function () {
     await tick();
     wrapper.update();
 
-    const items = wrapper.find('IncidentPanelItem');
+    const items = wrapper.find('AlertListRow');
 
     expect(items).toHaveLength(2);
     expect(items.at(0).text()).toContain('First incident');
@@ -263,5 +264,30 @@ describe('IncidentsList', function () {
         },
       })
     );
+  });
+
+  it('displays owner from alert rule', async () => {
+    const team = TestStubs.Team();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/incidents/',
+      body: [
+        TestStubs.Incident({
+          id: '123',
+          identifier: '1',
+          title: 'First incident',
+          projects: projects1,
+          alertRule: TestStubs.IncidentRule({owner: `team:${team.id}`}),
+        }),
+      ],
+    });
+    TeamStore.getById = jest.fn().mockReturnValue(team);
+    const org = {
+      ...organization,
+      features: ['incidents', 'team-alerts-ownership'],
+    };
+
+    wrapper = await createWrapper({organization: org});
+    expect(wrapper.find('TeamWrapper').text()).toBe(team.name);
+    expect(wrapper).toSnapshot();
   });
 });

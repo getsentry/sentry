@@ -1,4 +1,4 @@
-import {Component} from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import memoize from 'lodash/memoize';
 import moment from 'moment';
@@ -8,10 +8,12 @@ import Duration from 'app/components/duration';
 import ErrorBoundary from 'app/components/errorBoundary';
 import IdBadge from 'app/components/idBadge';
 import Link from 'app/components/links/link';
-import {PanelItem} from 'app/components/panels';
+import Tag from 'app/components/tag';
 import TimeSince from 'app/components/timeSince';
-import {t, tct} from 'app/locale';
+import {t} from 'app/locale';
+import TeamStore from 'app/stores/teamStore';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
+import space from 'app/styles/space';
 import {Actor, Organization, Project} from 'app/types';
 import {getUtcDateString} from 'app/utils/dates';
 import getDynamicText from 'app/utils/getDynamicText';
@@ -23,8 +25,6 @@ import {
 } from '../rules/details/constants';
 import {Incident, IncidentStatus} from '../types';
 import {getIncidentMetricPreset, isIssueAlert} from '../utils';
-
-import {TableLayout} from './styles';
 
 /**
  * Retrieve the start/end for showing the graph of the metric
@@ -93,71 +93,80 @@ class AlertListRow extends Component<Props> {
           pathname: `/organizations/${orgId}/alerts/${incident.identifier}/`,
         };
     const ownerId = incident.alertRule.owner?.split(':')[1];
+    let teamName = '';
+    if (ownerId) {
+      teamName = TeamStore.getById(ownerId)?.name ?? '';
+    }
     const teamActor = ownerId
-      ? {type: 'team' as Actor['type'], id: ownerId, name: ''}
+      ? {type: 'team' as Actor['type'], id: ownerId, name: teamName}
       : null;
 
     return (
       <ErrorBoundary>
-        <IncidentPanelItem>
-          <TableLayout>
-            <Title>
-              <Link to={alertLink}>Alert #{incident.id}</Link>
-              <div>
-                {t('Triggered ')}{' '}
-                {getDynamicText({
-                  value: <TimeSince date={incident.dateStarted} extraShort />,
-                  fixed: '1w ago',
-                })}
-                <StyledTimeSeparator> | </StyledTimeSeparator>
-                {incident.status === IncidentStatus.CLOSED
-                  ? tct('Active for [duration]', {
-                      duration: (
-                        <Duration
-                          seconds={getDynamicText({value: duration, fixed: 1200})}
-                        />
-                      ),
-                    })
-                  : t('Still Active')}
-              </div>
-            </Title>
+        <Title>
+          <Link to={alertLink}>{incident.title}</Link>
+        </Title>
 
-            <div>{incident.title}</div>
+        <NoWrap>
+          {getDynamicText({
+            value: <TimeSince date={incident.dateStarted} extraShort />,
+            fixed: '1w ago',
+          })}
+        </NoWrap>
+        <NoWrap>
+          {incident.status === IncidentStatus.CLOSED ? (
+            <Duration seconds={getDynamicText({value: duration, fixed: 1200})} />
+          ) : (
+            <Tag type="warning">{t('Still Active')}</Tag>
+          )}
+        </NoWrap>
 
-            <ProjectBadge
-              avatarSize={18}
-              project={!projectsLoaded ? {slug} : this.getProject(slug, projects)}
-            />
+        <ProjectBadge
+          avatarSize={18}
+          project={!projectsLoaded ? {slug} : this.getProject(slug, projects)}
+        />
+        <div>#{incident.id}</div>
 
-            <FlexCenter>
-              {teamActor ? <ActorAvatar actor={teamActor} size={24} /> : '-'}
-            </FlexCenter>
-          </TableLayout>
-        </IncidentPanelItem>
+        <FlexCenter>
+          {teamActor ? (
+            <Fragment>
+              <StyledActorAvatar actor={teamActor} size={24} hasTooltip={false} />{' '}
+              <TeamWrapper>{teamActor.name}</TeamWrapper>
+            </Fragment>
+          ) : (
+            '-'
+          )}
+        </FlexCenter>
       </ErrorBoundary>
     );
   }
 }
 
+const Title = styled('div')`
+  ${overflowEllipsis}
+  min-width: 130px;
+`;
+
+const NoWrap = styled('div')`
+  white-space: nowrap;
+`;
+
 const ProjectBadge = styled(IdBadge)`
   flex-shrink: 0;
 `;
 
-const StyledTimeSeparator = styled('span')`
-  color: ${p => p.theme.gray200};
+const FlexCenter = styled('div')`
+  ${overflowEllipsis}
+  display: flex;
+  align-items: center;
 `;
 
-const Title = styled('span')`
+const TeamWrapper = styled('span')`
   ${overflowEllipsis}
 `;
 
-const IncidentPanelItem = styled(PanelItem)`
-  font-size: ${p => p.theme.fontSizeMedium};
-`;
-
-const FlexCenter = styled('div')`
-  display: flex;
-  align-items: center;
+const StyledActorAvatar = styled(ActorAvatar)`
+  margin-right: ${space(1)};
 `;
 
 export default AlertListRow;
