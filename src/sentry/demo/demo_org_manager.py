@@ -80,6 +80,7 @@ def create_demo_org(quick=False) -> Organization:
             try:
                 data_population = DataPopulation(org, quick=quick)
                 data_population.generate_releases(projects)
+                data_population.generate_saved_search(projects)
                 data_population.handle_react_python_scenario(react_project, python_project)
 
                 if settings.DEMO_MOBILE_PROJECTS:

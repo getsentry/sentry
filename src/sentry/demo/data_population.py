@@ -44,6 +44,7 @@ from sentry.models import (
     ReleaseCommit,
     ReleaseFile,
     Repository,
+    SavedSearch,
     Team,
     User,
 )
@@ -98,6 +99,17 @@ contexts_by_mobile_platform = {
         ],
         "os": [["Android", "10"], ["Android", "9"], ["Android", "8"]],
     },
+}
+
+saved_search_by_platform = {
+    "global": [["Unhandled Errors", "is:unresolved error.unhandled:true"]],
+    "python": [
+        ["Firefox Errors - Python", "browser.name:Firefox"],
+    ],
+    "javascript-react": [],
+    "apple-ios": [],
+    "android": [],
+    "react-native": [],
 }
 
 mobile_platforms = ["apple-ios", "android", "react-native"]
@@ -802,6 +814,21 @@ class DataPopulation:
             version=data["version"],
         )
 
+    def generate_saved_search(self, projects):
+        global_params = saved_search_by_platform["global"]
+        for params in global_params:
+            name, query = params
+            SavedSearch.objects.create(
+                is_global=True, organization=projects[0].organization, name=name, query=query
+            )
+        for project in projects:
+            project_params = saved_search_by_platform[project.platform]
+            for params in project_params:
+                name, query = params
+                SavedSearch.objects.create(
+                    project=project, organization=project.organization, name=name, query=query
+                )
+
     def assign_issues(self):
         org_members = OrganizationMember.objects.filter(organization=self.org, role="member")
         for group in Group.objects.filter(project__organization=self.org):
@@ -1367,6 +1394,7 @@ class DataPopulation:
         ):
             self.generate_alerts(python_project)
             self.generate_saved_query(react_project, "/productstore", "Product Store by Browser")
+
         if not self.get_config_var("DISABLE_SESSIONS"):
             with sentry_sdk.start_span(
                 op="handle_react_python_scenario", description="populate_sessions"
