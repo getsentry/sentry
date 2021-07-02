@@ -15,7 +15,7 @@ class RedisSessionStore:
 
     The attributes to be backed by Redis must be declared in a subclass using
     the `redis_property` function. Do not instantiate RedisSessionStore without
-     extending it to add properties. For example:
+    extending it to add properties. For example:
 
     >>> class HotDogSessionStore(RedisSessionStore):
     >>>     bun = redis_property("bun")
