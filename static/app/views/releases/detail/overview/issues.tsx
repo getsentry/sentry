@@ -98,10 +98,10 @@ class Issues extends Component<Props, State> {
     return {
       issuesType: issuesTypeState,
       count: {
-        new: 0,
-        all: 0,
-        resolved: 0,
-        unhandled: 0,
+        new: null,
+        all: null,
+        resolved: null,
+        unhandled: null,
       },
     };
   }
