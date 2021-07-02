@@ -2,7 +2,6 @@ import * as React from 'react';
 import {withTheme} from '@emotion/react';
 
 import AreaChart from 'app/components/charts/areaChart';
-import LineChart from 'app/components/charts/lineChart';
 import StackedAreaChart from 'app/components/charts/stackedAreaChart';
 import {HeaderTitleLegend} from 'app/components/charts/styles';
 import QuestionTooltip from 'app/components/questionTooltip';
@@ -63,8 +62,7 @@ class SessionsChart extends React.Component<Props> {
 
   getChart():
     | React.ComponentType<StackedAreaChart['props']>
-    | React.ComponentType<AreaChart['props']>
-    | React.ComponentType<LineChart['props']> {
+    | React.ComponentType<AreaChart['props']> {
     const {chartType} = this.props;
     switch (chartType) {
       case ReleaseComparisonChartType.CRASH_FREE_SESSIONS:
@@ -106,9 +104,6 @@ class SessionsChart extends React.Component<Props> {
           previousPeriod={previousSeries}
           isGroupedByDate
           showTimeInTooltip
-          seriesOptions={{
-            showSymbol: false,
-          }}
           grid={{
             left: '10px',
             right: '10px',
