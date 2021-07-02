@@ -25,6 +25,18 @@ CREATE_GROUP_POST_DATA = {
 }
 
 
+class SCIMTestCase(APITestCase):
+    def setUp(self):
+        super().setUp()
+        auth_provider = AuthProvider.objects.create(
+            organization=self.organization, provider="dummy"
+        )
+        with self.feature({"organizations:sso-scim": True}):
+            auth_provider.enable_scim(self.user)
+            auth_provider.save()
+        self.login_as(user=self.user)
+
+
 class SCIMMemberTestsPermissions(APITestCase):
     def setUp(self):
         super().setUp()
