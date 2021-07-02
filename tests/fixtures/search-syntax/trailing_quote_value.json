@@ -7,7 +7,7 @@
         "filter": "text",
         "negated": false,
         "invalid": {
-          "reason": "Quotes must enclose text or be escaped."
+          "reason": "Quotes must enclose text or be escaped"
         },
         "key": {"type": "keySimple", "value": "device.family", "quoted": false},
         "operator": "",
@@ -24,7 +24,7 @@
         "filter": "text",
         "negated": false,
         "invalid": {
-          "reason": "Quotes must enclose text or be escaped."
+          "reason": "Quotes must enclose text or be escaped"
         },
         "key": {"type": "keySimple", "value": "url", "quoted": false},
         "operator": "",
@@ -41,7 +41,7 @@
         "filter": "text",
         "negated": false,
         "invalid": {
-          "reason": "Quotes must enclose text or be escaped."
+          "reason": "Quotes must enclose text or be escaped"
         },
         "key": {"type": "keySimple", "value": "url", "quoted": false},
         "operator": "",
@@ -67,7 +67,7 @@
         "filter": "text",
         "negated": false,
         "invalid": {
-          "reason": "Quotes must enclose text or be escaped."
+          "reason": "Quotes must enclose text or be escaped"
         },
         "key": {"type": "keySimple", "value": "url", "quoted": false},
         "operator": "",

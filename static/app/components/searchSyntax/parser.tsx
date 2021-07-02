@@ -591,7 +591,7 @@ class TokenConverter {
 
     if (this.keyValidation.isDuration(keyName)) {
       return {
-        reason: t('Invalid duration. Expected number followed by duration unit suffix.'),
+        reason: t('Invalid duration. Expected number followed by duration unit suffix'),
         expectedType: [FilterType.Duration],
       };
     }
@@ -599,7 +599,7 @@ class TokenConverter {
     if (this.keyValidation.isDate(keyName)) {
       return {
         reason: t(
-          'Invalid date format. Expected +/-duration (e.g. +1h) or ISO 8601-like (e.g. {now}).',
+          'Invalid date format. Expected +/-duration (e.g. +1h) or ISO 8601-like (e.g. {now})',
           new Date().toISOString()
         ),
         expectedType: [FilterType.Date, FilterType.SpecificDate, FilterType.RelativeDate],
@@ -616,7 +616,7 @@ class TokenConverter {
     if (this.keyValidation.isNumeric(keyName)) {
       return {
         reason: t(
-          'Invalid number. Expected number then optional k, m, or b suffix (e.g. 500k).'
+          'Invalid number. Expected number then optional k, m, or b suffix (e.g. 500k)'
         ),
         expectedType: [FilterType.Numeric, FilterType.NumericIn],
       };
@@ -630,11 +630,11 @@ class TokenConverter {
    */
   checkInvalidTextValue = (value: TextFilter['value']) => {
     if (!value.quoted && /(^|[^\\])"/.test(value.value)) {
-      return {reason: t('Quotes must enclose text or be escaped.')};
+      return {reason: t('Quotes must enclose text or be escaped')};
     }
 
     if (!value.quoted && value.value === '') {
-      return {reason: t('Filter must have a value.')};
+      return {reason: t('Filter must have a value')};
     }
 
     return null;
