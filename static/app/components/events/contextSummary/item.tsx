@@ -34,6 +34,7 @@ const Wrapper = styled('div')`
   margin-right: ${space(3)};
   align-items: center;
   position: relative;
+  min-width: 0;
 
   @media (min-width: ${p => p.theme.breakpoints[0]}) {
     max-width: 25%;
