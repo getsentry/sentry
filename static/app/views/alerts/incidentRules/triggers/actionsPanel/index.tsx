@@ -16,8 +16,8 @@ import {uniqueId} from 'app/utils/guid';
 import {removeAtArrayIndex} from 'app/utils/removeAtArrayIndex';
 import {replaceAtArrayIndex} from 'app/utils/replaceAtArrayIndex';
 import withOrganization from 'app/utils/withOrganization';
-import ActionTargetSelector from 'app/views/settings/incidentRules/triggers/actionsPanel/actionTargetSelector';
-import DeleteActionButton from 'app/views/settings/incidentRules/triggers/actionsPanel/deleteActionButton';
+import ActionTargetSelector from 'app/views/alerts/incidentRules/triggers/actionsPanel/actionTargetSelector';
+import DeleteActionButton from 'app/views/alerts/incidentRules/triggers/actionsPanel/deleteActionButton';
 import {
   Action,
   ActionLabel,
@@ -25,7 +25,7 @@ import {
   MetricActionTemplate,
   TargetLabel,
   Trigger,
-} from 'app/views/settings/incidentRules/types';
+} from 'app/views/alerts/incidentRules/types';
 
 type Props = {
   availableActions: MetricActionTemplate[] | null;

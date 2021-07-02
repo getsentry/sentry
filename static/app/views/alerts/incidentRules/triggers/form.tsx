@@ -9,8 +9,8 @@ import space from 'app/styles/space';
 import {Config, Organization, Project} from 'app/types';
 import withApi from 'app/utils/withApi';
 import withConfig from 'app/utils/withConfig';
+import ThresholdControl from 'app/views/alerts/incidentRules/triggers/thresholdControl';
 import Field from 'app/views/settings/components/forms/field';
-import ThresholdControl from 'app/views/settings/incidentRules/triggers/thresholdControl';
 
 import {
   AlertRuleThresholdType,
