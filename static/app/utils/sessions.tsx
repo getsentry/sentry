@@ -1,3 +1,5 @@
+import compact from 'lodash/compact';
+
 import {
   DateTimeObject,
   getDiffInMinutes,
@@ -41,29 +43,33 @@ export function getCrashFreeSeries(
   intervals: SessionApiResponse['intervals'] = [],
   field: SessionField
 ): SeriesDataUnit[] {
-  return intervals.map((interval, i) => {
-    const intervalTotalSessions = groups.reduce(
-      (acc, group) => acc + group.series[field][i],
-      0
-    );
+  return compact(
+    intervals.map((interval, i) => {
+      const intervalTotalSessions = groups.reduce(
+        (acc, group) => acc + group.series[field][i],
+        0
+      );
 
-    const intervalCrashedSessions =
-      groups.find(group => group.by['session.status'] === 'crashed')?.series[field][i] ??
-      0;
+      const intervalCrashedSessions =
+        groups.find(group => group.by['session.status'] === 'crashed')?.series[field][
+          i
+        ] ?? 0;
 
-    const crashedSessionsPercent = percent(
-      intervalCrashedSessions,
-      intervalTotalSessions
-    );
+      const crashedSessionsPercent = percent(
+        intervalCrashedSessions,
+        intervalTotalSessions
+      );
 
-    return {
-      name: interval,
-      value:
-        intervalTotalSessions === 0
-          ? (null as any)
-          : getCrashFreePercent(100 - crashedSessionsPercent),
-    };
-  });
+      if (intervalTotalSessions === 0) {
+        return null;
+      }
+
+      return {
+        name: interval,
+        value: getCrashFreePercent(100 - crashedSessionsPercent),
+      };
+    })
+  );
 }
 
 type GetSessionsIntervalOptions = {
