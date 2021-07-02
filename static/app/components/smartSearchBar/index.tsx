@@ -19,7 +19,7 @@ import {
   Token,
 } from 'app/components/searchSyntax/parser';
 import HighlightQuery from 'app/components/searchSyntax/renderer';
-import {getKeyName} from 'app/components/searchSyntax/utils';
+import {getKeyName, isWithinToken} from 'app/components/searchSyntax/utils';
 import {
   DEFAULT_DEBOUNCE_DURATION,
   MAX_AUTOCOMPLETE_RELEASES,
@@ -47,7 +47,6 @@ import {
   getLastTermIndex,
   getQueryTerms,
   getValidOps,
-  isWithinToken,
   removeSpace,
 } from './utils';
 
@@ -73,6 +72,20 @@ const makeQueryState = (query: string) => ({
   query,
   parsedQuery: parseSearch(query),
 });
+
+const generateOpAutocompleteGroup = (
+  validOps: readonly TermOperator[],
+  tagName: string
+): AutocompleteGroup => {
+  const operatorMap = generateOperatorEntryMap(tagName);
+  const operatorItems = validOps.map(op => operatorMap[op]);
+  return {
+    searchItems: operatorItems,
+    recentSearchItems: undefined,
+    tagName: '',
+    type: 'tag-operator' as ItemType,
+  };
+};
 
 type ActionProps = {
   api: Client;
@@ -841,20 +854,6 @@ class SmartSearchBar extends React.Component<Props, State> {
     };
   };
 
-  generateOpAutocompleteGroup(
-    validOps: readonly TermOperator[],
-    tagName: string
-  ): AutocompleteGroup {
-    const operatorMap = generateOperatorEntryMap(tagName);
-    const operatorItems = validOps.map(op => operatorMap[op]);
-    return {
-      searchItems: operatorItems,
-      recentSearchItems: undefined,
-      tagName: '',
-      type: 'tag-operator' as ItemType,
-    };
-  }
-
   showDefaultSearches = async () => {
     const {query} = this.state;
     const [defaultSearchItems, defaultRecentItems] = this.props.defaultSearchItems!;
@@ -882,15 +881,17 @@ class SmartSearchBar extends React.Component<Props, State> {
     parsedQuery: ParseResult,
     cursor: number
   ): ParseResult[number] | null => {
-    // traverse AST to find first matching filter based on cursor position
     for (const node of parsedQuery) {
-      if (node.type !== Token.Spaces && isWithinToken(node, cursor)) {
-        // traverse into a logic group to find specific filter
-        if (node.type === Token.LogicGroup) {
-          return this.getCursorToken(node.inner, cursor);
-        }
-        return node;
+      if (node.type === Token.Spaces || !isWithinToken(node, cursor)) {
+        continue;
       }
+
+      // traverse into a logic group to find specific filter
+      if (node.type === Token.LogicGroup) {
+        return this.getCursorToken(node.inner, cursor);
+      }
+
+      return node;
     }
     return null;
   };
@@ -918,10 +919,7 @@ class SmartSearchBar extends React.Component<Props, State> {
         const autocompleteGroups = valueGroup ? [valueGroup] : [];
         // show operator group if at beginning of value
         if (cursor === node.location.start.offset) {
-          const opGroup = this.generateOpAutocompleteGroup(
-            getValidOps(cursorToken),
-            tagName
-          );
+          const opGroup = generateOpAutocompleteGroup(getValidOps(cursorToken), tagName);
           autocompleteGroups.unshift(opGroup);
         }
         this.updateAutoCompleteStateMultiHeader(autocompleteGroups);
@@ -933,10 +931,7 @@ class SmartSearchBar extends React.Component<Props, State> {
         const autocompleteGroups = [await this.generateTagAutocompleteGroup(tagName)];
         // show operator group if at end of key
         if (cursor === node.location.end.offset) {
-          const opGroup = this.generateOpAutocompleteGroup(
-            getValidOps(cursorToken),
-            tagName
-          );
+          const opGroup = generateOpAutocompleteGroup(getValidOps(cursorToken), tagName);
           autocompleteGroups.unshift(opGroup);
         }
         this.setState({searchTerm: tagName});
@@ -945,7 +940,7 @@ class SmartSearchBar extends React.Component<Props, State> {
       }
 
       // show operator autocomplete group
-      const opGroup = this.generateOpAutocompleteGroup(getValidOps(cursorToken), tagName);
+      const opGroup = generateOpAutocompleteGroup(getValidOps(cursorToken), tagName);
       this.updateAutoCompleteStateMultiHeader([opGroup]);
       return;
     }

@@ -1,5 +1,3 @@
-import {LocationRange} from 'pegjs';
-
 import {
   filterTypeConfig,
   interchangeableFilterOperators,
@@ -234,8 +232,4 @@ export function getValidOps(
   );
 
   return [...validOps];
-}
-
-export function isWithinToken(node: {location: LocationRange}, position: number) {
-  return position >= node.location.start.offset && position <= node.location.end.offset;
 }

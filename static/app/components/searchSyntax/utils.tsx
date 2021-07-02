@@ -1,3 +1,5 @@
+import {LocationRange} from 'pegjs';
+
 import {Token, TokenConverter, TokenResult} from './parser';
 
 /**
@@ -56,6 +58,9 @@ export function treeTransformer(
 }
 
 type GetKeyNameOpts = {
+  /**
+   * Include arguments in aggregate key names
+   */
   aggregateWithArgs?: boolean;
 };
 
@@ -66,9 +71,9 @@ export const getKeyName = (
   key: ReturnType<
     TokenConverter['tokenKeySimple' | 'tokenKeyExplicitTag' | 'tokenKeyAggregate']
   >,
-  options?: GetKeyNameOpts
+  options: GetKeyNameOpts = {}
 ) => {
-  const {aggregateWithArgs} = options ?? {};
+  const {aggregateWithArgs} = options;
   switch (key.type) {
     case Token.KeySimple:
       return key.value;
@@ -82,3 +87,7 @@ export const getKeyName = (
       return '';
   }
 };
+
+export function isWithinToken(node: {location: LocationRange}, position: number) {
+  return position >= node.location.start.offset && position <= node.location.end.offset;
+}
