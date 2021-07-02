@@ -22,9 +22,9 @@ import {defined} from 'app/utils';
 import Projects from 'app/utils/projects';
 import theme from 'app/utils/theme';
 import {alertDetailsLink} from 'app/views/alerts/details/index';
-import {DATASET_EVENT_TYPE_FILTERS} from 'app/views/settings/incidentRules/constants';
-import {makeDefaultCta} from 'app/views/settings/incidentRules/presets';
-import {AlertRuleThresholdType} from 'app/views/settings/incidentRules/types';
+import {DATASET_EVENT_TYPE_FILTERS} from 'app/views/alerts/incidentRules/constants';
+import {makeDefaultCta} from 'app/views/alerts/incidentRules/presets';
+import {AlertRuleThresholdType} from 'app/views/alerts/incidentRules/types';
 
 import {
   AlertRuleStatus,

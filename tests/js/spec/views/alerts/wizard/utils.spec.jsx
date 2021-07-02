@@ -1,5 +1,5 @@
+import {Dataset} from 'app/views/alerts/incidentRules/types';
 import {getAlertTypeFromAggregateDataset} from 'app/views/alerts/wizard/utils';
-import {Dataset} from 'app/views/settings/incidentRules/types';
 
 describe('Wizard utils', function () {
   it('extracts lcp alert', function () {

@@ -7,9 +7,9 @@ from django.db import migrations
 from sentry import eventstore
 from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.snuba import (
-    SnubaError,
-    QueryOutsideRetentionError,
     QueryOutsideGroupActivityError,
+    QueryOutsideRetentionError,
+    SnubaError,
 )
 
 logger = logging.getLogger(__name__)
@@ -60,5 +60,9 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunPython(backfill_user_reports, migrations.RunPython.noop),
+        migrations.RunPython(
+            backfill_user_reports,
+            migrations.RunPython.noop,
+            hints={"tables": ["sentry_userreport"]},
+        ),
     ]

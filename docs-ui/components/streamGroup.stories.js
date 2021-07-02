@@ -254,10 +254,6 @@ export const Default = () => {
 };
 
 export const WithInbox = () => {
-  const inboxOrganization = {
-    ...organization,
-    features: ['inbox'],
-  };
   loadGroups();
   return (
     <LocationContext>
@@ -266,7 +262,7 @@ export const WithInbox = () => {
         canSelect
         withChart={null}
         memberList={[]}
-        organization={inboxOrganization}
+        organization={organization}
         selection={selection}
         query=""
         isGlobalSelectionReady
@@ -277,7 +273,7 @@ export const WithInbox = () => {
         canSelect
         withChart={null}
         memberList={[]}
-        organization={inboxOrganization}
+        organization={organization}
         selection={selection}
         query=""
         isGlobalSelectionReady
@@ -288,7 +284,7 @@ export const WithInbox = () => {
         canSelect
         withChart={null}
         memberList={[]}
-        organization={inboxOrganization}
+        organization={organization}
         selection={selection}
         query=""
         isGlobalSelectionReady
@@ -299,7 +295,7 @@ export const WithInbox = () => {
         canSelect
         withChart={null}
         memberList={[]}
-        organization={inboxOrganization}
+        organization={organization}
         selection={selection}
         query=""
         isGlobalSelectionReady
@@ -310,7 +306,7 @@ export const WithInbox = () => {
         canSelect
         withChart={null}
         memberList={[]}
-        organization={inboxOrganization}
+        organization={organization}
         selection={selection}
         query=""
         isGlobalSelectionReady
@@ -321,7 +317,7 @@ export const WithInbox = () => {
         canSelect
         withChart={null}
         memberList={[]}
-        organization={inboxOrganization}
+        organization={organization}
         selection={selection}
         query=""
         isGlobalSelectionReady

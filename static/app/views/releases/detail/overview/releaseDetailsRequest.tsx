@@ -1,36 +1,20 @@
 import * as React from 'react';
 import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
-import omit from 'lodash/omit';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {Client} from 'app/api';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {t} from 'app/locale';
 import {Organization, SessionApiResponse} from 'app/types';
+import {getSessionsInterval} from 'app/utils/sessions';
 import withApi from 'app/utils/withApi';
 
 import {getReleaseParams, ReleaseBounds} from '../../utils';
 
-function omitIgnoredProps(props: Props) {
-  // TODO(release-comparison): pick the right props
-  return omit(props, ['api', 'organization', 'children', 'location']);
-}
-
-export function reduceTimeSeriesGroups(
-  acc: number[],
-  group: SessionApiResponse['groups'][number],
-  field: 'count_unique(user)' | 'sum(session)'
-) {
-  group.series[field]?.forEach(
-    (value, index) => (acc[index] = (acc[index] ?? 0) + value)
-  );
-
-  return acc;
-}
-
 export type ReleaseHealthRequestRenderProps = {
   loading: boolean;
+  reloading: boolean;
   errored: boolean;
   thisRelease: SessionApiResponse | null;
   allReleases: SessionApiResponse | null;
@@ -45,8 +29,9 @@ type Props = {
   releaseBounds: ReleaseBounds;
   disable?: boolean;
 };
+
 type State = {
-  loading: boolean;
+  reloading: boolean;
   errored: boolean;
   thisRelease: SessionApiResponse | null;
   allReleases: SessionApiResponse | null;
@@ -54,7 +39,7 @@ type State = {
 
 class ReleaseDetailsRequest extends React.Component<Props, State> {
   state: State = {
-    loading: false,
+    reloading: false,
     errored: false,
     thisRelease: null,
     allReleases: null,
@@ -65,11 +50,12 @@ class ReleaseDetailsRequest extends React.Component<Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    if (isEqual(omitIgnoredProps(prevProps), omitIgnoredProps(this.props))) {
-      return;
+    if (
+      prevProps.version !== this.props.version ||
+      !isEqual(prevProps.location, this.props.location)
+    ) {
+      this.fetchData();
     }
-
-    this.fetchData();
   }
 
   get path() {
@@ -79,18 +65,27 @@ class ReleaseDetailsRequest extends React.Component<Props, State> {
   }
 
   get baseQueryParams() {
-    const {location, releaseBounds} = this.props;
+    const {location, releaseBounds, organization} = this.props;
+
+    const releaseParams = getReleaseParams({
+      location,
+      releaseBounds,
+      defaultStatsPeriod: DEFAULT_STATS_PERIOD, // this will be removed once we get rid off legacy release details
+      allowEmptyPeriod: true,
+    });
 
     return {
       field: ['count_unique(user)', 'sum(session)'],
       groupBy: ['session.status'],
-      interval: '1h', // TODO(release-comparison): calculatete interval dynamically
-      ...getReleaseParams({
-        location,
-        releaseBounds,
-        defaultStatsPeriod: DEFAULT_STATS_PERIOD, // this will be removed once we get rid off legacy release details
-        allowEmptyPeriod: true,
-      }),
+      interval: getSessionsInterval(
+        {
+          start: releaseParams.start,
+          end: releaseParams.end,
+          period: releaseParams.statsPeriod ?? undefined,
+        },
+        {highFidelity: organization.features.includes('minute-resolution-sessions')}
+      ),
+      ...releaseParams,
     };
   }
 
@@ -102,10 +97,10 @@ class ReleaseDetailsRequest extends React.Component<Props, State> {
     }
 
     api.clear();
-    this.setState({
-      loading: true,
+    this.setState(state => ({
+      reloading: state.thisRelease !== null && state.allReleases !== null,
       errored: false,
-    });
+    }));
 
     const promises = [this.fetchThisRelease(), this.fetchAllReleases()];
 
@@ -113,17 +108,15 @@ class ReleaseDetailsRequest extends React.Component<Props, State> {
       const [thisRelease, allReleases] = await Promise.all(promises);
 
       this.setState({
-        loading: false,
+        reloading: false,
         thisRelease,
         allReleases,
       });
     } catch (error) {
       addErrorMessage(error.responseJSON?.detail ?? t('Error loading health data'));
       this.setState({
-        loading: false,
+        reloading: false,
         errored: true,
-        thisRelease: null,
-        allReleases: null,
       });
     }
   };
@@ -152,11 +145,14 @@ class ReleaseDetailsRequest extends React.Component<Props, State> {
   }
 
   render() {
-    const {loading, errored, thisRelease, allReleases} = this.state;
+    const {reloading, errored, thisRelease, allReleases} = this.state;
     const {children} = this.props;
+
+    const loading = thisRelease === null && allReleases === null;
 
     return children({
       loading,
+      reloading,
       errored,
       thisRelease,
       allReleases,
