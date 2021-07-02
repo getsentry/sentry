@@ -1186,6 +1186,7 @@ const Highlight = styled('div')`
   bottom: 0;
   user-select: none;
   white-space: pre-wrap;
+  word-break: break-word;
   line-height: 25px;
   font-size: ${p => p.theme.fontSizeSmall};
   font-family: ${p => p.theme.text.familyMono};
