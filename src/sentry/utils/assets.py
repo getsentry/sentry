@@ -4,7 +4,7 @@ from django.conf import settings
 def get_unversioned_asset_url(module, key):
     """
     Returns an asset URL that is unversioned. These assets should have a
-    `Cache-Control: no-cache` so that clients must validate with the origin
+    `Cache-Control: max-age=0, must-revalidate` so that clients must validate with the origin
     server before using their locally cached asset.
 
     Example:
