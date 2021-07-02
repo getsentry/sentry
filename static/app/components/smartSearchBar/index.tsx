@@ -843,13 +843,36 @@ class SmartSearchBar extends React.Component<Props, State> {
     };
   }
 
+  showDefaultSearches = async () => {
+    const {query} = this.state;
+    const [defaultSearchItems, defaultRecentItems] = this.props.defaultSearchItems!;
+
+    if (!defaultSearchItems.length) {
+      // Update searchTerm, otherwise <SearchDropdown> will have wrong state
+      // (e.g. if you delete a query, the last letter will be highlighted if `searchTerm`
+      // does not get updated)
+      this.setState({searchTerm: query});
+
+      const tagKeys = this.getTagKeys('');
+      const recentSearches = await this.getRecentSearches();
+
+      this.updateAutoCompleteState(tagKeys, recentSearches ?? [], '', 'tag-key');
+      return;
+    }
+    // cursor on whitespace show default "help" search terms
+    this.setState({searchTerm: ''});
+
+    this.updateAutoCompleteState(defaultSearchItems, defaultRecentItems, '', 'default');
+    return;
+  };
+
   getCursorToken = (
     parsedQuery: ParseResult,
     cursor: number
   ): ParseResult[number] | null => {
     // traverse AST to find first matching filter based on cursor position
     for (const node of parsedQuery) {
-      if (node !== Token.Spaces && isWithinToken(node, cursor)) {
+      if (node.type !== Token.Spaces && isWithinToken(node, cursor)) {
         // traverse into a logic group to find specific filter
         if (node.type === Token.LogicGroup) {
           return this.getCursorToken(node.inner, cursor);
@@ -870,10 +893,11 @@ class SmartSearchBar extends React.Component<Props, State> {
 
     const cursorToken = this.getCursorToken(parsedQuery, cursor);
     if (!cursorToken) {
+      this.showDefaultSearches();
       return;
     }
     if (cursorToken.type === Token.Filter) {
-      const tagName = getKeyName(cursorToken.key);
+      const tagName = getKeyName(cursorToken.key, {aggregateWithArgs: true});
       // check if we are on the tag, value, or operator
       if (isWithinToken(cursorToken.value, cursor)) {
         const node = cursorToken.value;
@@ -912,6 +936,7 @@ class SmartSearchBar extends React.Component<Props, State> {
           );
           autocompleteGroups.unshift(opGroup);
         }
+        this.setState({searchTerm: tagName});
         this.updateAutoCompleteStateMultiHeader(autocompleteGroups);
         return;
       }
@@ -933,6 +958,7 @@ class SmartSearchBar extends React.Component<Props, State> {
         type: 'tag-key' as ItemType,
       };
       const autocompleteGroups = [tagGroup];
+      this.setState({searchTerm: cursorToken.text});
       this.updateAutoCompleteStateMultiHeader(autocompleteGroups);
       return;
     }
@@ -951,7 +977,7 @@ class SmartSearchBar extends React.Component<Props, State> {
       return;
     }
 
-    let query = this.state.query;
+    let {query} = this.state;
 
     // Don't continue if the query hasn't changed
     if (query === this.state.previousQuery) {
@@ -969,25 +995,7 @@ class SmartSearchBar extends React.Component<Props, State> {
       (terms.length === 1 && terms[0] === this.props.defaultQuery) || // default term
       /^\s+$/.test(query.slice(cursor - 1, cursor + 1))
     ) {
-      const [defaultSearchItems, defaultRecentItems] = this.props.defaultSearchItems!;
-
-      if (!defaultSearchItems.length) {
-        // Update searchTerm, otherwise <SearchDropdown> will have wrong state
-        // (e.g. if you delete a query, the last letter will be highlighted if `searchTerm`
-        // does not get updated)
-        this.setState({searchTerm: query});
-
-        const tagKeys = this.getTagKeys('');
-        const recentSearches = await this.getRecentSearches();
-
-        this.updateAutoCompleteState(tagKeys, recentSearches ?? [], '', 'tag-key');
-        return;
-      }
-
-      // cursor on whitespace show default "help" search terms
-      this.setState({searchTerm: ''});
-
-      this.updateAutoCompleteState(defaultSearchItems, defaultRecentItems, '', 'default');
+      this.showDefaultSearches();
       return;
     }
 

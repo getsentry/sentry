@@ -55,21 +55,29 @@ export function treeTransformer(
   return tree.map(nodeVisitor);
 }
 
+type GetKeyNameOpts = {
+  aggregateWithArgs?: boolean;
+};
+
 /**
  * Utility to get the string name of any type of key.
  */
 export const getKeyName = (
   key: ReturnType<
     TokenConverter['tokenKeySimple' | 'tokenKeyExplicitTag' | 'tokenKeyAggregate']
-  >
+  >,
+  options?: GetKeyNameOpts
 ) => {
+  const {aggregateWithArgs} = options ?? {};
   switch (key.type) {
     case Token.KeySimple:
       return key.value;
     case Token.KeyExplicitTag:
       return key.key.value;
     case Token.KeyAggregate:
-      return key.name.value;
+      return aggregateWithArgs
+        ? `${key.name.value}(${key.args ? key.args.text : ''})`
+        : key.name.value;
     default:
       return '';
   }
