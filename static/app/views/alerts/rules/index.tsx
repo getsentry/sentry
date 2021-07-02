@@ -351,6 +351,7 @@ const StyledPanelTable = styled(PanelTable)<{hasAlertList: boolean}>`
 
   grid-template-columns: auto 1.5fr 1fr 1fr ${p => (!p.hasAlertList ? '1fr' : '')} 1fr auto;
   white-space: nowrap;
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const EmptyStateAction = styled('p')`
