@@ -17,11 +17,12 @@ export function getIncidentRuleDiscoverUrl(opts: {
   orgSlug: string;
   projects: Project[];
   rule?: IncidentRule;
+  eventType?: string;
   start?: string;
   end?: string;
   extraQueryParams?: Partial<NewQuery>;
 }) {
-  const {orgSlug, projects, rule, start, end, extraQueryParams} = opts;
+  const {orgSlug, projects, rule, eventType, start, end, extraQueryParams} = opts;
 
   if (!projects || !projects.length || !rule || (!start && !end)) {
     return '';
@@ -34,7 +35,7 @@ export function getIncidentRuleDiscoverUrl(opts: {
     name: (rule && rule.name) || '',
     orderby: `-${getAggregateAlias(rule.aggregate)}`,
     yAxis: rule.aggregate,
-    query: rule?.query ?? '',
+    query: (rule?.query || eventType) ?? '',
     projects: projects
       .filter(({slug}) => rule.projects.includes(slug))
       .map(({id}) => Number(id)),
