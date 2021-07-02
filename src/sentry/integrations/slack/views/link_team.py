@@ -11,7 +11,7 @@ from sentry.utils.signing import unsign
 from sentry.web.decorators import transaction_start
 from sentry.web.frontend.base import BaseView
 
-from ..utils import get_org_member_by_slack_id, is_valid_role, render_error_page, send_slack_message
+from ..utils import get_org_member_by_slack_id, is_valid_role, render_error_page, send_confirmation
 from . import build_linking_url as base_build_linking_url
 from . import never_cache
 
@@ -90,11 +90,12 @@ class SlackLinkTeamView(BaseView):  # type: ignore
         )
 
         if not is_valid_role(org_member, team, organization):
-            return send_slack_message(
+            return send_confirmation(
                 integration,
                 channel_id,
                 INSUFFICIENT_ROLE_TITLE,
                 INSUFFICIENT_ROLE_MESSAGE,
+                "sentry/integrations/slack-post-linked-team.html",
                 request,
             )
         external_team, created = ExternalActor.objects.get_or_create(
@@ -109,11 +110,12 @@ class SlackLinkTeamView(BaseView):  # type: ignore
         )
 
         if not created:
-            return send_slack_message(
+            return send_confirmation(
                 integration,
                 channel_id,
                 ALREADY_LINKED_TITLE,
                 ALREADY_LINKED_MESSAGE.format(slug=team.slug),
+                "sentry/integrations/slack-post-linked-team.html",
                 request,
             )
 
@@ -124,10 +126,11 @@ class SlackLinkTeamView(BaseView):  # type: ignore
             NotificationSettingOptionValues.ALWAYS,
             team=team,
         )
-        return send_slack_message(
+        return send_confirmation(
             integration,
             channel_id,
             SUCCESS_LINKED_TITLE,
             SUCCESS_LINKED_MESSAGE.format(slug=team.slug, channel_name=channel_name),
+            "sentry/integrations/slack-post-linked-team.html",
             request,
         )

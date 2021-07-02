@@ -5,25 +5,24 @@ from rest_framework.response import Response
 
 from sentry.models import ExternalActor, Integration, NotificationSetting, Team
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
-from sentry.shared_integrations.exceptions import ApiError
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.signing import unsign
 from sentry.web.decorators import transaction_start
 from sentry.web.frontend.base import BaseView
 from sentry.web.helpers import render_to_response
 
-from ..client import SlackClient
 from ..utils import (
     get_identity,
     get_org_member_by_slack_id,
     is_valid_role,
     logger,
-    send_slack_message,
+    send_confirmation,
 )
 from . import build_linking_url as base_build_linking_url
 from . import never_cache
 from .link_team import INSUFFICIENT_ROLE_MESSAGE, INSUFFICIENT_ROLE_TITLE
 
+SUCCESS_UNLINKED_TITLE = "Team unlinked"
 SUCCESS_UNLINKED_MESSAGE = (
     "This channel will no longer receive issue alert notifications for the {team} team."
 )
@@ -88,11 +87,12 @@ class SlackUnlinkTeamView(BaseView):  # type: ignore
             request, integration, organization, params["slack_id"]
         )
         if not is_valid_role(org_member, team, organization):
-            return send_slack_message(
+            return send_confirmation(
                 integration,
                 channel_id,
                 INSUFFICIENT_ROLE_TITLE,
                 INSUFFICIENT_ROLE_MESSAGE,
+                "sentry/integrations/slack-post-linked-team.html",
                 request,
             )
 
@@ -106,27 +106,11 @@ class SlackUnlinkTeamView(BaseView):  # type: ignore
             team=team,
         )
 
-        payload = {
-            "replace_original": False,
-            "response_type": "ephemeral",
-            "text": SUCCESS_UNLINKED_MESSAGE.format(team=team.slug),
-        }
-
-        client = SlackClient()
-        try:
-            client.post(params["response_url"], data=payload, json=True)
-        except ApiError as e:
-            message = str(e)
-            # If the user took their time to unlink their team, we may no
-            # longer be able to respond, and we're not guaranteed able to post into
-            # the channel. Ignore Expired url errors.
-            #
-            # XXX(epurkhiser): Yes the error string has a space in it.
-            if message != "Expired url":
-                logger.error("slack.unlink-notify.response-error", extra={"error": message})
-
-        return render_to_response(
+        return send_confirmation(
+            integration,
+            channel_id,
+            SUCCESS_UNLINKED_TITLE,
+            SUCCESS_UNLINKED_MESSAGE.format(team=team.slug),
             "sentry/integrations/slack-unlinked-team.html",
-            request=request,
-            context={"channel_name": channel_name, "team": team},
+            request,
         )

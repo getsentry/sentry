@@ -340,11 +340,12 @@ def render_error_page(request: Request, body_text: str) -> HttpResponse:
     )
 
 
-def send_slack_message(
+def send_confirmation(
     integration: Integration,
     channel_id: str,
     heading: str,
     text: str,
+    template: str,
     request: Request,
 ) -> HttpResponse:
     client = SlackClient()
@@ -354,16 +355,17 @@ def send_slack_message(
         "channel": channel_id,
         "text": text,
     }
+
     headers = {"Authorization": f"Bearer {token}"}
     try:
         client.post("/chat.postMessage", headers=headers, data=payload, json=True)
     except ApiError as e:
         message = str(e)
         if message != "Expired url":
-            logger.error("slack.link-notify.response-error", extra={"error": message})
+            logger.error("slack.slash-notify.response-error", extra={"error": message})
     else:
         return render_to_response(
-            "sentry/integrations/slack-post-linked-team.html",
+            template,
             request=request,
             context={
                 "heading_text": heading,
