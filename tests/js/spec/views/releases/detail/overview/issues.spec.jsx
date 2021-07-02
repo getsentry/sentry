@@ -10,6 +10,7 @@ describe('Release Issues', function () {
     allIssuesEndpoint;
 
   const props = {
+    orgId: 'org',
     organization: TestStubs.Organization(),
     version: '1.0.0',
     selection: {projects: [], environments: [], datetime: {period: '14d'}},
@@ -22,6 +23,13 @@ describe('Release Issues', function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${props.organization.slug}/users/`,
       body: [],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${props.organization.slug}/issues-count/?query=first-release%3A1.0.0&query=release%3A1.0.0&query=error.handled%3A0%20release%3A1.0.0&statsPeriod=14d`,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${props.organization.slug}/releases/1.0.0/resolved/`,
     });
 
     newIssuesEndpoint = MockApiClient.addMockResponse({
