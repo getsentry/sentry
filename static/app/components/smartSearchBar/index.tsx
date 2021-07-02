@@ -769,6 +769,18 @@ class SmartSearchBar extends React.Component<Props, State> {
     return [];
   };
 
+  async generateTagAutocompleteGroup(tagName: string): Promise<AutocompleteGroup> {
+    const tagKeys = this.getTagKeys(tagName);
+    const recentSearches = await this.getRecentSearches();
+
+    return {
+      searchItems: tagKeys,
+      recentSearchItems: recentSearches ?? [],
+      tagName,
+      type: 'tag-key' as ItemType,
+    };
+  }
+
   generateValueAutocompleteGroup = async (
     tagName: string,
     query: string
@@ -918,16 +930,7 @@ class SmartSearchBar extends React.Component<Props, State> {
 
       if (isWithinToken(cursorToken.key, cursor)) {
         const node = cursorToken.key;
-        const tagKeys = this.getTagKeys(tagName);
-        const recentSearches = await this.getRecentSearches();
-
-        const tagGroup: AutocompleteGroup = {
-          searchItems: tagKeys,
-          recentSearchItems: recentSearches ?? [],
-          tagName,
-          type: 'tag-key' as ItemType,
-        };
-        const autocompleteGroups = [tagGroup];
+        const autocompleteGroups = [await this.generateTagAutocompleteGroup(tagName)];
         // show operator group if at end of key
         if (cursor === node.location.end.offset) {
           const opGroup = this.generateOpAutocompleteGroup(
@@ -948,16 +951,9 @@ class SmartSearchBar extends React.Component<Props, State> {
     }
 
     if (cursorToken.type === Token.FreeText) {
-      const tagKeys = this.getTagKeys(cursorToken.text);
-      const recentSearches = await this.getRecentSearches();
-
-      const tagGroup: AutocompleteGroup = {
-        searchItems: tagKeys,
-        recentSearchItems: recentSearches ?? [],
-        tagName: cursorToken.text,
-        type: 'tag-key' as ItemType,
-      };
-      const autocompleteGroups = [tagGroup];
+      const autocompleteGroups = [
+        await this.generateTagAutocompleteGroup(cursorToken.text),
+      ];
       this.setState({searchTerm: cursorToken.text});
       this.updateAutoCompleteStateMultiHeader(autocompleteGroups);
       return;
