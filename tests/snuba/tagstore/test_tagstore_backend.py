@@ -690,7 +690,7 @@ class GetTagValuePaginatorForProjectsSemverTest(TestCase, SnubaTestCase):
         super().setUp()
         self.ts = SnubaTagStorage()
 
-    def run_test(self, query, expected_releases, environment=None, project=None):
+    def run_test(self, query, expected_versions, environment=None, project=None):
         if project is None:
             project = self.project
         assert list(
@@ -703,51 +703,61 @@ class GetTagValuePaginatorForProjectsSemverTest(TestCase, SnubaTestCase):
         ) == [
             TagValue(
                 key=SEMVER_ALIAS,
-                value=r.version,
+                value=v,
                 times_seen=None,
                 first_seen=None,
                 last_seen=None,
             )
-            for r in expected_releases
+            for v in expected_versions
         ]
 
     def test_semver(self):
         env_2 = self.create_environment()
         project_2 = self.create_project()
-        release_1 = self.create_release(version="test@1.0.0.0", additional_projects=[project_2])
-        release_2 = self.create_release(version="test@1.2.0.0", environments=[self.environment])
-        release_3 = self.create_release(version="test@1.2.3.0", environments=[env_2])
-        release_4 = self.create_release(version="test@1.2.3.4", environments=[env_2])
-        release_5 = self.create_release(
-            version="test2@2.0.0.0", environments=[self.environment, env_2]
-        )
-        release_6 = self.create_release(version="z_test@1.0.0.0")
-        release_7 = self.create_release(version="z_test@2.0.0.0", additional_projects=[project_2])
+        self.create_release(version="test@1.0.0.0+123", additional_projects=[project_2])
+        self.create_release(version="test@1.2.0.0-alpha", environments=[self.environment])
+        self.create_release(version="test@1.2.3.0-beta+789", environments=[env_2])
+        self.create_release(version="test@1.2.3.4", environments=[env_2])
+        self.create_release(version="test2@2.0.0.0+456", environments=[self.environment, env_2])
+        self.create_release(version="z_test@1.0.0.0")
+        self.create_release(version="z_test@2.0.0.0+456", additional_projects=[project_2])
 
-        self.run_test(
-            "", [release_1, release_6, release_2, release_3, release_4, release_5, release_7]
-        )
+        self.run_test("", ["1.0.0.0", "1.2.0.0-alpha", "1.2.3.0-beta", "1.2.3.4", "2.0.0.0"])
 
         # These should all be equivalent
-        self.run_test("1", [release_1, release_6, release_2, release_3, release_4])
-        self.run_test("1.", [release_1, release_6, release_2, release_3, release_4])
-        self.run_test("1.*", [release_1, release_6, release_2, release_3, release_4])
-        self.run_test("1.*", [release_1], project=project_2)
+        self.run_test("1", ["1.0.0.0", "1.2.0.0-alpha", "1.2.3.0-beta", "1.2.3.4"])
+        self.run_test("1.", ["1.0.0.0", "1.2.0.0-alpha", "1.2.3.0-beta", "1.2.3.4"])
+        self.run_test("1.*", ["1.0.0.0", "1.2.0.0-alpha", "1.2.3.0-beta", "1.2.3.4"])
 
-        self.run_test("1.2", [release_2, release_3, release_4])
+        self.run_test("1.*", ["1.0.0.0"], project=project_2)
 
-        self.run_test("", [release_2, release_5], self.environment)
-        self.run_test("", [release_3, release_4, release_5], env_2)
-        self.run_test("1", [release_2], self.environment)
-        self.run_test("1", [release_3, release_4], env_2)
+        self.run_test("1.2", ["1.2.0.0-alpha", "1.2.3.0-beta", "1.2.3.4"])
+
+        self.run_test("", ["1.2.0.0-alpha", "2.0.0.0"], self.environment)
+        self.run_test("", ["1.2.3.0-beta", "1.2.3.4", "2.0.0.0"], env_2)
+        self.run_test("1", ["1.2.0.0-alpha"], self.environment)
+        self.run_test("1", ["1.2.3.0-beta", "1.2.3.4"], env_2)
 
         # Test packages handling
-        self.run_test("test", [release_1, release_2, release_3, release_4, release_5])
-        self.run_test("test", [release_1], project=project_2)
-        self.run_test("test2", [release_5])
-        self.run_test("z", [release_6, release_7])
-        self.run_test("z", [release_7], project=project_2)
+        self.run_test(
+            "test",
+            [
+                "test@1.0.0.0",
+                "test@1.2.0.0-alpha",
+                "test@1.2.3.0-beta",
+                "test@1.2.3.4",
+                "test2@2.0.0.0",
+            ],
+        )
+        self.run_test("test", ["test@1.0.0.0"], project=project_2)
+        self.run_test("test2", ["test2@2.0.0.0"])
+        self.run_test("z", ["z_test@1.0.0.0", "z_test@2.0.0.0"])
+        self.run_test("z", ["z_test@2.0.0.0"], project=project_2)
 
-        self.run_test("test@", [release_1, release_2, release_3, release_4])
-        self.run_test("test@*", [release_1, release_2, release_3, release_4])
-        self.run_test("test@1.2", [release_2, release_3, release_4])
+        self.run_test(
+            "test@", ["test@1.0.0.0", "test@1.2.0.0-alpha", "test@1.2.3.0-beta", "test@1.2.3.4"]
+        )
+        self.run_test(
+            "test@*", ["test@1.0.0.0", "test@1.2.0.0-alpha", "test@1.2.3.0-beta", "test@1.2.3.4"]
+        )
+        self.run_test("test@1.2", ["test@1.2.0.0-alpha", "test@1.2.3.0-beta", "test@1.2.3.4"])

@@ -764,6 +764,7 @@ class SnubaTagStorage(TagStorage):
             )[0]
 
             if version and "@" not in version and re.search(r"[^\d.\*]", version):
+                include_package = True
                 # Handle searching just on package
                 packages = (
                     Release.objects.filter(
@@ -780,6 +781,7 @@ class SnubaTagStorage(TagStorage):
                     ),
                 ).annotate_prerelease_column()
             else:
+                include_package = "@" in version
                 if not version:
                     version = "*"
                 elif version[-1] not in SEMVER_WILDCARDS | {"@"}:
@@ -802,8 +804,26 @@ class SnubaTagStorage(TagStorage):
             versions = versions.order_by(*Release.SEMVER_COLS, "package").values_list(
                 "version", flat=True
             )[:1000]
+
+            seen = set()
+            formatted_versions = []
+            # We want to format versions here in a way that makes sense for autocomplete. So we
+            # - Only include package if we think the user entered a package
+            # - Exclude build number, since it's not used as part of filtering
+            # When we don't include package, this can result in duplicate version numbers, so we
+            # also de-dupe here. This can result in less than 1000 versions returned, but we
+            # typically use very few values so this works ok.
+            for version in versions:
+                formatted_version = version if include_package else version.split("@", 1)[1]
+                formatted_version = formatted_version.split("+", 1)[0]
+                if formatted_version in seen:
+                    continue
+
+                seen.add(formatted_version)
+                formatted_versions.append(formatted_version)
+
             return SequencePaginator(
-                [(i, TagValue(key, v, None, None, None)) for i, v in enumerate(versions)]
+                [(i, TagValue(key, v, None, None, None)) for i, v in enumerate(formatted_versions)]
             )
 
         conditions = []
