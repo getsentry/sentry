@@ -5,7 +5,7 @@ from sentry import analytics
 from sentry.models import Organization
 from sentry.utils import json
 from sentry.utils.hashlib import md5_text
-from sentry.utils.session_store import RedisSessionStore
+from sentry.utils.session_store import RedisSessionStore, redis_property
 from sentry.web.frontend.base import BaseView
 from sentry.web.helpers import render_to_response
 
@@ -106,6 +106,17 @@ class NestedPipelineView(PipelineView):
         return nested_pipeline.current_step()
 
 
+class PipelineSessionStore(RedisSessionStore):
+    uid = redis_property("uid")
+    provider_model_id = redis_property("provider_model_id")
+    provider_key = redis_property("provider_key")
+    org_id = redis_property("org_id")
+    signature = redis_property("signature")
+    step_index = redis_property("step_index")
+    config = redis_property("config")
+    data = redis_property("data")
+
+
 class Pipeline:
     """
     Pipeline provides a mechanism to guide the user through a request
@@ -138,7 +149,7 @@ class Pipeline:
 
     @classmethod
     def get_for_request(cls, request):
-        state = RedisSessionStore(request, cls.pipeline_name, ttl=INTEGRATION_EXPIRATION_TTL)
+        state = PipelineSessionStore(request, cls.pipeline_name, ttl=INTEGRATION_EXPIRATION_TTL)
         if not state.is_valid():
             return None
 
@@ -167,7 +178,9 @@ class Pipeline:
 
         self.request = request
         self.organization = organization
-        self.state = RedisSessionStore(request, self.pipeline_name, ttl=INTEGRATION_EXPIRATION_TTL)
+        self.state = PipelineSessionStore(
+            request, self.pipeline_name, ttl=INTEGRATION_EXPIRATION_TTL
+        )
         self.provider = self.provider_manager.get(provider_key)
         self.provider_model = provider_model
 
