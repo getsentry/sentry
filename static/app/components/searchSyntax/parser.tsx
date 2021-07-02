@@ -106,8 +106,13 @@ const allOperators = [
 
 const basicOperators = [TermOperator.Default, TermOperator.NotEqual] as const;
 
+/**
+ * Map of certain filter types to other filter types with applicable operators
+ * e.g. SpecificDate can use the operators from Date to become a Date filter.
+ */
 export const interchangeableFilterOperators = {
   [FilterType.SpecificDate]: [FilterType.Date],
+  [FilterType.Date]: [FilterType.SpecificDate],
 };
 
 const textKeys = [Token.KeySimple, Token.KeyExplicitTag] as const;
@@ -290,7 +295,7 @@ type FilterResult = FilterMap[FilterType];
 /**
  * Utility to get the string name of any type of key.
  */
-const getKeyName = (
+export const getKeyName = (
   key: ReturnType<
     TokenConverter['tokenKeySimple' | 'tokenKeyExplicitTag' | 'tokenKeyAggregate']
   >

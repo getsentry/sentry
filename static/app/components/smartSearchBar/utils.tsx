@@ -1,4 +1,12 @@
-import {TermOperator} from 'app/components/searchSyntax/parser';
+import {LocationRange} from 'pegjs';
+
+import {
+  filterTypeConfig,
+  interchangeableFilterOperators,
+  TermOperator,
+  Token,
+  TokenResult,
+} from 'app/components/searchSyntax/parser';
 import {IconClock, IconStar, IconTag, IconToggle, IconUser} from 'app/icons';
 import {t} from 'app/locale';
 
@@ -171,37 +179,63 @@ export function generateOperatorEntryMap(tag: string) {
     [TermOperator.Default]: {
       type: 'tag-operator' as ItemType,
       value: ':',
-      desc: t(`${tag}:[value] is equal to`),
+      desc: `${tag}:${t('[value] is equal to')}`,
     },
     [TermOperator.GreaterThanEqual]: {
       type: 'tag-operator' as ItemType,
       value: ':>=',
-      desc: t(`${tag}:>=[value] is greater than or equal to`),
+      desc: `${tag}:${t('>=[value] is greater than or equal to')}`,
     },
     [TermOperator.LessThanEqual]: {
       type: 'tag-operator' as ItemType,
       value: ':<=',
-      desc: t(`${tag}:<=[value] is less than or equal to`),
+      desc: `${tag}:${t('<=[value] is less than or equal to')}`,
     },
     [TermOperator.GreaterThan]: {
       type: 'tag-operator' as ItemType,
       value: ':>',
-      desc: t(`${tag}:>[value] is greater than`),
+      desc: `${tag}:${t('>[value] is greater than')}`,
     },
     [TermOperator.LessThan]: {
       type: 'tag-operator' as ItemType,
       value: ':<',
-      desc: t(`${tag}:<[value] is less than`),
+      desc: `${tag}:${t('<[value] is less than')}`,
     },
     [TermOperator.Equal]: {
       type: 'tag-operator' as ItemType,
       value: ':=',
-      desc: t(`${tag}:=[value] is equal to`),
+      desc: `${tag}:${t('=[value] is equal to')}`,
     },
     [TermOperator.NotEqual]: {
       type: 'tag-operator' as ItemType,
       value: '!:',
-      desc: t(`!${tag}:[value] is not equal to`),
+      desc: `!${tag}:${t('[value] is not equal to')}`,
     },
   };
+}
+
+export function getValidOps(
+  filterToken: TokenResult<Token.Filter>
+): readonly TermOperator[] {
+  // If the token is invalid we want to use the possible expected types as our filter type
+  const validTypes = filterToken.invalid?.expectedType ?? [filterToken.filter];
+
+  // Determine any interchangable filter types for our valid types
+  const interchangeableTypes = validTypes.map(
+    type => interchangeableFilterOperators[type] ?? []
+  );
+
+  // Combine all types
+  const allValidTypes = [...new Set([...validTypes, ...interchangeableTypes.flat()])];
+
+  // Find all valid operations
+  const validOps = new Set<TermOperator>(
+    allValidTypes.map(type => filterTypeConfig[type].validOps).flat()
+  );
+
+  return [...validOps];
+}
+
+export function isWithinToken(node: {location: LocationRange}, position: number) {
+  return position >= node.location.start.offset && position <= node.location.end.offset;
 }

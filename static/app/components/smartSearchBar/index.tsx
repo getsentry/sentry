@@ -5,7 +5,6 @@ import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
-import {LocationRange} from 'pegjs';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {fetchRecentSearches, saveRecentSearch} from 'app/actionCreators/savedSearches';
@@ -14,13 +13,11 @@ import ButtonBar from 'app/components/buttonBar';
 import DropdownLink from 'app/components/dropdownLink';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {
-  filterTypeConfig,
-  interchangeableFilterOperators,
+  getKeyName,
   ParseResult,
   parseSearch,
   TermOperator,
   Token,
-  TokenResult,
 } from 'app/components/searchSyntax/parser';
 import HighlightQuery from 'app/components/searchSyntax/renderer';
 import {
@@ -49,6 +46,8 @@ import {
   generateOperatorEntryMap,
   getLastTermIndex,
   getQueryTerms,
+  getValidOps,
+  isWithinToken,
   removeSpace,
 } from './utils';
 
@@ -830,15 +829,6 @@ class SmartSearchBar extends React.Component<Props, State> {
     };
   };
 
-  getValidOps(filterToken: TokenResult<Token.Filter>): readonly TermOperator[] {
-    const types = filterToken.invalid?.expectedType ?? [filterToken.filter];
-    const filterType = interchangeableFilterOperators[types[0]]
-      ? interchangeableFilterOperators[types[0]][0]
-      : types[0];
-    const config = filterTypeConfig[filterType];
-    return config.validOps ?? [''];
-  }
-
   generateOpAutocompleteGroup(
     validOps: readonly TermOperator[],
     tagName: string
@@ -853,14 +843,13 @@ class SmartSearchBar extends React.Component<Props, State> {
     };
   }
 
-  withinTokenLocation(node: {location: LocationRange}, position: number) {
-    return position >= node.location.start.offset && position <= node.location.end.offset;
-  }
-
-  getCursorToken = (AST: ParseResult, cursor: number): ParseResult[number] | null => {
+  getCursorToken = (
+    parsedQuery: ParseResult,
+    cursor: number
+  ): ParseResult[number] | null => {
     // traverse AST to find first matching filter based on cursor position
-    for (const node of AST) {
-      if (node !== Token.Spaces && this.withinTokenLocation(node, cursor)) {
+    for (const node of parsedQuery) {
+      if (node !== Token.Spaces && isWithinToken(node, cursor)) {
         // traverse into a logic group to find specific filter
         if (node.type === Token.LogicGroup) {
           return this.getCursorToken(node.inner, cursor);
@@ -871,6 +860,81 @@ class SmartSearchBar extends React.Component<Props, State> {
     return null;
   };
 
+  updateAutoCompleteFromAst = async () => {
+    const cursor = this.getCursorPosition();
+    const {parsedQuery} = this.state;
+
+    if (!parsedQuery) {
+      return;
+    }
+
+    const cursorToken = this.getCursorToken(parsedQuery, cursor);
+    if (cursorToken && cursorToken.type === Token.Filter) {
+      const tagName = getKeyName(cursorToken.key);
+      // check if we are on the tag, value, or operator
+      if (isWithinToken(cursorToken.value, cursor)) {
+        const node = cursorToken.value;
+
+        const valueGroup = await this.generateValueAutocompleteGroup(tagName, node.text);
+        const autocompleteGroups = valueGroup ? [valueGroup] : [];
+        // show operator group if at beginning of value
+        if (cursor === node.location.start.offset) {
+          const opGroup = this.generateOpAutocompleteGroup(
+            getValidOps(cursorToken),
+            tagName
+          );
+          autocompleteGroups.unshift(opGroup);
+        }
+        this.updateAutoCompleteStateMultiHeader(autocompleteGroups);
+        return;
+      }
+
+      if (isWithinToken(cursorToken.key, cursor)) {
+        const node = cursorToken.key;
+        const tagKeys = this.getTagKeys(tagName);
+        const recentSearches = await this.getRecentSearches();
+
+        const tagGroup: AutocompleteGroup = {
+          searchItems: tagKeys,
+          recentSearchItems: recentSearches ?? [],
+          tagName: node.text,
+          type: 'tag-key' as ItemType,
+        };
+        const autocompleteGroups = [tagGroup];
+        // show operator group if at end of key
+        if (cursor === node.location.end.offset) {
+          const opGroup = this.generateOpAutocompleteGroup(
+            getValidOps(cursorToken),
+            tagName
+          );
+          autocompleteGroups.unshift(opGroup);
+        }
+        this.updateAutoCompleteStateMultiHeader(autocompleteGroups);
+        return;
+      }
+
+      // show operator autocomplete group
+      const opGroup = this.generateOpAutocompleteGroup(getValidOps(cursorToken), tagName);
+      this.updateAutoCompleteStateMultiHeader([opGroup]);
+      return;
+    }
+
+    if (cursorToken && cursorToken.type === Token.FreeText) {
+      const tagKeys = this.getTagKeys(cursorToken.text);
+      const recentSearches = await this.getRecentSearches();
+
+      const tagGroup: AutocompleteGroup = {
+        searchItems: tagKeys,
+        recentSearchItems: recentSearches ?? [],
+        tagName: cursorToken.text,
+        type: 'tag-key' as ItemType,
+      };
+      const autocompleteGroups = [tagGroup];
+      this.updateAutoCompleteStateMultiHeader(autocompleteGroups);
+      return;
+    }
+  };
+
   updateAutoCompleteItems = async () => {
     if (this.blurTimeout) {
       clearTimeout(this.blurTimeout);
@@ -879,61 +943,9 @@ class SmartSearchBar extends React.Component<Props, State> {
 
     const cursor = this.getCursorPosition();
     const {organization} = this.props;
-    const AST = this.state.parsedQuery;
-    if (AST && organization.features.includes('search-syntax-highlight')) {
-      const filterNode = this.getCursorToken(AST, cursor);
-      if (filterNode && filterNode.type === Token.Filter) {
-        // check if we are on the tag, value, or operator
-        if (this.withinTokenLocation(filterNode.value, cursor)) {
-          const node = filterNode.value;
-          const tagName = filterNode.key.text;
-
-          const valueGroup = await this.generateValueAutocompleteGroup(
-            tagName,
-            node.text
-          );
-          const autocompleteGroups = valueGroup ? [valueGroup] : [];
-          // show operator group if at beginning of value
-          if (cursor === node.location.start.offset) {
-            const opGroup = this.generateOpAutocompleteGroup(
-              this.getValidOps(filterNode),
-              tagName
-            );
-            autocompleteGroups.unshift(opGroup);
-          }
-          this.updateAutoCompleteStateMultiHeader(autocompleteGroups);
-        } else if (this.withinTokenLocation(filterNode.key, cursor)) {
-          const node = filterNode.key;
-          const tagKeys = this.getTagKeys(node.text);
-          const recentSearches = await this.getRecentSearches();
-
-          const tagGroup: AutocompleteGroup = {
-            searchItems: tagKeys,
-            recentSearchItems: recentSearches ?? [],
-            tagName: node.text,
-            type: 'tag-key' as ItemType,
-          };
-          const autocompleteGroups = [tagGroup];
-          // show operator group if at end of key
-          if (cursor === node.location.end.offset) {
-            const opGroup = this.generateOpAutocompleteGroup(
-              this.getValidOps(filterNode),
-              node.text
-            );
-            autocompleteGroups.unshift(opGroup);
-          }
-          this.updateAutoCompleteStateMultiHeader(autocompleteGroups);
-        } else {
-          // show operator autocomplete group
-          const node = filterNode.key;
-          const opGroup = this.generateOpAutocompleteGroup(
-            this.getValidOps(filterNode),
-            node.text
-          );
-          this.updateAutoCompleteStateMultiHeader([opGroup]);
-        }
-        return;
-      }
+    if (organization.features.includes('search-syntax-highlight')) {
+      this.updateAutoCompleteFromAst();
+      return;
     }
 
     let query = this.state.query;
@@ -1060,28 +1072,100 @@ class SmartSearchBar extends React.Component<Props, State> {
    */
   updateAutoCompleteStateMultiHeader = (groups: AutocompleteGroup[]) => {
     const {hasRecentSearches, maxSearchItems, maxQueryLength} = this.props;
-    const query = this.state.query;
+    const {query} = this.state;
     const queryCharsLeft =
       maxQueryLength && query ? maxQueryLength - query.length : undefined;
-    const searchGroups = {
-      searchGroups: [] as SearchGroup[],
-      flatSearchItems: [] as SearchItem[],
-      activeSearchItem: -1,
-    };
-    for (const group of groups) {
-      const {searchItems, recentSearchItems, tagName, type} = group;
-      const searchGroup = createSearchGroups(
-        searchItems,
-        hasRecentSearches ? recentSearchItems : undefined,
-        tagName,
-        type,
-        maxSearchItems,
-        queryCharsLeft
+
+    const searchGroups = groups
+      .map(({searchItems, recentSearchItems, tagName, type}) =>
+        createSearchGroups(
+          searchItems,
+          hasRecentSearches ? recentSearchItems : undefined,
+          tagName,
+          type,
+          maxSearchItems,
+          queryCharsLeft
+        )
+      )
+      .reduce(
+        (acc, item) => ({
+          searchGroups: [...acc.searchGroups, ...item.searchGroups],
+          flatSearchItems: [...acc.flatSearchItems, ...item.flatSearchItems],
+          activeSearchItem: -1,
+        }),
+        {
+          searchGroups: [] as SearchGroup[],
+          flatSearchItems: [] as SearchItem[],
+          activeSearchItem: -1,
+        }
       );
-      searchGroups.searchGroups.push(...searchGroup.searchGroups);
-      searchGroups.flatSearchItems.push(...searchGroup.flatSearchItems);
-    }
+
     this.setState(searchGroups);
+  };
+
+  onAutoCompleteFromAst = (replaceText: string, item: SearchItem) => {
+    const cursor = this.getCursorPosition();
+    const {parsedQuery, query} = this.state;
+    if (!parsedQuery) {
+      return;
+    }
+    const cursorToken = this.getCursorToken(parsedQuery, cursor);
+    if (!cursorToken) {
+      return;
+    }
+
+    // the start and end of what to replace
+    let clauseStart: null | number = null;
+    let clauseEnd: null | number = null;
+    // the new text that will exist between clauseStart and clauseEnd
+    let replaceToken = replaceText;
+    if (cursorToken.type === Token.Filter) {
+      if (item.type === 'tag-operator') {
+        const valueLocation = cursorToken.value.location;
+        clauseStart = cursorToken.location.start.offset;
+        clauseEnd = valueLocation.start.offset;
+        if (replaceText === '!:') {
+          replaceToken = `!${cursorToken.key.text}:`;
+        } else {
+          replaceToken = `${cursorToken.key.text}${replaceText}`;
+        }
+      } else if (isWithinToken(cursorToken.value, cursor)) {
+        const location = cursorToken.value.location;
+        const keyLocation = cursorToken.key.location;
+        // Include everything after the ':'
+        clauseStart = keyLocation.end.offset + 1;
+        clauseEnd = location.end.offset;
+      } else if (isWithinToken(cursorToken.key, cursor)) {
+        const location = cursorToken.key.location;
+        clauseStart = location.start.offset;
+        // If the token is a key, then trim off the end to avoid duplicate ':'
+        clauseEnd = location.end.offset + 1;
+      }
+    }
+
+    if (cursorToken.type === Token.FreeText) {
+      clauseStart = cursorToken.location.start.offset;
+      clauseEnd = cursorToken.location.end.offset;
+    }
+
+    if (clauseStart !== null && clauseEnd !== null) {
+      const beforeClause = query.substring(0, clauseStart);
+      const endClause = query.substring(clauseEnd);
+      const newQuery = `${beforeClause}${replaceToken}${endClause}`;
+      this.setState(makeQueryState(newQuery), () => {
+        // setting a new input value will lose focus; restore it
+        if (this.searchInput.current) {
+          this.searchInput.current.focus();
+          // set cursor to be end of the autocomplete clause
+          const newCursorPosition = beforeClause.length + replaceToken.length;
+          this.searchInput.current.selectionStart = newCursorPosition;
+          this.searchInput.current.selectionEnd = newCursorPosition;
+        }
+        // then update the autocomplete box with new items
+        this.updateAutoCompleteItems();
+        this.props.onChange?.(newQuery, new MouseEvent('click') as any);
+      });
+    }
   };
 
   onAutoComplete = (replaceText: string, item: SearchItem) => {
@@ -1107,58 +1191,9 @@ class SmartSearchBar extends React.Component<Props, State> {
     const query = this.state.query;
 
     const {organization} = this.props;
-    const AST = this.state.parsedQuery;
-    if (AST && organization.features.includes('search-syntax-highlight')) {
-      const filterNode = this.getCursorToken(AST, cursor);
-      if (filterNode && filterNode.type === Token.Filter) {
-        // the start and end of what to replace
-        let clauseStart: null | number = null;
-        let clauseEnd: null | number = null;
-        // the new text that will exist between clauseStart and clauseEnd
-        let replaceToken = replaceText;
-        if (item.type === 'tag-operator') {
-          const valueLocation = filterNode.value.location;
-          clauseStart = filterNode.location.start.offset;
-          clauseEnd = valueLocation.start.offset;
-          if (replaceText === '!:') {
-            replaceToken = `!${filterNode.key.text}:`;
-          } else {
-            replaceToken = `${filterNode.key.text}${replaceText}`;
-          }
-        } else if (this.withinTokenLocation(filterNode.value, cursor)) {
-          const location = filterNode.value.location;
-          const keyLocation = filterNode.key.location;
-          // Include everything after the ':'
-          clauseStart = keyLocation.end.offset + 1;
-          clauseEnd = location.end.offset;
-        } else if (this.withinTokenLocation(filterNode.key, cursor)) {
-          const location = filterNode.key.location;
-          clauseStart = location.start.offset;
-          // If the token is a key, then trim off the end to avoid duplicate ':'
-          clauseEnd = location.end.offset + 1;
-        }
-        if (clauseStart !== null && clauseEnd !== null) {
-          const beforeClause = query.substring(0, clauseStart);
-          const endClause = query.substring(clauseEnd);
-          const newQuery = `${beforeClause}${replaceToken}${endClause}`;
-
-          this.setState({query: newQuery}, () => {
-            // setting a new input value will lose focus; restore it
-            if (this.searchInput.current) {
-              this.searchInput.current.focus();
-              // set cursor to be end of the autocomplete clause
-              const newCursorPosition = beforeClause.length + replaceToken.length;
-              this.searchInput.current.selectionStart = newCursorPosition;
-              this.searchInput.current.selectionEnd = newCursorPosition;
-            }
-
-            // then update the autocomplete box with new items
-            this.updateAutoCompleteItems();
-            this.props.onChange?.(newQuery, new MouseEvent('click') as any);
-          });
-          return;
-        }
-      }
+    if (organization.features.includes('search-syntax-highlight')) {
+      this.onAutoCompleteFromAst(replaceText, item);
+      return;
     }
 
     const lastTermIndex = getLastTermIndex(query, cursor);
