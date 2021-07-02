@@ -11,7 +11,7 @@ import recreateRoute from 'app/utils/recreateRoute';
 import {
   AlertRuleThresholdType,
   SavedIncidentRule,
-} from 'app/views/settings/incidentRules/types';
+} from 'app/views/alerts/incidentRules/types';
 
 function isIssueAlert(data: IssueAlertRule | SavedIncidentRule): data is IssueAlertRule {
   return !data.hasOwnProperty('triggers');

@@ -6,11 +6,11 @@ import NumberDragControl from 'app/components/numberDragControl';
 import Tooltip from 'app/components/tooltip';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import Input from 'app/views/settings/components/forms/controls/input';
 import {
   AlertRuleThresholdType,
   ThresholdControlValue,
-} from 'app/views/settings/incidentRules/types';
+} from 'app/views/alerts/incidentRules/types';
+import Input from 'app/views/settings/components/forms/controls/input';
 
 type Props = ThresholdControlValue & {
   type: string;

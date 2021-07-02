@@ -11,12 +11,8 @@ import {t} from 'app/locale';
 import {DateString, Organization} from 'app/types';
 import {getUtcDateString} from 'app/utils/dates';
 import withApi from 'app/utils/withApi';
+import {IncidentRule, TimePeriod, TimeWindow} from 'app/views/alerts/incidentRules/types';
 import {makeRuleDetailsQuery} from 'app/views/alerts/list/row';
-import {
-  IncidentRule,
-  TimePeriod,
-  TimeWindow,
-} from 'app/views/settings/incidentRules/types';
 
 import {Incident} from '../../types';
 import {fetchAlertRule, fetchIncident, fetchIncidentsForRule} from '../../utils';

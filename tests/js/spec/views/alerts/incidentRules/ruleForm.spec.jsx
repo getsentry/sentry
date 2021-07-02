@@ -3,8 +3,8 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {addErrorMessage} from 'app/actionCreators/indicator';
 import {metric} from 'app/utils/analytics';
+import RuleFormContainer from 'app/views/alerts/incidentRules/ruleForm';
 import FormModel from 'app/views/settings/components/forms/model';
-import RuleFormContainer from 'app/views/settings/incidentRules/ruleForm';
 
 jest.mock('app/actionCreators/indicator');
 jest.mock('app/utils/analytics', () => ({

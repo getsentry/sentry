@@ -21,7 +21,7 @@ import space from 'app/styles/space';
 import {use24Hours} from 'app/utils/dates';
 import getDynamicText from 'app/utils/getDynamicText';
 import Projects from 'app/utils/projects';
-import {Dataset} from 'app/views/settings/incidentRules/types';
+import {Dataset} from 'app/views/alerts/incidentRules/types';
 
 import Status from '../status';
 import {Incident, IncidentStats} from '../types';

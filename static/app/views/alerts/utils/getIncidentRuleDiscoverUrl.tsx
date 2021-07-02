@@ -1,7 +1,7 @@
 import {NewQuery, Project} from 'app/types';
 import EventView from 'app/utils/discover/eventView';
 import {getAggregateAlias} from 'app/utils/discover/fields';
-import {Dataset, IncidentRule} from 'app/views/settings/incidentRules/types';
+import {Dataset, IncidentRule} from 'app/views/alerts/incidentRules/types';
 /**
  * Gets the URL for a discover view of the rule with the following default
  * parameters:

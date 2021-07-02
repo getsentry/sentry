@@ -8,7 +8,7 @@ import ProjectsStore from 'app/stores/projectsStore';
 import {metric} from 'app/utils/analytics';
 import AlertsContainer from 'app/views/alerts';
 import AlertBuilderProjectProvider from 'app/views/alerts/builder/projectProvider';
-import ProjectAlertsCreate from 'app/views/settings/projectAlerts/create';
+import ProjectAlertsCreate from 'app/views/alerts/create';
 
 jest.unmock('app/utils/recreateRoute');
 jest.mock('app/utils/analytics', () => ({

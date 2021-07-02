@@ -3,9 +3,9 @@ import {RouteComponentProps} from 'react-router';
 import {Organization, Project, Team} from 'app/types';
 import {metric} from 'app/utils/analytics';
 import withTeams from 'app/utils/withTeams';
+import RuleForm from 'app/views/alerts/incidentRules/ruleForm';
+import {IncidentRule} from 'app/views/alerts/incidentRules/types';
 import AsyncView from 'app/views/asyncView';
-import RuleForm from 'app/views/settings/incidentRules/ruleForm';
-import {IncidentRule} from 'app/views/settings/incidentRules/types';
 
 type RouteParams = {
   orgId: string;

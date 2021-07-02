@@ -3,7 +3,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {Client} from 'app/api';
 import LineChart from 'app/components/charts/lineChart';
-import TriggersChart from 'app/views/settings/incidentRules/triggers/chart';
+import TriggersChart from 'app/views/alerts/incidentRules/triggers/chart';
 
 jest.mock('app/components/charts/lineChart');
 

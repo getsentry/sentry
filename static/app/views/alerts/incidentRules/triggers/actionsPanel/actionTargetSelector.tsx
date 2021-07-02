@@ -3,13 +3,13 @@ import * as React from 'react';
 import SelectControl from 'app/components/forms/selectControl';
 import SelectMembers from 'app/components/selectMembers';
 import {Organization, Project, SelectValue} from 'app/types';
-import Input from 'app/views/settings/components/forms/controls/input';
 import {
   Action,
   ActionType,
   MetricActionTemplate,
   TargetType,
-} from 'app/views/settings/incidentRules/types';
+} from 'app/views/alerts/incidentRules/types';
+import Input from 'app/views/settings/components/forms/controls/input';
 
 const getPlaceholderForType = (type: ActionType) => {
   switch (type) {

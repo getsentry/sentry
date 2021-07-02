@@ -31,10 +31,10 @@ import {ReactEchartsRef} from 'app/types/echarts';
 import {getUtcDateString} from 'app/utils/dates';
 import theme from 'app/utils/theme';
 import {alertDetailsLink} from 'app/views/alerts/details';
+import {makeDefaultCta} from 'app/views/alerts/incidentRules/incidentRulePresets';
+import {IncidentRule} from 'app/views/alerts/incidentRules/types';
 import {AlertWizardAlertNames} from 'app/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'app/views/alerts/wizard/utils';
-import {makeDefaultCta} from 'app/views/settings/incidentRules/incidentRulePresets';
-import {IncidentRule} from 'app/views/settings/incidentRules/types';
 
 import {Incident, IncidentActivityType, IncidentStatus} from '../../types';
 

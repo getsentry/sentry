@@ -3,9 +3,9 @@ import {t} from 'app/locale';
 import {Project} from 'app/types';
 import {DisplayModes} from 'app/utils/discover/types';
 import {tokenizeSearch} from 'app/utils/tokenizeSearch';
+import {Dataset, IncidentRule} from 'app/views/alerts/incidentRules/types';
 import {getIncidentRuleDiscoverUrl} from 'app/views/alerts/utils/getIncidentRuleDiscoverUrl';
 import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactionSummary/utils';
-import {Dataset, IncidentRule} from 'app/views/settings/incidentRules/types';
 
 type PresetCta = {
   /**

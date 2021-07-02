@@ -24,14 +24,14 @@ import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
 import {Actor, DateString, Organization, Project} from 'app/types';
 import Projects from 'app/utils/projects';
-import Timeline from 'app/views/alerts/rules/details/timeline';
 import {
   AlertRuleThresholdType,
   Dataset,
   IncidentRule,
   Trigger,
-} from 'app/views/settings/incidentRules/types';
-import {extractEventTypeFilterFromRule} from 'app/views/settings/incidentRules/utils/getEventTypeFilter';
+} from 'app/views/alerts/incidentRules/types';
+import {extractEventTypeFilterFromRule} from 'app/views/alerts/incidentRules/utils/getEventTypeFilter';
+import Timeline from 'app/views/alerts/rules/details/timeline';
 
 import AlertBadge from '../../alertBadge';
 import {AlertRuleStatus, Incident, IncidentStatus} from '../../types';

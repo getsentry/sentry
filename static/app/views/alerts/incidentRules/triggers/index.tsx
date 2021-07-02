@@ -5,8 +5,8 @@ import {Organization, Project} from 'app/types';
 import {removeAtArrayIndex} from 'app/utils/removeAtArrayIndex';
 import {replaceAtArrayIndex} from 'app/utils/replaceAtArrayIndex';
 import withProjects from 'app/utils/withProjects';
-import ActionsPanel from 'app/views/settings/incidentRules/triggers/actionsPanel';
-import TriggerForm from 'app/views/settings/incidentRules/triggers/form';
+import ActionsPanel from 'app/views/alerts/incidentRules/triggers/actionsPanel';
+import TriggerForm from 'app/views/alerts/incidentRules/triggers/form';
 
 import {
   Action,

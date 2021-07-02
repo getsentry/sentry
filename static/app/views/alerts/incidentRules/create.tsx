@@ -5,12 +5,12 @@ import {Organization, Project, Team} from 'app/types';
 import {metric} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
 import withTeams from 'app/utils/withTeams';
-import {WizardRuleTemplate} from 'app/views/alerts/wizard/options';
 import {
   createDefaultRule,
   createRuleFromEventView,
   createRuleFromWizardTemplate,
-} from 'app/views/settings/incidentRules/constants';
+} from 'app/views/alerts/incidentRules/constants';
+import {WizardRuleTemplate} from 'app/views/alerts/wizard/options';
 
 import RuleForm from './ruleForm';
 

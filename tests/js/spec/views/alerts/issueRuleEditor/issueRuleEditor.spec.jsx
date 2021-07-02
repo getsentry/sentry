@@ -7,8 +7,8 @@ import {selectByValue} from 'sentry-test/select-new';
 
 import {updateOnboardingTask} from 'app/actionCreators/onboardingTasks';
 import {metric} from 'app/utils/analytics';
+import IssueRuleEditor from 'app/views/alerts/issueRuleEditor';
 import ProjectAlerts from 'app/views/settings/projectAlerts';
-import IssueRuleEditor from 'app/views/settings/projectAlerts/issueRuleEditor';
 
 jest.unmock('app/utils/recreateRoute');
 jest.mock('app/actionCreators/onboardingTasks');
