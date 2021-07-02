@@ -4,7 +4,7 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {selectByQuery, selectByValue} from 'sentry-test/select-new';
 
-import TicketRuleModal from 'app/views/settings/projectAlerts/issueRuleEditor/ticketRuleModal';
+import TicketRuleModal from 'app/views/alerts/issueRuleEditor/ticketRuleModal';
 
 jest.unmock('app/utils/recreateRoute');
 jest.mock('app/actionCreators/onboardingTasks');

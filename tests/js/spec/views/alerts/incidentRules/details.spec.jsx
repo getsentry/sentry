@@ -5,7 +5,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import GlobalModal from 'app/components/globalModal';
 import {metric} from 'app/utils/analytics';
-import IncidentRulesDetails from 'app/views/settings/incidentRules/details';
+import IncidentRulesDetails from 'app/views/alerts/incidentRules/details';
 
 jest.mock('app/utils/analytics', () => ({
   metric: {

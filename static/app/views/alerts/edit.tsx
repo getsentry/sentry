@@ -8,8 +8,8 @@ import {t} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project} from 'app/types';
 import BuilderBreadCrumbs from 'app/views/alerts/builder/builderBreadCrumbs';
-import IncidentRulesDetails from 'app/views/settings/incidentRules/details';
-import IssueEditor from 'app/views/settings/projectAlerts/issueRuleEditor';
+import IncidentRulesDetails from 'app/views/alerts/incidentRules/details';
+import IssueEditor from 'app/views/alerts/issueRuleEditor';
 
 type RouteParams = {
   orgId: string;

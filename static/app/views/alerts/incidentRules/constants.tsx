@@ -2,18 +2,18 @@ import EventView from 'app/utils/discover/eventView';
 import {AggregationKey, LooseFieldKey} from 'app/utils/discover/fields';
 import {WEB_VITAL_DETAILS} from 'app/utils/performance/vitals/constants';
 import {
-  DATA_SOURCE_TO_SET_AND_EVENT_TYPES,
-  getQueryDatasource,
-} from 'app/views/alerts/utils';
-import {AlertType, WizardRuleTemplate} from 'app/views/alerts/wizard/options';
-import {
   AlertRuleThresholdType,
   Dataset,
   Datasource,
   EventTypes,
   Trigger,
   UnsavedIncidentRule,
-} from 'app/views/settings/incidentRules/types';
+} from 'app/views/alerts/incidentRules/types';
+import {
+  DATA_SOURCE_TO_SET_AND_EVENT_TYPES,
+  getQueryDatasource,
+} from 'app/views/alerts/utils';
+import {AlertType, WizardRuleTemplate} from 'app/views/alerts/wizard/options';
 
 export const DEFAULT_AGGREGATE = 'count()';
 export const DEFAULT_TRANSACTION_AGGREGATE = 'p95(transaction.duration)';

@@ -11,7 +11,7 @@ import diagramTransactionDuration from 'sentry-images/spot/alerts-wizard-transac
 import diagramUsers from 'sentry-images/spot/alerts-wizard-users-experiencing-errors.svg';
 
 import {t} from 'app/locale';
-import {Dataset, EventTypes} from 'app/views/settings/incidentRules/types';
+import {Dataset, EventTypes} from 'app/views/alerts/incidentRules/types';
 
 export type AlertType =
   | 'issues'

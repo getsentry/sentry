@@ -23,7 +23,7 @@ import space from 'app/styles/space';
 import {Actor, Organization, Project} from 'app/types';
 import getDynamicText from 'app/utils/getDynamicText';
 import {Color} from 'app/utils/theme';
-import {AlertRuleThresholdType} from 'app/views/settings/incidentRules/types';
+import {AlertRuleThresholdType} from 'app/views/alerts/incidentRules/types';
 
 import AlertBadge from '../alertBadge';
 import {CombinedMetricIssueAlerts, IncidentStatus} from '../types';

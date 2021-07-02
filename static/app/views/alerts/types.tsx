@@ -1,6 +1,6 @@
 import {Repository, User} from 'app/types';
 import {IssueAlertRule} from 'app/types/alerts';
-import {IncidentRule} from 'app/views/settings/incidentRules/types';
+import {IncidentRule} from 'app/views/alerts/incidentRules/types';
 
 type Data = [number, {count: number}[]][];
 

@@ -1,6 +1,6 @@
 import EventView from 'app/utils/discover/eventView';
-import {createRuleFromEventView} from 'app/views/settings/incidentRules/constants';
-import {Dataset, EventTypes} from 'app/views/settings/incidentRules/types';
+import {createRuleFromEventView} from 'app/views/alerts/incidentRules/constants';
+import {Dataset, EventTypes} from 'app/views/alerts/incidentRules/types';
 
 describe('createRuleFromEventView()', () => {
   it('sets transaction dataset from event.type:transaction', () => {

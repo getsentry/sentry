@@ -11,14 +11,14 @@ import {trackAnalyticsEvent} from 'app/utils/analytics';
 import EventView from 'app/utils/discover/eventView';
 import {uniqueId} from 'app/utils/guid';
 import BuilderBreadCrumbs from 'app/views/alerts/builder/builderBreadCrumbs';
+import IncidentRulesCreate from 'app/views/alerts/incidentRules/create';
+import IssueRuleEditor from 'app/views/alerts/issueRuleEditor';
 import {
   AlertType as WizardAlertType,
   AlertWizardAlertNames,
   WizardRuleTemplate,
 } from 'app/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'app/views/alerts/wizard/utils';
-import IncidentRulesCreate from 'app/views/settings/incidentRules/create';
-import IssueRuleEditor from 'app/views/settings/projectAlerts/issueRuleEditor';
 
 type RouteParams = {
   orgId: string;
