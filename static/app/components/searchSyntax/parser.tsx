@@ -9,6 +9,7 @@ import {
 } from 'app/utils/discover/fields';
 
 import grammar from './grammar.pegjs';
+import {getKeyName} from './utils';
 
 type TextFn = () => string;
 type LocationFn = () => LocationRange;
@@ -292,26 +293,6 @@ type TextFilter = FilterMap[FilterType.Text];
  */
 type FilterResult = FilterMap[FilterType];
 
-/**
- * Utility to get the string name of any type of key.
- */
-export const getKeyName = (
-  key: ReturnType<
-    TokenConverter['tokenKeySimple' | 'tokenKeyExplicitTag' | 'tokenKeyAggregate']
-  >
-) => {
-  switch (key.type) {
-    case Token.KeySimple:
-      return key.value;
-    case Token.KeyExplicitTag:
-      return key.key.value;
-    case Token.KeyAggregate:
-      return key.name.value;
-    default:
-      return '';
-  }
-};
-
 type TokenConverterOpts = {
   text: TextFn;
   location: LocationFn;
@@ -321,7 +302,7 @@ type TokenConverterOpts = {
 /**
  * Used to construct token results via the token grammar
  */
-class TokenConverter {
+export class TokenConverter {
   text: TextFn;
   location: LocationFn;
   config: SearchConfig;

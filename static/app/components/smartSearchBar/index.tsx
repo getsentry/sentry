@@ -13,13 +13,13 @@ import ButtonBar from 'app/components/buttonBar';
 import DropdownLink from 'app/components/dropdownLink';
 import {getParams} from 'app/components/organizations/globalSelectionHeader/getParams';
 import {
-  getKeyName,
   ParseResult,
   parseSearch,
   TermOperator,
   Token,
 } from 'app/components/searchSyntax/parser';
 import HighlightQuery from 'app/components/searchSyntax/renderer';
+import {getKeyName} from 'app/components/searchSyntax/utils';
 import {
   DEFAULT_DEBOUNCE_DURATION,
   MAX_AUTOCOMPLETE_RELEASES,
@@ -869,7 +869,10 @@ class SmartSearchBar extends React.Component<Props, State> {
     }
 
     const cursorToken = this.getCursorToken(parsedQuery, cursor);
-    if (cursorToken && cursorToken.type === Token.Filter) {
+    if (!cursorToken) {
+      return;
+    }
+    if (cursorToken.type === Token.Filter) {
       const tagName = getKeyName(cursorToken.key);
       // check if we are on the tag, value, or operator
       if (isWithinToken(cursorToken.value, cursor)) {
@@ -897,7 +900,7 @@ class SmartSearchBar extends React.Component<Props, State> {
         const tagGroup: AutocompleteGroup = {
           searchItems: tagKeys,
           recentSearchItems: recentSearches ?? [],
-          tagName: node.text,
+          tagName,
           type: 'tag-key' as ItemType,
         };
         const autocompleteGroups = [tagGroup];
@@ -919,7 +922,7 @@ class SmartSearchBar extends React.Component<Props, State> {
       return;
     }
 
-    if (cursorToken && cursorToken.type === Token.FreeText) {
+    if (cursorToken.type === Token.FreeText) {
       const tagKeys = this.getTagKeys(cursorToken.text);
       const recentSearches = await this.getRecentSearches();
 
@@ -1048,7 +1051,7 @@ class SmartSearchBar extends React.Component<Props, State> {
     type: ItemType
   ) {
     const {hasRecentSearches, maxSearchItems, maxQueryLength} = this.props;
-    const query = this.state.query;
+    const {query} = this.state;
 
     const queryCharsLeft =
       maxQueryLength && query ? maxQueryLength - query.length : undefined;
@@ -1188,7 +1191,7 @@ class SmartSearchBar extends React.Component<Props, State> {
     }
 
     const cursor = this.getCursorPosition();
-    const query = this.state.query;
+    const {query} = this.state;
 
     const {organization} = this.props;
     if (organization.features.includes('search-syntax-highlight')) {

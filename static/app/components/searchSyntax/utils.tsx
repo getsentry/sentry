@@ -1,4 +1,4 @@
-import {Token, TokenResult} from './parser';
+import {Token, TokenConverter, TokenResult} from './parser';
 
 /**
  * Utility function to visit every Token node within an AST tree and apply
@@ -54,3 +54,23 @@ export function treeTransformer(
 
   return tree.map(nodeVisitor);
 }
+
+/**
+ * Utility to get the string name of any type of key.
+ */
+export const getKeyName = (
+  key: ReturnType<
+    TokenConverter['tokenKeySimple' | 'tokenKeyExplicitTag' | 'tokenKeyAggregate']
+  >
+) => {
+  switch (key.type) {
+    case Token.KeySimple:
+      return key.value;
+    case Token.KeyExplicitTag:
+      return key.key.value;
+    case Token.KeyAggregate:
+      return key.name.value;
+    default:
+      return '';
+  }
+};
