@@ -60,6 +60,11 @@ const ACTION_OVERFLOW_STEPS = 75;
  */
 const isDefaultDropdownItem = (item: SearchItem) => item?.type === 'default';
 
+const makeQueryState = (query: string) => ({
+  query,
+  parsedQuery: parseSearch(query),
+});
+
 type ActionProps = {
   api: Client;
   /**
@@ -271,18 +276,13 @@ class SmartSearchBar extends React.Component<Props, State> {
     this.inputResizeObserver.observe(this.containerRef.current);
   }
 
-  componentDidUpdate(prevProps: Props, prevState: State) {
+  componentDidUpdate(prevProps: Props) {
     const {query} = this.props;
     const {query: lastQuery} = prevProps;
 
     if (query !== lastQuery && defined(query)) {
       // eslint-disable-next-line react/no-did-update-set-state
-      this.setState({query: addSpace(query)});
-    }
-
-    if (this.state.query !== prevState.query) {
-      // eslint-disable-next-line react/no-did-update-set-state
-      this.setState({parsedQuery: parseSearch(this.state.query)});
+      this.setState(makeQueryState(addSpace(query)));
     }
   }
 
@@ -392,7 +392,7 @@ class SmartSearchBar extends React.Component<Props, State> {
   };
 
   clearSearch = () =>
-    this.setState({query: ''}, () =>
+    this.setState(makeQueryState(''), () =>
       callIfFunction(this.props.onSearch, this.state.query)
     );
 
@@ -414,7 +414,7 @@ class SmartSearchBar extends React.Component<Props, State> {
   onQueryChange = (evt: React.ChangeEvent<HTMLTextAreaElement>) => {
     const query = evt.target.value.replace('\n', '');
 
-    this.setState({query}, this.updateAutoCompleteItems);
+    this.setState(makeQueryState(query), this.updateAutoCompleteItems);
     callIfFunction(this.props.onChange, evt.target.value, evt);
   };
 
@@ -925,7 +925,7 @@ class SmartSearchBar extends React.Component<Props, State> {
         search_source: 'recent_search',
       });
 
-      this.setState({query: replaceText}, () => {
+      this.setState(makeQueryState(replaceText), () => {
         // Propagate onSearch and save to recent searches
         this.doSearch();
       });
@@ -978,7 +978,7 @@ class SmartSearchBar extends React.Component<Props, State> {
       newQuery = newQuery.concat(query.slice(lastTermIndex));
     }
 
-    this.setState({query: newQuery}, () => {
+    this.setState(makeQueryState(newQuery), () => {
       // setting a new input value will lose focus; restore it
       if (this.searchInput.current) {
         this.searchInput.current.focus();
