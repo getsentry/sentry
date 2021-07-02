@@ -2091,6 +2091,13 @@ export enum SessionField {
   USERS = 'count_unique(user)',
 }
 
+export enum ReleaseComparisonChartType {
+  CRASH_FREE_USERS = 'crashFreeUsers',
+  CRASH_FREE_SESSIONS = 'crashFreeSessions',
+  SESSION_COUNT = 'sessionCount',
+  USER_COUNT = 'userCount',
+}
+
 export enum HealthStatsPeriodOption {
   AUTO = 'auto',
   TWENTY_FOUR_HOURS = '24h',

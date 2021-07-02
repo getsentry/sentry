@@ -422,7 +422,7 @@ class ReleaseOverview extends AsyncView<Props> {
               version={version}
               releaseBounds={releaseBounds}
             >
-              {({thisRelease, allReleases}) => (
+              {({thisRelease, allReleases, loading, reloading, errored}) => (
                 <Body>
                   <Main>
                     {isReleaseArchived(release) && (
@@ -441,6 +441,7 @@ class ReleaseOverview extends AsyncView<Props> {
                               end={end ?? null}
                               utc={utc ?? null}
                               onUpdate={this.handleDateChange}
+                              showAbsolute={false}
                               relativeOptions={{
                                 [RELEASE_PERIOD_KEY]: (
                                   <Fragment>
@@ -464,6 +465,11 @@ class ReleaseOverview extends AsyncView<Props> {
                             <ReleaseComparisonChart
                               releaseSessions={thisRelease}
                               allSessions={allReleases}
+                              platform={project.platform}
+                              location={location}
+                              loading={loading}
+                              reloading={reloading}
+                              errored={errored}
                             />
                           </Fragment>
                         ) : (
