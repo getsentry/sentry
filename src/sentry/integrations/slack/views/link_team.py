@@ -4,30 +4,18 @@ from django import forms
 from django.http import HttpResponse
 from rest_framework.request import Request
 
-from sentry.models import (
-    ExternalActor,
-    Identity,
-    IdentityProvider,
-    Integration,
-    NotificationSetting,
-    OrganizationMember,
-    Team,
-)
+from sentry.models import ExternalActor, Integration, NotificationSetting, Team
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
-from sentry.shared_integrations.exceptions import ApiError
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.signing import unsign
 from sentry.web.decorators import transaction_start
 from sentry.web.frontend.base import BaseView
-from sentry.web.helpers import render_to_response
 
-from ..client import SlackClient
-from ..utils import logger
+from ..utils import get_org_member_by_slack_id, is_valid_role, render_error_page, send_slack_message
 from . import build_linking_url as base_build_linking_url
 from . import never_cache
 
 ALLOWED_METHODS = ["GET", "POST"]
-ALLOWED_ROLES = ["admin", "manager", "owner"]
 
 INSUFFICIENT_ROLE_TITLE = "Insufficient role"
 INSUFFICIENT_ROLE_MESSAGE = "You must be an admin or higher to link teams."
@@ -50,48 +38,6 @@ def build_team_linking_url(
         channel_name=channel_name,
         response_url=response_url,
     )
-
-
-def render_error_page(request: Request, body_text: str) -> HttpResponse:
-    return render_to_response(
-        "sentry/integrations/slack-link-team-error.html",
-        request=request,
-        context={"body_text": body_text},
-    )
-
-
-def send_slack_message(
-    integration: Integration,
-    channel_id: str,
-    heading: str,
-    text: str,
-    request: Request,
-) -> HttpResponse:
-    client = SlackClient()
-    token = integration.metadata.get("user_access_token") or integration.metadata["access_token"]
-    payload = {
-        "token": token,
-        "channel": channel_id,
-        "text": text,
-    }
-    headers = {"Authorization": f"Bearer {token}"}
-    try:
-        client.post("/chat.postMessage", headers=headers, data=payload, json=True)
-    except ApiError as e:
-        message = str(e)
-        if message != "Expired url":
-            logger.error("slack.link-notify.response-error", extra={"error": message})
-    else:
-        return render_to_response(
-            "sentry/integrations/slack-post-linked-team.html",
-            request=request,
-            context={
-                "heading_text": heading,
-                "body_text": text,
-                "channel_id": channel_id,
-                "team_id": integration.external_id,
-            },
-        )
 
 
 class SelectTeamForm(forms.Form):  # type: ignore
@@ -139,30 +85,11 @@ class SlackLinkTeamView(BaseView):  # type: ignore
         except Team.DoesNotExist:
             return render_error_page(request, body_text="HTTP 404: Team does not exist")
 
-        try:
-            idp = IdentityProvider.objects.get(type="slack", external_id=integration.external_id)
-        except IdentityProvider.DoesNotExist:
-            logger.error(
-                "slack.action.invalid-team-id", extra={"slack_id": integration.external_id}
-            )
-            return render_error_page(request, body_text="HTTP 403: Invalid team ID")
+        org_member = get_org_member_by_slack_id(
+            request, integration, organization, params["slack_id"]
+        )
 
-        try:
-            identity = Identity.objects.select_related("user").get(
-                idp=idp, external_id=params["slack_id"]
-            )
-        except Identity.DoesNotExist:
-            logger.error(
-                "slack.action.missing-identity", extra={"slack_id": integration.external_id}
-            )
-            return render_error_page(request, body_text="HTTP 403: User identity does not exist")
-
-        org_member = OrganizationMember.objects.get(user=identity.user, organization=organization)
-
-        if not (
-            org_member.role in ALLOWED_ROLES
-            and (organization.flags.allow_joinleave or team in org_member.teams.all())
-        ):
+        if not is_valid_role(org_member, team, organization):
             return send_slack_message(
                 integration,
                 channel_id,
@@ -170,7 +97,6 @@ class SlackLinkTeamView(BaseView):  # type: ignore
                 INSUFFICIENT_ROLE_MESSAGE,
                 request,
             )
-
         external_team, created = ExternalActor.objects.get_or_create(
             actor_id=team.actor_id,
             organization=organization,
