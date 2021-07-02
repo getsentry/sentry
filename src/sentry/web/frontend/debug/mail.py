@@ -143,7 +143,7 @@ class MailPreview:
         )
 
 
-class MainPreviewAdapter(MailPreview):
+class MailPreviewAdapter(MailPreview):
     """
     This is an adapter for MailPreview that will take similar arguments to MessageBuilder
     """
