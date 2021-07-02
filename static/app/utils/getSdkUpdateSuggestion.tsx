@@ -10,24 +10,35 @@ type Props = {
   sdk: Event['sdk'];
   suggestion: NonNullable<Event['sdkUpdates']>[0];
   shortStyle?: boolean;
+  capitalized?: boolean;
 };
 
-function getSdkUpdateSuggestion({sdk, suggestion, shortStyle = false}: Props) {
+function getSdkUpdateSuggestion({
+  sdk,
+  suggestion,
+  shortStyle = false,
+  capitalized = false,
+}: Props) {
   const getTitleData = () => {
     switch (suggestion.type) {
-      case 'updateSdk':
+      case 'updateSdk': {
+        const updateWord = capitalized ? t('Update') : t('update');
         return {
           href: suggestion?.sdkUrl,
           content: sdk
             ? shortStyle
-              ? t('Update to @v%s', suggestion.newSdkVersion)
-              : t(
-                  'Update your SDK from @v%s to @v%s',
-                  sdk.version,
-                  suggestion.newSdkVersion
-                )
-            : t('Update your SDK version'),
+              ? tct('[updateWord] to @v[new-sdk-version]', {
+                  updateWord,
+                  ['new-sdk-version']: suggestion.newSdkVersion,
+                })
+              : tct('[updateWord] your SDK from @v[sdk-version] to @v[new-sdk-version]', {
+                  updateWord,
+                  ['sdk-version']: sdk.version,
+                  ['new-sdk-version']: suggestion.newSdkVersion,
+                })
+            : tct('[updateWord] your SDK version', {updateWord}),
         };
+      }
       case 'changeSdk':
         return {
           href: suggestion?.sdkUrl,
