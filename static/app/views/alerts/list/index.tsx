@@ -11,13 +11,12 @@ import Button from 'app/components/button';
 import CreateAlertButton from 'app/components/createAlertButton';
 import * as Layout from 'app/components/layouts/thirds';
 import ExternalLink from 'app/components/links/externalLink';
-import LoadingIndicator from 'app/components/loadingIndicator';
 import GlobalSelectionHeader from 'app/components/organizations/globalSelectionHeader';
 import Pagination from 'app/components/pagination';
 import {PanelTable} from 'app/components/panels';
 import SearchBar from 'app/components/searchBar';
 import SentryDocumentTitle from 'app/components/sentryDocumentTitle';
-import {IconCheckmark, IconInfo} from 'app/icons';
+import {IconInfo} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {Organization, Project, Team} from 'app/types';
@@ -25,7 +24,6 @@ import {trackAnalyticsEvent} from 'app/utils/analytics';
 import Projects from 'app/utils/projects';
 import withOrganization from 'app/utils/withOrganization';
 import withTeams from 'app/utils/withTeams';
-import EmptyMessage from 'app/views/settings/components/emptyMessage';
 
 import TeamFilter, {getTeamParams} from '../rules/teamFilter';
 import {Incident} from '../types';
@@ -231,25 +229,6 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
     return <Onboarding actions={actions} />;
   }
 
-  tryRenderEmpty() {
-    const {incidentList} = this.state;
-
-    if (!incidentList || incidentList.length > 0) {
-      return null;
-    }
-
-    return (
-      <EmptyMessage
-        size="medium"
-        icon={<IconCheckmark isCircled size="48" />}
-        title={t('No incidents exist for the current query.')}
-        description={tct('Learn more about [link:Metric Alerts]', {
-          link: <ExternalLink href={DOCS_URL} />,
-        })}
-      />
-    );
-  }
-
   renderLoading() {
     return this.renderBody();
   }
@@ -274,7 +253,16 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
       <Fragment>
         {this.tryRenderOnboarding() ?? (
           <PanelTable
-            isLoading={loading}
+            isLoading={showLoadingIndicator}
+            isEmpty={incidentList?.length === 0}
+            emptyMessage={t('No incidents exist for the current query.')}
+            emptyAction={
+              <EmptyStateAction>
+                {tct('Learn more about [link:Metric Alerts]', {
+                  link: <ExternalLink href={DOCS_URL} />,
+                })}
+              </EmptyStateAction>
+            }
             headers={[
               t('Alert Rule'),
               t('Triggered'),
@@ -284,26 +272,20 @@ class IncidentsList extends AsyncComponent<Props, State & AsyncComponent['state'
               t('Team'),
             ]}
           >
-            {showLoadingIndicator ? (
-              <LoadingIndicator />
-            ) : (
-              this.tryRenderEmpty() ?? (
-                <Projects orgId={orgId} slugs={Array.from(allProjectsFromIncidents)}>
-                  {({initiallyLoaded, projects}) =>
-                    incidentList.map(incident => (
-                      <AlertListRow
-                        key={incident.id}
-                        projectsLoaded={initiallyLoaded}
-                        projects={projects as Project[]}
-                        incident={incident}
-                        orgId={orgId}
-                        organization={organization}
-                      />
-                    ))
-                  }
-                </Projects>
-              )
-            )}
+            <Projects orgId={orgId} slugs={Array.from(allProjectsFromIncidents)}>
+              {({initiallyLoaded, projects}) =>
+                incidentList.map(incident => (
+                  <AlertListRow
+                    key={incident.id}
+                    projectsLoaded={initiallyLoaded}
+                    projects={projects as Project[]}
+                    incident={incident}
+                    orgId={orgId}
+                    organization={organization}
+                  />
+                ))
+              }
+            </Projects>
           </PanelTable>
         )}
         <Pagination pageLinks={incidentListPageLinks} />
@@ -406,6 +388,10 @@ const StyledSearchBar = styled(SearchBar)`
 
 const StyledLayoutBody = styled(Layout.Body)`
   margin-bottom: -20px;
+`;
+
+const EmptyStateAction = styled('p')`
+  font-size: ${p => p.theme.fontSizeLarge};
 `;
 
 export default withOrganization(withTeams(IncidentsListContainer));
