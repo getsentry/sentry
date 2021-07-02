@@ -758,7 +758,7 @@ class SnubaTagStorage(TagStorage):
 
         if key == SEMVER_ALIAS:
             # If doing a search on semver, we want to hit postgres to query the releases
-            version = query
+            version = query if query else ""
             organization_id = Project.objects.filter(id=projects[0]).values_list(
                 "organization_id", flat=True
             )[0]
@@ -781,7 +781,7 @@ class SnubaTagStorage(TagStorage):
                     ),
                 ).annotate_prerelease_column()
             else:
-                include_package = "@" in version
+                include_package = not version or "@" in version
                 if not version:
                     version = "*"
                 elif version[-1] not in SEMVER_WILDCARDS | {"@"}:
