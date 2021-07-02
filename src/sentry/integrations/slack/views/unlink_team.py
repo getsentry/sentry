@@ -3,7 +3,15 @@ from django.http import Http404
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.models import ExternalActor, Integration, NotificationSetting, Team
+from sentry.models import (
+    ExternalActor,
+    Identity,
+    IdentityProvider,
+    Integration,
+    NotificationSetting,
+    OrganizationMember,
+    Team,
+)
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.types.integrations import ExternalProviders
@@ -16,6 +24,13 @@ from ..client import SlackClient
 from ..utils import get_identity, logger
 from . import build_linking_url as base_build_linking_url
 from . import never_cache
+from .link_team import (
+    ALLOWED_ROLES,
+    INSUFFICIENT_ROLE_MESSAGE,
+    INSUFFICIENT_ROLE_TITLE,
+    render_error_page,
+    send_slack_message,
+)
 
 SUCCESS_UNLINKED_MESSAGE = (
     "This channel will no longer receive issue alert notifications for the {team} team."
@@ -75,6 +90,37 @@ class SlackUnlinkTeamView(BaseView):  # type: ignore
                     "channel_name": channel_name,
                     "provider": integration.get_provider(),
                 },
+            )
+        try:
+            idp = IdentityProvider.objects.get(type="slack", external_id=integration.external_id)
+        except IdentityProvider.DoesNotExist:
+            logger.error(
+                "slack.action.invalid-team-id", extra={"slack_id": integration.external_id}
+            )
+            return render_error_page(request, body_text="HTTP 403: Invalid team ID")
+
+        try:
+            identity = Identity.objects.select_related("user").get(
+                idp=idp, external_id=params["slack_id"]
+            )
+        except Identity.DoesNotExist:
+            logger.error(
+                "slack.action.missing-identity", extra={"slack_id": integration.external_id}
+            )
+            return render_error_page(request, body_text="HTTP 403: User identity does not exist")
+
+        org_member = OrganizationMember.objects.get(user=identity.user, organization=organization)
+
+        if not (
+            org_member.role in ALLOWED_ROLES
+            and (organization.flags.allow_joinleave or team in org_member.teams.all())
+        ):
+            return send_slack_message(
+                integration,
+                channel_id,
+                INSUFFICIENT_ROLE_TITLE,
+                INSUFFICIENT_ROLE_MESSAGE,
+                request,
             )
 
         external_team.delete()

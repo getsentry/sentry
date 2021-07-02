@@ -11,6 +11,7 @@ from sentry.integrations.slack.endpoints.command import (
     LINK_FROM_CHANNEL_MESSAGE,
     LINK_USER_FIRST_MESSAGE,
     NOT_LINKED_MESSAGE,
+    TEAM_NOT_LINKED_MESSAGE,
 )
 from sentry.integrations.slack.message_builder import SlackBody
 from sentry.integrations.slack.message_builder.disconnected import DISCONNECTED_MESSAGE
@@ -21,6 +22,7 @@ from sentry.integrations.slack.views.unlink_identity import (
     SUCCESS_UNLINKED_MESSAGE,
     build_unlinking_url,
 )
+from sentry.integrations.slack.views.unlink_team import build_team_unlinking_url
 from sentry.models import (
     ExternalActor,
     Identity,
@@ -29,7 +31,7 @@ from sentry.models import (
     Integration,
     NotificationSetting,
 )
-from sentry.notifications.types import NotificationScopeType
+from sentry.notifications.types import NotificationScopeType, NotificationSettingOptionValues
 from sentry.testutils import APITestCase, TestCase
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
@@ -85,6 +87,16 @@ class SlackCommandsTest(APITestCase, TestCase):
             user=self.user,
             status=IdentityStatus.VALID,
             scopes=[],
+        )
+
+    def link_team(self) -> None:
+        ExternalActor.objects.create(
+            actor_id=self.team.actor_id,
+            organization=self.organization,
+            integration=self.integration,
+            provider=ExternalProviders.SLACK.value,
+            external_name="general",
+            external_id="CXXXXXXX9",
         )
 
     def get_slack_response(
@@ -450,3 +462,75 @@ class SlackCommandsLinkTeamTest(SlackCommandsTest):
         resp = self.client.post(linking_url, data, content_type="application/x-www-form-urlencoded")
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, "sentry/integrations/slack-link-team-error.html")
+
+
+class SlackCommandsUnlinkTeamTest(SlackCommandsTest):
+    def setUp(self):
+        super().setUp()
+        self.link_user()
+        self.link_team()
+        self.external_actor = ExternalActor.objects.filter(
+            actor_id=self.team.actor_id,
+            organization=self.organization,
+            integration=self.integration,
+            provider=ExternalProviders.SLACK.value,
+            external_name="general",
+            external_id="CXXXXXXX9",
+        )
+        responses.add(
+            method=responses.POST,
+            url="https://slack.com/api/chat.postMessage",
+            body='{"ok": true}',
+            status=200,
+            content_type="application/json",
+        )
+
+    @responses.activate
+    def test_unlink_team(self):
+        """Test that a team can be unlinked from a Slack channel"""
+        data = self.send_slack_message(
+            "unlink team",
+            channel_name="general",
+            channel_id="CXXXXXXX9",
+        )
+        assert "Click here to unlink your team from this channel." in data["text"]
+        team_unlinking_url = build_team_unlinking_url(
+            self.integration,
+            self.organization.id,
+            "UXXXXXXX1",
+            "CXXXXXXX9",
+            "general",
+            "http://example.slack.com/response_url",
+        )
+
+        resp = self.client.get(team_unlinking_url)
+        assert resp.status_code == 200
+        self.assertTemplateUsed(resp, "sentry/integrations/slack-unlink-team.html")
+
+        resp = self.client.post(team_unlinking_url)
+        assert resp.status_code == 200
+        self.assertTemplateUsed(resp, "sentry/integrations/slack-unlinked-team.html")
+
+        assert len(self.external_actor) == 0
+
+        assert len(responses.calls) >= 1
+        data = json.loads(str(responses.calls[0].request.body.decode("utf-8")))
+        assert (
+            f"This channel will no longer receive issue alert notifications for the {self.team.slug} team."
+            in data["text"]
+        )
+
+        team_settings = NotificationSetting.objects.filter(
+            scope_type=NotificationScopeType.TEAM.value, target=self.team.actor.id
+        )
+        assert len(team_settings) == 1
+        assert team_settings[0].value == NotificationSettingOptionValues.NEVER.value
+
+    def test_unlink_no_team(self):
+        """Test for when a user attempts to remove a link between a Slack channel and a Sentry team that does not exist"""
+        data = self.send_slack_message(
+            "unlink team",
+            channel_name="specific",
+            channel_id="CXXXXXXX8",
+        )
+        assert TEAM_NOT_LINKED_MESSAGE in data["text"]
