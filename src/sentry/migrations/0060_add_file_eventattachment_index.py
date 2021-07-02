@@ -35,6 +35,7 @@ class Migration(migrations.Migration):
                     reverse_sql="""
                         DROP INDEX CONCURRENTLY "sentry_eventattachment_project_id_date_added_fi_f3b0597f_idx";
                         """,
+                    hints={"tables": ["sentry_eventattachment"]},
                 )
             ],
             state_operations=[

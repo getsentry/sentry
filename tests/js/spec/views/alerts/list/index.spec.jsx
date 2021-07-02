@@ -2,20 +2,20 @@ import {mountWithTheme} from 'sentry-test/enzyme';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import ProjectsStore from 'app/stores/projectsStore';
+import TeamStore from 'app/stores/teamStore';
 import IncidentsList from 'app/views/alerts/list';
 
 describe('IncidentsList', function () {
   let routerContext;
   let router;
   let organization;
-  let incidentsMock;
   let projectMock;
   let wrapper;
   let projects;
   const projects1 = ['a', 'b', 'c'];
   const projects2 = ['c', 'd'];
 
-  const createWrapper = async props => {
+  const createWrapper = async (props = {}) => {
     wrapper = mountWithTheme(
       <IncidentsList
         params={{orgId: organization.slug}}
@@ -40,7 +40,7 @@ describe('IncidentsList', function () {
     router = context.router;
     organization = context.organization;
 
-    incidentsMock = MockApiClient.addMockResponse({
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/incidents/',
       body: [
         TestStubs.Incident({
@@ -83,6 +83,7 @@ describe('IncidentsList', function () {
   });
 
   afterEach(function () {
+    wrapper.unmount();
     ProjectsStore.reset();
     MockApiClient.clearMockResponses();
   });
@@ -95,7 +96,7 @@ describe('IncidentsList', function () {
     await tick();
     wrapper.update();
 
-    const items = wrapper.find('IncidentPanelItem');
+    const items = wrapper.find('AlertListRow');
 
     expect(items).toHaveLength(2);
     expect(items.at(0).text()).toContain('First incident');
@@ -196,45 +197,33 @@ describe('IncidentsList', function () {
     wrapper.update();
 
     expect(wrapper.find('PanelItem')).toHaveLength(0);
-    expect(wrapper.text()).toContain('No incidents exist for the current query.');
+    expect(wrapper.text()).toContain('No incidents exist for the current query');
   });
 
-  it('toggles open/closed', async function () {
+  it('filters by opened issues', async function () {
+    ProjectsStore.loadInitialData(projects);
     wrapper = await createWrapper();
 
-    expect(wrapper.find('StyledButtonBar').find('Button').at(0).prop('priority')).toBe(
-      'primary'
-    );
+    wrapper.find('[data-test-id="filter-button"]').at(1).simulate('click');
 
-    expect(wrapper.find('IncidentPanelItem').at(0).find('Duration').exists()).toBeFalsy();
-
-    expect(wrapper.find('IncidentPanelItem').at(0).find('TimeSince')).toHaveLength(1);
-
-    expect(incidentsMock).toHaveBeenCalledTimes(1);
-
-    expect(incidentsMock).toHaveBeenCalledWith(
-      '/organizations/org-slug/incidents/',
-      expect.objectContaining({query: {status: ['open']}})
+    const resolved = wrapper.find('Filter').find('ListItem').at(1);
+    expect(resolved.text()).toBe('Resolved');
+    expect(resolved.find('[data-test-id="checkbox-fancy"]').props()['aria-checked']).toBe(
+      false
     );
 
     wrapper.setProps({
       location: {query: {status: ['closed']}, search: '?status=closed`'},
     });
 
-    expect(wrapper.find('StyledButtonBar').find('Button').at(1).prop('priority')).toBe(
-      'primary'
-    );
-
-    expect(wrapper.find('IncidentPanelItem').at(0).text()).toContain('Still Active');
-
-    expect(wrapper.find('IncidentPanelItem').at(0).find('TimeSince')).toHaveLength(1);
-
-    expect(incidentsMock).toHaveBeenCalledTimes(2);
-
-    expect(incidentsMock).toHaveBeenCalledWith(
-      '/organizations/org-slug/incidents/',
-      expect.objectContaining({query: expect.objectContaining({status: ['closed']})})
-    );
+    expect(
+      wrapper
+        .find('Filter')
+        .find('ListItem')
+        .at(1)
+        .find('[data-test-id="checkbox-fancy"]')
+        .props()['aria-checked']
+    ).toBe(true);
   });
 
   it('disables the new alert button for those without alert:write', async function () {
@@ -249,6 +238,7 @@ describe('IncidentsList', function () {
     expect(addButton.props()['aria-disabled']).toBe(true);
 
     // Enabled with access
+    wrapper.unmount();
     wrapper = await createWrapper();
 
     const addLink = wrapper.find('button[aria-label="Create Alert Rule"]');
@@ -256,11 +246,7 @@ describe('IncidentsList', function () {
   });
 
   it('searches by name', async () => {
-    const org = {
-      ...organization,
-      features: ['incidents', 'alert-history-filters'],
-    };
-    wrapper = await createWrapper({organization: org});
+    wrapper = await createWrapper();
     expect(wrapper.find('StyledSearchBar').exists()).toBe(true);
 
     const testQuery = 'test name';
@@ -274,8 +260,34 @@ describe('IncidentsList', function () {
       expect.objectContaining({
         query: {
           title: testQuery,
+          team: ['myteams', 'unassigned'],
         },
       })
     );
+  });
+
+  it('displays owner from alert rule', async () => {
+    const team = TestStubs.Team();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/incidents/',
+      body: [
+        TestStubs.Incident({
+          id: '123',
+          identifier: '1',
+          title: 'First incident',
+          projects: projects1,
+          alertRule: TestStubs.IncidentRule({owner: `team:${team.id}`}),
+        }),
+      ],
+    });
+    TeamStore.getById = jest.fn().mockReturnValue(team);
+    const org = {
+      ...organization,
+      features: ['incidents', 'team-alerts-ownership'],
+    };
+
+    wrapper = await createWrapper({organization: org});
+    expect(wrapper.find('TeamWrapper').text()).toBe(team.name);
+    expect(wrapper).toSnapshot();
   });
 });

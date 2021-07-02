@@ -1,34 +1,37 @@
-import {Fragment, useState} from 'react';
+import {Fragment} from 'react';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
+import {Location} from 'history';
 import round from 'lodash/round';
 
+import ErrorPanel from 'app/components/charts/errorPanel';
+import {ChartContainer} from 'app/components/charts/styles';
+import TransitionChart from 'app/components/charts/transitionChart';
+import TransparentLoadingMask from 'app/components/charts/transparentLoadingMask';
 import Count from 'app/components/count';
 import NotAvailable from 'app/components/notAvailable';
-import {PanelTable} from 'app/components/panels';
+import {Panel, PanelTable} from 'app/components/panels';
+import Placeholder from 'app/components/placeholder';
 import Radio from 'app/components/radio';
-import {IconArrow} from 'app/icons';
+import {PlatformKey} from 'app/data/platformCategories';
+import {IconArrow, IconWarning} from 'app/icons';
 import {t} from 'app/locale';
 import overflowEllipsis from 'app/styles/overflowEllipsis';
 import space from 'app/styles/space';
-import {SessionApiResponse, SessionField} from 'app/types';
-import {defined} from 'app/utils';
-import {getCount, getCrashFreeRate} from 'app/utils/sessions';
+import {ReleaseComparisonChartType, SessionApiResponse, SessionField} from 'app/types';
+import {defined, percent} from 'app/utils';
+import {decodeScalar} from 'app/utils/queryString';
+import {getCount, getCrashFreeRate, getCrashFreeSeries} from 'app/utils/sessions';
 import {Color} from 'app/utils/theme';
 import {displayCrashFreePercent} from 'app/views/releases/utils';
 
-enum ReleaseComparisonChartType {
-  CRASH_FREE_USERS = 'crashFreeUsers',
-  CRASH_FREE_SESSIONS = 'crashFreeSessions',
-  SESSION_COUNT = 'sessionCount',
-  USER_COUNT = 'userCount',
-}
+import {releaseComparisonChartLabels} from '../../utils';
+import {
+  fillChartDataFromSessionsResponse,
+  initSessionsBreakdownChartData,
+} from '../chart/utils';
 
-const releaseComparisonChartLabels = {
-  [ReleaseComparisonChartType.CRASH_FREE_USERS]: t('Crash Free Users'),
-  [ReleaseComparisonChartType.CRASH_FREE_SESSIONS]: t('Crash Free Sessions'),
-  [ReleaseComparisonChartType.SESSION_COUNT]: t('Session Count'),
-  [ReleaseComparisonChartType.USER_COUNT]: t('User Count'),
-};
+import SessionsChart from './sessionsChart';
 
 type ComparisonRow = {
   type: ReleaseComparisonChartType;
@@ -42,12 +45,26 @@ type ComparisonRow = {
 type Props = {
   releaseSessions: SessionApiResponse | null;
   allSessions: SessionApiResponse | null;
+  platform: PlatformKey;
+  location: Location;
+  loading: boolean;
+  reloading: boolean;
+  errored: boolean;
 };
 
-function ReleaseComparisonChart({releaseSessions, allSessions}: Props) {
-  const [activeChart, setActiveChart] = useState(
+function ReleaseComparisonChart({
+  releaseSessions,
+  allSessions,
+  platform,
+  location,
+  loading,
+  reloading,
+  errored,
+}: Props) {
+  const activeChart = decodeScalar(
+    location.query.chart,
     ReleaseComparisonChartType.CRASH_FREE_SESSIONS
-  );
+  ) as ReleaseComparisonChartType;
 
   const releaseCrashFreeSessions = getCrashFreeRate(
     releaseSessions?.groups,
@@ -76,14 +93,14 @@ function ReleaseComparisonChart({releaseSessions, allSessions}: Props) {
   const allSessionsCount = getCount(allSessions?.groups, SessionField.SESSIONS);
   const diffSessionsCount =
     defined(releaseSessions) && defined(allSessions)
-      ? releaseSessionsCount - allSessionsCount
+      ? percent(releaseSessionsCount - allSessionsCount, allSessionsCount)
       : null;
 
   const releaseUsersCount = getCount(releaseSessions?.groups, SessionField.USERS);
   const allUsersCount = getCount(allSessions?.groups, SessionField.USERS);
   const diffUsersCount =
     defined(releaseUsersCount) && defined(allUsersCount)
-      ? releaseUsersCount - allUsersCount
+      ? percent(releaseUsersCount - allUsersCount, allUsersCount)
       : null;
 
   const charts: ComparisonRow[] = [
@@ -133,9 +150,9 @@ function ReleaseComparisonChart({releaseSessions, allSessions}: Props) {
         <Count value={releaseSessionsCount} />
       ) : null,
       allReleases: defined(allSessionsCount) ? <Count value={allSessionsCount} /> : null,
-      diff: defined(diffSessionsCount) ? (
-        <Count value={Math.abs(diffSessionsCount)} />
-      ) : null,
+      diff: defined(diffSessionsCount)
+        ? `${Math.abs(round(diffSessionsCount, 0))}%`
+        : null,
       diffDirection: defined(diffSessionsCount)
         ? diffSessionsCount > 0
           ? 'up'
@@ -149,7 +166,7 @@ function ReleaseComparisonChart({releaseSessions, allSessions}: Props) {
         <Count value={releaseUsersCount} />
       ) : null,
       allReleases: defined(allUsersCount) ? <Count value={allUsersCount} /> : null,
-      diff: defined(diffUsersCount) ? <Count value={Math.abs(diffUsersCount)} /> : null,
+      diff: defined(diffUsersCount) ? `${Math.abs(round(diffUsersCount, 0))}%` : null,
       diffDirection: defined(diffUsersCount)
         ? diffUsersCount > 0
           ? 'up'
@@ -159,59 +176,196 @@ function ReleaseComparisonChart({releaseSessions, allSessions}: Props) {
     },
   ];
 
+  function getSeries(chartType: ReleaseComparisonChartType) {
+    if (!releaseSessions) {
+      return {};
+    }
+
+    switch (chartType) {
+      case ReleaseComparisonChartType.CRASH_FREE_SESSIONS:
+        return {
+          series: [
+            {
+              seriesName: t('This Release'),
+              connectNulls: true,
+              data: getCrashFreeSeries(
+                releaseSessions?.groups,
+                releaseSessions?.intervals,
+                SessionField.SESSIONS
+              ),
+            },
+          ],
+          previousSeries: [
+            {
+              seriesName: t('All Releases'),
+              data: getCrashFreeSeries(
+                allSessions?.groups,
+                allSessions?.intervals,
+                SessionField.SESSIONS
+              ),
+            },
+          ],
+        };
+      case ReleaseComparisonChartType.CRASH_FREE_USERS:
+        return {
+          series: [
+            {
+              seriesName: t('This Release'),
+              connectNulls: true,
+              data: getCrashFreeSeries(
+                releaseSessions?.groups,
+                releaseSessions?.intervals,
+                SessionField.USERS
+              ),
+            },
+          ],
+          previousSeries: [
+            {
+              seriesName: t('All Releases'),
+              data: getCrashFreeSeries(
+                allSessions?.groups,
+                allSessions?.intervals,
+                SessionField.USERS
+              ),
+            },
+          ],
+        };
+      case ReleaseComparisonChartType.SESSION_COUNT:
+        return {
+          series: Object.values(
+            fillChartDataFromSessionsResponse({
+              response: releaseSessions,
+              field: SessionField.SESSIONS,
+              groupBy: 'session.status',
+              chartData: initSessionsBreakdownChartData(),
+            })
+          ),
+        };
+      case ReleaseComparisonChartType.USER_COUNT:
+        return {
+          series: Object.values(
+            fillChartDataFromSessionsResponse({
+              response: releaseSessions,
+              field: SessionField.USERS,
+              groupBy: 'session.status',
+              chartData: initSessionsBreakdownChartData(),
+            })
+          ),
+        };
+      default:
+        return {};
+    }
+  }
+
+  function handleChartChange(chartType: ReleaseComparisonChartType) {
+    browserHistory.push({
+      ...location,
+      query: {
+        ...location.query,
+        chart: chartType,
+      },
+    });
+  }
+
+  const {series, previousSeries} = getSeries(activeChart);
+
+  if (errored) {
+    return (
+      <Panel>
+        <ErrorPanel>
+          <IconWarning color="gray300" size="lg" />
+        </ErrorPanel>
+      </Panel>
+    );
+  }
+
   return (
-    <StyledPanelTable
-      headers={[
-        <Cell key="stability" align="left">
-          {t('Stability')}
-        </Cell>,
-        <Cell key="releases" align="right">
-          {t('All Releases')}
-        </Cell>,
-        <Cell key="release" align="right">
-          {t('This Release')}
-        </Cell>,
-        <Cell key="change" align="right">
-          {t('Change')}
-        </Cell>,
-      ]}
-    >
-      {charts.map(({type, thisRelease, allReleases, diff, diffDirection, diffColor}) => {
-        return (
-          <Fragment key={type}>
-            <Cell align="left">
-              <ChartToggle htmlFor={type}>
-                <Radio
-                  id={type}
-                  disabled={false}
-                  checked={type === activeChart}
-                  onChange={() => setActiveChart(type)}
-                />
-                {releaseComparisonChartLabels[type]}
-              </ChartToggle>
-            </Cell>
-            <Cell align="right">{allReleases}</Cell>
-            <Cell align="right">{thisRelease}</Cell>
-            <Cell align="right">
-              {defined(diff) ? (
-                <Change color={defined(diffColor) ? diffColor : undefined}>
-                  {defined(diffDirection) && (
-                    <IconArrow direction={diffDirection} size="xs" />
-                  )}{' '}
-                  {diff}
-                </Change>
-              ) : (
-                <NotAvailable />
-              )}
-            </Cell>
-          </Fragment>
-        );
-      })}
-    </StyledPanelTable>
+    <Fragment>
+      <ChartPanel>
+        <ChartContainer>
+          <TransitionChart loading={loading} reloading={reloading}>
+            <TransparentLoadingMask visible={reloading} />
+
+            <SessionsChart
+              series={series ?? []}
+              previousSeries={previousSeries ?? []}
+              chartType={activeChart}
+              platform={platform}
+            />
+          </TransitionChart>
+        </ChartContainer>
+      </ChartPanel>
+      <ChartTable
+        headers={[
+          <Cell key="stability" align="left">
+            {t('Stability')}
+          </Cell>,
+          <Cell key="releases" align="right">
+            {t('All Releases')}
+          </Cell>,
+          <Cell key="release" align="right">
+            {t('This Release')}
+          </Cell>,
+          <Cell key="change" align="right">
+            {t('Change')}
+          </Cell>,
+        ]}
+      >
+        {charts.map(
+          ({type, thisRelease, allReleases, diff, diffDirection, diffColor}) => {
+            return (
+              <Fragment key={type}>
+                <Cell align="left">
+                  <ChartToggle htmlFor={type}>
+                    <Radio
+                      id={type}
+                      disabled={false}
+                      checked={type === activeChart}
+                      onChange={() => handleChartChange(type)}
+                    />
+                    {releaseComparisonChartLabels[type]}
+                  </ChartToggle>
+                </Cell>
+                <Cell align="right">
+                  {loading ? <Placeholder height="20px" /> : allReleases}
+                </Cell>
+                <Cell align="right">
+                  {loading ? <Placeholder height="20px" /> : thisRelease}
+                </Cell>
+                <Cell align="right">
+                  {loading ? (
+                    <Placeholder height="20px" />
+                  ) : defined(diff) ? (
+                    <Change color={defined(diffColor) ? diffColor : undefined}>
+                      {defined(diffDirection) && (
+                        <IconArrow direction={diffDirection} size="xs" />
+                      )}{' '}
+                      {diff}
+                    </Change>
+                  ) : (
+                    <NotAvailable />
+                  )}
+                </Cell>
+              </Fragment>
+            );
+          }
+        )}
+      </ChartTable>
+    </Fragment>
   );
 }
 
-const StyledPanelTable = styled(PanelTable)`
+const ChartPanel = styled(Panel)`
+  margin-bottom: 0;
+  border-bottom-left-radius: 0;
+  border-bottom: none;
+  border-bottom-right-radius: 0;
+`;
+
+const ChartTable = styled(PanelTable)`
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+
   @media (max-width: ${p => p.theme.breakpoints[2]}) {
     grid-template-columns: min-content 1fr 1fr 1fr;
   }

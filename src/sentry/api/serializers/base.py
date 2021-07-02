@@ -113,7 +113,7 @@ class Serializer:
         """
         Convert an arbitrary python object `obj` to an object that only contains primitives.
 
-        :param obj: An item from `item_list` that was passes to `get_attrs`.
+        :param obj: An item from `item_list` that was passed to `get_attrs`.
         :param attrs: The object in `get_attrs` that corresponds to `obj`.
         :param user: The user who will be viewing the objects.
         :param kwargs: Any
