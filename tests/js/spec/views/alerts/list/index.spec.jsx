@@ -197,7 +197,7 @@ describe('IncidentsList', function () {
     wrapper.update();
 
     expect(wrapper.find('PanelItem')).toHaveLength(0);
-    expect(wrapper.text()).toContain('No incidents exist for the current query.');
+    expect(wrapper.text()).toContain('No incidents exist for the current query');
   });
 
   it('filters by opened issues', async function () {
