@@ -12,7 +12,7 @@ FOREVER_CACHE = "max-age=315360000"
 # See https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control#requiring_revalidation
 # This means that clients *CAN* cache the resource, but they must revalidate before using it
 # This means we will have a small HTTP request overhead to verify that the local resource is not outdated
-NO_CACHE = "no-cache"
+NO_CACHE = "max-age=0, no-cache, must-revalidate"
 
 # no-store means that the response should not be stored in *ANY* cache
 NEVER_CACHE = "max-age=0, no-cache, no-store, must-revalidate"
