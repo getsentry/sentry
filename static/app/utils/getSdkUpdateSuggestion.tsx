@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import ExternalLink from 'app/components/links/externalLink';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
-import {UpdateSdkSuggestion} from 'app/types';
+import {SdkSuggestionType, UpdateSdkSuggestion} from 'app/types';
 import {Event} from 'app/types/event';
 
 type Props = {
@@ -46,35 +46,57 @@ function getSdkUpdateSuggestion({
       : t('update your SDK version');
   }
 
-  const getTitleData = () => {
+  function getChangeSdkContent(newSdkName: UpdateSdkSuggestion['sdkName']) {
+    if (capitalized) {
+      return sdk && !shortStyle
+        ? tct('Migrate from [sdk-name] to the [new-sdk-name] SDK', {
+            ['sdk-name']: sdk.name,
+            ['new-sdk-name']: <code>{newSdkName}</code>,
+          })
+        : tct('Migrate to the [new-sdk-name] SDK', {
+            ['new-sdk-name']: <code>{newSdkName}</code>,
+          });
+    }
+
+    return sdk && !shortStyle
+      ? tct('migrate from [sdk-name] to the [new-sdk-name] SDK', {
+          ['sdk-name']: sdk.name,
+          ['new-sdk-name']: <code>{newSdkName}</code>,
+        })
+      : tct('migrate to the [new-sdk-name] SDK', {
+          ['new-sdk-name']: <code>{newSdkName}</code>,
+        });
+  }
+
+  function getTitleData() {
     switch (suggestion.type) {
-      case 'updateSdk':
+      case SdkSuggestionType.UPDATE_SDK:
         return {
           href: suggestion?.sdkUrl,
           content: getUpdateSdkContent(suggestion.newSdkVersion),
         };
-      case 'changeSdk':
+      case SdkSuggestionType.CHANGE_SDK:
         return {
           href: suggestion?.sdkUrl,
-          content: tct('migrate to the [sdkName] SDK', {
-            sdkName: <code>{suggestion.newSdkName}</code>,
-          }),
+          content: getChangeSdkContent(suggestion.newSdkName),
         };
-      case 'enableIntegration':
+      case SdkSuggestionType.ENABLE_INTEGRATION:
         return {
           href: suggestion?.integrationUrl,
-          content: t("enable the '%s' integration", suggestion.integrationName),
+          content: capitalized
+            ? t("Enable the '%s' integration", suggestion.integrationName)
+            : t("enable the '%s' integration", suggestion.integrationName),
         };
       default:
-        return null;
+        return undefined;
     }
-  };
+  }
 
-  const getTitle = () => {
+  function getTitle() {
     const titleData = getTitleData();
 
     if (!titleData) {
-      return null;
+      return undefined;
     }
 
     const {href, content} = titleData;
@@ -84,9 +106,13 @@ function getSdkUpdateSuggestion({
     }
 
     return <ExternalLink href={href}>{content}</ExternalLink>;
-  };
+  }
 
-  const title = <Fragment>{getTitle()}</Fragment>;
+  const title = getTitle();
+
+  if (!title) {
+    return undefined;
+  }
 
   if (!suggestion.enables.length) {
     return title;
@@ -96,11 +122,14 @@ function getSdkUpdateSuggestion({
     .map((subSuggestion, index) => {
       const subSuggestionContent = getSdkUpdateSuggestion({
         suggestion: subSuggestion,
+        capitalized: true,
         sdk,
       });
+
       if (!subSuggestionContent) {
-        return null;
+        return undefined;
       }
+
       return <Fragment key={index}>{subSuggestionContent}</Fragment>;
     })
     .filter(content => !!content);
@@ -118,7 +147,6 @@ function getSdkUpdateSuggestion({
 export default getSdkUpdateSuggestion;
 
 const AlertUl = styled('ul')`
-  margin-top: ${space(1)};
-  margin-bottom: ${space(1)};
+  margin: ${space(1)} 0;
   padding-left: 0 !important;
 `;

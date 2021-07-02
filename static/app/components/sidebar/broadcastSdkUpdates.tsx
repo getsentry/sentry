@@ -26,6 +26,18 @@ const flattenSuggestions = (list: ProjectSdkUpdates[]) =>
     []
   );
 
+const commonUpdateMessage = t(
+  'We recommend updating the following SDKs to make sure you’re getting all the data you need.'
+);
+
+const javascriptUpdateMessage = t(
+  'All instalations of javascript must be updated to the same version. Otherwise, there will be problems getting the correct data.'
+);
+
+const ravenUpdateMessage = t(
+  'All instalations of raven are out date and must be migrated to the new Sentry SDKs.'
+);
+
 const BroadcastSdkUpdates = ({projects, sdkUpdates}: Props) => {
   if (!sdkUpdates) {
     return null;
@@ -39,14 +51,46 @@ const BroadcastSdkUpdates = ({projects, sdkUpdates}: Props) => {
   // Group SDK updates by project
   const items = Object.entries(groupBy(sdkUpdates, 'projectId'));
 
+  function getUpdateMessage() {
+    const hasRavenSDkUpdate = !!sdkUpdates?.find(sdkUpdate =>
+      sdkUpdate.sdkName.includes('raven')
+    );
+
+    const hasJavascriptSDkUpdate = !!sdkUpdates?.find(sdkUpdate =>
+      sdkUpdate.sdkName.includes('javascript')
+    );
+
+    if (hasRavenSDkUpdate && hasJavascriptSDkUpdate) {
+      return (
+        <UpdateMessage>
+          <p>{commonUpdateMessage}</p>
+          <p>{ravenUpdateMessage}</p>
+          <p>{javascriptUpdateMessage}</p>
+        </UpdateMessage>
+      );
+    }
+
+    if (hasRavenSDkUpdate) {
+      <UpdateMessage>
+        <p>{commonUpdateMessage}</p>
+        <p>{ravenUpdateMessage}</p>
+      </UpdateMessage>;
+    }
+
+    if (hasJavascriptSDkUpdate) {
+      return (
+        <UpdateMessage>
+          <p>{commonUpdateMessage}</p>
+          <p>{javascriptUpdateMessage}</p>
+        </UpdateMessage>
+      );
+    }
+
+    return commonUpdateMessage;
+  }
+
   return (
-    <SidebarPanelItem
-      hasSeen
-      title={t('Update your SDKs')}
-      message={t(
-        'We recommend updating the following SDKs to make sure you’re getting all the data you need.'
-      )}
-    >
+    <SidebarPanelItem hasSeen title={t('Update your SDKs')} message={getUpdateMessage()}>
       <UpdatesList>
         <Collapsible>
           {items.map(([projectId, updates]) => {
@@ -76,7 +120,7 @@ const BroadcastSdkUpdates = ({projects, sdkUpdates}: Props) => {
                               suggestion,
                               shortStyle: true,
                               capitalized: true,
-                            })}
+                            }) ?? null}
                           </ListItem>
                         ))}
                       </List>
@@ -119,6 +163,14 @@ const SdkName = styled('div')`
 
 const SdkOutdatedVersion = styled('span')`
   color: ${p => p.theme.subText};
+`;
+
+const UpdateMessage = styled('div')`
+  && {
+    p:last-child {
+      margin-bottom: 0;
+    }
+  }
 `;
 
 export default withSdkUpdates(withProjects(BroadcastSdkUpdates));

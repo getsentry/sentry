@@ -399,9 +399,7 @@ class EventEntries extends Component<Props, State> {
           />
         )}
         {event?.sdk && !objectIsEmpty(event.sdk) && <EventSdk sdk={event.sdk} />}
-        {!isShare && event?.sdkUpdates && event.sdkUpdates.length > 0 && (
-          <EventSdkUpdates event={{sdkUpdates: event.sdkUpdates, ...event}} />
-        )}
+        {!isShare && <EventSdkUpdates event={event} />}
         {!isShare && event?.groupID && (
           <EventGroupingInfo
             projectId={project.slug}

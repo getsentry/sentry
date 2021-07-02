@@ -401,15 +401,21 @@ export type EventAttachment = {
 
 export type EntryData = Record<string, any | Array<any>>;
 
+export enum SdkSuggestionType {
+  UPDATE_SDK = 'updateSdk',
+  CHANGE_SDK = 'changeSdk',
+  ENABLE_INTEGRATION = 'enableIntegration',
+}
+
 type EnableIntegrationSuggestion = {
-  type: 'enableIntegration';
+  type: SdkSuggestionType.ENABLE_INTEGRATION;
   integrationName: string;
   enables: Array<SDKUpdatesSuggestion>;
   integrationUrl?: string | null;
 };
 
 export type UpdateSdkSuggestion = {
-  type: 'updateSdk';
+  type: SdkSuggestionType.UPDATE_SDK;
   sdkName: string;
   newSdkVersion: string;
   enables: Array<SDKUpdatesSuggestion>;
@@ -417,7 +423,7 @@ export type UpdateSdkSuggestion = {
 };
 
 type ChangeSdkSuggestion = {
-  type: 'changeSdk';
+  type: SdkSuggestionType.CHANGE_SDK;
   newSdkName: string;
   enables: Array<SDKUpdatesSuggestion>;
   sdkUrl?: string | null;

@@ -1,33 +1,65 @@
-import Alert from 'app/components/alert';
 import EventDataSection from 'app/components/events/eventDataSection';
-import {IconUpgrade} from 'app/icons';
-import {t, tct} from 'app/locale';
+import {tct} from 'app/locale';
+import {SdkSuggestionType} from 'app/types';
 import {Event} from 'app/types/event';
 import getSdkUpdateSuggestion from 'app/utils/getSdkUpdateSuggestion';
 
+import SdkAlert from './sdkAlert';
+
 type Props = {
-  event: Omit<Event, 'sdkUpdates'> & {
-    sdkUpdates: NonNullable<Event['sdkUpdates']>;
-  };
+  event: Event;
 };
 
-const SdkUpdates = ({event}: Props) => {
-  const {sdkUpdates} = event;
+function SdkUpdates({event}: Props) {
+  const {sdkUpdates = [], sdk} = event;
+
+  if (!sdkUpdates.length) {
+    return null;
+  }
 
   const eventDataSectinContent = sdkUpdates
     .map((sdkUpdate, index) => {
-      const suggestion = getSdkUpdateSuggestion({suggestion: sdkUpdate, sdk: event.sdk});
+      if (
+        !!sdk?.name.includes('raven') &&
+        sdkUpdate.type === SdkSuggestionType.CHANGE_SDK
+      ) {
+        const suggestion = getSdkUpdateSuggestion({
+          suggestion: sdkUpdate,
+          capitalized: true,
+          sdk,
+        });
+
+        if (!suggestion) {
+          return undefined;
+        }
+
+        return (
+          <SdkAlert
+            key={index}
+            type={sdkUpdate.type}
+            suggestion={tct('Installations of raven are now out of date. [suggestion]', {
+              suggestion,
+            })}
+            withGoToBroadcastAction
+          />
+        );
+      }
+
+      const suggestion = getSdkUpdateSuggestion({suggestion: sdkUpdate, sdk});
 
       if (!suggestion) {
-        return null;
+        return undefined;
       }
 
       return (
-        <Alert key={index} type="info" icon={<IconUpgrade />}>
-          {tct('We recommend you [suggestion] ', {suggestion})}
-          {sdkUpdate.type === 'updateSdk' &&
-            t('(All sentry packages should be updated and their versions should match)')}
-        </Alert>
+        <SdkAlert
+          key={index}
+          type={sdkUpdate.type}
+          suggestion={tct('We recommend you [suggestion]', {suggestion})}
+          withGoToBroadcastAction={
+            sdkUpdate.type !== SdkSuggestionType.ENABLE_INTEGRATION
+          }
+        />
       );
     })
     .filter(alert => !!alert);
@@ -41,6 +73,6 @@ const SdkUpdates = ({event}: Props) => {
       {eventDataSectinContent}
     </EventDataSection>
   );
-};
+}
 
 export default SdkUpdates;
