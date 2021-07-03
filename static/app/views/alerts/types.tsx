@@ -1,4 +1,4 @@
-import {Repository, User} from 'app/types';
+import {User} from 'app/types';
 import {IssueAlertRule} from 'app/types/alerts';
 import {IncidentRule} from 'app/views/alerts/incidentRules/types';
 
@@ -33,14 +33,6 @@ export type IncidentStats = {
   uniqueUsers: number;
 };
 
-export type IncidentSuspect = {
-  author: User;
-  dateCreated: string;
-  id: string;
-  message: string;
-  repository: Repository;
-};
-
 export type ActivityTypeDraft = {
   comment: null | string;
   dateCreated: string;
@@ -55,12 +47,6 @@ export type ActivityType = ActivityTypeDraft & {
   previousValue: string | null;
   value: string | null;
 };
-
-export enum IncidentType {
-  DETECTED,
-  CREATED,
-  TRIGGERED,
-}
 
 export enum IncidentActivityType {
   CREATED = 0,

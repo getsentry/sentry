@@ -1,10 +1,5 @@
 import {t} from 'app/locale';
 
-export enum AlertRuleThreshold {
-  INCIDENT,
-  RESOLUTION,
-}
-
 export enum AlertRuleThresholdType {
   ABOVE,
   BELOW,
@@ -45,7 +40,7 @@ export type ThresholdControlValue = {
   threshold: number | '' | null;
 };
 
-export type SavedTrigger = Omit<UnsavedTrigger, 'actions'> & {
+type SavedTrigger = Omit<UnsavedTrigger, 'actions'> & {
   id: string;
   dateCreated: string;
   actions: Action[];
@@ -100,11 +95,6 @@ export enum TimeWindow {
   FOUR_HOURS = 240,
   ONE_DAY = 1440,
 }
-
-export type ProjectSelectOption = {
-  label: string;
-  value: number;
-};
 
 export enum ActionType {
   EMAIL = 'email',
@@ -216,7 +206,7 @@ type SavedActionFields = {
   dateCreated: string;
 };
 
-export type UnsavedAction = {
+type UnsavedAction = {
   unsavedId: string;
   /** Used to maintain order of unsaved actions */
   unsavedDateCreated: string;

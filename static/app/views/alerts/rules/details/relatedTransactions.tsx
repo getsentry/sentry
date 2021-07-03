@@ -16,10 +16,7 @@ import {transactionSummaryRouteWithQuery} from 'app/views/performance/transactio
 
 const COLUMN_TITLES = ['slowest transactions', 'project', 'p95', 'users', 'user misery'];
 
-export function getProjectID(
-  eventData: EventData,
-  projects: Project[]
-): string | undefined {
+function getProjectID(eventData: EventData, projects: Project[]): string | undefined {
   const projectSlug = (eventData?.project as string) || undefined;
 
   if (typeof projectSlug === undefined) {
