@@ -131,7 +131,7 @@ class FetchReleaseFileTest(TestCase):
         ReleaseFile.objects.create(
             name="file.min.js",
             release_id=release.id,
-            dist=foo_dist,
+            dist_id=foo_dist.id,
             organization_id=project.organization_id,
             file=foo_file,
         )
