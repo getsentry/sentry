@@ -102,7 +102,9 @@ class ReleaseFile(Model):
             dist_name = None
             dist_id = kwargs.get("dist_id") or self.dist_id
             if dist_id:
-                dist_name = Distribution.objects.only("name").get(pk=dist_id).name
+                dist_name = Distribution.objects.filter(pk=dist_id).values_list("name", flat=True)[
+                    0
+                ]
             kwargs["ident"] = self.ident = type(self).get_ident(kwargs["name"], dist_name)
         return super().update(*args, **kwargs)
 
