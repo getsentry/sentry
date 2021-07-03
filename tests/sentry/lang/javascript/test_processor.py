@@ -1232,7 +1232,7 @@ class CacheSourceTest(TestCase):
         release = self.create_release(project=project, version="12.31.12")
 
         abs_path = "app:///../node_modules/some-package/index.js"
-        self.create_release_file(release=release, name=abs_path)
+        self.create_release_file(release_id=release.id, name=abs_path)
 
         processor = JavaScriptStacktraceProcessor(
             data={"release": release.version}, stacktrace_infos=None, project=project
@@ -1262,7 +1262,7 @@ class CacheSourceTest(TestCase):
         release = self.create_release(project=project, version="12.31.12")
 
         abs_path = "app:///../node_modules/some-package/index.js"
-        self.create_release_file(release=release, name=abs_path)
+        self.create_release_file(release_id=release.id, name=abs_path)
 
         processor = JavaScriptStacktraceProcessor(
             data={"release": release.version}, stacktrace_infos=None, project=project
