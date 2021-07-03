@@ -94,7 +94,10 @@ class FetchReleaseFileTest(TestCase):
         file.putfile(BytesIO(binary_body))
 
         ReleaseFile.objects.create(
-            name="file.min.js", release=release, organization_id=project.organization_id, file=file
+            name="file.min.js",
+            release_id=release.id,
+            organization_id=project.organization_id,
+            file=file,
         )
 
         result = fetch_release_file("file.min.js", release)
@@ -127,7 +130,7 @@ class FetchReleaseFileTest(TestCase):
         foo_dist = release.add_dist("foo")
         ReleaseFile.objects.create(
             name="file.min.js",
-            release=release,
+            release_id=release.id,
             dist=foo_dist,
             organization_id=project.organization_id,
             file=foo_file,
@@ -142,8 +145,8 @@ class FetchReleaseFileTest(TestCase):
         bar_dist = release.add_dist("bar")
         ReleaseFile.objects.create(
             name="file.min.js",
-            release=release,
-            dist=bar_dist,
+            release_id=release.id,
+            dist_id=bar_dist.id,
             organization_id=project.organization_id,
             file=bar_file,
         )
@@ -180,7 +183,7 @@ class FetchReleaseFileTest(TestCase):
 
         ReleaseFile.objects.create(
             name="~/file.min.js",
-            release=release,
+            release_id=release.id,
             organization_id=project.organization_id,
             file=file,
         )
@@ -214,7 +217,10 @@ class FetchReleaseFileTest(TestCase):
         file.putfile(BytesIO(binary_body))
 
         ReleaseFile.objects.create(
-            name="file.min.js", release=release, organization_id=project.organization_id, file=file
+            name="file.min.js",
+            release_id=release.id,
+            organization_id=project.organization_id,
+            file=file,
         )
 
         result = fetch_release_file("file.min.js", release)
@@ -261,7 +267,10 @@ class FetchReleaseFileTest(TestCase):
         file.putfile(BytesIO(binary_body))
 
         ReleaseFile.objects.create(
-            name="file.min.js", release=release, organization_id=project.organization_id, file=file
+            name="file.min.js",
+            release_id=release.id,
+            organization_id=project.organization_id,
+            file=file,
         )
 
         mock_compress_file.return_value = (binary_body, binary_body)
@@ -368,7 +377,7 @@ class FetchReleaseFileTest(TestCase):
 
         ReleaseFile.objects.create(
             name=file.name,
-            release=release,
+            release_id=release.id,
             organization_id=project.organization_id,
             file=file,
         )
@@ -582,9 +591,9 @@ class FetchFileTest(TestCase):
         pseudo_archive.putfile(BytesIO(b"i_am_an_archive"))
         releasefile = ReleaseFile.objects.create(
             name=pseudo_archive.name,
-            release=release2,
+            release_id=release2.id,
             organization_id=self.organization.id,
-            dist=None,
+            dist_id=None,
             file=pseudo_archive,
         )
         file = File.objects.create(name=ARTIFACT_INDEX_FILENAME, type="release.artifact-index")
@@ -593,7 +602,7 @@ class FetchFileTest(TestCase):
         )
         ReleaseFile.objects.create(
             name=ARTIFACT_INDEX_FILENAME,
-            release=release2,
+            release_id=release2.id,
             organization_id=self.project.organization_id,
             file=file,
         )
