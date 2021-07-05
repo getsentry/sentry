@@ -183,7 +183,7 @@ def project_threshold_config_expression(organization_id, project_ids):
             f"Exceeded {MAX_QUERYABLE_TRANSACTION_THRESHOLDS} configured transaction thresholds limit, try with fewer Projects."
         )
 
-    project_confiq_query = (
+    project_config_query = (
         [
             "if",
             [
@@ -273,7 +273,7 @@ def project_threshold_config_expression(organization_id, project_ids):
                         0,
                     ],
                 ],
-                project_confiq_query,
+                project_config_query,
                 [
                     "arrayElement",
                     [
@@ -314,7 +314,7 @@ def project_threshold_config_expression(organization_id, project_ids):
             ],
         ]
 
-    return project_confiq_query
+    return project_config_query
 
 
 def team_key_transaction_expression(organization_id, team_ids, project_ids):
