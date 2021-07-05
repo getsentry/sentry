@@ -30,6 +30,7 @@ export enum LandingDisplayField {
   FRONTEND_PAGELOAD = 'frontend_pageload',
   FRONTEND_OTHER = 'frontend_other',
   BACKEND = 'backend',
+  MOBILE = 'mobile',
 }
 
 export const LANDING_DISPLAYS = [
@@ -48,6 +49,13 @@ export const LANDING_DISPLAYS = [
   {
     label: 'Backend',
     field: LandingDisplayField.BACKEND,
+  },
+  {
+    label: 'Mobile',
+    field: LandingDisplayField.MOBILE,
+    isEnabled: (organization: Organization) =>
+      organization.features.includes('performance-mobile-vitals'),
+    beta: true,
   },
 ];
 
