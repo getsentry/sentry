@@ -186,7 +186,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(SnubaTestCase, AP
             "per_page": 5,
             "statsPeriod": "14d",
             "tagKeyLimit": 1,
-            "numBucketsPerKey": 1,
+            "numBucketsPerKey": 2,
             "tagKey": "color",
             "query": "(color:red or color:blue or color:green)",
         }
@@ -198,7 +198,7 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(SnubaTestCase, AP
         histogram_data = data_response.data["data"]
         assert len(histogram_data) == 1
         assert histogram_data[0]["count"] == 14
-        assert histogram_data[0]["histogram_transaction_duration_5000000_0_1"] == 0.0
+        assert histogram_data[0]["histogram_transaction_duration_2500000_0_1"] == 0.0
         assert histogram_data[0]["tags_value"] == "red"
         assert histogram_data[0]["tags_key"] == "color"
 
@@ -210,16 +210,16 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(SnubaTestCase, AP
         histogram_data = data_response.data["data"]
         assert len(histogram_data) == 3
         assert histogram_data[0]["count"] == 14
-        assert histogram_data[0]["histogram_transaction_duration_2000000_0_1"] == 0.0
+        assert histogram_data[0]["histogram_transaction_duration_750000_750000_1"] == 750000.0
         assert histogram_data[0]["tags_value"] == "red"
         assert histogram_data[0]["tags_key"] == "color"
 
-        assert histogram_data[1]["count"] == 1
-        assert histogram_data[1]["histogram_transaction_duration_2000000_0_1"] == 4000000.0
-        assert histogram_data[1]["tags_value"] == "green"
+        assert histogram_data[1]["count"] == 5
+        assert histogram_data[1]["histogram_transaction_duration_750000_750000_1"] == 3750000.0
+        assert histogram_data[1]["tags_value"] == "blue"
         assert histogram_data[1]["tags_key"] == "color"
 
-        assert histogram_data[2]["count"] == 5
-        assert histogram_data[2]["histogram_transaction_duration_2000000_0_1"] == 4000000.0
-        assert histogram_data[2]["tags_value"] == "blue"
+        assert histogram_data[2]["count"] == 1
+        assert histogram_data[2]["histogram_transaction_duration_750000_750000_1"] == 4500000.0
+        assert histogram_data[2]["tags_value"] == "green"
         assert histogram_data[2]["tags_key"] == "color"
