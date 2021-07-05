@@ -153,6 +153,23 @@ describe('ReleasesList', function () {
     );
   });
 
+  it('displays request errors', function () {
+    const errorMessage = 'dumpster fire';
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/releases/',
+      body: {
+        detail: errorMessage,
+      },
+      statusCode: 400,
+    });
+
+    wrapper = mountWithTheme(<ReleasesList {...props} />, routerContext);
+    expect(wrapper.find('LoadingError').text()).toBe(errorMessage);
+
+    // we want release header to be visible despite the error message
+    expect(wrapper.find('SortAndFilterWrapper').exists()).toBeTruthy();
+  });
+
   it('searches for a release', function () {
     const input = wrapper.find('input');
 
