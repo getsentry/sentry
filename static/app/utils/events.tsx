@@ -1,4 +1,10 @@
-import {BaseGroup, EventMetadata, GroupTombstone, Organization} from 'app/types';
+import {
+  BaseGroup,
+  EventMetadata,
+  GroupTombstone,
+  Organization,
+  TreeLabelComponent,
+} from 'app/types';
 import {Event} from 'app/types/event';
 import {isNativePlatform} from 'app/utils/platform';
 
@@ -31,8 +37,11 @@ export function getMessage(
   }
 }
 
-function formatTreeLabel(treeLabel: string[]) {
-  return treeLabel.join(' | ');
+function formatTreeLabel(treeLabel: TreeLabelComponent[]) {
+  return treeLabel
+    .map(part => part && (part.function || part.package))
+    .filter(part => part)
+    .join(' | ');
 }
 
 function computeTitleWithTreeLabel(title: string | undefined, metadata: EventMetadata) {

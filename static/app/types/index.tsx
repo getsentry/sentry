@@ -371,6 +371,12 @@ export type Team = {
 
 export type TeamWithProjects = Team & {projects: Project[]};
 
+export type TreeLabelComponent = {
+  function?: string;
+  package?: string;
+  datapath?: (string | number)[];
+};
+
 // This type is incomplete
 export type EventMetadata = {
   value?: string;
@@ -383,8 +389,8 @@ export type EventMetadata = {
   origin?: string;
   function?: string;
   stripped_crash?: boolean;
-  current_tree_label?: string[];
-  finest_tree_label?: string[];
+  current_tree_label?: TreeLabelComponent[];
+  finest_tree_label?: object[];
 };
 
 export type EventAttachment = {
