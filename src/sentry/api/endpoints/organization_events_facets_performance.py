@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from sentry import features, tagstore
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
+from sentry.search.events.filter import get_filter
 from sentry.snuba import discover
 from sentry.utils.snuba import Dataset
 
@@ -137,9 +138,11 @@ class OrganizationEventsFacetsPerformanceHistogramEndpoint(
             raise ParseError(
                 detail="'numBucketsPerKey' must be provided for the performance histogram."
             )
-
-        tag_key_limit = int(tag_key_limit)
-        num_buckets_per_key = int(num_buckets_per_key)
+        try:
+            tag_key_limit = int(tag_key_limit)
+            num_buckets_per_key = int(num_buckets_per_key)
+        except ValueError:
+            raise ParseError(detail="Bucket and tag key limits must be numeric.")
 
         if tag_key_limit * num_buckets_per_key > 500:
             raise ParseError(
@@ -152,16 +155,6 @@ class OrganizationEventsFacetsPerformanceHistogramEndpoint(
         def data_fn():
             with sentry_sdk.start_span(op="discover.endpoint", description="discover_query"):
                 referrer = "api.organization-events-facets-performance-histogram"
-                tag_data = query_tag_data(
-                    filter_query=filter_query,
-                    aggregate_column=aggregate_column,
-                    referrer=referrer,
-                    params=params,
-                )
-
-                if not tag_data:
-                    return {"data": []}
-
                 top_tags = query_top_tags(
                     tag_key=tag_key,
                     limit=tag_key_limit,
@@ -175,7 +168,6 @@ class OrganizationEventsFacetsPerformanceHistogramEndpoint(
 
                 results = query_facet_performance_key_histogram(
                     top_tags=top_tags,
-                    tag_data=tag_data,
                     tag_key=tag_key,
                     filter_query=filter_query,
                     aggregate_column=aggregate_column,
@@ -218,7 +210,7 @@ def query_tag_data(
         op="discover.discover", description="facets.filter_transform"
     ) as span:
         span.set_data("query", filter_query)
-        snuba_filter = discover.get_filter(filter_query, params)
+        snuba_filter = get_filter(filter_query, params)
 
         # Resolve the public aliases into the discover dataset names.
         snuba_filter, translated_columns = discover.resolve_discover_aliases(snuba_filter)
@@ -269,7 +261,7 @@ def query_top_tags(
         op="discover.discover", description="facets.filter_transform"
     ) as span:
         span.set_data("query", filter_query)
-        snuba_filter = discover.get_filter(filter_query, params)
+        snuba_filter = get_filter(filter_query, params)
 
         # Resolve the public aliases into the discover dataset names.
         snuba_filter, translated_columns = discover.resolve_discover_aliases(snuba_filter)
@@ -322,7 +314,7 @@ def query_facet_performance(
         op="discover.discover", description="facets.filter_transform"
     ) as span:
         span.set_data("query", filter_query)
-        snuba_filter = discover.get_filter(filter_query, params)
+        snuba_filter = get_filter(filter_query, params)
 
         # Resolve the public aliases into the discover dataset names.
         snuba_filter, translated_columns = discover.resolve_discover_aliases(snuba_filter)
@@ -414,20 +406,16 @@ def query_facet_performance(
 
 def query_facet_performance_key_histogram(
     params: Mapping[str, str],
-    tag_data: Mapping[str, Any],
     top_tags: List[Any],
     tag_key: str,
+    num_buckets_per_key: int,
+    limit: int,
+    referrer: str,
     aggregate_column: Optional[str] = None,
     filter_query: Optional[str] = None,
     orderby: Optional[str] = None,
-    referrer: Optional[str] = None,
-    limit: Optional[int] = None,
-    num_buckets_per_key: Optional[int] = None,
 ) -> Dict:
     precision = 0
-
-    min_value = tag_data["min"]
-    max_value = tag_data["max"]
 
     tag_values = [x["tags_value"] for x in top_tags]
 
@@ -443,15 +431,13 @@ def query_facet_performance_key_histogram(
         params,
         num_buckets,
         precision,
-        min_value=min_value,
-        max_value=max_value,
         referrer="api.organization-events-facets-performance-histogram",
         group_by=["tags_value", "tags_key"],
         limit_by=[num_buckets_per_key, "tags_value"],
         extra_conditions=[
-                                         ["tags_key", "IN", [tag_key],
-                                         ["tags_value", "IN", tag_values],
-         ],
+            ["tags_key", "IN", [tag_key]],
+            ["tags_value", "IN", tag_values],
+        ],
         normalize_results=False,
     )
     return results
