@@ -6,88 +6,43 @@ import space from 'app/styles/space';
 
 import {ParseResult, Token, TokenResult} from './parser';
 
-class ResultRenderer {
-  renderFilter = (filter: TokenResult<Token.Filter>) => (
-    <FilterToken>
-      {filter.negated && <Negation>!</Negation>}
-      {this.renderKey(filter.key, filter.negated)}
-      {filter.operator && <Operator>{filter.operator}</Operator>}
-      <Value>{this.renderToken(filter.value)}</Value>
-    </FilterToken>
-  );
+function renderToken(token: TokenResult<Token>) {
+  switch (token.type) {
+    case Token.Spaces:
+      return token.value;
 
-  renderKey = (
-    key: TokenResult<Token.KeySimple | Token.KeyAggregate | Token.KeyExplicitTag>,
-    negated?: boolean
-  ) => {
-    let value: React.ReactNode = key.text;
+    case Token.Filter:
+      return <FilterToken filter={token} />;
 
-    if (key.type === Token.KeyExplicitTag) {
-      value = (
-        <ExplicitKey prefix={key.prefix}>
-          {key.key.quoted ? `"${key.key.value}"` : key.key.value}
-        </ExplicitKey>
-      );
-    }
+    case Token.ValueTextList:
+    case Token.ValueNumberList:
+      return <ListToken token={token} />;
 
-    return <Key negated={!!negated}>{value}:</Key>;
-  };
+    case Token.ValueNumber:
+      return <NumberToken token={token} />;
 
-  renderList = (token: TokenResult<Token.ValueNumberList | Token.ValueTextList>) => (
-    <InList>
-      {token.items.map(({value, separator}) => [
-        <ListComma key="comma">{separator}</ListComma>,
-        this.renderToken(value),
-      ])}
-    </InList>
-  );
+    case Token.ValueBoolean:
+      return <Boolean>{token.text}</Boolean>;
 
-  renderNumber = (token: TokenResult<Token.ValueNumber>) => (
-    <Fragment>
-      {token.value}
-      <Unit>{token.unit}</Unit>
-    </Fragment>
-  );
+    case Token.ValueIso8601Date:
+      return <DateTime>{token.text}</DateTime>;
 
-  renderToken = (token: TokenResult<Token>) => {
-    switch (token.type) {
-      case Token.Spaces:
-        return token.value;
+    case Token.LogicGroup:
+      return <LogicGroup>{renderResult(token.inner)}</LogicGroup>;
 
-      case Token.Filter:
-        return this.renderFilter(token);
+    case Token.LogicBoolean:
+      return <LogicBoolean>{token.value}</LogicBoolean>;
 
-      case Token.LogicGroup:
-        return <LogicGroup>{this.renderResult(token.inner)}</LogicGroup>;
-
-      case Token.LogicBoolean:
-        return <LogicBoolean>{token.value}</LogicBoolean>;
-
-      case Token.ValueBoolean:
-        return <Boolean>{token.text}</Boolean>;
-
-      case Token.ValueIso8601Date:
-        return <DateTime>{token.text}</DateTime>;
-
-      case Token.ValueTextList:
-      case Token.ValueNumberList:
-        return this.renderList(token);
-
-      case Token.ValueNumber:
-        return this.renderNumber(token);
-
-      default:
-        return token.text;
-    }
-  };
-
-  renderResult = (result: ParseResult) =>
-    result
-      .map(this.renderToken)
-      .map((renderedToken, i) => <Fragment key={i}>{renderedToken}</Fragment>);
+    default:
+      return token.text;
+  }
 }
 
-const renderer = new ResultRenderer();
+function renderResult(result: ParseResult) {
+  return result
+    .map(renderToken)
+    .map((renderedToken, i) => <Fragment key={i}>{renderedToken}</Fragment>);
+}
 
 type Props = {
   /**
@@ -105,12 +60,61 @@ type Props = {
  * Renders the parsed query with syntax highlighting.
  */
 export default function HighlightQuery({parsedQuery}: Props) {
-  const rendered = renderer.renderResult(parsedQuery);
+  const rendered = renderResult(parsedQuery);
 
   return <Fragment>{rendered}</Fragment>;
 }
 
-const FilterToken = styled('span')`
+const FilterToken = ({filter}: {filter: TokenResult<Token.Filter>}) => (
+  <Filter>
+    {filter.negated && <Negation>!</Negation>}
+    <KeyToken token={filter.key} negated={filter.negated} />
+    {filter.operator && <Operator>{filter.operator}</Operator>}
+    <Value>{renderToken(filter.value)}</Value>
+  </Filter>
+);
+
+const KeyToken = ({
+  token,
+  negated,
+}: {
+  token: TokenResult<Token.KeySimple | Token.KeyAggregate | Token.KeyExplicitTag>;
+  negated?: boolean;
+}) => {
+  let value: React.ReactNode = token.text;
+
+  if (token.type === Token.KeyExplicitTag) {
+    value = (
+      <ExplicitKey prefix={token.prefix}>
+        {token.key.quoted ? `"${token.key.value}"` : token.key.value}
+      </ExplicitKey>
+    );
+  }
+
+  return <Key negated={!!negated}>{value}:</Key>;
+};
+
+const ListToken = ({
+  token,
+}: {
+  token: TokenResult<Token.ValueNumberList | Token.ValueTextList>;
+}) => (
+  <InList>
+    {token.items.map(({value, separator}) => [
+      <ListComma key="comma">{separator}</ListComma>,
+      renderToken(value),
+    ])}
+  </InList>
+);
+
+const NumberToken = ({token}: {token: TokenResult<Token.ValueNumber>}) => (
+  <Fragment>
+    {token.value}
+    <Unit>{token.unit}</Unit>
+  </Fragment>
+);
+
+const Filter = styled('span')`
   --token-bg: ${p => p.theme.searchTokenBackground};
   --token-border: ${p => p.theme.searchTokenBorder};
   --token-value-color: ${p => p.theme.blue300};
@@ -218,21 +222,32 @@ const InList = styled('span')`
   }
 `;
 
-const LogicGroup = styled('span')`
-  &:before,
-  &:after {
+const LogicGroup = styled(({children, ...props}) => (
+  <span {...props}>
+    <span>(</span>
+    {children}
+    <span>)</span>
+  </span>
+))`
+  > span:first-child,
+  > span:last-child {
     position: relative;
-    font-weight: bold;
-    color: ${p => p.theme.white};
-    padding: 3px 0;
-    background: ${p => p.theme.red200};
-    border-radius: 1px;
+    color: transparent;
+
+    &:before {
+      position: absolute;
+      top: -5px;
+      color: ${p => p.theme.orange400};
+      font-size: 16px;
+      font-weight: bold;
+    }
   }
-  &:before {
+
+  > span:first-child:before {
     left: -3px;
     content: '(';
   }
-  &:after {
+  > span:last-child:before {
     right: -3px;
     content: ')';
   }

@@ -55,7 +55,7 @@ const SentryApp = {
   getModalPortal: require('app/utils/getModalPortal').default,
 };
 
-Object.keys(globals).forEach(name => (window[name] = globals[name]));
 globals.SentryApp = SentryApp;
+Object.keys(globals).forEach(name => (window[name] = globals[name]));
 
 export default globals;

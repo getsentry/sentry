@@ -31,5 +31,6 @@ class Migration(migrations.Migration):
             reverse_sql="""
                 ALTER TABLE "sentry_incidentactivity" ADD COLUMN "event_stats_snapshot_id" bigint NULL;
                 """,
+            hints={"tables": ["sentry_incidentactivity"]},
         )
     ]

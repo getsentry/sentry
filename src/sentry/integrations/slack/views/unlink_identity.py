@@ -15,6 +15,8 @@ from ..utils import get_identity, logger
 from . import build_linking_url as base_build_linking_url
 from . import never_cache
 
+SUCCESS_UNLINKED_MESSAGE = "Your Slack identity has been unlinked from your Sentry account."
+
 
 def build_unlinking_url(
     integration_id: str, organization_id: str, slack_id: str, channel_id: str, response_url: str
@@ -57,7 +59,7 @@ class SlackUnlinkIdentityView(BaseView):  # type: ignore
         payload = {
             "replace_original": False,
             "response_type": "ephemeral",
-            "text": "Your Slack identity has been unlinked from your Sentry account.",
+            "text": SUCCESS_UNLINKED_MESSAGE,
         }
 
         client = SlackClient()

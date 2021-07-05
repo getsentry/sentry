@@ -171,3 +171,40 @@ class PerformanceSummaryTest(AcceptanceTestCase, SnubaTestCase):
             self.page.wait_until_loaded()
 
             self.browser.snapshot("real user monitoring - view all data")
+
+    @patch("django.utils.timezone.now")
+    def test_transaction_threshold_modal(self, mock_now):
+        mock_now.return_value = before_now().replace(tzinfo=pytz.utc)
+
+        # Create a transaction
+        event = make_event(load_data("transaction", timestamp=before_now(minutes=1)))
+        self.store_event(data=event, project_id=self.project.id)
+
+        self.store_event(
+            data={
+                "transaction": "/country_by_code/",
+                "message": "This is bad",
+                "event_id": "b" * 32,
+                "timestamp": iso_format(before_now(minutes=1)),
+            },
+            project_id=self.project.id,
+        )
+
+        with self.feature(
+            (
+                "organizations:performance-view",
+                "organizations:project-transaction-threshold-override",
+            )
+        ):
+            self.browser.get(self.path)
+            self.page.wait_until_loaded()
+            # This test is flakey in that we sometimes load this page before the event is processed
+            # depend on pytest-retry to reload the page
+            self.browser.wait_until_not(
+                '[data-test-id="grid-editable"] [data-test-id="empty-state"]', timeout=2
+            )
+            # We have to wait for this again because there are loaders inside of the table
+            self.page.wait_until_loaded()
+            self.browser.click('[data-test-id="set-transaction-threshold"]')
+            self.browser.wait_until_not(".loading-indicator")
+            self.browser.snapshot("performance summary - with data")
