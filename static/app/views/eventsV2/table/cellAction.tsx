@@ -8,6 +8,7 @@ import * as PopperJS from 'popper.js';
 import {IconEllipsis} from 'app/icons';
 import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
+import {defined} from 'app/utils';
 import {TableDataRow} from 'app/utils/discover/discoverQuery';
 import {
   getAggregateAlias,
@@ -330,7 +331,8 @@ class CellAction extends React.Component<Props, State> {
 
     if (
       column.column.kind === 'function' &&
-      column.column.function[0] === 'user_misery'
+      column.column.function[0] === 'user_misery' &&
+      defined(dataRow.project_threshold_config)
     ) {
       addMenuItem(
         Actions.EDIT_THRESHOLD,

@@ -36,6 +36,7 @@ type Props = {
   organization: Organization;
   transactionName: string;
   onApply?: (threshold, metric) => void;
+  project?: string;
   projects: Project[];
   eventView: EventView;
   transactionThreshold: number | undefined;
@@ -56,11 +57,14 @@ class TransactionThresholdModal extends React.Component<Props, State> {
   };
 
   getProject() {
-    const {projects, eventView} = this.props;
-    const projectId = String(eventView.project[0]);
-    const project = projects.find(proj => proj.id === projectId);
+    const {projects, eventView, project} = this.props;
 
-    return project;
+    if (defined(project)) {
+      return projects.find(proj => proj.id === project);
+    } else {
+      const projectId = String(eventView.project[0]);
+      return projects.find(proj => proj.id === projectId);
+    }
   }
 
   handleApply = async (event: React.FormEvent) => {

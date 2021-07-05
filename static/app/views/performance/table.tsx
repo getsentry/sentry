@@ -91,7 +91,7 @@ class Table extends React.Component<Props, State> {
 
   handleCellAction = (column: TableColumn<keyof TableDataRow>, dataRow: TableDataRow) => {
     return (action: Actions, value: React.ReactText) => {
-      const {eventView, location, organization} = this.props;
+      const {eventView, location, organization, projects} = this.props;
 
       trackAnalyticsEvent({
         eventKey: 'performance_views.overview.cellaction',
@@ -103,6 +103,8 @@ class Table extends React.Component<Props, State> {
       if (action === Actions.EDIT_THRESHOLD) {
         const project_threshold = dataRow.project_threshold_config;
         const transactionName = dataRow.transaction as string;
+        const projectID = getProjectID(dataRow, projects);
+
         openModal(
           modalProps => (
             <TransactionThresholdModal
@@ -110,6 +112,7 @@ class Table extends React.Component<Props, State> {
               organization={organization}
               transactionName={transactionName}
               eventView={eventView}
+              project={projectID}
               transactionThreshold={project_threshold[1]}
               transactionThresholdMetric={project_threshold[0]}
               onApply={(threshold, metric) => {
