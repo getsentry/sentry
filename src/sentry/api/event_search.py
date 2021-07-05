@@ -623,6 +623,14 @@ class SearchVisitor(NodeVisitor):
         (search_key, _, operator, search_value) = children
         return self._handle_numeric_filter(search_key, operator, search_value)
 
+    def _handle_numeric_fallback(self, function_name, search_key, search_value, node):
+        """We've already tried one of the aggregate_filter parsers but couldn't resolve the filter"""
+        # The function is valid, but the value is not, treat it like a text filter instead
+        if self.is_numeric_key(function_name):
+            return SearchFilter(SearchKey(self.config.free_text_key), "=", SearchValue(node.text))
+        else:
+            return AggregateFilter(search_key, "=", SearchValue(search_value))
+
     def visit_aggregate_duration_filter(self, node, children):
         (negation, search_key, _, operator, search_value) = children
         operator = handle_negation(negation, operator)
@@ -631,6 +639,7 @@ class SearchVisitor(NodeVisitor):
             # Even if the search value matches duration format, only act as
             # duration for certain columns
             function = resolve_field(search_key.name, self.params, functions_acl=FUNCTIONS.keys())
+            function_name = function.details.instance.name if function.details is not None else ""
 
             is_duration_key = False
             if function.aggregate is not None:
@@ -640,9 +649,10 @@ class SearchVisitor(NodeVisitor):
                 else:
                     is_duration_key = self.is_duration_key(args)
 
+            aggregate_value = None
             if is_duration_key:
                 aggregate_value = parse_duration(*search_value)
-            else:
+            elif self.is_numeric_key(function_name):
                 # Duration overlaps with numeric values with `m` (million vs
                 # minutes). So we fall through to numeric if it's not a
                 # duration key
@@ -655,7 +665,11 @@ class SearchVisitor(NodeVisitor):
         except InvalidQuery as exc:
             raise InvalidSearchQuery(str(exc))
 
-        return AggregateFilter(search_key, operator, SearchValue(aggregate_value))
+        if aggregate_value:
+            return AggregateFilter(search_key, operator, SearchValue(aggregate_value))
+        search_value = "".join(search_value)
+        search_value = operator + search_value if operator != "=" else search_value
+        return self._handle_numeric_fallback(function_name, search_key, search_value, node)
 
     def visit_aggregate_percentage_filter(self, node, children):
         (negation, search_key, _, operator, search_value) = children
@@ -667,30 +681,35 @@ class SearchVisitor(NodeVisitor):
             # Even if the search value matches percentage format, only act as
             # percentage for certain columns
             function = resolve_field(search_key.name, self.params, functions_acl=FUNCTIONS.keys())
-            if function.aggregate is not None and self.is_percentage_key(function.aggregate[0]):
+            function_name = function.details.instance.name if function.details is not None else ""
+            if self.is_percentage_key(function_name):
                 aggregate_value = parse_percentage(search_value)
+                return AggregateFilter(search_key, operator, SearchValue(aggregate_value))
         except ValueError:
             raise InvalidSearchQuery(f"Invalid aggregate query condition: {search_key}")
         except InvalidQuery as exc:
             raise InvalidSearchQuery(str(exc))
 
-        if aggregate_value is not None:
-            return AggregateFilter(search_key, operator, SearchValue(aggregate_value))
-
-        # Invalid formats fall back to text match
         search_value = operator + search_value if operator != "=" else search_value
-        return AggregateFilter(search_key, "=", SearchValue(search_value))
+        search_value += "%"
+        return self._handle_numeric_fallback(function_name, search_key, search_value, node)
 
     def visit_aggregate_numeric_filter(self, node, children):
         (negation, search_key, _, operator, search_value) = children
         operator = handle_negation(negation, operator)
 
         try:
-            aggregate_value = parse_numeric_value(*search_value)
+            function = resolve_field(search_key.name, self.params, functions_acl=FUNCTIONS.keys())
+            function_name = function.details.instance.name if function.details is not None else ""
+            if self.is_numeric_key(function_name):
+                aggregate_value = parse_numeric_value(*search_value)
+                return AggregateFilter(search_key, operator, SearchValue(aggregate_value))
         except InvalidQuery as exc:
             raise InvalidSearchQuery(str(exc))
 
-        return AggregateFilter(search_key, operator, SearchValue(aggregate_value))
+        search_value = "".join(search_value)
+        search_value = operator + search_value if operator != "=" else search_value
+        return self._handle_numeric_fallback(function_name, search_key, search_value, node)
 
     def visit_aggregate_date_filter(self, node, children):
         (negation, search_key, _, operator, search_value) = children
@@ -944,7 +963,7 @@ class SearchVisitor(NodeVisitor):
 
 default_config = SearchConfig(
     duration_keys={"transaction.duration"},
-    percentage_keys={"percentage"},
+    percentage_keys={"percentage", "failure_rate"},
     text_operator_keys={SEMVER_ALIAS},
     numeric_keys={
         "project_id",
@@ -955,14 +974,29 @@ default_config = SearchConfig(
         "stack.stack_level",
         "transaction.duration",
         "apdex",
+        "avg",
+        "count",
+        "count_if",
+        "count_miserable",
+        "count_miserable_new",
+        "count_unique",
+        "epm",
+        "eps",
+        "failure_count",
+        "failure_rate",
+        "max",
+        "min",
+        "p100",
+        "p50",
         "p75",
         "p95",
         "p99",
-        "failure_rate",
-        "count_miserable",
-        "user_misery",
-        "count_miserable_new",
+        "percentage",
+        "percentile",
+        "tpm",
+        "tps",
         "user_miser_new",
+        "user_misery",
     },
     date_keys={
         "start",

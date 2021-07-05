@@ -1298,6 +1298,50 @@ class GetSnubaQueryArgsTest(TestCase):
         with self.assertRaises(InvalidSearchQuery):
             get_filter(f"transaction.duration:<{'9'*10}d")
 
+    def test_percent_shorthand_on_valid_field(self):
+        result = get_filter("failure_rate():>100%")
+        assert result.having == [["failure_rate", ">", 1.0]]
+
+        result = get_filter("percentage(1,2):>50%")
+        assert result.having == [["percentage_1_2", ">", 0.5]]
+
+        result = get_filter("any(transaction):>50%")
+        assert result.having == [["any_transaction", "=", ">50%"]]
+
+    def test_numeric_shorthand_on_valid_field(self):
+        result = get_filter("failure_count():>100k")
+        assert result.having == [["failure_count", ">", 100000]]
+
+        result = get_filter("p50():>5k")
+        assert result.having == [["p50", ">", 5000]]
+
+        result = get_filter("any(transaction):>50k")
+        assert result.having == [["any_transaction", "=", ">50k"]]
+
+    def test_duration_shorthand_on_valid_field(self):
+        result = get_filter("min(transaction.duration):>100s")
+        assert result.having == [["min_transaction_duration", ">", 100000]]
+
+        result = get_filter("p50():>5ms")
+        assert result.having == [["p50", ">", 5]]
+
+        result = get_filter("any(transaction):>50min")
+        assert result.having == [["any_transaction", "=", ">50min"]]
+
+    def test_percent_shorthand_on_invalid_field(self):
+        # This should be equivalent to doing failure_count():>something
+        result = get_filter("failure_count():>100%")
+        assert result.having == []
+        assert result.conditions == [
+            [["positionCaseInsensitive", ["message", "'failure_count():>100%'"]], "!=", 0]
+        ]
+
+        result = get_filter("p50():50%")
+        assert result.having == []
+        assert result.conditions == [
+            [["positionCaseInsensitive", ["message", "'p50():50%'"]], "!=", 0]
+        ]
+
     def test_semver(self):
         release = self.create_release(version="test@1.2.3")
         release_2 = self.create_release(version="test@1.2.4")
