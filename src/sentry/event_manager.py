@@ -71,7 +71,6 @@ from sentry.reprocessing2 import (
     save_unprocessed_event,
 )
 from sentry.signals import first_event_received, first_transaction_received, issue_unresolved
-from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache_key_for_event
@@ -1630,9 +1629,7 @@ def _calculate_event_grouping(project, event, grouping_config) -> CalculatedHash
 
     with metrics.timer("event_manager.normalize_stacktraces_for_grouping"):
         with sentry_sdk.start_span(op="event_manager.normalize_stacktraces_for_grouping"):
-            normalize_stacktraces_for_grouping(
-                event.data.data, load_grouping_config(grouping_config)
-            )
+            event.normalize_stacktraces_for_grouping(load_grouping_config(grouping_config))
 
     with metrics.timer("event_manager.apply_server_fingerprinting"):
         # The active grouping config was put into the event in the

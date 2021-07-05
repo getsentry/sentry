@@ -439,6 +439,18 @@ class Event:
 
         return filtered_hashes, tree_labels
 
+    def normalize_stacktraces_for_grouping(self, grouping_config):
+        """Normalize stacktraces and clear memoized interfaces
+
+        See stand-alone function normalize_stacktraces_for_grouping
+        """
+        from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
+
+        normalize_stacktraces_for_grouping(self.data, grouping_config)
+
+        # We have modified event data, so any cached interfaces have to be reset:
+        vars(self).pop("interfaces", None)
+
     def get_grouping_variants(self, force_config=None, normalize_stacktraces=False):
         """
         This is similar to `get_hashes` but will instead return the
@@ -450,7 +462,6 @@ class Event:
         in place.
         """
         from sentry.grouping.api import get_grouping_variants_for_event, load_grouping_config
-        from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 
         # Forcing configs has two separate modes.  One is where just the
         # config ID is given in which case it's merged with the stored or
@@ -474,7 +485,7 @@ class Event:
             with sentry_sdk.start_span(op="grouping.normalize_stacktraces_for_grouping") as span:
                 span.set_tag("project", self.project_id)
                 span.set_tag("event_id", self.event_id)
-                normalize_stacktraces_for_grouping(self.data, config)
+                self.normalize_stacktraces_for_grouping(config)
 
         with sentry_sdk.start_span(op="grouping.get_grouping_variants") as span:
             span.set_tag("project", self.project_id)
