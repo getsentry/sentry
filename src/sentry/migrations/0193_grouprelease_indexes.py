@@ -39,6 +39,7 @@ class Migration(migrations.Migration):
                     reverse_sql="""
                     DROP INDEX CONCURRENTLY IF EXISTS sentry_grouprelease_group_id_first_seen_53fc35ds;
                     """,
+                    hints={"tables": ["sentry_grouprelease"]},
                 ),
                 migrations.RunSQL(
                     """
@@ -48,6 +49,7 @@ class Migration(migrations.Migration):
                     reverse_sql="""
                     DROP INDEX CONCURRENTLY IF EXISTS sentry_grouprelease_group_id_last_seen_g8v2sk7c;
                     """,
+                    hints={"tables": ["sentry_grouprelease"]},
                 ),
             ],
             state_operations=[

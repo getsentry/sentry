@@ -43,5 +43,9 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunPython(add_my_issues_search, migrations.RunPython.noop),
+        migrations.RunPython(
+            add_my_issues_search,
+            migrations.RunPython.noop,
+            hints={"tables": ["sentry_savedsearch"]},
+        ),
     ]

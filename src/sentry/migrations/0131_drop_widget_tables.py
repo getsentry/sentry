@@ -31,12 +31,14 @@ class Migration(migrations.Migration):
                 migrations.RunSQL(
                     """
                 DROP TABLE sentry_widget;
-                """
+                """,
+                    hints={"tables": ["sentry_widget"]},
                 ),
                 migrations.RunSQL(
                     """
                 DROP TABLE sentry_widgetdatasource;
-                """
+                """,
+                    hints={"tables": ["sentry_widget"]},
                 ),
             ],
             state_operations=[],

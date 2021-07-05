@@ -35,6 +35,7 @@ class Migration(migrations.Migration):
                     reverse_sql="""
                         ALTER TABLE "sentry_projectdsymfile" DROP COLUMN "checksum";
                         """,
+                    hints={"tables": ["sentry_projectdsymfile"]},
                 ),
                 migrations.RunSQL(
                     """
@@ -43,6 +44,7 @@ class Migration(migrations.Migration):
                     reverse_sql="""
                         DROP INDEX CONCURRENTLY "sentry_projectdsymfile_checksum_8fb028a8_idx";
                         """,
+                    hints={"tables": ["sentry_projectdsymfile"]},
                 ),
             ],
             state_operations=[

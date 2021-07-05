@@ -10,6 +10,7 @@ export {IconBookmark} from './iconBookmark';
 export {IconBroadcast} from './iconBroadcast';
 export {IconBusiness} from './iconBusiness';
 export {IconCalendar} from './iconCalendar';
+export {IconCalixa} from './iconCalixa';
 export {IconChat} from './iconChat';
 export {IconCheckmark} from './iconCheckmark';
 export {IconChevron} from './iconChevron';

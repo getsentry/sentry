@@ -1,11 +1,11 @@
+from typing import Iterable
+
 from sentry.grouping.component import GroupingComponent
 
 MAX_LAYERS = 5
 
 
 def get_stacktrace_hierarchy(main_variant, components, frames, inverted_hierarchy):
-    main_variant.update(tree_label=["<entire stacktrace>"])
-
     frames_iter = list(zip(frames, components))
     if not inverted_hierarchy:
         # frames are sorted in a way where the crashing frame is at the end of
@@ -29,8 +29,8 @@ def get_stacktrace_hierarchy(main_variant, components, frames, inverted_hierarch
         else:
             break
 
-        layer = list(prev_variant.values)
-        layer.append(component)
+        add_to_layer = [component]
+
         prev_component = component
 
         if prev_component.is_prefix_frame:
@@ -38,13 +38,25 @@ def get_stacktrace_hierarchy(main_variant, components, frames, inverted_hierarch
                 if not component.contributes:
                     continue
 
-                layer.append(component)
+                add_to_layer.append(component)
                 prev_component = component
 
                 if not component.is_prefix_frame:
                     break
             else:
                 break
+
+        # For consistency, we always want to preserve the sort order of the
+        # event frames, no matter what order we're going through.
+
+        if not inverted_hierarchy:
+            layer = add_to_layer
+            layer.reverse()
+            layer.extend(prev_variant.values)
+
+        else:
+            layer = list(prev_variant.values)
+            layer.extend(add_to_layer)
 
         tree_label = _compute_tree_label(layer)
 
@@ -53,22 +65,26 @@ def get_stacktrace_hierarchy(main_variant, components, frames, inverted_hierarch
         )
 
     if not all_variants:
-        all_variants.update(
-            _build_fallback_tree(main_variant, components, frames, inverted_hierarchy)
-        )
+        all_variants = _build_fallback_tree(main_variant, components, frames, inverted_hierarchy)
 
     all_variants["app-depth-max"] = main_variant
+
+    main_variant.update(tree_label=_compute_tree_label(main_variant.values))
 
     return all_variants
 
 
-def _compute_tree_label(components):
+def _compute_tree_label(components: Iterable[GroupingComponent]):
     tree_label = []
 
     for frame in components:
         if frame.tree_label:
             tree_label.append(frame.tree_label)
 
+    # We assume all components are always sorted in the way frames appear in
+    # the event (threadbase -> crashing frame). Then we want to show the
+    # crashing frame/culprit at the front.
+    tree_label.reverse()
     return tree_label
 
 
