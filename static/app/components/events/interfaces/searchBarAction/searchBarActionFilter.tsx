@@ -1,4 +1,4 @@
-import * as React from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import CheckboxFancy from 'app/components/checkboxFancy/checkboxFancy';
@@ -13,17 +13,17 @@ type Option = {
   id: string;
   symbol: React.ReactElement;
   isChecked: boolean;
+  description?: string;
 };
 
 type Options = Record<string, Array<Option>>;
 
 type Props = {
   options: Options;
-  onFilter: (options: Options) => void;
-  className?: string;
+  onChange: (options: Options) => void;
 };
 
-function Filter({options, onFilter, className}: Props) {
+function SearchBarActionFilter({options, onChange}: Props) {
   const checkedQuantity = Object.values(options)
     .flatMap(option => option)
     .filter(option => option.isChecked).length;
@@ -42,11 +42,11 @@ function Filter({options, onFilter, className}: Props) {
       }),
     };
 
-    onFilter(updatedOptions);
+    onChange(updatedOptions);
   }
 
   return (
-    <Wrapper className={className}>
+    <Wrapper>
       <DropdownControl
         button={({isOpen, getActorProps}) => (
           <DropDownButton
@@ -59,19 +59,19 @@ function Filter({options, onFilter, className}: Props) {
         {({getMenuProps, isOpen}) => (
           <StyledContent
             {...getMenuProps()}
+            data-test-id="filter-dropdown-menu"
             alignMenu="left"
             width="240px"
             isOpen={isOpen}
-            className="drop-down-filter-menu"
             blendWithActor
             blendCorner
           >
             {Object.keys(options).map(category => (
-              <React.Fragment key={category}>
+              <Fragment key={category}>
                 <Header>{category}</Header>
                 <List>
                   {options[category].map(groupedOption => {
-                    const {symbol, isChecked, id} = groupedOption;
+                    const {symbol, isChecked, id, description} = groupedOption;
                     return (
                       <StyledListItem
                         key={id}
@@ -80,14 +80,16 @@ function Filter({options, onFilter, className}: Props) {
                           handleClick(category, groupedOption);
                         }}
                         isChecked={isChecked}
+                        hasDescription={!!description}
                       >
                         {symbol}
+                        {description && <Description>{description}</Description>}
                         <CheckboxFancy isChecked={isChecked} />
                       </StyledListItem>
                     );
                   })}
                 </List>
-              </React.Fragment>
+              </Fragment>
             ))}
           </StyledContent>
         )}
@@ -96,7 +98,7 @@ function Filter({options, onFilter, className}: Props) {
   );
 }
 
-export default Filter;
+export default SearchBarActionFilter;
 
 const Wrapper = styled('div')`
   position: relative;
@@ -104,6 +106,8 @@ const Wrapper = styled('div')`
 `;
 
 const StyledContent = styled(Content)`
+  top: calc(100% + ${space(0.5)} - 1px);
+  border-radius: ${p => p.theme.borderRadius};
   > * :last-child {
     margin-bottom: -1px;
   }
@@ -121,9 +125,10 @@ const Header = styled('div')`
   border-bottom: 1px solid ${p => p.theme.border};
 `;
 
-const StyledListItem = styled(ListItem)<{isChecked: boolean}>`
+const StyledListItem = styled(ListItem)<{isChecked: boolean; hasDescription: boolean}>`
   display: grid;
-  grid-template-columns: 1fr max-content;
+  grid-template-columns: ${p =>
+    p.hasDescription ? 'max-content 1fr max-content' : '1fr max-content'};
   grid-column-gap: ${space(1)};
   padding: ${space(1)} ${space(2)};
   align-items: center;
@@ -143,4 +148,8 @@ const StyledListItem = styled(ListItem)<{isChecked: boolean}>`
       text-decoration: underline;
     }
   }
+`;
+
+const Description = styled('div')`
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
