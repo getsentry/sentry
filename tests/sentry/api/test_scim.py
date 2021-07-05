@@ -648,7 +648,7 @@ class SCIMGroupTests(APITestCase):
             "Resources": [
                 {
                     "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
-                    "id": self.team.id,
+                    "id": str(self.team.id),
                     "displayName": self.team.name,
                     "members": [
                         {"value": str(self.team.member_set[0].id), "display": "admin@localhost"}
@@ -671,7 +671,7 @@ class SCIMGroupTests(APITestCase):
             "Resources": [
                 {
                     "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
-                    "id": self.team.id,
+                    "id": str(self.team.id),
                     "displayName": self.team.name,
                     "members": None,
                     "meta": {"resourceType": "Group"},
@@ -796,7 +796,7 @@ class SCIMGroupTests(APITestCase):
         assert response.status_code == 200, response.content
         assert response.data == {
             "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
-            "id": self.team.id,
+            "id": str(self.team.id),
             "displayName": "thenewname",
             "members": None,
             "meta": {"resourceType": "Group"},

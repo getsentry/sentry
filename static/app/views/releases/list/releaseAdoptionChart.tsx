@@ -91,6 +91,8 @@ class ReleaseAdoptionChart extends AsyncComponent<Props, State> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     const {organization, location, activeDisplay} = this.props;
 
+    const hasSemverFeature = organization.features.includes('semver');
+
     return [
       [
         'sessions',
@@ -101,7 +103,11 @@ class ReleaseAdoptionChart extends AsyncComponent<Props, State> {
             ...getParams(pick(location.query, Object.values(URL_PARAM))),
             groupBy: ['release'],
             field: [sessionDisplayToField(activeDisplay)],
-            query: location.query.query ? `release:${location.query.query}` : undefined,
+            query: location.query.query
+              ? hasSemverFeature
+                ? location.query.query
+                : `release:${location.query.query}`
+              : undefined,
           },
         },
       ],
@@ -202,7 +208,7 @@ class ReleaseAdoptionChart extends AsyncComponent<Props, State> {
       <Panel>
         <PanelBody withPadding>
           <ChartHeader>
-            <ChartTitle>{t('Releases Adopted')}</ChartTitle>
+            <ChartTitle>{t('Release Adoption')}</ChartTitle>
           </ChartHeader>
           <TransitionChart loading={loading} reloading={reloading}>
             <TransparentLoadingMask visible={reloading} />

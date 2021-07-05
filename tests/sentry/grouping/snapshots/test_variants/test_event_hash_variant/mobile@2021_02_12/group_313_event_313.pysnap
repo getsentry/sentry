@@ -1,28 +1,28 @@
 ---
-created: '2021-05-05T18:04:39.688558Z'
+created: '2021-06-30T16:44:00.943761Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
-  hash: "83c2aa527052d0ca889ed70770032dd8"
-  tree_label: "abort | dlopen | stripped_application_code [load/throw]"
+  hash: "f594e5549c122b83e267719d16333d98"
+  tree_label: "abort | dlopen | stripped_application_code"
   component:
     app-depth-1*
       exception*
         stacktrace*
-          frame* (marked as prefix frame by stack trace rule (category:throw +sentinel +prefix ^-group))
+          frame*
             function*
-              "abort"
-            package (ignored because function takes precedence)
-              "libsystem_c.dylib"
+              "stripped_application_code"
           frame* (marked as prefix frame by stack trace rule (category:load +sentinel +prefix))
             function*
               "dlopen"
             package (ignored because function takes precedence)
               "libdyld.dylib"
-          frame*
+          frame* (marked as prefix frame by stack trace rule (category:throw +sentinel +prefix ^-group))
             function*
-              "stripped_application_code"
+              "abort"
+            package (ignored because function takes precedence)
+              "libsystem_c.dylib"
         type (ignored because exception is synthetic)
           "0x00000000 / 0x00000000"
         value (ignored because stacktrace takes precedence)
@@ -30,7 +30,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "8be5979a334287a1b47457228f1d4612"
-  tree_label: "<entire stacktrace>"
+  tree_label: "__pthread_kill | __abort | abort | __report_load.cold.1 | __report_load | dyld | dyld | dyld | dyld | dyld | dyld | dyld | dlopen_internal | dlopen | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | CALLING_SOME_+initialize_METHOD | initializeNonMetaClass | initializeAndMaybeRelock | lookUpImpOrForward | _objc_msgSend_uncached | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | MZ::`anonymous namespace'::lambda::operator() | std::__1::__invoke<T> | std::__1::__invoke_void_return_wrapper<T>::__call<T> | std::__1::__function::__alloc_func<T>::operator() | std::__1::__function::__func<T>::operator() | std::__1::__function::__value_func<T>::operator() | std::__1::function<T>::operator() | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | start | start"
   component:
     app-depth-max*
       exception*
@@ -261,7 +261,7 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "8be5979a334287a1b47457228f1d4612"
-  tree_label: "<entire stacktrace>"
+  tree_label: "__pthread_kill | __abort | abort | __report_load.cold.1 | __report_load | dyld | dyld | dyld | dyld | dyld | dyld | dyld | dlopen_internal | dlopen | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | CALLING_SOME_+initialize_METHOD | initializeNonMetaClass | initializeAndMaybeRelock | lookUpImpOrForward | _objc_msgSend_uncached | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | MZ::`anonymous namespace'::lambda::operator() | std::__1::__invoke<T> | std::__1::__invoke_void_return_wrapper<T>::__call<T> | std::__1::__function::__alloc_func<T>::operator() | std::__1::__function::__func<T>::operator() | std::__1::__function::__value_func<T>::operator() | std::__1::function<T>::operator() | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | start | start"
   component:
     system*
       exception*

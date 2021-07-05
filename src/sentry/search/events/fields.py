@@ -2,7 +2,7 @@ import re
 from collections import defaultdict, namedtuple
 from copy import deepcopy
 from datetime import datetime
-from typing import List, Mapping, Union
+from typing import List, Mapping, Optional, Union
 
 import sentry_sdk
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
@@ -38,6 +38,7 @@ from sentry.search.events.constants import (
     USER_DISPLAY_ALIAS,
     VALID_FIELD_PATTERN,
 )
+from sentry.search.events.types import SelectType
 from sentry.utils.compat import zip
 from sentry.utils.numbers import format_grouped_length
 from sentry.utils.snuba import (
@@ -458,10 +459,12 @@ def format_column_arguments(column_args, arguments):
 
 def parse_arguments(function, columns):
     """
-    The to_other function takes a quoted string for one of its arguments
-    that may contain commas, so it requires special handling.
+    Some functions take a quoted string for their arguments that may contain commas,
+    which requires special handling.
+    This function attempts to be identical with the similarly named parse_arguments
+    found in static/app/utils/discover/fields.tsx
     """
-    if function != "to_other":
+    if (function != "to_other" and function != "count_if") or len(columns) == 0:
         return [c.strip() for c in columns.split(",") if len(c.strip()) > 0]
 
     args = []
@@ -2029,59 +2032,28 @@ FUNCTION_ALIAS_PATTERN = re.compile(r"^({}).*".format("|".join(list(FUNCTIONS.ke
 class QueryFields(QueryBase):
     """Field logic for a snql query"""
 
-    def resolve_select(self, selected_columns: List[str]) -> None:
-        project_key = None
-        # If project is requested, we need to map ids to their names since snuba only has ids
-        if "project" in selected_columns:
-            selected_columns.remove("project")
-            project_key = "project"
-        # since project.name is more specific, if both are included use project.name instead of project
-        if PROJECT_NAME_ALIAS in selected_columns:
-            selected_columns.remove(PROJECT_NAME_ALIAS)
-            project_key = PROJECT_NAME_ALIAS
+    def resolve_select(self, selected_columns: Optional[List[str]]) -> List[SelectType]:
+        if selected_columns is None:
+            return []
+
+        columns = []
 
         for field in selected_columns:
             if field.strip() == "":
                 continue
             resolved_field = self.resolve_field(field)
-            if isinstance(resolved_field, SnqlColumn) and resolved_field not in self.columns:
-                self.columns.append(resolved_field)
+            if resolved_field not in self.columns:
+                columns.append(resolved_field)
 
-        if project_key:
-            self.columns.append(self.project_slug_transform(project_key))
+        return columns
 
-    def project_slug_transform(self, project_key: str) -> SnqlFunction:
-        """When project is a selected column we need to create a transform to turn them back into slugs"""
-        project_ids = {
-            project_id
-            for project_id in self.params.get("project_id", [])
-            if isinstance(project_id, int)
-        }
-
-        # Try to reduce the size of the transform by using any existing conditions on projects
-        if len(self.projects_to_filter) > 0:
-            project_ids &= self.projects_to_filter
-
-        projects = Project.objects.filter(id__in=project_ids).values("slug", "id")
-
-        return SnqlFunction(
-            "transform",
-            [
-                self.column("project.id"),
-                [project["id"] for project in projects],
-                [project["slug"] for project in projects],
-                "",
-            ],
-            project_key,
-        )
-
-    def resolve_field(self, field: str) -> Union[SnqlColumn, SnqlFunction]:
+    def resolve_field(self, field: str) -> SelectType:
         match = is_function(field)
         if match:
             raise NotImplementedError(f"{field} not implemented in snql field parsing yet")
 
-        if field in FIELD_ALIASES:
-            raise NotImplementedError(f"{field} not implemented in snql field parsing yet")
+        if self.is_field_alias(field):
+            return self.resolve_field_alias(field)
 
         tag_match = TAG_KEY_RE.search(field)
         field = tag_match.group("tag") if tag_match else field
@@ -2094,12 +2066,23 @@ class QueryFields(QueryBase):
         else:
             raise InvalidSearchQuery(f"Invalid characters in field {field}")
 
-    @property
-    def orderby(self) -> List[OrderBy]:
-        validated = []
-        for orderby in self.orderby_columns:
+    def resolve_orderby(self, orderby: Optional[Union[List[str], str]]) -> List[OrderBy]:
+        validated: List[OrderBy] = []
+
+        if orderby is None:
+            return validated
+
+        if isinstance(orderby, str):
+            if not orderby:
+                return validated
+
+            orderby = [orderby]
+
+        orderby_columns: List[str] = orderby if orderby else []
+
+        for orderby in orderby_columns:
             bare_orderby = orderby.lstrip("-")
-            resolved_orderby = self.column(bare_orderby)
+            resolved_orderby = self.resolve_field(bare_orderby)
             direction = Direction.DESC if orderby.startswith("-") else Direction.ASC
 
             for selected_column in self.columns:
@@ -2117,7 +2100,7 @@ class QueryFields(QueryBase):
 
             # TODO: orderby field aliases
 
-        if len(validated) == len(self.orderby_columns):
+        if len(validated) == len(orderby_columns):
             return validated
 
         # TODO: This is no longer true, can order by fields that aren't selected, keeping

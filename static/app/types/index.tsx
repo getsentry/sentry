@@ -383,6 +383,8 @@ export type EventMetadata = {
   origin?: string;
   function?: string;
   stripped_crash?: boolean;
+  current_tree_label?: string[];
+  finest_tree_label?: string[];
 };
 
 export type EventAttachment = {
@@ -406,7 +408,7 @@ type EnableIntegrationSuggestion = {
   integrationUrl?: string | null;
 };
 
-type UpdateSdkSuggestion = {
+export type UpdateSdkSuggestion = {
   type: 'updateSdk';
   sdkName: string;
   newSdkVersion: string;
@@ -453,9 +455,9 @@ export type AvatarUser = {
   name: string;
   username: string;
   email: string;
+  ip_address: string;
   avatarUrl?: string;
   avatar?: Avatar;
-  ip_address: string;
   // Compatibility shim with EventUser serializer
   ipAddress?: string;
   options?: {
@@ -1467,6 +1469,14 @@ type ReleaseData = {
     firstReleaseVersion: string | null;
     lastReleaseVersion: string | null;
   };
+  adoptionStages?: Record<
+    'string',
+    {
+      stage: string | null;
+      adopted: string | null;
+      unadopted: string | null;
+    }
+  >;
 };
 
 type BaseRelease = {
@@ -1572,6 +1582,7 @@ export type SentryAppComponent = {
   sentryApp: {
     uuid: string;
     slug:
+      | 'calixa'
       | 'clickup'
       | 'clubhouse'
       | 'komodor'
@@ -1749,7 +1760,7 @@ export type Tag = {
   maxSuggestedValues?: number;
 };
 
-export type TagCollection = {[key: string]: Tag};
+export type TagCollection = Record<string, Tag>;
 
 export type TagValue = {
   count: number;
@@ -2081,6 +2092,18 @@ export type SessionApiResponse = SeriesApi & {
     series: Record<string, number[]>;
   }[];
 };
+
+export enum SessionField {
+  SESSIONS = 'sum(session)',
+  USERS = 'count_unique(user)',
+}
+
+export enum ReleaseComparisonChartType {
+  CRASH_FREE_USERS = 'crashFreeUsers',
+  CRASH_FREE_SESSIONS = 'crashFreeSessions',
+  SESSION_COUNT = 'sessionCount',
+  USER_COUNT = 'userCount',
+}
 
 export enum HealthStatsPeriodOption {
   AUTO = 'auto',

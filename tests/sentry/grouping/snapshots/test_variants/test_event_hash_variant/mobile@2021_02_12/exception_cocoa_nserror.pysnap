@@ -1,5 +1,5 @@
 ---
-created: '2021-05-05T18:04:39.852089Z'
+created: '2021-06-30T16:44:01.035037Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -22,12 +22,12 @@ app-depth-1:
     app-depth-1 (exception of app takes precedence)
       threads (exception of app takes precedence)
         stacktrace*
-          frame* (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
-            function*
-              "-[UIApplication sendAction:to:from:forEvent:]"
           frame*
             function*
               "__44-[SentryBreadcrumbTracker swizzleSendAction]_block_invoke_2"
+          frame* (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
+            function*
+              "-[UIApplication sendAction:to:from:forEvent:]"
 --------------------------------------------------------------------------
 app-depth-2:
   hash: null
@@ -35,18 +35,18 @@ app-depth-2:
     app-depth-2 (exception of app takes precedence)
       threads (exception of app takes precedence)
         stacktrace*
-          frame* (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
-            function*
-              "-[UIApplication sendAction:to:from:forEvent:]"
           frame*
             function*
-              "__44-[SentryBreadcrumbTracker swizzleSendAction]_block_invoke_2"
+              "GSEventRunModal"
           frame* (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
             function*
               "__eventFetcherSourceCallback"
           frame*
             function*
-              "GSEventRunModal"
+              "__44-[SentryBreadcrumbTracker swizzleSendAction]_block_invoke_2"
+          frame* (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
+            function*
+              "-[UIApplication sendAction:to:from:forEvent:]"
 --------------------------------------------------------------------------
 app-depth-3:
   hash: null
@@ -54,24 +54,24 @@ app-depth-3:
     app-depth-3 (exception of app takes precedence)
       threads (exception of app takes precedence)
         stacktrace*
-          frame* (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
-            function*
-              "-[UIApplication sendAction:to:from:forEvent:]"
           frame*
             function*
-              "__44-[SentryBreadcrumbTracker swizzleSendAction]_block_invoke_2"
-          frame* (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
-            function*
-              "__eventFetcherSourceCallback"
-          frame*
-            function*
-              "GSEventRunModal"
+              "main"
           frame* (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
             function*
               "UIApplicationMain"
           frame*
             function*
-              "main"
+              "GSEventRunModal"
+          frame* (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
+            function*
+              "__eventFetcherSourceCallback"
+          frame*
+            function*
+              "__44-[SentryBreadcrumbTracker swizzleSendAction]_block_invoke_2"
+          frame* (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
+            function*
+              "-[UIApplication sendAction:to:from:forEvent:]"
 --------------------------------------------------------------------------
 app-depth-max:
   hash: null

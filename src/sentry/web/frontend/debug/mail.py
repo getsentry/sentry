@@ -143,6 +143,20 @@ class MailPreview:
         )
 
 
+class MailPreviewAdapter(MailPreview):
+    """
+    This is an adapter for MailPreview that will take similar arguments to MessageBuilder
+    """
+
+    def __init__(self, **kwargs):
+        kwargs["text_template"] = kwargs["template"]
+        del kwargs["template"]
+        if "from_email" in kwargs:
+            del kwargs["from_email"]
+        del kwargs["type"]
+        super().__init__(**kwargs)
+
+
 class ActivityMailPreview:
     def __init__(self, request, activity):
         self.request = request

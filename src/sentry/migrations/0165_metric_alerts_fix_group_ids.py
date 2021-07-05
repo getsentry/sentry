@@ -49,5 +49,9 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunPython(fix_metric_alert_group_ids, reverse_code=migrations.RunPython.noop)
+        migrations.RunPython(
+            fix_metric_alert_group_ids,
+            reverse_code=migrations.RunPython.noop,
+            hints={"tables": ["sentry_querysubscription"]},
+        )
     ]

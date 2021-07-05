@@ -35,5 +35,9 @@ class Migration(migrations.Migration):
     dependencies = [("sentry", "0074_add_metric_alert_feature")]
 
     operations = [
-        migrations.RunPython(migrate_alert_query_model, reverse_code=migrations.RunPython.noop)
+        migrations.RunPython(
+            migrate_alert_query_model,
+            reverse_code=migrations.RunPython.noop,
+            hints={"tables": ["sentry_snubaquery"]},
+        )
     ]

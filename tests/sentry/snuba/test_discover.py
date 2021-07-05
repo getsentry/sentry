@@ -26,9 +26,10 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         self.environment = self.create_environment(self.project, name="prod")
         self.release = self.create_release(self.project, version="first-release")
         self.now = before_now()
+        self.one_min_ago = before_now(minutes=1)
         self.two_min_ago = before_now(minutes=2)
 
-        self.event_time = before_now(minutes=1)
+        self.event_time = self.one_min_ago
         self.event = self.store_event(
             data={
                 "message": "oh no",
@@ -44,7 +45,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
     def test_project_mapping(self):
         other_project = self.create_project(organization=self.organization)
         self.store_event(
-            data={"message": "hello", "timestamp": iso_format(before_now(minutes=1))},
+            data={"message": "hello", "timestamp": iso_format(self.one_min_ago)},
             project_id=other_project.id,
         )
 
@@ -70,7 +71,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             other_project = self.create_project(organization=self.organization, slug=project_name)
             project_ids.append(other_project.id)
             self.store_event(
-                data={"message": "ohh no", "timestamp": iso_format(before_now(minutes=1))},
+                data={"message": "ohh no", "timestamp": iso_format(self.one_min_ago)},
                 project_id=other_project.id,
             )
 
@@ -95,7 +96,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             other_project = self.create_project(organization=self.organization, slug=project_name)
             project_ids.append(other_project.id)
             self.store_event(
-                data={"message": "ohh no", "timestamp": iso_format(before_now(minutes=1))},
+                data={"message": "ohh no", "timestamp": iso_format(self.one_min_ago)},
                 project_id=other_project.id,
             )
 
@@ -120,7 +121,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             other_project = self.create_project(organization=self.organization, slug=project_name)
             project_ids.append(other_project.id)
             self.store_event(
-                data={"message": "ohh no", "timestamp": iso_format(before_now(minutes=1))},
+                data={"message": "ohh no", "timestamp": iso_format(self.one_min_ago)},
                 project_id=other_project.id,
             )
 
@@ -149,7 +150,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             other_project = self.create_project(organization=self.organization, slug=project_name)
             project_ids.append(other_project.id)
             self.store_event(
-                data={"message": "ohh no", "timestamp": iso_format(before_now(minutes=1))},
+                data={"message": "ohh no", "timestamp": iso_format(self.one_min_ago)},
                 project_id=other_project.id,
             )
 
@@ -170,6 +171,136 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             data = result["data"]
             assert len(data) == 3, query_fn
             assert [item["project"] for item in data] == ["", "a" * 32, "z" * 32], query_fn
+
+    def test_issue_short_id_mapping(self):
+        tests = [
+            ("issue", f"issue:{self.event.group.qualified_short_id}"),
+            ("issue", f"issue.id:{self.event.group_id}"),
+            ("issue.id", f"issue:{self.event.group.qualified_short_id}"),
+            ("issue.id", f"issue.id:{self.event.group_id}"),
+        ]
+
+        for query_fn in [discover.query, discover.wip_snql_query]:
+            for column, query in tests:
+                result = query_fn(
+                    selected_columns=[column],
+                    query=query,
+                    params={
+                        "organization_id": self.organization.id,
+                        "project_id": [self.project.id],
+                        "start": self.two_min_ago,
+                        "end": self.now,
+                    },
+                )
+                data = result["data"]
+                assert len(data) == 1, query_fn
+                # The query will translate `issue` into `issue.id`. Additional post processing
+                # is required to insert the `issue` column.
+                assert [item["issue.id"] for item in data] == [self.event.group_id], query_fn
+
+    def test_reverse_sorting_issue(self):
+        other_event = self.store_event(
+            data={
+                "message": "whoopsies",
+                "release": "first-release",
+                "environment": "prod",
+                "platform": "python",
+                "user": {"id": "99", "email": "bruce@example.com", "username": "brucew"},
+                "timestamp": iso_format(self.event_time),
+            },
+            project_id=self.project.id,
+        )
+
+        tests = [
+            # issue is not sortable
+            # "issue",
+            "issue.id",
+        ]
+
+        for query_fn in [discover.query, discover.wip_snql_query]:
+            for column in tests:
+                for direction in ["", "-"]:
+                    result = query_fn(
+                        selected_columns=[column],
+                        query="",
+                        params={
+                            "organization_id": self.organization.id,
+                            "project_id": [self.project.id],
+                            "start": self.two_min_ago,
+                            "end": self.now,
+                        },
+                        orderby=f"{direction}{column}",
+                    )
+                    data = result["data"]
+                    assert len(data) == 2, query_fn
+                    expected = [self.event.group_id, other_event.group_id]
+                    if direction == "-":
+                        expected.reverse()
+                    assert [item["issue.id"] for item in data] == expected, query_fn
+
+    def test_timestamp_rounding_fields(self):
+        for query_fn in [discover.query, discover.wip_snql_query]:
+            result = query_fn(
+                selected_columns=["timestamp.to_hour", "timestamp.to_day"],
+                query="",
+                params={
+                    "organization_id": self.organization.id,
+                    "project_id": [self.project.id],
+                    "start": self.two_min_ago,
+                    "end": self.now,
+                },
+            )
+            data = result["data"]
+            assert len(data) == 1, query_fn
+
+            hour = self.event_time.replace(minute=0, second=0, microsecond=0)
+            day = hour.replace(hour=0)
+            assert [item["timestamp.to_hour"] for item in data] == [
+                f"{iso_format(hour)}+00:00"
+            ], query_fn
+            assert [item["timestamp.to_day"] for item in data] == [
+                f"{iso_format(day)}+00:00"
+            ], query_fn
+
+    def test_timestamp_rounding_filters(self):
+        one_day_ago = before_now(days=1)
+        two_day_ago = before_now(days=2)
+        three_day_ago = before_now(days=3)
+
+        self.store_event(
+            data={
+                "message": "oh no",
+                "release": "first-release",
+                "environment": "prod",
+                "platform": "python",
+                "user": {"id": "99", "email": "bruce@example.com", "username": "brucew"},
+                "timestamp": iso_format(two_day_ago),
+            },
+            project_id=self.project.id,
+        )
+
+        for query_fn in [discover.query, discover.wip_snql_query]:
+            result = query_fn(
+                selected_columns=["timestamp.to_hour", "timestamp.to_day"],
+                query=f"timestamp.to_hour:<{iso_format(one_day_ago)} timestamp.to_day:<{iso_format(one_day_ago)}",
+                params={
+                    "organization_id": self.organization.id,
+                    "project_id": [self.project.id],
+                    "start": three_day_ago,
+                    "end": self.now,
+                },
+            )
+            data = result["data"]
+            assert len(data) == 1, query_fn
+
+            hour = two_day_ago.replace(minute=0, second=0, microsecond=0)
+            day = hour.replace(hour=0)
+            assert [item["timestamp.to_hour"] for item in data] == [
+                f"{iso_format(hour)}+00:00"
+            ], query_fn
+            assert [item["timestamp.to_day"] for item in data] == [
+                f"{iso_format(day)}+00:00"
+            ], query_fn
 
     def test_field_aliasing_in_selected_columns(self):
         result = discover.query(
@@ -387,11 +518,11 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         project3 = self.create_project(organization=self.organization)
 
         self.store_event(
-            data={"message": "aaaaa", "timestamp": iso_format(before_now(minutes=1))},
+            data={"message": "aaaaa", "timestamp": iso_format(self.one_min_ago)},
             project_id=project2.id,
         )
         self.store_event(
-            data={"message": "bbbbb", "timestamp": iso_format(before_now(minutes=1))},
+            data={"message": "bbbbb", "timestamp": iso_format(self.one_min_ago)},
             project_id=project3.id,
         )
 
@@ -410,19 +541,19 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
     def test_nested_conditional_filter(self):
         project2 = self.create_project(organization=self.organization)
         self.store_event(
-            data={"release": "a" * 32, "timestamp": iso_format(before_now(minutes=1))},
+            data={"release": "a" * 32, "timestamp": iso_format(self.one_min_ago)},
             project_id=self.project.id,
         )
         self.event = self.store_event(
-            data={"release": "b" * 32, "timestamp": iso_format(before_now(minutes=1))},
+            data={"release": "b" * 32, "timestamp": iso_format(self.one_min_ago)},
             project_id=self.project.id,
         )
         self.event = self.store_event(
-            data={"release": "c" * 32, "timestamp": iso_format(before_now(minutes=1))},
+            data={"release": "c" * 32, "timestamp": iso_format(self.one_min_ago)},
             project_id=self.project.id,
         )
         self.event = self.store_event(
-            data={"release": "a" * 32, "timestamp": iso_format(before_now(minutes=1))},
+            data={"release": "a" * 32, "timestamp": iso_format(self.one_min_ago)},
             project_id=project2.id,
         )
 
@@ -3287,6 +3418,84 @@ class TimeseriesQueryTest(TimeseriesBase):
             keys.update(list(row.keys()))
         assert "count_unique_user" in keys
         assert "time" in keys
+
+    def test_count_miserable(self):
+        event_data = load_data("transaction")
+        # Half of duration so we don't get weird rounding differences when comparing the results
+        event_data["breakdowns"]["span_ops"]["ops.http"]["value"] = 300
+        event_data["start_timestamp"] = iso_format(self.day_ago + timedelta(minutes=30))
+        event_data["timestamp"] = iso_format(self.day_ago + timedelta(minutes=30, seconds=3))
+        self.store_event(data=event_data, project_id=self.project.id)
+        ProjectTransactionThreshold.objects.create(
+            project=self.project,
+            organization=self.project.organization,
+            threshold=100,
+            metric=TransactionMetric.DURATION.value,
+        )
+
+        project2 = self.create_project()
+        ProjectTransactionThreshold.objects.create(
+            project=project2,
+            organization=project2.organization,
+            threshold=100,
+            metric=TransactionMetric.DURATION.value,
+        )
+
+        result = discover.timeseries_query(
+            selected_columns=["count_miserable(user)"],
+            query="",
+            params={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=2),
+                "project_id": [self.project.id, project2.id],
+                "organization_id": self.organization.id,
+            },
+            rollup=3600,
+        )
+        assert len(result.data["data"]) == 3
+        assert [1] == [
+            val["count_miserable_user"]
+            for val in result.data["data"]
+            if "count_miserable_user" in val
+        ]
+
+    def test_count_miserable_with_arithmetic(self):
+        event_data = load_data("transaction")
+        # Half of duration so we don't get weird rounding differences when comparing the results
+        event_data["breakdowns"]["span_ops"]["ops.http"]["value"] = 300
+        event_data["start_timestamp"] = iso_format(self.day_ago + timedelta(minutes=30))
+        event_data["timestamp"] = iso_format(self.day_ago + timedelta(minutes=30, seconds=3))
+        self.store_event(data=event_data, project_id=self.project.id)
+        ProjectTransactionThreshold.objects.create(
+            project=self.project,
+            organization=self.project.organization,
+            threshold=100,
+            metric=TransactionMetric.DURATION.value,
+        )
+
+        project2 = self.create_project()
+        ProjectTransactionThreshold.objects.create(
+            project=project2,
+            organization=project2.organization,
+            threshold=100,
+            metric=TransactionMetric.DURATION.value,
+        )
+
+        result = discover.timeseries_query(
+            selected_columns=["equation|count_miserable(user) - 100"],
+            query="",
+            params={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(hours=2),
+                "project_id": [self.project.id, project2.id],
+                "organization_id": self.organization.id,
+            },
+            rollup=3600,
+        )
+        assert len(result.data["data"]) == 3
+        assert [1 - 100] == [
+            val["equation[0]"] for val in result.data["data"] if "equation[0]" in val
+        ]
 
     def test_equation_function(self):
         result = discover.timeseries_query(

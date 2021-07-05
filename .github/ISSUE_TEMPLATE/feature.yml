@@ -1,0 +1,28 @@
+name: 💡 Feature Request
+description: Tell us about a problem our software could solve but doesn't.
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: What problem could Sentry solve that it doesn't?
+      placeholder: |-
+        I want to make whirled peas, but Sentry doesn't blend.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Solution Brainstorm
+      description: We know you have bright ideas to share ... share away, friend.
+      placeholder: |-
+        Add a blender to Sentry.
+    validations:
+      required: false
+  - type: markdown
+    attributes:
+      value: |-
+        ## Thanks 🙏
+        Check our [triage docs](https://open.sentry.io/triage/) for what to expect next.
+    validations:
+      required: false

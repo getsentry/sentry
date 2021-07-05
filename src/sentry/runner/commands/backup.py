@@ -135,7 +135,7 @@ def export(dest, silent, indent, exclude):
         # Collate the objects to be serialized.
         for model in sort_dependencies():
             if (
-                not getattr(model, "__core__", True)
+                not getattr(model, "__include_in_export__", True)
                 or model.__name__.lower() in exclude
                 or model._meta.proxy
             ):

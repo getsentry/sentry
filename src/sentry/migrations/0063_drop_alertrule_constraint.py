@@ -41,6 +41,7 @@ class Migration(migrations.Migration):
                         END;
                     END $$;
                     """,
+                    hints={"tables": ["sentry_alertrule"]},
                 ),
             ],
             state_operations=[],

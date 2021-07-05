@@ -3,9 +3,10 @@ import os
 import random
 import warnings
 from binascii import hexlify
+from datetime import datetime
 from hashlib import sha1
 from importlib import import_module
-from typing import Any
+from typing import Any, Optional, Sequence
 from uuid import uuid4
 
 import petname
@@ -63,6 +64,7 @@ from sentry.models import (
     ProjectDebugFile,
     Release,
     ReleaseCommit,
+    ReleaseEnvironment,
     ReleaseFile,
     Repository,
     RepositoryProjectPathConfig,
@@ -356,7 +358,14 @@ class Factories:
         return project.key_set.get_or_create()[0]
 
     @staticmethod
-    def create_release(project, user=None, version=None, date_added=None, additional_projects=None):
+    def create_release(
+        project: Project,
+        user: Optional[User] = None,
+        version: Optional[str] = None,
+        date_added: Optional[datetime] = None,
+        additional_projects: Optional[Sequence[Project]] = None,
+        environments: Optional[Sequence[Environment]] = None,
+    ):
         if version is None:
             version = force_text(hexlify(os.urandom(20)))
 
@@ -373,6 +382,11 @@ class Factories:
         release.add_project(project)
         for additional_project in additional_projects:
             release.add_project(additional_project)
+
+        for environment in environments or []:
+            ReleaseEnvironment.objects.create(
+                organization=project.organization, release=release, environment=environment
+            )
 
         Activity.objects.create(
             type=Activity.RELEASE,
@@ -643,7 +657,7 @@ class Factories:
         return ProjectDebugFile.objects.create(
             debug_id=debug_id,
             code_id=code_id,
-            project=project,
+            project_id=project.id,
             object_name=object_name,
             cpu_name=cpu_name or "x86_64",
             file=file,

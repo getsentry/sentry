@@ -4,6 +4,7 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
+import {fetchTagValues} from 'app/actionCreators/tags';
 import Feature from 'app/components/acl/feature';
 import Alert from 'app/components/alert';
 import EmptyStateWarning from 'app/components/emptyStateWarning';
@@ -15,6 +16,7 @@ import {getRelativeSummary} from 'app/components/organizations/timeRangeSelector
 import PageHeading from 'app/components/pageHeading';
 import Pagination from 'app/components/pagination';
 import SearchBar from 'app/components/searchBar';
+import SmartSearchBar from 'app/components/smartSearchBar';
 import {DEFAULT_STATS_PERIOD} from 'app/constants';
 import {ALL_ACCESS_PROJECTS} from 'app/constants/globalSelectionHeader';
 import {desktop, mobile, releaseHealth} from 'app/data/platformCategories';
@@ -29,6 +31,7 @@ import {
   Release,
   ReleaseStatus,
   SessionApiResponse,
+  Tag,
 } from 'app/types';
 import {trackAnalyticsEvent} from 'app/utils/analytics';
 import Projects from 'app/utils/projects';
@@ -48,6 +51,17 @@ import ReleaseListStatusOptions from './releaseListStatusOptions';
 import ReleasePromo from './releasePromo';
 import {DisplayOption, SortOption, StatusOption} from './utils';
 
+const supportedTags = {
+  'sentry.semver': {
+    key: 'sentry.semver',
+    name: 'sentry.semver',
+  },
+  release: {
+    key: 'release',
+    name: 'release',
+  },
+};
+
 type RouteParams = {
   orgId: string;
 };
@@ -64,6 +78,7 @@ type State = {
 
 class ReleasesList extends AsyncView<Props, State> {
   shouldReload = true;
+  shouldRenderBadRequests = true;
 
   getTitle() {
     return routeTitleGen(t('Releases'), this.props.organization.slug, false);
@@ -80,6 +95,7 @@ class ReleasesList extends AsyncView<Props, State> {
       summaryStatsPeriod: statsPeriod,
       per_page: 20,
       flatten: activeSort === SortOption.DATE ? 0 : 1,
+      adoptionStages: 1,
       status:
         activeStatus === StatusOption.ARCHIVED
           ? ReleaseStatus.Archived
@@ -276,6 +292,25 @@ class ReleasesList extends AsyncView<Props, State> {
     }
   };
 
+  tagValueLoader = (key: string, search: string) => {
+    const {location, organization} = this.props;
+    const {project: projectId} = location.query;
+
+    return fetchTagValues(
+      this.api,
+      organization.slug,
+      key,
+      search,
+      projectId ? [projectId] : null,
+      location.query
+    );
+  };
+
+  getTagValues = async (tag: Tag, currentQuery: string): Promise<string[]> => {
+    const values = await this.tagValueLoader(tag.key, currentQuery);
+    return values.map(({value}) => value);
+  };
+
   shouldShowLoadingIndicator() {
     const {loading, releases, reloading} = this.state;
 
@@ -283,6 +318,10 @@ class ReleasesList extends AsyncView<Props, State> {
   }
 
   renderLoading() {
+    return this.renderBody();
+  }
+
+  renderError() {
     return this.renderBody();
   }
 
@@ -428,9 +467,15 @@ class ReleasesList extends AsyncView<Props, State> {
           const isMobileProject =
             selectedProject &&
             selectedProject.platform &&
-            ([...mobile, ...desktop] as string[]).includes(
-              selectedProject.platform as string
-            );
+            (
+              [
+                ...mobile,
+                ...desktop,
+                'java-android',
+                'cocoa-objc',
+                'cocoa-swift',
+              ] as string[]
+            ).includes(selectedProject.platform as string);
 
           return (
             <Fragment>
@@ -470,11 +515,13 @@ class ReleasesList extends AsyncView<Props, State> {
 
   renderBody() {
     const {organization} = this.props;
-    const {releases, reloading} = this.state;
+    const {releases, reloading, error} = this.state;
 
     const activeSort = this.getSort();
     const activeStatus = this.getStatus();
     const activeDisplay = this.getDisplay();
+
+    const hasSemver = organization.features.includes('semver');
 
     return (
       <GlobalSelectionHeader
@@ -492,11 +539,23 @@ class ReleasesList extends AsyncView<Props, State> {
             {this.renderHealthCta()}
 
             <SortAndFilterWrapper>
-              <SearchBar
-                placeholder={t('Search')}
-                onSearch={this.handleSearch}
-                query={this.getQuery()}
-              />
+              {hasSemver ? (
+                <SmartSearchBar
+                  query={this.getQuery()}
+                  placeholder={t('Search by release version')}
+                  maxSearchItems={5}
+                  hasRecentSearches={false}
+                  supportedTags={supportedTags}
+                  onSearch={this.handleSearch}
+                  onGetTagValues={this.getTagValues}
+                />
+              ) : (
+                <SearchBar
+                  placeholder={t('Search')}
+                  onSearch={this.handleSearch}
+                  query={this.getQuery()}
+                />
+              )}
               <ReleaseListStatusOptions
                 selected={activeStatus}
                 onSelect={this.handleStatus}
@@ -517,7 +576,9 @@ class ReleasesList extends AsyncView<Props, State> {
               activeStatus === StatusOption.ARCHIVED &&
               !!releases?.length && <ReleaseArchivedNotice multi />}
 
-            {this.renderInnerBody(activeDisplay)}
+            {error
+              ? super.renderError(new Error('Unable to load all required endpoints'))
+              : this.renderInnerBody(activeDisplay)}
           </LightWeightNoProjectMessage>
         </PageContent>
       </GlobalSelectionHeader>

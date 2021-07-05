@@ -1,4 +1,4 @@
-import {LightWeightOrganization} from 'app/types';
+import {LightWeightOrganization, SelectValue} from 'app/types';
 import {assert} from 'app/types/utils';
 
 export type Sort = {
@@ -24,6 +24,11 @@ export type ColumnType =
 
 export type ColumnValueType = ColumnType | 'never'; // Matches to nothing
 
+export type ParsedFunction = {
+  name: string;
+  arguments: string[];
+};
+
 type ValidateColumnValueFunction = ({name: string, dataType: ColumnType}) => boolean;
 
 export type ValidateColumnTypes = ColumnType[] | ValidateColumnValueFunction;
@@ -38,6 +43,14 @@ export type AggregateParameter =
   | {
       kind: 'value';
       dataType: ColumnType;
+      defaultValue?: string;
+      required: boolean;
+      placeholder?: string;
+    }
+  | {
+      kind: 'dropdown';
+      options: SelectValue<string>[];
+      dataType: string;
       defaultValue?: string;
       required: boolean;
       placeholder?: string;
@@ -60,7 +73,7 @@ export type QueryFieldValue =
     }
   | {
       kind: 'function';
-      function: [AggregationKey, string, AggregationRefinement];
+      function: [AggregationKey, string, AggregationRefinement, AggregationRefinement];
     };
 
 // Column is just an alias of a Query value
@@ -68,7 +81,34 @@ export type Column = QueryFieldValue;
 
 export type Alignments = 'left' | 'right';
 
-// Refer to src/sentry/api/event_search.py
+const CONDITIONS_ARGUMENTS: SelectValue<string>[] = [
+  {
+    label: 'equal =',
+    value: 'equals',
+  },
+  {
+    label: 'not equal !=',
+    value: 'notEquals',
+  },
+  {
+    label: 'less <',
+    value: 'less',
+  },
+  {
+    label: 'greater >',
+    value: 'greater',
+  },
+  {
+    label: 'less or equals <=',
+    value: 'lessOrEquals',
+  },
+  {
+    label: 'greater or equals >=',
+    value: 'greaterOrEquals',
+  },
+];
+
+// Refer to src/sentry/search/events/fields.py
 export const AGGREGATIONS = {
   count: {
     parameters: [],
@@ -338,6 +378,32 @@ export const AGGREGATIONS = {
       {
         kind: 'value',
         dataType: 'number',
+        defaultValue: '300',
+        required: true,
+      },
+    ],
+    outputType: 'number',
+    isSortable: true,
+    multiPlotType: 'area',
+  },
+  count_if: {
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: ['string', 'duration'],
+        defaultValue: 'transaction.duration',
+        required: true,
+      },
+      {
+        kind: 'dropdown',
+        options: CONDITIONS_ARGUMENTS,
+        dataType: 'string',
+        defaultValue: CONDITIONS_ARGUMENTS[0].value,
+        required: true,
+      },
+      {
+        kind: 'value',
+        dataType: 'string',
         defaultValue: '300',
         required: true,
       },
@@ -616,14 +682,88 @@ export function getMeasurementSlug(field: string): string | null {
   return null;
 }
 
-const AGGREGATE_PATTERN = /^([^\(]+)\((.*?)(?:\s*,\s*(.*))?\)$/;
+const AGGREGATE_PATTERN = /^([^\(]+)\((.*)?\)$/;
+// Identical to AGGREGATE_PATTERN, but without the $ for newline, or ^ for start of line
+const AGGREGATE_BASE = /([^\(]+)\((.*)?\)/g;
 
 export function getAggregateArg(field: string): string | null {
-  const results = field.match(AGGREGATE_PATTERN);
-  if (results && results.length >= 3) {
-    return results[2];
+  // only returns the first argument if field is an aggregate
+  const result = parseFunction(field);
+
+  if (result && result.arguments.length > 0) {
+    return result.arguments[0];
   }
+
   return null;
+}
+
+export function parseFunction(field: string): ParsedFunction | null {
+  const results = field.match(AGGREGATE_PATTERN);
+  if (results && results.length === 3) {
+    return {
+      name: results[1],
+      arguments: parseArguments(results[1], results[2]),
+    };
+  }
+
+  return null;
+}
+
+export function parseArguments(functionText: string, columnText: string): string[] {
+  // Some functions take a quoted string for their arguments that may contain commas
+  // This function attempts to be identical with the similarly named parse_arguments
+  // found in src/sentry/search/events/fields.py
+  if (
+    (functionText !== 'to_other' && functionText !== 'count_if') ||
+    columnText.length === 0
+  ) {
+    return columnText ? columnText.split(',').map(result => result.trim()) : [];
+  }
+
+  const args: string[] = [];
+
+  let quoted = false;
+  let escaped = false;
+
+  let i: number = 0;
+  let j: number = 0;
+
+  while (j < columnText.length) {
+    if (i === j && columnText[j] === '"') {
+      // when we see a quote at the beginning of
+      // an argument, then this is a quoted string
+      quoted = true;
+    } else if (quoted && !escaped && columnText[j] === '\\') {
+      // when we see a slash inside a quoted string,
+      // the next character is an escape character
+      escaped = true;
+    } else if (quoted && !escaped && columnText[j] === '"') {
+      // when we see a non-escaped quote while inside
+      // of a quoted string, we should end it
+      quoted = false;
+    } else if (quoted && escaped) {
+      // when we are inside a quoted string and have
+      // begun an escape character, we should end it
+      escaped = false;
+    } else if (quoted && columnText[j] === ',') {
+      // when we are inside a quoted string and see
+      // a comma, it should not be considered an
+      // argument separator
+    } else if (columnText[j] === ',') {
+      // when we see a comma outside of a quoted string
+      // it is an argument separator
+      args.push(columnText.substring(i, j).trim());
+      i = j + 1;
+    }
+    j += 1;
+  }
+
+  if (i !== j) {
+    // add in the last argument if any
+    args.push(columnText.substring(i).trim());
+  }
+
+  return args;
 }
 
 // `|` is an invalid field character, so it is used to determine whether a field is an equation or not
@@ -649,6 +789,12 @@ export function getEquationAliasIndex(field: string): number {
 
 export function getEquation(field: string): string {
   return field.slice(EQUATION_PREFIX.length);
+}
+
+export function isAggregateEquation(field: string): boolean {
+  const results = field.match(AGGREGATE_BASE);
+
+  return isEquation(field) && results !== null && results.length > 0;
 }
 
 export function generateAggregateFields(
@@ -687,15 +833,16 @@ export function explodeFieldString(field: string): Column {
     return {kind: 'equation', field: getEquation(field)};
   }
 
-  const results = field.match(AGGREGATE_PATTERN);
+  const results = parseFunction(field);
 
-  if (results && results.length >= 3) {
+  if (results) {
     return {
       kind: 'function',
       function: [
-        results[1] as AggregationKey,
-        results[2],
-        results[3] as AggregationRefinement,
+        results.name as AggregationKey,
+        results.arguments[0] ?? '',
+        results.arguments[1] as AggregationRefinement,
+        results.arguments[2] as AggregationRefinement,
       ],
     };
   }
@@ -725,21 +872,24 @@ export function explodeField(field: Field): Column {
  * Get the alias that the API results will have for a given aggregate function name
  */
 export function getAggregateAlias(field: string): string {
-  if (!field.match(AGGREGATE_PATTERN)) {
+  const result = parseFunction(field);
+  if (!result) {
     return field;
   }
-  return field
-    .replace(AGGREGATE_PATTERN, '$1_$2_$3')
-    .replace(/[^\w]/g, '_')
-    .replace(/^_+/g, '')
-    .replace(/_+$/, '');
+  let alias = result.name;
+
+  if (result.arguments.length > 0) {
+    alias += '_' + result.arguments.join('_');
+  }
+
+  return alias.replace(/[^\w]/g, '_').replace(/^_+/g, '').replace(/_+$/, '');
 }
 
 /**
  * Check if a field name looks like an aggregate function or known aggregate alias.
  */
 export function isAggregateField(field: string): boolean {
-  return field.match(AGGREGATE_PATTERN) !== null;
+  return parseFunction(field) !== null;
 }
 
 /**
@@ -748,11 +898,11 @@ export function isAggregateField(field: string): boolean {
  * or in series markers.
  */
 export function aggregateOutputType(field: string): AggregationOutputType {
-  const matches = AGGREGATE_PATTERN.exec(field);
-  if (!matches) {
+  const result = parseFunction(field);
+  if (!result) {
     return 'number';
   }
-  const outputType = aggregateFunctionOutputType(matches[1], matches[2]);
+  const outputType = aggregateFunctionOutputType(result.name, result.arguments[0]);
   if (outputType === null) {
     return 'number';
   }
@@ -804,16 +954,15 @@ export function aggregateFunctionOutputType(
  * Get the multi-series chart type for an aggregate function.
  */
 export function aggregateMultiPlotType(field: string): PlotType {
-  const matches = AGGREGATE_PATTERN.exec(field);
+  const result = parseFunction(field);
   // Handle invalid data.
-  if (!matches) {
+  if (!result) {
     return 'area';
   }
-  const funcName = matches[1];
-  if (!AGGREGATIONS.hasOwnProperty(funcName)) {
+  if (!AGGREGATIONS.hasOwnProperty(result.name)) {
     return 'area';
   }
-  return AGGREGATIONS[funcName].multiPlotType;
+  return AGGREGATIONS[result.name].multiPlotType;
 }
 
 function validateForNumericAggregate(

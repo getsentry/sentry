@@ -5,7 +5,7 @@ from django.db.models import F, Q
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 
-from sentry import analytics
+from sentry import analytics, features
 from sentry.api.base import EnvironmentMixin, ReleaseAnalyticsMixin
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
@@ -27,7 +27,8 @@ from sentry.models import (
     ReleaseProject,
     ReleaseStatus,
 )
-from sentry.search.events.constants import OPERATOR_TO_DJANGO, SEMVER_ALIAS
+from sentry.search.events.constants import SEMVER_ALIAS
+from sentry.search.events.filter import parse_semver
 from sentry.signals import release_created
 from sentry.snuba.sessions import (
     STATS_PERIODS,
@@ -62,6 +63,25 @@ def add_date_filter_to_queryset(queryset, filter_params):
     """Once date has been coalesced over released and added, use it to filter releases"""
     if filter_params["start"] and filter_params["end"]:
         return queryset.filter(date__gte=filter_params["start"], date__lte=filter_params["end"])
+    return queryset
+
+
+def _filter_releases_by_query(queryset, organization, query):
+    search_filters = parse_search_query(query)
+    for search_filter in search_filters:
+        if search_filter.key.name == RELEASE_FREE_TEXT_KEY:
+            query_q = Q(version__icontains=query)
+            suffix_match = _release_suffix.match(query)
+            if suffix_match is not None:
+                query_q |= Q(version__icontains="%s+%s" % suffix_match.groups())
+
+            queryset = queryset.filter(query_q)
+
+        if search_filter.key.name == SEMVER_ALIAS:
+            queryset = queryset.filter_by_semver(
+                organization.id,
+                parse_semver(search_filter.value.raw_value, search_filter.operator),
+            )
     return queryset
 
 
@@ -159,6 +179,7 @@ class OrganizationReleasesEndpoint(
         """
         query = request.GET.get("query")
         with_health = request.GET.get("health") == "1"
+        with_adoption_stages = request.GET.get("adoptionStages") == "1"
         status_filter = request.GET.get("status", "open")
         flatten = request.GET.get("flatten") == "1"
         sort = request.GET.get("sort") or "date"
@@ -202,23 +223,7 @@ class OrganizationReleasesEndpoint(
         queryset = add_environment_to_queryset(queryset, filter_params)
 
         if query:
-            search_filters = parse_search_query(query)
-            # TODO: Handle semver here as well
-            for search_filter in search_filters:
-                if search_filter.key.name == RELEASE_FREE_TEXT_KEY:
-                    query_q = Q(version__icontains=query)
-                    suffix_match = _release_suffix.match(query)
-                    if suffix_match is not None:
-                        query_q |= Q(version__icontains="%s+%s" % suffix_match.groups())
-
-                    queryset = queryset.filter(query_q)
-
-                if search_filter.key.name == SEMVER_ALIAS:
-                    queryset = queryset.filter_by_semver(
-                        organization.id,
-                        OPERATOR_TO_DJANGO[search_filter.operator],
-                        search_filter.value.raw_value,
-                    )
+            queryset = _filter_releases_by_query(queryset, organization, query)
 
         select_extra = {}
 
@@ -266,6 +271,10 @@ class OrganizationReleasesEndpoint(
         queryset = queryset.extra(select=select_extra)
         queryset = add_date_filter_to_queryset(queryset, filter_params)
 
+        with_adoption_stages = with_adoption_stages and features.has(
+            "organizations:release-adoption-stage", organization, actor=request.user
+        )
+
         return self.paginate(
             request=request,
             queryset=queryset,
@@ -274,6 +283,7 @@ class OrganizationReleasesEndpoint(
                 x,
                 request.user,
                 with_health_data=with_health,
+                with_adoption_stages=with_adoption_stages,
                 health_stat=health_stat,
                 health_stats_period=health_stats_period,
                 summary_stats_period=summary_stats_period,
@@ -451,6 +461,8 @@ class OrganizationReleasesStatsEndpoint(OrganizationReleasesBaseEndpoint, Enviro
 
         :pparam string organization_slug: the organization short name
         """
+        query = request.GET.get("query")
+
         try:
             filter_params = self.get_filter_params(request, organization, date_filter_optional=True)
         except NoProjects:
@@ -470,6 +482,8 @@ class OrganizationReleasesStatsEndpoint(OrganizationReleasesBaseEndpoint, Enviro
 
         queryset = add_date_filter_to_queryset(queryset, filter_params)
         queryset = add_environment_to_queryset(queryset, filter_params)
+        if query:
+            queryset = _filter_releases_by_query(queryset, organization, query)
 
         return self.paginate(
             request=request,

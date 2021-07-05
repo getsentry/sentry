@@ -314,7 +314,7 @@ def parse_sources(config):
 
     try:
         sources = json.loads(config)
-    except BaseException as e:
+    except Exception as e:
         raise InvalidSourcesError(str(e))
 
     try:
@@ -373,7 +373,11 @@ def get_sources_for_project(project):
     if sources_config:
         try:
             custom_sources = parse_sources(sources_config)
-            sources.extend(normalize_user_source(source) for source in custom_sources)
+            sources.extend(
+                normalize_user_source(source)
+                for source in custom_sources
+                if source["type"] != "appStoreConnect"
+            )
         except InvalidSourcesError:
             # Source configs should be validated when they are saved. If this
             # did not happen, this indicates a bug. Record this, but do not stop

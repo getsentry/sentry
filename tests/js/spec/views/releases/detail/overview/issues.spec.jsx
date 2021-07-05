@@ -11,6 +11,7 @@ describe('Release Issues', function () {
 
   const props = {
     orgId: 'org',
+    organization: TestStubs.Organization(),
     version: '1.0.0',
     selection: {projects: [], environments: [], datetime: {period: '14d'}},
     location: {href: ''},
@@ -20,24 +21,31 @@ describe('Release Issues', function () {
     MockApiClient.clearMockResponses();
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${props.orgId}/users/`,
+      url: `/organizations/${props.organization.slug}/users/`,
       body: [],
     });
 
+    MockApiClient.addMockResponse({
+      url: `/organizations/${props.organization.slug}/issues-count/?query=first-release%3A1.0.0&query=release%3A1.0.0&query=error.handled%3A0%20release%3A1.0.0&statsPeriod=14d`,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${props.organization.slug}/releases/1.0.0/resolved/`,
+    });
+
     newIssuesEndpoint = MockApiClient.addMockResponse({
-      url: `/organizations/${props.orgId}/issues/?limit=10&query=first-release%3A1.0.0&sort=freq&statsPeriod=14d`,
+      url: `/organizations/${props.organization.slug}/issues/?groupStatsPeriod=auto&limit=10&query=first-release%3A1.0.0&sort=freq&statsPeriod=14d`,
       body: [],
     });
     resolvedIssuesEndpoint = MockApiClient.addMockResponse({
-      url: '/organizations/org/releases/1.0.0/resolved/?limit=10&query=&sort=freq&statsPeriod=14d',
+      url: `/organizations/${props.organization.slug}/releases/1.0.0/resolved/?groupStatsPeriod=auto&limit=10&query=&sort=freq&statsPeriod=14d`,
       body: [],
     });
     unhandledIssuesEndpoint = MockApiClient.addMockResponse({
-      url: '/organizations/org/issues/?limit=10&query=release%3A1.0.0%20error.handled%3A0&sort=freq&statsPeriod=14d',
+      url: `/organizations/${props.organization.slug}/issues/?groupStatsPeriod=auto&limit=10&query=release%3A1.0.0%20error.handled%3A0&sort=freq&statsPeriod=14d`,
       body: [],
     });
     allIssuesEndpoint = MockApiClient.addMockResponse({
-      url: '/organizations/org/issues/?limit=10&query=release%3A1.0.0&sort=freq&statsPeriod=14d',
+      url: `/organizations/${props.organization.slug}/issues/?groupStatsPeriod=auto&limit=10&query=release%3A1.0.0&sort=freq&statsPeriod=14d`,
       body: [],
     });
   });
@@ -116,7 +124,7 @@ describe('Release Issues', function () {
     );
 
     expect(wrapper.find('Link[data-test-id="discover-button"]').prop('to')).toEqual({
-      pathname: '/organizations/org/discover/results/',
+      pathname: `/organizations/${props.organization.slug}/discover/results/`,
       query: {
         id: undefined,
         name: `Release ${props.version}`,
@@ -140,49 +148,53 @@ describe('Release Issues', function () {
     const wrapper = mountWithTheme(<Issues {...props} />);
 
     expect(wrapper.find('Link[data-test-id="issues-button"]').prop('to')).toEqual({
-      pathname: '/organizations/org/issues/',
+      pathname: `/organizations/${props.organization.slug}/issues/`,
       query: {
         sort: 'freq',
         query: 'firstRelease:1.0.0',
         cursor: undefined,
         limit: undefined,
         statsPeriod: '14d',
+        groupStatsPeriod: 'auto',
       },
     });
 
     filterIssues(wrapper, 'resolved');
     expect(wrapper.find('Link[data-test-id="issues-button"]').prop('to')).toEqual({
-      pathname: '/organizations/org/issues/',
+      pathname: `/organizations/${props.organization.slug}/issues/`,
       query: {
         sort: 'freq',
         query: 'release:1.0.0',
         cursor: undefined,
         limit: undefined,
         statsPeriod: '14d',
+        groupStatsPeriod: 'auto',
       },
     });
 
     filterIssues(wrapper, 'unhandled');
     expect(wrapper.find('Link[data-test-id="issues-button"]').prop('to')).toEqual({
-      pathname: '/organizations/org/issues/',
+      pathname: `/organizations/${props.organization.slug}/issues/`,
       query: {
         sort: 'freq',
         query: 'release:1.0.0 error.handled:0',
         cursor: undefined,
         limit: undefined,
         statsPeriod: '14d',
+        groupStatsPeriod: 'auto',
       },
     });
 
     filterIssues(wrapper, 'all');
     expect(wrapper.find('Link[data-test-id="issues-button"]').prop('to')).toEqual({
-      pathname: '/organizations/org/issues/',
+      pathname: `/organizations/${props.organization.slug}/issues/`,
       query: {
         sort: 'freq',
         query: 'release:1.0.0',
         cursor: undefined,
         limit: undefined,
         statsPeriod: '14d',
+        groupStatsPeriod: 'auto',
       },
     });
   });

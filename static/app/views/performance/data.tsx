@@ -360,7 +360,8 @@ function generateGenericPerformanceEventView(
   // If there is a bare text search, we want to treat it as a search
   // on the transaction name.
   if (conditions.query.length > 0) {
-    conditions.setTagValues('transaction', [`*${conditions.query.join(' ')}*`]);
+    // the query here is a user entered condition, no need to escape it
+    conditions.setTagValues('transaction', [`*${conditions.query.join(' ')}*`], false);
     conditions.query = [];
   }
   savedQuery.query = conditions.formatString();
@@ -429,7 +430,8 @@ function generateBackendPerformanceEventView(
   // If there is a bare text search, we want to treat it as a search
   // on the transaction name.
   if (conditions.query.length > 0) {
-    conditions.setTagValues('transaction', [`*${conditions.query.join(' ')}*`]);
+    // the query here is a user entered condition, no need to escape it
+    conditions.setTagValues('transaction', [`*${conditions.query.join(' ')}*`], false);
     conditions.query = [];
   }
   savedQuery.query = conditions.formatString();
@@ -496,7 +498,8 @@ function generateFrontendPageloadPerformanceEventView(
   // If there is a bare text search, we want to treat it as a search
   // on the transaction name.
   if (conditions.query.length > 0) {
-    conditions.setTagValues('transaction', [`*${conditions.query.join(' ')}*`]);
+    // the query here is a user entered condition, no need to escape it
+    conditions.setTagValues('transaction', [`*${conditions.query.join(' ')}*`], false);
     conditions.query = [];
   }
   savedQuery.query = conditions.formatString();
@@ -565,7 +568,8 @@ function generateFrontendOtherPerformanceEventView(
   // If there is a bare text search, we want to treat it as a search
   // on the transaction name.
   if (conditions.query.length > 0) {
-    conditions.setTagValues('transaction', [`*${conditions.query.join(' ')}*`]);
+    // the query here is a user entered condition, no need to escape it
+    conditions.setTagValues('transaction', [`*${conditions.query.join(' ')}*`], false);
     conditions.query = [];
   }
   savedQuery.query = conditions.formatString();
@@ -643,7 +647,8 @@ export function generatePerformanceVitalDetailView(
   // If there is a bare text search, we want to treat it as a search
   // on the transaction name.
   if (conditions.query.length > 0) {
-    conditions.setTagValues('transaction', [`*${conditions.query.join(' ')}*`]);
+    // the query here is a user entered condition, no need to escape it
+    conditions.setTagValues('transaction', [`*${conditions.query.join(' ')}*`], false);
     conditions.query = [];
   }
   savedQuery.query = conditions.formatString();
