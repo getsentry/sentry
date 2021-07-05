@@ -29,13 +29,14 @@ class User(Interface):
     display_score = 2020
 
     @classmethod
-    def to_python(cls, data):
+    def to_python(cls, data, **kwargs):
         data = data.copy()
         for key in ("id", "email", "username", "ip_address", "name", "geo", "data"):
             data.setdefault(key, None)
         if data["geo"] is not None:
-            data["geo"] = Geo.to_python(data["geo"])
-        return cls(**data)
+            data["geo"] = Geo.to_python_subpath(data, ["geo"], **kwargs)
+
+        return super().to_python(data, **kwargs)
 
     def to_json(self):
         return prune_empty_keys(

@@ -127,11 +127,11 @@ class Mechanism(Interface):
     """
 
     @classmethod
-    def to_python(cls, data):
+    def to_python(cls, data, **kwargs):
         for key in ("type", "synthetic", "description", "help_link", "handled", "data", "meta"):
             data.setdefault(key, None)
 
-        return cls(**data)
+        return super().to_python(data, **kwargs)
 
     def to_json(self):
         return prune_empty_keys(
@@ -217,14 +217,14 @@ class SingleException(Interface):
     grouping_variants = ["system", "app"]
 
     @classmethod
-    def to_python(cls, data):
+    def to_python(cls, data, **kwargs):
         if get_path(data, "stacktrace", "frames", filter=True):
-            stacktrace = Stacktrace.to_python(data["stacktrace"])
+            stacktrace = Stacktrace.to_python_subpath(data, ["stacktrace"], **kwargs)
         else:
             stacktrace = None
 
         if get_path(data, "raw_stacktrace", "frames", filter=True):
-            raw_stacktrace = Stacktrace.to_python(data["raw_stacktrace"], raw=True)
+            raw_stacktrace = Stacktrace.to_python_subpath(data, ["raw_stacktrace"], **kwargs)
         else:
             raw_stacktrace = None
 
@@ -232,11 +232,11 @@ class SingleException(Interface):
         value = data.get("value")
 
         if data.get("mechanism"):
-            mechanism = Mechanism.to_python(data["mechanism"])
+            mechanism = Mechanism.to_python_subpath(data, ["mechanism"], **kwargs)
         else:
             mechanism = None
 
-        kwargs = {
+        new_data = {
             "type": type,
             "value": value,
             "module": data.get("module"),
@@ -246,7 +246,7 @@ class SingleException(Interface):
             "raw_stacktrace": raw_stacktrace,
         }
 
-        return cls(**kwargs)
+        return super().to_python(new_data, **kwargs)
 
     def to_json(self):
         mechanism = (
@@ -381,12 +381,17 @@ class Exception(Interface):
         return len(self.exceptions())
 
     @classmethod
-    def to_python(cls, data):
-        return cls(
-            values=[
-                v and SingleException.to_python(v) for v in get_path(data, "values", default=[])
-            ],
-            exc_omitted=data.get("exc_omitted"),
+    def to_python(cls, data, **kwargs):
+        values = []
+        for i, v in enumerate(get_path(data, "values", default=[])):
+            if not v:
+                # Cannot skip over None-values, need to preserve offsets
+                values.append(v)
+            else:
+                values.append(SingleException.to_python_subpath(data, ["values", i], **kwargs))
+
+        return super().to_python(
+            {"values": values, "exc_omitted": data.get("exc_omitted")}, **kwargs
         )
 
     # TODO(ja): Fix all following methods when to_python is refactored. All
