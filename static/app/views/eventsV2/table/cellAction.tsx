@@ -27,6 +27,7 @@ export enum Actions {
   TRANSACTION = 'transaction',
   RELEASE = 'release',
   DRILLDOWN = 'drilldown',
+  EDIT_THRESHOLD = 'edit_threshold',
 }
 
 export function updateQuery(
@@ -323,6 +324,22 @@ class CellAction extends React.Component<Props, State> {
           onClick={() => handleCellAction(Actions.DRILLDOWN, value)}
         >
           {t('View Stacks')}
+        </ActionItem>
+      );
+    }
+
+    if (
+      column.column.kind === 'function' &&
+      column.column.function[0] === 'user_misery'
+    ) {
+      addMenuItem(
+        Actions.EDIT_THRESHOLD,
+        <ActionItem
+          key="edit_threshold"
+          data-test-id="edit-threshold"
+          onClick={() => handleCellAction(Actions.EDIT_THRESHOLD, value)}
+        >
+          {t('Edit threshold')}
         </ActionItem>
       );
     }

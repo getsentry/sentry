@@ -2,6 +2,7 @@ import * as React from 'react';
 import * as ReactRouter from 'react-router';
 import {Location, LocationDescriptorObject} from 'history';
 
+import {openModal} from 'app/actionCreators/modal';
 import {fetchLegacyKeyTransactionsCount} from 'app/actionCreators/performance';
 import GuideAnchor from 'app/components/assistant/guideAnchor';
 import GridEditable, {COL_WIDTH_UNDEFINED, GridColumn} from 'app/components/gridEditable';
@@ -21,6 +22,9 @@ import {tokenizeSearch} from 'app/utils/tokenizeSearch';
 import CellAction, {Actions, updateQuery} from 'app/views/eventsV2/table/cellAction';
 import {TableColumn} from 'app/views/eventsV2/table/types';
 
+import TransactionThresholdModal, {
+  modalCss,
+} from './transactionSummary/transactionThresholdModal';
 import {transactionSummaryRouteWithQuery} from './transactionSummary/utils';
 import {COLUMN_TITLES} from './data';
 
@@ -78,7 +82,7 @@ class Table extends React.Component<Props, State> {
     }
   }
 
-  handleCellAction = (column: TableColumn<keyof TableDataRow>) => {
+  handleCellAction = (column: TableColumn<keyof TableDataRow>, dataRow: TableDataRow) => {
     return (action: Actions, value: React.ReactText) => {
       const {eventView, location, organization} = this.props;
 
@@ -88,6 +92,25 @@ class Table extends React.Component<Props, State> {
         organization_id: parseInt(organization.id, 10),
         action,
       });
+
+      if (action === Actions.EDIT_THRESHOLD) {
+        const project_threshold = dataRow.project_threshold_config;
+        const transactionName = dataRow.transaction as string;
+        openModal(
+          modalProps => (
+            <TransactionThresholdModal
+              {...modalProps}
+              organization={organization}
+              transactionName={transactionName}
+              eventView={eventView}
+              transactionThreshold={project_threshold[1]}
+              transactionThresholdMetric={project_threshold[0]}
+            />
+          ),
+          {modalCss, backdrop: 'static'}
+        );
+        return;
+      }
 
       const searchConditions = tokenizeSearch(eventView.query);
 
@@ -128,6 +151,7 @@ class Table extends React.Component<Props, State> {
       Actions.EXCLUDE,
       Actions.SHOW_GREATER_THAN,
       Actions.SHOW_LESS_THAN,
+      Actions.EDIT_THRESHOLD,
     ];
 
     if (field === 'transaction') {
@@ -150,7 +174,7 @@ class Table extends React.Component<Props, State> {
         <CellAction
           column={column}
           dataRow={dataRow}
-          handleCellAction={this.handleCellAction(column)}
+          handleCellAction={this.handleCellAction(column, dataRow)}
           allowActions={allowActions}
         >
           <Link to={target} onClick={this.handleSummaryClick}>
@@ -182,7 +206,7 @@ class Table extends React.Component<Props, State> {
           <CellAction
             column={column}
             dataRow={dataRow}
-            handleCellAction={this.handleCellAction(column)}
+            handleCellAction={this.handleCellAction(column, dataRow)}
             allowActions={allowActions}
           >
             {rendered}
@@ -195,7 +219,7 @@ class Table extends React.Component<Props, State> {
       <CellAction
         column={column}
         dataRow={dataRow}
-        handleCellAction={this.handleCellAction(column)}
+        handleCellAction={this.handleCellAction(column, dataRow)}
         allowActions={allowActions}
       >
         {rendered}
