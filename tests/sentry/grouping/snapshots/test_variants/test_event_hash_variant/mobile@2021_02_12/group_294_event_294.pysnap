@@ -1,40 +1,35 @@
 ---
-created: '2021-06-23T18:06:10.936010Z'
+created: '2021-06-30T16:44:00.723051Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app-depth-1:
-  hash: "a66d08de7cceeb31e6eb389b94ea6690"
+  hash: "d0c847d9bc45ca8c26389be94bd21878"
   tree_label: "std::terminate | stripped_application_code"
   component:
     app-depth-1*
       exception*
         stacktrace*
+          frame*
+            function*
+              "stripped_application_code"
           frame* (marked as prefix frame by stack trace rule (category:throw +sentinel +prefix ^-group))
             function*
               "std::terminate"
             package (ignored because function takes precedence)
               "libc++abi.dylib"
-          frame*
-            function*
-              "stripped_application_code"
         type (ignored because exception is synthetic)
           "0x00000000 / 0x00000000"
         value (ignored because stacktrace takes precedence)
           "Fatal Error: <hex> / <hex>"
 --------------------------------------------------------------------------
 app-depth-2:
-  hash: "f43890f57d10433d20cc751da38b314b"
+  hash: "93142e733eede833a5cf69b302f43941"
   tree_label: "std::terminate | stripped_application_code | std::__1::allocator_traits<T>::destroy<T> | stripped_application_code"
   component:
     app-depth-2*
       exception*
         stacktrace*
-          frame* (marked as prefix frame by stack trace rule (category:throw +sentinel +prefix ^-group))
-            function*
-              "std::terminate"
-            package (ignored because function takes precedence)
-              "libc++abi.dylib"
           frame*
             function*
               "stripped_application_code"
@@ -46,6 +41,11 @@ app-depth-2:
           frame*
             function*
               "stripped_application_code"
+          frame* (marked as prefix frame by stack trace rule (category:throw +sentinel +prefix ^-group))
+            function*
+              "std::terminate"
+            package (ignored because function takes precedence)
+              "libc++abi.dylib"
         type (ignored because exception is synthetic)
           "0x00000000 / 0x00000000"
         value (ignored because stacktrace takes precedence)
@@ -53,7 +53,7 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "a3681449b8f66e38697bba72bab32569"
-  tree_label: "<entire stacktrace>"
+  tree_label: "libsystem_kernel.dylib | __abort | abort | abort_message | default_terminate_handler | std::__terminate | std::terminate | std::__1::thread::~thread | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | std::__1::pair<T>::~pair | std::__1::pair<T>::~pair | std::__1::allocator_traits<T>::__destroy<T> | std::__1::allocator_traits<T>::destroy<T> | std::__1::__tree<T>::destroy | std::__1::__tree<T>::~__tree | std::__1::__tree<T>::~__tree | std::__1::map<T>::~map | std::__1::map<T>::~map | stripped_application_code | stripped_application_code | boost::function0<T>::operator() | stripped_application_code | stripped_application_code | boost::function0<T>::operator() | stripped_application_code | stripped_application_code | libdispatch.dylib | libdispatch.dylib | libdispatch.dylib | _pthread_wqthread | start_wqthread | libdispatch.dylib"
   component:
     app-depth-max*
       exception*
@@ -222,7 +222,7 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "a3681449b8f66e38697bba72bab32569"
-  tree_label: "<entire stacktrace>"
+  tree_label: "libsystem_kernel.dylib | __abort | abort | abort_message | default_terminate_handler | std::__terminate | std::terminate | std::__1::thread::~thread | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | stripped_application_code | std::__1::pair<T>::~pair | std::__1::pair<T>::~pair | std::__1::allocator_traits<T>::__destroy<T> | std::__1::allocator_traits<T>::destroy<T> | std::__1::__tree<T>::destroy | std::__1::__tree<T>::~__tree | std::__1::__tree<T>::~__tree | std::__1::map<T>::~map | std::__1::map<T>::~map | stripped_application_code | stripped_application_code | boost::function0<T>::operator() | stripped_application_code | stripped_application_code | boost::function0<T>::operator() | stripped_application_code | stripped_application_code | libdispatch.dylib | libdispatch.dylib | libdispatch.dylib | _pthread_wqthread | start_wqthread | libdispatch.dylib"
   component:
     system*
       exception*

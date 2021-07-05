@@ -88,7 +88,7 @@ describe('OrganizationTeamProjects', function () {
     wrapper.update();
 
     expect(wrapper).toSnapshot();
-    expect(wrapper.find('.project-name').first().text()).toBe('project-slug');
+    expect(wrapper.find('ProjectBadge').first().text()).toBe('project-slug');
   });
 
   it('Should allow bookmarking', async function () {

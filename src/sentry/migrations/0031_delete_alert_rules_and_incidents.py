@@ -45,5 +45,16 @@ class Migration(migrations.Migration):
     dependencies = [("sentry", "0030_auto_20200201_0039")]
 
     operations = [
-        migrations.RunPython(delete_alert_rules_incidents, reverse_code=migrations.RunPython.noop)
+        migrations.RunPython(
+            delete_alert_rules_incidents,
+            reverse_code=migrations.RunPython.noop,
+            hints={
+                "tables": [
+                    "sentry_alertrule",
+                    "sentry_incident",
+                    "sentry_timeseriessnapshot",
+                    "sentry_querysubscription",
+                ]
+            },
+        )
     ]

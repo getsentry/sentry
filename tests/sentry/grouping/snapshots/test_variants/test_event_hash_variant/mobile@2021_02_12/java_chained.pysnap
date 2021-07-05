@@ -1,5 +1,5 @@
 ---
-created: '2021-06-23T18:06:10.199179Z'
+created: '2021-06-30T16:44:02.387657Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -51,7 +51,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-2:
   hash: "4342cbc52b434588d500b518441bb830"
-  tree_label: "bind | bind0"
+  tree_label: "bind0 | bind"
   component:
     app-depth-2*
       chained-exception*
@@ -118,7 +118,7 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-3:
   hash: "797355840aa68b9aeb7416a2267456dd"
-  tree_label: "bind | bind | bind0"
+  tree_label: "bind0 | bind | bind"
   component:
     app-depth-3*
       chained-exception*
@@ -206,7 +206,7 @@ app-depth-3:
 --------------------------------------------------------------------------
 app-depth-4:
   hash: "b5cb31481ea65dffcf2f5ba853a8ae37"
-  tree_label: "bind | bind | bind | bind0"
+  tree_label: "bind0 | bind | bind | bind"
   component:
     app-depth-4*
       chained-exception*
@@ -315,7 +315,7 @@ app-depth-4:
 --------------------------------------------------------------------------
 app-depth-5:
   hash: "b4abb2ff030b1ad52cbcc34a0be98d77"
-  tree_label: "bind | bind | bind | bind | bind0"
+  tree_label: "bind0 | bind | bind | bind | bind"
   component:
     app-depth-5*
       chained-exception*
@@ -445,7 +445,7 @@ app-depth-5:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "8924849495809d42431719c2b9ab65c8"
-  tree_label: "<entire stacktrace>"
+  tree_label: "bind0 | bind | bind | bind | bind | bind | start | start | startInternal | start | addConnector | addPreviouslyRemovedConnectors | start | startEmbeddedServletContainer | finishRefresh | refresh | refresh | refresh | refreshContext | run | run | run | main"
   component:
     app-depth-max*
       chained-exception*
@@ -841,7 +841,7 @@ default:
 --------------------------------------------------------------------------
 system:
   hash: "8924849495809d42431719c2b9ab65c8"
-  tree_label: "<entire stacktrace>"
+  tree_label: "bind0 | bind | bind | bind | bind | bind | start | start | startInternal | start | addConnector | addPreviouslyRemovedConnectors | start | startEmbeddedServletContainer | finishRefresh | refresh | refresh | refresh | refreshContext | run | run | run | main"
   component:
     system*
       chained-exception*
