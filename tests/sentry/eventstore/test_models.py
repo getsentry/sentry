@@ -4,6 +4,7 @@ import pytest
 
 from sentry.db.models.fields.node import NodeData
 from sentry.eventstore.models import Event
+from sentry.grouping.enhancer import Enhancements
 from sentry.models import Environment
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -241,6 +242,57 @@ class EventTest(TestCase):
 
         assert not event_from_nodestore.group_id
         assert not event_from_nodestore.group
+
+    def test_grouping_reset(self):
+        event_data = {
+            "exception": {
+                "values": [
+                    {
+                        "type": "Hello",
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "function": "foo",
+                                },
+                                {
+                                    "function": "bar",
+                                },
+                            ]
+                        },
+                    }
+                ]
+            },
+        }
+
+        enhancement = Enhancements.from_config_string(
+            """
+            function:foo category=foo_like
+            category:foo_like -group
+            """,
+        )
+        grouping_config = {
+            "enhancements": enhancement.dumps(),
+            "id": "mobile:2021-02-12",
+        }
+
+        event1 = Event(
+            event_id="a" * 32,
+            data=event_data,
+            project_id=self.project.id,
+        )
+        variants1 = event1.get_grouping_variants(grouping_config, normalize_stacktraces=True)
+
+        event2 = Event(
+            event_id="b" * 32,
+            data=event_data,
+            project_id=self.project.id,
+        )
+        event2.interfaces  # Populate cache
+        variants2 = event2.get_grouping_variants(grouping_config, normalize_stacktraces=True)
+
+        assert sorted(v.as_dict()["hash"] for v in variants1.values()) == sorted(
+            v.as_dict()["hash"] for v in variants2.values()
+        )
 
 
 @pytest.mark.django_db
