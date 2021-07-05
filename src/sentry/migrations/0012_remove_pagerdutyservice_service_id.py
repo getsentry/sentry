@@ -30,6 +30,7 @@ class Migration(migrations.Migration):
                     reverse_sql="""
                         ALTER TABLE "sentry_pagerdutyservice" ADD COLUMN "service_id" varchar(255) NULL;
                         """,
+                    hints={"tables": ["sentry_pagerdutyservice"]},
                 )
             ],
             state_operations=[],

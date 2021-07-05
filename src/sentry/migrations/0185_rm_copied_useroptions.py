@@ -48,6 +48,8 @@ class Migration(migrations.Migration):
     ]
     operations = [
         migrations.RunPython(
-            code=delete_duplicate_useroption_rows, reverse_code=migrations.RunPython.noop
+            code=delete_duplicate_useroption_rows,
+            reverse_code=migrations.RunPython.noop,
+            hints={"tables": ["sentry_useroption"]},
         )
     ]

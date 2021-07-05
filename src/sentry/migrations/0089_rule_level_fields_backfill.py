@@ -53,5 +53,9 @@ class Migration(migrations.Migration):
     dependencies = [("sentry", "0088_rule_level_resolve_threshold_type")]
 
     operations = [
-        migrations.RunPython(backfill_rule_level_fields, reverse_code=migrations.RunPython.noop)
+        migrations.RunPython(
+            backfill_rule_level_fields,
+            reverse_code=migrations.RunPython.noop,
+            hints={"tables": ["sentry_alertrule"]},
+        )
     ]

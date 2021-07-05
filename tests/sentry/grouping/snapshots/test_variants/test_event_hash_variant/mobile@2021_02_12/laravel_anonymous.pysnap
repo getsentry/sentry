@@ -1,5 +1,5 @@
 ---
-created: '2021-06-23T18:06:10.469146Z'
+created: '2021-06-30T16:44:00.576747Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -45,7 +45,7 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-3:
   hash: "63c67781779781d9b0a442a5b2bdb976"
-  tree_label: "run | Illuminate\Pipeline\Pipeline::Illuminate\Pipeline\{closure}"
+  tree_label: "Illuminate\Pipeline\Pipeline::Illuminate\Pipeline\{closure} | run"
   component:
     app-depth-3*
       exception*
@@ -76,7 +76,7 @@ app-depth-3:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: "63c67781779781d9b0a442a5b2bdb976"
-  tree_label: "<entire stacktrace>"
+  tree_label: "Illuminate\Pipeline\Pipeline::Illuminate\Pipeline\{closure} | run"
   component:
     app-depth-max*
       exception*
@@ -107,7 +107,7 @@ app-depth-max:
 --------------------------------------------------------------------------
 system:
   hash: "63c67781779781d9b0a442a5b2bdb976"
-  tree_label: "<entire stacktrace>"
+  tree_label: "Illuminate\Pipeline\Pipeline::Illuminate\Pipeline\{closure} | run"
   component:
     system*
       exception*

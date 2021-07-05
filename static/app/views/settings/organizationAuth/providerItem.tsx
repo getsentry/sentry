@@ -79,6 +79,20 @@ const ProviderItem = ({provider, active, onConfigure}: Props) => {
 
   const featureProps = hookName ? {hookName} : {};
 
+  const getProviderDescription = providerName => {
+    if (providerName === 'SAML2') {
+      return t(
+        'your preferred SAML2 compliant provider like Ping Identity, Google SAML, Keycloak, or VMware Identity Manager'
+      );
+    }
+
+    if (providerName === 'Google') {
+      return t('Google (OAuth)');
+    }
+
+    return providerName;
+  };
+
   return (
     <Feature
       {...featureProps}
@@ -106,7 +120,10 @@ const ProviderItem = ({provider, active, onConfigure}: Props) => {
             <div>
               <ProviderName>{provider.name}</ProviderName>
               <ProviderDescription>
-                {t('Enable your organization to sign in with %s.', provider.name)}
+                {t(
+                  'Enable your organization to sign in with %s.',
+                  getProviderDescription(provider.name)
+                )}
               </ProviderDescription>
             </div>
           </ProviderInfo>

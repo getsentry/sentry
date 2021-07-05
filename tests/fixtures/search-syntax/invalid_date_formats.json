@@ -7,7 +7,7 @@
         "filter": "text",
         "negated": false,
         "invalid": {
-          "reason": "Invalid date format. Expected +/-duration (e.g. +1h) or ISO 8601-like (e.g. {now}).",
+          "reason": "Invalid date format. Expected +/-duration (e.g. +1h) or ISO 8601-like (e.g. {now})",
           "expectedType": ["date", "specificDate", "relativeDate"]
         },
         "key": {"type": "keySimple", "value": "first_seen", "quoted": false},
@@ -25,7 +25,7 @@
         "filter": "text",
         "negated": false,
         "invalid": {
-          "reason": "Invalid date format. Expected +/-duration (e.g. +1h) or ISO 8601-like (e.g. {now}).",
+          "reason": "Invalid date format. Expected +/-duration (e.g. +1h) or ISO 8601-like (e.g. {now})",
           "expectedType": ["date", "specificDate", "relativeDate"]
         },
         "key": {"type": "keySimple", "value": "first_seen", "quoted": false},
@@ -43,7 +43,7 @@
         "filter": "text",
         "negated": false,
         "invalid": {
-          "reason": "Invalid date format. Expected +/-duration (e.g. +1h) or ISO 8601-like (e.g. {now}).",
+          "reason": "Invalid date format. Expected +/-duration (e.g. +1h) or ISO 8601-like (e.g. {now})",
           "expectedType": ["date", "specificDate", "relativeDate"]
         },
         "key": {"type": "keySimple", "value": "first_seen", "quoted": false},

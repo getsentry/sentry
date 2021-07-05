@@ -384,6 +384,7 @@ export type EventMetadata = {
   function?: string;
   stripped_crash?: boolean;
   current_tree_label?: string[];
+  finest_tree_label?: string[];
 };
 
 export type EventAttachment = {
@@ -407,7 +408,7 @@ type EnableIntegrationSuggestion = {
   integrationUrl?: string | null;
 };
 
-type UpdateSdkSuggestion = {
+export type UpdateSdkSuggestion = {
   type: 'updateSdk';
   sdkName: string;
   newSdkVersion: string;
@@ -1468,7 +1469,14 @@ type ReleaseData = {
     firstReleaseVersion: string | null;
     lastReleaseVersion: string | null;
   };
-  adoptionStages?: {};
+  adoptionStages?: Record<
+    'string',
+    {
+      stage: string | null;
+      adopted: string | null;
+      unadopted: string | null;
+    }
+  >;
 };
 
 type BaseRelease = {
@@ -1574,6 +1582,7 @@ export type SentryAppComponent = {
   sentryApp: {
     uuid: string;
     slug:
+      | 'calixa'
       | 'clickup'
       | 'clubhouse'
       | 'komodor'
@@ -2087,6 +2096,13 @@ export type SessionApiResponse = SeriesApi & {
 export enum SessionField {
   SESSIONS = 'sum(session)',
   USERS = 'count_unique(user)',
+}
+
+export enum ReleaseComparisonChartType {
+  CRASH_FREE_USERS = 'crashFreeUsers',
+  CRASH_FREE_SESSIONS = 'crashFreeSessions',
+  SESSION_COUNT = 'sessionCount',
+  USER_COUNT = 'userCount',
 }
 
 export enum HealthStatsPeriodOption {

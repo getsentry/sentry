@@ -399,6 +399,8 @@ class OrganizationReleaseListTest(APITestCase):
 
 
 class OrganizationReleaseStatsTest(APITestCase):
+    endpoint = "sentry-api-0-organization-releases-stats"
+
     def setUp(self):
         self.project1 = self.create_project(teams=[self.team], organization=self.organization)
         self.project2 = self.create_project(teams=[self.team], organization=self.organization)
@@ -532,6 +534,41 @@ class OrganizationReleaseStatsTest(APITestCase):
             assert response.status_code == 200, response.content
             assert len(response.data) == 1
             assert "adoptionStages" in response.data[0]
+
+    def test_semver_filter(self):
+        self.login_as(user=self.user)
+
+        release_1 = self.create_release(version="test@1.2.4")
+        release_2 = self.create_release(version="test@1.2.3")
+        self.create_release(version="some.release")
+
+        response = self.get_valid_response(self.organization.slug, query=f"{SEMVER_ALIAS}:>1.2.3")
+        assert [r["version"] for r in response.data] == [release_1.version]
+
+        response = self.get_valid_response(self.organization.slug, query=f"{SEMVER_ALIAS}:>=1.2.3")
+        assert [r["version"] for r in response.data] == [release_2.version, release_1.version]
+
+        response = self.get_valid_response(self.organization.slug, query=f"{SEMVER_ALIAS}:1.2.*")
+        assert [r["version"] for r in response.data] == [release_2.version, release_1.version]
+
+        response = self.get_valid_response(self.organization.slug, query=f"{SEMVER_ALIAS}:2.2.1")
+        assert [r["version"] for r in response.data] == []
+
+    def test_query_filter(self):
+        self.login_as(user=self.user)
+
+        release = self.create_release(
+            self.project, version="foobar", date_added=datetime(2013, 8, 13, 3, 8, 24, 880386)
+        )
+        self.create_release(
+            self.project, version="sdfsdfsdf", date_added=datetime(2013, 8, 13, 3, 8, 24, 880386)
+        )
+
+        response = self.get_valid_response(self.organization.slug, query="oob")
+        assert [r["version"] for r in response.data] == [release.version]
+
+        response = self.get_valid_response(self.organization.slug, query="baz")
+        assert [r["version"] for r in response.data] == []
 
 
 class OrganizationReleaseCreateTest(APITestCase):

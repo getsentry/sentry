@@ -7,7 +7,6 @@
   "message": "",
   "datetime": "2021-05-24T13:15:04+00:00",
   "tags": [
-    ["app.device", "76b2897b369b05951cfdc9285516010920b608a9"],
     ["device", "iPad13,1"],
     ["device.family", "iOS"],
     ["environment", "debug"],
@@ -57,7 +56,6 @@
   },
   "contexts": {
     "app": {
-      "device_app_hash": "76b2897b369b05951cfdc9285516010920b608a9",
       "build_type": "debug",
       "app_identifier": "io.sentry.sample.iOS-Swift",
       "app_name": "iOS-Swift",
