@@ -40,6 +40,7 @@ def reprocess_group(
     from sentry.reprocessing2 import (
         CannotReprocess,
         logger,
+        mark_event_reprocessed,
         reprocess_event,
         start_group_reprocessing,
     )
@@ -96,13 +97,19 @@ def reprocess_group(
 
                     continue
 
+            # In case of errors while kicking off reprocessing, mark the event
+            # as reprocessed such that progressbar advances and the
+            # finish_reprocessing task is still correctly spawned.
+            mark_event_reprocessed(group_id=group_id, project_id=project_id)
+
+        # In case of errors while kicking off reprocessing or if max_events has
+        # been exceeded, do the default action.
+
         if remaining_events_min_datetime is None or remaining_events_min_datetime > event.datetime:
             remaining_events_min_datetime = event.datetime
         if remaining_events_max_datetime is None or remaining_events_max_datetime < event.datetime:
             remaining_events_max_datetime = event.datetime
 
-        # In case of errors while kicking of reprocessing or if max_events has
-        # been exceeded, do the default action.
         remaining_event_ids.append(event.event_id)
 
     # len(remaining_event_ids) is upper-bounded by GROUP_REPROCESSING_CHUNK_SIZE
@@ -149,6 +156,9 @@ def handle_remaining_events(
     See doccomment in sentry.reprocessing2.
     """
 
+    from sentry import buffer
+    from sentry.models.group import Group
+
     assert remaining_events in ("delete", "keep")
 
     if remaining_events == "delete":
@@ -173,6 +183,8 @@ def handle_remaining_events(
             from_timestamp=from_timestamp,
             to_timestamp=to_timestamp,
         )
+
+        buffer.incr(Group, {"times_seen": len(event_ids)}, {"id": new_group_id})
     else:
         raise ValueError(f"Invalid value for remaining_events: {remaining_events}")
 

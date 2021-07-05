@@ -1,6 +1,6 @@
 import pytest
 
-from sentry.eventtypes.error import format_title_from_tree_label
+from sentry.eventtypes.base import format_title_from_tree_label
 from sentry.grouping.api import get_default_grouping_config_dict
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.strategies.configurations import CONFIGURATIONS

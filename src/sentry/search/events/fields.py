@@ -15,7 +15,10 @@ from snuba_sdk.orderby import Direction, OrderBy
 from sentry.discover.models import KeyTransaction, TeamKeyTransaction
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Project, ProjectTeam, ProjectTransactionThreshold
-from sentry.models.transaction_threshold import TRANSACTION_METRICS
+from sentry.models.transaction_threshold import (
+    TRANSACTION_METRICS,
+    ProjectTransactionThresholdOverride,
+)
 from sentry.search.events.base import QueryBase
 from sentry.search.events.constants import (
     ALIAS_PATTERN,
@@ -142,7 +145,7 @@ def project_threshold_config_expression(organization_id, project_ids):
     if organization_id is None or project_ids is None:
         raise InvalidSearchQuery("Missing necessary data for project threshold config")
 
-    threshold_configs = (
+    project_threshold_configs = (
         ProjectTransactionThreshold.objects.filter(
             organization_id=organization_id,
             project_id__in=project_ids,
@@ -151,76 +154,168 @@ def project_threshold_config_expression(organization_id, project_ids):
         .values("project_id", "threshold", "metric")
     )
 
-    num_configured = threshold_configs.count()
-    sentry_sdk.set_tag("project_threshold.count", num_configured)
-    sentry_sdk.set_tag(
-        "project_threshold.count.grouped",
-        format_grouped_length(num_configured, [10, 100, 250, 500]),
+    transaction_threshold_configs = (
+        ProjectTransactionThresholdOverride.objects.filter(
+            organization_id=organization_id,
+            project_id__in=project_ids,
+        )
+        .order_by("project_id")
+        .values("transaction", "project_id", "threshold", "metric")
     )
 
-    if num_configured == 0:
+    num_project_thresholds = project_threshold_configs.count()
+    sentry_sdk.set_tag("project_threshold.count", num_project_thresholds)
+    sentry_sdk.set_tag(
+        "project_threshold.count.grouped",
+        format_grouped_length(num_project_thresholds, [10, 100, 250, 500]),
+    )
+
+    num_transaction_thresholds = transaction_threshold_configs.count()
+    sentry_sdk.set_tag("txn_threshold.count", num_transaction_thresholds)
+    sentry_sdk.set_tag(
+        "txn_threshold.count.grouped",
+        format_grouped_length(num_transaction_thresholds, [10, 100, 250, 500]),
+    )
+
+    if num_project_thresholds + num_transaction_thresholds == 0:
         return ["tuple", [f"'{DEFAULT_PROJECT_THRESHOLD_METRIC}'", DEFAULT_PROJECT_THRESHOLD]]
-    elif num_configured > MAX_QUERYABLE_TRANSACTION_THRESHOLDS:
+    elif num_project_thresholds + num_transaction_thresholds > MAX_QUERYABLE_TRANSACTION_THRESHOLDS:
         raise InvalidSearchQuery(
             f"Exceeded {MAX_QUERYABLE_TRANSACTION_THRESHOLDS} configured transaction thresholds limit, try with fewer Projects."
         )
 
-    return [
-        "if",
+    project_config_query = (
         [
+            "if",
             [
-                "equals",
                 [
+                    "equals",
                     [
-                        "indexOf",
                         [
+                            "indexOf",
                             [
-                                "array",
                                 [
-                                    ["toUInt64", [config["project_id"]]]
-                                    for config in threshold_configs
+                                    "array",
+                                    [
+                                        ["toUInt64", [config["project_id"]]]
+                                        for config in project_threshold_configs
+                                    ],
                                 ],
+                                "project_id",
                             ],
-                            "project_id",
                         ],
-                    ],
-                    0,
-                ],
-            ],
-            ["tuple", [f"'{DEFAULT_PROJECT_THRESHOLD_METRIC}'", DEFAULT_PROJECT_THRESHOLD]],
-            [
-                "arrayElement",
-                [
-                    [
-                        "array",
-                        [
-                            [
-                                "tuple",
-                                [
-                                    "'{}'".format(TRANSACTION_METRICS[config["metric"]]),
-                                    config["threshold"],
-                                ],
-                            ]
-                            for config in threshold_configs
-                        ],
-                    ],
-                    [
-                        "indexOf",
-                        [
-                            [
-                                "array",
-                                [
-                                    ["toUInt64", [config["project_id"]]]
-                                    for config in threshold_configs
-                                ],
-                            ],
-                            "project_id",
-                        ],
+                        0,
                     ],
                 ],
+                ["tuple", [f"'{DEFAULT_PROJECT_THRESHOLD_METRIC}'", DEFAULT_PROJECT_THRESHOLD]],
+                [
+                    "arrayElement",
+                    [
+                        [
+                            "array",
+                            [
+                                [
+                                    "tuple",
+                                    [
+                                        "'{}'".format(TRANSACTION_METRICS[config["metric"]]),
+                                        config["threshold"],
+                                    ],
+                                ]
+                                for config in project_threshold_configs
+                            ],
+                        ],
+                        [
+                            "indexOf",
+                            [
+                                [
+                                    "array",
+                                    [
+                                        ["toUInt64", [config["project_id"]]]
+                                        for config in project_threshold_configs
+                                    ],
+                                ],
+                                "project_id",
+                            ],
+                        ],
+                    ],
+                ],
             ],
-        ],
-    ]
+        ]
+        if project_threshold_configs
+        else ["tuple", [f"'{DEFAULT_PROJECT_THRESHOLD_METRIC}'", DEFAULT_PROJECT_THRESHOLD]]
+    )
+
+    if transaction_threshold_configs:
+        return [
+            "if",
+            [
+                [
+                    "equals",
+                    [
+                        [
+                            "indexOf",
+                            [
+                                [
+                                    "array",
+                                    [
+                                        [
+                                            "tuple",
+                                            [
+                                                ["toUInt64", [config["project_id"]]],
+                                                "'{}'".format(config["transaction"]),
+                                            ],
+                                        ]
+                                        for config in transaction_threshold_configs
+                                    ],
+                                ],
+                                ["tuple", ["project_id", "transaction"]],
+                            ],
+                        ],
+                        0,
+                    ],
+                ],
+                project_config_query,
+                [
+                    "arrayElement",
+                    [
+                        [
+                            "array",
+                            [
+                                [
+                                    "tuple",
+                                    [
+                                        "'{}'".format(TRANSACTION_METRICS[config["metric"]]),
+                                        config["threshold"],
+                                    ],
+                                ]
+                                for config in transaction_threshold_configs
+                            ],
+                        ],
+                        [
+                            "indexOf",
+                            [
+                                [
+                                    "array",
+                                    [
+                                        [
+                                            "tuple",
+                                            [
+                                                ["toUInt64", [config["project_id"]]],
+                                                "'{}'".format(config["transaction"]),
+                                            ],
+                                        ]
+                                        for config in transaction_threshold_configs
+                                    ],
+                                ],
+                                ["tuple", ["project_id", "transaction"]],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ]
+
+    return project_config_query
 
 
 def team_key_transaction_expression(organization_id, team_ids, project_ids):

@@ -1,5 +1,5 @@
 ---
-created: '2021-06-23T18:06:10.396888Z'
+created: '2021-06-30T16:44:00.537160Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -26,7 +26,7 @@ app-depth-1:
 --------------------------------------------------------------------------
 app-depth-2:
   hash: null
-  tree_label: "__init__ | _prefetch | __exit__"
+  tree_label: "__exit__ | _prefetch | __init__"
   component:
     app-depth-2 (custom fingerprint takes precedence)
       exception*
@@ -65,7 +65,7 @@ app-depth-2:
 --------------------------------------------------------------------------
 app-depth-3:
   hash: null
-  tree_label: "_get_chunked_blob | __init__ | _prefetch | __exit__ | shutdown"
+  tree_label: "shutdown | __exit__ | _prefetch | __init__ | _get_chunked_blob"
   component:
     app-depth-3 (custom fingerprint takes precedence)
       exception*
@@ -122,7 +122,7 @@ app-depth-3:
 --------------------------------------------------------------------------
 app-depth-4:
   hash: null
-  tree_label: "save_to | _get_chunked_blob | __init__ | _prefetch | __exit__ | shutdown | join"
+  tree_label: "join | shutdown | __exit__ | _prefetch | __init__ | _get_chunked_blob | save_to"
   component:
     app-depth-4 (custom fingerprint takes precedence)
       exception*
@@ -197,7 +197,7 @@ app-depth-4:
 --------------------------------------------------------------------------
 app-depth-5:
   hash: null
-  tree_label: "_load_cachefiles_via_fs | save_to | _get_chunked_blob | __init__ | _prefetch | __exit__ | shutdown | join | wait"
+  tree_label: "wait | join | shutdown | __exit__ | _prefetch | __init__ | _get_chunked_blob | save_to | _load_cachefiles_via_fs"
   component:
     app-depth-5 (custom fingerprint takes precedence)
       exception*
@@ -290,7 +290,7 @@ app-depth-5:
 --------------------------------------------------------------------------
 app-depth-max:
   hash: null
-  tree_label: "<entire stacktrace>"
+  tree_label: "soft_timeout_sighandler | wait | join | shutdown | __exit__ | _prefetch | __init__ | _get_chunked_blob | save_to | _load_cachefiles_via_fs | get_symcaches | __init__ | preprocess_step | process_stacktraces | _do_process_event | process_event | _wrapped"
   component:
     app-depth-max (custom fingerprint takes precedence)
       exception*
@@ -460,7 +460,7 @@ custom-fingerprint:
 --------------------------------------------------------------------------
 system:
   hash: null
-  tree_label: "<entire stacktrace>"
+  tree_label: "soft_timeout_sighandler | wait | join | shutdown | __exit__ | _prefetch | __init__ | _get_chunked_blob | save_to | _load_cachefiles_via_fs | get_symcaches | __init__ | preprocess_step | process_stacktraces | _do_process_event | process_event | _wrapped"
   component:
     system (custom fingerprint takes precedence)
       exception*

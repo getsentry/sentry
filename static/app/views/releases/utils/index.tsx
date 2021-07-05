@@ -99,14 +99,11 @@ export function releaseDisplayLabel(displayOption: DisplayOption, count?: number
 export type ReleaseBounds = {releaseStart?: string | null; releaseEnd?: string | null};
 
 export function getReleaseBounds(release?: Release): ReleaseBounds {
-  const {firstEvent, lastEvent, currentProjectMeta, dateCreated} = release || {};
-  const {sessionsLowerBound, sessionsUpperBound} = currentProjectMeta || {};
+  const {lastEvent, currentProjectMeta, dateCreated} = release || {};
+  const {sessionsUpperBound} = currentProjectMeta || {};
 
   return {
-    releaseStart:
-      (moment(sessionsLowerBound).isBefore(firstEvent)
-        ? sessionsLowerBound
-        : firstEvent) ?? dateCreated,
+    releaseStart: dateCreated,
     releaseEnd:
       (moment(sessionsUpperBound).isAfter(lastEvent) ? sessionsUpperBound : lastEvent) ??
       moment().utc().format(),
