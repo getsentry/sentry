@@ -1176,7 +1176,7 @@ function routes() {
                 <Route
                   path=":ruleId/"
                   name="Edit Alert Rule"
-                  componentPromise={() => import('app/views/settings/projectAlerts/edit')}
+                  componentPromise={() => import('app/views/alerts/edit')}
                   component={errorHandler(LazyLoad)}
                 />
               </Route>
@@ -1195,7 +1195,7 @@ function routes() {
                 <Route
                   path=":ruleId/"
                   name="Edit Alert Rule"
-                  componentPromise={() => import('app/views/settings/projectAlerts/edit')}
+                  componentPromise={() => import('app/views/alerts/edit')}
                   component={errorHandler(LazyLoad)}
                 />
               </Route>
@@ -1222,7 +1222,7 @@ function routes() {
                 path="new/"
                 name="New Alert Rule"
                 component={errorHandler(LazyLoad)}
-                componentPromise={() => import('app/views/settings/projectAlerts/create')}
+                componentPromise={() => import('app/views/alerts/create')}
               />
               <Route
                 path="wizard/"

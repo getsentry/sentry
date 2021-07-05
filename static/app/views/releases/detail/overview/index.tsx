@@ -463,6 +463,7 @@ class ReleaseOverview extends AsyncView<Props> {
                               defaultPeriod={RELEASE_PERIOD_KEY}
                             />
                             <ReleaseComparisonChart
+                              release={release}
                               releaseSessions={thisRelease}
                               allSessions={allReleases}
                               platform={project.platform}
@@ -470,6 +471,7 @@ class ReleaseOverview extends AsyncView<Props> {
                               loading={loading}
                               reloading={reloading}
                               errored={errored}
+                              project={project}
                             />
                           </Fragment>
                         ) : (

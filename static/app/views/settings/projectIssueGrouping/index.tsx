@@ -73,7 +73,7 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
             `All events have a fingerprint. Events with the same fingerprint are grouped together into an issue. To learn more about issue grouping, [link: read the docs].`,
             {
               link: (
-                <ExternalLink href="https://docs.sentry.io/platform-redirect/?next=%2Fdata-management%2Fevent-grouping%2F" />
+                <ExternalLink href="https://docs.sentry.io/product/data-management-settings/event-grouping/" />
               ),
             }
           )}
