@@ -6,7 +6,7 @@ import color from 'color';
 import * as PopperJS from 'popper.js';
 
 import {IconEllipsis} from 'app/icons';
-import {t} from 'app/locale';
+import {t, tct} from 'app/locale';
 import space from 'app/styles/space';
 import {TableDataRow} from 'app/utils/discover/discoverQuery';
 import {
@@ -339,7 +339,9 @@ class CellAction extends React.Component<Props, State> {
           data-test-id="edit-threshold"
           onClick={() => handleCellAction(Actions.EDIT_THRESHOLD, value)}
         >
-          {t('Edit threshold')}
+          {tct('Edit threshold ([threshold]ms)', {
+            threshold: dataRow.project_threshold_config[1],
+          })}
         </ActionItem>
       );
     }
