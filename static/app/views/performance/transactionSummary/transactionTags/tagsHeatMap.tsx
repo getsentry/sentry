@@ -70,18 +70,13 @@ class VirtualReference {
     return this.getBoundingClientRect().height;
   }
 }
-const getPortal = memoize((usesGlobalPortal): HTMLElement => {
-  if (usesGlobalPortal) {
-    let portal = document.getElementById('heatmap-portal');
-    if (!portal) {
-      portal = document.createElement('div');
-      portal.setAttribute('id', 'heatmap-portal');
-      document.body.appendChild(portal);
-    }
-    return portal;
+const getPortal = memoize((): HTMLElement => {
+  let portal = document.getElementById('heatmap-portal');
+  if (!portal) {
+    portal = document.createElement('div');
+    portal.setAttribute('id', 'heatmap-portal');
+    document.body.appendChild(portal);
   }
-  const portal = document.createElement('div');
-  document.body.appendChild(portal);
   return portal;
 });
 
@@ -377,7 +372,7 @@ const TagsHeatMap = (
                       </Popper>
                     ) : null}
                   </div>,
-                  getPortal(true)
+                  getPortal()
                 )}
 
                 <HeatMapChart
