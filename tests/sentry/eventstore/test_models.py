@@ -244,6 +244,10 @@ class EventTest(TestCase):
         assert not event_from_nodestore.group
 
     def test_grouping_reset(self):
+        """
+        Regression test against a specific mutability bug involving grouping,
+        stacktrace normalization and memoized interfaces
+        """
         event_data = {
             "exception": {
                 "values": [
