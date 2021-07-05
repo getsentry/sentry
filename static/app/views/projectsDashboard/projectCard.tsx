@@ -383,8 +383,8 @@ const ReleaseTitle = styled('span')`
 
 const LoadingCard = styled('div')`
   border: 1px solid transparent;
-  background-color: ${p => p.theme.backgroundSecondary};
-  height: 334px;
+  background-color: ${p => p.theme.background};
+  height: 330px;
 `;
 
 const StyledIdBadge = styled(IdBadge)`
