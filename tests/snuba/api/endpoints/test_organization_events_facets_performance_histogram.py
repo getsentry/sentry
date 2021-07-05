@@ -107,12 +107,51 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(SnubaTestCase, AP
         )
         assert error_response.status_code == 404
 
+    def test_tag_key_limit_error(self):
+        request = {
+            "aggregateColumn": "transaction.duration",
+            "sort": "-frequency",
+            "per_page": 5,
+            "statsPeriod": "14d",
+            "query": "(color:red or color:blue)",
+        }
+        # With feature access, no tag key
+        error_response = self.do_request(
+            request, feature_list=self.feature_list + ("organizations:performance-tag-page",)
+        )
+
+        assert error_response.status_code == 400, error_response.content
+        assert error_response.data == {
+            "detail": "'tagKeyLimit' must be provided for the performance histogram."
+        }
+
+    def test_num_buckets_error(self):
+        request = {
+            "aggregateColumn": "transaction.duration",
+            "sort": "-frequency",
+            "per_page": 5,
+            "statsPeriod": "14d",
+            "query": "(color:red or color:blue)",
+            "tagKeyLimit": 5,
+        }
+        # With feature access, no tag key
+        error_response = self.do_request(
+            request, feature_list=self.feature_list + ("organizations:performance-tag-page",)
+        )
+
+        assert error_response.status_code == 400, error_response.content
+        assert error_response.data == {
+            "detail": "'numBucketsPerKey' must be provided for the performance histogram."
+        }
+
     def test_tag_key_histograms(self):
         request = {
             "aggregateColumn": "transaction.duration",
             "sort": "-frequency",
             "per_page": 5,
             "statsPeriod": "14d",
+            "tagKeyLimit": 10,
+            "numBucketsPerKey": 10,
             "query": "(color:red or color:blue)",
         }
         # With feature access, no tag key
@@ -139,3 +178,48 @@ class OrganizationEventsFacetsPerformanceHistogramEndpointTest(SnubaTestCase, AP
         assert histogram_data[1]["histogram_transaction_duration_50000_1000000_1"] == 4000000.0
         assert histogram_data[1]["tags_value"] == "blue"
         assert histogram_data[1]["tags_key"] == "color"
+
+    def test_tag_key_histogram_buckets(self):
+        request = {
+            "aggregateColumn": "transaction.duration",
+            "sort": "-frequency",
+            "per_page": 5,
+            "statsPeriod": "14d",
+            "tagKeyLimit": 1,
+            "numBucketsPerKey": 1,
+            "tagKey": "color",
+            "query": "(color:red or color:blue or color:green)",
+        }
+
+        data_response = self.do_request(
+            request, feature_list=self.feature_list + ("organizations:performance-tag-page",)
+        )
+
+        histogram_data = data_response.data["data"]
+        assert len(histogram_data) == 1
+        assert histogram_data[0]["count"] == 14
+        assert histogram_data[0]["histogram_transaction_duration_5000000_0_1"] == 0.0
+        assert histogram_data[0]["tags_value"] == "red"
+        assert histogram_data[0]["tags_key"] == "color"
+
+        request["tagKeyLimit"] = 3
+        data_response = self.do_request(
+            request, feature_list=self.feature_list + ("organizations:performance-tag-page",)
+        )
+
+        histogram_data = data_response.data["data"]
+        assert len(histogram_data) == 3
+        assert histogram_data[0]["count"] == 14
+        assert histogram_data[0]["histogram_transaction_duration_2000000_0_1"] == 0.0
+        assert histogram_data[0]["tags_value"] == "red"
+        assert histogram_data[0]["tags_key"] == "color"
+
+        assert histogram_data[1]["count"] == 1
+        assert histogram_data[1]["histogram_transaction_duration_2000000_0_1"] == 4000000.0
+        assert histogram_data[1]["tags_value"] == "green"
+        assert histogram_data[1]["tags_key"] == "color"
+
+        assert histogram_data[2]["count"] == 5
+        assert histogram_data[2]["histogram_transaction_duration_2000000_0_1"] == 4000000.0
+        assert histogram_data[2]["tags_value"] == "blue"
+        assert histogram_data[2]["tags_key"] == "color"
