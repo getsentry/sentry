@@ -1,6 +1,7 @@
 import {Location} from 'history';
 import pick from 'lodash/pick';
 
+import MarkLine from 'app/components/charts/components/markLine';
 import {URL_PARAM} from 'app/constants/globalSelectionHeader';
 import {t} from 'app/locale';
 import {
@@ -14,6 +15,7 @@ import {
 } from 'app/types';
 import {getUtcDateString} from 'app/utils/dates';
 import EventView from 'app/utils/discover/eventView';
+import {Theme} from 'app/utils/theme';
 import {QueryResults} from 'app/utils/tokenizeSearch';
 
 import {commonTermsDescription, SessionTerm} from '../utils/sessionTerm';
@@ -152,3 +154,26 @@ export const releaseComparisonChartHelp = {
   ),
   [ReleaseComparisonChartType.USER_COUNT]: t('The number of users in a given period.'),
 };
+
+export function generateReleaseMarkLine(title: string, position: number, theme: Theme) {
+  return {
+    seriesName: title,
+    type: 'line',
+    data: [],
+    markLine: MarkLine({
+      silent: true,
+      lineStyle: {color: theme.gray300, type: 'solid'},
+      label: {
+        position: 'insideEndBottom',
+        formatter: title,
+        font: 'Rubik',
+        fontSize: 11,
+      } as any, // TODO(ts): weird echart types,
+      data: [
+        {
+          xAxis: position,
+        },
+      ] as any, // TODO(ts): weird echart types
+    }),
+  };
+}
