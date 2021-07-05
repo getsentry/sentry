@@ -33,7 +33,7 @@ class Migration(migrations.Migration):
             database_operations=[
                 migrations.RunSQL(
                     """
-                    CREATE UNIQUE INDEX CONCURRENTLY  "sentry_groupedmessage_project_id_id_515aaa7e_uniq" ON "sentry_groupedmessage" ("project_id", "id");
+                    CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS "sentry_groupedmessage_project_id_id_515aaa7e_uniq" ON "sentry_groupedmessage" ("project_id", "id");
                     """,
                     reverse_sql="""
                     DROP INDEX CONCURRENTLY IF EXISTS sentry_groupedmessage_project_id_id_515aaa7e_uniq;
