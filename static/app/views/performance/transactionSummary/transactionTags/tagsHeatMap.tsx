@@ -321,7 +321,7 @@ const TagsHeatMap = (
                                 eventView={transactionEventView}
                                 orgSlug={organization.slug}
                                 limit={3}
-                                referrer="api.performance.tag-page.heat-map"
+                                referrer="api.performance.tag-page"
                               >
                                 {({
                                   isLoading: isTransactionsLoading,
